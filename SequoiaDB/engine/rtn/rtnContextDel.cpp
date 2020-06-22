@@ -860,7 +860,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 rcNew = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCTXRENAMECS_OPEN ) ;
+
       rtnLTRename *pRenameTask = NULL ;
+      utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
 
       /// check cs name
       SDB_ASSERT( pCSName, "cs name can't be null!" );
@@ -881,7 +883,7 @@ namespace engine
       ossStrncpy( _newName, pNewCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
 
       /// test collection space exist
-      rc = rtnTestCollectionSpaceCommand( pCSName, _pDmsCB ) ;
+      rc = rtnTestCollectionSpaceCommand( pCSName, _pDmsCB, NULL, &csUniqueID ) ;
 
       rcNew = rtnTestCollectionSpaceCommand( pNewCSName, _pDmsCB ) ;
 
@@ -911,6 +913,15 @@ namespace engine
          rc = SDB_DMS_CS_EXIST ;
          PD_LOG( PDERROR, "Collection space[%s] already exists, rc: %d",
                  pNewCSName, rc ) ;
+         goto error ;
+      }
+
+      if ( UTIL_UNIQUEID_NULL == csUniqueID )
+      {
+         rc = SDB_DMS_UNQIUEID_UPGRADE ;
+         PD_LOG( PDERROR, "Rename cs[%s] not ready: "
+                 "upgrade for unique id is not finished, rc: %d",
+                 pCSName, rc ) ;
          goto error ;
       }
 
@@ -1320,6 +1331,7 @@ namespace engine
 
       CHAR newCLFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
       rtnLTRename *pRenameTask = NULL ;
+      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
       /// set w info
       _w = w ;
@@ -1355,7 +1367,7 @@ namespace engine
                    "%s.%s", csName, newCLShortName ) ;
 
       /// test collection space exist
-      rc = rtnTestCollectionCommand( _clFullName, _pDmsCB ) ;
+      rc = rtnTestCollectionCommand( _clFullName, _pDmsCB, NULL, &clUniqueID ) ;
 
       rcNew = rtnTestCollectionCommand( newCLFullName, _pDmsCB ) ;
 
@@ -1381,6 +1393,15 @@ namespace engine
          rc = SDB_DMS_EXIST ;
          PD_LOG( PDERROR, "Collection[%s] already exists, rc: %d",
                  newCLFullName, rc ) ;
+         goto error ;
+      }
+
+      if ( UTIL_UNIQUEID_NULL == clUniqueID )
+      {
+         rc = SDB_DMS_UNQIUEID_UPGRADE ;
+         PD_LOG( PDERROR, "Rename cl[%s] not ready: "
+                 "upgrade for unique id is not finished, rc: %d",
+                 _clFullName, rc ) ;
          goto error ;
       }
 

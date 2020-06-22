@@ -2036,6 +2036,13 @@ namespace engine
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "not recoverd from crash", sessionName() ) ;
       }
+      /// 5. unique id upgrade is not finished
+      else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
+      {
+         rc = SDB_DMS_UNQIUEID_UPGRADE ;
+         PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "
+                 "is not finished", sessionName() ) ;
+      }
 
       return rc ;
    }
@@ -3214,6 +3221,13 @@ namespace engine
          rc = SDB_RTN_IN_REBUILD ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "not recovered from crash", sessionName() ) ;
+      }
+      /// 5. unique id upgrade is not finished
+      else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
+      {
+         rc = SDB_DMS_UNQIUEID_UPGRADE ;
+         PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "
+                 "is not finished", sessionName() ) ;
       }
 
       return rc ;

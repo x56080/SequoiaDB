@@ -97,6 +97,7 @@ namespace engine
          BOOLEAN        isActivated() const { return _activated ; }
          BOOLEAN        isReadonly() const { return _readonly ; }
 
+         BOOLEAN        hasCSUniqueHWM() const { return _hasCsUniqueHWM ; }
          utilCSUniqueID getCSUniqueHWM() const { return _csUniqueHWM ; }
 
          const CHAR*    getClusterName() const ;
@@ -134,6 +135,7 @@ namespace engine
          string         _address ;
          BOOLEAN        _activated ;
          BOOLEAN        _readonly ;
+         BOOLEAN        _hasCsUniqueHWM ;
          utilCSUniqueID _csUniqueHWM ;
 
          string         _imageClusterName ;

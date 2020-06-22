@@ -1416,6 +1416,15 @@ namespace engine
          goto error ;
       }
 
+      if ( UTIL_CLUNIQUEID_LOCAL == clUniqueID )
+      {
+         if ( UTIL_CSUNIQUEID_LOCAL != su->CSUniqueID() )
+         {
+            clUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
+                                              UTIL_CLINNERID_LOCAL ) ;
+         }
+      }
+
       rc = su->data()->addCollection ( pCollectionShortName, &collectionID,
                                        clUniqueID, attributes, cb,
                                        dpsCB, 0, sysCall,
@@ -2105,7 +2114,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCSCOMMAND, "rtnTestCollectionSpaceCommand" )
    INT32 rtnTestCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          SDB_DMSCB *dmsCB,
-                                         utilCSUniqueID *pCsUniqueID )
+                                         utilCSUniqueID *pCsUniqueID,
+                                         utilCSUniqueID *pCurCsUniqueID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTESTCSCOMMAND ) ;
@@ -2113,6 +2123,7 @@ namespace engine
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
+      utilCSUniqueID curCsUniqueID = UTIL_UNIQUEID_NULL ;
 
       if ( 0 == ossStrcmp( pCollectionSpace, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS ) )
       {
@@ -2125,10 +2136,10 @@ namespace engine
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
       }
+      curCsUniqueID = su->CSUniqueID() ;
 
       if ( pCsUniqueID )
       {
-         utilCSUniqueID curCsUniqueID = su->CSUniqueID() ;
          if ( curCsUniqueID != *pCsUniqueID )
          {
             if ( UTIL_IS_VALID_CSUNIQUEID( curCsUniqueID ) &&
@@ -2140,9 +2151,9 @@ namespace engine
             {
                rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
             }
-            PD_LOG ( PDERROR,
-                     "CS[%u] unique id error, expect: %u, rc: %d",
-                     curCsUniqueID, *pCsUniqueID, rc ) ;
+            PD_LOG ( PDERROR, "Collection space[%s]'s cs unique id error, "
+                     "expect: %u, actual: %u, rc: %d",
+                     pCollectionSpace, *pCsUniqueID, curCsUniqueID, rc ) ;
             goto error ;
          }
       }
@@ -2151,6 +2162,10 @@ namespace engine
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( NULL != pCurCsUniqueID )
+      {
+         *pCurCsUniqueID = curCsUniqueID ;
       }
       PD_TRACE_EXITRC ( SDB_RTNTESTCSCOMMAND, rc ) ;
       return rc ;
@@ -2292,7 +2307,7 @@ namespace engine
                rc = SDB_DMS_UNIQUEID_CONFLICT ;
             }
             PD_LOG ( PDERROR, "Collection[%s]'s cl unique id error, "
-                     "expect: %u, actual: %u, rc: %d",
+                     "expect: %llu, actual: %llu, rc: %d",
                      pCollection, *pClUniqueID, curClUniqueID, rc ) ;
             goto error ;
          }
@@ -2435,7 +2450,7 @@ namespace engine
                             const BSONObj& clInfoObj,
                             pmdEDUCB* cb,
                             SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull )
+                            BOOLEAN isLoadCS )
    {
       PD_TRACE_ENTRY( SDB_RTNCHGUID ) ;
       INT32 rc = SDB_OK ;
@@ -2446,7 +2461,7 @@ namespace engine
       writable = TRUE ;
 
       rc = dmsCB->changeUniqueID( csName, csUniqueID, clInfoObj,
-                                  cb, dpsCB, setOnlyIfNull ) ;
+                                  cb, dpsCB, isLoadCS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to change unique id, rc: %d", rc ) ;
 
    done :

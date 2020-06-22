@@ -1139,7 +1139,7 @@ namespace engine
             if ( SDB_ROLE_DATA == pmdGetDBRole() &&
                  pDmsCB->nullCSUniqueIDCnt() > 0 )
             {
-               startUniqueIDCheckJob( NULL ) ;
+               startUniqueIDCheckJob() ;
             }
 
             // start query task

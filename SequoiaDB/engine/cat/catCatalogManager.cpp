@@ -931,13 +931,10 @@ namespace engine
       }
 
       // set cs uniqueid hwm in finally
-      if ( csUniqueHWM != 0 )
-      {
-         rc = catSetCSUniqueHWM( _pEduCB, _majoritySize(), csUniqueHWM ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to set cs unqiue id high water mask, rc: %d",
-                      rc ) ;
-      }
+      rc = catSetCSUniqueHWM( _pEduCB, _majoritySize(), csUniqueHWM ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to set cs unqiue id high water mask, rc: %d",
+                   rc ) ;
 
    done:
       if ( -1 != contextID )

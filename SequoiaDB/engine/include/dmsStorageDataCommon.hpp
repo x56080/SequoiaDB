@@ -905,8 +905,8 @@ namespace engine
                                         dmsMBContext *context = NULL ) ;
 
          INT32 changeCLUniqueID( const MAP_CLNAME_ID& clInfo,
-                                 BOOLEAN setOnlyIfNull = TRUE,
-                                 BOOLEAN resetOtherCl = FALSE ) ;
+                                 utilCSUniqueID csUniqueID,
+                                 BOOLEAN isLoadCS = FALSE ) ;
 
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,

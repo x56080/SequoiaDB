@@ -41,33 +41,14 @@
 namespace engine
 {
 
-   // outpu: BSONObj
-   // [
-   //    { "Name": "bar1", "UniqueID": 0 } ,
-   //    { "Name": "bar2", "UniqueID": 0 }
-   // ]
-   static BSONObj clsSetUniqueID( const MON_CL_SIM_VEC& clVector, utilCLUniqueID setValue )
-   {
-      BSONArrayBuilder arrBuilder ;
-
-      for ( MON_CL_SIM_VEC::const_iterator iter = clVector.begin() ;
-            iter != clVector.end() ;
-            ++ iter )
-      {
-         arrBuilder << BSON( FIELD_NAME_NAME << iter->_clname
-                    << FIELD_NAME_UNIQUEID << (INT64)setValue ) ;
-      }
-
-      return arrBuilder.arr() ;
-   }
-
    #define CLS_UNIQUEID_CHECK_INTERVAL ( OSS_ONE_SEC * 3 )
 
    /*
     *  _clsUniqueIDCheckJob implement
     */
-   _clsUniqueIDCheckJob::_clsUniqueIDCheckJob()
+   _clsUniqueIDCheckJob::_clsUniqueIDCheckJob( BOOLEAN needPrimary )
    {
+      _needPrimary = needPrimary ;
    }
 
    _clsUniqueIDCheckJob::~_clsUniqueIDCheckJob()
@@ -92,7 +73,7 @@ namespace engine
       pmdEDUCB *cb = eduCB() ;
       pmdKRCB* pKrcb = pmdGetKRCB() ;
       SDB_DMSCB *pDmsCB = pKrcb->getDMSCB() ;
-      SDB_DPSCB *pDpsCB = pKrcb->getDPSCB() ;
+      SDB_DPSCB *pDpsCB = _needPrimary ? pKrcb->getDPSCB() : NULL ;
       shardCB* pShdMgr = sdbGetShardCB() ;
       clsDCMgr* pDcMgr = pShdMgr->getDCMgr() ;
       UINT64 loopCnt = 0 ;
@@ -103,9 +84,13 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN() &&
               !cb->isForced() &&
-              pmdIsPrimary() &&
               pDmsCB->nullCSUniqueIDCnt() > 0 )
       {
+         if ( _needPrimary && !pmdIsPrimary() )
+         {
+            break ;
+         }
+
          /*
           * Before any one is found in the queue, the status of this thread is
           * wait. Once found, it will be changed to running.
@@ -129,7 +114,7 @@ namespace engine
             }
 
             clsDCBaseInfo* pDcInfo = pDcMgr->getDCBaseInfo() ;
-            if ( UTIL_UNIQUEID_NULL == pDcInfo->getCSUniqueHWM() )
+            if ( !pDcInfo->hasCSUniqueHWM() )
             {
                continue ;
             }
@@ -154,7 +139,7 @@ namespace engine
 
             if ( PMD_IS_DB_DOWN() ||
                  cb->isForced() ||
-                 !pmdIsPrimary() )
+                 ( _needPrimary && !pmdIsPrimary() ) )
             {
                break ;
             }
@@ -183,8 +168,7 @@ namespace engine
             if ( SDB_DMS_CS_NOTEXIST == rc )
             {
                rc = rtnChangeUniqueID( cs._name, UTIL_CSUNIQUEID_LOCAL,
-                                       clsSetUniqueID( cs._collections,
-                                                       UTIL_CLUNIQUEID_LOCAL ),
+                                       BSONObj(),
                                        cb, pDmsCB, pDpsCB ) ;
             }
             else
@@ -213,14 +197,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTUIDCHKJOB, "startUniqueIDCheckJob" )
-   INT32 startUniqueIDCheckJob ( EDUID* pEDUID )
+   INT32 startUniqueIDCheckJob ( BOOLEAN needPrimary, EDUID* pEDUID )
    {
       PD_TRACE_ENTRY( SDB_STARTUIDCHKJOB ) ;
 
       INT32 rc = SDB_OK ;
       clsUniqueIDCheckJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW clsUniqueIDCheckJob() ;
+      pJob = SDB_OSS_NEW clsUniqueIDCheckJob( needPrimary ) ;
       if ( !pJob )
       {
          rc = SDB_OOM ;
@@ -238,7 +222,7 @@ namespace engine
 
    #define CLS_RENAME_RETRY_TIME             ( 3 * OSS_ONE_SEC )
    #define CLS_RENAME_PRIMARY_TIMEOUT        ( 5 * OSS_ONE_SEC )
-   #define CLS_NAME_CHECK_PRIMARY_INTERVAL   ( 100 )  
+   #define CLS_NAME_CHECK_PRIMARY_INTERVAL   ( 100 )
    /*
       _clsRenameCheckJob implement
    */

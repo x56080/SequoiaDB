@@ -54,30 +54,32 @@ namespace engine
    #define UTIL_CLINNERID_MAX        0xFFFFFF00
 
    /// Before version 3.0.1, cs/cl has not its unique id. After the upgrade
-   /// to version 3.0.1, unique id will be set. But if the cs only exists
+   /// to version 3.0.1+, unique id will be set. But if the cs only exists
    /// on data, doesn't exists on catalog, the unique id will be 0xFFFFFFFF.
-   /// While if cl only exists on data, doesn't exists on catalog, the unique
-   /// id will be 0. In addition, system cs/cl unique id also is 0.
+   /// While if cl only exists on data, doesn't exists on catalog, the cl inner
+   /// id will be 0. In addition, system cs/cl unique id is 0.
    #define UTIL_UNIQUEID_NULL        0
 
    /// Directly connect data node, then create cs/cl
    #define UTIL_CSUNIQUEID_LOCAL     0xFFFFFFFF
+   #define UTIL_CLINNERID_LOCAL      0xFFFFFFFF
    #define UTIL_CLUNIQUEID_LOCAL     0xFFFFFFFFFFFFFFFF
 
    /// coord.loadCS(), if the cl of loaded cs does not exist in the catalog,
-   /// it will set to UTIL_CLUNIQUEID_LOADCS
+   /// the cl inner id will be 0xFFFFFFFE.
    #define UTIL_CSUNIQUEID_LOADCS    0xFFFFFFFE
-   #define UTIL_CLUNIQUEID_LOADCS    0xFFFFFFFEFFFFFFFE
+   #define UTIL_CLINNERID_LOADCS     0xFFFFFFFE
 
 
    #define UTIL_IS_VALID_CSUNIQUEID( id )      \
-      ( ( id != UTIL_UNIQUEID_NULL ) &&     \
-        ( id != UTIL_CSUNIQUEID_LOCAL ) )
+      ( ( id != UTIL_UNIQUEID_NULL ) &&        \
+        ( id != UTIL_CSUNIQUEID_LOCAL ) &&     \
+        ( id != UTIL_CSUNIQUEID_LOADCS ) )
 
-   #define UTIL_IS_VALID_CLUNIQUEID( id )      \
-      ( ( id != UTIL_UNIQUEID_NULL ) &&     \
-        ( id != UTIL_CLUNIQUEID_LOCAL )   &&     \
-        ( id != UTIL_CLUNIQUEID_LOADCS ) )
+   #define UTIL_IS_VALID_CLUNIQUEID( id )                       \
+      ( ( utilGetCLInnerID( id ) != UTIL_UNIQUEID_NULL ) &&     \
+        ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOCAL ) &&   \
+        ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOADCS ) )
 
    OSS_INLINE utilCSUniqueID utilGetCSUniqueID( utilCLUniqueID clUniqueID )
    {

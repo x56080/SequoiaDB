@@ -340,18 +340,14 @@ namespace engine
                       OSS_LATCH_MODE lockType = SHARED ) ;
 
       INT32 changeCSUniqueID( _dmsStorageUnit* su,
-                              utilCSUniqueID csUniqueID,
-                              pmdEDUCB* cb,
-                              SDB_DPSCB* dpsCB,
-                              BOOLEAN setOnlyIfNull = TRUE ) ;
+                              utilCSUniqueID csUniqueID ) ;
 
       INT32 changeUniqueID( const CHAR* csname,
                             utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj,
                             pmdEDUCB* cb,
                             SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull = TRUE,
-                            BOOLEAN resetOtherCl = FALSE ) ;
+                            BOOLEAN isLoadCS = FALSE ) ;
 
       INT32 addCollectionSpace ( const CHAR *pName, UINT32 topSequence,
                                  _dmsStorageUnit *su, _pmdEDUCB *cb,

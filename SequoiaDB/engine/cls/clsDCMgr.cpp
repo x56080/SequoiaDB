@@ -70,6 +70,7 @@ namespace engine
       _imageIsEnabled = FALSE ;
       _activated = TRUE ;
       _readonly = FALSE ;
+      _hasCsUniqueHWM = FALSE ;
       _csUniqueHWM = 0 ;
 
       _orgObj = BSONObj() ;
@@ -148,13 +149,21 @@ namespace engine
       }
 
       e = obj.getField( FIELD_NAME_CSUNIQUEHWM ) ;
-      if ( e.isNumber() )
+      if ( e.eoo() )
       {
-         _csUniqueHWM = (utilCSUniqueID)e.numberInt() ;
+         _hasCsUniqueHWM = FALSE ;
       }
-      else if ( !e.eoo() )
+      else
       {
-         goto error ;
+         if ( e.isNumber() )
+         {
+            _hasCsUniqueHWM = TRUE ;
+            _csUniqueHWM = (utilCSUniqueID)e.numberInt() ;
+         }
+         else
+         {
+            goto error ;
+         }
       }
 
       e = obj.getField( FIELD_NAME_IMAGE ) ;

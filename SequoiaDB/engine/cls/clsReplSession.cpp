@@ -38,6 +38,7 @@
 #include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+#include "clsUniqueIDCheckJob.hpp"
 
 namespace engine
 {
@@ -771,6 +772,20 @@ namespace engine
 
          if ( _addFSSession.compareAndSwap( 0, 1 ) )
          {
+            // check unique id has been upgrade before full sync
+            if ( sdbGetDMSCB()->nullCSUniqueIDCnt() > 0 )
+            {
+               clsUniqueIDCheckJob job( FALSE ) ;
+               job.doit() ;
+
+               UINT32 csCnt = sdbGetDMSCB()->nullCSUniqueIDCnt() ;
+               if ( csCnt > 0 )
+               {
+                  PD_LOG( PDWARNING, "There are still %u collection spaces "
+                          "not upgraded for unique id", csCnt ) ;
+               }
+            }
+
             pClsCB->startInnerSession( CLS_REPL, CLS_TID_REPL_FS_SYC ) ;
             PD_LOG( PDEVENT, "Session[%s]: Start the synchronization of full",
                     sessionName() ) ;
@@ -1401,7 +1416,7 @@ namespace engine
          res.header.res = SDB_CLS_CONSULT_FAILED ;
          goto done ;
       }
-      /// remote version 
+      /// remote version
       else if ( 0 < fLsn.compare( msg->current ) )
       {
          res.header.res = SDB_CLS_CONSULT_FAILED ;

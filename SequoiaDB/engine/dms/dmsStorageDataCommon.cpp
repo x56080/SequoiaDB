@@ -2737,10 +2737,11 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACOMMON_CHGUID, "_dmsStorageDataCommon::changeCLUniqueID" )
    INT32 _dmsStorageDataCommon::changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
-                                                  BOOLEAN setOnlyIfNull,
-                                                  BOOLEAN resetOtherCl )
+                                                  utilCSUniqueID csUniqueID,
+                                                  BOOLEAN isLoadCS )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
+      BOOLEAN hasChanged = FALSE ;
 
       ossScopedLock lock( &_metadataLatch, EXCLUSIVE ) ;
 
@@ -2765,22 +2766,15 @@ namespace engine
          }
          else
          {
-            if ( resetOtherCl )
+            if ( isLoadCS )
             {
-               newClUniqueID = UTIL_CLUNIQUEID_LOADCS ;
+               newClUniqueID = utilBuildCLUniqueID( csUniqueID,
+                                                    UTIL_CLINNERID_LOADCS );
             }
             else
             {
-               continue ;
-            }
-         }
-
-         if ( setOnlyIfNull )
-         {
-            // set new unique id only if current id is 0
-            if ( UTIL_UNIQUEID_NULL != orgClUniqueID )
-            {
-               continue ;
+               utilCLInnerID orgInnerID = utilGetCLInnerID( orgClUniqueID ) ;
+               newClUniqueID = utilBuildCLUniqueID( csUniqueID, orgInnerID ) ;
             }
          }
 
@@ -2789,6 +2783,7 @@ namespace engine
          {
             continue ;
          }
+         hasChanged = TRUE ;
 
          // set new unique id
          _dmsMME->_mbList[mbID]._clUniqueID = newClUniqueID ;
@@ -2796,13 +2791,17 @@ namespace engine
          _collectionRemove ( clName.c_str(), orgClUniqueID ) ;
          _collectionInsert ( clName.c_str(), mbID, newClUniqueID ) ;
 
-         PD_LOG( PDDEBUG,
-                 "Change cl[%s] unique id, org: %llu, new: %llu",
-                 clName.c_str(), orgClUniqueID, newClUniqueID ) ;
+         PD_LOG( PDEVENT,
+                 "Change cl[%s.%s] unique id from [%llu] to [%llu]",
+                 _dmsHeader->_name, clName.c_str(),
+                 orgClUniqueID, newClUniqueID ) ;
 
       }
 
-      flushMME( isSyncDeep() ) ;
+      if ( hasChanged )
+      {
+         flushMME( isSyncDeep() ) ;
+      }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON_CHGUID ) ;
       return SDB_OK ;

@@ -995,7 +995,7 @@ namespace engine
       if ( rc )
       {
          pmdIncErrNum( rc ) ;
-      
+
          if ( eduCB()->isWritingDB() )
          {
             ftReportErr( rc ) ;
@@ -5907,53 +5907,109 @@ namespace engine
                                                       utilCLUniqueID clUniqueID )
    {
       INT32 rc = SDB_OK ;
-
+      INT32 rcTmp = SDB_OK ;
       utilCLUniqueID curClUniqueID = UTIL_UNIQUEID_NULL ;
-      rc = rtnTestCollectionCommand( clName, _pDmsCB, &clUniqueID, &curClUniqueID ) ;
+
+      rc = rtnTestCollectionCommand( clName, _pDmsCB,
+                                     &clUniqueID, &curClUniqueID ) ;
 
       if ( SDB_DMS_CS_REMAIN == rc )
       {
-         string cs ;
-         cs = dmsGetCSNameFromFullName( clName ) ;
-         rc = rtnDropCollectionSpaceCommand( cs.c_str(), _pEDUCB,
-                                             _pDmsCB, _pDpsCB ) ;
-         if ( SDB_OK == rc )
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+         rcTmp = rtnResolveCollectionSpaceName( clName, ossStrlen( clName ),
+                                                csName,
+                                                DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to resolve collection space name "
+                    "from collection name[%s], rc: %d", clName, rcTmp ) ;
+            goto error ;
+         }
+
+         rcTmp = rtnDropCollectionSpaceCommand( csName, _pEDUCB,
+                                                _pDmsCB, _pDpsCB ) ;
+         if ( SDB_OK == rcTmp )
          {
             _pCatAgent->lock_w () ;
-            _pCatAgent->clearBySpaceName( cs.c_str() ) ;
+            _pCatAgent->clearBySpaceName( csName ) ;
             _pCatAgent->release_w () ;
 
+            PD_LOG( PDEVENT, "Drop remain collection space[%s]", csName ) ;
+            rcTmp = SDB_DMS_CS_NOTEXIST ;
+         }
+         if ( SDB_DMS_CS_NOTEXIST == rcTmp )
+         {
             rc = SDB_DMS_CS_NOTEXIST ;
          }
-         if ( rc != SDB_DMS_CS_NOTEXIST )
+         else
          {
             PD_LOG( PDERROR,
                     "Drop cs[%s] before create cl failed, rc: %d.",
-                    cs.c_str(), rc ) ;
+                    csName, rcTmp ) ;
          }
       }
-
-      if ( SDB_DMS_REMAIN == rc )
+      else if ( SDB_DMS_REMAIN == rc )
       {
-         rc = rtnDropCollectionCommand( clName, _pEDUCB, _pDmsCB, _pDpsCB,
-                                        curClUniqueID ) ;
-         if ( SDB_OK == rc )
+         rcTmp = rtnDropCollectionCommand( clName, _pEDUCB, _pDmsCB, _pDpsCB,
+                                           curClUniqueID ) ;
+         if ( SDB_OK == rcTmp )
          {
             _pCatAgent->lock_w () ;
             _pCatAgent->clear( clName ) ;
             _pCatAgent->release_w () ;
 
+            PD_LOG( PDEVENT, "Drop remain collection[%s]", clName ) ;
+            rcTmp = SDB_DMS_NOTEXIST ;
+         }
+         if ( SDB_DMS_NOTEXIST == rcTmp )
+         {
             rc = SDB_DMS_NOTEXIST ;
          }
-         if ( rc != SDB_DMS_NOTEXIST )
+         else
          {
             PD_LOG( PDERROR,
                     "Drop cl[%s] before create cl failed, rc: %d.",
-                    clName, rc ) ;
+                    clName, rcTmp ) ;
+         }
+      }
+      else if ( SDB_DMS_CS_UNIQUEID_CONFLICT == rc )
+      {
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+         rcTmp = rtnResolveCollectionSpaceName( clName, ossStrlen( clName ),
+                                                csName,
+                                                DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDERROR, "Failed to resolve collection space name "
+                    "from collection name[%s], rc: %d", clName, rcTmp ) ;
+            goto error ;
+         }
+
+         // try to drop cs if it is empty cs
+         rcTmp = _pDmsCB->dropEmptyCollectionSpace( csName, _pEDUCB, _pDpsCB ) ;
+         if ( SDB_OK == rcTmp )
+         {
+            _pCatAgent->lock_w () ;
+            _pCatAgent->clearBySpaceName( csName ) ;
+            _pCatAgent->release_w () ;
+
+            PD_LOG( PDEVENT, "Drop emtpy collection space[%s]", csName ) ;
+            rc = SDB_DMS_CS_NOTEXIST ;
+         }
+         else if ( SDB_DMS_CS_NOT_EMPTY != rcTmp )
+         {
+            PD_LOG( PDWARNING,
+                    "Try to drop collection space[%s] failed, rc: %d",
+                    csName, rcTmp ) ;
          }
       }
 
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 }
 

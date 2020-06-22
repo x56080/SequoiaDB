@@ -876,8 +876,7 @@ namespace engine
                            rc = dmsCB->changeUniqueID( csName,
                                                        *csUniqueIDInCata,
                                                        clInfoInCata,
-                                                       cb, NULL,
-                                                       FALSE, TRUE ) ;
+                                                       cb, NULL, TRUE ) ;
                            PD_RC_CHECK( rc, PDERROR,
                                         "Failed to change unique id, rc: %d",
                                         rc ) ;

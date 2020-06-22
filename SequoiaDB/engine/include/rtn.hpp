@@ -497,7 +497,8 @@ namespace engine
 
    INT32 rtnTestCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          SDB_DMSCB *dmsCB,
-                                         utilCSUniqueID *pCsUniqueID = NULL ) ;
+                                         utilCSUniqueID *pCsUniqueID = NULL,
+                                         utilCSUniqueID *pCurCsUniqueID = NULL) ;
 
    INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 value,
                         pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
@@ -507,7 +508,7 @@ namespace engine
    INT32 rtnChangeUniqueID( const CHAR* csName, utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj, pmdEDUCB* cb,
                             SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull = TRUE ) ;
+                            BOOLEAN isLoadCS = FALSE ) ;
 
    INT32 rtnTestIndex( const CHAR *pCollection,
                        const CHAR *pIndexName,

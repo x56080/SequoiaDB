@@ -1563,10 +1563,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_CHGCSUID, "_SDB_DMSCB::changeCSUniqueID" )
    INT32 _SDB_DMSCB::changeCSUniqueID( _dmsStorageUnit* su,
-                                       utilCSUniqueID csUniqueID,
-                                       pmdEDUCB* cb,
-                                       SDB_DPSCB* dpsCB,
-                                       BOOLEAN setOnlyIfNull )
+                                       utilCSUniqueID csUniqueID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__SDB_DMSCB_CHGCSUID ) ;
@@ -1577,10 +1574,6 @@ namespace engine
       const CHAR* csname = su->CSName() ;
       utilCSUniqueID orgUniqueID = su->CSUniqueID() ;
 
-      if ( setOnlyIfNull && orgUniqueID != UTIL_UNIQUEID_NULL )
-      {
-         goto done ;
-      }
       if ( orgUniqueID == csUniqueID )
       {
          goto done ;
@@ -1594,8 +1587,8 @@ namespace engine
       su->_pIndexSu->updateCSUniqueIDFromInfo() ;
       su->_pLobSu->updateCSUniqueIDFromInfo() ;
 
-      PD_LOG ( PDDEBUG,
-               "Change cs[%s] unique id, org: %u, new: %u",
+      PD_LOG ( PDEVENT,
+               "Change cs[%s] unique id from [%u] to [%u]",
                csname, orgUniqueID, csUniqueID ) ;
 
       // get su id
@@ -1647,8 +1640,7 @@ namespace engine
                                      const BSONObj& clInfoObj,
                                      pmdEDUCB* cb,
                                      SDB_DPSCB* dpsCB,
-                                     BOOLEAN setOnlyIfNull,
-                                     BOOLEAN resetOtherCl )
+                                     BOOLEAN isLoadCS )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__SDB_DMSCB_CHGUID ) ;
@@ -1659,9 +1651,11 @@ namespace engine
       UINT32 logRecSize = 0 ;
       dpsTransCB* pTransCB = pmdGetKRCB()->getTransCB();
       SDB_DMS_CSCB* cscb = NULL ;
+      SDB_DMS_CSCB *tmpCSCB = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
       dmsStorageUnit* su = NULL ;
-      BOOLEAN isLatchLocked = FALSE ;
+      dmsStorageUnit* suTmp = NULL ;
       BOOLEAN isMetaLocked = FALSE ;
 
       _mutex.get_shared () ;
@@ -1692,72 +1686,48 @@ namespace engine
       }
 
       // change cl unique id
-      if ( !clInfoObj.isEmpty() )
+      rc = nameToSUAndLock( csname, suTmpID, &suTmp, SHARED ) ;
+      if ( rc )
       {
-         dmsStorageUnit* suTmp = NULL ;
-         dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
-         rc = nameToSUAndLock( csname, suTmpID, &suTmp, SHARED ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         else if ( suTmpID != suID )
-         {
-            suUnlock ( suTmpID ) ;
-            rc = SDB_DMS_CS_NOTEXIST ;
-            goto error ;
-         }
-
-         su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
-                                       setOnlyIfNull,
-                                       resetOtherCl ) ;
-
-         suUnlock ( suID ) ;
-      }
-
-   retry :
-      // now let's lock the collectionspace, if we can't lock it, let's return
-      // false. we shouldn't wait forever
-      if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
-      {
-         rc = SDB_LOCK_FAILED ;
          goto error ;
       }
-      isLatchLocked = TRUE ;
-      if ( !_mutex.try_get() )
+      else if ( suTmpID != suID )
       {
-         _latchVec[suID]->release_w () ;
-         isLatchLocked = FALSE ;
-         ossSleep( 50 ) ;
-         goto retry ;
+         suUnlock ( suTmpID ) ;
+         rc = SDB_DMS_CS_NOTEXIST ;
+         goto error ;
       }
+
+      su->data()->changeCLUniqueID( utilBson2ClNameId( clInfoObj ),
+                                    csUniqueID, isLoadCS ) ;
+
+      suUnlock ( suID ) ;
+
+      // get meta lock
+      _mutex.get() ;
       isMetaLocked = TRUE ;
 
-      // there is a small timing hole before getting the latch, so we have
+      // there is a small timing hole before getting the mutex, so we have
       // to get current suID again to verify
+      rc = _CSCBNameLookup( csname, &tmpCSCB, &suTmpID, TRUE ) ;
+      if ( rc )
       {
-         dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
-         SDB_DMS_CSCB *tmpCSCB = NULL ;
-         rc = _CSCBNameLookup( csname, &tmpCSCB, &suTmpID, TRUE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         else if ( suTmpID != suID )
-         {
-            rc = SDB_DMS_CS_NOTEXIST ;
-            goto error ;
-         }
+         goto error ;
+      }
+      else if ( suTmpID != suID )
+      {
+         rc = SDB_DMS_CS_NOTEXIST ;
+         goto error ;
       }
 
       // change cs unique id
-      rc = changeCSUniqueID( su, csUniqueID, cb, dpsCB, setOnlyIfNull ) ;
+      rc = changeCSUniqueID( su, csUniqueID ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to change cs unique id, rc: %d",
                     rc ) ;
 
       // write dps
-      if ( SDB_OK == rc && dpsCB )
+      if ( dpsCB )
       {
          info.setInfoEx( cscb->_su->LogicalCSID(), ~0, DMS_INVALID_EXTENT, cb );
          rc = dpsCB->prepare ( info ) ;
@@ -1781,10 +1751,6 @@ namespace engine
       if ( isMetaLocked )
       {
          _mutex.release () ;
-      }
-      if ( isLatchLocked )
-      {
-         _latchVec[suID]->release_w() ;
       }
       if ( isReserved )
       {

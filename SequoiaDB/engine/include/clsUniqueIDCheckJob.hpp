@@ -51,7 +51,7 @@ namespace engine
    class _clsUniqueIDCheckJob : public _rtnBaseJob
    {
       public:
-      _clsUniqueIDCheckJob () ;
+      _clsUniqueIDCheckJob ( BOOLEAN needPrimary  ) ;
       virtual ~_clsUniqueIDCheckJob () ;
 
    public:
@@ -62,11 +62,15 @@ namespace engine
       virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
 
       virtual INT32 doit () ;
+
+   private:
+      BOOLEAN _needPrimary ;
    } ;
 
    typedef _clsUniqueIDCheckJob clsUniqueIDCheckJob ;
 
-   INT32 startUniqueIDCheckJob ( EDUID* pEDUID ) ;
+   INT32 startUniqueIDCheckJob ( BOOLEAN needPrimary = TRUE,
+                                 EDUID* pEDUID = NULL ) ;
 
    /*
       _clsRenameCheckJob

@@ -519,8 +519,7 @@ namespace engine
 
       // check unique ID of collection
       clUniqueID = mbContext->mb()->_clUniqueID ;
-      if ( UTIL_UNIQUEID_NULL == clUniqueID ||
-           UTIL_CLUNIQUEID_LOCAL == clUniqueID )
+      if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
       {
          // do not have unique ID ( not upgrade yet ) or local unique ID,
          // could use record parallel replay in below condition
@@ -1017,7 +1016,7 @@ namespace engine
                        "create", cs ) ;
 
                rc = _dmsCB->changeUniqueID( cs, csUniqueID, BSONObj(),
-                                            eduCB, _dpsCB, FALSE, FALSE ) ;
+                                            eduCB, _dpsCB ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR,
@@ -1091,7 +1090,7 @@ namespace engine
                               FIELD_NAME_UNIQUEID <<
                               (INT64)clUniqueID ) ;
                rc = _dmsCB->changeUniqueID( cs.c_str(), csUniqID, clArr.arr(),
-                                            eduCB, _dpsCB, FALSE, FALSE ) ;
+                                            eduCB, _dpsCB ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Fail to change cl[%s] unique id, rc: %d",
@@ -1486,17 +1485,13 @@ namespace engine
             {
                goto error ;
             }
-
-            while ( TRUE )
+            rc = rtnChangeUniqueID( csname, csUniqueID, clInfoObj,
+                                    eduCB, _dmsCB, _dpsCB ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
             {
-               rc = rtnChangeUniqueID( csname, csUniqueID, clInfoObj,
-                                       eduCB, _dmsCB, _dpsCB ) ;
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ossSleep( 100 ) ;
-                  continue ;
-               }
-               break ;
+               rc = SDB_OK ;
+               PD_LOG( PDWARNING, "Collection space[%s] not exist "
+                       "when add unique id ", csname ) ;
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
 
@@ -1875,18 +1870,14 @@ namespace engine
             {
                goto error ;
             }
-
-            while ( TRUE )
+            rc = rtnChangeUniqueID( csname, UTIL_UNIQUEID_NULL,
+                                    utilSetUniqueID( clInfoObj ),
+                                    eduCB, _dmsCB, _dpsCB ) ;
+            if ( SDB_DMS_CS_NOTEXIST == rc )
             {
-               rc = rtnChangeUniqueID( csname, UTIL_UNIQUEID_NULL,
-                                       utilSetUniqueID( clInfoObj ),
-                                       eduCB, _dmsCB, _dpsCB, FALSE ) ;
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ossSleep( 100 ) ;
-                  continue ;
-               }
-               break ;
+               rc = SDB_OK ;
+               PD_LOG( PDWARNING, "Collection space[%s] not exist "
+                       "when add unique id ", csname ) ;
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
 
@@ -2069,6 +2060,22 @@ namespace engine
          {
             PD_LOG( PDERROR,
                     "Drop cs[%s] before create cs failed, rc: %d",
+                    cs, rc ) ;
+         }
+      }
+      else if ( SDB_DMS_CS_UNIQUEID_CONFLICT == rc )
+      {
+         // try to drop cs if it is empty cs
+         rc = _dmsCB->dropEmptyCollectionSpace( cs, eduCB, _dpsCB ) ;
+         if ( SDB_OK == rc )
+         {
+            PD_LOG( PDEVENT, "Drop emtpy collection space[%s]", cs ) ;
+            rc = SDB_DMS_CS_NOTEXIST ;
+         }
+         else if ( SDB_DMS_CS_NOT_EMPTY != rc )
+         {
+            PD_LOG( PDWARNING,
+                    "Try to drop collection space[%s] failed, rc: %d",
                     cs, rc ) ;
          }
       }
