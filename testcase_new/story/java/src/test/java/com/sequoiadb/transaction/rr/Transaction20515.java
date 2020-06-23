@@ -148,38 +148,46 @@ public class Transaction20515 extends SdbTestBase {
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl1.query( "", "", "{a:1}", "{'':'a'}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // T3 读记录
             try {
                 cl3.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl3.query( "", "", "{a:1}", "{'':'a'}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 开启事务T4读记录
@@ -324,38 +332,46 @@ public class Transaction20515 extends SdbTestBase {
             try {
                 cl1.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl1.query( "", "", "{a:1}", "{'':'a'}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // T3 读记录
             try {
                 cl3.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl3.query( "", "", "{a:1}", "{'':'a'}" );
                 Assert.fail(
-                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw:" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 开启事务T4读记录

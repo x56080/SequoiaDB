@@ -196,6 +196,7 @@ public class Transaction20428B extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
+        sdb.getCollectionSpace( csName ).dropCollection( mainCLName );
         if ( TR1 != null ) {
             TR1.close();
         }

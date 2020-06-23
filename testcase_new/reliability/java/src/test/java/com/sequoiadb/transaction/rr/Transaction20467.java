@@ -119,10 +119,10 @@ public class Transaction20467 extends SdbTestBase {
         try {
             cl.query();
             throw new BaseException( -1000, "Need throw error:"
-                    + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                    + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode() );
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(),
-                    SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                    SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode() );
             sdb.rollback();
         }
 

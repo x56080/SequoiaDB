@@ -112,38 +112,46 @@ public class Transaction22117 extends SdbTestBase {
             try {
                 cl12.query( "", "", "{a:1}", "{'':null}" );
                 Assert.fail(
-                        "need throw：" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                        "need throw：" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl12.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 事务2读集合2中的记录
             try {
                 cl22.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl22.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 提交事务
@@ -158,20 +166,24 @@ public class Transaction22117 extends SdbTestBase {
             // 事务2读集合2中的记录
             try {
                 cl22.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl22.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 非事务中读记录
@@ -254,39 +266,47 @@ public class Transaction22117 extends SdbTestBase {
             // 事务1读集合2中的记录
             try {
                 cl12.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl12.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 事务2读集合2中的记录
             try {
                 cl22.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl22.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 非事务中读记录
@@ -307,20 +327,24 @@ public class Transaction22117 extends SdbTestBase {
             // 事务2读集合2中的记录
             try {
                 cl22.query( "", "", "{a:1}", "{'':null}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             try {
                 cl22.query( "", "", "{a:1}", "{'':'a'}" );
-                Assert.fail( "need throw :"
-                        + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE );
+                Assert.fail(
+                        "need throw :" + SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE
+                                .getErrorCode() );
             } catch ( BaseException e ) {
                 Assert.assertEquals( e.getErrorCode(),
-                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE, e.getMessage() );
+                        SDBError.SDB_GLOB_TRANS_NOT_AVAILABLE.getErrorCode(),
+                        e.getMessage() );
             }
 
             // 非事务中读记录
