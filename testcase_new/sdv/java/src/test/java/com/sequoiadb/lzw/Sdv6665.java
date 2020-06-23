@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -52,6 +51,7 @@ public class Sdv6665 extends SdbTestBase {
         createCL();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {

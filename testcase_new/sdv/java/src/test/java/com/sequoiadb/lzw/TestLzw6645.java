@@ -1,12 +1,5 @@
 package com.sequoiadb.lzw;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.crud.compress.snappy.SnappyUilts;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -16,6 +9,14 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.crud.compress.snappy.SnappyUilts;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
  * @FileName:seqDB-6645:修改CL为关闭压缩 1、CL压缩类型为lzw，修改CL为关闭压缩，即指定Compressed:false
@@ -42,6 +43,7 @@ public class TestLzw6645 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -58,6 +60,7 @@ public class TestLzw6645 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test(enabled = false)
     public void test() {
         Sequoiadb db = null;

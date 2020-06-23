@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -62,6 +61,7 @@ public class QueryMainCLIndex831 extends SdbTestBase {
         createIndexAndInsertData();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -139,6 +139,7 @@ public class QueryMainCLIndex831 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void createIndexAndInsertData() {
         List< BSONObject > insertor = new ArrayList<>();
         StringBuffer strBuffer = new StringBuffer();

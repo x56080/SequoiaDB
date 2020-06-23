@@ -1,7 +1,6 @@
 package com.sequoiadb.lzw;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -46,6 +45,7 @@ public class TestLzw6647 extends SdbTestBase {
         insertData( cl, 1000 );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -62,6 +62,7 @@ public class TestLzw6647 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -87,8 +88,7 @@ public class TestLzw6647 extends SdbTestBase {
         DBCollection cl = null;
         BSONObject option = new BasicBSONObject();
         try {
-            dataGroupName = ( ( ArrayList< String > ) getDataGroups( sdb ) )
-                    .get( 0 );
+            dataGroupName = getDataGroups( sdb ).get( 0 );
             option.put( "Group", dataGroupName );
             option.put( "Compressed", true );
             option.put( "CompressionType", "lzw" );
@@ -113,8 +113,9 @@ public class TestLzw6647 extends SdbTestBase {
         return groupList;
     }
 
+    @SuppressWarnings("deprecation")
     private List< BSONObject > insertData( DBCollection cl, int recSum ) {
-        List< BSONObject > recs = new ArrayList< BSONObject >();
+        List< BSONObject > recs = new ArrayList<>();
         for ( int i = 0; i < recSum; i++ ) {
             BSONObject rec = new BasicBSONObject();
             rec.put( "_id", i );
@@ -125,6 +126,7 @@ public class TestLzw6647 extends SdbTestBase {
         return recs;
     }
 
+    @SuppressWarnings({ "deprecation", "resource" })
     private void checkDropped() {
         // check on catalog node
         String clNameOpt = "{Name: '" + csName + "." + clName + "'}";
@@ -136,24 +138,31 @@ public class TestLzw6647 extends SdbTestBase {
 
         int tryTimes = 10;
         boolean isDropped = false;
-        for ( int i = 0; i < tryTimes; i++ ) {
-            // check on data node
-            String url = sdb.getReplicaGroup( dataGroupName ).getMaster()
-                    .getNodeName();
-            Sequoiadb dataDB = new Sequoiadb( url, "", "" );
-            DBCursor dataSnapshot = dataDB.getSnapshot( 4, clNameOpt, null,
-                    null );
-            if ( !dataSnapshot.hasNext() ) {
-                isDropped = true;
-                break;
-            }
-            dataSnapshot.close();
+        String url = sdb.getReplicaGroup( dataGroupName ).getMaster()
+                .getNodeName();
+        Sequoiadb dataDB = null;
+        try {
+            dataDB = new Sequoiadb( url, "", "" );
+            for ( int i = 0; i < tryTimes; i++ ) {
+                // check on data node
+                DBCursor dataSnapshot = dataDB.getSnapshot( 4, clNameOpt, null,
+                        null );
+                if ( !dataSnapshot.hasNext() ) {
+                    isDropped = true;
+                    break;
+                }
+                dataSnapshot.close();
 
-            // try again after 1 second
-            try {
-                Thread.sleep( 1000 );
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
+                // try again after 1 second
+                try {
+                    Thread.sleep( 1000 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+            }
+        } finally {
+            if ( dataDB != null ) {
+                dataDB.disconnect();
             }
         }
         if ( !isDropped ) {
@@ -165,9 +174,9 @@ public class TestLzw6647 extends SdbTestBase {
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
         DBCursor cursor = cl.query( null, null, "{_id:1}", null );
-        List< BSONObject > actRecs = new ArrayList< BSONObject >();
+        List< BSONObject > actRecs = new ArrayList<>();
         while ( cursor.hasNext() ) {
-            actRecs.add( ( BasicBSONObject ) cursor.getNext() );
+            actRecs.add( cursor.getNext() );
         }
         cursor.close();
         Assert.assertEquals( actRecs, expRecs, "data is wrong" );

@@ -1,5 +1,15 @@
 package com.sequoiadb.index;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -7,16 +17,6 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 用例要求： 1、向cl中插入大量数据（如1千万条记录）
@@ -41,33 +41,11 @@ public class IdIndex6615 extends SdbTestBase {
         insertData();
     }
 
-    /**
-     * 创建索引
-     */
-    @Test
-    public void createIndex() {
-        Delete deleteTask = new Delete();
-        deleteTask.start();
-        Sequoiadb sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        try {
-            DBCollection cl1 = sdb1.getCollectionSpace( csName )
-                    .getCollection( clName );
-            BSONObject indexObj = ( BSONObject ) JSON
-                    .parse( "{SortBufferSize:256}" );
-            cl1.createIdIndex( indexObj );
-            checkIndex( cl1 );
-            Assert.assertTrue( deleteTask.isSuccess(),
-                    deleteTask.getErrorMsg() );
-        } finally {
-            if ( sdb1 != null ) {
-                sdb1.disconnect();
-            }
-        }
-    }
-
     class Delete extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
+            @SuppressWarnings("resource")
             Sequoiadb sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             DBCollection cl2 = sdb2.getCollectionSpace( csName )
                     .getCollection( clName );
@@ -85,6 +63,7 @@ public class IdIndex6615 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {

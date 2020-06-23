@@ -1,11 +1,9 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -13,9 +11,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -32,6 +33,7 @@ public class Update11420 extends SdbTestBase {
         dbcl = cs.createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -96,6 +98,7 @@ public class Update11420 extends SdbTestBase {
 
     abstract class ClTask extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;

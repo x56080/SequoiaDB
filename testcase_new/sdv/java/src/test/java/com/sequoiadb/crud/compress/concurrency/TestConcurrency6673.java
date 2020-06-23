@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.BSONObject;
@@ -48,6 +46,7 @@ public class TestConcurrency6673 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -79,12 +78,13 @@ public class TestConcurrency6673 extends SdbTestBase {
     private class LzwThread extends SdbThreadBase {
         private AtomicInteger clNo = new AtomicInteger( 0 );
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
             try {
                 db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                String clName = "cl_6673_" + ( int ) clNo.getAndIncrement();
+                String clName = "cl_6673_" + clNo.getAndIncrement();
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 // insert data for creating dictionary
@@ -121,8 +121,7 @@ public class TestConcurrency6673 extends SdbTestBase {
         DBCollection cl = null;
         try {
             BSONObject option = new BasicBSONObject();
-            dataGroupName = ( ( ArrayList< String > ) CompressUtils
-                    .getDataGroups( sdb ) ).get( 0 );
+            dataGroupName = CompressUtils.getDataGroups( sdb ).get( 0 );
             option.put( "Group", dataGroupName );
             option.put( "Compressed", true );
             option.put( "CompressionType", "lzw" );
@@ -134,6 +133,7 @@ public class TestConcurrency6673 extends SdbTestBase {
         return cl;
     }
 
+    @SuppressWarnings("deprecation")
     private void waitCreateDict( DBCollection cl, String dataGroupName ) {
         int passSecond = 0;
         int waitSecond = 300;
@@ -154,6 +154,7 @@ public class TestConcurrency6673 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void checkData( DBCollection cl ) {
         // check count
         int expCnt = 10000;

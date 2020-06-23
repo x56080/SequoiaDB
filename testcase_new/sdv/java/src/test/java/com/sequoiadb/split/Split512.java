@@ -27,7 +27,6 @@ import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -46,8 +45,8 @@ public class Split512 extends SdbTestBase {
     private DBCollection cl;
     private ArrayList< String > groupNames = new ArrayList<>();
     Sequoiadb commSdb = null;
-    private ConcurrentHashMap< ObjectId, String > id2md5 = new ConcurrentHashMap< ObjectId, String >();
-    private LinkedBlockingDeque< ObjectId > oidQueue = new LinkedBlockingDeque< ObjectId >();
+    private ConcurrentHashMap< ObjectId, String > id2md5 = new ConcurrentHashMap<>();
+    private LinkedBlockingDeque< ObjectId > oidQueue = new LinkedBlockingDeque<>();
     private Random random = new Random();
 
     @BeforeClass
@@ -56,11 +55,10 @@ public class Split512 extends SdbTestBase {
         commSdb.setSessionAttr(
                 ( BSONObject ) JSON.parse( "{PreferedInstance: 'M'}" ) );
         // 跳过 standAlone 和数据组不足的环境
-        CommLib commlib = new CommLib();
-        if ( commlib.isStandAlone( commSdb ) ) {
+        if ( CommLib.isStandAlone( commSdb ) ) {
             throw new SkipException( "skip StandAlone" );
         }
-        if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+        if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
             throw new SkipException(
                     "current environment less than tow groups " );
         }
@@ -96,6 +94,7 @@ public class Split512 extends SdbTestBase {
         checkLobData();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -154,6 +153,7 @@ public class Split512 extends SdbTestBase {
     }
 
     class Split extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb sdb = null;
@@ -230,6 +230,7 @@ public class Split512 extends SdbTestBase {
         return value;
     }
 
+    @SuppressWarnings("deprecation")
     private void checkDataSplitResult() {
         long allLobs = 0;
         for ( int i = 0; i < 2; i++ ) {

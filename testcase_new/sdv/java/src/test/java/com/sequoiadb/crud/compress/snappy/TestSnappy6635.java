@@ -1,8 +1,5 @@
 package com.sequoiadb.crud.compress.snappy;
 
-import java.util.ArrayList;
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -47,6 +44,7 @@ public class TestSnappy6635 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -63,6 +61,7 @@ public class TestSnappy6635 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -92,8 +91,7 @@ public class TestSnappy6635 extends SdbTestBase {
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         BSONObject option = new BasicBSONObject();
         try {
-            dataGroupName = ( ( ArrayList< String > ) SnappyUilts
-                    .getDataGroups( sdb ) ).get( 0 );
+            dataGroupName = SnappyUilts.getDataGroups( sdb ).get( 0 );
             option.put( "Group", dataGroupName );
             option.put( "Compressed", true );
             option.put( "CompressionType", "snappy" );

@@ -1,7 +1,5 @@
 package com.sequoiadb.split;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
@@ -38,8 +36,7 @@ public class Split536 extends SdbTestBase {
         try {
             this.sdb = new Sequoiadb( coordUrl, "", "" );
             // 跳过 standAlone
-            CommLib commlib = new CommLib();
-            if ( commlib.isStandAlone( sdb ) ) {
+            if ( CommLib.isStandAlone( sdb ) ) {
                 throw new SkipException( "skip StandAlone" );
             }
 
@@ -54,8 +51,10 @@ public class Split536 extends SdbTestBase {
     }
 
     // 执行split操作，其中设置的目标分区组不存在 ,查看数据切分是否成功
+    @SuppressWarnings({ "deprecation", "resource" })
     @Test(enabled = true)
     public void test() {
+        Sequoiadb db = null;
         DBCursor dbc = null;
         try {
             dbc = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
@@ -65,7 +64,7 @@ public class Split536 extends SdbTestBase {
             String srcGroupName = ( String ) ( ( BSONObject ) list.get( 0 ) )
                     .get( "GroupName" );// 获取源数据组名
             String destGroupName = "thisDataGroupShouldNotExists_536";// 定义一个不存在组名
-            Sequoiadb db = new Sequoiadb( coordUrl, "", "" );
+            db = new Sequoiadb( coordUrl, "", "" );
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
 
@@ -85,10 +84,14 @@ public class Split536 extends SdbTestBase {
             if ( dbc != null ) {
                 dbc.close();
             }
+            if ( db != null ) {
+                db.disconnect();
+            }
         }
         Assert.fail();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(enabled = true)
     public void tearDown() {
         try {

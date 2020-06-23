@@ -108,7 +108,7 @@ public class SplitUtils {
     public static boolean isCollectionContainThisJSON( DBCollection cl,
             String dest ) throws BaseException {
         BSONObject bobj = ( BSONObject ) JSON.parse( dest );
-        ArrayList< Object > resaults = new ArrayList< Object >();
+        ArrayList< Object > resaults = new ArrayList< >();
         DBCursor dc = null;
         try {
             dc = cl.query( bobj, null, null, null );
@@ -152,10 +152,9 @@ public class SplitUtils {
     public static ArrayList< String > getGroupName( Sequoiadb sdb,
             String csName, String clName ) throws BaseException {
         DBCursor dbc = null;
-        ArrayList< String > resault = new ArrayList< String >();
+        ArrayList< String > resault = new ArrayList< >();
         try {
-            CommLib commlib = new CommLib();
-            ArrayList< String > groups = commlib.getDataGroupNames( sdb );
+            ArrayList< String > groups = CommLib.getDataGroupNames( sdb );
             dbc = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG,
                     "{Name:\"" + csName + "." + clName + "\"}", null, null );
             BasicBSONList list = null;

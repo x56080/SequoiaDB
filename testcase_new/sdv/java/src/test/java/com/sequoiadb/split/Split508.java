@@ -41,11 +41,10 @@ public class Split508 extends SdbTestBase {
     public void setUp() {
         commSdb = new Sequoiadb( coordUrl, "", "" );
         // 跳过 standAlone 和数据组不足的环境
-        CommLib commlib = new CommLib();
-        if ( commlib.isStandAlone( commSdb ) ) {
+        if ( CommLib.isStandAlone( commSdb ) ) {
             throw new SkipException( "skip StandAlone" );
         }
-        if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+        if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
             throw new SkipException(
                     "current environment less than tow groups " );
         }
@@ -127,7 +126,6 @@ public class Split508 extends SdbTestBase {
         } finally {
             if ( commSdb != null ) {
                 commSdb.close();
-                ;
             }
         }
     }
@@ -169,7 +167,7 @@ public class Split508 extends SdbTestBase {
     private void prepareData( DBCollection cl ) {
         int count = 0;
         for ( int i = 0; i < 3; i++ ) {
-            List< BSONObject > list = new ArrayList< BSONObject >();
+            List< BSONObject > list = new ArrayList<>();
             for ( int j = 0; j < 10000; j++ ) {
                 int value = count++;
                 BSONObject obj = ( BSONObject ) JSON

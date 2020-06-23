@@ -1,13 +1,9 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -17,9 +13,14 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * 用例要求： 1、向cl中插入大量数据（如1千万条记录） 2、创建ID索引，执行创建索引命令createIdIndex()，默认不指定排序缓存参数
@@ -42,12 +43,11 @@ public class IdIndex6612 extends SdbTestBase {
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // 跳过 standAlone 和数据组不足的环境
-        CommLib commlib = new CommLib();
-        if ( commlib.isStandAlone( sdb ) ) {
+        if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone" );
         }
         // 源组和目标组
-        List< String > groupsName = commlib.getDataGroupNames( sdb );
+        List< String > groupsName = CommLib.getDataGroupNames( sdb );
         if ( groupsName.size() < 2 ) {
             throw new SkipException(
                     "current environment less than tow groups " );
@@ -59,6 +59,7 @@ public class IdIndex6612 extends SdbTestBase {
     }
 
     // 创建索引
+    @SuppressWarnings({ "resource", "deprecation" })
     @Test
     public void createIndex() throws InterruptedException {
         Split splitThread = new Split();
@@ -84,6 +85,7 @@ public class IdIndex6612 extends SdbTestBase {
      * 切分数据
      */
     class Split extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db2 = null;
@@ -107,6 +109,7 @@ public class IdIndex6612 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
 
@@ -192,7 +195,7 @@ public class IdIndex6612 extends SdbTestBase {
         Assert.assertEquals( count2, 10000 );// 切分失败，源组数据应当包含上述查询数据
         // coord数据查询
         cursor = this.cl.query( null, null, "{_id:1}", null );
-        List< BSONObject > actual = new ArrayList< BSONObject >();
+        List< BSONObject > actual = new ArrayList<>();
         while ( cursor.hasNext() ) {
             BSONObject obj = cursor.getNext();
             actual.add( obj );

@@ -1,12 +1,13 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
 
 /**
  * Created by laojingtang on 18-1-12.
@@ -34,6 +35,7 @@ public class IndexUtil {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertIndexCreatedCorrect( DBCollection cl,
             IndexEntity entity ) {
         try ( DBCursor cursor = cl.getIndex( entity.getIndexName() )) {

@@ -3,7 +3,6 @@ package com.sequoiadb.index;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -37,7 +36,6 @@ public class IdIndex6613 extends SdbTestBase {
     private CollectionSpace cs;
     private DBCollection cl;
     private String clName = "c6613";
-    private ArrayList< BSONObject > insertRecods;
 
     @BeforeClass
     public void setUp() {
@@ -75,6 +73,7 @@ public class IdIndex6613 extends SdbTestBase {
         checkIndex( cl );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -103,6 +102,7 @@ public class IdIndex6613 extends SdbTestBase {
      * 创建索引
      */
     private class CreateIndex extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             @SuppressWarnings("resource")
@@ -119,7 +119,6 @@ public class IdIndex6613 extends SdbTestBase {
                             + Math.random() * ( 6000 - 2000 + 1 ) );
                     Thread.sleep( time );
                 } catch ( InterruptedException e ) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
                 cl1.createIdIndex( indexObj2 );
@@ -139,6 +138,7 @@ public class IdIndex6613 extends SdbTestBase {
             this.endNo = endNo;
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             @SuppressWarnings("resource")
@@ -160,7 +160,7 @@ public class IdIndex6613 extends SdbTestBase {
     }
 
     private void insertData( DBCollection cl, int beginNo, int endNo ) {
-        List< BSONObject > list = new ArrayList< BSONObject >();
+        List< BSONObject > list = new ArrayList<>();
         for ( int i = beginNo; i < endNo; i++ ) {
             BSONObject obj = new BasicBSONObject();
             obj.put( "a", i );
@@ -183,6 +183,7 @@ public class IdIndex6613 extends SdbTestBase {
     /**
      * 检查索引
      */
+    @SuppressWarnings("deprecation")
     public void checkIndex( DBCollection cl ) {
         DBCursor cursor1 = null;
         DBCursor cursorIndex = null;

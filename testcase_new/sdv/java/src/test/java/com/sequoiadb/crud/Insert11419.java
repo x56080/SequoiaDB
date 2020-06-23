@@ -1,11 +1,8 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -13,7 +10,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -30,6 +32,7 @@ public class Insert11419 extends SdbTestBase {
         dbcl = cs.createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -49,6 +52,7 @@ public class Insert11419 extends SdbTestBase {
         }
 
         SdbThreadBase insert = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -68,6 +72,7 @@ public class Insert11419 extends SdbTestBase {
         };
 
         SdbThreadBase update = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

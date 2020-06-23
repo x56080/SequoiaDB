@@ -1,8 +1,5 @@
 package com.sequoiadb.crud.compress.snappy;
 
-import java.util.ArrayList;
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -50,6 +47,7 @@ public class TestSnappy6633 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -66,6 +64,7 @@ public class TestSnappy6633 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -101,8 +100,7 @@ public class TestSnappy6633 extends SdbTestBase {
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         BSONObject option = new BasicBSONObject();
         try {
-            dataGroupName = ( ( ArrayList< String > ) SnappyUilts
-                    .getDataGroups( sdb ) ).get( 0 );
+            dataGroupName = SnappyUilts.getDataGroups( sdb ).get( 0 );
             option.put( "Group", dataGroupName );
             option.put( "Compressed", true );
             option.put( "CompressionType", "snappy" );
@@ -127,7 +125,7 @@ public class TestSnappy6633 extends SdbTestBase {
             exp.put( "a", i );
             exp.put( "b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" );
             exp.put( "d", 2 );
-            BSONObject act = ( BSONObject ) cursor.getNext();
+            BSONObject act = cursor.getNext();
             Assert.assertEquals( exp, act, "data is different at [0, 500)" );
         }
         // check data at [500,600)
@@ -137,7 +135,7 @@ public class TestSnappy6633 extends SdbTestBase {
             exp.put( "b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" );
             exp.put( "c", 1 );
             exp.put( "d", 2 );
-            BSONObject act = ( BSONObject ) cursor.getNext();
+            BSONObject act = cursor.getNext();
             Assert.assertEquals( exp, act, "data is different at [500, 600)" );
         }
         // check data at [500,1000)
@@ -146,7 +144,7 @@ public class TestSnappy6633 extends SdbTestBase {
             exp.put( "a", i );
             exp.put( "b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" );
             exp.put( "c", 1 );
-            BSONObject act = ( BSONObject ) cursor.getNext();
+            BSONObject act = cursor.getNext();
             Assert.assertEquals( exp, act, "data is different at [600, 1000)" );
         }
     }

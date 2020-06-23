@@ -53,8 +53,9 @@ public class SnappyUilts extends SdbTestBase {
         return groupList;
     }
 
+    @SuppressWarnings("deprecation")
     public static void insertData( DBCollection cl, int recSum ) {
-        List< BSONObject > recs = new ArrayList< BSONObject >();
+        List< BSONObject > recs = new ArrayList< >();
         for ( int i = 0; i < recSum; i++ ) {
             BSONObject rec = new BasicBSONObject();
             rec.put( "a", i );
@@ -79,6 +80,7 @@ public class SnappyUilts extends SdbTestBase {
         return new Sequoiadb( url, "", "" );
     }
 
+    @SuppressWarnings("deprecation")
     public static void checkCompression( Sequoiadb dataDB, String clName ) {
         int tryTimes = 10;
         boolean compressed = false;
@@ -102,7 +104,7 @@ public class SnappyUilts extends SdbTestBase {
 
             // judge whether data is compressed
             boolean ratioRight = ( double ) detail
-                    .get( "CurrentCompressionRatio" ) < ( double ) 1;
+                    .get( "CurrentCompressionRatio" ) < 1;
             boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
                     .equals( "Compressed" );
             boolean typeRight = ( ( String ) detail.get( "CompressionType" ) )

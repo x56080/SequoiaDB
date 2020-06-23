@@ -9,7 +9,6 @@ import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
@@ -17,10 +16,8 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
-import com.sun.security.jgss.ExtendedGSSContext;
 
 /**
  * @FileName:SEQDB-510 切分范围不冲突，并发切分1.在CS下创建cl，指定分区方式为range
@@ -44,11 +41,10 @@ public class Split510 extends SdbTestBase {
     public void setUp() {
         commSdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         // 跳过 standAlone 和数据组不足的环境
-        CommLib commlib = new CommLib();
-        if ( commlib.isStandAlone( commSdb ) ) {
+        if ( CommLib.isStandAlone( commSdb ) ) {
             throw new SkipException( "skip StandAlone" );
         }
-        if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+        if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
             throw new SkipException(
                     "Ncurrent environment less than tow groups " );
         }
@@ -100,7 +96,8 @@ public class Split510 extends SdbTestBase {
             this.upBound = upBound;
         }
 
-        @SuppressWarnings("resource")
+        @Override
+        @SuppressWarnings({ "resource", "deprecation" })
         public void exec() throws BaseException {
             Sequoiadb sdb = null;
             Sequoiadb dataNode = null;
@@ -150,17 +147,13 @@ public class Split510 extends SdbTestBase {
             Assert.assertEquals( actCount, expSrcNums );
         }
 
-        Sequoiadb destDataNode = commSdb.getReplicaGroup( destGroupName )
-                .getMaster().connect();
-        DBCollection dbCollection = destDataNode.getCollectionSpace( csName )
-                .getCollection( clName );
-
         // coord上检查记录总数
         long count = cl.getCount( "{_id:{$isnull:0}}" );
         long expected = 70000;
         Assert.assertEquals( count, expected );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -179,7 +172,7 @@ public class Split510 extends SdbTestBase {
     private void prepareData( DBCollection cl ) {
         int count = 0;
         for ( int i = 0; i < 7; i++ ) {
-            List< BSONObject > list = new ArrayList< BSONObject >();
+            List< BSONObject > list = new ArrayList<>();
             for ( int j = i + 0; j < i + 10000; j++ ) {
                 int value = count++;
                 BSONObject obj = ( BSONObject ) JSON

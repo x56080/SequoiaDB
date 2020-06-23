@@ -55,7 +55,7 @@ public class CommLib {
      * @return dataGroupNames
      */
     public static ArrayList< String > getDataGroupNames( Sequoiadb sdb ) {
-        ArrayList< String > dataGroupNames = new ArrayList< String >();
+        ArrayList< String > dataGroupNames = new ArrayList<>();
         try {
             dataGroupNames = sdb.getReplicaGroupNames();
             dataGroupNames.remove( "SYSCatalogGroup" );
@@ -76,7 +76,7 @@ public class CommLib {
      */
     public static List< String > getNodeAddress( Sequoiadb sdb,
             String rgName ) {
-        List< String > nodeAddrs = new ArrayList< String >();
+        List< String > nodeAddrs = new ArrayList<>();
         try {
             ReplicaGroup tmpArray = sdb.getReplicaGroup( rgName );
             BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
@@ -106,7 +106,7 @@ public class CommLib {
      * @return csInfoOfCata
      */
     public static ArrayList< BSONObject > getCSInfoOfCatalog( Sequoiadb sdb ) {
-        ArrayList< BSONObject > csInfoOfCata = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > csInfoOfCata = new ArrayList<>();
         Sequoiadb cataDB = null;
         try {
             String nodeName = sdb.getReplicaGroup( "SYSCATALOG" ).getMaster()
@@ -121,7 +121,7 @@ public class CommLib {
             sel.put( "Name", subSel );
             DBCursor cursor = dmDB.query( null, sel, null, null );
             while ( cursor.hasNext() ) {
-                BSONObject tmpInfo = ( BSONObject ) cursor.getNext();
+                BSONObject tmpInfo = cursor.getNext();
                 csInfoOfCata.add( tmpInfo );
             }
         } catch ( BaseException e ) {
@@ -146,7 +146,6 @@ public class CommLib {
             matcher.put( "Name", subObj );
 
             // compare node's data within the group
-            CommLib CommLib = new CommLib();
             String rgName = "SYSCatalogGroup";
             String csName = "SYSCAT";
             String clName = "SYSDOMAINS";
@@ -172,7 +171,6 @@ public class CommLib {
             matcher.put( "Name", subObj );
 
             // compare node's data within the group
-            CommLib CommLib = new CommLib();
             String rgName = "SYSCatalogGroup";
             String sysCsName = "SYSCAT";
             String sysClName = "SYSCOLLECTIONSPACES";
@@ -200,7 +198,6 @@ public class CommLib {
             matcher.put( "Name", subObj );
 
             // compare node's data within the group
-            CommLib CommLib = new CommLib();
             String rgName = "SYSCatalogGroup";
             String sysCSName = "SYSCAT";
             String sysCLName = "SYSCOLLECTIONS";
@@ -220,6 +217,7 @@ public class CommLib {
      * @param csName
      * @param clName
      */
+    @SuppressWarnings({ "resource", "deprecation" })
     public static void checkCLOfDataRG( Sequoiadb sdb, String csName,
             String clName ) {
         try {
@@ -229,7 +227,6 @@ public class CommLib {
             matcher.put( "Name", subObj );
 
             // get all dataGroupNames
-            CommLib CommLib = new CommLib();
             ArrayList< String > dataGroupNames = CommLib
                     .getDataGroupNames( sdb );
             for ( int i = 0; i < dataGroupNames.size(); i++ ) {
@@ -240,7 +237,7 @@ public class CommLib {
                 int maxCnt = 20;
                 boolean checkSucc = false;
                 do {
-                    ArrayList< String > allNodeData = new ArrayList< String >();
+                    ArrayList< String > allNodeData = new ArrayList<>();
 
                     for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                         Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ),
@@ -248,9 +245,9 @@ public class CommLib {
                         DBCursor cursor = dataDB.listCollections();
 
                         // get the data for each node
-                        ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                        ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                         while ( cursor.hasNext() ) {
-                            BSONObject clList = ( BSONObject ) cursor.getNext();
+                            BSONObject clList = cursor.getNext();
                             if ( clList.get( "Name" ).toString()
                                     .indexOf( clName ) >= 0 ) {
                                 oneNodeData.add( clList );
@@ -321,6 +318,7 @@ public class CommLib {
      * @param csName
      * @param clName
      */
+    @SuppressWarnings({ "resource", "deprecation" })
     public static void checkIndex( Sequoiadb sdb, String csName,
             String clName ) {
         try {
@@ -341,7 +339,6 @@ public class CommLib {
                             .get( i );
                     String groupName = groupInfo.getString( "GroupName" );
                     // get node address within the group
-                    CommLib CommLib = new CommLib();
                     List< String > nodeAddrs = CommLib.getNodeAddress( sdb,
                             groupName );
                     // direct node and compare node's data
@@ -349,7 +346,7 @@ public class CommLib {
                     int maxCnt = 8;
                     boolean checkSucc = false;
                     do {
-                        ArrayList< String > allNodeData = new ArrayList< String >();
+                        ArrayList< String > allNodeData = new ArrayList<>();
                         for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                             Sequoiadb dataDB = new Sequoiadb(
                                     nodeAddrs.get( j ), "", "" );
@@ -359,10 +356,9 @@ public class CommLib {
                                     .getCollectionSpace( tmpCSName )
                                     .getCollection( tmpCLName ).getIndexes();
                             // get the data for each node
-                            ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                            ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                             while ( cur.hasNext() ) {
-                                BSONObject idxList = ( BSONObject ) cur
-                                        .getNext();
+                                BSONObject idxList = cur.getNext();
                                 oneNodeData.add( idxList );
                             }
                             cur.close();
@@ -418,11 +414,11 @@ public class CommLib {
      * @param csName
      * @param clName
      */
+    @SuppressWarnings({ "resource", "deprecation" })
     public static boolean compareDataAndCata( Sequoiadb sdb, String csName,
             String clName ) {
         try {
             // get all dataGroupNames
-            CommLib CommLib = new CommLib();
             ArrayList< String > dataGroupNames = CommLib
                     .getDataGroupNames( sdb );
             for ( int i = 0; i < dataGroupNames.size(); i++ ) {
@@ -430,29 +426,42 @@ public class CommLib {
                 String dataMAddr = sdb
                         .getReplicaGroup( dataGroupNames.get( i ) ).getMaster()
                         .getNodeName();
-                Sequoiadb dataDB = new Sequoiadb( dataMAddr, "", "" );
-                DBCursor cursor = dataDB.listCollections();
-                while ( cursor.hasNext() ) {
-                    String tmpCLName = ( String ) cursor.getNext()
-                            .get( "Name" );
-                    if ( tmpCLName.indexOf( csName + "." + clName ) >= 0 ) {
-                        // direct connect cata master node, find the collection
-                        String cataAddr = sdb
-                                .getReplicaGroup( "SYSCatalogGroup" )
-                                .getMaster().getNodeName();
-                        Sequoiadb cataDB = new Sequoiadb( cataAddr, "", "" );
-                        BSONObject matcher = new BasicBSONObject();
-                        matcher.put( "Name", csName + "." + tmpCLName );
-                        DBCursor cur = cataDB.getCollectionSpace( "SYSCAT" )
-                                .getCollection( "SYSCOLLECTIONS" )
-                                .query( matcher, null, null, null );
-                        while ( cur.hasNext() ) {
-                            String name = ( String ) cur.getNext()
-                                    .get( "Name" );
-                            if ( name.isEmpty() ) {
-                                return false;
+                Sequoiadb dataDB = null;
+                DBCursor cursor = null;
+                try {
+                    dataDB = new Sequoiadb( dataMAddr, "", "" );
+                    cursor = dataDB.listCollections();
+                    while ( cursor.hasNext() ) {
+                        String tmpCLName = ( String ) cursor.getNext()
+                                .get( "Name" );
+                        if ( tmpCLName.indexOf( csName + "." + clName ) >= 0 ) {
+                            // direct connect cata master node, find the
+                            // collection
+                            String cataAddr = sdb
+                                    .getReplicaGroup( "SYSCatalogGroup" )
+                                    .getMaster().getNodeName();
+                            Sequoiadb cataDB = new Sequoiadb( cataAddr, "",
+                                    "" );
+                            BSONObject matcher = new BasicBSONObject();
+                            matcher.put( "Name", csName + "." + tmpCLName );
+                            DBCursor cur = cataDB.getCollectionSpace( "SYSCAT" )
+                                    .getCollection( "SYSCOLLECTIONS" )
+                                    .query( matcher, null, null, null );
+                            while ( cur.hasNext() ) {
+                                String name = ( String ) cur.getNext()
+                                        .get( "Name" );
+                                if ( name.isEmpty() ) {
+                                    return false;
+                                }
                             }
                         }
+                    }
+                } finally {
+                    if ( cursor != null ) {
+                        cursor.close();
+                    }
+                    if ( dataDB != null ) {
+                        dataDB.disconnect();
                     }
                 }
             }
@@ -510,12 +519,12 @@ public class CommLib {
      * @param matcher,
      *            matching condition for query
      */
+    @SuppressWarnings("deprecation")
     public static void compareNodeData( Sequoiadb sdb, String rgName,
             String csName, String clName, BSONObject matcher ) {
         Sequoiadb dataDB = null;
         try {
             // get node address within the group
-            CommLib CommLib = new CommLib();
             List< String > nodeAdrrs = CommLib.getNodeAddress( sdb, rgName );
 
             // direct node and compare node's data
@@ -523,7 +532,7 @@ public class CommLib {
             int maxCnt = 15;
             boolean checkSucc = false;
             do {
-                ArrayList< String > allNodeData = new ArrayList< String >();
+                ArrayList< String > allNodeData = new ArrayList<>();
 
                 for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
                     dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
@@ -532,9 +541,9 @@ public class CommLib {
                     DBCursor cursor = clDB.query( matcher, null, null, null );
 
                     // get the data for each node
-                    ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                    ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                     while ( cursor.hasNext() ) {
-                        BSONObject csInfo = ( BSONObject ) cursor.getNext();
+                        BSONObject csInfo = cursor.getNext();
                         oneNodeData.add( csInfo );
                     }
                     cursor.close();

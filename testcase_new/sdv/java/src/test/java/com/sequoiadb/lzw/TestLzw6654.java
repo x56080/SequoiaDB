@@ -1,7 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.BSONObject;
@@ -45,6 +43,7 @@ public class TestLzw6654 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -61,6 +60,7 @@ public class TestLzw6654 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -92,8 +92,7 @@ public class TestLzw6654 extends SdbTestBase {
         DBCollection cl = null;
         BSONObject option = new BasicBSONObject();
         try {
-            dataGroupName = ( ( ArrayList< String > ) LzwUtils2
-                    .getDataGroups( sdb ) ).get( 0 );
+            dataGroupName = LzwUtils2.getDataGroups( sdb ).get( 0 );
             option.put( "Group", dataGroupName );
             option.put( "Compressed", true );
             option.put( "CompressionType", "lzw" );
@@ -124,7 +123,7 @@ public class TestLzw6654 extends SdbTestBase {
         for ( int i = 0; i < 100; i++ ) {
             expRec.put( "_id", i );
             expRec.put( "key", smallStr + expRec.get( "_id" ) );
-            BSONObject actRec = ( BSONObject ) cursor.getNext();
+            BSONObject actRec = cursor.getNext();
             Assert.assertEquals( actRec, expRec, "data is different" );
             // clean up expRec
             expRec.removeField( "_id" );
@@ -133,7 +132,7 @@ public class TestLzw6654 extends SdbTestBase {
         for ( int i = 100; i < 100 + 1 + 2; i++ ) {
             expRec.put( "_id", i );
             expRec.put( "key", bigStr + expRec.get( "_id" ) );
-            BSONObject actRec = ( BSONObject ) cursor.getNext();
+            BSONObject actRec = cursor.getNext();
             Assert.assertEquals( actRec, expRec, "data is different" );
             // clean up expRec
             expRec.removeField( "_id" );

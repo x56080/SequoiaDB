@@ -1,7 +1,6 @@
 package com.sequoiadb.split;
 
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
@@ -18,7 +17,6 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -38,17 +36,17 @@ public class Split514 extends SdbTestBase {
     private Sequoiadb commSdb = null;
     private int removeNum = 0;
 
+    @SuppressWarnings("deprecation")
     @BeforeClass(enabled = true)
     public void setUp() {
         try {
             commSdb = new Sequoiadb( coordUrl, "", "" );
 
             // 跳过 standAlone 和数据组不足的环境
-            CommLib commlib = new CommLib();
-            if ( commlib.isStandAlone( commSdb ) ) {
+            if ( CommLib.isStandAlone( commSdb ) ) {
                 throw new SkipException( "skip StandAlone" );
             }
-            if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+            if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
                 throw new SkipException(
                         "current environment less than tow groups " );
             }
@@ -72,11 +70,12 @@ public class Split514 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     public void prepareData( Sequoiadb db ) {
         try {
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
-            ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+            ArrayList< BSONObject > arr = new ArrayList<>();
             for ( int i = 0; i < 1000; i++ ) {
                 arr.add( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
             }
@@ -88,6 +87,7 @@ public class Split514 extends SdbTestBase {
     }
 
     // 切分同时查询删除，校验结果
+    @SuppressWarnings("deprecation")
     @Test(enabled = true)
     public void testFindAndRemove() {
         Sequoiadb sdb = null;
@@ -162,6 +162,7 @@ public class Split514 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     private void checkData( Sequoiadb sdb ) {
         Sequoiadb destDataNode = null;
         Sequoiadb srcdataNode = null;
@@ -224,6 +225,7 @@ public class Split514 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(enabled = true)
     public void tearDown() {
         try {
@@ -241,6 +243,7 @@ public class Split514 extends SdbTestBase {
 
     class FindAndRemove extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb sdb = null;
@@ -275,6 +278,7 @@ public class Split514 extends SdbTestBase {
 
     class Split extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb sdb = null;

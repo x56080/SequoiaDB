@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -101,6 +100,7 @@ public class TestSeqDB9331 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public BSONObject getSnapshotDetail() {
         BSONObject detail = null;
         Sequoiadb dataDB = null;
@@ -141,6 +141,7 @@ public class TestSeqDB9331 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(alwaysRun = true)
     public void tearDown() {
         try {

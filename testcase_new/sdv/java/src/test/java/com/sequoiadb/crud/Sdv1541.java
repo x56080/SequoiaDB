@@ -1,22 +1,23 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.testng.Assert.assertTrue;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -33,6 +34,7 @@ public class Sdv1541 extends SdbTestBase {
         dbcl = cs.createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -46,6 +48,7 @@ public class Sdv1541 extends SdbTestBase {
      * 以下操作全部并发执行，并连接到相同的coord操作，数据量达到百万级别： 1.创建100条bulkInsert线程
      * 2.创建100条find线程，指定从备节点上读 3.1条更新线程，更新多条数据 4.1条删除线程，更新多条数据 5.创建索引
      */
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         dbcl.insert( Arrays.asList( genrateData( 10000 ) ) );
@@ -125,6 +128,7 @@ public class Sdv1541 extends SdbTestBase {
 
     abstract class ClTask extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;

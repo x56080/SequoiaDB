@@ -1,7 +1,6 @@
 package com.sequoiadb.crud;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -45,6 +44,7 @@ public class Sdv6606 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {

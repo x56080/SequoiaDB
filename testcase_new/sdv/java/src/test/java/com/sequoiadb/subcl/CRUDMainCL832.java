@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +29,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @date 2016年12月21日
  * @version 1.00
  */
+@Test
 public class CRUDMainCL832 extends SdbTestBase {
 
     private Sequoiadb sdb = null;
@@ -59,6 +59,7 @@ public class CRUDMainCL832 extends SdbTestBase {
         attachSubcls();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -118,7 +119,7 @@ public class CRUDMainCL832 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
-    @Test(dataProvider = "diffDataProvider")
+    @SuppressWarnings("deprecation")
     public void test( String diffData ) {
         Sequoiadb db = null;
         CollectionSpace cs = null;
@@ -151,6 +152,7 @@ public class CRUDMainCL832 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void insertAndCheckData( CollectionSpace cs, DBCollection maincl,
             String diffData ) {
         // 构造插入的数据

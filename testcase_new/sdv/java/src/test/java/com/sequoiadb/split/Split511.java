@@ -17,7 +17,6 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -35,6 +34,7 @@ public class Split511 extends SdbTestBase {
     private String destGroupName;
     Sequoiadb commSdb = null;
 
+    @SuppressWarnings("deprecation")
     @BeforeClass(enabled = true)
     public void setUp() {
 
@@ -42,11 +42,10 @@ public class Split511 extends SdbTestBase {
             commSdb = new Sequoiadb( coordUrl, "", "" );
 
             // 跳过 standAlone 和数据组不足的环境
-            CommLib commlib = new CommLib();
-            if ( commlib.isStandAlone( commSdb ) ) {
+            if ( CommLib.isStandAlone( commSdb ) ) {
                 throw new SkipException( "skip StandAlone" );
             }
-            if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+            if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
                 throw new SkipException(
                         "current environment less than tow groups " );
             }
@@ -71,11 +70,12 @@ public class Split511 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     public void prepareData( Sequoiadb db ) {
         try {
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
-            ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+            ArrayList< BSONObject > arr = new ArrayList<>();
             for ( int i = 0; i < 1000; i++ ) {
                 arr.add( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
             }
@@ -86,6 +86,7 @@ public class Split511 extends SdbTestBase {
     }
 
     // 切分过程中写入记录(1000)，检查目标组数据，插入数据，检查落入
+    @SuppressWarnings("deprecation")
     @Test
     public void insertData() {
         Sequoiadb db = null;
@@ -157,6 +158,7 @@ public class Split511 extends SdbTestBase {
     }
 
     // 检查目标组数据，插入数据，检查落入
+    @SuppressWarnings("deprecation")
     private void checkData( Sequoiadb sdb ) {
         Sequoiadb destDataNode = null;
         Sequoiadb srcDataNode = null;
@@ -207,6 +209,7 @@ public class Split511 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(enabled = true)
     public void tearDown() {
         try {
@@ -224,6 +227,7 @@ public class Split511 extends SdbTestBase {
 
     class InsertDataToCL extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
@@ -231,14 +235,12 @@ public class Split511 extends SdbTestBase {
                 db = new Sequoiadb( coordUrl, "", "" );
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
-                ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+                // ArrayList< BSONObject > arr = new ArrayList<>();
                 for ( int i = 0; i < 1000; i++ ) {
                     // arr.add((BSONObject) JSON.parse("{a:" + i + "}"));
                     cl.insert( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
                 }
                 // cl.bulkInsert(arr, SplitUtils.FLG_INSERT_CONTONDUP);
-            } catch ( BaseException e ) {
-                throw e;
             } finally {
                 if ( db != null )
                     db.disconnect();
@@ -249,6 +251,7 @@ public class Split511 extends SdbTestBase {
 
     class Split extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
 

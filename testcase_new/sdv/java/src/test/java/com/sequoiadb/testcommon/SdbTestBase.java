@@ -20,6 +20,7 @@ public class SdbTestBase {
     protected static String reservedDir;
     protected static String workDir;
 
+    @SuppressWarnings("deprecation")
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR" })
     @BeforeSuite
@@ -53,6 +54,7 @@ public class SdbTestBase {
         }
     }
 
+    @SuppressWarnings({ "resource", "deprecation" })
     @AfterSuite(alwaysRun = true)
     public static void finiSuite() {
         Sequoiadb db = null;

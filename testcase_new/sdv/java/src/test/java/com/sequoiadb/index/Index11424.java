@@ -1,21 +1,27 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static com.sequoiadb.index.IndexUtil.assertIndexCreatedCorrect;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import static org.testng.Assert.*;
-import static com.sequoiadb.index.IndexUtil.*;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-2.
@@ -47,6 +53,7 @@ public class Index11424 extends SdbTestBase {
         dbcl.insert( bsonInserted );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -76,6 +83,7 @@ public class Index11424 extends SdbTestBase {
         queue.toArray( indexArr );
 
         SdbThreadBase createIndexTasks = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -95,6 +103,7 @@ public class Index11424 extends SdbTestBase {
         };
 
         SdbThreadBase queryTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

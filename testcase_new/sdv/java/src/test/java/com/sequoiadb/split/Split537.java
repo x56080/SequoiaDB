@@ -1,7 +1,6 @@
 package com.sequoiadb.split;
 
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -16,7 +15,6 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -32,18 +30,18 @@ public class Split537 extends SdbTestBase {
     private DBCollection currentCL;
     private String clName = "testcaseCL537";
 
+    @SuppressWarnings("deprecation")
     @BeforeClass(enabled = true)
     public void setUp() {
         try {
             sdb = new Sequoiadb( coordUrl, "", "" );
 
             // 跳过 standAlone 和数据组不足的环境
-            CommLib commlib = new CommLib();
-            if ( commlib.isStandAlone( sdb ) ) {
+            if ( CommLib.isStandAlone( sdb ) ) {
                 throw new SkipException( "skip StandAlone" );
             }
 
-            if ( commlib.getDataGroupNames( sdb ).size() < 2 ) {
+            if ( CommLib.getDataGroupNames( sdb ).size() < 2 ) {
                 throw new SkipException(
                         "current environment less than tow groups " );
             }
@@ -75,6 +73,7 @@ public class Split537 extends SdbTestBase {
         Assert.fail( "collection(ShardingType:range) is empty,split success" );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(enabled = true)
     public void tearDown() {
         try {

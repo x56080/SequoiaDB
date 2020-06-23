@@ -1,10 +1,8 @@
 package com.sequoiadb.split;
 
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.bson.BSONObject;
-
 import org.bson.types.BasicBSONList;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -19,7 +17,6 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;
-
 import com.sequoiadb.testcommon.SdbTestBase;
 
 /**
@@ -37,6 +34,7 @@ public class Split538 extends SdbTestBase {
     private String destGroupName;
     private Sequoiadb commSdb = null;
 
+    @SuppressWarnings("deprecation")
     @BeforeClass(enabled = true)
     public void setUp() {
 
@@ -44,11 +42,10 @@ public class Split538 extends SdbTestBase {
             commSdb = new Sequoiadb( coordUrl, "", "" );
 
             // 跳过 standAlone 和数据组不足的环境
-            CommLib commlib = new CommLib();
-            if ( commlib.isStandAlone( commSdb ) ) {
+            if ( CommLib.isStandAlone( commSdb ) ) {
                 throw new SkipException( "skip StandAlone" );
             }
-            if ( commlib.getDataGroupNames( commSdb ).size() < 2 ) {
+            if ( CommLib.getDataGroupNames( commSdb ).size() < 2 ) {
                 throw new SkipException(
                         "current environment less than tow groups " );
             }
@@ -70,11 +67,12 @@ public class Split538 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void prepareData( Sequoiadb db ) {
         try {
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
-            ArrayList< BSONObject > arr = new ArrayList< BSONObject >();
+            ArrayList< BSONObject > arr = new ArrayList<>();
             for ( int i = 0; i < 1000; i++ ) {
                 arr.add( ( BSONObject ) JSON.parse( "{a:" + i + "}" ) );
             }
@@ -85,6 +83,7 @@ public class Split538 extends SdbTestBase {
     }
 
     // 切分(2000,3000)，检查编目
+    @SuppressWarnings("deprecation")
     @Test(enabled = true)
     public void splitCL() {
         Sequoiadb sdb = null;
@@ -151,6 +150,7 @@ public class Split538 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     public void insertAndCheck( Sequoiadb sdb ) {
         DBCursor dbc2 = null;
         DBCursor dbc3 = null;
@@ -204,6 +204,7 @@ public class Split538 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass(enabled = true)
     public void tearDown() {
         try {

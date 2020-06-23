@@ -1,7 +1,6 @@
 package com.sequoiadb.crud.compress.snappy;
 
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -62,6 +61,7 @@ public class TestSnappy6641 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -80,6 +80,7 @@ public class TestSnappy6641 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -138,7 +139,7 @@ public class TestSnappy6641 extends SdbTestBase {
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         BSONObject option = new BasicBSONObject();
         try {
-            option.put( "ShardingKey", ( BSONObject ) JSON.parse( "{a:1}" ) );
+            option.put( "ShardingKey", JSON.parse( "{a:1}" ) );
             option.put( "ShardingType", "range" );
             option.put( "IsMainCL", true );
             mcl = cs.createCollection( mclName, option );
@@ -154,8 +155,7 @@ public class TestSnappy6641 extends SdbTestBase {
         try {
             // create subCL
             BSONObject createOpt = new BasicBSONObject();
-            createOpt.put( "ShardingKey",
-                    ( BSONObject ) JSON.parse( "{a:1}" ) );
+            createOpt.put( "ShardingKey", JSON.parse( "{a:1}" ) );
             createOpt.put( "ShardingType", "hash" );
             createOpt.put( "Compressed", true );
             createOpt.put( "CompressionType", "snappy" );
@@ -163,15 +163,11 @@ public class TestSnappy6641 extends SdbTestBase {
             // attach subCL
             BSONObject attachOpt = new BasicBSONObject();
             if ( sclName.equals( sclName1 ) ) {
-                attachOpt.put( "LowBound",
-                        ( BSONObject ) JSON.parse( "{a:0}" ) );
-                attachOpt.put( "UpBound",
-                        ( BSONObject ) JSON.parse( "{a:2048}" ) );
+                attachOpt.put( "LowBound", JSON.parse( "{a:0}" ) );
+                attachOpt.put( "UpBound", JSON.parse( "{a:2048}" ) );
             } else if ( sclName.equals( sclName2 ) ) {
-                attachOpt.put( "LowBound",
-                        ( BSONObject ) JSON.parse( "{a:2048}" ) );
-                attachOpt.put( "UpBound",
-                        ( BSONObject ) JSON.parse( "{a:4096}" ) );
+                attachOpt.put( "LowBound", JSON.parse( "{a:2048}" ) );
+                attachOpt.put( "UpBound", JSON.parse( "{a:4096}" ) );
             }
             mcl.attachCollection( scl.getFullName(), attachOpt );
         } catch ( BaseException e ) {
@@ -180,6 +176,7 @@ public class TestSnappy6641 extends SdbTestBase {
         return scl;
     }
 
+    @SuppressWarnings("deprecation")
     private void checkCompression( Sequoiadb dataDB, String clName ) {
         int tryTimes = 10;
         boolean compressed = false;
@@ -201,7 +198,7 @@ public class TestSnappy6641 extends SdbTestBase {
 
             // judge whether data is compressed
             boolean ratioRight = ( double ) detail
-                    .get( "CurrentCompressionRatio" ) < ( double ) 1;
+                    .get( "CurrentCompressionRatio" ) < 1;
             boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
                     .equals( "Compressed" );
             boolean typeRight = ( ( String ) detail.get( "CompressionType" ) )

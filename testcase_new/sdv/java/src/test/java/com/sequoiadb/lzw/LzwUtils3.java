@@ -29,6 +29,7 @@ public class LzwUtils3 extends SdbTestBase {
         return false;
     }
 
+    @SuppressWarnings("deprecation")
     public static boolean isDictExist( DBCollection cl, String dataGroupName ) {
         // connect to data node of cl
         Sequoiadb dataDB = null;
@@ -128,7 +129,7 @@ public class LzwUtils3 extends SdbTestBase {
 
         // judge whether data is compressed
         double ration = ( double ) detail.get( "CurrentCompressionRatio" );
-        boolean ratioRight = ration < ( double ) 1;
+        boolean ratioRight = ration < 1;
         String attr = ( String ) detail.get( "Attribute" );
         boolean attrRight = attr.equals( "Compressed" );
         String type = ( String ) detail.get( "CompressionType" );

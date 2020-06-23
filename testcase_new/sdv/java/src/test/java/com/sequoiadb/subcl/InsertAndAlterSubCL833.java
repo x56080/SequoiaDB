@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -57,6 +56,7 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
         createAndattachSubcl();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -147,6 +147,7 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
 
     class AlterSubclThread extends SdbThreadBase {
 
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;

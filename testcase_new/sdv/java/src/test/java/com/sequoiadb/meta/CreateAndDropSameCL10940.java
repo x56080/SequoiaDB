@@ -1,7 +1,6 @@
 package com.sequoiadb.meta;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.testng.Assert;
@@ -50,7 +49,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
         dropCLThread.start();
 
         if ( !( createCLThread.isSuccess() && dropCLThread.isSuccess() ) ) {
-            List< Exception > exceptions = new ArrayList< Exception >();
+            List< Exception > exceptions = new ArrayList<>();
             exceptions.addAll( createCLThread.getExceptions() );
             exceptions.addAll( dropCLThread.getExceptions() );
 
@@ -63,6 +62,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -77,6 +77,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
     }
 
     class CreateCLThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db1 = null;
@@ -100,6 +101,7 @@ public class CreateAndDropSameCL10940 extends SdbTestBase {
     }
 
     class DropCLThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db2 = null;

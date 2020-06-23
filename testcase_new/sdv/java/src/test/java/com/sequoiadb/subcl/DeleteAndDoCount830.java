@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,6 +57,7 @@ public class DeleteAndDoCount830 extends SdbTestBase {
         attachSubcls();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -122,6 +122,7 @@ public class DeleteAndDoCount830 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
+    @SuppressWarnings("deprecation")
     public void insertData( DBCollection maincl, String diffData ) {
         // 构造插入的数据
         List< BSONObject > insertor = new ArrayList<>();
@@ -138,6 +139,7 @@ public class DeleteAndDoCount830 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test(dataProvider = "diffDataProvider")
     public void test( String diffData ) {
         Sequoiadb db = null;

@@ -1,22 +1,25 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import static org.testng.Assert.*;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-2.
@@ -33,6 +36,7 @@ public class Index11415 extends SdbTestBase {
                 .createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -45,6 +49,7 @@ public class Index11415 extends SdbTestBase {
     /**
      * 1、向cl中插入记录，过程中并发删除索引（插入记录中包含索引键） 2、检查操作结果
      */
+    @SuppressWarnings("deprecation")
     @Test
     public void testRemoveIndex() {
         dbcl.createIndex( "a_index", new BasicBSONObject( "a", 1 ), false,
@@ -84,6 +89,7 @@ public class Index11415 extends SdbTestBase {
             }
         };
         SdbThreadBase insertClTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

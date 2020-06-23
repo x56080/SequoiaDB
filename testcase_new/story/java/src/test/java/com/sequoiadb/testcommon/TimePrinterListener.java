@@ -1,13 +1,13 @@
 package com.sequoiadb.testcommon;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.testng.ITestResult;
 import org.testng.TestListenerAdapter;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.base.Sequoiadb;
 
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
 
 /**
  * Created by laojingtang on 17-11-23.
@@ -89,22 +89,32 @@ public class TimePrinterListener extends TestListenerAdapter {
     }
 
     private void dbMsgBeginTime( ITestResult tr ) {
+        Sequoiadb sdb = null;
         try {
-            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             sdb.msg( getCurTimeStr() + "\tBegin testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
             e.printStackTrace();
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 
     private void dbMsgEndTime( ITestResult tr ) {
+        Sequoiadb sdb = null;
         try {
-            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             sdb.msg( getCurTimeStr() + "\tEnd testcase: "
                     + getTestMethodName( tr ) );
         } catch ( BaseException e ) {
             e.printStackTrace();
+        } finally {
+            if ( sdb != null ) {
+                sdb.close();
+            }
         }
     }
 }

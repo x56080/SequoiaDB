@@ -1,18 +1,21 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
+import java.util.Arrays;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
-import static org.testng.Assert.*;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-3.
@@ -29,6 +32,7 @@ public class Sdv8765 extends SdbTestBase {
                 .createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -52,6 +56,7 @@ public class Sdv8765 extends SdbTestBase {
     @Test
     public void test() {
         SdbThreadBase insertData = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -71,6 +76,7 @@ public class Sdv8765 extends SdbTestBase {
         };
 
         SdbThreadBase createAndDropCLTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

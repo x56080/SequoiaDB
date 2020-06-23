@@ -35,29 +35,34 @@ public class LzwUtils2 extends SdbTestBase {
      * @param dataGroupName
      * @return boolean
      */
+    @SuppressWarnings({ "deprecation", "resource" })
     public static boolean isDictExist( DBCollection cl, String dataGroupName ) {
         // connect to data node of cl
         Sequoiadb db = cl.getSequoiadb();
         String url = db.getReplicaGroup( dataGroupName ).getMaster()
                 .getNodeName();
-        Sequoiadb dataDB = new Sequoiadb( url, "", "" );
+        Sequoiadb dataDB = null;
+        try {
+            dataDB = new Sequoiadb( url, "", "" );
+            // get details of snapshot
+            BSONObject nameBSON = new BasicBSONObject();
+            nameBSON.put( "Name", cl.getFullName() );
+            DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
+            if ( !snapshot.hasNext() ) {
+                CollectionSpace cs = dataDB.getCollectionSpace( csName );
+                throw new BaseException( -10000,
+                        "snapshot is not exist. cl exists: "
+                                + cs.isCollectionExist( cl.getFullName() ) );
+            }
+            BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                    .get( "Details" );
+            BSONObject detail = ( BSONObject ) details.get( 0 );
 
-        // get details of snapshot
-        BSONObject nameBSON = new BasicBSONObject();
-        nameBSON.put( "Name", cl.getFullName() );
-        DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
-        if ( !snapshot.hasNext() ) {
-            CollectionSpace cs = dataDB.getCollectionSpace( csName );
-            throw new BaseException( -10000,
-                    "snapshot is not exist. cl exists: "
-                            + cs.isCollectionExist( cl.getFullName() ) );
+            // judge whether dictionary is created
+            return ( boolean ) detail.get( "DictionaryCreated" );
+        } finally {
+            dataDB.disconnect();
         }
-        BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
-                .get( "Details" );
-        BSONObject detail = ( BSONObject ) details.get( 0 );
-
-        // judge whether dictionary is created
-        return ( boolean ) detail.get( "DictionaryCreated" );
     }
 
     public static void waitCreateDict( DBCollection cl, String dataGroupName ) {
@@ -114,40 +119,49 @@ public class LzwUtils2 extends SdbTestBase {
      * @param cl
      * @param dataGroupName
      */
+    @SuppressWarnings({ "deprecation", "resource" })
     public static void checkCompressed( DBCollection cl,
             String dataGroupName ) {
         int tryTimes = 10;
         boolean isCompressed = false;
-        for ( int i = 0; i < tryTimes; i++ ) {
-            // connect to data node of cl
-            Sequoiadb db = cl.getSequoiadb();
-            String url = db.getReplicaGroup( dataGroupName ).getMaster()
-                    .getNodeName();
-            Sequoiadb dataDB = new Sequoiadb( url, "", "" );
-            // get details of snapshot
-            BSONObject nameBSON = new BasicBSONObject();
-            nameBSON.put( "Name", cl.getFullName() );
-            DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
-            BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
-                    .get( "Details" );
-            BSONObject detail = ( BSONObject ) details.get( 0 );
+        Sequoiadb db = cl.getSequoiadb();
+        String url = db.getReplicaGroup( dataGroupName ).getMaster()
+                .getNodeName();
+        Sequoiadb dataDB = null;
+        try {
+            dataDB = new Sequoiadb( url, "", "" );
+            for ( int i = 0; i < tryTimes; i++ ) {
+                // connect to data node of cl
+                // get details of snapshot
+                BSONObject nameBSON = new BasicBSONObject();
+                nameBSON.put( "Name", cl.getFullName() );
+                DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null,
+                        null );
+                BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                        .get( "Details" );
+                BSONObject detail = ( BSONObject ) details.get( 0 );
 
-            // judge whether data is compressed
-            boolean ratioRight = ( double ) detail
-                    .get( "CurrentCompressionRatio" ) < ( double ) 1;
-            boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
-                    .equals( "Compressed" );
-            boolean typeRight = ( ( String ) detail.get( "CompressionType" ) )
-                    .equals( "lzw" );
-            if ( ratioRight && attrRight && typeRight ) {
-                isCompressed = true;
+                // judge whether data is compressed
+                boolean ratioRight = ( double ) detail
+                        .get( "CurrentCompressionRatio" ) < 1;
+                boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
+                        .equals( "Compressed" );
+                boolean typeRight = ( ( String ) detail
+                        .get( "CompressionType" ) ).equals( "lzw" );
+                if ( ratioRight && attrRight && typeRight ) {
+                    isCompressed = true;
+                }
+
+                // try again after 1 second
+                try {
+                    Thread.sleep( 1000 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
             }
-
-            // try again after 1 second
-            try {
-                Thread.sleep( 1000 );
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
+        } finally {
+            if ( dataDB != null ) {
+                dataDB.disconnect();
             }
         }
         if ( !isCompressed ) {

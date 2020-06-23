@@ -1,9 +1,8 @@
 package com.sequoiadb.index;
 
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-
 import java.util.Objects;
+
+import org.bson.BasicBSONObject;
 
 /**
  * Created by laojingtang on 18-1-12.

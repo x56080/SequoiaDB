@@ -1,12 +1,7 @@
 package com.sequoiadb.lzw;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -17,7 +12,13 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * 1、创建cl，指定Compressed:true 2、切分过程中并发做增删改改查操作 3、操作完成后查看源组和目标组数据正确性
@@ -92,6 +93,7 @@ public class TestSeqDB6971 extends SdbTestBase {
         checkDestDataSplitResult();
     }
 
+    @SuppressWarnings({ "deprecation", "resource" })
     private void checkDestDataSplitResult() {
         Sequoiadb dataDb = null;
         try {
@@ -113,6 +115,7 @@ public class TestSeqDB6971 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings({ "resource", "deprecation" })
     private void checkSrcDataSplitResult() {
         Sequoiadb dataDb = null;
         try {
@@ -168,6 +171,7 @@ public class TestSeqDB6971 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings({ "resource", "deprecation" })
     public BSONObject getSnapshotDetail() {
         BSONObject detail = null;
         Sequoiadb dataDB = null;
@@ -192,6 +196,7 @@ public class TestSeqDB6971 extends SdbTestBase {
         return detail;
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -204,6 +209,7 @@ public class TestSeqDB6971 extends SdbTestBase {
     }
 
     class SplitThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() {
             Sequoiadb db2 = null;
@@ -226,6 +232,7 @@ public class TestSeqDB6971 extends SdbTestBase {
     }
 
     class AUQDThread extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() {
             Sequoiadb db1 = null;

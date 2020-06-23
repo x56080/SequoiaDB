@@ -30,6 +30,7 @@ public class DocProvider {
                 new Object[] { getDoc( false ) } };
     }
 
+    @SuppressWarnings("deprecation")
     public static Object getDoc( boolean recursion ) {
         BSONObject doc = new BasicBSONObject();
         // doc.put("_id", random.nextInt(Integer.MAX_VALUE));

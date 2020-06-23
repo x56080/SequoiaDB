@@ -26,55 +26,65 @@ public class CompressUtils extends SdbTestBase {
         return false;
     }
 
+    @SuppressWarnings({ "resource", "deprecation" })
     public static void checkCompressed( DBCollection cl, String dataGroupName,
             String compressionType ) {
         int tryTimes = 10;
         boolean compressed = false;
-        for ( int i = 0; i < tryTimes; i++ ) {
-            // connect to data node of cl
-            Sequoiadb db = cl.getSequoiadb();
-            String url = db.getReplicaGroup( dataGroupName ).getMaster()
-                    .getNodeName();
-            Sequoiadb dataDB = new Sequoiadb( url, "", "" );
+        Sequoiadb db = cl.getSequoiadb();
+        String url = db.getReplicaGroup( dataGroupName ).getMaster()
+                .getNodeName();
+        // connect to data node of cl
+        Sequoiadb dataDB = null;
+        try {
+            dataDB = new Sequoiadb( url, "", "" );
+            for ( int i = 0; i < tryTimes; i++ ) {
 
-            // get details of snapshot
-            BSONObject nameBSON = new BasicBSONObject();
-            nameBSON.put( "Name", cl.getFullName() );
-            DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
-            BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
-                    .get( "Details" );
-            BSONObject detail = ( BSONObject ) details.get( 0 );
+                // get details of snapshot
+                BSONObject nameBSON = new BasicBSONObject();
+                nameBSON.put( "Name", cl.getFullName() );
+                DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null,
+                        null );
+                BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                        .get( "Details" );
+                BSONObject detail = ( BSONObject ) details.get( 0 );
 
-            // judge whether data is compressed
-            if ( compressionType != null ) {
-                double expRatio = 1.0;
-                if ( compressionType.equals( "lzw" ) ) {
-                    expRatio = 0.9;
-                } else if ( compressionType.equals( "snappy" ) ) {
-                    expRatio = 0.5;
-                }
-                boolean ratioRight = ( double ) detail
-                        .get( "CurrentCompressionRatio" ) < expRatio;
-                boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
-                        .equals( "Compressed" );
-                boolean typeRight = ( ( String ) detail
-                        .get( "CompressionType" ) ).equals( compressionType );
-                if ( ratioRight && attrRight && typeRight ) {
-                    compressed = true;
+                // judge whether data is compressed
+                if ( compressionType != null ) {
+                    double expRatio = 1.0;
+                    if ( compressionType.equals( "lzw" ) ) {
+                        expRatio = 0.9;
+                    } else if ( compressionType.equals( "snappy" ) ) {
+                        expRatio = 0.5;
+                    }
+                    boolean ratioRight = ( double ) detail
+                            .get( "CurrentCompressionRatio" ) < expRatio;
+                    boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
+                            .equals( "Compressed" );
+                    boolean typeRight = ( ( String ) detail
+                            .get( "CompressionType" ) )
+                                    .equals( compressionType );
+                    if ( ratioRight && attrRight && typeRight ) {
+                        compressed = true;
+                        break;
+                    }
+                } else {
+                    boolean typeRight = ( ( String ) detail
+                            .get( "CompressionType" ) ).equals( "" );
+                    compressed = typeRight;
                     break;
                 }
-            } else {
-                boolean typeRight = ( ( String ) detail
-                        .get( "CompressionType" ) ).equals( "" );
-                compressed = typeRight;
-                break;
-            }
 
-            // try again after 1 second. compression needs time
-            try {
-                Thread.sleep( 1000 );
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
+                // try again after 1 second. compression needs time
+                try {
+                    Thread.sleep( 1000 );
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+            }
+        } finally {
+            if ( dataDB != null ) {
+                dataDB.disconnect();
             }
         }
         if ( !compressed ) {
@@ -82,6 +92,7 @@ public class CompressUtils extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static void waitCreateDict( DBCollection cl, String dataGroupName ) {
         int passSecond = 0;
         int waitSecond = 120;
@@ -102,23 +113,29 @@ public class CompressUtils extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings({ "deprecation", "resource" })
     public static boolean isDictExist( DBCollection cl, String dataGroupName ) {
         // connect to data node of cl
         Sequoiadb db = cl.getSequoiadb();
         String url = db.getReplicaGroup( dataGroupName ).getMaster()
                 .getNodeName();
-        Sequoiadb dataDB = new Sequoiadb( url, "", "" );
-
-        // get details of snapshot
-        BSONObject nameBSON = new BasicBSONObject();
-        nameBSON.put( "Name", cl.getFullName() );
-        DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
-        BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
-                .get( "Details" );
-        BSONObject detail = ( BSONObject ) details.get( 0 );
-
-        // judge whether dictionary is created
-        return ( boolean ) detail.get( "DictionaryCreated" );
+        Sequoiadb dataDB = null;
+        try {
+            dataDB = new Sequoiadb( url, "", "" );
+            // get details of snapshot
+            BSONObject nameBSON = new BasicBSONObject();
+            nameBSON.put( "Name", cl.getFullName() );
+            DBCursor snapshot = dataDB.getSnapshot( 4, nameBSON, null, null );
+            BasicBSONList details = ( BasicBSONList ) snapshot.getNext()
+                    .get( "Details" );
+            BSONObject detail = ( BSONObject ) details.get( 0 );
+            // judge whether dictionary is created
+            return ( boolean ) detail.get( "DictionaryCreated" );
+        } finally {
+            if ( dataDB != null ) {
+                dataDB.disconnect();
+            }
+        }
     }
 
     public static ArrayList< String > getDataGroups( Sequoiadb db ) {

@@ -1,10 +1,8 @@
 package com.sequoiadb.example;
 
 import org.bson.BSONObject;
-
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
-import org.bson.types.Binary;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -18,8 +16,7 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-
-import com.sequoiadb.testcommon.*;
+import com.sequoiadb.testcommon.SdbTestBase;
 
 public class DBCollectionTest extends SdbTestBase {
     // private static String coordUrl = "192.168.30.78:11810/t.t";
@@ -83,6 +80,7 @@ public class DBCollectionTest extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void releaseSdb() {
         /*

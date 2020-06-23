@@ -1,6 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -43,6 +42,7 @@ public class Sdv6661 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {

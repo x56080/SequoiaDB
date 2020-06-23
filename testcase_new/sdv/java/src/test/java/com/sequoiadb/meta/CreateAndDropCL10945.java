@@ -1,7 +1,6 @@
 package com.sequoiadb.meta;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.Stack;
@@ -35,7 +34,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
     private String csName = "cs10945";
     private String clName = "cl10945";
     private static Sequoiadb sdb = null;
-    private Stack< String > preClNames = new Stack< String >();
+    private Stack< String > preClNames = new Stack<>();
     private Random random = new Random();
     String clGroupName = null;
 
@@ -61,7 +60,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
         dropCLThread.start();
 
         if ( !( createCLThread.isSuccess() && dropCLThread.isSuccess() ) ) {
-            List< Exception > exceptions = new ArrayList< Exception >();
+            List< Exception > exceptions = new ArrayList<>();
             exceptions.addAll( createCLThread.getExceptions() );
             exceptions.addAll( dropCLThread.getExceptions() );
 
@@ -74,6 +73,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -87,6 +87,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
     }
 
     class CreateCLThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db1 = null;
@@ -110,6 +111,7 @@ public class CreateAndDropCL10945 extends SdbTestBase {
     }
 
     class DropCLThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db2 = null;
@@ -153,9 +155,10 @@ public class CreateAndDropCL10945 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void checkCreateCl( DBCollection cl ) {
         try {
-            List< BSONObject > list = new ArrayList< BSONObject >();
+            List< BSONObject > list = new ArrayList<>();
             long num = 10;
             for ( long i = 0; i < num; i++ ) {
                 BSONObject obj = new BasicBSONObject();

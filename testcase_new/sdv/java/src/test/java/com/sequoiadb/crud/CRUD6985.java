@@ -1,11 +1,16 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
@@ -14,10 +19,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import static org.testng.Assert.*;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -34,6 +41,7 @@ public class CRUD6985 extends SdbTestBase {
         dbcl = cs.createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -80,6 +88,7 @@ public class CRUD6985 extends SdbTestBase {
         final List< BSONObject > deleteTaskEexpect = generate( 1000 );
         CRUD6985.this.dbcl.insert( deleteTaskEexpect );
         ClTask deleteTask = new ClTask() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
             private ConcurrentLinkedQueue< BSONObject > removeQueue = new ConcurrentLinkedQueue(
                     deleteTaskEexpect );
 
@@ -111,6 +120,7 @@ public class CRUD6985 extends SdbTestBase {
         final List< BSONObject > updateTaskExpect = generate( 1000 );
         CRUD6985.this.dbcl.insert( updateTaskExpect );
         ClTask updateTask = new ClTask() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
             ConcurrentLinkedQueue< BSONObject > updateQueue = new ConcurrentLinkedQueue(
                     updateTaskExpect );
 
@@ -186,6 +196,7 @@ public class CRUD6985 extends SdbTestBase {
 
     abstract class ClTask extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;

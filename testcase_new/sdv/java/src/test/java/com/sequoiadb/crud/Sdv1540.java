@@ -1,10 +1,15 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.*;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.testcommon.CommLib;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -14,10 +19,14 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import static org.testng.Assert.*;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.DBLob;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.CommLib;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -52,6 +61,7 @@ public class Sdv1540 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -66,6 +76,7 @@ public class Sdv1540 extends SdbTestBase {
      * 3）并发删除记录（删除已经插入成功的记录） 4）并发查询记录 5）并发插入lob 6）并发删除lob（删除已经插入成功的lob）
      * 7）并发读取lob 8）创建索引 3、检查各操作结果
      */
+    @SuppressWarnings("unchecked")
     @Test
     public void test() {
 
@@ -79,6 +90,7 @@ public class Sdv1540 extends SdbTestBase {
         List< BSONObject > record2DeleteList = Arrays
                 .asList( genrateData( 1000 ) );
         dbcl.insert( record2DeleteList );
+        @SuppressWarnings({ "rawtypes" })
         final ConcurrentLinkedQueue< BSONObject > record2Delete = new ConcurrentLinkedQueue(
                 record2DeleteList );
         MyTask delete = new MyTask() {
@@ -148,6 +160,7 @@ public class Sdv1540 extends SdbTestBase {
             }
         };
 
+        @SuppressWarnings("rawtypes")
         final ConcurrentLinkedQueue< ObjectId > lob2DeleteQueue = new ConcurrentLinkedQueue(
                 repareSimpleLob( 100, data ) );
         MyTask deleteLob = new MyTask() {
@@ -211,6 +224,7 @@ public class Sdv1540 extends SdbTestBase {
 
     abstract class MyTask extends SdbThreadBase {
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
@@ -245,14 +259,4 @@ public class Sdv1540 extends SdbTestBase {
         return b;
     }
 
-    private List< ObjectId > getLobOids( DBCollection cl ) {
-        DBCursor cur = cl.listLobs();
-        List< ObjectId > ids = new ArrayList<>( 1000 );
-        while ( cur.hasNext() ) {
-            BasicBSONObject o = ( BasicBSONObject ) cur.getNext();
-            ObjectId id = o.getObjectId( "Oid" );
-            ids.add( id );
-        }
-        return ids;
-    }
 }

@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -50,6 +48,7 @@ public class TestConcurrency6672 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -96,6 +95,7 @@ public class TestConcurrency6672 extends SdbTestBase {
     }
 
     private class DeleteThread extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -120,6 +120,7 @@ public class TestConcurrency6672 extends SdbTestBase {
     }
 
     private class UpdateThread extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -132,8 +133,7 @@ public class TestConcurrency6672 extends SdbTestBase {
                     BSONObject updMatcher = new BasicBSONObject();
                     updMatcher.put( "a", 3000 + i );
                     BSONObject updModifier = new BasicBSONObject();
-                    updModifier.put( "$set",
-                            ( BSONObject ) JSON.parse( "{b:'hahahahaha'}" ) );
+                    updModifier.put( "$set", JSON.parse( "{b:'hahahahaha'}" ) );
                     cl.update( updMatcher, updModifier, null );
                 }
             } catch ( BaseException e ) {
@@ -147,6 +147,7 @@ public class TestConcurrency6672 extends SdbTestBase {
     }
 
     private class QueryThread extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -171,6 +172,7 @@ public class TestConcurrency6672 extends SdbTestBase {
     }
 
     private class InsertThread extends SdbThreadBase {
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -229,7 +231,7 @@ public class TestConcurrency6672 extends SdbTestBase {
         DBCollection cl = sdb.getCollectionSpace( csName )
                 .getCollection( clName );
         BSONObject delMatcher = new BasicBSONObject();
-        delMatcher.put( "a", ( BSONObject ) JSON.parse( "{$lt : 3000}" ) );
+        delMatcher.put( "a", JSON.parse( "{$lt : 3000}" ) );
         if ( ( int ) cl.getCount( delMatcher ) != 0 ) {
             Assert.fail( "fail to delete" );
         }

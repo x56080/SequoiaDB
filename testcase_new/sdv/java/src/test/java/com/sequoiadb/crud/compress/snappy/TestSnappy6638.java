@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.compress.snappy;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -44,6 +42,7 @@ public class TestSnappy6638 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -60,6 +59,7 @@ public class TestSnappy6638 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -71,10 +71,9 @@ public class TestSnappy6638 extends SdbTestBase {
             cl.insert( "{a:-1, b:-1, c:-1}" );
             // check insert by query
             DBCursor cursor = cl.query( "{a:-1}", null, null, null );
-            BSONObject result = ( BSONObject ) cursor.getNext();
+            BSONObject result = cursor.getNext();
             result.removeField( "_id" );
-            if ( !( result.equals(
-                    ( BSONObject ) JSON.parse( "{a:-1, b:-1, c:-1}" ) ) ) ) {
+            if ( !( result.equals( JSON.parse( "{a:-1, b:-1, c:-1}" ) ) ) ) {
                 Assert.fail( "fail to insert" );
             }
             ;
@@ -83,10 +82,9 @@ public class TestSnappy6638 extends SdbTestBase {
             cl.update( "{a:-1}", "{$set:{b:1}}", null );
             // check update by query
             cursor = cl.query( "{a:-1}", null, null, null );
-            result = ( BSONObject ) cursor.getNext();
+            result = cursor.getNext();
             result.removeField( "_id" );
-            if ( !( result.equals(
-                    ( BSONObject ) JSON.parse( "{a:-1, b:1, c:-1}" ) ) ) ) {
+            if ( !( result.equals( JSON.parse( "{a:-1, b:1, c:-1}" ) ) ) ) {
                 Assert.fail( "fail to update" );
             }
             ;

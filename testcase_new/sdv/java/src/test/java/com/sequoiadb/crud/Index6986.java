@@ -1,11 +1,15 @@
 package com.sequoiadb.crud;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
@@ -14,9 +18,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.*;
-
-import static org.testng.Assert.*;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-4.
@@ -33,6 +40,7 @@ public class Index6986 extends SdbTestBase {
         dbcl = cs.createCollection( CLNAME );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -46,11 +54,13 @@ public class Index6986 extends SdbTestBase {
      * 1、持续插入数据，过程中创建索引 2、检查数据和索引正确性 1、插入数据成功，查看CL中数据正确
      * 2、创建索引成功，查看各节点索引均存在且状态为nomal 3、查询索引字段，查询结果正确，且有走索引
      */
+    @SuppressWarnings("deprecation")
     @Test
     public void test() throws InterruptedException {
         final List< BSONObject > insertData = new ArrayList<>( 10000 );
         SdbThreadBase insert = new SdbThreadBase() {
 
+            @SuppressWarnings({ "resource" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -72,6 +82,7 @@ public class Index6986 extends SdbTestBase {
         };
 
         SdbThreadBase createIndex = new SdbThreadBase() {
+            @SuppressWarnings({ "resource" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

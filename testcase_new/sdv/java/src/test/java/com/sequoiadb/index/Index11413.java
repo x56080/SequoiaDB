@@ -1,21 +1,22 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import static com.sequoiadb.index.IndexUtil.assertIndexCreatedCorrect;
+import static org.testng.Assert.assertFalse;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.testng.Assert.*;
-import static com.sequoiadb.index.IndexUtil.*;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * Created by laojingtang on 18-1-2.
@@ -40,6 +41,7 @@ public class Index11413 extends SdbTestBase {
         dbcl.insert( list );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -59,6 +61,7 @@ public class Index11413 extends SdbTestBase {
                 .setKey( new BasicBSONObject( "a", 1 ) ).setEnforced( false )
                 .setUnique( false );
         SdbThreadBase createTasks = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -66,7 +69,7 @@ public class Index11413 extends SdbTestBase {
                     db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                     DBCollection cl = db
                             .getCollectionSpace( SdbTestBase.csName )
-                            .getCollection( Index11413.this.CLNAME );
+                            .getCollection( CLNAME );
                     cl.createIndex( index2Create.getIndexName(),
                             index2Create.getKey(), index2Create.isUnique(),
                             index2Create.isEnforced() );
@@ -83,12 +86,14 @@ public class Index11413 extends SdbTestBase {
         assertIndexCreatedCorrect( dbcl, index2Create );
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testRemoveIndex() {
         dbcl.createIndex( "b_index", new BasicBSONObject( "b", 1 ), false,
                 false );
 
         SdbThreadBase removeTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -96,7 +101,7 @@ public class Index11413 extends SdbTestBase {
                     db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                     DBCollection cl = db
                             .getCollectionSpace( SdbTestBase.csName )
-                            .getCollection( Index11413.this.CLNAME );
+                            .getCollection( CLNAME );
                     cl.dropIndex( "b_index" );
                 } finally {
                     if ( db != null )

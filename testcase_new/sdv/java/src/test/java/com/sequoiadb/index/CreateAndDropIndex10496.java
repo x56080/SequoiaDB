@@ -1,10 +1,8 @@
 package com.sequoiadb.index;
 
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBCursor;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.SdbTestBase;
-import com.sequoiadb.testcommon.SdbThreadBase;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -15,9 +13,11 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.testcommon.SdbThreadBase;
 
 /**
  * FileName: CreateAndDropIndex10496.java test content:concurrent create
@@ -80,6 +80,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
         checkDropIndexResult( indexNames );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     private void teardown() {
         sdb.getCollectionSpace( SdbTestBase.csName ).dropCollection( CLNAME );
@@ -95,7 +96,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
             this.indexKey = indexKey;
         }
 
-        @SuppressWarnings("resource")
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
@@ -119,7 +120,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
             this.indexName = indexName;
         }
 
-        @SuppressWarnings("resource")
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
@@ -137,7 +138,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
 
     private void insertData( DBCollection cl ) {
         for ( int i = 0; i < 100000; i += 10000 ) {
-            List< BSONObject > list = new ArrayList< BSONObject >();
+            List< BSONObject > list = new ArrayList< >();
             for ( int j = i + 0; j < i + 10000; j++ ) {
                 BSONObject obj = new BasicBSONObject();
                 obj.put( "a", i );
@@ -158,6 +159,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void checkCreateIndexResult( String[] indexNames,
             String[] indexKeys ) {
         for ( int i = 0; i < indexNames.length; i++ ) {
@@ -182,6 +184,7 @@ public class CreateAndDropIndex10496 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     private void checkDropIndexResult( String[] indexNames ) {
         for ( int i = 0; i < indexNames.length; i++ ) {
             DBCursor cursorIndex = dbcl.getIndex( indexNames[ i ] );

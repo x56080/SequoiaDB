@@ -1,7 +1,5 @@
 package com.sequoiadb.index;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -62,6 +60,7 @@ public class IdIndex6620 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
 

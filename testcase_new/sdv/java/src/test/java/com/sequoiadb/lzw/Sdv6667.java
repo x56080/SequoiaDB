@@ -1,7 +1,6 @@
 package com.sequoiadb.lzw;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Random;
 
 import org.bson.BSONObject;
@@ -66,6 +65,7 @@ public class Sdv6667 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -75,13 +75,12 @@ public class Sdv6667 extends SdbTestBase {
             if ( sdb.isDomainExist( domainName ) ) {
                 sdb.dropDomain( domainName );
             }
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
             sdb.disconnect();
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() throws Exception {
         Sequoiadb db = null;
@@ -120,8 +119,6 @@ public class Sdv6667 extends SdbTestBase {
             insertData( scl2, 100, strLength );
             checkCompression( dataDB2, sclName2 );
             checkAutoSplit( dataDB2, sclName2 );
-        } catch ( BaseException e ) {
-            Assert.fail( e.getMessage() );
         } finally {
             db.disconnect();
         }
@@ -171,7 +168,7 @@ public class Sdv6667 extends SdbTestBase {
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         BSONObject option = new BasicBSONObject();
         try {
-            option.put( "ShardingKey", ( BSONObject ) JSON.parse( "{a:1}" ) );
+            option.put( "ShardingKey", JSON.parse( "{a:1}" ) );
             option.put( "ShardingType", "range" );
             option.put( "IsMainCL", true );
             mcl = cs.createCollection( mclName, option );
@@ -188,18 +185,15 @@ public class Sdv6667 extends SdbTestBase {
         try {
             // create subCL
             BSONObject createOpt = new BasicBSONObject();
-            createOpt.put( "ShardingKey",
-                    ( BSONObject ) JSON.parse( "{a:1}" ) );
+            createOpt.put( "ShardingKey", JSON.parse( "{a:1}" ) );
             createOpt.put( "ShardingType", "hash" );
             createOpt.put( "Compressed", true );
             createOpt.put( "CompressionType", "lzw" );
             scl = cs.createCollection( sclName, createOpt );
             // attach subCL
             BSONObject attachOpt = new BasicBSONObject();
-            attachOpt.put( "LowBound",
-                    ( BSONObject ) JSON.parse( "{a:" + lowBound + "}" ) );
-            attachOpt.put( "UpBound",
-                    ( BSONObject ) JSON.parse( "{a:" + upBound + "}" ) );
+            attachOpt.put( "LowBound", JSON.parse( "{a:" + lowBound + "}" ) );
+            attachOpt.put( "UpBound", JSON.parse( "{a:" + upBound + "}" ) );
             mcl.attachCollection( scl.getFullName(), attachOpt );
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
@@ -222,7 +216,7 @@ public class Sdv6667 extends SdbTestBase {
 
             // judge whether data is compressed
             boolean ratioRight = ( double ) detail
-                    .get( "CurrentCompressionRatio" ) < ( double ) 1;
+                    .get( "CurrentCompressionRatio" ) < 1;
             boolean attrRight = ( ( String ) detail.get( "Attribute" ) )
                     .equals( "Compressed" );
             boolean typeRight = ( ( String ) detail.get( "CompressionType" ) )

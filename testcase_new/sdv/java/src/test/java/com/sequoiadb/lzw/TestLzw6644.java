@@ -1,7 +1,5 @@
 package com.sequoiadb.lzw;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
@@ -23,6 +21,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
 public class TestLzw6644 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_6644";
+
     @BeforeClass
     public void setUp() {
         try {
@@ -32,6 +31,7 @@ public class TestLzw6644 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -48,6 +48,7 @@ public class TestLzw6644 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;

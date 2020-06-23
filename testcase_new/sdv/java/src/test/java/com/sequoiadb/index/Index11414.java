@@ -1,22 +1,29 @@
 package com.sequoiadb.index;
 
+import static com.sequoiadb.index.IndexUtil.assertIndexCreatedCorrect;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Vector;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.ObjectId;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.ObjectId;
-import org.bson.util.JSON;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.*;
-
-import static org.testng.Assert.*;
-import static com.sequoiadb.index.IndexUtil.*;
 
 /**
  * Created by laojingtang on 18-1-2.
@@ -44,6 +51,7 @@ public class Index11414 extends SdbTestBase {
         dbcl.insert( prepareData );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         if ( db != null ) {
@@ -69,6 +77,7 @@ public class Index11414 extends SdbTestBase {
                 .setKey( new BasicBSONObject( "a", 1 ) ).setUnique( false )
                 .setEnforced( false );
         SdbThreadBase createIndexTasks = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -88,6 +97,7 @@ public class Index11414 extends SdbTestBase {
         };
 
         SdbThreadBase removeAllRecordTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -133,6 +143,7 @@ public class Index11414 extends SdbTestBase {
                 .setKey( new BasicBSONObject( "b", 1 ) ).setEnforced( false )
                 .setUnique( false );
         SdbThreadBase createIndexTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;
@@ -154,6 +165,7 @@ public class Index11414 extends SdbTestBase {
 
         final List< ObjectId > oidRemoved = new Vector<>();
         SdbThreadBase removeRecordTask = new SdbThreadBase() {
+            @SuppressWarnings({ "resource", "deprecation" })
             @Override
             public void exec() throws Exception {
                 Sequoiadb db = null;

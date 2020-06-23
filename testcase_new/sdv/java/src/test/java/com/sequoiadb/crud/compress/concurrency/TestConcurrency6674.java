@@ -1,8 +1,5 @@
 package com.sequoiadb.crud.compress.concurrency;
 
-import java.util.ArrayList;
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
@@ -40,10 +37,10 @@ public class TestConcurrency6674 extends SdbTestBase {
         if ( CompressUtils.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
-        dataGroupName = ( ( ArrayList< String > ) CompressUtils
-                .getDataGroups( sdb ) ).get( 0 );
+        dataGroupName = CompressUtils.getDataGroups( sdb ).get( 0 );
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -81,6 +78,7 @@ public class TestConcurrency6674 extends SdbTestBase {
     }
 
     private class LzwThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -120,6 +118,7 @@ public class TestConcurrency6674 extends SdbTestBase {
     }
 
     private class SnappyThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -147,6 +146,7 @@ public class TestConcurrency6674 extends SdbTestBase {
     }
 
     private class NormalThread extends SdbThreadBase {
+        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws BaseException {
             Sequoiadb db = null;
@@ -201,6 +201,7 @@ public class TestConcurrency6674 extends SdbTestBase {
         return cl;
     }
 
+    @SuppressWarnings("deprecation")
     private void checkData( DBCollection cl ) {
         // check count
         int expCnt = 150;

@@ -1,7 +1,5 @@
 package com.sequoiadb.crud.compress.snappy;
 
-import java.util.Date;
-
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
@@ -54,6 +52,7 @@ public class TestSnappy6639 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -70,6 +69,7 @@ public class TestSnappy6639 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() {
         Sequoiadb db = null;
@@ -108,7 +108,7 @@ public class TestSnappy6639 extends SdbTestBase {
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         BSONObject option = new BasicBSONObject();
         try {
-            option.put( "ShardingKey", ( BSONObject ) JSON.parse( "{a:1}" ) );
+            option.put( "ShardingKey", JSON.parse( "{a:1}" ) );
             option.put( "ShardingType", "hash" );
             option.put( "Compressed", true );
             option.put( "CompressionType", "snappy" );

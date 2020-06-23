@@ -1,7 +1,5 @@
 package com.sequoiadb.crud;
 
-import java.util.Date;
-
 import org.bson.types.ObjectId;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -37,6 +35,7 @@ public class createLob11606 extends SdbTestBase {
             "590a20e584aeebef8aff76c8", "590a20e584aeebef8aff77a7",
             "590a20e584aeebef8aff7886" };
 
+    @SuppressWarnings("deprecation")
     @BeforeClass
     public void setup() {
         try {
@@ -81,6 +80,7 @@ public class createLob11606 extends SdbTestBase {
 
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void teardown() {
         try {
@@ -111,6 +111,7 @@ public class createLob11606 extends SdbTestBase {
             oid = new ObjectId( oidStr );
         }
 
+        @SuppressWarnings({ "resource", "deprecation" })
         @Override
         public void exec() {
             Sequoiadb db = null;

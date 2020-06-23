@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -60,6 +59,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
         insertData();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -88,6 +88,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
                 new Object[] { "update9", "name9" }, };
     }
 
+    @SuppressWarnings("deprecation")
     @Test(dataProvider = "updateDataProvider")
     public void test( String updateStr, String diffData ) {
         Sequoiadb db = null;
@@ -169,6 +170,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void insertData() {
         // 构造插入的数据
         List< BSONObject > insertor = new ArrayList<>();

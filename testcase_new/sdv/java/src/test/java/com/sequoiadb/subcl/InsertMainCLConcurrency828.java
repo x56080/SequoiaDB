@@ -1,7 +1,6 @@
 package com.sequoiadb.subcl;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,6 +57,7 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
         attachSubcls();
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -120,6 +120,7 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
+    @SuppressWarnings("deprecation")
     @Test(dataProvider = "diffDataProvider")
     public void test( String diffData ) {
         Sequoiadb db = null;
