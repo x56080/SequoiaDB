@@ -45,6 +45,9 @@ public class Transaction20440A extends SdbTestBase {
         TR4 = CommLib.getRandomSequoiadb();
 
         for ( int i = 0; i < 2; i++ ) {
+            if ( sdb.isCollectionSpaceExist( "cs_20440A_" + i ) ) {
+                sdb.dropCollectionSpace( "cs_20440A_" + i );
+            }
             CollectionSpace cs = sdb.createCollectionSpace( "cs_20440A_" + i );
             for ( int j = 0; j < 2; j++ ) {
                 DBCollection cl = cs.createCollection( "cl_20440A_" + j );
@@ -56,7 +59,7 @@ public class Transaction20440A extends SdbTestBase {
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
                 TransUtils.beginTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 100, 200 );// 插入记录为100-200
-                TransUtils.commitTransaction(sdb);
+                TransUtils.commitTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 200, 300 );// 插入记录为200-300
             }
         }
@@ -92,7 +95,7 @@ public class Transaction20440A extends SdbTestBase {
                         "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } }] }" );
             }
         }
-        TransUtils.commitTransaction(TW1);
+        TransUtils.commitTransaction( TW1 );
 
         // 3.开启读事务TR3，所有读事务读记录,检查结果
         TransUtils.beginTransaction( TR2 );
@@ -123,7 +126,7 @@ public class Transaction20440A extends SdbTestBase {
         queryThread3.start();
 
         // 6.提交写事务TW2
-        TransUtils.commitTransaction(TW2);
+        TransUtils.commitTransaction( TW2 );
 
         // 7.开启读事务TR4,所有读事务读记录，检查结果
         TransUtils.beginTransaction( TR4 );
@@ -145,13 +148,13 @@ public class Transaction20440A extends SdbTestBase {
 
     @AfterMethod
     public void tearDown() {
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
         TR1.close();
-        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction( TR2 );
         TR2.close();
-        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction( TR3 );
         TR3.close();
-        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction( TR4 );
         TR4.close();
 
         for ( int i = 0; i < 2; i++ ) {
