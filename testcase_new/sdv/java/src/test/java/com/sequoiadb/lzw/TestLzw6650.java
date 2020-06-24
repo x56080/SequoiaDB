@@ -32,6 +32,9 @@ public class TestLzw6650 extends SdbTestBase {
     private AtomicInteger id = new AtomicInteger( 0 );
     private String bigStr = LzwUtils2.getRandomString( 512 * 1024 );
     private String smallStr = LzwUtils2.getRandomString( 1024 );
+    private int recsNum1 = 120; // dictionary not created
+    private int recsNum2 = 20; // dictionary created
+    private int recsNum3 = 5; // dictionary created, insert again records
 
     @BeforeClass
     public void setUp() {
@@ -70,20 +73,20 @@ public class TestLzw6650 extends SdbTestBase {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             DBCollection cl = createCL();
             // threshold is not reached
-            insertData( cl, 100, bigStr );
+            insertData( cl, recsNum1, bigStr );
             Assert.assertEquals( LzwUtils2.isDictExist( cl, dataGroupName ),
                     false,
                     "Dictionary is created when threshold is not reached!" );
 
             // threshold is reached
-            insertData( cl, 20, bigStr );
+            insertData( cl, recsNum2, bigStr );
             LzwUtils2.waitCreateDict( cl, dataGroupName );
 
             // insert some records for compression
-            insertData( cl, 5, smallStr );
+            insertData( cl, recsNum3, smallStr );
 
             // check result
-            checkData( cl, 100 + 20 + 5 );
+            checkData( cl, recsNum1 + recsNum2 + recsNum3 );
             LzwUtils2.checkCompressed( cl, dataGroupName );
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
@@ -124,7 +127,7 @@ public class TestLzw6650 extends SdbTestBase {
         Assert.assertEquals( actCnt, expCnt, "data is different at count" );
         DBCursor cursor = cl.query( null, null, "{_id:1}", null );
         BSONObject expRec = new BasicBSONObject();
-        for ( int i = 0; i < 100 + 20; i++ ) {
+        for ( int i = 0; i < recsNum1 + recsNum2; i++ ) {
             expRec.put( "_id", i );
             expRec.put( "key", bigStr + expRec.get( "_id" ) );
             BSONObject actRec = cursor.getNext();
@@ -133,7 +136,8 @@ public class TestLzw6650 extends SdbTestBase {
             expRec.removeField( "_id" );
             expRec.removeField( "key" );
         }
-        for ( int i = 100 + 20; i < 100 + 20 + 5; i++ ) {
+        for ( int i = recsNum1 + recsNum2; i < recsNum1 + recsNum2
+                + recsNum3; i++ ) {
             expRec.put( "_id", i );
             expRec.put( "key", smallStr + expRec.get( "_id" ) );
             BSONObject actRec = cursor.getNext();

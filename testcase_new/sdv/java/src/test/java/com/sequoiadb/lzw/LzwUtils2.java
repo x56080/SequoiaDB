@@ -66,14 +66,18 @@ public class LzwUtils2 extends SdbTestBase {
     }
 
     public static void waitCreateDict( DBCollection cl, String dataGroupName ) {
-        try {
-            while ( !LzwUtils2.isDictExist( cl, dataGroupName ) ) {
-                Thread.sleep( 1000 );
+        int timeout = 300;
+        while ( !LzwUtils2.isDictExist( cl, dataGroupName ) ) {
+            if ( timeout > 0 ) {
+                try {
+                    Thread.sleep( 1000 );
+                    timeout--;
+                } catch ( InterruptedException e ) {
+                    e.printStackTrace();
+                }
+            } else {
+                Assert.fail( "timeout, dictionary not created." );
             }
-        } catch ( BaseException e ) {
-            throw e;
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
         }
     }
 
