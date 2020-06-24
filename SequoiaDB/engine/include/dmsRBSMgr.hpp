@@ -139,7 +139,7 @@ namespace engine
                   DMS_RBS_HASH_BKT_SLOTS ;
       }
 
-      INT32 _initRBSNum( UINT32 rbsNum ) ;
+      INT32 _initRBSSUMgrs( UINT32 rbsNum ) ;
 
    protected:
       // Number of active GC thread
