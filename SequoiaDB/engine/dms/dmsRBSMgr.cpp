@@ -76,16 +76,18 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSRBSMGR_INIT ) ;
 
-      // initialize RBS number
-      rc = _initRBSNum( rbsNum ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize number of RBS "
-                   "with [%u], rc: %d", rbsNum, rc ) ;
+      if ( 0 == _rbsNum )
+      {
+         // initialize RBS storage unit managers
+         rc = _initRBSSUMgrs( rbsNum ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize RBS storage unit"
+                      "managers with number [%u], rc: %d", rbsNum, rc ) ;
+      }
 
-      // allocate RBS storage units
-      _rbsSUMgrs = SDB_OSS_NEW dmsRBSSUMgr[ _rbsNum ] ;
-      PD_CHECK( NULL != _rbsSUMgrs, SDB_OOM, error, PDERROR,
-                "Failed to allocate storage unit managers with number [%u]",
-                _rbsNum ) ;
+      SDB_ASSERT( rbsNum == _rbsNum && 0 != _rbsNum,
+                  "number of RBS is not matched" ) ;
+      SDB_ASSERT( NULL != _rbsSUMgrs,
+                  "RBS storage unit managers is invalid" ) ;
 
       // initialize each RBS storage unit
       for ( UINT32 i = 0 ; i < _rbsNum ; ++ i )
@@ -115,12 +117,12 @@ namespace engine
    }
 
    // initialize number of RBS
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSMGR__INITRBSNUM, "_dmsRBSMgr::_initRBSNum" )
-   INT32 _dmsRBSMgr::_initRBSNum( UINT32 rbsNum )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRBSMGR__INITRBSSUMGRS, "_dmsRBSMgr::_initRBSSUMgrs" )
+   INT32 _dmsRBSMgr::_initRBSSUMgrs( UINT32 rbsNum )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__DMSRBSMGR__INITRBSNUM ) ;
+      PD_TRACE_ENTRY( SDB__DMSRBSMGR__INITRBSSUMGRS ) ;
 
       SDB_ASSERT( ossIsPowerOf2( rbsNum ),
                   "number of RBS should be power of 2" ) ;
@@ -130,11 +132,18 @@ namespace engine
                 "Failed to initialize number of RBS with [%u], "
                 "it is not power of 2", rbsNum ) ;
 
+      // allocate RBS storage units
+      _rbsSUMgrs = SDB_OSS_NEW dmsRBSSUMgr[ rbsNum ] ;
+      PD_CHECK( NULL != _rbsSUMgrs, SDB_OOM, error, PDERROR,
+                "Failed to allocate storage unit managers with number [%u]",
+                rbsNum ) ;
+
+      // once storage unit managers are build, initialize number of RBS
       _rbsNum = rbsNum ;
       _rbsModulo = rbsNum - 1 ;
 
    done:
-      PD_TRACE_EXITRC( SDB__DMSRBSMGR__INITRBSNUM, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSRBSMGR__INITRBSSUMGRS, rc ) ;
       return rc ;
 
    error:
@@ -143,7 +152,7 @@ namespace engine
 
    INT32 _dmsRBSMgr::fini()
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
 
       if ( NULL != _rbsSUMgrs )
       {
@@ -152,6 +161,8 @@ namespace engine
             _rbsSUMgrs[ i ].fini() ;
          }
          SDB_OSS_DEL [] _rbsSUMgrs ;
+         _rbsSUMgrs = NULL ;
+         _rbsNum = 0 ;
       }
 
       return rc ;

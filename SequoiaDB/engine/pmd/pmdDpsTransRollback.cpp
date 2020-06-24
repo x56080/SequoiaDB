@@ -36,13 +36,60 @@
 
 #include "pmdEDU.hpp"
 #include "rtn.hpp"
-#include "dmsRBSSUMgr.hpp"
+#include "dmsRBSMgr.hpp"
 #include "ossUtil.h"
 #include "dpsTransCB.hpp"
 
 namespace engine
 {
    #define PMD_CLEAR_HISTRANS_INTERVAL          ( 60 )
+
+   INT32 _pmdPrepareMVCCRBS( pmdEDUCB *cb,
+                             dpsTransCB *transCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      UINT32 rbsNum = pmdGetOptionCB()->mvccRBSNum() ;
+      dmsRBSMgr *rbsMgr = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
+
+      if ( !pmdGetOptionCB()->mvccOn() )
+      {
+         goto done ;
+      }
+
+      SDB_ASSERT( NULL != rbsMgr, "RBS manager is invalid" ) ;
+      SDB_ASSERT( 0 != rbsNum, "Number of RBS storage units is invalid" ) ;
+
+      // initialize must be succeed for a primary node
+      // so wait until it is done
+      while ( !cb->isDisconnected() )
+      {
+         // re-initialize RBS before node start service
+         rc = rbsMgr->init( rbsNum ) ;
+         if ( SDB_OK == rc )
+         {
+            // initialization is finished
+            PD_LOG( PDEVENT, "Finished initialize RBS manager with [%u] "
+                    "storage units", rbsNum ) ;
+            break ;
+         }
+         // failed to initialize
+         PD_LOG( PDERROR, "Failed to initialize RBS manager, rc: %d", rc ) ;
+         if ( !transCB->isDoRollback() )
+         {
+            // transCB stopped rollback processing means the node switch
+            // back to secondary
+            PD_LOG( PDWARNING, "Node switched back to secondary, skip "
+                    "initialize RBS manager" ) ;
+            break ;
+         }
+         // sleep for 1 second
+         ossSleep( OSS_ONE_SEC ) ;
+      }
+
+   done:
+      return rc ;
+   }
 
    INT32 pmdDpsTransRollbackEntryPoint( pmdEDUCB *cb, void *pData )
    {
@@ -66,20 +113,29 @@ namespace engine
             else if ( PMD_EDU_EVENT_ACTIVE == event._eventType )
             {
                rc = SDB_OK ;
-               if ( pTransCB->getEventHandler() )
-               {
-                  rc = pTransCB->getEventHandler()->onRollbackAll() ;
-               } 
 
-               // re-initialize RBS before node start service
-               if ( pmdGetOptionCB()->mvccOn() )
+               while ( TRUE )
                {
-                  pmdGetKRCB()->getDMSCB()->getRBSSUMgr()->init( pmdGetOptionCB()->mvccRBSNum() ) ;
-               }
+                  // re-initialize RBS before node start service
+                  rc = _pmdPrepareMVCCRBS( cb, pTransCB ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     break ;
+                  }
 
-               if ( SDB_OK == rc )
-               {
+                  // check in-doubt transactions first
+                  if ( pTransCB->getEventHandler() )
+                  {
+                     rc = pTransCB->getEventHandler()->onRollbackAll() ;
+                     if ( SDB_OK != rc )
+                     {
+                        break ;
+                     }
+                  }
+
+                  // rollback remaining transactions
                   rc = rtnTransRollbackAll( cb ) ;
+                  break ;
                }
             }
             pmdEduEventRelease( event, cb ) ;
