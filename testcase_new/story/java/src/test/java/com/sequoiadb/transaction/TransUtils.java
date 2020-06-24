@@ -108,17 +108,18 @@ public class TransUtils extends SdbTestBase {
     public static boolean getDatabaseSnapshot( Sequoiadb db,
             String groupName ) {
         DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE,
-                "{RawData:true, GroupName:'" + groupName + "'}",
-                "{TransInfo:''}", null );
+                "{RawData:true, IsPrimary:true, GroupName:'" + groupName + "'}",
+                "{TransInfo:'', NodeName:''}", null );
         while ( cursor.hasNext() ) {
             BSONObject info = cursor.getNext();
             BSONObject transInfo = ( BSONObject ) info.get( "TransInfo" );
+            String nodeName = ( String ) info.get( "NodeName" );
             int transCount = ( int ) transInfo.get( "TotalCount" );
             Long transBeginLSN = ( Long ) transInfo.get( "BeginLSN" );
 
             if ( transCount != 0 || transBeginLSN != -1 ) {
-                System.out.println( "transCount:" + transCount
-                        + "\ntransBeginLSN:" + transBeginLSN );
+                System.out.println( "NodeName:" + nodeName + " has transCount:"
+                        + transCount + ",transBeginLSN:" + transBeginLSN );
                 return false;
             }
         }
