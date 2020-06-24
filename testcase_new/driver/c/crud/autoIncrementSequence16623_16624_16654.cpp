@@ -217,7 +217,7 @@ TEST_F( autoIncrementSequence16623_16624_16654, createDropAutoIncrement16623_166
   bson_init( &matcher ) ;
   bson_append_string( &matcher, "Name", sequenceName ) ;
   bson_finish( &matcher ) ;
-  rc = sdbGetList( db, SDB_LIST_SEQUENCES, NULL, NULL, NULL, &cursor ) ;
+  rc = sdbGetList( db, SDB_LIST_SEQUENCES, &matcher, NULL, NULL, &cursor ) ;
   rc = sdbNext( cursor, &autoIncObj ) ;
   bson_print( &autoIncObj ) ;
   ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to next" << rc ;
