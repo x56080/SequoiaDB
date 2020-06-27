@@ -102,15 +102,19 @@ namespace engine
 
    _utilPooledAutoPtr& _utilPooledAutoPtr::operator= ( const _utilPooledAutoPtr &rhs )
    {
-      release() ;
-      _ptr = rhs._ptr ;
-      _pRef = rhs._pRef ;
-      _allocType = rhs._allocType ;
-      if ( _pRef )
+      // avoid assigning by self
+      if ( _ptr != rhs._ptr )
       {
-         INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
-         SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
-         SDB_UNUSED( orgRef ) ;
+         release() ;
+         _ptr = rhs._ptr ;
+         _pRef = rhs._pRef ;
+         _allocType = rhs._allocType ;
+         if ( _pRef )
+         {
+            INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
+            SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
       }
       return *this ;
    }
@@ -239,9 +243,10 @@ namespace engine
                   SDB_THREAD_FREE( _ptr ) ;
                }
             }
-            _pRef = NULL ;
-            _ptr = NULL ;
          }
+
+         _pRef = NULL ;
+         _ptr = NULL ;
       }
    }
 

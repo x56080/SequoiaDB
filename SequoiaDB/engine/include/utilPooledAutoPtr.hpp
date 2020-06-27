@@ -211,15 +211,19 @@ namespace engine
    template< typename T >
    utilSharePtr<T>& utilSharePtr<T>::operator= ( const utilSharePtr &rhs )
    {
-      release() ;
-      _ptr = rhs._ptr ;
-      _pRef = rhs._pRef ;
-      _allocType = rhs._allocType ;
-      if ( _pRef )
+      // avoid assigning by self
+      if ( _ptr != rhs._ptr )
       {
-         INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
-         SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
-         SDB_UNUSED( orgRef ) ;
+         release() ;
+         _ptr = rhs._ptr ;
+         _pRef = rhs._pRef ;
+         _allocType = rhs._allocType ;
+         if ( _pRef )
+         {
+            INT64 orgRef = ossFetchAndIncrement64( _pRef ) ;
+            SDB_ASSERT( orgRef >= 0, "Ref is invlaid" ) ;
+            SDB_UNUSED( orgRef ) ;
+         }
       }
       return *this ;
    }
@@ -312,7 +316,6 @@ namespace engine
             {
                SDB_OSS_DEL( _ptr ) ;
             }
-            _ptr = NULL ;
 
             if ( ALLOC_OSS == _allocType )
             {
@@ -326,8 +329,10 @@ namespace engine
             {
                SDB_THREAD_FREE( _pRef ) ;
             }
-            _pRef = NULL ;
          }
+
+         _pRef = NULL ;
+         _ptr = NULL ;
       }
    }
 
