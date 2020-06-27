@@ -124,7 +124,6 @@ namespace engine
       _dmsStorageUnit*     _su ;
       _SDB_DMSCB*          _dmsCB ;
       _rtnLobAccessInfo*   _accessInfo ;
-      BOOLEAN              _writeDMS ;
       BOOLEAN              _hasLobPrivilege ;
    } ;
    typedef class _rtnLocalLobStream rtnLocalLobStream ;

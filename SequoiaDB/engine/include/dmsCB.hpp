@@ -67,6 +67,9 @@ namespace engine
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
 
+   // 20 minutes
+   #define DMS_DFT_BLOCKWRITE_TIMEOUT       ( 20 * 60 * OSS_ONE_SEC )
+
    // for each collection space, there is one CSCB associate with it
    class _SDB_DMS_CSCB : public SDBObject
    {
@@ -448,7 +451,7 @@ namespace engine
 
       INT32 blockWrite( _pmdEDUCB *cb,
                         SDB_DB_STATUS byStatus = SDB_DB_NORMAL,
-                        INT32 timeout = -1 ) ;
+                        INT32 timeout = DMS_DFT_BLOCKWRITE_TIMEOUT ) ;
       void  unblockWrite( _pmdEDUCB *cb ) ;
 
       INT32 registerBackup( _pmdEDUCB *cb, BOOLEAN offline = TRUE ) ;
