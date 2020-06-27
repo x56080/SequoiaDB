@@ -56,12 +56,18 @@ namespace engine
    // maximum number of records to be saved as history
    #define STP_SYNC_RECORD_CACHE_SIZE  ( 10 )
 
+   // maximum retry times for slew rate checking
+   #define STP_MAX_SLEW_RATE_CHECK_TIMES ( STP_SYNC_RECORD_CACHE_SIZE * 2 )
+
    // synchronize record with offset in valid range means the offset is too
    // trivial to adjust slew rate
    // maximum valid offset to slew rate check
    #define STP_SLEWRATE_OFFSET_MAX_LIMIT     ( 100000L )
    // minimum valid offset to slew rate check
    #define STP_SLEWRATE_OFFSET_MIN_LIMIT     ( -100000L )
+
+   // maximum limit for standard deviation for slew rate check
+   #define STP_SLEWRATE_DEVIATION_MAX_LIMIT  ( STP_SLEWRATE_OFFSET_MAX_LIMIT * 2 )
 
    // interval ( in milliseconds ) to each slew rate check by synchronize time
    // request ( now send request for each 10 seconds )
@@ -83,6 +89,7 @@ namespace engine
    _stpSyncClientManager::_stpSyncClientManager( STPCB *stpCB )
    : stpManagerBase( stpCB ),
      _status( STP_SYNC_NOSOURCE ),
+     _curStatusCount( 0 ),
      _syncEvent( FALSE ),
      _lastRequestID( 0LL ),
      _lastVersion( STP_GROUP_INVALID_VERSION ),
@@ -614,6 +621,8 @@ namespace engine
          goto done ;
       }
 
+      ++ _curStatusCount ;
+
       // adjust time by synchronize record
       _adjustTime( record ) ;
 
@@ -649,11 +658,9 @@ namespace engine
          {
             // for check-slew-rate status, if we have enough results,
             // adjust slew rate, and active the recheck-offset status
-            if ( _hasEnoughRecords() )
+            if ( _hasEnoughRecords() &&
+                 _adjustSlewRate( _syncRecords ) )
             {
-               // adjust slew rate
-               _adjustSlewRate( _syncRecords ) ;
-
                // active recheck-offset status
                activeStatus( STP_SYNC_RECHECKOFFSET ) ;
             }
@@ -765,6 +772,8 @@ namespace engine
 
       // set status
       _status = status ;
+      // restart counting
+      _curStatusCount = 0 ;
 
       // if interval-check status is activated, set last stable tick which is
       // used to test if we need to restart checking phases periodically
@@ -833,8 +842,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__ADJUSTSLEWRATE, "_stpSyncClientManager::_adjustSlewRate" )
-   void _stpSyncClientManager::_adjustSlewRate( const STP_SYNC_REC_LIST &records )
+   BOOLEAN _stpSyncClientManager::_adjustSlewRate( STP_SYNC_REC_LIST &records )
    {
+      BOOLEAN finishedOrSkipped = FALSE ;
+
       PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__ADJUSTSLEWRATE ) ;
 
       INT64 totalOffset = 0LL ;
@@ -842,26 +853,212 @@ namespace engine
       INT64 numRecords = (INT64)( records.size() ) ;
       INT64 recordTime = (INT64)STP_SLEWRATE_CHECK_INTARVAL_NS * numRecords ;
 
-      // calculate total offset
-      for ( STP_SYNC_REC_LIST::const_iterator iter = records.begin() ;
-            iter != records.end() ;
-            iter ++ )
+      if ( numRecords < STP_SYNC_RECORD_CACHE_SIZE )
       {
-         totalOffset += iter->getOffset() ;
+         // not enough records
+         goto done ;
+      }
+
+      // check if records are validated to calculate slew rate
+      if ( !_checkSlewRateValid( records, totalOffset, averageOffset ) )
+      {
+         if ( _curStatusCount > STP_MAX_SLEW_RATE_CHECK_TIMES )
+         {
+            // failed to check records for slew rate calculation for few times
+            // skip slew rate checking
+            PD_LOG( PDWARNING, "Failed to check synchronize records for "
+                    "slew rate calculation for %u times, skip slew rate check",
+                    _curStatusCount ) ;
+            finishedOrSkipped = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "Failed to check synchronize records for "
+                    "slew rate calculation" ) ;
+         }
+         goto done ;
       }
 
       // if the average offset is in valid range, means the offset change is
       // too trivial for adjust slew rate, no need to adjust
-      averageOffset = totalOffset / numRecords ;
-      if ( averageOffset <= STP_SLEWRATE_OFFSET_MIN_LIMIT ||
-           averageOffset >= STP_SLEWRATE_OFFSET_MAX_LIMIT )
+      if ( averageOffset > STP_SLEWRATE_OFFSET_MIN_LIMIT &&
+           averageOffset < STP_SLEWRATE_OFFSET_MAX_LIMIT )
       {
-         // adjust slew rate
-         getMetaData()->adjustSlewRate( recordTime + totalOffset,
-                                        recordTime ) ;
+         finishedOrSkipped = TRUE ;
+         goto done ;
       }
 
+      // adjust slew rate
+      getMetaData()->adjustSlewRate( recordTime + totalOffset, recordTime ) ;
+      finishedOrSkipped = TRUE ;
+
+   done:
       PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR__ADJUSTSLEWRATE ) ;
+      return finishedOrSkipped ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__CHKSLEWRATEVALID, "_stpSyncClientManager::_checkSlewRateValid" )
+   BOOLEAN _stpSyncClientManager::_checkSlewRateValid( STP_SYNC_REC_LIST &records,
+                                                       INT64 &totalOffset,
+                                                       INT64 &averageOffset )
+   {
+      BOOLEAN isValid = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__TPSYNCCLIENTMGR__CHKSLEWRATEVALID ) ;
+
+      INT64 offsetArray[ STP_SYNC_RECORD_CACHE_SIZE ] = { 0LL } ;
+      INT64 numRecords = records.size() ;
+      UINT32 pos = 0, q3Pos = 0, q1Pos = 0 ;
+      INT64 q3Offset = 0LL, q1Offset = 0LL, outlierStep = 0LL ;
+      INT64 lowBoundOffset = 0LL, upBoundOffset = 0LL ;
+      INT64 totalVariance = 0LL, maxDiffOffset = -1LL ;
+      FLOAT64 variance = 0.0f, deviation = 0.0f ;
+      STP_SYNC_REC_LIST::iterator iter, iterToMaxDiff ;
+      UINT32 numOutlier = 0 ;
+
+      totalOffset = 0LL ;
+      averageOffset = 0LL ;
+
+      SDB_ASSERT( numRecords > 0, "synchronize record is empty" ) ;
+      if ( 0 == numRecords )
+      {
+         goto done ;
+      }
+
+      // 3 steps to check synchronize records for slew rate calculation
+      // - calculate total offset and average offset
+      // - check outliers with Inter-Quantile Range
+      // - check standard deviation for average offset
+
+      // calculate total offset and average offset first
+      // and fill offset array for sorting for next IQR phase
+      pos = 0 ;
+      for ( STP_SYNC_REC_LIST::iterator iter = records.begin() ;
+            iter != records.end() ;
+            ++ iter, ++ pos )
+      {
+         totalOffset += iter->getOffset() ;
+         offsetArray[ pos ] = iter->getOffset() ;
+      }
+
+      // calculate average offset
+      averageOffset = totalOffset / numRecords ;
+
+      PD_LOG( PDEVENT, "Got average offset of synchronize records, size: [%u], "
+              "total offset: [%lld], average offset: [%lld]", numRecords,
+              totalOffset, averageOffset ) ;
+
+      // check InterQuantile Range (IQR) for outliers
+      // if synchronize result is an outlier amoug all results, we should
+      // kick it out from later processing
+
+      // definition of IQR:
+      //
+      // - Q1 lower quantile, the 25th percentile in ascending order
+      // - Q3 upper quantile, the 75th percentile in ascending order
+      //
+      // <------- | ------ | --- | --- | ------ | ------->
+      //       Q1-1.5*IQR  Q1  Median  Q3  Q3+1.5*IQR
+      // outliers |        |<-- IQR -->|        | outliers
+
+      sort( offsetArray, offsetArray + numRecords ) ;
+
+      q3Pos = (UINT32)( (FLOAT64)numRecords * 0.75 ) ;
+      q1Pos = (UINT32)( (FLOAT64)numRecords * 0.25 ) ;
+      q3Offset = offsetArray[ q3Pos ] ;
+      q1Offset = offsetArray[ q1Pos ] ;
+
+      // interquantile range to outlier step
+      outlierStep = (INT64)( (FLOAT64)( q3Offset - q1Offset ) * 1.5 ) ;
+
+      // lower bound = Q1 - outlier step
+      lowBoundOffset = q1Offset - outlierStep ;
+      // upper bound = Q3 + outlier step
+      upBoundOffset = q3Offset + outlierStep ;
+
+      PD_LOG( PDDEBUG, "Got quantile of synchronize records, size: [%u], "
+              "Q1 offset: [%lld], Q3 offset: [%lld], low bound: [%lld], "
+              "up bound: [%lld]", numRecords, q1Offset, q3Offset,
+              lowBoundOffset, upBoundOffset ) ;
+
+      // check outliers and calculate variance for next standard
+      // deviation step
+      iter = records.begin() ;
+      while ( iter != records.end() )
+      {
+         // check outlier
+         if ( iter->getOffset() > upBoundOffset ||
+              iter->getOffset() < lowBoundOffset )
+         {
+            // kick out outlier
+            iter = records.erase( iter ) ;
+            ++ numOutlier ;
+            continue ;
+         }
+         else if ( 0 == numOutlier )
+         {
+            // no outlier is kicked yet, we could calculate variance for
+            // next standard deviation step
+            INT64 diffOffset = iter->getOffset() - averageOffset ;
+            diffOffset *= diffOffset ;
+
+            if ( diffOffset > maxDiffOffset )
+            {
+               iterToMaxDiff = iter ;
+            }
+
+            totalVariance += diffOffset ;
+         }
+         ++ iter ;
+      }
+
+      if ( numOutlier > 0 )
+      {
+         PD_LOG( PDEVENT, "Got quantile of synchronize records, size: [%u], "
+                 "Q1 offset: [%lld], Q3 offset: [%lld], low bound: [%lld], "
+                 "up bound: [%lld], kick out [%u] outliers", numRecords,
+                 q1Offset, q3Offset, lowBoundOffset, upBoundOffset,
+                 numOutlier ) ;
+         // outliers are kicked out
+         goto done ;
+      }
+
+      // check standard deviation of offsets
+      //
+      // variance = 1 / n * sum( ( offset_i - average ) ^ 2 )
+      // standard deviation = sqrt( variance )
+
+      // calculate variance
+      variance = (FLOAT64)totalVariance / (FLOAT64)numRecords ;
+      // calculate deviation
+      deviation = sqrt( variance ) ;
+
+      PD_LOG( PDDEBUG, "Got standard deviation of synchronize records, "
+              "size: [%u], variance: [%.6f], deviation: [%.6f], "
+              "average: [%lld]", numRecords, variance, deviation,
+              averageOffset ) ;
+
+      if ( deviation > (FLOAT64)STP_SLEWRATE_DEVIATION_MAX_LIMIT )
+      {
+         // standard deviation is too large, means the results are changing
+         // dramatically, we should not use these results to calculate
+         // slew rate, kick out one result with maximum deviation
+         // and continue to collection synchronize results
+         records.erase( iterToMaxDiff ) ;
+         PD_LOG( PDDEBUG, "Got standard deviation of synchronize records, "
+                 "size: [%u], variance: [%.6f], deviation: [%.6f], "
+                 "average: [%lld], deviation is too large, kick out "
+                 "max different record", numRecords, variance, deviation,
+                 averageOffset ) ;
+         goto done ;
+      }
+
+      isValid = TRUE ;
+
+   done:
+      PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR__CHKSLEWRATEVALID ) ;
+
+      return isValid ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSYNCCLIENTMGR__CANDECTIMEERROR, "_stpSyncClientManager::_canDecTimeError" )
@@ -900,7 +1097,7 @@ namespace engine
          }
 
          // also, average delay should be smaller than decrease target
-         averageDelay = (UINT64)( (double)totalDelay / (double)count ) ;
+         averageDelay = (UINT64)( (FLOAT64)totalDelay / (FLOAT64)count ) ;
          if ( averageDelay < (UINT64)decTimeError )
          {
             canDecrease = TRUE ;

@@ -364,8 +364,8 @@ namespace engine
               QueryPerformanceCounter( &count ) &&
               freq.QuadPart != 0LL )
          {
-            double scale = (double)OSS_ONE_BILLION / (double)( freq.QuadPart ) ;
-            UINT64 value = (UINT64)( (double)( count.QuadPart ) * scale ) ;
+            FLOAT64 scale = (FLOAT64)OSS_ONE_BILLION / (FLOAT64)( freq.QuadPart ) ;
+            UINT64 value = (UINT64)( (FLOAT64)( count.QuadPart ) * scale ) ;
             _second = value / OSS_ONE_BILLION ;
             _nanoSecond = value % OSS_ONE_BILLION ;
          }
@@ -388,24 +388,24 @@ namespace engine
          if ( slewRate > 0 )
          {
             // calculate real slew rate
-            double rate = (double)slewRate / (double)STP_DEF_SLEWRATE ;
+            FLOAT64 rate = (FLOAT64)slewRate / (FLOAT64)STP_DEF_SLEWRATE ;
             if ( rate > 1.0 )
             {
                // rate is larger than 1, multiple directly
-               _second = (UINT64)( (double)_second * rate ) ;
-               _nanoSecond = (UINT64)( (double)_nanoSecond * rate ) ;
+               _second = (UINT64)( (FLOAT64)_second * rate ) ;
+               _nanoSecond = (UINT64)( (FLOAT64)_nanoSecond * rate ) ;
             }
             else
             {
                // rate is smaller than 1, need save fraction of seconds
                // component to nanosecond component
-               double fraction = (double)_second * rate ;
+               FLOAT64 fraction = (FLOAT64)_second * rate ;
                // calculate second component
                _second = (UINT64)fraction ;
                // calculate nanosecond component
-               fraction = fraction - (double)_second ;
-               _nanoSecond = (UINT64)( fraction * (double)OSS_ONE_BILLION +
-                                       (double)_nanoSecond * rate ) ;
+               fraction = fraction - (FLOAT64)_second ;
+               _nanoSecond = (UINT64)( fraction * (FLOAT64)OSS_ONE_BILLION +
+                                       (FLOAT64)_nanoSecond * rate ) ;
             }
             // normalize time
             _normalize() ;

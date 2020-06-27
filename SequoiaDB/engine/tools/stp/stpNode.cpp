@@ -972,9 +972,9 @@ namespace engine
                                            UINT32 step )
    {
       // increase by step * 10%
-      double incFraction = 1.0 + (double)step * STP_TIME_ERROR_ADJUST_STEP ;
+      FLOAT64 incFraction = 1.0 + (FLOAT64)step * STP_TIME_ERROR_ADJUST_STEP ;
       // calculate new time error
-      UINT32 newTimeError = (UINT32)( (double)( timeError ) * incFraction ) ;
+      UINT32 newTimeError = (UINT32)( (FLOAT64)( timeError ) * incFraction ) ;
       // cut by maximum time error
       return OSS_MIN( newTimeError, maxTimeError ) ;
    }
@@ -985,9 +985,9 @@ namespace engine
                                            UINT32 step )
    {
       // decrease by step * 10%
-      double decFraction = 1.0 - (double)step * STP_TIME_ERROR_ADJUST_STEP ;
+      FLOAT64 decFraction = 1.0 - (FLOAT64)step * STP_TIME_ERROR_ADJUST_STEP ;
       // calculate new time error
-      UINT32 newTimeError = (UINT32)( (double)( timeError ) * decFraction ) ;
+      UINT32 newTimeError = (UINT32)( (FLOAT64)( timeError ) * decFraction ) ;
       // cut by minimum time error
       return OSS_MAX( newTimeError, minTimeError ) ;
    }
