@@ -177,7 +177,15 @@ namespace engine
       // adjust time by synchronize record
       void _adjustTime( const stpSyncRecord &record ) ;
       // adjust slew rate by synchronize records
-      void _adjustSlewRate( const STP_SYNC_REC_LIST &records ) ;
+      BOOLEAN _adjustSlewRate( STP_SYNC_REC_LIST &records ) ;
+
+      // check synchronize records are validated for slew rate calculation
+      // - calculate total offset and average offset
+      // - check outliers with Inter-Quantile Range
+      // - check standard deviation for average offset
+      BOOLEAN _checkSlewRateValid( STP_SYNC_REC_LIST &records,
+                                   INT64 &totalOffset,
+                                   INT64 &averageOffset ) ;
 
       // check whether we could decrease time error
       BOOLEAN _canDecTimeError( UINT32 curTimeError ) ;
@@ -223,6 +231,8 @@ namespace engine
    protected:
       // status of time synchronize
       STP_SYNC_STATUS      _status ;
+      // synchronize count of current status
+      UINT32               _curStatusCount ;
       // event to start synchronize
       volatile BOOLEAN     _syncEvent ;
       // route ID to registered synchronize
