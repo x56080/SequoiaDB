@@ -87,7 +87,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                 String clName = "cl_6674_0";
                 DBCollection cl = createCL( db, clName, "lzw" );
                 // insert data for creating dictionary
-                for ( int i = 0; i < 120; i++ ) {
+                for ( int i = 0; i < 140; i++ ) {
                     BSONObject rec = new BasicBSONObject();
                     rec.put( "a", i );
                     rec.put( "b", ranStr + i );
@@ -96,7 +96,7 @@ public class TestConcurrency6674 extends SdbTestBase {
                 CompressUtils.waitCreateDict( cl, dataGroupName );
 
                 // insert data for compression
-                for ( int i = 120; i < 150; i++ ) {
+                for ( int i = 140; i < 150; i++ ) {
                     BSONObject rec = new BasicBSONObject();
                     rec.put( "a", i );
                     rec.put( "b", ranStr + i );
