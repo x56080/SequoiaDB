@@ -59,7 +59,6 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
         insertData();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -69,7 +68,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( "failed to drop cl" + "ErrorMsg:\n" + e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -88,7 +87,6 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
                 new Object[] { "update9", "name9" }, };
     }
 
-    @SuppressWarnings("deprecation")
     @Test(dataProvider = "updateDataProvider")
     public void test( String updateStr, String diffData ) {
         Sequoiadb db = null;
@@ -122,7 +120,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
             Assert.fail( e.getMessage() );
         } finally {
             if ( db != null ) {
-                db.disconnect();
+                db.close();
             }
         }
     }
@@ -170,7 +168,6 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public void insertData() {
         // 构造插入的数据
         List< BSONObject > insertor = new ArrayList<>();
@@ -184,7 +181,7 @@ public class UpdateMainCLConcurrentcy829 extends SdbTestBase {
             }
         }
         try {
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
         } catch ( BaseException e ) {
             Assert.fail( "failed to bulkInsert " + e.getMessage() );
         }

@@ -30,7 +30,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class InsertMainCLConcurrency828 extends SdbTestBase {
-
     private Sequoiadb sdb = null;
     private CollectionSpace maincs = null;
     private String mainclName = "maincl828";
@@ -57,7 +56,6 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
         attachSubcls();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -65,7 +63,7 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -120,7 +118,6 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
-    @SuppressWarnings("deprecation")
     @Test(dataProvider = "diffDataProvider")
     public void test( String diffData ) {
         Sequoiadb db = null;
@@ -140,7 +137,7 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
                 bson.put( "test", diffData );
                 insertor.add( bson );
             }
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
 
             // 检验数据是否正确
             checkData( cs, diffData );
@@ -155,7 +152,7 @@ public class InsertMainCLConcurrency828 extends SdbTestBase {
             Assert.fail( e.getMessage() );
         } finally {
             if ( db != null ) {
-                db.disconnect();
+                db.close();
             }
         }
     }

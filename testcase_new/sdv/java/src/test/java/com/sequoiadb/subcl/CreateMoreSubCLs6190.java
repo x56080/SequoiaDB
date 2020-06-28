@@ -28,7 +28,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class CreateMoreSubCLs6190 extends SdbTestBase {
-
     private Sequoiadb sdb = null;
     private CollectionSpace cs = null;
     private String mainclName = "maincl6190";
@@ -55,7 +54,6 @@ public class CreateMoreSubCLs6190 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -63,7 +61,7 @@ public class CreateMoreSubCLs6190 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -130,7 +128,6 @@ public class CreateMoreSubCLs6190 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public void checkCRUD() {
         DBCollection maincl = null;
         DBCursor cursor = null;
@@ -143,7 +140,7 @@ public class CreateMoreSubCLs6190 extends SdbTestBase {
                 bson.put( "test", "abcdefghijkln34567890" );
                 insertor.add( bson );
             }
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
             BSONObject order = new BasicBSONObject();
             order.put( "time", 1 );
             cursor = maincl.query( null, null, order, null );

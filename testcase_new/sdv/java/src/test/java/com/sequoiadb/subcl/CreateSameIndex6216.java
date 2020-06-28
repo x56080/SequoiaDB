@@ -29,7 +29,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class CreateSameIndex6216 extends SdbTestBase {
-
     private Sequoiadb db = null;
     private CollectionSpace maincs = null;
     private String maincsName = "maincs6216";
@@ -62,7 +61,6 @@ public class CreateSameIndex6216 extends SdbTestBase {
         createAndAttachSubcls();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -70,7 +68,7 @@ public class CreateSameIndex6216 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( "drop cs failed: " + e.getMessage() );
         } finally {
-            db.disconnect();
+            db.close();
         }
     }
 
@@ -242,9 +240,7 @@ public class CreateSameIndex6216 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public void insertData() {
-
         List< BSONObject > insertor = new ArrayList<>();
         for ( int i = 0; i < 600; i++ ) {
             BSONObject bson = new BasicBSONObject();
@@ -253,8 +249,7 @@ public class CreateSameIndex6216 extends SdbTestBase {
             insertor.add( bson );
         }
         try {
-
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor, 1 );
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         }

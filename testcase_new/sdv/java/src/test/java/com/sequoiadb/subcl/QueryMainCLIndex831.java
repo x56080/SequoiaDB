@@ -61,7 +61,6 @@ public class QueryMainCLIndex831 extends SdbTestBase {
         createIndexAndInsertData();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -69,7 +68,7 @@ public class QueryMainCLIndex831 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( "drop cs failed: " + e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -104,7 +103,6 @@ public class QueryMainCLIndex831 extends SdbTestBase {
     public void createSubcls() {
         ArrayList< String > groupNames = SubCLUtils.getDataGroups( sdb );
         groupSize = groupNames.size();
-        System.out.println( "groupSize: " + groupSize );
         try {
             for ( int j = 0; j < groupSize; j++ ) {
                 BSONObject options = new BasicBSONObject();
@@ -112,7 +110,8 @@ public class QueryMainCLIndex831 extends SdbTestBase {
                 maincs.createCollection( "subcl831_" + j );
             }
         } catch ( BaseException e ) {
-            Assert.assertTrue( false, "createSubcl failed " + e.getMessage() );
+            Assert.assertTrue( false, "createSubcl failed, groupSize: "
+                    + groupSize + e.getMessage() );
         }
     }
 
@@ -139,7 +138,6 @@ public class QueryMainCLIndex831 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public void createIndexAndInsertData() {
         List< BSONObject > insertor = new ArrayList<>();
         StringBuffer strBuffer = new StringBuffer();
@@ -160,7 +158,7 @@ public class QueryMainCLIndex831 extends SdbTestBase {
             indexBson.put( "a", 1 );
             index = "Idx";
             maincl.createIndex( index, indexBson, false, false );
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
         } catch ( BaseException e ) {
             System.out.println( "create index error: " + e.getErrorCode() + " "
                     + e.getMessage() );

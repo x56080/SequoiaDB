@@ -22,7 +22,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class CreateMainCLSplitHash834 extends SdbTestBase {
-
     private Sequoiadb sdb = null;
     private CollectionSpace maincs = null;
     private String mainclName = "maincl834";
@@ -45,7 +44,6 @@ public class CreateMainCLSplitHash834 extends SdbTestBase {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -53,7 +51,7 @@ public class CreateMainCLSplitHash834 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 

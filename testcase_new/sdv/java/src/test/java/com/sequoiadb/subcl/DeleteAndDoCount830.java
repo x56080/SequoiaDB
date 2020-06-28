@@ -29,7 +29,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @version 1.00
  */
 public class DeleteAndDoCount830 extends SdbTestBase {
-
     private Sequoiadb sdb = null;
     private CollectionSpace maincs = null;
     private String mainclName = "maincl830";
@@ -57,7 +56,6 @@ public class DeleteAndDoCount830 extends SdbTestBase {
         attachSubcls();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -67,7 +65,7 @@ public class DeleteAndDoCount830 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( "failed to drop cl" + "ErrorMsg:\n" + e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -122,7 +120,6 @@ public class DeleteAndDoCount830 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
-    @SuppressWarnings("deprecation")
     public void insertData( DBCollection maincl, String diffData ) {
         // 构造插入的数据
         List< BSONObject > insertor = new ArrayList<>();
@@ -133,13 +130,12 @@ public class DeleteAndDoCount830 extends SdbTestBase {
             insertor.add( bson );
         }
         try {
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
         } catch ( BaseException e ) {
             Assert.fail( "failed to bulkInsert " + e.getMessage() );
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Test(dataProvider = "diffDataProvider")
     public void test( String diffData ) {
         Sequoiadb db = null;
@@ -166,7 +162,7 @@ public class DeleteAndDoCount830 extends SdbTestBase {
             Assert.fail( e.getMessage() );
         } finally {
             if ( db != null ) {
-                db.disconnect();
+                db.close();
             }
         }
 

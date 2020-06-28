@@ -29,7 +29,6 @@ import com.sequoiadb.testcommon.SdbThreadBase;
  * @version 1.00
  */
 public class InsertAndAlterSubCL833 extends SdbTestBase {
-
     private Sequoiadb sdb = null;
     private CollectionSpace maincs = null;
     private String mainclName = "maincl833";
@@ -56,7 +55,6 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
         createAndattachSubcl();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -64,7 +62,7 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -147,7 +145,6 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
 
     class AlterSubclThread extends SdbThreadBase {
 
-        @SuppressWarnings("deprecation")
         @Override
         public void exec() throws Exception {
             Sequoiadb db = null;
@@ -168,7 +165,7 @@ public class InsertAndAlterSubCL833 extends SdbTestBase {
                 }
             } finally {
                 if ( db != null ) {
-                    db.disconnect();
+                    db.close();
                 }
             }
         }

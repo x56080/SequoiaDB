@@ -29,9 +29,8 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @date 2016年12月21日
  * @version 1.00
  */
-@Test
-public class CRUDMainCL832 extends SdbTestBase {
 
+public class CRUDMainCL832 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private CollectionSpace maincs = null;
     private String mainclName = "maincl832";
@@ -59,7 +58,6 @@ public class CRUDMainCL832 extends SdbTestBase {
         attachSubcls();
     }
 
-    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown() {
         try {
@@ -67,7 +65,7 @@ public class CRUDMainCL832 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -23, e.getMessage() );
         } finally {
-            sdb.disconnect();
+            sdb.close();
         }
     }
 
@@ -119,7 +117,7 @@ public class CRUDMainCL832 extends SdbTestBase {
                 new Object[] { "e" }, };
     }
 
-    @SuppressWarnings("deprecation")
+    @Test(dataProvider = "diffDataProvider")
     public void test( String diffData ) {
         Sequoiadb db = null;
         CollectionSpace cs = null;
@@ -147,12 +145,11 @@ public class CRUDMainCL832 extends SdbTestBase {
             Assert.fail( e.getMessage() );
         } finally {
             if ( db != null ) {
-                db.disconnect();
+                db.close();
             }
         }
     }
 
-    @SuppressWarnings("deprecation")
     public void insertAndCheckData( CollectionSpace cs, DBCollection maincl,
             String diffData ) {
         // 构造插入的数据
@@ -165,7 +162,7 @@ public class CRUDMainCL832 extends SdbTestBase {
         }
         try {
             // 插入数据
-            maincl.bulkInsert( insertor, 1 );
+            maincl.insert( insertor );
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         }
