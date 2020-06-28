@@ -752,8 +752,22 @@ namespace seadapter
       }
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                "failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
       rc = msgBuildQueryMsg( &msg, &bufSize,
                              meta->getCappedCLName(),
                              FLG_QUERY_WITH_RETURNDATA,
@@ -950,6 +964,25 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       seAdptSEAssist *seAssist = _session->seAssist() ;
+      seIdxMetaContext *imContext = _session->idxMetaContext() ;
+
+      rc = imContext->metaLock( SHARED ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
 
       try
       {
@@ -1028,6 +1061,10 @@ namespace seadapter
       }
 
    done:
+      if ( imContext->isMetaLocked() )
+      {
+         imContext->metaUnlock() ;
+      }
       return rc ;
    error:
       goto done ;
@@ -1078,8 +1115,22 @@ namespace seadapter
          utilESMapping mapping( idxName, typeName ) ;
 
          rc = imContext->metaLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                   "failed[%d]", rc ) ;
+         if ( rc )
+         {
+            if ( SDB_RTN_INDEX_NOTEXIST == rc )
+            {
+               PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                                "unique ID[%llu], logical ID[%u], index logical "
+                                "ID[%u]", imContext->getCLUID(),
+                                imContext->getCLLID(), imContext->getIdxLID() ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                       rc ) ;
+            }
+            goto error ;
+         }
 
          // Generate the Elasticsearch index mapping. Only string fields.
          BSONObjIterator itr( indexMeta->getIdxDef() ) ;
@@ -1144,8 +1195,23 @@ namespace seadapter
       }
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                "failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+
+      }
       rc = dbAssist->queryOnDataNode( meta->getCappedCLName(),
                                       _session->nextRequestID(),
                                       _session->tid(), FLG_QUERY_WITH_RETURNDATA,
@@ -1183,8 +1249,22 @@ namespace seadapter
          BSONElement lidEle= targetObj.getField( "_id" ) ;
 
          rc = imContext->metaLock( SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                   "failed[%d]", rc ) ;
+         if ( rc )
+         {
+            if ( SDB_RTN_INDEX_NOTEXIST == rc )
+            {
+               PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                                "unique ID[%llu], logical ID[%u], index logical "
+                                "ID[%u]", imContext->getCLUID(),
+                                imContext->getCLLID(), imContext->getIdxLID() ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                       rc ) ;
+            }
+            goto error ;
+         }
          builder.append( FIELD_NAME_COLLECTION, meta->getCappedCLName() ) ;
          builder.appendAs( lidEle, FIELD_NAME_LOGICAL_ID ) ;
          builder.appendIntOrLL( FIELD_NAME_DIRECTION, -1 ) ;
@@ -1239,8 +1319,22 @@ namespace seadapter
       }
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                "failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
       rc = dbAssist->queryCLCataInfo( meta->getOrigCLName(),
                                       _session->nextRequestID(),
                                       _session->tid(), &selector,
@@ -1274,8 +1368,23 @@ namespace seadapter
       const seIndexMeta *meta = imContext->meta() ;
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index metadata in SHARED mode "
-                                "failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
+
       rc = _genQueryOptions( query, selector ) ;
       PD_RC_CHECK( rc, PDERROR, "Generate query and selector for the original "
                                 "colleciton failed[%d]", rc ) ;
@@ -1658,7 +1767,22 @@ namespace seadapter
       seIdxMetaContext *imContext = _session->idxMetaContext() ;
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index meta failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
 
       if ( SDB_DMS_EOC == flag )
       {
@@ -1796,7 +1920,22 @@ namespace seadapter
       // Need to get the capped collection name from the metadata item. So need
       // to latch it.
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index meta failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
 
       rc = msgBuildQueryMsg( &msg, &bufSize,
                              imContext->meta()->getCappedCLName(),
@@ -1836,7 +1975,22 @@ namespace seadapter
 
       _step = GETMORE_DATA ;
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index meta failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
 
       rc = msgBuildGetMoreMsg( &msg, &bufSize, -1, contextID,
                                _session->nextRequestID(), _session->eduCB() ) ;
@@ -2253,7 +2407,22 @@ namespace seadapter
       }
 
       rc = imContext->metaLock( SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR, "Lock index meta failed[%d]", rc ) ;
+      if ( rc )
+      {
+         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         {
+            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                             "unique ID[%llu], logical ID[%u], index logical "
+                             "ID[%u]", imContext->getCLUID(),
+                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                    rc ) ;
+         }
+         goto error ;
+      }
 
       try
       {
