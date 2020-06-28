@@ -380,9 +380,9 @@ public class ObjectServiceImpl implements ObjectService {
         if (null == objectMeta) {
             if (versionId != null || isNoVersion != null){
                 throw new S3ServerException(S3Error.OBJECT_NO_SUCH_VERSION,
-                        "no such version. object:" + objectName + ",version:" + versionId);
+                        "no such version. objectName:" + objectName + ",version:" + versionId);
             }else {
-                throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
+                throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no such key. objectName:" + objectName);
             }
         }
 
@@ -497,7 +497,7 @@ public class ObjectServiceImpl implements ObjectService {
 
     @Override
     public PutDeleteResult deleteObject(long ownerID, String bucketName, String objectName,
-                                        Long versionId, Boolean isNoVersion)
+                                        Long versionId)
             throws S3ServerException {
         try {
             Bucket bucket = bucketService.getBucket(ownerID, bucketName);
@@ -516,66 +516,85 @@ public class ObjectServiceImpl implements ObjectService {
             ObjectMeta deleteObject = null;
             switch (versioningStatusType){
                 case NONE:
-                    if (isNoVersion != null) {
+                    if (versionId == null) {
                         ObjectMeta objectMeta = removeMetaForNoneVersioning(metaCsName, metaClName, bucket, objectName);
                         deleteObject = objectMeta;
                     }
                     break;
                 case SUSPENDED:
                 case ENABLED:
-                    ConnectionDao connection = daoMgr.getConnectionDao();
-                    transaction.begin(connection);
-                    try{
-                        ObjectMeta objectMeta = null;
-                        if (isNoVersion != null){
-                            objectMeta = metaDao.queryForUpdate(connection, metaCsName,
-                                    metaClName, bucket.getBucketId(), objectName, null, true);
-                        }else if (versionId != null){
-                            objectMeta = metaDao.queryForUpdate(connection, metaCsName,
-                                    metaClName, bucket.getBucketId(), objectName, versionId, false);
-                        }
-                        if (objectMeta != null){
-                            deleteObject = objectMeta;
-                            ObjectMeta objectMeta1 = metaDao.queryForUpdate(connection, metaHisCsName,
-                                    metaHisClName, bucket.getBucketId(), objectName, null, null);
-                            if (objectMeta1 != null){
-                                objectMeta1.setParentId1(objectMeta.getParentId1());
-                                objectMeta1.setParentId2(objectMeta.getParentId2());
-                                metaDao.updateMeta(connection, metaCsName, metaClName, bucket.getBucketId(),
-                                        objectName, null, objectMeta1);
-                                metaDao.removeMeta(connection, metaHisCsName, metaHisClName, bucket.getBucketId(),
-                                        objectName, objectMeta1.getVersionId(), null);
-                            }else {
-                                deleteDirForObject(connection, metaCsName, metaClName, bucket, objectName);
-                                metaDao.removeMeta(connection, metaCsName, metaClName, bucket.getBucketId(),
-                                        objectName, objectMeta.getVersionId(), null);
-                                Bucket newBucket = bucketDao.getBucketById(null, bucket.getBucketId());
-                                if (newBucket != null && newBucket.getDelimiter() != bucket.getDelimiter()){
-                                    deleteDirForObject(connection, metaCsName, metaClName, newBucket, objectName);
-                                }
-                            }
-                        }else{
-                            ObjectMeta objectMeta2 = null;
-                            if (isNoVersion != null){
-                                objectMeta2 = metaDao.queryForUpdate(connection, metaHisCsName,
-                                        metaHisClName, bucket.getBucketId(), objectName, null, true);
-                            }else if (versionId != null){
-                                objectMeta2 = metaDao.queryForUpdate(connection, metaHisCsName,
-                                        metaHisClName, bucket.getBucketId(), objectName, versionId, false);
+                    /* Try one more time if specified version does not found.
+                     * Maybe the specified version is moving from
+                     * history meta cl to meta cl*/
+                    int tryTime = 2;
+                    while(tryTime > 0){
+                        tryTime--;
+                        ConnectionDao connection = daoMgr.getConnectionDao();
+                        transaction.begin(connection);
+                        try{
+                            ObjectMeta objectMeta = null;
+                            if (versionId == null){
+                                objectMeta = metaDao.queryForUpdate(connection, metaCsName,
+                                        metaClName, bucket.getBucketId(), objectName, null, true);
+                            }else{
+                                objectMeta = metaDao.queryForUpdate(connection, metaCsName,
+                                        metaClName, bucket.getBucketId(), objectName, versionId, false);
                             }
 
-                            if (objectMeta2 != null){
-                                deleteObject = objectMeta2;
-                                metaDao.removeMeta(connection, metaHisCsName, metaHisClName, bucket.getBucketId(),
-                                        objectName, objectMeta2.getVersionId(), null);
+                            if (objectMeta != null){
+                                deleteObject = objectMeta;
+                                ObjectMeta objectMeta1 = metaDao.queryForUpdate(connection, metaHisCsName,
+                                        metaHisClName, bucket.getBucketId(), objectName, null, null);
+                                if (objectMeta1 != null){
+                                    objectMeta1.setParentId1(objectMeta.getParentId1());
+                                    objectMeta1.setParentId2(objectMeta.getParentId2());
+                                    metaDao.updateMeta(connection, metaCsName, metaClName, bucket.getBucketId(),
+                                            objectName, null, objectMeta1);
+                                    metaDao.removeMeta(connection, metaHisCsName, metaHisClName, bucket.getBucketId(),
+                                            objectName, objectMeta1.getVersionId(), null);
+                                }else {
+                                    deleteDirForObject(connection, metaCsName, metaClName, bucket, objectName);
+                                    metaDao.removeMeta(connection, metaCsName, metaClName, bucket.getBucketId(),
+                                            objectName, objectMeta.getVersionId(), null);
+                                    Bucket newBucket = bucketDao.getBucketById(null, bucket.getBucketId());
+                                    if (newBucket != null && newBucket.getDelimiter() != bucket.getDelimiter()){
+                                        deleteDirForObject(connection, metaCsName, metaClName, newBucket, objectName);
+                                    }
+                                }
+                            }else{
+                                ObjectMeta objectMeta2 = null;
+                                if (versionId == null){
+                                    objectMeta2 = metaDao.queryForUpdate(connection, metaHisCsName,
+                                            metaHisClName, bucket.getBucketId(), objectName, null, true);
+                                }else {
+                                    objectMeta2 = metaDao.queryForUpdate(connection, metaHisCsName,
+                                            metaHisClName, bucket.getBucketId(), objectName, versionId, false);
+                                }
+
+                                if (objectMeta2 != null){
+                                    deleteObject = objectMeta2;
+                                    metaDao.removeMeta(connection, metaHisCsName, metaHisClName, bucket.getBucketId(),
+                                            objectName, objectMeta2.getVersionId(), null);
+                                }else{
+                                    logger.debug("can not find the key:{} with versionId:{} in history", objectName, versionId);
+                                    throw new S3ServerException(S3Error.OBJECT_NO_SUCH_VERSION, "");
+                                }
                             }
+                            transaction.commit(connection);
+                            break;
+                        } catch (S3ServerException e){
+                            transaction.rollback(connection);
+                            if (e.getError() == S3Error.OBJECT_NO_SUCH_VERSION){
+                                continue;
+                            }else {
+                                throw e;
+                            }
+                        } catch(Exception e){
+                            transaction.rollback(connection);
+                            throw e;
+                        } finally {
+                            daoMgr.releaseConnectionDao(connection);
                         }
-                        transaction.commit(connection);
-                    }catch(Exception e){
-                        transaction.rollback(connection);
-                        throw e;
-                    } finally {
-                        daoMgr.releaseConnectionDao(connection);
                     }
                     break;
                 default:
@@ -857,7 +876,7 @@ public class ObjectServiceImpl implements ObjectService {
             if (maxKeys == 0) {
                 return listVersionsResult;
             }
-
+            
             if (delimiter != null && delimiter.length() == 0) {
                 delimiter = null;
             }
@@ -2129,6 +2148,11 @@ public class ObjectServiceImpl implements ObjectService {
                             logger.error("lob is in use.csName:{}, clName:{}, lobId:{}",
                                     deleteObject.getCsName(), deleteObject.getClName(),
                                     deleteObject.getLobId());
+                        }
+                        try {
+                            Thread.sleep(100L);
+                        } catch (Exception e2){
+                            logger.error("thread sleep fail.",e2);
                         }
                         continue;
                     }else {

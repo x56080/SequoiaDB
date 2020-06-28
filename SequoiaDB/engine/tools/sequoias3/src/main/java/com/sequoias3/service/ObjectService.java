@@ -42,7 +42,7 @@ public interface ObjectService {
             throws S3ServerException;
 
     PutDeleteResult deleteObject(long ownerID, String bucketName,
-                                 String objectName, Long versionId, Boolean isNoVersion)
+                                 String objectName, Long versionId)
             throws S3ServerException;
 
     ListObjectsResult listObjects(long ownerID, String bucketName, String prefix,

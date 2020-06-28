@@ -242,13 +242,9 @@ public class ObjectController {
             logger.debug("delete object with version id. bucketName={}, objectName={}, versionId={}",
                     bucketName, objectName, versionId);
 
-            Boolean nullVersionFlag = null;
             Long cvtVersionId = convertVersionId(versionId);
-            if (null == cvtVersionId) {
-                nullVersionFlag = true;
-            }
 
-            PutDeleteResult result = objectService.deleteObject(operator.getUserId(), bucketName, objectName, cvtVersionId, nullVersionFlag);
+            PutDeleteResult result = objectService.deleteObject(operator.getUserId(), bucketName, objectName, cvtVersionId);
             HttpHeaders headers = new HttpHeaders();
             headers.add(RestParamDefine.DeleteObjectResultHeader.VERSION_ID, versionId);
             if (result != null){
