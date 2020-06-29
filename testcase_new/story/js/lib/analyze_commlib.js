@@ -914,21 +914,12 @@ function getSplitAccessPlans ( db, findConf, selectorConf, sortConf )
 *@author:      liuxiaoxuan
 *@createDate:  2018.01.15
 **************************************/
-function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlans, groups )
+function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlans )
 {
    var expAccessPlans = expectAccessPlans;
-   if( groups !== undefined )
-   {
-      var datas = getNodesInGroups( db, groups );
-   }
-   else
-   {
-      var groups = getGroupsFromcl( db, clFullName );
-      var datas = getNodesInGroups( db, groups );
-   }
 
    //校验计划个数
-   if( expAccessPlans.length !== actAccessPlans.length )
+   if( expAccessPlans.length > actAccessPlans.length )
    {
       println( 'expAccessPlans: ' + JSON.stringify( expAccessPlans ) + "\nactAccessPlans: " + JSON.stringify( actAccessPlans ) );
       throw buildException( "check length", "accessPlan length", "check failed!",
@@ -949,8 +940,8 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
 
    for( var i = 0; i < expAccessPlans.length; i++ )
    {
-      if( JSON.stringify( newActAccessPlans ).indexOf( JSON.stringify( newExpAccessPlans[i] ) ) === -1
-         || JSON.stringify( newExpAccessPlans ).indexOf( JSON.stringify( newActAccessPlans[i] ) ) === -1 )
+      // 期望是实际的子集
+      if( JSON.stringify( newActAccessPlans ).indexOf( JSON.stringify( newExpAccessPlans[i] ) ) === -1 )
       {
          throw buildException( "check access plan", "access plan", "fail",
             JSON.stringify( newExpAccessPlans ), JSON.stringify( newActAccessPlans ) );
@@ -958,7 +949,6 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
    }
    println( "check accessPlan snapshot success" );
 }
-
 /************************************
 *@Description: 按组获取主子表访问计划快照
 *@author:      zhaoyu
