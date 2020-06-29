@@ -44,17 +44,15 @@
 #include "clsSyncMinHeap.hpp"
 #include "msgReplicator.hpp"
 #include "ossAtomic.hpp"
-#include <set>
-
-using namespace std ;
+#include "ossMemPool.hpp"
 
 namespace engine
 {
    class _netRouteAgent ;
    class _dpsLogWrapper ;
-   class _pmdEDUCB;
+   class _pmdEDUCB ;
 
-   typedef multiset<DPS_LSN_OFFSET> CLS_WAKE_PLAN ;
+   typedef ossPoolMultiSet<DPS_LSN_OFFSET>   CLS_WAKE_PLAN ;
 
    /*
       _clsSyncManager define
@@ -80,7 +78,6 @@ namespace engine
       void complete( const MsgRouteID &id,
                      const DPS_LSN &lsn,
                      UINT32 TID ) ;
-
 
       void handleTimeout( const UINT32 &interval ) ;
 
@@ -109,7 +106,7 @@ namespace engine
          _enableSync = enable ;
       }
 
-      void cut( UINT32 alives, BOOLEAN isStopNode = FALSE ) ;
+      void cut( UINT32 alives, BOOLEAN isFTWhole = FALSE ) ;
 
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 

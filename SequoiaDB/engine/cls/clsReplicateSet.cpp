@@ -1078,7 +1078,6 @@ namespace engine
       map< UINT64, _clsSharingStatus>::iterator itrInfo ;
       _clsSharingStatus *pStatus = NULL ;
       BOOLEAN isAllNodeFatal = TRUE ;
-      BOOLEAN isStopNode = TRUE ;
 
       for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; itr++ )
       {
@@ -1143,11 +1142,6 @@ namespace engine
             pStatus->beat.ftConfirmStat = 0 ;
             pStatus->beat.indoubtErr = SDB_OK ;
 
-            if ( CLS_NODE_STOP != pStatus->beat.nodeRunStat )
-            {
-               isStopNode = FALSE ;
-            }
-
             _sync.updateNodeStatus( pStatus->beat.identity, FALSE ) ;
 
             _info.alives.erase( itr++ ) ;
@@ -1161,7 +1155,8 @@ namespace engine
       /// cutting when down to secandary is in _clsVSPrimary.
       if ( _vote.primaryIsMe() )
       {
-         _sync.cut( _info.alives.size(), isStopNode ) ;
+         _sync.cut( _info.alives.size(),
+                    FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ? TRUE : FALSE ) ;
       }
 
    done:
@@ -1706,6 +1701,10 @@ namespace engine
             timeout += OSS_ONE_SEC ;
             continue ;
          }
+         else if ( FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() )
+         {
+            nodeCnt = aliveCnt ;
+         }
 
          /// When exist fault node
          if ( faultCnt > 0 )
@@ -1731,7 +1730,15 @@ namespace engine
          if ( 0 == w || w > (INT16)nodeCnt )
          {
             finalW = nodeCnt ;
-            ssCnt = 0 ; /// only effect when w = -1
+
+            if ( FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() )
+            {
+               adjW += ssCnt ;
+            }
+            else
+            {
+               ssCnt = 0 ;
+            }
          }
          else if ( -1 == w )
          {
@@ -1741,7 +1748,15 @@ namespace engine
          else
          {
             finalW = w ;
-            ssCnt = 0 ; /// only effect when w = -1
+
+            if ( FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() )
+            {
+               adjW += ssCnt ;
+            }
+            else
+            {
+               ssCnt = 0 ;
+            }
          }
 
          if ( finalW > (INT16)aliveCnt )

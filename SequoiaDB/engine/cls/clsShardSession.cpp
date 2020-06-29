@@ -994,12 +994,7 @@ namespace engine
 
       if ( rc )
       {
-         pmdIncErrNum( rc ) ;
-
-         if ( eduCB()->isWritingDB() )
-         {
-            ftReportErr( rc ) ;
-         }
+         ftReportErr( rc, _pEDUCB->isWritingDB() ) ;
       }
 
       /// auto-commit process

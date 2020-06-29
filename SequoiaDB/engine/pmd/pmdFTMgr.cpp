@@ -344,11 +344,28 @@ namespace engine
       UINT64 lsnDiff = 0 ;
       UINT64 sucCount = 0 ;
 
+      UINT32 countInc = 0 ;
+      monDBCB *pMonDB = krcb->getMonDBCB() ;
+
       if ( !pDpsCB )
       {
          /// not data node
          goto done ;
       }
+
+      sucCount = pMonDB->totalInsert +
+                 pMonDB->totalUpdate +
+                 pMonDB->totalDelete +
+                 pMonDB->totalLobWrite ;
+      if ( sucCount < _lastSucCount )
+      {
+         countInc = sucCount ;
+      }
+      else
+      {
+         countInc = sucCount - _lastSucCount ;
+      }
+      _lastSucCount = sucCount ;
 
       pItem = _sampleWnd.slideForward( dbTick ) ;
       pPrevItem = _sampleWnd.prev( pItem->getPos() ) ;
@@ -410,7 +427,20 @@ namespace engine
       {
          if ( lsnDiff >= _slowNodeThreshold )
          {
-            if ( 0 == _slowNodeIncrement )
+            /// When is fullsync, keep the same with last
+            if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
+            {
+               if ( pPrevItem->_risk[ FT_RISK_SLOW_NODE ]._count > 0 )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
+                          "LsnDiff(%llu) >= Threshold(%llu) && "
+                          "Database is in FullSync && "
+                          "PrevItem is FT_RISK_SLOW_NODE",
+                          lsnDiff, _slowNodeThreshold ) ;
+               }
+            }
+            else if ( 0 == _slowNodeIncrement )
             {
                _sampleWnd.reportRisk( FT_RISK_SLOW_NODE ) ;
                PD_LOG( PDINFO, "Report risk( FT_RISK_SLOW_NODE ), Expr: "
@@ -459,13 +489,24 @@ namespace engine
                  ( lsnDiff > 0 ||
                    completeLsn < expectLsn.offset ) )
             {
-               _sampleWnd.reportRisk( FT_RISK_DEADSYNC ) ;
-               PD_LOG( PDINFO, "Report risk( FT_RISK_DEADSYNC ), Expr: "
-                       "CompleteLsn(%llu) == PreCompleteLsn(%llu) && "
-                       "( LsnDiff(%llu) > 0 || "
-                       "CompleteLsn < ExpectLsn(%llu) )",
-                       completeLsn, pPrevItem->_sys._completeLsn,
-                       lsnDiff, expectLsn.offset ) ;
+               /// When is FullSync and countInc is no-zero, and no error
+               /// means is not deadsync
+               if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() &&
+                    countInc > 0 &&
+                    pPrevItem->allErr() == 0 )
+               {
+                  /// means is not deadsync
+               }
+               else
+               {
+                  _sampleWnd.reportRisk( FT_RISK_DEADSYNC ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_DEADSYNC ), Expr: "
+                          "CompleteLsn(%llu) == PreCompleteLsn(%llu) && "
+                          "( LsnDiff(%llu) > 0 || "
+                          "CompleteLsn < ExpectLsn(%llu) )",
+                          completeLsn, pPrevItem->_sys._completeLsn,
+                          lsnDiff, expectLsn.offset ) ;
+               }
             }
          }
       }
@@ -473,23 +514,6 @@ namespace engine
       /// nospc
       if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_NOSPC ) )
       {
-         UINT32 countInc = 0 ;
-         monDBCB *pMonDB = krcb->getMonDBCB() ;
-
-         sucCount = pMonDB->totalInsert +
-                    pMonDB->totalUpdate +
-                    pMonDB->totalDelete +
-                    pMonDB->totalLobWrite ;
-         if ( sucCount < _lastSucCount )
-         {
-            countInc = sucCount ;
-         }
-         else
-         {
-            countInc = sucCount - _lastSucCount ;
-         }
-         _lastSucCount = sucCount ;
-
          if ( 0 != pPrevItem->_time )
          {
             if ( completeLsn > pPrevItem->_sys._completeLsn )
@@ -685,12 +709,49 @@ namespace engine
       return krcb->isShutdown() ;
    }
 
-   void _pmdFTMgr::reportErr( INT32 err )
+   static BOOLEAN _ftIsErrorIn( INT32 err, const INT32 *pArray, UINT32 size )
    {
-      if ( SDB_OK != err )
+      for ( UINT32 i = 0 ; i < size ; ++i )
+      {
+         if ( pArray[i] == err )
+         {
+            return TRUE ;
+         }
+      }
+      return FALSE ;
+   }
+
+   void _pmdFTMgr::reportErr( INT32 err, BOOLEAN isWrite )
+   {
+      const static INT32 _ignored[] = {
+         SDB_DMS_EOC, SDB_INVALIDARG, SDB_EOF, SDB_IXM_EOC,
+         SDB_CLS_NO_CATALOG_INFO, SDB_CLS_NODE_NOT_ENOUGH,
+         SDB_CLS_NOT_PRIMARY, SDB_UNKNOWN_MESSAGE,
+         SDB_APP_INTERRUPT
+         } ;
+
+      const static INT32 _prefered[] = {
+         SDB_IO, SDB_OOM, SDB_PERM, SDB_FNE, SDB_FE, SDB_NOSPC,
+         SDB_IXM_DUP_KEY
+         } ;
+
+      /// ignore
+      if ( _ftIsErrorIn( err, _ignored, sizeof( _ignored ) / sizeof( INT32 ) ) )
+      {
+         /// ignore
+      }
+      else if ( _ftIsErrorIn( err, _prefered,
+                              sizeof( _prefered ) / sizeof( INT32 ) ) )
       {
          _indoubtErr = err ;
       }
+      else if ( isWrite &&
+                !_ftIsErrorIn( _indoubtErr, _prefered,
+                               sizeof( _prefered ) / sizeof( INT32 ) ) )
+      {
+         _indoubtErr = err ;
+      }
+
       if ( SDB_NOSPC == err )
       {
          _sampleWnd.reportErr( FT_ERR_NOSPC ) ;
@@ -700,12 +761,17 @@ namespace engine
    /*
       Tool function
    */
-   void ftReportErr( INT32 err )
+   void ftReportErr( INT32 err, BOOLEAN isWrite )
    {
-      pmdFTMgr *pMgr = pmdGetKRCB()->getFTMgr() ;
-      if ( pMgr )
+      if ( err )
       {
-         pMgr->reportErr( err ) ;
+         pmdFTMgr *pMgr = pmdGetKRCB()->getFTMgr() ;
+         if ( pMgr )
+         {
+            pMgr->reportErr( err, isWrite ) ;
+         }
+
+         pmdIncErrNum( err ) ;
       }
    }
 

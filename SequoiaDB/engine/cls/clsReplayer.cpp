@@ -1537,6 +1537,8 @@ namespace engine
       eduCB->resetLsn() ;
       if ( SDB_OK != rc )
       {
+         ftReportErr( rc ) ;
+
          dpsLogRecord record ;
          CHAR tmpBuff[4096] = {0} ;
          INT32 rcTmp = record.load( (const CHAR*)recordHeader ) ;
@@ -1562,6 +1564,7 @@ namespace engine
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
       MAP_TRANS_PENDING_OBJ::iterator it ;
       INT64 contextID = -1 ;
+      BOOLEAN needReport = TRUE ;
 
       if ( !_dpsCB )
       {
@@ -1588,6 +1591,7 @@ namespace engine
       }
       else
       {
+         needReport = FALSE ;
          rc = rollback( recordHeader, eduCB ) ;
          if ( rc )
          {
@@ -1602,6 +1606,10 @@ namespace engine
       }
       return rc ;
    error:
+      if ( needReport )
+      {
+         ftReportErr( rc ) ;
+      }
       goto done ;
    }
 
@@ -2021,6 +2029,8 @@ namespace engine
       eduCB->resetLsn() ;
       if ( SDB_OK != rc )
       {
+         ftReportErr( rc ) ;
+
          dpsLogRecord record ;
          CHAR tmpBuff[4096] = {0} ;
          INT32 rcTmp = record.load( (const CHAR*)recordHeader ) ;
@@ -2086,6 +2096,11 @@ namespace engine
                                                _dpsCB, csUniqueID, pageSize,
                                                lobPageSize, type, TRUE ) ;
       }
+
+      if ( rc )
+      {
+         ftReportErr( rc ) ;
+      }
       return rc ;
    }
 
@@ -2123,6 +2138,10 @@ namespace engine
                                           0, TRUE, extOptions ) ;
       }
 
+      if ( rc )
+      {
+         ftReportErr( rc ) ;
+      }
       return rc ;
    }
 
@@ -2131,8 +2150,13 @@ namespace engine
                                     _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
-      return rtnCreateIndexCommand( collection, index, eduCB,
-                                    _dmsCB, _dpsCB, TRUE ) ;
+      INT32 rc = rtnCreateIndexCommand( collection, index, eduCB,
+                                        _dmsCB, _dpsCB, TRUE ) ;
+      if ( rc )
+      {
+         ftReportErr( rc ) ;
+      }
+      return rc ;
    }
 
    INT32 _clsReplayer::replayInsert( const CHAR *collection,
@@ -2140,8 +2164,13 @@ namespace engine
                                      _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
-      return rtnReplayInsert( collection, obj, FLG_INSERT_CONTONDUP, eduCB,
-                              _dmsCB, _dpsCB ) ;
+      INT32 rc = rtnReplayInsert( collection, obj, FLG_INSERT_CONTONDUP, eduCB,
+                                  _dmsCB, _dpsCB ) ;
+      if ( rc )
+      {
+         ftReportErr( rc ) ;
+      }
+      return rc ;
    }
 
    INT32 _clsReplayer::replayWriteLob( const CHAR *fullName,
@@ -2152,9 +2181,14 @@ namespace engine
                                        const CHAR *data,
                                        _pmdEDUCB *eduCB )
    {
-      return rtnWriteLob( fullName, oid, sequence,
-                          offset, len, data, eduCB,
-                          1, _dpsCB ) ;
+      INT32 rc = rtnWriteLob( fullName, oid, sequence,
+                              offset, len, data, eduCB,
+                              1, _dpsCB ) ;
+      if ( rc )
+      {
+         ftReportErr( rc ) ;
+      }
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP__ROLEBACKTRANSINSERT, "_clsReplayer::_rollbackTransInsert" )

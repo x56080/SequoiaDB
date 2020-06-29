@@ -158,6 +158,18 @@ namespace engine
          return *this ;
       }
 
+      UINT64   allErr() const
+      {
+         UINT64 count = 0 ;
+
+         for ( INT32 i = FT_ERR_NONE + 1 ; i < FT_ERR_MAX ; ++i )
+         {
+            count += _err[i]._count ;
+         }
+
+         return count ;
+      }
+
    private:
       UINT32            _pos ;
    } ;
@@ -236,7 +248,7 @@ namespace engine
          BOOLEAN  isCatchup() const { return _isCatchup ; }
          BOOLEAN  isStop() const ;
 
-         void     reportErr( INT32 err ) ;
+         void     reportErr( INT32 err, BOOLEAN isWrite ) ;
 
       protected:
          ftSampleWndItem*  _sample( UINT64 dbTick ) ;
@@ -267,7 +279,7 @@ namespace engine
    /*
       Tool functions
    */
-   void  ftReportErr( INT32 err ) ;
+   void  ftReportErr( INT32 err, BOOLEAN isWrite = TRUE ) ;
 
 }
 

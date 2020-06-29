@@ -542,12 +542,13 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_CUT, "_clsSyncManager::cut" )
-   void _clsSyncManager::cut( UINT32 alives, BOOLEAN isStopNode )
+   void _clsSyncManager::cut( UINT32 alives, BOOLEAN isFTWhole )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_CUT ) ;
       SDB_ASSERT( alives <= _validSync, "impossible" ) ;
       if ( _validSync < alives )
       {
+         
          PD_LOG( PDWARNING, "sync: alives is bigger than valid sync."
                  "[alives:%d][valid:%d]", alives, _validSync ) ;
          goto done ;
@@ -560,7 +561,8 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               if ( -1 == session.eduCB->getOrgReplSize() )
+               if ( -1 == session.eduCB->getOrgReplSize() ||
+                    ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
                {
                   session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
                }
