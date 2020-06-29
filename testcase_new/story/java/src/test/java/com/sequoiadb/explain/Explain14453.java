@@ -32,14 +32,14 @@ public class Explain14453 extends SdbTestBase {
 	private static int EXECRECORDS = 100;
 	private static int DATANUMBERS = 1000;
 
-	@BeforeClass
+	@BeforeClass(enabled = false)
 	public void setUp() {
 		sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
 		cs = sdb.getCollectionSpace(csName);
 		cl = cs.createCollection(clName);
 	}
 
-	@AfterClass
+	@AfterClass(enabled = false)
 	public void tearDown() {
 		try {
 			cs.dropCollection(clName);
@@ -50,7 +50,7 @@ public class Explain14453 extends SdbTestBase {
 		}
 	}
 
-	@Test
+	@Test(enabled = false)
 	public void test() {
 		List<BSONObject> insertObjs = new ArrayList<BSONObject>();
 		for (int i = 0; i < DATANUMBERS; i++) {
@@ -81,7 +81,7 @@ public class Explain14453 extends SdbTestBase {
 			try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
 				for (int i = 0; i < EXECRECORDS; i++) {
 					cl.insert(insertObjs);
-					db.analyze();
+					db.analyze( (BSONObject)JSON.parse( "{ 'Collection': '" + csName + "." + clName + "' }" ) );
 					cl.truncate();
 				}
 			}
