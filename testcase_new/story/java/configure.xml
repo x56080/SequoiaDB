@@ -56,7 +56,6 @@
         </groups>
         <packages>
             <package name="com.sequoiadb.transaction.ru" />
-            <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.unlock" />
             <package name="com.sequoiadb.transaction.session" />
         </packages>
@@ -112,6 +111,7 @@
     <test name="normaltest" parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.transaction.uniqueIndex" />
+            <package name="com.sequoiadb.transaction.metadata" />
         </packages>
     </test>
     
