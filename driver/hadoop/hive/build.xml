@@ -66,7 +66,10 @@
       </if>
     
 		<if>
-			<equals arg1="${os_arch}" arg2="amd64" />
+			<or>
+				<equals arg1="${os_arch}" arg2="x86_64" />
+				<equals arg1="${os_arch}" arg2="amd64" />
+			</or>
 			<then>
 				<property name="jdk.name" value="${jdk.name.os}64" />
 			</then>
