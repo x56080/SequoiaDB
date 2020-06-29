@@ -13,12 +13,13 @@ function test ( testPara )
    try
    {
       dbcl.insert( { a: { $date: null } } )
+      assert.fail( "exp fail but act success!" )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message !== -6 )
       {
-         throw e;
+         throw new Error( e );
       }
    }
 }
