@@ -2335,7 +2335,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPOPCOMMAND, "rtnPopCommand" )
    INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 value,
                         pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                        INT16 w, INT8 direction, BOOLEAN byNumber )
+                        INT8 direction, BOOLEAN byNumber )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNPOPCOMMAND ) ;
@@ -2438,14 +2438,6 @@ namespace engine
       {
          dmsCB->writeDown( cb ) ;
       }
-      if ( cb )
-      {
-         if ( SDB_OK == rc && dpsCB )
-         {
-            rc = dpsCB->completeOpr( cb, w ) ;
-         }
-      }
-
       PD_TRACE_EXITRC( SDB_RTNPOPCOMMAND, rc ) ;
       return rc ;
    error:

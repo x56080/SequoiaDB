@@ -5758,6 +5758,10 @@ namespace engine
       clShortName++ ;
       if ( dmsIsSysCLName( clShortName ) )
       {
+         if ( NULL != w )
+         {
+            *w = 1 ;
+         }
          goto done ;
       }
 

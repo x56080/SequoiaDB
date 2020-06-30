@@ -4111,7 +4111,7 @@ error:
               _fullName, _logicalID, (INT32)_direction ) ;
 
       rc = rtnPopCommand( _fullName, _logicalID, cb,
-                          dmsCB, dpsCB, w, _direction ) ;
+                          dmsCB, dpsCB, _direction ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to pop record from collection[%s], "
                    "rc: %d", _fullName, rc ) ;
    done:

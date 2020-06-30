@@ -758,7 +758,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -973,7 +973,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1121,7 +1121,7 @@ namespace seadapter
             {
                PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                                 "unique ID[%llu], logical ID[%u], index logical "
-                                "ID[%u]", imContext->getCLUID(),
+                                "ID[%u]", imContext->getCLUID(),
                                 imContext->getCLLID(), imContext->getIdxLID() ) ;
             }
             else
@@ -1201,7 +1201,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1255,7 +1255,7 @@ namespace seadapter
             {
                PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                                 "unique ID[%llu], logical ID[%u], index logical "
-                                "ID[%u]", imContext->getCLUID(),
+                                "ID[%u]", imContext->getCLUID(),
                                 imContext->getCLLID(), imContext->getIdxLID() ) ;
             }
             else
@@ -1325,7 +1325,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1374,7 +1374,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1773,7 +1773,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1926,7 +1926,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -1981,7 +1981,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -2413,7 +2413,7 @@ namespace seadapter
          {
             PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
                              "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
+                             "ID[%u]", imContext->getCLUID(),
                              imContext->getCLLID(), imContext->getIdxLID() ) ;
          }
          else
@@ -2440,8 +2440,8 @@ namespace seadapter
                                          _session->tid(), _session->eduCB() ) ;
          PD_RC_CHECK( rc, PDERROR, "Send command to catalogue node failed[%d]",
                       rc ) ;
-         PD_LOG( PDEVENT, "Clean capped collection[%s] by pop "
-                          "command. Pop options: %s",
+         PD_LOG( PDINFO, "Clean capped collection[%s] by pop "
+                         "command. Pop options: %s",
                  meta->getCappedCLName(),
                  option.toString(false, true).c_str() ) ;
          _timeout = 0 ;

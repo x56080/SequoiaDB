@@ -964,7 +964,7 @@ namespace engine
             }
 
             rc = rtnPopCommand( fullName, logicalID, eduCB, _dmsCB,
-                                _dpsCB, 1, direction ) ;
+                                _dpsCB, direction ) ;
             if ( SDB_INVALIDARG == rc )
             {
                PD_LOG( PDERROR, "Logical id[%lld] is invalid when pop from "

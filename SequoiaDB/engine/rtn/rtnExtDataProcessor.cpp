@@ -230,7 +230,7 @@ namespace engine
       {
          PD_LOG( PDDEBUG, "In rollback progess, pop last record in capped "
                           "collection: %s", _cappedCLName ) ;
-         rc = rtnPopCommand( _cappedCLName, 1, cb, dmsCB, dpsCB, 1, -1, TRUE ) ;
+         rc = rtnPopCommand( _cappedCLName, 1, cb, dmsCB, dpsCB, -1, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Pop last record from collection[%s] "
                                    "failed: %d", _cappedCLName, rc ) ;
       }

@@ -502,8 +502,7 @@ namespace engine
 
    INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 value,
                         pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                        INT16 w, INT8 direction = 1,
-                        BOOLEAN byNumber = FALSE ) ;
+                        INT8 direction = 1, BOOLEAN byNumber = FALSE ) ;
 
    INT32 rtnChangeUniqueID( const CHAR* csName, utilCSUniqueID csUniqueID,
                             const BSONObj& clInfoObj, pmdEDUCB* cb,
