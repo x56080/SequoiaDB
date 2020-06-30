@@ -1249,9 +1249,8 @@ namespace engine
 
       // One cs may contain multiple text indices, according with multiple
       // processors. We need to lock all of them, to avoid partial failure.
-      // As the processors may be used by others, so we give up if any one of
-      // the processors can not be locked in one second. All processors who have
-      // been locked need to be unlocked.
+      // If any one of the processors can not be locked in one second. All
+      // processors who have been locked need to be unlocked.
       for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
       {
          processor = &_processors[i] ;
@@ -1265,11 +1264,11 @@ namespace engine
             ossRWMutex *mutex = &_processorLocks[i] ;
             if ( SHARED == lockType )
             {
-               rc = mutex->lock_r( OSS_ONE_SEC ) ;
+               rc = mutex->lock_r() ;
             }
             else if ( EXCLUSIVE == lockType )
             {
-               rc = mutex->lock_w( OSS_ONE_SEC ) ;
+               rc = mutex->lock_w() ;
             }
             else
             {
@@ -1363,11 +1362,11 @@ namespace engine
             ossRWMutex *mutex = &_processorLocks[i] ;
             if ( SHARED == lockType )
             {
-               rc = mutex->lock_r( OSS_ONE_SEC ) ;
+               rc = mutex->lock_r() ;
             }
             else if ( EXCLUSIVE == lockType )
             {
-               rc = mutex->lock_w( OSS_ONE_SEC ) ;
+               rc = mutex->lock_w() ;
             }
             else
             {

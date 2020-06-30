@@ -2379,9 +2379,11 @@ namespace engine
          goto error ;
       }
 
-      // If the collection name start with 'SYS', and it's the same with
-      // collection space name, it's a capped collection for a text index.
-      // Be sure to take protection before pop on it.
+      // The lock here is to avoid concurrency issue described in
+      // SEQUOIADBMAINSTREAM-4475. The cause of the issue is that the pop
+      // operation may happen between the data change of the capped collection
+      // and the replica log written of the operation on the original
+      // collection.
       if ( ossStrncasecmp( clShortName, SYS_PREFIX,
                            ossStrlen( SYS_PREFIX ) ) == 0
            && ossStrncasecmp( pCollectionName, clShortName,
@@ -2396,6 +2398,12 @@ namespace engine
       rc = su->data()->getMBContext( &mbContext, clShortName, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                    "rc: %d", pCollectionName, rc ) ;
+
+      if ( RTN_INVALID_LOCK_HANDLE != lockHandle )
+      {
+         extHandler->releaseLock( lockHandle ) ;
+         lockHandle = RTN_INVALID_LOCK_HANDLE ;
+      }
 
       if ( NULL != cb )
       {
