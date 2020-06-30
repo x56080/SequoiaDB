@@ -5,14 +5,12 @@ import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.transaction.TransUtils;
 
@@ -68,11 +66,6 @@ public class Transaction20145 extends SdbTestBase {
             db.rollback();
 
             // 校验结果
-            List< String > groupNames = CommLib.getCLGroups( cl );
-            String groupName = groupNames.get( 0 );
-            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
-            Assert.assertTrue(
-                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
             TransUtils.queryAndCheck( cl, "{_id:1}", "{_id:''}", expDataList );
 
         } finally {
@@ -115,11 +108,6 @@ public class Transaction20145 extends SdbTestBase {
             db.rollback();
 
             // 校验结果
-            List< String > groupNames = CommLib.getCLGroups( cl );
-            String groupName = groupNames.get( 0 );
-            Assert.assertTrue( TransUtils.isLsnConsistency( sdb, groupName ) );
-            Assert.assertTrue(
-                    TransUtils.getDatabaseSnapshot( sdb, groupName ) );
             TransUtils.queryAndCheck( cl, "{a:1}", "{a:''}", expDataList );
 
         } finally {
