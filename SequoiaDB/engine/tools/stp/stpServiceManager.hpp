@@ -114,6 +114,10 @@ namespace engine
          return ( &_sessionManager ) ;
       }
 
+      // redirect message to primary
+      INT32 redirectPrimary( stpSession *session,
+                             MsgHeader *message ) ;
+
    protected:
       // asynchronous message handler
       pmdAsyncMsgHandler   _messageHandler ;

@@ -190,6 +190,13 @@ namespace engine
                   STP_ROLE_SERVER == _local.getRole() ) ;
       }
 
+      // check whether self is a server
+      OSS_INLINE BOOLEAN isServer()
+      {
+         ossScopedRWLock lock( &_mutex, SHARED ) ;
+         return _isServer() ;
+      }
+
       // check whether self is a synchronize client
       OSS_INLINE BOOLEAN isSyncClient()
       {
@@ -416,6 +423,12 @@ namespace engine
       OSS_INLINE BOOLEAN _isVersionValid() const
       {
          return STP_GROUP_INVALID_VERSION != _version ;
+      }
+
+      // check whether self is a server in lock
+      OSS_INLINE BOOLEAN _isServer() const
+      {
+         return ( STP_ROLE_SERVER == _local.getRole() ) ;
       }
 
       // initialize local node

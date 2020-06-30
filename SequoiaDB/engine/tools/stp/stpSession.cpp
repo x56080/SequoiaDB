@@ -59,11 +59,13 @@ namespace engine
       // msg map or event map
       ON_MSG( MSG_AUTH_VERIFY_REQ, _handleAuthReq )
       ON_MSG( MSG_BS_QUERY_REQ, _handleQueryReq )
+      ON_MSG( MSG_BS_QUERY_RES, _handleQueryRes )
    END_OBJ_MSG_MAP()
 
    _stpSession::_stpSession( UINT64 sessionID, STPCB *stpCB )
    : pmdAsyncSession( sessionID ),
-     _stpCB( stpCB )
+     _stpCB( stpCB ),
+     _redirectID( STP_INVALID_REDIRECT_ID )
    {
    }
 
@@ -174,6 +176,8 @@ namespace engine
       stpCommand *command = NULL ;
       BSONObj result ;
 
+      _redirectID = STP_INVALID_REDIRECT_ID ;
+
       // extract field of query, command name and option
       rc = msgExtractQuery( (CHAR *)message, NULL, &commandName, NULL, NULL,
                             &optionBuffer, NULL, NULL, NULL ) ;
@@ -189,6 +193,53 @@ namespace engine
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get command [%s], command is invalid",
                 commandName ) ;
+
+      // check primary
+      if ( command->needPrimary() &&
+           !_stpCB->checkPrimaryServer( _pEDUCB ) )
+      {
+         // if this command could be redirected to primary,
+         // redirect command to primary
+         PD_CHECK( command->canRedirectPrimary(),
+                   SDB_CLS_NOT_PRIMARY, error, PDERROR,
+                   "Failed to check primary for command [%s]",
+                   commandName ) ;
+
+         // avoid redirect recursively
+         PD_CHECK( MSG_INVALID_ROUTEID == message->routeID.value,
+                   SDB_CLS_NOT_PRIMARY, error, PDERROR,
+                   "Failed to check primary for command [%s], "
+                   "command already redirected", commandName ) ;
+
+         // redirect message
+         rc = _redirectPrimary( message ) ;
+         if ( SDB_OK == rc )
+         {
+            // redirect done
+            goto done ;
+         }
+         else if ( SDB_CLS_NOT_SECONDARY == rc )
+         {
+            // now it is primary, no need to redirect
+            PD_CHECK( _stpCB->isPrimaryServer(),
+                      SDB_CLS_NOT_PRIMARY, error, PDERROR,
+                      "Failed to check primary for command [%s] again",
+                      commandName ) ;
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_RC_CHECK( rc, PDERROR, "Failed to redirect command [%s] to "
+                         "primary, rc: %d", commandName, rc ) ;
+         }
+      }
+
+      // check business if needed
+      if ( command->needCheckBusiness() )
+      {
+         PD_CHECK( pmdGetKRCB()->isBusinessOK(), SDB_SYS, error, PDERROR,
+                   "Failed to check business for command [%s]", commandName ) ;
+      }
 
       // initialize command with given option
       rc = stpInitCommand( command, optionBuffer ) ;
@@ -217,6 +268,58 @@ namespace engine
    error:
       // send error reply
       _sendReply( message, rc ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__HANDLEQUERYRES, "_stpSession::_handleQueryRes" )
+   INT32 _stpSession::_handleQueryRes( NET_HANDLE handle, MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__HANDLEQUERYRES ) ;
+
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+      SDB_ASSERT( MSG_BS_QUERY_RES == message->opCode,
+                  "opcode of message is invalid" ) ;
+
+      // for query result, it is response from redirected request, which it
+      // is redirect to other nodes earlier, we should send it back to client
+
+      // get redirect ID of query result message
+      UINT64 tmpRedirectID = ossPack32To64( _pEDUCB->getTID(),
+                                            (UINT32)( message->requestID ) ) ;
+
+      // check thread ID
+      PD_CHECK( message->TID == _pEDUCB->getTID(), SDB_SYS, error, PDERROR,
+                "Failed to handle query result, thread ID is different, "
+                "current [%u], message [%u]", _pEDUCB->getTID(),
+                message->TID ) ;
+
+      // check redirect ID
+      PD_CHECK( STP_INVALID_REDIRECT_ID != _redirectID,
+                SDB_SYS, error, PDERROR,
+                "Failed to do handle query result, redirect ID is invalid" ) ;
+
+      // check redirect ID against the one from message
+      PD_CHECK( tmpRedirectID == _redirectID, SDB_SYS, error, PDERROR,
+                "Failed to handle query result, redirect ID is different, "
+                "current [%llu], message [%llu]", _redirectID,
+                tmpRedirectID ) ;
+
+      // send it back to client
+      rc = _sendReply( message ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send reply, rc: %d", rc ) ;
+
+   done:
+      // reset redirect ID
+      if ( STP_INVALID_REDIRECT_ID != _redirectID )
+      {
+         _redirectID = STP_INVALID_REDIRECT_ID ;
+      }
+      PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYRES, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
@@ -346,11 +449,101 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__SENDREPLY_HANDLE, "_stpSession::_sendReply" )
+   INT32 _stpSession::_sendReply( MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__SENDREPLY_HANDLE ) ;
+
+      // send reply via handle
+      rc = routeAgent()->syncSend( _netHandle, (void *)message ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to send reply message, "
+                   "rc: %d", sessionName(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__SENDREPLY_HANDLE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__REDIRECTPRIMARY, "_stpSession::_redirectPrimary" )
+   INT32 _stpSession::_redirectPrimary( MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__REDIRECTPRIMARY ) ;
+
+      rc = _stpCB->getServiceManager()->redirectPrimary( this, message ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to redirect message to primary, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSESSION__REDIRECTPRIMARY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION_POSTMESSAGE, "_stpSession::postMessage" )
+   INT32 _stpSession::postMessage( MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION_POSTMESSAGE ) ;
+
+      CHAR *messageBuff = NULL ;
+      UINT64 userData = PMD_MAKE_SESSION_USERDATA( _netHandle,
+                                                   PMD_SESSION_MSG_UNPOOL ) ;
+
+      // allocate post message from thread
+      messageBuff = (CHAR *)SDB_THREAD_ALLOC( message->messageLength ) ;
+      PD_CHECK( NULL != messageBuff, SDB_OOM, error, PDERROR,
+                "Failed to allocate message [size: %d]" ) ;
+
+      // copy message
+      ossMemcpy( messageBuff, (void *)message, message->messageLength ) ;
+
+      // try to post message
+      try
+      {
+         _pEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
+                                          PMD_EDU_MEM_THREAD,
+                                          messageBuff,
+                                          userData,
+                                          0LL ) ) ;
+         messageBuff = NULL ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to post event, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      // release message if failed
+      if ( NULL != messageBuff )
+      {
+         SDB_THREAD_FREE( messageBuff ) ;
+      }
+      PD_TRACE_EXITRC( SDB__STPSESSION_POSTMESSAGE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    /*
       _stpSessionManager implement
     */
    _stpSessionManager::_stpSessionManager( STPCB *stpCB )
-   : _stpCB( stpCB )
+   : _stpCB( stpCB ),
+     _curRedReqID( 0LL )
    {
    }
 
@@ -412,6 +605,162 @@ namespace engine
       return ret ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_HANDLEREDRES, "_stpSessionManager::handleRedirectRes" )
+   INT32 _stpSessionManager::handleRedirectRes( MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_HANDLEREDRES ) ;
+
+      UINT64 sessionID = 0LL ;
+      UINT64 redirectID = makeRedirectID( message->TID,
+                                          UINT32( message->requestID ) ) ;
+      stpSession *session = NULL ;
+
+      // get session ID by redirect ID
+      rc = getRedirectSess( redirectID, sessionID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get redirected session by "
+                   "redirect ID [%llu], rc: %d", redirectID, rc ) ;
+
+      // get session by session ID
+      rc = _getSession( sessionID, &session ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get session by "
+                   "session ID [%llu], rc: %d", sessionID, rc ) ;
+
+      PD_CHECK( session->getRedirectID() == redirectID,
+                SDB_SYS, error, PDERROR,
+                "Failed to handle redirect result, redirect ID of "
+                "session [%llu] is different, given [%llu], expected [%llu]",
+                session->sessionID(), redirectID, session->getRedirectID() ) ;
+
+      // post redirected message to session
+      rc = session->postMessage( message ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to post message to session [%llu], "
+                   "rc: %d", session->sessionID(), rc ) ;
+
+      // hold out session
+      session->holdOut() ;
+
+   done:
+      if ( STP_INVALID_REDIRECT_ID != redirectID )
+      {
+         unregRedirectSess( redirectID ) ;
+      }
+      PD_TRACE_EXITRC( SDB__TPSERVICEMANAGER_HANDLEREDRES, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_REGREDSESS, "_stpSessionManager::regRedirectSess" )
+   INT32 _stpSessionManager::regRedirectSess( stpSession *session,
+                                              MsgHeader *message,
+                                              UINT64 &redirectID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_REGREDSESS ) ;
+
+      ossScopedLock lock( &_redLatch, EXCLUSIVE ) ;
+
+      UINT64 sessionID = session->sessionID() ;
+      UINT32 threadID = session->getTID() ;
+      UINT64 requestID = ++ _curRedReqID ;
+      STP_SESSION_MAP::iterator iter ;
+
+      redirectID = makeRedirectID( threadID, (UINT32)requestID ) ;
+      PD_CHECK( STP_INVALID_REDIRECT_ID != redirectID, SDB_SYS, error, PDERROR,
+                "Failed to register redirect session [%llu], "
+                "redirect ID is invalid", sessionID ) ;
+
+      iter = _redSessions.find( redirectID ) ;
+      PD_CHECK( _redSessions.end() == iter, SDB_SYS, error, PDERROR,
+                "Failed to register redirect session [%llu], "
+                "redirect ID [%llu] already exists",
+                sessionID, redirectID ) ;
+
+      try
+      {
+         _redSessions[ redirectID ] = sessionID ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to register redirected session, "
+                 "redirect ID [%llu], session ID [%llu], occur exception: %s",
+                 redirectID, sessionID, e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      message->requestID = requestID ;
+      message->TID = threadID ;
+      message->routeID.value = _stpCB->getNodeManager()->getLocalRIDValue() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSERVICEMANAGER_REGREDSESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_UNREGREDSESS, "_stpSessionManager::unregRedirectSess" )
+   void _stpSessionManager::unregRedirectSess( UINT64 redirectID )
+   {
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_UNREGREDSESS ) ;
+
+      ossScopedLock lock( &_redLatch, EXCLUSIVE ) ;
+      _redSessions.erase( redirectID ) ;
+
+      PD_TRACE_EXIT( SDB__TPSERVICEMANAGER_UNREGREDSESS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_GETREDSESS, "_stpSessionManager::getRedirectSess" )
+   INT32 _stpSessionManager::getRedirectSess( UINT64 redirectID,
+                                              UINT64 &sessionID )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_GETREDSESS ) ;
+
+      ossScopedLock lock( &_redLatch, SHARED ) ;
+
+      sessionID = 0 ;
+
+      STP_SESSION_MAP::iterator iter = _redSessions.find( redirectID ) ;
+      PD_CHECK( _redSessions.end() != iter,
+                SDB_PMD_SESSION_NOT_EXIST, error, PDERROR,
+                "Failed to get redirected session, redirect ID [%llu]",
+                redirectID ) ;
+      sessionID = iter->second ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSERVICEMANAGER_GETREDSESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER_MAKEREDID, "_stpSessionManager::makeRedirectID" )
+   UINT64 _stpSessionManager::makeRedirectID( UINT32 threadID,
+                                              UINT32 requestID )
+   {
+      UINT64 redirectID = STP_INVALID_REDIRECT_ID ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER_MAKEREDID ) ;
+
+      // compact thread ID and request ID
+      // Note: request ID is unique in each thread, plus thread ID, we could
+      //       make a unique ID for redirect message
+      redirectID = ossPack32To64( threadID, (UINT32)requestID ) ;
+
+      PD_TRACE_EXIT( SDB__TPSERVICEMANAGER_MAKEREDID ) ;
+
+      return redirectID ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER__CREATESESS, "_stpSessionManager::_createSession" )
    pmdAsyncSession *_stpSessionManager::_createSession(
                                                 SDB_SESSION_TYPE sessionType,
@@ -437,6 +786,34 @@ namespace engine
       PD_TRACE_EXIT( SDB__TPSERVICEMANAGER__CREATESESS ) ;
 
       return pSession ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__TPSERVICEMANAGER__GETSESS, "_stpSessionManager::_getSession" )
+   INT32 _stpSessionManager::_getSession( UINT64 sessionID,
+                                          stpSession **session )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__TPSERVICEMANAGER__GETSESS ) ;
+
+      SDB_ASSERT( NULL != session, "session is invalid" ) ;
+
+      ossScopedLock lock( &_metaLatch ) ;
+      MAPSESSION_IT iterSession = _mapSession.find( sessionID ) ;
+      PD_CHECK( iterSession != _mapSession.end(),
+                SDB_PMD_SESSION_NOT_EXIST, error, PDERROR,
+                "Failed to find session [%llu]", sessionID ) ;
+
+      *session = (stpSession *)( iterSession->second ) ;
+      // hold session
+      (*session)->holdIn() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__TPSERVICEMANAGER__GETSESS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }
