@@ -3,43 +3,38 @@
  * @Author: linsuqiang 
  * @Date: 2016-12-29
  ******************************************************/
-
 main();
 
 function main()
 {
-   if( commIsStandalone( db ) ) return;
+   if( commIsStandalone( db ) )
+   {
+      println( "The environment is standalone!" );
+      return;
+   }
 
-   println("\n---Begin---");
-   var csName = COMMCSNAME;
-   var clName = COMMCLNAME+"_6651" ;
-   commDropCL( db, csName, clName, true, true, "Fail to drop CL in the beginning" ) ;
-   var cl = createCL( csName, clName );
+   var clName = COMMCLNAME + "_6651";
+   var groupName = commGetGroups ( db )[0][0].GroupName;
+
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCLByOption( db, COMMCSNAME, clName, { Compressed: true, CompressionType: "lzw", Group: groupName } );
+   
    var ranStr = getRandomString();
    prepareData( ranStr );
-   importData( csName, clName, "6651_1.csv" );
-   checkDictCreated( csName, clName );
-   importData( csName, clName, "6651_2.csv" );
-   checkCompressed( csName, clName );
+   importData( COMMCSNAME, clName, "6651_1.csv" );
+   checkDictCreated( COMMCSNAME, clName );
+
+   importData( COMMCSNAME, clName, "6651_2.csv" );
+   checkCompressed( COMMCSNAME, clName );
    checkCLData( cl, ranStr );
-   commDropCL( db, csName, clName, true, true, "Fail to drop CL in the end" );
-   println("\n---End---");
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
-function createCL( csName, clName )
-{
-   var groupNameArray = getDataGroupsName();
-   var clGroupName = groupNameArray[0];
-   var options = { Compressed: true, CompressionType: "lzw", Group: clGroupName } ;
-   var cl = commCreateCLByOption( db, csName, clName, options, false, 
-                                      true, "Failed to create CL." );
-   return cl;
-}
-
-function prepareData( ranStr )
+function prepareData ( ranStr )
 {
    // records for creating dictionary
-   var imprtFile = tmpFileDir +"6651_1.csv";
+   var imprtFile = tmpFileDir + "6651_1.csv";
    var file = fileInit( imprtFile );
    var headline = "a int, ran string\n";
    file.write( headline );
@@ -48,10 +43,11 @@ function prepareData( ranStr )
       var rec = i + "," + ranStr + i + "\n";
       file.write( rec );
    }
-   var fileInfo = cmd.run( "cat "+ imprtFile );
+   var fileInfo = cmd.run( "cat " + imprtFile );
    file.close();
+
    // records for testing compression
-   var imprtFile = tmpFileDir +"6651_2.csv";
+   var imprtFile = tmpFileDir + "6651_2.csv";
    var file = fileInit( imprtFile );
    var headline = "a int, ran string\n";
    file.write( headline );
@@ -60,56 +56,55 @@ function prepareData( ranStr )
       var rec = i + "," + ranStr + i + "\n";
       file.write( rec );
    }
-   var fileInfo = cmd.run( "cat "+ imprtFile );
+   var fileInfo = cmd.run( "cat " + imprtFile );
    file.close();
 }
 
-function getRandomString()
+function getRandomString ()
 {
    var str = "";
-   var base = [ 'a', 'b', 'c' ];
+   var base = ['a', 'b', 'c'];
    var length = 512 * 1024;
-   for( i = 0; i < length; i++ ){
+   for( i = 0; i < length; i++ )
+   {
       pos = Math.round( Math.random() * ( base.length - 1 ) );
-      str += base[ pos ];
+      str += base[pos];
    }
    return str;
 }
 
-function importData( csName, clName, imprtFile )
+function importData ( csName, clName, imprtFile )
 {
-   var imprtOption = installDir +'bin/sdbimprt -s '+ COORDHOSTNAME +' -p '+ COORDSVCNAME 
-                     +' -c '+ csName +' -l '+ clName 
-                     +' --type csv'
-                     +' --headerline=true'
-                     +' --file '+ tmpFileDir + imprtFile;
+   var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
+      + ' -c ' + csName + ' -l ' + clName
+      + ' --type csv'
+      + ' --headerline=true'
+      + ' --file ' + tmpFileDir + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
-   
-   var rcObj = rc.split("\n");
+
+   var rcObj = rc.split( "\n" );
    if( imprtFile === "6651_1.csv" )
    {
-      var expParseRecords    = "parsed records: 150";
+      var expParseRecords = "parsed records: 150";
       var expImportedRecords = "imported records: 150";
    }
    else if( imprtFile === "6651_2.csv" )
    {
-      var expParseRecords    = "parsed records: 10";
+      var expParseRecords = "parsed records: 10";
       var expImportedRecords = "imported records: 10";
    }
-   var actParseRecords    = rcObj[0];
+   var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords 
-    || expImportedRecords !== actImportedRecords )
+   if( expParseRecords !== actParseRecords
+      || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]", 
-                        "["+ expParseRecords +", "+ expImportedRecords +"]", 
-                        "["+ actParseRecords +", "+ actImportedRecords +"]" );
+      throw new Error( "[" + expParseRecords + ", " + expImportedRecords + "]" + "[" + actParseRecords + ", " + actImportedRecords + "]" );
    }
 }
 
-function checkDictCreated( csName, clName )
+function checkDictCreated ( csName, clName )
 {
    var waitSec = 180;
    var currSec = 0;
@@ -135,13 +130,11 @@ function checkDictCreated( csName, clName )
    }
    if( !created )
    {
-      throw buildException( "checkDictCreated", null, "",
-                            "[ true ]",
-                            "[ false ]" );
+      throw new Error( " Dictionary is not created!" );
    }
 }
 
-function checkCompressed( csName, clName )
+function checkCompressed ( csName, clName )
 {
    var tryTimes = 10;
    var ratioRight = false;
@@ -185,36 +178,34 @@ function checkCompressed( csName, clName )
       expRes += "CompressionRatio: <1\n";
       expRes += "Attribute: Compressed\n";
       expRes += "CompressionType: lzw\n";
-      throw buildException( "checkCompressed", null, "checkCompressed", expRes, actRes );
+      throw new Error( "expRes: " + expRes + ", actRes: " + actRes );
    }
 }
 
-function checkCLData( cl, ranStr )
+function checkCLData ( cl, ranStr )
 {
-   println("\n---Begin to check cl data.");
-   
-   var rc = cl.find({},{_id:{$include:0}}).sort({a:1});
+   println( "\n---Begin to check cl data." );
+
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
-   
-   var expCnt  = 160;
-   var actCnt  = recsArray.length;
+
+   var expCnt = 160;
+   var actCnt = recsArray.length;
    if( actCnt !== expCnt )
    {
-      throw buildException( "checkCLdata", null, "[check count]", expCnt, actCnt );
+      throw new Error( "expCnt: " + expCnt + ", actCnt: " + actCnt );
    }
-   
+
    for( i = 0; i < recsArray.length; i++ )
    {
       expRec = { a: i, ran: ranStr + i };
       if( JSON.stringify( recsArray[i] ) !== JSON.stringify( expRec ) )
       {  // show field 'a' only, because value of field 'ranStr' is too long!
-         throw buildException( "checkCLdata", null, "[check " + ( i + 1 ) + "th record]", 
-                               expRec.a, 
-                               recsArray[i].a );
+         throw new Error( "expRec.a: " + expRec.a + ", actRec.a: " + recsArray[i].a );
       }
    }
 }

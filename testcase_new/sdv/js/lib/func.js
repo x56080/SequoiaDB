@@ -1444,6 +1444,237 @@ function commInArray( needle, hayStack )
    }
 }
 
+/* ********************************************************************
+@Description: comparison result set
+@parameter:
+         cursor:  DBCursor
+         expRecs: array
+         exceptId: noncomparison of _id, default true
+@author: luweikang
+********************************************************************* */
+function commCompareResults ( cursor, expRecs, exceptId )
+{
+   if( exceptId == undefined ) { exceptId = true; }
+   var actRecs = [];
+   var pos = 0;
+   var isSuccess = true;
+   var posOfFailure;
+   var isLong = false;
+
+   try
+   {
+      while( cursor.next() )
+      {
+         var expRecord = expRecs[pos++];
+         var actRecord = cursor.current().toObj();
+         if( actRecord._id != undefined && exceptId )
+         {
+            delete actRecord._id;
+         }
+
+         if( isSuccess && !commCompareObject( expRecord, actRecord ) )
+         {
+            isSuccess = false;
+            posOfFailure = pos - 1;
+            if( JSON.stringify( actRecord ).length > 1024 )
+            {
+               isLong = true;
+            }
+         }
+         actRecs.push( actRecord );
+      }
+      if( actRecs.length !== expRecs.length )
+      {
+         isSuccess = false;
+         posOfFailure = pos - 1;
+         if( JSON.stringify( expRecs[posOfFailure] ).length > 1024 )
+         {
+            isLong = true;
+         }
+      }
+   }
+   catch( e )
+   {
+      commThrowError( e );
+   }
+   finally
+   {
+      if( cursor !== undefined )
+      {
+         cursor.close();
+      }
+   }
+
+   var recordLocation = posOfFailure + 1;
+   if( !isSuccess )
+   {
+      if( isLong )
+      {
+         throw new Error( "compare the " + recordLocation + "th record failed, "
+            + "\nexp record count: " + expRecs.length
+            + "\nact record count: " + actRecs.length
+            + "\nexp record: " + JSON.stringify( expRecs[posOfFailure] )
+            + "\nact record: " + JSON.stringify( actRecs[posOfFailure] ) );
+      }
+      else
+      {
+         var bpos = posOfFailure - 10 > 0 ? posOfFailure - 10 : 0;
+         var epos = posOfFailure + 10;
+         var expRecords = expRecs.slice( bpos, epos );
+         var actRecords = actRecs.slice( bpos, epos );
+         throw new Error( "compare the " + recordLocation + "th record failed, "
+            + "\nexp record count: " + expRecs.length
+            + "\nact record count: " + actRecs.length
+            + "\nexp: " + JSON.stringify( expRecords )
+            + "\nact: " + JSON.stringify( actRecords ) );
+      }
+   }
+}
+
+/* *******************************************************************
+@Description: comparison two objects are equal
+@author: luweikang
+@return: true/false
+******************************************************************* */
+function commCompareObject ( expObj, actObj )
+{
+   function isDirectCompare ( value )
+   {
+      if( typeof ( value ) !== "object" )
+      {
+         return true;
+      }
+      else if( value === null )
+      {
+         return true;
+      }
+      else if( value.constructor === Date )
+      {
+         return true;
+      }
+      else
+      {
+         return false;
+      }
+   }
+
+   if( typeof ( expObj ) != typeof ( actObj ) )
+   {
+      return false;
+   }
+   if( isDirectCompare( actObj ) )
+   {
+      if( typeof ( actObj ) === "number" && isNaN( actObj ) )
+      {
+         if( typeof ( actObj ) === "number" )
+         {
+            return isNaN( expObj );
+         }
+         return false;
+      }
+      return expObj === actObj;
+   }
+   else
+   {
+      if( Object.keys( expObj ).length != Object.keys( actObj ).length )
+      {
+         return false;
+      }
+      for( var key in expObj )
+      {
+         if( !commCompareObject( expObj[key], actObj[key] ) )
+         {
+            return false;
+         }
+      }
+   }
+   return true;
+}
+
+/* *******************************************************************
+@Description: create group and start
+              db: connection handle, can't be standalone                
+              rgName: group name
+              nodesNum: node num, node svc like 26000 26010 ....
+@return       nodeInfos : hostname, svcname, log paths to be backed up
+               array[]:
+                  [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
+@author: luweikang
+******************************************************************* */
+function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
+{
+   if( hostname === undefined )
+   { 
+      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
+      hostname = nodeList[0].HostName;
+   }
+   if( nodeOption === undefined )
+   {
+      nodeOption = { diaglevel: 5 };
+   }
+   
+   try
+   {
+      var rg = db.createRG( rgName );   
+   }
+   catch( e )
+   {
+      throw new Error( e );
+   }
+   
+   var maxRetryTimes = 100;
+   var nodeInfos = [];
+   for( var i = 0; i < nodeNum; i++ )
+   {
+      var failedCount = 0;
+      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
+      var dbPath = RSRVNODEDIR + "data/" + svc;
+      do
+      {
+         try
+         {
+            new Remote( hostname ).getCmd().run( "lsof -i:" + svc );
+            svc = svc + 10;
+            dbPath = RSRVNODEDIR + "data/" + svc;
+            failedCount++;
+            continue;
+         }
+         catch( e )
+         { 
+            if( e !== 1 )
+            {
+               throw new Error( "lsof check port error: " + e ); 
+            }
+         }
+         try
+         {
+            rg.createNode( hostname, svc, dbPath, nodeOption );
+            println( "create node: " + hostname + ":" + svc + " dbpath: " + dbPath );
+            var nodeInfo = { "hostname": hostname, "svcname": svc, "logpath": hostname + ":" + CMSVCNAME + "@" + dbPath + "/diaglog/sdbdiag.log" };
+            nodeInfos.push( nodeInfo );
+            break;
+         }
+         catch( e )
+         {
+            //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+            if( e !== -145 || e !== -290 )
+            {
+               svc = svc + 10;
+               dbPath = RSRVNODEDIR + "data/" + svc;
+               failedCount++;
+            }
+            else
+            {
+               throw new Error( "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e );
+            }
+         }
+      }
+      while( failedCount < maxRetryTimes );
+   }
+   rg.start();
+   return nodeInfos;
+}
+
 /**********************************************************************
 @Description:  generate all kinds of types data randomly
 @author:       Ting YU
@@ -1730,6 +1961,92 @@ catch ( e )
    {
       db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
       println( "general connection" ) ;
+   }
+}
+
+/* *****************************************************************************
+@discription: create domain
+@author: zhaoyu
+@parameter
+***************************************************************************** */
+function commCreateDomain( db, domainName, groupNames, options, ignoreExisted, message)
+{
+   var outmessage = "";
+   if ( options == undefined ) { options = {} ; }
+   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if ( ignoreExisted == undefined ) { ignoreExisted = false ; }
+   try
+   {
+      return db.createDomain(domainName, groupNames, options);
+   }
+   catch(e)
+   {
+      if(e !== -215 || !ignoreExisted)
+      {
+         println( "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw e;
+      }
+   }
+
+   try
+   {
+      return db.getDomain(domainName);
+   }
+   catch ( e )
+   {
+      println( "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage ) ;
+      throw e ;
+   }
+}
+
+/* *****************************************************************************
+@discription: drop domain
+@author: zhaoyu
+@parameter
+***************************************************************************** */
+function commDropDomain( db, domainName, ignoreNotExist, message)
+{
+   var outmessage = "";
+   if ( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
+   if ( ignoreNotExist == undefined ) { ignoreNotExist = true ; }
+   try
+   {
+      var domain = db.getDomain(domainName);
+      var cursor = domain.listCollectionSpaces();
+      while(cursor.next())
+      {
+         var csName = cursor.current().toObj().Name;
+         db.dropCS(csName);
+      }
+      db.dropDomain(domainName);
+   }
+   catch(e)
+   {
+      if( e !== -214 || !ignoreNotExist)
+      {
+         println( "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage ) ;
+         throw e ;
+      }  
+   }  
+}  
+
+
+function commThrowError ( e, msg )
+{
+   if( e.constructor === Error )
+   {
+      throw e;
+   }
+   else
+   {
+      if( msg === undefined )
+      {
+         throw new Error( e );
+      }
+      else
+      {
+         throw new Error( msg );
+      }
    }
 }
 
