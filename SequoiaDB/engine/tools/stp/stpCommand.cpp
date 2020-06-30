@@ -234,14 +234,6 @@ namespace engine
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
                 "Failed to run command, command is invalid" ) ;
 
-      // check business if needed
-      if ( command->needCheckBusiness() )
-      {
-         PD_CHECK( pmdGetKRCB()->isBusinessOK(),
-                   SDB_SYS, error, PDERROR,
-                   "Failed to check business" ) ;
-      }
-
       try
       {
          // run command and get result in BSON format
@@ -529,6 +521,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__STPGETSYNCCLIENTSCMD_DOIT ) ;
 
       STP_CLIENT_MAP clients ;
+      stpClientNode localNode = _stpCB->getNodeManager()->getLocal() ;
 
       // get all clients
       rc = _stpCB->getSyncSourceManager()->dumpClients( clients ) ;
@@ -537,6 +530,15 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
+
+         // build address ( host name and service name ) for source
+         BSONObjBuilder sourceBuilder(
+               builder.subobjStart( STP_FIELD_NAME_SYNC_SOURCE ) ) ;
+         sourceBuilder.append( STP_FIELD_NAME_HOST,
+                               localNode.getHostName() ) ;
+         sourceBuilder.append( STP_FIELD_NAME_SERVICE,
+                               localNode.getServiceName() ) ;
+         sourceBuilder.doneFast() ;
 
          // build BSON array for clients
          BSONArrayBuilder arrayBuilder(

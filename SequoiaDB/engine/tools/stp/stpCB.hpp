@@ -176,7 +176,14 @@ namespace engine
          return _metaManager.getMetaData() ;
       }
 
-      // check if local is a primary server
+      // check if local is a primary server, it will wait for reelection
+      OSS_INLINE BOOLEAN checkPrimaryServer( pmdEDUCB *cb )
+      {
+         return ( _nodeManager.isServer() &&
+                  ( SDB_OK == _replManager.primaryCheck( cb ) ) ) ;
+      }
+
+      // check if local is a primary server, it will not wait for reelection
       OSS_INLINE BOOLEAN isPrimaryServer()
       {
          return ( pmdIsPrimary() &&

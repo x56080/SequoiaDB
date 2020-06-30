@@ -47,6 +47,10 @@
 namespace engine
 {
 
+   // invalid redirect ID
+   // which means the session has no redirected message
+   #define STP_INVALID_REDIRECT_ID ( 0 )
+
    /*
       _stpSession define
     */
@@ -77,6 +81,40 @@ namespace engine
          return EDU_TYPE_STP_SESSION ;
       }
 
+      // get thread ID
+      OSS_INLINE UINT32 getTID() const
+      {
+         SDB_ASSERT( NULL != _pEDUCB, "edu CB is invalid" ) ;
+         return NULL != _pEDUCB ? _pEDUCB->getTID() : 0L ;
+      }
+
+      // set redirect ID
+      OSS_INLINE void setRedirectID( UINT64 redirectID )
+      {
+         _redirectID = redirectID ;
+      }
+
+      // get redirect ID
+      OSS_INLINE UINT64 getRedirectID() const
+      {
+         return _redirectID ;
+      }
+
+      // post message to this session
+      INT32 postMessage( MsgHeader *message ) ;
+
+      // hold in session
+      OSS_INLINE void holdIn()
+      {
+         _holdIn() ;
+      }
+
+      // hold out session
+      OSS_INLINE void holdOut()
+      {
+         _holdOut() ;
+      }
+
    protected:
       // default message handle function to process with unknown messages
       virtual INT32 _defaultMsgFunc( NET_HANDLE handle, MsgHeader *message ) ;
@@ -86,6 +124,8 @@ namespace engine
       INT32 _handleAuthReq( NET_HANDLE handle, MsgHeader *message ) ;
       // handle query request ( including commands )
       INT32 _handleQueryReq( NET_HANDLE handle, MsgHeader *message ) ;
+      // handle query result
+      INT32 _handleQueryRes( NET_HANDLE handle, MsgHeader *message ) ;
       // send reply with results
       INT32 _sendReply( MsgOpReply *reply, const CHAR *body, UINT32 bodySize ) ;
       // send reply with return code
@@ -94,14 +134,21 @@ namespace engine
       INT32 _sendReply( MsgHeader *message,
                         INT32 returnCode,
                         const bson::BSONObj &result ) ;
+      INT32 _sendReply( MsgHeader *message ) ;
+
+      // redirect request to primary
+      INT32 _redirectPrimary( MsgHeader *message ) ;
 
    protected:
       // pointer to STP control block
-      STPCB * _stpCB ;
+      STPCB *     _stpCB ;
+
+      // save redirect ID which means this session has message redirected to
+      // other nodes
+      UINT64      _redirectID ;
    } ;
 
    typedef class _stpSession stpSession ;
-
 
    /*
       _stpSessionManager define
@@ -126,6 +173,20 @@ namespace engine
                                     UINT64 sessionID,
                                     pmdAsyncSession *session ) ;
 
+      // handle result for redirected session
+      INT32 handleRedirectRes( MsgHeader *message ) ;
+      // register a session with redirected message
+      INT32 regRedirectSess( stpSession *session,
+                             MsgHeader *message,
+                             UINT64 &redirectID ) ;
+      // unregister session with redirected message
+      // means the session has received result for redirected message
+      void  unregRedirectSess( UINT64 redirectID ) ;
+      // get session by redirect ID
+      INT32 getRedirectSess( UINT64 redirectID, UINT64 &sessionID ) ;
+      // compact thread ID and request ID to redirect ID
+      UINT64 makeRedirectID( UINT32 threadID, UINT32 requestID ) ;
+
    protected:
       // override protected functions for async session manager
 
@@ -147,9 +208,20 @@ namespace engine
                                                 UINT64 sessionID,
                                                 void *data = NULL ) ;
 
+      virtual INT32 _getSession( UINT64 sessionID,
+                                 stpSession **session ) ;
+
    protected:
+      typedef ossPoolMap< UINT32, UINT64 > STP_SESSION_MAP ;
+
       // pointer to STP control block
-      STPCB * _stpCB ;
+      STPCB *           _stpCB ;
+      // latch to redirected session map
+      ossSpinSLatch     _redLatch ;
+      // allocator to redirect request ID
+      UINT64            _curRedReqID ;
+      // map to save redirected sessions
+      STP_SESSION_MAP   _redSessions ;
    } ;
 
    typedef class _stpSessionManager stpSessionManager ;

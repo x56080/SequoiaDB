@@ -478,10 +478,13 @@ namespace engine
          /// save error info
          if ( dataSize > 0 )
          {
+            INT32 tmpRC = SDB_OK ;
             errorBuffer = (const CHAR *)message + dataOffset ;
-            rc = _extractError( errorBuffer, replyFlag ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to extract error, "
-                         "rc: %d", rc ) ;
+            tmpRC = _extractError( errorBuffer, replyFlag ) ;
+            if ( SDB_OK != tmpRC )
+            {
+               PD_LOG( PDERROR, "Failed to extract error, rc: %d", tmpRC ) ;
+            }
          }
       }
 

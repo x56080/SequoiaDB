@@ -82,6 +82,18 @@ namespace engine
       // get name of command
       virtual const CHAR *getName() const = 0 ;
 
+      // check if command needs to run on primary server
+      OSS_INLINE virtual BOOLEAN needPrimary() const
+      {
+         return FALSE ;
+      }
+
+      // check if command can redirect to primary if this node is not
+      OSS_INLINE virtual BOOLEAN canRedirectPrimary() const
+      {
+         return FALSE ;
+      }
+
    public:
       // initialize command with given option
       virtual INT32 initialize( const CHAR *option ) ;
@@ -298,6 +310,18 @@ namespace engine
 
       // run command
       virtual INT32 doit( bson::BSONObj &result ) ;
+
+      // check if command needs to run on primary server
+      OSS_INLINE virtual BOOLEAN needPrimary() const
+      {
+         return TRUE ;
+      }
+
+      // check if command can redirect to primary if this node is not
+      OSS_INLINE virtual BOOLEAN canRedirectPrimary() const
+      {
+         return TRUE ;
+      }
    } ;
 
    typedef class _stpGetSyncClientsCMD stpGetSyncClientCMD ;

@@ -989,9 +989,15 @@ namespace engine
    }
 
    // output synchronize clients
-   static INT32 _stpqOutputSyncClients( const STP_CLIENT_LIST &clientList )
+   static INT32 _stpqOutputSyncClients( const CHAR *sourceAddr,
+                                        const STP_CLIENT_LIST &clientList )
    {
       INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != sourceAddr, "source address is invalid" ) ;
+
+      // print source
+      ossPrintf( "Synchronize Source: %s"OSS_NEWLINE, sourceAddr ) ;
 
       // print synchronize client in below fields
       // address: address of client
@@ -1001,7 +1007,6 @@ namespace engine
       // timeError: current and maximum allowed time error
       //            ( in microseconds )
       // passed: microseconds after last synchronize
-
       ossPrintf( "Synchronize Clients:"OSS_NEWLINE ) ;
 
       if ( clientList.size() > 0 )
@@ -1189,6 +1194,8 @@ namespace engine
 
       BSONObj argument, result ;
       STP_CLIENT_LIST clientList ;
+      CHAR sourceAddr[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 2 ] = { '\0' } ;
+
 
       // run get synchronize clients command
       rc = _stpqRunCommand( client,
@@ -1204,8 +1211,49 @@ namespace engine
       // parse clients from BSON
       try
       {
+         BSONElement subElement ;
+
+         subElement = result.getField( STP_FIELD_NAME_SYNC_SOURCE ) ;
+         if ( Object != subElement.type() )
+         {
+            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
+                       STP_FIELD_NAME_SYNC_SOURCE ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         else
+         {
+            BSONObj sourceObj = subElement.embeddedObject() ;
+            BSONElement sourceElement ;
+            const CHAR *hostName = NULL ;
+            const CHAR *serviceName = NULL ;
+
+            sourceElement = sourceObj.getField( STP_FIELD_NAME_HOST ) ;
+            if ( String != sourceElement.type() )
+            {
+               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
+                          STP_FIELD_NAME_HOST ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            hostName = sourceElement.valuestr() ;
+
+            sourceElement = sourceObj.getField( STP_FIELD_NAME_SERVICE ) ;
+            if ( String != sourceElement.type() )
+            {
+               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
+                          STP_FIELD_NAME_SERVICE ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            serviceName = sourceElement.valuestr() ;
+
+            ossSnprintf( sourceAddr, OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1,
+                         "%s:%s", hostName, serviceName ) ;
+         }
+
          // get clients
-         BSONElement subElement = result.getField( STP_FIELD_NAME_SYNC_CLIENTS ) ;
+         subElement = result.getField( STP_FIELD_NAME_SYNC_CLIENTS ) ;
          if ( Array != subElement.type() )
          {
             ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
@@ -1249,7 +1297,7 @@ namespace engine
       }
 
       // print synchronize clients
-      rc = _stpqOutputSyncClients( clientList ) ;
+      rc = _stpqOutputSyncClients( sourceAddr, clientList ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize clients, "

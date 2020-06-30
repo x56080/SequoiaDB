@@ -312,6 +312,7 @@ namespace engine
       switch ( header->opCode )
       {
          case MSG_BS_QUERY_REQ :
+         case MSG_BS_QUERY_RES :
          case MSG_AUTH_VERIFY_REQ :
          {
             // service messages, handle by service manager

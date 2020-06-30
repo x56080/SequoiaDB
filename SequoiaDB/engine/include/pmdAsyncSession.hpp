@@ -237,14 +237,14 @@ namespace engine
          UINT32         _incBuffPos ( UINT32 pos ) ;
          UINT32         _decBuffPos ( UINT32 pos ) ;
 
-         void           _holdIn() ;
-         void           _holdOut() ;
-
       protected:
          void  _makeName () ;
          INT32 _lock () ;
          INT32 _unlock () ;
          void  _reset() ;
+
+         void           _holdIn() ;
+         void           _holdOut() ;
 
          netRouteAgent* routeAgent() ;
 

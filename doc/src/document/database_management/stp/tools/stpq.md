@@ -172,12 +172,13 @@ Servers:
 
 > **Note:**
 >
-> * 需要在 STP server 主节点上执行
+> * 可以连接任意 STP 节点执行在，命令将会自动转发至 STP server 主节点上执行
 
 __结果字段__
 
 | 字段 | 描述 |
 | ---- | ---- |
+| Source | STP 同步源的信息，即 STP server 主节点，一般格式是 "hostname:port" |
 | Client | STP 同步节点的信息，一般格式是 "hostname:port" |
 | Role | STP 同步节点的角色，"server" 或者 "client" |
 | Port | STP 同步节点使用 STP server 主节点的端口 |
@@ -203,6 +204,7 @@ __示例__
 
 ```
 $ bin/stpq --syncclients
+Synchronize Source: server-3:9622
 Synchronize Clients:
    Client        Role   Port Status        Count Interval TimeError  Passed
    server-1:9622 server 9622 IntervalCheck 36    60       1000/50000 45920000

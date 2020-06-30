@@ -55,6 +55,7 @@ namespace engine
       // ON_MSG
       ON_MSG( MSG_AUTH_VERIFY_REQ, processMessage )
       ON_MSG( MSG_BS_QUERY_REQ, processMessage )
+      ON_MSG( MSG_BS_QUERY_RES, processMessage )
    END_OBJ_MSG_MAP()
 
    _stpServiceManager::_stpServiceManager( STPCB *stpCB )
@@ -100,6 +101,13 @@ namespace engine
                                             message,
                                             (const CHAR *)message,
                                             0LL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to handle message [%d], rc: %d",
+                         message->opCode, rc ) ;
+            break ;
+         }
+         case MSG_BS_QUERY_RES :
+         {
+            rc = _sessionManager.handleRedirectRes( message ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to handle message [%d], rc: %d",
                          message->opCode, rc ) ;
             break ;
@@ -168,5 +176,73 @@ namespace engine
 
       return SDB_OK ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSERVICEMGR_REDIRECTPRIMARY, "_stpServiceManager::redirectPrimary" )
+   INT32 _stpServiceManager::redirectPrimary( stpSession *session,
+                                              MsgHeader *message )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSERVICEMGR_REDIRECTPRIMARY ) ;
+
+      SDB_ASSERT( NULL != session, "session is invalid" ) ;
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+
+      BOOLEAN registered = FALSE ;
+      UINT64 redirectID = 0LL ;
+      MsgRouteID primaryRID ;
+
+      primaryRID.value = MSG_INVALID_ROUTEID ;
+
+      PD_CHECK( STP_INVALID_REDIRECT_ID == session->getRedirectID(),
+                SDB_SYS, error, PDERROR,
+                "Failed to redirect primary, it is already redirected [%llu]",
+                session->getRedirectID() ) ;
+
+      // register redirect session
+      rc = _sessionManager.regRedirectSess( session, message, redirectID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register redirected session, "
+                   "rc: %d", rc ) ;
+      registered = TRUE ;
+
+      // get primary
+      primaryRID = _nodeManager->getPrimaryRID() ;
+      PD_CHECK( MSG_INVALID_ROUTEID != primaryRID.value,
+                SDB_CLS_NOT_PRIMARY, error, PDERROR,
+                "Failed to get route ID of primary server, "
+                "primary is unknown" ) ;
+
+      // avoid recursively redirect
+      PD_CHECK( primaryRID.value != message->routeID.value,
+                SDB_CLS_NOT_SECONDARY, error, PDERROR,
+                "Failed to redirect message, primary is itself now" ) ;
+
+      // save redirect information
+      session->setRedirectID( redirectID ) ;
+
+      // send message to primary
+      rc = _netAgent->syncSend( primaryRID, message ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send message to primary [%s], "
+                   "rc: %d", routeID2String( primaryRID ).c_str(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Redirect message [%s] to primary [%s], "
+              "redirect ID [%llu], session ID [%llu]",
+              msg2String( message ).c_str(),
+              routeID2String( primaryRID ).c_str(),
+              redirectID, session->sessionID() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPSERVICEMGR_REDIRECTPRIMARY, rc ) ;
+      return rc ;
+
+   error:
+      session->setRedirectID( STP_INVALID_REDIRECT_ID ) ;
+      if ( registered )
+      {
+         _sessionManager.unregRedirectSess( redirectID ) ;
+      }
+      goto done ;
+   }
+
 
 }
