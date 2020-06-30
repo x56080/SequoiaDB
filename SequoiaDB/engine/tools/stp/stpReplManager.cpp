@@ -257,7 +257,8 @@ namespace engine
 
    void _stpReplManager::beforePrimaryActive()
    {
-      // do nothing
+      // notify other modules on before change primary event
+      _stpCB->beforeChangePrimary( TRUE ) ;
    }
 
    void _stpReplManager::onPrimaryActive( const MsgRouteID &newPrimaryRID,
@@ -270,8 +271,8 @@ namespace engine
    void _stpReplManager::afterPrimaryActive( const MsgRouteID &newPrimaryRID,
                                              const MsgRouteID &oldPrimaryRID )
    {
-      // notify other modules to change primary
-      _stpCB->onChangePrimary( newPrimaryRID, TRUE ) ;
+      // notify other modules on after change primary event
+      _stpCB->afterChangePrimary( newPrimaryRID, TRUE ) ;
    }
 
    void _stpReplManager::beforePrimaryDeactive()
@@ -290,7 +291,7 @@ namespace engine
                                               const MsgRouteID &oldPrimaryRID )
    {
       // notify other modules to change primary
-      _stpCB->onChangePrimary( newPrimaryRID, FALSE ) ;
+      _stpCB->afterChangePrimary( newPrimaryRID, FALSE ) ;
    }
 
    void _stpReplManager::onLocalGroupExpired()
@@ -305,7 +306,7 @@ namespace engine
 
    void _stpReplManager::afterFoundNewPrimary( const MsgRouteID &newPrimaryRID )
    {
-      _stpCB->onChangePrimary( newPrimaryRID, FALSE ) ;
+      _stpCB->afterChangePrimary( newPrimaryRID, FALSE ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREPLMGR__ACTIVATEREPLGROUP, "_stpReplManager::_activateReplGroup" )

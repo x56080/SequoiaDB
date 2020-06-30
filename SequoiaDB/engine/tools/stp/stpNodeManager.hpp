@@ -84,9 +84,9 @@ namespace engine
       // on event post activate
       virtual INT32 _postActivate() ;
 
-      // on event change primary
-      virtual INT32 _onChangePrimary( const MsgRouteID &primaryRID,
-                                      BOOLEAN isLocalPrimary ) ;
+      // on event after change primary
+      virtual INT32 _afterChangePrimary( const MsgRouteID &primaryRID,
+                                         BOOLEAN isLocalPrimary ) ;
 
    protected:
       // handle server request

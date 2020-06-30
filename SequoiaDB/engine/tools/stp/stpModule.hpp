@@ -89,9 +89,12 @@ namespace engine
       // deactive module
       virtual INT32 deactivate() ;
 
-      // callback on change primary event
-      virtual INT32 onChangePrimary( const MsgRouteID &primaryRID,
-                                     BOOLEAN primaryIsMe ) ;
+      // callback on before change primary event
+      virtual INT32 beforeChangePrimary( BOOLEAN primaryIsMe ) ;
+
+      // callback on after change primary event
+      virtual INT32 afterChangePrimary( const MsgRouteID &primaryRID,
+                                        BOOLEAN primaryIsMe ) ;
       // callback on change servers event
       // NOTE: version is group version
       virtual INT32 onChangeServers( UINT32 version,
@@ -148,8 +151,14 @@ namespace engine
       }
 
       // internal call on event of primary change
-      OSS_INLINE virtual INT32 _onChangePrimary( const MsgRouteID &primaryRID,
-                                                 BOOLEAN primaryIsMe )
+      OSS_INLINE virtual INT32 _beforeChangePrimary( BOOLEAN primaryIsMe )
+      {
+         return SDB_OK ;
+      }
+
+      // internal call on event of primary change
+      OSS_INLINE virtual INT32 _afterChangePrimary( const MsgRouteID &primaryRID,
+                                                    BOOLEAN primaryIsMe )
       {
          return SDB_OK ;
       }

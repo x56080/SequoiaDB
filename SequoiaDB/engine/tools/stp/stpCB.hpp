@@ -179,7 +179,8 @@ namespace engine
       // check if local is a primary server
       OSS_INLINE BOOLEAN isPrimaryServer()
       {
-         return _nodeManager.isPrimaryServer() ;
+         return ( pmdIsPrimary() &&
+                  _nodeManager.isPrimaryServer() ) ;
       }
 
       // check if local is primary
@@ -195,9 +196,12 @@ namespace engine
          return _nodeManager.isSecondaryServer() ;
       }
 
-      // callback on primary change
-      INT32 onChangePrimary( const MsgRouteID &primaryRID,
-                             BOOLEAN isLocalPrimary ) ;
+      // callback before primary change
+      INT32 beforeChangePrimary( BOOLEAN isLocalPrimary ) ;
+
+      // callback after primary change
+      INT32 afterChangePrimary( const MsgRouteID &primaryRID,
+                                BOOLEAN isLocalPrimary ) ;
       // callback on servers change
       INT32 onChangeServers() ;
       // callback on role change

@@ -83,9 +83,8 @@ namespace engine
       // on event after activated
       virtual INT32 _postActivate() ;
 
-      // on event of primary change
-      virtual INT32 _onChangePrimary( const MsgRouteID &primaryRID,
-                                      BOOLEAN primaryIsMe ) ;
+      // on event of before primary change
+      virtual INT32 _beforeChangePrimary( BOOLEAN primaryIsMe ) ;
 
    public:
       // get key of shared memory ( service name )
