@@ -3,6 +3,8 @@
 *@Modify list :
 *                2016/7/14  XiaoNi Huang Init
 *******************************************************************************/
+import( "../lib/main.js" );
+
 var testCaseDir = initTestCaseDir();
 var tmpFileDir = '/tmp/sdbimprtTest/';
 var LocalPath = null;
@@ -10,7 +12,6 @@ var LocalPath = null;
 var cmd = cmdInit();
 var installDir = getInstallDir();   //eg:/opt/sequoiadb
 readyTmpDir();
-
 
 /* ****************************************************
 @description: get testcase director

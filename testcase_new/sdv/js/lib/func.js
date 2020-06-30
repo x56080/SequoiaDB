@@ -1454,6 +1454,15 @@ function commCompareResults ( cursor, expRecs, exceptId )
          }
          actRecs.push( actRecord );
       }
+      if( actRecs.length !== expRecs.length )
+      {
+         isSuccess = false;
+         posOfFailure = pos - 1;
+         if( JSON.stringify( expRecs[posOfFailure] ).length > 1024 )
+         {
+            isLong = true;
+         }
+      }
    }
    catch( e )
    {
@@ -1693,12 +1702,16 @@ function commInspectData( db, group, csName, clName, loop )
                   [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
 @author: luweikang
 ******************************************************************* */
-function commCreateRG( db, rgName, nodeNum, hostname )
+function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
 {
    if( hostname === undefined )
    { 
       var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
       hostname = nodeList[0].HostName;
+   }
+   if( nodeOption === undefined )
+   {
+      nodeOption = { diaglevel: 5 };
    }
    
    try
@@ -1736,7 +1749,7 @@ function commCreateRG( db, rgName, nodeNum, hostname )
          }
          try
          {
-            rg.createNode( hostname, svc, dbPath, { diaglevel: 5 } );
+            rg.createNode( hostname, svc, dbPath, nodeOption );
             println( "create node: " + hostname + ":" + svc + " dbpath: " + dbPath );
             var nodeInfo = { "hostname": hostname, "svcname": svc, "logpath": hostname + ":" + CMSVCNAME + "@" + dbPath + "/diaglog/sdbdiag.log" };
             nodeInfos.push( nodeInfo );
