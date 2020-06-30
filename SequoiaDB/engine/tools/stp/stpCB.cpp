@@ -236,18 +236,36 @@ namespace engine
       PD_TRACE_EXIT( SDB__STPCB_ONCONFIGCHANGE ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCB_ONCHANGEPRIMARY, "_stpCB::onChangePrimary" )
-   INT32 _stpCB::onChangePrimary( const MsgRouteID &primaryRID,
-                                  BOOLEAN isLocalPrimary )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCB_BEFORECHANGEPRIMARY, "_stpCB::beforeChangePrimary" )
+   INT32 _stpCB::beforeChangePrimary( BOOLEAN isLocalPrimary )
    {
-      PD_TRACE_ENTRY( SDB__STPCB_ONCHANGEPRIMARY ) ;
+      PD_TRACE_ENTRY( SDB__STPCB_BEFORECHANGEPRIMARY ) ;
 
-      // notify each module to change primary
+      // notify each module on before change primary event
       for ( STP_MODULE_LIST::iterator iter = _moduleList.begin() ;
             iter != _moduleList.end() ;
             ++ iter )
       {
-         (*iter)->onChangePrimary( primaryRID, isLocalPrimary ) ;
+         (*iter)->beforeChangePrimary( isLocalPrimary ) ;
+      }
+
+      PD_TRACE_EXITRC( SDB__STPCB_BEFORECHANGEPRIMARY, SDB_OK ) ;
+
+      return SDB_OK ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCB_AFTERCHANGEPRIMARY, "_stpCB::afterChangePrimary" )
+   INT32 _stpCB::afterChangePrimary( const MsgRouteID &primaryRID,
+                                     BOOLEAN isLocalPrimary )
+   {
+      PD_TRACE_ENTRY( SDB__STPCB_ONCHANGEPRIMARY ) ;
+
+      // notify each module on after change primary event
+      for ( STP_MODULE_LIST::iterator iter = _moduleList.begin() ;
+            iter != _moduleList.end() ;
+            ++ iter )
+      {
+         (*iter)->afterChangePrimary( primaryRID, isLocalPrimary ) ;
       }
 
       PD_TRACE_EXITRC( SDB__STPCB_ONCHANGEPRIMARY, SDB_OK ) ;

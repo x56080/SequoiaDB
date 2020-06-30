@@ -187,25 +187,49 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMODULE_ONCHANGEPRIMARY, "_stpModule::onChangePrimary" )
-   INT32 _stpModule::onChangePrimary( const MsgRouteID &primaryRID,
-                                      BOOLEAN primaryIsMe )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMODULE_BEFORECHANGEPRIMARY, "_stpModule::beforeChangePrimary" )
+   INT32 _stpModule::beforeChangePrimary( BOOLEAN primaryIsMe )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPMODULE_ONCHANGEPRIMARY ) ;
+      PD_TRACE_ENTRY( SDB__STPMODULE_BEFORECHANGEPRIMARY ) ;
 
       // only process when module is activated
       if ( _activated )
       {
          // call internal event of primary change
-         rc = _onChangePrimary( primaryRID, primaryIsMe ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to handle change primary event "
-                      "in [%s], rc: %d", getModuleName(), rc ) ;
+         rc = _beforeChangePrimary( primaryIsMe ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to handle before change primary "
+                      "event in [%s], rc: %d", getModuleName(), rc ) ;
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__STPMODULE_ONCHANGEPRIMARY, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPMODULE_BEFORECHANGEPRIMARY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMODULE_AFTERCHANGEPRIMARY, "_stpModule::afterChangePrimary" )
+   INT32 _stpModule::afterChangePrimary( const MsgRouteID &primaryRID,
+                                         BOOLEAN primaryIsMe )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMODULE_AFTERCHANGEPRIMARY ) ;
+
+      // only process when module is activated
+      if ( _activated )
+      {
+         // call internal event of primary change
+         rc = _afterChangePrimary( primaryRID, primaryIsMe ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to handle after change primary "
+                      "event in [%s], rc: %d", getModuleName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMODULE_AFTERCHANGEPRIMARY, rc ) ;
       return rc ;
 
    error:

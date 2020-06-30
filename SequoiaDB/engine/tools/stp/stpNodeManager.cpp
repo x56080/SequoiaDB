@@ -178,16 +178,16 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__ONCHANGEPRIMARY, "_stpNodeManager::_onChangePrimary" )
-   INT32 _stpNodeManager::_onChangePrimary( const MsgRouteID &primaryRID,
-                                            BOOLEAN isLocalPrimary )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR__AFTERCHANGEPRIMARY, "_stpNodeManager::_afterChangePrimary" )
+   INT32 _stpNodeManager::_afterChangePrimary( const MsgRouteID &primaryRID,
+                                               BOOLEAN isLocalPrimary )
    {
-      PD_TRACE_ENTRY( SDB__STPNODEMGR__ONCHANGEPRIMARY ) ;
+      PD_TRACE_ENTRY( SDB__STPNODEMGR__AFTERCHANGEPRIMARY ) ;
 
       // set primary if changed
       setPrimaryRID( primaryRID ) ;
 
-      PD_TRACE_EXITRC( SDB__STPNODEMGR__ONCHANGEPRIMARY, SDB_OK ) ;
+      PD_TRACE_EXITRC( SDB__STPNODEMGR__AFTERCHANGEPRIMARY, SDB_OK ) ;
 
       return SDB_OK ;
    }
