@@ -1,10 +1,10 @@
 ##描述##
 
-会话快照 $SNAPSHOT_SESSIONS 列出当前数据库节点中所有的用户与系统会话，每一个会话为一条记录。
+会话快照 $SNAPSHOT_SESSION 列出当前数据库节点中所有的用户与系统会话，每一个会话为一条记录。
 
 ##标示##
 
-$SNAPSHOT_SESSIONS
+$SNAPSHOT_SESSION
 
 ##字段信息##
 

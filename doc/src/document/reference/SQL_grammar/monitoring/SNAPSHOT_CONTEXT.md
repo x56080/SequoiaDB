@@ -1,6 +1,6 @@
 ##描述##
 
-上下文快照 $SNAPSHOT_CONTEXTS 列出当前数据库节点中所有的会话所对应的上下文。
+上下文快照 $SNAPSHOT_CONTEXT 列出当前数据库节点中所有的会话所对应的上下文。
 
 每一个会话为一条记录，如果一个会话中包括一个或一个以上的上下文时，其 Contexts 数组字段对每个上下文产生一个对象。 
 >   **Note:**
@@ -9,7 +9,7 @@
 
 ##标示##
 
-$SNAPSHOT_CONTEXTS
+$SNAPSHOT_CONTEXT
 
 ##字段信息###
 
