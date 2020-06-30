@@ -1,23 +1,36 @@
+##名称##
+
+renameCL - 修改集合名
+
 ##语法##
+
 ***db.collectionspace.renameCL( \<oldname\>, \<newname\> )***
 
-集合改名。
+##类别##
 
-##参数描述##
+Collection Space
 
-| 参数名  | 参数类型 | 描述             | 是否必填 |
-| ------  | ------   | ------           | ------ |
-| oldname | 字符串   | 要修改的集合名。 | 是 |
-| newname | 字符串   | 集合新名字。     | 是 |
+##描述##
 
->**Note:**
->
-> * 改名过程中会阻塞相应数据节点的写操作。
-> * 不允许直连数据节点，对集合改名。
+该函数用于对指定集合空间下已存在的集合进行重命名，在重命名的过程中会阻塞相应数据节点的写操作。
+
+用户在使用该函数时，不允许直接连接数据节点对集合进行改名。
+
+##参数##
+
+- **oldname**（ *String，必填* ）
+
+  需要修改的集合名
+
+- **newname**（ *String，必填* ）
+
+  修改后的集合名
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息。
+函数执行成功时无返回值。
+
+函数执行失败时，将抛出异常并输出错误信息。
 
 ##错误##
 
@@ -39,11 +52,10 @@
 
 ##示例##
 
-对集合foo.bar，改名为foo.bar_new 。
+将集合 sample.employee，改名为 sample.employee_new
 
  ```lang-javascript
- // 连接协调节点
- > db = new Sdb( "localhost", 11810 )
- > db.foo.renameCL( "bar", "bar_new" )
+ > db = new Sdb( "localhost", 11810 )    // 连接协调节点
+ > db.sample.renameCL( "employee", "employee_new" )
  ```
 
