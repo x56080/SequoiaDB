@@ -17,7 +17,7 @@ function test ( testPara )
    }
    catch( e )
    {
-      if( e.message !== -6 )
+      if( parseInt( e.message ) !== -6 )
       {
          throw new Error( e );
       }
