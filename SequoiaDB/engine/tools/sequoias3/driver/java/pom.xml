@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.sequoias3</groupId>
+    <groupId>com.sequoiadb</groupId>
     <artifactId>sequoias3-client</artifactId>
     <version>1.0</version>
     <name>SequoiaS3 Client</name>
@@ -40,15 +40,6 @@
             <artifactId>jackson-dataformat-xml</artifactId>
             <exclusions>
                 <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-
-                <exclusion>
                     <groupId>com.fasterxml.woodstox</groupId>
                     <artifactId>woodstox-core</artifactId>
                 </exclusion>
@@ -56,20 +47,21 @@
         </dependency>
 
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.343</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.amazonaws</groupId>
-                    <artifactId>aws-java-sdk-kms</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.21</version>
         </dependency>
     </dependencies>
 
@@ -85,12 +77,70 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
+
                         <configuration>
                             <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                            <stripVersion>true</stripVersion>
+                            <!--<stripVersion>true</stripVersion>-->
+                            <includeArtifactIds>slf4j-log4j12</includeArtifactIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.sequoiadb</groupId>
+                <artifactId>jarjar-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jarjar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com.fasterxml.jackson.dataformat:jackson-dataformat-xml</include>
+                                <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
+                                <include>com.fasterxml.jackson.core:jackson-annotations</include>
+                                <include>com.fasterxml.jackson.core:jackson-core</include>
+                                <include>org.codehaus.woodstox:stax2-api</include>
+                                <include>org.springframework:spring-web</include>
+                                <include>org.springframework:spring-core</include>
+                                <include>org.springframework:spring-beans</include>
+                                <include>org.springframework:spring-context</include>
+                                <include>org.springframework:spring-expression</include>
+                                <include>org.springframework:spring-aop</include>
+                                <include>org.apache.httpcomponents:httpclient</include>
+                                <include>org.apache.httpcomponents:httpcore</include>
+                                <include>commons-codec:commons-codec</include>
+                                <include>commons-logging:commons-logging</include>
+                            </includes>
+                            <rules>
+                                <rule>
+                                    <pattern>com.fasterxml.jackson.**</pattern>
+                                    <result>com.sequoias3.fasterxml.jackson.@1</result>
+                                </rule>
+                                <rule>
+                                    <pattern>org.codehaus.**</pattern>
+                                    <result>com.sequoias3.codehaus.@1</result>
+                                </rule>
+                                <rule>
+                                    <pattern>org.springframework.**</pattern>
+                                    <result>com.sequoias3.springframework.@1</result>
+                                </rule>
+                                <rule>
+                                    <pattern>org.apache.http.**</pattern>
+                                    <result>com.sequoias3.apache.http.@1</result>
+                                </rule>
+                                <rule>
+                                    <pattern>org.apache.commons.**</pattern>
+                                    <result>com.sequoias3.apache.commons.@1</result>
+                                </rule>
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
@@ -107,6 +157,8 @@
                         <sourceFileInclude>com/sequoias3/SequoiaS3ClientBuilder.java</sourceFileInclude>
                         <sourceFileInclude>com/sequoias3/common/*.java</sourceFileInclude>
                         <sourceFileInclude>com/sequoias3/model/*.java</sourceFileInclude>
+                        <sourceFileInclude>com/sequoias3/exception/SequoiaS3ClientException.java</sourceFileInclude>
+                        <sourceFileInclude>com/sequoias3/exception/SequoiaS3ServiceException.java</sourceFileInclude>
                     </sourceFileIncludes>
                 </configuration>
             </plugin>

@@ -1,13 +1,11 @@
 package com.sequoias3.model;
 
-import com.amazonaws.services.s3.model.Bucket;
-
 import java.util.List;
 
 public class GetRegionResult {
     private Region region;
 
-    private List<Bucket> Buckets;
+    private List<String> Buckets;
 
     public GetRegionResult(){}
 
@@ -33,7 +31,7 @@ public class GetRegionResult {
      * @return
      *   A list of buckets.
      */
-    public List<Bucket> getBuckets() {
+    public List<String> getBuckets() {
         return Buckets;
     }
 
@@ -41,7 +39,7 @@ public class GetRegionResult {
      *
      * @param buckets Set bucket list
      */
-    public void setBuckets(List<Bucket> buckets) {
+    public void setBuckets(List<String> buckets) {
         Buckets = buckets;
     }
 }

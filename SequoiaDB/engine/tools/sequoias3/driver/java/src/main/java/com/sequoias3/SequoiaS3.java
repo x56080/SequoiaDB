@@ -1,6 +1,7 @@
 package com.sequoias3;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.exception.SequoiaS3ClientException;
+import com.sequoias3.exception.SequoiaS3ServiceException;
 import com.sequoias3.model.CreateRegionRequest;
 import com.sequoias3.model.GetRegionResult;
 import com.sequoias3.model.ListRegionsResult;
@@ -12,28 +13,28 @@ public interface SequoiaS3 {
      *      *  default values.
      *
      * @param regionName Set the region name
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    void createRegion(String regionName) throws AmazonS3Exception;
+    void createRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      * Create a region with CreateRegionRequest.
      *
      * @param request A request with region configuration
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    void createRegion(CreateRegionRequest request) throws AmazonS3Exception;
+    void createRegion(CreateRegionRequest request) throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      * Delete a region and the region must be empty before it can be deleted.
      *
      * @param regionName Region name to be delete.
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    void deleteRegion(String regionName) throws AmazonS3Exception;
+    void deleteRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      * Return the region configuration and a list of buckets that
@@ -41,33 +42,32 @@ public interface SequoiaS3 {
      *
      * @param regionName Region name
      * @return Region configuration and bucket list
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    GetRegionResult getRegion(String regionName) throws AmazonS3Exception;
+    GetRegionResult getRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      *  Check whether the region exists.
      *
      * @param regionName Region name
      * @return true or false
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    boolean headRegion(String regionName) throws AmazonS3Exception;
+    boolean headRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      * Returns a list of all regions.
      *
      * @return A list of buckets.
-     * @throws AmazonS3Exception
+     * @throws SequoiaS3ClientException, SequoiaS3ServerException
      *   If any errors occurred  while processing the request.
      */
-    ListRegionsResult listRegions() throws AmazonS3Exception;
+    ListRegionsResult listRegions() throws SequoiaS3ClientException, SequoiaS3ServiceException;
 
     /**
      * Close the client.
-     * @throws AmazonS3Exception
      */
-    void shutdown() throws AmazonS3Exception;
+    void shutdown();
 }

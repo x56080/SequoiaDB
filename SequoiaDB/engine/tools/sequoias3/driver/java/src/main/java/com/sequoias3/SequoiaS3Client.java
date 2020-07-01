@@ -1,11 +1,5 @@
 package com.sequoias3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.util.BinaryUtils;
-import com.amazonaws.util.DateUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -15,10 +9,13 @@ import com.sequoias3.core.InnerBucket;
 import com.sequoias3.core.InnerGetRegionResponse;
 import com.sequoias3.core.InnerRegion;
 import com.sequoias3.exception.Error;
+import com.sequoias3.exception.SequoiaS3ClientException;
+import com.sequoias3.exception.SequoiaS3ServiceException;
 import com.sequoias3.model.CreateRegionRequest;
 import com.sequoias3.model.GetRegionResult;
 import com.sequoias3.model.ListRegionsResult;
 import com.sequoias3.model.Region;
+import com.sequoias3.util.BinaryUtils;
 import com.sequoias3.util.RegionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +57,7 @@ public class SequoiaS3Client implements SequoiaS3 {
     }
 
     @Override
-    public void createRegion(String regionName) throws SdkClientException, AmazonServiceException {
+    public void createRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
             RegionUtil.isValidRegionName(regionName);
 
@@ -83,16 +80,16 @@ public class SequoiaS3Client implements SequoiaS3 {
 
             exec(headers, null, url, HttpMethod.POST, String.class);
         } catch (HttpStatusCodeException e){
-            throw httpToAmazon(e);
+            throw httpToException(e);
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     @Override
-    public void createRegion(CreateRegionRequest request) throws SdkClientException, AmazonServiceException {
+    public void createRegion(CreateRegionRequest request) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
             RegionUtil.validateRegion(request);
             InnerRegion region = new InnerRegion(request.getRegion());
@@ -117,16 +114,16 @@ public class SequoiaS3Client implements SequoiaS3 {
 
             exec(headers, region, url, HttpMethod.POST, String.class);
         } catch (HttpStatusCodeException e){
-            throw httpToAmazon(e);
+            throw httpToException(e);
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     @Override
-    public void deleteRegion(String regionName) throws SdkClientException, AmazonServiceException {
+    public void deleteRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
             // url = http://ip:port/region/?Action=DeleteRegion&RegionName=regionName
             String url = endpoint + PATH_REGION + "?" +
@@ -148,16 +145,16 @@ public class SequoiaS3Client implements SequoiaS3 {
 
             exec(headers, null, url, HttpMethod.POST, String.class);
         } catch (HttpStatusCodeException e){
-            throw httpToAmazon(e);
+            throw httpToException(e);
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     @Override
-    public GetRegionResult getRegion(String regionName) throws SdkClientException, AmazonServiceException {
+    public GetRegionResult getRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         ResponseEntity<?> resp;
         GetRegionResult result;
         try {
@@ -183,31 +180,28 @@ public class SequoiaS3Client implements SequoiaS3 {
             result = new GetRegionResult();
             result.setRegion(regionConvert(response.getBody()));
 
-            List<Bucket> bucketList = new ArrayList<Bucket>();
+            List<String> bucketList = new ArrayList<>();
             List<InnerBucket> innerBucket = response.getBody().getBuckets();
 
             if(innerBucket != null) {
                 for (int i = 0; i < innerBucket.size(); i++) {
-                    Bucket bucket = new Bucket();
-                    bucket.setName(innerBucket.get(i).getBucketName());
-                    bucket.setCreationDate(DateUtils.parseISO8601Date(innerBucket.get(i).getFormatDate()));
-                    bucketList.add(bucket);
+                    bucketList.add(innerBucket.get(i).getBucketName());
                 }
             }
             result.setBuckets(bucketList);
 
             return result;
         } catch (HttpStatusCodeException e){
-            throw httpToAmazon(e);
+            throw httpToException(e);
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     @Override
-    public boolean headRegion(String regionName) throws SdkClientException, AmazonServiceException {
+    public boolean headRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
             // url = http://ip:port/region/?Action=HeadRegion&RegionName=regionName
             String url = endpoint + PATH_REGION + "?" +
@@ -231,18 +225,18 @@ public class SequoiaS3Client implements SequoiaS3 {
             return true;
         } catch (HttpStatusCodeException e) {
             if (e.getStatusCode().value() != 404) {
-                throw httpToAmazon(e);
+                throw httpToException(e);
             }
             return false;
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     @Override
-    public ListRegionsResult listRegions() throws SdkClientException, AmazonServiceException {
+    public ListRegionsResult listRegions() throws SequoiaS3ClientException, SequoiaS3ServiceException {
         ListRegionsResult listResult;
         try {
             // url = http://ip:port/region/?Action=ListRegions
@@ -264,9 +258,9 @@ public class SequoiaS3Client implements SequoiaS3 {
             listResult = resp.getBody();
             return listResult;
         } catch (HttpStatusCodeException e){
-            throw httpToAmazon(e);
+            throw httpToException(e);
         } catch (RestClientException e){
-            throw new SdkClientException(e.getMessage(), e);
+            throw new SequoiaS3ClientException(e.getMessage(), e);
         } catch (MalformedURLException e){
             throw new IllegalArgumentException(e.getMessage(), e);
         }
@@ -281,22 +275,22 @@ public class SequoiaS3Client implements SequoiaS3 {
         }
     }
 
-    private AmazonServiceException httpToAmazon(HttpStatusCodeException e) {
-        AmazonServiceException amazonS3Exception = new AmazonS3Exception(e.getMessage());
-        amazonS3Exception.setStatusCode(e.getStatusCode().value());
+    private SequoiaS3ServiceException httpToException(HttpStatusCodeException e) {
+        SequoiaS3ServiceException s3Exception = new SequoiaS3ServiceException(e.getMessage());
+        s3Exception.setStatusCode(e.getStatusCode().value());
 
         try {
             ObjectMapper objectMapper = new XmlMapper();
             String errorMessage = e.getResponseBodyAsString();
             Error result = objectMapper.readValue(errorMessage, Error.class);
-            amazonS3Exception.setErrorCode(result.getCode());
-            amazonS3Exception.setErrorMessage(result.getMessage());
-        }catch (Exception e1){
-            amazonS3Exception.setErrorCode(e.getStatusCode().toString());
-            amazonS3Exception.setErrorMessage(e.getResponseBodyAsString());
-            logger.warn("Parse error message failed.", e);
+            s3Exception.setErrorCode(result.getCode());
+            s3Exception.setErrorMessage(result.getMessage());
+        } catch (Exception e2){
+            s3Exception.setErrorCode(e.getStatusCode().toString());
+            s3Exception.setErrorMessage(e.getResponseBodyAsString());
+            logger.warn("Parse error message failed.", e2);
         }
-        return amazonS3Exception;
+        return s3Exception;
     }
 
     private <T> ResponseEntity<T> exec(Map headers, Object body, String url,

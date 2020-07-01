@@ -1,7 +1,5 @@
 package com.sequoias3.common;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-
 public enum DataShardingType {
     /**
      * year
