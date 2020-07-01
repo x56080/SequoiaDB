@@ -464,8 +464,15 @@ namespace engine
                                                    ossStrlen( clFullName ),
                                                    csName,
                                                    DMS_COLLECTION_SPACE_NAME_SZ ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection space "
-                            "name, rc: %d", rc ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "Failed to resolve collection space "
+                          "name, rc: %d", rc ) ;
+                  // continue to next
+                  rc = SDB_OK ;
+                  pPlan = (optAccessPlan *)pPlan->getNext() ;
+                  continue ;
+               }
 
                planBuilder.append( OPT_FIELD_ACCESSPLAN_ID,
                                    pPlan->getAccessPlanID() ) ;
@@ -499,8 +506,7 @@ namespace engine
             {
                PD_LOG( PDERROR, "Failed to build result, received "
                        "unexpected error: %s", e.what() ) ;
-               rc = SDB_SYS ;
-               goto error ;
+               // continue to next
             }
 
             pPlan = (optAccessPlan *)pPlan->getNext() ;
@@ -509,11 +515,9 @@ namespace engine
          releaseBucket( bucketID, SHARED ) ;
       }
 
-   done :
       PD_TRACE_EXITRC( SDB_OPTCPCACHE_GETCPLIST, rc ) ;
+
       return rc ;
-   error :
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPCACHE_ENABLECACHE, "_optAccessPlanCache::enableCaching" )
