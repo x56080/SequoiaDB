@@ -823,10 +823,9 @@ function getCommonAccessPlans ( db, findConf, selectorConf, sortConf )
    if( typeof ( sortConf ) == "undefined" ) { sortConf = null; }
    if( typeof ( selectorConf ) == "undefined" ) { selectorConf = null; }
 
+   var accessPlans = new Array();
    try
    {
-      var accessPlans = new Array();
-
       //获取快照信息
       var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
       println( "rc.length:" + rc.length );
@@ -848,14 +847,12 @@ function getCommonAccessPlans ( db, findConf, selectorConf, sortConf )
 
          accessPlans.push( accessPlanObj );
       }
-
-      return accessPlans;
    }
    catch( e )
    {
       throw buildException( "getCommonAccessPlans", e, "get access plans", "success", e );
    }
-
+   return accessPlans;
 }
 
 /************************************
@@ -911,6 +908,8 @@ function getSplitAccessPlans ( db, findConf, selectorConf, sortConf )
 
 /************************************
 *@Description: 检查访问计划快照
+              由于snapshot可能从正在重放的备节点拿，导致实际拿到的访问计划多于期待访问计划快照，暂无办法规避
+              故无法做到全校验，只能期望结果是实际结果的子集
 *@author:      liuxiaoxuan
 *@createDate:  2018.01.15
 **************************************/
@@ -918,7 +917,7 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
 {
    var expAccessPlans = expectAccessPlans;
 
-   //校验计划个数
+   //校验计划个数，期望 <= 实际
    if( expAccessPlans.length > actAccessPlans.length )
    {
       println( 'expAccessPlans: ' + JSON.stringify( expAccessPlans ) + "\nactAccessPlans: " + JSON.stringify( actAccessPlans ) );

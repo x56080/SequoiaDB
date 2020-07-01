@@ -14,10 +14,10 @@ function main ()
 
    //判断1节点模式
    if( true == isOnlyOneNodeInGroup() )
-   {   
+   {
       println( "only one node" );
       return;
-   }   
+   }
 
    var allGroups = commGetGroups( db );
    var groups = new Array();
@@ -105,7 +105,7 @@ function main ()
    //检查访问计划快照
    var expAccessPlan = [];
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName1 } );
-   checkSnapShotAccessPlans( clFullName1, expAccessPlan, actAccessPlan, groups );
+   checkSnapShotAccessPlans( clFullName1, expAccessPlan, actAccessPlan );
 
    var expAccessPlan = [{ ScanType: "tbscan", IndexName: "" },
    { ScanType: "tbscan", IndexName: "" }];
