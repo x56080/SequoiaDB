@@ -180,7 +180,10 @@ namespace engine
          INT32          _extractIndex( const CHAR *objdata,
                                        vector<BSONObj> &index,
                                        BOOLEAN &noMore ) ;
-
+         // find collection in waiting list
+         BOOLEAN        _findCollection( const CHAR *collection ) ;
+         // find collection space in waiting list
+         BOOLEAN        _findCollectionSpace( const CHAR *collectionSpace ) ;
          UINT32         _addCollection ( const CHAR *pCollectionName ) ;
          UINT32         _removeCollection ( const CHAR *pCollectionName ) ;
          vector<string> _removeCS ( const CHAR *pCSName ) ;
