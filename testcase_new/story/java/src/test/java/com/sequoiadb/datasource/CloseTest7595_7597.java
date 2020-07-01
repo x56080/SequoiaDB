@@ -1,29 +1,17 @@
 package com.sequoiadb.datasource;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Parameters;
+
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
-import com.sequoiadb.datasource.ConnectStrategy;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.net.ServerAddress;
 
-public class CloseTest extends DataSourceTestBase {
+import com.sequoiadb.exception.BaseException;
+
+public class CloseTest7595_7597 extends DataSourceTestBase {
     private SequoiadbDatasource datasource = null;
     // private SequoiadbDatasource ds1 = null;
 
@@ -48,7 +36,7 @@ public class CloseTest extends DataSourceTestBase {
             }
         } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -61,7 +49,7 @@ public class CloseTest extends DataSourceTestBase {
             }
         } catch ( BaseException e ) {
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -69,9 +57,8 @@ public class CloseTest extends DataSourceTestBase {
      * 关闭连接池
      */
     @Test
-    public void closeAfterGetConn() {
+    public void closeAfterGetConn7595() {
         Sequoiadb sdb = null;
-        boolean isGetConn = false;
         try {
             sdb = datasource.getConnection();
             datasource.close();
@@ -79,22 +66,20 @@ public class CloseTest extends DataSourceTestBase {
             Assert.assertEquals( datasource.getIdleConnNum(), 0 );
             Assert.assertEquals( datasource.getUsedConnNum(), 0 );
         } catch ( InterruptedException e ) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
 
         try {
             if ( null != datasource ) {
                 datasource.getConnection();
-                Assert.assertTrue( false );
+                Assert.fail("must throw exception!") ;
             }
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            // TODO: handle exception
             judegeErrCode( "SDB_SYS", e.getErrorCode() );
         }
 
@@ -104,36 +89,34 @@ public class CloseTest extends DataSourceTestBase {
      * 关闭禁用的连接池
      */
     @Test
-    public void closeAfterDisabled() {
+    public void closeAfterDisabled7597() {
         Sequoiadb sdb = null;
         Sequoiadb sdb1 = null;
-        boolean isGetConn = false;
-        boolean isDisabled = false;
         try {
             sdb1 = datasource.getConnection();
             datasource.disableDatasource();
             sdb = datasource.getConnection();
             datasource.close();
-            Assert.assertEquals( sdb.isValid(), true );
             Assert.assertEquals( sdb1.isValid(), false );
+            Assert.assertEquals( sdb.isValid(), true );
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
 
         try {
             datasource.getConnection();
+            Assert.fail("must throw exception!") ;
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            // TODO: handle exception
             judegeErrCode( "SDB_SYS", e.getErrorCode() );
         }
 
         try {
             datasource.releaseConnection( sdb );
-            Assert.assertTrue( false );
+            Assert.fail("must throw exception!") ;
         } catch ( BaseException e ) {
             judegeErrCode( "SDB_SYS", e.getErrorCode() );
         }
@@ -143,17 +126,13 @@ public class CloseTest extends DataSourceTestBase {
      * 重复关闭连接池
      */
     @Test
-    public void closeAfterClose() {
-        SequoiadbDatasource datasource = null;
+    public void closeAfterClose7597() {
         try {
-            datasource = new SequoiadbDatasource( this.coordAddr, userName,
-                    password, null );
             datasource.close();
             datasource.close();
         } catch ( BaseException e ) {
-            // TODO: handle exception
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 

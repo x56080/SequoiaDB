@@ -21,16 +21,10 @@ public class DataSourceTestBase extends SdbTestBase {
     protected String userName = "";
     protected String password = "";
     protected String clName;
-    protected static final int catalogGroupID = 2;
+    protected static final int coordGroupID = 2;
     protected ArrayList< InetSocketAddress > addrList = new ArrayList< InetSocketAddress >();
     private AtomicBoolean init = new AtomicBoolean( false );
     private Boolean isStandAlone = false;
-
-    private String[] splitStr( String srcStr, String strSep ) {
-        String[] tmpArr = srcStr.split( strSep );
-        return tmpArr;
-    }
-
     protected boolean isStandAlone() {
         return isStandAlone;
     }
@@ -42,18 +36,6 @@ public class DataSourceTestBase extends SdbTestBase {
         if ( this.coordAddr == null ) {
             this.coordAddr = "localhost:11810";
         } else {
-            /*
-             * String[] tmpArr = splitStr(coordUrl, "@"); if (tmpArr.length ==
-             * 2){ this.coordAddr = tmpArr[1]; userName = tmpArr[0]; tmpArr =
-             * splitStr(userName, ":"); if (tmpArr.length == 2){ userName =
-             * tmpArr[0]; password = tmpArr[1]; }else return false; }else{
-             * this.coordAddr = tmpArr[0]; } tmpArr = splitStr(coordUrl, "/");
-             * this.coordAddr = tmpArr[0]; if (tmpArr.length == 2){ csName =
-             * tmpArr[1]; tmpArr = splitStr(csName, "\\."); csName = tmpArr[0];
-             * if (tmpArr.length == 2){ clName = tmpArr[1]; }else{ return false;
-             * } }
-             */
-
             int index = this.coordAddr.indexOf( ':' );
             if ( -1 == index ) {
                 this.coordAddr += ":11810";
@@ -69,7 +51,6 @@ public class DataSourceTestBase extends SdbTestBase {
         try {
             expectErrCode = SDBError.valueOf( errType ).getErrorCode();
         } catch ( Exception e ) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
             Assert.assertFalse( true, e.getMessage() );
         }
@@ -78,12 +59,14 @@ public class DataSourceTestBase extends SdbTestBase {
     }
 
     protected void getAddrList() {
+        Sequoiadb db = null ;
         try {
             if ( !addrList.isEmpty() )
                 return;
-            Sequoiadb sdb = new Sequoiadb( this.coordAddr, this.userName,
+            
+            db = new Sequoiadb( this.coordAddr, this.userName,
                     this.password );
-            ReplicaGroup group = sdb.getReplicaGroup( catalogGroupID );
+            ReplicaGroup group = db.getReplicaGroup( coordGroupID );
             BSONObject obj = group.getDetail();
             BasicBSONList subObjs = ( BasicBSONList ) obj.get( "Group" );
 
@@ -102,7 +85,6 @@ public class DataSourceTestBase extends SdbTestBase {
             }
             addrList = taddrList;
         } catch ( BaseException e ) {
-
             try {
                 if ( e.getErrorCode() == SDBError.SDB_RTN_COORD_ONLY
                         .getErrorCode() ) {
@@ -110,10 +92,13 @@ public class DataSourceTestBase extends SdbTestBase {
                     return;
                 }
             } catch ( Exception e1 ) {
-                // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
             Assert.assertTrue( false, e.getMessage() );
+        }finally {
+            if ( db != null ) {
+                db.close();
+            }
         }
     }
 

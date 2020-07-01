@@ -1,20 +1,15 @@
 package com.sequoiadb.datasource;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
-import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
 import com.sequoiadb.exception.BaseException;
 
-public class ParameterTest extends DataSourceTestBase {
+public class ParameterTest7598_7617 extends DataSourceTestBase {
     private SequoiadbDatasource datasource = null;
 
     @BeforeClass
@@ -42,56 +37,39 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test
-    void keepAliveTest() {
+    void keepAliveTest7598() {
         try {
             // 小于checkInteval
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( 5000 );
             datasource.updateDatasourceOptions( option );
 
-            Assert.assertTrue( false );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
 
         try {
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( -100 );
             datasource.updateDatasourceOptions( option );
 
-            Assert.assertTrue( false );
+            Assert.fail( "must throw exception" );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
     }
 
     @Test
-    void coordUrlTest() {
+    void coordUrlTest7607() {
         try {
             SequoiadbDatasource datasource = new SequoiadbDatasource( null,
                     this.userName, this.password, null );
-            Assert.assertTrue( false );
+            Assert.fail( "must throw exception" );
             datasource.close();
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
-
-        try {
-            SequoiadbDatasource datasource = new SequoiadbDatasource( null,
-                    this.userName, this.password, null, null );
-            Assert.assertTrue( false );
-            datasource.close();
-        } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
-        }
-        /*
-         * ArrayList<String> coordAddrList = new ArrayList<String>();
-         * coordAddrList.add(null); coordAddrList.add(""); try{
-         * SequoiadbDatasource datasource = new
-         * SequoiadbDatasource(coordAddrList, this.userName, this.password,
-         * null, null); Assert.assertTrue(false); }catch(BaseException e){
-         * super.judegeErrCode("SDB_INVALIDARG", e.getErrorCode()); }
-         */
     }
 
     @DataProvider(name = "val-provider")
@@ -103,11 +81,11 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test(dataProvider = "val-provider")
-    void deltaIncCountTest( int val ) {
+    void deltaIncCountTest7609( int val ) {
         try {
             if ( val > 0 )
                 return;
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setDeltaIncCount( val );
             datasource.updateDatasourceOptions( option );
 
@@ -118,11 +96,11 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test(dataProvider = "val-provider")
-    void maxIdelCountTest( int val ) {
+    void maxIdelCountTest7610( int val ) {
         try {
             if ( val >= 0 )
                 return;
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setMaxIdleCount( val );
             datasource.updateDatasourceOptions( option );
 
@@ -133,11 +111,11 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test(dataProvider = "val-provider")
-    void maxCountTest( int val ) {
+    void maxCountTest7611( int val ) {
         if ( val >= 0 )
             return;
         try {
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setMaxCount( val );
             datasource.updateDatasourceOptions( option );
 
@@ -148,11 +126,11 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test(dataProvider = "val-provider")
-    void syncCoordIntervalTest( int val ) {
+    void syncCoordIntervalTest7612( int val ) {
         if ( val >= 0 )
             return;
         try {
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setSyncCoordInterval( val );
             datasource.updateDatasourceOptions( option );
 
@@ -163,7 +141,7 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test
-    void addCoordTest() {
+    void addCoordTest7613_7614() {
         try {
             datasource.addCoord( this.coordAddr );
         } catch ( BaseException e ) {
@@ -184,7 +162,7 @@ public class ParameterTest extends DataSourceTestBase {
     }
 
     @Test
-    void delCoordTest() {
+    void delCoordTest7616_7617() {
         try {
             datasource.removeCoord( this.coordAddr );
         } catch ( BaseException e ) {

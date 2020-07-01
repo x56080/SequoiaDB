@@ -1,8 +1,7 @@
 package com.sequoiadb.datasource;
 
 import org.testng.annotations.DataProvider;
-import com.sequoiadb.base.SequoiadbOption;
-import com.sequoiadb.datasource.ConnectStrategy;
+
 
 public class SdbTestOptionFactory {
     @DataProvider(name = "option-provider")
@@ -17,27 +16,27 @@ public class SdbTestOptionFactory {
                         createSequoiadbOption( ConnectStrategy.BALANCE ) ) } };
     }
 
-    private static SequoiadbOption setsyncCoordInterval(
-            SequoiadbOption option ) {
+    private static DatasourceOptions setsyncCoordInterval(
+            DatasourceOptions option ) {
         option.setSyncCoordInterval( 100 );
         return option;
     }
 
-    private static SequoiadbOption setDisablesyncCoord(
-            SequoiadbOption option ) {
+    private static DatasourceOptions setDisablesyncCoord(
+            DatasourceOptions option ) {
         option.setSyncCoordInterval( 0 );
         return option;
     }
 
-    private static SequoiadbOption setValidateConnection(
-            SequoiadbOption option ) {
+    private static DatasourceOptions setValidateConnection(
+            DatasourceOptions option ) {
         option.setValidateConnection( true );
         return option;
     }
 
-    private static SequoiadbOption createSequoiadbOption(
+    private static DatasourceOptions createSequoiadbOption(
             ConnectStrategy strategy ) {
-        SequoiadbOption option = new SequoiadbOption();
+        DatasourceOptions option = new DatasourceOptions();
         option.setConnectStrategy( strategy );
         return option;
     }

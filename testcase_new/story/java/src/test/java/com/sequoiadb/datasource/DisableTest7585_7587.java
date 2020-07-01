@@ -2,14 +2,12 @@ package com.sequoiadb.datasource;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
 
-public class DisableTest extends DataSourceTestBase {
+public class DisableTest7585_7587 extends DataSourceTestBase {
     @BeforeClass
     public void initEnv() {
         boolean retVal = super.init();
@@ -20,7 +18,7 @@ public class DisableTest extends DataSourceTestBase {
      * 禁用连接池
      */
     @Test
-    public void disableAfterGetConn() {
+    public void disableAfterGetConn7585() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
@@ -34,10 +32,9 @@ public class DisableTest extends DataSourceTestBase {
             Assert.assertEquals( datasource.getUsedConnNum(), 0 );
             Assert.assertEquals( datasource.getIdleConnNum(), 0 );
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            // TODO: handle exception
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
@@ -47,7 +44,7 @@ public class DisableTest extends DataSourceTestBase {
      * 重复禁用连接池
      */
     @Test
-    public void disableAfterDisable() {
+    public void disableAfterDisable7586() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
@@ -55,8 +52,7 @@ public class DisableTest extends DataSourceTestBase {
             datasource.disableDatasource();
             datasource.disableDatasource();
         } catch ( BaseException e ) {
-            // TODO: handle exception
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
@@ -66,15 +62,14 @@ public class DisableTest extends DataSourceTestBase {
      * 禁用已关闭的连接池
      */
     @Test
-    public void disableAfterClosed() {
+    public void disableAfterClosed7587() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
                     password, null );
             datasource.close();
         } catch ( BaseException e ) {
-            // TODO: handle exception
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
 
         try {

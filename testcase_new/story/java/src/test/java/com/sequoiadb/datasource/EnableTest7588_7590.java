@@ -2,15 +2,12 @@ package com.sequoiadb.datasource;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
 import com.sequoiadb.exception.BaseException;
 
-public class EnableTest extends DataSourceTestBase {
+public class EnableTest7588_7590 extends DataSourceTestBase {
 
     @BeforeClass
     public void initEnv() {
@@ -22,15 +19,14 @@ public class EnableTest extends DataSourceTestBase {
      * 启用创建的连接池
      */
     @Test
-    public void EnableAfterCreated() {
+    public void EnableAfterCreated7588() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
                     password, null );
             datasource.enableDatasource();
         } catch ( BaseException e ) {
-            // TODO: handle exception
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
@@ -39,8 +35,8 @@ public class EnableTest extends DataSourceTestBase {
     /**
      * 启用禁用的连接池
      */
-    @Test(invocationCount = 10, threadPoolSize = 5)
-    public void EnableAfterDisabled() {
+    @Test
+    public void EnableAfterDisabled7589() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
@@ -60,19 +56,19 @@ public class EnableTest extends DataSourceTestBase {
             Assert.assertEquals( datasource.getUsedConnNum(), 0 );
 
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
     }
 
     @Test
-    public void EnableAfterDisabledByOption() {
+    public void EnableAfterDisabledByOption7590() {
         SequoiadbDatasource datasource = null;
         try {
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setMaxCount( 0 );
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
                     password, option );
@@ -81,9 +77,9 @@ public class EnableTest extends DataSourceTestBase {
             Sequoiadb sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
@@ -93,19 +89,20 @@ public class EnableTest extends DataSourceTestBase {
      * 启用关闭的连接池
      */
     @Test
-    public void EnableAfterClosed() {
+    public void EnableAfterClosed7590() {
         SequoiadbDatasource datasource = null;
         try {
             datasource = new SequoiadbDatasource( this.coordAddr, userName,
                     password, null );
             datasource.close();
         } catch ( BaseException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
+        
         try {
             datasource.enableDatasource();
+            Assert.fail("must throw exception!");
         } catch ( BaseException e ) {
-            // TODO: handle exception
             judegeErrCode( "SDB_SYS", e.getErrorCode() );
         }
     }

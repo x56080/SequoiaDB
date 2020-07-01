@@ -8,33 +8,27 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Parameters;
+
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.Node;
 import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
+
 import com.sequoiadb.datasource.ConnectStrategy;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.net.ConfigOptions;
-import com.sequoiadb.net.ServerAddress;
 
-public class GetConnectionTest extends DataSourceTestBase {
+
+public class GetConnectionTest7565_7603 extends DataSourceTestBase {
     private SequoiadbDatasource datasource;
-    private SequoiadbDatasource datasource_concurrent;
     private Sequoiadb sdb;
-    private InetSocketAddress inAddr;
-    private AtomicInteger cnt = new AtomicInteger( 0 );
     Random random = new Random();
 
     @BeforeClass
@@ -46,7 +40,7 @@ public class GetConnectionTest extends DataSourceTestBase {
     synchronized void createDataSource() {
         try {
             if ( datasource == null ) {
-                SequoiadbOption option = new SequoiadbOption();
+                DatasourceOptions option = new DatasourceOptions();
                 option.setMaxCount( 200 );
                 datasource = new SequoiadbDatasource( this.coordAddr,
                         this.userName, this.password, option );
@@ -94,7 +88,7 @@ public class GetConnectionTest extends DataSourceTestBase {
             Assert.assertEquals( datasource.getUsedConnNum(), 0 );
 
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             e.printStackTrace();
             Assert.assertFalse( true, e.getMessage() );
@@ -190,8 +184,6 @@ public class GetConnectionTest extends DataSourceTestBase {
                 return;
             db = new Sequoiadb( addr.getHostName(), addr.getPort(), userName,
                     password );
-            if ( db == null )
-                return;
             ReplicaGroup group = db.getReplicaGroup( 2 );
             if ( group == null )
                 return;
@@ -204,7 +196,7 @@ public class GetConnectionTest extends DataSourceTestBase {
             System.out.println( "get connection" );
             sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), false );
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setValidateConnection( true );
             datasource.updateDatasourceOptions( option );
             datasource.releaseConnection( sdb );
@@ -212,7 +204,7 @@ public class GetConnectionTest extends DataSourceTestBase {
             sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             try {
                 if ( e.getErrorCode() == SDBError.SDB_CLS_GRP_NOT_EXIST
@@ -246,10 +238,10 @@ public class GetConnectionTest extends DataSourceTestBase {
                 Assert.assertEquals( sdb.isValid(), true );
             }
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             // judegeErrCode("", e.getErrorCode());
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
         System.out.println( "getConnectionOfValid end" );
     }
@@ -257,10 +249,10 @@ public class GetConnectionTest extends DataSourceTestBase {
     @Test
     void getConnectionAfterUpdateMaxCount() {
         ArrayList< Sequoiadb > dbs = new ArrayList< Sequoiadb >();
-        SequoiadbOption option = null;
+        DatasourceOptions option = null;
         int oldPoolSize = 0;
         try {
-            option = ( SequoiadbOption ) datasource.getDatasourceOptions();
+            option = ( DatasourceOptions ) datasource.getDatasourceOptions();
             oldPoolSize = option.getMaxCount();
             // 申请到池满
             for ( int i = 0; i < oldPoolSize; ++i ) {
@@ -292,7 +284,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         }
         // 检查是否可以再分配
         try {
-            Sequoiadb sdb = datasource.getConnection();
+            datasource.getConnection();
             Assert.assertFalse( true, "pool is full!!!,alloc successful" );
         } catch ( InterruptedException e ) {
             Assert.assertFalse( true, e.getMessage() );
@@ -384,7 +376,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         }
     }
 
-    void getOfBalance( SequoiadbOption option ) {
+    void getOfBalance( DatasourceOptions option ) {
         if ( addrList.isEmpty() )
             return;
         InetSocketAddress inAddr = null;
@@ -446,7 +438,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         System.out.println( "getOfBalance" );
     }
 
-    void getOfLocal( SequoiadbOption option ) {
+    void getOfLocal( DatasourceOptions option ) {
         if ( addrList.isEmpty() )
             return;
         try {
@@ -505,7 +497,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         System.out.println( "getOfLocal" );
     }
 
-    void getOfSerial( SequoiadbOption option ) {
+    void getOfSerial( DatasourceOptions option ) {
         if ( addrList.size() <= 1 )
             return;
         InetSocketAddress inAddr = null;
@@ -527,7 +519,6 @@ public class GetConnectionTest extends DataSourceTestBase {
 
         try {
             Sequoiadb sdb = datasource.getConnection();
-            System.out.println( sdb.getServerAddress().getHostAddress() );
             Assert.assertEquals( sdb.isValid(), true );
             expectAddr = selectorAddr;
 
@@ -538,12 +529,10 @@ public class GetConnectionTest extends DataSourceTestBase {
             datasource.addCoord(
                     selectorAddr.getHostName() + ":" + selectorAddr.getPort() );
             sdb = datasource.getConnection();
-            System.out.println( sdb.getServerAddress().getHostAddress() );
             // Assert.assertTrue(sdb.getServerAddress().getHostAddress().equals(expectAddr));
             Thread.sleep( 10 );
 
             sdb = datasource.getConnection();
-            System.out.println( sdb.getServerAddress().getHostAddress() );
             Assert.assertEquals( sdb.isValid(), true );
             // Assert.assertTrue(sdb.getServerAddress().getHostAddress().equals(selectorAddr));
         } catch ( InterruptedException e ) {
@@ -554,7 +543,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         System.out.println( "getOfSerial" );
     }
 
-    void getOfRandom( SequoiadbOption option ) {
+    void getOfRandom( DatasourceOptions option ) {
         if ( addrList.size() <= 1 )
             return;
         Map< InetSocketAddress, Integer > addr2Number = new HashMap< InetSocketAddress, Integer >();
@@ -587,7 +576,7 @@ public class GetConnectionTest extends DataSourceTestBase {
         }
 
         int addrCount = addr2Number.size();
-        Iterator iter = addr2Number.entrySet().iterator();
+        Iterator< ? > iter = addr2Number.entrySet().iterator();
         while ( iter.hasNext() ) {
             Map.Entry entry = ( Map.Entry ) iter.next();
             Integer val = ( Integer ) entry.getValue();
@@ -602,7 +591,7 @@ public class GetConnectionTest extends DataSourceTestBase {
     }
 
     @Test(dataProvider = "option-provider", dataProviderClass = SdbTestOptionFactory.class)
-    void getTest( SequoiadbOption option ) {
+    void getTest7569_7572( DatasourceOptions option ) {
         try {
             sdb = datasource.getConnection();
             if ( addrList.isEmpty() ) {
@@ -627,9 +616,9 @@ public class GetConnectionTest extends DataSourceTestBase {
             }
             datasource.releaseConnection( sdb );
         } catch ( InterruptedException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertTrue( false, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 }

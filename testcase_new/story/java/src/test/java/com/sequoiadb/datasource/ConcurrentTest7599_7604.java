@@ -5,102 +5,37 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Parameters;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
 import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.net.ConfigOptions;
 
-public class ConcurrentTest extends DataSourceTestBase {
-    private SequoiadbDatasource ds1 = null;
-    private SequoiadbDatasource ds2 = null;
-    private SequoiadbDatasource ds3 = null;
-    private SequoiadbDatasource ds4 = null;
-    private SequoiadbDatasource ds5 = null;
-    private SequoiadbDatasource ds6 = null;
-    private SequoiadbDatasource ds7 = null;
-    private SequoiadbDatasource ds8 = null;
-    private SequoiadbDatasource ds9 = null;
+
+public class ConcurrentTest7599_7604 extends DataSourceTestBase {
+    private SequoiadbDatasource ds = null;
     private DatasourceOptions option = null;
     private Random random = new Random();
 
-    @BeforeClass
+    @BeforeMethod
     public void createDatasource() {
         try {
             super.init();
-            ds1 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds2 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds3 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds4 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds5 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds6 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds7 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds8 = new SequoiadbDatasource( this.coordAddr, userName, password,
-                    null );
-            ds9 = new SequoiadbDatasource( this.coordAddr, userName, password,
+            ds = new SequoiadbDatasource( this.coordAddr, userName, password,
                     null );
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
         }
     }
 
-    @AfterClass
+    @AfterMethod
     public void closeDatasource() {
         try {
-            if ( null != sdbpools ) {
-                sdbpools.close();
-            }
-            if ( ds1 != null ) {
-                ds1.close();
-            }
-
-            if ( ds2 != null ) {
-                ds2.close();
-            }
-
-            if ( ds3 != null ) {
-                ds3.close();
-            }
-
-            if ( ds4 != null ) {
-                ds4.close();
-            }
-
-            if ( ds5 != null ) {
-                ds5.close();
-            }
-
-            if ( ds6 != null ) {
-                ds5.close();
-            }
-
-            if ( ds7 != null ) {
-                ds7.close();
-            }
-
-            if ( ds8 != null ) {
-                ds8.close();
-            }
-
-            if ( ds9 != null ) {
-                ds8.close();
-            }
-
-            if ( datasource_concurrent != null ) {
-                datasource_concurrent.close();
+            if ( ds != null ) {
+                ds.close();
             }
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
@@ -114,12 +49,10 @@ public class ConcurrentTest extends DataSourceTestBase {
     @Test(invocationCount = 50, threadPoolSize = 10)
     void getConnection() {
         try {
-            if ( ds1 != null ) {
-                Sequoiadb sdb = ds1.getConnection();
-                Assert.assertEquals( sdb.isValid(), true );
-                Thread.sleep( random.nextInt( 10 ) );
-                ds1.releaseConnection( sdb );
-            }
+            Sequoiadb sdb = ds.getConnection();
+            Assert.assertEquals( sdb.isValid(), true );
+            Thread.sleep( random.nextInt( 10 ) );
+            ds.releaseConnection( sdb );
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
@@ -135,7 +68,7 @@ public class ConcurrentTest extends DataSourceTestBase {
         try {
             if ( isStandAlone() )
                 return;
-            Sequoiadb sdb = ds2.getConnection();
+            Sequoiadb sdb = ds.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
             synchronized ( this ) {
                 if ( addrList.isEmpty() ) {
@@ -144,7 +77,7 @@ public class ConcurrentTest extends DataSourceTestBase {
             }
 
             for ( int i = 0; i < this.addrList.size(); ++i ) {
-                ds2.addCoord( this.addrList.get( i ).getHostName() + ":"
+                ds.addCoord( this.addrList.get( i ).getHostName() + ":"
                         + this.addrList.get( i ).getPort() );
             }
             InetSocketAddress inCoordAddr = getInCoordAddr();
@@ -152,15 +85,15 @@ public class ConcurrentTest extends DataSourceTestBase {
                 InetSocketAddress curAddr = this.addrList.get( i );
                 if ( inCoordAddr.equals( curAddr ) )
                     continue;
-                ds2.removeCoord(
+                ds.removeCoord(
                         curAddr.getHostName() + ":" + curAddr.getPort() );
             }
 
-            ds2.releaseConnection( sdb );
-            sdb = ds2.getConnection();
+            ds.releaseConnection( sdb );
+            sdb = ds.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
             Thread.sleep( random.nextInt( 50 ) );
-            ds2.releaseConnection( sdb );
+            ds.releaseConnection( sdb );
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
@@ -174,13 +107,13 @@ public class ConcurrentTest extends DataSourceTestBase {
     @Test(invocationCount = 10, threadPoolSize = 5)
     void enableORDisabledDataSource() {
         try {
-            ds3.disableDatasource();
+            ds.disableDatasource();
             Thread.sleep( random.nextInt( 30 ) );
-            ds3.enableDatasource();
+            ds.enableDatasource();
 
-            Sequoiadb sdb = ds3.getConnection();
+            Sequoiadb sdb = ds.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
-            ds3.releaseConnection( sdb );
+            ds.releaseConnection( sdb );
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
@@ -195,11 +128,11 @@ public class ConcurrentTest extends DataSourceTestBase {
     @Test(invocationCount = 50, threadPoolSize = 10)
     void getConnectionOrClose() {
         try {
-            Sequoiadb sdb = ds4.getConnection();
+            Sequoiadb sdb = ds.getConnection();
             // Assert.assertEquals(sdb.isValid(), true);
             Thread.sleep( random.nextInt( 10 ) );
-            ds4.releaseConnection( sdb );
-            ds4.close();
+            ds.releaseConnection( sdb );
+            ds.close();
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
@@ -213,14 +146,14 @@ public class ConcurrentTest extends DataSourceTestBase {
     @Test(invocationCount = 50, threadPoolSize = 10)
     void updateOptionAndClose() {
         try {
-            SequoiadbOption option = new SequoiadbOption();
+            DatasourceOptions option = new DatasourceOptions();
             option.setMaxIdleCount( 20 );
-            ds5.updateDatasourceOptions( option );
-            Sequoiadb sdb = ds5.getConnection();
+            ds.updateDatasourceOptions( option );
+            Sequoiadb sdb = ds.getConnection();
             // Assert.assertEquals(sdb.isValid(), true);
-            ds5.releaseConnection( sdb );
+            ds.releaseConnection( sdb );
             Thread.sleep( random.nextInt( 10 ) );
-            ds5.close();
+            ds.close();
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
@@ -236,34 +169,34 @@ public class ConcurrentTest extends DataSourceTestBase {
         try {
             int maxNum = 0;
             Sequoiadb sdb = null;
-            maxNum = ds6.getDatasourceOptions().getMaxCount();
+            maxNum = ds.getDatasourceOptions().getMaxCount();
 
             if ( null != option ) {
-                maxNum = ds6.getDatasourceOptions().getMaxCount();
+                maxNum = ds.getDatasourceOptions().getMaxCount();
                 Assert.assertEquals( maxNum, 700 );
             }
 
-            sdb = ds6.getConnection();
+            sdb = ds.getConnection();
             Assert.assertEquals( sdb.isValid(), true );
 
-            ds6.disableDatasource();
+            ds.disableDatasource();
             synchronized ( this ) {
                 if ( null == option ) {
-                    SequoiadbOption toption = new SequoiadbOption();
+                    DatasourceOptions toption = new DatasourceOptions();
                     toption.setMaxIdleCount( 20 );
                     toption.setMaxCount( 700 );
-                    ds6.updateDatasourceOptions( toption );
-                    ds6.enableDatasource();
-                    toption = ( SequoiadbOption ) ds6.getDatasourceOptions();
+                    ds.updateDatasourceOptions( toption );
+                    ds.enableDatasource();
+                    toption = ds.getDatasourceOptions();
                     Assert.assertEquals( toption.getMaxCount(), 700 );
                     Assert.assertEquals( toption.getMaxIdleCount(), 20 );
                     option = toption;
                 } else {
-                    ds6.enableDatasource();
+                    ds.enableDatasource();
                 }
             }
             if ( sdb != null ) {
-                ds6.releaseConnection( sdb );
+                ds.releaseConnection( sdb );
             }
             Thread.sleep( random.nextInt( 10 ) );
         } catch ( InterruptedException e ) {
@@ -307,10 +240,10 @@ public class ConcurrentTest extends DataSourceTestBase {
     void getConnectionFromOldInterface() {
         synchronized ( this ) {
             if ( null == sdbpools ) {
-                SequoiadbOption sdbOption = new SequoiadbOption();
-                sdbOption.setMaxConnectionNum( 500 );
-                sdbOption.setMaxIdeNum( 10 );
-                sdbOption.setRecheckCyclePeriod( 5 * 1000 );
+                DatasourceOptions sdbOption = new DatasourceOptions();
+                sdbOption.setMaxCount( 500 );
+                sdbOption.setMaxIdleCount( 10 );
+                sdbOption.setCheckInterval( 5 * 1000  );
 
                 ConfigOptions connectOpt = new ConfigOptions();
                 connectOpt.setConnectTimeout( 10000 );
@@ -329,13 +262,12 @@ public class ConcurrentTest extends DataSourceTestBase {
             Thread.sleep( random.nextInt( 100 ) );
             Assert.assertEquals( sdb.isValid(), true );
         } catch ( InterruptedException e ) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
             Assert.assertFalse( true, e.getMessage() );
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
         }
-        sdbpools.close( sdb );
+        sdbpools.releaseConnection( sdb );
     }
 
     /**
@@ -347,10 +279,10 @@ public class ConcurrentTest extends DataSourceTestBase {
             if ( isStandAlone() )
                 return;
             // Sequoiadb sdb = ds1.getConnection();
-            ds7.close();
+            ds.close();
             // Assert.assertEquals(sdb.isValid(), false);
             for ( int i = 0; i < addrList.size(); ++i ) {
-                ds7.addCoord( addrList.get( i ).getHostName() + ":"
+                ds.addCoord( addrList.get( i ).getHostName() + ":"
                         + addrList.get( i ).getPort() );
             }
         } catch ( BaseException e ) {
@@ -367,22 +299,21 @@ public class ConcurrentTest extends DataSourceTestBase {
             return;
         try {
             for ( int i = 0; i < addrList.size(); ++i ) {
-                ds8.addCoord( addrList.get( i ).getHostName() + ":"
+                ds.addCoord( addrList.get( i ).getHostName() + ":"
                         + addrList.get( i ).getPort() );
             }
         } catch ( BaseException e ) {
-            // TODO: handle exception
             // e.printStackTrace();
             super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
             // Assert.assertFalse(true, e.getMessage());
         }
 
         try {
-            if ( null == ds8 )
+            if ( null == ds )
                 return;
-            ds8.close();
+            ds.close();
             for ( int i = 0; i < addrList.size(); ++i ) {
-                ds8.removeCoord( addrList.get( i ).getHostName() + ":"
+                ds.removeCoord( addrList.get( i ).getHostName() + ":"
                         + addrList.get( i ).getPort() );
             }
             Assert.assertTrue( false );
@@ -394,9 +325,8 @@ public class ConcurrentTest extends DataSourceTestBase {
     @Test(threadPoolSize = 5, invocationCount = 10)
     public void closeDatasouceByConcurrent() {
         try {
-            ds9.close();
+            ds.close();
         } catch ( BaseException e ) {
-            // TODO: handle exception
             e.printStackTrace();
             Assert.assertFalse( true, e.getMessage() );
         }
