@@ -62,12 +62,12 @@ namespace passwd
 
       if ( filePath.empty() )
       {
-         rc = _buildDefaultCipherFilePath() ;
+         rc = utilBuildDefaultCipherFilePath( _filePath ) ;
          if ( rc )
          {
             goto error ;
          }
-         filePath = getFilePath() ;
+         filePath = _filePath ;
       }
 
       //create dir
@@ -210,20 +210,22 @@ namespace passwd
       goto done ;
    }
 
-   INT32 _utilCipherFile::_buildDefaultCipherFilePath()
+   INT32 utilBuildDefaultCipherFilePath( string &cipherFilePath )
    {
       INT32 rc = SDB_OK ;
+      string cipherFilePathTmp ;
 
       try
       {
-         _filePath = getenv ( UTIL_USER_DIRECTORY ) ;
-         if ( _filePath.empty() )
+         cipherFilePathTmp = getenv ( UTIL_USER_DIRECTORY ) ;
+         if ( cipherFilePathTmp.empty() )
          {
             rc = SDB_SYS ;
             PD_LOG ( PDERROR, "Failed to get user directory, rc: %d", rc ) ;
             goto error ;
          }
-         _filePath += UTIL_CIPHER_FILE_SUFFIX_PATH ;
+         cipherFilePathTmp += UTIL_CIPHER_FILE_SUFFIX_PATH ;
+         cipherFilePath = cipherFilePathTmp ;
       }
       catch( std::exception )
       {

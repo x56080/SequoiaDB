@@ -52,8 +52,6 @@ namespace passwd
       INT32       read( CHAR **fileContent, INT64 &contentLen ) ;
       INT32       write( const string &fileContent ) ;
       const CHAR* getFilePath(){ return _filePath.c_str() ; }
-   private:
-      INT32       _buildDefaultCipherFilePath() ;
 
    private:
       BOOLEAN _isOpen ;
@@ -62,6 +60,7 @@ namespace passwd
    } ;
    typedef _utilCipherFile utilCipherFile ;
 
+   INT32  utilBuildDefaultCipherFilePath( string &cipherFilePath ) ;
    string utilGetUserShortNameFromUserFullName( const string &userFullName ) ;
 }
 

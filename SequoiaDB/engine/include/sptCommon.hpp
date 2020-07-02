@@ -113,6 +113,9 @@ namespace engine
    BOOLEAN sptIsOpSetProperty( UINT32 opcode ) ;
    BOOLEAN sptIsOpCallProperty( UINT32 opcode ) ;
 
+   void    sdbSetIsNeedSaveHistory( BOOLEAN isNeedSaveHistory ) ;
+   BOOLEAN sdbIsNeedSaveHistory() ;
+
 }
 
 #endif //SPTCOMMON_HPP__

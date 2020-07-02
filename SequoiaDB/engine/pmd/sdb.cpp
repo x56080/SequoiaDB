@@ -35,21 +35,14 @@
 *******************************************************************************/
 
 #include "sdbOptionMgr.hpp"
-#include "ossUtil.h"
 #include "ossProc.hpp"
-#include "ossNPipe.hpp"
-#include "ossMem.h"
-#include "ossMem.hpp"
 #include "utilLinenoiseWrapper.hpp"
-#include "oss.h"
 #include "pd.hpp"
 #include "ossPrimitiveFileOp.hpp"
-#include "ossTypes.h"
 #include "ossVer.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "../spt/sptHelp.hpp"
-#include <string>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/program_options.hpp>
@@ -61,8 +54,14 @@
 #include "utilPipe.hpp"
 #include "sptContainer.hpp"
 #include "ossSignal.hpp"
-#include "ossIO.hpp"
-#include <locale.h>
+#include <boost/thread/thread.hpp>
+#if defined (_WINDOWS)
+#include <windows.h>
+#else
+#include <termios.h>
+#include <sys/ioctl.h>
+#endif
+
 using namespace bson ;
 
 using std::ostream ;
@@ -71,7 +70,22 @@ using std::string ;
 using std::bad_alloc ;
 using namespace engine ;
 
-#define ELSE_STATEMENT     "else{}"
+#define SDB_OPTION_HELP         "help"
+#define SDB_OPTION_VERSION      "version"
+#define SDB_OPTION_LANGUAGE     "language"
+#define SDB_OPTION_FILE         "file"
+#define SDB_OPTION_EVAL         "eval"
+#define SDB_OPTION_SHELL        "shell"
+#define ELSE_STATEMENT          "else{}"
+
+#if defined (_WINDOWS)
+   #define SDB_PB_PROGRAM_NAME  "sdbbp.exe"
+#else
+   #define SDB_PB_PROGRAM_NAME  "sdbbp"
+#endif // _WINDOWS
+
+#define SPT_LANG_EN             "en"
+#define SPT_LANG_CN             "cn"
 
 namespace po = boost::program_options ;
 po::options_description display ( "Command options" ) ;
@@ -81,15 +95,6 @@ po::variables_map vm ;
 #if !defined (SDB_SHELL)
 #error "sdbbp should always have SDB_SHELL defined"
 #endif
-
-#if defined (_WINDOWS)
-   #define SDB_PB_PROGRAM_NAME         "sdbbp.exe"
-#else
-   #define SDB_PB_PROGRAM_NAME         "sdbbp"
-#endif // _WINDOWS
-
-#define SPT_LANG_EN                    "en"
-#define SPT_LANG_CN                    "cn"
 
 enum RunMode
 {
@@ -160,31 +165,31 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
       goto error ;
    }
 
-   if ( vm.count( "help" ) )
+   if ( vm.count( SDB_OPTION_HELP ) )
    {
       std::cout << display << std::endl ;
       rc = SDB_SDB_HELP_ONLY ;
       goto done ;
    }
-   if ( vm.count( "version" ) )
+   if ( vm.count( SDB_OPTION_VERSION ) )
    {
       ossPrintVersion( "SequoiaDB shell version" ) ;
       rc = SDB_SDB_VERSION_ONLY ;
       goto done ;
    }
-   if ( vm.count( "eval" ) )
+   if ( vm.count( SDB_OPTION_EVAL ) )
    {
-      argInfo.variable = vm["eval"].as<string>() ;
+      argInfo.variable = vm[SDB_OPTION_EVAL].as<string>() ;
    }
 
-   SDB_ASSERT ( argv , "invalid argument" ) ;
-   SDB_ASSERT ( argc >= 1 , "argc must be >= 1" ) ;
+   SDB_ASSERT ( argv , "Invalid argument" ) ;
+   SDB_ASSERT ( argc >= 1 , "Argc must be >= 1" ) ;
 
    argInfo.program = (string)( argv[0] ) ;
    argInfo.language = SPT_LANG_EN ;
-   if ( vm.count( "language" ) )
+   if ( vm.count( SDB_OPTION_LANGUAGE ) )
    {
-      string l = vm["language"].as<string>() ;
+      string l = vm[SDB_OPTION_LANGUAGE].as<string>() ;
       argInfo.language = (l == SPT_LANG_EN || l == SPT_LANG_CN) ? l : SPT_LANG_EN ;
       argc -= 2 ;
    }
@@ -192,17 +197,17 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
    {
       // Empty. Normal interactive mode
    }
-   else if ( vm.count( "shell" ) )
+   else if ( vm.count( SDB_OPTION_SHELL ) )
    {
       // Front-end mode
       argInfo.mode = FRONTEND_MODE ;
-      argInfo.cmd = vm["shell"].as<string>() ;
+      argInfo.cmd = vm[SDB_OPTION_SHELL].as<string>() ;
    }
-   else if ( vm.count( "file" ) )
+   else if ( vm.count( SDB_OPTION_FILE ) )
    {
       // Batch mode
       argInfo.mode = BATCH_MODE ;
-      argInfo.filename = vm["file"].as<string>() ;
+      argInfo.filename = vm[SDB_OPTION_FILE].as<string>() ;
    }
    else
    {
@@ -362,7 +367,6 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
 
    // set language for dispaly help info
    sptHelp::setLanguage( lang ) ;
-   
    // set sdb defined can continue get next line function
    setCanContinueNextLineCallback( boost::bind( sdbdefCanContinueGetNextLine,
                                                 scope, _1 ) ) ;
@@ -410,12 +414,19 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
 
       rc = SDB_OK ;
       ossGetCurrentTime ( tmBegin ) ;
+      sdbSetIsNeedSaveHistory( TRUE ) ;
       // result is freed in loop_next:
       rc = scope->eval ( code , history.size(),
                          "(shell)" , 1, SPT_EVAL_FLAG_PRINT,
                          NULL ) ;
-      ossGetCurrentTime ( tmEnd ) ;
 
+      if ( sdbIsNeedSaveHistory() )
+      {
+         linenoiseHistoryAdd ( code ) ;
+         g_lnBuilder.addCmd( code ) ;
+      }
+
+      ossGetCurrentTime ( tmEnd ) ;
       // takes time
       tkTime = ( tmEnd.time * 1000000 + tmEnd.microtm ) -
                ( tmBegin.time * 1000000 + tmBegin.microtm ) ;
@@ -481,8 +492,9 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CREATEDAEMONPROC, "createDaemonProcess" )
-INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
-                            CHAR * f2dbuf , CHAR * d2fbuf )
+INT32 createDaemonProcess ( const CHAR *program, const OSSPID &ppid,
+                            CHAR *f2dbuf, CHAR *d2fbuf,
+                            CHAR *f2dCtlbuf, CHAR *d2fCtlbuf )
 {
    CHAR *         args     = NULL ;
    INT32          rc       = SDB_OK ;
@@ -490,14 +502,16 @@ INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
    OSSPID         pid ;
    ossResultCode  result ;
    OSSNPIPE       waitPipe ;
-   CHAR           waitName[128] ;
-   CHAR           f2dName[128] ;
-   CHAR           d2fName[128] ;
+   CHAR           waitName[128]   = { 0 } ;
+   CHAR           f2dName[128]    = { 0 } ;
+   CHAR           d2fName[128]    = { 0 } ;
+   CHAR           f2dCtlName[128] = { 0 } ;
+   CHAR           d2fCtlName[128] = { 0 } ;
 
-   ossMemset ( &waitPipe , 0 , sizeof ( waitPipe ) ) ;
-   ossMemset ( waitName , 0 , sizeof ( waitName ) ) ;
-   ossMemset ( f2dName , 0 , sizeof ( f2dName ) ) ;
-   ossMemset ( d2fName , 0 , sizeof ( d2fName ) ) ;
+   ossMemset ( &waitPipe, 0, sizeof( waitPipe ) ) ;
+   ossMemset ( waitName,  0, sizeof( waitName ) ) ;
+   ossMemset ( f2dName,   0, sizeof( f2dName ) ) ;
+   ossMemset ( d2fName,   0, sizeof( d2fName ) ) ;
 
    SDB_ASSERT ( program && program[0] != '\0' , "Invalid argument" ) ;
 
@@ -544,16 +558,21 @@ INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
       goto error ;
    }
 
-   rc = getPipeNames2 ( ppid , pid , f2dName , sizeof ( f2dName ) ,
-                                     d2fName , sizeof ( d2fName ) ) ;
+   rc = getPipeNames2 ( ppid, pid,
+                        f2dName, sizeof( f2dName ),
+                        d2fName, sizeof( d2fName ),
+                        f2dCtlName, sizeof( f2dCtlName ),
+                        d2fCtlName, sizeof( d2fCtlName ) ) ;
    if ( rc )
    {
       ossPrintf( "Get pipe name failed, rc: %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
-   ossStrcpy ( f2dbuf , f2dName ) ;
-   ossStrcpy ( d2fbuf , d2fName ) ;
+   ossStrcpy ( f2dbuf, f2dName ) ;
+   ossStrcpy ( d2fbuf, d2fName ) ;
+   ossStrcpy ( f2dCtlbuf, f2dCtlName ) ;
+   ossStrcpy ( d2fCtlbuf, d2fCtlName ) ;
 
    rc = ossConnectNamedPipe ( waitPipe , OSS_NPIPE_INBOUND ) ;
    if ( rc )
@@ -578,31 +597,212 @@ error :
    goto done ;
 }
 
+static BOOLEAN isExit = FALSE ;
+
+#if defined (_WINDOWS)
+
+static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
+{
+   INT32 rc = SDB_OK ;
+   OSSNPIPE f2dCtlPipe ;
+   OSSNPIPE d2fCtlPipe ;
+   HANDLE handleStdin = NULL ;
+   DWORD  consolemode = 0 ;
+
+   handleStdin = GetStdHandle( STD_INPUT_HANDLE ) ;
+   if ( handleStdin == INVALID_HANDLE_VALUE )
+   {
+      goto error ;
+   }
+   if ( !GetConsoleMode( handleStdin, &consolemode ) )
+   {
+      goto error ;
+   }
+   SetConsoleMode( handleStdin, consolemode & ~ENABLE_ECHO_INPUT ) ;
+
+   while( !isExit )
+   {
+      CHAR line[256] = { 0 } ;
+      DWORD len = 0 ;
+      if( GetNumberOfConsoleInputEvents( handleStdin, &len ) )
+      {
+         if( len <= 0 )
+         {
+            ossSleep( 100 ) ;
+            continue ;
+         }
+      }
+
+      if ( fgets( line, 256, stdin ) != NULL )
+      {
+         rc = ossOpenNamedPipe( bpf2dCtlName, OSS_NPIPE_OUTBOUND, 0,
+                                f2dCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dCtlName, rc ) ;
+            goto error ;
+         }
+
+         rc = ossWriteNamedPipe( f2dCtlPipe, line, ossStrlen( line ), NULL ) ;
+         if ( rc )
+         {
+            ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+
+         rc = ossCloseNamedPipe ( f2dCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+
+         rc = ossOpenNamedPipe( bpd2fCtlName, OSS_NPIPE_INBOUND, 0,
+                                d2fCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dCtlName, rc ) ;
+            goto error ;
+         }
+
+         rc = ossCloseNamedPipe ( d2fCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+      }
+   }
+
+done:
+   SetConsoleMode( handleStdin, consolemode ) ;
+   CloseHandle( handleStdin ) ;
+   return NULL ;
+error:
+   goto done ;
+}
+
+#else
+
+static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
+{
+   INT32 rc = SDB_OK ;
+   OSSNPIPE f2dCtlPipe ;
+   OSSNPIPE d2fCtlPipe ;
+
+   // trun off echo
+   struct termios off_termios ;
+   struct termios orig_termios ;
+
+   if ( tcgetattr( STDIN_FILENO, &orig_termios ) == -1 ) goto error ;
+
+   off_termios = orig_termios ;
+   off_termios.c_lflag &= ~(ECHO) ;
+
+   if ( tcsetattr( STDIN_FILENO, TCSADRAIN, &off_termios ) < 0 ) goto error ;
+
+   while( !isExit )
+   {
+      CHAR buf[256] = {0} ;
+      INT32 len = 0 ;
+      if( !ioctl( STDIN_FILENO, FIONREAD, &len ) )
+      {
+         if( len <= 0 )
+         {
+            ossSleep( 100 ) ;
+            continue ;
+         }
+      }
+
+      if ( fgets( buf, 256, stdin ) != NULL )
+      {
+         rc = ossOpenNamedPipe( bpf2dCtlName, OSS_NPIPE_OUTBOUND, 0,
+                                f2dCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dCtlName, rc ) ;
+            goto error ;
+         }
+
+         rc = ossWriteNamedPipe( f2dCtlPipe, buf, ossStrlen( buf ), NULL ) ;
+         if ( rc )
+         {
+            ossPrintf( "Write to pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+
+         rc = ossCloseNamedPipe ( f2dCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+
+         rc = ossOpenNamedPipe( bpd2fCtlName, OSS_NPIPE_INBOUND, 0,
+                                d2fCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Open pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dCtlName, rc ) ;
+            goto error ;
+         }
+
+         rc = ossCloseNamedPipe ( d2fCtlPipe ) ;
+         if ( rc )
+         {
+            ossPrintf( "Close pipe failed, rc: %d"OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+      }
+
+   }
+
+   tcsetattr( STDIN_FILENO, TCSADRAIN, &orig_termios ) ;
+
+done:
+   return NULL ;
+error:
+   goto done ;
+}
+
+#endif
+
 #define SDB_FRONTEND_RECEIVEBUFFERSIZE 128
 // PD_TRACE_DECLARE_FUNCTION ( SDB_ENTERFRONTENDMODE, "enterFrontEndMode" )
-INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
+INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
 {
    CHAR     c           = '\0' ;
    INT32    rc          = SDB_OK ;
-   PD_TRACE_ENTRY ( SDB_ENTERFRONTENDMODE );
    OSSPID   ppid        = OSS_INVALID_PID ;
-   OSSNPIPE f2dPipe ;
-   OSSNPIPE d2fPipe ;
-   CHAR     f2dName[128]          = {0} ;
-   CHAR     d2fName[128]          = {0} ;
-   CHAR     bpf2dName[128]        = {0} ;
-   CHAR     bpd2fName[128]        = {0} ;
-   CHAR     receiveBuffer1[SDB_FRONTEND_RECEIVEBUFFERSIZE]   = {0} ;
-   CHAR     receiveBuffer2[SDB_FRONTEND_RECEIVEBUFFERSIZE]   = {0} ;
-   CHAR     receiveBufferFinal[2*SDB_FRONTEND_RECEIVEBUFFERSIZE] = {0} ;
-   CHAR    *pCurrentReceivePtr    = receiveBuffer1 ;
    CHAR *   p           = NULL ;
    INT32    id          = 0 ;
    INT32    retCode     = SDB_OK ;
+   OSSNPIPE f2dPipe ;
+   OSSNPIPE d2fPipe ;
+   OSSNPIPE f2dCtlPipe ;
+   OSSNPIPE d2fCtlPipe ;
+   CHAR     f2dName[128]      = {0} ;
+   CHAR     d2fName[128]      = {0} ;
+   CHAR     f2dCtlName[128]   = {0} ;
+   CHAR     d2fCtlName[128]   = {0} ;
+   CHAR     bpf2dName[128]    = {0} ;
+   CHAR     bpd2fName[128]    = {0} ;
+   CHAR     bpf2dCtlName[128] = {0} ;
+   CHAR     bpd2fCtlName[128] = {0} ;
    CHAR     pbFullPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+   CHAR     receiveBuffer[SDB_FRONTEND_RECEIVEBUFFERSIZE] = {0} ;
+   CHAR    *pCurrentReceivePtr = receiveBuffer ;
+   boost::thread readTh ;
 
-   ossMemset ( &f2dPipe , 0 , sizeof ( f2dPipe ) ) ;
-   ossMemset ( &d2fPipe , 0 , sizeof ( d2fPipe ) ) ;
+   PD_TRACE_ENTRY ( SDB_ENTERFRONTENDMODE ) ;
+
+   ossMemset ( &f2dPipe,    0, sizeof( f2dPipe ) ) ;
+   ossMemset ( &d2fPipe,    0, sizeof( d2fPipe ) ) ;
+   ossMemset ( &f2dCtlPipe, 0, sizeof( f2dCtlPipe ) ) ;
+   ossMemset ( &d2fCtlPipe, 0, sizeof( d2fCtlPipe ) ) ;
 
    SDB_ASSERT ( program && program[0] != '\0' , "invalid argument" ) ;
    if ( !cmd || cmd[0] == '\0' )
@@ -644,22 +844,35 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
 
    // set f2dName to be "sdb-shell-b2f-xxx(ppid)"
    // set d2fName to be "sdb-shell-f2b-xxx(ppid)"
+   // set f2dCtlName to be "sdb-shell-ctl-b2f-xxx(ppid)"
+   // set d2fCtlName to be "sdb-shell-ctl-f2b-xxx(ppid)"
+
    // f2dName and d2fName are used as matching condition to get
    // the bpf2d and bpd2f name pipe if the two name pipe existed
-   // in /tmp/sequoiadb
-   rc = getPipeNames ( ppid , f2dName , sizeof ( f2dName ) ,
-                       d2fName , sizeof ( d2fName ) ) ;
+   // in /var/sequoiadb
+
+   // f2dCtlName and d2fCtlName are used as matching condition to get
+   // the bpf2dCtl and bpd2fCtl name pipe if the two name pipe existed
+   // in /var/sequoiadb
+   rc = getPipeNames ( ppid,
+                       f2dName, sizeof( f2dName ),
+                       d2fName, sizeof( d2fName ),
+                       f2dCtlName, sizeof( f2dCtlName ),
+                       d2fCtlName, sizeof( d2fCtlName ) ) ;
    if ( rc )
    {
       ossPrintf( "Build pipe names failed, rc: %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
 
-   // there may be two name pipe in /tmp/sequoiadb,
+   // there may be four name pipe in /var/sequoiadb,
    // get the their names if they existed
-   rc = getPipeNames1 ( bpf2dName , sizeof ( bpf2dName ) ,
-                        bpd2fName , sizeof ( bpd2fName ) ,
-                        f2dName , d2fName ) ;
+   rc = getPipeNames1 ( bpf2dName, sizeof( bpf2dName ),
+                        bpd2fName, sizeof( bpd2fName ),
+                        bpf2dCtlName, sizeof( bpf2dCtlName ),
+                        bpd2fCtlName, sizeof( bpd2fCtlName ),
+                        f2dName, d2fName,
+                        f2dCtlName, d2fCtlName ) ;
 
    if ( rc == SDB_OK )
    {
@@ -700,7 +913,8 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
             goto error ;
          }
 
-         rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName ) ;
+         rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName,
+                                    bpf2dCtlName, bpd2fCtlName ) ;
          if ( rc )
          {
             goto error ;
@@ -721,7 +935,8 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       // which will create those named pipes
 
       // create a process which will create two name pipe
-      rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName ) ;
+      rc = createDaemonProcess ( pbFullPath, ppid, bpf2dName, bpd2fName,
+                                 bpf2dCtlName, bpd2fCtlName ) ;
       if ( rc )
       {
          goto error ;
@@ -764,61 +979,49 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       goto error ;
    }
 
+   try
+   {
+      readTh = boost::thread( readThread, bpf2dCtlName, bpd2fCtlName ) ;
+   }
+   catch ( boost::thread_resource_error )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
    // rest are the actual message
    // if we failed at first loop, we'll never enter here since rc != SDB_OK
-   ossMemset ( receiveBuffer1, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-   ossMemset ( receiveBuffer2, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
    while ( TRUE )
    {
       rc = ossReadNamedPipe ( d2fPipe , &c , 1 , NULL ) ;
       // loop until reading something
       if ( rc )
          break ;
-      //(tanzhaobo)here we use 2 buffers to receive context
-      // no mater witch buffer we are in, if the current buffer
-      // not full, go on receiving to current buffer
-      if ( ( pCurrentReceivePtr - &receiveBuffer1[0] <
-             SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
-             pCurrentReceivePtr >= &receiveBuffer1[0] ) ||
-           ( pCurrentReceivePtr - &receiveBuffer2[0] <
-             SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
-             pCurrentReceivePtr >= &receiveBuffer2[0] ) )
+      if ( pCurrentReceivePtr - &receiveBuffer[0] ==
+           SDB_FRONTEND_RECEIVEBUFFERSIZE - 1 )
       {
-         // if we are in buffer 1 or buffer 2
+         receiveBuffer[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = 0 ;
+         ossPrintf ( "%s", receiveBuffer ) ;
+         ossMemset ( receiveBuffer, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
+         pCurrentReceivePtr = &receiveBuffer[0] ;
          *pCurrentReceivePtr = c ;
          ++pCurrentReceivePtr ;
       }
-      else if ( pCurrentReceivePtr - &receiveBuffer1[0] ==
-                SDB_FRONTEND_RECEIVEBUFFERSIZE-1 )
+      else if ( pCurrentReceivePtr - &receiveBuffer[0] <
+                SDB_FRONTEND_RECEIVEBUFFERSIZE - 1 )
       {
-         // (liangzhongkai)if we are at end of buffer 1, let's dump buffer 2 and then clear the
-         // buffer
-         // note we should NOT dump buffer 1 at the moment since we need to
-         // extract the rc at the end
-         //(tanzhaobo)if buffer 1 is full, we are going to use buffer 2, before this, let's ossPrintf the
-         // contexts in buffer 2 and clear it up
-         receiveBuffer2[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = '\0' ;
-         ossPrintf ( "%s", receiveBuffer2 ) ;
-         ossMemset ( receiveBuffer2, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-         pCurrentReceivePtr = &receiveBuffer2[0] ;
-         *pCurrentReceivePtr = c ;
-         ++pCurrentReceivePtr ;
-      }
-      else if ( pCurrentReceivePtr - &receiveBuffer2[0] ==
-                SDB_FRONTEND_RECEIVEBUFFERSIZE-1 )
-      {
-         // (liangzhongkai)if we are at end of buffer 1, let's dump buffer 2 and then clear the
-         // buffer
-         // note we should NOT dump buffer 1 at the moment since we need to
-         // extract the rc at the end
-         //(tanzhaobo)if buffer 2 is full, we are going to use buffer 1, before this, let's ossPrintf the
-         // contexts in buffer 1 and clear it up
-         receiveBuffer1[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = '\0' ;
-         ossPrintf ( "%s", receiveBuffer1 ) ;
-         ossMemset ( receiveBuffer1, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-         pCurrentReceivePtr = &receiveBuffer1[0] ;
-         *pCurrentReceivePtr = c ;
-         ++pCurrentReceivePtr ;
+         if ( '\n' == c )
+         {
+            *pCurrentReceivePtr = c ;
+            ossPrintf ( "%s", receiveBuffer ) ;
+            ossMemset ( receiveBuffer, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
+            pCurrentReceivePtr = &receiveBuffer[0] ;
+         }
+         else
+         {
+            *pCurrentReceivePtr = c ;
+            pCurrentReceivePtr++ ;
+         }
       }
       else
       {
@@ -828,30 +1031,8 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
          goto error ;
       }
    }
-   // (tanzhaobo)after we receive buffer, we may have some contents had not been ossPrintf,
-   // let's scan the buffer to ossPrintf the rest,
-   // the rule is simple, let's copy the contexts from the buffer which we are not writing to latest,
-   // and then copy from the buffer we are currently writting to
-   if ( pCurrentReceivePtr - &receiveBuffer1[0] <=
-        SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
-        pCurrentReceivePtr >= &receiveBuffer1[0] )
-   {
-      ossStrncpy ( receiveBufferFinal, receiveBuffer2,
-                   SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-      ossStrncat ( receiveBufferFinal, receiveBuffer1,
-                   SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-   }
-   else if ( pCurrentReceivePtr - &receiveBuffer2[0] <=
-             SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
-             pCurrentReceivePtr >= &receiveBuffer2[0] )
-   {
-      ossStrncpy ( receiveBufferFinal, receiveBuffer1,
-                   SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-      ossStrncat ( receiveBufferFinal, receiveBuffer2,
-                   SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
-   }
-   pCurrentReceivePtr = &receiveBufferFinal[ossStrlen(receiveBufferFinal)] ;
-   while ( pCurrentReceivePtr != &receiveBufferFinal[0] &&
+   pCurrentReceivePtr = &receiveBuffer[ossStrlen(receiveBuffer)] ;
+   while ( pCurrentReceivePtr != &receiveBuffer[0] &&
            *pCurrentReceivePtr != ' ' )
    {
       --pCurrentReceivePtr ;
@@ -861,7 +1042,7 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       retCode = ossAtoi ( pCurrentReceivePtr+1 ) ;
    }
    *pCurrentReceivePtr = '\0' ;
-   ossPrintf ( "%s" , receiveBufferFinal ) ;
+   ossPrintf ( "%s" , receiveBuffer ) ;
    SH_VERIFY_COND ( SDB_OK == rc || SDB_EOF == rc , rc )
 
    rc = ossCloseNamedPipe( d2fPipe ) ;
@@ -869,6 +1050,9 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
    {
       goto error ;
    }
+
+   isExit = TRUE ;
+   readTh.join() ;
 
 done :
    if ( SDB_OK != retCode )

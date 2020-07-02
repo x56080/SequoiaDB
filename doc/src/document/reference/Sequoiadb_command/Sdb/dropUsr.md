@@ -1,14 +1,21 @@
 ##语法##
+
 ***db.dropUsr( \<name\>, \<password\> )***
 
-删除数据库已有的用户名和密码。
+***db.dropUsr( \<User\> )***
+
+***db.dropUsr( \<CipherUser\> )***
+
+删除数据库用户。
 
 ##参数描述##
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
-| ------ | ------ | ------ | ------ |
-| name | string | 用户名 | 是 |
-| password | string | 密码 | 是 |
+| 参数名     | 参数类型 | 描述            | 是否必填 |
+| ---------- | -------- | --------------- | -------- |
+| name       | string   | 用户名          | 是       |
+| password   | string   | 密码            | 是       |
+| User       | object   | [User](reference/Sequoiadb_command/AuxiliaryObjects/User.md)对象       | 是       |
+| CipherUser | object   | [CipherUser](reference/Sequoiadb_command/AuxiliaryObjects/CipherUser.md)对象 | 是       |
 
 ##返回值##
 
@@ -16,8 +23,22 @@
 
 ##示例##
 
-* 删除用户名为 root，密码为 admin 的数据库权限。
+* 删除用户名为 sdbadmin，密码为 sdbadmin 的用户。
 
  ```lang-javascript
- > db.dropUsr( "root", "admin" )
+ > db.dropUsr( "sdbadmin", "sdbadmin" )
+ ```
+
+* 使用 User 对象删除用户名为 sdbadmin，密码为 sdbadmin 的用户。
+
+ ```lang-javascript
+ > var a = User( "sdbadmin", "sdbadmin" )
+ > db.dropUsr( a )
+ ```
+
+* 使用 CipherUser 对象删除用户名为 sdbadmin，密码为 sdbadmin 的用户（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd](database_management/tools/sdbpasswd.md)）。
+
+ ```lang-javascript
+ > var a = CipherUser( "sdbadmin" )
+ > db.dropUsr( a )
  ```

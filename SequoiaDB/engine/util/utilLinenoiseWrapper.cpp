@@ -736,9 +736,6 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
             }
          }
 
-         linenoiseHistoryAdd ( input.c_str()) ;
-         g_lnBuilder.addCmd( input.c_str() ) ;
-
          if ( firstCmd.empty() && linenoiseHistoryGet( 0 ) )
          {
             firstCmd = linenoiseHistoryGet( 0 ) ;

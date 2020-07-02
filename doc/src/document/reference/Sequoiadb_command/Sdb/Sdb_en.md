@@ -3,9 +3,14 @@
 Sdb - connection SequoiaDB object.
 
 ##SYNOPSIS##
-**var db = new Sdb([hostname],[svcname])**
 
-**var db = new Sdb([hostname],[svcname],[username],[password])**
+**var db = new Sdb( [hostname], [svcname] )**
+
+**var db = new Sdb( [hostname], [svcname], [username], [password] )**
+
+**var db = new Sdb( [hostname], [svcname], [User] )**
+
+**var db = new Sdb( [hostname], [svcname], [CipherUser] )**
 
 ##CATEGORY##
 
@@ -17,29 +22,20 @@ Create a Sdb object to connect to the SequoiaDB.
 
 ##PARAMETERS##
 
-* `hostname` ( *String* )
-
-	Target hostname, default to be "localhost".
-
-* `svcname` ( *int* )
-
-	Target svcname, default to be 11810.
-
-* `username` ( *String*)
-
-   The username of the SequoiaDB user, if the SequoiaDB has no users. default to be empty.
-
-* `password` ( *String* )
-
-   The password of the SequoiaDB user, if the SequoiaDB has no users. default to be empty.
-
+| Name       | Type     | Default   | Description       | Required or not |
+| ---------- | -------- | --------- | ----------------- | --------------- |
+| hostname   | string   | localhost | target hostname   | not             |
+| svcname    | int      | 11810     | target svcname    | not             |
+| username   | string   | null      | username          | not             |
+| password   | string   | null      | password          | not             |
+| User       | object   | ---       | [User](reference/Sequoiadb_command/AuxiliaryObjects/User.md) object       | not             |
+| CipherUser | object   | ---       | [CipherUser](reference/Sequoiadb_command/AuxiliaryObjects/CipherUser.md) object | not             |
 
 >**Note:**
 
->1. Use [createUsr()](reference/Sequoiadb_command/Sdb/createUsr.md) to create a user and set the password.
+>* Use [createUsr()](reference/Sequoiadb_command/Sdb/createUsr.md) to create a user and set the password.
 
->2. If the SequoiaDB has users, then must use username and password to create the Sdb object.
-
+>* If the SequoiaDB has users, you must use username and password to create the Sdb object.
 
 ##RETURN VALUE##
 
@@ -67,20 +63,36 @@ Since v1.12
 
 ##EXAMPLES##
 
-1. Create a Sdb object connection to the SequoiaDB, hostname default to be "localhost", svcname default to be 11810.
+1. Create a Sdb object and connect to the SequoiaDB, using the default hostname and svcname.
 
 	```lang-javascript
  	> var db = new Sdb()
  	```
 
-2. Create a Sdb object  connection to the SequoiaDB on the specified host, target hostname is "sdbserver1".
+2. Create a Sdb object and connect to the SequoiaDB on the specified host, "sdbserver1".
 
 	```lang-javascript
- 	> var db = new Sdb("sdbserver1",11810)
+ 	> var db = new Sdb( "sdbserver1", 11810 )
 	```
 
-3. Create a Sdb object  connection to the SequoiaDB on the specified host with a username and password.
+3. Create a Sdb object and connect to the SequoiaDB on the specified host using the specified username and password.
 
 	```lang-javascript
- 	> var db = new Sdb("sdbserver1",11810,"admin","123")
+ 	> var db = new Sdb( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+	```
+
+4. Create a Sdb object and connect to the SequoiaDB on the specified host using User object.
+
+	```lang-javascript
+    > var a = User( "sdbadmin" ).promptPassword()
+    password:
+    sdbadmin
+ 	> var db = new Sdb( "sdbserver1", 11810, a )
+	```
+
+5. Create a Sdb object and connect to the SequoiaDB on the specified host using CipherUser object ( User information with username 'sdbadmin' and password 'sdbadmin' must exist in the cipher test file. For details on how to add and delete cipher test information in cipher test file, please see [sdbpasswd](database_management/tools/sdbpasswd.md) for details ).
+
+   	```lang-javascript
+    > var a = CipherUser( "sdbadmin" )
+ 	> var db = new Sdb( "sdbserver1", 11810, a )
 	```

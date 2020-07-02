@@ -56,17 +56,28 @@
 #define SDB_SHELL_WAIT_PIPE_PREFIX        "sdb-shell-wait-"
 #define SDB_SHELL_F2B_PIPE_PREFIX         "sdb-shell-f2b-"
 #define SDB_SHELL_B2F_PIPE_PREFIX         "sdb-shell-b2f-"
+#define SDB_SHELL_CTL_F2B_PIPE_PREFIX     "sdb-shell-ctl-f2b-"
+#define SDB_SHELL_CTL_B2F_PIPE_PREFIX     "sdb-shell-ctl-b2f-"
 
 INT32 getWaitPipeName ( const OSSPID & ppid , CHAR * buf , UINT32 bufSize ) ;
-INT32 getPipeNames( const OSSPID & ppid , CHAR * f2bName , UINT32 f2bSize ,
-                    CHAR * b2fName , UINT32 b2fSize ) ;
-INT32 getPipeNames2( const OSSPID & ppid , const OSSPID & pid ,
-                     CHAR * f2bName , UINT32 f2bSize ,
-                     CHAR * b2fName , UINT32 b2fSize ) ;
 
-INT32 getPipeNames1( CHAR * bpf2bName , UINT32 bpf2bSize ,
-                     CHAR * bpb2fName , UINT32 bpb2fSize ,
-                     CHAR * f2bName , CHAR * b2fName ) ;
+INT32 getPipeNames( const OSSPID &ppid,
+                    CHAR *f2bName, UINT32 f2bSize,
+                    CHAR *b2fName, UINT32 b2fSize,
+                    CHAR *f2bCtlName, UINT32 f2bCtlSize,
+                    CHAR *b2fCtlName, UINT32 b2fCtlSize ) ;
+INT32 getPipeNames2( const OSSPID &ppid, const OSSPID &pid,
+                     CHAR *f2bName, UINT32 f2bSize,
+                     CHAR *b2fName, UINT32 b2fSize,
+                     CHAR *f2bCtlName, UINT32 f2bCtlSize,
+                     CHAR *b2fCtlName, UINT32 b2fCtlSize ) ;
+
+INT32 getPipeNames1( CHAR *bpf2bName, UINT32 bpf2bSize,
+                     CHAR *bpb2fName, UINT32 bpb2fSize,
+                     CHAR *bpf2bCtlName, UINT32 bpf2bCtlSize,
+                     CHAR *bpb2fCtlName, UINT32 bpb2fCtlSize,
+                     CHAR *f2bName, CHAR *b2fName,
+                     CHAR *f2bCtlName, CHAR *b2fCtlName ) ;
 
 void  clearDirtyShellPipe( const CHAR *prefix ) ;
 

@@ -33,6 +33,7 @@
 #define SPT_DB_SDB_HPP_
 #include "client.hpp"
 #include "sptApi.hpp"
+#include "sptDBCipherUser.hpp"
 
 using sdbclient::sdb ;
 namespace engine
@@ -284,6 +285,12 @@ namespace engine
       static INT32 bsonToJSObj( sdbclient::sdb &db, const BSONObj &data,
                                 _sptReturnVal &rval, bson::BSONObj &detail ) ;
    private:
+      INT32 _getUserInfoFromCipherUserObj( const BSONObj &cipherUserObj,
+                                           sptDBCipherUser *pCipherUser,
+                                           string &username,
+                                           string &passwd,
+                                           bson::BSONObj &detail ) ;
+
       INT32 _getCSAndSetProperty( const string &csName, _sptReturnVal &rval,
                                   bson::BSONObj &detail ) ;
 

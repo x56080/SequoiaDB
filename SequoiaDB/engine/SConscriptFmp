@@ -78,7 +78,9 @@ sptFiles = [
       "spt/db/sptDBOptionBase.cpp",
       "spt/db/sptDBSnapshotOption.cpp",
       "spt/db/sptDBQueryOption.cpp",
-      "spt/db/sptDBTraceOption.cpp"
+      "spt/db/sptDBTraceOption.cpp",
+      "spt/db/sptDBUser.cpp",
+      "spt/db/sptDBCipherUser.cpp"
       ]
 
 ssh2Files = [
@@ -191,7 +193,10 @@ utilFiles = [
       "util/utilCipher.c",
       "util/utilTypeCast.c",
       "util/utilIniParser.c",
-      "util/utilIniParserEx.cpp"
+      "util/utilIniParserEx.cpp",
+      "util/utilPasswdTool.cpp",
+      "util/utilCipherMgr.cpp",
+      "util/utilCipherFile.cpp" 
       ]
 
 clientCFiles = [

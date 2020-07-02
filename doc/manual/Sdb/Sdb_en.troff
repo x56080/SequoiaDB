@@ -8,9 +8,13 @@
 Sdb \- connection SequoiaDB object.
 .SH SYNOPSIS
 .PP
-\f[B]var db = new Sdb([hostname],[svcname])\f[]
+\f[B]var db = new Sdb( [hostname], [svcname] )\f[]
 .PP
-\f[B]var db = new Sdb([hostname],[svcname],[username],[password])\f[]
+\f[B]var db = new Sdb( [hostname], [svcname], [username], [password] )\f[]
+.PP
+\f[B]var db = new Sdb( [hostname], [svcname], [User] )\f[]
+.PP
+\f[B]var db = new Sdb( [hostname], [svcname], [CipherUser] )\f[]
 .SH CATEGORY
 .PP
 Sdb
@@ -18,40 +22,114 @@ Sdb
 .PP
 Create a Sdb object to connect to the SequoiaDB.
 .SH PARAMETERS
-.IP \[bu] 2
-\f[C]hostname\f[] ( \f[I]String\f[] )
-.RS 2
 .PP
-Target hostname, default to be "localhost".
-.RE
-.IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]int\f[] )
-.RS 2
-.PP
-Target svcname, default to be 11810.
-.RE
-.IP \[bu] 2
-\f[C]username\f[] ( \f[I]String\f[])
-.PP
-The username of the SequoiaDB user, if the SequoiaDB has no users.
-default to be empty.
-.IP \[bu] 2
-\f[C]password\f[] ( \f[I]String\f[] )
-.PP
-The password of the SequoiaDB user, if the SequoiaDB has no users.
-default to be empty.
-.RS
-.PP
+.TS
+tab(@);
+l l l l l l.
+T{
+0
+T}@T{
+Name
+T}@T{
+Type
+T}@T{
+Default
+T}@T{
+Description
+T}@T{
+Required or not
+T}
+_
+T{
+1
+T}@T{
+hostname
+T}@T{
+string
+T}@T{
+localhost
+T}@T{
+target hostname
+T}@T{
+not
+T}
+T{
+2
+T}@T{
+svcname
+T}@T{
+int
+T}@T{
+11810
+T}@T{
+target svcname
+T}@T{
+not
+T}
+T{
+3
+T}@T{
+username
+T}@T{
+string
+T}@T{
+null
+T}@T{
+username
+T}@T{
+not
+T}
+T{
+4
+T}@T{
+password
+T}@T{
+string
+T}@T{
+null
+T}@T{
+password
+T}@T{
+not
+T}
+T{
+5
+T}@T{
+User
+T}@T{
+object
+T}@T{
+\-\-\-
+T}@T{
+User object
+T}@T{
+not
+T}
+T{
+6
+T}@T{
+CipherUser
+T}@T{
+object
+T}@T{
+\-\-\-
+T}@T{
+CipherUser object
+T}@T{
+not
+T}
+.TE
+
 \f[B]Note:\f[]
 .RE
-.RS
-.IP "1." 3
+.PP
+.IP \[bu] 2
 Use createUsr() to create a user and set the password.
 .RE
-.RS
-.IP "2." 3
-If the SequoiaDB has users, then must use username and password to create the
-Sdb object.
+.PP
+.IP \[bu] 2
+If the SequoiaDB has users, you must use username and password to create the Sdb
+object.
 .RE
 .SH RETURN VALUE
 .PP
@@ -248,8 +326,8 @@ For more detial, please reference to Troubleshooting.
 Since v1.12
 .SH EXAMPLES
 .IP "1." 3
-Create a Sdb object connection to the SequoiaDB, hostname default to be
-"localhost", svcname default to be 11810.
+Create a Sdb object and connect to the SequoiaDB, using the default hostname and
+svcname.
 .nf
 \f[C]
 >\ var\ db\ =\ new\ Sdb()
@@ -257,20 +335,45 @@ Create a Sdb object connection to the SequoiaDB, hostname default to be
 .fi
 .RE
 .IP "2." 3
-Create a Sdb object connection to the SequoiaDB on the specified host, target
-hostname is "sdbserver1".
+Create a Sdb object and connect to the SequoiaDB on the specified host,
+"sdbserver1".
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb("sdbserver1",11810)
+>\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810\ )
 \f[]
 .fi
 .RE
 .IP "3." 3
-Create a Sdb object connection to the SequoiaDB on the specified host with a
-username and password.
+Create a Sdb object and connect to the SequoiaDB on the specified host using the
+specified username and password.
 .nf
 \f[C]
->\ var\ db\ =\ new\ Sdb("sdbserver1",11810,"admin","123")
+>\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ "sdbadmin",\ "sdbadmin"\ )
+\f[]
+.fi
+.RE
+.IP "4." 3
+Create a Sdb object and connect to the SequoiaDB on the specified host using
+User object.
+.nf
+\f[C]
+>\ var\ a\ =\ User(\ "sdbadmin"\ ).promptPassword()
+password:
+sdbadmin
+>\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
+\f[]
+.fi
+.RE
+.IP "5." 3
+Create a Sdb object and connect to the SequoiaDB on the specified host using
+CipherUser object ( User information with username \[aq]sdbadmin\[aq] and
+password \[aq]sdbadmin\[aq] must exist in the cipher test file.
+For details on how to add and delete cipher test information in cipher test
+file, please see sdbpasswd for details ).
+.nf
+\f[C]
+>\ var\ a\ =\ CipherUser(\ "sdbadmin"\ )
+>\ var\ db\ =\ new\ Sdb(\ "sdbserver1",\ 11810,\ a\ )
 \f[]
 .fi
 .RE

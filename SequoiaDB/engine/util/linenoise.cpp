@@ -151,7 +151,7 @@ static char **history = NULL;
 
 /*
 * echo Char = 0, echo original content
-* echo Char != 0, echo corresponding ASCII character 
+* echo Char != 0, echo corresponding ASCII character
 */
 static char echoChar = 0;
 static int echoOn = 1;
@@ -249,7 +249,7 @@ DWORD consolemode ;
 static BOOLEAN s_initDisplayAttr       = FALSE ;
 static WORD    s_oldDisplayAttribute   = -1 ;
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_WIN32READ, "win32read" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_WIN32READ, "win32read" )
 static int win32read( char * c, BOOLEAN * withCtrl )
 {
     PD_TRACE_ENTRY ( SDB_WIN32READ );
@@ -444,7 +444,7 @@ FILE *lndebug_fp = NULL;
 /* ======================= Low level terminal handling ====================== */
 
 /* Set if to use or not the multi line mode. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNSETMULTILINE, "linenoiseSetMultiLine" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNSETMULTILINE, "linenoiseSetMultiLine" )
 void linenoiseSetMultiLine(int ml)
 {
     PD_TRACE_ENTRY ( SDB_LNSETMULTILINE );
@@ -454,7 +454,7 @@ void linenoiseSetMultiLine(int ml)
 
 /* Return true if the terminal name is in the list of terminals we know are
  * not able to understand basic escape sequences. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_ISUNSUPPORTTERM, "isUnsupportedTerm" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_ISUNSUPPORTTERM, "isUnsupportedTerm" )
 static int isUnsupportedTerm(void)
 {
    PD_TRACE_ENTRY ( SDB_ISUNSUPPORTTERM );
@@ -483,7 +483,7 @@ done:
 }
 
 /* Raw mode: 1960 magic shit. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_ENABLERAWMODE, "enableRawMode" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_ENABLERAWMODE, "enableRawMode" )
 static int enableRawMode(int fd)
 {
    PD_TRACE_ENTRY ( SDB_ENABLERAWMODE );
@@ -559,7 +559,7 @@ error:
     goto done;
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_DISABLERAWMODE, "disableRawMode" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_DISABLERAWMODE, "disableRawMode" )
 static void disableRawMode(int fd)
 {
    PD_TRACE_ENTRY ( SDB_DISABLERAWMODE );
@@ -577,7 +577,7 @@ static void disableRawMode(int fd)
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
  * and return it. On error -1 is returned, on success the position of the
  * cursor. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_GETCURSORPOSITION, "getCursorPosition" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_GETCURSORPOSITION, "getCursorPosition" )
 static int getCursorPosition(int ifd, int ofd)
 {
     PD_TRACE_ENTRY ( SDB_GETCURSORPOSITION );
@@ -621,7 +621,7 @@ error:
 
 /* Try to get the number of columns in the current terminal, or assume 80
  * if it fails. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_GETCOLUMNS, "getColumns" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_GETCOLUMNS, "getColumns" )
 static int getColumns(int ifd, int ofd)
 {
     PD_TRACE_ENTRY ( SDB_GETCOLUMNS );
@@ -679,7 +679,7 @@ error:
 }
 
 /* Clear the screen. Used to handle ctrl+l */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNCLEARSCREEN, "linenoiseClearScreen" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNCLEARSCREEN, "linenoiseClearScreen" )
 void linenoiseClearScreen(void)
 {
     PD_TRACE_ENTRY ( SDB_LNCLEARSCREEN );
@@ -696,7 +696,7 @@ void linenoiseClearScreen(void)
 
 /* Beep, used for completion when there is nothing to complete or when all
  * the choices were already shown. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNBEEP, "linenoiseBeep" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNBEEP, "linenoiseBeep" )
 static void linenoiseBeep(void)
 {
     PD_TRACE_ENTRY ( SDB_LNBEEP );
@@ -708,7 +708,7 @@ static void linenoiseBeep(void)
 /* ============================== Completion ================================ */
 
 /* Free a list of completion option populated by linenoiseAddCompletion(). */
-PD_TRACE_DECLARE_FUNCTION ( SDB_FREECOMPLETIONS, "freeCompletions" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FREECOMPLETIONS, "freeCompletions" )
 static void freeCompletions(linenoiseCompletions *lc)
 {
     PD_TRACE_ENTRY ( SDB_FREECOMPLETIONS );
@@ -726,7 +726,7 @@ static void freeCompletions(linenoiseCompletions *lc)
  *
  * The state of the editing is encapsulated into the pointed linenoiseState
  * structure as described in the structure definition. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_COMPLETELINE, "completeLine" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_COMPLETELINE, "completeLine" )
 static int completeLine(struct linenoiseState *ls)
 {
     PD_TRACE_ENTRY ( SDB_COMPLETELINE );
@@ -822,7 +822,7 @@ error:
    goto done;
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYCLEAR, "linenoiseHistoryClear" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYCLEAR, "linenoiseHistoryClear" )
 void linenoiseHistoryClear(void)
 {
     PD_TRACE_ENTRY ( SDB_LNHISTORYCLEAR );
@@ -832,7 +832,7 @@ void linenoiseHistoryClear(void)
 }
 
 /* Register a callback function to be called for tab-completion. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNSETCPLCALLBACK, "linenoiseSetCompletionCallback" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNSETCPLCALLBACK, "linenoiseSetCompletionCallback" )
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn)
 {
     PD_TRACE_ENTRY ( SDB_LNSETCPLCALLBACK );
@@ -844,7 +844,7 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn)
  * in order to add completion options given the input string when the
  * user typed <tab>. See the example.c source code for a very easy to
  * understand example. */
- PD_TRACE_DECLARE_FUNCTION ( SDB_LNADDCPL, "linenoiseAddCompletion" )
+ //PD_TRACE_DECLARE_FUNCTION ( SDB_LNADDCPL, "linenoiseAddCompletion" )
 void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str)
 {
     PD_TRACE_ENTRY ( SDB_LNADDCPL );
@@ -884,7 +884,7 @@ struct abuf
     int len;
 };
 
- PD_TRACE_DECLARE_FUNCTION ( SDB_ABINIT, "abInit" )
+ //PD_TRACE_DECLARE_FUNCTION ( SDB_ABINIT, "abInit" )
 static void abInit(struct abuf *ab)
 {
     PD_TRACE_ENTRY ( SDB_ABINIT );
@@ -893,7 +893,7 @@ static void abInit(struct abuf *ab)
     PD_TRACE_EXIT ( SDB_ABINIT );
 }
 
- PD_TRACE_DECLARE_FUNCTION ( SDB_ABAPPEND, "abAppend" )
+ //PD_TRACE_DECLARE_FUNCTION ( SDB_ABAPPEND, "abAppend" )
 static void abAppend(struct abuf *ab, const char *s, int len)
 {
     PD_TRACE_ENTRY ( SDB_ABAPPEND );
@@ -907,7 +907,7 @@ static void abAppend(struct abuf *ab, const char *s, int len)
     PD_TRACE_EXIT ( SDB_ABAPPEND );
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_ABFREE, "abFree" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_ABFREE, "abFree" )
 static void abFree(struct abuf *ab)
 {
     PD_TRACE_ENTRY ( SDB_ABFREE );
@@ -915,7 +915,7 @@ static void abFree(struct abuf *ab)
     PD_TRACE_EXIT ( SDB_ABFREE );
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_CALCHIGHLIGHTPOS, "calcHighLightPos" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_CALCHIGHLIGHTPOS, "calcHighLightPos" )
 static int calcHighLightPos( struct linenoiseState *l )
 {
     PD_TRACE_ENTRY ( SDB_CALCHIGHLIGHTPOS );
@@ -959,7 +959,7 @@ static int calcHighLightPos( struct linenoiseState *l )
 
 #ifdef _WINDOWS
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_SETDISPLAYATTR, "setDisplayAttribute" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_SETDISPLAYATTR, "setDisplayAttribute" )
 static int setDisplayAttribute( bool enhancedDisplay,
                                 COORD dwCoord,
                                 int length )
@@ -1040,7 +1040,7 @@ error:
  *
  * Rewrite the currently edited line accordingly to the buffer content,
  * cursor position, and number of columns of the terminal. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHSINGLELINE, "refreshSingleLine" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHSINGLELINE, "refreshSingleLine" )
 static void refreshSingleLine(struct linenoiseState *l, const char *prompt)
 {
     PD_TRACE_ENTRY ( SDB_REFRESHSINGLELINE );
@@ -1166,7 +1166,7 @@ static void refreshSingleLine(struct linenoiseState *l, const char *prompt)
  *
  * Rewrite the currently edited line accordingly to the buffer content,
  * cursor position, and number of columns of the terminal. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHMULTILINE, "refreshMultiLine" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHMULTILINE, "refreshMultiLine" )
 static void refreshMultiLine(struct linenoiseState *l, const char *prompt)
 {
     PD_TRACE_ENTRY ( SDB_REFRESHMULTILINE );
@@ -1482,7 +1482,7 @@ error:
 
 /* Calls the two low level functions refreshSingleLine() or
  * refreshMultiLine() according to the selected mode. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHLINE, "refreshLine" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHLINE, "refreshLine" )
 static void refreshLine(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_REFRESHLINE ) ;
@@ -1490,7 +1490,7 @@ static void refreshLine(struct linenoiseState *l)
     PD_TRACE_EXIT ( SDB_REFRESHLINE ) ;
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHLINEPROMPT, "refreshLinePrompt" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_REFRESHLINEPROMPT, "refreshLinePrompt" )
 static void refreshLinePrompt ( struct linenoiseState * l, const char * prompt )
 {
    PD_TRACE_ENTRY( SDB_REFRESHLINEPROMPT ) ;
@@ -1510,7 +1510,7 @@ static void refreshLinePrompt ( struct linenoiseState * l, const char * prompt )
 /* Insert the character 'c' at cursor current position.
  *
  * On error writing to the terminal -1 is returned, otherwise 0. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITINSERT, "linenoiseEditInsert" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITINSERT, "linenoiseEditInsert" )
 int linenoiseEditInsert(struct linenoiseState *l, char c)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITINSERT );
@@ -1570,7 +1570,7 @@ error:
 }
 
 /* Move cursor on the left. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVELEFT, "linenoiseEditMoveLeft" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVELEFT, "linenoiseEditMoveLeft" )
 void linenoiseEditMoveLeft(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITMOVELEFT );
@@ -1583,7 +1583,7 @@ void linenoiseEditMoveLeft(struct linenoiseState *l)
 }
 
 /* Move cursor on the right. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVERIGHT, "linenoiseEditMoveRight" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVERIGHT, "linenoiseEditMoveRight" )
 void linenoiseEditMoveRight(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITMOVERIGHT );
@@ -1596,7 +1596,7 @@ void linenoiseEditMoveRight(struct linenoiseState *l)
 }
 
 /* Move cursor to the last word. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVELASTWORD, "linenoiseEditMoveLastWord" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVELASTWORD, "linenoiseEditMoveLastWord" )
 void linenoiseEditMoveLastWord( struct linenoiseState *l )
 {
    PD_TRACE_ENTRY ( SDB_LNEDITMOVELASTWORD ) ;
@@ -1622,7 +1622,7 @@ void linenoiseEditMoveLastWord( struct linenoiseState *l )
 }
 
 /* Move cursor to the next word. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVENEXTWORD, "linenoiseEditMoveNextWord" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVENEXTWORD, "linenoiseEditMoveNextWord" )
 void linenoiseEditMoveNextWord( struct linenoiseState *l )
 {
    PD_TRACE_ENTRY ( SDB_LNEDITMOVENEXTWORD) ;
@@ -1640,7 +1640,7 @@ void linenoiseEditMoveNextWord( struct linenoiseState *l )
 }
 
 /* Move cursor to the start of the line. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVEHOME, "linenoiseEditMoveHome" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVEHOME, "linenoiseEditMoveHome" )
 void linenoiseEditMoveHome(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITMOVEHOME );
@@ -1653,7 +1653,7 @@ void linenoiseEditMoveHome(struct linenoiseState *l)
 }
 
 /* Move cursor to the end of the line. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVEEND, "linenoiseEditMoveEnd" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITMOVEEND, "linenoiseEditMoveEnd" )
 void linenoiseEditMoveEnd(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITMOVEEND );
@@ -1669,7 +1669,7 @@ void linenoiseEditMoveEnd(struct linenoiseState *l)
  * entry as specified by 'dir'. */
 #define LINENOISE_HISTORY_NEXT 0
 #define LINENOISE_HISTORY_PREV 1
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITHISTORYNEXT, "linenoiseEditHistoryNext" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITHISTORYNEXT, "linenoiseEditHistoryNext" )
 void linenoiseEditHistoryNext(struct linenoiseState *l, int dir)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITHISTORYNEXT );
@@ -1703,7 +1703,7 @@ done:
 
 /* Delete the character at the right of the cursor without altering the cursor
  * position. Basically this is what happens with the "Delete" keyboard key. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITDELETE, "linenoiseEditDelete" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITDELETE, "linenoiseEditDelete" )
 void linenoiseEditDelete(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITDELETE );
@@ -1718,7 +1718,7 @@ void linenoiseEditDelete(struct linenoiseState *l)
 }
 
 /* Backspace implementation. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITBACKSPACE, "linenoiseEditBackspace" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITBACKSPACE, "linenoiseEditBackspace" )
 void linenoiseEditBackspace(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITBACKSPACE );
@@ -1735,7 +1735,7 @@ void linenoiseEditBackspace(struct linenoiseState *l)
 
 /* Delete the previosu word, maintaining the cursor at the start of the
  * current word. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITDELPREVWORD, "linenoiseEditDeletePrevWord" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDITDELPREVWORD, "linenoiseEditDeletePrevWord" )
 void linenoiseEditDeletePrevWord(struct linenoiseState *l)
 {
     PD_TRACE_ENTRY ( SDB_LNEDITDELPREVWORD );
@@ -1753,7 +1753,7 @@ void linenoiseEditDeletePrevWord(struct linenoiseState *l)
     PD_TRACE_EXIT ( SDB_LNEDITDELPREVWORD );
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNREVINCSEARCH, "linenoiseReverseIncrementalSearch" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNREVINCSEARCH, "linenoiseReverseIncrementalSearch" )
 int linenoiseReverseIncrementalSearch ( struct linenoiseState * l )
 {
    PD_TRACE_ENTRY( SDB_LNREVINCSEARCH ) ;
@@ -2111,7 +2111,7 @@ static int leftArrowKeyRoutine( struct linenoiseState *l, char c )
    return 0 ;
 }
 
-// ESC [ <digit> 
+// ESC [ <digit>
 static int escLeftBracket1Routine( struct linenoiseState *l, char c )
 {
    int nread  = linenoiseRead( l, &c ) ;
@@ -2178,7 +2178,7 @@ static CharacterDispatch escDispatch =
  * when ctrl+d is typed.
  *
  * The function returns the length of the current buffer. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDIT, "linenoiseEdit" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNEDIT, "linenoiseEdit" )
 static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
                           size_t buflen, const char *prompt)
 {
@@ -2443,7 +2443,7 @@ error:
 /* This special mode is used by linenoise in order to print scan codes
  * on screen for debugging / development purposes. It is implemented
  * by the linenoise_example program using the --keycodes option. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNPRINTKEYCODES, "linenoisePrintKeyCodes" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNPRINTKEYCODES, "linenoisePrintKeyCodes" )
 void linenoisePrintKeyCodes(void)
 {
     PD_TRACE_ENTRY ( SDB_LNPRINTKEYCODES );
@@ -2482,7 +2482,7 @@ error:
 
 /* This function calls the line editing function linenoiseEdit() using
  * the STDIN file descriptor set in raw mode. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNRAW, "linenoiseRaw" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNRAW, "linenoiseRaw" )
 static int linenoiseRaw(char *buf, size_t buflen, const char *prompt)
 {
     PD_TRACE_ENTRY ( SDB_LNRAW );
@@ -2497,8 +2497,10 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt)
     }
     if (!isatty(STDIN_FILENO))
     {
+        ossPrintf ( "%s\n", prompt ) ;
+
         /* Not a tty: read from file / pipe. */
-        if (fgets(buf, buflen, stdin) == NULL)
+        if (fgets(buf, buflen, stdin) == NULL )
         {
             ret = -1;
             goto error;
@@ -2534,7 +2536,7 @@ error:
  * for a blacklist of stupid terminals, and later either calls the line
  * editing function or uses dummy fgets() so that you will be able to type
  * something even in the most desperate of the conditions. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LN, "linenoise" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LN, "linenoise" )
 char *linenoise(const char *prompt)
 {
     PD_TRACE_ENTRY ( SDB_LN );
@@ -2577,7 +2579,7 @@ error:
 
 /* Free the history, but does not reset it. Only used when we have to
  * exit() to avoid memory leaks are reported by valgrind & co. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_FREEHISTORYINLINENOISE, "freeHistory" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_FREEHISTORYINLINENOISE, "freeHistory" )
 static void freeHistory(void)
 {
     PD_TRACE_ENTRY ( SDB_FREEHISTORYINLINENOISE );
@@ -2592,7 +2594,7 @@ static void freeHistory(void)
 }
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNNOISEATEXT, "linenoiseAtExit" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNNOISEATEXT, "linenoiseAtExit" )
 static void linenoiseAtExit(void) {
     PD_TRACE_ENTRY ( SDB_LNNOISEATEXT );
 #ifdef _WIN32
@@ -2606,7 +2608,7 @@ static void linenoiseAtExit(void) {
     PD_TRACE_EXIT ( SDB_LNNOISEATEXT );
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYGET, "linenoiseHistoryGet" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYGET, "linenoiseHistoryGet" )
 const char* linenoiseHistoryGet(int pos)
 {
    PD_TRACE_ENTRY ( SDB_LNHISTORYGET );
@@ -2631,7 +2633,7 @@ error:
  * histories, but will work well for a few hundred of entries.
  *
  * Using a circular buffer is smarter, but a bit more complex to handle. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYADD, "linenoiseHistoryAdd" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYADD, "linenoiseHistoryAdd" )
 int linenoiseHistoryAdd(const char *line)
 {
     PD_TRACE_ENTRY ( SDB_LNHISTORYADD );
@@ -2689,7 +2691,7 @@ error:
  * if there is already some history, the function will make sure to retain
  * just the latest 'len' elements if the new history length value is smaller
  * than the amount of items already inside the history. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYSETMAXLEN, "linenoiseHistorySetMaxLen" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYSETMAXLEN, "linenoiseHistorySetMaxLen" )
 int linenoiseHistorySetMaxLen(int len)
 {
     PD_TRACE_ENTRY ( SDB_LNHISTORYSETMAXLEN );
@@ -2736,7 +2738,7 @@ error:
 
 /* Save the history in the specified file. On success 0 is returned
  * otherwise -1 is returned. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYSAVE, "linenoiseHistorySave" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYSAVE, "linenoiseHistorySave" )
 int linenoiseHistorySave(const char *filename)
 {
 PD_TRACE_ENTRY ( SDB_LNHISTORYSAVE );
@@ -2768,7 +2770,7 @@ error:
  *
  * If the file exists and the operation succeeded 0 is returned, otherwise
  * on error -1 is returned. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYLOAD, "linenoiseHistoryLoad" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_LNHISTORYLOAD, "linenoiseHistoryLoad" )
 int linenoiseHistoryLoad(const char *filename)
 {
     PD_TRACE_ENTRY ( SDB_LNHISTORYLOAD );
@@ -2799,7 +2801,7 @@ error:
     goto done;
 }
 
-PD_TRACE_DECLARE_FUNCTION ( SDB_SETDISPLAYATTRIBUTE, "setDisplayAttribute" )
+//PD_TRACE_DECLARE_FUNCTION ( SDB_SETDISPLAYATTRIBUTE, "setDisplayAttribute" )
 static void setDisplayAttribute( bool enhancedDisplay, struct abuf *ab )
 {
     PD_TRACE_ENTRY ( SDB_SETDISPLAYATTRIBUTE );

@@ -413,12 +413,15 @@ namespace engine
                                  BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class NumberLong : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class \"NumberLong\": " << endl ;
       ss << "   { \"$numberLong\": <data> }   " << endl ;
       ss << "   NumberLong( <data> )             "
          << "-- Data type: long integer" << endl ;
-      ss << "--Static methods for class NumberLong : " << endl ;
-      ss << "--Instance methods for class NumberLong : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class \"NumberLong\": " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class \"NumberLong\": " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

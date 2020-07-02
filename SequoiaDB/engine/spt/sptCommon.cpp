@@ -53,21 +53,22 @@ namespace engine
    /*
       Global function
    */
-   static OSS_THREAD_LOCAL CHAR     *__errmsg__          = NULL ;
-   static OSS_THREAD_LOCAL UINT32   __errmsgSize__       = 0 ;
-   static OSS_THREAD_LOCAL INT32    __errno__            = SDB_OK ;
+   static OSS_THREAD_LOCAL CHAR     *__errmsg__            = NULL ;
+   static OSS_THREAD_LOCAL UINT32   __errmsgSize__         = 0 ;
+   static OSS_THREAD_LOCAL INT32    __errno__              = SDB_OK ;
 
-   static OSS_THREAD_LOCAL CHAR     *__errobj__          = NULL ;
-   static OSS_THREAD_LOCAL UINT32   __errobjSize__       = 0 ;
+   static OSS_THREAD_LOCAL CHAR     *__errobj__            = NULL ;
+   static OSS_THREAD_LOCAL UINT32   __errobjSize__         = 0 ;
 
-   static OSS_THREAD_LOCAL BOOLEAN  __printError__       = TRUE ;
-   static OSS_THREAD_LOCAL BOOLEAN  __hasReadData__      = FALSE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __printError__         = TRUE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __hasReadData__        = FALSE ;
 
-   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrMsg__     = FALSE ;
-   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrNo__      = FALSE ;
-   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrObj__     = FALSE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrMsg__       = FALSE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrNo__        = FALSE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrObj__       = FALSE ;
    static OSS_THREAD_LOCAL BOOLEAN  __needClearErrorInfo__ = FALSE ;
-   static OSS_THREAD_LOCAL BOOLEAN  __ignoreErrorPrefix__ = FALSE ;
+   static OSS_THREAD_LOCAL BOOLEAN  __ignoreErrorPrefix__  = FALSE ;
+   static                  BOOLEAN  __isNeedSaveHistory__  = TRUE ;
    /*
       Local Functions Define
    */
@@ -541,6 +542,16 @@ namespace engine
          return TRUE ;
       }
       return FALSE ;
+   }
+
+   void sdbSetIsNeedSaveHistory( BOOLEAN isNeedSaveHistory )
+   {
+      __isNeedSaveHistory__ = isNeedSaveHistory ;
+   }
+
+   BOOLEAN sdbIsNeedSaveHistory()
+   {
+      return __isNeedSaveHistory__ ;
    }
 
 }

@@ -41,10 +41,12 @@
 #include "sptDBOptionBase.hpp"
 #include "sptDBSnapshotOption.hpp"
 #include "sptDBTraceOption.hpp"
+#include "sptDBUser.hpp"
 #include "sptBsonobj.hpp"
 #include "ossSocket.hpp"
 #include "msgDef.hpp"
 #include "fmpDef.hpp"
+#include "utilPasswdTool.hpp"
 #include <string>
 #include <sstream>
 #include <boost/lexical_cast.hpp>
@@ -198,11 +200,18 @@ namespace engine
                                _sptReturnVal &rval,
                                bson::BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      string hostname ;
-      string svcname ;
-      string username ;
-      string passwd ;
+      INT32   rc = SDB_OK ;
+      string  hostname ;
+      string  svcname ;
+      string  username ;
+      string  passwd ;
+      string  objectName ;
+
+      if ( arg.argc() > 3 )
+      {
+         // if password has been input, we don't save command to history file.
+         sdbSetIsNeedSaveHistory( FALSE ) ;
+      }
 
       // Get hostname
       rc = arg.getString( 0, hostname, FALSE ) ;
@@ -249,32 +258,91 @@ namespace engine
             svcname = boost::lexical_cast< string >( port ) ;
          }
       }
+
       if( arg.argc() > 2 )
       {
-         // Get username
          if( !arg.isNull( 2 ) )
          {
-            rc = arg.getString( 2, username ) ;
+            objectName = arg.getUserObjClassName( 2 ) ;
+         }
+
+         if ( SPT_USER_NAME == objectName )
+         {
+            sptDBUser *pUser = NULL ;
+            BSONObj userObj ;
+
+            rc = arg.getUserObj( 2, sptDBUser::__desc, ( const void** )&pUser ) ;
             if( SDB_OK != rc )
             {
-               detail = BSON( SPT_ERR << "username must be string" ) ;
+               detail = BSON( SPT_ERR << "The obj must be User" ) ;
+               goto error ;
+            }
+
+            rc = arg.getBsonobj( 2, userObj ) ;
+            if( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Failed to get User obj" ) ;
+               goto error ;
+            }
+
+            username = userObj.getStringField( SDB_AUTH_USER ) ;
+            passwd   = pUser->getPasswd() ;
+         }
+         else if ( SPT_CIPHERUSER_NAME == objectName )
+         {
+            sptDBCipherUser *pCipherUser = NULL ;
+            BSONObj cipherUserObj ;
+
+            rc = arg.getUserObj( 2, sptDBCipherUser::__desc,
+                                 ( const void** )&pCipherUser ) ;
+            if( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "The obj must be CipherUser" ) ;
+               goto error ;
+            }
+
+            rc = arg.getBsonobj( 2, cipherUserObj ) ;
+            if( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Failed to get CipherUser obj" ) ;
+               goto error ;
+            }
+
+            rc = _getUserInfoFromCipherUserObj( cipherUserObj, pCipherUser,
+                                                username, passwd, detail ) ;
+            if ( rc )
+            {
                goto error ;
             }
          }
-         // Get password
-         if( !arg.isNull( 3 ) )
+         else
          {
-            rc = arg.getString( 3, passwd ) ;
-            if( SDB_OUT_OF_BOUND == rc )
+            // Get username
+            if( !arg.isNull( 2 ) )
             {
-               detail = BSON( SPT_ERR <<
-                             "you should input your password to connect engine!" ) ;
-               goto error ;
+               rc = arg.getString( 2, username ) ;
+               if( SDB_OK != rc )
+               {
+                  detail = BSON( SPT_ERR << "username must be string" ) ;
+                  goto error ;
+               }
             }
-            else if( SDB_OK != rc )
+
+            // Get password
+            if( !arg.isNull( 3 ) )
             {
-               detail = BSON( SPT_ERR << "Password must be string" ) ;
-               goto error ;
+               rc = arg.getString( 3, passwd ) ;
+               if( SDB_OUT_OF_BOUND == rc )
+               {
+                  detail = BSON( SPT_ERR <<
+                                "you should input your password to connect engine!" ) ;
+                  goto error ;
+               }
+               else if( SDB_OK != rc )
+               {
+                  detail = BSON( SPT_ERR << "Password must be string" ) ;
+                  goto error ;
+               }
             }
          }
       }
@@ -1049,62 +1117,155 @@ namespace engine
                                _sptReturnVal &rval,
                                bson::BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      string username ;
-      string passwd ;
+      INT32   rc = SDB_OK ;
+      string  username ;
+      string  passwd ;
+      string  objectName ;
       BSONObj options ;
+      stringstream ss ;
 
-      if ( arg.argc() > 3 )
+      if ( 0 == arg.argc() )
       {
-         detail = BSON( SPT_ERR << "arguments exceed 3" ) ;
+         detail = BSON( SPT_ERR << "You should input username and password, or"
+                  " input User obj or CipherUser obj" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      rc = arg.getString( 0, username ) ;
-      if( SDB_OUT_OF_BOUND == rc )
+      if ( arg.argc() > 1 )
       {
-         detail = BSON( SPT_ERR << "UserName must be config" ) ;
-         goto error ;
+         // if password has been input, we don't save command to history file.
+         sdbSetIsNeedSaveHistory( FALSE ) ;
       }
-      else if( SDB_OK != rc )
+
+      if ( arg.argc() > 3 )
       {
-         detail = BSON( SPT_ERR << "UserName must be string" ) ;
+         detail = BSON( SPT_ERR << "Arguments exceed 3" ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      rc = arg.getString( 1, passwd ) ;
-      if( SDB_OUT_OF_BOUND == rc )
+      if( !arg.isNull( 0 ) )
       {
-         detail = BSON( SPT_ERR << "Password must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Password must be string" ) ;
-         goto error ;
+         objectName = arg.getUserObjClassName( 0 ) ;
       }
 
-      rc = arg.getBsonobj( 2, options ) ;
-      if ( rc && SDB_OUT_OF_BOUND != rc )
+      if ( SPT_USER_NAME == objectName )
       {
-         detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
-                                     arg.getErrMsg() :
-                                     "Options must be object" ) ) ;
+         sptDBUser *pUser = NULL ;
+         BSONObj userObj ;
+
+         rc = arg.getUserObj( 0, sptDBUser::__desc, ( const void** )&pUser ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be User" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 0, userObj ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get User obj" ) ;
+            goto error ;
+         }
+
+         username = userObj.getStringField( SDB_AUTH_USER ) ;
+         passwd   = pUser->getPasswd() ;
+      }
+      else if ( SPT_CIPHERUSER_NAME == objectName )
+      {
+         sptDBCipherUser *pCipherUser = NULL ;
+         BSONObj cipherUserObj ;
+
+         rc = arg.getUserObj( 0, sptDBCipherUser::__desc,
+                              ( const void** )&pCipherUser ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be CipherUser" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 0, cipherUserObj ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get cipher user obj" ) ;
+            goto error ;
+         }
+
+         rc = _getUserInfoFromCipherUserObj( cipherUserObj, pCipherUser,
+                                             username, passwd, detail ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = arg.getString( 0, username ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "UserName must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getString( 1, passwd ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Password must be config" ) ;
+            goto error ;
+         }
+         else if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Password must be string" ) ;
+            goto error ;
+         }
+      }
+
+      if ( SPT_USER_NAME == objectName || SPT_CIPHERUSER_NAME == objectName )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if ( rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = arg.getBsonobj( 2, options ) ;
+         if ( rc && SDB_OUT_OF_BOUND != rc )
+         {
+            detail = BSON( SPT_ERR << ( arg.hasErrMsg() ?
+                                        arg.getErrMsg() :
+                                        "Options must be object" ) ) ;
+            goto error ;
+         }
+      }
+
+      if ( username.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Username can't be empty" ) ;
          goto error ;
       }
 
       if ( SDB_MAX_USERNAME_LENGTH < username.size() )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Exceeds username maximum length" ) ;
+         ss << "Exceeds username maximum length. Its max maximum length is "
+            << SDB_MAX_USERNAME_LENGTH ;
+         detail = BSON( SPT_ERR << ss.str().c_str() ) ;
          goto error ;
       }
 
       if ( SDB_MAX_PASSWORD_LENGTH < passwd.size() )
       {
          rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Exceeds password maximum length" ) ;
+         ss << "Exceeds password maximum length. Its max maximum length is "
+            << SDB_MAX_PASSWORD_LENGTH ;
+         detail = BSON( SPT_ERR << ss.str().c_str() ) ;
          goto error ;
       }
 
@@ -1131,32 +1292,106 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      string username ;
-      string passwd ;
+      INT32   rc = SDB_OK ;
+      string  username ;
+      string  passwd ;
+      string  objectName ;
 
-      rc = arg.getString( 0, username ) ;
-      if( SDB_OUT_OF_BOUND == rc )
+      if ( 0 == arg.argc() )
       {
-         detail = BSON( SPT_ERR << "UserName must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "UserName must be string" ) ;
+         detail = BSON( SPT_ERR << "You should input username and password, or"
+                  " input User obj or CipherUser obj" ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      rc = arg.getString( 1, passwd ) ;
-      if( SDB_OUT_OF_BOUND == rc )
+      if ( arg.argc() > 1 )
       {
-         detail = BSON( SPT_ERR << "Password must be config" ) ;
+         // if password has been input, we don't save command to history file.
+         sdbSetIsNeedSaveHistory( FALSE ) ;
+      }
+
+      if ( arg.argc() > 2 )
+      {
+         detail = BSON( SPT_ERR << "Arguments exceed 2" ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
-      else if( SDB_OK != rc )
+
+      if( !arg.isNull( 0 ) )
       {
-         detail = BSON( SPT_ERR << "Password must be string" ) ;
-         goto error ;
+         objectName = arg.getUserObjClassName( 0 ) ;
+      }
+
+      if ( SPT_USER_NAME == objectName )
+      {
+         sptDBUser *pUser = NULL ;
+         BSONObj userObj ;
+
+         rc = arg.getUserObj( 0, sptDBUser::__desc, ( const void** )&pUser ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be User" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 0, userObj ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get User obj" ) ;
+            goto error ;
+         }
+
+         username = userObj.getStringField( SDB_AUTH_USER ) ;
+         passwd   = pUser->getPasswd() ;
+      }
+      else if ( SPT_CIPHERUSER_NAME == objectName )
+      {
+         sptDBCipherUser *pCipherUser = NULL ;
+         BSONObj cipherUserObj ;
+
+         rc = arg.getUserObj( 0, sptDBCipherUser::__desc,
+                              ( const void** )&pCipherUser ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "The obj must be CipherUser" ) ;
+            goto error ;
+         }
+
+         rc = arg.getBsonobj( 0, cipherUserObj ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Failed to get cipher user obj" ) ;
+            goto error ;
+         }
+
+         rc = _getUserInfoFromCipherUserObj( cipherUserObj, pCipherUser,
+                                             username, passwd, detail ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = arg.getString( 0, username ) ;
+         if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "UserName must be string" ) ;
+            goto error ;
+         }
+
+         rc = arg.getString( 1, passwd ) ;
+         if( SDB_OUT_OF_BOUND == rc )
+         {
+            detail = BSON( SPT_ERR << "Password must be config" ) ;
+            goto error ;
+         }
+         else if( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Password must be string" ) ;
+            goto error ;
+         }
       }
 
       rc = _sptSdb.removeUsr( username.c_str(), passwd.c_str() ) ;
@@ -1171,6 +1406,7 @@ namespace engine
          _user.clear() ;
          _passwd.clear() ;
       }
+
    done:
       return rc ;
    error:
@@ -2768,6 +3004,71 @@ namespace engine
       return rc ;
    error:
       SAFE_OSS_DELETE( pRG ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::_getUserInfoFromCipherUserObj( const BSONObj &cipherUserObj,
+                                                   sptDBCipherUser *pCipherUser,
+                                                   string &username,
+                                                   string &passwd,
+                                                   bson::BSONObj &detail )
+   {
+      INT32  rc = SDB_OK ;
+      string token ;
+      string clusterName ;
+      // userFullName = userShortName + '@' + clusterName
+      string userFullName ;
+      string cipherFile ;
+      stringstream ss ;
+      passwd::utilPasswordTool passwdTool ;
+
+      BSONObjIterator itr( cipherUserObj ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next();
+         if ( 0 == ossStrcmp( ele.fieldName(), SDB_AUTH_USER ) &&
+              String == ele.type() )
+         {
+            // userShortName == username
+            username = ele.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                   SPT_CIPHERUSER_FIELD_NAME_CIPHER_FILE ) &&
+                   String == ele.type() )
+         {
+            cipherFile = ele.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                   SPT_CIPHERUSER_FIELD_NAME_CLUSTER_NAME )
+                   && String == ele.type() )
+         {
+            clusterName = ele.valuestr() ;
+         }
+      }
+
+      if ( !clusterName.empty() )
+      {
+         userFullName = username ;
+         userFullName += "@" ;
+         userFullName += clusterName ;
+      }
+
+      token = pCipherUser->getToken() ;
+
+      rc = passwdTool.getPasswdByCipherFile( userFullName, token,
+                                             cipherFile, passwd ) ;
+      if ( rc )
+      {
+         ss << "Failed to get user[" << userFullName.c_str()
+            << "]'s passwd from cipher file["
+            << cipherFile.c_str() << "]" ;
+         detail = BSON( SPT_ERR << ss.str().c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

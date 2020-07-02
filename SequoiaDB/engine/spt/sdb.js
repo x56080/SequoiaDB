@@ -1603,14 +1603,133 @@ SdbTraceOption.prototype.toString = function()
       }
    }
 
-      return this.__className__ +
-             "(" +
-             "\"components\": " + componentsStr +
-             ", \"breakPoints\": " + breakPointsStr +
-             ", \"tids\": " + tidsStr +
-             ", \"functionNames\": " + funcNamesStr +
-             ", \"threadTypes\": " + threadTypesStr +
-             ")" ;
+   return this.__className__ +
+          "(" +
+          "\"components\": " + componentsStr +
+          ", \"breakPoints\": " + breakPointsStr +
+          ", \"tids\": " + tidsStr +
+          ", \"functionNames\": " + funcNamesStr +
+          ", \"threadTypes\": " + threadTypesStr +
+          ")" ;
 }
 
 // end SdbTraceOption
+
+// User
+User.prototype.promptPassword = function()
+{
+   if ( "function" != typeof ( this._promptPassword ) )
+   {
+      throw "Fmp can't use promptPassword function" ;
+   }
+   this._promptPassword() ;
+   return this ;
+}
+
+User.prototype.getUsername = function() {
+   return this._user ;
+}
+
+User.prototype.toString = function() {
+   return this._user ;
+}
+
+// end User
+
+// CipherUser
+CipherUser.prototype.token = function()
+{
+   var argumentsSize = arguments.length ;
+   if( argumentsSize > 0 )
+   {
+      if ( "string" == typeof( arguments[0] ) )
+      {
+         this._setToken( arguments[0] ) ;
+      }
+      else
+      {
+         throw "Token must be string" ;
+      }
+   }
+   else
+   {
+      throw "You must input token" ;
+   }
+
+   return this ;
+}
+
+CipherUser.prototype.clusterName = function()
+{
+   var argumentsSize = arguments.length ;
+   if( argumentsSize > 0 )
+   {
+      if ( "string" == typeof( arguments[0] ) )
+      {
+         this._clusterName = arguments[0] ;
+      }
+      else
+      {
+         throw "Cluster name must be string" ;
+      }
+   }
+   else
+   {
+      throw "You must input cluster name" ;
+   }
+
+   return this ;
+}
+
+CipherUser.prototype.cipherFile = function()
+{
+   var argumentsSize = arguments.length ;
+   if( argumentsSize > 0 )
+   {
+      if ( "string" == typeof( arguments[0] ) )
+      {
+         this._cipherFile = arguments[0] ;
+      }
+      else
+      {
+         throw "Cipher file must be string" ;
+      }
+   }
+   else
+   {
+      throw "You must input cipher file" ;
+   }
+
+   return this ;
+}
+
+CipherUser.prototype.getUsername = function()
+{
+   return this._user ;
+}
+
+CipherUser.prototype.getClusterName = function()
+{
+   return this._clusterName ;
+}
+
+CipherUser.prototype.getCipherFile = function()
+{
+   return this._cipherFile ;
+}
+
+CipherUser.prototype.toString = function()
+{
+   var output = this._user ;
+   if ( "undefined" != typeof ( this._clusterName ) && "" != this._clusterName )
+   {
+      output = ( output + "@" + this._clusterName ) ;
+   }
+   if ( "undefined" != typeof ( this._cipherFile ) && "" != this._cipherFile )
+   {
+      output = ( output + ":" + this._cipherFile ) ;
+   }
+   return output ;
+}
+
+// end CipherUser

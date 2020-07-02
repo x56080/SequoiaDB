@@ -3979,6 +3979,18 @@
                            "file": "CLCount",
                            "cn": "CLCount",
                            "en": "CLCount"
+                        },
+                        {
+                           "id": 1591345466,
+                           "file": "User",
+                           "cn": "User",
+                           "en": "User"
+                        },
+                        {
+                           "id": 1591345553,
+                           "file": "CipherUser",
+                           "cn": "CipherUser",
+                           "en": "CipherUser"
                         }
                      ]
                   },

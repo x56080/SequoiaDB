@@ -69,26 +69,42 @@ error :
    goto done ;
 }
 
-INT32 getPipeNames( const OSSPID & ppid , CHAR * f2bName , UINT32 f2bSize ,
-                    CHAR * b2fName , UINT32 b2fSize )
+INT32 getPipeNames( const OSSPID &ppid,
+                    CHAR *f2bName, UINT32 f2bSize,
+                    CHAR *b2fName, UINT32 b2fSize,
+                    CHAR *f2bCtlName, UINT32 f2bCtlSize,
+                    CHAR *b2fCtlName, UINT32 b2fCtlSize )
 {
-   INT32          rc          = SDB_OK ;
-   INT32          nWritten    = 0 ;
+   INT32 rc       = SDB_OK ;
+   INT32 nWritten = 0 ;
 
-   SDB_ASSERT ( f2bName && b2fName && f2bSize > 0 && b2fSize > 0 ,
-                "Invalid arguments" ) ;
+   SDB_ASSERT( f2bName && b2fName && f2bSize > 0 && b2fSize > 0 &&
+               f2bCtlName && b2fCtlName && f2bCtlSize > 0 && b2fCtlSize > 0,
+               "Invalid arguments" ) ;
 
-   nWritten = ossSnprintf ( f2bName, f2bSize,
-                            SDB_SHELL_F2B_PIPE_PREFIX"%u",
-                            ppid ) ;
-   SH_VERIFY_COND ( nWritten >= 0 , SDB_SYS ) ;
-   SH_VERIFY_COND ( (UINT32) nWritten < f2bSize , SDB_INVALIDSIZE ) ;
+   nWritten = ossSnprintf( f2bName, f2bSize,
+                           SDB_SHELL_F2B_PIPE_PREFIX"%u",
+                           ppid ) ;
+   SH_VERIFY_COND( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND( (UINT32) nWritten < f2bSize , SDB_INVALIDSIZE ) ;
 
-   nWritten = ossSnprintf ( b2fName, b2fSize,
-                            SDB_SHELL_B2F_PIPE_PREFIX"%u",
-                            ppid ) ;
-   SH_VERIFY_COND ( nWritten >= 0 , SDB_SYS ) ;
-   SH_VERIFY_COND ( (UINT32) nWritten < b2fSize , SDB_INVALIDSIZE ) ;
+   nWritten = ossSnprintf( b2fName, b2fSize,
+                           SDB_SHELL_B2F_PIPE_PREFIX"%u",
+                           ppid ) ;
+   SH_VERIFY_COND( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND( (UINT32) nWritten < b2fSize , SDB_INVALIDSIZE ) ;
+
+   nWritten = ossSnprintf( f2bCtlName, f2bCtlSize,
+                           SDB_SHELL_CTL_F2B_PIPE_PREFIX"%u",
+                           ppid ) ;
+   SH_VERIFY_COND( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND( (UINT32) nWritten < f2bCtlSize , SDB_INVALIDSIZE ) ;
+
+   nWritten = ossSnprintf( b2fCtlName, b2fCtlSize,
+                           SDB_SHELL_CTL_B2F_PIPE_PREFIX"%u",
+                           ppid ) ;
+   SH_VERIFY_COND( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND( (UINT32) nWritten < b2fCtlSize , SDB_INVALIDSIZE ) ;
 
 done :
    return rc ;
@@ -96,14 +112,17 @@ error :
    goto done ;
 }
 
-INT32 getPipeNames2( const OSSPID & ppid , const OSSPID & pid ,
-                     CHAR * f2bName , UINT32 f2bSize ,
-                     CHAR * b2fName , UINT32 b2fSize )
+INT32 getPipeNames2( const OSSPID &ppid, const OSSPID &pid,
+                     CHAR *f2bName, UINT32 f2bSize,
+                     CHAR *b2fName, UINT32 b2fSize,
+                     CHAR *f2bCtlName, UINT32 f2bCtlSize,
+                     CHAR *b2fCtlName, UINT32 b2fCtlSize )
 {
    INT32          rc          = SDB_OK ;
    INT32          nWritten    = 0 ;
 
-   SDB_ASSERT ( f2bName && b2fName && f2bSize > 0 && b2fSize > 0 ,
+   SDB_ASSERT ( f2bName && b2fName && f2bSize > 0 && b2fSize > 0 &&
+                f2bCtlName && b2fCtlName && f2bCtlSize > 0 && b2fCtlSize > 0,
                 "Invalid arguments" ) ;
 
    nWritten = ossSnprintf ( f2bName, f2bSize,
@@ -118,21 +137,38 @@ INT32 getPipeNames2( const OSSPID & ppid , const OSSPID & pid ,
    SH_VERIFY_COND ( nWritten >= 0 , SDB_SYS ) ;
    SH_VERIFY_COND ( (UINT32) nWritten < b2fSize , SDB_INVALIDSIZE ) ;
 
+   nWritten = ossSnprintf ( f2bCtlName, f2bCtlSize,
+                            SDB_SHELL_CTL_F2B_PIPE_PREFIX"%u-%u",
+                            ppid, pid ) ;
+   SH_VERIFY_COND ( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND ( (UINT32) nWritten < f2bCtlSize , SDB_INVALIDSIZE ) ;
+
+   nWritten = ossSnprintf ( b2fCtlName, b2fCtlSize,
+                            SDB_SHELL_CTL_B2F_PIPE_PREFIX"%u-%u",
+                            ppid, pid ) ;
+   SH_VERIFY_COND ( nWritten >= 0 , SDB_SYS ) ;
+   SH_VERIFY_COND ( (UINT32) nWritten < b2fCtlSize , SDB_INVALIDSIZE ) ;
+
 done :
    return rc ;
 error :
    goto done ;
 }
 
-INT32 getPipeNames1( CHAR * bpf2bName , UINT32 bpf2bSize ,
-                     CHAR * bpb2fName , UINT32 bpb2fSize ,
-                     CHAR * f2bName , CHAR * b2fName )
+INT32 getPipeNames1( CHAR *bpf2bName, UINT32 bpf2bSize,
+                     CHAR *bpb2fName, UINT32 bpb2fSize,
+                     CHAR *bpf2bCtlName, UINT32 bpf2bCtlSize,
+                     CHAR *bpb2fCtlName, UINT32 bpb2fCtlSize,
+                     CHAR *f2bName, CHAR *b2fName,
+                     CHAR *f2bCtlName, CHAR *b2fCtlName )
 {
    INT32 rc = SDB_OK ;
-   std::vector < std::string > names ;
+   std::vector<std::string> names ;
 
    ossMemset( bpf2bName, 0, bpf2bSize ) ;
    ossMemset( bpb2fName, 0, bpb2fSize ) ;
+   ossMemset( bpf2bCtlName, 0, bpf2bCtlSize ) ;
+   ossMemset( bpb2fCtlName, 0, bpb2fCtlSize ) ;
 
    rc = ossEnumNamedPipes( names, f2bName, OSS_MATCH_LEFT ) ;
    if ( rc )
@@ -145,7 +181,6 @@ INT32 getPipeNames1( CHAR * bpf2bName , UINT32 bpf2bSize ,
       rc = SDB_FNE ;
       goto error ;
    }
-
    ossStrncpy( bpf2bName, (*names.begin()).c_str(), bpf2bSize - 1 ) ;
 
    names.clear() ;
@@ -161,6 +196,34 @@ INT32 getPipeNames1( CHAR * bpf2bName , UINT32 bpf2bSize ,
       goto error ;
    }
    ossStrncpy( bpb2fName, (*names.begin()).c_str(), bpb2fSize - 1 ) ;
+
+   names.clear() ;
+   rc = ossEnumNamedPipes( names, f2bCtlName, OSS_MATCH_LEFT ) ;
+   if ( rc )
+   {
+      std::cerr << "enum pipes failed: " << rc ;
+      goto error ;
+   }
+   if ( names.size() == 0 )
+   {
+      rc = SDB_FNE ;
+      goto error ;
+   }
+   ossStrncpy( bpf2bCtlName, (*names.begin()).c_str(), bpf2bCtlSize - 1 ) ;
+
+   names.clear() ;
+   rc = ossEnumNamedPipes( names, b2fCtlName, OSS_MATCH_LEFT ) ;
+   if ( rc )
+   {
+      std::cerr << "enum pipes failed: " << rc ;
+      goto error ;
+   }
+   if ( names.size() == 0 )
+   {
+      rc = SDB_FNE ;
+      goto error ;
+   }
+   ossStrncpy( bpb2fCtlName, (*names.begin()).c_str(), bpb2fCtlSize - 1 ) ;
 
 done:
    return rc ;

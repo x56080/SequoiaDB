@@ -45,6 +45,7 @@
 #include <utility>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include "sptCommon.hpp"
 #if defined (_LINUX)
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -948,7 +949,7 @@ namespace engine
          read = 0 ;
          ossMemset( buf, '\0', bufSize ) ;
          rc = ossReadN( &file, bufSize, buf, read ) ;
-         
+
          if ( SDB_EOF == rc && filess.tellp() )
          {
             rc = SDB_OK ;
@@ -1868,6 +1869,9 @@ namespace engine
 
       if ( configObj.hasField( "passwd" ) )
       {
+         // if password has been input, we don't save command to history file.
+         sdbSetIsNeedSaveHistory( FALSE ) ;
+
          if ( String != configObj.getField( "passwd" ).type() )
          {
             rc = SDB_INVALIDARG ;
@@ -2097,6 +2101,9 @@ namespace engine
       cmd << "usermod" ;
       if ( configObj.hasField( "passwd" ) )
       {
+         // if password has been input, we don't save command to history file.
+         sdbSetIsNeedSaveHistory( FALSE ) ;
+
          if ( String != configObj.getField( "passwd" ).type() )
          {
             rc = SDB_INVALIDARG ;
@@ -5046,7 +5053,7 @@ namespace engine
                vecItr != valueSplit.end(); vecItr++ )
             {
                value += ";" + ( *vecItr ) ;
-            }  
+            }
          }
          else
          {
