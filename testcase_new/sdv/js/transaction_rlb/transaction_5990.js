@@ -20,10 +20,14 @@ function test()
          throw new Error( e );
       }
    }
-   var groupName = commGetGroups( db )[0][0].GroupName;
-   db.getRG( groupName ).stop();
-   db.getRG( groupName ).start();
-   
+   var groups = commGetGroups( db );
+   for( var i = 0; i < groups.length; i++ )
+   {
+      var groupName = groups[i][0].GroupName;
+      db.getRG( groupName ).stop();
+      db.getRG( groupName ).start();
+   }
+
    try
    {
       db.transBegin();
@@ -50,7 +54,11 @@ function test()
       }
    }
   
-   db.getRG( groupName ).stop();
-   db.getRG( groupName ).start();
+   for( var i = 0; i < groups.length; i++ )
+   {
+      var groupName = groups[i][0].GroupName;
+      db.getRG( groupName ).stop();
+      db.getRG( groupName ).start();
+   }
 }
 
