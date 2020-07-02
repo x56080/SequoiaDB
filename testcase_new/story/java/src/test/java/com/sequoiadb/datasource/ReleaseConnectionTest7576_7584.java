@@ -1,23 +1,18 @@
 package com.sequoiadb.datasource;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+
 
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.SequoiadbDatasource;
-import com.sequoiadb.base.SequoiadbOption;
-import com.sequoiadb.datasource.ConnectStrategy;
-import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
 
-public class ReleaseConnectionTest extends DataSourceTestBase {
+public class ReleaseConnectionTest7576_7584 extends DataSourceTestBase {
     private SequoiadbDatasource datasource;
 
     @BeforeMethod
@@ -50,13 +45,14 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 归还不属于连接池的连接
      */
     @Test
-    public void releaseNotBelong() {
+    public void releaseNotBelong7576() {
         int priorNum = 0;
         Sequoiadb sdb = null;
         try {
             sdb = new Sequoiadb( this.coordAddr, userName, password );
             priorNum = datasource.getIdleConnNum();
             datasource.releaseConnection( sdb );
+            Assert.fail("must throw exception!");
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", -6 );
 
@@ -68,7 +64,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             Assert.assertEquals( laterNum, priorNum );
             Assert.assertEquals( sdb.isValid(), true );
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -76,7 +72,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 归还使用且超出空闲时间的连接
      */
     @Test
-    public void releaseUsedConn() {
+    public void releaseUsedConn7577() {
         try {
             DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( 50 );// ms
@@ -102,10 +98,10 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             Thread.sleep( 10 );
             // Assert.assertEquals(sdb.isValid(), false);
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( InterruptedException e ) {
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -113,7 +109,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 归还闲置且超出空闲时间的连接
      */
     @Test
-    public void releaseUnusedConn() {
+    public void releaseUnusedConn7578() {
         try {
             DatasourceOptions option = new DatasourceOptions();
             option.setKeepAliveTimeout( 50 );// ms
@@ -136,10 +132,10 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             Thread.sleep( 40 );
             // Assert.assertEquals(sdb.isValid(), false);
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( InterruptedException e ) {
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -147,10 +143,9 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 空闲连接数大于应保留连接数
      */
     @Test
-    public void checkRerveConn() {
+    public void checkRerveConn7579() {
         try {
-            SequoiadbOption option = new SequoiadbOption();
-            // int checkInterval = option.getCheckInterval();
+            DatasourceOptions option = new DatasourceOptions();
             int maxIdleCount = option.getMaxIdleCount();
             SequoiadbDatasource datasource = new SequoiadbDatasource(
                     this.coordAddr, userName, password, option );
@@ -161,9 +156,8 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             Assert.assertTrue( laterMaxIdleCount <= maxIdleCount );
             Assert.assertTrue( laterMaxIdleCount >= 0 );
         } catch ( InterruptedException e ) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } finally {
             datasource.close();
         }
@@ -172,9 +166,10 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
     /**
      * 归还旧版本的连接
      */
-    @Test(timeOut = 205000)
-    public void releaseOlderVersion() {
+    @Test(timeOut = 20000)
+    public void releaseOlderVersion7580() {
         try {
+            long start = System.currentTimeMillis();
             Sequoiadb sdb = datasource.getConnection();
             int totalTimeLen = 10000;
             int alreadySleepTime = 0;
@@ -188,21 +183,28 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
                     break;
             } while ( alreadySleepTime <= totalTimeLen );
 
+            long end = System.currentTimeMillis();
+            start = end;
+            System.out.println( "step 1 findish" + ( end - start ) );
             int priorNum = datasource.getIdleConnNum();
             DatasourceOptions option = new DatasourceOptions();
             option.setCheckInterval( 50 );
             option.setConnectStrategy( ConnectStrategy.RANDOM );
             datasource.updateDatasourceOptions( option );
+            end = System.currentTimeMillis();
+            start = end;
+            System.out.println( "step 2 findish" + ( end - start ) );
+
             datasource.releaseConnection( sdb );
-            // sleep more than 3min
-            Thread.sleep( 190000 );
+            Thread.sleep( 100 );
             int laterNum = datasource.getIdleConnNum();
             Assert.assertEquals( laterNum, priorNum );
-            // Assert.assertEquals(sdb.isValid(), false);
+            end = System.currentTimeMillis();
+            System.out.println( "step 3 findish" + ( end - start ) );
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -210,15 +212,16 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 关闭连接池后归还连接
      */
     @Test
-    public void releaseAfterClose() {
+    public void releaseAfterClose7581() {
         try {
             Sequoiadb sdb = datasource.getConnection();
             datasource.close();
 
             Assert.assertEquals( sdb.isValid(), false );
             datasource.releaseConnection( sdb );
+            Assert.fail( "must throw exception!" );
         } catch ( InterruptedException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             // TODO: handle exception
             super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
@@ -229,20 +232,19 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 禁用连接池后归还连接
      */
     @Test
-    public void releaseAfterDisable() {
+    public void releaseAfterDisable7582() {
         try {
             Sequoiadb sdb = datasource.getConnection();
             datasource.disableDatasource();
             datasource.releaseConnection( sdb );
             Assert.assertEquals( sdb.isValid(), false );
             Assert.assertEquals( datasource.getUsedConnNum(), 0 );
-
         } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -250,7 +252,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 重复归还连接
      */
     @Test
-    public void releaseAfterRelease() {
+    public void releaseAfterRelease7583() {
         Sequoiadb sdb = null;
         try {
             DatasourceOptions option = new DatasourceOptions();
@@ -259,27 +261,25 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             sdb = datasource.getConnection();
             datasource.releaseConnection( sdb );
             datasource.releaseConnection( sdb );
+            Assert.fail( "must throw exception!" );
         } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
             super.judegeErrCode( "SDB_INVALIDARG", -6 );
         }
 
         try {
-            // Thread.sleep(100);
-            // Assert.assertEquals(sdb.isValid(), true);
             for ( int i = 0; i < datasource.getIdleConnNum(); i++ ) {
                 sdb = datasource.getConnection();
                 Assert.assertEquals( sdb.isValid(), true );
             }
         } catch ( InterruptedException e ) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-            Assert.assertFalse( true, e.getMessage() );
+            Assert.fail( e.getMessage() );
         }
     }
 
@@ -287,7 +287,7 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
      * 归还连接后对连接持有资源的处理
      */
     @Test
-    public void checkResourceAfterRelease() {
+    public void checkResourceAfterRelease7584() {
         try {
             if ( isStandAlone() )
                 return;
@@ -297,11 +297,11 @@ public class ReleaseConnectionTest extends DataSourceTestBase {
             DBCursor cursor = sdb.listReplicaGroups();
             datasource.releaseConnection( sdb );
             cursor.getNext();
+            Assert.fail("must throw exception!") ;
         } catch ( InterruptedException e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-            // Assert.assertTrue(false, e.getMessage());
-            // judegeErrCode("SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode());
+            Assert.fail(e.getMessage());
         } catch ( BaseException e ) {
             judegeErrCode( "SDB_RTN_CONTEXT_NOTEXIST", e.getErrorCode() );
         }
