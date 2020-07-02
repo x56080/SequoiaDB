@@ -1477,9 +1477,13 @@ namespace engine
       PD_CHECK( _conflictCheck(), SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Options conflict in alter option" ) ;
 
-      // ReplSize and ShardingKey is allowed in main-collection
+      // ReplSize, ShardingKey, Compressed, CompressType, StrictDataMode is
+      // allowed in main-collection
       if ( !testArgumentMask( ~( UTIL_CL_REPLSIZE_FIELD |
-                                 UTIL_CL_SHDKEY_FIELD ) ) )
+                                 UTIL_CL_SHDKEY_FIELD |
+                                 UTIL_CL_COMPRESSED_FIELD |
+                                 UTIL_CL_COMPRESSTYPE_FIELD |
+                                 UTIL_CL_STRICTDATAMODE_FIELD ) ) )
       {
          setFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ;
       }

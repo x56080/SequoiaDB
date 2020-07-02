@@ -131,13 +131,15 @@ namespace engine
                      RTN_ALTER_COLLECTION,
                      RTN_ALTER_CL_ENABLE_COMPRESS,
                      ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
-                       RTN_ALTER_TASK_FLAG_3PHASE ) ) ;
+                       RTN_ALTER_TASK_FLAG_3PHASE |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ) ;
 
       _registerTask( SDB_ALTER_CL_DISABLE_COMPRESS,
                      RTN_ALTER_COLLECTION,
                      RTN_ALTER_CL_DISABLE_COMPRESS,
                      ( RTN_ALTER_TASK_FLAG_SHARDLOCK |
-                       RTN_ALTER_TASK_FLAG_3PHASE ) ) ;
+                       RTN_ALTER_TASK_FLAG_3PHASE |
+                       RTN_ALTER_TASK_FLAG_MAINCLALLOW ) ) ;
 
       _registerTask( SDB_ALTER_CL_SET_ATTR,
                      RTN_ALTER_COLLECTION,

@@ -507,10 +507,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKENABLECOMPRESS ) ;
 
-      PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                "Failed to [%s]: Could not enable compression in main-collection",
-                _task->getActionName() ) ;
-
       PD_CHECK( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Failed to check [%s]: collection [%s] is capped",
@@ -537,10 +533,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKDISABLECOMPRESS ) ;
-
-      PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                "Failed to [%s]: Could not disable compression in main-collection",
-                _task->getActionName() ) ;
 
       PD_CHECK( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
@@ -1139,35 +1131,25 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__BLDENABLECOMPRESS ) ;
 
-      if ( !cataSet.isMainCL() )
+      // Alter the attribute only in below cases :
+      // 1. collection is no compressed
+      // 2. altering the compressor type, and old type of collection is
+      //    different
+      if ( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_COMPRESSED ) ||
+           ( argument.testArgumentMask( UTIL_CL_COMPRESSTYPE_FIELD ) &&
+             cataSet.getCompressType() != argument.getCompressorType() ) )
       {
-         // Alter the attribute only in below cases :
-         // 1. collection is no compressed
-         // 2. altering the compressor type, and old type of collection is
-         //    different
-         if ( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_COMPRESSED ) ||
-              ( argument.testArgumentMask( UTIL_CL_COMPRESSTYPE_FIELD ) &&
-                cataSet.getCompressType() != argument.getCompressorType() ) )
-         {
-            OSS_BIT_SET( attribute, DMS_MB_ATTR_COMPRESSED ) ;
+         OSS_BIT_SET( attribute, DMS_MB_ATTR_COMPRESSED ) ;
 
-            setBuilder.append( CAT_COMPRESSIONTYPE, argument.getCompressorType() ) ;
-            setBuilder.append( FIELD_NAME_COMPRESSIONTYPE_DESC, argument.getCompressionName() ) ;
-         }
-      }
-      else
-      {
-         PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error,
-                   PDERROR, "Failed to [%s]: should not be main-collection",
-                   _task->getActionName() ) ;
+         setBuilder.append( CAT_COMPRESSIONTYPE,
+                            argument.getCompressorType() ) ;
+         setBuilder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
+                            argument.getCompressionName() ) ;
       }
 
-   done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__BLDENABLECOMPRESS, rc ) ;
-      return rc ;
 
-   error :
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__BLDDISABLECOMPRESS, "_catCtxAlterCLTask::_buildDisableCompressFields" )
@@ -1180,26 +1162,14 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__BLDDISABLECOMPRESS ) ;
 
-      if ( !cataSet.isMainCL() )
-      {
-         OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_COMPRESSED ) ;
+      OSS_BIT_CLEAR( attribute, DMS_MB_ATTR_COMPRESSED ) ;
 
-         unsetBuilder.append( CAT_COMPRESSIONTYPE, 1 ) ;
-         unsetBuilder.append( FIELD_NAME_COMPRESSIONTYPE_DESC, 1 ) ;
-      }
-      else
-      {
-         PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error,
-                   PDERROR, "Failed to [%s]: should not be main-collection",
-                   _task->getActionName() ) ;
-      }
+      unsetBuilder.append( CAT_COMPRESSIONTYPE, 1 ) ;
+      unsetBuilder.append( FIELD_NAME_COMPRESSIONTYPE_DESC, 1 ) ;
 
-   done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__BLDDISABLECOMPRESS, rc ) ;
-      return rc ;
 
-   error :
-      goto done ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__BLDEXTOPT, "_catCtxAlterCLTask::_buildExtOptionFields" )
