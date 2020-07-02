@@ -471,6 +471,12 @@
                            "en": "Install and Deploy"
                         },
                         {
+                           "id": 1567070020,
+                           "file": "sequoiasql_mysql",
+                           "cn": "sequoiasql-mysql服务",
+                           "en": "service sequoiasql-mysql"
+                        },
+                        {
                            "id": 1572505575,
                            "file": "ha",
                            "cn": "高可用",
@@ -489,30 +495,24 @@
                            "en": "Develop"
                         }
                      ]
+                  },                             
+                  {
+                     "id": 1521595283,
+                     "file": "connection",
+                     "cn": "使用",
+                     "en": "Connect"
+                  },         
+                  {
+                     "id": 1566551297,
+                     "file": "config",
+                     "cn": "配置",
+                     "en": "Configuration"
                   },
                   {
                      "id": 1574045910,
                      "file": "data_type",
                      "cn": "数据类型映射表",
                      "en": "data type map table"
-                  },
-                  {
-                     "id": 1567070020,
-                     "file": "sequoiasql_mysql",
-                     "cn": "sequoiasql-mysql服务",
-                     "en": "service sequoiasql-mysql"
-                  },
-                  {
-                     "id": 1521595283,
-                     "file": "connection",
-                     "cn": "使用",
-                     "en": "Connect"
-                  },
-                  {
-                     "id": 1566551297,
-                     "file": "config",
-                     "cn": "配置",
-                     "en": "Configuration"
                   },
                   {
                      "id": 1555382544,

@@ -34,7 +34,7 @@ tools/
     └── README.md
 ```
 
-其中，meta_sync.py 为同步工具主程序，config.sample 为工具配置文件样例，log.config.sample 为日志配置文件样例，lib 下的动态库为 MySQL 的审计插件。由于 MySQL 原生的审计插件只在企业版中提供，社区版需要借助第三方提供的审计插件来实现审计功能。本文采用的是 MarriaDB 提供的 server_audit 插件。
+其中，meta_sync.py 为同步工具主程序，config.sample 为工具配置文件样例，log.config.sample 为日志配置文件样例，lib 下的动态库为 MySQL 的审计插件。由于 MySQL 原生的审计插件只在企业版中提供，社区版需要借助第三方提供的审计插件来实现审计功能。本文采用的是 MariaDB 提供的 server_audit 插件。
 
 ### 审计插件安装 ###
 如上所述，审计插件的动态库已经包含在 SequoiaSQL-MySQL 安装目录中的 tools/lib 目录下，需要将其安装到 MySQL 中。在此之前，需要先完成 MySQL 环境的搭建及实例启动，插件安装完成后再重启 MySQL 服务。所有的 MySQL 环境都需要完成该插件的安装及配置。具体的安装步骤如下：
@@ -197,4 +197,6 @@ last_parse_row = 123
 ```
 
 以上各值为示例值，会在运行过程中自动刷新。
-> 注意：在工具正常运行期间，禁止手动修改该文件，否则可能造成同步中断。
+>**Note：**
+>
+> 在工具正常运行期间，禁止手动修改该文件，否则可能造成同步中断。

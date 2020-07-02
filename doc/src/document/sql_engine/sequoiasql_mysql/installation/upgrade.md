@@ -1,22 +1,20 @@
-从低版本 MySQL 实例组件升级到较高版本。
+升级操作用于将 MySQL 实例组件从低版本升级至较高版本。升级分为自动升级和手动升级，升级后不会改动任何配置和数据，同版本间也可进行升级。
 
-##升级说明##
-
-  - 只能支持向后兼容，同个版本也可升级，但不能从高版本升为低版本。
-  - 升级不兼容 3.2 之前的版本， 3.2 之前的版本升级至 3.2 及 3.2 以后的版本需要手工升级。
-  - 升级不会改动任何配置和数据。
+>**Note:**
+>
+> 升级操作不支持将 MySQL 实例组件从高版本降级为低版本。
 
 ##自动升级##
 
-自动升级适用于从 3.2 版本或者是 3.2 以上的版本升级到更高版本的 MySQL 实例组件，使用 installmode 参数指定 upgrade 升级模式进行自动升级，以 sequoiasql-mysql-3.2.4-linux_x86_64-enterprise-installer.run 为例，升级步骤如下：
+自动升级适用于将 MySQL 实例组件从 3.2 及以上版本升级到更高版本，用户可使用 installmode 参数指定 upgrade 升级模式进行自动升级。以 sequoiasql-mysql-3.2.4-linux_x86_64-enterprise-installer.run 为例对 MySQL 实例组件进行升级，升级步骤如下：
 
-- 使用文本模式指定升级参数进行升级
+1. 使用文本模式指定升级参数进行升级
 
   ```lang-bash
   # ./sequoiasql-mysql-3.2.4-linux_x86_64-installer.run --mode text --installmode upgrade
   ```
 
-- 程序提示选择向导语言，输入2，选择中文
+2. 程序提示选择向导语言，输入2，选择中文
 
    ```
    Language Selection
@@ -27,7 +25,7 @@
    Please choose an option [1] : 2
    ```
 
-- 显示安装协议，如果需要读取全部文件，输入2。输入1表示忽略阅读并同意协议。  
+3. 显示安装协议，输入1，选择忽略阅读并同意协议；输入2则表示阅读详细的协议内容
 
    ```
    ----------------------------------------------------------------------------
@@ -46,7 +44,7 @@
    请选择一个选项 [1] : 
    ```
 
-- 列出可升级的选项，选择1则升级 /opt/sequoiasql/mysql 目录下的安装 ，选择2则需要指定自定义路径，若指定的路径下存在安装则升级，若没有则安装 
+4. 显示可升级的选项，输入1，选择升级 /opt/sequoiasql/mysql 目录下的安装 ；输入2则表示选择自定义路径，若指定的路径下存在安装则升级，没有则安装 
 
    ```
    ----------------------------------------------------------------------------
@@ -58,7 +56,8 @@
    [2] other option
    请选择一个选项 [1] : 
    ```
-- 确认继续
+
+5. 输入回车，确认继续
 
    ```
    ----------------------------------------------------------------------------
@@ -67,7 +66,7 @@
    您确定要继续? [Y/n]: 
    ```
 
-- 开始升级，升级过程中会显示检查列表
+6. 升级成功
 
    ```
    ----------------------------------------------------------------------------
@@ -90,76 +89,73 @@
    安装程序已经完成安装 SequoiaSQL MySQL Server 于你的电脑中.
    ```
 
-- 升级完成
-
 ##手工升级##
 
-手工升级只适用于 MySQL 实例组件从 3.2 以下的版本升级到 3.2 及其以上的版本。例如从 3.0.2 升级到 3.2 版本，且已存在端口号为 3306 路径为 /opt/sequoiasql/mysql/database/3306 的数据库实例，升级步骤如下：
+手工升级适用于将 MySQL 实例组件从 3.2 以下的版本升级到 3.2 或以上版本。例如将已存在端口号为 3306 且路径为 /opt/sequoiasql/mysql/database/3306 的数据库实例从 3.0.2 升级到 3.2 版本，升级步骤如下：
 
-- 以 root 用户登陆目标主机，卸载旧版本的 MySQL 实例组件；
+1. 以 root 用户登陆目标主机，进入安装路径，卸载旧版本的 MySQL 实例组件
 
-   1. 进入安装路径，执行卸载；
+  ```lang-bash
+  # cd /opt/sequoiasql/mysql
+  # ./uninstall --mode unattended
+  ```
 
-     ```lang-bash
-     # cd /opt/sequoiasql/mysql
-     # ./uninstall --mode unattended
-      ```
-     >**Note:**  
-     > 卸载不会清除数据目录以及安装路径下的配置文件 my.cnf
+  >**Note:**
+  >  
+  > 卸载不会清除数据目录以及安装路径下的配置文件 auto.cnf。
 
-- 安装 3.2 版本的 MySQL 实例组件；
+2. 赋予安装包可执行权限，指定静默模式安装
 
-   1. 赋予安装包可执行权限，指定静默模式安装；
+  ```lang-bash
+  # chmod u+x sequoiadb-3.2-linux_x86_64-installer.run
+  # ./sequoiadb-3.2-linux_x86_64-installer.run --mode unattended
+  ```
 
-     ```lang-bash
-     # chmod u+x sequoiadb-3.2-linux_x86_64-installer.run
-     # ./sequoiadb-3.2-linux_x86_64-installer.run --mode unattended
-     ```
+3. 切换目录和用户
 
-- 迁移数据库实例合并实例配置项并启动实例；
+  ```lang-bash
+  # cd /opt/sequoiasql/mysql
+  # su sdbadmin
+  ```
 
-   1. 切换目录和用户；
+4. 将旧的数据目录 database/3306 进行备份
 
-     ```lang-bash
-     # cd /opt/sequoiasql/mysql
-     # su sdbadmin
-      ```
+  ```lang-bash
+  # mv database/3306 database/3306_bk
+  ```
 
-   2. 将旧的数据目录 database/3306 进行备份；
+5. 添加实例名为 mysqld3306 的数据库实例
 
-     ```lang-bash
-     # mv database/3306 database/3306_bk
-     ```
+  ```lang-bash
+  # bin/sdb_mysql_ctl addinst mysqld3306 -p 3306 -D database/3306
+  ```
 
-   3. 添加实例名为 mysqld3306 的数据库实例；
+6. 停止实例
 
-     ```lang-bash
-     # bin/sdb_mysql_ctl addinst mysqld3306 -p 3306 -D database/3306
-     ```
+  ```lang-bash
+  # bin/sdb_mysql_ctl stop mysqld3306
+  ```
 
-   4. 停止实例；
+7. 备份新的实例数据目录下的 database/3306/auto.cnf
 
-     ```lang-bash
-     # bin/sdb_mysql_ctl stop mysqld3306
-     ```
+  ```lang-bash
+  # mv database/3306/auto.cnf database/3306/auto.cnf_bk
+  ```
 
-   5. 备份新的实例数据目录下的 database/3306/auto.cnf；
+8. 将备份数据拷贝到新的实例目录下
 
-     ```lang-bash
-     # mv database/3306/auto.cnf database/3306/auto.cnf_bk
-     ```
+  ```lang-bash
+  # cp -r database/3306_bk/* database/3306
+  ```
 
-   6. 将备份数据拷贝到新的实例目录下，并将上一步操作中备份的配置文件还原；
+9. 将原有配置文件的配置项合入到新的配置文件中（手动转移 [mysqld] 中的内容），并将新的配置文件还原
+ 
+  ```lang-bash
+  # mv database/3306/auto.cnf_bk database/3306/auto.cnf
+  ```
 
-     ```lang-bash
-     # cp -r database/3306_bk/* database/3306
-     # mv database/3306/auto.cnf_bk database/3306/auto.cnf
-    ```
+10. 启动实例
 
-   7. 将安装路径下 my.cnf 中 [mysqld3306] 的配置项合入 database/3306/auto.cnf 中的 [mysqld] 中；
-
-   8. 启动实例；
-
-     ```lang-bash
-     # bin/sdb_mysql_ctl start mysqld3306
-     ```
+  ```lang-bash
+  # bin/sdb_mysql_ctl start mysqld3306
+  ```
