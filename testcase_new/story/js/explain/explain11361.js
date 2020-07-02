@@ -11,6 +11,7 @@ main( test )
 function test ( testPara )
 {
    var dbcl = testPara.testCL;
+   var fullclName = COMMCSNAME + "." + testConf.clName;
    dbcl.createIndex( "a", { a: 1 }, true );
    dbcl.createIndex( "b", { b: -1 }, true );
    dbcl.createIndex( "ab", { a: 1, b: 1 }, true );
@@ -31,7 +32,7 @@ function test ( testPara )
    dbcl.insert( docs );
    testExplain( conds, dbcl, indexName1, scanType1 );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = false;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 
@@ -46,7 +47,7 @@ function test ( testPara )
    dbcl.insert( docs );
    testExplain( conds, dbcl, indexName1, scanType1 );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = true;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 

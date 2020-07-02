@@ -14,6 +14,7 @@ function test ()
    var idxNamea = "index_a_11375";
    var idxNameb = "index_b_11375";
    var tbIdx = "";
+   var fullclName = COMMCSNAME + "." + clName;
 
    commDropCL( db, COMMCSNAME, clName );
 
@@ -36,7 +37,7 @@ function test ()
          cl.insert( value );
       }
 
-      db.analyze();
+      db.analyze( { Collection: fullclName } );
 
       var cond = {};
       var expIndexName = tbIdx;

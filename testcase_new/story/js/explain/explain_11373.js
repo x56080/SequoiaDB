@@ -15,6 +15,7 @@ function test ()
    var idxNameb = "index_b_11373";
    var idxNamec = "index_c_11373";
    var tbIdx = "";
+   var fullclName = COMMCSNAME + "." + clName;
 
    commDropCL( db, COMMCSNAME, clName );
 
@@ -29,7 +30,7 @@ function test ()
    var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    // 不计算io代价
    var expNeedEvalIO = false;
@@ -56,7 +57,7 @@ function test ()
    var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    // 计算io代价
    var expNeedEvalIO = true;

@@ -13,6 +13,7 @@ function test ()
    var clName = CHANGEDPREFIX + "_12432";
    var idxName1 = "index_a_12432";
    var idxName2 = "index_b_12432";
+   var fullclName = COMMCSNAME + "." + clName;
 
    commDropCL( db, COMMCSNAME, clName );
 
@@ -32,7 +33,7 @@ function test ()
       cl.insert( docs );
    }
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    var cond = { $and: [{ $and: [{ b: { $gt: 1 } }, { b: { $lt: 1000000 } }] }, { a: 1 }] };
    var expIndexName = idxName1;

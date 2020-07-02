@@ -14,6 +14,7 @@ function test ( testPara )
    dbcl.createIndex( "a", { a: 1 } );
    dbcl.createIndex( "b", { b: -1 } );
    dbcl.createIndex( "ab", { a: 1, b: 1 } );
+   var fullclName = COMMCSNAME + "." + testConf.clName;
 
    //设置查询条件,构造valA及valB在mcv中存在统计信息且跨类型的场景 
    var conds = [{ $and: [{ a: { $gt: 250 } }, { a: { $lt: true } }] }, { $and: [{ a: { $gte: 250 } }, { a: { $lte: false } }] }];
@@ -44,7 +45,7 @@ function test ( testPara )
 
    testExplain( conds, dbcl, indexName, scanType );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = false;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 
@@ -60,7 +61,7 @@ function test ( testPara )
    dbcl.insert( docs );
    testExplain( conds, dbcl, indexName, scanType );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = true;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 

@@ -11,6 +11,7 @@ main( test )
 function test ( testPara )
 {
    var dbcl = testPara.testCL;
+   var fullclName = COMMCSNAME + "." + testConf.clName;
 
    dbcl.createIndex( "a", { a: 1 }, true );
    dbcl.createIndex( "b", { b: -1 }, true );
@@ -32,7 +33,7 @@ function test ( testPara )
    }
    dbcl.insert( docs );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    //不计算IO代价
    var expNeedEvalIO = false;
@@ -48,7 +49,7 @@ function test ( testPara )
    }
    dbcl.insert( docs );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    //计算IO代价
    var expNeedEvalIO = true;

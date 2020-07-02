@@ -12,6 +12,7 @@ function test ( testPara )
 {
    var dbcl = testPara.testCL;
    dbcl.createIndex( "a", { a: 1 } );
+   var fullclName = COMMCSNAME + "." + testConf.clName;
 
    //设置查询条件
    var conds = [{ b: 1 }, { $or: [{ a: 1 }, { c: 1 }] }, { $not: [{ a: 1 }, { c: 1 }] }];
@@ -28,7 +29,7 @@ function test ( testPara )
 
    testExplain( conds, dbcl, indexName, scanType );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = false;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 
@@ -44,7 +45,7 @@ function test ( testPara )
 
    testExplain( conds, dbcl, indexName, scanType );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
    var expNeedEvalIO = true;
    checkNeedEvalIO( dbcl, expNeedEvalIO );
 

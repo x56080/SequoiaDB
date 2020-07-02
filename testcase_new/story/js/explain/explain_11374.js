@@ -13,6 +13,7 @@ function test ()
    var clName = CHANGEDPREFIX + "_11374";
    var idxName1 = "index_abc_11374";
    var tbIdx = "";
+   var fullclName = COMMCSNAME + "." + clName;
 
    commDropCL( db, COMMCSNAME, clName );
 
@@ -25,7 +26,7 @@ function test ()
    var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    // 不计算 IO 代价
    var expNeedEvalIO = false;
@@ -40,7 +41,7 @@ function test ()
    var value = rd.getRecords( 11000, "int", ["a", "b", "c"] );
    cl.insert( value );
 
-   db.analyze();
+   db.analyze( { Collection: fullclName } );
 
    // 计算 IO 代价
    var expNeedEvalIO = true;
