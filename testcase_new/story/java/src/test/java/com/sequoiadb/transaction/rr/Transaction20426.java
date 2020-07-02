@@ -7,6 +7,7 @@ import java.util.Random;
 import org.bson.BSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
+import org.testng.Reporter;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -60,7 +61,7 @@ public class Transaction20426 extends SdbTestBase {
     }
 
     // SEQUOIADBMAINSTREAM-5975
-    @Test(dataProvider = "index", enabled = false)
+    @Test(dataProvider = "index")
     public void test( String hint ) throws InterruptedException {
         // 开启查询事务
         TransUtils.beginTransaction( db1 );
@@ -147,7 +148,8 @@ public class Transaction20426 extends SdbTestBase {
 
                     String aValue = getRandomString( aLength );
                     int num = new Random().nextInt( expList.size() );
-                    System.out.println( "update num:" + num );
+                    System.out.println( Reporter.getCurrentTestResult()
+                            .getTestClass().getName() + " update num:" + num );
                     cl.update( "{ 'b': " + num + "}",
                             "{ '$set': { a: '" + aValue + "' } }", hint );
 
