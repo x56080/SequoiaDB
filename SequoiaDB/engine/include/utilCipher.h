@@ -35,17 +35,17 @@
 #include "ossTypes.h"
 
 void   utilCipherGenerateRandomArray( CHAR* array, UINT32 arrayLen ) ;
-INT32  utilCipherExtractRandomArray( CHAR *cipherText, UINT32 cipherTextLen, 
-                                     CHAR *array, UINT32 *cipherTextNewLen, 
+INT32  utilCipherExtractRandomArray( CHAR *cipherText, UINT32 cipherTextLen,
+                                     CHAR *array, UINT32 *cipherTextNewLen,
                                      UINT32 *arrayNewLen ) ;
 void   utilCipherInsertRandomArray( CHAR *destArray, UINT32 destArrayLen,
                                     CHAR *randArray, UINT32 randArrayLen,
                                     UINT32 *destArrayNewLen ) ;
 INT32  utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
-                          CHAR *cipherText ) ;
-INT32  utilCipherDecrypt( const CHAR *cipherText, const CHAR *token, 
+                          CHAR *cipherText, UINT32 cipherTextLen ) ;
+INT32  utilCipherDecrypt( const CHAR *cipherText, const CHAR *token,
                           CHAR *clearText ) ;
-INT32  utilDecryptUserCipher( const CHAR *user, const CHAR *token, 
+INT32  utilDecryptUserCipher( const CHAR *user, const CHAR *token,
                               const CHAR *path, CHAR *connectionUser,
                               CHAR *clearText ) ;
 

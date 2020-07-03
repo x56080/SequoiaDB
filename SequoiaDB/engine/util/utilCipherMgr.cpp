@@ -39,6 +39,8 @@
 #include <iostream>
 #include <sstream>
 
+#define UTIL_CLEARTEXT_MAX_LENGTH   1024
+
 namespace passwd
 {
    INT32 _utilCipherMgr::_parseLine( const string &line,
@@ -201,7 +203,7 @@ namespace passwd
       INT32  rc = SDB_OK ;
       string fileContent ;
       map<string,string>::iterator it ;
-      CHAR cipherText[SDB_MAX_PASSWORD_LENGTH * 2 + 1] = { '\0' } ;
+      CHAR cipherText[ UTIL_CLEARTEXT_MAX_LENGTH + 1 ] = { '\0' } ;
 
       if ( userFullName.empty() )
       {
@@ -236,7 +238,8 @@ namespace passwd
 
       if ( !passwd.empty() )
       {
-         rc = utilCipherEncrypt( passwd.c_str(), token.c_str(), cipherText ) ;
+         rc = utilCipherEncrypt( passwd.c_str(), token.c_str(),
+                                 cipherText, UTIL_CLEARTEXT_MAX_LENGTH + 1 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDERROR, "Failed to encrypt password, rc: %d", rc ) ;

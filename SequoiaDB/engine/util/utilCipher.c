@@ -156,23 +156,35 @@ static void _hashToKey( CHAR *cipherString, UINT32 cipherStringSize,
                                desiredLength : SHA256_DIGEST_LENGTH ) ;
 }
 
-void _byteToHex( const CHAR* in, UINT32 len, CHAR *out )
+INT32 _byteToHex( const CHAR *in, UINT32 inLen, CHAR *out, UINT32 outLen )
 {
-    static const char hexchars[] = "0123456789ABCDEF" ;
-    UINT32 i = 0;
+   INT32  rc = SDB_OK ;
+   UINT32 i  = 0 ;
+   static const char hexchars[] = "0123456789ABCDEF" ;
 
-    SDB_ASSERT( NULL != in, "clearText can't be NULL" ) ;
-    SDB_ASSERT( NULL != out, "cipherText can't be NULL" ) ;
+   SDB_ASSERT( NULL != in, "clearText can't be NULL" ) ;
+   SDB_ASSERT( NULL != out, "cipherText can't be NULL" ) ;
 
-    for ( i = 0; i < len; ++i )
-    {
-        CHAR c = in[i] ;
-        CHAR high = hexchars[( c & 0xF0 ) >> 4] ;
-        CHAR low = hexchars[( c & 0x0F )] ;
+   if ( inLen * 2 + 1 > outLen )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
-        out[i * 2] += high ;
-        out[i * 2 + 1] += low ;
-    }
+   for ( i = 0 ; i < inLen ; ++i )
+   {
+     CHAR c = in[i] ;
+     CHAR high = hexchars[( c & 0xF0 ) >> 4] ;
+     CHAR low = hexchars[( c & 0x0F )] ;
+
+     out[i * 2] += high ;
+     out[i * 2 + 1] += low ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 static void _arrayRemoveElement( CHAR *array, UINT32 arrayLen, UINT32 index,
@@ -396,7 +408,7 @@ error:
 * cipherText is a user provided buffer for cipherText string storage
 */
 INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
-                         CHAR *cipherText )
+                         CHAR *cipherText, UINT32 cipherTextLen )
 {
    INT32            rc = SDB_OK ;
    UINT32           clearTextSize = ossStrlen( clearText ) ;
@@ -485,7 +497,11 @@ INT32 utilCipherEncrypt( const CHAR *clearText, const CHAR *token,
                                 RANDOM_ARRAY_MAX_LENGTH, &resultSize ) ;
 
    // serialize
-   _byteToHex( result, resultSize, cipherText ) ;
+   rc = _byteToHex( result, resultSize, cipherText, cipherTextLen ) ;
+   if ( rc )
+   {
+      goto error ;
+   }
 
 done:
    if ( result )
@@ -668,8 +684,8 @@ INT32 _readFile( const CHAR *path, CHAR **fileContent, UINT32 *readLength )
 #endif
 
    fileSize = stat.st_size ;
-   if( 0 == fileSize ) 
-   {  
+   if( 0 == fileSize )
+   {
       *readLength = 0;
       goto done;
    }
