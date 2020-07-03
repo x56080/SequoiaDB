@@ -633,7 +633,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          }
       }
 
-      if ( fgets( line, 256, stdin ) != NULL )
+      if ( fgets( line, 255, stdin ) != NULL )
       {
          rc = ossOpenNamedPipe( bpf2dCtlName, OSS_NPIPE_OUTBOUND, 0,
                                 f2dCtlPipe ) ;
@@ -716,7 +716,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          }
       }
 
-      if ( fgets( buf, 256, stdin ) != NULL )
+      if ( fgets( buf, 255, stdin ) != NULL )
       {
          rc = ossOpenNamedPipe( bpf2dCtlName, OSS_NPIPE_OUTBOUND, 0,
                                 f2dCtlPipe ) ;
@@ -837,6 +837,8 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
    // clear the name pipe fd in windows
    clearDirtyShellPipe( SDB_SHELL_F2B_PIPE_PREFIX ) ;
    clearDirtyShellPipe( SDB_SHELL_B2F_PIPE_PREFIX ) ;
+   clearDirtyShellPipe( SDB_SHELL_CTL_F2B_PIPE_PREFIX ) ;
+   clearDirtyShellPipe( SDB_SHELL_CTL_B2F_PIPE_PREFIX ) ;
 
    // get current process id
    ppid = ossGetParentProcessID () ;
@@ -910,6 +912,20 @@ INT32 enterFrontEndMode ( const CHAR *program, const CHAR *cmd )
          {
             ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
                        bpd2fName, rc ) ;
+            goto error ;
+         }
+         rc = ossCleanNamedPipeByName ( bpf2dCtlName ) ;
+         if ( rc )
+         {
+            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpf2dCtlName, rc ) ;
+            goto error ;
+         }
+         rc = ossCleanNamedPipeByName ( bpd2fCtlName ) ;
+         if ( rc )
+         {
+            ossPrintf( "Clean pipe[%s] failed, rc: %d"OSS_NEWLINE,
+                       bpd2fCtlName, rc ) ;
             goto error ;
          }
 

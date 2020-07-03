@@ -68,7 +68,7 @@ static BOOLEAN isExit = FALSE ;
 
 // caller should free output in the case of success
 // PD_TRACE_DECLARE_FUNCTION ( SDB_READFROMPIPE, "readFromPipe" )
-static INT32 readFromPipe ( OSSNPIPE & npipe , CHAR ** output )
+static INT32 readFromPipe ( OSSNPIPE & npipe , CHAR ** output, BOOLEAN trim = TRUE )
 {
    CHAR     c   = 0 ;
    INT32    rc  = SDB_OK ;
@@ -98,7 +98,10 @@ static INT32 readFromPipe ( OSSNPIPE & npipe , CHAR ** output )
       if ( ! output )
          goto done ;
 
-      boost::algorithm::trim ( buf ) ;
+      if ( trim )
+      {
+         boost::algorithm::trim ( buf ) ;
+      }
       // output is freed by the caller
       *output = (CHAR *) SDB_OSS_MALLOC ( buf.size() + 1 ) ;
       if ( ! *output )
@@ -124,10 +127,12 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MONITORTHREAD, "monitorThread" )
 void monitorThread ( const OSSPID  shpid ,
                      const CHAR * f2bName ,
-                     const CHAR * b2fName )
+                     const CHAR * b2fName,
+                     const CHAR * f2bCtrlName,
+                     const CHAR * b2fCtrlName )
 {
    PD_TRACE_ENTRY ( SDB_MONITORTHREAD );
-   while ( ossIsProcessRunning ( shpid ) )
+   while ( ossIsProcessRunning ( shpid ) && !isExit )
    {
       ossSleep( OSS_ONE_SEC ) ;
    }
@@ -135,6 +140,8 @@ void monitorThread ( const OSSPID  shpid ,
    // shell has exited, so just clean up and exit the whole program
    ossCleanNamedPipeByName ( f2bName ) ;
    ossCleanNamedPipeByName ( b2fName ) ;
+   ossCleanNamedPipeByName ( f2bCtrlName ) ;
+   ossCleanNamedPipeByName ( b2fCtrlName ) ;
    PD_TRACE_EXIT ( SDB_MONITORTHREAD );
    exit (0) ;
 }
@@ -142,14 +149,17 @@ void monitorThread ( const OSSPID  shpid ,
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CREATESHMONTHREAD, "createShellMonitorThread" )
 INT32 createShellMonitorThread ( const OSSPID & shpid ,
                                  const CHAR * f2bName ,
-                                 const CHAR * b2fName )
+                                 const CHAR * b2fName,
+                                 const CHAR * f2bCtrlName,
+                                 const CHAR * b2fCtrlName )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_CREATESHMONTHREAD );
 
    try
    {
-      boost::thread monitor ( monitorThread , shpid , f2bName , b2fName ) ;
+      boost::thread monitor ( monitorThread , shpid , f2bName , b2fName,
+                              f2bCtrlName, b2fCtrlName ) ;
       monitor.detach() ;
    }
    catch ( boost::thread_resource_error & )
@@ -181,7 +191,7 @@ void* writeThread( INT32 anonymousPipeFd, OSSNPIPE *f2bCtlPipe,
       rc = ossConnectNamedPipe ( *f2bCtlPipe , OSS_NPIPE_INBOUND ) ;
       SH_VERIFY_RC
 
-      rc = readFromPipe ( *f2bCtlPipe , &passwd )  ;
+      rc = readFromPipe ( *f2bCtlPipe , &passwd, FALSE )  ;
       SH_VERIFY_RC
 
       rc = ossDisconnectNamedPipe ( *f2bCtlPipe ) ;
@@ -196,12 +206,7 @@ void* writeThread( INT32 anonymousPipeFd, OSSNPIPE *f2bCtlPipe,
                   errno ) ;
          goto error ;
       }
-      if ( ( res = oss_write( anonymousPipeFd, OSS_NEWLINE, 1 ) ) != 1 )
-      {
-         PD_LOG ( PDERROR , "Failed to write '\n' to pipe, errno: %d" ,
-                  errno ) ;
-         goto error ;
-      }
+
       SAFE_OSS_FREE ( passwd ) ;
 
       // this pipe is mainly to synchronize the read and write operations of
@@ -233,7 +238,7 @@ INT32 enterDaemonMode ( sptScope *scope ,
 {
    INT32    rc         = SDB_OK ;
    CHAR *   code       = NULL ;
-   BOOLEAN  exit       = FALSE ;
+   BOOLEAN  isexit     = FALSE ;
    INT32    fd         = -1 ;
    INT32    hOutFd     = -1 ;
    INT32    pipeFds[2] = { 0 } ;
@@ -301,7 +306,8 @@ INT32 enterDaemonMode ( sptScope *scope ,
    rc = ossCloseNamedPipe ( waitPipe ) ;
    SH_VERIFY_RC
 
-   rc = createShellMonitorThread ( shpid , f2bName , b2fName ) ;
+   rc = createShellMonitorThread ( shpid , f2bName , b2fName,
+                                   f2bCtlName, b2fCtlName ) ;
    SH_VERIFY_RC
 
    while ( TRUE )
@@ -345,9 +351,9 @@ INT32 enterDaemonMode ( sptScope *scope ,
       }
 
       if ( ossStrcmp ( CMD_QUIT , code ) == 0 )
-         exit = TRUE ;
+         isexit = TRUE ;
 
-      if ( ! exit )
+      if ( ! isexit )
          scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
                       SPT_EVAL_FLAG_PRINT, NULL ) ;
       SAFE_OSS_FREE ( code ) ;
@@ -370,24 +376,29 @@ INT32 enterDaemonMode ( sptScope *scope ,
       rc = ossDisconnectNamedPipe ( b2fPipe ) ;
       SH_VERIFY_RC
 
-      if ( exit )
+      if ( isexit )
       {
          break ;
       }
    }
 
    isExit = TRUE ;
-   writeTh.join() ;
+
+#if defined (_WINDOWS)
+   exit (0) ;
+#endif // _WINDOWS
+
+   // writeTh.join() ;
 
 done :
    SAFE_OSS_FREE ( code ) ;
-   ossCloseFd( STDIN ) ;
-   ossCloseFd( pipeFds[0] ) ;
-   ossCloseFd( pipeFds[1] ) ;
    ossDeleteNamedPipe ( f2bPipe ) ;
    ossDeleteNamedPipe ( b2fPipe ) ;
    ossDeleteNamedPipe ( f2bCtlPipe ) ;
    ossDeleteNamedPipe ( b2fCtlPipe ) ;
+   ossCloseFd( STDIN ) ;
+   ossCloseFd( pipeFds[0] ) ;
+   ossCloseFd( pipeFds[1] ) ;
    PD_TRACE_EXITRC ( SDB_ENTERDAEMONMODE, rc );
    return rc ;
 error :
