@@ -1,3 +1,5 @@
+import( "../lib/main.js" )
+
 // create WORKDIR in local host
 commMakeDir( "localhost", WORKDIR );
 // create cappedCS
