@@ -573,7 +573,21 @@ namespace engine
       }
       else
       {
-         rc = repl->reelect( _level, _timeout, cb, _nodeID ) ;
+         MsgRouteID targetRID ;
+
+         if ( 0 == _nodeID )
+         {
+            // could reelect to any node
+            targetRID.value = MSG_INVALID_ROUTEID ;
+         }
+         else
+         {
+            // target primary node is specified
+            targetRID.value = pmdGetNodeID().value ;
+            targetRID.columns.nodeID = _nodeID ;
+         }
+
+         rc = repl->reelect( _level, _timeout, cb, targetRID ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;

@@ -118,6 +118,10 @@ namespace engine
       INT32 redirectPrimary( stpSession *session,
                              MsgHeader *message ) ;
 
+      INT32 redirectNode( stpSession *session,
+                          const MsgRouteID &routeID,
+                          MsgHeader *message ) ;
+
    protected:
       // asynchronous message handler
       pmdAsyncMsgHandler   _messageHandler ;

@@ -115,12 +115,11 @@ namespace engine
                               UINT32 version,
                               INT32 returnCode ) ;
 
-      // broadcast meta notify
-      INT32 _broadcastMetaNotify() ;
-
    public:
       // launch meta synchronize
       INT32 launchMetaSync() ;
+      // broadcast meta notify
+      INT32 broadcastMetaNotify() ;
       // get meta LSN
       INT32 getMetaLSN( UINT64 &time, UINT32 &version ) ;
       // get meta LSN in DPS_LSN format

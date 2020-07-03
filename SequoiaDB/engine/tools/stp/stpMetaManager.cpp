@@ -92,6 +92,9 @@ namespace engine
                   PD_LOG( PDERROR, "Failed to update meta LSN time, "
                           "rc: %d", rc ) ;
                }
+
+               // broadcast the notify
+               broadcastMetaNotify() ;
             }
             else if ( _stpCB->isSecondaryServer() )
             {
@@ -372,7 +375,12 @@ namespace engine
       if ( _stpCB->isSecondaryServer() )
       {
          // launch meta synchronize
-         launchMetaSync() ;
+         rc = launchMetaSync() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to launch meta data synchronize, "
+                      "rc: %d", rc ) ;
+
+         // reset timeout
+         _metaSyncTimeout = 0LL ;
       }
       else
       {
@@ -380,9 +388,12 @@ namespace engine
                  "I am primary" ) ;
       }
 
+   done:
       PD_TRACE_EXITRC( SDB__STPMETAMGR__HANDLEMETANOTIFY, rc ) ;
-
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__HANDLEMETASYNCREQ, "_stpMetaManager::_handleMetaSyncReq" )
@@ -564,12 +575,39 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__BROADCASTMETANOTIFY, "_stpMetaManager::_broadcastMetaNotify" )
-   INT32 _stpMetaManager::_broadcastMetaNotify()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR_LAUNCHMETASYNC, "_stpMetaManager::launchMetaSync" )
+   INT32 _stpMetaManager::launchMetaSync()
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPMETAMGR__BROADCASTMETANOTIFY ) ;
+      PD_TRACE_ENTRY( SDB__STPMETAMGR_LAUNCHMETASYNC ) ;
+
+      MsgRouteID primaryRID ;
+
+      // get route ID of primary
+      rc = _session.getPrimaryRID( primaryRID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get primary route ID, "
+                   "rc: %d", rc ) ;
+
+      // send meta synchronize to primary
+      rc = _sendMetaSyncReq( primaryRID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize meta "
+                   "request, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETAMGR_LAUNCHMETASYNC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR_BROADCASTMETANOTIFY, "_stpMetaManager::broadcastMetaNotify" )
+   INT32 _stpMetaManager::broadcastMetaNotify()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR_BROADCASTMETANOTIFY ) ;
 
       STP_SERVER_LIST servers ;
 
@@ -593,34 +631,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__STPMETAMGR__BROADCASTMETANOTIFY, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR_LAUNCHMETASYNC, "_stpMetaManager::launchMetaSync" )
-   INT32 _stpMetaManager::launchMetaSync()
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPMETAMGR_LAUNCHMETASYNC ) ;
-
-      MsgRouteID primaryRID ;
-
-      // get route ID of primary
-      rc = _session.getPrimaryRID( primaryRID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get primary route ID, "
-                   "rc: %d", rc ) ;
-
-      // send meta synchronize to primary
-      rc = _sendMetaSyncReq( primaryRID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize meta "
-                   "request, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPMETAMGR_LAUNCHMETASYNC, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPMETAMGR_BROADCASTMETANOTIFY, rc ) ;
       return rc ;
 
    error:

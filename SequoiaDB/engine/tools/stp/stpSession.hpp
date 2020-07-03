@@ -49,7 +49,9 @@ namespace engine
 
    // invalid redirect ID
    // which means the session has no redirected message
-   #define STP_INVALID_REDIRECT_ID ( 0 )
+   #define STP_INVALID_REDIRECT_ID  ( 0 )
+   #define STP_INVALID_THREAD_ID    ( 0 )
+   #define STP_INVALID_REQUEST_ID   ( 0 )
 
    /*
       _stpSession define
@@ -89,9 +91,20 @@ namespace engine
       }
 
       // set redirect ID
-      OSS_INLINE void setRedirectID( UINT64 redirectID )
+      OSS_INLINE void setRedirectID( UINT64 redirectID,
+                                     UINT32 lastTID,
+                                     UINT64 lastRequestID )
       {
          _redirectID = redirectID ;
+         _lastThreadID = lastTID ;
+         _lastRequestID = lastRequestID ;
+      }
+
+      OSS_INLINE void resetRedirectID()
+      {
+         _redirectID = STP_INVALID_REDIRECT_ID ;
+         _lastThreadID = STP_INVALID_THREAD_ID ;
+         _lastRequestID = STP_INVALID_REQUEST_ID ;
       }
 
       // get redirect ID
@@ -139,13 +152,21 @@ namespace engine
       // redirect request to primary
       INT32 _redirectPrimary( MsgHeader *message ) ;
 
+      // save command for further processing
+      INT32 _saveCommand( stpCommand *command ) ;
+
    protected:
       // pointer to STP control block
-      STPCB *     _stpCB ;
+      STPCB *        _stpCB ;
 
       // save redirect ID which means this session has message redirected to
       // other nodes
-      UINT64      _redirectID ;
+      UINT64         _redirectID ;
+      UINT32         _lastThreadID ;
+      UINT64         _lastRequestID ;
+
+      // current processing command
+      stpCommand *   _curCommand ;
    } ;
 
    typedef class _stpSession stpSession ;

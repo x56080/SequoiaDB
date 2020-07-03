@@ -42,6 +42,7 @@
 #include "stpCBCommon.hpp"
 #include "msgDef.hpp"
 #include "stpNode.hpp"
+#include "pmdEDU.hpp"
 #include "../bson/bson.hpp"
 
 namespace engine
@@ -100,7 +101,14 @@ namespace engine
       // finalize command
       virtual INT32 finalize() ;
       // run command and output result in BSON format
-      virtual INT32 doit( bson::BSONObj &result ) = 0 ;
+      // input:
+      // - session: service session of STP
+      // - message: processing message
+      // - result: result in BSON format
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) = 0 ;
 
    protected:
       // pointer to STPCB
@@ -181,7 +189,11 @@ namespace engine
    // initialize command with given option
    INT32 stpInitCommand( stpCommand *command, const CHAR *option ) ;
    // run command and output result in BSON format
-   INT32 stpRunCommand( stpCommand *command, bson::BSONObj &result ) ;
+   INT32 stpRunCommand( stpCommand *command,
+                        stpSession *session,
+                        MsgHeader *message,
+                        bson::BSONObj &result,
+                        BOOLEAN &finished ) ;
    // release command
    INT32 stpReleaseCommand( stpCommand *command ) ;
 
@@ -206,7 +218,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetTimeCMD stpGetTimeCMD ;
@@ -232,7 +247,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetTimeUSCMD stpGetTimeUSCMD ;
@@ -258,7 +276,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetMetaCMD stpGetMetaCMD ;
@@ -284,7 +305,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetServersCMD stpGetServersCMD ;
@@ -309,7 +333,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
 
       // check if command needs to run on primary server
       OSS_INLINE virtual BOOLEAN needPrimary() const
@@ -346,7 +373,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetSyncStatusCMD stpGetSyncStatusCMD ;
@@ -371,7 +401,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
 
    protected:
       // sort sources by last synchronized time
@@ -401,7 +434,10 @@ namespace engine
       }
 
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
 
    typedef class _stpGetConfigCMD stpGetConfigCMD ;
@@ -428,7 +464,10 @@ namespace engine
       // initialize with given option
       virtual INT32 initialize( const CHAR *option ) ;
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
 
    protected:
       // new configs to be updated
@@ -460,8 +499,61 @@ namespace engine
       // finalize command
       virtual INT32 finalize() ;
       // run command
-      virtual INT32 doit( bson::BSONObj &result ) ;
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
    } ;
+
+   typedef class _stpStopCMD stpStopCMD ;
+
+   /*
+      _stpReelectCMD define
+    */
+   // reelect STP node
+   class _stpReelectCMD : public stpCommand
+   {
+      DECLARE_STP_CMD_AUTO_REGISTER()
+
+   public:
+      // constructor and destructor
+      _stpReelectCMD( STPCB *stpCB ) ;
+      virtual ~_stpReelectCMD() ;
+
+   public:
+      // get name of command
+      OSS_INLINE virtual const CHAR *getName() const
+      {
+         return CMD_NAME_STP_REELECT ;
+      }
+
+      // initialize with given option
+      virtual INT32 initialize( const CHAR *option ) ;
+      // run command
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
+
+      // check if command needs to run on primary server
+      OSS_INLINE virtual BOOLEAN needPrimary() const
+      {
+         return TRUE ;
+      }
+
+      // check if command can redirect to primary if this node is not
+      OSS_INLINE virtual BOOLEAN canRedirectPrimary() const
+      {
+         return TRUE ;
+      }
+
+   protected:
+      BSONObj        _options ;
+      UINT32         _timeout ;
+      const CHAR *   _targetHostName ;
+   } ;
+
+   typedef class _stpReelectCMD stpReelectCMD ;
 
 }
 

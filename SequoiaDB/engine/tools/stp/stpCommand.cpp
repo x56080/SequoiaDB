@@ -38,6 +38,7 @@
 
 #include "stpCommand.hpp"
 #include "stpCB.hpp"
+#include "stpSession.hpp"
 #include "pdTrace.hpp"
 #include "stpTrace.hpp"
 #include "dpsLogDef.hpp"
@@ -48,6 +49,8 @@ using namespace bson ;
 namespace engine
 {
 
+   // default timeout to reelect, 30 seconds
+   #define STP_REELECT_DFT_TIMEOUT ( 30 )
 
    /*
       _stpCommand implement
@@ -222,22 +225,29 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPRUNCOMMAND, "stpRunCommand" )
-   INT32 stpRunCommand( stpCommand *command, BSONObj &result )
+   INT32 stpRunCommand( stpCommand *command,
+                        stpSession *session,
+                        MsgHeader *message,
+                        BSONObj &result,
+                        BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPRUNCOMMAND ) ;
 
       SDB_ASSERT( NULL != command, "command is invalid" ) ;
+      SDB_ASSERT( NULL != session, "session is invalid" ) ;
 
       // check if command is valid
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
                 "Failed to run command, command is invalid" ) ;
 
+      finished = FALSE ;
+
       try
       {
          // run command and get result in BSON format
-         rc = command->doit( result ) ;
+         rc = command->doit( session, message, result, finished ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], "
                       "rc: %d", command->getName(), rc ) ;
       }
@@ -270,7 +280,7 @@ namespace engine
          // finalize command
          command->finalize() ;
 
-         // reelase command
+         // release command
          stpGetCommandBuilder()->releaseCommand( command ) ;
       }
 
@@ -294,7 +304,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMECMD_DOIT, "_stpGetTimeCMD::doit" )
-   INT32 _stpGetTimeCMD::doit( BSONObj &result )
+   INT32 _stpGetTimeCMD::doit( stpSession *session,
+                               MsgHeader *message,
+                               BSONObj &result,
+                               BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -323,6 +336,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETTIMECMD_DOIT, rc ) ;
       return rc ;
 
@@ -345,7 +359,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMEUSCMD_DOIT, "_stpGetTimeUSCMD::doit" )
-   INT32 _stpGetTimeUSCMD::doit( BSONObj &result )
+   INT32 _stpGetTimeUSCMD::doit( stpSession *session,
+                                 MsgHeader *message,
+                                 BSONObj &result,
+                                 BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -374,6 +391,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETTIMEUSCMD_DOIT, rc ) ;
       return rc ;
 
@@ -396,7 +414,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETMETACMD_DOIT, "_stpGetMetaCMD::doit" )
-   INT32 _stpGetMetaCMD::doit( BSONObj &result )
+   INT32 _stpGetMetaCMD::doit( stpSession *session,
+                               MsgHeader *message,
+                               BSONObj &result,
+                               BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -459,6 +480,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETMETACMD_DOIT, rc ) ;
       return rc ;
 
@@ -481,7 +503,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETSERVERSCMD_DOIT, "_stpGetServersCMD::doit" )
-   INT32 _stpGetServersCMD::doit( BSONObj &result )
+   INT32 _stpGetServersCMD::doit( stpSession *session,
+                                  MsgHeader *message,
+                                  BSONObj &result,
+                                  BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -492,6 +517,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETSERVERSCMD_DOIT, rc ) ;
       return rc ;
 
@@ -514,7 +540,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETSYNCCLIENTSCMD_DOIT, "_stpGetSyncClientsCMD::doit" )
-   INT32 _stpGetSyncClientsCMD::doit( BSONObj &result )
+   INT32 _stpGetSyncClientsCMD::doit( stpSession *session,
+                                      MsgHeader *message,
+                                      BSONObj &result,
+                                      BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -573,6 +602,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETSYNCCLIENTSCMD_DOIT, rc ) ;
       return rc ;
 
@@ -596,7 +626,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETSYNCSTATUSCMD_DOIT, "_stpGetSyncStatusCMD::doit" )
-   INT32 _stpGetSyncStatusCMD::doit( BSONObj &result )
+   INT32 _stpGetSyncStatusCMD::doit( stpSession *session,
+                                     MsgHeader *message,
+                                     BSONObj &result,
+                                     BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -654,6 +687,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETSYNCSTATUSCMD_DOIT, rc ) ;
       return rc ;
 
@@ -676,7 +710,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETSYNCHISTORYCMD_DOIT, "_stpGetSyncHistoryCMD::doit" )
-   INT32 _stpGetSyncHistoryCMD::doit( BSONObj &result )
+   INT32 _stpGetSyncHistoryCMD::doit( stpSession *session,
+                                      MsgHeader *message,
+                                      BSONObj &result,
+                                      BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -730,6 +767,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETSYNCHISTORYCMD_DOIT, rc ) ;
       return rc ;
 
@@ -795,7 +833,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETCONFIGCMD_DOIT, "_stpGetConfigCMD::doit" )
-   INT32 _stpGetConfigCMD::doit( BSONObj &result )
+   INT32 _stpGetConfigCMD::doit( stpSession *session,
+                                 MsgHeader *message,
+                                 BSONObj &result,
+                                 BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -822,6 +863,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETSYNCHISTORYCMD_DOIT, rc ) ;
       return rc ;
 
@@ -872,7 +914,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPUPDATECONFIGCMD_DOIT, "_stpUpdateConfigCMD::doit" )
-   INT32 _stpUpdateConfigCMD::doit( BSONObj &result )
+   INT32 _stpUpdateConfigCMD::doit( stpSession *session,
+                                    MsgHeader *message,
+                                    BSONObj &result,
+                                    BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -902,6 +947,7 @@ namespace engine
       }
 
    done:
+      finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPUPDATECONFIGCMD_DOIT, rc ) ;
       return rc ;
 
@@ -939,7 +985,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSTOPCMD_DOIT, "_stpStopCMD::doit" )
-   INT32 _stpStopCMD::doit( BSONObj &result )
+   INT32 _stpStopCMD::doit( stpSession *session,
+                            MsgHeader *message,
+                            BSONObj &result,
+                            BOOLEAN &finished )
    {
       INT32 rc = SDB_OK ;
 
@@ -949,9 +998,175 @@ namespace engine
       // reply to client after doing phase )
       PD_LOG( PDEVENT, "Got stop command" ) ;
 
+      finished = TRUE ;
+
       PD_TRACE_EXITRC( SDB__STPSTOPCMD_DOIT, rc ) ;
 
       return rc ;
+   }
+
+   /*
+      _stpReelectCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpReelectCMD )
+
+   _stpReelectCMD::_stpReelectCMD( STPCB *stpCB )
+   : stpCommand( stpCB ),
+     _timeout( STP_REELECT_DFT_TIMEOUT ),
+     _targetHostName( NULL )
+   {
+   }
+
+   _stpReelectCMD::~_stpReelectCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREELECTCMD_INITIALIZE, "_stpReelectCMD::initialize" )
+   INT32 _stpReelectCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPREELECTCMD_INITIALIZE ) ;
+
+      try
+      {
+         BSONObj temp = BSONObj( option ) ;
+         BSONElement element ;
+
+         _options = temp.getOwned() ;
+
+         element = _options.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( element.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from option, "
+                      "it is not a number", FIELD_NAME_REELECTION_TIMEOUT ) ;
+            _timeout = (UINT32)( element.numberInt() ) ;
+         }
+         else
+         {
+            _timeout = STP_REELECT_DFT_TIMEOUT ;
+         }
+
+         element = _options.getField( FIELD_NAME_HOST ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from option, "
+                      "it is not a string", FIELD_NAME_HOST ) ;
+            _targetHostName = element.valuestr() ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse option for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( NULL != _targetHostName &&
+           0 == ossStrcmp( _targetHostName, pmdGetKRCB()->getHostName() ) )
+      {
+         // target primary is current node
+         if ( _stpCB->isPrimaryServer() )
+         {
+            // do nothing
+         }
+         else if ( _stpCB->isSecondaryServer() )
+         {
+            // it is not primary yet, set shadow weight to maximum
+            _stpCB->getReplManager()->getVoteMachine()->
+                  setShadowWeight( CLS_ELECTION_WEIGHT_MAX ) ;
+         }
+         else
+         {
+            PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                      "Failed to reelect primary to current node [%s], "
+                      "current node is not server", _targetHostName ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPREELECTCMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREELECTCMD_DOIT, "_stpReelectCMD::doit" )
+   INT32 _stpReelectCMD::doit( stpSession *session,
+                               MsgHeader *message,
+                               BSONObj &result,
+                               BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPREELECTCMD_DOIT ) ;
+
+      BOOLEAN tempFinished = TRUE ;
+      pmdEDUCB *cb = session->eduCB() ;
+
+      if ( NULL == _targetHostName )
+      {
+         MsgRouteID targetRID ;
+         targetRID.value = MSG_INVALID_ROUTEID ;
+
+         // notify secondary to synchronize
+         _stpCB->getMetaManager()->broadcastMetaNotify() ;
+
+         // no target primary is given
+         rc = _stpCB->getReplManager()->reelect( CLS_REELECTION_LEVEL_3,
+                                                 _timeout, cb, targetRID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to run reelect, rc: %d", rc ) ;
+      }
+      else if ( 0 != ossStrcmp( _targetHostName,
+                                pmdGetKRCB()->getHostName() ) )
+      {
+         stpServerNode server ;
+         rc = _stpCB->getNodeManager()->getServer( _targetHostName, server ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get server [%s], rc: %d",
+                      _targetHostName, rc ) ;
+
+         if ( server.getRouteIDValue() == message->routeID.value )
+         {
+            // the message is redirected from target node, no need to redirect
+            // back
+
+            // notify secondary to synchronize
+            _stpCB->getMetaManager()->broadcastMetaNotify() ;
+
+            rc = _stpCB->getReplManager()->reelect( CLS_REELECTION_LEVEL_3,
+                                                    _timeout,
+                                                    cb,
+                                                    server.getRouteID() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to run reelect, rc: %d", rc ) ;
+         }
+         else
+         {
+            // redirect message to target node
+            rc = _stpCB->getServiceManager()->redirectNode( session,
+                                                            server.getRouteID(),
+                                                            message ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to redirect message to "
+                         "server [%s], rc: %d", _targetHostName, rc ) ;
+
+            // unset target node
+            _targetHostName = NULL ;
+
+            // not finished yet
+            tempFinished = FALSE ;
+         }
+      }
+
+   done:
+      finished = tempFinished ;
+      PD_TRACE_EXITRC( SDB__STPREELECTCMD_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

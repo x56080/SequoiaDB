@@ -87,7 +87,7 @@ namespace engine
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
                               UINT32 seconds,
                               pmdEDUCB *cb,
-                              UINT16 destID )
+                              const MsgRouteID &destRID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
@@ -116,7 +116,9 @@ namespace engine
          goto error ;
       }
       /// is self
-      else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
+      else if ( MSG_INVALID_ROUTEID != destRID.value &&
+                destRID.columns.groupID == pmdGetNodeID().columns.groupID &&
+                destRID.columns.nodeID == pmdGetNodeID().columns.nodeID )
       {
          // restore
          _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
@@ -147,7 +149,7 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
-         rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+         rc = _wait4Replica( timePassed, seconds, cb, destRID ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -218,7 +220,7 @@ namespace engine
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
                                         pmdEDUCB *cb,
-                                        UINT16 destID )
+                                        const MsgRouteID &destRID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
@@ -231,7 +233,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _syncMgr->atLeastOne( lsn.offset, destID ) )
+         if ( _syncMgr->atLeastOne( lsn.offset, destRID.value ) )
          {
             break ;
          }

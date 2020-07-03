@@ -360,6 +360,9 @@ namespace engine
       // get server information by route ID
       INT32 getServer( const MsgRouteID &routeID, stpServerNode &server ) ;
 
+      // get server information by hostname
+      INT32 getServer( const CHAR *hostName, stpServerNode &server ) ;
+
       // dump information of all servers
       INT32 dumpServers( STP_SERVER_LIST &servers ) ;
 

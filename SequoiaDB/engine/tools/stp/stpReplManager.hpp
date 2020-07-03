@@ -84,6 +84,9 @@ namespace engine
       // process message callback
       virtual INT32 processMessage( NET_HANDLE handle, MsgHeader *message ) ;
 
+      // process event
+      INT32 handleEvent( pmdEDUEvent *event ) ;
+
    protected:
       // override protected functions of STP module
 
@@ -149,6 +152,9 @@ namespace engine
       virtual void beforeFoundNewPrimary() ;
       // event after new primary is found
       virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) ;
+      // process LSN reported by beat
+      virtual void processBeatLSN( const MsgRouteID &remote,
+                                   const DPS_LSN &lsn ) ;
 
    protected:
       // activate replica group to vote

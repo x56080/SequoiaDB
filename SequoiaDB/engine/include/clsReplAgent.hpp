@@ -107,8 +107,14 @@ namespace engine
       /// handle case when information of local group is expired
       virtual void onLocalGroupExpired() = 0 ;
       /// handle case when is notified that primary is changed
+      /// before event
       virtual void beforeFoundNewPrimary() = 0 ;
+      /// handle case when is notified that primary is changed
+      /// after event
       virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) = 0 ;
+      // process LSN reported by beat
+      virtual void processBeatLSN( const MsgRouteID &remote,
+                                   const DPS_LSN &lsn ) = 0 ;
 
    public:
       OSS_INLINE EDUID getMainEDUID()
@@ -189,7 +195,7 @@ namespace engine
       INT32 reelect( CLS_REELECTION_LEVEL lvl,
                      UINT32 seconds,
                      pmdEDUCB *cb,
-                     UINT16 destID = 0 ) ;
+                     const MsgRouteID &destRID ) ;
 
       void reelectionDone() ;
 

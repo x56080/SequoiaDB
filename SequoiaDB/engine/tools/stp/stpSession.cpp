@@ -65,7 +65,10 @@ namespace engine
    _stpSession::_stpSession( UINT64 sessionID, STPCB *stpCB )
    : pmdAsyncSession( sessionID ),
      _stpCB( stpCB ),
-     _redirectID( STP_INVALID_REDIRECT_ID )
+     _redirectID( STP_INVALID_REDIRECT_ID ),
+     _lastThreadID( 0 ),
+     _lastRequestID( 0LL ),
+     _curCommand( NULL )
    {
    }
 
@@ -174,6 +177,7 @@ namespace engine
       CHAR *commandName = NULL ;
       CHAR *optionBuffer = NULL ;
       stpCommand *command = NULL ;
+      BOOLEAN finished = FALSE ;
       BSONObj result ;
 
       _redirectID = STP_INVALID_REDIRECT_ID ;
@@ -193,6 +197,11 @@ namespace engine
       PD_CHECK( NULL != command, SDB_INVALIDARG, error, PDERROR,
                 "Failed to get command [%s], command is invalid",
                 commandName ) ;
+
+      // initialize command with given option
+      rc = stpInitCommand( command, optionBuffer ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize command [%s], rc: %d",
+                   commandName, rc ) ;
 
       // check primary
       if ( command->needPrimary() &&
@@ -241,27 +250,36 @@ namespace engine
                    "Failed to check business for command [%s]", commandName ) ;
       }
 
-      // initialize command with given option
-      rc = stpInitCommand( command, optionBuffer ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize command [%s], rc: %d",
-                   commandName, rc ) ;
-
       // run command
-      rc = stpRunCommand( command, result ) ;
+      rc = stpRunCommand( command, this, message, result, finished ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
                    commandName, rc ) ;
+
+      if ( !finished )
+      {
+         // save command for further processing
+         rc = _saveCommand( command ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save command [%s] for further "
+                      "processing, rc: %d", commandName, command ) ;
+
+         command = NULL ;
+         goto done ;
+      }
 
       // send reply with query result
       rc = _sendReply( message, SDB_OK, result ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to send reply to %s, rc: %d",
-                 routeID2String( message->routeID ).c_str(), rc ) ;
+         PD_LOG( PDERROR, "Failed to send reply for command [%s], "
+                 "rc: %d", command->getName(), rc ) ;
       }
 
    done:
-      // release command
-      stpReleaseCommand( command ) ;
+      if ( NULL != command )
+      {
+         // release command
+         stpReleaseCommand( command ) ;
+      }
       PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYREQ, rc ) ;
       return rc ;
 
@@ -306,16 +324,52 @@ namespace engine
                 "current [%llu], message [%llu]", _redirectID,
                 tmpRedirectID ) ;
 
+      // reset thread ID and request ID
+      message->TID = _lastThreadID ;
+      message->requestID = _lastRequestID ;
+
+      if ( NULL != _curCommand )
+      {
+         BOOLEAN finished = FALSE ;
+         BSONObj result ;
+
+         PD_LOG( PDDEBUG, "Continue process command [%s]",
+                 _curCommand->getName() ) ;
+
+         rc = _curCommand->doit( this, message, result, finished ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = _sendReply( message, SDB_OK, result ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to send reply for command [%s], "
+                       "rc: %d", _curCommand->getName(), rc ) ;
+            }
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to continue process command [%s], "
+                    "rc: %d", _curCommand->getName(), rc ) ;
+            _sendReply( message, rc ) ;
+         }
+
+         goto done ;
+      }
+
       // send it back to client
       rc = _sendReply( message ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send reply, rc: %d", rc ) ;
 
    done:
-      // reset redirect ID
-      if ( STP_INVALID_REDIRECT_ID != _redirectID )
+      // reset command
+      if ( NULL != _curCommand )
       {
-         _redirectID = STP_INVALID_REDIRECT_ID ;
+         stpReleaseCommand( _curCommand ) ;
+         _curCommand = NULL ;
       }
+      // reset redirect ID
+      resetRedirectID() ;
+
       PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYRES, rc ) ;
       return rc ;
 
@@ -486,6 +540,32 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION__SAVECOMMAND, "_stpSession::_saveCommand" )
+   INT32 _stpSession::_saveCommand( stpCommand *command )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPSESSION__SAVECOMMAND ) ;
+
+      if ( NULL != _curCommand )
+      {
+         PD_LOG( PDEVENT, "Command [%s] is expired", _curCommand->getName() ) ;
+         stpReleaseCommand( _curCommand ) ;
+         _curCommand = NULL ;
+      }
+
+      if ( NULL != command )
+      {
+         PD_LOG( PDEVENT, "Save command [%s] for further processing",
+                 command->getName() ) ;
+         _curCommand = command ;
+      }
+
+      PD_TRACE_EXITRC( SDB__STPSESSION__SAVECOMMAND, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPSESSION_POSTMESSAGE, "_stpSession::postMessage" )

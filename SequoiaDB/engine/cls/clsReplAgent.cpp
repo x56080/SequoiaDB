@@ -122,7 +122,7 @@ namespace engine
    INT32 _ICLSReplAgent::reelect( CLS_REELECTION_LEVEL lvl,
                                   UINT32 seconds,
                                   pmdEDUCB *cb,
-                                  UINT16 destID )
+                                  const MsgRouteID &destRID )
    {
       INT32 rc = SDB_OK ;
 
@@ -133,7 +133,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _reelection.run( lvl, seconds, cb, destID ) ;
+      rc = _reelection.run( lvl, seconds, cb, destRID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to reelect, rc: %d", rc ) ;
@@ -864,6 +864,10 @@ namespace engine
                _info.primary.value = MSG_INVALID_ROUTEID ;
                _info.mtx.release_w() ;
                afterFoundNewPrimary( getPrimary() ) ;
+            }
+            else if ( _info.primary.value == _info.local.value )
+            {
+               processBeatLSN( beat.identity, beat.endLsn ) ;
             }
          }
       }

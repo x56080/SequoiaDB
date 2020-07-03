@@ -348,6 +348,8 @@ namespace engine
          virtual void onLocalGroupExpired() ;
          virtual void beforeFoundNewPrimary() ;
          virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) ;
+         virtual void processBeatLSN( const MsgRouteID &remote,
+                                      const DPS_LSN &lsn ) ;
 
       protected:
          OSS_INLINE virtual UINT32 _getConfirmedStat() const

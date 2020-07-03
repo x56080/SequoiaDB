@@ -161,6 +161,12 @@ namespace engine
    class _stpReplManager ;
    typedef class _stpReplManager stpReplManager ;
 
+   class _stpSession ;
+   typedef class _stpSession stpSession ;
+
+   class _stpCommand ;
+   typedef class _stpCommand stpCommand ;
+
    // names of STPCB modules
    #define STP_MODULE_NAME                "STP_MODULE"
    #define STP_NET_MSG_HANDLER_NAME       "STP_NET_MSG_HANDLER"

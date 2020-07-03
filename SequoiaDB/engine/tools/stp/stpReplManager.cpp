@@ -58,6 +58,9 @@ namespace engine
       ON_MSG( MSG_CLS_BEAT_RES, processMessage )
       ON_MSG( MSG_CLS_BALLOT, processMessage )
       ON_MSG( MSG_CLS_BALLOT_RES, processMessage )
+
+      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
+      ON_EVENT( PMD_EDU_EVENT_STEP_UP, handleEvent )
    END_OBJ_MSG_MAP()
 
    _stpReplManager::_stpReplManager( STPCB *stpCB )
@@ -112,6 +115,35 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPREPLMGR_PROCESSMESSAGE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREPLMGR_HNDEVENT, "_stpReplManager::handleEvent" )
+   INT32 _stpReplManager::handleEvent( pmdEDUEvent *event )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPREPLMGR_HNDEVENT ) ;
+
+      if ( PMD_EDU_EVENT_STEP_UP == event->_eventType ||
+           PMD_EDU_EVENT_STEP_DOWN == event->_eventType )
+      {
+         rc = _handleEvent( event ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to handle event [%d], rc: %d",
+                      event->_eventType, rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Unknown event type [%d]", event->_eventType ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPREPLMGR_HNDEVENT, rc ) ;
       return rc ;
 
    error:
@@ -195,13 +227,21 @@ namespace engine
       // NOTE: time of meta as LSN offset
       DPS_LSN metaLSN ;
       _stpCB->getMetaManager()->getMetaLSN( metaLSN ) ;
+      // plus 1 for expect LSN
+      if ( DPS_INVALID_LSN_OFFSET != metaLSN.offset )
+      {
+         ++ metaLSN.offset ;
+      }
       return metaLSN ;
    }
 
    DPS_LSN _stpReplManager::getLocalCurrentLSN()
    {
-      // same as expected LSN
-      return getLocalExpectLSN() ;
+      // get LSN from meta
+      // NOTE: time of meta as LSN offset
+      DPS_LSN metaLSN ;
+      _stpCB->getMetaManager()->getMetaLSN( metaLSN ) ;
+      return metaLSN ;
    }
 
    void _stpReplManager::getLSNWindow( DPS_LSN &fileBeginLSN,
@@ -209,13 +249,14 @@ namespace engine
                                        DPS_LSN &endLSN,
                                        DPS_LSN &expectLSN )
    {
+      // get current LSN
+      endLSN = getLocalCurrentLSN() ;
       // get expected LSN
       expectLSN = getLocalExpectLSN() ;
       // no file or memory concept in STP, cover all range from 0 to
       // expected LSN
       fileBeginLSN.set( 0, 0 ) ;
       memBeginLSN.set( 0, 0 ) ;
-      endLSN = expectLSN ;
    }
 
    BOOLEAN _stpReplManager::isLocalOK()
@@ -307,6 +348,12 @@ namespace engine
    void _stpReplManager::afterFoundNewPrimary( const MsgRouteID &newPrimaryRID )
    {
       _stpCB->afterChangePrimary( newPrimaryRID, FALSE ) ;
+   }
+
+   void _stpReplManager::processBeatLSN( const MsgRouteID &remote,
+                                         const DPS_LSN &lsn )
+   {
+      _sync.complete( remote, lsn, 0 ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPREPLMGR__ACTIVATEREPLGROUP, "_stpReplManager::_activateReplGroup" )

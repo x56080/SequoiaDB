@@ -696,6 +696,43 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR_GETSERVER_HOST, "_stpNodeManager::getServer" )
+   INT32 _stpNodeManager::getServer( const CHAR *hostName,
+                                     stpServerNode &server )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPNODEMGR_GETSERVER_HOST ) ;
+
+      SDB_ASSERT( NULL != hostName, "host name is invalid" ) ;
+
+      ossScopedRWLock lock( ( &_mutex ), SHARED ) ;
+
+      // find server by host name
+      STP_SERVER_LIST::const_iterator iter = _servers.begin() ;
+      while ( iter != _servers.end() )
+      {
+         if ( 0 == ossStrcmp( iter->getHostName(), hostName ) )
+         {
+            break ;
+         }
+         ++ iter ;
+      }
+      PD_CHECK( iter != _servers.end(), SDB_INVALID_ROUTEID, error, PDERROR,
+                "Failed to get server node by host name [%s], it is not found",
+                hostName ) ;
+
+      // copy server to output
+      server = ( *iter ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPNODEMGR_GETSERVER_HOST, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPNODEMGR_DUMPSERVERS, "_stpNodeManager::dumpServers" )
    INT32 _stpNodeManager::dumpServers( STP_SERVER_LIST &servers )
    {

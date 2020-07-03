@@ -1172,4 +1172,10 @@ namespace engine
       // do nothing
    }
 
+   void _clsReplicateSet::processBeatLSN( const MsgRouteID &remote,
+                                          const DPS_LSN &lsn )
+   {
+      // do nothing
+   }
+
 }

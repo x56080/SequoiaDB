@@ -927,6 +927,14 @@ Stp.prototype.stop = function() {
    this._runCommand( "stp stop" ) ;
 }
 
+Stp.prototype.reelect = function( option ) {
+   if ( undefined === option )
+   {
+      option = {} ;
+   }
+   this._runCommand( "stp reelect", option ) ;
+}
+
 // end Stp
 
 // _Filter member function

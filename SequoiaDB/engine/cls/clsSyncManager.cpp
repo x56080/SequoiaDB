@@ -599,20 +599,24 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
    BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset,
-                                        UINT16 ensureNodeID )
+                                        UINT64 ensureRIDValue )
    {
       BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
       DPS_LSN lsn ;
+      MsgRouteID ensureRID ;
+
       lsn.offset = offset ;
+      ensureRID.value = ensureRIDValue ;
 
       ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          /// Found ensureNodeID
-         if ( 0 != ensureNodeID &&
-              ensureNodeID == _notifyList[i].id.columns.nodeID )
+         if ( MSG_INVALID_ROUTEID != ensureRIDValue &&
+              ensureRID.columns.groupID == _notifyList[i].id.columns.groupID &&
+              ensureRID.columns.nodeID == _notifyList[i].id.columns.nodeID )
          {
             if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
             {
@@ -627,7 +631,7 @@ namespace engine
          else if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
          {
             res = TRUE ;
-            if ( 0 == ensureNodeID )
+            if ( MSG_INVALID_ROUTEID == ensureRIDValue )
             {
                break ;
             }
