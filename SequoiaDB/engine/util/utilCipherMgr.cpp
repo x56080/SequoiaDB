@@ -68,37 +68,42 @@ namespace passwd
                                           string &cipherText )
    {
       INT32                           rc = SDB_OK ;
-      INT32                           foundFullNameCount = 0 ;
-      INT32                           foundHalfNameCount = 0 ;
       map<string, string>::iterator   itor ;
       map<string, string>::iterator   found ;
       string                          userShortName ;
+      string                          clusterName ;
+      BOOLEAN                         fullMatched  = FALSE ;
+      UINT32                          partMatchNum = 0 ;
 
-      userShortName = utilGetUserShortNameFromUserFullName( userFullName ) ;
+      userShortName = utilGetUserShortNameFromUserFullName( userFullName,
+                                                            &clusterName ) ;
 
       for ( itor = _usersCipher.begin(); itor != _usersCipher.end(); itor++ )
       {
-         string lineUserName = utilGetUserShortNameFromUserFullName(
-                               itor->first ) ;
+         string tmpUser ;
+         string tmpCluster ;
 
-         if ( itor->first == userFullName )
+         tmpUser = utilGetUserShortNameFromUserFullName( itor->first,
+                                                         &tmpCluster ) ;
+
+         if ( userShortName == tmpUser && clusterName == tmpCluster )
          {
-            foundFullNameCount++ ;
-            found = itor ;
+            fullMatched  = TRUE ;
+            partMatchNum = 0 ;
+            cipherText = itor->second ;
             break ;
          }
-         else if ( lineUserName == userShortName )
+         else if ( clusterName.empty() )
          {
-            foundHalfNameCount++ ;
-            found = itor ;
+            if ( userShortName == tmpUser )
+            {
+               cipherText = itor->second ;
+               ++partMatchNum ;
+            }
          }
       }
 
-      if ( 1 == foundFullNameCount || 1 == foundHalfNameCount )
-      {
-         cipherText = found->second ;
-      }
-      else if ( 1 < foundHalfNameCount )
+      if ( partMatchNum > 1 )
       {
          PD_LOG ( PDERROR, "Ambiguous user name, try providing cluster name." ) ;
          std::cerr << "Ambiguous user name, try providing cluster name."
@@ -106,7 +111,7 @@ namespace passwd
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      else
+      else if ( !fullMatched && 0 == partMatchNum )
       {
          PD_LOG ( PDWARNING, "No corresponding user information." ) ;
          std::cerr << "No corresponding user information." << std::endl ;
@@ -147,7 +152,7 @@ namespace passwd
       string cipherText ;
 
       _cipherfile = file ;
-      rc = _cipherfile->read( &fileContent, contentLen );
+      rc = _cipherfile->read( &fileContent, contentLen ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to read cipher file[%s], rc: %d",

@@ -240,18 +240,24 @@ namespace passwd
       goto done ;
    }
 
-   string utilGetUserShortNameFromUserFullName( const string &userFullName )
+   string utilGetUserShortNameFromUserFullName( const string &userFullName,
+                                                string *clusterName )
    {
       // The format of userFullName and userShortName are as follows:
       // userFullName  = "admin@cluster"
       // userFullName  = "admin"
       // userShortName = "admin"
       string userShortName ;
-      string::size_type atPos = userFullName.find( "@" ) ;
+      string::size_type atPos = userFullName.find_last_of( "@" ) ;
 
       if ( string::npos != atPos )
       {
          userShortName = userFullName.substr( 0, atPos ) ;
+
+         if ( clusterName )
+         {
+            *clusterName = userFullName.substr( atPos + 1 ) ;
+         }
       }
       else
       {

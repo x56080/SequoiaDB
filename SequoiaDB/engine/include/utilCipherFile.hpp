@@ -61,7 +61,8 @@ namespace passwd
    typedef _utilCipherFile utilCipherFile ;
 
    INT32  utilBuildDefaultCipherFilePath( string &cipherFilePath ) ;
-   string utilGetUserShortNameFromUserFullName( const string &userFullName ) ;
+   string utilGetUserShortNameFromUserFullName( const string &userFullName,
+                                                string *clusterName = NULL ) ;
 }
 
 #endif
