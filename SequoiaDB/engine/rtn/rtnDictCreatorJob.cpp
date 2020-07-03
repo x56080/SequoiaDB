@@ -358,14 +358,14 @@ namespace engine
       // start to create the dictionary.
       rc = su->data()->getMBContext( &mbContext, job._clID,
                                      job._clLID, DMS_INVALID_CLID, SHARED ) ;
-      if ( SDB_DMS_NOTEXIST == rc )
+      if ( rc )
       {
-         PD_LOG( PDDEBUG, "Original collection with logical ID %u dose not "
-                          "exist any more. Skip the task", job._clID ) ;
-         goto done ;
-      }
-      else if ( rc )
-      {
+         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_TRUNCATED == rc )
+         {
+            PD_LOG( PDINFO, "Original collection with logical ID %u dose not "
+                            "exist any more. Skip the task", job._clID ) ;
+            goto done ;
+         }
          PD_LOG( PDERROR, "Get mb context failed, rc: %d", rc ) ;
          goto error ;
       }
@@ -389,14 +389,14 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to prepare dictionary creator, rc: %d", rc ) ;
       rc = mbContext->resume() ;
-      if ( SDB_DMS_NOTEXIST == rc )
+      if ( rc )
       {
-         PD_LOG( PDDEBUG, "Original collection with logical ID %u dose not "
-                          "exist any more. Skip the task", job._clID ) ;
-         goto done ;
-      }
-      else if ( rc )
-      {
+         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_TRUNCATED == rc )
+         {
+            PD_LOG( PDINFO, "Original collection with logical ID %u dose not "
+                            "exist any more. Skip the task", job._clID ) ;
+            goto done ;
+         }
          PD_LOG( PDERROR, "Get mb context failed[%d]", rc ) ;
          goto error ;
       }
@@ -413,7 +413,13 @@ namespace engine
       rc = _createDict( su->data(), mbContext, &creator ) ;
       if ( rc )
       {
-         if ( SDB_DMS_EOC != rc )
+         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_TRUNCATED == rc )
+         {
+            PD_LOG( PDINFO, "Original collection with logical ID %u dose not "
+                            "exist any more. Skip the task", job._clID ) ;
+            goto done ;
+         }
+         else if ( SDB_DMS_EOC != rc )
          {
             // Data in the collection is not enough. Should not print any error.
             PD_LOG( PDERROR, "Failed to create dictionary, rc: %d", rc ) ;
@@ -470,7 +476,8 @@ namespace engine
       return rc ;
    error:
       // For other errors, let's try again later.
-      if ( SDB_DMS_CS_NOTEXIST != rc && SDB_DMS_NOTEXIST != rc )
+      if ( SDB_DMS_CS_NOTEXIST != rc && SDB_DMS_NOTEXIST != rc &&
+           SDB_DMS_TRUNCATED != rc )
       {
          PD_LOG( PDWARNING, "Create compression dictionary failed[%d]. "
                             "Will try again later", rc ) ;
