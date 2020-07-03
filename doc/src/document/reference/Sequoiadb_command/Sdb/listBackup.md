@@ -27,7 +27,23 @@
 
 ##返回值##
 
-函数执行成功时，将返回游标对象。通过游标对象获取的结果字段说明可查看 [$LIST_BACKUP](reference/SQL_grammar/monitoring/LIST_BACKUP.md) 
+函数执行成功时，将返回游标对象。通过游标对象获取的结果字段说明如下：
+
+| 字段名 | 类型   | 描述       |
+| ------ | ------ | ---------- |
+| Version | Int   | 版本号      |
+| Name   | String | 备份名称   |
+| ID     |  Int | 备份ID             |
+| NodeName  | String | 节点主机名称       |
+| GroupName  | String   | 数据组名称             |
+| EnsureInc  | Boolean | 是否开启增量备份  <br> "true"：开启增量备份  <br> "false"：不开启增量备份 |
+| BeginLSNOffset | Long | 起始 LSN 的偏移              |
+| EndLSNOffset   | Long | 结尾 LSN 的偏移              |
+| TransLSNOffset | Long | 事务当前的日志 LSN 的偏移               |
+| StartTime      | String | 备份开始时间                     |
+| LastLSN        | Long | 最后的日志 LSN     |
+| LastLSNCode    | Int   | LastLSN 的哈希值   |
+| HasError       | Boolean | 是否有错误 <br> "true"：有错误  <br> "false"：无错误 |
 
 函数执行失败时，将抛异常并输出错误信息。可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码，关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)
 
