@@ -60,6 +60,8 @@ namespace engine
    #define PMD_FIX_PTR_TO_BUFF(ptr)             ((CHAR*)(ptr)+sizeof(INT32))
    #define PMD_FIX_BUFF_HEADER(buff)            (*(INT32*)((CHAR*)(buff)-sizeof(INT32)))
 
+   #define PMD_SERVICE_DISABLED_STR             "-"
+
    _pmdController::_pmdController ()
    {
       _pTcpListener        = NULL ;
@@ -99,6 +101,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       pmdOptionsCB *pOptCB = pmdGetOptionCB() ;
+      const CHAR *pRestService = NULL ;
       UINT16 port = 0 ;
       CHAR fapModuleName[ FAP_MODULE_NAME_SIZE + 1 ] = { 0 } ;
 
@@ -133,23 +136,32 @@ namespace engine
       PD_LOG( PDEVENT, "Listerning on port[%d]", port ) ;
 
       // 2. create http listerner
-      rc = ossGetPort( pOptCB->getRestService(), port ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get port by service name: %s, "
-                   "rc: %d", pOptCB->getRestService(), rc ) ;
-      _pHttpListener = SDB_OSS_NEW ossSocket( port ) ;
-      if ( !_pHttpListener )
+      pRestService = pOptCB->getRestService() ;
+      if ( 1 == ossStrlen( pRestService ) &&
+           0 == ossStrncmp( pRestService, PMD_SERVICE_DISABLED_STR, 1 ) )
       {
-         PD_LOG( PDERROR, "Failed to alloc socket" ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         PD_LOG( PDEVENT, "Http Listener disabled" ) ;
       }
-      rc = _pHttpListener->initSocket() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init http listener socket[%d], "
-                   "rc: %d", port, rc ) ;
-      rc = _pHttpListener->bind_listen() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to bind http listerner socket[%d], "
-                   "rc: %d", port, rc ) ;
-      PD_LOG( PDEVENT, "Http Listerning on port[%d]", port ) ;
+      else
+      {
+         rc = ossGetPort( pRestService, port ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get port by service name: %s, "
+                      "rc: %d", pRestService, rc ) ;
+         _pHttpListener = SDB_OSS_NEW ossSocket( port ) ;
+         if ( !_pHttpListener )
+         {
+            PD_LOG( PDERROR, "Failed to alloc socket" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         rc = _pHttpListener->initSocket() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init http listener socket[%d], "
+                      "rc: %d", port, rc ) ;
+         rc = _pHttpListener->bind_listen() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to bind http listerner socket[%d], "
+                      "rc: %d", port, rc ) ;
+         PD_LOG( PDEVENT, "Http Listerning on port[%d]", port ) ;
+      }
 
    done:
       return rc ;
@@ -198,15 +210,18 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Wait Tcp Listerner active failed, rc: %d",
                    rc ) ;
 
-      rc = pEDUMgr->startEDU( EDU_TYPE_RESTLISTENER, (void*)_pHttpListener,
-                              &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start rest listerner, rc: %d",
-                   rc ) ;
+      if ( _pHttpListener )
+      {
+         rc = pEDUMgr->startEDU( EDU_TYPE_RESTLISTENER, (void*)_pHttpListener,
+                                 &eduID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start rest listerner, rc: %d",
+                      rc ) ;
 
-      // wait until http listener starts
-      rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
-      PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
-                   rc ) ;
+         // wait until http listener starts
+         rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
+         PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
+                      rc ) ;
+      }
 
       rc = activeForeignModule() ;
       PD_RC_CHECK( rc, PDERROR, "active Foreign module failed, rc: %d",
