@@ -141,14 +141,12 @@ namespace engine
                                      bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-
-#if defined(_LINUX)
       CHAR* line = NULL ;
+      
       setEchoOff() ;
       if ( ( line = linenoise( "password: " ) ) != NULL )
       {
          _passwd = line ;
-         SDB_OSS_ORIGINAL_FREE( line ) ;
       }
       else
       {
@@ -156,32 +154,10 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to get password" ) ;
          goto error ;
       }
-      setEchoOn() ;
-#else
-      CHAR line[256] = { 0 } ;
-      INT32 size = 0 ;
-
-      ossPrintf( "password: "OSS_NEWLINE ) ;
-      size = oss_read( 0, line, 256 ) ;
-      if ( size > 0 )
-      {
-         if ( size > 256 )
-         {
-            rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Password must be be less than 256" ) ;
-            goto error ;
-         }
-         _passwd = line ;
-      }
-      else
-      {
-         rc = SDB_SYS ;
-         detail = BSON( SPT_ERR << "Failed to get password" ) ;
-         goto error ;
-      }
-#endif
 
 done:
+   SDB_OSS_ORIGINAL_FREE( line ) ;
+   setEchoOn() ;
    return rc ;
 error:
    goto done ;

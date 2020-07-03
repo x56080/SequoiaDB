@@ -1188,6 +1188,11 @@ static void refreshMultiLine(struct linenoiseState *l, const char *prompt)
     BOOLEAN moveLeft = l->remove_col ? TRUE : FALSE ;
     int highlight_pos = calcHighLightPos( l ) ;
 
+   if ( !echoOn )
+   {
+       return ;   
+   }
+
     /* Update maxrows if needed. */
     if ( rows > (int)l->maxrows ) l->maxrows = rows ;
 

@@ -68,6 +68,7 @@ namespace engine
       INT32  rc = SDB_OK ;
       string username ;
       string cipherFile ;
+      string clusterName ;
 
       if( 0 == arg.argc() )
       {
@@ -101,6 +102,8 @@ namespace engine
 
       rval.addSelfProperty( SPT_CIPHERUSER_CIPHER_FILE_FIELD,
                             SPT_PROP_ENUMERATE )->setValue( cipherFile ) ;
+      rval.addSelfProperty( SPT_CIPHERUSER_CLUSTER_NAME_FIELD,
+                            SPT_PROP_ENUMERATE )->setValue( clusterName ) ;
       rval.addSelfProperty( SPT_CIPHERUSER_USER_FIELD )->setValue( username ) ;
 
    done:

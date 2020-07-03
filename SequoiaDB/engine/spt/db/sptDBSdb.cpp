@@ -3052,6 +3052,10 @@ namespace engine
          userFullName += "@" ;
          userFullName += clusterName ;
       }
+      else
+      {
+         userFullName = username ;   
+      }
 
       token = pCipherUser->getToken() ;
 
