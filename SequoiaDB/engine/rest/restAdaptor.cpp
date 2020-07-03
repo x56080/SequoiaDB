@@ -829,10 +829,16 @@ namespace engine
 
             if ( pRest->_tmpBodyBuf )
             {
-               ossMemcpy( pRest->_bodyBuf, pRest->_tmpBodyBuf,
-                          pRest->_tmpBodySize ) ;
+               INT32 tmpBodySize = pRest->_tmpBodySize ;
 
-               receivedSize = pRest->_tmpBodySize ;
+               if ( tmpBodySize > bodySize )
+               {
+                  tmpBodySize = bodySize ;
+               }
+
+               ossMemcpy( pRest->_bodyBuf, pRest->_tmpBodyBuf, tmpBodySize ) ;
+
+               receivedSize = tmpBodySize ;
 
                pRest->_tmpBodyBuf = NULL ;
                pRest->_tmpBodySize = 0 ;
