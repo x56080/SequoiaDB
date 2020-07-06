@@ -8,6 +8,7 @@ main( test );
 
 function test()
 {
+   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    try
    {
       db.updateConf( { "transactionon": false } );
@@ -20,14 +21,9 @@ function test()
          throw new Error( e );
       }
    }
-   var groups = commGetGroups( db );
-   for( var i = 0; i < groups.length; i++ )
-   {
-      var groupName = groups[i][0].GroupName;
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-   }
+   restartCoord();
 
+   db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    try
    {
       db.transBegin();
@@ -53,12 +49,18 @@ function test()
          throw new Error( e );
       }
    }
-  
-   for( var i = 0; i < groups.length; i++ )
-   {
-      var groupName = groups[i][0].GroupName;
-      db.getRG( groupName ).stop();
-      db.getRG( groupName ).start();
-   }
+ 
+   restartCoord();
 }
 
+function restartCoord()
+{
+   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+   var cmd = remote.getCmd();
+   var installDir = commGetInstallPath();
+   var command = installDir + "/bin/sdbstop -p " + COORDSVCNAME;
+   cmd.run( command );
+
+   command = installDir + "/bin/sdbstart -p " + COORDSVCNAME;
+   cmd.run( command );
+}
