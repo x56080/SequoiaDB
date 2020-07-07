@@ -35,6 +35,8 @@
     <listeners>
         <listener
              class-name="com.sequoiadb.commlib.ReliabilityInvokeMethodListener" />
+        <listener
+             class-name="com.sequoiadb.commlib.TimePrinterListener" />
     </listeners>
 
     <test name="reliability" preserve-order="true">
