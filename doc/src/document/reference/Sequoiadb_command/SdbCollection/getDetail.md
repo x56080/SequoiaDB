@@ -1,26 +1,43 @@
-##语法##
-***db.collectionspace.collection.getDetail\(\)***
+##名称##
 
-获取当前集合具体信息。
+getDetail - 获取集合具体信息
+
+##语法##
+
+**db.collectionspace.collection.getDetail\(\)**
+
+##描述##
+
+该函数用于获取当前集合在各个数据组的具体信息。
+
+##参数##
+
+无
 
 ##返回值##
 
-获取集合详细信息列表，并通过游标（cursor）的方式返回。
+函数执行成功时，通过游标（cursor）的方式返回集合详细信息列表。返回的字段信息可参考[集合快照视图](reference/SQL_grammar/monitoring/SNAPSHOT_CL.md)。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-[错误码](reference/Sequoiadb_error_code.md)
+当异常抛出时，可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。更多错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
 
-## 示例##
+##版本##
 
-* 获取集合 `foo.bar` 的详细信息。字段具体含义请参考[集合快照视图](reference/SQL_grammar/monitoring/SNAPSHOT_CL.md)
+v3.2.5 及以上版本、v3.4.1 及以上版本
+
+##示例##
+
+* 获取集合 `sample.employee` 的详细信息
 
  ```lang-javascript
- > db.foo.bar.getDetail()
+ > db.sample.employee.getDetail()
  {
-   "Name": "foo.bar",
+   "Name": "sample.employee",
    "UniqueID": 22574348107782,
-   "CollectionSpace": "foo",
+   "CollectionSpace": "sample",
    "Details": [
      {
        "NodeName": "hostname:11920",
