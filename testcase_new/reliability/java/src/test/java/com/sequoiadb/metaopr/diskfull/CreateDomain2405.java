@@ -195,8 +195,9 @@ public class CreateDomain2405 extends SdbTestBase {
     }
 
     private void checkListDomain( Sequoiadb db ) {
+		BSONObject matcher = (BSONObject) JSON.parse("{ Name:{ $regex:'" + domNameBase + "' } }");
         BSONObject orderBy = ( BSONObject ) JSON.parse( "{ _id: 1 }" );
-        DBCursor cursor = db.listDomains( null, null, orderBy, null );
+        DBCursor cursor = db.listDomains( matcher, null, orderBy, null );
         int i = 0;
         while ( cursor.hasNext() ) {
             BSONObject currDomain = cursor.getNext();
