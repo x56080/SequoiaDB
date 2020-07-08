@@ -1,67 +1,42 @@
 package com.sequoiadb.datasource;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.datasource.DatasourceOptions;
 import com.sequoiadb.exception.BaseException;
 
 
+
 public class ConcurrentTest7599_7604 extends DataSourceTestBase {
-    private SequoiadbDatasource ds = null;
+    private DataSourceProxy ds = null;
     private DatasourceOptions option = null;
     private Random random = new Random();
-    private AtomicInteger count = new AtomicInteger(0);
-    private Integer sync = new Integer(0);
 
-    @BeforeMethod
+    @BeforeClass
     public void createDatasource() {
         try {
             super.init();
-            count.incrementAndGet() ;
-            if (ds == null) {
-               synchronized(sync) {
-                   if (ds == null) {
-                       DatasourceOptions sdbOption = new DatasourceOptions();
-                       sdbOption.setMaxCount( 500 );
-                       sdbOption.setMaxIdleCount( 10 );
-                       sdbOption.setCheckInterval( 5 * 1000  );
-                       
-                       ConfigOptions connectOpt = new ConfigOptions();
-                       connectOpt.setConnectTimeout( 10000 );
-                       connectOpt.setMaxAutoConnectRetryTime( 0 );
-                       
-                       ArrayList< String > urls = new ArrayList< String >();
-                       urls.add( this.coordAddr );
-                       ds = new SequoiadbDatasource( urls, userName, password,
-                         connectOpt, sdbOption );
-                   }
-               }
-            }
             
+            if (ds == null) {
+                ds = new DataSourceProxy(this.coordAddr, userName, password) ;
+            }
+ 
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
         }
     }
 
-    @AfterMethod
+    @AfterClass
     public void closeDatasource() {
         try {
-            if ( ds != null && count.decrementAndGet() == 0) {
-                synchronized(sync) {
-                    ds.close();
-                    ds = null ;
-                }
-            }
+            ds.close();
         } catch ( BaseException e ) {
             Assert.assertFalse( true, e.getMessage() );
         }
@@ -139,6 +114,7 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
             // Assert.assertTrue(false, e.getMessage());
+            e.printStackTrace();
             super.judegeErrCode( "SDB_INVALIDARG", e.getErrorCode() );
         }
     }
@@ -177,7 +153,8 @@ public class ConcurrentTest7599_7604 extends DataSourceTestBase {
         } catch ( InterruptedException e ) {
             Assert.assertTrue( false, e.getMessage() );
         } catch ( BaseException e ) {
-            super.judegeErrCode( "SDB_SYS", e.getErrorCode() );
+            e.printStackTrace();
+            Assert.assertTrue( -6 == e.getErrorCode() || -10 == e.getErrorCode() );
         }
     }
 
