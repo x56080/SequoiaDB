@@ -7,7 +7,7 @@
 | COLLATE | utf8mb4_bin | 字符数据的比较规则。不支持忽略大小写的字符比较规则，字符比较对大小写敏感。 |
 | COMMENT | "" | 表备注信息。还可以通过它指定更多 SequoiaDB 引擎的选项，可参考[自定义表配置](sql_engine/sequoiasql_mysql/config.md#自定义表配置)。 |
 | COMPRESSION | "" | 表压缩类型。选项有 ""（默认压缩类型）、"none"（关闭压缩）、"lzw"、"snappy"，默认压缩类型为 lzw。 |
-| ENGINE | SEQUOIADB | 表存储引擎。 **必须** 指定为 SEQUOIADB 才能使用本分布式存储引擎，一般无需显式指定。 |
+| ENGINE | SEQUOIADB | 表存储引擎。必须指定为 SEQUOIADB 才能使用本分布式存储引擎，一般无需显式指定。 |
 
 **示例**
 
@@ -51,26 +51,26 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 ```lang-sql
 mysql> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
-    -> ENGINE=sequoiadb
-    -> COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
+       ENGINE=sequoiadb
+       COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
 ```
 - 在[引擎配置项](sql_engine/sequoiasql_mysql/config.md#引擎配置) sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为"false"显式创建普通表
 
 ```lang-sql
 mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-    -> ENGINE=sequoiadb 
-    -> COMMENT='sequoiadb:{ auto_partition: false }';
+       ENGINE=sequoiadb 
+       COMMENT='sequoiadb:{ auto_partition: false }';
 ```
 
 - 在 SequoiaDB 上创建压缩类型为"lzw"的表，通过 ALTER TABLE 修改表压缩类型为"snappy"
 
 ```lang-sql
 mysql> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-    -> ENGINE=sequoiadb 
-    -> COMMENT="sequoiadb:{ auto_partition: true, table_options:{CompressionType : 'lzw'} }";
+       ENGINE=sequoiadb 
+       COMMENT="sequoiadb:{ auto_partition: true, table_options:{CompressionType : 'lzw'} }";
 
 mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ auto_partition: true,
-    -> table_options:{CompressionType : 'snappy'} }";
+       table_options:{CompressionType : 'snappy'} }";
 ``` 
    > **Note:** 
    >
@@ -259,7 +259,7 @@ mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ a
 
 - 通过实例数据目录下的配置文件 auto.cnf，在[mysqld]一栏添加/更改对应配置项
 
-   ```lang-ini
+   ```config
    sequoiadb_auto_partition=OFF
    ```
 

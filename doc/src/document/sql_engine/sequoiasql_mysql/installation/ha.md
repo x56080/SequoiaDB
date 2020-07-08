@@ -48,7 +48,7 @@ tools/
 
 + 登录 MySQL shell，操作步骤可参考[使用](sql_engine/sequoiasql_mysql/connection.md#使用)章节。在所有 MySQL 实例上创建用于同步元数据的 MySQL 用户，并授予所有权限，用户名与密码在所有实例上保持一致。如前所述，该用户仅供同步工具进行元数据同步，不应在其它的任何地方使用。注意：此处使用的密码 'sdbadmin' 仅为示例，请根据需要自行设置安全的密码
 
-   ```sql
+   ```lang-sql
    mysql> CREATE USER 'sdbadmin'@'%' IDENTIFIED BY 'sdbadmin';
    mysql> GRANT all on *.* TO 'sdbadmin'@'%' with grant option;
    ```
@@ -85,8 +85,8 @@ tools/
 
 + 重启 MySQL 实例
 
-   ```config
-   sdb_mysql_ctl restart myinst
+   ```lang-bash
+   $ bin/sdb_maria_ctl restart myinst
    ```
 
 + 检查审计日志文件目录，确保生成了审计日志文件 server_audit.log
@@ -130,7 +130,7 @@ max_retry_times = 5
 ### 日志配置项 ###
 同步工具使用 python 的 logging 模块输出日志，配置文件为 log.config。如果是全新安装，开始该文件是不存在的，需要从 log.config.sample 拷贝。配置项如下（日志目录会自动创建）：
 
-```
+```config
 [loggers]
 keys=root,ddlLogger
 [handlers]
@@ -168,8 +168,8 @@ datefmt=
 ### 启动工具 ###
 在完成所有配置后，在各实例所在主机的 sdbadmin 用户下，执行以下命令在后台启动同步工具
 
-```config
-python /opt/sequoiasql/mysql/tools/metaSync/meta_sync.py &
+```lang-bash
+$ python /opt/sequoiasql/mysql/tools/metaSync/meta_sync.py &
 ```
 
 完成环境配置后，可通过在各实例进行少量 DDL 操作，进行简单的同步验证，验证完成后清理掉验证数据。
@@ -188,7 +188,7 @@ crontab -e
 工具正常运行后，会在与 config 文件相同的目录下，创建状态文件，用于记录向其它实例同步的进度。每个需要同步的实例对应一个状态文件，文件名称格式为 sync-host-port.stat，其中 host、port 分别为 config 文件中 hosts、port 配置的主机名（或 IP 地址）及端口号。同步工具重启时，从状态文件中加载同步状态，可以从之前中断的语句继续进行同步。
 该文件是在 3.2.4 版本中新增，早期版本进度信息也是存储于 config 文件中的。在从老版本升级到新版本后，会在第一次启动的时候自动进行升级，生成正确的配置文件和状态文件。状态文件的内容如下：
 
-```
+```config
 [status]
 # 最后扫描文件的审计日志文件的 inode
 file_inode = 4589549

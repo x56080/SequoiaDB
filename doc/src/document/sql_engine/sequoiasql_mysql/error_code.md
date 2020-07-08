@@ -5,8 +5,9 @@
 MySQL 的错误码范围是 1~4000。用户可以通过 **perror** 工具获取错误码的描述信息，该工具位于安装目录的 bin 目录下。以下示例是在默认的安装配置下，获取 157 错误的描述信息。
 
 ```lang-bash
-$ cd /opt/sequoiasql/mysql
-$ bin/perror 157
+$ /opt/sequoiasql/mysql/bin/perror 157
+```
+```
 MySQL error code 157: Could not connect to storage engine
 ```
 

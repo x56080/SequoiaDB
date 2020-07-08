@@ -18,8 +18,7 @@
 
   1. 以 root 用户登陆目标主机，解压 MySQL 实例组件产品包，并为解压得到的 `sequoiasql-mysql-3.2-linux_x86_64-enterprise-installer.run` 安装包赋可执行权限
 
-   ```shell
-   # tar -zxvf sequoiasql-mysql-3.2-linux_x86_64-enterprise-installer.run
+   ```lang-bash
    # chmod u+x sequoiasql-mysql-3.2-linux_x86_64-enterprise-installer.run
    ```
    
@@ -120,15 +119,19 @@
 
   ```lang-bash
   $ bin/sdb_mysql_ctl listinst
+  ```
+  ```
   NAME      SQLDATA                                  SQLLOG
   myinst     /opt/sequoiasql/mysql/database/3306/    /opt/sequoiasql/mysql/myinst.log
   Total: 1
-   ```
+  ```
 
   3. 启动实例
 
   ```lang-bash
   $ bin/sdb_mysql_ctl start myinst
+  ```
+  ```
   Starting instance myinst ...
   ok (PID: 25174)
   ```
@@ -137,6 +140,8 @@
 
   ```lang-bash
   $ bin/sdb_mysql_ctl status
+  ```
+  ```
   INSTANCE   PID        SVCNAME    SQLDATA                                 SQLLOG            
   myinst     25174      3306       /opt/sequoiasql/mysql/database/3306/    /opt/sequoiasql/mysql/myinst.log        
   Total: 1; Run: 1
@@ -146,6 +151,8 @@
 
   ```lang-bash
   $ bin/sdb_mysql_ctl stop myinst
+  ```
+  ```
   Stoping instance myinst (PID: 25174) ...
   ok
   ```
@@ -158,6 +165,8 @@
 
   ```lang-bash
   $ bin/sdb_mysql_ctl addinst myinst -D database/3306/
+  ```
+  ```
   Adding instance myinst ...
   ok
   ```
