@@ -1,7 +1,6 @@
 package com.sequoiadb.transaction.metadataserial;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 import org.bson.BSONObject;
 import org.testng.Assert;
@@ -34,6 +33,7 @@ public class Transaction22238A extends SdbTestBase {
     private CollectionSpace cs = null;
     private int recordNum = 10000;
     private ArrayList<BSONObject> actQueryRecsList = new ArrayList<>();
+    private boolean isStartQuery = false;
 
     @BeforeClass
     public void setUp() {
@@ -77,8 +77,22 @@ public class Transaction22238A extends SdbTestBase {
         @Override
         public void exec() throws Exception {
             try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                // 随机等待1000ms，在查询过程中rename
-                Thread.sleep(new Random().nextInt(1000));
+                // 等待开始执行查询再rename,最长等待2分钟
+                int eachSleepTime = 2;
+                int maxWaitTime = 120000;
+                int alreadyWaitTime = 0;
+                do {
+                    try {
+                        Thread.sleep(eachSleepTime);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    alreadyWaitTime += eachSleepTime;
+                    if (alreadyWaitTime > maxWaitTime) {
+                        Assert.fail("---not query started in maxWaitTime ! waitTime is" + alreadyWaitTime);
+                    }
+                } while (!isStartQuery);
                 db.renameCollectionSpace(csName, newCSName);
             }
         }
@@ -92,6 +106,7 @@ public class Transaction22238A extends SdbTestBase {
                 TransUtils.beginTransaction(db);
                 DBCursor cursor = cl.query();
                 while (cursor.hasNext()) {
+                    isStartQuery = true;
                     BSONObject record = cursor.getNext();
                     actQueryRecsList.add(record);
                 }
