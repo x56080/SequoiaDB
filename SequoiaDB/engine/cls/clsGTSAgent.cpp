@@ -761,6 +761,16 @@ namespace engine
             receiveMessage = NULL ;
             continue ;
          }
+         else if ( SDB_GLOB_LOWTRAN_UNKNOWN == rc )
+         {
+            // failed to calculate global lowTran, maybe someone has not
+            // reported yet, post warning instead
+            PD_LOG( PDWARNING, "Failed to get global transaction ID, someone "
+                    "has not reported yet, rc: %d", rc ) ;
+            // keep caller quiet
+            rc = SDB_OK ;
+            goto done ;
+         }
          else if ( SDB_OK != rc )
          {
             // could not retry for other errors, just report and quit

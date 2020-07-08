@@ -180,6 +180,11 @@ namespace engine
                       "to allocate user data, rc: %d",
                       handle, routeID2String( id ).c_str(),
                       msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
+         if ( NULL == userDataHolder->getUserDataPtr() )
+         {
+            // still empty, it might not be RR supported, keep quiet
+            goto done ;
+         }
       }
 
       netData =

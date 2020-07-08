@@ -367,7 +367,7 @@ namespace engine
          // lowTran yet
          // in this case, the global lowTran is not completed
          PD_CHECK( DPS_INVALID_TRANSID_SN != nodeLowTran,
-                   SDB_GLOB_LOWTRAN_UNKNOWN, error, PDERROR,
+                   SDB_GLOB_LOWTRAN_UNKNOWN, error, PDWARNING,
                    "Failed to calculate global lowTran, lowTran of node %s "
                    "had not been reported yet",
                    routeID2String( iter->first ).c_str() ) ;
