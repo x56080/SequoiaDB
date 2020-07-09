@@ -148,11 +148,12 @@ namespace engine
    BSONObj coordBuildErrorObj( coordResource *pResource,
                                INT32 &flag,
                                pmdEDUCB *cb,
-                               ROUTE_RC_MAP *pFailedNodes )
+                               ROUTE_RC_MAP *pFailedNodes,
+                               UINT32 sucNum )
    {
       BSONObjBuilder builder ;
 
-      coordBuildErrorObj( pResource, flag, cb, pFailedNodes, builder ) ;
+      coordBuildErrorObj( pResource, flag, cb, pFailedNodes, builder, sucNum ) ;
 
       return builder.obj() ;
    }
@@ -161,13 +162,22 @@ namespace engine
                             INT32 &flag,
                             _pmdEDUCB *cb,
                             ROUTE_RC_MAP *pFailedNodes,
-                            BSONObjBuilder &builder )
+                            BSONObjBuilder &builder,
+                            UINT32 sucNum )
    {
       const CHAR *pDetail = "" ;
+      ROUTE_RC_MAP::iterator iter ;
 
       if ( SDB_OK == flag && pFailedNodes && pFailedNodes->size() > 0 )
       {
-         flag = SDB_COORD_NOT_ALL_DONE ;
+         if ( 0 == sucNum )
+         {
+            flag = pFailedNodes->begin()->second._rc ;
+         }
+         else
+         {         
+            flag = SDB_COORD_NOT_ALL_DONE ;
+         }
       }
 
       if ( cb && cb->getInfo( EDU_INFO_ERROR ) )

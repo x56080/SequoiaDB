@@ -174,6 +174,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       SET_ROUTEID nodes ;
       ROUTE_RC_MAP faileds ;
+      SET_ROUTEID sucNodes ;
       coordCtrlParam ctrlParam ;
 
       rc = coordGetGroupNodes( _pResource, cb, BSONObj(), NODE_SEL_ALL,
@@ -184,7 +185,7 @@ namespace engine
          goto error ;
       }
 
-      rc = executeOnNodes( pMsg, cb, nodes, faileds, NULL, NULL, NULL ) ;
+      rc = executeOnNodes( pMsg, cb, nodes, faileds, &sucNodes, NULL, NULL ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to execute %s:%s on data nodes, "
@@ -196,7 +197,8 @@ namespace engine
       if ( ( rc || faileds.size() > 0 ) && buf )
       {
          *buf = _rtnContextBuf( coordBuildErrorObj( _pResource, rc,
-                                                    cb, &faileds ) ) ;
+                                                    cb, &faileds,
+                                                    sucNodes.size() ) ) ;
       }
       return rc ;
    error:

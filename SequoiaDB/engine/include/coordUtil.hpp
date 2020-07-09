@@ -56,13 +56,15 @@ namespace engine
    BSONObj coordBuildErrorObj( coordResource *pResource,
                                INT32 &flag,
                                _pmdEDUCB *cb,
-                               ROUTE_RC_MAP *pFailedNodes ) ;
+                               ROUTE_RC_MAP *pFailedNodes,
+                               UINT32 sucNum = 0 ) ;
 
    void    coordBuildErrorObj( coordResource *pResource,
                                INT32 &flag,
                                _pmdEDUCB *cb,
                                ROUTE_RC_MAP *pFailedNodes,
-                               BSONObjBuilder &builder ) ;
+                               BSONObjBuilder &builder,
+                               UINT32 sucNum = 0 ) ;
 
    void    coordSetResultInfo( INT32 flag,
                                ROUTE_RC_MAP &failedNodes,

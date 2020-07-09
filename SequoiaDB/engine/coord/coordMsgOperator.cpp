@@ -67,6 +67,7 @@ namespace engine
                                      rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
+      UINT32 sucNum = 0 ;
 
       // fill default-reply
       contextID    = -1 ;
@@ -121,6 +122,10 @@ namespace engine
             failedNodes[ *it ] = rc ;
             pRemote->delSubSession( *it ) ;
          }
+         else
+         {
+            ++sucNum ;
+         }
          ++it ;
       }
 
@@ -136,7 +141,8 @@ namespace engine
       if ( ( rc || failedNodes.size() > 0 ) && buf )
       {
          *buf = _rtnContextBuf( coordBuildErrorObj( _pResource, rc,
-                                                    cb, &failedNodes ) ) ;
+                                                    cb, &failedNodes,
+                                                    sucNum ) ) ;
       }
       _groupSession.clear() ;
       return rc ;

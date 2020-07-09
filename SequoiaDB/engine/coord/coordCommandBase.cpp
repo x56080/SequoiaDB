@@ -349,7 +349,8 @@ namespace engine
       }
       if ( buf && nokRC.size() > 0 )
       {
-         coordBuildErrorObj( _pResource, rc, cb, &nokRC, retBuilder ) ;
+         coordBuildErrorObj( _pResource, rc, cb, &nokRC, retBuilder,
+                             result._sucGroupLst.size() ) ;
          if ( getWriteResult() )
          {
             coordSetResultInfo( rc, nokRC, getWriteResult() ) ;

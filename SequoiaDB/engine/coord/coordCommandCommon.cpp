@@ -72,6 +72,7 @@ namespace engine
       coordCtrlParam ctrlParam ;
       SET_RC ignoreRCList ;
       ROUTE_RC_MAP faileds ;
+      SET_ROUTEID sucNodes ;
       rtnContextCoord *pContext = NULL ;
 
       contextID = -1 ;
@@ -87,7 +88,7 @@ namespace engine
 
       rc = executeOnNodes( pMsg, cb, ctrlParam, _getControlMask(),
                            faileds, _useContext() ? &pContext : NULL,
-                           FALSE, &ignoreRCList, NULL ) ;
+                           FALSE, &ignoreRCList, &sucNodes ) ;
       if ( rc )
       {
          if ( SDB_RTN_CMD_IN_LOCAL_MODE == rc )
@@ -121,7 +122,8 @@ namespace engine
       if ( ( rc || faileds.size() > 0 ) && -1 == contextID && buf )
       {
          *buf = _rtnContextBuf( coordBuildErrorObj( _pResource, rc,
-                                                    cb, &faileds ) ) ;
+                                                    cb, &faileds,
+                                                    sucNodes.size() ) ) ;
       }
       return rc ;
    error:

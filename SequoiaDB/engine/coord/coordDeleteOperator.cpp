@@ -210,7 +210,8 @@ namespace engine
    error:
       if ( buf && ( nokRC.size() > 0 || rc ) )
       {
-         coordBuildErrorObj( _pResource, rc, cb, &nokRC, retBuilder ) ;
+         coordBuildErrorObj( _pResource, rc, cb, &nokRC, retBuilder,
+                             result._sucGroupLst.size() ) ;
          coordSetResultInfo( flag, nokRC, &_delResult ) ;
       }
       goto done ;
