@@ -159,6 +159,23 @@ namespace engine
             }
          }
       }
+      else
+      {
+         MsgHeader *pMsg = pSub->getReqMsg() ;
+         // now it is required primary in resend case
+         // make sure to clear secondary flag
+         if ( MSG_BS_QUERY_REQ == pMsg->opCode )
+         {
+            MsgOpQuery *pQuery = ( MsgOpQuery* )pMsg ;
+            OSS_BIT_CLEAR( pQuery->flags, FLG_QUERY_SECONDARY ) ;
+         }
+         else if ( pMsg->opCode > ( SINT32 )MSG_LOB_BEGIN &&
+                   pMsg->opCode < ( SINT32 )MSG_LOB_END )
+         {
+            MsgOpLob *pLobMsg = ( MsgOpLob* )pMsg ;
+            OSS_BIT_CLEAR( pLobMsg->flags, FLG_LOBREAD_SECONDARY ) ;
+         }
+      }
    }
 
 }
