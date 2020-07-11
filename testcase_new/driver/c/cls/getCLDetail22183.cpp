@@ -6,6 +6,7 @@
  ***************************************************/
 #include <gtest/gtest.h>
 #include <client.h>
+#include <string.h>
 #include "testcommon.hpp"
 #include "testBase.hpp"
 #include "arguments.hpp"
@@ -15,7 +16,7 @@ class getCLDetail22183 : public testBase
 protected:
    const CHAR* csName ;
    const CHAR* clName ;
-   const CHAR* groupName ; 
+   string groupName ; 
    sdbCSHandle cs ;
    sdbCollectionHandle cl ;
 
@@ -38,14 +39,14 @@ protected:
       vector<string> groups ;
       rc = getGroups( db, groups ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to get data groups" ;
-      groupName = groups[0].c_str() ;
+      groupName = groups[0] ;
 
       // create cs cl
       rc = sdbCreateCollectionSpace( db, csName, SDB_PAGESIZE_4K, &cs ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
       bson option ;
       bson_init( &option ) ;
-      bson_append_string( &option, "Group", groupName ) ;
+      bson_append_string( &option, "Group", groupName.c_str() ) ;
       bson_finish( &option ) ;
       rc = sdbCreateCollection1( cs, clName, &option, &cl ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cl " << clName ;
@@ -121,7 +122,7 @@ TEST_F( getCLDetail22183, getCLDetail )
       }   
       else
       {   
-         printf( "expect groupName: %s, actual groupName: %s, actual TotalRecords: %d\n", groupName, group.c_str(), totalRecords ) ; 
+         printf( "expect groupName: %s, actual groupName: %s, actual TotalRecords: %d\n", groupName.c_str(), group.c_str(), totalRecords ) ; 
       }   
       bson_destroy( &subObj ) ; 
       bson_iterator_next( &sub ) ; 
