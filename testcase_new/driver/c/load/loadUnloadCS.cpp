@@ -246,9 +246,9 @@ TEST_F( loadUnloadCSTest, invalidOption )
    bson_append_string( &option, "GroupName", "SYSCatalogGroup" ) ;
    bson_finish( &option ) ;
    rc = sdbUnloadCollectionSpace( db, csName, &option ) ;
-   ASSERT_EQ( SDB_COORD_NOT_ALL_DONE, rc ) << "fail to check unload cs on SYSCatalogGroup" ;
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) << "fail to check unload cs on SYSCatalogGroup" ;
    rc = sdbLoadCollectionSpace( db, csName, &option ) ;
-   ASSERT_EQ( SDB_COORD_NOT_ALL_DONE, rc ) << "fail to check load cs on SYSCatalogGroup" ;
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) << "fail to check load cs on SYSCatalogGroup" ;
 
    rc = fini() ;
    ASSERT_EQ( SDB_OK, rc ) ; 
