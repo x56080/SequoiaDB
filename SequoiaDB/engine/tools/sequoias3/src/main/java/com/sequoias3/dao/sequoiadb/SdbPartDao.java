@@ -102,8 +102,13 @@ public class SdbPartDao implements PartDao {
 
     @Override
     public Part queryPartByPartnumber(ConnectionDao connection, long uploadId, long partNumber) throws S3ServerException {
+        Sequoiadb sdb = null;
         try {
-            Sequoiadb sdb = ((SdbConnectionDao) connection).getConnection();
+            if (connection != null) {
+                sdb = ((SdbConnectionDao) connection).getConnection();
+            }else {
+                sdb = sdbDatasourceWrapper.getSequoiadb();
+            }
 
             CollectionSpace cs = sdb.getCollectionSpace(config.getMetaCsName());
             DBCollection cl = cs.getCollection(DaoCollectionDefine.PART_LIST);
@@ -124,6 +129,10 @@ public class SdbPartDao implements PartDao {
         }catch (Exception e){
             logger.error("query part by partnumber failed. uploadId:{}, partnumber:{}", uploadId, partNumber);
             throw e;
+        }finally {
+            if (connection == null){
+                sdbDatasourceWrapper.releaseSequoiadb(sdb);
+            }
         }
     }
 

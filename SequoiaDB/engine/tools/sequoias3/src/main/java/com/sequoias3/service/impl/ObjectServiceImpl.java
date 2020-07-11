@@ -160,7 +160,9 @@ public class ObjectServiceImpl implements ObjectService {
             }
             return response;
         }catch (S3ServerException e){
-            cleanRedundencyLob(dataCsName, dataClName, insertResult.getLobId());
+            if (e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED) {
+                cleanRedundencyLob(dataCsName, dataClName, insertResult.getLobId());
+            }
             if (e.getError().getErrIndex() == S3Error.DAO_DUPLICATE_KEY.getErrIndex()) {
                 throw new S3ServerException(S3Error.OBJECT_PUT_fAILED,
                         "bucket+key duplicate too times. bucket:"+bucket.getBucketName() +" key:"+objectName, e);
@@ -321,7 +323,9 @@ public class ObjectServiceImpl implements ObjectService {
                     copyObjectResult.setVersionId(objectMeta.getVersionId());
                 }
             } catch (S3ServerException e) {
-                cleanRedundencyLob(dataCsName, dataClName, newLobData.getLobId());
+                if (e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED) {
+                    cleanRedundencyLob(dataCsName, dataClName, newLobData.getLobId());
+                }
                 throw e;
             } catch (Exception e) {
                 cleanRedundencyLob(dataCsName, dataClName, newLobData.getLobId());
@@ -1074,8 +1078,9 @@ public class ObjectServiceImpl implements ObjectService {
 
         DataAttr dataAttr = dataDao.createNewData(dataCsName, dataClName, region);
 
+        long uploadId = 0L;
         try {
-            long uploadId = idGenerator.getNewId(IDGenerator.TYPE_UPLOAD);
+            uploadId = idGenerator.getNewId(IDGenerator.TYPE_UPLOAD);
             uploadMeta.setUploadId(uploadId);
             ConnectionDao connection = daoMgr.getConnectionDao();
             transaction.begin(connection);
@@ -1097,7 +1102,17 @@ public class ObjectServiceImpl implements ObjectService {
                     new InitiateMultipartUploadResult(bucketName, objectName, uploadId);
             return result;
         } catch (S3ServerException e){
-            cleanRedundencyLob(dataCsName, dataClName, dataAttr.getLobId());
+            if (e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED) {
+                cleanRedundencyLob(dataCsName, dataClName, dataAttr.getLobId());
+            }else {
+                try {
+                    if (null == uploadDao.queryUploadByUploadId(null, bucket.getBucketId(), objectName, uploadId, false)) {
+                        cleanRedundencyLob(dataCsName, dataClName, dataAttr.getLobId());
+                    }
+                } catch (Exception e2) {
+                    logger.error("check uploadId failed. uploadId:" + uploadId + ", error:" + e2.getMessage());
+                }
+            }
             throw e;
         } catch (Exception e){
             cleanRedundencyLob(dataCsName, dataClName, dataAttr.getLobId());
@@ -1228,6 +1243,12 @@ public class ObjectServiceImpl implements ObjectService {
 
                 transaction.commit(connectionB);
                 return eTag;
+            }catch (S3ServerException e){
+                transaction.rollback(connectionB);
+                if (newDataLob != null && e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED) {
+                    cleanRedundencyLob(dataCsName, dataClName, newDataLob.getLobId());
+                }
+                throw e;
             } catch (Exception e) {
                 transaction.rollback(connectionB);
                 if (newDataLob != null) {
@@ -1351,9 +1372,9 @@ public class ObjectServiceImpl implements ObjectService {
             //写元数据
             String completeEtag;
             if (completeList.size() == 1){
-                completeEtag = eTag;
+                completeEtag = trimQuotes(eTag);
             }else {
-                completeEtag = eTag+"-f";
+                completeEtag = trimQuotes(eTag)+"-f";
             }
             VersioningStatusType versioningStatusType = VersioningStatusType.getVersioningStatus(bucket.getVersioningStatus());
             ObjectMeta objectMeta = buildObjectMetaFromUpload(upload, false,
@@ -1378,7 +1399,7 @@ public class ObjectServiceImpl implements ObjectService {
             return response;
         } catch (S3ServerException e) {
             transaction.rollback(connection);
-            if (newDataLob != null){
+            if (newDataLob != null && e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED){
                 cleanRedundencyLob(dataCsName, dataClName, newDataLob.getLobId());
             }
             if (mutexLock){
@@ -1583,7 +1604,17 @@ public class ObjectServiceImpl implements ObjectService {
         } catch (S3ServerException e) {
             transaction.rollback(connection);
             if (dataMinus != null){
-                cleanRedundencyLob(dataCsName, dataClName, dataMinus.getLobId());
+                if (e.getError() != S3Error.DAO_TRANSACTION_COMMIT_FAILED) {
+                    cleanRedundencyLob(dataCsName, dataClName, dataMinus.getLobId());
+                }else {
+                    try{
+                        if(null == partDao.queryPartByPartnumber(null, uploadId, -1)){
+                            cleanRedundencyLob(dataCsName, dataClName, dataMinus.getLobId());
+                        }
+                    }catch (Exception e2){
+                        logger.error("check part -1 failed. uploadId:" + uploadId + ", error:" + e2.getMessage());
+                    }
+                }
             }
             if (e.getError().getErrIndex() != S3Error.DAO_DUPLICATE_KEY.getErrIndex()) {
                 throw e;
