@@ -71,13 +71,11 @@ public class Transaction20437B extends SdbTestBase {
         cl3 = TW3.getCollectionSpace( csName ).getCollection( clName );
         cl4 = TW4.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20437B", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
         TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 200, 400 ) );// 插入记录为200-400
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
@@ -205,25 +203,25 @@ public class Transaction20437B extends SdbTestBase {
 
     @AfterMethod
     public void tearDown() {
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
         TR1.close();
-        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction( TR2 );
         TR2.close();
-        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction( TR3 );
         TR3.close();
-        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction( TR4 );
         TR4.close();
-        TransUtils.commitTransaction(TR5);
+        TransUtils.commitTransaction( TR5 );
         TR5.close();
-        TransUtils.commitTransaction(TR6);
+        TransUtils.commitTransaction( TR6 );
         TR6.close();
-        TransUtils.commitTransaction(TR7);
+        TransUtils.commitTransaction( TR7 );
         TR7.close();
-        TransUtils.commitTransaction(TR8);
+        TransUtils.commitTransaction( TR8 );
         TR8.close();
-        TransUtils.commitTransaction(TR9);
+        TransUtils.commitTransaction( TR9 );
         TR9.close();
-        TransUtils.commitTransaction(TR10);
+        TransUtils.commitTransaction( TR10 );
         TR10.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );

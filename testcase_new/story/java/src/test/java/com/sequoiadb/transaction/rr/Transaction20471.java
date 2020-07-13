@@ -72,8 +72,6 @@ public class Transaction20471 extends SdbTestBase {
 
             // 创建索引
             cl.createIndex( idxName, indexKey, false, false );
-            // 创建索引后，休眠0.1s，避免索引未创建完成
-            Thread.sleep( 100 );
 
             // 开启 3 个并发事务
             ThreadExecutor threadExecutor = new ThreadExecutor( 3600000 );

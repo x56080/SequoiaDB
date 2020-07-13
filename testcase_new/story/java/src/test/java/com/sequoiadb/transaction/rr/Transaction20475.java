@@ -34,8 +34,6 @@ public class Transaction20475 extends SdbTestBase {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 
@@ -63,7 +61,7 @@ public class Transaction20475 extends SdbTestBase {
             // 2 begin trans TW1
             TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: " + recordNum + "}}", null );
-            TransUtils.commitTransaction(TW1);
+            TransUtils.commitTransaction( TW1 );
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -85,7 +83,7 @@ public class Transaction20475 extends SdbTestBase {
             TransUtils.beginTransaction( TW1 );
             clTW1.update( null, "{'$inc':{a: -" + recordNum + "}}", null );
             clTW1.update( null, "{'$inc':{a: 1}}", null );
-            TransUtils.commitTransaction(TW1);
+            TransUtils.commitTransaction( TW1 );
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -108,7 +106,7 @@ public class Transaction20475 extends SdbTestBase {
             clTW1.update( null, "{'$inc':{a: -1}}", null );
             clTW1.update( null, "{'$inc':{a: -" + recordNum
                     + "}, '$set': {'b': 'update r1s to r4s'}}", null );
-            TransUtils.commitTransaction(TW1);
+            TransUtils.commitTransaction( TW1 );
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -136,7 +134,7 @@ public class Transaction20475 extends SdbTestBase {
             TransUtils.beginTransaction( TW1 );
             clTW1.delete( "" );
             insertDatas( clTW1, recordNum );
-            TransUtils.commitTransaction(TW1);
+            TransUtils.commitTransaction( TW1 );
 
             // 3 trans TR2 read
             TransUtils.queryAndCheck( clTR1,
@@ -160,8 +158,8 @@ public class Transaction20475 extends SdbTestBase {
                     "{'a': {'$gte': -" + recordNum + ", '$lt': 0}}", "{'a':1}",
                     "{'': 'a'}", new ArrayList< BSONObject >() );
         } finally {
-            TransUtils.commitTransaction(TW1);
-            TransUtils.commitTransaction(TR1);
+            TransUtils.commitTransaction( TW1 );
+            TransUtils.commitTransaction( TR1 );
             TW1.close();
             TR1.close();
         }

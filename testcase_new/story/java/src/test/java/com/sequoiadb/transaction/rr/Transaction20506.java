@@ -65,8 +65,6 @@ public class Transaction20506 extends SdbTestBase {
 
         // 4 create unique index
         cl.createIndex( "a", "{a: 1}", true, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         // 5 TR1 read
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",
@@ -81,8 +79,6 @@ public class Transaction20506 extends SdbTestBase {
 
         // 7 create unique index
         cl.createIndex( "b", "{b: 1}", true, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         // 3 TR1 query records
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 1000}}",

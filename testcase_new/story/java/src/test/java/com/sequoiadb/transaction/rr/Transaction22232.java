@@ -42,8 +42,6 @@ public class Transaction22232 extends SdbTestBase {
         cs = sdb.getCollectionSpace( csName );
         cl = cs.createCollection( clName );
         cl.createIndex( "a", "{a:1}", true, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
     }
 
     @Test

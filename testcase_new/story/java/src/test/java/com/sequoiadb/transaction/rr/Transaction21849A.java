@@ -40,13 +40,11 @@ public class Transaction21849A extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20426A", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList.addAll( insertDatas( cl, 0, 50, 128 ) );
         TransUtils.beginTransaction( sdb );
         expList.addAll( insertDatas( cl, 50, 100, 128 ) );
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
@@ -78,7 +76,7 @@ public class Transaction21849A extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交读事务TR1
-        TransUtils.commitTransaction(db1);
+        TransUtils.commitTransaction( db1 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -139,7 +137,7 @@ public class Transaction21849A extends SdbTestBase {
                             "{ '$set': { a: '" + aValue + "' } }", hint );
 
                     // 提交更新事务
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
                     if ( doTimes == timeOut ) {
                         break;
                     } else {
@@ -147,7 +145,7 @@ public class Transaction21849A extends SdbTestBase {
                     }
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
             }
         }
@@ -157,7 +155,6 @@ public class Transaction21849A extends SdbTestBase {
         private String hint = null;
 
         public QueryThread( String hint ) {
-            // TODO Auto-generated constructor stub
             this.hint = hint;
         }
 

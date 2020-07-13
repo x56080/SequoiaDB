@@ -52,8 +52,6 @@ public class Transaction20440A extends SdbTestBase {
             for ( int j = 0; j < 2; j++ ) {
                 DBCollection cl = cs.createCollection( "cl_20440A_" + j );
                 cl.createIndex( "index_20440A", "{ a: 1 }", false, false );
-                // 创建索引后，休眠0.1s，避免索引未创建完成
-                Thread.sleep( 100 );
 
                 // 1.分别在事务中及非事务中插入记录，R1s+R2s+R3s
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
