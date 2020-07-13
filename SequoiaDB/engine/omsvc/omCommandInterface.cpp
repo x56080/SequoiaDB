@@ -126,6 +126,10 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
          {
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
             contextID = -1 ;
             PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d", 
                     OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
@@ -229,6 +233,10 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
          {
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
             contextID = -1 ;
             PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
                         OM_CS_DEPLOY_CL_BUSINESS, rc ) ;
@@ -333,6 +341,10 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
          {
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
             contextID = -1 ;
             PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
                         OM_CS_DEPLOY_CL_HOST, rc ) ;
@@ -601,6 +613,10 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
          {
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
             contextID = -1 ;
             PD_LOG_MSG( PDERROR, "failed to get record from table:table=%s,"
                         "rc=%d", OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
@@ -860,6 +876,10 @@ namespace engine
          rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
          {
+            if ( SDB_DMS_EOC == rc )
+            {
+               break ;
+            }
             contextID = -1 ;
             PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
                         OM_CS_DEPLOY_CL_BUSINESS, rc ) ;
