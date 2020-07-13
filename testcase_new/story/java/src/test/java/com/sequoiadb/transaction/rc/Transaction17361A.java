@@ -96,8 +96,6 @@ public class Transaction17361A extends SdbTestBase {
         try {
             // 插入记录R1
             cl.createIndex( "a", indexKey, false, false );
-            // 创建索引后，休眠0.1s，避免索引未创建完成
-            Thread.sleep( 100 );
 
             cl.insert( insertR1 );
 

@@ -45,8 +45,6 @@ public class Transaction20450B extends SdbTestBase {
         sdb = CommLib.getRandomSequoiadb();
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl.createIndex( "a", "{a:1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, cl, recordNum );
     }
 

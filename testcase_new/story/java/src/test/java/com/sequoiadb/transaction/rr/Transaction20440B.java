@@ -49,14 +49,12 @@ public class Transaction20440B extends SdbTestBase {
             for ( int j = 0; j < 2; j++ ) {
                 DBCollection cl = cs.createCollection( "cl_20440B_" + j );
                 cl.createIndex( "index_20440B", "{ a: 1 }", false, false );
-                // 创建索引后，休眠0.1s，避免索引未创建完成
-                Thread.sleep( 100 );
 
                 // 1.分别在事务中及非事务中插入记录，R1s+R2s+R3s
                 TransUtils.insertRandomDatas( cl, 0, 100 );// 插入记录为0-100
                 TransUtils.beginTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 100, 200 );// 插入记录为100-200
-                TransUtils.commitTransaction(sdb);
+                TransUtils.commitTransaction( sdb );
                 TransUtils.insertRandomDatas( cl, 200, 300 );// 插入记录为200-300
             }
         }
@@ -138,13 +136,13 @@ public class Transaction20440B extends SdbTestBase {
 
     @AfterMethod
     public void tearDown() {
-        TransUtils.commitTransaction(TR1);
+        TransUtils.commitTransaction( TR1 );
         TR1.close();
-        TransUtils.commitTransaction(TR2);
+        TransUtils.commitTransaction( TR2 );
         TR2.close();
-        TransUtils.commitTransaction(TR3);
+        TransUtils.commitTransaction( TR3 );
         TR3.close();
-        TransUtils.commitTransaction(TR4);
+        TransUtils.commitTransaction( TR4 );
         TR4.close();
 
         for ( int i = 0; i < 2; i++ ) {

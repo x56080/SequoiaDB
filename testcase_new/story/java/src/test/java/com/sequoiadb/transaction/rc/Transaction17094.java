@@ -105,8 +105,6 @@ public class Transaction17094 extends SdbTestBase {
         try {
             cl = sdb.getCollectionSpace( csName ).getCollection( clName );
             cl.createIndex( "a", indexKey, false, false );
-            // 创建索引后，休眠0.1s，避免索引未创建完成
-            Thread.sleep( 100 );
 
             // 1 开启3个并发事务
             TransUtils.beginTransaction( db1 );

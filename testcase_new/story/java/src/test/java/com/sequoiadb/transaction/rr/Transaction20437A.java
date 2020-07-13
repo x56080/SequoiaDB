@@ -71,8 +71,6 @@ public class Transaction20437A extends SdbTestBase {
         cl3 = TW3.getCollectionSpace( csName ).getCollection( clName );
         cl4 = TW4.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20437A", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 200 ) );// 插入记录为0-200
         TransUtils.beginTransaction( sdb );

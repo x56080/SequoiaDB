@@ -38,14 +38,12 @@ public class Transaction20439A extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20439A", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         // 1.分别在事务中及非事务中插入记录，为R1s
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );// 插入记录为0-50
         TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );// 插入记录为50-100
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
         // 随机取coord，休眠0.1s，避免从别的coord发起的事务早于上一个事务
         Thread.sleep( 100 );
     }
@@ -86,7 +84,7 @@ public class Transaction20439A extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交读事务
-        TransUtils.commitTransaction(db1);
+        TransUtils.commitTransaction( db1 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );
@@ -120,7 +118,7 @@ public class Transaction20439A extends SdbTestBase {
                             hint );
 
                     // 提交更新事务
-                    TransUtils.commitTransaction(db);
+                    TransUtils.commitTransaction( db );
 
                     if ( doTimes == timeOut ) {
                         break;
@@ -129,7 +127,7 @@ public class Transaction20439A extends SdbTestBase {
                     }
                 }
             } finally {
-                TransUtils.commitTransaction(db);
+                TransUtils.commitTransaction( db );
                 db.close();
             }
         }

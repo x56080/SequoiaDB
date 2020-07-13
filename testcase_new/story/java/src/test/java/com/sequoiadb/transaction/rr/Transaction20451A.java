@@ -99,8 +99,6 @@ public class Transaction20451A extends SdbTestBase {
 
         // createIndex
         cl.createIndex( "b", "{b: 1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         TransUtils.queryAndCheck( clTR1, "{'a': {$gte: 0, $lt: 100}}",
                 "{'_id': 1}", "{'': null}", expDataList );

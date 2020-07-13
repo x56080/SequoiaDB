@@ -44,8 +44,6 @@ public class Transaction20427 extends SdbTestBase {
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20427", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList.addAll( insertDatas( cl, 0, 10, 128 ) );
         TransUtils.beginTransaction( sdb );

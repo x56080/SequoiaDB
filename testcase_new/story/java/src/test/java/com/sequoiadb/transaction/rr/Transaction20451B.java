@@ -48,8 +48,6 @@ public class Transaction20451B extends SdbTestBase {
         mainCL.attachCollection( csName + "." + subCLName1, ( BSONObject ) JSON
                 .parse( "{LowBound:{a: 0}, UpBound:{a: 200}}" ) );
         mainCL.createIndex( "a", "{a:-1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
         expDataList = TransUtils.prepareDatas( sdb, mainCL, recordNum );
     }
 

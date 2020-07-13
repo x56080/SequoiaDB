@@ -223,8 +223,6 @@ public class Transaction20472B extends SdbTestBase {
                     DBCollection cl = db.getCollectionSpace( csName )
                             .getCollection( clName );
                     cl.createIndex( idxName, indexKey, false, false );
-                    // 创建索引后，休眠0.1s，避免索引未创建完成
-                    Thread.sleep( 100 );
 
                     Assert.assertTrue( cl.isIndexExist( idxName ) );
                     cl.dropIndex( idxName );

@@ -41,13 +41,11 @@ public class Transaction20443A extends SdbTestBase {
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
         cl.createIndex( "index_20443A", "{ a: 1 }", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList.addAll( TransUtils.insertRandomDatas( cl, 0, 50 ) );
         TransUtils.beginTransaction( sdb );
         expList.addAll( TransUtils.insertRandomDatas( cl, 50, 100 ) );
-        TransUtils.commitTransaction(sdb);
+        TransUtils.commitTransaction( sdb );
     }
 
     @DataProvider(name = "index")
@@ -78,7 +76,7 @@ public class Transaction20443A extends SdbTestBase {
         // 2.开启事务TW1，插入记录R2s,提交
         TransUtils.beginTransaction( db2 );
         TransUtils.insertRandomDatas( cl2, 100, 200 );
-        TransUtils.commitTransaction(db2);
+        TransUtils.commitTransaction( db2 );
 
         // TR1使用内置SQL读记录
         actList.clear();
@@ -100,7 +98,7 @@ public class Transaction20443A extends SdbTestBase {
         cl2.update(
                 "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } } ] }",
                 "{ '$set': { 'a': 'a'} }", hint );
-        TransUtils.commitTransaction(db2);
+        TransUtils.commitTransaction( db2 );
 
         // TR1使用内置SQL读记录
         actList.clear();
@@ -122,7 +120,7 @@ public class Transaction20443A extends SdbTestBase {
         cl2.delete(
                 "{ '$and': [ { '_id': { '$gte': 100 } }, { '_id': { '$lt': 200 } } ] }",
                 "{ a: 'a'}" );
-        TransUtils.commitTransaction(db2);
+        TransUtils.commitTransaction( db2 );
 
         // TR1使用内置SQL读记录
         actList.clear();
@@ -143,7 +141,7 @@ public class Transaction20443A extends SdbTestBase {
     @AfterMethod
     public void tearDown() {
         // 提交读事务TR1
-        TransUtils.commitTransaction(db1);
+        TransUtils.commitTransaction( db1 );
         db1.close();
 
         sdb.getCollectionSpace( csName ).dropCollection( clName );

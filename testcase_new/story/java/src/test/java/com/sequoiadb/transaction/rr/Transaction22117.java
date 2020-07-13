@@ -63,8 +63,6 @@ public class Transaction22117 extends SdbTestBase {
                         "{ShardingKey:{'a':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl1.createIndex( "a", "{a:1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList1.clear();
         expList1 = TransUtils.insertRandomDatas( cl1, 0, 6 );
@@ -218,8 +216,6 @@ public class Transaction22117 extends SdbTestBase {
                         "{ShardingKey:{'a':1},ShardingType:'range',Group:'"
                                 + srcGroup + "'}" ) );
         cl1.createIndex( "a", "{a:1}", false, false );
-        // 创建索引后，休眠0.1s，避免索引未创建完成
-        Thread.sleep( 100 );
 
         expList1.clear();
         expList1 = TransUtils.insertRandomDatas( cl1, 0, 6 );
