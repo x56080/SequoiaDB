@@ -1,4 +1,4 @@
-package com.sequoiadb.transactionsync;
+package com.sequoiadb.transaction;
 
 import java.util.List;
 
@@ -13,6 +13,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
 
@@ -51,7 +52,8 @@ public class Transaction6004 extends SdbTestBase {
             sdb.updateConfig( configs1, options );
             Assert.fail( "exp failed but succ." );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -264 );
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_INVALIDARG.getErrorCode() );
         }
 
         BSONObject selector = new BasicBSONObject();
@@ -74,7 +76,8 @@ public class Transaction6004 extends SdbTestBase {
             sdb.updateConfig( configs2, options );
             Assert.fail( "exp failed but succ." );
         } catch ( BaseException e ) {
-            Assert.assertEquals( e.getErrorCode(), -264 );
+            Assert.assertEquals( e.getErrorCode(),
+                    SDBError.SDB_INVALIDARG.getErrorCode() );
         }
 
         DBCursor cursor2 = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, options,
