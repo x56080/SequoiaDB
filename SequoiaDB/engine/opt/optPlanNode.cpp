@@ -779,7 +779,8 @@ namespace engine
      _readPages( 0 ),
      _clFromStat( FALSE ),
      _clStatTime( 0 ),
-     _isCandidate( FALSE )
+     _isCandidate( FALSE ),
+     _matchedOrders( 0 )
    {
    }
 
@@ -800,7 +801,8 @@ namespace engine
      _readPages( 0 ),
      _clFromStat( FALSE ),
      _clStatTime( 0 ),
-     _isCandidate( FALSE )
+     _isCandidate( FALSE ),
+     _matchedOrders( 0 )
    {
    }
 
@@ -822,7 +824,8 @@ namespace engine
      _clFromStat( node._clFromStat ),
      _clStatTime( node._clStatTime ),
      _isCandidate( node._isCandidate ),
-     _runtimeMatcher( node._runtimeMatcher )
+     _runtimeMatcher( node._runtimeMatcher ),
+     _matchedOrders( node._matchedOrders )
    {
       if ( NULL != context )
       {
@@ -1116,7 +1119,11 @@ namespace engine
 
       mthMatchTree *matcher = planHelper.getMatchTree() ;
 
+      // prepare evaluate
       _preEvaluate( queryOptions, planHelper, collectionStat ) ;
+
+      // evaluate order
+      _evalOrder( queryOptions, planHelper ) ;
 
       if ( matcher->isInitialized() && matcher->isMatchesAll() &&
            !matcher->hasExpand() && !matcher->hasReturnMatch() )
@@ -1236,6 +1243,62 @@ namespace engine
       _estTotalCost = _estStartCost + _estRunCost ;
 
       PD_TRACE_EXIT( SDB_OPTTBSCAN__EVALRETOPTS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__EVALORDER, "_optTbScanNode::_evalOrder" )
+   void _optTbScanNode::_evalOrder( const rtnQueryOptions &queryOptions,
+                                    optAccessPlanHelper &planHelper )
+   {
+      PD_TRACE_ENTRY( SDB_OPTTBSCAN__EVALORDER ) ;
+
+      const BSONObj &boOrder = queryOptions.getOrderBy() ;
+      RTN_PREDICATE_MAP &predicates = planHelper.getPredicates() ;
+
+      // we could check order against predicates to find out whether
+      // we could skip sorting
+      // if all order fields are all equal predicates, the sorting could be
+      // skipped, since in this case, only one distinct value of order fields
+      // will be returned
+      // e.g. predicates are { a: 10, b: 10, c: 1 }, order is { a: 1, b: 1 },
+      //      obviously, only one distinct value { a: 10, b: 10 } is returned
+      //      so no need to have extra sorting for order fields
+      if ( !boOrder.isEmpty() && !predicates.empty() )
+      {
+         UINT32 matchedOrders = 0 ;
+         BSONObjIterator iterOrder( boOrder ) ;
+
+         while ( iterOrder.more() )
+         {
+            BSONElement beOrder = iterOrder.next() ; ;
+            const CHAR *orderField = beOrder.fieldName() ;
+
+            RTN_PREDICATE_MAP::iterator iterPred =
+                                          predicates.find( orderField ) ;
+            if ( predicates.end() == iterPred )
+            {
+               // predicate is not found
+               break ;
+            }
+            else if ( !iterPred->second.isEquality() )
+            {
+               // predicate is found, but it is not equal predicate
+               break ;
+            }
+
+            // predicate is equal, it can be considered to be order matched
+            ++ matchedOrders ;
+         }
+
+         // if all order fields are equal predicates, the sorting could be
+         // skipped
+         if ( matchedOrders == (UINT32)( boOrder.nFields() ) )
+         {
+            _sorted = TRUE ;
+         }
+         _matchedOrders = matchedOrders ;
+      }
+
+      PD_TRACE_EXIT( SDB_OPTTBSCAN__EVALORDER ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__TOBSONBASIC, "_optTbScanNode::_toBSONBasic" )
@@ -1435,7 +1498,6 @@ namespace engine
      _direction( 1 ),
      _matchAll( FALSE ),
      _matchedFields( 0 ),
-     _matchedOrders( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1457,7 +1519,6 @@ namespace engine
      _direction( 1 ),
      _matchAll( FALSE ),
      _matchedFields( 0 ),
-     _matchedOrders( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( OPT_PRED_DEFAULT_SELECTIVITY ),
@@ -1485,7 +1546,6 @@ namespace engine
      _direction( node._direction ),
      _matchAll( node._matchAll ),
      _matchedFields( node._matchedFields ),
-     _matchedOrders( node._matchedOrders ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
      _scanSelectivity( node._scanSelectivity ),
@@ -1976,7 +2036,43 @@ namespace engine
       {
          // Set the scan direction
          _direction = direction ;
-         if ( matchedOrders == (UINT32)boOrder.nFields() )
+
+         if ( matchedOrders != (UINT32)boOrder.nFields() &&
+              !predicates.empty() )
+         {
+            // let's check the remaining orders, if all remaining order fields
+            // are equal predicates, the sorting could be skipped
+            // e.g. index is { a: 1, b: 1 }, predicate is { a: 1, c: 1 },
+            //      order is { a: 1, c: 1 }, since the "c" is not matched in
+            //      index, so the output of index could not be considered to
+            //      match the order fields, but the field "c" is equal
+            //      predicate
+            while ( iterOrder.more() )
+            {
+               BSONElement beOrder = iterOrder.next() ;
+               const CHAR *orderField = beOrder.fieldName() ;
+
+               RTN_PREDICATE_MAP::iterator iterPred =
+                                             predicates.find( orderField ) ;
+               if ( predicates.end() == iterPred )
+               {
+                  // predicate is not found
+                  break ;
+               }
+               else if ( !iterPred->second.isEquality() )
+               {
+                  // predicate is found, but it is not equal predicate
+                  break ;
+               }
+
+               // if the predicate is equal, it can be considered to be order
+               // matched
+               ++ matchedOrders ;
+            }
+         }
+
+         // if the order could be matched, the sorting could be skipped
+         if ( matchedOrders == (UINT32)( boOrder.nFields() ) )
          {
             _sorted = TRUE ;
          }

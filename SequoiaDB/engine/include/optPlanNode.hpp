@@ -645,6 +645,9 @@ namespace engine
          BOOLEAN           _isCandidate ;
 
          BSONObj           _runtimeMatcher ;
+
+         // number of prefix matched fields in sort order
+         UINT32            _matchedOrders ;
    } ;
 
    /*
@@ -695,6 +698,9 @@ namespace engine
 
          void _evalWithReturnOptions ( UINT64 noLimitRecords,
                                        UINT64 returnSkipRecords ) ;
+
+         void _evalOrder( const rtnQueryOptions &queryOptions,
+                          optAccessPlanHelper &planHelper ) ;
 
       public :
          virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
@@ -879,9 +885,6 @@ namespace engine
 
          // Number of matched fields in index
          UINT32            _matchedFields ;
-
-         // Number of matched order by fields in index
-         UINT32            _matchedOrders ;
 
          // Information of index
          dmsExtentID       _indexExtID ;
