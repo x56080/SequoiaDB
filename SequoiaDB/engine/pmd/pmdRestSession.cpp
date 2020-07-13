@@ -124,6 +124,24 @@ namespace engine
             flag |= FLG_QUERY_WITH_RETURNDATA ;
             continue ;
          }
+         if ( 0 == ossStrcmp( strSubFlag,
+                              REST_VALUE_FLAG_INSERT_CONTONDUP ) )
+         {
+            flag |= FLG_INSERT_CONTONDUP ;
+            continue ;
+         }
+         if ( 0 == ossStrcmp( strSubFlag,
+                              REST_VALUE_FLAG_INSERT_RETURNNUM ) )
+         {
+            flag |= FLG_INSERT_RETURNNUM ;
+            continue ;
+         }
+         if ( 0 == ossStrcmp( strSubFlag,
+                              REST_VALUE_FLAG_INSERT_REPLACEONDUP ) )
+         {
+            flag |= FLG_INSERT_REPLACEONDUP ;
+            continue ;
+         }
 
          // treat it as number
          rc = utilStr2Num( strSubFlag, subFlag );
@@ -1589,7 +1607,13 @@ namespace engine
       flagStr = request.getQuery( REST_KEY_NAME_FLAG ) ;
       if ( FALSE == flagStr.empty() )
       {
-         flag = ossAtoi( flagStr.c_str() ) ;
+         rc = utilMsgFlag( flagStr, flag ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s,"
+                        "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
+            goto error ;
+         }
       }
 
       insertorStr = request.getQuery( REST_KEY_NAME_INSERTOR ) ;

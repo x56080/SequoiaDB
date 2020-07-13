@@ -47,11 +47,18 @@
 |          | 说明                                     | 例子                                                      |
 |----------|------------------------------------------|-----------------------------------------------------------|
 | 请求头   | 同通用请求头                             |                                                           |
-| 请求内容 | cmd: insert<br>name: 集合的全称（集合空间.集合）<br>insertor: 待插入的数据 | cmd=insert&name=foo.bar&insertor={"age":12,"name":"hello"} |
+| 请求内容 | cmd: insert<br>name: 集合的全称（集合空间.集合）<br>insertor: 待插入的数据<br>flag: 标志位（可选参数，可不填） | cmd=insert&name=foo.bar&insertor={"age":12,"name":"hello"}&flag=SDB_INSERT_CONTONDUP |
 | 说明     |                                          |                                                           |
 | 响应头   | 同通用响应头                             |                                                           |
 | 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 }] |
 | 说明     |                                          |                                                           |
+
+> **Note:**  
+> flag既支持字符串形式，也支持数值型。数值型包括十六进制（0x开头）、八进制（0开头）、十进制。  
+> 取值如下：  
+> SDB_INSERT_CONTONDUP(0x00000001)  
+> SDB_INSERT_RETURNNUM(0x00000002)  
+> SDB_INSERT_REPLACEONDUP(0x00000004)
 
 ##查询数据##
 
