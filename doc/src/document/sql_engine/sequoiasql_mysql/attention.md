@@ -20,6 +20,8 @@
 
 - MySQL 实例不支持在虚拟列上创建索引。
 
+- MySQL 实例不支持指定虚拟列为分区键。
+
 - MySQL 实例支持自增字段，MySQL 表自增字段对应 SequoiaDB 的集合[自增字段](data_model/auto_increment.md)，只保证趋势递增，不保证连续递增，使用时需注意以下事项:
     * auto_increment_offset：该配置项主要解决多活主网下自增字段冲突问题，而 SequoiaDB 作为分布式数据库，自身能保证自增字段全局递增而不冲突，故该配置项不生效。
     * auto_increment_increment：自增字段数值由 SequoiaDB 生成，当发生了创建表以外的行为（例如插入数据），该配置项不起作用。如需要修改步长，可以在 SDB Shell 中通过 [SdbCollection.setAttributes()](reference/Sequoiadb_command/SdbCollection/setAttributes.md) 修改对应的自增序列步长属性。
