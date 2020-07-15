@@ -464,11 +464,13 @@ namespace engine
             PD_LOG( PDEVENT, "last log record(lsn:%lld) is corrupted.",
                     corruptedHeader->_lsn ) ;
 
-            /// only one corrupted log in this file.
+            /// only one corrupted log in this file. Should use the previous 
+            /// file as the working log file.
             if ( 0 == offSet )
             {
                _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
                _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
+               _logHeader._logID = DPS_INVALID_LOG_FILE_ID ;
             }
          }
          else if ( SDB_OK != rc )
