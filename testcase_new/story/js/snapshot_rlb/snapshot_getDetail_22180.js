@@ -45,6 +45,7 @@ function test(testPara)
        
       println("---insert datas.");
       insertRecs( dbcl );
+      commCheckBusinessStatus( db );
       
       accessNodeWithInstanceId(dbcl, groupName, expHostName, expSvcName, useInstanceid, clName )
       accessNodeWithSlave( dbcl, groupName, clName );
