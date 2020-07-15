@@ -1122,6 +1122,7 @@ namespace engine
          virtual INT32 getBSONOpType () ;
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
+         virtual BOOLEAN isTotalConverted() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
