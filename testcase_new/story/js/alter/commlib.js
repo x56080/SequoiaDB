@@ -3,7 +3,7 @@
 @Modify list :
 2018-4-25  wuyan  Init
 *******************************************************************************/
-
+import ("../lib/main.js");
 import( "../lib/basic_operation/sequoiadb.js" );
 
 //inspect the alter field is success or not.
