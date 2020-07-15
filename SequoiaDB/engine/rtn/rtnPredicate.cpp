@@ -1885,7 +1885,7 @@ namespace engine
       {
          BOOLEAN minRangeAdded = FALSE ;
 
-         if ( e.canonicalType() <=
+         if ( e.canonicalType() <
               staticUndefined.firstElement().canonicalType() )
          {
             // Add a special range [ $minKey, $undefined )
@@ -2030,11 +2030,28 @@ namespace engine
          {
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             rc = SDB_OOM ;
+            goto error ;
          }
       }
+      else
+      {
+         // generate [ $minKey, undefined )
+         rc = _initLT( staticUndefined.firstElement(), FALSE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize with "
+                      "[ $minKey, undefined ), rc: %d", rc ) ;
 
+         // generate ( undefined, $maxKey ]
+         rc = _initGT( staticUndefined.firstElement(), FALSE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize with "
+                      "( undefined, $maxKey ], rc: %d", rc ) ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB__RTNPRED__INITEXISTS, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITISNULL, "rtnPredicate::_initISNULL" )
@@ -2067,11 +2084,28 @@ namespace engine
          {
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             rc = SDB_OOM ;
+            goto error ;
          }
       }
+      else
+      {
+         // generate [ $minKey, undefined )
+         rc = _initLT( staticUndefined.firstElement(), FALSE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize with "
+                      "[ $minKey, undefined ), rc: %d", rc ) ;
 
+         // generate ( null, $maxKey ]
+         rc = _initGT( staticNull.firstElement(), FALSE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize with "
+                      "( null, $maxKey ], rc: %d", rc ) ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB__RTNPRED__INITISNULL, rc ) ;
       return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITFULLRANGE, "rtnPredicate::_initFullRange" )

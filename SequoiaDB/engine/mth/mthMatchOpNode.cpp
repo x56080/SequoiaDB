@@ -3880,11 +3880,6 @@ namespace engine
       return MTH_WEIGHT_EXISTS ;
    }
 
-   BOOLEAN _mthMatchOpNodeEXISTS::isTotalConverted()
-   {
-      return FALSE ;
-   }
-
    INT32 _mthMatchOpNodeEXISTS::_valueMatch( const BSONElement &left,
                                              const BSONElement &right,
                                              BOOLEAN mixCmp,
@@ -4153,11 +4148,6 @@ namespace engine
    UINT32 _mthMatchOpNodeISNULL::getWeight()
    {
       return MTH_WEIGHT_ISNULL ;
-   }
-
-   BOOLEAN _mthMatchOpNodeISNULL::isTotalConverted()
-   {
-      return FALSE ;
    }
 
    INT32 _mthMatchOpNodeISNULL::_valueMatch( const BSONElement &left,
