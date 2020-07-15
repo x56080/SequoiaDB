@@ -4150,6 +4150,26 @@ namespace engine
       return MTH_WEIGHT_ISNULL ;
    }
 
+   BOOLEAN _mthMatchOpNodeISNULL::isTotalConverted()
+   {
+      // check converted with base first
+      BOOLEAN converted = _mthMatchOpNode::isTotalConverted() ;
+      if ( converted )
+      {
+         // if converted, we need to check further
+         // since record might have null in array, e.g. {a:[1,null]}, in this
+         // case, elements in array will be split into several index key
+         // items, so for {$isnull:1} ( or {$isnull:0} under $not ), we need
+         // to check data to avoid array with null element
+         if ( ( !_isUnderLogicNot && _toMatch.trueValue() ) ||
+              ( _isUnderLogicNot && !_toMatch.trueValue() ) )
+         {
+            converted = FALSE ;
+         }
+      }
+      return converted ;
+   }
+
    INT32 _mthMatchOpNodeISNULL::_valueMatch( const BSONElement &left,
                                              const BSONElement &right,
                                              BOOLEAN mixCmp,
