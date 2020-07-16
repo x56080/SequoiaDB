@@ -33,7 +33,7 @@ function createCSAndCheckResult ( csName, pageSize )
    //check the options
    db.sync( { "CollectionSpace": csName } );
 
-   var cursor = db.snapshot( 5, { Name: csName } );
+   var cursor = db.snapshot( 5, { Name: csName,NodeSelect:"master" } );
    var actPageSize = 0;
    while( cursor.next() )
    {
