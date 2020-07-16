@@ -196,7 +196,7 @@ function dropTestCS ( db, testConf )
    {
       commDropCS( db, testConf.csName, true );
 
-      if( testConf.csOpt.Domain !== undefined )
+      if( testConf.csOpt !== undefined && testConf.csOpt.Domain !== undefined )
       {
          commDropDomain( db, testConf.csOpt.Domain, true );
       }

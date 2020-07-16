@@ -265,7 +265,7 @@ function checkIndexConsistency ( csName, clName )
             {
                while( true )
                {
-                  var slvIdxNames = slvIdxNames = getNodeIndexes( db, csName, clName );
+                  var slvIdxNames = getNodeIndexes( db, csName, clName );
                   if( JSON.stringify( mstIdxNames ) !== JSON.stringify( slvIdxNames ) )
                   {
                      if( doTimes < timeout )
