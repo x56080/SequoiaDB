@@ -18,7 +18,7 @@ function test ( testPara )
    var cl = testPara.testCL;
    cl.createIndex( 'a', { a: 1 } );
    cl.find( { a: test } );
-   var cur = db.snapshot( SDB_SNAP_ACCESSPLANS, { GroupName: "group1" } );
+   var cur = db.snapshot( SDB_SNAP_ACCESSPLANS, { GroupName: groupName } );
    while( cur.next() )
    {
       errNodes = cur.current().toObj()["ErrNodes"];
