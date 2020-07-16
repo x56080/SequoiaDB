@@ -355,7 +355,7 @@ function main ()
    }
    catch( e )
    {
-      if( -264 != e.message )
+      if( -47 != e.message )
       {
          throw e;
       }
