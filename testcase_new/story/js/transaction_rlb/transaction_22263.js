@@ -39,13 +39,11 @@ function test( testPara )
       
       db.transRollback();
       checkReelect( groupName, slaveHostName, slaveServiceName );
-       
-      //检查结果开启事务查询，规避非事务查询返回未回滚的记录，导致比较结果不一致
-      db.transBegin();
+      commCheckBusinessStatus( db, 180, true );
+     
       var cl = db.getCS(COMMCSNAME).getCL(testConf.clName);
       var cursor = cl.find();
-      commCompareResults( cursor, [] );
-      db.transCommit();
+      commCompareResults( cursor, [] );     
    }
    finally
    {
