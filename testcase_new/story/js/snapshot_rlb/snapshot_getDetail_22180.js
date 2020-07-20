@@ -153,7 +153,7 @@ function updateConf ( db, configs, options)
    }
    catch( e )
    {
-      if( e !== -264 )
+      if( e !== -322 )
       {
          throw new Error(e);
       }
@@ -168,7 +168,7 @@ function deleteConf ( db, configs, options )
    }
    catch( e )
    {
-      if( e !== -264 )
+      if( e !== -322 )
       {
          throw new Error(e);
       }

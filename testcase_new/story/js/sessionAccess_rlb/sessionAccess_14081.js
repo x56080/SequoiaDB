@@ -19,7 +19,7 @@ function test()
    var hostName = group[1].HostName;
    var svcName = group[1].svcname;
    var instanceid = 4;
-   updateConf( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -264 );
+   updateConf( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -322 );
    db.getRG( groupName ).getNode( hostName, svcName ).stop();
    db.getRG( groupName ).getNode( hostName, svcName ).start();
    try
@@ -30,7 +30,7 @@ function test()
       var expAccessNodes = [ hostName + ":" + svcName ];
       checkAccessNodes( cl, expAccessNodes, options );
       
-      updateConf( db, { instanceid: 11 }, { NodeName: hostName + ":" + svcName }, -264 );
+      updateConf( db, { instanceid: 11 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );
@@ -41,7 +41,7 @@ function test()
    }
    finally
    {
-      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName }, -264 );
+      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );

@@ -6,23 +6,23 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
-{	  
-   var instanceidList = [ 12, 0, 1, 255, "123"];
-   var errInstanceidList = [ 12.234, -1, 256, "0x10"];
-	  
+function test ()
+{
+   var instanceidList = [12, 0, 1, 255, "123"];
+   var errInstanceidList = [12.234, -1, 256, "0x10"];
+
    var failedCount = 0;
-   var groupName = "rg_14069";  
+   var groupName = "rg_14069";
    var rg = db.createRG( groupName );
    var hostName = db.listReplicaGroups().current().toObj().Group[0].HostName;
-   for( var i = 0; i < instanceidList.length; i++)
+   for( var i = 0; i < instanceidList.length; i++ )
    {
-      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount ) ;
-      var dbpath = RSRVNODEDIR + "data/" + svc ;
+      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
+      var dbpath = RSRVNODEDIR + "data/" + svc;
       var checkSucc = false;
       var times = 0;
       var maxRetryTimes = 10;
-      var config = { instanceid: instanceidList[i], diaglevel: 5};  
+      var config = { instanceid: instanceidList[i], diaglevel: 5 };
       while( !checkSucc && times < maxRetryTimes )
       {
          try
@@ -36,46 +36,46 @@ function test()
             if( e == -145 || e == -290 )
             {
                svc = svc + 10;
-               dbpath = RSRVNODEDIR + "data/" + svc ;
+               dbpath = RSRVNODEDIR + "data/" + svc;
                failedCount++;
             }
             else
             {
-               throw new Error( "create node failed! " + hostName + ":" + svc + " " + dbpath + " config: " + JSON.stringify(config) + " errorCode: " + e );
+               throw new Error( "create node failed! " + hostName + ":" + svc + " " + dbpath + " config: " + JSON.stringify( config ) + " errorCode: " + e );
             }
             times++;
          }
       }
    }
-   
-   for( var i = 0; i < errInstanceidList.length; i++)
+
+   for( var i = 0; i < errInstanceidList.length; i++ )
    {
-      svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + 5 + failedCount ) ;
-      dbpath = RSRVNODEDIR + "data/" + svc ;
+      svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + 5 + failedCount );
+      dbpath = RSRVNODEDIR + "data/" + svc;
       var config = { instanceid: errInstanceidList[i], diaglevel: 5 };
       try
       {
-          rg.createNode( hostName, svc, dbpath, config );
-          throw new Error( "Create node " + hostName + ":" + svc + " " + dbpath + " config: " + JSON.stringify(config) + "  need error!" );
+         rg.createNode( hostName, svc, dbpath, config );
+         throw new Error( "Create node " + hostName + ":" + svc + " " + dbpath + " config: " + JSON.stringify( config ) + "  need error!" );
       }
       catch( e )
       {
          if( e.message !== "-6" )
-         {	
+         {
             throw e;
          }
       }
    }
    rg.start();
-   
+
    checkResult( groupName, instanceidList );
-   db.removeRG(groupName);
+   db.removeRG( groupName );
 }
 
-function checkResult( groupName, instanceidList )
+function checkResult ( groupName, instanceidList )
 {
-   var groupInfo = db.getRG(groupName).getDetail().current().toObj();
-   for(var i = 0; i < instanceidList.length; i++ )
+   var groupInfo = db.getRG( groupName ).getDetail().current().toObj();
+   for( var i = 0; i < instanceidList.length; i++ )
    {
       if( instanceidList[i] != 0 && instanceidList[i] != groupInfo.Group[i].instanceid )
       {

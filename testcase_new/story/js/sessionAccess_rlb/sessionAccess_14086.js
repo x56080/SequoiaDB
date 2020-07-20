@@ -28,7 +28,7 @@ function test()
       var svcName = group[i+1].svcname;
       var nodeName = hostName + ":" + svcName;
       expAccessNodes.push( nodeName );
-      updateConf( db, { instanceid: instanceid[i] }, { NodeName: nodeName }, -264 );
+      updateConf( db, { instanceid: instanceid[i] }, { NodeName: nodeName }, -322 );
    }
    db.getRG( groupName ).stop();
    db.getRG( groupName ).start();

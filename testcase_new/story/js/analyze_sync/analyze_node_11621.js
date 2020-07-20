@@ -138,7 +138,7 @@ function main ()
       throw new Error( "NEED_AN_ERR" );
    } catch( e )
    {
-      if( e.message !== "-264" )
+      if( e.message !== "-104" )
       {
          throw e;
       }

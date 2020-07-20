@@ -7,7 +7,7 @@ testConf.skipOneDuplicatePerGroup = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var clName = CHANGEDPREFIX + "_14085";
    var groups = commGetGroups( db );
@@ -20,21 +20,21 @@ function test()
    var instanceid = 2;
    var hostName = group[1].HostName;
    var svcName = group[1].svcname;
-   var expAccessNodes = [ hostName + ":" + svcName ];
-   updateConf ( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -264 );
+   var expAccessNodes = [hostName + ":" + svcName];
+   updateConf( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -322 );
    db.getRG( groupName ).getNode( hostName, svcName ).stop();
    db.getRG( groupName ).getNode( hostName, svcName ).start();
    try
    {
       commCheckBusinessStatus( db );
       db.invalidateCache();
-      expAccessNodes.push( group[2].HostName + ":" + group[2].svcname);
+      expAccessNodes.push( group[2].HostName + ":" + group[2].svcname );
       var options = { PreferedInstance: instanceid };
       checkAccessNodes( cl, expAccessNodes, options );
    }
    finally
    {
-      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName}, -264 );   
+      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );

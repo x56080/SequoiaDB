@@ -44,7 +44,7 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -264 )
+      if( e !== -322 )
       {
          throw new Error( e );
       }
@@ -67,7 +67,7 @@ function changeConf ( nodeName )
    }
    catch( e )
    {
-      if( e !== -264 )
+      if( e !== -322 )
       {
          throw new Error( e );
       }

@@ -12,10 +12,10 @@ function test ()
 {
    var nodeNum = 3;
    var groupName = "rg_14828_14843";
-   var hostName = commGetGroups ( db )[0][1].HostName;
+   var hostName = commGetGroups( db )[0][1].HostName;
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
-   
+
    //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
    var config = { "diaglevel": 1 };
    var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
@@ -23,7 +23,7 @@ function test ()
 
    // 更新多个run级别参数
    options = { GroupName: groupName };
-   configs = getConfigs( "validVal" )[ "runConfigs" ];
+   configs = getConfigs( "validVal" )["runConfigs"];
    updateConf( db, configs, options );
 
    for( var i = 0; i < nodes.length; i++ )
@@ -37,7 +37,7 @@ function test ()
    }
 
    // 删除多个run级别参数
-   configs = getConfigs( "defaultVal" )[ "runConfigs" ];
+   configs = getConfigs( "defaultVal" )["runConfigs"];
    deleteConf( db, configs, options );
 
    for( var i = 0; i < nodes.length; i++ )
@@ -49,11 +49,11 @@ function test ()
       var fileInfo = getConfFromFile( hostName, svcName );
       checkResult( configs, fileInfo, true );
    }
-   
+
    // 更新多个reboot级别参数
-   configs = getConfigs( "validVal" )[ "rebootConfigs" ];
-   var defaultVal = getConfigs( "defaultVal" )[ "rebootConfigs" ];
-   updateConf( db, configs, options, -264 );
+   configs = getConfigs( "validVal" )["rebootConfigs"];
+   var defaultVal = getConfigs( "defaultVal" )["rebootConfigs"];
+   updateConf( db, configs, options, -322 );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -67,7 +67,7 @@ function test ()
 
    db.getRG( groupName ).stop();
    db.getRG( groupName ).start();
- 
+
    for( var i = 0; i < nodes.length; i++ )
    {
       var hostName = nodes[i].hostname;
@@ -77,9 +77,9 @@ function test ()
       var fileInfo = getConfFromFile( hostName, svcName );
       checkResult( configs, fileInfo );
    }
-   
+
    //删除多个reboot级别参数
-   deleteConf( db, configs, options, -264 );
+   deleteConf( db, configs, options, -322 );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -116,7 +116,7 @@ function test ()
    }
 
    var configs = getConfigs( "validVal" )["forbidConfigs"];
-   updateConf( db, configs, options, -264 );
+   updateConf( db, configs, options, -322 );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -129,7 +129,7 @@ function test ()
    }
 
    // 删除多个forbid级别参数
-   deleteConf( db, configs, options, -264 );
+   deleteConf( db, configs, options, -322 );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -139,7 +139,7 @@ function test ()
       checkResult( snapshotInfo_before[i], snapshotInfo_after );
       var fileInfo_after = getConfFromFile( hostName, svcName );
       checkResult( fileInfo_before[i], fileInfo_after );
-   }  
- 
+   }
+
    db.removeRG( groupName );
 }

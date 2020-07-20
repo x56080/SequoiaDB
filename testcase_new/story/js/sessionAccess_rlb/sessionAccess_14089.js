@@ -6,31 +6,31 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var clName = CHANGEDPREFIX + "_14089";
    var groups = commGetGroups( db );
    var group = groups[0];
    var groupName = group[0].GroupName;
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
    insertData( cl );
 
    var instanceid = [29, 255];
    var hostName = group[1].HostName;
    var svcName = group[1].svcname;
-   updateConf( db, { instanceid: instanceid[1] }, { NodeName: hostName + ":" + svcName }, -264 );
+   updateConf( db, { instanceid: instanceid[1] }, { NodeName: hostName + ":" + svcName }, -322 );
    db.getRG( groupName ).getNode( hostName, svcName ).stop();
    db.getRG( groupName ).getNode( hostName, svcName ).start();
 
    try
    {
       commCheckBusinessStatus( db );
-      db.invalidateCache(); 
+      db.invalidateCache();
 
       //设置preferedinstancemode为random
       var options = { PreferedInstance: instanceid, PreferedInstanceMode: "random" };
-      var expAccessNodes = [ hostName + ":" + svcName ];
+      var expAccessNodes = [hostName + ":" + svcName];
       checkAccessNodes( cl, expAccessNodes, options );
 
       //不设置preferedinstancemode
@@ -43,11 +43,11 @@ function test()
    }
    finally
    {
-      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -264 );
+      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );
    }
-   commDropCL( db, COMMCSNAME, clName, false, false ) ;
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 

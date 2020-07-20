@@ -277,7 +277,7 @@ function checkAnalyzeResult ( options )
    }
    catch( e )
    {
-      if( "-264" !== e.message )
+      if( "-104" !== e.message )
       {
          throw e;
       }

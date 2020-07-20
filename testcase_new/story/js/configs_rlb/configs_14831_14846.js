@@ -9,11 +9,11 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var nodeNum = 1;
-   var groupNames = [ "rg_14831_14846_1", "rg_14831_14846_2", "rg_14831_14846_3" ];
-   var hostName = commGetGroups ( db )[0][1].HostName;
+   var groupNames = ["rg_14831_14846_1", "rg_14831_14846_2", "rg_14831_14846_3"];
+   var hostName = commGetGroups( db )[0][1].HostName;
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupNames[0], nodeNum, hostName, nodeOption );
    nodes = nodes.concat( commCreateRG( db, groupNames[1], nodeNum, hostName, nodeOption ) );
@@ -28,13 +28,13 @@ function test()
    }
 
    //指定多个组批量更新不同级别的配置 
-   configs = getConfigs( "validVal" )[ "allConfigs" ];
+   configs = getConfigs( "validVal" )["allConfigs"];
    options = { GroupName: groupNames };
-   updateConf ( db, configs, options, -264 );
+   updateConf( db, configs, options, -322 );
 
-   var runConfigs = getConfigs( "validVal" )[ "runConfigs" ];
-   var rebootConfigs = getConfigs( "validVal" )[ "rebootConfigs" ];
-   runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs )+JSON.stringify( rebootConfigs ) ).replace( /}{/, ",") );
+   var runConfigs = getConfigs( "validVal" )["runConfigs"];
+   var rebootConfigs = getConfigs( "validVal" )["rebootConfigs"];
+   runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs ) + JSON.stringify( rebootConfigs ) ).replace( /}{/, "," ) );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -57,14 +57,14 @@ function test()
       var fileInfo = getConfFromFile( nodes[i].hostname, nodes[i].svcname );
       checkResult( runRebootConfigs, fileInfo );
    }
-   
-   //指定多个组批量删除不同级别的配置
-   configs = getConfigs( "defaultVal" )[ "allConfigs" ];
-   deleteConf( db, configs, options, -264 );
 
-   runConfigs = getConfigs( "defaultVal" )[ "runConfigs" ];
-   rebootConfigs = getConfigs( "defaultVal" )[ "rebootConfigs" ];
-   runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs )+JSON.stringify( rebootConfigs ) ).replace( /}{/, ",") );
+   //指定多个组批量删除不同级别的配置
+   configs = getConfigs( "defaultVal" )["allConfigs"];
+   deleteConf( db, configs, options, -322 );
+
+   runConfigs = getConfigs( "defaultVal" )["runConfigs"];
+   rebootConfigs = getConfigs( "defaultVal" )["rebootConfigs"];
+   runRebootConfigs = JSON.parse( ( JSON.stringify( runConfigs ) + JSON.stringify( rebootConfigs ) ).replace( /}{/, "," ) );
 
    for( var i = 0; i < nodes.length; i++ )
    {
@@ -79,7 +79,7 @@ function test()
       db.getRG( groupNames[i] ).stop();
       db.getRG( groupNames[i] ).start();
    }
-   
+
    for( var i = 0; i < nodes.length; i++ )
    {
       snapshotInfo = getConfFromSnapshot( db, nodes[i].hostname, nodes[i].svcname );

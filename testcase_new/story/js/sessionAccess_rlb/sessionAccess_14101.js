@@ -7,7 +7,7 @@ testConf.skipOneDuplicatePerGroup = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -27,8 +27,8 @@ function test()
    var instanceid = 2;
    var hostName = group1[1].HostName;
    var svcName = group1[1].svcname;
-   var expAccessNodes = [ hostName + ":" + svcName ];
-   updateConf( db, { instanceid: instanceid }, {NodeName: hostName + ":" + svcName}, -264 );
+   var expAccessNodes = [hostName + ":" + svcName];
+   updateConf( db, { instanceid: instanceid }, { NodeName: hostName + ":" + svcName }, -322 );
    db.getRG( groupName1 ).getNode( hostName, svcName ).stop();
    db.getRG( groupName1 ).getNode( hostName, svcName ).start();
    try
@@ -41,11 +41,11 @@ function test()
       expAccessNodes.push( group2[2].HostName + ":" + group2[2].svcname );
       checkAccessNodes( cl, expAccessNodes, options );
 
-      commDropCL( db, COMMCSNAME, clName, false, false ) ;
+      commDropCL( db, COMMCSNAME, clName, false, false );
    }
    finally
    {
-      deleteConf( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName}, -264 );
+      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName1 ).getNode( hostName, svcName ).stop();
       db.getRG( groupName1 ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );

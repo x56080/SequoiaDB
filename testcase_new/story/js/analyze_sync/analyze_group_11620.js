@@ -248,7 +248,7 @@ function checkAnalyzeInvalidGroup ( options )
    }
    catch( e )
    {
-      if( "-264" !== e.message && "-154" !== e.message )
+      if( "-165" !== e.message && "-154" !== e.message )
       {
          throw e;
       }
