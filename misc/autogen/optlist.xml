@@ -1282,13 +1282,11 @@
          <en>1. The buckets of access plan cache. <fig></fig>
              2. Sdb will not cache any access plan if it is 0. <fig></fig>
              3. Default is 500, maximum is 4096. <fig></fig>
-             4. SequoiadDB will round up the value to 0, 128, 256, 512, 1024, 2048, 4096.<fig></fig>
-             5. Each bucket could save about 3 access plans on average.</en>
+             4. Please visit [Access Plan Cache](database_management/access_plans/plan_cache.md) for more details.</en>
          <cn>1. 访问计划缓存内桶的个数。<fig></fig>
              2. 当其为0时数据库将不会缓存任何访问计划。<fig></fig>
              3. 默认为500，最大值为4096。<fig></fig>
-             4. SequoiaDB 内部自动向上取整为 0, 128, 256, 512, 1024, 2048, 4096。<fig></fig>
-             5. 每个桶中平均最多可以放置 3 个访问计划缓存。</cn>
+             4. 更详细的内容可参考 [访问计划缓存](database_management/access_plans/plan_cache.md)。</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <reloadable>

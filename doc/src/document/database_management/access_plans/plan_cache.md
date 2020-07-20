@@ -14,7 +14,7 @@
 
 >   **Note:**
 >
->   * 访问计划缓存的 SequoiaDB 配置参数 planbuckets，详细请参考[数据库配置](database_management/database_configuration/configuration_parameters.md)
+>   * 访问计划缓存的大小可以通过 SequoiaDB 配置参数 [planbuckets](database_management/database_configuration/configuration_parameters.md) 来修改
 >        * planbuckets 定义全局的访问计划缓存的桶的个数，默认为 500，最大值为 4096
 >        * SequoiaDB 内部自动向上取整为 0, 128, 256, 512, 1024, 2048, 4096
 >        * planbuckets 设置为 0 时，不开启访问计划缓存
