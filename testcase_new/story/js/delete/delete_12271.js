@@ -38,8 +38,7 @@ function main ()
    docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } } );
    docs.push( { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
    docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
-   cl.insert( docs );
-   commCheckIndexConsistency( cl, "ageIndex", true, 10 )
+   cl.insert( docs );   
    cl.remove( { score: { $gte: 90 } }, { "": "ageIndex" } );
 
    docs.splice( 15, 1 );
