@@ -56,19 +56,20 @@ public class Transaction21985 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         try {
             BSONObject record = ( BSONObject ) JSON
                     .parse( "{_id:1, a:1, b:1}" );
             expList.add( record );
             cl.insert( record );
 
+            Thread.sleep( 100 );
             // 开启另1个连接,开启事务执行查询并提交
             DBCollection cl1 = db.getCollectionSpace( csName )
                     .getCollection( clName );
             TransUtils.beginTransaction( db );
-            TransUtils.queryAndCheck( cl1, "{'':'a'}", expList );
             TransUtils.queryAndCheck( cl1, "{'':null}", expList );
+            TransUtils.queryAndCheck( cl1, "{'':'a'}", expList );
 
         } finally {
             TransUtils.commitTransaction( db );
