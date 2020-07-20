@@ -265,9 +265,6 @@ namespace engine
          FLOAT32 orderFactor = 1.0f ;
          dir = 1 ;
          BOOLEAN start = TRUE ;
-         rtnStartStopKey startStopKey;
-         BSONElement startKey;
-         BSONElement stopKey;
          BOOLEAN matchAll = FALSE ;
 
          if ( nFields > 0 )
@@ -330,14 +327,14 @@ namespace engine
             {
                // some cases have predicates, though it's not
                // that proper to use index, such as the case
-               // with max and min boundanry,
+               // with max and min boundary ( we need to consider min start
+               // key and max stop key in this predicate )
                // so we need to lead such cases to table scan here
-               startStopKey = it->second._startStopKeys[0] ;
-               startKey = startStopKey._startKey._bound ;
-               stopKey = startStopKey._stopKey._bound ;
+               BSONElement startKey = it->second.min() ;
+               BSONElement stopKey = it->second.max() ;
 
-               if(0 == startKey.woCompare( bson::minKey.firstElement() ) &&
-                  0 == stopKey.woCompare( bson::maxKey.firstElement() ))
+               if(0 == startKey.woCompare( bson::minKey.firstElement(), FALSE ) &&
+                  0 == stopKey.woCompare( bson::maxKey.firstElement(), FALSE ))
                {
                   break;
                }

@@ -785,7 +785,6 @@ namespace engine
          virtual INT32 getType() ;
          virtual const CHAR *getOperatorStr() ;
          UINT32 getWeight() ;
-         virtual BOOLEAN isTotalConverted() ;
          virtual void release() ;
 
       protected:

@@ -932,8 +932,14 @@ namespace engine
    rtnPredicate::rtnPredicate ( const BSONElement &e, BOOLEAN isNot )
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_RTNPRED ) ;
+      BOOLEAN defaultET = FALSE ;
       _isInitialized = FALSE ;
-      INT32 op = e.getGtLtOp() ;
+      INT32 op = e.getGtLtOp( -1 ) ;
+      if ( -1 == op )
+      {
+         defaultET = TRUE ;
+         op = BSONObj::Equality ;
+      }
       if ( ( !isNot && !e.eoo() && e.type() != RegEx && op == BSONObj::opIN ) )
       {
          // for IN statement without isNot or if the element type is array
@@ -1046,8 +1052,14 @@ namespace engine
          existsSpec = !e.trueValue() ;
       }
       // if input is RegEx, or we have $regex as object name
-      if ( e.type() == RegEx ||
-           (e.type() == Object && !e.embeddedObject()["$regex"].eoo() ))
+      // NOTE: this only processes regex operation like
+      //       { field : { $regex: xxx, ... } }
+      //       while { $et : { $regex: xxx, ... } } will be processed
+      //       later with $et predicate ( which will only match a regex type,
+      //       and will not perform regex operator )
+      if ( defaultET &&
+           ( e.type() == RegEx ||
+             (e.type() == Object && !e.embeddedObject()["$regex"].eoo() ) ) )
       {
          if ( op != BSONObj::Equality && op != BSONObj::opREGEX )
          {
@@ -1065,22 +1077,17 @@ namespace engine
                startKey = addObj(BSON(""<<r)).firstElement() ;
                stopKey = addObj(BSON(""<<simpleRegexEnd(r))).firstElement() ;
                stopKeyInclusive = FALSE ;
-            }
-            // regex matches itself type
-            if ( e.type() == RegEx )
-            {
+
+               // regex matches itself type
                BSONElement re = addObj(BSON(""<<e)).firstElement() ;
                _startStopKeys.push_back ( rtnStartStopKey ( re ) ) ;
             }
-            else
-            {
-               BSONObj orig = e.embeddedObject() ;
-               BSONObjBuilder b ;
-               b.appendRegex("", orig["$regex"].valuestrsafe(),
-                                 orig["$options"].valuestrsafe()) ;
-               BSONElement re = addObj(b.obj()).firstElement() ;
-               _startStopKeys.push_back ( rtnStartStopKey ( re ) ) ;
-            }
+            // if we can not have a simple regex, no need to append regex
+            // itself, since the full range is given already
+            // NOTE: the range should be limited to string type actually,
+            //       but to simplify the index optimization, we use full range
+            //       instead, which will not prefer index scan by optimize
+            //       rules
          }
          _isInitialized = TRUE ;
          return ;
@@ -1236,6 +1243,22 @@ namespace engine
          {
             startKey = stopKey = bson::staticUndefined.firstElement() ;
          }
+         else
+         {
+            _startStopKeys.push_back ( rtnStartStopKey() ) ;
+
+            // [ $minKey, undefined )
+            _startStopKeys[ 0 ]._startKey._bound = bson::minKey.firstElement() ;
+            _startStopKeys[ 0 ]._startKey._inclusive = TRUE ;
+            _startStopKeys[ 0 ]._stopKey._bound = bson::staticUndefined.firstElement() ;
+            _startStopKeys[ 0 ]._stopKey._inclusive = FALSE ;
+
+            // ( undefined, $maxKey ]
+            _startStopKeys[ 1 ]._startKey._bound = bson::staticUndefined.firstElement() ;
+            _startStopKeys[ 1 ]._startKey._inclusive = FALSE ;
+            _startStopKeys[ 1 ]._stopKey._bound = bson::maxKey.firstElement() ;
+            _startStopKeys[ 1 ]._stopKey._inclusive = TRUE ;
+         }
          break ;
       case BSONObj::opISNULL:
          if ( !existsSpec )
@@ -1253,6 +1276,22 @@ namespace engine
             _startStopKeys[1]._startKey._inclusive =
                   _startStopKeys[1]._stopKey._inclusive =
                   TRUE ;
+         }
+         else
+         {
+            _startStopKeys.push_back ( rtnStartStopKey() ) ;
+
+            // [ $minKey, undefined )
+            _startStopKeys[ 0 ]._startKey._bound = bson::minKey.firstElement() ;
+            _startStopKeys[ 0 ]._startKey._inclusive = TRUE ;
+            _startStopKeys[ 0 ]._stopKey._bound = bson::staticUndefined.firstElement() ;
+            _startStopKeys[ 0 ]._stopKey._inclusive = FALSE ;
+
+            // ( null, $maxKey ]
+            _startStopKeys[ 1 ]._startKey._bound = bson::staticNull.firstElement() ;
+            _startStopKeys[ 1 ]._startKey._inclusive = FALSE ;
+            _startStopKeys[ 1 ]._stopKey._bound = bson::maxKey.firstElement() ;
+            _startStopKeys[ 1 ]._stopKey._inclusive = TRUE ;
          }
          break ;
       default:
