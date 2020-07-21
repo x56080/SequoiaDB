@@ -39,11 +39,9 @@ function test( testPara )
       
       db.transRollback();
       checkReelect( groupName, slaveHostName, slaveServiceName );
-      commCheckBusinessStatus( db, 180, true );
-     
-      var cl = db.getCS(COMMCSNAME).getCL(testConf.clName);
-      var cursor = cl.find();
-      commCompareResults( cursor, [] );     
+      commCheckBusinessStatus( db, 180, true );      
+      checkInsertResult(testConf.clName);
+      
    }
    finally
    {
@@ -53,6 +51,30 @@ function test( testPara )
          newdb.close();
       }
    }
+}
+
+function checkInsertResult(clName)
+{
+   //等待事务回滚结束后再查询记录比较结果，最长等待时间3分钟
+   var cl = db.getCS(COMMCSNAME).getCL(clName);
+   var expCount = 0;
+   var waitMaxTime = 180;
+   var doTime = 0;
+   while(doTime < waitMaxTime)
+   {
+      var clCount = cl.count();
+      if( Number(expCount) == Number(clCount))
+      {  
+         break;
+      }
+      else
+      {
+         sleep( 1000 );
+         doTime++;
+      }
+   }
+   var cursor = cl.find();
+   commCompareResults( cursor, [] );
 }
 
 function checkReelect( groupName, hostName, svcName )
