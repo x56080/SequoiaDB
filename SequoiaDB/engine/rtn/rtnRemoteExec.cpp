@@ -46,6 +46,7 @@
 #include "msgDef.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "coordRemoteSession.hpp"
 
 using namespace bson ;
 
@@ -75,6 +76,9 @@ namespace engine
       INT32 reqSize = 0 ;
       SINT32 packetLength = 0 ;
 
+      pmdEDUCB *eduCB = pmdGetThreadEDUCB() ;
+      INT32 execTimeout = -1 ;
+
       po::options_description desc ( "Config options" ) ;
       po::variables_map vm ;
       CHAR hostname2[OSS_MAX_HOSTNAME + 6] = { 0 } ;
@@ -92,6 +96,18 @@ namespace engine
          "listening port")
          (hostname2, po::value<string>(), "sdbcm specified listening port")
       ;
+
+      // try to use operator timeout of session
+      if ( NULL != eduCB &&
+           NULL != eduCB->getRemoteSite() )
+      {
+         coordSessionPropSite *propSite =
+               (coordSessionPropSite *)eduCB->getRemoteSite()->getUserData() ;
+         if ( NULL != propSite )
+         {
+            execTimeout = propSite->getOperationTimeout() ;
+         }
+      }
 
       rc = ossGetEWD ( conf, OSS_MAX_PATHSIZE ) ;
       if ( rc )
@@ -177,7 +193,7 @@ namespace engine
 
          // send message
          rc = pmdSend ( pCMRequest, ((MsgHeader*)pCMRequest)->messageLength,
-                        &sock, pmdGetThreadEDUCB() ) ;
+                        &sock, eduCB ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to send cm request message, rc=%d", rc ) ;
@@ -186,7 +202,8 @@ namespace engine
 
          // receive message
          rc = pmdRecv ( (CHAR*)&packetLength, sizeof (SINT32), &sock,
-                        pmdGetThreadEDUCB() ) ;
+                        eduCB, OSS_SOCKET_DFT_TIMEOUT,
+                        execTimeout ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to receive cm reply message, rc=%d",
@@ -214,7 +231,7 @@ namespace engine
          *(SINT32*)(pReceiveBuffer) = packetLength ;
          rc = pmdRecv ( &pReceiveBuffer[sizeof (SINT32)],
                         packetLength-sizeof (SINT32), &sock,
-                        pmdGetThreadEDUCB() ) ;
+                        eduCB ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to receive cm reply message, rc=%d",
