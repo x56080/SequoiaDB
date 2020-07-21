@@ -44,6 +44,8 @@
 
 namespace engine
 {
+   #define RTN_SESSION_OPERATION_TIMEOUT_MIN ( 1000 )    // 1000ms
+   #define RTN_SESSION_OPERATION_TIMEOUT_MAX ( -1 )
 
    typedef enum _RTN_PREFER_INSTANCE_TYPE
    {
@@ -231,7 +233,18 @@ namespace engine
 
          OSS_INLINE void setOperationTimeout ( INT64 operationTimeout )
          {
-            _operationTimeout = operationTimeout < 0 ? -1 : operationTimeout ;
+            if ( operationTimeout < 0 )
+            {
+               _operationTimeout = RTN_SESSION_OPERATION_TIMEOUT_MAX ;
+            }
+            else if ( operationTimeout < RTN_SESSION_OPERATION_TIMEOUT_MIN )
+            {
+               _operationTimeout = RTN_SESSION_OPERATION_TIMEOUT_MIN ;
+            }
+            else
+            {
+               _operationTimeout = operationTimeout ;
+            }
          }
 
          OSS_INLINE INT64 getOperationTimeout () const
