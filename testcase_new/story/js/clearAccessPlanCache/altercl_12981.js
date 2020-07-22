@@ -13,6 +13,8 @@ main( test );
 
 function test ()
 {
+   var groups = commGetDataGroupNames( db );
+
    var csName = COMMCSNAME + "_12981";
 
    //create CLs
@@ -44,6 +46,9 @@ function test ()
    insertSameDatas( dbcl1, insertNums, sameValues );
    insertDiffDatas( dbcl2, insertNums );
    insertSameDatas( dbcl2, insertNums, sameValues );
+
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
 
    //check before invoke analyze
    checkStat( db, csName, clName1, "$shard", false, false );
@@ -78,6 +83,9 @@ function test ()
    //invoke analyze
    var options = { CollectionSpace: csName };
    analyze( db, options );
+
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
 
    //check after analyze before alter
    checkStat( db, csName, clName1, "$shard", true, false );
@@ -128,11 +136,8 @@ function test ()
    dbcl1.alter( alterOption1 );
    dbcl2.alter( alterOption2 );
 
-   //检查shard索引是否创建完成
-   var expectIndexInfo1 = { 'name': '$shard', 'key': { 'a0': 1 } };
-   checkIndexConsistency( csName, clName1, expectIndexInfo1 );
-   var expectIndexInfo2 = { 'name': '$shard', 'key': { 'a1': 1 } };
-   checkIndexConsistency( csName, clName2, expectIndexInfo2 );
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
 
    //check alter before analyze
    checkStat( db, csName, clName1, "$shard", true, false );
@@ -181,11 +186,8 @@ function test ()
    var group1 = ClSplitOneTimes( csName, clName1, 50 );
    var group2 = ClSplitOneTimes( csName, clName2, 50 );
 
-   //检查切分后shard索引是否已同步到每个节点
-   var expectIndexInfo1 = { 'name': '$shard', 'key': { 'a0': 1 } };
-   checkIndexConsistency( csName, clName1, expectIndexInfo1 );
-   var expectIndexInfo2 = { 'name': '$shard', 'key': { 'a1': 1 } };
-   checkIndexConsistency( csName, clName2, expectIndexInfo2 );
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
 
    var srcGroupName1 = group1[0].GroupName;
    var destGroupName1 = group1[1].GroupName;
@@ -239,6 +241,9 @@ function test ()
    //check alter after analyze
    var options = { CollectionSpace: csName };
    analyze( db, options );
+
+   //检查主备同步
+   checkConsistency( db, null, null, groups );
 
    checkStat( db, csName, clName1, "$shard", true, true );
    checkStat( db, csName, clName2, "$shard", true, true );
