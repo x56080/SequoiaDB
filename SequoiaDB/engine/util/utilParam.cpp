@@ -669,9 +669,13 @@ namespace engine
 
          // set ulimit
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
-         if ( !hasGot ||  curSoft != limVal )
+         if ( !hasGot || curSoft != limVal )
          {
-            procLim.setLimit( limStr.c_str(), limVal, limVal ) ;
+            if ( -1 == limVal || ( -1 != curHard && curHard < limVal ) )
+            {
+               curHard = limVal ;
+            }
+            procLim.setLimit( limStr.c_str(), limVal, curHard ) ;
          }
 
          // check ulimit
