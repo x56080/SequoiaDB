@@ -232,7 +232,7 @@ function bakBackupByCheckError ( db, backUpOpt )
    }
    catch( e )
    {
-      if( -264 == e || ( commIsStandalone( db ) && -240 == e ) ) 
+      if( -240 == e ) 
       {
          println( "backup description is already started" );
          alreadStart = true;
