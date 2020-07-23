@@ -17,7 +17,7 @@ var installDir = initPath();    // import工具所在目录
 function readyCL ( csName, clName, optionObj, message )
 {
 
-   if( optionObj == undefined ) { optionObj = { ReplSize: 0 }; }
+   if( optionObj == undefined ) { optionObj = {}; }
    if( message == undefined ) { message = ""; }
 
    println( "\n---Begin to create CL " + message + "." );

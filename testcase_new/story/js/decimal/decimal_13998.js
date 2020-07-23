@@ -21,7 +21,7 @@ function main()
    
    // test range split cl
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" ) ;
-   var option = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 } ;
+   var option = { ShardingKey: { a: 1 }, ShardingType: "range" } ;
    var cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, option, true, true ) ;
    
    var docs = [ { a: { $decimal: "MAX" } },
@@ -37,7 +37,7 @@ function main()
    
    // test hash split cl
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL after test range split" ) ;
-   option = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 } ;
+   option = { ShardingKey: { a: 1 }, ShardingType: "hash" } ;
    cl = commCreateCLByOption( db, COMMCSNAME, COMMCLNAME, option, true, true ) ;
    
    insertData( cl, docs ) ;
