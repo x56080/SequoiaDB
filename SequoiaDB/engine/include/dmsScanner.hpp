@@ -336,6 +336,11 @@ namespace engine
          INT32 acquireCSCLLock( ) ;
          void  releaseCSCLLock( ) ;
 
+         // test or acquire transaction lock, acquire old version
+         INT32 _checkTransLock( pmdEDUCB *cb,
+                                dmsRecordID &waitUnlockRID,
+                                BOOLEAN &skipRecord ) ;
+
       private:
          INT64                _maxRecords ;
          INT64                _skipNum ;

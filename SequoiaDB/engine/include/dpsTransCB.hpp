@@ -412,7 +412,8 @@ namespace engine
                                    UINT16 collectionID = DMS_INVALID_MBID,
                                    const dmsRecordID *recordID = NULL,
                                    dpsTransRetInfo * pdpsTxResInfo = NULL,
-                                   _dpsITransLockCallback *callback = NULL ) ;
+                                   _dpsITransLockCallback *callback = NULL,
+                                   BOOLEAN needIntentLock = TRUE ) ;
 
       INT32 transLockTestIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                              UINT16 collectionID = DMS_INVALID_MBID,
