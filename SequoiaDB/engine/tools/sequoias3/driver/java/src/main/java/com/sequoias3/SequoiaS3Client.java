@@ -38,10 +38,10 @@ public class SequoiaS3Client implements SequoiaS3 {
     private static final Logger logger = LoggerFactory.getLogger(SequoiaS3Client.class);
     private static String contentHashStringNull = SignerBase.EMPTY_BODY_SHA256;
 
-    private static String accessKeyId;
-    private static String secretKeyId;
-    private static String endpoint;
-    private static RestTemplate rest;
+    private String accessKeyId;
+    private String secretKeyId;
+    private String endpoint;
+    private RestTemplate rest;
     private HttpComponentsClientHttpRequestFactory factory;
 
     SequoiaS3Client(SequoiaS3ClientBuilder builder){
