@@ -37,7 +37,7 @@ function main()
    println("---test c:three query fields.");
    var findCond3 = {'strb':{$gt:0},'intc':{$ne:1000},'la':{$lt:1000}};   
    var getExplainReslut3= getExplain( dbcl, findCond3 );
-   checkExplain( getExplainReslut3, "ixscan", indexName3 );
+   checkExplain( getExplainReslut3, "ixscan", indexName2 );
    
    commDropCL(db, COMMCSNAME, clName, true, true);
 }

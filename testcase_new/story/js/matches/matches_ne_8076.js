@@ -83,10 +83,10 @@ function checkResult( cl, findRecsArray, dataType, indexName )
    
    //compare scanType
    var rc = cl.find( {b:{$ne: null}} ).sort({a:1}).explain().current().toObj();
-   if( rc["ScanType"] !== "ixscan" || rc["IndexName"] !== indexName )
+   if( rc["ScanType"] !== "tbscan" || rc["IndexName"] !== "" )
    {
       throw buildException("checkResult", null, "[compare index]", 
-                           "[ScanType:ixscan,IndexName:"+ indexName +"]", 
+                           "[ScanType:tbscan", 
                            "[ScanType:"+ rc["ScanType"] +",IndexName:"+ rc["IndexName"] +"]");
    }
    

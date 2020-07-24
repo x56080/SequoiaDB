@@ -80,11 +80,12 @@ function checkResult( intRc, longRc, doubleRc, rawData, indexName )
    println("\n---Begin to check index.");
    
    //compare scanType
-   var tmpExp = intRc.explain().current().toObj();
-   if( tmpExp["ScanType"] !== "ixscan" || tmpExp["IndexName"] !== indexName )
+   var tmpExp = intRc.explain().current().toObj();   
+   
+   if( tmpExp["ScanType"] !== "tbscan" || tmpExp["IndexName"] !== "" )   
    {
       throw buildException("checkResult", null, "[compare index]", 
-                           "[ScanType:ixscan,IndexName:"+ indexName +"]", 
+                           "[ScanType:tbscan", 
                            "[ScanType:"+ tmpExp["ScanType"] +",IndexName:"+ tmpExp["IndexName"] +"]");
    }
    

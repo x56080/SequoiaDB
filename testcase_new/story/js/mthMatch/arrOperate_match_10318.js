@@ -114,10 +114,10 @@ function main()
    checkResult( dbcl, findCondition7, null, expRecs7, {_id:1} );
    
    var explainRecs7 = [{Name:COMMCSNAME + "." + COMMCLNAME,
-	                    ScanType:"ixscan",
-	                    IndexName:"a",
+	                    ScanType:"tbscan",
+	                    IndexName:"",
 	                    Query:{$and:[{a:{$returnMatch:[0,-1],$ne:4}}]},
-	                    IXBound:{a:[[{"$minElement":1},4],[4,{"$maxElement":1}]]},
+	                    IXBound:null,
 	                    NeedMatch:true}];
    checkExplainResult( dbcl, findCondition7, null, {No:1}, explainRecs7 );
    
@@ -128,10 +128,10 @@ function main()
    checkResult( dbcl, findCondition8, null, expRecs8, {_id:1} );
    
    var explainRecs8 = [{Name:COMMCSNAME + "." + COMMCLNAME,
-	                    ScanType:"ixscan",
-	                    IndexName:"a",
+	                    ScanType:"tbscan",
+	                    IndexName:"",
 	                    Query:{$and:[{a:{$expand:1,$ne:4}}]},
-	                    IXBound:{a:[[{"$minElement":1},4],[4,{"$maxElement":1}]]},
+	                    IXBound:null,
 	                    NeedMatch:true}];
    checkExplainResult( dbcl, findCondition8, null, {No:1}, explainRecs8 );
    
