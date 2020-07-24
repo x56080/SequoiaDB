@@ -476,14 +476,16 @@ error:
 PHP_METHOD( SequoiaCL, insert )
 {
    INT32 rc = SDB_OK ;
-   zval *pRecord = NULL ;
+   INT32 flags = FLG_INSERT_RETURN_OID ;
+   zval *pRecord  = NULL ;
+   zval *pFlags   = NULL ;
    zval *pThisObj = getThis() ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
    bson record ;
    bson_iterator id ;
    bson_init( &record ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z", &pRecord ) == FAILURE )
+   if ( PHP_GET_PARAMETERS( "z|z", &pRecord, &pFlags ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -498,7 +500,12 @@ PHP_METHOD( SequoiaCL, insert )
    {
       goto error ;
    }
-   rc = sdbInsert1( cl, &record, &id ) ;
+   rc = php_zval2Int( pFlags, &flags TSRMLS_CC ) ;
+   if( rc )
+   {
+      goto error ;
+   }
+   rc = sdbInsert2( cl, &record, flags, &id ) ;
    if( rc )
    {
       goto error ;

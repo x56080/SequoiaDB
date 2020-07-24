@@ -24,8 +24,12 @@
  */
 class SequoiaCL
 {
-   /** The flags represent whether bulk insert continue when hitting index key duplicate error. */
+   /** The flags represent whether insert continue when hitting index key duplicate error. */
    define( "SDB_FLG_INSERT_CONTONDUP",     0x00000001 ) ;
+   /** The flag represent whether insert return the "_id" field of the record for user */
+   define( "SDB_FLG_INSERT_RETURN_OID",    0x00000002 ) ;
+   /** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
+   define( "SDB_FLG_INSERT_REPLACEONDUP",  0x00000004 ) ;
 
    /** Force to use specified hint to query, if database have no index assigned by the hint, fail to query. */
    define( "SDB_FLG_FIND_FORCE_HINT",      0x00000080 ) ;
@@ -33,7 +37,7 @@ class SequoiaCL
    define( "SDB_FLG_FIND_PARALLED",        0x00000100 ) ;
    /** In general, query won't return data until cursor get from database, when add this flag, return data in query response, it will be more high-performance. */
    define( "SDB_FLG_FIND_WITH_RETURNDATA", 0x00000200 ) ;
-   
+
    /** Force to use specified hint to query, if database have no index assigned by the hint, fail to query */
    define( "SDB_FLG_QUERY_FORCE_HINT",     0x00000080 ) ;
    /** Enable paralled sub query */
@@ -301,9 +305,22 @@ class SequoiaCL
    /**
     * Insert a record into current collection.
     *
-    * @param $record	an array or the string argument. The inserted record, cannot be empty.
+    * @param $record an array or the string argument. The inserted record, cannot be empty.
     *
-    * @return Returns the result, default return array.
+    * @param $flags  an integer argument.
+    *                                    @code
+    *                                    0                           :  while 0 is set, database will stop inserting
+    *                                                                   when the record hit index key duplicate error.
+    *                                    SDB_FLG_INSERT_CONTONDUP    :  if the record hit index key duplicate error,
+    *                                                                   database will skip them and go on inserting.
+    *                                    SDB_FLG_INSERT_RETURN_OID   :  return the value of "_id" field in the record.
+    *                                    SDB_FLG_INSERT_REPLACEONDUP :  The flag represent replacing the existing 
+    *                                                                   record by the new record and continuing when 
+    *                                                                   insert hitting index key duplicate error.
+    *                                    @endcode
+    *
+    * @return Returns the result, default return array. When flag SDB_FLG_INSERT_RETURN_OID is set,
+    * return the value of "_id" field of the inserted record.
     *
     * @retval array   array( 'errno' => 0, '_id' => &lt;24 hexadecimal characters&gt; )
     * @retval string  { "errno": 0, "_id": &lt;24 hexadecimal characters&gt; }
@@ -327,8 +344,18 @@ class SequoiaCL
     * }
     * echo "Insert record id is: ".$err['_id'] ;
     * @endcode
+    *
+    * Example: 
+    * @code
+    * $err = $cl -> insert( array( 'name' => 'jack' ), SDB_FLG_INSERT_CONTONDUP | SDB_FLG_INSERT_RETURN_OID ) ;
+    * if( $err['errno'] != 0 ) {
+    *    echo "Failed to insert record, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * echo "Insert record id is: ".$err['_id'] ;
+    * @endcode
    */
-   public function insert( array|string $record ){}
+   public function insert( array|string $record, integer $flags = SDB_FLG_INSERT_RETURN_OID ){}
 
    /**
     * Insert records into current collection.
