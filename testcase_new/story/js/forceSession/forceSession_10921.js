@@ -27,7 +27,7 @@ function test()
    }
    catch( e ) 
    {
-      if( e != -264 )
+      if( e != -63 )
       {
          throw new Error( e );
       }
