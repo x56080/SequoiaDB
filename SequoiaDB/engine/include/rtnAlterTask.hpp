@@ -68,6 +68,7 @@ namespace engine
       RTN_ALTER_COLLECTION_SPACE,
       RTN_ALTER_DOMAIN,
       RTN_ALTER_GROUP,
+      RTN_ALTER_DATASOURCE,
       RTN_ALTER_NODE
    } ;
 

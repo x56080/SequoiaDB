@@ -81,6 +81,9 @@ namespace engine
         ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOCAL ) &&   \
         ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOADCS ) )
 
+   typedef UINT32                         UTIL_DS_UID ;
+   #define UTIL_INVALID_DS_UID            0xFFFFFFFF
+
    OSS_INLINE utilCSUniqueID utilGetCSUniqueID( utilCLUniqueID clUniqueID )
    {
       return clUniqueID >> 32 ;

@@ -161,6 +161,8 @@ namespace engine
          goto error ;
       }
 
+      pArguments->_groupList = groupLst ;
+
       PD_LOG( PDINFO, "Do phase 1 on catalog done for command[%s, target:%s], "
               "get %u target groups back", getName(),
               pArguments->_targetName.c_str(), groupLst.size() ) ;

@@ -168,7 +168,9 @@ namespace engine
 
       public:
          /// handler will not be freed by frame
-         _netFrame( _netMsgHandler *handler, _netRoute *pRoute ) ;
+         _netFrame( _netMsgHandler *handler,
+                    _netRoute *pRoute,
+                    const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
          ~_netFrame() ;
 

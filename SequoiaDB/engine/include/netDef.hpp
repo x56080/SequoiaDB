@@ -47,11 +47,14 @@
 #include <string>
 #include <vector>
 
+#include <boost/asio.hpp>
+
 namespace engine
 {
    typedef UINT32 NET_HANDLE ;
 
-   const NET_HANDLE NET_INVALID_HANDLE = 0 ;
+   #define NET_INVALID_HANDLE    ( 0 )
+   #define NET_MIN_HANDLE        ( 1 )
 
    typedef UINT32 NET_GROUP_ID ;
    typedef UINT32 NET_NODE_ID ;
@@ -79,6 +82,9 @@ namespace engine
 
    #define NET_NODE_FAULT_TIMEOUT            ( 600 )  /// second
    #define NET_NODE_FAULTUP_MIN_TIME         ( 3 )    /// second
+
+   typedef boost::asio::ip::tcp::endpoint netTCPEndPoint ;
+   typedef boost::asio::ip::udp::endpoint netUDPEndPoint ;
 
    /*
       _netRouteNode define

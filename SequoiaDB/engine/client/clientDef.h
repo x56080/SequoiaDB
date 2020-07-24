@@ -106,6 +106,8 @@
 #define SDB_LIST_RESERVED1        18
 #define SDB_LIST_RESERVED2        19
 #define SDB_LIST_RESERVED3        20
+#define SDB_LIST_RESERVED4        21
+#define SDB_LIST_DATASOURCES      22
 
 // reserved
 #define SDB_LIST_CL_IN_DOMAIN     129

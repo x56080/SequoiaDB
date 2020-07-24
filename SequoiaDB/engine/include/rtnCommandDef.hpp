@@ -137,6 +137,7 @@ namespace engine
 #define NAME_LIST_DOMAINS                    CMD_NAME_LIST_DOMAINS
 #define NAME_LIST_GROUPS                     CMD_NAME_LIST_GROUPS
 #define NAME_LIST_PROCEDURES                 CMD_NAME_LIST_PROCEDURES
+#define NAME_LIST_DATASOURCES                CMD_NAME_LIST_DATASOURCES
 #define NAME_CREATE_PROCEDURE                CMD_NAME_CRT_PROCEDURE
 #define NAME_REMOVE_PROCEDURE                CMD_NAME_RM_PROCEDURE
 #define NAME_LIST_CS_IN_DOMAIN               CMD_NAME_LIST_CS_IN_DOMAIN
@@ -152,6 +153,7 @@ namespace engine
 #define NAME_GET_DCINFO                      CMD_NAME_GET_DCINFO
 #define NAME_LIST_SEQUENCES                  CMD_NAME_LIST_SEQUENCES
 #define NAME_SNAP_SEQUENCES                  CMD_NAME_SNAPSHOT_SEQUENCES
+#define NAME_INVALIDATE_DATASOURCE_CACHE     CMD_NAME_INVALIDATE_DATASOURCE_CACHE
    /*
       Command Type Define
    */
@@ -203,6 +205,7 @@ namespace engine
       CMD_RENAME_COLLECTION                  = 60,
       CMD_RENAME_COLLECTIONSPACE             = 61,
       CMD_LIST_SEQUENCES                     = 62,
+      CMD_LIST_DATASOURCES                   = 63,
 
       CMD_REORG_OFFLINE                      = 70,
       CMD_REORG_ONLINE                       = 71,
@@ -291,6 +294,8 @@ namespace engine
       CMD_INVALIDATE_SEQUENCE_CACHE          = 254,
 
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
+
+      CMD_INVALIDATE_DATASOURCE_CACHE        = 257,
       CMD_UNKNOW                             = 65535
    };
 

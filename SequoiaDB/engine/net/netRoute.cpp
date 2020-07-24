@@ -43,6 +43,8 @@
 #include "netTrace.hpp"
 #include "pmd.hpp"
 
+using namespace boost::asio::ip ;
+
 namespace engine
 {
    _netRoute::~_netRoute()
@@ -307,4 +309,75 @@ namespace engine
       }
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRT_GETUDPEP, "_netRoute::getUDPEndPoint" )
+   INT32 _netRoute::getUDPEndPoint( const CHAR *hostName,
+                                    const CHAR *serviceName,
+                                    netUDPEndPoint &endPoint )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__NETRT_GETUDPEP ) ;
+
+      try
+      {
+         boost::asio::io_service ioService ;
+         udp::resolver::query query( udp::v4(), hostName, serviceName ) ;
+         udp::resolver resolver( ioService ) ;
+         udp::resolver::iterator iter = resolver.resolve( query ) ;
+         udp::resolver::iterator end ;
+         PD_CHECK( iter != end, SDB_NET_ROUTE_NOT_FOUND, error, PDERROR,
+                   "Failed to resolve UDP %s:%s", hostName, serviceName ) ;
+         endPoint = ( *iter ) ;
+      }
+      catch ( boost::system::system_error &e )
+      {
+         PD_LOG ( PDERROR, "Failed to resolve UDP %s:%s, error:%s", hostName,
+                  serviceName, e.what() ) ;
+         rc = SDB_NET_ROUTE_NOT_FOUND ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETRT_GETUDPEP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRT_GETTCPEP, "_netRoute::getTCPEndPoint" )
+   INT32 _netRoute::getTCPEndPoint( const CHAR *hostName,
+                                    const CHAR *serviceName,
+                                    netTCPEndPoint &endPoint )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__NETRT_GETUDPEP ) ;
+
+      try
+      {
+         boost::asio::io_service ioService ;
+         tcp::resolver::query query( tcp::v4(), hostName, serviceName ) ;
+         tcp::resolver resolver( ioService ) ;
+         tcp::resolver::iterator iter = resolver.resolve( query ) ;
+         tcp::resolver::iterator end ;
+         PD_CHECK( iter != end, SDB_NET_ROUTE_NOT_FOUND, error, PDERROR,
+                   "Failed to resolve TCP %s:%s", hostName, serviceName ) ;
+         endPoint = ( *iter ) ;
+      }
+      catch ( boost::system::system_error &e )
+      {
+         PD_LOG ( PDERROR, "Failed to resolve TCP %s:%s, error:%s", hostName,
+                  serviceName, e.what() ) ;
+         rc = SDB_NET_ROUTE_NOT_FOUND ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__NETRT_GETUDPEP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
 }

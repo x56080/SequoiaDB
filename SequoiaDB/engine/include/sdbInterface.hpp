@@ -281,6 +281,9 @@ namespace engine
          virtual const CHAR*  getFromIPAddr() const = 0 ;
          virtual UINT16       getFromPort() const = 0 ;
 
+         virtual const MsgHeader *getInMsg() const = 0 ;
+         virtual void registerInMsg( const MsgHeader *msg ) = 0 ;
+         virtual void unregisterInMsg() = 0 ;
    } ;
    typedef _IClient IClient ;
 

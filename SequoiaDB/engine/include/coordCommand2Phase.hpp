@@ -70,6 +70,8 @@ namespace engine
 
          /* the return context buf pointer */
          rtnContextBuf *_pBuf ;
+
+         CoordGroupList _groupList ;
    } ;
    typedef _coordCMDArguments coordCMDArguments ;
 

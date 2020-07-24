@@ -90,6 +90,14 @@ namespace engine
             return _local ;
          }
 
+         static INT32 getUDPEndPoint( const CHAR *hostName,
+                                      const CHAR *serviceName,
+                                      netUDPEndPoint &endPoint ) ;
+
+         static INT32 getTCPEndPoint( const CHAR *hostName,
+                                      const CHAR *serviceName,
+                                      netTCPEndPoint &endPoint ) ;
+
       private:
          map<UINT64, _netRouteNode> _route ;
          _MsgRouteID _local ;

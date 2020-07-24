@@ -136,7 +136,7 @@ namespace engine
          {
             CHAR *pCopyData = ( CHAR* )pOldHeader ;
             UINT32 copyLen = pOldHeader->messageLength ;
-   
+
             if ( MSG_PACKET == pOldHeader->opCode )
             {
                pCopyData += sizeof( MsgHeader ) ;
@@ -394,6 +394,11 @@ namespace engine
       goto done ;
    }
 
+   /**
+    * Actions before create a connection with a remote node. For nodes in the
+    * same cluster, sesion init is done. For a node of data source, it's not
+    * needed.
+    */
    INT32 _coordRemoteHandlerBase::onSendConnect( _pmdSubSession *pSub,
                                                  const MsgHeader *pReq,
                                                  BOOLEAN isFirst )
@@ -402,16 +407,19 @@ namespace engine
       coordRemoteHandleStatus *pStatus = NULL ;
       pStatus = ( coordRemoteHandleStatus* )pSub->getUDFData() ;
 
-      if ( INIT_V0 == _initType || isNoReplyMsg( pReq->opCode ) )
+      if ( pSub->sessionInitRequired() )
       {
-         rc = _onSendConnectOld( pSub ) ;
-      }
-      else
-      {
-         rc = _buildPacketWithSessionInit( pSub->parent(), pSub, FALSE ) ;
-         if ( SDB_OK == rc )
+         if ( INIT_V0 == _initType || isNoReplyMsg( pReq->opCode ) )
          {
-            pStatus->_initFinished = FALSE ;
+            rc = _onSendConnectOld( pSub ) ;
+         }
+         else
+         {
+            rc = _buildPacketWithSessionInit( pSub->parent(), pSub, FALSE ) ;
+            if ( SDB_OK == rc )
+            {
+               pStatus->_initFinished = FALSE ;
+            }
          }
       }
       return rc ;
@@ -700,7 +708,7 @@ namespace engine
          if ( SDB_OK == rc )
          {
             pInfo->fromBSON( ptr->toBSON( OM_STRATEGY_MASK_BASEINFO ), FALSE ) ;
-   
+
             if ( pItem->_ptr.get() &&
                  ( pItem->_ptr->getTaskID() != (UINT64)pInfo->getTaskID() ||
                    0 != ossStrcmp( pItem->_ptr->getTaskName(),
@@ -799,7 +807,7 @@ namespace engine
       pSite = ( pmdRemoteSessionSite* )cb->getRemoteSite() ;
       if ( pSite->getNodeVer( nodeID.value, nodeSiteVer ) )
       {
-         ossUnpack32From64( nodeSiteVer, nodeSiteSchedVer, 
+         ossUnpack32From64( nodeSiteVer, nodeSiteSchedVer,
                             nodeSiteSessionVer ) ;
       }
 

@@ -73,7 +73,8 @@ sptFiles = [
       "spt/db/sptDBQueryOption.cpp",
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
-      "spt/db/sptDBCipherUser.cpp"
+      "spt/db/sptDBCipherUser.cpp",
+      "spt/db/sptDBDataSource.cpp"
       ]
 
 ossFiles = [
@@ -170,8 +171,8 @@ clientCFiles = [
 
 clientcppFiles = [
       "client/clientcpp.cpp",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
+      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolComm.cpp",
       "client/sdbDataSourceStrategy.cpp",
       "client/sdbDataSourceWorker.cpp"
       ]

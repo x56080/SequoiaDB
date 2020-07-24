@@ -244,6 +244,11 @@ namespace engine
       virtual INT32 _removev( const RTN_LOB_TUPLES &tuples,
                               _pmdEDUCB *cb ) = 0 ;
 
+      virtual BOOLEAN _canCache() const
+      {
+         return TRUE ;
+      }
+
    private:
       INT32 _readFromPool( UINT32 len,
                            _rtnContextBase *context,

@@ -143,13 +143,14 @@ namespace engine
       PD_LOG ( PDDEBUG, "posting event handle close %u", (UINT32)handle ) ;
    }
 
-   void _pmdRemoteMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                             _MsgRouteID id,
-                                             BOOLEAN isPositive )
+   INT32 _pmdRemoteMsgHandler::handleConnect( const NET_HANDLE &handle,
+                                              _MsgRouteID id,
+                                              BOOLEAN isPositive )
    {
       SDB_ASSERT( _pRSManager, "Remote session manager can't be NULL" ) ;
 
       _pRSManager->handleConnect( handle, id, isPositive ) ;
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__POSTMSG, "_pmdRemoteMsgHandler::_postMsg" )

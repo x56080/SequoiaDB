@@ -52,7 +52,8 @@ namespace engine
    class _netRouteAgent : public SDBObject
    {
       public:
-         _netRouteAgent( _netMsgHandler *handler ) ;
+         _netRouteAgent( _netMsgHandler *handler,
+                         const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
          _netRoute* getRoute() { return &_route ; }
          _netFrame* getFrame() { return &_frame ; }

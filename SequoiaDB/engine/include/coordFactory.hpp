@@ -89,7 +89,7 @@ namespace engine
    */
    class _coordCommandFactory : public SDBObject
    {
-      typedef _utilStringMap< coordFactoryItem, 0 > MAP_COMMAND ;
+      typedef _utilStringMap< coordFactoryItem, 1 > MAP_COMMAND ;
       typedef MAP_COMMAND::iterator                 MAP_COMMAND_IT ;
 
       friend class _coordCommandAssit ;

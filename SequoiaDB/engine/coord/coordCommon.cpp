@@ -41,7 +41,6 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "coordSequenceAgent.hpp"
-#include "utilCommon.hpp"
 
 using namespace bson ;
 

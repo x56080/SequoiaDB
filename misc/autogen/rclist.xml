@@ -2467,7 +2467,7 @@
             <cn>达到最大或最小限制</cn>
          </description>
       </code>
-	  <code>
+      <code>
          <name>SDB_DS_NOT_ENABLE</name>
          <description>
             <en>data source is not enabled yet</en>
@@ -2919,6 +2919,78 @@
          <description>
             <en>Any field of index key cannot be array</en>
             <cn>索引键的任意一个字段都不允许为数组</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_365</name> <!--nameSDB_SEQUENCE_VALUE_USED-->
+         <description>
+            <en>Reserved</en> <!--Sequence value has been used-->
+            <cn>保留</cn> <!--序列值已经被使用-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_366</name> <!--SDB_SEQUENCE_NEVER_USED-->
+         <description>
+            <en>Reserved</en> <!--Sequence has never been used-->
+            <cn>保留</cn> <!--序列尚未被使用-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_367</name> <!--SDB_SEQUENCE_OUT_OF_CACHE-->
+         <description>
+            <en>Reserved</en> <!--Out of sequence cache-->
+            <cn>保留</cn> <!--超出序列缓存-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_368</name> <!--SDB_IXM_KEY_NOT_SUPPORT_ARRAY-->
+         <description>
+            <en>Reserved</en> <!--Any field of index key cannot be array-->
+            <cn>保留</cn> <!--索引键的任意一个字段都不允许为数组-->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_DATASOURCE_EXIST</name>
+         <description>
+            <en>Data source already exists</en>
+            <cn>数据源已存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_DATASOURCE_NOTEXIST</name>
+         <description>
+            <en>Data source dose not exist</en>
+            <cn>数据源不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_DATASOURCE_INUSE</name>
+         <description>
+            <en>Data source is being used</en>
+            <cn>数据源在使用中</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_COORD_DATASOURCE_PERM_DENIED</name>
+         <description>
+            <en>Data source permission denied</en>
+            <cn>数据源权限错误</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_COORD_DATASOURCE_TRANS_FORBIDDEN</name>
+         <description>
+            <en>Transaction is not allowed on data source</en>
+            <cn>事务中不能操作数据源</cn>
          </description>
       </code>
 

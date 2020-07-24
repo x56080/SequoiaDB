@@ -56,7 +56,7 @@ namespace engine
    #define NET_DUMMY_TIMER_INTERVAL       ( 2147483647 )
 
    #define NET_IOPS_MIN_VALUE             ( 500 )
-   #define NET_IOPS_THRESHOLD             ( 5000)
+   #define NET_IOPS_THRESHOLD             ( 5000 )
 
    /*
       _netInnerTimeHandle implement
@@ -268,12 +268,14 @@ namespace engine
    /*
       _netFrame implement
    */
-   _netFrame::_netFrame( _netMsgHandler *handler, _netRoute *pRoute )
+   _netFrame::_netFrame( _netMsgHandler *handler,
+                         _netRoute *pRoute,
+                         const NET_HANDLE &beginID )
    :_pRoute( pRoute ),
     _mainSuitPtr( SDB_OSS_NEW netEventSuit( this ) ),
     _handler( handler ),
     _acceptor( _mainSuitPtr->getIOService() ),
-    _handle( 1 ),
+    _handle( beginID ),
     _timerID( NET_INVALID_TIMER_ID ),
     _netOut( 0 ),
     _netIn( 0 ),
@@ -293,6 +295,13 @@ namespace engine
       _maxSockPerNode = 1 ;
       _maxSockPerThread = 0 ;
       _maxThreadNum = 0 ;
+
+      SDB_ASSERT( _handle.peek() != NET_INVALID_HANDLE,
+                  "Invalid begin net handle" ) ;
+      if ( NET_INVALID_HANDLE == _handle.peek() )
+      {
+         _handle.init( NET_MIN_HANDLE ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_DECONS, "_netFrame::~_netFrame" )
@@ -545,7 +554,7 @@ namespace engine
          {
             eh->mtx().get() ;
             beat.requestID = eh->getAndIncMsgID() ;
-            eh->syncSend( (const void*)&beat, beat.messageLength ) ;
+            eh->syncSend( &beat, beat.messageLength ) ;
             eh->syncLastBeatTick() ;
             eh->mtx().release() ;
          }
@@ -757,7 +766,6 @@ namespace engine
          }
 
          eh->id( id ) ;
-         eh->asyncRead() ;
 
          /// add to map
          // addRoute will take latch inside the function
@@ -771,8 +779,23 @@ namespace engine
             *pHandle = eh->handle() ;
          }
 
-         // callback: handleConnect
-         _handler->handleConnect( eh->handle(), id, TRUE ) ;
+         // Keep eh->asyncRead after handleConnect callback. As for data source
+         // connection, the system information check and authentication is done
+         // in the callback. They are done in sync way. So async read should be
+         // started after that, otherwise, sysinfo/auth reply message will be
+         // caught by the async read, and the sync waiting will get nothing.
+         // Refer to _coordDataSourceMsgHandler::_authenticate.
+         rc = _handler->handleConnect( eh->handle(), id, TRUE ) ;
+         if ( rc )
+         {
+            _erase( eh->handle() ) ;
+            eh->close() ;
+            *pHandle = NET_INVALID_HANDLE ;
+
+            PD_LOG( PDERROR, "Handlee connected failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         eh->asyncRead() ;
       }
 
    done:

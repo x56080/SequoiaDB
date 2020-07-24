@@ -63,10 +63,11 @@ namespace engine
         {
         }
 
-        virtual void    handleConnect( const NET_HANDLE &handle,
-                                       _MsgRouteID id,
-                                       BOOLEAN isPositive )
+        virtual INT32 handleConnect( const NET_HANDLE &handle,
+                                     _MsgRouteID id,
+                                     BOOLEAN isPositive )
         {
+           return SDB_OK ;
         }
 
         virtual void    onStop() {}

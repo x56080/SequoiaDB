@@ -2718,3 +2718,45 @@ error:
    goto done ;
 }
 
+INT32 msgBuildInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                  const BSONObj &boQuery, UINT64 reqID,
+                                  IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+
+   BSONObj dummyObj ;
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_CACHE,
+                             boQuery, dummyObj, dummyObj,
+                             dummyObj, reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Build invalidate cache message failed[%d]", rc ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBUILDDATASOURCEINVALIDATECACHEMSG, "msgBuildDataSourceInvalidateCacheMsg" )
+INT32 msgBuildDataSourceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                            const BSONObj& boQuery,
+                                            UINT64 reqID,
+                                            engine::IExecutor *cb )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_MSGBUILDDATASOURCEINVALIDATECACHEMSG )  ;
+   BSONObj dummyObj ;
+
+   rc = msgBuildQueryCMDMsg( ppBuffer, bufferSize,
+         CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_DATASOURCE_CACHE,
+         boQuery, dummyObj, dummyObj, dummyObj, reqID, cb ) ;
+   PD_RC_CHECK( rc, PDERROR, "Build invalidate data source cache message "
+                "failed[%d]", rc ) ;
+
+done:
+   PD_TRACE_EXITRC( SDB_MSGBUILDDATASOURCEINVALIDATECACHEMSG, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}

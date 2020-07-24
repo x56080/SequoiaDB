@@ -111,6 +111,8 @@ namespace engine
 
          virtual INT32 _close( _pmdEDUCB *cb ) ;
 
+         virtual BOOLEAN _canCache() const ;
+
       private:
          struct subStream
          {

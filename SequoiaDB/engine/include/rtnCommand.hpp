@@ -468,35 +468,45 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_GET_DCINFO ; }
    } ;
 
-    class _rtnSnapshotSequences : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnSnapshotSequences () {}
-          virtual ~_rtnSnapshotSequences () {}
-          virtual const CHAR * name () { return NAME_SNAP_SEQUENCES ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
-    };
+   class _rtnSnapshotSequences : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnSnapshotSequences () {}
+         virtual ~_rtnSnapshotSequences () {}
+         virtual const CHAR * name () { return NAME_SNAP_SEQUENCES ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
+   };
 
-    class _rtnSnapshotSequencesIntr : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnSnapshotSequencesIntr () {}
-          virtual ~_rtnSnapshotSequencesIntr () {}
-          virtual const CHAR * name () { return CMD_NAME_SNAPSHOT_SEQUENCES_INTR ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
-    } ;
+   class _rtnSnapshotSequencesIntr : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnSnapshotSequencesIntr () {}
+         virtual ~_rtnSnapshotSequencesIntr () {}
+         virtual const CHAR * name () { return CMD_NAME_SNAPSHOT_SEQUENCES_INTR ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
+   } ;
 
-    class _rtnListSequences : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnListSequences () {}
-          virtual ~_rtnListSequences () {}
-          virtual const CHAR * name () { return NAME_LIST_SEQUENCES ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_LIST_SEQUENCES ; }
-    } ;
+   class _rtnListSequences : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnListSequences () {}
+         virtual ~_rtnListSequences () {}
+         virtual const CHAR * name () { return NAME_LIST_SEQUENCES ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_LIST_SEQUENCES ; }
+   } ;
+
+   class _rtnListDataSources : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnListDataSources() {}
+         virtual ~_rtnListDataSources() {}
+         virtual const CHAR *name () { return NAME_LIST_DATASOURCES ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_LIST_DATASOURCES ; }
+   } ;
 
    class _rtnBackup : public _rtnCommand
    {

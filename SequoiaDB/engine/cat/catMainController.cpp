@@ -36,7 +36,6 @@
 *******************************************************************************/
 #include "core.hpp"
 #include "catMainController.hpp"
-#include "catalogueCB.hpp"
 #include "pmdCB.hpp"
 #include "pd.hpp"
 #include "catDef.hpp"
@@ -45,12 +44,10 @@
 #include "dpsLogWrapper.hpp"
 #include "msgMessage.hpp"
 #include "msgAuth.hpp"
-#include "../util/fromjson.hpp"
 #include "pmdDef.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "catCommon.hpp"
-#include "catContextData.hpp"
 #include "catCMDBase.hpp"
 
 using namespace bson;
@@ -705,6 +702,25 @@ namespace engine
          goto error ;
       }
 
+      /// SYSDATASOURCES
+      rc = _createSysCollection( CAT_DATASOURCE_COLLECTION, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_DATASOURCE_COLLECTION,
+                            CAT_DATASOURCE_IDIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_DATASOURCE_COLLECTION,
+                            CAT_DATASOURCE_NAMEIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       /// SYSLOG
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {
@@ -1025,7 +1041,7 @@ namespace engine
                     "Failed to do command[%s], rc: %d",
                     pCommand->name(), rc ) ;
 
-      // TODO add context by catMainController::addContext()
+      addContext( handle, pMsg->TID, contextID ) ;
 
    done:
       if ( !_pCatCB->isDelayed() )
@@ -1064,6 +1080,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATMAINCT_PRCSCMD, rc ) ;
       return rc ;
    error:
+      if ( -1 != contextID )
+      {
+         catDeleteContext( contextID, _pEDUCB ) ;
+         contextID = -1 ;
+      }
       goto done ;
    }
 
@@ -1072,7 +1093,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      CHAR *pCollectionName = ((MsgOpQuery*)pMsg)->name ;
+      const CHAR *pCollectionName = ((MsgOpQuery*)pMsg)->name ;
 
       if ( rtnIsCommand( pCollectionName ) )
       {

@@ -51,6 +51,7 @@
 #include "rtn.hpp"
 #include "clsRegAssit.hpp"
 #include "ossMemPool.hpp"
+#include "coordDataSource.hpp"
 
 using namespace std ;
 
@@ -87,6 +88,7 @@ namespace engine
          coordResource* getResource() ;
          netRouteAgent* getRouteAgent() ;
          pmdRemoteSessionMgr* getRSManager() ;
+         coordDataSourceMgr*  getDSManager() ;
 
       protected:
          virtual void onTimer ( UINT64 timerID, UINT32 interval ) ;
@@ -128,11 +130,13 @@ namespace engine
          INT32 _sendToCatlog ( MsgHeader *pMsg, NET_HANDLE *pHandle = NULL ) ;
          INT32 _processUpdateGrpInfo () ;
          INT32 _processCatGrpChgNty () ;
+         INT32 _processInvalidateCacheMsg( const BSONObj &option ) ;
       private:
 
          coordResource                 _resource ;
          pmdRemoteSessionMgr           _remoteSessionMgr ;
          coordSessionPropMgr           _sitePropMgr ;
+         coordDataSourceMgr            _dsMgr ;
 
          pmdRemoteMsgHandler           *_pMsgHandler ;
          pmdRemoteTimerHandler         *_pTimerHandler ;

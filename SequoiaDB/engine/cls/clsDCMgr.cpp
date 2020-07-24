@@ -702,6 +702,12 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Connect to %s:%d failed, rc: %d",
                       node._host, port, rc ) ;
 
+         sock.disableNagle() ;
+         // set keep alive
+         sock.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                            OSS_SOCKET_KEEP_INTERVAL,
+                            OSS_SOCKET_KEEP_CONTER ) ;
+
          if ( pRecvEvent )
          {
             rc = pmdSyncSendMsg( msg, *pRecvEvent, &sock, cb,

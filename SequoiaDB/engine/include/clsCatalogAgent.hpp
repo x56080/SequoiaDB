@@ -298,6 +298,10 @@ namespace engine
                                            CLS_SUBCL_LIST &subCLList,
                                            CLS_SUBCL_SORT_TYPE sortType =
                                            SUBCL_SORT_BY_ID ) ;
+
+         UINT32         getDataSourceID() const ;
+         const string&  getMappingName() const ;
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -386,6 +390,9 @@ namespace engine
          INT64             _maxSize ;
          INT64             _maxRecNum ;
          BOOLEAN           _overwrite ;
+
+         UTIL_DS_UID       _dataSourceID ;
+         string            _mapping ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

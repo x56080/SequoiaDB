@@ -110,6 +110,7 @@ pmdFiles = [
       "pmd/pmdRemoteMsgEventHandler.cpp",
       "pmd/pmdFTMgr.cpp",
       "pmd/pmdOptionsParse.cpp",
+      "pmd/pmdRemoteConnection.cpp",
 
       "sched/schedDef.cpp",
       "sched/schedTaskQue.cpp",
@@ -194,7 +195,8 @@ utilFiles = [
       "util/utilResult.cpp",
       "util/utilTypeCast.c",
       "util/utilLobID.cpp",
-      "util/utilCipher.c"
+      "util/utilCipher.c",
+      "util/utilAddress.cpp"
       ]
 
 rtnFiles = [
@@ -547,7 +549,9 @@ catFiles = [
       "cat/catGTSMsgHandler.cpp",
       "cat/catGTSMsgJob.cpp",
       "cat/catSequence.cpp",
-      "cat/catSequenceManager.cpp"
+      "cat/catSequenceManager.cpp",
+      "cat/catCMDBase.cpp",
+      "cat/catCommand.cpp"
       ]
 
 coordFiles = [
@@ -599,7 +603,14 @@ coordFiles = [
       "coord/coordOmCache.cpp",
       "coord/coordOmStrategyJob.cpp",
       "coord/coordSequenceAgent.cpp",
-      "coord/coordCommandSequence.cpp"
+      "coord/coordCommandSequence.cpp",
+      "coord/coordDataSource.cpp",
+      "coord/coordCommandDataSource.cpp",
+      "coord/coordSdbDataSource.cpp",
+      "coord/coordRemoteMsgHandler.cpp",
+      "coord/coordDSMsgConvertor.cpp",
+      "coord/coordRemoteConnection.cpp",
+      "coord/coordDSChecker.cpp"
       ]
 
 aggrFiles = [

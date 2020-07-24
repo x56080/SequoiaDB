@@ -119,13 +119,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMSGHANDLER_HANDLECONNECT, "_rtnMsgHandler::handleConnect" )
-   void _rtnMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                       _MsgRouteID id,
-                                       BOOLEAN isPositive )
+   INT32 _rtnMsgHandler::handleConnect( const NET_HANDLE &handle,
+                                        _MsgRouteID id,
+                                        BOOLEAN isPositive )
    {
       PD_TRACE_ENTRY( SDB__RTNMSGHANDLER_HANDLECONNECT ) ;
       _pRSManager->handleConnect( handle, id, isPositive ) ;
       PD_TRACE_EXIT( SDB__RTNMSGHANDLER_HANDLECONNECT ) ;
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREMOTESITEHANDLE_WAITEVENT, "_rtnRemoteSiteHandle::waitEvent" )

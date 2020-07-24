@@ -178,6 +178,10 @@ namespace engine
                           pmdAsyncNetEntryPoint,
                           "CoordNetwork" ) ;
 
+   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_COORD_DS_NETWORK, TRUE,
+                          pmdAsyncNetEntryPoint,
+                          "CoordDSNetwork" ) ;
+
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_OMNET, TRUE,
                           pmdAsyncNetEntryPoint,
                           "OMNet" ) ;
