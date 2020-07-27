@@ -161,6 +161,7 @@ pmdFiles = [
       "pmd/pmdOptionsMgr.cpp",
       "pmd/pmdEnv.cpp",
       "pmd/pmdSignalHandler.cpp",
+      "pmd/pmdOptionsParse.cpp"
       ]
 
 utilFiles = [
@@ -196,7 +197,7 @@ utilFiles = [
       "util/utilIniParserEx.cpp",
       "util/utilPasswdTool.cpp",
       "util/utilCipherMgr.cpp",
-      "util/utilCipherFile.cpp" 
+      "util/utilCipherFile.cpp"
       ]
 
 clientCFiles = [

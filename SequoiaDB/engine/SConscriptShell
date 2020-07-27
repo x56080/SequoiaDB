@@ -149,7 +149,7 @@ utilFiles = [
       "util/utilIniParserEx.cpp",
       "util/utilPasswdTool.cpp",
       "util/utilCipherMgr.cpp",
-      "util/utilCipherFile.cpp"  
+      "util/utilCipherFile.cpp"
       ]
 
 util2Files = [
@@ -207,7 +207,8 @@ ssh2Files = [
 
 pmdFiles = [
       "cls/clsUtil.cpp",
-      "pmd/pmdOptionsMgr.cpp"
+      "pmd/pmdOptionsMgr.cpp",
+      "pmd/pmdOptionsParse.cpp"
       ]
 
 #Client Driver

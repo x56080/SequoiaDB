@@ -146,7 +146,8 @@ pmdFiles = [
       "pmd/pmdOptionsMgr.cpp",
       "pmd/pmdEnv.cpp",
       "pmd/pmdSignalHandler.cpp",
-      "pmd/pmdStartup.cpp"
+      "pmd/pmdStartup.cpp",
+      "pmd/pmdOptionsParse.cpp"
       ]
 # pmd multiple thread model files.
 pmdMTFiles = [

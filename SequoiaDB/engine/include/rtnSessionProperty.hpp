@@ -41,6 +41,7 @@
 #include "utilArray.hpp"
 #include "ossMemPool.hpp"
 #include "../bson/bson.h"
+#include "pmdOptionsParse.hpp"
 
 using namespace bson ;
 
@@ -48,28 +49,6 @@ namespace engine
 {
    #define RTN_SESSION_OPERATION_TIMEOUT_MIN ( 1000 )    // 1000ms
    #define RTN_SESSION_OPERATION_TIMEOUT_MAX ( -1 )
-
-   typedef enum _RTN_PREFER_INSTANCE_TYPE
-   {
-      // Note : secondary choice means lower priority than numeric instances
-      PREFER_INSTANCE_TYPE_MASTER_SND  = -6, // master node in secondary choice
-      PREFER_INSTANCE_TYPE_SLAVE_SND   = -5, // any slave node in secondary choice
-      PREFER_INSTANCE_TYPE_ANYONE_SND  = -4, // any node( include master ) in secondary choice
-      PREFER_INSTANCE_TYPE_MASTER      = -3, // master node
-      PREFER_INSTANCE_TYPE_SLAVE       = -2, // any slave node
-      PREFER_INSTANCE_TYPE_ANYONE      = -1, // any node( include master )
-
-      PREFER_INSTANCE_TYPE_MIN       = 0,
-      PREFER_INSTANCE_TYPE_UNKNOWN   = PREFER_INSTANCE_TYPE_MIN,
-      PREFER_INSTANCE_TYPE_MAX       = 256
-   } RTN_PREFER_INSTANCE_TYPE ;
-
-   typedef enum _RTN_PREFER_INSTANCE_MODE
-   {
-      PREFER_INSTANCE_MODE_UNKNOWN = 0,
-      PREFER_INSTANCE_MODE_RANDOM = 1,
-      PREFER_INSTANCE_MODE_ORDERED,
-   } RTN_PREFER_INSTANCE_MODE ;
 
    typedef ossPoolList< UINT8 > RTN_INSTANCE_LIST ;
 
@@ -93,7 +72,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN isValidated () const
          {
-            return ( PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance &&
+            return ( PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance &&
                      _instanceList.empty() ) ? FALSE : TRUE ;
          }
 
@@ -101,22 +80,22 @@ namespace engine
          {
             // must use master node
             return ( _instanceList.empty() &&
-                     ( PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
-                       PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ) ;
+                     ( PMD_PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
+                       PMD_PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ) ;
          }
 
          OSS_INLINE BOOLEAN isMasterPreferred () const
          {
             // master node is preferred, but not required
-            return ( PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
-                     PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ;
+            return ( PMD_PREFER_INSTANCE_TYPE_MASTER == _specInstance ||
+                     PMD_PREFER_INSTANCE_TYPE_MASTER_SND == _specInstance ) ;
          }
 
          OSS_INLINE BOOLEAN isSlavePreferred () const
          {
             // slave node is preferred
-            return ( PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
-                     PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
+            return ( PMD_PREFER_INSTANCE_TYPE_SLAVE == _specInstance ||
+                     PMD_PREFER_INSTANCE_TYPE_SLAVE_SND == _specInstance ) ;
          }
 
          OSS_INLINE BOOLEAN hasCommonInstance () const
@@ -124,9 +103,9 @@ namespace engine
             return _instanceList.empty() ? FALSE : TRUE ;
          }
 
-         OSS_INLINE RTN_PREFER_INSTANCE_TYPE getSpecialInstance () const
+         OSS_INLINE PMD_PREFER_INSTANCE_TYPE getSpecialInstance () const
          {
-            return (RTN_PREFER_INSTANCE_TYPE)_specInstance ;
+            return ( PMD_PREFER_INSTANCE_TYPE )_specInstance ;
          }
 
          OSS_INLINE const RTN_INSTANCE_LIST & getInstanceList () const
@@ -134,9 +113,9 @@ namespace engine
             return _instanceList ;
          }
 
-         OSS_INLINE RTN_PREFER_INSTANCE_MODE getPreferredMode () const
+         OSS_INLINE PMD_PREFER_INSTANCE_MODE getPreferredMode () const
          {
-            return (RTN_PREFER_INSTANCE_MODE)_mode ;
+            return ( PMD_PREFER_INSTANCE_MODE )_mode ;
          }
 
          OSS_INLINE BOOLEAN isPreferredStrict() const
@@ -168,8 +147,8 @@ namespace engine
 
          void  reset () ;
          INT32 setPreferredInstance ( PREFER_REPLICA_TYPE replType ) ;
-         INT32 setPreferredInstance ( RTN_PREFER_INSTANCE_TYPE instance ) ;
-         INT32 setPreferredInstanceMode ( RTN_PREFER_INSTANCE_MODE mode ) ;
+         INT32 setPreferredInstance ( PMD_PREFER_INSTANCE_TYPE instance ) ;
+         INT32 setPreferredInstanceMode ( PMD_PREFER_INSTANCE_MODE mode ) ;
 
          INT32 parsePreferredInstance ( const bson::BSONElement & option ) ;
          INT32 parsePreferredInstance ( const CHAR * instanceStr ) ;
@@ -183,9 +162,6 @@ namespace engine
          INT32 _parseIntegerPreferredInstance ( const bson::BSONElement & option ) ;
          INT32 _parseStringPreferredInstance ( const bson::BSONElement & option ) ;
          INT32 _parseArrayPreferredInstance ( const bson::BSONElement & option ) ;
-
-         const CHAR * _getInstanceStr ( INT8 instance ) const ;
-
          void _clearInstance () ;
 
       protected :
@@ -215,7 +191,7 @@ namespace engine
                                   const CHAR * instanceModeStr,
                                   BOOLEAN preferedStrict,
                                   INT32 preferedPeriod,
-                                  RTN_PREFER_INSTANCE_TYPE defaultInstance ) ;
+                                  PMD_PREFER_INSTANCE_TYPE defaultInstance ) ;
 
          OSS_INLINE void setInstanceOption ( const rtnInstanceOption & instanceOption )
          {
@@ -239,8 +215,8 @@ namespace engine
 
          OSS_INLINE void setMasterRequired ()
          {
-            _instanceOption.setPreferredInstance( PREFER_INSTANCE_TYPE_MASTER ) ;
-            _instanceOption.setPreferredInstanceMode( PREFER_INSTANCE_MODE_RANDOM ) ;
+            _instanceOption.setPreferredInstance( PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
+            _instanceOption.setPreferredInstanceMode( PMD_PREFER_INSTANCE_MODE_RANDOM ) ;
          }
 
          OSS_INLINE BOOLEAN isMasterPreferred() const

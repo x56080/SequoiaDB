@@ -47,6 +47,8 @@
 #include "utilParam.hpp"
 #include "dpsDef.hpp"
 #include "sdbInterface.hpp"
+#include "ossMemPool.hpp"
+#include "pmdOptionsParse.hpp"
 
 #include <string>
 #include <iostream>
@@ -562,6 +564,8 @@ namespace engine
          void clearCatAddr() ;
          void rmCatAddrItem( const CHAR *host, const CHAR *service ) ;
          void setCatAddr( const CHAR *host, const CHAR *service ) ;
+         void modifyPreferInstStr( ossPoolList< UINT8 > instanceList,
+                                   PMD_PREFER_INSTANCE_TYPE specInstance ) ;
 
          OSS_INLINE UINT32 catNum() const { return CATA_NODE_MAX_NUM ; }
          OSS_INLINE UINT64 getReplLogFileSz () const
@@ -661,7 +665,6 @@ namespace engine
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
-
          std::string getOmAddr() const ;
 
 #ifdef SDB_ENTERPRISE
@@ -803,11 +806,11 @@ namespace engine
          CHAR        _krcbConfPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbConfFile[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbCatFile[ OSS_MAX_PATHSIZE + 1 ] ;
-         vector< pmdAddrPair >   _vecCat ;
          UINT16      _krcbSvcPort ;
          std::string _exePath ;
+         UINT32      _invalidConfNum ;
          vector< pmdAddrPair >   _vecOm ;
-
+         vector< pmdAddrPair >   _vecCat ;
    } ;
 
    typedef _pmdOptionsMgr pmdOptionsCB ;

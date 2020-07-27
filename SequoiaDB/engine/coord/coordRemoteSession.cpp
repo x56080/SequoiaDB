@@ -848,8 +848,8 @@ namespace engine
          BOOLEAN isSlavePreferred = FALSE ;
          switch ( instanceOption.getSpecialInstance() )
          {
-            case PREFER_INSTANCE_TYPE_MASTER :
-            case PREFER_INSTANCE_TYPE_MASTER_SND :
+            case PMD_PREFER_INSTANCE_TYPE_MASTER :
+            case PMD_PREFER_INSTANCE_TYPE_MASTER_SND :
             {
                // if there is no primary, then go on to get random node
                if ( CLS_RG_NODE_POS_INVALID != primaryPos )
@@ -863,15 +863,15 @@ namespace engine
                }
                break ;
             }
-            case PREFER_INSTANCE_TYPE_SLAVE :
-            case PREFER_INSTANCE_TYPE_SLAVE_SND :
+            case PMD_PREFER_INSTANCE_TYPE_SLAVE :
+            case PMD_PREFER_INSTANCE_TYPE_SLAVE_SND :
             {
                isSlavePreferred = TRUE ;
                pos = random ;
                break ;
             }
-            case PREFER_INSTANCE_TYPE_ANYONE :
-            case PREFER_INSTANCE_TYPE_ANYONE_SND :
+            case PMD_PREFER_INSTANCE_TYPE_ANYONE :
+            case PMD_PREFER_INSTANCE_TYPE_ANYONE_SND :
             {
                pos = random ;
                break ;
@@ -1038,16 +1038,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      RTN_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
+      PMD_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
       const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
       COORD_POS_ARRAY tempPositions ;
       UINT8 unselectMask = 0xFF ;
       UINT32 nodeCount = groupNodes.size() ;
       BOOLEAN foundPrimary = FALSE ;
       BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() ==
-                               PREFER_INSTANCE_TYPE_MASTER ) ;
+                               PMD_PREFER_INSTANCE_TYPE_MASTER ) ;
       BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() ==
-                              PREFER_INSTANCE_TYPE_SLAVE ) ;
+                              PMD_PREFER_INSTANCE_TYPE_SLAVE ) ;
 
       selectedPositions.clear() ;
 
@@ -1064,9 +1064,9 @@ namespace engine
             instIter != instanceList.end() ;
             instIter ++ )
       {
-         RTN_PREFER_INSTANCE_TYPE instance = (RTN_PREFER_INSTANCE_TYPE)(*instIter) ;
-         if ( instance > PREFER_INSTANCE_TYPE_MIN &&
-              instance < PREFER_INSTANCE_TYPE_MAX )
+         PMD_PREFER_INSTANCE_TYPE instance = ( PMD_PREFER_INSTANCE_TYPE )( *instIter ) ;
+         if ( instance > PMD_PREFER_INSTANCE_TYPE_MIN &&
+              instance < PMD_PREFER_INSTANCE_TYPE_MAX )
          {
             UINT8 pos = 0 ;
             for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
@@ -1090,7 +1090,7 @@ namespace engine
 
                   // if this is not primary, or we don't care about primary
                   // save to result
-                  if ( PREFER_INSTANCE_MODE_ORDERED == mode )
+                  if ( PMD_PREFER_INSTANCE_MODE_ORDERED == mode )
                   {
                      // the preferred mode is ordered,
                      // save the position one by one
@@ -1133,7 +1133,7 @@ namespace engine
       {
          // shuffle candidate positions into selected positions
          // NOTE: the preferred mode is random in this case
-         SDB_ASSERT( PREFER_INSTANCE_MODE_RANDOM == mode,
+         SDB_ASSERT( PMD_PREFER_INSTANCE_MODE_RANDOM == mode,
                      "should be random mode" ) ;
          rc = _shufflePositions( tempPositions, selectedPositions ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to shuffle positions, rc: %d",

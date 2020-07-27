@@ -51,9 +51,9 @@ namespace engine
       _rtnInstanceOption implement
     */
    _rtnInstanceOption::_rtnInstanceOption ()
-   : _mode( (UINT8)PREFER_INSTANCE_MODE_UNKNOWN ),
+   : _mode( ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ),
      _strict( 0 ),
-     _specInstance( (INT8)PREFER_INSTANCE_TYPE_UNKNOWN ),
+     _specInstance( ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ),
      _period( PREFER_INSTANCE_DEF_PERIOD ),
      _instanceList()
    {
@@ -88,7 +88,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__RTNINST_RESET ) ;
 
-      _mode = (UINT8)PREFER_INSTANCE_MODE_UNKNOWN ;
+      _mode = ( UINT8 )PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
       _strict = 0 ;
       _period = PREFER_INSTANCE_DEF_PERIOD ;
       _clearInstance() ;
@@ -108,13 +108,13 @@ namespace engine
       switch ( replType )
       {
          case PREFER_REPL_MASTER :
-            _specInstance = (INT8)PREFER_INSTANCE_TYPE_MASTER ;
+            _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_MASTER ;
             break ;
          case PREFER_REPL_SLAVE :
-            _specInstance = (INT8)PREFER_INSTANCE_TYPE_SLAVE ;
+            _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_SLAVE ;
             break ;
          case PREFER_REPL_ANYONE :
-            _specInstance = (INT8)PREFER_INSTANCE_TYPE_ANYONE ;
+            _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_ANYONE ;
             break ;
          case PREFER_REPL_NODE_1 :
          case PREFER_REPL_NODE_2 :
@@ -138,23 +138,23 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_SETPREFINST, "_rtnInstanceOption::setPreferredInstance" )
-   INT32 _rtnInstanceOption::setPreferredInstance ( RTN_PREFER_INSTANCE_TYPE instance )
+   INT32 _rtnInstanceOption::setPreferredInstance ( PMD_PREFER_INSTANCE_TYPE instance )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__RTNINST_SETPREFINST ) ;
 
-      if ( instance > PREFER_INSTANCE_TYPE_MIN &&
-           instance < PREFER_INSTANCE_TYPE_MAX )
+      if ( instance > PMD_PREFER_INSTANCE_TYPE_MIN &&
+           instance < PMD_PREFER_INSTANCE_TYPE_MAX )
       {
          _instanceList.push_back( (UINT8)instance ) ;
       }
-      else if ( PREFER_INSTANCE_TYPE_MASTER == instance ||
-                PREFER_INSTANCE_TYPE_SLAVE == instance ||
-                PREFER_INSTANCE_TYPE_ANYONE == instance ||
-                PREFER_INSTANCE_TYPE_MASTER_SND == instance ||
-                PREFER_INSTANCE_TYPE_SLAVE_SND == instance ||
-                PREFER_INSTANCE_TYPE_ANYONE_SND == instance )
+      else if ( PMD_PREFER_INSTANCE_TYPE_MASTER == instance ||
+                PMD_PREFER_INSTANCE_TYPE_SLAVE == instance ||
+                PMD_PREFER_INSTANCE_TYPE_ANYONE == instance ||
+                PMD_PREFER_INSTANCE_TYPE_MASTER_SND == instance ||
+                PMD_PREFER_INSTANCE_TYPE_SLAVE_SND == instance ||
+                PMD_PREFER_INSTANCE_TYPE_ANYONE_SND == instance )
       {
          _specInstance = (INT8)instance ;
       }
@@ -165,7 +165,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST_SETPREFINSTMODE, "_rtnInstanceOption::setPreferredInstanceMode" )
-   INT32 _rtnInstanceOption::setPreferredInstanceMode ( RTN_PREFER_INSTANCE_MODE mode )
+   INT32 _rtnInstanceOption::setPreferredInstanceMode ( PMD_PREFER_INSTANCE_MODE mode )
    {
       INT32 rc = SDB_OK ;
 
@@ -231,11 +231,12 @@ namespace engine
 
       INT32 prefInst = option.numberInt() ;
 
-      PD_CHECK( prefInst > PREFER_INSTANCE_TYPE_MIN &&
-                prefInst < PREFER_INSTANCE_TYPE_MAX,
+      PD_CHECK( prefInst > PMD_PREFER_INSTANCE_TYPE_MIN &&
+                prefInst < PMD_PREFER_INSTANCE_TYPE_MAX,
                 SDB_INVALIDARG, error, PDWARNING, "Failed to parse "
                 "preferred instance: [%d] out of range ( %d ~ %d )",
-                prefInst, PREFER_INSTANCE_TYPE_MIN, PREFER_INSTANCE_TYPE_MAX ) ;
+                prefInst, PMD_PREFER_INSTANCE_TYPE_MIN,
+                PMD_PREFER_INSTANCE_TYPE_MAX ) ;
 
       _instanceList.push_back( (UINT8)prefInst ) ;
 
@@ -261,40 +262,41 @@ namespace engine
       if ( 0 == ossStrcasecmp( instanceStr,
                                PREFER_INSTANCE_MASTER_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_MASTER ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_MASTER ;
       }
       else if ( 0 == ossStrcasecmp( instanceStr,
                                     PREFER_INSTANCE_SLAVE_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_SLAVE ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_SLAVE ;
       }
       else if ( 0 == ossStrcasecmp( instanceStr,
                                     PREFER_INSTANCE_ANY_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_ANYONE ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_ANYONE ;
       }
       else if ( 0 == ossStrcasecmp( instanceStr,
                                     PREFER_INSTANCE_MASTER_SND_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_MASTER_SND ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_MASTER_SND ;
       }
       else if ( 0 == ossStrcasecmp( instanceStr,
                                     PREFER_INSTANCE_SLAVE_SND_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_SLAVE_SND ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_SLAVE_SND ;
       }
       else if ( 0 == ossStrcasecmp( instanceStr,
                                     PREFER_INSTANCE_ANY_SND_STR ) )
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_ANYONE_SND ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_ANYONE_SND ;
       }
       else
       {
-         _specInstance = (INT8)PREFER_INSTANCE_TYPE_UNKNOWN ;
+         _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       }
 
-      PD_CHECK( PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance, SDB_INVALIDARG,
-                error, PDWARNING, "Failed to parse preferred instance: "
+      PD_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance,
+                SDB_INVALIDARG, error, PDWARNING,
+                "Failed to parse preferred instance: "
                 "[%s] is unknown type", instanceStr ) ;
 
    done :
@@ -323,7 +325,7 @@ namespace engine
             _parseIntegerPreferredInstance( curOption ) ;
          }
          else if ( String == curOption.type() &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
+                   PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             _parseStringPreferredInstance( curOption ) ;
          }
@@ -350,114 +352,47 @@ namespace engine
    INT32 _rtnInstanceOption::parsePreferredInstance ( const CHAR * instanceStr )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasInvalidChar = FALSE ;
+      PMD_PREFER_INSTANCE_TYPE specInstanceTmp = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
 
       PD_TRACE_ENTRY( SDB__RTNINST_PARSEPREFINST ) ;
-
-      CHAR instanceCopyStr [ PMD_MAX_LONG_STR_LEN + 1 ] = { '\0' } ;
-      CHAR * curInstanceStr = NULL ;
-      CHAR * lastParsed = NULL ;
 
       PD_CHECK( NULL != instanceStr, SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse preferred instance: empty input string" ) ;
 
       _clearInstance() ;
+      rc = pmdParsePreferInstStr( instanceStr, _instanceList, specInstanceTmp,
+                                  hasInvalidChar ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse preferd instance str, rc: %d", rc ) ;
+      _specInstance = ( INT8 )specInstanceTmp ;
 
-      ossStrncpy( instanceCopyStr, instanceStr, PMD_MAX_LONG_STR_LEN ) ;
-      instanceCopyStr[ PMD_MAX_LONG_STR_LEN ] = '\0' ;
-
-      // Split the preferred instance string by ','
-      curInstanceStr = ossStrtok( instanceCopyStr, ",", &lastParsed ) ;
-      while ( NULL != curInstanceStr && '\0' != curInstanceStr )
-      {
-         if ( 0 == ossStrcasecmp( curInstanceStr,
-                                  PREFER_INSTANCE_MASTER_STR ) &&
-              PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_MASTER ;
-         }
-         else if ( 0 == ossStrcasecmp( curInstanceStr,
-                                       PREFER_INSTANCE_SLAVE_STR ) &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_SLAVE ;
-         }
-         else if ( 0 == ossStrcasecmp( curInstanceStr,
-                                       PREFER_INSTANCE_ANY_STR ) &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_ANYONE ;
-         }
-         else if ( 0 == ossStrcasecmp( curInstanceStr,
-                                       PREFER_INSTANCE_MASTER_SND_STR ) &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_MASTER_SND ;
-         }
-         else if ( 0 == ossStrcasecmp( curInstanceStr,
-                                       PREFER_INSTANCE_SLAVE_SND_STR ) &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_SLAVE_SND ;
-         }
-         else if ( 0 == ossStrcasecmp( curInstanceStr,
-                                       PREFER_INSTANCE_ANY_SND_STR ) &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
-         {
-            _specInstance = PREFER_INSTANCE_TYPE_ANYONE_SND ;
-         }
-         else
-         {
-            INT32 instance = ossAtoi( curInstanceStr ) ;
-            if ( instance > PREFER_INSTANCE_TYPE_MIN &&
-                 instance < PREFER_INSTANCE_TYPE_MAX )
-            {
-               _instanceList.push_back( (UINT8)instance ) ;
-            }
-            else
-            {
-               PD_LOG( PDWARNING, "Unknown preferred instance : [%s]",
-                       curInstanceStr ) ;
-            }
-         }
-         curInstanceStr = ossStrtok( lastParsed, ",", &lastParsed ) ;
-      }
-
-      PD_CHECK( PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance ||
+      PD_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance ||
                 !_instanceList.empty(), SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse preferred instance [%s]", instanceStr ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__RTNINST_PARSEPREFINST, rc ) ;
       return rc ;
-
    error :
       _clearInstance() ;
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINST__PARSEPREFINSTMODE, "_rtnInstanceOption::parsePreferredInstanceMode" )
-   INT32 _rtnInstanceOption::parsePreferredInstanceMode ( const CHAR * instanceModeStr )
+   INT32 _rtnInstanceOption::parsePreferredInstanceMode ( const CHAR *instanceModeStr )
    {
       INT32 rc = SDB_OK ;
+      PMD_PREFER_INSTANCE_MODE modeTmp = PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
 
       PD_TRACE_ENTRY( SDB__RTNINST__PARSEPREFINSTMODE ) ;
 
-      _mode = (UINT8)PREFER_INSTANCE_MODE_UNKNOWN ;
+      rc = pmdParsePreferInstModeStr( instanceModeStr, modeTmp ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse preferd instance mode str, rc: %d", rc ) ;
+      _mode = ( UINT8 )modeTmp ;
 
-      PD_CHECK( NULL != instanceModeStr, SDB_INVALIDARG, error, PDWARNING,
-                "Failed to parse preferred instance mode: "
-                "empty input string" ) ;
-
-      if ( 0 == ossStrcmp( instanceModeStr, PREFER_INSTANCE_RANDOM_STR ) )
-      {
-         _mode = (UINT8)PREFER_INSTANCE_MODE_RANDOM ;
-      }
-      else if ( 0 == ossStrcmp( instanceModeStr, PREFER_INSTANCE_ORDERED_STR ) )
-      {
-         _mode = (UINT8)PREFER_INSTANCE_MODE_ORDERED ;
-      }
-
-      PD_CHECK( PREFER_INSTANCE_MODE_UNKNOWN != _mode,
+      PD_CHECK( PMD_PREFER_INSTANCE_MODE_UNKNOWN != _mode,
                 SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse preferred instance mode: "
                 "unknown input string [%s]", instanceModeStr ) ;
@@ -484,13 +419,14 @@ namespace engine
          if ( _instanceList.empty() )
          {
             builder.append( FIELD_NAME_PREFERED_INSTANCE,
-                            _getInstanceStr( _specInstance ) ) ;
+                            pmdPreferInstInt2String(
+                            ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ) ;
          }
          else if ( _instanceList.size() == 1 &&
-                   PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
+                   PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
          {
             builder.append( FIELD_NAME_PREFERED_INSTANCE,
-                            (INT32)_instanceList.front() ) ;
+                            ( INT32 )_instanceList.front() ) ;
          }
          else
          {
@@ -500,20 +436,21 @@ namespace engine
                   iter != _instanceList.end() ;
                   iter ++ )
             {
-               instanceBuilder.append( (INT32)( *iter ) ) ;
+               instanceBuilder.append( ( INT32 )( *iter ) ) ;
             }
-            if ( PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance )
+            if ( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance )
             {
-               instanceBuilder.append( _getInstanceStr( _specInstance ) ) ;
+               instanceBuilder.append( pmdPreferInstInt2String(
+                               ( PMD_PREFER_INSTANCE_TYPE )_specInstance ) ) ;
             }
             instanceBuilder.doneFast() ;
          }
          switch ( _mode )
          {
-            case PREFER_INSTANCE_MODE_RANDOM :
+            case PMD_PREFER_INSTANCE_MODE_RANDOM :
                modeStr = PREFER_INSTANCE_RANDOM_STR ;
                break ;
-            case PREFER_INSTANCE_MODE_ORDERED :
+            case PMD_PREFER_INSTANCE_MODE_ORDERED :
                modeStr = PREFER_INSTANCE_ORDERED_STR ;
                break ;
             default :
@@ -534,31 +471,9 @@ namespace engine
       }
    }
 
-   const CHAR * _rtnInstanceOption::_getInstanceStr ( INT8 instance ) const
-   {
-      switch ( instance )
-      {
-         case PREFER_INSTANCE_TYPE_MASTER :
-            return PREFER_INSTANCE_MASTER_STR ;
-         case PREFER_INSTANCE_TYPE_MASTER_SND :
-            return PREFER_INSTANCE_MASTER_SND_STR ;
-         case PREFER_INSTANCE_TYPE_SLAVE :
-            return PREFER_INSTANCE_SLAVE_STR ;
-         case PREFER_INSTANCE_TYPE_SLAVE_SND :
-            return PREFER_INSTANCE_SLAVE_SND_STR ;
-         case PREFER_INSTANCE_TYPE_ANYONE :
-            return PREFER_INSTANCE_ANY_STR ;
-         case PREFER_INSTANCE_TYPE_ANYONE_SND :
-            return PREFER_INSTANCE_ANY_SND_STR ;
-         default :
-            break ;
-      }
-      return "Unknown" ;
-   }
-
    void _rtnInstanceOption::_clearInstance ()
    {
-      _specInstance = (INT8)PREFER_INSTANCE_TYPE_UNKNOWN ;
+      _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       _instanceList.clear() ;
    }
 
@@ -586,7 +501,7 @@ namespace engine
                                                  const CHAR * instanceModeStr,
                                                  BOOLEAN preferedStrict,
                                                  INT32 preferedPeriod,
-                                                 RTN_PREFER_INSTANCE_TYPE defaultInstance )
+                                                 PMD_PREFER_INSTANCE_TYPE defaultInstance )
    {
       PD_TRACE_ENTRY( SDB__RTNSESSPROP_SETINSTOPT ) ;
 

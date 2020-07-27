@@ -52,10 +52,8 @@
 #include "optCommon.hpp"
 #include "dpsTransDef.hpp"
 #include "monMgr.hpp"
-
 #include "rtnSortDef.hpp"
 #include "clsUtil.hpp"
-
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
@@ -1975,7 +1973,8 @@ done:
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
       ossMemset( _krcbCatFile, 0, sizeof( _krcbCatFile ) ) ;
-      _krcbSvcPort         = OSS_DFT_SVCPORT ;
+      _krcbSvcPort    = OSS_DFT_SVCPORT ;
+      _invalidConfNum = 0 ;
    }
 
    _pmdOptionsMgr::~_pmdOptionsMgr()
@@ -2458,6 +2457,10 @@ done:
    {
       INT32 rc = SDB_OK ;
       SDB_ROLE dbRole = SDB_ROLE_STANDALONE ;
+      ossPoolList< UINT8 > instanceList ;
+      PMD_PREFER_INSTANCE_TYPE specInstance = PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
+      PMD_PREFER_INSTANCE_MODE instanceMode = PMD_PREFER_INSTANCE_MODE_UNKNOWN ;
+      BOOLEAN hasInvalidChar = FALSE ;
 
       rc = ossGetPort( _krcbSvcName, _krcbSvcPort ) ;
       if ( SDB_OK != rc )
@@ -2475,6 +2478,7 @@ done:
                    << _logFileNum * _logFileSz << "MB" << std::endl ;
          _logBuffSize = _logFileNum * _logFileSz *
                         ( 1048576 / DPS_DEFAULT_PAGE_SIZE ) ;
+         _invalidConfNum++ ;
       }
 
       // dbrole check
@@ -2489,12 +2493,14 @@ done:
       if ( !ossIsPowerOf2( _replBucketSize ) )
       {
          _replBucketSize = PMD_DFT_REPL_BUCKET_SIZE ;
+         _invalidConfNum++ ;
       }
 
       // extendthreshold check
       if ( 0 != _extendThreshold && !ossIsPowerOf2( _extendThreshold ) )
       {
          _extendThreshold = PMD_DFT_EXTEND_THRESHOLD ;
+         _invalidConfNum++ ;
       }
 
       // syncstrategy check
@@ -2503,6 +2509,7 @@ done:
          std::cerr << PMD_OPTION_SYNC_STRATEGY << " value error, use default"
                    << endl ;
          _syncStrategy = CLS_SYNC_DTF_STRATEGY ;
+         _invalidConfNum++ ;
       }
       _syncStrategyStr[0] = 0 ;
 
@@ -2512,6 +2519,7 @@ done:
          std::cerr << PMD_OPTION_LOGWRITEMOD << " value error, use default"
                    << endl ;
          _logWriteMod = DMS_LOG_WRITE_MOD_INCREMENT ;
+         _invalidConfNum++ ;
       }
       _logWriteModStr[0] = 0 ;
 
@@ -2522,6 +2530,8 @@ done:
          std::cerr << PMD_OPTION_AUDIT_MASK << " value error, use default"
                    << endl ;
          _auditMask = AUDIT_MASK_DEFAULT ;
+         ossStrncpy( _auditMaskStr, AUDIT_MASK_DFT_STR, sizeof( _auditMaskStr ) ) ;
+         _invalidConfNum++ ;
       }
 
       // ft mask check
@@ -2539,6 +2549,52 @@ done:
          std::cerr << PMD_OPTION_MON_GROUP_MASK << " value error, use default"
                    << endl ;
          _monGroupMask = MON_GROUP_MASK_DEFAULT ;
+         _invalidConfNum++ ;
+      }
+
+      // preferedinstance
+      rc = pmdParsePreferInstStr( _prefInstStr, instanceList, specInstance,
+                                  hasInvalidChar ) ;
+      if ( rc )
+      {
+         std::cerr << "Failed to parse preferd instance str, rc: "
+                   << rc << endl ;
+         goto error ;
+      }
+
+      if ( PMD_PREFER_INSTANCE_TYPE_UNKNOWN == specInstance &&
+           instanceList.empty() )
+      {
+         std::cerr << PMD_OPTION_PREFINST << " value error, use default"
+                   << endl ;
+         ossStrncpy( _prefInstStr, PMD_DFT_PREFINST, sizeof( _prefInstStr ) ) ;
+         _invalidConfNum++ ;
+      }
+      else
+      {
+         if( hasInvalidChar )
+         {
+            modifyPreferInstStr( instanceList, specInstance ) ;
+            _invalidConfNum++ ;
+         }
+      }
+
+      // preferedinstancemode
+      rc = pmdParsePreferInstModeStr( _prefInstModeStr, instanceMode ) ;
+      if ( rc )
+      {
+         std::cerr << "Failed to parse preferd instance mode str, rc: "
+                   << rc << endl ;
+         goto error ;
+      }
+
+      if ( PMD_PREFER_INSTANCE_MODE_UNKNOWN == instanceMode )
+      {
+         std::cerr << PMD_OPTION_PREFINST_MODE << " value error, use default"
+                   << endl ;
+         ossStrncpy( _prefInstModeStr, PMD_DFT_PREFINST_MODE,
+                     sizeof( _prefInstModeStr ) ) ;
+         _invalidConfNum++ ;
       }
 
       if ( 0 == ossStrlen( _replServiceName ) )
@@ -2783,6 +2839,7 @@ done:
       if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
       {
          _transactionOn = TRUE ;
+         _invalidConfNum++ ;
       }
 
       if ( _transactionOn )
@@ -2796,6 +2853,7 @@ done:
       {
          _memDebugSize = OSS_MIN ( _memDebugSize, SDB_MEMDEBUG_MAXGUARDSIZE ) ;
          _memDebugSize = OSS_MAX ( _memDebugSize, SDB_MEMDEBUG_MINGUARDSIZE ) ;
+         _invalidConfNum++ ;
       }
 
       _memDebugMask = 0 ;
@@ -2804,6 +2862,7 @@ done:
          _memDebugMask = OSS_MEMDEBUG_MASK_DFT ;
          ossStrncpy( _memDebugMaskStr, OSS_MEMDEBUG_MASK_DFT_STR,
                      PMD_MAX_LONG_STR_LEN ) ;
+         _invalidConfNum++ ;
       }
 
       if ( 0 == _vecCat.size() )
@@ -2820,6 +2879,7 @@ done:
            ( _transactionOn || _archiveOn ) )
       {
          _dpslocal = TRUE ;
+         _invalidConfNum++ ;
       }
 
       // om and catalog, prefetch and preload and multi-replsync not enable
@@ -2843,6 +2903,7 @@ done:
          }
 
          _enableMixCmp = FALSE ;
+         _invalidConfNum++ ;
       }
 
       if ( 0 == _vecOm.size() )
@@ -2857,6 +2918,7 @@ done:
       if ( SCHED_TYPE_NONE == _svcSchedulerType )
       {
          _svcMaxConcurrency = 0 ;
+         _invalidConfNum++ ;
       }
 
    done:
@@ -3049,7 +3111,7 @@ done:
       rc = utilReadConfigureFile( _krcbConfFile, all, vm2 ) ;
       if ( SDB_OK != rc )
       {
-         //if user set  configure file,  but cann't read the configure file.
+         //if user set configure file,  but cann't read the configure file.
          //then we should exit.
          if ( vm.count( PMD_OPTION_CONFPATH ) )
          {
@@ -3083,6 +3145,16 @@ done:
          ossStrcpy( _krcbConfPath, cfgTempPath ) ;
          /// update conf path
          _addToFieldMap( PMD_OPTION_CONFPATH, _krcbConfPath, TRUE, FALSE ) ;
+      }
+
+      if( 0 != _invalidConfNum )
+      {
+         rc = reflush2File() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Reflush config to file failed, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -3259,7 +3331,7 @@ done:
       rc = pmdCfgRecord::toString( line, mask ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get the line str, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -3342,6 +3414,36 @@ done:
          addr._service[ OSS_MAX_SERVICENAME ] = 0 ;
          _vecCat.push_back( addr ) ;
       }
+   }
+
+   void _pmdOptionsMgr::modifyPreferInstStr( ossPoolList< UINT8 > instanceList,
+                                             PMD_PREFER_INSTANCE_TYPE specInstance )
+   {
+      stringstream ss ;
+      if( specInstance != PMD_PREFER_INSTANCE_TYPE_UNKNOWN )
+      {
+         ss << pmdPreferInstInt2String( specInstance ) ;
+      }
+
+      if( !instanceList.empty() )
+      {
+         if( ss.str() != "" )
+         {
+            ss << "," ;
+         }
+
+         for ( ossPoolList< UINT8 >::const_iterator iter = instanceList.begin() ;
+               iter != instanceList.end() ;
+               iter ++ )
+         {
+            if( iter != instanceList.begin() )
+            {
+               ss << "," ;
+            }
+            ss << ( UINT32 )( *iter ) ;
+         }
+      }
+      ossStrncpy( _prefInstStr, ss.str().c_str(), sizeof( _prefInstStr ) ) ;
    }
 
    INT32 optString2LogMod( const CHAR *str, UINT32 &value )
