@@ -72,7 +72,7 @@ public class UpdateObjectWithKillCoord16461 extends S3TestBase {
         }
     }
 
-    @Test(enabled = false) // jira-5731
+    @Test
     public void testUpdateObject() throws Exception {
         TaskMgr mgr = new TaskMgr();
         for ( NodeWrapper node : coordGroup.getNodes() ) {
