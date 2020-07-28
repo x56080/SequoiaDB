@@ -602,6 +602,9 @@ namespace engine
                                     double selectivity,
                                     UINT64 outputValue ) const ;
 
+         BOOLEAN _checkEqualOrder( BSONElement &orderElement,
+                                   RTN_PREDICATE_MAP &predicates ) ;
+
       protected :
          const CHAR *      _pCollection ;
 

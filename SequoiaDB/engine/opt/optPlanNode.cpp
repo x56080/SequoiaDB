@@ -1057,20 +1057,36 @@ namespace engine
                                             UINT64 inputValue,
                                             double selectivity,
                                             UINT64 outputValue ) const
-     {
-        StringBuilder formBuilder, evalBuilder ;
+   {
+      StringBuilder formBuilder, evalBuilder ;
 
-        // max( 1, ceil( input * selectivity ) )
-        formBuilder << "max( 1, ceil( " << inputName << " * "
-                    << selName << " ) )" ;
-        evalBuilder << "max( 1, ceil( " << inputValue << " * "
-                    << selectivity << " ) )" ;
+      // max( 1, ceil( input * selectivity ) )
+      formBuilder << "max( 1, ceil( " << inputName << " * "
+                  << selName << " ) )" ;
+      evalBuilder << "max( 1, ceil( " << inputValue << " * "
+                  << selectivity << " ) )" ;
 
-        return _toBSONFieldEval( builder, outputName,
-                                 formBuilder.str().c_str(),
-                                 evalBuilder.str().c_str(),
-                                 (INT64)outputValue ) ;
-     }
+      return _toBSONFieldEval( builder, outputName,
+                               formBuilder.str().c_str(),
+                               evalBuilder.str().c_str(),
+                               (INT64)outputValue ) ;
+   }
+
+   BOOLEAN _optScanNode::_checkEqualOrder( BSONElement &orderElement,
+                                           RTN_PREDICATE_MAP &predicates )
+   {
+      BOOLEAN isEqual = FALSE ;
+
+      const CHAR *orderField = orderElement.fieldName() ;
+      RTN_PREDICATE_MAP::iterator iterPred = predicates.find( orderField ) ;
+      if ( predicates.end() != iterPred &&
+           iterPred->second.isEquality() )
+      {
+         isEqual = TRUE ;
+      }
+
+      return isEqual ;
+   }
 
    /*
       _optTbScanNode implement
@@ -1270,23 +1286,16 @@ namespace engine
          while ( iterOrder.more() )
          {
             BSONElement beOrder = iterOrder.next() ; ;
-            const CHAR *orderField = beOrder.fieldName() ;
-
-            RTN_PREDICATE_MAP::iterator iterPred =
-                                          predicates.find( orderField ) ;
-            if ( predicates.end() == iterPred )
+            if ( _checkEqualOrder( beOrder, predicates ) )
             {
-               // predicate is not found
+                // predicate is equal, it can be considered as order matched
+               ++ matchedOrders ;
+            }
+            else
+            {
+               // not equal, no need to check further
                break ;
             }
-            else if ( !iterPred->second.isEquality() )
-            {
-               // predicate is found, but it is not equal predicate
-               break ;
-            }
-
-            // predicate is equal, it can be considered to be order matched
-            ++ matchedOrders ;
          }
 
          // if all order fields are equal predicates, the sorting could be
@@ -1894,10 +1903,10 @@ namespace engine
          }
 
          // Try to match order first
-         if ( needMatchOrder && iterOrder.more() )
+         while ( iterOrder.more() && needMatchOrder )
          {
             BSONElement beOrder = *iterOrder ;
-            if ( 0 == ossStrcmp ( pFieldName, beOrder.fieldName() ) )
+            if ( 0 == ossStrcmp( pFieldName, beOrder.fieldName() ) )
             {
                // found order field, check direction
                BOOLEAN orderMatched = ( ( ( beKey.number() * direction ) > 0 ) ==
@@ -1923,6 +1932,17 @@ namespace engine
                   needRecheckOrder = TRUE ;
                }
             }
+            else if ( !predicates.empty() &&
+                      _checkEqualOrder( beOrder, predicates ) )
+            {
+               // corresponding predicate is equal, it can be considered as
+               // order matched
+               ++ matchedOrders ;
+               ++ iterOrder ;
+
+               // move to next order field
+               continue ;
+            }
             else
             {
                // order is not matched, but we could recheck later
@@ -1930,6 +1950,8 @@ namespace engine
                // this one
                needRecheckOrder = TRUE ;
             }
+
+            break ;
          }
 
          if ( predicates.empty() )
@@ -2002,6 +2024,8 @@ namespace engine
             }
             else
             {
+               // key is order field, be not equal, so we could not
+               // consider as order matched
                needMatchOrder = FALSE ;
             }
          }
@@ -2037,7 +2061,8 @@ namespace engine
          // Set the scan direction
          _direction = direction ;
 
-         if ( matchedOrders != (UINT32)boOrder.nFields() &&
+         if ( needMatchOrder &&
+              matchedOrders != (UINT32)boOrder.nFields() &&
               !predicates.empty() )
          {
             // let's check the remaining orders, if all remaining order fields
@@ -2050,24 +2075,17 @@ namespace engine
             while ( iterOrder.more() )
             {
                BSONElement beOrder = iterOrder.next() ;
-               const CHAR *orderField = beOrder.fieldName() ;
-
-               RTN_PREDICATE_MAP::iterator iterPred =
-                                             predicates.find( orderField ) ;
-               if ( predicates.end() == iterPred )
+               if ( _checkEqualOrder( beOrder, predicates ) )
                {
-                  // predicate is not found
+                  // if the predicate is equal, it can be considered as order
+                  // matched
+                  ++ matchedOrders ;
+               }
+               else
+               {
+                  // it is not equal, no need to check further
                   break ;
                }
-               else if ( !iterPred->second.isEquality() )
-               {
-                  // predicate is found, but it is not equal predicate
-                  break ;
-               }
-
-               // if the predicate is equal, it can be considered to be order
-               // matched
-               ++ matchedOrders ;
             }
          }
 
