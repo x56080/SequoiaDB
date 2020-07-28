@@ -5,7 +5,7 @@
  * @Author : 2020/07/15  xiaoni huang init
 ************************************************************************/
 
-main();
+//main(); //CI主机需要先安装fuse，待安装后放开
 function main ()
 {
    var aliasArr = ['sequoiafs_22239_01', 'sequoiafs_22239_02', 'sequoiafs_22239_03'];
