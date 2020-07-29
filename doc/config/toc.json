@@ -533,7 +533,7 @@
       {
         "id": 1525955869,
         "dir": "sequoiafs",
-        "cn": "FileSystem引擎",
+        "cn": "FileSystem 引擎",
         "en": "FileSystem Engine",
         "contents": [
           {
@@ -583,7 +583,7 @@
                {
                "id": 1525956100,
                "file": "sequoiafsbash",
-               "cn": "SequoiaFS启、停",
+               "cn": "SequoiaFS 启停",
                "en": "Bash"
                }   
              ]

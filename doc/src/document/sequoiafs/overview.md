@@ -1,13 +1,11 @@
-SequoiaFS 文件系统是基于 FUSE 在 Linux 系统下实现的一套文件系统，支持通用的文件操作API。
+SequoiaFS 文件系统是 SequoiaDB 巨杉数据库基于 FUSE 在 Linux 系统下实现的一套文件系统，支持通用的文件操作 API。
 
-将本地目录通过 SequoiaFS 挂载到 SequoiaDB 的目标集合，在 SequoiaFS 挂载的目录下可以通过通用文件系统API对文件和目录进行操作。SequoiaFS 利用 SequoiaDB 的元数据集合存储文件和目录的属性信息，利用大对象（LOB）存储文件的数据内容，从而实现了类似NFS分布式网络文件系统。
-
-下面为其基本逻辑结构图： 
+用户可以通过 SequoiaFS 将本地目录挂载到 SequoiaDB 的目标集合，在挂载目录下可以使用通用文件系统 API 对文件和目录进行操作。SequoiaFS 使用 SequoiaDB 的元数据集合存储文件和目录的属性，使用大对象（LOB）存储文件的内容，实现类似 NFS 的分布式网络文件系统。
   
 ![](sequoiafs/model.png)
      
-SequoiaFS支持的fuselib库版本
+SequoiaFS 支持的 fuselib 库版本
 ====
-FUSE library version: 2.8.6及以上版本  
-fusermount version: 2.8.6及以上版本  
+FUSE library v2.8.6 及以上版本  
+fusermount v2.8.6 及以上版本  
   

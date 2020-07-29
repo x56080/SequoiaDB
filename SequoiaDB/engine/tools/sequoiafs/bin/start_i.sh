@@ -25,13 +25,19 @@ fi
 
 function Usage()
 {
-    echo  "Usage: fsstart [options] [args]"
+    echo  "Usage:"
+    echo  "  ./fsstart.sh -a"
+    echo  "  ./fsstart.sh -c /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir"
+    echo  "  ./fsstart.sh --alias guestdir"
+    echo  "  ./fsstart.sh -m /home/sdbadmin/guestdir"
+    echo  ""
     echo  "Command options:"
     echo  "  -h [ --help ]             help information"
+    echo  "  -v [ --version ]          show SequoiaFS version"
     echo  "  -a [ --all ]              mount all sequoiafs with config in conf dir"
+    echo  "  -c [ --confpath ] arg     mount the specified mountpoint with config file in specified conf path"
     echo  "  -m [ --mountpoint ] arg   mount the specified mountpoint"
     echo  "  --alias arg               mount the specified mountpoint with alias "
-    echo  "  -c [ --confpath ] arg     mount the specified mountpoint with config file in specified conf path"
 }
 
 function StartOne()
@@ -119,7 +125,7 @@ function StartOne()
       fi        
     fi
     echo "Failed: sequoiafs($mountinfo) has been mounted by other process($mountpid)."
-    return 1	
+    return 1    
   fi  
   
   if [ "$aliasarg" != "" ]; then
@@ -259,6 +265,10 @@ do
     case $1 in
     -h|--help)
       Usage
+      exit 0
+      ;;
+    -v|--version)
+      $fsbin "--version"
       exit 0
       ;;
     -a|--all)

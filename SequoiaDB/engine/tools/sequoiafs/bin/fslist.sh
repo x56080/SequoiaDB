@@ -3,16 +3,25 @@ BashPath=$(dirname $(readlink -f $0))
 
 pwdpath=$(pwd)
 
+fsbin="$BashPath/sequoiafs"
 colonstr=":"
 sepline=0x9527
     
 function Usage()
 {
-    echo  "Usage: fslist [options] [args]"
+    echo  "Usage: "
+    echo  "  ./fslist.sh "
+    echo  "  ./fslist.sh -l "
+    echo  "  ./fslist.sh -l --detail "
+    echo  "  ./fslist.sh -l --mode local "
+    echo  "  ./fslist.sh -l --alias guestdir --detail "
+    echo  ""
     echo  "Command options:"
     echo  "  -h [ --help ]             help information"
+    echo  "  -v [ --version ]          show SequoiaFS version"
     echo  "  -l [ --long ]             show long style "
     echo  "  -m [ --mode ] arg         mode type: run/local, default: run"
+    echo  "  --alias arg               show information of the specified alias"
     echo  "  --detail                  show details"
 }
 
@@ -23,6 +32,7 @@ function List_run()
 
     showlong=$1
     showdetail=$2
+    specalias=$3
 
     count=0
     mountlist=$(mount |grep $fusetype | grep -v grep |  awk '{print $3}' )  
@@ -40,6 +50,9 @@ function List_run()
         collectioninfo="-"
         confpathinfo="-"
         aliasinfo=$( mount -t $fusetype |grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $1}')
+        if [[ "$specalias" != "" && "$aliasinfo" != "$specalias" ]]; then
+            continue
+        fi
         pidinfo=$( mount -t $fusetype|grep $mountinfo" " |  awk '{print $1}' | awk -F"(" '{print $2}' | awk -F")" '{print $1}')
         if [ "$pidinfo" != "" ]; then
             cmdconfpathinfo=$( ps -ef| grep  $pidinfo" " | grep " -c " |grep -v grep | awk -F" -c " '{print $2}' | awk -F" " '{print $1}')
@@ -107,6 +120,8 @@ function List_local()
     
     showlong=$1
     showdetail=$2
+    specalias=$3
+    
     count=0
     
     if [ "$showlong" == "true" ]; then
@@ -124,6 +139,9 @@ function List_local()
     
     for aliasinfo in `ls "$confrootpath"`
     do
+        if [[ "$specalias" != "" && "$aliasinfo" != "$specalias" ]]; then
+            continue
+        fi
         mountinfo="-"
         pidinfo="-"
         collectioninfo="-"
@@ -182,12 +200,17 @@ function List_local()
 slong=""
 mode="run"
 detail=""
+salias=""
 
 while [ -n "$1" ]
 do
     case $1 in
     -h|--help)
         Usage
+        exit 0
+        ;;
+    -v|--version)
+        $fsbin "--version"
         exit 0
         ;;
     -m|--mode)
@@ -199,6 +222,10 @@ do
         ;;
     --detail)
         detail="true"
+        ;;
+    --alias)
+        salias=$2
+        shift
         ;;
     *)
         Usage
@@ -215,9 +242,9 @@ if [[ "$mode" == "run" || "$mode" == "local" ]]; then
     touch /tmp/111.$$
     touch /tmp/222.$$
     if [ "$mode" == "run" ]; then 
-      List_run "$slong" "$detail"
+      List_run "$slong" "$detail" "$salias"
     else
-      List_local "$slong" "$detail"
+      List_local "$slong" "$detail" "$salias"
     fi    
     count=`echo $?` 
     

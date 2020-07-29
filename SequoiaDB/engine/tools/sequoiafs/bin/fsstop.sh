@@ -11,16 +11,23 @@ if [ ! -x "$(command -v fusermount)" ] ; then
   exit 1
 fi 
 
+fsbin="$BashPath/sequoiafs"
 unmount="fusermount -u"
 fusetype="fuse.sequoiafs"
 
 function Usage()
 {
-    echo  "Usage: fsstop.sh [options] <args>"
-    echo  "   -h [ --help ]            help information"
-    echo  "   -a [ --all ]             unmount all mountpoint"
-    echo  "   -m [ --mountpoint ] arg  unmount the specified mountpoint"
-    echo  "   --alias arg              unmount the specified mountpoint by alias name"
+    echo  "Usage:"
+    echo  "  ./fsstop.sh -a"
+    echo  "  ./fsstop.sh --alias guestdir"
+    echo  "  ./fsstop.sh --mountpoint /home/sdbadmin/guestdir"
+    echo  ""
+    echo  "Command options:"
+    echo  "  -h [ --help ]            help information"
+    echo  "  -v [ --version ]         show SequoiaFS version"
+    echo  "  -a [ --all ]             unmount all mountpoint"
+    echo  "  -m [ --mountpoint ] arg  unmount the specified mountpoint"
+    echo  "  --alias arg              unmount the specified mountpoint by alias name"
 }
 
 function Stop()
@@ -113,6 +120,10 @@ do
       Usage
       exit 0
       ;;
+    -v|--version)
+      $fsbin "--version"
+      exit 0
+      ;;  
     -a|--all)
       all="true"
       ;;
