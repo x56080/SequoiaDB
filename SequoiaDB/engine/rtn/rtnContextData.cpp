@@ -911,7 +911,7 @@ namespace engine
                                              _indexRIDs[1],
                                              _direction ) ;
          }
-         if ( isCountMode() && ( !cb->isTransaction() || cb->isTransRU() ) )
+         if ( isCountMode() && !cb->isTransRR() )
          {
             secScanner.enableCountMode() ;
          }
