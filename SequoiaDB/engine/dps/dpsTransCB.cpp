@@ -3195,7 +3195,8 @@ namespace engine
                                             UINT16 collectionID,
                                             const dmsRecordID *recordID,
                                             dpsTransRetInfo * pdpsTxResInfo,
-                                            _dpsITransLockCallback * callback )
+                                            _dpsITransLockCallback * callback,
+                                            BOOLEAN needIntentLock )
    {
       if ( !_isOn )
       {
@@ -3206,7 +3207,8 @@ namespace engine
                                         lockId, DPS_TRANSLOCK_S,
                                         TRUE, // preemptively test
                                         pdpsTxResInfo,
-                                        callback );
+                                        callback,
+                                        needIntentLock );
    }
 
 
