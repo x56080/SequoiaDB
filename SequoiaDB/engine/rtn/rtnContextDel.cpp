@@ -1578,9 +1578,9 @@ namespace engine
          ++i ;
          UINT32 cnt = 0 ;
          UINT32 transCnt = 0 ;
-         dpsTransLockId lockID( _su->LogicalCSID(), DMS_INVALID_MBID, NULL ) ;
+         dpsTransLockId lockID( _su->LogicalCSID(), mbID, NULL ) ;
          cnt = eduMgr->getWritingEDUCount( -1, _blockID, EDU_BLOCK_FREEZING_WND,
-                                          lockID, &transCnt ) ;
+                                           lockID, &transCnt ) ;
          if ( cnt > 0 )
          {
             if ( i < RTN_RENAME_BLOCKWRITE_TIMES )
