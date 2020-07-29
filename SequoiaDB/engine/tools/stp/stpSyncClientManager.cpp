@@ -1149,6 +1149,12 @@ namespace engine
 
       // send register request
       rc = _sendRegReq( primaryRID, version, regObject ) ;
+      if ( SDB_OK != rc )
+      {
+         // Failed to send request to primary, reset session and primary
+         _session.resetCurServerRID() ;
+         _nodeManager->resetPrimary() ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to send register request, rc: %d",
                    rc ) ;
 
@@ -1182,6 +1188,12 @@ namespace engine
 
       // send time synchronize request
       rc = _sendTimeSyncReq( sourceRID, version, flag, _status, timeError ) ;
+      if ( SDB_OK != rc )
+      {
+         // Failed to send request to primary, reset session and primary
+         _session.resetCurServerRID() ;
+         _nodeManager->resetPrimary() ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to send synchronize request, "
                    "rc: %d", rc ) ;
 
