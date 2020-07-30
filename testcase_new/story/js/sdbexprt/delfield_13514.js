@@ -57,7 +57,8 @@ function testExprtImprt ()
       " --type csv " +
       " -e " + "'\\35'" +
       " --fields='a string,b string'" +
-      " --headerline true";
+      " --headerline true" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );

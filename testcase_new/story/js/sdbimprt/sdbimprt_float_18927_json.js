@@ -30,15 +30,18 @@ function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
+   var id = 1;
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
       left = left + "0";
-      file.write( '{ a: ' + left + ' }\n' );
+      file.write( '{ "_id": ' + id + ', "a": ' + left + ' }\n' );
+      ++id;
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( '{ a: ' + left + '.' + right + ' }\n' );
+         file.write( '{ "_id": ' + id + ', "a": ' + left + '.' + right + ' }\n' );
+         ++id;
       }
    }
    file.close();

@@ -824,6 +824,13 @@ SDB_EXPORT bson_bool_t bson_is_empty( bson *obj );
 SDB_EXPORT int bson_copy( bson *out, const bson *in ); /* puts data in new buffer. NOOP if out==NULL */
 
 /**
+ * Reset bson initialization, this can reuse bson's memory.
+ *
+ * @param in the BSON object.
+ */
+SDB_EXPORT int bson_init_by_reset( bson *obj );
+
+/**
  * Append a previously created bson_oid_t to a bson object.
  *
  * @param b the bson to append to.

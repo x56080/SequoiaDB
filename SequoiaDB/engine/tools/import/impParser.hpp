@@ -34,44 +34,65 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "impCommon.hpp"
 #include "impOptions.hpp"
 #include "impWorker.hpp"
-#include "impRecordQueue.hpp"
 #include "impLogFile.hpp"
+#include "impPacker.hpp"
 
 namespace import
 {
    class Parser: public WorkerArgs
    {
    public:
-      Parser();
-      ~Parser();
-      INT32 init(Options* options,
-                 RecordQueue* workQueue);
-      INT32 start();
-      INT32 stop();
-      inline BOOLEAN isStopped() const { return _stopped; }
-      inline INT64 parsedNum() const { return _parsedNum; }
-      inline INT64 failedNum() const { return _failedNum; }
+      Parser() ;
+
+      ~Parser() ;
+
+      INT32 init( Options* options, DataQueue* dataQueue, Packer* packer,
+                  INT32 workerNum ) ;
+
+      INT32 start() ;
+
+      INT32 stop() ;
+
+      inline BOOLEAN isStopped()
+      {
+         return 0 == _livingNum.fetch() ;
+      }
+
+      inline INT64 parsedNum()
+      {
+         return _parsedNum.fetch() ;
+      }
+
+      inline INT64 failedNum()
+      {
+         return _failedNum.fetch() ;
+      }
+
       inline const string& logFileName() const
       {
-         return _logFile.fileName();
+         return _logFile.fileName() ;
       }
 
    private:
-      Options*          _options;
-      RecordQueue*      _workQueue;
-      BOOLEAN           _inited;
+      BOOLEAN           _inited ;
+      BOOLEAN           _stopped ;
 
-      Worker*           _worker;
-      BOOLEAN           _stopped;
-      LogFile           _logFile;
+      Options*          _options ;
+      DataQueue*        _dataQueue ;
+      Packer*           _packer ;
+
+      LogFile           _logFile ;
+      vector<Worker*>   _workers ;
 
       // statistics
-      INT64             _parsedNum;
-      INT64             _failedNum;
+      ossAtomicSigned32 _livingNum ;
+      ossAtomicSigned64 _parsedNum ;
+      ossAtomicSigned64 _failedNum ;
 
-      friend void _parserRoutine(WorkerArgs* args);
+      friend void _parserRoutine( WorkerArgs* args ) ;
    };
 }
 

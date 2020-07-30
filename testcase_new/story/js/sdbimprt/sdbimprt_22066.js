@@ -23,8 +23,8 @@ function testImprtJson( clName, cl )
 
    var filename = tmpFileDir + "22066.json";
    var file = fileInit( filename );
-   file.write( "{ \"a\" : 12345.12345678987654321 }\n" );
-   file.write( "{ \"b\" : { \"$decimal\": 123 } }" );
+   file.write( "{ \"_id\": 1, \"a\" : 12345.12345678987654321 }\n" );
+   file.write( "{ \"_id\": 2, \"b\" : { \"$decimal\": 123 } }" );
    file.close();
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
@@ -36,24 +36,24 @@ function testImprtJson( clName, cl )
    //不指定--decimalto 
    cmd.run( command );
    var expectResult = [{ "a" : { "$decimal": "12345.12345678987654321" } },{ "b" : { "$decimal": "123" } } ];
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    //decimalto ""
    cl.remove();
    cmd.run( command + " --decimalto ''");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    //decimalto double
    cl.remove();
    expectResult = [{"a": 12345.12345678988},{"b": 123}];
    cmd.run( command + " --decimalto double");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    // decimalto string
    cl.remove();
    cmd.run( command + " --decimalto string");
    expectResult =  [ {"a": "12345.12345678987654321"},{"b": "123"} ];
-   commCompareResults( cl.find(), expectResult ); 
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult ); 
    
    // decimalto
    cl.remove();

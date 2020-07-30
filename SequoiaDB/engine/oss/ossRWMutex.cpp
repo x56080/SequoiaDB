@@ -99,6 +99,27 @@ namespace engine
       return rc ;
    }
 
+   PD_TRACE_DECLARE_FUNCTION ( SDB__OSSRWM_TRY_LOCK_R, "_ossRWMutex::try_lock_r" )
+   BOOLEAN _ossRWMutex::try_lock_r ()
+   {
+      INT32 ret = FALSE ;
+      PD_TRACE_ENTRY ( SDB__OSSRWM_TRY_LOCK_R );
+
+      _r.inc () ;
+
+      if ( _w.fetch() )
+      {
+         _r.dec () ;
+      }
+      else
+      {
+         ret = TRUE ;
+      }
+
+      PD_TRACE_EXIT ( SDB__OSSRWM_TRY_LOCK_R );
+      return ret ;
+   }
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__OSSRWM_LOCK_W, "_ossRWMutex::lock_w" )
    INT32 _ossRWMutex::lock_w ( INT32 millisec )
    {
@@ -159,6 +180,38 @@ namespace engine
       return rc ;
    }
 
+   PD_TRACE_DECLARE_FUNCTION ( SDB__OSSRWM_TRY_LOCK_W, "_ossRWMutex::try_lock_w" )
+   BOOLEAN _ossRWMutex::try_lock_w ()
+   {
+      INT32 ret = FALSE ;
+      PD_TRACE_ENTRY ( SDB__OSSRWM_TRY_LOCK_W );
+
+      if ( ! _w.compareAndSwap( 0, 1 ) )
+      {
+         if ( _type & RW_SHARDWRITE )
+         {
+            _w.inc () ;
+         }
+         else
+         {
+            goto done ;
+         }
+      }
+
+      if ( _r.fetch () )
+      {
+         _w.dec () ;
+         _event.signalAll () ;
+         goto done ;
+      }
+
+      ret = TRUE ;
+
+   done:
+      PD_TRACE_EXIT ( SDB__OSSRWM_TRY_LOCK_W );
+      return ret ;
+   }
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__OSSRWM_RLS_R, "_ossRWMutex::release_r" )
    INT32 _ossRWMutex::release_r ()
    {
@@ -200,7 +253,7 @@ namespace engine
       return rc ;
    }
 
-   _ossScopedRWLock::_ossScopedRWLock ( ossRWMutex * pMutex,
+   _ossScopedRWLock::_ossScopedRWLock ( ossRWMutexBase * pMutex,
                                         OSS_LATCH_MODE mode )
    {
       _pMutex = pMutex ;

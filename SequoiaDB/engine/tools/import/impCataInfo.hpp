@@ -54,6 +54,7 @@ namespace import
       ~CataInfo();
       INT32 getGroupNum();
       BOOLEAN isMainCL();
+      INT32 getAllGroupID( vector<UINT32>& list ) ;
       INT32 getSubCLList(vector<string>& list);
       INT32 getGroupByRecord(const char* bsonData, UINT32& groupId);
       INT32 getSubCLNameByRecord(const char* bsonData, string &subCLName);

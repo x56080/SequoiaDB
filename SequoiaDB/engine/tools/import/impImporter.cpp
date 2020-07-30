@@ -31,7 +31,6 @@
 *******************************************************************************/
 #include "impImporter.hpp"
 #include "impRecordImporter.hpp"
-#include "impMonitor.hpp"
 #include "pd.hpp"
 #include <sstream>
 #include <iostream>
@@ -52,231 +51,338 @@ namespace import
       }
    };
 
-   void _importerRoutine(WorkerArgs* args)
+   inline BsonPage* _pageMemCopy( void* dest, BsonPage* src,
+                                  INT32& offset, INT32 size )
    {
-      ImporterArgs* impArgs = (ImporterArgs*)args;
-      RecordArray* records = NULL;
-      INT32 rc = SDB_OK;
+      INT32 copiedSize = 0 ;
+      CHAR* buffer = NULL ;
 
-      SDB_ASSERT(NULL != args, "arg can't be NULL");
-
-      Importer* self = impArgs->self;
-      Options* options = self->_options;
-      Monitor* monitor = impGetMonitor();
-
-      BOOLEAN dryRun = options->dryRun();
-      LogFile* logFile = &(self->_logFile);
-      RecordQueue* workQueue = self->_workQueue;
-      RecordImporter importer(impArgs->hostname,
-                              impArgs->svcname,
-                              options->user(),
-                              options->password(),
-                              options->csname(),
-                              options->clname(),
-                              options->useSSL(),
-                              options->enableTransaction(),
-                              options->allowKeyDuplication());
-
-      SDB_ASSERT(NULL != workQueue, "workQueue can't be NULL");
-      SDB_ASSERT(NULL != logFile, "logFile can't be NULL");
-      SDB_ASSERT(NULL != monitor, "monitor can't be NULL");
-
+      while( 0 < size )
       {
-         stringstream ss;
-         ss << "importer [" << impArgs->id << "] with "
-            << impArgs->hostname << ":" << impArgs->svcname
-            << " started..." << std::endl;
+         SDB_ASSERT( NULL != src, "src can't be NULL" ) ;
 
-         PD_LOG(PDEVENT, "%s", ss.str().c_str());
-         if (options->verbose())
+         INT32 bufSize = src->getRecordsSize() - offset ;
+         INT32 tmp     = bufSize > size ? size : bufSize ;
+
+         if ( 0 == bufSize )
          {
-            std::cout << ss.str();
+            src = src->getNext() ;
+            offset = 0 ;
+            continue ;
+         }
+
+         SDB_ASSERT( 0 < tmp, "tmp can't be less than 0" ) ;
+
+         buffer = src->getBuffer() ;
+
+         ossMemcpy( (CHAR*)dest + copiedSize, buffer + offset, tmp ) ;
+
+         size -= tmp ;
+         copiedSize += tmp ;
+         offset += tmp ;
+      }
+
+      return src ;
+   }
+
+   inline void _pageMemCopyPrepareForBson( INT32& offset )
+   {
+      offset = ossRoundUpToMultipleX( offset, 4 ) ;
+   }
+
+   inline INT32 _pageMemCopyBson( LogFile* logFile, bson* obj,
+                                  BsonPage*& page, INT32& offset )
+   {
+      INT32 rc  = SDB_OK ;
+      INT32 ret = SDB_OK ;
+      INT32 recordSize = 0 ;
+
+      //get bson record size
+      page = _pageMemCopy( &recordSize, page, offset, sizeof( recordSize ) );
+
+      if ( NULL == obj->data || bson_buffer_size( obj ) < recordSize )
+      {
+         bson_init_size( obj, recordSize ) ;
+         if ( NULL == obj->data )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "failed to init bson size, rc=%d", rc ) ;
+            goto error ;
          }
       }
 
-      rc = importer.connect();
-      if (SDB_OK != rc)
+      //get bson record
+      ossMemcpy( obj->data, &recordSize, sizeof( recordSize ) ) ;
+      page = _pageMemCopy( obj->data + sizeof( recordSize ), page, offset,
+                           recordSize - sizeof( recordSize ) ) ;
+      obj->cur = obj->data + recordSize - 1 ;
+      obj->finished = 1 ;
+
+      ret = logFile->write( obj ) ;
+      if ( ret )
       {
-         PD_LOG(PDERROR, "failed to connect, rc=%d", rc);
-         goto error;
+         PD_LOG( PDERROR, "failed to log write records, rc=%d", ret ) ;
       }
 
-      for(;;)
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   static INT32 _writeRecords( LogFile* logFile, BsonPage* pages,
+                               INT32 recordNum )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 offset   = 0 ;
+      BsonPage* page = pages ;
+      bson obj ;
+
+      bson_init( &obj ) ;
+
+      SDB_ASSERT( NULL != page, "page can't be NULL" ) ;
+
+      while( 0 < recordNum )
       {
-         workQueue->wait_and_pop(records);
-         if (NULL == records)
+         _pageMemCopyPrepareForBson( offset ) ;
+
+         rc = _pageMemCopyBson( logFile, &obj, page, offset ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         --recordNum ;
+      }
+
+   done:
+      bson_destroy( &obj ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _importerRoutine( WorkerArgs* args )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN dryRun = FALSE ;
+      ImporterArgs* impArgs = (ImporterArgs*)args ;
+
+      SDB_ASSERT( NULL != args, "arg can't be NULL" ) ;
+
+      Importer* self   = impArgs->self ;
+      Options* options = self->_options ;
+      LogFile* logFile = &(self->_logFile) ;
+      BsonPageQueue* freeQueue = self->_freeQueue ;
+      PageQueue* importQueue   = self->_importQueue ;
+
+      RecordImporter importer( impArgs->hostname,
+                               impArgs->svcname,
+                               options->user(),
+                               options->password(),
+                               options->csname(),
+                               options->clname(),
+                               options->useSSL(),
+                               options->enableTransaction(),
+                               options->allowKeyDuplication() ) ;
+
+      SDB_ASSERT( NULL != freeQueue, "freeQueue can't be NULL" ) ;
+      SDB_ASSERT( NULL != importQueue, "importQueue can't be NULL" ) ;
+      SDB_ASSERT( NULL != logFile, "logFile can't be NULL" ) ;
+
+      /* dryrun indicates the test purpose and does not insert data.
+         Dryrun means tryrun, corresponding to the
+         hidden input parameter --dryrun */
+      dryRun = options->dryRun() ;
+
+      {
+         stringstream ss ;
+
+         ss << "importer [" << impArgs->id << "] with " <<
+               impArgs->hostname << ":" << impArgs->svcname << " started..." ;
+
+         PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
+
+         if ( options->verbose() )
+         {
+            std::cout << ss.str() << std::endl ;
+         }
+      }
+
+      rc = importer.connect() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to connect, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      while( TRUE )
+      {
+         PageInfo pageInfo ;
+
+         importQueue->wait_and_pop( pageInfo ) ;
+         if ( 0 == pageInfo.recordNum )
          {
             // stop signal
-            break;
+            break ;
          }
 
-         if (records->empty())
+         if ( !dryRun )
          {
-            // empty signal, just ignore it
-            freeRecordArray(&records);
-            continue;
-         }
-
-         if (!dryRun)
-         {
-            rc = importer.import(records);
-            if (SDB_OK != rc)
+            rc = importer.import( &pageInfo ) ;
+            if ( rc )
             {
-               self->_failedNum.add(records->size());
-               for (INT32 i = 0; i < records->size(); i++)
-               {
-                  INT32 ret;
-                  bson* obj = records->get(i);
-                  if (SDB_OK != (ret = logFile->write(obj)))
-                  {
-                     PD_LOG(PDERROR, "failed to log write records, rc=%d", ret);
-                     break;
-                  }
-               }
-               monitor->recordsMemDec(records->bsonSize());
-               monitor->recordsNumDec(records->size());
-               freeRecordArray(&records);
-               PD_LOG(PDERROR, "failed to import records, rc=%d", rc);
-               continue;
+               _writeRecords( logFile, pageInfo.pages, pageInfo.recordNum ) ;
+
+               freeQueue->pushPages( pageInfo.pages ) ;
+
+               self->_failedNum.add( pageInfo.recordNum ) ;
+
+               PD_LOG( PDERROR, "failed to import records, rc=%d", rc ) ;
+               continue ;
             }
-            self->_importedNum.add(records->size());
-            monitor->recordsMemDec(records->bsonSize());
-            monitor->recordsNumDec(records->size());
          }
 
-         freeRecordArray(&records);
+         freeQueue->pushPages( pageInfo.pages ) ;
+
+         self->_importedNum.add( pageInfo.recordNum ) ;
       }
 
    done:
       {
-         stringstream ss;
-         ss << "importer [" << impArgs->id << "] stop" << std::endl;
+         stringstream ss ;
 
-         PD_LOG(PDEVENT, "%s", ss.str().c_str());
-         if (options->verbose())
+         ss << "importer [" << impArgs->id << "] stop" ;
+
+         PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
+
+         if ( options->verbose() )
          {
-            std::cout << ss.str();
+            std::cout << ss.str() << std::endl ;
          }
       }
-      self->_livingNum.dec();
-      return;
+      self->_livingNum.dec() ;
+      return ;
    error:
-      goto done;
+      goto done ;
    }
 
-   Importer::Importer()
-   : _livingNum(0),
-     _importedNum(0),
-     _failedNum(0)
+   Importer::Importer() : _inited( FALSE ),
+                          _refCount( 0 ),
+                          _options( NULL ),
+                          _freeQueue( NULL ),
+                          _importQueue( NULL ),
+                          _livingNum( 0 ),
+                          _importedNum( 0 ),
+                          _failedNum( 0 )
    {
-      _options = NULL;
-      _workQueue = NULL;
-      _inited = FALSE;
-      _refCount = 0;
    }
 
    Importer::~Importer()
    {
-      for (vector<Worker*>::iterator i = _workers.begin(); i != _workers.end();)
+      vector<Worker*>::iterator i = _workers.begin() ;
+
+      for( ; i != _workers.end(); ++i )
       {
-         Worker* worker = *i;
-         SDB_OSS_DEL(worker);
-         i = _workers.erase(i);
+         Worker* worker = *i ;
+
+         SDB_OSS_DEL( worker ) ;
       }
    }
 
-   INT32 Importer::init(Options* options,
-                 RecordQueue* workQueue,
-                 INT32 workerNum)
+   INT32 Importer::init( Options* options, BsonPageQueue* freeQueue,
+                         PageQueue* importQueue, INT32 workerNum )
    {
       INT32 rc = SDB_OK;
+      string fileName ;
+      SDB_ASSERT( NULL != options, "options can't be NULL" ) ;
+      SDB_ASSERT( NULL != freeQueue, "freeQueue can't be NULL" ) ;
+      SDB_ASSERT( NULL != importQueue, "importQueue can't be NULL" ) ;
 
-      SDB_ASSERT(NULL != options, "options can't be NULL");
-      SDB_ASSERT(NULL != workQueue, "workQueue can't be NULL");
+      _options     = options ;
+      _freeQueue   = freeQueue ;
+      _importQueue = importQueue ;
 
-      _options = options;
-      _workQueue = workQueue;
+      fileName = makeRecordLogFileName( _options->csname(),
+                                        _options->clname(),
+                                        string( "import" ) );
 
-      string fileName = makeRecordLogFileName(_options->csname(),
-                                              _options->clname(),
-                                              string("import"));
-
-      rc = _logFile.init(fileName, TRUE);
-      if (SDB_OK != rc)
+      rc = _logFile.init( fileName, TRUE ) ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to init importer log file, rc=%d", rc);
-         goto error;
+         PD_LOG( PDERROR, "failed to init importer log file, rc=%d", rc ) ;
+         goto error ;
       }
 
-      if (_options->enableCoord())
+      if ( _options->enableCoord() )
       {
-         rc = _coords.init(_options->hosts(),
-                           _options->user(),
-                           _options->password(),
-                           _options->useSSL());
-         if (SDB_OK != rc)
+         rc = _coords.init( _options->hosts(),
+                            _options->user(),
+                            _options->password(),
+                            _options->useSSL() ) ;
+         if ( rc )
          {
-            PD_LOG(PDERROR, "failed to init coords, rc=%d", rc);
-            goto error;
+            PD_LOG( PDERROR, "failed to init coords, rc=%d", rc ) ;
+            goto error ;
          }
       }
 
-      for (INT32 i = 0; i < workerNum; i++)
+      for ( INT32 i = 0; i < workerNum; ++i )
       {
-         string hostname;
-         string svcname;
-         ImporterArgs* args = NULL;
+         ImporterArgs* args = NULL ;
+         string hostname ;
+         string svcname ;
 
-         if (_options->enableCoord())
+         if ( _options->enableCoord() )
          {
-            rc = _coords.getRandomCoord(hostname, svcname);
-            if (SDB_OK != rc)
+            rc = _coords.getRandomCoord( hostname, svcname ) ;
+            if ( rc )
             {
-               PD_LOG(PDERROR, "failed to get coord, rc=%d", rc);
-               goto error;
+               PD_LOG( PDERROR, "failed to get coord, rc=%d", rc ) ;
+               goto error ;
             }
          }
          else
          {
-            rc = Coords::getRandomCoord(_options->hosts(), _refCount,
-                                        hostname, svcname);
-            if (SDB_OK != rc)
+            rc = Coords::getRandomCoord( _options->hosts(), _refCount,
+                                         hostname, svcname) ;
+            if ( rc )
             {
-               PD_LOG(PDERROR, "failed to get coord, rc=%d", rc);
-               goto error;
+               PD_LOG( PDERROR, "failed to get coord, rc=%d", rc ) ;
+               goto error ;
             }
          }
 
-         args = SDB_OSS_NEW ImporterArgs();
-         if (NULL == args)
+         args = SDB_OSS_NEW ImporterArgs() ;
+         if ( NULL == args )
          {
-            rc = SDB_OOM;
-            goto error;
+            rc = SDB_OOM ;
+            goto error ;
          }
 
-         args->id = i;
-         args->hostname = hostname;
-         args->svcname = svcname;
-         args->self = this;
+         args->id = i ;
+         args->hostname = hostname ;
+         args->svcname = svcname ;
+         args->self = this ;
 
-         Worker* worker = SDB_OSS_NEW Worker(_importerRoutine, args, TRUE);
-         if (NULL == worker)
+         Worker* worker = SDB_OSS_NEW Worker( _importerRoutine, args, TRUE ) ;
+         if ( NULL == worker )
          {
-            SDB_OSS_DEL(args);
-            rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create importer Worker object");
-            goto error;
+            SDB_OSS_DEL( args ) ;
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "failed to create importer Worker object" ) ;
+            goto error ;
          }
 
-         _workers.push_back(worker);
+         _workers.push_back( worker ) ;
       }
 
-      _inited = TRUE;
+      _inited = TRUE ;
 
    done:
-      return rc;
+      return rc ;
    error:
-      goto done;
+      goto done ;
    }
 
    INT32 Importer::start()
@@ -288,7 +394,8 @@ namespace import
 
       for (INT32 i = 0; i < num; i++)
       {
-         Worker* worker = _workers[i];
+         Worker* worker = _workers[i] ;
+
          rc = worker->start();
          if (SDB_OK != rc)
          {
@@ -310,17 +417,17 @@ namespace import
       INT32 rc = SDB_OK;
       INT32 num = _workers.size();
 
-      if (0 == num)
+      if ( 0 == num )
       {
          goto done;
       }
 
-      for (INT32 i = 0; i < num; i++)
+      for ( INT32 i = 0; i < num; ++i )
       {
-         RecordArray* empty = NULL;
+         // push empty pageInfo as stop signal
+         PageInfo pageInfo ;
 
-         // push empty RecordArray as stop signal
-         _workQueue->push(empty);
+         _importQueue->push( pageInfo ) ;
       }
 
       for (vector<Worker*>::iterator i = _workers.begin(); i != _workers.end();)

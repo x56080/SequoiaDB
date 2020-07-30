@@ -102,7 +102,8 @@ function testExprtImprtCsv1 ()
       " -l " + clname1 +
       " --file " + csvfile +
       " --type csv" +
-      " --headerline true";
+      " --headerline true" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -133,7 +134,8 @@ function testExprtImprtCsv2 ()
       " --file " + csvfile +
       " --type csv" +
       " --headerline true" +
-      " --field '" + key + " decimal'";
+      " --field '" + key + " decimal'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -164,7 +166,8 @@ function testExprtImprtCsv3 ()
       " --file " + csvfile +
       " --type csv" +
       " --headerline true" +
-      " --field '" + key + " decimal(1000,100)'";
+      " --field '" + key + " decimal(1000,100)'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -193,7 +196,8 @@ function testExprtImprtJson ()
       " -c " + csname +
       " -l " + clname1 +
       " --type json" +
-      " --file " + jsonfile;
+      " --file " + jsonfile +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + jsonfile );

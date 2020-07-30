@@ -336,7 +336,7 @@ function checkExportData ( exportFile, expData )
 function checkResult ( cl, dataType, expResult )
 {
    println( "\n---Begin to check " + dataType + " results." );
-   var rc = cl.find( { a: { "$type": 2, "$et": dataType } } ).sort( { _id: 1 } );
+   var rc = cl.find( { "a": { "$type": 2, "$et": dataType } } ).sort( { "_id": 1 } );
    var actResult = [];
    while( rc.next() )
    {

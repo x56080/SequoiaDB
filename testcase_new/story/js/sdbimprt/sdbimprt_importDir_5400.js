@@ -67,7 +67,7 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "atest": 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {

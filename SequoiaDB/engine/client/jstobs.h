@@ -26,7 +26,29 @@
 
 #define JSON_DECIMAL_NO_CONVERT  0
 #define JSON_DECIMAL_TO_DOUBLE   1
-#define JSON_DECIMAL_NO_STRING   2
+#define JSON_DECIMAL_TO_STRING   2
+
+/* Flags */
+//Check the characters behind json
+#define JSON_FLAG_CHECK_END         0x00000001
+
+//Escape Unicode encoding
+#define JSON_FLAG_ESCAPE_UNICODE    0x00000002
+
+//Append the _id field
+#define JSON_FLAG_APPEND_OID        0x00000004
+
+//Do not initialize bson
+#define JSON_FLAG_NOT_INIT_BSON     0x00000008
+
+//Strictly parse json format
+#define JSON_FLAG_RIGOROUS_MODE     0x00000008
+
+//Decimal forced conversion to double
+#define JSON_FLAG_DECIMAL_TO_DOUBLE 0x00000020
+
+//Decimal forced conversion to string
+#define JSON_FLAG_DECIMAL_TO_STRING 0x00000040
 
 SDB_EXTERN_C_START
 
@@ -76,7 +98,7 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson ) ;
     \param [in]  decimalto decimal type cast
                   JSON_DECIMAL_NO_CONVERT: no convert
                   JSON_DECIMAL_TO_DOUBLE:  convert to double
-                  JSON_DECIMAL_NO_STRING:  convert to string
+                  JSON_DECIMAL_TO_STRING:  convert to string
     \param [out] pBson The return bson object
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
@@ -88,6 +110,28 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               BOOLEAN isUnicode,
                               INT32 decimalto,
                               bson *pBson ) ;
+
+/** \fn BOOLEAN json2bson3( const CHAR *pJson,
+                            CJSON_MACHINE *pMachine,
+                            INT32 flags,
+                            bson *pBson )
+    \brief Json converts to bson.
+    \param [in]  pJson The json string to convert
+    \param [in]  pMachine The json parse state machine
+    \param [in]  flags Converted parameters
+                  JSON_FLAG_CHECK_END: Check the characters behind json
+                  JSON_FLAG_ESCAPE_UNICODE: Escape Unicode encoding
+                  JSON_FLAG_APPEND_OID: Append the _id field
+                  JSON_FLAG_NOT_INIT_BSON: Do not initialize bson
+                  JSON_FLAG_RIGOROUS_MODE: Strictly parse json format
+                  JSON_FLAG_DECIMAL_TO_DOUBLE: Decimal forced conversion to double
+                  JSON_FLAG_DECIMAL_TO_STRING: Decimal forced conversion to string
+    \param [out] pBson The return bson object
+    \retval TRUE Operation Success
+    \retval FALSE Operation Fail
+*/
+SDB_EXPORT BOOLEAN json2bson3( const CHAR *pJson, CJSON_MACHINE *pMachine,
+                               INT32 flags, bson *pBson ) ;
 
 SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;
 

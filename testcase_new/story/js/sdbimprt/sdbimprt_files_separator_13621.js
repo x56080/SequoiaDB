@@ -38,11 +38,11 @@ function readyData ( imprtFile, separator )
 
    var file = fileInit( imprtFile );
    var sep = separator;
-   file.write( "a" + sep + "b" + sep + "c" + sep + "d" + sep + "\n" );
-   file.write( "1" + sep + "2" + sep + sep + "4" + sep + "\n" );
-   file.write( sep + sep + "3" + sep + "4" + sep + "\n" );
-   file.write( "1" + sep + "2" + sep + sep + sep + "\n" );
-   file.write( "1" + sep + sep + "3" + sep + sep + "\n" );
+   file.write( "_id" + sep + "a" + sep + "b" + sep + "c" + sep + "d" + sep + "\n" );
+   file.write( "1" + sep + "1" + sep + "2" + sep + sep + "4" + sep + "\n" );
+   file.write( "2" + sep + sep + sep + "3" + sep + "4" + sep + "\n" );
+   file.write( "3" + sep + "1" + sep + "2" + sep + sep + sep + "\n" );
+   file.write( "4" + sep + "1" + sep + sep + "3" + sep + sep + "\n" );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );
    file.close();

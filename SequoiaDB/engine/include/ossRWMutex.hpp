@@ -48,7 +48,18 @@ namespace engine
 #define RW_EXCLUSIVEWRITE        0X0000
 #define RW_SHARDWRITE            0x0001
 
-   class _ossRWMutex : public SDBObject
+   class _ossRWMutexBase : public SDBObject
+   {
+      public:
+         virtual ~_ossRWMutexBase(){} ;
+         virtual INT32 lock_r ( INT32 millisec = -1 ) = 0 ;
+         virtual INT32 lock_w ( INT32 millisec = -1 ) = 0 ;
+         virtual INT32 release_r () = 0 ;
+         virtual INT32 release_w () = 0 ;
+   };
+   typedef _ossRWMutexBase ossRWMutexBase ;
+
+   class _ossRWMutex : public ossRWMutexBase
    {
       public:
          _ossRWMutex ( UINT32 type = RW_EXCLUSIVEWRITE ) ;
@@ -59,6 +70,8 @@ namespace engine
          INT32 lock_w ( INT32 millisec = -1 ) ;
          INT32 release_r () ;
          INT32 release_w () ;
+         BOOLEAN try_lock_r() ;
+         BOOLEAN try_lock_w() ;
 
       protected:
          UINT32   _makeTimeout( INT32 &millisec, UINT32 timeout ) ;
@@ -76,11 +89,11 @@ namespace engine
    class _ossScopedRWLock
    {
       public:
-         _ossScopedRWLock ( ossRWMutex *pMutex, OSS_LATCH_MODE mode ) ;
+         _ossScopedRWLock ( ossRWMutexBase *pMutex, OSS_LATCH_MODE mode ) ;
          ~_ossScopedRWLock () ;
 
       private:
-         ossRWMutex *_pMutex ;
+         ossRWMutexBase *_pMutex ;
          OSS_LATCH_MODE _mode ;
    };
 

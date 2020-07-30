@@ -90,6 +90,8 @@ namespace import
             goto error;
          }
 
+         parser = csvParser;
+
          if (!options.fields().empty())
          {
             PD_LOG(PDINFO, "fields: %s", options.fields().c_str());
@@ -114,8 +116,6 @@ namespace import
                csvParser->printFieldsDef();
             }
          }
-
-         parser = csvParser;
       }
       else
       {
@@ -133,6 +133,8 @@ namespace import
             goto error;
          }
 
+         parser = jsonParser;
+
          rc = jsonParser->init() ;
          if( rc )
          {
@@ -140,8 +142,6 @@ namespace import
                     rc ) ;
             goto error ;
          }
-
-         parser = jsonParser;
       }
 
    done:
@@ -191,16 +191,27 @@ namespace import
    INT32 JSONRecordParser::parseRecord(const CHAR* data, INT32 length, bson& obj)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN result = TRUE;
+      INT32 flags = JSON_FLAG_RIGOROUS_MODE|JSON_FLAG_APPEND_OID|
+                    JSON_FLAG_NOT_INIT_BSON ;
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
-      bson_init(&obj);
+      if ( _isUnicode )
+      {
+         flags |= JSON_FLAG_ESCAPE_UNICODE ;
+      }
 
-      result = json2bson( data, _pMachine, CJSON_RIGOROUS_PARSE,
-                          FALSE, _isUnicode, _decimalto, &obj ) ;
-      if (!result)
+      if ( JSON_DECIMAL_TO_DOUBLE == _decimalto )
+      {
+         flags |= JSON_FLAG_DECIMAL_TO_DOUBLE ;
+      }
+      else if ( JSON_DECIMAL_TO_STRING == _decimalto )
+      {
+         flags |= JSON_FLAG_DECIMAL_TO_STRING ;
+      }
+
+      if ( !json2bson3( data, _pMachine, flags, &obj ) )
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -218,7 +229,6 @@ namespace import
    done:
       return rc;
    error:
-      bson_destroy(&obj);
       goto done;
    }
 }

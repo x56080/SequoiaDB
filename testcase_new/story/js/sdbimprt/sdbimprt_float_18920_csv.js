@@ -12,7 +12,7 @@ function main ()
    prepareDate( csvFile );
 
    println( "\n---specify data type int32 to import csv file." );
-   var fields = "a int";
+   var fields = "_id int, a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 2000 );
    var dataType = "int32";
@@ -21,7 +21,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type int64 to import csv file." );
-   var fields = "a long";
+   var fields = "_id int, a long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 2000 );
    var dataType = "int64";
@@ -30,7 +30,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type double to import csv file." );
-   var fields = "a double";
+   var fields = "_id int, a double";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 2000 );
    dataType = "double";
@@ -39,7 +39,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type decimal to import csv file." );
-   var fields = "a decimal";
+   var fields = "_id int, a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 2000 );
    dataType = "decimal";
@@ -54,6 +54,7 @@ function prepareDate ( typeFile )
    var file = new File( typeFile );
    var left = "";
    var right = "";
+   var id = 1 ;
    for( var i = 0; i < 20; i++ )
    {
       var rightL = "";
@@ -66,7 +67,8 @@ function prepareDate ( typeFile )
          {
             rightR = rightR + "0";
             right = rightL + "1" + rightR;
-            file.write( left + "." + right + "\n" );
+            file.write( id + "," + left + "." + right + "\n" );
+            ++id;
          }
       }
    }

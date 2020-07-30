@@ -12,7 +12,7 @@ function main ()
    prepareDate( csvFile );
 
    println( "\n---specify data type int32 to import csv file." );
-   var fields = "a int";
+   var fields = "_id int, a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
    var dataType = "int32";
@@ -21,7 +21,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type int64 to import csv file." );
-   var fields = "a long";
+   var fields = "_id int, a long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
    var dataType = "int64";
@@ -30,7 +30,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type double to import csv file." );
-   var fields = "a double";
+   var fields = "_id int, a double";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
    dataType = "double";
@@ -39,7 +39,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type decimal to import csv file." );
-   var fields = "a decimal";
+   var fields = "_id int, a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
    dataType = "decimal";
@@ -53,6 +53,7 @@ function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "1";
+   var id = 1;
    //由于实际值为浮点数，整数部分超过十位的时候，强制转换成int32是内存转换，无法确定转换规则，因此控制正数部分最大有效数字为10
    for( var i = 0; i < 9; i++ )
    {
@@ -61,7 +62,8 @@ function prepareDate ( typeFile )
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
-         file.write( left + "." + right + "\n" );
+         file.write( id + "," + left + "." + right + "\n" );
+         ++id;
       }
    }
    file.close();

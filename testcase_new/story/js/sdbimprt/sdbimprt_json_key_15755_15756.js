@@ -1,6 +1,6 @@
 /*******************************************************************************
-*@Description:   seqDB-15755:�������ַ���˫���ŵ�key��json��ʽ���ݼ�¼
-*                seqDB-15756:����&�����м����˫���ŵ�key��json��ʽ���ݼ�¼
+*@Description:   seqDB-15755:导入首字符是双引号的key的json格式数据记录
+*                seqDB-15756:导入&命令中间插入双引号的key的json格式数据记录
 *@Author:        2018-9-6  wangkexin
 ********************************************************************************/
 main();
@@ -31,7 +31,7 @@ function readyData ( imprtFile )
    println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
-   file.write( '{ "\\\"testa": "hello" }{"te\\\"stb":"test"}{"testc":"test"}{ "testd": { "$number\\\"Long": 9223372036854775807 } }{ "teste": { "\\\"$numberLong": 9223372036854775807 } }{ "testf": { "$numberLong": 9223372036854775807 } }' );
+   file.write( '{ "_id": 1, "\\\"testa": "hello" }{"_id": 2, "te\\\"stb":"test"}{"_id": 3,"testc":"test"}{"_id": 4, "testd": { "$number\\\"Long": 9223372036854775807 } }{ "_id": 5, "teste": { "\\\"$numberLong": 9223372036854775807 } }{ "_id": 6, "testf": { "$numberLong": 9223372036854775807 } }' );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );
    file.close();
@@ -78,7 +78,7 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } );
+   var rc = cl.find( {}, { "_id": { $include: 0 } } ).sort( { "_id": 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {

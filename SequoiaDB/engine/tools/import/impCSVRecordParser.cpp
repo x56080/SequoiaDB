@@ -4424,6 +4424,14 @@ namespace import
 
    CSVRecordParser::~CSVRecordParser()
    {
+      vector<CSVField*>::iterator i = _fieldVec.begin() ;
+
+      for( ; i != _fieldVec.end(); ++i )
+      {
+         CSVField* field = *i ;
+
+         SAFE_OSS_DELETE( field ) ;
+      }
    }
 
    // field_name [field_type] [default <default_value>],
@@ -4698,8 +4706,6 @@ namespace import
       strDel = _stringDelimiter.c_str();
       strDelLen = _stringDelimiter.length();
 
-      bson_init(&obj);
-
       if (!_hasId)
       {
          bson_oid_t oid;
@@ -4901,7 +4907,6 @@ namespace import
    done:
       return rc;
    error:
-      bson_destroy(&obj);
       goto done;
    }
 

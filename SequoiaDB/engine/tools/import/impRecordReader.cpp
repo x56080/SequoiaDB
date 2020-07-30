@@ -47,23 +47,24 @@ namespace import
 
    void RecordReader::_clear()
    {
-      _set = FALSE;
-      _input = NULL;
-      _scanner = NULL;
-      _buffer = NULL;
-      _bufferSize = 0;
-      _recDelLen = 0;
-      _data = NULL;
-      _dataLength = 0;
-      _remainSize = 0;
-      _readSize = 0;
-      _totalSize = 0;
-      _final = FALSE;
+      _set     = FALSE ;
+      _input   = NULL ;
+      _scanner = NULL ;
+      _buffer  = NULL ;
+      _bufferSize  = 0 ;
+      _recDelLen   = 0 ;
+      _data        = NULL ;
+      _dataLength  = 0 ;
+      _remainSize  = 0 ;
+      _readSize    = 0 ;
+      _totalSize   = 0 ;
+      _final       = FALSE ;
+      _isFull      = FALSE ;
    }
 
-   void RecordReader::reset(CHAR* buffer, INT32 bufferSize,
-                            InputStream* input, RecordScanner* scanner,
-                            INT32 recordDelimiterLength)
+   void RecordReader::reset( CHAR* buffer, INT32 bufferSize,
+                             InputStream* input, RecordScanner* scanner,
+                             INT32 recordDelimiterLength )
    {
       _clear();
 
@@ -81,82 +82,120 @@ namespace import
       _recDelLen = recordDelimiterLength;
    }
 
-   INT32 RecordReader::read(CHAR*& record, INT32& recordLength)
+   void RecordReader::rotationBuffer( CHAR* buffer, INT32 bufferSize )
+   {
+      SDB_ASSERT( NULL != buffer, "buffer can't be NULL" ) ;
+      SDB_ASSERT( bufferSize > 0, "bufferSize must be greater than 0" ) ;
+
+      if ( 0 < _dataLength )
+      {
+         ossMemcpy( buffer, _data, _dataLength ) ;
+      }
+
+      _buffer     = buffer ;
+      _bufferSize = bufferSize ;
+      _remainSize = _dataLength ;
+      _dataLength = 0 ;
+      _isFull     = FALSE ;
+   }
+
+   INT32 RecordReader::read( CHAR*& record, INT32& recordLength,
+                             BOOLEAN isReuseBuffer )
    {
       INT32 rc = SDB_OK;
 
    readData:
-      if (_dataLength <= 0)
+      if ( 0 >= _dataLength )
       {
-         rc = _input->read(_buffer + _remainSize,
-                           _bufferSize - _remainSize, _readSize);
-         if (SDB_OK != rc)
+         if( _isFull && FALSE == isReuseBuffer )
          {
-            if (SDB_EOF != rc)
+            rc = SDB_OSS_UP_TO_LIMIT ;
+            _dataLength = 0 ;
+            goto done ;
+         }
+
+         rc = _input->read( _buffer + _remainSize,
+                            _bufferSize - _remainSize, _readSize ) ;
+         if ( rc )
+         {
+            if ( SDB_EOF != rc )
             {
-               PD_LOG(PDERROR, "failed to read from InputStream, rc=%d", rc);
-               goto error;
+               PD_LOG( PDERROR, "failed to read from InputStream, rc=%d", rc ) ;
+               goto error ;
             }
 
-            if (0 == _remainSize)
+            if ( 0 == _remainSize )
             {
                // real EOF
                goto done;
             }
 
             // the final record
-            _readSize = 0;
-            _final = TRUE;
+            _readSize = 0 ;
+            _final = TRUE ;
          }
 
-         _totalSize += _readSize;
-         _data = _buffer;
-         _dataLength = _remainSize + _readSize;
+         _totalSize += _readSize ;
+         _data = _buffer ;
+         _dataLength = _remainSize + _readSize ;
       }
 
-      rc = _scanner->scan(_data, _dataLength, _final, recordLength);
-      if (SDB_OK != rc)
+      rc = _scanner->scan( _data, _dataLength, _final, recordLength ) ;
+      if ( rc )
       {
-         if (SDB_EOF == rc)
+         if ( SDB_EOF == rc )
          {
-            if (_dataLength >= _bufferSize)
+            if ( _dataLength >= _bufferSize )
             {
-               rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "the remain data is out of length [0-%d]: %d",
-                               _bufferSize, _dataLength);
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "the remain data is out of length [0-%d]: %d",
+                       _bufferSize, _dataLength ) ;
+               goto error ;
             }
-            ossMemmove(_buffer, _data, _dataLength);
-            _remainSize = _dataLength;
-            _dataLength = 0;
-            goto readData;
+
+            if ( isReuseBuffer )
+            {
+               ossMemmove( _buffer, _data, _dataLength ) ;
+               _remainSize = _dataLength ;
+               _dataLength = 0 ;
+               goto readData ;
+            }
+
+            rc = SDB_OSS_UP_TO_LIMIT ;
+            goto done ;
          }
 
-         PD_LOG(PDERROR, "failed to scan record, rc=%d", rc);
-         goto error;
+         PD_LOG( PDERROR, "failed to scan record, rc=%d", rc ) ;
+         goto error ;
       }
 
-      record = _data;
+      record = _data ;
 
-      if (FORMAT_CSV == _scanner->format())
+      if ( FORMAT_CSV == _scanner->format() )
       {
-         _data += (recordLength + _recDelLen);
-         _dataLength -= (recordLength + _recDelLen);
+         _data += ( recordLength + _recDelLen ) ;
+         _dataLength -= ( recordLength + _recDelLen ) ;
       }
       else // JSON
       {
-         _data += recordLength;
-         _dataLength -= recordLength;
+         _data += recordLength ;
+         _dataLength -= recordLength ;
       }
 
-      if (_dataLength <= 0)
+      if ( _dataLength <= 0 )
       {
-         _remainSize = 0;
+         _remainSize = 0 ;
+         _isFull = TRUE ;
+      }
+
+      if ( 0 < recordLength && 0 == record[recordLength-1] )
+      {
+         --recordLength ;
       }
 
    done:
-      return rc;
+      return rc ;
    error:
-      goto done;
+      goto done ;
    }
 }

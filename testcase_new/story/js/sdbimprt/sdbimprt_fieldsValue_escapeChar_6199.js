@@ -30,7 +30,7 @@ function readyData ( imprtFile )
    println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
-   file.write( "'number','address','commit'\n9999999999,'http:sequoiadb.com',true\n9999999999.9999999999,'hepaticochlecystostcholecystntenterostomy','false'\n0.006574839201,pOiUyTmghe,'null'\n+6574839201,-6574839201,6574839201QEC.M\n6E+9,2014-4-9,_single109-100.jpg\n-6E+9,0xFFFF,006574839201\n'914321484','9999999999.9999999999','006574839201'" );
+   file.write( "'_id','number','address','commit'\n1,9999999999,'http:sequoiadb.com',true\n2,9999999999.9999999999,'hepaticochlecystostcholecystntenterostomy','false'\n3,0.006574839201,pOiUyTmghe,'null'\n4,+6574839201,-6574839201,6574839201QEC.M\n5,6E+9,2014-4-9,_single109-100.jpg\n6,-6E+9,0xFFFF,006574839201\n7,'914321484','9999999999.9999999999','006574839201'" );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );
    file.close();
@@ -67,7 +67,7 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "_id": 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {

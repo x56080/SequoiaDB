@@ -34,11 +34,11 @@
 
 #include "core.hpp"
 #include "oss.hpp"
+#include "impCommon.hpp"
 #include "impOptions.hpp"
-#include "impRecordQueue.hpp"
+#include "impScanner.hpp"
 #include "impParser.hpp"
 #include "impImporter.hpp"
-#include "impSharding.hpp"
 
 using namespace std;
 
@@ -47,27 +47,41 @@ namespace import
    class Routine
    {
    public:
-      Routine(Options& options);
-      ~Routine();
-      INT32 run();
-      void printStatistics();
+      Routine( Options& options ) ;
+
+      ~Routine() ;
+
+      INT32 run() ;
+
+      void printStatistics() ;
 
    private:
-      INT32 _startParser();
-      INT32 _waitParserStop();
-      INT32 _startImporter(INT32 workerNum);
-      INT32 _stopImporter();
-      INT32 _startSharding();
-      INT32 _stopSharding();
+      INT32 _init() ;
+
+      INT32 _startScanner() ;
+      INT32 _stopScanner() ;
+
+      INT32 _startParser() ;
+      INT32 _waitParserStop() ;
+
+      INT32 _startImporter() ;
+      INT32 _stopImporter() ;
 
    private:
-      Options&          _options;
-      RecordQueue       _parsedQueue;
-      RecordQueue       _shardingQueue;
+      INT32             _dataQueueNum ;
 
-      Parser            _parser;
-      Importer          _importer;
-      Sharding          _sharding;
+      DataQueue*        _dataQueue ;
+      BsonPageQueue*    _freeQueue ;
+      PageQueue*        _importQueue ;
+
+      Options&          _options ;
+
+      PageQueueBuffer   _importQueueBuffer ;
+
+      Scanner           _scanner ;
+      Parser            _parser ;
+      Importer          _importer ;
+      Packer            _packer ;
    };
 }
 

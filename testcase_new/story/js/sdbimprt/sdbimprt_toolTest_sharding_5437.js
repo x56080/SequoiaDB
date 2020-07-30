@@ -62,7 +62,7 @@ function importData ( csName, clName, imprtFile )
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
-      + ' --type csv --headerline true --sharding true -n 2'
+      + ' --type csv --headerline true --sharding true -n 1 --parsers 1 -j 1'
       + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
@@ -70,8 +70,8 @@ function importData ( csName, clName, imprtFile )
 
    var rcObj = rc.split( "\n" );
    var expParseRecords = "parsed records: 5";
-   var expImportedRecords = "imported records: 2";
-   var expImportFailure = "import failure: 3";
+   var expImportedRecords = "imported records: 3";
+   var expImportFailure = "import failure: 2";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    var actImportFailure = rcObj[5];
@@ -85,9 +85,9 @@ function importData ( csName, clName, imprtFile )
 
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
    var tmpRecs = cmd.run( "cut -c 49-56 " + rec ).split( "\n" );
-   var failedRecs = String( [tmpRecs[0], tmpRecs[1], tmpRecs[2]] );
+   var failedRecs = String( [tmpRecs[0], tmpRecs[1]] );
    println( rec + "\n" + failedRecs );
-   var expRecRecs = ' "a": 9 , "a": 0 , "a": 10';
+   var expRecRecs = ' "a": 0 , "a": 10';
    var actRecRecs = failedRecs;
    if( expRecRecs !== actRecRecs )
    {
@@ -112,8 +112,8 @@ function checkCLData ( cl )
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 2;
-   var expRecs = '[{"a":1},{"a":6}]';
+   var expCnt = 3;
+   var expRecs = '[{"a":1},{"a":6},{"a":9}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )

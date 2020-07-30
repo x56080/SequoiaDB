@@ -26,6 +26,7 @@ function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var leftR = "";
+   var id = 1;
    for( var i = 0; i < 10; i++ )
    {
       var leftL = "";
@@ -38,8 +39,10 @@ function prepareDate ( typeFile )
          {
             left = leftL + "1" + leftR;
             right = right + "0";
-            file.write( '{ a: ' + left + '.' + right + ' }\n' );
-            file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
+            file.write( '{ "_id": ' + id + ', a: ' + left + '.' + right + ' }\n' );
+            ++id;
+            file.write( '{ "_id": ' + id + ', a: { "$decimal": "' + left + '.' + right + '" } }\n' );
+            ++id;
          }
       }
    }
@@ -50,6 +53,7 @@ function getExpResult ( dataType )
 {
    var expResult = [];
    var leftR = "";
+   var id = 0;
    for( var i = 0; i < 10; i++ )
    {
       var leftL = "";
@@ -64,12 +68,13 @@ function getExpResult ( dataType )
             right = right + "0";
             if( dataType == "decimal" )
             {
-               expResult.push( { a: { "$decimal": left + "." + right } } );
+               expResult.push( { "a": { "$decimal": left + "." + right } } );
             }
             else
             {
-               expResult.push( { a: parseFloat( left + ".1" ) } );
+               expResult.push( { "a": parseFloat( left + ".1" ) } );
             }
+            ++id;
          }
       }
    }

@@ -58,6 +58,7 @@ namespace import
                  BOOLEAN useSSL);
       INT32 getGroupNum() const { return _groupNum; }
       INT32 getGroupByRecord(bson* record, string& collection, UINT32& groupId);
+      INT32 getAllGroupID( vector<UINT32>& list ) ;
 
    private:
       INT32 _getCatalogInfo( BOOLEAN getSubCL, INT32 &cataCount ) ;

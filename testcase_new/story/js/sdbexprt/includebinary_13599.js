@@ -91,7 +91,8 @@ function testExprtBinary1 ()
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='key binary'";
+      " --fields='key binary'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -131,7 +132,8 @@ function testExprtBinary2 ()
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='key binary'";
+      " --fields='key binary'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );

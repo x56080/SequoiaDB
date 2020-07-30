@@ -39,7 +39,7 @@
 #ifndef UTIL_CIRCULAR_QUEUE_HPP__
 #define UTIL_CIRCULAR_QUEUE_HPP__
 
-#include "utilMemListPool.hpp"
+#include "oss.hpp"
 #include "pd.hpp"
 
 #pragma warning( disable: 4200 )
@@ -77,7 +77,7 @@ namespace engine
 
          if ( capacity > 0 )
          {
-            T *buffer = (T *)( SDB_THREAD_ALLOC( capacity * sizeof( T ) ) ) ;
+            T *buffer = (T *)( SDB_OSS_MALLOC( capacity * sizeof( T ) ) ) ;
             if ( NULL != buffer )
             {
                _buffer = (T *)buffer ;
@@ -93,7 +93,7 @@ namespace engine
       {
          if ( NULL != _buffer )
          {
-            SDB_THREAD_FREE( _buffer ) ;
+            SDB_OSS_FREE( _buffer ) ;
          }
          _capacity = 0 ;
          _front = 0 ;
@@ -214,7 +214,7 @@ namespace engine
    // queue with circular buffer
    // WARNING: thread NOT safe
    template< typename T >
-   class _utilCircularQueue : public utilPooledObject
+   class _utilCircularQueue : public SDBObject
    {
    public:
       typedef size_t       size_type ;
@@ -349,7 +349,7 @@ namespace engine
       // circular buffer
       _utilCircularBuffer<T> *   _buffer ;
       // external queue ( to be used when buffer is full )
-      ossPoolDeque<T>            _extQueue ;
+      std::deque<T>              _extQueue ;
    } ;
 
 }

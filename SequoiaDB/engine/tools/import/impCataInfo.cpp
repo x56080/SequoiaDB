@@ -92,6 +92,43 @@ namespace import
       goto done;
    }
 
+   INT32 CataInfo::getAllGroupID( vector<UINT32>& list )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 size = 0 ;
+      engine::VEC_GROUP_ID tmpList ;
+      engine::VEC_GROUP_ID::iterator it ;
+
+      SDB_ASSERT( NULL != _cataSet, "must be inited" ) ;
+
+      size = _cataSet->getAllGroupID( tmpList );
+      if ( 0 > size )
+      {
+         rc = size ;
+         PD_LOG( PDERROR, "failed to get all group id, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         for ( it = tmpList.begin(); it != tmpList.end(); ++it )
+         {
+            list.push_back( *it ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 CataInfo::getSubCLList(vector<string>& list)
    {
       INT32 rc = SDB_OK;

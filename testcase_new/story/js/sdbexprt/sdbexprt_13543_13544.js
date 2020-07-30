@@ -51,7 +51,8 @@ function testWithIdCsv ()
       " --file " + csvFile +
       " --type csv " +
       " --fields='_id int,a int'" +
-      " --headerline true";
+      " --headerline true" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecords = [ { "_id": 1, "a": 1 }, { "_id": 2, "a": 2 }, { "_id": 3, "a": 3 } ];
@@ -98,7 +99,8 @@ function testWithIdJson ()
       " -c " + COMMCSNAME +
       " -l " + clName2 +
       " --file " + jsonFile +
-      " --type json";
+      " --type json" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecords = [ { "_id": 1, "a": 1 }, { "_id": 2, "a": 2, "b": 1 }, { "_id": 3, "a": 3, "b": 2, "c": 1 } ];

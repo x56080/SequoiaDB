@@ -14,7 +14,7 @@ function main ()
    prepareDate( jsonFile );
 
    println( "\n---import csv file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 400 );
    dataType = "double";
@@ -26,7 +26,7 @@ function main ()
    cl.truncate();
 
    println( "\n---data type double、decimal to import json file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 400 );
    dataType = "double";
@@ -43,6 +43,7 @@ function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
+   var id = 1;
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
@@ -52,12 +53,13 @@ function prepareDate ( typeFile )
          right = right + "1";
          if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
          {
-            file.write( left + "." + right + "e+" + ( 308 - i ) + "\n" );
+            file.write( id + "," + left + "." + right + "e+" + ( 308 - i ) + "\n" );
          }
          else
          {
-            file.write( '{ a:' + left + '.' + right + "e+" + ( 308 - i ) + ' }\n' );
+            file.write( '{ "_id": ' + id + ', "a":' + left + '.' + right + "e+" + ( 308 - i ) + ' }\n' );
          }
+         ++id;
       }
    }
    file.close();

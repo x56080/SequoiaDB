@@ -32,50 +32,75 @@
 #ifndef IMP_RECORD_IMPORTER_HPP_
 #define IMP_RECORD_IMPORTER_HPP_
 
+#include "msg.h"
 #include "core.hpp"
 #include "oss.hpp"
-#include "impRecordQueue.hpp"
 #include "../client/client.h"
+#include "impCommon.hpp"
 #include <string>
 
 using namespace std;
 
 namespace import
 {
-   class RecordImporter: public SDBObject
+   class RecordImporter : public SDBObject
    {
    public:
-      RecordImporter(const string& hostname,
-                     const string& svcname,
-                     const string& user,
-                     const string& password,
-                     const string& csname,
-                     const string& clname,
-                     BOOLEAN useSSL = FALSE,
-                     BOOLEAN enableTransaction = FALSE,
-                     BOOLEAN allowKeyDuplication = TRUE);
-      ~RecordImporter();
-      INT32 connect();
-      void disconnect();
-      INT32 import(bson* objs[], INT32 num);
-      INT32 import(RecordArray* array);
+      RecordImporter( const string& hostname,
+                      const string& svcname,
+                      const string& user,
+                      const string& password,
+                      const string& csname,
+                      const string& clname,
+                      BOOLEAN useSSL = FALSE,
+                      BOOLEAN enableTransaction = FALSE,
+                      BOOLEAN allowKeyDuplication = TRUE ) ;
+
+      ~RecordImporter() ;
+
+      INT32 connect() ;
+
+      void disconnect() ;
+
+      INT32 import( PageInfo* pageInfo ) ;
 
    private:
-      string   _hostname;
-      string   _svcname;
-      string   _user;
-      string   _password;
-      string   _csname;
-      string   _clname;
-      BOOLEAN  _useSSL;
-      BOOLEAN  _enableTransaction;
-      BOOLEAN  _allowKeyDuplication;
+      INT32 _initInsertMsg() ;
+
+      INT32 _bulkInsert( PageInfo* pageInfo, SINT32 flag ) ;
+
+      INT32 _send( const CHAR *pMsg, INT32 len ) ;
+
+      INT32 _recv() ;
+
+      INT32 _extract() ;
+
+   private:
+      INT32 _insertBufferSize ;
+      INT32 _recvBufferSize ;
+
+      BOOLEAN  _useSSL ;
+      BOOLEAN  _enableTransaction ;
+      BOOLEAN  _allowKeyDuplication ;
+      BOOLEAN  _endianConvert ;
 
       // db handle
-      sdbConnectionHandle  _connection;
-      sdbCSHandle          _collectionSpace;
-      sdbCollectionHandle  _collection;
-   };
+      sdbConnectionHandle  _connection ;
+      sdbCSHandle          _collectionSpace ;
+      sdbCollectionHandle  _collection ;
+
+      // Message header
+      MsgOpInsert*  _insertMsg ;
+      CHAR*         _insertBuffer ;
+      CHAR*         _recvBuffer ;
+
+      string   _hostname ;
+      string   _svcname ;
+      string   _user ;
+      string   _password ;
+      string   _csname ;
+      string   _clname ;
+   } ;
 }
 
 #endif /* IMP_RECORD_IMPORTER_HPP_ */

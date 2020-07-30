@@ -13,7 +13,7 @@ function main ()
 
    var expResults = prepareDate( csvFile );
    println( "\n---data type int32、int64、double、decimal to import csv file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 2000 );
    dataType = "int32";
@@ -32,7 +32,7 @@ function main ()
 
    expResults = prepareDate( jsonFile );
    println( "\n---data type int32、int64、double、decimal to import json file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 2000 );
    dataType = "int32";
@@ -59,6 +59,7 @@ function prepareDate ( typeFile )
    var expResult_double = [];
    var expResult_decimal = [];
    var file = new File( typeFile );
+   var id = 1;
    for( var i = 0; i < 1000; i++ )
    {
       var left = getRandom();
@@ -69,13 +70,17 @@ function prepareDate ( typeFile )
       }
       if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
       {
-         file.write( left + "\n" );
-         file.write( left + "." + right + "\n" );
+         file.write( id + "," + left + "\n" );
+         ++id;
+         file.write( id + "," + left + "." + right + "\n" );
+         ++id;
       }
       else
       {
-         file.write( '{ a:' + left + ' }\n' );
-         file.write( '{ a:' + left + '.' + right + ' }\n' );
+         file.write( '{ "_id": ' + id + ', "a":' + left + ' }\n' );
+         ++id;
+         file.write( '{ "_id": ' + id + ', "a":' + left + '.' + right + ' }\n' );
+         ++id;
       }
       if( left < 2147483647 )
       {

@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = impImporter.hpp
+   Source File Name = impParser.hpp
 
    Dependencies: N/A
 
@@ -24,51 +24,52 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          7/7/2015  David Li  Initial Draft
+          06/11/2020  HJW Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef IMP_IMPORTER_HPP_
-#define IMP_IMPORTER_HPP_
+#ifndef IMP_PACKER_HPP_
+#define IMP_PACKER_HPP_
 
 #include "core.hpp"
 #include "oss.hpp"
 #include "impCommon.hpp"
 #include "impOptions.hpp"
-#include "impWorker.hpp"
-#include "impCoord.hpp"
+#include "impRecordSharding.hpp"
 #include "impLogFile.hpp"
-#include "ossAtomic.hpp"
-#include <vector>
-
-using namespace std;
 
 namespace import
 {
-   class Importer : public SDBObject
+   typedef map<UINT32, BsonPageHeader*> PageMap ;
+
+   class Packer : public SDBObject
    {
    public:
-      Importer() ;
-      ~Importer() ;
-      INT32 init( Options* options, BsonPageQueue* freeQueue,
-                  PageQueue* importQueue, INT32 workerNum ) ;
-      INT32 start() ;
-      INT32 stop() ;
+      Packer() ;
 
-      inline BOOLEAN isStopped()
+      ~Packer() ;
+
+      INT32 init( Options* options, BsonPageQueue* freeQueue,
+                  PageQueue* importQueue ) ;
+
+      INT32 packing( bson* record ) ;
+
+      BOOLEAN clearQueue( BOOLEAN allClear = TRUE ) ;
+
+      inline void stop()
       {
-         return 0 == _livingNum.fetch() ;
+         _stopped = TRUE ;
       }
 
-      inline INT64 importedNum()
+      inline INT64 shardingNum()
       {
-         return _importedNum.fetch();
+         return _shardingNum.fetch() ;
       }
 
       inline INT64 failedNum()
       {
-         return _failedNum.fetch();
+         return _failedNum.fetch() ;
       }
 
       inline const string& logFileName() const
@@ -77,24 +78,31 @@ namespace import
       }
 
    private:
+      INT32 _getHeaderId( bson* record, UINT32& headerId ) ;
+
+      INT32 _initShardingMap() ;
+
+      INT32 _initPageMap() ;
+
+      void _pushToImportQueue( BsonPageHeader* pageHeader ) ;
+
+   private:
+      INT32             _mapNum ;
       BOOLEAN           _inited ;
-      UINT32            _refCount ;
+      BOOLEAN           _stopped ;
+      BOOLEAN           _needSharding ;
 
       Options*          _options ;
       BsonPageQueue*    _freeQueue ;
       PageQueue*        _importQueue ;
 
-      // statistics
-      ossAtomicSigned32 _livingNum ;
-      ossAtomicSigned64 _importedNum ;
+      ossAtomicSigned64 _shardingNum ;
       ossAtomicSigned64 _failedNum ;
 
-      Coords            _coords ;
-      vector<Worker*>   _workers ;
+      PageMap           _pageMap ;
+      RecordSharding    _sharding ;
       LogFile           _logFile ;
-
-      friend void _importerRoutine( WorkerArgs* args ) ;
    } ;
 }
 
-#endif /* IMP_IMPORTER_HPP_ */
+#endif /* IMP_PACKER_HPP_ */

@@ -48,6 +48,8 @@
 #define TIME_OUTPUT_CSV_FORMAT "%04d-%02d-%02d-%02d.%02d.%02d.%06d"
 #define TIME_OUTPUT_FORMAT "{ \"$timestamp\": \"" TIME_OUTPUT_CSV_FORMAT "\" }"
 
+#define RECORD_ID_NAME "_id"
+
 static void get_char_num ( CHAR *str, INT32 i, INT32 str_size ) ;
 static CHAR* intToString ( INT32 value, CHAR *string, INT32 radix ) ;
 static BOOLEAN date2Time( const CHAR *pDate,
@@ -100,6 +102,7 @@ JSON_PLOG_FUNC _pJsonPrintfLogFun ;
 static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                                 const cJson_iterator *pIter,
                                 bson *pBson,
+                                BOOLEAN *hasId,
                                 BOOLEAN isObj,
                                 INT32 decimalto ) ;
 
@@ -164,9 +167,69 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               INT32 decimalto,
                               bson *pBson )
 {
-   BOOLEAN flag = TRUE ;
-   BOOLEAN isOwn = FALSE ;
+   INT32 flags = 0 ;
+
+   if ( CJSON_RIGOROUS_PARSE == parseMode )
+   {
+      flags |= JSON_FLAG_RIGOROUS_MODE ;
+   }
+
+   if ( isCheckEnd )
+   {
+      flags |= JSON_FLAG_CHECK_END ;
+   }
+
+   if ( isUnicode )
+   {
+      flags |= JSON_FLAG_ESCAPE_UNICODE ;
+   }
+
+   if ( JSON_DECIMAL_TO_DOUBLE == decimalto )
+   {
+      flags |= JSON_FLAG_DECIMAL_TO_DOUBLE ;
+   }
+   else if ( JSON_DECIMAL_TO_STRING == decimalto )
+   {
+      flags |= JSON_FLAG_DECIMAL_TO_STRING ;
+   }
+
+   return json2bson3( pJson, pMachine, flags, pBson ) ;
+}
+
+/*
+ * json convert bson interface
+ * pJson : json string
+ * pMachine : cJSON state machine
+ * flags: converted parameters
+ * pBson : bson object
+ * return : the conversion result
+*/
+/* THIS IS EXTERNAL FUNCTION TO CONVERT FROM JSON STRING INTO BSON OBJECT */
+SDB_EXPORT BOOLEAN json2bson3( const CHAR *pJson, CJSON_MACHINE *pMachine,
+                               INT32 flags, bson *pBson )
+{
+   INT32 parseMode = 0 ;
+   INT32 decimalto = JSON_DECIMAL_NO_CONVERT ;
+   BOOLEAN result = TRUE ;
+   BOOLEAN isOwn  = FALSE ;
+   BOOLEAN hasId  = FALSE ;
+   BOOLEAN isCheckEnd = JSON_FLAG_CHECK_END & flags ;
+   BOOLEAN isUnicode  = JSON_FLAG_ESCAPE_UNICODE & flags ;
    const cJson_iterator *pIter = NULL ;
+
+   if ( JSON_FLAG_RIGOROUS_MODE & flags )
+   {
+      parseMode = 1 ;
+   }
+
+   if ( JSON_FLAG_DECIMAL_TO_DOUBLE & flags )
+   {
+      decimalto = JSON_DECIMAL_TO_DOUBLE ;
+   }
+   else if ( JSON_FLAG_DECIMAL_TO_STRING & flags )
+   {
+      decimalto = JSON_DECIMAL_TO_STRING ;
+   }
 
    cJsonExtAppendFunction() ;
 
@@ -196,12 +259,30 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
       goto error ;
    }
 
-   bson_init( pBson ) ;
+   if ( !( JSON_FLAG_NOT_INIT_BSON & flags ) )
+   {
+      bson_init( pBson ) ;
+   }
 
-   if( jsonConvertBson( pMachine, pIter, pBson, TRUE, decimalto ) == FALSE )
+   if( jsonConvertBson( pMachine, pIter, pBson, &hasId,
+                        TRUE, decimalto ) == FALSE )
    {
       JSON_PRINTF_LOG( "Failed to convert json to bson" ) ;
       goto error ;
+   }
+
+   if ( !hasId && ( JSON_FLAG_APPEND_OID & flags ) )
+   {
+      INT32 rc = SDB_OK ;
+      bson_oid_t oid ;
+
+      bson_oid_gen( &oid ) ;
+      rc = bson_append_oid( pBson, RECORD_ID_NAME, &oid ) ;
+      if ( rc )
+      {
+         JSON_PRINTF_LOG( "failed to append record id, rc=%d", rc ) ;
+         goto error;
+      }
    }
 
    if( bson_finish( pBson ) == BSON_ERROR )
@@ -215,9 +296,9 @@ done:
    {
       cJsonRelease( pMachine ) ;
    }
-   return flag ;
+   return result ;
 error:
-   flag = FALSE ;
+   result = FALSE ;
    goto done ;
 }
 
@@ -687,6 +768,7 @@ static CHAR* intToString ( INT32 value, CHAR *string, INT32 radix )
 static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                                 const cJson_iterator *pIter,
                                 bson *pBson,
+                                BOOLEAN *hasId,
                                 BOOLEAN isObj,
                                 INT32 decimalto )
 {
@@ -698,12 +780,25 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
    CVALUE arg2 ;
    CHAR numKey[ INT_NUM_SIZE ] = {0} ;
 
+   if ( hasId )
+   {
+      *hasId = FALSE ;
+   }
+
    while( cJsonIteratorMore( pIter ) )
    {
       cJsonType = cJsonIteratorType( pIter ) ;
       if( isObj == TRUE )
       {
          pKey = cJsonIteratorKey( pIter ) ;
+
+         if ( pKey && hasId && FALSE == *hasId &&
+              ossStrlen( pKey ) == sizeof( RECORD_ID_NAME ) - 1 &&
+              0 == ossStrncmp( pKey, RECORD_ID_NAME,
+                               sizeof( RECORD_ID_NAME ) - 1 ) )
+         {
+            *hasId = TRUE ;
+         }
       }
       if( isObj == FALSE || pKey == NULL )
       {
@@ -804,7 +899,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
             JSON_PRINTF_LOG( "Failed to get '%s' sub iterator", pKey ) ;
             goto error ;
          }
-         if( jsonConvertBson( pMachine, pIterSub, pBson,
+         if( jsonConvertBson( pMachine, pIterSub, pBson, NULL,
                               TRUE, decimalto ) == FALSE )
          {
             JSON_PRINTF_LOG( "Failed to convert '%s' value", pKey ) ;
@@ -834,7 +929,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
             JSON_PRINTF_LOG( "Failed to get '%s' sub iterator", pKey ) ;
             goto error ;
          }
-         if( jsonConvertBson( pMachine, pIterSub, pBson,
+         if( jsonConvertBson( pMachine, pIterSub, pBson, NULL,
                               TRUE, decimalto ) == FALSE )
          {
             JSON_PRINTF_LOG( "Failed to convert '%s' value", pKey ) ;
@@ -1337,7 +1432,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                goto error ;
             }
          }
-         else if( JSON_DECIMAL_NO_STRING == decimalto )
+         else if( JSON_DECIMAL_TO_STRING == decimalto )
          {
             //to string
             INT32 strLen = 0 ;

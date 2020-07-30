@@ -141,6 +141,19 @@ SDB_EXPORT int bson_copy( bson *out, const bson *in ) {
     return BSON_OK;
 }
 
+SDB_EXPORT int bson_init_by_reset( bson *obj ) {
+    if ( !obj )
+    {
+        return BSON_ERROR ;
+    }
+    obj->cur      = obj->data + 4 ;
+    obj->finished = 0 ;
+    obj->stackPos = 0 ;
+    obj->err      = 0 ;
+    obj->errstr   = NULL ;
+    return BSON_OK ;
+}
+
 int bson_init_data( bson *b, const char *data ) {
     if ( b->ownmem && b->data )
     {

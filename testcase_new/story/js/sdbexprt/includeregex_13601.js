@@ -83,7 +83,8 @@ function testExprtRegex1 ()
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='key regex'";
+      " --fields='key regex'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -121,7 +122,8 @@ function testExprtRegex2 ()
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='key regex'";
+      " --fields='key regex'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );

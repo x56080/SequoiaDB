@@ -127,7 +127,8 @@ function importData ( csName, clName, imprtFile, datas )
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type json'
-      + ' --file ' + imprtFile;
+      + ' --file ' + imprtFile
+      + ' --parsers 1 -j 1';
    //println( imprtOption );
    var rc = cmd.run( imprtOption );
    //println( rc );  

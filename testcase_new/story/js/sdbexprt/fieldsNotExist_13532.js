@@ -75,7 +75,8 @@ function testExprtImprtCsv ()
       " --file " + csvfile +
       " --type csv " +
       " --headerline true" +
-      " --fields='a int,b int,c int'";
+      " --fields='a int,b int,c int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -105,7 +106,8 @@ function testExprtImprtJson ()
       " -c " + csname +
       " -l " + clname1 +
       " --file " + jsonfile +
-      " --type json";
+      " --type json" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + jsonfile );

@@ -91,7 +91,8 @@ function testExprtImprtCsv ()
       " --file " + csvfile +
       " --type csv" +
       " --headerline true" +
-      " --fields='" + key + " autodate'";
+      " --fields='" + key + " autodate'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
@@ -120,7 +121,8 @@ function testExprtImprtJson ()
       " -c " + csname +
       " -l " + clname1 +
       " --type json" +
-      " --file " + jsonfile;
+      " --file " + jsonfile +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    cmd.run( "rm -rf " + jsonfile );

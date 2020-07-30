@@ -53,8 +53,8 @@ function testImprtJson2( cl )
 {
    var filename = tmpFileDir + "21935_2.json";
    var file = fileInit( filename );
-   file.write( "{ \"a\": \"Mike\n\" }\n" );
-   file.write( "{ \"a\": 1, \"b\": 2 }" );
+   file.write( "{ \"_id\": 1, \"a\": \"Mike\n\" }\n" );
+   file.write( "{ \"_id\": 2, \"a\": 1, \"b\": 2 }" );
    file.close();
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
@@ -68,23 +68,23 @@ function testImprtJson2( cl )
    cl.remove();
    cmd.run( command );
    var expectResult = [{"a":"Mike\n"},{"a":1,"b":2}];
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    //linepriority auto
    cl.remove();
    cmd.run( command + " --linepriority auto");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    //linepriority flase
    cl.remove();
    cmd.run( command + " --linepriority false");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    
    // linepriority true
    cl.remove();
    cmd.run( command + " --linepriority true");
    expectResult = [ { "a": 1, "b": 2 } ];
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
 }
 
 function testImprtCsv1( cl )
@@ -129,37 +129,37 @@ function testImprtCsv2( cl )
 {
    var filename = tmpFileDir + "21935_2.csv";
    var file = fileInit( filename );
-   file.write( '"Jack",18,"Chi\n' );
-   file.write( 'na"\n' );
-   file.write( '"Mike",20,"USA"\n' );
+   file.write( '1,"Jack",18,"Chi\n' );
+   file.write( '2,na"\n' );
+   file.write( '3,"Mike",20,"USA"\n' );
    file.close();
    var command = installDir + "bin/sdbimprt" +
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
       " -l " + testConf.clName +
       " --type csv " + 
-      "--fields a,b,c " +
+      "--fields _id,a,b,c " +
       "--file " + filename;
    
    //不指定--linepriority 
    cl.remove();
    cmd.run( command );
    var expectResult = [ {"a": "Jack","b": 18,"c": "Chi"}, {"a": "na"}, {"a": "Mike","b": 20,"c": "USA"} ];
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    cl.remove();
   
    //linepriority auto
    cmd.run( command + " --linepriority auto");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    cl.remove();
 
-   //linepriority flase
+   //linepriority false
    cmd.run( command + " --linepriority true");
-   commCompareResults( cl.find(), expectResult );
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    cl.remove();
 
    // linepriority true
    cmd.run( command + " --linepriority false");
-   expectResult =  [{"a": "Jack","b": 18,"c": "Chi\nna"}, {"a": "Mike","b": 20,"c": "USA"} ];
-   commCompareResults( cl.find(), expectResult );   
+   expectResult =  [{"a": "Jack","b": 18,"c": "Chi\n2,na"}, {"a": "Mike","b": 20,"c": "USA"} ];
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );   
 }

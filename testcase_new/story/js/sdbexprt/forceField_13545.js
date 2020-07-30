@@ -52,7 +52,8 @@ function testForceCsv1 ()
       " --file " + csvfile +
       " --type csv " +
       " --fields='_id int,a int,b int,c int'" +
-      " --headerline true";
+      " --headerline true" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"_id\":1,\"a\":1,\"b\":2,\"c\":3}",
@@ -101,7 +102,8 @@ function testForceCsv2 ()
       " --file " + csvfile +
       " --type csv " +
       " --fields='a int,b int,c int'" +
-      " --headerline true";
+      " --headerline true" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1,\"b\":2,\"c\":3}",
@@ -149,7 +151,8 @@ function testForceJson ()
       " -c " + csname +
       " -l " + clname1 +
       " --file " + jsonfile +
-      " --type json";
+      " --type json" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"_id\":1,\"a\":1,\"b\":2,\"c\":3}",

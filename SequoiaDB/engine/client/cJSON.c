@@ -1074,7 +1074,7 @@ static const CHAR* readString( const CHAR *pStr,
          else
          {
             length = pStr - pStrStart ;
-            CJSON_PRINTF_LOG( "Syntax Error: JSON string '%s' is not over yet",
+            CJSON_PRINTF_LOG( "Syntax Error: JSON string '%.*s' is not over yet",
                               length,
                               pStrStart ) ;
          }

@@ -258,6 +258,15 @@ namespace import
 
       void  reset()
       {
+         vector<CSVField*>::iterator i = _fieldVec.begin() ;
+
+         for( ; i != _fieldVec.end(); ++i )
+         {
+            CSVField* field = *i ;
+
+            SAFE_OSS_DELETE( field ) ;
+         }
+
          _fieldVec.clear() ;
          _fields.clear() ;
          _hasId = FALSE ;

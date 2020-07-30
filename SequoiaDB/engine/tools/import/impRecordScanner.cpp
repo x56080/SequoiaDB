@@ -304,7 +304,7 @@ namespace import
             len--;
          }
 
-         recordLength = length - len;         
+         recordLength = length - len;
       }
       else if (SDB_EOF == rc && final)
       {

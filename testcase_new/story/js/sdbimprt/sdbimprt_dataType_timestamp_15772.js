@@ -30,7 +30,7 @@ function readyData ( imprtFile )
    println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
-   file.write( 'time1,time2,time3\n"2014-01-01","2001/01/01","1990-01-01"\n"2014-01-01Z","2001/01/01Z","1990-01-01Z"\n"2014-01-01+0200","2001/01/01+0200","1990-01-01+0200"\n"2014-01-01 helloworld","2001/01/01 helloworld","1990-01-01 helloworld"' );
+   file.write( '_id,time1,time2,time3\n1,"2014-01-01","2001/01/01","1990-01-01"\n2,"2014-01-01Z","2001/01/01Z","1990-01-01Z"\n3,"2014-01-01+0200","2001/01/01+0200","1990-01-01+0200"\n4,"2014-01-01 helloworld","2001/01/01 helloworld","1990-01-01 helloworld"' );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );
    file.close();
@@ -48,7 +48,7 @@ function importData ( csName, clName, imprtFile )
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv '
-      + ' --fields=\'time1 timestamp("YYYY-MM-DD"), time2 timestamp("YYYY/MM/DDZ"), time3 timestamp("YYYY-MM-DD+0600")\' '
+      + ' --fields=\'_id int, time1 timestamp("YYYY-MM-DD"), time2 timestamp("YYYY/MM/DDZ"), time3 timestamp("YYYY-MM-DD+0600")\' '
       + ' --headerline true '
       + ' --file ' + imprtFile;
    println( imprtOption );
@@ -79,7 +79,7 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "_id": 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {

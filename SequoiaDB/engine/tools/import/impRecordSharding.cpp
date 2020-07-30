@@ -33,6 +33,7 @@
 #include "msgDef.h"
 #include "../client/client.h"
 #include "pd.hpp"
+#include <iostream>
 
 namespace import
 {
@@ -281,6 +282,7 @@ namespace import
       }
 
    done:
+      bson_destroy( &condition ) ;
       bson_destroy( &cataObj ) ;
       if ( SDB_INVALID_HANDLE != cursor )
       {
@@ -308,55 +310,76 @@ namespace import
       SDB_ASSERT(_inited, "must be inited");
       SDB_ASSERT(NULL != record, "record can't be NULL");
 
-      if (_groupNum > 1)
+      if ( _isMainCL )
       {
-         if (_isMainCL)
+         map<string, CataInfo>::iterator it;
+
+         rc = _cataInfo.getSubCLNameByRecord(bson_data(record), collection);
+         if (SDB_OK != rc)
          {
-            map<string, CataInfo>::iterator it;
-
-            rc = _cataInfo.getSubCLNameByRecord(bson_data(record), collection);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get subCL by record, rc=%d", rc);
-               goto error;
-            }
-
-            it = _subCataInfo.find(collection);
-            if (it == _subCataInfo.end())
-            {
-               rc = SDB_SYS;
-               PD_LOG(PDERROR, "failed to get CataInfo by subCL, subCL=%s, rc=%d",
-                      collection.c_str(), rc);
-               goto error;
-            }
-
-            rc = (it->second).getGroupByRecord(bson_data(record), groupId);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get group of subCL[%s] by record, rc=%d",
-                      collection.c_str(), rc);
-               goto error;
-            }
+            PD_LOG(PDERROR, "failed to get subCL by record, rc=%d", rc);
+            goto error;
          }
-         else
+
+         it = _subCataInfo.find(collection);
+         if (it == _subCataInfo.end())
          {
-            rc = _cataInfo.getGroupByRecord(bson_data(record), groupId);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
-               goto error;
-            }
-            collection = _collectionName;
+            rc = SDB_SYS;
+            PD_LOG(PDERROR, "failed to get CataInfo by subCL, subCL=%s, rc=%d",
+                   collection.c_str(), rc);
+            goto error;
+         }
+
+         rc = (it->second).getGroupByRecord(bson_data(record), groupId);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get group of subCL[%s] by record, rc=%d",
+                   collection.c_str(), rc);
+            goto error;
          }
       }
       else
       {
-         groupId = 0;
+         rc = _cataInfo.getGroupByRecord(bson_data(record), groupId);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
+            goto error;
+         }
+         collection = _collectionName;
       }
 
    done:
       return rc;
    error:
       goto done;
+   }
+
+   INT32 RecordSharding::getAllGroupID( vector<UINT32>& list )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _isMainCL )
+      {
+         map<string, CataInfo>::iterator it ;
+
+         for ( it = _subCataInfo.begin(); it != _subCataInfo.end(); ++it )
+         {
+            rc = it->second.getAllGroupID( list ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         rc = _cataInfo.getAllGroupID( list ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }

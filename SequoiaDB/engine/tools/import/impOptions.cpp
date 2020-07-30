@@ -70,6 +70,7 @@ namespace import
    #define IMP_OPTION_FORCE             "force"
    #define IMP_OPTION_SSL               "ssl"
    #define IMP_OPTION_JOBS              "jobs"
+   #define IMP_OPTION_PARSERS           "parsers"
    #define IMP_OPTION_BUFFERSIZE        "buffer"
    #define IMP_OPTION_DRYRUN            "dryrun"
    #define IMP_OPTION_VERBOSE           "verbose"
@@ -105,7 +106,7 @@ namespace import
    #define IMP_EXPLAIN_DELRECORD        "record delimiter, default: '\\n'"
    #define IMP_EXPLAIN_COLLECTSPACE     "collection space name"
    #define IMP_EXPLAIN_COLLECTION       "collection name"
-   #define IMP_EXPLAIN_BATCHSIZE        "batch insert records number, minimun 1, maximum 100000, default: 100"
+   #define IMP_EXPLAIN_BATCHSIZE        "batch insert records number, minimun 1, maximum 100000, default: 1000"
    #define IMP_EXPLAIN_FILENAME         "input files name, multiple files or directories must be separated by ',', don't support subdirectories recursively. use standard input if both --exec and --file are not specified"
    #define IMP_EXPLAIN_TYPE             "type of record to load, default: csv (json,csv)"
    #define IMP_EXPLAIN_FIELDS           "field name, separated by comma (',')(e.g. --fields \"name,age\"). "\
@@ -117,7 +118,8 @@ namespace import
    #define IMP_EXPLAIN_ERRORSTOP        "whether stop by hitting error, default: false"
    #define IMP_EXPLAIN_FORCE            "force to insert the records that are not in utf-8 format, default: false"
    #define IMP_EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true), default: false"
-   #define IMP_EXPLAIN_JOBS             "importing job num at once, default: 1"
+   #define IMP_EXPLAIN_JOBS             "importing job num at once, default: 4"
+   #define IMP_EXPLAIN_PARSERS          "number of parser, default: 4"
    #define IMP_EXPLAIN_BUFFER           "set buffer size(unit:MB), default: 64"
    #define IMP_EXPLAIN_DRYRUN           "only parse record, don't import to database"
    #define IMP_EXPLAIN_VERBOSE          "print run time details"
@@ -178,6 +180,7 @@ namespace import
    #define IMP_IMPORT_OPTIONS \
       (IMP_OPTION_BATCHSIZE",n",       _TYPE(INT32),     IMP_EXPLAIN_BATCHSIZE) \
       (IMP_OPTION_JOBS",j",            _TYPE(INT32),     IMP_EXPLAIN_JOBS) \
+      (IMP_OPTION_PARSERS,             _TYPE(INT32),     IMP_EXPLAIN_PARSERS) \
       (IMP_OPTION_COORD,               _TYPE(string),    IMP_EXPLAIN_COORD) \
       (IMP_OPTION_SHARDING,            _TYPE(string),    IMP_EXPLAIN_SHARDING) \
       (IMP_OPTION_TRANSACTION,         _TYPE(string),    IMP_EXPLAIN_TRANSACTION) \
@@ -315,8 +318,9 @@ namespace import
       _useSSL = FALSE;
       _verbose = FALSE;
 
-      _batchSize = 100;
-      _jobs = 1;
+      _batchSize = 1000;
+      _jobs = 4;
+      _parsers = 4 ;
       _enableSharding = TRUE;
       _enableCoord = TRUE;
       _enableTransaction = FALSE;
@@ -337,7 +341,7 @@ namespace import
       _strictFieldNum = FALSE;
       _strictCheckDel = TRUE;
 
-      _bufferSize = 64;
+      _bufferSize = 64 * 1024 * 1024 ;
       _dryRun = FALSE;
       _recordsMem = (INT64)1024 * 1024 * 512; // 512MB
       _ignoreNull = FALSE;
@@ -558,11 +562,11 @@ namespace import
                if ( SDB_OK != rc )
                {
                   std::cerr << "Failed to get user[" << _user.c_str()
-                            << "]'s password from cipher file"
+                            << "] password from cipher file"
                             << "[" << _cipherfile.c_str() << "], rc: " << rc
                             << std::endl ;
-                  PD_LOG( PDERROR, "Failed to get user[%s]'s password from "
-                          "cipher file[%s], rc: %d", _user.c_str(),
+                  PD_LOG( PDERROR, "Failed to get user[%s] password from cipher"
+                          " file[%s], rc: %d", _user.c_str(),
                           _cipherfile.c_str(), rc ) ;
                   goto error ;
                }
@@ -722,6 +726,18 @@ namespace import
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
+         }
+      }
+
+      if ( has( IMP_OPTION_PARSERS ) )
+      {
+         _parsers = get<INT32>( IMP_OPTION_PARSERS ) ;
+         if ( _parsers <= 0 || _parsers > 1000 )
+         {
+            rc = SDB_INVALIDARG ;
+            std::cerr << IMP_OPTION_PARSERS " is out of range [1, 1000]: "
+                      << _parsers << std::endl ;
+            goto error ;
          }
       }
 
@@ -982,11 +998,12 @@ namespace import
          if (_bufferSize < 32 || _bufferSize > 2048)
          {
             std::cerr << IMP_OPTION_BUFFERSIZE " is out of range [32, 2048]: "
-                      << _bufferSize
-                      << std::endl;
+                      << _bufferSize << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
          }
+
+         _bufferSize = _bufferSize * 1024 * 1024 ;
       }
 
       if (has(IMP_OPTION_DRYRUN))

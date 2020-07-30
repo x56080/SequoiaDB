@@ -14,7 +14,7 @@ function main ()
    prepareDate( jsonFile );
 
    println( "\n---specify data type int32、int64、double、decimal to import csv file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 420 );
    dataType = "int32";
@@ -32,7 +32,7 @@ function main ()
    cl.truncate();
 
    println( "\n---specify data type int32、int64、double、decimal to import json file." );
-   var fields = "a";
+   var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 420 );
    dataType = "int32";
@@ -55,29 +55,32 @@ function prepareDate ( typeFile )
 {
    var file = new File( typeFile );
    var left = "";
+   var id = 1;
    for( var i = 0; i < 20; i++ )
    {
       var right = "";
       left = left + "1";
       if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
       {
-         file.write( left + "\n" );
+         file.write( id + "," + left + "\n" );
       }
       else
       {
-         file.write( '{ a:' + left + ' }\n' );
+         file.write( '{ "_id": ' + id + ', "a":' + left + ' }\n' );
       }
+      ++id;
       for( var j = 0; j < 20; j++ )
       {
          right = right + "0";
          if( typeFile.substring( typeFile.indexOf( "." ) + 1, typeFile.length ) == "csv" )
          {
-            file.write( left + "." + right + "\n" );
+            file.write( id + "," + left + "." + right + "\n" );
          }
          else
          {
-            file.write( '{ a:' + left + '.' + right + ' }\n' );
+            file.write( '{ "_id": ' + id + ', "a":' + left + '.' + right + ' }\n' );
          }
+         ++id;
       }
    }
    file.close();

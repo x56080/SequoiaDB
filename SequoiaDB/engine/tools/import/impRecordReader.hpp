@@ -39,18 +39,24 @@
 
 namespace import
 {
-   class RecordReader: public SDBObject
+   class RecordReader : public SDBObject
    {
    public:
-      RecordReader();
-      ~RecordReader();
-      void reset(CHAR* buffer, INT32 bufferSize,
-                 InputStream* input, RecordScanner* scanner,
-                 INT32 recordDelimiterLength);
-      INT32 read(CHAR*& record, INT32& recordLength);
+      RecordReader() ;
+
+      ~RecordReader() ;
+
+      void reset( CHAR* buffer, INT32 bufferSize,
+                  InputStream* input, RecordScanner* scanner,
+                  INT32 recordDelimiterLength ) ;
+
+      void rotationBuffer( CHAR* buffer, INT32 bufferSize ) ;
+
+      INT32 read( CHAR*& record, INT32& recordLength,
+                  BOOLEAN isReuseBuffer = TRUE ) ;
 
    private:
-      void _clear();
+      void _clear() ;
 
    private:
       BOOLEAN        _set;
@@ -67,6 +73,7 @@ namespace import
       INT64          _readSize;
       INT64          _totalSize;
       BOOLEAN        _final;
+      BOOLEAN        _isFull ;
    };
 }
 

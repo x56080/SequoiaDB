@@ -76,7 +76,8 @@ function testExprtFilter1 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":2}", "{\"a\":3}", "{\"a\":4}"];
@@ -122,7 +123,8 @@ function testExprtFilter2 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1}", "{\"a\":3}"];
@@ -168,7 +170,8 @@ function testExprtFilter3 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1}", "{\"a\":3}", "{\"a\":4}"];
@@ -214,7 +217,8 @@ function testExprtFilter4 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1}", "{\"a\":2}", "{\"a\":3}", "{\"a\":4}"];
@@ -261,7 +265,8 @@ function testExprtFilter5 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='name string'";
+      " --fields='name string'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"name\":\"[ \\\"Tom\\\", \\\"Mike\\\", \\\"Jack\\\" ]\"}"];
@@ -307,7 +312,8 @@ function testExprtFilter6 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":2}", "{\"a\":3}"];
@@ -353,7 +359,8 @@ function testExprtFilter7 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int,b int'";
+      " --fields='a int,b int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":2,\"b\":2}", "{\"a\":4,\"b\":4}"];
@@ -402,7 +409,8 @@ function testExprtFilter8 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='info string'";
+      " --fields='info string'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = [
@@ -454,7 +462,8 @@ function testExprtFilter9 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a string'";
+      " --fields='a string'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = [
@@ -503,7 +512,8 @@ function testExprtFilter10 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a string'";
+      " --fields='a string'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":\"abandon\"}", "{\"a\":\"Alice\"}"];
@@ -550,7 +560,8 @@ function testExprtFilter11 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int,b int'";
+      " --fields='a int,b int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1,\"b\":1}", "{\"a\":3,\"b\":3}"];
@@ -595,7 +606,8 @@ function testExprtFilter12 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a int'";
+      " --fields='a int'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":1}", "{\"a\":2}", "{\"a\":3}"];
@@ -640,7 +652,8 @@ function testExprtFilter13 ( cl, cl1 )
       " --type csv" +
       " --file " + csvfile +
       " --headerline true" +
-      " --fields='a string'";
+      " --fields='a string'" +
+      " --parsers 1 -j 1";
    testRunCommand( command );
 
    var expRecs = ["{\"a\":\"[ 1, 4, 7 ]\"}"];

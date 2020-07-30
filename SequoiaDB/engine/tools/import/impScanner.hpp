@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = impMonitor.hpp
+   Source File Name = impParser.hpp
 
    Dependencies: N/A
 
@@ -24,40 +24,53 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          4/8/2015  David Li  Initial Draft
+          06/02/2020  HJW Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef IMP_MONITOR_HPP_
-#define IMP_MONITOR_HPP_
+#ifndef IMP_SCANNER_HPP_
+#define IMP_SCANNER_HPP_
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "ossAtomic.hpp"
+#include "impCommon.hpp"
+#include "impOptions.hpp"
+#include "impWorker.hpp"
+#include "impRecordParser.hpp"
 
 namespace import
 {
-   class Monitor: public SDBObject
+   class Scanner : public WorkerArgs
    {
    public:
-      Monitor();
-      ~Monitor();
-
-      inline INT64 recordsMem() { return _recordsMem.fetch(); }
-      inline void recordsMemInc(INT64 size) { _recordsMem.add(size); }
-      inline void recordsMemDec(INT64 size) { _recordsMem.sub(size); }
-
-      inline INT64 recordsNum() { return _recordsNum.fetch(); }
-      inline void recordsNumInc(INT64 size) { _recordsNum.add(size); }
-      inline void recordsNumDec(INT64 size) { _recordsNum.sub(size); }
+      Scanner() ;
+      ~Scanner() ;
+      INT32 initParser( Options* options ) ;
+      INT32 init( Options* options, DataQueue* dataQueue, INT32 workerNum ) ;
+      INT32 start() ;
+      INT32 stop() ;
+      inline BOOLEAN isStopped() const { return _stopped ; }
 
    private:
-      ossAtomicSigned64  _recordsMem;
-      ossAtomicSigned64  _recordsNum;
-   };
+      INT32             _workerNum ;
+      BOOLEAN           _inited ;
+      BOOLEAN           _stopped ;
 
-   Monitor* impGetMonitor();
+      Options*          _options ;
+      DataQueue*        _dataQueue ;
+      Worker*           _worker ;
+      RecordParser*     _parser ;
+
+      impBufferBlock    _bufferBlock1 ;
+      impBufferBlock    _bufferBlock2 ;
+
+      vector<CHAR*>     _fields ;
+
+      friend BOOLEAN _waitBufferBlock( Scanner* self, BOOLEAN useFirstBlock,
+                                       impBufferBlock*& block ) ;
+      friend void _scannerRoutine( WorkerArgs* args ) ;
+   };
 }
 
-#endif /* IMP_MONITOR_HPP_ */
+#endif /* IMP_SCANNER_HPP_ */

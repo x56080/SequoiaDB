@@ -27,6 +27,7 @@ function prepareDate ( typeFile )
    var file = new File( typeFile );
    var left = "";
    var right = "";
+   var id = 1;
    for( var i = 0; i < 20; i++ )
    {
       var rightL = "";
@@ -39,8 +40,10 @@ function prepareDate ( typeFile )
          {
             rightR = rightR + "0";
             right = rightL + "1" + rightR;
-            file.write( '{ a: { "$decimal": "' + left + '.' + right + '" } }\n' );
-            file.write( '{ a: ' + left + '.' + right + ' }\n' );
+            file.write( '{ "_id": ' + id + ', "a": { "$decimal": "' + left + '.' + right + '" } }\n' );
+            ++id;
+            file.write( '{ "_id": ' + id + ', "a": ' + left + '.' + right + ' }\n' );
+            ++id;
          }
       }
    }

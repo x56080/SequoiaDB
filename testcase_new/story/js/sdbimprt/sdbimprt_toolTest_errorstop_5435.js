@@ -52,9 +52,9 @@ function importData ( csName, clName, imprtFile )
    println( rc );
 
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 2";
+   var expParseRecords = "parsed records: 3";
    var expParseFailure = "parse failure: 1";
-   var expImportedRecords = "imported records: 2";
+   var expImportedRecords = "imported records: 3";
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
@@ -87,15 +87,15 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "at": 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 2;
-   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}}]';
+   var expCnt = 3;
+   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}},{"at":4,"bt":{"$date":"2016-01-03"}}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )

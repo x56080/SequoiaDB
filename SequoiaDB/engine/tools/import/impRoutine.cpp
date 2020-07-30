@@ -39,159 +39,293 @@ namespace pt = boost::posix_time;
 
 namespace import
 {
-   Routine::Routine(Options& options)
-   : _options(options)
+   #define IMP_QUEUE_PAGE_SIZE (16 * 1024)
+
+   Routine::Routine( Options& options ) : _dataQueueNum( 0 ),
+                                          _dataQueue( NULL ),
+                                          _freeQueue( NULL ),
+                                          _importQueue( NULL ),
+                                          _options( options )
    {
    }
 
    Routine::~Routine()
    {
-      // parsedQueue
+      SAFE_OSS_DELETE( _dataQueue ) ;
+      SAFE_OSS_DELETE( _freeQueue ) ;
+      SAFE_OSS_DELETE( _importQueue ) ;
+
+      _importQueueBuffer.finiBuffer() ;
+   }
+
+   INT32 Routine::_init()
+   {
+      INT32 rc = SDB_OK ;
+      INT32 pageSize  = IMP_QUEUE_PAGE_SIZE ;
+      INT32 pageNum   = _options.recordsMem() / pageSize ;
+
+      _dataQueueNum = _options.parsers() ;
+
+      rc = _scanner.initParser( &_options ) ;
+      if ( rc )
       {
-         if (!_parsedQueue.empty())
-         {
-            RecordArray* array = NULL;
-            while (_parsedQueue.try_pop(array))
-            {
-               if (NULL != array)
-               {
-                  freeRecordArray(&array);
-               }
-            }
-         }
+         PD_LOG( PDERROR, "failed to init parser, rc=%d", rc ) ;
+         goto error ;
       }
 
-      // shardingQueue
+      if ( FALSE == _importQueueBuffer.initBuffer( pageNum ) )
       {
-         if (!_shardingQueue.empty())
-         {
-            RecordArray* array = NULL;
-            while (_shardingQueue.try_pop(array))
-            {
-               if (NULL != array)
-               {
-                  freeRecordArray(&array);
-               }
-            }
-         }
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to allocate import queue buffer with [%u], "
+                          "rc=%d",
+                 pageNum, rc ) ;
+         goto error ;
       }
 
+      _importQueue = SDB_OSS_NEW PageQueue(
+                                 PageQueueContainer( &_importQueueBuffer ) ) ;
+      if ( NULL == _importQueue )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to allocate import queue with [%u], rc=%d",
+                 pageNum, rc ) ;
+         goto error ;
+      }
+
+      _dataQueue = SDB_OSS_NEW DataQueue() ;
+      if ( NULL == _dataQueue )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create data queue, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _dataQueue->init( _dataQueueNum ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init data queue, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      _freeQueue = SDB_OSS_NEW BsonPageQueue() ;
+      if ( NULL == _freeQueue )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create bson page queue, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _freeQueue->init( pageNum, pageSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to init bson page queue, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _packer.init( &_options, _freeQueue, _importQueue ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to init packer, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 Routine::run()
    {
-      INT32 rc = SDB_OK;
-      pt::ptime startTime;
-      pt::ptime endTime;
+      INT32 rc = SDB_OK ;
+      pt::ptime startTime ;
+      pt::ptime endTime ;
 
-      PD_LOG(PDINFO, "begin importing");
+      PD_LOG( PDINFO, "begin importing" ) ;
 
-      startTime = pt::second_clock::universal_time();
+      startTime = pt::second_clock::universal_time() ;
 
-      rc = _startSharding();
-      if (SDB_OK != rc)
+      rc = _init() ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to start sharding, rc=%d", rc);
-         goto stop;
+         rc = SDB_OK ;
+         goto done ;
       }
 
-      rc = _startImporter(_options.jobs());
-      if (SDB_OK != rc)
+      rc = _startScanner() ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to start importers, rc=%d", rc);
-         goto stop;
+         PD_LOG( PDERROR, "failed to start scanner, rc=%d", rc ) ;
+         goto stop ;
       }
 
-      rc = _startParser();
-      if (SDB_OK != rc)
+      rc = _startParser() ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to start parser, rc=%d", rc);
-         goto stop;
+         PD_LOG( PDERROR, "failed to start parser, rc=%d", rc ) ;
+         goto stop ;
       }
 
-      while (!_parser.isStopped() && !_importer.isStopped())
+      rc = _startImporter() ;
+      if ( rc )
       {
-         if (_sharding.needSharding())
-         {
-            if (_sharding.isStopped())
-            {
-               break;
-            }
-         }
-         ossSleep(100);
+         PD_LOG( PDERROR, "failed to start importers, rc=%d", rc ) ;
+         goto stop ;
+      }
+
+      while ( !_parser.isStopped() && !_importer.isStopped() )
+      {
+         ossSleep( 100 ) ;
       }
 
    stop:
-      rc = _waitParserStop();
-      if (SDB_OK != rc)
+      rc = _stopScanner() ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to wait parser stop, rc=%d", rc);
+         PD_LOG( PDERROR, "failed to stop scanner, rc=%d", rc ) ;
       }
 
-      rc = _stopSharding();
-      if (SDB_OK != rc)
+      rc = _waitParserStop() ;
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to stop importers, rc=%d", rc);
+         PD_LOG( PDERROR, "failed to wait parser stop, rc=%d", rc ) ;
       }
 
       rc = _stopImporter();
-      if (SDB_OK != rc)
+      if ( rc )
       {
          PD_LOG(PDERROR, "failed to stop importers, rc=%d", rc);
       }
 
-      endTime = pt::second_clock::universal_time();
+      endTime = pt::second_clock::universal_time() ;
 
-      if (SDB_OK == rc && _importer.importedNum() > 0)
+      if ( SDB_OK == rc && _importer.importedNum() > 0 )
       {
-         pt::time_duration time = endTime - startTime;
-         INT64 sec = time.total_seconds();
+         INT64 sec = 0 ;
+         pt::time_duration time = endTime - startTime ;
+         stringstream ss ;
 
-         stringstream ss;
-         ss << "import " << _importer.importedNum() << " records in "
-            << sec << " second(s)";
-         if (sec > 0)
+         sec = time.total_seconds() ;
+
+         ss << "import " << _importer.importedNum() <<
+               " records in " << sec << " second(s)" ;
+
+         if ( sec > 0 )
          {
-            ss << ", average "
-               << _importer.importedNum() / sec << " records/s";
+            ss << ", average " << _importer.importedNum() / sec << " records/s";
          }
-         PD_LOG(PDINFO, "%s", ss.str().c_str());
-      }
 
-      PD_LOG(PDINFO, "finished importing");
-      return rc;
-   }
-
-   INT32 Routine::_startImporter(INT32 workerNum)
-   {
-      INT32 rc = SDB_OK;
-
-      if (_sharding.needSharding())
-      {
-         rc = _importer.init(&_options, &_shardingQueue, workerNum);
-      }
-      else
-      {
-         rc = _importer.init(&_options, &_parsedQueue, workerNum);
-      }
-
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init importer, rc=%d", rc);
-         goto error;
-      }
-
-      rc = _importer.start();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to start importer, rc=%d", rc);
-         goto error;
+         PD_LOG( PDINFO, "%s", ss.str().c_str() ) ;
       }
 
    done:
-      return rc;
+      PD_LOG( PDINFO, "finished importing" ) ;
+      return rc ;
+   }
+
+   INT32 Routine::_startScanner()
+   {
+      INT32 rc = SDB_OK ;
+      INT32 workerNum = _options.parsers() ;
+
+      rc = _scanner.init( &_options, _dataQueue, workerNum ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to init scanner, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _scanner.start() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to start scanner, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
    error:
-      goto done;
+      goto done ;
+   }
+
+   INT32 Routine::_stopScanner()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _scanner.stop() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to wait the scanner stop" ) ;
+      }
+
+      return rc ;
+   }
+
+
+   INT32 Routine::_startParser()
+   {
+      INT32 rc = SDB_OK ;
+      INT32 workerNum = _options.parsers() ;
+
+      rc = _parser.init( &_options, _dataQueue, &_packer, workerNum ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to init parser, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _parser.start() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to start parser, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 Routine::_waitParserStop()
+   {
+      INT32 rc = SDB_OK ;
+
+      _packer.stop() ;
+
+      rc = _parser.stop() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to wait the parser stop" ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 Routine::_startImporter()
+   {
+      INT32 rc = SDB_OK;
+      INT32 workerNum = _options.jobs() ;
+
+      rc = _importer.init( &_options, _freeQueue, _importQueue, workerNum ) ;
+
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to init importer, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _importer.start() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to start importer, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 Routine::_stopImporter()
@@ -199,99 +333,9 @@ namespace import
       INT32 rc = SDB_OK;
 
       rc = _importer.stop();
-      if (SDB_OK != rc)
+      if ( rc )
       {
-         PD_LOG(PDERROR, "failed to stop importer, rc=%d", rc);
-      }
-
-      return rc;
-   }
-
-   INT32 Routine::_startParser()
-   {
-      INT32 rc = SDB_OK;
-
-      rc = _parser.init(&_options, &_parsedQueue);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init parser, rc=%d", rc);
-         goto error;
-      }
-
-      rc = _parser.start();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to start parser, rc=%d", rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Routine::_waitParserStop()
-   {
-      INT32 rc = SDB_OK;
-
-      rc = _parser.stop();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to wait the parser stop");
-      }
-
-      return rc;
-   }
-
-   INT32 Routine::_startSharding()
-   {
-      INT32 rc = SDB_OK;
-
-      rc = _sharding.init(&_options,
-                          &_parsedQueue,
-                          &_shardingQueue);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to init sharding, rc=%d", rc);
-         goto error;
-      }
-
-      if (_sharding.needSharding())
-      {
-         rc = _sharding.start();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to start sharding, rc=%d", rc);
-            goto error;
-         }
-      }
-      else
-      {
-         CHAR* str = "no need to sharding";
-         PD_LOG(PDINFO, "%s", str);
-         if (_options.verbose())
-         {
-            stringstream ss;
-            ss << str << std::endl;
-            std::cout << ss.str();
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Routine::_stopSharding()
-   {
-      INT32 rc = SDB_OK;
-
-      rc = _sharding.stop();
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to stop importer, rc=%d", rc);
+         PD_LOG( PDERROR, "failed to stop importer, rc=%d", rc ) ;
       }
 
       return rc;
@@ -304,34 +348,34 @@ namespace import
       ss << "parsed records: " << _parser.parsedNum() << std::endl
          << "parse failure: " << _parser.failedNum() << std::endl;
 
-      ss << "sharding records: " << _sharding.shardingNum() << std::endl
-         << "sharding failure: " << _sharding.failedNum() << std::endl;
+      ss << "sharding records: " << _packer.shardingNum() << std::endl
+         << "sharding failure: " << _packer.failedNum() << std::endl;
 
       ss << "imported records: " << _importer.importedNum() << std::endl
          << "import failure: " << _importer.failedNum() << std::endl;
 
-      if (_parser.failedNum() > 0)
+      if ( _parser.failedNum() > 0 )
       {
          ss << "see " << _parser.logFileName()
-            << " for parse failure records" << std::endl;
+            << " for parse failure records" << std::endl ;
       }
 
-      if (_sharding.failedNum() > 0)
+      if ( _packer.failedNum() > 0 )
       {
-         ss << "see " << _sharding.logFileName()
-            << " for sharding failure records" << std::endl;
+         ss << "see " << _packer.logFileName()
+            << " for sharding failure records" << std::endl ;
       }
 
-      if (_importer.failedNum() > 0)
+      if ( _importer.failedNum() > 0 )
       {
          ss << "see " << _importer.logFileName()
-            << " for import failure records" << std::endl;
+            << " for import failure records" << std::endl ;
       }
 
-      string stat = ss.str();
+      string stat = ss.str() ;
 
-      std::cout << stat;
-      PD_LOG(PDEVENT, stat.c_str());
+      std::cout << stat ;
+      PD_LOG( PDEVENT, stat.c_str() ) ;
    }
 }
 

@@ -32,14 +32,15 @@ importFiles = [
       "tools/import/impRecordSharding.cpp",
       "tools/import/impCataInfo.cpp",
       "tools/import/impCatalogAgent.cpp",
+      "tools/import/impScanner.cpp",
       "tools/import/impParser.cpp",
+      "tools/import/impPacker.cpp",
       "tools/import/impImporter.cpp",
-      "tools/import/impSharding.cpp",
       "tools/import/impRoutine.cpp",
       "tools/import/impLogFile.cpp",
       "tools/import/impUtil.cpp",
-      "tools/import/impMonitor.cpp",
-      "tools/import/impHosts.cpp"
+      "tools/import/impHosts.cpp",
+      "tools/import/impCommon.cpp"
       ]
 exportFiles = [
       "tools/export/sdbExport.cpp",

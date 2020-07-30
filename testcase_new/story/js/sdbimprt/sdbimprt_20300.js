@@ -23,18 +23,18 @@ function readyData( imprtFile )
    println("\n---Begin to ready data.");
    
    var file = fileInit( imprtFile );
-   file.write( "{a: \"&\"}" );
-   file.write( "{b: \"$\"}" );
-   file.write( "{c: \"^\"}" );
+   file.write( "{_id: 1, a: \"&\"}" );
+   file.write( "{_id: 2, b: \"$\"}" );
+   file.write( "{_id: 3, c: \"^\"}" );
    var str = String.fromCharCode(0x1B);
-   file.write( "{d: \"" + str + "\"}" );
+   file.write( "{_id: 4, d: \"" + str + "\"}" );
    file.close();
 }
 
 function checkCLData( cl, expResult )
 {
    var actResult = [];
-   var cursor = cl.find({}, { "_id": { "$include": 0 } });
+   var cursor = cl.find({}, { "_id": { "$include": 0 } }).sort( { "_id": 1 } );
    while( cursor.next() )
    {
       actResult.push( cursor.current().toObj() );
