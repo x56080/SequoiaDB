@@ -30,7 +30,7 @@
 
   >**Note:**   
   >
-  >执行安装包时不添加参数--mode，则进入图形界面安装模式
+  >执行安装包时不添加参数 --mode，则进入图形界面安装模式
 
   3. 提示选择向导语言，输入2，选择中文
 
@@ -42,7 +42,7 @@
   Please choose an option [1] :2
   ```
 
-  4. 提示指定 MySQL 安装路径，输入回车，选择默认安装路径 /opt/sequoiasql/mysql；输入路径后按回车表示选择自定义路径
+  4. 提示指定 MySQL 安装路径，输入回车，选择默认安装路径 `/opt/sequoiasql/mysql`；输入路径后按回车表示选择自定义路径
 
   ```
   ----------------------------------------------------------------------------
@@ -80,7 +80,7 @@
   您确定要继续? [Y/n]: 
   ```
   
-  8. 安装完成
+  8. 安装完成后会自动添加 sequoiasql-mysql 系统服务
 
   ```
   正在安装 SequoiaSQL MySQL Server 于您的电脑中，请稍候。
@@ -91,8 +91,24 @@
   ------------------------------------------------------------
   安装程序已经完成安装 SequoiaSQL MySQL Server 于你的电脑中.
   ```
+  
+  9. 查看 sequoiasql-mysql 服务状态
+  
+  ```lang-bash
+  # service sequoiasql-mysql status
+  ```
+  
+  系统提示 running 表示服务正在运行
+  
+  ```
+  ● sequoiasql-mysql.service - SequoiaSQL-MySQL Server
+   Loaded: loaded (/lib/systemd/system/sequoiasql-mysql.service; enabled; vendor preset: enabled)
+   Active: active (running) since 五 2020-07-17 18:24:33 CST; 1 weeks 4 days ago
+  ```
 
-##部署 MySQL 实例组件##
+##部署MySQL实例组件##
+
+  用户需要通过[sdb_mysql_ctl 工具](sql_engine/sequoiasql_mysql/tools/sdb_mysql_ctl.md)部署 MySQL 实例组件
 
   1. 切换用户和目录
 
@@ -100,10 +116,8 @@
   # su - sdbadmin
   $ cd /opt/sequoiasql/mysql
   ```
-
-  2. 添加实例
-
-  指定实例名为 myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名，实例默认端口号为 3306
+  
+  2. 添加实例，指定实例名为 myinst，该实例名映射相应的数据目录和日志路径，实例默认端口号为 3306（用户可根据需要指定不同的实例名）
 
   ```lang-bash
   $ bin/sdb_mysql_ctl addinst myinst -D database/3306/
@@ -114,59 +128,29 @@
   ```lang-bash
   $ bin/sdb_mysql_ctl addinst myinst -D database/3316/ -p 3316
   ```
-
-  查看所有添加的实例
-
-  ```lang-bash
-  $ bin/sdb_mysql_ctl listinst
-  ```
-  ```
-  NAME      SQLDATA                                  SQLLOG
-  myinst     /opt/sequoiasql/mysql/database/3306/    /opt/sequoiasql/mysql/myinst.log
-  Total: 1
-  ```
-
-  3. 启动实例
-
-  ```lang-bash
-  $ bin/sdb_mysql_ctl start myinst
-  ```
-  ```
-  Starting instance myinst ...
-  ok (PID: 25174)
-  ```
-
-  4. 查看实例状态
+  
+  >**Note:**
+  >
+  >用户添加新的实例会自动加入 sequoiasql-mysql 系统服务的管理中
+  
+  3. 查看实例状态
 
   ```lang-bash
   $ bin/sdb_mysql_ctl status
   ```
+  
+  系统提示 Run 表示实例部署完成，用户可通过 MySQL Shell 进行实例操作
+  
   ```
   INSTANCE   PID        SVCNAME    SQLDATA                                 SQLLOG            
   myinst     25174      3306       /opt/sequoiasql/mysql/database/3306/    /opt/sequoiasql/mysql/myinst.log        
   Total: 1; Run: 1
   ```
 
-停止实例
-
-  ```lang-bash
-  $ bin/sdb_mysql_ctl stop myinst
-  ```
-  ```
-  Stoping instance myinst (PID: 25174) ...
-  ok
-  ```
-
 ##MySQL实例组件开机自启动##
 
-  安装 MySQL 实例组件时，会自动添加系统服务：sequoiasql-mysql。该服务在启动时，会自动启动相关的实例；在实例进程异常退出时，也会自动重启实例。
+  MySQL 实例组件的服务 sequoiasql-mysql 是以守护进程 sequoiasql-mysql-daemon 的形式存在的。该服务在启动时，会自动启动相关的实例，在实例进程异常退出时，也会自动重启实例。
   
-  添加一个新实例时，会自动加入 service 的管理中
-
-  ```lang-bash
-  $ bin/sdb_mysql_ctl addinst myinst -D database/3306/
-  ```
-  ```
-  Adding instance myinst ...
-  ok
-  ```
+  >**Note:**
+  >
+  > 一个安装对应一个 sequoiasql-mysql 服务，一台机器上存在多个安装时系统服务名为 sequoiasql-mysql[i]，i 为小于 50 的数值或者为空。

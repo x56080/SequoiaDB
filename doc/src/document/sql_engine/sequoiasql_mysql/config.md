@@ -2,12 +2,12 @@
 
 | 选项 | 默认值 | 描述 |
 | ---- | ------ | ---- |
-| AUTO_INCREMENT | 1 | 自增字段的起始值，默认值为 1。SequoiaDB 的自增字段不是严格递增，而是趋势递增，可参考 SequoiaDB [自增字段](data_model/auto_increment.md)章节。 |
-| CHARACTER SET | utf8mb4 | 字符数据的字符集。 |
-| COLLATE | utf8mb4_bin | 字符数据的比较规则。不支持忽略大小写的字符比较规则，字符比较对大小写敏感。 |
-| COMMENT | "" | 表备注信息。还可以通过它指定更多 SequoiaDB 引擎的选项，可参考[自定义表配置](sql_engine/sequoiasql_mysql/config.md#自定义表配置)。 |
-| COMPRESSION | "" | 表压缩类型。选项有 ""（默认压缩类型）、"none"（关闭压缩）、"lzw"、"snappy"，默认压缩类型为 lzw。 |
-| ENGINE | SEQUOIADB | 表存储引擎。必须指定为 SEQUOIADB 才能使用本分布式存储引擎，一般无需显式指定。 |
+| AUTO_INCREMENT | 1 | 自增字段的起始值，SequoiaDB 的自增字段不是严格递增，而是趋势递增，可参考 SequoiaDB [自增字段](data_model/auto_increment.md)章节 |
+| CHARACTER SET | utf8mb4 | 字符数据的字符集 |
+| COLLATE | utf8mb4_bin | 字符数据的比较规则，不支持忽略大小写的字符比较规则，字符比较对大小写敏感 |
+| COMMENT | "" | 表备注信息，还可以通过它指定更多 SequoiaDB 引擎的选项，可参考[自定义表配置](sql_engine/sequoiasql_mysql/config.md#自定义表配置) |
+| COMPRESSION | "" | 表压缩类型，选项有 ""（默认压缩类型）、"none"（关闭压缩）、"lzw"、"snappy"，默认压缩类型为 "lzw" |
+| ENGINE | SEQUOIADB | 表存储引擎，必须指定为 SEQUOIADB 才能使用本分布式存储引擎，一般无需显式指定 |
 
 **示例**
 
@@ -82,7 +82,7 @@ mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ a
 
 **sequoiadb_conn_addr** 
 
-该参数可以配置 MySQL 实例所连接的 SequoiaDB 存储集群，可以配置一个或多个协调节点的地址。使用多个时，地址之间要以逗号隔开。如“sdbserver1:11810,sdbserver2:11810”。在配置多个地址时，每次连接会从地址中随机随机选择。在 MySQL 会话数很多时，压力会基本平均地分摊给每个协调节点。
+该参数可以配置 MySQL 实例所连接的 SequoiaDB 存储集群，可以配置一个或多个协调节点的地址。使用多个时，地址之间要以逗号隔开。如 `sdbserver1:11810,sdbserver2:11810`。在配置多个地址时，每次连接会从地址中随机选择。在 MySQL 会话数很多时，压力会基本平均地分摊给每个协调节点。
 
 + 类型：String
 + 默认值："localhost:11810"
@@ -106,7 +106,7 @@ mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ a
 + 默认值：""
 + 作用范围：Global
 + 是否支持在线修改生效：是
-   
+
 **sequoiadb_token** 和 **sequoiadb_cipherfile**
 
 这两个参数可以配置 SequoiaDB 集群鉴权的加密口令和密码文件路径。在配置前，需通过 sdbpassword 工具生成密码文件，具体可参考[数据库密码工具](database_management/tools/sdbpasswd.md#引擎配置)章节。
@@ -257,7 +257,7 @@ mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ a
    $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
    ```
 
-- 通过实例数据目录下的配置文件 auto.cnf，在[mysqld]一栏添加/更改对应配置项
+- 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
 
    ```config
    sequoiadb_auto_partition=OFF
