@@ -446,35 +446,37 @@ namespace import
          return FALSE;
       }
 
-      if (stringDelimiter.find( recordDelimiter ) != string::npos)
+      if ( stringDelimiter.find( recordDelimiter ) != string::npos )
       {
          std::cerr << IMP_OPTION_DELCHAR << " can't contain "
                    << IMP_OPTION_DELRECORD << std::endl;
          return FALSE;
       }
 
-      if (fieldDelimiter.find( stringDelimiter ) != string::npos)
+      if ( stringDelimiter.size() > 0 &&
+           fieldDelimiter.find( stringDelimiter ) != string::npos )
       {
          std::cerr << IMP_OPTION_DELFIELD << " can't contain "
                    << IMP_OPTION_DELCHAR << std::endl;
          return FALSE;
       }
 
-      if (fieldDelimiter.find( recordDelimiter ) != string::npos)
+      if ( fieldDelimiter.find( recordDelimiter ) != string::npos )
       {
          std::cerr << IMP_OPTION_DELFIELD << " can't contain "
                    << IMP_OPTION_DELRECORD << std::endl;
          return FALSE;
       }
 
-      if (recordDelimiter.find( stringDelimiter ) != string::npos)
+      if ( stringDelimiter.size() > 0 &&
+           recordDelimiter.find( stringDelimiter ) != string::npos )
       {
          std::cerr << IMP_OPTION_DELRECORD << " can't contain "
                    << IMP_OPTION_DELCHAR << std::endl;
          return FALSE;
       }
 
-      if (recordDelimiter.find( fieldDelimiter ) != string::npos)
+      if ( recordDelimiter.find( fieldDelimiter ) != string::npos )
       {
          std::cerr << IMP_OPTION_DELRECORD << " can't contain "
                    << IMP_OPTION_DELFIELD << std::endl;
@@ -750,13 +752,6 @@ namespace import
       if (has(IMP_OPTION_DELCHAR))
       {
          _stringDelimiterIn = get<string>(IMP_OPTION_DELCHAR);
-         if (_stringDelimiterIn.empty())
-         {
-            std::cerr << IMP_OPTION_DELCHAR << " can't be empty"
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
 
          rc = _convertAsciiEscapeChar(_stringDelimiterIn, _stringDelimiter);
          if (SDB_OK != rc)

@@ -276,13 +276,13 @@ namespace import
       SDB_ASSERT(NULL != fieldDelimiter, "delimiter can't be NULL");
       SDB_ASSERT(NULL != stringDelimiter, "delimiter can't be NULL");
       SDB_ASSERT(fieldDelimiterLen > 0, "delLength must be greater than 0");
-      SDB_ASSERT(stringDelimiterLen > 0, "delLength must be greater than 0");
 
       while (length > 0)
       {
-         if (!isspace(*str) ||
-             (_startWith(str, length, fieldDelimiter, fieldDelimiterLen)) ||
-             (_startWith(str, length, stringDelimiter, stringDelimiterLen)))
+         if( !isspace( *str ) ||
+             ( _startWith(str, length, fieldDelimiter, fieldDelimiterLen ) ) ||
+             ( stringDelimiterLen > 0 &&
+               _startWith(str, length, stringDelimiter, stringDelimiterLen ) ) )
          {
             break;
          }
@@ -1665,7 +1665,7 @@ namespace import
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
-      if (_startWith(str, len, strDel, strDelLen))
+      if ( strDelLen > 0 && _startWith( str, len, strDel, strDelLen ) )
       {
          // skip the string delimiter
          str += strDelLen;
@@ -1678,7 +1678,7 @@ namespace import
 
       while (len > 0)
       {
-         if (_startWith(str, len, strDel, strDelLen))
+         if ( strDelLen > 0 && _startWith( str, len, strDel, strDelLen ) )
          {
             // previous character is escape
             // TODO: process "\\\\"
@@ -1701,7 +1701,7 @@ namespace import
             }
 
             // two consecutive string delimiter
-            if (_startWith(str, len, strDel, strDelLen))
+            if ( strDelLen > 0 && _startWith( str, len, strDel, strDelLen ) )
             {
                value.hasEscape = TRUE;
                len -= strDelLen;

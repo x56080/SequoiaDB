@@ -846,7 +846,6 @@ namespace exprt
          string rawStr = _get<string>(OPTION_DELCHAR) ;
 
          rc = _convertAsciiChar( rawStr, _delChar ) ;
-
          if ( SDB_OK != rc )
          {
             cerr << "invalid value for option \""  OPTION_DELCHAR "\""
@@ -860,8 +859,16 @@ namespace exprt
       {
          string rawStr = _get<string>(OPTION_DELFIELD) ;
 
-         rc = _convertAsciiChar( rawStr, _delField ) ;
+         if ( rawStr.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            std::cerr << OPTION_DELFIELD << " can't be empty" << std::endl ;
+            PD_LOG( PDERROR, "Invalid value for option \""
+                             OPTION_DELFIELD "\"" ) ;
+            goto error ;
+         }
 
+         rc = _convertAsciiChar( rawStr, _delField ) ;
          if ( SDB_OK != rc )
          {
             cerr << "invalid value for option \""  OPTION_DELFIELD "\""
@@ -875,14 +882,22 @@ namespace exprt
       {
          string rawStr = _get<string>(OPTION_DELRECORD) ;
 
-         rc = _convertAsciiChar( rawStr, _delRecord ) ;
+         if ( rawStr.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            std::cerr << OPTION_DELRECORD << " can't be empty" << std::endl ;
+            PD_LOG( PDERROR, "Invalid value for option \""
+                             OPTION_DELRECORD "\"" ) ;
+            goto error ;
+         }
 
+         rc = _convertAsciiChar( rawStr, _delRecord ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELFIELD "\""
+            cerr << "invalid value for option \""  OPTION_DELRECORD "\""
                  << endl ;
             PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELFIELD "\"" ) ;
+                             OPTION_DELRECORD "\"" ) ;
             goto error ;
          }
       }
@@ -945,7 +960,8 @@ namespace exprt
          return FALSE ;
       }
 
-      if ( fieldDelimiter.find( stringDelimiter ) != string::npos )
+      if ( stringDelimiter.size() > 0 &&
+           fieldDelimiter.find( stringDelimiter ) != string::npos )
       {
          std::cerr << OPTION_DELFIELD << " can't contain "
                    << OPTION_DELCHAR << std::endl ;
@@ -959,7 +975,8 @@ namespace exprt
          return FALSE ;
       }
 
-      if ( recordDelimiter.find( stringDelimiter ) != string::npos )
+      if ( stringDelimiter.size() > 0 &&
+           recordDelimiter.find( stringDelimiter ) != string::npos )
       {
          std::cerr << OPTION_DELRECORD << " can't contain "
                    << OPTION_DELCHAR << std::endl ;
