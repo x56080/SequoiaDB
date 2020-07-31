@@ -42,7 +42,7 @@
 #define JSON_FLAG_NOT_INIT_BSON     0x00000008
 
 //Strictly parse json format
-#define JSON_FLAG_RIGOROUS_MODE     0x00000008
+#define JSON_FLAG_RIGOROUS_MODE     0x00000010
 
 //Decimal forced conversion to double
 #define JSON_FLAG_DECIMAL_TO_DOUBLE 0x00000020
