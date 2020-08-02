@@ -47,10 +47,10 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
 
    //create subcl
-   var subClOption1 = { ShardingKey: { "b": 1 }, ShardingType: "range", ReplSize: 0 };
+   var subClOption1 = { ShardingKey: { "b": 1 }, ShardingType: "range" };
    commCreateCL( db, COMMCSNAME, subCL_Name1, subClOption1, true, true );
 
-   var subClOption2 = { ShardingKey: { "b": 1 }, ShardingType: "hash", ReplSize: 0 };
+   var subClOption2 = { ShardingKey: { "b": 1 }, ShardingType: "hash" };
    commCreateCL( db, COMMCSNAME, subCL_Name2, subClOption2, true, true );
 
    commCreateCL( db, COMMCSNAME, subCL_Name3 );

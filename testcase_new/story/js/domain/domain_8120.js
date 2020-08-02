@@ -44,8 +44,7 @@ function main ( db )
       { "Domain": domName } );
    commCreateCL( db, csName, clName, {
       ShardingKey: { "No": -1 },
-      ShardingType: "hash", Partition: 1024,
-      ReplSize: 0
+      ShardingType: "hash", Partition: 1024
    },
       false, false, "create collection in domain" );
 

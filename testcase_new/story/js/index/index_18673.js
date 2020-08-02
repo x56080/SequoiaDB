@@ -18,7 +18,7 @@ function main ()
    println( "\n---Begin to ready cs / cl." );
    commDropCS( db, csName, true, "Failed to drop cs in the pre-condition." );
    var cs = db.createCS( csName );
-   var cl = cs.createCL( clName, { ReplSize: 0 } );
+   var cl = cs.createCL( clName );
 
    println( "\n---Begin to alter cl to sharding." );
    cl.alter( { ShardingType: "hash", ShardingKey: { a: 1 } } );

@@ -57,14 +57,12 @@ function main ( db )
          { "Domain": domName } );
       commCreateCL( db, csName, rangeCL, {
          ShardingKey: { "No": -1 },
-         ShardingType: "range", Partition: 1024,
-         ReplSize: 0
+         ShardingType: "range", Partition: 1024
       },
          false, false, "create collection in domain" );
       // Comman CL
       commCreateCL( db, csName, commonCL, {
-         ShardingKey: { "No": -1 },
-         ReplSize: 0
+         ShardingKey: { "No": -1 }
       },
          false, false, "create collection in domain" );
    }

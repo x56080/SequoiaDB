@@ -4,23 +4,9 @@
 *@Modify list :
 *               2014-07-17 pusheng Ding  Init
 ******************************************************************************/
-indexName = CHANGEDPREFIX + "idx";
-try
-{
-	commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
-} catch( e ) { }
-
-//create CL
-try
-{
-	var optionObj = { ReplSize: 0 };
-	var varCL = commCreateCL( db, csName, clName, optionObj, true,
-		false, "create collecton 1 failed" );
-} catch( e )
-{
-	println( "failed to create cl" + e );
-	throw e;
-}
+   indexName = CHANGEDPREFIX + "idx";
+   commDropCL( db, csName, clName );
+   var varCL = commCreateCL( db, csName, clName );
 
 //create index
 try

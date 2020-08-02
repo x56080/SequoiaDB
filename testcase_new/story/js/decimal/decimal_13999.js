@@ -42,7 +42,7 @@ function main ()
 
    var option = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" };
    var mainCl = commCreateCL( db, csName, mainClName, option, true, true );
-   option = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
+   option = { ShardingKey: { a: 1 }, ShardingType: "range" };
    var subCl1 = commCreateCL( db, csName, subClName1, option, true, true );
    var subCl2 = commCreateCL( db, csName, subClName2, option, true, true );
    var attachOption = { LowBound: { a: { $decimal: "MIN" } }, UpBound: { a: { $decimal: "0" } } };

@@ -26,25 +26,23 @@ function main ()
    }
 
    //name 覆盖1字节有效字符
-   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, ReplSize: 0, Compressed: true, CompressionType: "lzw", AutoSplit: true };
+   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Compressed: true, CompressionType: "lzw", AutoSplit: true };
    var cl1 = commCreateCL( db, csName, clNames[0], optionObj, true );
 
    checkResult( clNames[0], "ShardingKey", { a: 1 } );
    checkResult( clNames[0], "ShardingType", "hash" );
    checkResult( clNames[0], "Partition", 1024 );
-   checkResult( clNames[0], "ReplSize", 7 );
    checkResult( clNames[0], "AttributeDesc", "Compressed" );
    checkResult( clNames[0], "CompressionTypeDesc", "lzw" );
    checkResult( clNames[0], "AutoSplit", true );
    checkCLByInsertData( cl1 );
 
    //name 覆盖127字节有效字符
-   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: -1, Group: groupName };
+   var optionObj = { ShardingKey: { a: 1 }, ShardingType: "range", Group: groupName };
    var cl2 = commCreateCL( db, csName, clNames[1], optionObj, true );
 
    checkResult( clNames[1], "ShardingKey", { a: 1 } );
    checkResult( clNames[1], "ShardingType", "range" );
-   checkResult( clNames[1], "ReplSize", -1 );
    checkGroup( clNames[1], groupName );
    checkCLByInsertData( cl2 );
 
