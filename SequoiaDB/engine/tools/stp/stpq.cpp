@@ -2101,8 +2101,8 @@ namespace engine
 
             if ( SDB_OK != rc )
             {
-               ossPrintf( "Error: Failed to run command [%s], rc: %d"OSS_NEWLINE,
-                          _stpqGetTaskCommand( taskType ), rc ) ;
+               // command calls will print error message itself,
+               // rno need to print duplicated error message here
                goto error ;
             }
             ossPrintf( OSS_NEWLINE ) ;
