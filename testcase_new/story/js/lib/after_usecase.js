@@ -36,73 +36,6 @@ function main ( db )
       return;
    }
 
-   // 2. drop CHANGEDPREFIX's all collection
-   var cols = commGetCSCL( db, CHANGEDPREFIX );
-   for( var i = 0; i < cols.length; ++i )
-   {
-      for( var j = 0; j < cols[i].cl.length; ++j )
-      {
-
-         // can't drop dummy collection
-         if( COMMDUMMYCLNAME == cols[i].cl[j] )
-         {
-            continue;
-         }
-         try
-         {
-
-            var str = cols[i].cl[j];
-            var clname = str.split( "." )[1];
-            commDropCL( db, cols[i].cs, clname, true, true, "After test-case" );
-         }
-         catch( e )
-         {
-            println( "Drop " + cols[i].cs + "." + clname + " failed after test-case: " + e );
-         }
-      }
-   }
-
-   // 3. drop CHANGEDPREFIX backup
-   var backups = commGetBackups( db, CHANGEDPREFIX );
-   for( var j = 0; j < backups.length; ++j )
-   {
-      try
-      {
-         db.removeBackup( { "Name": backups[j] } );
-      }
-      catch( e )
-      {
-         println( "Drop backup " + backups[j] + " failed after test-case: " + e );
-      }
-   }
-
-   // 4. drop CHANGEDPREFIX domain
-   var domains = commGetDomains( db, CHANGEDPREFIX );
-   for( var j = 0; j < domains.length; ++j )
-   {
-      try
-      {
-         db.dropDomain( domains[j] );
-      }
-      catch( e )
-      {
-         println( "Drop domain " + domains[j] + " failed after test-case: " + e );
-      }
-   }
-
-   // 5. drop CHANGEDPREFIX procedure
-   var procedures = commGetProcedures( db, CHANGEDPREFIX );
-   for( var j = 0; j < procedures.length; ++j )
-   {
-      try
-      {
-         db.removeProcedure( procedures[j] );
-      }
-      catch( e )
-      {
-         println( "Drop procedure " + procedures[j] + " failed after test-case: " + e );
-      }
-   }
 }
 
 try
@@ -113,4 +46,3 @@ catch( e )
 {
    println( "After test-case environment clear failed: " + e );
 }
-

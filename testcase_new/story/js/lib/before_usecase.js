@@ -1,7 +1,7 @@
 ﻿/* *****************************************************************************
 @discretion: Prepare before test-case
 @modify list:
-   2014-2-28 Jianhui Xu  Init
+  2014-2-28 Jianhui Xu  Init
 ***************************************************************************** */
 
 var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
@@ -20,24 +20,21 @@ function main ( db )
       commPrint( errNodes );
    }
 
-   // 2. create COMMCSNAME
-   commCreateCS( db, COMMCSNAME, true, "before test-case" );
-
-   // 3. drop CHANGEDPREFIX's all collection
+   // 2. drop CHANGEDPREFIX's all collection
    var cols = commGetCSCL( db, CHANGEDPREFIX );
    for( var i = 0; i < cols.length; ++i )
    {
       for( var j = 0; j < cols[i].cl.length; ++j )
       {
+         var str = cols[i].cl[j];
+         var clname = str.split( "." )[1];
          // can't drop dummy collection
-         if( COMMDUMMYCLNAME == cols[i].cl[j] )
+         if( COMMDUMMYCLNAME == clname )
          {
             continue;
          }
          try
          {
-            var str = cols[i].cl[j];
-            var clname = str.split( "." )[1];
             commDropCL( db, cols[i].cs, clname, true, true, "before test-case" );
          }
          catch( e )
@@ -47,7 +44,7 @@ function main ( db )
       }
    }
 
-   // 4. drop CHANGEDPREFIX backup
+   // 3. drop CHANGEDPREFIX backup
    var backups = commGetBackups( db, CHANGEDPREFIX );
    for( var j = 0; j < backups.length; ++j )
    {
@@ -61,7 +58,7 @@ function main ( db )
       }
    }
 
-   // 5. drop CHANGEDPREFIX domain
+   // 4. drop CHANGEDPREFIX domain
    var domains = commGetDomains( db, CHANGEDPREFIX );
    for( var j = 0; j < domains.length; ++j )
    {
@@ -75,7 +72,7 @@ function main ( db )
       }
    }
 
-   // 6. drop CHANGEDPREFIX procedure
+   // 5. drop CHANGEDPREFIX procedure
    var procedures = commGetProcedures( db, CHANGEDPREFIX );
    for( var j = 0; j < procedures.length; ++j )
    {
