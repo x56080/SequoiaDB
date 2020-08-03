@@ -1,4 +1,4 @@
-package com.sequoiadb.lob.basicoperation;
+package com.sequoiadb.lob.serial;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -30,9 +30,9 @@ public class TestLob22481 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb(SdbTestBase.coordUrl, "", "");
-        cs = sdb.getCollectionSpace(SdbTestBase.csName);
-        cl = cs.createCollection(clName);
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        cs = sdb.getCollectionSpace( SdbTestBase.csName );
+        cl = cs.createCollection( clName );
     }
 
     @Test
@@ -43,18 +43,18 @@ public class TestLob22481 extends SdbTestBase {
         createLob.start();
         execSync.start();
 
-        Assert.assertTrue(createLob.isSuccess(), createLob.getErrorMsg());
-        Assert.assertTrue(execSync.isSuccess(), execSync.getErrorMsg());
+        Assert.assertTrue( createLob.isSuccess(), createLob.getErrorMsg() );
+        Assert.assertTrue( execSync.isSuccess(), execSync.getErrorMsg() );
     }
 
     @AfterClass
     public void tearDown() {
         try {
-            if (cs.isCollectionExist(clName)) {
-                cs.dropCollection(clName);
+            if ( cs.isCollectionExist( clName ) ) {
+                cs.dropCollection( clName );
             }
         } finally {
-            if (sdb != null) {
+            if ( sdb != null ) {
                 sdb.close();
             }
         }
@@ -64,16 +64,19 @@ public class TestLob22481 extends SdbTestBase {
 
         @Override
         public void exec() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                for (int i = 0; i < EXECNUMBERS; i++) {
-                    DBCollection cl1 = db.getCollectionSpace(csName).getCollection(clName);
-                    DBCollection cl2 = db.getCollectionSpace(csName).getCollection(clName);
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                for ( int i = 0; i < EXECNUMBERS; i++ ) {
+                    DBCollection cl1 = db.getCollectionSpace( csName )
+                            .getCollection( clName );
+                    DBCollection cl2 = db.getCollectionSpace( csName )
+                            .getCollection( clName );
                     DBLob lob1 = cl1.createLob();
                     DBLob lob2 = cl2.createLob();
                     lob1.close();
                     lob2.close();
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }
@@ -83,15 +86,15 @@ public class TestLob22481 extends SdbTestBase {
 
         @Override
         public void exec() {
-            try (Sequoiadb db = new Sequoiadb(SdbTestBase.coordUrl, "", "")) {
-                for (int i = 0; i < EXECNUMBERS; i++) {
-                    db.sync((BSONObject) JSON.parse("{ Block:true } "));
+            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                for ( int i = 0; i < EXECNUMBERS; i++ ) {
+                    db.sync( ( BSONObject ) JSON.parse( "{ Block:true } " ) );
                 }
-            } catch (BaseException e) {
+            } catch ( BaseException e ) {
                 throw e;
             }
         }
     }
 
 }
-
