@@ -1183,6 +1183,10 @@ namespace engine
                  "node[%s] is not found in group information",
                  *(UINT32*)beat.hashCode, _info.getHashCode(),
                  routeID2String( beat.identity ).c_str() ) ;
+
+         // from wrong node, close immediately
+         _agent->close( handle ) ;
+
          rc = SDB_REPL_INVALID_GROUP_MEMBER ;
          goto error ;
       }
