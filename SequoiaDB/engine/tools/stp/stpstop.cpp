@@ -270,12 +270,14 @@ namespace engine
          if ( SDB_OK == rc )
          {
             ossPrintf( "DONE"OSS_NEWLINE ) ;
+            ++ success ;
          }
          else
          {
             ossPrintf( "FAILED"OSS_NEWLINE ) ;
          }
-         ++itrNode ;
+         ++ itrNode ;
+         ++ total ;
       }
 
       ossPrintf( "Total: %d; Success: %d; Failed: %d"OSS_NEWLINE,
