@@ -105,9 +105,6 @@ public class RenameCSKillSlaveNode16299 extends SdbTestBase {
                 db.renameCollectionSpace( oldCSName, newCSName );
             } catch ( BaseException e ) {
                 e.printStackTrace();
-                if ( e.getErrorCode() != -134 ) {
-                    throw e;
-                }
             }
         }
     }

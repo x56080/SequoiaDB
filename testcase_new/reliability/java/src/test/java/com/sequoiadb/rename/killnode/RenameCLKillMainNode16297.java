@@ -128,9 +128,7 @@ public class RenameCLKillMainNode16297 extends SdbTestBase {
                     completeTimes++;
                 }
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -104 && e.getErrorCode() != -134 ) {
-                    throw e;
-                }
+                e.printStackTrace();
             }
         }
     }
