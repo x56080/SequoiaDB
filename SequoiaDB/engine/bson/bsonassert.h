@@ -78,7 +78,10 @@ namespace bson {
         if( !expr )
             uasserted( msgid , msg );
     }
-    inline void msgasserted(int msgid, const char *msg) {
+    inline void msgasserted(int msgid, const char *msg, bool out_of_mem = false) {
+        if( out_of_mem ) {
+            throw std::bad_alloc();
+        }
         throw bson::assertion( msgid , msg );
     }
     inline void msgasserted(int msgid, const std::string &msg) { msgasserted(msgid, msg.c_str()); }

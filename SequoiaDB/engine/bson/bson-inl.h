@@ -148,7 +148,7 @@ namespace bson {
         holder_type holder ;
         if ( 0 != holder.makeFrom( objdata(), objsize() ) )
         {
-            msgasserted( 13551, "BSONObj copy() out-of-memory" ) ;
+            msgasserted( 13551, "BSONObj copy() out-of-memory", true ) ;
         }
         return BSONObj( holder ) ;
     }

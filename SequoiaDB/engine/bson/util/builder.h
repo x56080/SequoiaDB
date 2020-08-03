@@ -63,7 +63,7 @@ accesses) is the same as if
 
     class StringBuilder;
 
-    void msgasserted(int msgid, const char *msg);
+    void msgasserted(int msgid, const char *msg, bool out_of_mem);
 
    class HeapAllocator {
    public:

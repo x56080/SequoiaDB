@@ -27,7 +27,7 @@ namespace bson
       {
          if ( rhs.get() )
            if ( 0 != makeFrom( rhs->dataptr(), rhs->datasize() ) )
-              msgasserted( 16000, "alloc out-of-memory" ) ;
+              msgasserted( 16000, "alloc out-of-memory", true ) ;
       }
 
       ~bson_intrusive_ptr ()
@@ -48,7 +48,7 @@ namespace bson
          if ( rhs.get() )
          {
             if ( 0 != makeFrom( rhs->dataptr(), rhs->datasize() ) )
-               msgasserted( 16001, "alloc out-of-memory" ) ;
+               msgasserted( 16001, "alloc out-of-memory", true ) ;
          }
          else
          {
