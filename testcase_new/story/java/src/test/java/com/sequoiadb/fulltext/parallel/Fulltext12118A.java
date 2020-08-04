@@ -283,8 +283,15 @@ public class Fulltext12118A extends FullTestBase {
                 for ( int i = 0; i < clNum; i++ ) {
                     DBCollection cl = cs.createCollection( clNames.get( i ) );
                     if ( i < clNum / 2 ) {
-                        cl.createIndex( indexName, "{a:'text',b:'text'}", false,
-                                false );
+                        try{
+                            cl.createIndex( indexName, "{a:'text',b:'text'}", false,
+                                    false );
+                        }catch ( BaseException e ) {
+                            if ( e.getErrorCode() != -199 ) {
+                                e.printStackTrace();
+                                Assert.fail( e.getMessage() );
+                            }
+                        }                        
                         insertRecord( cl, insertNum );
                     }
                 }
