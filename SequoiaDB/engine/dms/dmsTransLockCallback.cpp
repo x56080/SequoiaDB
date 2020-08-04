@@ -80,10 +80,11 @@ namespace engine
    {
       public:
          _dmsReleaseLockJob( const dpsTransLockId &id,
-                             oldVersionContainer *oldVer )
+                             oldVersionContainer *oldVer,
+                             BOOLEAN isDiskDeleting )
          {
             _pOldVer = oldVer ;
-            _isDiskDeleting = _pOldVer->isDiskDeleting() ;
+            _isDiskDeleting = isDiskDeleting ;
          }
          virtual ~_dmsReleaseLockJob()
          {
@@ -245,7 +246,8 @@ namespace engine
    }
 
    static INT32 _dmsStartReleaseLockJob( const dpsTransLockId &lockId,
-                                         oldVersionContainer *oldVer )
+                                         oldVersionContainer *oldVer,
+                                         BOOLEAN isDiskDeleting )
    {
       INT32 rc = SDB_OK ;
 
@@ -259,7 +261,7 @@ namespace engine
       UINT32 clLID = oldVer->getCLLID() ;
 
       dmsReleaseLockJob *pJob = NULL ;
-      pJob = SDB_OSS_NEW dmsReleaseLockJob( lockId, oldVer ) ;
+      pJob = SDB_OSS_NEW dmsReleaseLockJob( lockId, oldVer, isDiskDeleting ) ;
       SDB_ASSERT( pJob, "Job is NULL" ) ;
       if ( pJob )
       {
@@ -332,6 +334,7 @@ namespace engine
                                BOOLEAN hasLock )
    {
       oldVersionContainer *oldVer   = NULL ;
+      BOOLEAN isDiskDeleting = FALSE ;
 
       // early exit if this is not record lock OR not in X mode OR
       // there is no old record setup.
@@ -365,19 +368,25 @@ namespace engine
       // When traverse the chain, add or remove an old version container
       // to or from the chain, proper latch on oldVersionUnit will apply
       // to protect synchronized accessing.
-      if ( oldVer && oldVer->isOnChain() )
+      if ( oldVer->isOnChain() )
       {
          _dmsRemoveOldVerFromChain( oldVer ) ;
       }
 
+      /// Should save isDiskDeleting before call tryReleaseRecord()
+      isDiskDeleting = oldVer->isDiskDeleting() ;
+
       /// try relerase record, because maybe should wait index tree's lock,
       /// so use try
-      if ( oldVer && oldVer->tryReleaseRecord( idxLID, hasLock ) )
+      if ( oldVer->tryReleaseRecord( idxLID, hasLock ) )
       {
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
 
-         goto done ;
+         if ( !isDiskDeleting || !pmdGetOptionCB()->recycleRecord() )
+         {
+            goto done ;
+         }
       }
       else
       {
@@ -387,7 +396,7 @@ namespace engine
       }
 
       /// PUT the rid to backgroud task to recycle
-      if ( SDB_OK == _dmsStartReleaseLockJob( lockId, oldVer ) )
+      if ( SDB_OK == _dmsStartReleaseLockJob( lockId, oldVer, isDiskDeleting ) )
       {
          pExtData->_data = 0 ;
       }
