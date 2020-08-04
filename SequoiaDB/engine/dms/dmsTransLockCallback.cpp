@@ -83,6 +83,7 @@ namespace engine
                              oldVersionContainer *oldVer )
          {
             _pOldVer = oldVer ;
+            _isDiskDeleting = _pOldVer->isDiskDeleting() ;
          }
          virtual ~_dmsReleaseLockJob()
          {
@@ -100,6 +101,7 @@ namespace engine
 
       private:
          oldVersionContainer    *_pOldVer ;
+         BOOLEAN                 _isDiskDeleting ;
    } ;
    typedef _dmsReleaseLockJob dmsReleaseLockJob ;
 
@@ -144,7 +146,7 @@ namespace engine
          _pOldVer->releaseRecord() ;
       }
 
-      if ( !_pOldVer->isDiskDeleting() || !pmdGetOptionCB()->recycleRecord() )
+      if ( !_isDiskDeleting || !pmdGetOptionCB()->recycleRecord() )
       {
          result = UTIL_LJOB_DO_FINISH ;
          goto done ;
