@@ -162,8 +162,7 @@ namespace engine
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL,
-         BOOLEAN                    needIntentLock = TRUE
+         _dpsITransLockCallback   * callback = NULL
       ) ;
 
       // dump specific lock info to a file for debugging purpose

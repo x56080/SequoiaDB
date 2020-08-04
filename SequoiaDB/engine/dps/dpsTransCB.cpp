@@ -1258,8 +1258,7 @@ namespace engine
                                             UINT16 collectionID,
                                             const dmsRecordID *recordID,
                                             dpsTransRetInfo * pdpsTxResInfo,
-                                            _dpsITransLockCallback * callback,
-                                            BOOLEAN needIntentLock )
+                                            _dpsITransLockCallback * callback )
    {
       if ( !_isOn )
       {
@@ -1270,8 +1269,7 @@ namespace engine
                                         lockId, DPS_TRANSLOCK_S,
                                         TRUE, // preemptively test
                                         pdpsTxResInfo,
-                                        callback,
-                                        needIntentLock );
+                                        callback );
    }
 
    INT32 dpsTransCB::transLockTestIS( _pmdEDUCB *eduCB, UINT32 logicCSID,

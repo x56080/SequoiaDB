@@ -561,8 +561,7 @@ namespace engine
                                                          _context->mbID(),
                                                          &_curRID,
                                                          &lockConflict,
-                                                         &_callback,
-                                                         !_CSCLLockHeld ) ;
+                                                         &_callback ) ;
                   ignoredLock = TRUE ;
                   if ( _callback.isSkipRecord() )
                   {
@@ -1690,185 +1689,6 @@ namespace engine
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSECSCAN__CHECKTRANSLOCK, "_dmsIXSecScanner::_checkTransLock" )
-   INT32 _dmsIXSecScanner::_checkTransLock( pmdEDUCB *cb,
-                                            dmsRecordID &waitUnlockRID,
-                                            BOOLEAN &skipRecord )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSIXSECSCAN__CHECKTRANSLOCK ) ;
-
-      BOOLEAN ignoredLock = FALSE ;
-
-      // If need lock and the RID was not setup from the in memory tree.
-      // As an optimization, if the RID was originally found through in
-      // memory tree scan, don't try lock at all.
-      if ( _recordLock != DPS_TRANSLOCK_MAX )
-      {
-         dpsTransRetInfo   lockConflict ;
-         dmsIXTransContext ixTxContext( _context, _accessType, _scanner ) ;
-
-         /// already locked, but not the same, should release lock first
-         if ( waitUnlockRID.isValid() && _curRID != waitUnlockRID )
-         {
-            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
-                                         _context->mbID(), &waitUnlockRID,
-                                         &_callback ) ;
-            waitUnlockRID.reset() ;
-         }
-
-         // attach the recordRW in callback
-         _callback.attachRecordRW( &_recordRW ) ;
-         _callback.clearStatus() ;
-
-         if ( DPS_TRANSLOCK_X == _recordLock )
-         {
-            // exclusive lock has to always wait on the lock
-            rc = _pTransCB->transLockGetX( cb, _pSu->logicalID(),
-                                           _context->mbID(), &_curRID,
-                                           &ixTxContext,
-                                           &lockConflict, &_callback ) ;
-         }
-         else if ( DPS_TRANSLOCK_U == _recordLock )
-         {
-            rc = _pTransCB->transLockGetU( cb, _pSu->logicalID(),
-                                           _context->mbID(), &_curRID,
-                                           &ixTxContext,
-                                           &lockConflict, &_callback ) ;
-         }
-         // DPS_TRANSLOCK_S
-         else
-         {
-            if ( !needWaitForLock() )
-            {
-               // for new RC logic, we should first test on S lock instead
-               // of directly wait on the record lock. Under the cover,
-               // the lock call back function would try to use the old copy
-               // (previous committed version) if exist
-               rc = _pTransCB->transLockTestSPreempt( cb, _pSu->logicalID(),
-                                                      _context->mbID(),
-                                                      &_curRID,
-                                                      &lockConflict,
-                                                      &_callback,
-                                                      !_CSCLLockHeld ) ;
-               ignoredLock = TRUE ;
-               if ( _callback.isSkipRecord() )
-               {
-                  // For newly created records by another transaction,
-                  // we could still find it through diskIXScan, we will
-                  // skip those records without waiting for lock.
-                  _scanner->removeDuplicatRID( _curRID ) ;
-                  rc = SDB_OK ;
-                  skipRecord = TRUE ;
-                  goto done ;
-               }
-               if ( _callback.isUseOldVersion() )
-               {
-                  rc = SDB_OK ;
-               }
-            }
-
-            /// wait lock
-            if ( needWaitForLock() || rc )
-            {
-               // test S lock failed and the record is not in old version
-               // container nor in RBS. most likely the one hold / wait X
-               // hasn't finish updating the record.
-               rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
-                                              _context->mbID(), &_curRID,
-                                              &ixTxContext,
-                                              &lockConflict,
-                                              &_callback ) ;
-               if ( SDB_OK == rc )
-               {
-                  ignoredLock = FALSE ;
-               }
-            }
-         }
-
-         if ( waitUnlockRID.isValid() )
-         {
-            _pTransCB->transLockRelease( cb, _pSu->logicalID(),
-                                         _context->mbID(), &waitUnlockRID,
-                                         &_callback ) ;
-            waitUnlockRID.reset() ;
-         }
-
-         if ( rc )
-         {
-            PD_LOG( PDERROR,
-                    "Failed to get record lock, rc: %d"OSS_NEWLINE
-                    "Request Mode:   %s"OSS_NEWLINE
-                    "Conflict ( representative ):"OSS_NEWLINE
-                    "   EDUID:  %llu"OSS_NEWLINE
-                    "   TID:    %u"OSS_NEWLINE
-                    "   LockId: %s"OSS_NEWLINE
-                    "   Mode:   %s"OSS_NEWLINE,
-                    rc,
-                    lockModeToString( _recordLock ),
-                    lockConflict._eduID,
-                    lockConflict._tid,
-                    lockConflict._lockID.toString().c_str(),
-                    lockModeToString( lockConflict._lockType ) ) ;
-            cb->printInfo( EDU_INFO_ERROR, "Failed to get record lock" ) ;
-            goto error ;
-         }
-
-         if ( !ignoredLock )
-         {
-            _hasLockedRecord = TRUE ;
-         }
-
-         if ( _callback.hasError() )
-         {
-            rc = _callback.getResult() ;
-            PD_LOG( PDERROR, "Occur error in callback, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         // index has changed under us between wait on lock and got lock
-         if ( !ixTxContext.isCursorSame() || _callback.isSkipRecord() )
-         {
-            if ( _hasLockedRecord )
-            {
-               waitUnlockRID = _curRID ;
-               _hasLockedRecord = FALSE ;
-            }
-
-            /// remove the duplicate key
-            _scanner->removeDuplicatRID( _curRID ) ;
-
-#ifdef _DEBUG
-            PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
-                    "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
-                    "isSkipRecord(%d)",
-                    _curRID._extent, _curRID._offset,
-                    ixTxContext.isCursorSame(), _onceRestNum,
-                    _callback.isSkipRecord()) ;
-#endif
-            // When cursor changed, we may need to go back to previous
-            // key to retry, don't count as a step. Also avoid potential
-            // pause here if step becomes 0, in which case we may unexpectly
-            // lose previously savedObj and savedRID and cause skip record.
-            if ( !ixTxContext.isCursorSame() )
-            {
-               _onceRestNum++ ;
-            }
-
-            skipRecord = TRUE ;
-            goto done ;
-         }
-      } // end of (_recordLock != -1)
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSIXSECSCAN__CHECKTRANSLOCK, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // Description
    //    Index section scan. Advance to next index entry based on the on-disk
    // index tree and searching criteria, return the found recordID pointed
@@ -1892,7 +1712,7 @@ namespace engine
       ossValuePtr recordDataPtr ;
       dmsRecordData recordData ;
       dmsRecordID waitUnlockRID ;
-      BOOLEAN skipRecord      = FALSE ;
+      BOOLEAN ignoredLock     = FALSE ;
 
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
@@ -1921,8 +1741,7 @@ namespace engine
       _hasLockedRecord = FALSE ;
       while ( _onceRestNum-- > 0 && 0 != _maxRecords )
       {
-         skipRecord = FALSE ;
-
+         ignoredLock = FALSE ;
          // advance index tree
          rc = _scanner->advance( _curRID ) ;
          if ( SDB_IXM_EOC == rc )
@@ -1987,18 +1806,6 @@ namespace engine
             }
             else if ( _countOnly )
             {
-               if ( cb->isTransaction() && !cb->isTransRU() )
-               {
-                  // no need to read record
-                  // look for transaction lock
-                  rc = _checkTransLock( cb, waitUnlockRID, skipRecord ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
-                               "rc: %d", rc ) ;
-                  if ( skipRecord )
-                  {
-                     continue ;
-                  }
-               }
                if ( _maxRecords > 0 )
                {
                   --_maxRecords ;
@@ -2010,23 +1817,165 @@ namespace engine
             }
          }
 
-         // read record for further process
          // record2RW already take care of in memory version vs on disk
          // version under the cover
          _recordRW = _pSu->record2RW( _curRID, _context->mbID() ) ;
 
-         // look for transaction lock
-         rc = _checkTransLock( cb, waitUnlockRID, skipRecord ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
-                      "rc: %d", rc ) ;
-         if ( skipRecord )
+         // If need lock and the RID was not setup from the in memory tree.
+         // As an optimization, if the RID was originally found through in
+         // memory tree scan, don't try lock at all.
+         if ( _recordLock != DPS_TRANSLOCK_MAX )
          {
-            continue ;
-         }
+            dpsTransRetInfo   lockConflict ;
+            dmsIXTransContext ixTxContext( _context, _accessType, _scanner ) ;
+
+            /// already locked, but not the same, should release lock first
+            if ( waitUnlockRID.isValid() && _curRID != waitUnlockRID )
+            {
+               _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                            _context->mbID(), &waitUnlockRID,
+                                            &_callback ) ;
+               waitUnlockRID.reset() ;
+            }
+
+            // attach the recordRW in callback
+            _callback.attachRecordRW( &_recordRW ) ;
+            _callback.clearStatus() ;
+
+            if ( DPS_TRANSLOCK_X == _recordLock )
+            {
+               // exclusive lock has to always wait on the lock
+               rc = _pTransCB->transLockGetX( cb, _pSu->logicalID(),
+                                              _context->mbID(), &_curRID,
+                                              &ixTxContext,
+                                              &lockConflict, &_callback ) ;
+            }
+            else if ( DPS_TRANSLOCK_U == _recordLock )
+            {
+               rc = _pTransCB->transLockGetU( cb, _pSu->logicalID(),
+                                              _context->mbID(), &_curRID,
+                                              &ixTxContext,
+                                              &lockConflict, &_callback ) ;
+            }
+            // DPS_TRANSLOCK_S
+            else
+            {
+               if ( !needWaitForLock() )
+               {
+                  // for new RC logic, we should first try on S lock instead
+                  // of directly wait on the record lock. Under the cover,
+                  // the lock call back function would try to use the old copy
+                  // (previous committed version) if exist
+                  rc = _pTransCB->transLockTestSPreempt( cb, _pSu->logicalID(),
+                                                         _context->mbID(),
+                                                         &_curRID,
+                                                         &lockConflict,
+                                                         &_callback ) ;
+                  ignoredLock = TRUE ;
+                  if ( _callback.isSkipRecord() )
+                  {
+                     // For newly created records by another transaction,
+                     // we could still find it through diskIXScan, we will
+                     // skip those records without waiting for lock.
+                     _scanner->removeDuplicatRID( _curRID ) ;
+                     rc = SDB_OK ;
+                     continue ;
+                  }
+                  if ( _callback.isUseOldVersion() )
+                  {
+                     rc = SDB_OK ;
+                  }
+               }
+
+               /// wait lock
+               if ( needWaitForLock() || rc )
+               {
+                  rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
+                                                 _context->mbID(), &_curRID,
+                                                 &ixTxContext,
+                                                 &lockConflict,
+                                                 &_callback ) ;
+                  if ( SDB_OK == rc )
+                  {
+                     ignoredLock = FALSE ;
+                  }
+               }
+            }
+
+            if ( waitUnlockRID.isValid() )
+            {
+               _pTransCB->transLockRelease( cb, _pSu->logicalID(),
+                                            _context->mbID(), &waitUnlockRID,
+                                            &_callback ) ;
+               waitUnlockRID.reset() ;
+            }
+
+            if ( rc )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to get record lock, rc: %d"OSS_NEWLINE
+                       "Request Mode:   %s"OSS_NEWLINE
+                       "Conflict ( representative ):"OSS_NEWLINE
+                       "   EDUID:  %llu"OSS_NEWLINE
+                       "   TID:    %u"OSS_NEWLINE
+                       "   LockId: %s"OSS_NEWLINE
+                       "   Mode:   %s"OSS_NEWLINE,
+                       rc,
+                       lockModeToString( _recordLock ),
+                       lockConflict._eduID,
+                       lockConflict._tid,
+                       lockConflict._lockID.toString().c_str(),
+                       lockModeToString( lockConflict._lockType ) ) ;
+               cb->printInfo( EDU_INFO_ERROR, "Failed to get record lock" ) ;
+               goto error ;
+            }
+
+            if ( !ignoredLock )
+            {
+               _hasLockedRecord = TRUE ;
+            }
+
+            if ( _callback.hasError() )
+            {
+               rc = _callback.getResult() ;
+               PD_LOG( PDERROR, "Occur error in callback, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            // index has changed under us between wait on lock and got lock
+            if ( !ixTxContext.isCursorSame() || _callback.isSkipRecord() )
+            {
+               if ( _hasLockedRecord )
+               {
+                  waitUnlockRID = _curRID ;
+                  _hasLockedRecord = FALSE ;
+               }
+
+               /// remove the duplicate key
+               _scanner->removeDuplicatRID( _curRID ) ;
+
+#ifdef _DEBUG
+               PD_LOG( PDDEBUG, "Cursor changed while waiting for lock, "
+                       "rid(%d, %d), isCursorSame(%d), _onceRestNum(%d), "
+                       "isSkipRecord(%d)",
+                       _curRID._extent, _curRID._offset,
+                       ixTxContext.isCursorSame(), _onceRestNum,
+                       _callback.isSkipRecord()) ;
+#endif
+               // When cursor changed, we may need to go back to previous
+               // key to retry, don't count as a step. Also avoid potential
+               // pause here if step becomes 0, in which case we may unexpectly
+               // lose previously savedObj and savedRID and cause skip record.
+               if ( !ixTxContext.isCursorSame() )
+               {
+                  _onceRestNum++ ;
+               }
+               continue ;
+            }
+         } // end of (_recordLock != -1)
 
          // Move _curRecordPtr to here so that _recordRW is fully setup for
          // all cases.
-         // NOTE: it might from disk or old version
          _curRecordPtr = _recordRW.readPtr( 0 ) ;
 
          // Handle the record being deleted
