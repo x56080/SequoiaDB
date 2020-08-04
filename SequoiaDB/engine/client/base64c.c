@@ -158,7 +158,7 @@ char getCharIndex ( char c )
 
 int base64Decode ( const char *s, char *_ret, int out_size )
 {
-   static char lpCode [ 4 ] ;
+   char lpCode [ 4 ] ;
    int vLen = 0 ;
    int len = strlen ( s ) ;
    if( !s || !_ret )
