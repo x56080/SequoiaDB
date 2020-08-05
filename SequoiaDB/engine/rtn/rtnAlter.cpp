@@ -192,8 +192,12 @@ namespace engine
                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
                                   IXM_V_FIELD << 0 ) ;
 
+         // alter will write DPS log itself, no need to pass dpsCB down
+         // but we need to build old version index tree if dpsCB is given
+         // so force to use trans callback
          rc = su->createIndex( collectionShortName, indexDef, cb, NULL, TRUE,
-                               mbContext, 0, pResult ) ;
+                               mbContext, 0, pResult,
+                               NULL != dpsCB ? TRUE : FALSE ) ;
          if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
          {
             /// sharding key index already exists.

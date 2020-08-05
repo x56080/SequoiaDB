@@ -468,7 +468,8 @@ namespace engine
                                 BOOLEAN isSys = FALSE,
                                 dmsMBContext *context = NULL,
                                 INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                utilWriteResult *pResult = NULL ) ;
+                                utilWriteResult *pResult = NULL,
+                                BOOLEAN forceTransCallback = FALSE ) ;
 
          INT32    dropIndex( const CHAR *pName, const CHAR *indexName,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,

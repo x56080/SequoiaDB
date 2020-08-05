@@ -1822,7 +1822,8 @@ namespace engine
                                        pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                        BOOLEAN isSys, dmsMBContext * context,
                                        INT32 sortBufferSize,
-                                       utilWriteResult *pResult )
+                                       utilWriteResult *pResult,
+                                       BOOLEAN forceTransCallback )
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -1838,7 +1839,8 @@ namespace engine
       }
 
       rc = _pIndexSu->createIndex( context, index, cb, dpscb,
-                                   isSys, sortBufferSize, pResult ) ;
+                                   isSys, sortBufferSize, pResult,
+                                   forceTransCallback ) ;
       if ( rc )
       {
          goto error ;

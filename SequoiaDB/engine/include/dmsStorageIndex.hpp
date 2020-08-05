@@ -88,7 +88,8 @@ namespace engine
                                 _pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                 BOOLEAN isSys = FALSE,
                                 INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE,
-                                utilWriteResult *pResult = NULL ) ;
+                                utilWriteResult *pResult = NULL,
+                                BOOLEAN forceTransCallback = FALSE ) ;
 
          INT32    dropIndex ( _dmsMBContext *context, OID &indexOID,
                               _pmdEDUCB *cb, SDB_DPSCB *dpscb,
@@ -159,7 +160,8 @@ namespace engine
                                 SDB_DPSCB *dpscb,
                                 BOOLEAN isSys,
                                 INT32 sortBufferSize,
-                                utilWriteResult *pResult ) ;
+                                utilWriteResult *pResult,
+                                BOOLEAN forceTransCallback ) ;
 
          INT32 _checkForCrtTextIdx( _dmsMBContext *context,
                                     const BSONObj &index ) ;

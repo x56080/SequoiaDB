@@ -568,7 +568,8 @@ namespace engine
                                         SDB_DPSCB *dpscb,
                                         BOOLEAN isSys,
                                         INT32 sortBufferSize,
-                                        utilWriteResult *pResult )
+                                        utilWriteResult *pResult,
+                                        BOOLEAN forceTransCallback )
    {
       INT32 rc                     = SDB_OK ;
       dmsExtentID metaExtentID     = DMS_INVALID_EXTENT ;
@@ -628,7 +629,7 @@ namespace engine
       {
          rc = _createIndex( context, index, metaExtentID, rootExtentID,
                             indexType, cb, dpscb, isSys, sortBufferSize,
-                            pResult ) ;
+                            pResult, forceTransCallback ) ;
          PD_RC_CHECK (rc, PDERROR, "Create index failed, rc: %d", rc ) ;
       }
 
@@ -1115,7 +1116,8 @@ namespace engine
                                          SDB_DPSCB *dpscb,
                                          BOOLEAN isSys,
                                          INT32 sortBufferSize,
-                                         utilWriteResult *pResult )
+                                         utilWriteResult *pResult,
+                                         BOOLEAN forceTransCallback )
    {
       INT32 rc = SDB_OK ;
       INT32 indexID = 0 ;
@@ -1166,8 +1168,11 @@ namespace engine
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
 
-         // calc the reserve size
-         if ( dpscb )
+         // create old version index tree if needed
+         // NOTE: alter command will not pass dpsCB to write DPS log, so we can
+         //       not simply check dpsCB here
+         if ( ( _pDataSu->isTransSupport() ) &&
+              ( NULL != dpscb || forceTransCallback ) )
          {
             // invoke callback function
             pOprHandler = &callback ;
@@ -1181,7 +1186,11 @@ namespace engine
                        "rc = %d", rc ) ;
                goto error ;
             }
+         }
 
+         // calc the reserve size
+         if ( dpscb )
+         {
             _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
                                    sizeof(fullName) ) ;
 
