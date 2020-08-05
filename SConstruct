@@ -252,6 +252,7 @@ add_option( "chm", "build chm document", 0, False)
 add_option( "offline", "build offline html document", 0, False)
 add_option( "doxygen", "build doxygen document", 0, False)
 add_option( "noautogen", "do not run autogen", 0, False)
+add_option( "nolinkssl", "do not link openssl when building C/C++ clients(only for linux).", 0, False )
 
 # language could be en or cn
 add_option( "language" , "description language" , 1 , False )
@@ -382,6 +383,7 @@ hasWebSite = has_option( "website" )
 hasChm = has_option( "chm" )
 hasOffline = has_option( "offline" )
 hasDoxygen = has_option( "doxygen" )
+hasNoLinkSSL = has_option("nolinkssl")
 
 hasFap = False
 if guess_os == "win32":
@@ -587,7 +589,14 @@ if guess_os == "linux":
         env.Append( CPPDEFINES=[ "SDB_LITTLE_ENDIAN" ] )
         env.Append( EXTRALIBPATH="/lib64" )
 
-    env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy'])
+    # Building for mysqld without linking openssl in c/c++ client.
+    # Or there will be two same openssl symbol existing in one mysqld program 
+    # in case of mysqld building openssl in.
+    if hasNoLinkSSL == False:
+        env.Append(LIBS=['ssl', 'crypto', 'lz4', 'zlib', 'snappy'])
+    else:
+        env.Append(LIBS=['lz4', 'zlib', 'snappy'])
+
     ssllib_file = join(ssl_lib_dir, 'libcrypto.a')
     ssllib_file1 = join(ssl_lib_dir, 'libssl.a')
 
