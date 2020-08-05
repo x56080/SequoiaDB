@@ -37,6 +37,7 @@
 *******************************************************************************/
 
 #include "clsRemoteOperator.hpp"
+#include "clsBase.hpp"
 #include "pmdProcessor.hpp"
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"

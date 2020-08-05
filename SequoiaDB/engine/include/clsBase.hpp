@@ -70,14 +70,7 @@ namespace engine
    typedef MsgRouteID   NodeID ;
    #define INVALID_NODE_ID       (MSG_INVALID_ROUTEID)
 
-   #define SAFE_DELETE(p) \
-      do { \
-         if ( p ) \
-         { \
-            SDB_OSS_DEL p ; \
-            p = NULL ; \
-         } \
-      } while (0)
+   #define SAFE_DELETE(p) SAFE_OSS_DELETE( p )
 
    #define SAFE_NEW_GOTO_ERROR(p, className) \
       do { \

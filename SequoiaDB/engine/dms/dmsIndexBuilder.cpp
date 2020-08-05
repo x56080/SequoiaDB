@@ -183,7 +183,7 @@ namespace engine
       _mbContext->mbUnlock() ;
       return rc ;
    error:
-      SAFE_DELETE( _indexCB ) ;
+      SAFE_OSS_DELETE( _indexCB ) ;
       goto done ;
    }
 
