@@ -24,9 +24,17 @@ function test ()
    var cond = { Name: { $regex: csName + "." + CHANGEDPREFIX + testcaseID } };
 
    maincl.alter( { "StrictDataMode": true } );
+
+   // 检查主备一致
+   commCheckLSN( db, dataGroupName );
+
    checkStrictDataModeTrue( db, cond, dataGroupName );
 
    maincl.alter( { "StrictDataMode": false } );
+
+   // 检查主备一致
+   commCheckLSN( db, dataGroupName );
+
    checkStrictDataModeFalse( db, cond, dataGroupName );
 
    commDropCL( db, csName, mainclName );
