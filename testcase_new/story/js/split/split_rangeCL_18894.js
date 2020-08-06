@@ -37,7 +37,7 @@ function main ()
    var recsNum = 40000;
 
    // create cs/cl
-   commDropCS( db, csName, true, true, "drop CS in the beginning." );
+   commDropCS( db, csName, true, "drop CS in the beginning." );
    var cs = db.createCS( csName );
    var cl = cs.createCL( clName, { ShardingKey: { a: 1 }, ShardingType: "range", Group: srcGroupName } );
 
@@ -63,5 +63,5 @@ function main ()
    var cursor = cl.find( {}, { "_id": { "$include": 0 } } );
    commCompareResults( cursor, docs2 );
 
-   commDropCS( db, csName, true, true, "drop CS in the end." );
+   commDropCS( db, csName, true, "drop CS in the end." );
 }

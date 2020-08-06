@@ -17,7 +17,7 @@ function main ( db )
    var commonCL = clName + "_Common";
 
    // Drop CS
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the beginning" );
 
    // Drop domain
@@ -105,7 +105,6 @@ function main ( db )
 try
 {
    main( db );
-   db.close();
 }
 catch( e )
 {

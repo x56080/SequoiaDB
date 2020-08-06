@@ -17,7 +17,7 @@ function main ( db )
    println( "Clear domain in the beginning" );
 
    // Drop Collection space in the beginning
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the beginning" );
 
    // Create domain without group and autosplit

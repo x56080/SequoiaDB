@@ -13,7 +13,7 @@ function main ()
       var csName = COMMCSNAME;
       var clName = COMMCLNAME;
       // Drop CS
-      commDropCS( db, csName, clName, true,
+      commDropCS( db, csName, true,
          "clear collection space in the beginning" );
 
       println( "---create collection space and collection in the beginning" );
@@ -32,7 +32,7 @@ function main ()
       cl.insert( recs );
       checkResult( cl, recs );
       //clean environment
-      commDropCS( db, csName, clName, true,
+      commDropCS( db, csName, true,
          "clear collection space in the end" );
    }
    catch( e )

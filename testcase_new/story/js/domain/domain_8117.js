@@ -18,7 +18,7 @@ function main ( db )
    clearDomain( db, domName );
 
    // Drop CS
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the beginning" );
 
    try

@@ -23,7 +23,7 @@ function main ( db )
       clname[i] = clName + i;
 
       // Drop CS
-      commDropCS( db, csname[i], clname[i], true,
+      commDropCS( db, csname[i], true,
          "clear collection space in the beginning" );
 
       // Drop domain

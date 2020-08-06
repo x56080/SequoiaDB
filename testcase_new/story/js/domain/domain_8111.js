@@ -12,7 +12,7 @@ function main ( db )
    var domainName = CHANGEDPREFIX + "_domainNameAndGroup"
 
    // Drop CS
-   commDropCS( db, DOMCSNAME, COMMCLNAME, true,
+   commDropCS( db, DOMCSNAME, true,
       "clear collection space in the beginning" );
 
    // Drop domain

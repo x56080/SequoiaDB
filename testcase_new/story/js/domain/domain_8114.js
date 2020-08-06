@@ -14,7 +14,7 @@ function main ( db )
 
    var domName = csName + "_DomDataGroupData";
    // Drop CS
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the beginning" );
 
    // Clear domain in the begnning
@@ -100,7 +100,7 @@ function main ( db )
    clearDomain( db, domName );
 
    // Drop CS created before Create domain
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the end" );
 
 }

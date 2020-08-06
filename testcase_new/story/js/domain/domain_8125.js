@@ -14,7 +14,7 @@ function main ( db )
 
    var domName = csName + "_DomDropNotExistName";
    // Drop CS
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the beginning" );
 
    // Drop the domain we specify in the begnning
@@ -90,7 +90,7 @@ function main ( db )
    inspectDomain( db, domName );
 
    // Drop CS int the end
-   commDropCS( db, csName, clName, true,
+   commDropCS( db, csName, true,
       "clear collection space in the end" );
 
    // Drop domain in the end
