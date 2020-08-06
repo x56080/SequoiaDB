@@ -269,31 +269,32 @@ namespace engine
          rc = utilStopNode( info, UTIL_STOP_NODE_TIMEOUT, force, TRUE ) ;
          if ( SDB_OK == rc )
          {
+            PD_LOG( PDEVENT, "Successful to stop stp node %d: %s(%s)",
+                    info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
+                    info._svcname.c_str() ) ;
             ossPrintf( "DONE"OSS_NEWLINE ) ;
             ++ success ;
          }
          else
          {
+            PD_LOG( PDERROR, "Failed to stop stp node %d: %s(%s), rc: %d",
+                    info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
+                    info._svcname.c_str(), rc ) ;
             ossPrintf( "FAILED"OSS_NEWLINE ) ;
          }
          ++ itrNode ;
          ++ total ;
       }
 
-      ossPrintf( "Total: %d; Success: %d; Failed: %d"OSS_NEWLINE,
-                 total, success, total - success ) ;
-
       if ( total == success )
       {
+         ossPrintf( "Successful to stop stp"OSS_NEWLINE ) ;
          rc = SDB_OK ;
-      }
-      else if ( success == 0 )
-      {
-         rc = STOPFAIL ;
       }
       else
       {
-         rc = STOPPART ;
+         ossPrintf( "Failed to stop stp, rc: %d"OSS_NEWLINE, rc ) ;
+         rc = success == 0 ? STOPFAIL : STOPPART ;
       }
 
    done:
