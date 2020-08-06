@@ -91,31 +91,6 @@ namespace import
          }
 
          parser = csvParser;
-
-         if (!options.fields().empty())
-         {
-            PD_LOG(PDINFO, "fields: %s", options.fields().c_str());
-            if (options.verbose())
-            {
-               std::cout << "fields: " << options.fields()
-                         << std::endl;
-            }
-            const CHAR* str = options.fields().c_str();
-            INT32 len = options.fields().length();
-
-            rc = csvParser->parseFields(str, len, FALSE);
-            if (SDB_OK != rc)
-            {
-               std::cout << "failed to parse fields" << std::endl;
-               PD_LOG(PDERROR, "failed to parse fields, rc=%d", rc);
-               goto error;
-            }
-
-            if (options.verbose())
-            {
-               csvParser->printFieldsDef();
-            }
-         }
       }
       else
       {

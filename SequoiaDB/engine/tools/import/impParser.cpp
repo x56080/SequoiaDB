@@ -48,10 +48,58 @@ namespace import
       Parser* self ;
    } ;
 
+   static INT32 _copyCsvFieldsAndParse( CSVRecordParser* csvParser,
+                                        CHAR*& fields, INT32& fieldsLength,
+                                        const CHAR* src, INT32 srcLength,
+                                        BOOLEAN isHeaderline )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != csvParser, "csvParser can't be NULL" ) ;
+      SDB_ASSERT( NULL != src, "src can't be NULL" ) ;
+
+      if ( fieldsLength < srcLength )
+      {
+         INT32 size = srcLength + 1 ;
+         CHAR* tmp = fields ;
+
+         fieldsLength = srcLength ;
+
+         fields = (CHAR*)SDB_OSS_REALLOC( tmp, size ) ;
+         if ( NULL == fields )
+         {
+            SAFE_OSS_FREE( tmp ) ;
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "failed to malloc fields buffer, size=%d", size ) ;
+            goto error ;
+         }
+      }
+
+      SDB_ASSERT( NULL != fields, "fields can't be NULL" ) ;
+
+      ossMemcpy( fields, src, srcLength ) ;
+      fields[srcLength] = '\0' ;
+
+      csvParser->reset() ;
+
+      rc = csvParser->parseFields( fields, fieldsLength, isHeaderline ) ;
+      if ( rc )
+      {
+         std::cout << "failed to parse fields" << std::endl ;
+         PD_LOG( PDERROR, "failed to parse fields, rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _parserRoutine( WorkerArgs* args )
    {
       INT32 rc = SDB_OK ;
-      INT32 fileId = 0 ;
+      INT32 fileId       = 0 ;
+      INT32 fieldsLength = 0 ;
       ParserArgs* parArgs = (ParserArgs*)args ;
       Parser* self = parArgs->self ;
 
@@ -62,6 +110,7 @@ namespace import
       DataQueue* dataQueue   = self->_dataQueue ;
       Packer* packer         = self->_packer ;
       LogFile* logFile       = &(self->_logFile) ;
+      CHAR* fields           = NULL ;
 
       SDB_ASSERT( NULL != options, "options can't be NULL" ) ;
       SDB_ASSERT( NULL != logFile, "logFile can't be NULL" ) ;
@@ -96,6 +145,19 @@ namespace import
          goto error ;
       }
 
+      if ( FORMAT_CSV == options->inputFormat() && !options->fields().empty() )
+      {
+         rc = _copyCsvFieldsAndParse( (CSVRecordParser*)parser,
+                                      fields, fieldsLength,
+                                      options->fields().c_str(),
+                                      options->fields().length(),
+                                      FALSE ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
       while( !self->_stopped )
       {
          while( !dataQueue->pop( parArgs->id, recordData ) )
@@ -120,16 +182,15 @@ namespace import
               options->fields().empty() )
          {
             // fields is not defined, so use file header line
-            CSVRecordParser* csvParser = (CSVRecordParser*)parser ;
-
-            csvParser->reset() ;
-
-            SDB_ASSERT( NULL != recordData.fields, "fields can't be NULL" ) ;
-
-            rc = csvParser->parseFields( recordData.fields,
-                                         recordData.fieldsLen, TRUE ) ;
-
-            SDB_ASSERT( SDB_OK == rc, "file header line must be check" ) ;
+            rc = _copyCsvFieldsAndParse( (CSVRecordParser*)parser,
+                                         fields, fieldsLength,
+                                         recordData.fields,
+                                         recordData.fieldsLen,
+                                         TRUE ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
 
             fileId = recordData.fileId ;
          }
@@ -207,6 +268,8 @@ namespace import
             std::cout << ss.str() << std::endl ;
          }
       }
+
+      SAFE_OSS_FREE( fields ) ;
 
       self->_livingNum.dec() ;
 

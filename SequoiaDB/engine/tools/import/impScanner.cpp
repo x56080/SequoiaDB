@@ -93,7 +93,6 @@ namespace import
 
       SDB_ASSERT( NULL != options, "options can't be NULL" ) ;
       SDB_ASSERT( NULL != dataQueue, "dataQueue can't be NULL" ) ;
-      SDB_ASSERT( NULL != parser, "parser can't be NULL" ) ;
 
       INT64 scanNum = 0 ;
 
@@ -252,6 +251,8 @@ namespace import
             if ( FORMAT_CSV == options->inputFormat() &&
                  options->hasHeaderLine() )
             {
+               SDB_ASSERT( NULL != parser, "parser can't be NULL" ) ;
+
                CSVRecordParser* csvParser = NULL ;
                string fields = string( record, recordLength ) ;
 
@@ -389,13 +390,45 @@ namespace import
    {
       INT32 rc = SDB_OK ;
 
-      rc = RecordParser::createInstance( options->inputFormat(),
-                                         *options, _parser ) ;
-      if ( rc )
+      if ( FORMAT_CSV == options->inputFormat() )
       {
-         PD_LOG( PDERROR, "failed to create RecordParser object,"
-                 "rc=%d, INPUT_FORMAT=%d", rc, options->inputFormat() ) ;
-         goto error ;
+         rc = RecordParser::createInstance( options->inputFormat(),
+                                            *options, _parser ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "failed to create RecordParser object,"
+                    "rc=%d, INPUT_FORMAT=%d", rc, options->inputFormat() ) ;
+            goto error ;
+         }
+
+         if ( !options->fields().empty() )
+         {
+            INT32 len = options->fields().length() ;
+            const CHAR* str = options->fields().c_str() ;
+            CSVRecordParser* csvParser = NULL ;
+
+            PD_LOG( PDINFO, "fields: %s", options->fields().c_str() ) ;
+
+            if ( options->verbose() )
+            {
+               std::cout << "fields: " << options->fields() << std::endl ;
+            }
+
+            csvParser = (CSVRecordParser*)_parser ;
+
+            rc = csvParser->parseFields( str, len, FALSE ) ;
+            if ( rc )
+            {
+               std::cout << "failed to parse fields" << std::endl ;
+               PD_LOG( PDERROR, "failed to parse fields, rc=%d", rc ) ;
+               goto error ;
+            }
+
+            if ( options->verbose() )
+            {
+               csvParser->printFieldsDef() ;
+            }
+         }
       }
 
    done:
@@ -404,14 +437,19 @@ namespace import
       goto done ;
    }
 
-   INT32 Scanner::init( Options* options, DataQueue* dataQueue, INT32 workerNum )
+   INT32 Scanner::init( Options* options, DataQueue* dataQueue,
+                        INT32 workerNum )
    {
       INT32 rc = SDB_OK ;
       INT32 bufferSize = 0 ;
 
       SDB_ASSERT( NULL != options, "options can't be NULL" ) ;
       SDB_ASSERT( NULL != dataQueue, "dataQueue can't be NULL" ) ;
-      SDB_ASSERT( NULL != _parser, "_parser can't be NULL" ) ;
+
+      if ( FORMAT_CSV == options->inputFormat() )
+      {
+         SDB_ASSERT( NULL != _parser, "_parser can't be NULL" ) ;
+      }
 
       bufferSize = options->bufferSize() ;
 
