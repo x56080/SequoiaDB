@@ -37,7 +37,6 @@
 #include "ossRWMutex.hpp"
 #include "utilCircularQueue.hpp"
 #include "pd.hpp"
-#include <boost/lockfree/spsc_queue.hpp>
 
 namespace import
 {
@@ -125,11 +124,12 @@ namespace import
    typedef struct _RecordData RecordData ;
 
    #define IMP_QUEUE_SLEEPTIME 10
-   #define IMP_QUEUE_CAPACITY 10000
-   typedef boost::lockfree::spsc_queue< RecordData,
-                                        boost::lockfree::capacity<IMP_QUEUE_CAPACITY>,
-                                        boost::lockfree::fixed_sized<true> > RecordDataQueue ;
-   //The _DataQueue class provides a single-writer/single-reader fifo queue
+   #define IMP_QUEUE_CAPACITY 16384
+
+   typedef class engine::utilSPSCQueue<RecordData> RecordDataQueue ;
+
+   /* The _DataQueue class provides a composite
+      single-writer/multiple-reader fifo queue */
    class _DataQueue : public SDBObject
    {
    public:
@@ -164,17 +164,15 @@ namespace import
          SDB_ASSERT( 0 <= id && id < _queueNum,
                      "id must be between 0 and _queueNum" ) ;
 
-         return _queue[id]->pop( data ) ? TRUE : FALSE ;
+         return _queue[id]->pop( data ) ;
       }
 
    private:
       INT32                _cur ;
       INT32                _queueNum ;
-      INT32                _capacity ;
-      INT32                _threshold ;
       RecordDataQueue**    _queue ;
    } ;
-   typedef struct _DataQueue DataQueue ;
+   typedef class _DataQueue DataQueue ;
 
    class _BsonPage : public SDBObject
    {

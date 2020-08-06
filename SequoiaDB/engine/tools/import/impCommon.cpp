@@ -69,24 +69,22 @@ namespace import
 
    _DataQueue::_DataQueue() : _cur( 0 ),
                               _queueNum( 0 ),
-                              _capacity( 0 ),
-                              _threshold( 0 ),
                               _queue( NULL )
    {
    }
 
    _DataQueue::~_DataQueue()
    {
-      for ( INT32 i = 0; i < _queueNum; ++i )
+      if ( NULL != _queue )
       {
-         if ( _queue[i] )
+         for ( INT32 i = 0; i < _queueNum; ++i )
          {
-            delete _queue[i] ;
-            _queue[i] = NULL ;
+            SAFE_OSS_DELETE( _queue[i] ) ;
          }
-      }
 
-      SAFE_OSS_FREE( _queue ) ;
+         SDB_OSS_FREE( _queue ) ;
+         _queue = NULL ;
+      }
    }
 
    INT32 _DataQueue::init( INT32 queueNum )
@@ -96,8 +94,6 @@ namespace import
       SDB_ASSERT( 0 < queueNum, "queueNum must be greater than 0" ) ;
 
       _queueNum  = queueNum ;
-      _capacity  = _queueNum * IMP_QUEUE_CAPACITY ;
-      _threshold = _capacity * 0.7 ;
 
       _queue = (RecordDataQueue**)SDB_OSS_MALLOC(
                                     _queueNum * sizeof( RecordDataQueue* ) ) ;
@@ -107,12 +103,20 @@ namespace import
          goto error ;
       }
 
+      ossMemset( _queue, 0, _queueNum * sizeof( RecordDataQueue* ) ) ;
+
       for ( INT32 i = 0; i < _queueNum; ++i )
       {
-         _queue[i] = new RecordDataQueue() ;
+         _queue[i] = SDB_OSS_NEW RecordDataQueue() ;
          if ( NULL == _queue[i] )
          {
             rc = SDB_OOM ;
+            goto error ;
+         }
+
+         rc = _queue[i] -> init( IMP_QUEUE_CAPACITY ) ;
+         if ( rc )
+         {
             goto error ;
          }
       }

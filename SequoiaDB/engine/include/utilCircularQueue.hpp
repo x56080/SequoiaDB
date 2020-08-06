@@ -352,6 +352,97 @@ namespace engine
       std::deque<T>              _extQueue ;
    } ;
 
+   //The utilSPSCQueue is a single producer single consumer ring fifo queue.
+   template< typename T >
+   class utilSPSCQueue : public SDBObject
+   {
+   public:
+      utilSPSCQueue() : _capacity( 0 ),
+                        _mask( 0 ),
+                        _buffer( NULL ),
+                        _writeIndex( 0 ),
+                        _readIndex( 0 )
+      {
+      }
+
+      ~utilSPSCQueue()
+      {
+         _finiBuffer() ;
+      }
+
+      INT32 init( UINT64 capacity )
+      {
+         INT32 rc = SDB_OK ;
+         SDB_ASSERT( capacity > 0, "capacity must be greater than 0" ) ;
+         SDB_ASSERT( ( capacity & ( capacity - 1 ) ) == 0,
+                     "capacity must be a power of 2" ) ;
+
+         _finiBuffer() ;
+
+         _buffer = (T *)( SDB_OSS_MALLOC( capacity * sizeof( T ) ) ) ;
+         if ( NULL == _buffer )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         _capacity = capacity ;
+         _mask = capacity - 1 ;
+
+      done:
+         return rc ;
+      error:
+         goto done ;
+      }
+
+      BOOLEAN push( const T& value )
+      {
+         UINT64 writeIndex = _writeIndex.peek() ;
+
+         if ( writeIndex - _readIndex.fetch() >= _capacity )
+         {
+            //queue full
+            return FALSE ;
+         }
+
+         _buffer[writeIndex & _mask] = value ;
+
+         _writeIndex.inc() ;
+
+         return TRUE ;
+      }
+
+      BOOLEAN pop( T& value )
+      {
+         UINT64 readIndex = _readIndex.peek() ;
+
+         if ( readIndex >= _writeIndex.fetch() )
+         {
+            //queue empty
+            return FALSE ;
+         }
+
+         value = _buffer[readIndex & _mask] ;
+
+         _readIndex.inc() ;
+
+         return TRUE ;
+      }
+   private:
+      void _finiBuffer()
+      {
+         SAFE_OSS_FREE( _buffer ) ;
+         _capacity = 0 ;
+      }
+
+   private:
+      UINT64 _capacity ;
+      UINT64 _mask ;
+      T*     _buffer ;
+
+      ossAtomic64 _writeIndex ;
+      ossAtomic64 _readIndex ;
+   } ;
 }
 
 #endif // UTIL_CIRCULAR_QUEUE_HPP__

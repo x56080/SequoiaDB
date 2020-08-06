@@ -45,16 +45,16 @@ function importData ( csName, clName, imprtFile )
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
-      + ' --type csv --headerline true --errorstop true -n 1'
+      + ' --type csv --headerline true --errorstop true -n 1 --parsers 1'
       + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
 
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 3";
+   var expParseRecords = "parsed records: 2";
    var expParseFailure = "parse failure: 1";
-   var expImportedRecords = "imported records: 3";
+   var expImportedRecords = "imported records: 2";
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
@@ -94,8 +94,8 @@ function checkCLData ( cl )
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 3;
-   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}},{"at":4,"bt":{"$date":"2016-01-03"}}]';
+   var expCnt = 2;
+   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
