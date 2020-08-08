@@ -50,5 +50,5 @@ function main ()
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
 }

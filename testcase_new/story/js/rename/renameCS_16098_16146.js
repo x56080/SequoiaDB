@@ -44,8 +44,8 @@ function main ()
       }
    }
 
-   commDropCS( db, csname1, true, false, "clean cs---" );
-   commDropCS( db, csname2, true, false, "clean cs---" );
+   commDropCS( db, csname1, true, "clean cs---" );
+   commDropCS( db, csname2, true, "clean cs---" );
    println( "---end the test---" );
 }
 

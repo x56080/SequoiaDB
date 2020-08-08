@@ -50,7 +50,7 @@ function main ()
    }
 
    deleteFile( lobName );
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
 }
 
 function checkRecord ( dbcl, recordNum )

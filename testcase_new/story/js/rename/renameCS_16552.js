@@ -55,7 +55,7 @@ function main ()
    // rename cs new name is begin with SYS
    checkNewCSName( db, csName, "SYScsName16552", -6 );
 
-   commDropCS( db, csName, true, false, "clean cs---" );
+   commDropCS( db, csName, true, "clean cs---" );
 
 }
 

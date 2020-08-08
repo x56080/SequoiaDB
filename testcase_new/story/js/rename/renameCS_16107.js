@@ -64,5 +64,5 @@ function main ()
       throw buildException( "check list procedure", "", "procedure", "listProcedures is null", cur.current() );
    }
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
 }

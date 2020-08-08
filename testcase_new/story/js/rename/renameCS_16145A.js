@@ -52,7 +52,7 @@ function main ()
    //delete no < 500 data, and check data
    deleteData( mainCL );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
    println( "---end the test---" );
 }
 

@@ -38,7 +38,7 @@ function main ()
 
    checkLob( cl, lobArrnew, lobMD5new );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
    println( "---end the test---" );
