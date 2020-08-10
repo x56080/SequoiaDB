@@ -328,14 +328,14 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
    if( timeout == undefined ) { timeout = 30; }
-   
+
    //cl.toString = hostname:svc.csName.clName
    var parts = cl.toString().split( ":" );
    var infoArr = parts[1].split( "." );
    var csName = infoArr[1];
    var clName = infoArr[2];
    var nodes = commGetCLNodes( db, csName, clName );
-   
+
    var timecount = 0;
    while( true )
    {
@@ -568,7 +568,7 @@ function commGetCLGroups ( db, clName )
    array[1] {"HostName": "XXXX", "svcname": "XXXX"}
    ...
 ******************************************************************************/
-function commGetCLNodes( db, csName, clName )
+function commGetCLNodes ( db, csName, clName )
 {
    if( typeof ( csName ) != "string" || csName.length == 0 )
    {
@@ -578,12 +578,12 @@ function commGetCLNodes( db, csName, clName )
    {
       throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
    }
-   
+
    if( commIsStandalone( db ) )
    {
-      return [ { "HostName": COORDHOSTNAME, "svcname": COORDSVCNAME } ];
+      return [{ "HostName": COORDHOSTNAME, "svcname": COORDSVCNAME }];
    }
-   
+
    var clGroups = commGetCLGroups( db, csName + "." + clName );
    var nodes = [];
    for( var i = 0; i < clGroups.length; i++ )
@@ -1471,7 +1471,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
       if( actRecs.length !== expRecs.length )
       {
          isSuccess = false;
-         posOfFailure = pos - 1;
+         posOfFailure = pos !== 0 ? ( pos - 1 ) : 0;
          if( expRecs.length != 0 && JSON.stringify( expRecs[posOfFailure] ).length > 1024 )
          {
             isLong = true;
@@ -1673,7 +1673,7 @@ function commCursor2Array ( cursor, fieldName, filter )
 @Description: check node data consistency
 @author: luweikang
 ******************************************************************* */
-function commInspectData( db, group, csName, clName, loop )
+function commInspectData ( db, group, csName, clName, loop )
 {
    var coord = " -d " + db.toString();
    var installDir = commGetInstallPath();
@@ -1684,22 +1684,22 @@ function commInspectData( db, group, csName, clName, loop )
    ( csName === undefined || csName === "" ) ? csName = "" : csName = " -c " + csName;
    ( clName === undefined || clName === "" ) ? clName = "" : clName = " -l " + clName;
    ( loop === undefined ) ? loop = "" : loop = " -t " + loop;
-   
+
    var inspect = installDir + "/bin/sdbinspect" + coord + group + csName + clName + output + loop;
    println( inspect );
-   
+
    try
    {
       var cmd = new Cmd();
-      var result = cmd.run( inspect );   
+      var result = cmd.run( inspect );
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
-   var tmpArr = result.split("\n");
-   if( tmpArr[ tmpArr.length - 3 ] !== "Reason for exit : exit with no records different" )
+
+   var tmpArr = result.split( "\n" );
+   if( tmpArr[tmpArr.length - 3] !== "Reason for exit : exit with no records different" )
    {
       throw new Error( "report path: " + reportPath + "\n" + result );
    }
@@ -1716,27 +1716,27 @@ function commInspectData( db, group, csName, clName, loop )
                   [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
 @author: luweikang
 ******************************************************************* */
-function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
+function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
 {
    if( hostname === undefined )
-   { 
-      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
+   {
+      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, { Role: "coord", RawData: true } );
       hostname = nodeList[0].HostName;
    }
    if( nodeOption === undefined )
    {
       nodeOption = { diaglevel: 5 };
    }
-   
+
    try
    {
-      var rg = db.createRG( rgName );   
+      var rg = db.createRG( rgName );
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
    var maxRetryTimes = 100;
    var nodeInfos = [];
    for( var i = 0; i < nodeNum; i++ )
@@ -1755,10 +1755,10 @@ function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
             continue;
          }
          catch( e )
-         { 
+         {
             if( e !== 1 )
             {
-               throw new Error( "lsof check port error: " + e ); 
+               throw new Error( "lsof check port error: " + e );
             }
          }
          try

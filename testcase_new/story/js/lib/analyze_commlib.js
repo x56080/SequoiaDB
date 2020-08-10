@@ -828,14 +828,9 @@ function getCommonAccessPlans ( db, findConf, selectorConf, sortConf )
    {
       //获取快照信息
       var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
-      println( "rc.length:" + rc.length );
       for( var i = 0; i < rc.length; i++ )
       {
          var accessPlan = eval( "( " + rc[i] + " )" );
-         println( "i:" + i + ", NodeName:" + JSON.stringify( accessPlan.NodeName ) +
-            ", GroupName:" + JSON.stringify( accessPlan.GroupName ) +
-            ", IndexName:" + JSON.stringify( accessPlan.IndexName ) +
-            ", Query:" + JSON.stringify( accessPlan.Query ) );
          var accessPlanObj = {};
          for( var f in accessPlan )
          {
@@ -915,35 +910,15 @@ function getSplitAccessPlans ( db, findConf, selectorConf, sortConf )
 **************************************/
 function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlans )
 {
-   var expAccessPlans = expectAccessPlans;
-
-   //校验计划个数，期望 <= 实际
-   if( expAccessPlans.length > actAccessPlans.length )
-   {
-      println( 'expAccessPlans: ' + JSON.stringify( expAccessPlans ) + "\nactAccessPlans: " + JSON.stringify( actAccessPlans ) );
-      throw buildException( "check length", "accessPlan length", "check failed!",
-         expAccessPlans.length, actAccessPlans.length );
-   }
-
-   //校验查询计划，不校验元素顺序
-   var newExpAccessPlans = new Array();
-   var newActAccessPlans = new Array();
-   for( var i = 0; i < expAccessPlans.length; i++ )
-   {
-      var newObj1 = objSortByKey( actAccessPlans[i] );
-      newActAccessPlans.push( newObj1 );
-
-      var newObj2 = objSortByKey( expAccessPlans[i] );
-      newExpAccessPlans.push( newObj2 );
-   }
-
-   for( var i = 0; i < expAccessPlans.length; i++ )
+   var actStr = JSON.stringify( actAccessPlans );
+   for( var i = 0; i < expectAccessPlans.length; i++ )
    {
       // 期望是实际的子集
-      if( JSON.stringify( newActAccessPlans ).indexOf( JSON.stringify( newExpAccessPlans[i] ) ) === -1 )
+      var expStr = JSON.stringify( expectAccessPlans[i] );
+      if( actStr.indexOf( expStr ) === -1 )
       {
          throw buildException( "check access plan", "access plan", "fail",
-            JSON.stringify( newExpAccessPlans ), JSON.stringify( newActAccessPlans ) );
+            expStr, actStr );
       }
    }
    println( "check accessPlan snapshot success" );
