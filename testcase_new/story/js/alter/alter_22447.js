@@ -35,7 +35,7 @@ function test ()
    maincl.alter( { "Compressed": false } );
 
    // 检查主备一致
-   commCheckLSN( db, dataGroupName );
+   commCheckLSN( db, dataGroupName, 600 );
 
    var cond = { Name: { $regex: csName + "." + CHANGEDPREFIX + testcaseID } };
 
@@ -50,7 +50,7 @@ function test ()
    maincl.alter( { CompressionType: 'lzw' } );
 
    // 检查主备一致
-   commCheckLSN( db, dataGroupName );
+   commCheckLSN( db, dataGroupName, 600 );
 
    checkCompressedTrue( db, cond, dataGroupName );
 

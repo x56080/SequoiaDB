@@ -26,14 +26,14 @@ function test ()
    maincl.alter( { "StrictDataMode": true } );
 
    // 检查主备一致
-   commCheckLSN( db, dataGroupName );
+   commCheckLSN( db, dataGroupName, 600 );
 
    checkStrictDataModeTrue( db, cond, dataGroupName );
 
    maincl.alter( { "StrictDataMode": false } );
 
    // 检查主备一致
-   commCheckLSN( db, dataGroupName );
+   commCheckLSN( db, dataGroupName, 600 );
 
    checkStrictDataModeFalse( db, cond, dataGroupName );
 
