@@ -37,12 +37,12 @@ public class Transaction17754B extends SdbTestBase {
     private DBCollection cl = null;
     private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
-    private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
     private int startId = 0;
     private int stopId = 1000;
     private int insertValue = 10000;
     private int updateValue = 20000;
+    private String orderByPos = "{_id:1}";
 
     @BeforeClass
     public void setUp() {
@@ -109,9 +109,7 @@ public class Transaction17754B extends SdbTestBase {
 
         // 非事务读
         expList.addAll( insertR1s );
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, null, orderByPos, hint, expList );
         actList.clear();
 
         // 提交事务1
@@ -135,30 +133,22 @@ public class Transaction17754B extends SdbTestBase {
         }
 
         // 非事务读
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, null, orderByPos, hint, expList );
         actList.clear();
 
         // 事务2读
-        cursor = cl2.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl2, null, orderByPos, hint, expList );
         actList.clear();
 
         // 提交事务2
         db2.commit();
 
         // 非事务读
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, null, orderByPos, hint, expList );
         actList.clear();
 
         // 事务3读
-        cursor = cl3.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl3, null, orderByPos, hint, expList );
         actList.clear();
 
         // 提交事务3
@@ -169,9 +159,7 @@ public class Transaction17754B extends SdbTestBase {
 
         // 非事务读
         expList.clear();
-        cursor = cl.query( null, null, null, hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, null, orderByPos, hint, expList );
         actList.clear();
     }
 

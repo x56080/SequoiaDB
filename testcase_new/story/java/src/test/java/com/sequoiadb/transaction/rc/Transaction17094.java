@@ -129,83 +129,121 @@ public class Transaction17094 extends SdbTestBase {
                     updateThread.getErrorMsg() );
 
             // 7 非事务记录读
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintTbScan, new ArrayList< BSONObject >() );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintIxScan, new ArrayList< BSONObject >() );
 
             // 7 非事务记录逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintIxScan, new ArrayList< BSONObject >() );
 
             // 8 事务2记录读
-            TransUtils.queryAndCheck( cl2, orderByPos, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务2索引读
-            TransUtils.queryAndCheck( cl2, orderByPos, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintIxScan, new ArrayList< BSONObject >() );
 
             // 8 事务2记录逆序读
-            TransUtils.queryAndCheck( cl2, orderByRev, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务2索引逆序读
-            TransUtils.queryAndCheck( cl2, orderByRev, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintIxScan, new ArrayList< BSONObject >() );
 
             // 9 事务3记录读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务3索引读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintIxScan, new ArrayList< BSONObject >() );
 
             // 9 事务3记录逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintIxScan, new ArrayList< BSONObject >() );
 
             // 10 提交事务2
             db2.commit();
 
             // 10 非事务记录读
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintTbScan, new ArrayList< BSONObject >() );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintIxScan, new ArrayList< BSONObject >() );
 
             // 10 非事务记录逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintIxScan, new ArrayList< BSONObject >() );
 
             // 11 事务3记录读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务3索引读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByPos, hintIxScan, new ArrayList< BSONObject >() );
 
             // 11 事务3记录逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan,
-                    new ArrayList< BSONObject >() );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + ( stopId + updateValue ) + ",$gte:" + startId
+                            + "}}",
+                    orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务3索引逆序读
             TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan,
@@ -214,9 +252,6 @@ public class Transaction17094 extends SdbTestBase {
             // 提交事务3
             db3.commit();
         } finally {
-            db1.commit();
-            db2.commit();
-            db3.commit();
             if ( cl.isIndexExist( "a" ) ) {
                 cl.dropIndex( "a" );
             }

@@ -34,7 +34,6 @@ public class Transaction17391B extends SdbTestBase {
     DBCollection cl = null;
     private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
-    private DBCursor cursor = null;
     private String hint = "{\"\":\"a\"}";
     private int startId = 0;
     private int stopId = 1000;
@@ -107,9 +106,8 @@ public class Transaction17391B extends SdbTestBase {
         // 非事务读
         expList.addAll( insertR1s );
         expList.addAll( insertR2s );
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
         // 提交事务1
@@ -118,15 +116,13 @@ public class Transaction17391B extends SdbTestBase {
                 tableScanThread1.getTransactionID() ) );
 
         // 非事务读
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
         // 事务2读
-        cursor = cl2.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl2, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
         // 提交事务2
@@ -147,15 +143,13 @@ public class Transaction17391B extends SdbTestBase {
         }
 
         // 非事务读
-        cursor = cl.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
         // 事务3读
-        cursor = cl3.query( null, null, "{_id:1}", hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl3, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
         // 提交事务3
@@ -166,9 +160,8 @@ public class Transaction17391B extends SdbTestBase {
 
         // 非事务读
         expList.clear();
-        cursor = cl.query( null, null, null, hint );
-        actList = TransUtils.getReadActList( cursor );
-        Assert.assertEquals( actList, expList );
+        TransUtils.queryAndCheck( cl, "{a:" + insertValue + "}", "{_id:1}",
+                hint, expList );
         actList.clear();
 
     }
@@ -187,7 +180,8 @@ public class Transaction17391B extends SdbTestBase {
             setTransactionID( cl.getSequoiadb() );
 
             List< BSONObject > ret = new ArrayList< BSONObject >();
-            DBCursor indexCursor = cl.query( null, null, "{_id:1}", hint );
+            DBCursor indexCursor = cl.query( "{a:" + insertValue + "}", null,
+                    "{_id:1}", hint );
             while ( indexCursor.hasNext() ) {
                 ret.add( indexCursor.getNext() );
             }

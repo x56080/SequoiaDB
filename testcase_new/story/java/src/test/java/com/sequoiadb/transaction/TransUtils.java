@@ -694,9 +694,7 @@ public class TransUtils extends SdbTestBase {
         if ( hintType.get( "" ) != null ) {
             checkIndexScan( cl, matcher, null, orderBy, hint );
         }
-        List< BSONObject > actList = queryToBSONList( cl, matcher, null,
-                orderBy, hint );
-        Assert.assertEquals( actList, expList );
+        queryAndCheck( cl, matcher, null, orderBy, hint, expList );
     }
 
     /**
@@ -734,7 +732,8 @@ public class TransUtils extends SdbTestBase {
         checkRecord( cl, matcher, selector, orderBy, hint, expList );
 
         // 该测试点是校验count接口的，不能够删除
-        if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+        if ( !( "rr".equals( SdbTestBase.testGroup )
+                && ( matcher == null || matcher.equals( "" ) ) ) ) {
             checkCount( cl, matcher, orderBy, hint, expList );
         }
 

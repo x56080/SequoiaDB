@@ -41,12 +41,13 @@ public class Transaction17173A extends SdbTestBase {
     private DBCollection cl = null;
     private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private ArrayList< BSONObject > actList = new ArrayList< BSONObject >();
-    private DBCursor cursor = null;
     private String hint = "{\"\":null}";
     private int startId = 0;
     private int stopId = 1000;
     private int updateValue1 = 20000;
     private int updateValue2 = 30000;
+    private String orderByPos = "{a:1}";
+    private String orderByRev = "{a: -1}";
 
     @DataProvider(name = "index")
     public Object[][] createIndex() {
@@ -137,16 +138,14 @@ public class Transaction17173A extends SdbTestBase {
             ArrayList< BSONObject > updateR1s = TransUtils.getIncDatas( startId,
                     stopId, updateValue1 );
             expList.addAll( updateR1s );
-            cursor = cl.query( null, null, "{a:1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByPos, hint, expList );
             actList.clear();
 
             // 非事务逆序读
             Collections.reverse( expList );
-            cursor = cl.query( null, null, "{a: -1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByRev, hint, expList );
             actList.clear();
 
             // 提交事务1
@@ -184,30 +183,32 @@ public class Transaction17173A extends SdbTestBase {
 
             // 非事务读
             Collections.reverse( expList );
-            cursor = cl.query( null, null, "{a:1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByPos, hint, expList );
             actList.clear();
 
             // 非事务逆序读
             Collections.reverse( expList );
-            cursor = cl.query( null, null, "{a: -1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByRev, hint, expList );
             actList.clear();
 
             // 事务2读
             Collections.reverse( expList );
-            cursor = cl2.query( null, null, "{a:1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils
+                    .queryAndCheck( cl2,
+                            "{a:{$lt:" + ( stopId + updateValue2 ) + ",$gte:"
+                                    + startId + "}}",
+                            orderByPos, hint, expList );
             actList.clear();
 
             // 事务2逆序读
             Collections.reverse( expList );
-            cursor = cl2.query( null, null, "{a: -1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils
+                    .queryAndCheck( cl2,
+                            "{a:{$lt:" + ( stopId + updateValue2 ) + ",$gte:"
+                                    + startId + "}}",
+                            orderByRev, hint, expList );
             actList.clear();
 
             // 提交事务2
@@ -215,30 +216,29 @@ public class Transaction17173A extends SdbTestBase {
 
             // 非事务读
             Collections.reverse( expList );
-            cursor = cl.query( null, null, "{a:1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByPos, hint, expList );
             actList.clear();
 
             // 非事务逆序读
             Collections.reverse( expList );
-            cursor = cl.query( null, null, "{a: -1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByRev, hint, expList );
             actList.clear();
 
             // 事务3读
             Collections.reverse( expList );
-            cursor = cl3.query( null, null, "{a:1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils
+                    .queryAndCheck( cl3,
+                            "{a:{$lt:" + ( stopId + updateValue2 ) + ",$gte:"
+                                    + startId + "}}",
+                            orderByPos, hint, expList );
             actList.clear();
 
             // 事务3逆序读
             Collections.reverse( expList );
-            cursor = cl3.query( null, null, "{a: -1}", hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByRev, hint, expList );
             actList.clear();
 
             // 提交事务3
@@ -250,15 +250,10 @@ public class Transaction17173A extends SdbTestBase {
 
             // 非事务读
             expList.clear();
-            cursor = cl.query( null, null, null, hint );
-            actList = TransUtils.getReadActList( cursor );
-            Assert.assertEquals( actList, expList );
+            TransUtils.queryAndCheck( cl, "{a:{$lt:" + ( stopId + updateValue2 )
+                    + ",$gte:" + startId + "}}", orderByPos, hint, expList );
             actList.clear();
         } finally {
-            db1.commit();
-            db2.commit();
-            db3.commit();
-            db4.commit();
             if ( cl.isIndexExist( "a" ) ) {
                 cl.dropIndex( "a" );
             }
@@ -293,7 +288,9 @@ public class Transaction17173A extends SdbTestBase {
             setTransactionID( cl.getSequoiadb() );
 
             List< BSONObject > ret = new ArrayList< BSONObject >();
-            DBCursor indexCursor = cl.query( null, null, orderBy, hint );
+            DBCursor indexCursor = cl.query( "{a:{$lt:"
+                    + ( stopId + updateValue2 ) + ",$gte:" + startId + "}}",
+                    null, orderBy, hint );
             while ( indexCursor.hasNext() ) {
                 ret.add( indexCursor.getNext() );
             }
