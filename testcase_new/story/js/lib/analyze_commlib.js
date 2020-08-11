@@ -910,11 +910,23 @@ function getSplitAccessPlans ( db, findConf, selectorConf, sortConf )
 **************************************/
 function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlans )
 {
-   var actStr = JSON.stringify( actAccessPlans );
+   var newExpAccessPlans = new Array();
+   var newActAccessPlans = new Array();
    for( var i = 0; i < expectAccessPlans.length; i++ )
    {
+      var newObj1 = objSortByKey( expectAccessPlans[i] );
+      newActAccessPlans.push( newObj1 );
+   }
+   for( var i = 0; i < actAccessPlans.length; i++ )
+   {
+      var newObj2 = objSortByKey( actAccessPlans[i] );
+      newExpAccessPlans.push( newObj2 );
+   }
+   var actStr = JSON.stringify( newActAccessPlans );
+   for( var i = 0; i < newExpAccessPlans.length; i++ )
+   {
       // 期望是实际的子集
-      var expStr = JSON.stringify( expectAccessPlans[i] );
+      var expStr = JSON.stringify( newExpAccessPlans[i] );
       if( actStr.indexOf( expStr ) === -1 )
       {
          throw buildException( "check access plan", "access plan", "fail",
