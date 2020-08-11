@@ -32,6 +32,8 @@
     <listeners>
         <listener
             class-name="com.sequoiadb.testcommon.TimePrinterListener" />
+        <listener
+            class-name="com.sequoiadb.testcommon.SdbTestListener" />
     </listeners>
 
     <!--The testcases of different configure should be placed in different 
@@ -112,6 +114,7 @@
         <packages>
             <package name="com.sequoiadb.transaction.uniqueIndex" />
             <package name="com.sequoiadb.transaction.metadata" />
+            <package name="com.sequoiadb.transaction.pendingobject" />
         </packages>
     </test>
     
@@ -129,7 +132,6 @@
     <test name="synctest" parallel="classes" thread-count="1">
         <packages>
             <package name="com.sequoiadb.transaction.metadataserial" />
-            <package name="com.sequoiadb.transaction.pendingobject" />
         </packages>
     </test>
     
