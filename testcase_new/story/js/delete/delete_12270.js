@@ -19,8 +19,7 @@ function main ()
    var clName = COMMCLNAME + "_12270";
    commDropCL( db, COMMCSNAME, clName );
 
-   var optionObj = { ReplSize: 0, Compressed: true };
-   var varCL = commCreateCL( db, COMMCSNAME, clName, optionObj, true, false, "create collecton 1 failed" );
+   var varCL = commCreateCL( db, COMMCSNAME, clName );
 
    var docs = [];
    docs.push( { a: 1 } );

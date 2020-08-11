@@ -14,18 +14,7 @@ catch( e )
    throw e;
 }
 
-try
-{
-   var optionObj = { ReplSize: 0, Compressed: true };
-   var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true,
-      false, "create collecton 1 failed" );
-}
-catch( e )
-{
-   println( "failed to create CS and CL rc= " + e );
-   throw e;
-}
-
+   var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
 var res = false;
 try

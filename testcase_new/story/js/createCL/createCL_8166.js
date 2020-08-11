@@ -107,7 +107,7 @@ function createCLwithOrdinaryTable ( cs, clname )
 {
    try
    {
-      var cl = cs.createCL( clname, { AutoIndexId: false, ReplSize: 0 } );
+      var cl = cs.createCL( clname, { AutoIndexId: false } );
       cl.insert( { _id: 1, a: 1 } );
       var num = cl.count();
       if( num != 1 )
@@ -250,7 +250,7 @@ function createCLwithHorizontalpartitiontable ( db, csname, clname )
       var opt = new Object();
       opt.Domain = domainname;
       var cs = db.createCS( csname, opt );
-      var cl = cs.createCL( clname, { ShardingKey: { _id: 1 }, ReplSize: 0, ShardingType: 'hash', AutoSplit: true, AutoIndexId: false, EnsureShardingIndex: false } );
+      var cl = cs.createCL( clname, { ShardingKey: { _id: 1 }, ShardingType: 'hash', AutoSplit: true, AutoIndexId: false, EnsureShardingIndex: false } );
    }
    catch( e )
    {
@@ -293,8 +293,8 @@ function createCLwithVerticalpartitiontable ( db, csname, clname )
       var subclname1 = CHANGEDPREFIX + "t01";
       var subclname2 = CHANGEDPREFIX + "t02";
 
-      var subcl1 = db.getCS( csname ).createCL( subclname1, { ReplSize: 0, ShardingType: "hash", ShardingKey: { _id: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
-      var subcl2 = db.getCS( csname ).createCL( subclname2, { ReplSize: 0, ShardingType: "hash", ShardingKey: { _id: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
+      var subcl1 = db.getCS( csname ).createCL( subclname1, { ShardingType: "hash", ShardingKey: { _id: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
+      var subcl2 = db.getCS( csname ).createCL( subclname2, { ShardingType: "hash", ShardingKey: { _id: 1 }, AutoIndexId: false, EnsureShardingIndex: false } );
       cl.attachCL( csname + '.' + subclname1, { LowBound: { date: 20150101 }, UpBound: { date: 20150201 } } );
       cl.attachCL( csname + '.' + subclname2, { LowBound: { date: 20150201 }, UpBound: { date: 20150301 } } );
    }

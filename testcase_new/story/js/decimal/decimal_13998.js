@@ -50,7 +50,7 @@ function main ()
 
    // test hash split cl
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL after test range split" );
-   option = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
+   option = { ShardingKey: { a: 1 }, ShardingType: "hash" };
    cl = commCreateCL( db, COMMCSNAME, clName, option, true, true );
 
    cl.insert( docs );

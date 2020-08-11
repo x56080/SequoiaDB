@@ -38,7 +38,7 @@ function main ()
 		throw e;
 	}
 
-	var ClOption = { ShardingKey: { "a": 1, "b": 1, "c": 1 }, ShardingType: "range", ReplSize: 0 };
+	var ClOption = { ShardingKey: { "a": 1, "b": 1, "c": 1 }, ShardingType: "range" };
 	var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
 	var hintConf = [{ "": null }, { "": "$shard" }];

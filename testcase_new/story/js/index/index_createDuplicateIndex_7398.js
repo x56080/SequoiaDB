@@ -10,7 +10,7 @@ function main ( db )
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
 
    // create collection   
-   var options = { ShardingKey: { a: 1, b: 1 }, ShardingType: "range", ReplSize: 0, Compressed: true };
+   var options = { ShardingKey: { a: 1, b: 1 }, ShardingType: "range", Compressed: true };
    var idxCL = commCreateCL( db, COMMCSNAME, clName, options, true, true );
 
    // create index

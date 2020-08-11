@@ -47,7 +47,7 @@ catch( e )
 //normal cl
 try
 {
-   var varCL = varCS.createCL( csName_1, { Compressed: true, ReplSize: 0 } );
+   var varCL = varCS.createCL( csName_1, { Compressed: true } );
 }
 catch( e )
 {

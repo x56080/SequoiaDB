@@ -35,14 +35,14 @@ function createCL ( csName, clName, rgName, compressed, compreType )
    {
       println( '\n---Begin to create CL[Group:"' + rgName + '", Compressed:' + compressed + '].' );
 
-      var options = { Group: rgName, ReplSize: 0, Compressed: false };
+      var options = { Group: rgName, Compressed: false };
    }
    else if( compressed == true )
    {
       println( '\n---Begin to create CL[Group:"' + rgName + '", Compressed:' + compressed
          + ', CompressionType:"' + compreType + '"].' );
 
-      var options = { Group: rgName, ReplSize: 0, Compressed: true, CompressionType: compreType };
+      var options = { Group: rgName, Compressed: true, CompressionType: compreType };
    }
 
    var cl = commCreateCL( db, csName, clName, options, true,

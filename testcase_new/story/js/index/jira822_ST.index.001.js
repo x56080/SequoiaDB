@@ -11,7 +11,7 @@ function main ()
 	{
 		var csName = COMMCSNAME;
 		var clName = COMMCLNAME;
-		var cl = readyCL( csName, clName, { ReplSize: 0 } );
+		var cl = readyCL( csName, clName );
 
 		println( "\n---begin to insert records" );
 		cl.insert( { a: [{ b: 0 }, { c: 1 }] } );
