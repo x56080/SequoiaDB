@@ -40,7 +40,7 @@ public class Transaction20514 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
 
-        sdb = CommLib.getRandomSequoiadb();
+        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
 
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone!" );
@@ -109,7 +109,7 @@ public class Transaction20514 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() {
-        TransUtils.commitTransaction( sdb );
+        sdb.commit();
         cs.dropCollection( clName );
 
         if ( !sdb.isClosed() ) {
