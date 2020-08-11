@@ -41,7 +41,7 @@ public class Transaction20515 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "skip StandAlone!" );
         }
@@ -72,13 +72,13 @@ public class Transaction20515 extends SdbTestBase {
         Sequoiadb db5 = null;
         try {
             // 开启读事务T1
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             db1.beginTransaction();
 
             // 开启写事务T2,更新记录
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
             db2.beginTransaction();
@@ -107,23 +107,27 @@ public class Transaction20515 extends SdbTestBase {
                     1 );
 
             // 开启读事务T3
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl3 = db3.getCollectionSpace( csName )
                     .getCollection( clName );
             db3.beginTransaction();
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}", expList );
 
             // T2读记录
             List< BSONObject > expList1 = TransUtils.getIncDatas( 0, 6, 1 );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // T3读记录
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
 
             // 提交写事务T2
             db2.commit();
@@ -132,27 +136,35 @@ public class Transaction20515 extends SdbTestBase {
             Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
 
             // 非事务读记录
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // T3 读记录
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // 开启事务T4读记录
-            db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db4 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl4 = db4.getCollectionSpace( csName )
                     .getCollection( clName );
             db4.beginTransaction();
-            TransUtils.queryAndCheck( cl4, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl4, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl4, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl4, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // 开启写事务写记录
-            db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db5 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl5 = db5.getCollectionSpace( csName )
                     .getCollection( clName );
             db5.beginTransaction();
@@ -162,7 +174,7 @@ public class Transaction20515 extends SdbTestBase {
             // 集合中记录正确
             expList1.clear();
             expList1 = TransUtils.getIncDatas( 0, 6, 2 );
-            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl, null, "{a:1}", "{'':'a'}", expList1 );
 
         } finally {
             if ( db1 != null && !db1.isClosed() ) {
@@ -208,13 +220,13 @@ public class Transaction20515 extends SdbTestBase {
         Sequoiadb db5 = null;
         try {
             // 开启读事务T1
-            db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl1 = db1.getCollectionSpace( csName )
                     .getCollection( clName );
             db1.beginTransaction();
 
             // 开启写事务T2,更新记录
-            db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl2 = db2.getCollectionSpace( csName )
                     .getCollection( clName );
             db2.beginTransaction();
@@ -243,23 +255,27 @@ public class Transaction20515 extends SdbTestBase {
                     1 );
 
             // 开启读事务T3
-            db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl3 = db3.getCollectionSpace( csName )
                     .getCollection( clName );
             db3.beginTransaction();
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}", expList );
 
             // T2读记录
             List< BSONObject > expList1 = TransUtils.getIncDatas( 0, 6, 1 );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList1 );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
+                    expList1 );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}",
+                    expList1 );
 
             // T3读记录
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
 
             // 提交写事务T2
             db2.rollback();
@@ -268,27 +284,31 @@ public class Transaction20515 extends SdbTestBase {
             Assert.assertTrue( split.isSuccess(), split.getErrorMsg() );
 
             // 非事务读记录
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl2, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl2, null, "{a:1}", "{'':'a'}", expList );
 
             // T1读记录
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl1, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl1, null, "{a:1}", "{'':'a'}", expList );
 
             // T3 读记录
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl3, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl3, null, "{a:1}", "{'':'a'}", expList );
 
             // 开启事务T4读记录
-            db4 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db4 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl4 = db4.getCollectionSpace( csName )
                     .getCollection( clName );
             db4.beginTransaction();
-            TransUtils.queryAndCheck( cl4, "{a:1}", "{'':null}", expList );
-            TransUtils.queryAndCheck( cl4, "{a:1}", "{'':'a'}", expList );
+            TransUtils.queryAndCheck( cl4, null, "{a:1}", "{'':null}",
+                    expList );
+            TransUtils.queryAndCheck( cl4, null, "{a:1}", "{'':'a'}", expList );
 
             // 开启写事务写记录
-            db5 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db5 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
             DBCollection cl5 = db5.getCollectionSpace( csName )
                     .getCollection( clName );
             db5.beginTransaction();
@@ -298,7 +318,7 @@ public class Transaction20515 extends SdbTestBase {
             // 集合中记录正确
             expList1.clear();
             expList1 = TransUtils.getIncDatas( 0, 6, 1 );
-            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expList1 );
+            TransUtils.queryAndCheck( cl, null, "{a:1}", "{'':'a'}", expList1 );
 
         } finally {
             if ( db1 != null && !db1.isClosed() ) {
@@ -335,7 +355,7 @@ public class Transaction20515 extends SdbTestBase {
     }
 
     public class Split extends SdbThreadBase {
-        Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        Sequoiadb db = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         DBCollection cl = db.getCollectionSpace( csName )
                 .getCollection( clName );
 

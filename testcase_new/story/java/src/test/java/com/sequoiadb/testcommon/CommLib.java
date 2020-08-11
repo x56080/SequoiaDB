@@ -5,11 +5,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 import org.testng.Assert;
+import org.testng.ITestResult;
+import org.testng.Reporter;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -238,7 +241,7 @@ public class CommLib {
                 int maxCnt = 20;
                 boolean checkSucc = false;
                 do {
-                    ArrayList< String > allNodeData = new ArrayList< String >();
+                    ArrayList< String > allNodeData = new ArrayList<>();
 
                     for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                         Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ),
@@ -246,7 +249,7 @@ public class CommLib {
                         DBCursor cursor = dataDB.listCollections();
 
                         // get the data for each node
-                        ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                        ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                         while ( cursor.hasNext() ) {
                             BSONObject clList = cursor.getNext();
                             if ( clList.get( "Name" ).toString()
@@ -344,7 +347,7 @@ public class CommLib {
                     int maxCnt = 8;
                     boolean checkSucc = false;
                     do {
-                        ArrayList< String > allNodeData = new ArrayList< String >();
+                        ArrayList< String > allNodeData = new ArrayList<>();
                         for ( int j = 0; j < nodeAddrs.size(); j++ ) {
                             Sequoiadb dataDB = new Sequoiadb(
                                     nodeAddrs.get( j ), "", "" );
@@ -354,7 +357,7 @@ public class CommLib {
                                     .getCollectionSpace( tmpCSName )
                                     .getCollection( tmpCLName ).getIndexes();
                             // get the data for each node
-                            ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                            ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                             while ( cur.hasNext() ) {
                                 BSONObject idxList = cur.getNext();
                                 oneNodeData.add( idxList );
@@ -523,7 +526,7 @@ public class CommLib {
             int maxCnt = 15;
             boolean checkSucc = false;
             do {
-                ArrayList< String > allNodeData = new ArrayList< String >();
+                ArrayList< String > allNodeData = new ArrayList<>();
 
                 for ( int i = 0; i < nodeAdrrs.size(); ++i ) {
                     dataDB = new Sequoiadb( nodeAdrrs.get( i ), "", "" );
@@ -532,7 +535,7 @@ public class CommLib {
                     DBCursor cursor = clDB.query( matcher, null, null, null );
 
                     // get the data for each node
-                    ArrayList< BSONObject > oneNodeData = new ArrayList< BSONObject >();
+                    ArrayList< BSONObject > oneNodeData = new ArrayList<>();
                     while ( cursor.hasNext() ) {
                         BSONObject csInfo = cursor.getNext();
                         oneNodeData.add( csInfo );
@@ -767,7 +770,7 @@ public class CommLib {
         }
 
         // groupNames元素去重
-        HashSet< String > uniqueSet = new HashSet< String >( groupNames );
+        HashSet< String > uniqueSet = new HashSet<>( groupNames );
         groupNames.clear();
         groupNames.addAll( uniqueSet );
 
@@ -785,5 +788,60 @@ public class CommLib {
         } );
 
         return groupNames;
+    }
+
+    /**
+     * 获取集群的全局事务及mvcc配置
+     * 
+     * @param db:db连接;role:节点角色，包括coord、catalog、data
+     * @return BSONObject 配置项
+     * @Author 赵育
+     * @Date 2020-03-31
+     */
+    public static BSONObject getTransConfig( Sequoiadb db, String role ) {
+        BSONObject transConfig = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
+                "{role:'" + role + "'}", "{globtranson:'',mvccon:''}", "" )
+                .getNext();
+        return transConfig;
+    }
+
+    /**
+     * 获取集群所有coord地址
+     * 
+     * @param db
+     * @return List
+     */
+    public static List< String > getAllCoordUrls( Sequoiadb db ) {
+        List< String > coordUrls = new ArrayList<>();
+        DBCursor snapshot = db.getSnapshot( Sequoiadb.SDB_SNAP_HEALTH,
+                "{Role: 'coord'}", "{'NodeName': 1}", null );
+        while ( snapshot.hasNext() ) {
+            coordUrls.add( ( String ) snapshot.getNext().get( "NodeName" ) );
+        }
+        snapshot.close();
+        return coordUrls;
+    }
+
+    /**
+     * 获取集群中的一个随机coord
+     * 
+     * @return Sequoiadb
+     */
+    public static Sequoiadb getRandomSequoiadb() {
+        if ( SdbTestBase.coordUrls.isEmpty() ) {
+            try ( Sequoiadb sequoiadb = new Sequoiadb( SdbTestBase.coordUrl, "",
+                    "" )) {
+                SdbTestBase.coordUrls = CommLib.getAllCoordUrls( sequoiadb );
+            }
+        }
+        List< String > coordUrls = SdbTestBase.coordUrls;
+        String coord = coordUrls
+                .get( new Random().nextInt( coordUrls.size() ) );
+
+        // 获取用例名
+        ITestResult testClassName = Reporter.getCurrentTestResult();
+        System.out.println(
+                testClassName.getTestClass().getName() + " coord:" + coord );
+        return new Sequoiadb( coord, "", "" );
     }
 }

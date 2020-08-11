@@ -1,6 +1,7 @@
 package com.sequoiadb.transaction.rc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.bson.BSONObject;
@@ -27,7 +28,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-29
  * @Version 1.00
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17369A extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl_17369A";
@@ -42,7 +43,7 @@ public class Transaction17369A extends SdbTestBase {
     private BSONObject insertR2 = new BasicBSONObject();
     private BSONObject updateR1 = new BasicBSONObject();
     private BSONObject updateR2 = new BasicBSONObject();
-    private ArrayList< BSONObject > expList = new ArrayList< >();
+    private ArrayList< BSONObject > expList = new ArrayList<>();
     private String hintTbScan = "{\"\":null}";
     private String hintIxScan = "{\"\":\"a\"}";
     private String orderBy1 = "{a: 1, b: -1}";
@@ -50,10 +51,10 @@ public class Transaction17369A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         insertR1 = ( BSONObject ) JSON
                 .parse( "{_id:'insertID17369A_1',a:1,b:1,c:1}" );
@@ -69,20 +70,20 @@ public class Transaction17369A extends SdbTestBase {
     public Object[][] createIndex() {
 
         // 第一次非事务读查询的预期结果
-        List< BSONObject > expReadList1 = new ArrayList< >();
+        List< BSONObject > expReadList1 = new ArrayList<>();
         expReadList1.add( insertR2 );
 
         // 第一次非事务读查询的预期结果
-        List< BSONObject > expReadList2 = new ArrayList< >();
+        List< BSONObject > expReadList2 = new ArrayList<>();
         expReadList2.add( updateR2 );
 
         // 第二次非事务读正序查询的预期结果
-        List< BSONObject > expPositiveReadList2 = new ArrayList< >();
+        List< BSONObject > expPositiveReadList2 = new ArrayList<>();
         expPositiveReadList2.add( updateR1 );
         expPositiveReadList2.add( updateR2 );
 
         // 第二次非事务读逆序查询的预期结果
-        List< BSONObject > expReverseReadList2 = new ArrayList< >();
+        List< BSONObject > expReverseReadList2 = new ArrayList<>();
         expReverseReadList2.add( updateR2 );
         expReverseReadList2.add( updateR1 );
 
@@ -111,6 +112,7 @@ public class Transaction17369A extends SdbTestBase {
         try {
             // 插入记录R1、R2,R1小于R2
             cl.createIndex( "a", indexKey, false, false );
+
             cl.insert( insertR1 );
             cl.insert( insertR2 );
 
@@ -155,9 +157,7 @@ public class Transaction17369A extends SdbTestBase {
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
-            expList.clear();
-            expList.add( insertR2 );
-            expList.add( insertR1 );
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读
@@ -206,9 +206,7 @@ public class Transaction17369A extends SdbTestBase {
             TransUtils.queryAndCheck( cl2, orderBy1, hintIxScan, expList );
 
             // 事务2逆序记录读
-            expList.clear();
-            expList.add( updateR2 );
-            expList.add( updateR1 );
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl2, orderBy2, hintTbScan, expList );
 
             // 事务2逆序索引读
@@ -224,9 +222,7 @@ public class Transaction17369A extends SdbTestBase {
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
-            expList.clear();
-            expList.add( insertR2 );
-            expList.add( insertR1 );
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读
@@ -253,17 +249,20 @@ public class Transaction17369A extends SdbTestBase {
 
             // 事务3正序记录读
             expList.clear();
-            expList.add( updateR1 );
-            expList.add( updateR2 );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expList.add( updateR1 );
+                expList.add( updateR2 );
+            } else {
+                expList.add( insertR1 );
+                expList.add( insertR2 );
+            }
             TransUtils.queryAndCheck( cl3, orderBy1, hintTbScan, expList );
 
             // 事务3正序索引读
             TransUtils.queryAndCheck( cl3, orderBy1, hintIxScan, expList );
 
             // 事务3逆序记录读
-            expList.clear();
-            expList.add( updateR2 );
-            expList.add( updateR1 );
+            Collections.reverse( expList );
             TransUtils.queryAndCheck( cl3, orderBy2, hintTbScan, expList );
 
             // 事务3逆序索引读

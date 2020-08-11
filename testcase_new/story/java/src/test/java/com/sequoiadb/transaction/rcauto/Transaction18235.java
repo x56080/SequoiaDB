@@ -26,7 +26,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author luweikang
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18235 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb sdb1;
@@ -36,8 +36,8 @@ public class Transaction18235 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -92,7 +92,7 @@ public class Transaction18235 extends SdbTestBase {
         cl1.delete( "{b:{$gte: 4000, $lt: 4500}}", null );
         List< BSONObject > datas5 = TransUtils.getUpdateDatas( 4500, 5000, 5 );
 
-        sdb1.commit();
+        TransUtils.commitTransaction( sdb1 );
 
         // 索引扫描记录
         expList.clear();

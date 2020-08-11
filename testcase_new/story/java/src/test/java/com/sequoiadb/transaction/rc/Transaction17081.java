@@ -40,9 +40,9 @@ public class Transaction17081 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         cl1 = db1.getCollectionSpace( csName ).getCollection( clName );
         cl2 = db2.getCollectionSpace( csName ).getCollection( clName );
@@ -61,13 +61,13 @@ public class Transaction17081 extends SdbTestBase {
         operation.start();
 
         // 事务2并发表扫描
-        dbT = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        dbT = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         TransUtils.beginTransaction( dbT );
         Read read1 = new Read( dbT, hintTbScan );
         read1.start();
 
         // 事务2并发索引扫描
-        dbI = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        dbI = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         TransUtils.beginTransaction( dbI );
         Read read2 = new Read( dbI, hintIxScan );
         read2.start();

@@ -23,7 +23,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-16
  * @Version 1.00
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17092 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1;
@@ -53,10 +53,10 @@ public class Transaction17092 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -99,7 +99,8 @@ public class Transaction17092 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey, String clName ) {
+    public void test( String indexKey, String clName )
+            throws InterruptedException {
         try {
             cl = sdb.getCollectionSpace( csName ).getCollection( clName );
             cl.createIndex( "a", indexKey, false, false );

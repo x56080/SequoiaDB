@@ -38,7 +38,7 @@ public class Transaction17088 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -46,8 +46,8 @@ public class Transaction17088 extends SdbTestBase {
             throw new SkipException( "ONE GROUP MODE" );
         }
 
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         TransUtils.createCLs( sdb, csName, hashCLName, mainCLName, subCLName1,
                 subCLName2, 250 );
     }

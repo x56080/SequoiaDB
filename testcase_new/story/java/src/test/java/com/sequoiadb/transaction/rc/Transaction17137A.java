@@ -40,9 +40,9 @@ public class Transaction17137A extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        sdb2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        sdb2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         cl = sdb.getCollectionSpace( csName ).createCollection( clName );
         expDataList = prepareData( recordNum );
         rs1 = expDataList.subList( 0, recordNum / 2 );
@@ -195,12 +195,12 @@ public class Transaction17137A extends SdbTestBase {
 
                     try {
                         // 正序查询
-                        TransUtils.queryAndCheck( dbcl, "{a :1}", "{'': 'a'}",
-                                positiveRsList );
+                        TransUtils.checkQueryResultOnly( dbcl, "", "{a :1}",
+                                "{'': 'a'}", positiveRsList );
 
                         // 逆序查询
-                        TransUtils.queryAndCheck( dbcl, "{a : -1}", "{'': 'a'}",
-                                reversedRsList );
+                        TransUtils.checkQueryResultOnly( dbcl, "", "{a : -1}",
+                                "{'': 'a'}", reversedRsList );
                     } catch ( BaseException e ) {
                         int actErrCode = e.getErrorCode();
                         if ( actErrCode != -48 && actErrCode != -52

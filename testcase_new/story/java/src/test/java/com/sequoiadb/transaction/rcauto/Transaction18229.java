@@ -27,7 +27,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18229 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1;
@@ -37,8 +37,8 @@ public class Transaction18229 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         sdb.setSessionAttr( ( BSONObject ) JSON.parse( "{TransTimeout:5}" ) );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
@@ -65,7 +65,7 @@ public class Transaction18229 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         DBCollection cl1 = db1.getCollectionSpace( csName )
                 .getCollection( clName );
 
@@ -92,7 +92,7 @@ public class Transaction18229 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.assertEquals( e.getErrorCode(), -13 );
         } finally {
-            db1.commit();
+            TransUtils.commitTransaction( db1 );
         }
 
         cursor = cl.query( "", "", "{a:1,b:1}", "" );
@@ -100,7 +100,7 @@ public class Transaction18229 extends SdbTestBase {
         Assert.assertEquals( actList, expList );
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < 200; i++ ) {
             BSONObject record = ( BSONObject ) JSON
@@ -110,5 +110,6 @@ public class Transaction18229 extends SdbTestBase {
         expList.addAll( records );
         Collections.shuffle( records );
         cl.insert( records );
+        Thread.sleep( 100 );
     }
 }

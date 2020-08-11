@@ -27,16 +27,17 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18228 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18228";
+    private CollectionSpace cs = null;
     private DBCollection cl = null;
     private List< BSONObject > expList = new ArrayList<>();
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -44,24 +45,21 @@ public class Transaction18228 extends SdbTestBase {
             throw new SkipException( "less than two groups" );
         }
 
-        cl = sdb.getCollectionSpace( csName ).createCollection( clName,
-                ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
+        cs = sdb.getCollectionSpace( csName );
+        cl = cs.createCollection( clName, ( BSONObject ) JSON.parse(
+                "{ShardingKey:{b:1}, ShardingType:'hash', AutoSplit: true}" ) );
     }
 
     @AfterClass
     public void tearDown() {
-        CollectionSpace cs = sdb.getCollectionSpace( csName );
-        if ( cs.isCollectionExist( clName ) ) {
-            cs.dropCollection( clName );
-        }
+        cs.dropCollection( clName );
         if ( !sdb.isClosed() ) {
             sdb.close();
         }
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 在集合中创建正序的唯一索引，比如：a为唯一索引，并插入多条包含索引字段的记录R1s
         cl.createIndex( "idx18228", "{a:1, b:1}", true, false );
         insertData();
@@ -88,9 +86,10 @@ public class Transaction18228 extends SdbTestBase {
         cursor = cl.query( "", "", "{a:1,b:1}", "" );
         actList = TransUtils.getReadActList( cursor );
         Assert.assertEquals( actList, expList );
+
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         List< BSONObject > records = new ArrayList<>();
         for ( int i = 0; i < 200; i++ ) {
             BSONObject record = ( BSONObject ) JSON
@@ -103,5 +102,6 @@ public class Transaction18228 extends SdbTestBase {
         expList.addAll( records );
         Collections.shuffle( records );
         cl.insert( records );
+        Thread.sleep( 100 );
     }
 }

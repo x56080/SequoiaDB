@@ -17,6 +17,7 @@ import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.testcommon.CommLib;
 import com.sequoiadb.testcommon.SdbTestBase;
+import com.sequoiadb.transaction.TransUtils;
 
 /**
  * @testcase seqDB-18890:分区表执行多次游标查询，不取完游标
@@ -24,7 +25,7 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @author zhaoyu
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18890 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18890";
@@ -32,7 +33,7 @@ public class Transaction18890 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -61,7 +62,7 @@ public class Transaction18890 extends SdbTestBase {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
         // 插入记录
         insertData();
 
@@ -75,7 +76,7 @@ public class Transaction18890 extends SdbTestBase {
         cursor1.close();
     }
 
-    private void insertData() {
+    private void insertData() throws InterruptedException {
         for ( int j = 0; j < 10; j++ ) {
             List< BSONObject > records = new ArrayList<>();
             for ( int i = 0; i < 1000; i++ ) {
@@ -86,6 +87,7 @@ public class Transaction18890 extends SdbTestBase {
             Collections.shuffle( records );
             cl.insert( records );
         }
+        Thread.sleep( 100 );
 
     }
 }

@@ -25,7 +25,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-16
  * @Version 1.00
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17094 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1;
@@ -35,7 +35,6 @@ public class Transaction17094 extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
     private String hintTbScan = "{\"\":null}";
     private String hintIxScan = "{\"\":\"a\"}";
     private String orderByPos = "{a:1}";
@@ -56,10 +55,10 @@ public class Transaction17094 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -247,7 +246,8 @@ public class Transaction17094 extends SdbTestBase {
                     orderByRev, hintTbScan, new ArrayList< BSONObject >() );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan,
+                    new ArrayList< BSONObject >() );
 
             // 提交事务3
             db3.commit();

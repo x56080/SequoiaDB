@@ -26,7 +26,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author luweikang
  *
  */
-@Test(groups = "rcauto")
+@Test(groups = { "rcauto", "rrauto" })
 public class Transaction18342 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl18342";
@@ -36,7 +36,7 @@ public class Transaction18342 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }

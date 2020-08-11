@@ -90,7 +90,7 @@ public class Transaction17129 extends SdbTestBase {
             expDataList.add( data1 );
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'$id'}",
                     expDataList );
         } finally {
             sdb.rollback();

@@ -55,13 +55,13 @@ public class Transaction20011 extends SdbTestBase {
             expDataList.clear();
             expDataList.add( data1 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
 
             sdb2.rollback();
 
             expDataList.clear();
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
         } finally {
             sdb2.rollback();
             sdb.rollback();
@@ -93,13 +93,15 @@ public class Transaction20011 extends SdbTestBase {
             expDataList.clear();
             expDataList.add( data3 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'a'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'" + idxName + "'}",
+                    expDataList );
 
             sdb2.rollback();
 
             expDataList.clear();
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'a'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'" + idxName + "'}",
+                    expDataList );
         } finally {
             sdb2.rollback();
             sdb.rollback();

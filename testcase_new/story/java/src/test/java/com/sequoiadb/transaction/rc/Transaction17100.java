@@ -26,7 +26,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @Date 2019-01-23
  * @Version 1.00
  */
-@Test(groups = "rc")
+@Test(groups = { "rc", "rr" })
 public class Transaction17100 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private Sequoiadb db1;
@@ -64,10 +64,10 @@ public class Transaction17100 extends SdbTestBase {
 
     @BeforeClass
     public void setUp() {
-        sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db2 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        db3 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        sdb = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db1 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db2 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
+        db3 = TransUtils.getRandomSequoiadb( SdbTestBase.testGroup );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -109,7 +109,8 @@ public class Transaction17100 extends SdbTestBase {
     }
 
     @Test(dataProvider = "index")
-    public void test( String indexKey, String clName ) {
+    public void test( String indexKey, String clName )
+            throws InterruptedException {
         try {
             cl = sdb.getCollectionSpace( csName ).getCollection( clName );
             cl.createIndex( "a", indexKey, false, false );
@@ -443,8 +444,8 @@ public class Transaction17100 extends SdbTestBase {
 
     private ArrayList< BSONObject > insertRandomDatas( DBCollection cl,
             int startId, int endId, int startValue ) throws BaseException {
-        ArrayList< BSONObject > insertDatas = new ArrayList< BSONObject >();
-        ArrayList< BSONObject > expDatas = new ArrayList< BSONObject >();
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
         for ( int i = startId; i < endId; i++ ) {
             BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ",a:"
                     + ( startValue + i ) + ",b:" + ( startId + i ) + "}" );

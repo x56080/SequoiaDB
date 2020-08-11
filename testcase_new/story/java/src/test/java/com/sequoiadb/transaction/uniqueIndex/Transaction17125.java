@@ -59,14 +59,14 @@ public class Transaction17125 extends SdbTestBase {
             expDataList.clear();
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
 
             sdb.rollback();
 
             expDataList.clear();
             expDataList.add( data1 );
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
         } finally {
             sdb2.rollback();
             sdb.rollback();
@@ -95,7 +95,7 @@ public class Transaction17125 extends SdbTestBase {
             expDataList.clear();
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl2, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl2, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl2, "{'':'$id'}", expDataList );
         } finally {
             sdb2.commit();
             sdb.commit();

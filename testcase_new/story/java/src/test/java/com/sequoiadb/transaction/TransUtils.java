@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -41,6 +42,11 @@ public class TransUtils extends SdbTestBase {
      */
     public static final int transTimeoutSession = 10;
     public static final int delayTime = ( transTimeoutSession - 5 ) * 1000;
+
+    /*
+     * loopNum rbs清理的用例，重复执行次数
+     */
+    public static final int loopNum = 50;
 
     public static CollectionSpace createCS( String csName, Sequoiadb db )
             throws BaseException {
@@ -124,6 +130,39 @@ public class TransUtils extends SdbTestBase {
             }
         }
         return true;
+    }
+
+    public static Boolean isTransisolationRR( Sequoiadb db ) {
+        Boolean isRR = true;
+        Object coordGlobTransConfig = null;
+        Object dataGlobTransConfig;
+        Object dataMvccConfig;
+        DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS, null,
+                "{NodeName:'',globtranson:'','role':'',mvccon:''}", null );
+        while ( cursor.hasNext() && isRR ) {
+            BSONObject config = cursor.getNext();
+            String role = ( String ) config.get( "role" );
+            switch ( role ) {
+            case "coord":
+                coordGlobTransConfig = config.get( "globtranson" );
+                if ( !coordGlobTransConfig.equals( "TRUE" ) ) {
+                    isRR = false;
+                }
+                break;
+            case "data":
+                dataGlobTransConfig = config.get( "globtranson" );
+                dataMvccConfig = config.get( "mvccon" );
+                if ( !( dataGlobTransConfig.equals( "TRUE" )
+                        && dataMvccConfig.equals( "TRUE" ) ) ) {
+                    isRR = false;
+                }
+                break;
+            case "catalog":
+                break;
+
+            }
+        }
+        return isRR;
     }
 
     public static DBCollection createCL( String clName, CollectionSpace cs,
@@ -253,6 +292,145 @@ public class TransUtils extends SdbTestBase {
         Collections.shuffle( insertDatas );
         cl.insert( insertDatas );
         return expDatas;
+    }
+
+    public static ArrayList< BSONObject > insertRandomLengthRecords(
+            DBCollection cl, int insertNum, int minStringLength,
+            int maxStringLenth ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = 0; i < insertNum; i++ ) {
+            StringBuilder sb = new StringBuilder();
+            int stringLength = new Random().nextInt( maxStringLenth )
+                    + minStringLength;
+            for ( int j = 0; j < stringLength; j++ ) {
+                sb.append( "a" );
+            }
+            insertDatas.add( ( BSONObject ) JSON.parse( "{_id:" + i + ",a:" + i
+                    + ",b:" + i + ",c:'" + sb + "'}" ) );
+        }
+        expDatas.addAll( insertDatas );
+        Collections.shuffle( insertDatas );
+        cl.insert( insertDatas );
+        return expDatas;
+    }
+
+    public static ArrayList< BSONObject > insertRandomLengthRecords(
+            DBCollection cl, int starId, int stopId, int minStringLength,
+            int maxStringLenth ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = starId; i < stopId; i++ ) {
+            StringBuilder sb = new StringBuilder();
+            int stringLength = new Random().nextInt( maxStringLenth )
+                    + minStringLength;
+            for ( int j = 0; j < stringLength; j++ ) {
+                sb.append( "a" );
+            }
+            insertDatas.add( ( BSONObject ) JSON.parse( "{_id:" + i + ",a:" + i
+                    + ",b:" + i + ",c:'" + sb + "'}" ) );
+        }
+        expDatas.addAll( insertDatas );
+        Collections.shuffle( insertDatas );
+        cl.insert( insertDatas );
+        return expDatas;
+    }
+
+    public static ArrayList< BSONObject > prepareDatas( Sequoiadb db,
+            DBCollection cl, int recordNums ) throws BaseException {
+        ArrayList< BSONObject > insertDatas = new ArrayList<>();
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        int times = 0;
+        int maxInsertNum = 100;
+        int insertTimes = recordNums / 100;
+        if ( recordNums % maxInsertNum != 0 ) {
+            insertTimes++;
+        }
+        new Random().nextBytes( new byte[ 1024 ] );
+        for ( int i = 0; i < insertTimes; i++ ) {
+            insertDatas.clear();
+            for ( int j = 0; j < maxInsertNum; j++ ) {
+                if ( times < recordNums ) {
+                    times++;
+                } else {
+                    break;
+                }
+                int currentNum = i * maxInsertNum + j;
+                BSONObject data = ( BSONObject ) JSON.parse( "{_id:"
+                        + currentNum + ", a:" + currentNum
+                        + ", b:'test trans rr mode" + currentNum + "'}" );
+                insertDatas.add( data );
+                expDatas.add( data );
+            }
+            Collections.shuffle( insertDatas );
+            if ( new Random().nextInt( 2 ) != 0 ) {
+                TransUtils.beginTransaction( db );
+                cl.insert( insertDatas );
+                TransUtils.commitTransaction( db );
+            } else {
+                cl.insert( insertDatas );
+            }
+        }
+
+        return expDatas;
+    }
+
+    public static ArrayList< BSONObject > getPrepareDatas( int recordNums ) {
+        ArrayList< BSONObject > expDatas = new ArrayList<>();
+        for ( int i = 0; i < recordNums; i++ ) {
+            BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
+                    + i + ", b:'test trans rr mode" + i + "'}" );
+            expDatas.add( data );
+        }
+        return expDatas;
+    }
+
+    /**
+     * 此方法只更新b字段
+     * 
+     * @param list
+     * @param modify
+     *            b字段新值
+     * @param begin
+     * @param end
+     */
+
+    public static void updateList( List< BSONObject > list, String modify,
+            int begin, int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            BSONObject data = ( BSONObject ) JSON.parse(
+                    "{_id:" + i + ", a:" + i + ", b:'" + modify + "'}" );
+            list.set( i, data );
+        }
+    }
+
+    /**
+     * 此方法更新a字段和b字段
+     * 
+     * @param list
+     * @param inc
+     *            a字段自增值
+     * @param modify
+     *            b字段新值
+     * @param begin
+     * @param end
+     */
+
+    public static void updateList( List< BSONObject > list, int inc,
+            String modify, int begin, int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            int a = ( int ) list.get( i ).get( "a" );
+            BSONObject data = ( BSONObject ) JSON.parse( "{_id:" + i + ", a:"
+                    + ( a + inc ) + ", b:'" + modify + "'}" );
+            list.set( i, data );
+        }
+    }
+
+    public static void removeList( List< BSONObject > list, int begin,
+            int end ) {
+        for ( int i = begin; i < end; i++ ) {
+            list.remove( begin );
+        }
     }
 
     public static boolean getReadActList( DBCursor cursor, StringBuilder expRes,
@@ -392,11 +570,12 @@ public class TransUtils extends SdbTestBase {
      * @param csName
      * @param hashCLName
      */
-    public static void createHashCL( Sequoiadb sdb, String csName,
+    public static DBCollection createHashCL( Sequoiadb sdb, String csName,
             String hashCLName ) {
-        sdb.getCollectionSpace( csName ).createCollection( hashCLName,
-                ( BSONObject ) JSON.parse(
+        DBCollection hashCL = sdb.getCollectionSpace( csName )
+                .createCollection( hashCLName, ( BSONObject ) JSON.parse(
                         "{ShardingKey:{_id:1}, ShardingType:'hash', AutoSplit:true}" ) );
+        return hashCL;
     }
 
     /**
@@ -412,7 +591,7 @@ public class TransUtils extends SdbTestBase {
      * @param sep
      *            主表的切分范围为(min - sep)(sep - max)
      */
-    public static void createMainCL( Sequoiadb sdb, String csName,
+    public static DBCollection createMainCL( Sequoiadb sdb, String csName,
             String mainCLName, String subCLName1, String subCLName2, int sep ) {
         DBCollection mainCL = sdb.getCollectionSpace( csName )
                 .createCollection( mainCLName, ( BSONObject ) JSON.parse(
@@ -428,6 +607,8 @@ public class TransUtils extends SdbTestBase {
         mainCL.attachCollection( csName + "." + subCLName2,
                 ( BSONObject ) JSON.parse( "{LowBound:{_id:" + sep
                         + "}, UpBound:{_id:{'$maxKey':1}}}" ) );
+
+        return mainCL;
     }
 
     /**
@@ -470,7 +651,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
-     * 查询并检查记录正确性
+     * 查询并检查记录正确性，同时校验扫描方式
      * 
      * @param cl
      * @param hint
@@ -483,7 +664,7 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
-     * 查询并检查记录正确性
+     * 查询并检查记录正确性，同时校验扫描方式
      * 
      * @param cl
      * @param orderBy
@@ -594,6 +775,12 @@ public class TransUtils extends SdbTestBase {
     public static void checkRecord( DBCollection cl, String matcher,
             String selector, String orderBy, String hint,
             List< BSONObject > expList ) {
+        // 检查指定索引扫描时是否走了索引扫描
+        BSONObject hintType = ( BSONObject ) JSON.parse( hint );
+        if ( hintType.get( "" ) != null ) {
+            checkIndexScan( cl, matcher, selector, orderBy, hint );
+        }
+
         List< BSONObject > actList = queryToBSONList( cl, matcher, selector,
                 orderBy, hint );
         if ( actList.size() != expList.size() ) {
@@ -870,6 +1057,11 @@ public class TransUtils extends SdbTestBase {
      */
     public static void beginTransaction( Sequoiadb sequoiadb ) {
         sequoiadb.beginTransaction();
+        try {
+            Thread.sleep( 100 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
         // DBCollection cl = sequoiadb.getCollectionSpace( SdbTestBase.csName )
         // .getCollection( SdbTestBase.reservedCL );
         // DBCursor cur = cl.query();
@@ -885,6 +1077,20 @@ public class TransUtils extends SdbTestBase {
         // // 写入用例事务ID到节点日志
         // sequoiadb.msg( new Exception().getStackTrace()[ 1 ].getClassName()
         // + ": transID: " + transId );
+    }
+
+    /**
+     * @description提交事务后sleep 0.1s,避免从其他coord连过来的读事务，由于时间不同导致读不到记录
+     * @param sequoiadb
+     * @author zhaoyu
+     */
+    public static void commitTransaction( Sequoiadb sequoiadb ) {
+        sequoiadb.commit();
+        try {
+            Thread.sleep( 100 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -981,7 +1187,7 @@ public class TransUtils extends SdbTestBase {
      * @Date 2018-11-15
      */
     public static List< String > getCLGroups( DBCollection cl ) {
-        List< String > groupNames = new ArrayList< String >();
+        List< String > groupNames = new ArrayList<>();
         Sequoiadb db = cl.getSequoiadb();
         if ( CommLib.isStandAlone( db ) ) {
             return groupNames;
@@ -991,7 +1197,7 @@ public class TransUtils extends SdbTestBase {
         matcher.put( "Name", cl.getFullName() );
         DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_CATALOG, matcher,
                 null, null );
-        HashSet< String > groupNamesSet = new HashSet< String >();
+        HashSet< String > groupNamesSet = new HashSet<>();
         while ( cur.hasNext() ) {
             BasicBSONList bsonLists = ( BasicBSONList ) cur.getNext()
                     .get( "CataInfo" );
@@ -1034,6 +1240,21 @@ public class TransUtils extends SdbTestBase {
         cursor.close();
         return status;
     }
+
+    /*
+     * @description 通过testGroup判断是否随机获取coord节点
+     * @param String testGroup
+     * @author zhaoyu
+     */
+    public static Sequoiadb getRandomSequoiadb( String testGroup ) {
+        if ( "rr".equals( SdbTestBase.testGroup )
+                || "rrauto".equals( SdbTestBase.testGroup ) ) {
+            return CommLib.getRandomSequoiadb();
+        } else {
+            return new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        }
+    }
+
 }
 
 /**

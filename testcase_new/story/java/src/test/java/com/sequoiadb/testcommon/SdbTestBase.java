@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +76,7 @@ public class SdbTestBase {
     private static final Map< String, BSONObject > node2Conf = new HashMap< String, BSONObject >();
     private static boolean istransactionOn = true;
     private static BasicBSONObject confObj = new BasicBSONObject();
+    public static List< String > coordUrls = new ArrayList<>();
 
     static {
         group2Conf.put( RU, new BasicBSONObject() );
@@ -219,7 +221,8 @@ public class SdbTestBase {
             if ( sequoiadb.isCollectionSpaceExist( csName ) ) {
                 sequoiadb.dropCollectionSpace( csName );
             }
-            CollectionSpace cs = sequoiadb.createCollectionSpace( csName );
+            CollectionSpace cs = sequoiadb.createCollectionSpace( csName,
+                    ( BSONObject ) JSON.parse( "{LobPageSize: 8192}" ) );
             cs.createCollection( reservedCL, ( BSONObject ) JSON
                     .parse( "{ShardingKey:{_id:1},AutoSplit:true}" ) );
             // add capped cs;
@@ -228,6 +231,7 @@ public class SdbTestBase {
             }
             sequoiadb.createCollectionSpace( cappedCSName,
                     ( BSONObject ) JSON.parse( "{Capped:true}" ) );
+            coordUrls = CommLib.getAllCoordUrls( sequoiadb );
 
             File workDirFile = new File( workDir );
             if ( !workDirFile.exists() ) {
@@ -305,7 +309,7 @@ public class SdbTestBase {
         }
     }
 
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS })
+    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS } )
     public static synchronized void initTestGroups() {
         if ( testGroup == null )
             return;

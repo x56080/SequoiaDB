@@ -133,7 +133,7 @@ public class Transaction18213B extends SdbTestBase {
     }
 
     private void insertDatas( DBCollection cl, int startId, int endId ) {
-        List< BSONObject > records = new ArrayList<>();
+        List< BSONObject > records = new ArrayList< >();
         for ( int i = startId; i < endId; i++ ) {
             records.add( ( BSONObject ) JSON
                     .parse( "{_id:" + i + ", a:" + i + ", b:" + i + "}" ) );

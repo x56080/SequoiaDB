@@ -44,11 +44,11 @@ public class Transaction17122 extends SdbTestBase {
             cl.delete( "{'_id': 'id17122'}" );
             cl.insert( data1 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
 
             sdb.rollback();
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
         } finally {
             sdb.rollback();
             cl.delete( "" );
@@ -66,11 +66,11 @@ public class Transaction17122 extends SdbTestBase {
             cl.delete( "{'_id': 'id17122'}" );
             cl.insert( data1 );
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
 
             sdb.commit();
             TransUtils.queryAndCheck( cl, "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{'':'_id'}", expDataList );
+            TransUtils.queryAndCheck( cl, "{'':'$id'}", expDataList );
         } finally {
             sdb.commit();
             cl.delete( "" );

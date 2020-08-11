@@ -62,7 +62,7 @@ public class Transaction18332 extends SdbTestBase {
             expDataList.add( data2 );
             expDataList.add( data3 );
             TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'$id'}",
                     expDataList );
 
         } finally {
@@ -98,7 +98,7 @@ public class Transaction18332 extends SdbTestBase {
             expDataList.add( data1 );
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'$id'}",
                     expDataList );
 
         } finally {
@@ -134,7 +134,7 @@ public class Transaction18332 extends SdbTestBase {
             expDataList.add( data2 );
             expDataList.add( data3 );
             TransUtils.queryAndCheck( cl, "{_id:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'_id'}",
+            TransUtils.queryAndCheck( cl, "{_id:1}", "{'':'$id'}",
                     expDataList );
 
         } finally {
@@ -156,12 +156,12 @@ public class Transaction18332 extends SdbTestBase {
         try {
             TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
-                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
+                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'$id'}" );
             }
 
             // 其他事务更新记录
             TransUtils.beginTransaction( sdb2 );
-            cl2.update( "{_id:1}", "{$set:{a:3}}", "{'':'_id'}" );
+            cl2.update( "{_id:1}", "{$set:{a:3}}", "{'':'$id'}" );
 
             sdb2.commit();
             sdb.rollback();
@@ -194,11 +194,11 @@ public class Transaction18332 extends SdbTestBase {
         try {
             TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
-                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
+                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'$id'}" );
             }
 
             // 本事务更新记录
-            cl.update( "{_id:1}", "{$set:{a:3}}", "{'':'_id'}" );
+            cl.update( "{_id:1}", "{$set:{a:3}}", "{'':'$id'}" );
 
             sdb.rollback();
 
@@ -228,11 +228,11 @@ public class Transaction18332 extends SdbTestBase {
         try {
             TransUtils.beginTransaction( sdb );
             for ( int i = 0; i < 3; i++ ) {
-                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'_id'}" );
+                cl.update( "{_id:2}", "{$inc:{a:1}}", "{'':'$id'}" );
             }
 
             // 非事务更新记录
-            cl2.update( "{_id:1}", "{$set:{a:3}}", "{'':'_id'}" );
+            cl2.update( "{_id:1}", "{$set:{a:3}}", "{'':'$id'}" );
 
             sdb.rollback();
 

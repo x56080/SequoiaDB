@@ -82,7 +82,6 @@ public class Transaction17134 extends SdbTestBase {
             expDataList.add( data1 );
             expDataList.add( data3 );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 
             sdb.rollback();
 
@@ -90,7 +89,6 @@ public class Transaction17134 extends SdbTestBase {
             expDataList.add( data1 );
             expDataList.add( data2 );
             TransUtils.queryAndCheck( cl, "{a:1}", "{'':null}", expDataList );
-            TransUtils.queryAndCheck( cl, "{a:1}", "{'':'a'}", expDataList );
 
         } finally {
             sdb.rollback();

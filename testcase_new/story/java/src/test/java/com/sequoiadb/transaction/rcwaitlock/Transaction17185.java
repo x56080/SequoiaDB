@@ -27,7 +27,7 @@ import com.sequoiadb.transaction.TransUtils;
  * @author yinzhen
  *
  */
-@Test(groups = { "rcwaitlock", "rs", "rcuserbs" })
+@Test(groups = { "rcwaitlock", "rs" })
 public class Transaction17185 extends SdbTestBase {
     private Sequoiadb sdb = null;
     private String clName = "cl17185";

@@ -42,6 +42,7 @@ public class Transaction18237 extends SdbTestBase {
     private DBCursor recordCur = null;
     private List< BSONObject > expDataList = null;
     private List< BSONObject > actDataList = null;
+    private Boolean isTransisolationRR;
 
     @BeforeClass
     public void setUp() {
@@ -56,6 +57,8 @@ public class Transaction18237 extends SdbTestBase {
         expDataList = new ArrayList< BSONObject >();
 
         cl.insert( "{'_id': 1, 'a': 1}" );
+        isTransisolationRR = TransUtils.isTransisolationRR( sdb );
+
     }
 
     @Test
@@ -103,13 +106,21 @@ public class Transaction18237 extends SdbTestBase {
         // trans 4 query
         QueryThread queryThread1 = new QueryThread( cl4, "{'': null}" );
         queryThread1.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
-                queryThread1.getTransactionID() ) );
-
         QueryThread queryThread2 = new QueryThread( cl5, "{'': 'a'}" );
         queryThread2.start();
-        Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
-                queryThread2.getTransactionID() ) );
+
+        // mvcc分支下transuserbs在RR隔离级别下强制为true,查询不阻塞
+        if ( !isTransisolationRR ) {
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    queryThread1.getTransactionID() ) );
+            Assert.assertTrue( TransUtils.isTransWaitLock( sdb,
+                    queryThread2.getTransactionID() ) );
+        } else {
+            Assert.assertFalse( TransUtils.isTransWaitLock( sdb,
+                    queryThread1.getTransactionID() ) );
+            Assert.assertFalse( TransUtils.isTransWaitLock( sdb,
+                    queryThread2.getTransactionID() ) );
+        }
 
         // no trans read
         expDataList.clear();
@@ -128,10 +139,12 @@ public class Transaction18237 extends SdbTestBase {
         sdb2.commit();
         sdb3.commit();
 
-        Assert.assertTrue( queryThread1.isSuccess(),
-                queryThread1.getErrorMsg() );
-        Assert.assertTrue( queryThread2.isSuccess(),
-                queryThread2.getErrorMsg() );
+        if ( !isTransisolationRR ) {
+            Assert.assertTrue( queryThread1.isSuccess(),
+                    queryThread1.getErrorMsg() );
+            Assert.assertTrue( queryThread2.isSuccess(),
+                    queryThread2.getErrorMsg() );
+        }
 
         sdb4.commit();
         sdb5.commit();
