@@ -497,6 +497,43 @@ public class TransUtils extends SdbTestBase {
     }
 
     /**
+     * 查询并检查记录正确性，同时校验扫描方式
+     * 
+     * @param cl
+     * @param matcher
+     * @param orderBy
+     * @param hint
+     * @param expList
+     *            预期结果，记录 BSONObject 的 List
+     */
+    public static void queryAndCheck( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
+        // 检查指定索引扫描时是否走了索引扫描
+        BSONObject hintType = ( BSONObject ) JSON.parse( hint );
+        if ( hintType.get( "" ) != null ) {
+            checkIndexScan( cl, matcher, null, orderBy, hint );
+        }
+        queryAndCheck( cl, matcher, null, orderBy, hint, expList );
+    }
+
+    /**
+     * 查询并检查记录正确性，不校验扫描方式
+     * 
+     * @param cl
+     * @param matcher
+     * @param orderBy
+     * @param hint
+     * @param expList
+     *            预期结果，记录 BSONObject 的 List
+     */
+    public static void checkQueryResultOnly( DBCollection cl, String matcher,
+            String orderBy, String hint, List< BSONObject > expList ) {
+        List< BSONObject > actList = queryToBSONList( cl, matcher, null,
+                orderBy, hint );
+        Assert.assertEquals( actList, expList );
+    }
+
+    /**
      * 查询并检查记录正确性
      * 
      * @param cl
@@ -514,7 +551,39 @@ public class TransUtils extends SdbTestBase {
         checkRecord( cl, matcher, selector, orderBy, hint, expList );
 
         // 该测试点是校验count接口的，不能够删除
-        checkCount( cl, matcher, orderBy, hint, expList );
+        if ( !( "rr".equals( SdbTestBase.testGroup )
+                && ( matcher == null || matcher.equals( "" ) ) ) ) {
+            checkCount( cl, matcher, orderBy, hint, expList );
+        }
+
+    }
+
+    public static void checkIndexScan( DBCollection cl, String matcher,
+            String selector, String orderBy, String hint ) {
+        DBCursor cur = cl.explain( ( BSONObject ) JSON.parse( matcher ),
+                ( BSONObject ) JSON.parse( selector ),
+                ( BSONObject ) JSON.parse( orderBy ),
+                ( BSONObject ) JSON.parse( hint ), 0, -1, 0,
+                new BasicBSONObject( "Run", false ) );
+        if ( !cur.hasNext() ) {
+            Assert.fail( "the query access plan did not return." );
+        }
+        while ( cur.hasNext() ) {
+            BSONObject explain = cur.getNext();
+            if ( explain.containsField( "SubCollections" ) ) {
+                BasicBSONList subCollections = ( BasicBSONList ) explain
+                        .get( "SubCollections" );
+                for ( int i = 0; i < subCollections.size(); i++ ) {
+                    String scanType = ( String ) ( ( BSONObject ) subCollections
+                            .get( i ) ).get( "ScanType" );
+                    Assert.assertEquals( scanType, "ixscan" );
+                }
+            } else {
+                Assert.assertEquals( explain.get( "ScanType" ), "ixscan" );
+            }
+
+        }
+        cur.close();
     }
 
     /**

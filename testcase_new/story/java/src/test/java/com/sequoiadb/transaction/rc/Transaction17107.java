@@ -36,7 +36,10 @@ public class Transaction17107 extends SdbTestBase {
     private DBCollection cl1 = null;
     private DBCollection cl2 = null;
     private DBCollection cl3 = null;
-    private ArrayList< BSONObject > expList = new ArrayList< BSONObject >();
+    private ArrayList< BSONObject > expList1 = new ArrayList<>();
+    private ArrayList< BSONObject > expList2 = new ArrayList<>();
+    private ArrayList< BSONObject > expList3 = new ArrayList<>();
+    private ArrayList< BSONObject > expList4 = new ArrayList<>();
     private int startId = 0;
     private int stopId = 1000;
     private int startId2 = 1000;
@@ -128,141 +131,230 @@ public class Transaction17107 extends SdbTestBase {
                     startId2, stopId2, 0 );
 
             // 4 事务1记录读
-            expList.clear();
-            TransUtils.queryAndCheck( cl1, orderByPos, hintTbScan, expList );
+            expList1.clear();
+            TransUtils.queryAndCheck( cl1,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList1 );
 
             // 事务1索引读
-            TransUtils.queryAndCheck( cl1, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl1,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList1 );
 
             // 4 事务1记录逆序读
-            TransUtils.queryAndCheck( cl1, orderByRev, hintTbScan, expList );
+            TransUtils.queryAndCheck( cl1,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList1 );
 
             // 事务1索引逆序读
-            TransUtils.queryAndCheck( cl1, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl1,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList1 );
 
             // 5 事务2记录读
-            expList.addAll( insertR1s );
-            expList.addAll( insertR2s );
-            Collections.sort( expList, new OrderBy() );
-            TransUtils.queryAndCheck( cl2, "{a:1, b:1}", hintTbScan, expList );
+            expList2.clear();
+            expList2.addAll( insertR1s );
+            expList2.addAll( insertR2s );
+            Collections.sort( expList2, new OrderBy() );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    "{a:1, b:1}", hintTbScan, expList2 );
 
             // 事务2索引读
-            TransUtils.queryAndCheck( cl2, "{a:1, b:1}", hintIxScan, expList );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    "{a:1, b:1}", hintIxScan, expList2 );
 
             // 5 事务2记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl2, "{a: -1, b: -1}", hintTbScan,
-                    expList );
+            Collections.reverse( expList2 );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    "{a: -1, b: -1}", hintTbScan, expList2 );
 
             // 事务2索引逆序读
-            TransUtils.queryAndCheck( cl2, "{a: -1, b: -1}", hintIxScan,
-                    expList );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    "{a: -1, b: -1}", hintIxScan, expList2 );
 
             // 6 事务3记录读
-            expList.clear();
-            expList.addAll( insertR1s );
-            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
+            expList3.clear();
+            expList3.addAll( insertR1s );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList3 );
 
             // 事务3索引读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList3 );
 
             // 6 事务3记录读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList3 );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList3 );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList3 );
 
             // 7 非事务记录读
-            expList.clear();
-            expList.addAll( insertR2s );
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
+            expList4.clear();
+            expList4.addAll( insertR2s );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList4 );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList4 );
 
             // 7 非事务记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList4 );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList4 );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList4 );
 
             // 8 提交事务1
             db1.commit();
 
             // 8 非事务记录读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
+            Collections.reverse( expList4 );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList4 );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList4 );
 
             // 8 非事务记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList4 );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList4 );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList4 );
 
             // 9 事务2记录读
-            expList.clear();
-            expList.addAll( insertR2s );
-            TransUtils.queryAndCheck( cl2, orderByPos, hintTbScan, expList );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expList2.clear();
+                expList2.addAll( insertR2s );
+            } else {
+                Collections.reverse( expList2 );
+            }
+
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList2 );
 
             // 事务2索引读
-            TransUtils.queryAndCheck( cl2, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList2 );
 
             // 9 事务2记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl2, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList2 );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList2 );
 
             // 事务2索引逆序读
-            TransUtils.queryAndCheck( cl2, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl2,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList2 );
 
             // 10 事务3记录读
-            expList.clear();
-            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expList3.clear();
+            } else {
+                Collections.reverse( expList3 );
+            }
+
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList3 );
 
             // 事务3索引读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList3 );
 
             // 10 事务3记录逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList3 );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList3 );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList3 );
 
             // 11 提交事务2
             db2.commit();
 
             // 11 非事务记录读
-            expList.addAll( insertR2s );
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
+            expList4.clear();
+            expList4.addAll( insertR2s );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList4 );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList4 );
 
             // 11 非事务记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList4 );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList4 );
 
             // 非事务索引逆序读
-            TransUtils.queryAndCheck( cl, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList4 );
 
             // 12 事务3记录读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl3, orderByPos, hintTbScan, expList );
+            if ( !"rr".equals( SdbTestBase.testGroup ) ) {
+                expList3.clear();
+                expList3.addAll( insertR2s );
+            } else {
+                Collections.reverse( expList3 );
+            }
+
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList3 );
 
             // 事务3索引读
-            TransUtils.queryAndCheck( cl3, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList3 );
 
             // 12 事务3记录逆序读
-            Collections.reverse( expList );
-            TransUtils.queryAndCheck( cl3, orderByRev, hintTbScan, expList );
+            Collections.reverse( expList3 );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintTbScan, expList3 );
 
             // 事务3索引逆序读
-            TransUtils.queryAndCheck( cl3, orderByRev, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl3,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByRev, hintIxScan, expList3 );
 
             // 提交事务3
             db3.commit();
@@ -271,15 +363,16 @@ public class Transaction17107 extends SdbTestBase {
             cl.delete( ( BSONObject ) null );
 
             // 非事务记录读
-            expList.clear();
-            TransUtils.queryAndCheck( cl, orderByPos, hintTbScan, expList );
+            expList4.clear();
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintTbScan, expList4 );
 
             // 非事务索引读
-            TransUtils.queryAndCheck( cl, orderByPos, hintIxScan, expList );
+            TransUtils.queryAndCheck( cl,
+                    "{a:{$lt:" + stopId2 + ",$gte:" + startId + "}}",
+                    orderByPos, hintIxScan, expList4 );
         } finally {
-            db1.commit();
-            db2.commit();
-            db3.commit();
             if ( cl.isIndexExist( "a" ) ) {
                 cl.dropIndex( "a" );
             }
