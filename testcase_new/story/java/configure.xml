@@ -33,6 +33,8 @@
         <listener
             class-name="com.sequoiadb.testcommon.TimePrinterListener" />
         <listener
+            class-name="com.sequoiadb.testcommon.SdbTestListener" />
+        <listener
             class-name="com.sequoiadb.testcommon.StoryInvokeMethodListener" />
     </listeners>
 
