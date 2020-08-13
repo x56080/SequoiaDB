@@ -59,6 +59,9 @@
    <span class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="RelationDropdown.OnClick($index)">&nbsp;{{config.key}}</span>
 </div>
 <div ng-windows="form as SyncWindow.config" windows-callback="SyncWindow.callback">
+   <div class="alert alert-warning" ng-style="{'zh-CN':{'line-height':'32px'}}[Language]" style="font-size:90%;margin-bottom:20px;">
+      {{autoLanguage("提示：同步配置是指将实例配置文件中的配置信息同步到 SAC 中")}}
+   </div>
    <div form-create para="form"></div>
 </div>
 <div ng-windows="form as UnbindInstanceWindow.config" windows-callback="UnbindInstanceWindow.callback">

@@ -18,6 +18,8 @@
    "数据库鉴权": "Database Auth",
    "该操作将删除所有数据，是否确定继续？": "This operation will delete all the data, are you sure to continue?",
    "该操作将删除该实例所有数据，是否确定继续？": "This operation will delete all the data from the instance, are you sure to continue?",
+   "提示：同步配置是指将实例配置文件中的配置信息同步到 SAC 中": "Tips: Synchronous configuration refers to synchronizing the configuration information in the instance configuration file to SAC",
+   "提示：同步配置是指将存储集群配置文件中的配置信息同步到 SAC 中": "Tips: Synchronous configuration refers to synchronizing the configuration information in the storage configuration file to SAC",
    "提示：选择删除所有数据将无法恢复！": "Tip: Selecting to delete all data will not be able to recover!",
    "存储集群": "Storage",
    "管理员用户名": "System Admin",
