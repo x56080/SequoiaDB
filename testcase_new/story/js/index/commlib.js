@@ -3,6 +3,8 @@
 @Modify list :
                2014-5-20  xiaojun Hu  Init
 *******************************************************************************/
+import( "../lib/main.js" );
+
 var csName = COMMCSNAME;
 var clName = COMMCLNAME;
 
