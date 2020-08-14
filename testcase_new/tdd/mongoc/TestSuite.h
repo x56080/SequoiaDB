@@ -30,7 +30,16 @@ extern "C" {
 #ifdef ASSERT
 # undef ASSERT
 #endif
-#define ASSERT assert
+#define ASSERT(a) \
+   do { \
+      if (!(a)) { \
+         fprintf(stderr, "FAIL\n\nAssert Failure: %s\n" \
+                         "%s:%d  %s()\n", \
+                         #a, \
+                         __FILE__, __LINE__, __FUNCTION__); \
+         exit(0); \
+      } \
+   } while (0)
 
 
 #ifdef ASSERT_CMPINT
@@ -46,7 +55,7 @@ extern "C" {
                          __FILE__, __LINE__, __FUNCTION__); \
          suite.failurenum += 1; \
          output_report(&suite);\
-         abort(); \
+         exit(0); \
       } \
    } while (0)
 
@@ -59,7 +68,7 @@ extern "C" {
                          __FILE__, __LINE__, __FUNCTION__); \
          suite.failurenum += 1; \
          output_report(&suite);\
-         abort(); \
+         exit(0); \
       } \
    } while (0)
 
@@ -71,7 +80,7 @@ extern "C" {
                          a, b); \
          suite.failurenum += 1; \ 
          output_report(&suite);\
-         abort(); \
+         exit(0); \
       } \
    } while (0)
 
