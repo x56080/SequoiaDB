@@ -2086,7 +2086,7 @@ namespace engine
    }
 
    _rtnTest::_rtnTest ()
-      :_collectionName ( NULL )
+      :_objName ( NULL )
    {
    }
 
@@ -2102,34 +2102,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTEST_INIT ) ;
       BSONObj arg ( pMatcherBuff ) ;
-      rc = rtnGetStringElement ( arg, FIELD_NAME_NAME, &_collectionName ) ;
+      rc = rtnGetStringElement ( arg, FIELD_NAME_NAME, &_objName ) ;
       PD_TRACE_EXITRC ( SDB__RTNTEST_INIT, rc ) ;
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTEST_DOIT, "_rtnTest::doit" )
-   INT32 _rtnTest::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                          INT16 w , INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNTEST_DOIT ) ;
-
-      switch ( type () )
-      {
-         case CMD_TEST_COLLECTION :
-            rc = rtnTestCollectionCommand ( _collectionName , dmsCB ) ;
-            break ;
-         case CMD_TEST_COLLECTIONSPACE :
-            rc = rtnTestCollectionSpaceCommand ( _collectionName, dmsCB ) ;
-            break ;
-         default :
-            PD_LOG ( PDEVENT, "Unknow test command " ) ;
-            rc = SDB_INVALIDARG ;
-            break ;
-      }
-
-      PD_TRACE_EXITRC ( SDB__RTNTEST_DOIT, rc ) ;
       return rc ;
    }
 
@@ -2154,7 +2128,14 @@ namespace engine
 
    const CHAR *_rtnTestCollection::collectionFullName ()
    {
-      return _collectionName ;
+      return _objName ;
+   }
+
+   INT32 _rtnTestCollection::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                    SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                    INT16 w , INT64 *pContextID )
+   {
+      return rtnTestCollectionCommand ( _objName, dmsCB ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnTestCollectionspace)
@@ -2174,6 +2155,13 @@ namespace engine
    RTN_COMMAND_TYPE _rtnTestCollectionspace::type ()
    {
       return CMD_TEST_COLLECTIONSPACE ;
+   }
+
+   INT32 _rtnTestCollectionspace::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                         SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                         INT16 w , INT64 *pContextID )
+   {
+      return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSetPDLevel)
