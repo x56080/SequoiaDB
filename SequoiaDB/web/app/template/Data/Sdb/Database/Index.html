@@ -46,6 +46,10 @@
          <div class="Ellipsis" table-key="Record">
             <a class="linkButton" ng-click="gotoRecord(clInfo.csId,clInfo.i)">{{clInfo.Record}}</a>
          </div>
+         <div class="Ellipsis" table-key="AutoIncrement">
+            <a ng-if="clInfo.AutoIncrement.length > 0" class="linkButton" ng-click="ShowAutoIncrement(clInfo.AutoIncrement)">{{clInfo.AutoIncrement.length}}</a>
+            <span ng-if="!clInfo.AutoIncrement || clInfo.AutoIncrement.length == 0">0</span>
+         </div>
          <div class="Ellipsis" table-key="Index">
             <a ng-if="clInfo.Index > 0" class="linkButton" ng-click="showIndex(clInfo.csId,clInfo.i)">{{clInfo.Index}}</a>
             <span ng-if="clInfo.Index == 0">{{clInfo.Index}}</span>
@@ -70,6 +74,7 @@
                         <th style="background-color:#F1F4F5;font-weight:bold;" ng-if="moduleMode == 'distribution' && isHideSubCl != true">{{autoLanguage("归属集合")}}</th>
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("Lob数")}}</th>
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("记录数")}}</th>
+                        <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("自增字段数")}}</th>
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("索引数")}}</th>
                      </tr>
                      <tr ng-repeat="clInfo in clList track by $index" ng-if="clInfo.csName == csInfo.Name && clInfo.hide == false">
@@ -80,6 +85,10 @@
                         <td ng-if="moduleMode == 'distribution' && isHideSubCl != true"><span>{{clInfo.MainCLName}}</span></td>
                         <td><a class="linkButton" ng-click="gotoLob($parent.$parent.$index,$index)">{{clInfo.TotalLobs}}</a></td>
                         <td><a class="linkButton" ng-click="gotoRecord($parent.$parent.$index,$index)">{{clInfo.Record}}</a></td>
+                        <td>
+                           <a ng-if="clInfo.AutoIncrement.length > 0" class="linkButton" ng-click="ShowAutoIncrement(clInfo.AutoIncrement)">{{clInfo.AutoIncrement.length}}</a>
+                           <span ng-if="!clInfo.AutoIncrement || clInfo.AutoIncrement.length == 0" ">0</span>
+                        </td>
                         <td>
                            <a class="linkButton" ng-if="clInfo.Index>0" ng-click='showIndex($parent.$parent.$index,$index)'>{{clInfo.Index}}</a>
                            <span ng-if="clInfo.Index==0">{{clInfo.Index}}</span>
@@ -177,6 +186,35 @@
             <div form-create para="form"></div>
          </div>
 
+         <div ng-windows="form as CreateAutoIncrementWindow.config" windows-callback="CreateAutoIncrementWindow.callback">
+            <div form-create para="form"></div>
+         </div>
+         <div ng-windows="form as RemoveAutoIncrementWindow.config" windows-callback="RemoveAutoIncrementWindow.callback">
+            <div form-create para="form"></div>
+            <table class="table loosen border" ng-if="RemoveAutoIncrementWindow.sequenceContent">
+               <tr>
+                  <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>
+                  <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>
+               </tr>
+               <tr ng-repeat="(key, value) in RemoveAutoIncrementWindow.sequenceContent track by $index">
+                  <td>{{key}}</td>
+                  <td>{{value}}</td>
+               </tr>
+            </table>
+         </div>
+         <div ng-windows="form as AutoIncrementWindow.config" windows-callback="AutoIncrementWindow.callback">
+            <div form-create para="form"></div>
+            <table class="table loosen border" ng-if="AutoIncrementWindow.sequenceContent">
+               <tr>
+                  <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>
+                  <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>
+               </tr>
+               <tr ng-repeat="(key, value) in AutoIncrementWindow.sequenceContent track by $index">
+                  <td>{{key}}</td>
+                  <td>{{value}}</td>
+               </tr>
+            </table>
+         </div>
          <div style="width:100%;margin-top:10px;">
             <table class="table loosen border">
                <tbody>
@@ -217,6 +255,14 @@
                   <tr>
                      <td ng-if="csList.length > 0 && clList.length > 0"><a class="linkButton" ng-click="showRemoveIndex()">{{autoLanguage("删除索引")}}</a></td>
                      <td ng-if="!( csList.length > 0 && clList.length > 0 )"><span style="color:#AAA;">{{autoLanguage("删除索引")}}</span></td>
+                  </tr>
+                  <tr>
+                     <td ng-if="csList.length > 0 && clList.length > 0"><a class="linkButton" ng-click="ShowCreateAutoIncrement()">{{autoLanguage("创建自增字段")}}</a></td>
+                     <td ng-if="!( csList.length > 0 && clList.length > 0 )"><span style="color:#AAA;">{{autoLanguage("创建自增字段")}}</span></td>
+                  </tr>
+                  <tr>
+                     <td ng-if="HasAutoIncrement"><a class="linkButton" ng-click="ShowRemoveAutoIncrement()">{{autoLanguage("删除自增字段")}}</a></td>
+                     <td ng-if="!HasAutoIncrement"><span style="color:#AAA;">{{autoLanguage("删除自增字段")}}</span></td>
                   </tr>
                </tbody>
             </table>

@@ -2,7 +2,7 @@
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
-   sacApp.controllerProvider.register( 'Data.Database.Index.Ctrl', function( $scope, $location, SdbFunction, SdbRest ){
+   sacApp.controllerProvider.register( 'Data.Database.Index.Ctrl', function( $scope, $location, $timeout, SdbFunction, SdbRest ){
       var clusterName = SdbFunction.LocalData( 'SdbClusterName' ) ;
       var moduleType = SdbFunction.LocalData( 'SdbModuleType' ) ;
       var moduleMode = SdbFunction.LocalData( 'SdbModuleMode' ) ;
@@ -54,13 +54,15 @@
       $scope.subCLNum = 0 ;
       //分区表数量
       $scope.partitionCLNum = 0 ;
+      //是否有自增字段
+      $scope.HasAutoIncrement = false ;
       //右侧高度偏移量
-      $scope.boxHeight = ( moduleMode == 'distribution' ) ? { 'offsetY': -281 } : { 'offsetY': -200 } ;
+      $scope.boxHeight = ( moduleMode == 'distribution' ) ? { 'offsetY': -335 } : { 'offsetY': -254 } ;
       //判断如果是Firefox浏览器的话，调整右侧表格高度
       var browser = SdbFunction.getBrowserInfo() ;
       if( browser[0] == 'firefox' )
       {
-         $scope.boxHeight = ( moduleMode == 'distribution' ) ? { 'offsetY': -311 } : { 'offsetY': -221 } ;
+         $scope.boxHeight = ( moduleMode == 'distribution' ) ? { 'offsetY': -371 } : { 'offsetY': -281 } ;
       }
       //域列表
       var domainList = [] ;
@@ -107,6 +109,7 @@
             'MainCLName': $scope.isHideSubCl == true || moduleMode == 'standalone' ? false : $scope.autoLanguage( '归属集合' ),
             'TotalLobs': $scope.autoLanguage( 'Lob数' ),
             'Record': $scope.autoLanguage( '记录数' ),
+            'AutoIncrement': $scope.autoLanguage( '自增字段数' ),
             'Index': $scope.autoLanguage( '索引数' )
          },
          'body': [],
@@ -117,6 +120,7 @@
                'MainCLName': true,
                'TotalLobs': true,
                'Record': true,
+               'AutoIncrement': true,
                'Index': true
             },
             'max': 50,
@@ -132,6 +136,7 @@
                'MainCLName': 'indexof',
                'TotalLobs': 'number',
                'Record': 'number',
+               'AutoIncrement': 'indexof',
                'Index': 'number'
             }
          }
@@ -2557,15 +2562,22 @@
          var indexesInfoList = [] ;
          var clDefault = -1 ;
          $.each( $scope.clList, function( index, clInfo ){
-            if( clInfo['IsMainCL'] === true && clInfo['Info']['CataInfo'].length == 0 )
+            if( clInfo['IsMainCL'] === true && isEmpty( clInfo['Info']['CataInfo'] ) )
             {
                return true ;
             }
+
             clValid.push( { 'key': clInfo['csName'] + '.' + clInfo['Name'], 'value': index } ) ;
-            if( fullName.length == 0 )
+            if( isEmpty( fullName ) )
+            {
                fullName = clInfo['csName'] + '.' + clInfo['Name'] ;
+            }
+
             if( clDefault < 0 )
+            {
                clDefault = index ;
+            }
+
             if( $scope.clID == index )
             {
                clDefault = index ;
@@ -2746,6 +2758,354 @@
                }, $scope.autoLanguage( '获取索引信息失败' ) ) ;
             }
          } ) ;
+      }
+
+      //添加自增字段 弹窗
+      $scope.CreateAutoIncrementWindow = {
+         'config': {},
+         'callback': {}
+      } ;
+
+      //打开 添加自增字段 窗口
+      $scope.ShowCreateAutoIncrement = function(){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+         {
+            return ;
+         }
+         var clValid = [] ;
+         var clIndex = -1 ;
+         $.each( $scope.clList, function( index, clInfo ){
+            if( $scope.showType == 'cs' )
+            {
+               if( $scope.csList[ $scope.csID ]['Name'] == clInfo['csName'] && clIndex < 0 )
+               {
+                  clIndex = index ;
+               }
+            }
+            else
+            {
+               if( index == $scope.clID )
+               {
+                  clIndex = index ;
+               }
+            }
+            clValid.push( { 'key' : clInfo['csName'] + '.' + clInfo['Name'] , 'value' : index } );
+         } ) ;
+         if( clIndex < 0 )
+            clIndex = 0 ;
+         $scope.CreateAutoIncrementWindow['callback']['SetTitle']( $scope.autoLanguage( '创建自增字段' ) ) ;
+         $scope.CreateAutoIncrementWindow['callback']['SetIcon']( 'fa-plus' ) ;
+         $scope.CreateAutoIncrementWindow['config'] = {
+            'inputList': [
+               {
+                  "name": "Name",
+                  "webName": "Collection",
+                  "type": "select",
+                  "required": true,
+                  "value": clIndex,
+                  "valid": clValid
+               },
+               {
+                  "name": "Field",
+                  "webName": 'Field',
+                  "desc": $scope.autoLanguage( '自增字段名' ),
+                  "type": "string",
+                  "required": true,
+                  "value": "",
+                  "valid": {
+                     "min": 1,
+                     "regex": "^[^/$].*"
+                  }
+               },
+               {
+                  "name": "StartValue",
+                  "webName": 'StartValue',
+                  "desc": $scope.autoLanguage( '起始值' ),
+                  "type": "int",
+                  "value": 1,
+                  "valid": {
+                     "empty": true,
+                     "min": 1
+                  }
+               },
+               {
+                  "name": "Increment",
+                  "webName": 'Increment',
+                  "desc": $scope.autoLanguage( '自增间隔' ),
+                  "type": "int",
+                  "value": 1,
+                  "valid": {
+                     "empty": true,
+                     "min": 1
+                  }
+               },
+               {
+                  "name": "MinValue",
+                  "webName": 'MinValue',
+                  "desc": $scope.autoLanguage( '最小值' ),
+                  "type": "int",
+                  "value": 1,
+                  "valid": {
+                     "empty": true,
+                     "min": 0
+                  }
+               },
+               {
+                  "name": "MaxValue",
+                  "webName": 'MaxValue',
+                  "desc": $scope.autoLanguage( '最大值' ),
+                  "type": "string",
+                  "value": '9223372036854775807',
+                  "valid": {
+                     "empty": true
+                  }
+               },
+               {
+                  "name": "CacheSize",
+                  "webName": 'CacheSize',
+                  'desc': $scope.autoLanguage( '编目节点每次缓存的序列值的数量，取值须大于0' ),
+                  "type": "int",
+                  "value": 1000,
+                  "valid": {
+                     "empty": true,
+                     "min": 0
+                  }
+               },
+               {
+                  "name": "AcquireSize",
+                  "webName": 'AcquireSize',
+                  'desc': $scope.autoLanguage( '协调节点每次获取的序列值的数量，取值须大于0，小于等于CacheSize' ),
+                  "type": "int",
+                  "value": 1000,
+                  "valid": {
+                     "empty": true,
+                     "min": 0
+                  }
+               },
+               {
+                  "name": "Cycled",
+                  "webName": 'Cycled',
+                  'desc': $scope.autoLanguage( '序列值达到最大值或最小值时是否允许循环' ),
+                  "type": "select",
+                  "value": false,
+                  "valid": [
+                     { 'key': false, 'value': false },
+                     { 'key': true, 'value': true }
+                  ]
+               },
+               {
+                  "name": "Generated",
+                  "webName": 'Generated',
+                  'desc': $scope.autoLanguage( '自增字段生成方式' ),
+                  "type": "select",
+                  "value": 'default',
+                  "valid": [
+                     { 'key': 'default', 'value': 'default' },
+                     { 'key': 'always', 'value': 'always' },
+                     { 'key': 'strict', 'value': 'strict' }
+                  ]
+               }
+            ]
+         } ;
+         
+         $scope.CreateAutoIncrementWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+            var isClear = $scope.CreateAutoIncrementWindow['config'].check() ;
+            if( isClear )
+            {
+               var formVal = $scope.CreateAutoIncrementWindow['config'].getValue() ;
+               var data = { 'cmd': 'create autoincrement' } ;
+               data['Name'] = clValid[ formVal['Name'] ]['key'] ;
+               data['options'] = { 'AutoIncrement': {} } ;
+               $.each( formVal, function( key, value ){
+                  if( key != "Name" )
+                  {
+                     data['options']['AutoIncrement'][key] = value ;
+                  }
+               } ) ;
+               data['options']['AutoIncrement']['MaxValue'] = { '$numberLong': data['options']['AutoIncrement']['MaxValue'] }  ;
+               data['options'] = JSON.stringify(data['options']) ;
+               var exec = function(){
+                  SdbRest.DataOperation( data, {
+                     'success': function( json ){
+                        _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
+                     },
+                     'failed': function( errorInfo ){
+                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                           exec() ;
+                           return true ;
+                        } ) ;
+                     }
+                  } ) ;
+               } ;
+               exec() ;
+            }
+            return isClear ;
+         } ) ;
+         $scope.CreateAutoIncrementWindow['callback']['Open']() ;
+      }
+
+      //添加自增字段 弹窗
+      $scope.RemoveAutoIncrementWindow = {
+         'config': {},
+         'callback': {}
+      } ;
+
+      //打开 删除自增字段 窗口
+      $scope.ShowRemoveAutoIncrement = function(){
+         if( _IndexPublic.checkEditionAndSupport( $scope, 'sequoiadb', 'Metadata' ) == false )
+         {
+            return ;
+         }
+         if( !$scope.HasAutoIncrement )
+         {
+            return ;
+         }
+         var clValid = [] ;
+         var inInfo = [] ;
+         var incrementValid = {} ; 
+         var fullName = '' ;
+         var incrementInfoList = [] ;
+         var clDefault = -1 ;
+         $.each( $scope.clList, function( index, clInfo ){
+            if( isUndefined( clInfo['AutoIncrement'] ) || isEmpty( clInfo['AutoIncrement'] ) )
+            {
+               return true ;
+            }
+            clValid.push( { 'key': clInfo['csName'] + '.' + clInfo['Name'], 'value': index } ) ;
+            if( isEmpty( fullName ) )
+               fullName = clInfo['csName'] + '.' + clInfo['Name'] ;
+            if( clDefault < 0 )
+               clDefault = index ;
+            if( $scope.clID == index )
+            {
+               clDefault = index ;
+               fullName = clInfo['csName'] + '.' + clInfo['Name'] ;
+            }
+            inInfo = [] ;
+            $.each( clInfo['AutoIncrement'], function( index, info ){
+               inInfo.push( { 'key': info['Field'], 'value': index, 'info': info } ) ;
+            } ) ;
+            incrementValid[clInfo['csName'] + '.' + clInfo['Name']] = inInfo ;
+         } ) ;
+
+         $scope.RemoveAutoIncrementWindow.sequenceContent = {} ;
+         $scope.RemoveAutoIncrementWindow['callback']['SetTitle']( $scope.autoLanguage( '删除自增字段' ) ) ;
+         $scope.RemoveAutoIncrementWindow['callback']['SetIcon']( 'fa-trash-o' ) ;
+         $scope.RemoveAutoIncrementWindow['config'] = {
+            inputList: [
+               {
+                  "name": "clName",
+                  "webName": $scope.autoLanguage( '集合' ),
+                  "type": "select",
+                  "value": clDefault,
+                  "valid": clValid,
+                  "onChange": function( name, key, value ){
+                     $scope.RemoveAutoIncrementWindow['config']['inputList'][1]['value'] = 0 ;
+                     $scope.RemoveAutoIncrementWindow['config']['inputList'][1]['valid'] = incrementValid[key] ;
+                     $scope.RemoveAutoIncrementWindow.sequenceContent = incrementValid[key][0]['info'] ;
+                     fullName = key ;
+                  }
+               },
+               {
+                  "name": "autoIncrementName",
+                  "webName":  $scope.autoLanguage( '自增字段名' ),
+                  "type": "select",
+                  "value": incrementValid[fullName][0]['value'],
+                  "valid": incrementValid[fullName],
+                  "onChange": function( name, key, value ){
+                     $scope.RemoveAutoIncrementWindow.sequenceContent = incrementValid[fullName][value]['info'] ;
+                  }
+               }
+            ]
+         } ;
+         $scope.RemoveAutoIncrementWindow.sequenceContent = incrementValid[fullName][0]['info'] ;
+         $scope.RemoveAutoIncrementWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+            var isClear = $scope.RemoveAutoIncrementWindow['config'].check() ;
+            if( isClear )
+            {
+               var formVal = $scope.RemoveAutoIncrementWindow['config'].getValue() ;
+               var autoIncrementName = incrementValid[fullName][formVal['autoIncrementName']]['info']['Field'] ;
+               var data = { 'cmd': 'drop autoincrement' } ;
+               data['Name'] = fullName ;
+               data['options'] = { 'Field': autoIncrementName } ;
+               data['options'] = JSON.stringify( data['options'] ) ;
+               var exec = function(){
+                  SdbRest.DataOperation( data, {
+                     'success': function( json ){
+                        $scope.HasAutoIncrement = false ;
+                        _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
+                     },
+                     'failed': function( errorInfo ){
+                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                           exec() ;
+                           return true ;
+                        } ) ;
+                     }
+                  } ) ;
+               } ;
+               exec() ;
+            }
+            return isClear ;
+         } ) ;
+         $scope.RemoveAutoIncrementWindow['callback']['Open']() ;
+      }
+
+      //自增字段信息 弹窗
+      $scope.AutoIncrementWindow = {
+         'config': {},
+         'callback': {}
+      }
+
+      //打开自增字段信息弹窗
+      $scope.ShowAutoIncrement = function( list ){
+         $scope.AutoIncrementWindow.sequenceContent = {} ;
+         $scope.AutoIncrementWindow['callback']['SetTitle']( $scope.autoLanguage( '自增字段信息' ) ) ;
+         var sql = 'SELECT * FROM $SNAPSHOT_SEQUENCES'  ;
+         SdbRest.Exec( sql, {
+            'success': function( result ){
+               var fieldName = [] ; 
+               var sequenceContent = [] ;
+               $.each( list, function( index, sequenceInfo ){
+                  fieldName.push( { 'key': sequenceInfo['Field'], 'value': index } ) ;
+               } ) ;
+
+               $.each( list, function( index, info ){
+                  $.each( result, function( index2, info2 ){
+                     if( info['SequenceID'] == info2['ID'] )
+                     {
+                        info2['Field'] = info['Field'] ;
+                        info2['MaxValue'] = JSON.stringify( info2['MaxValue'] ) ;
+                        sequenceContent.push( info2 ) ;
+                     }
+                  } ) ;
+               } ) ;
+               $scope.AutoIncrementWindow['config'] = {
+                  inputList: [
+                     {
+                        "name": "sequence",
+                        "webName": $scope.autoLanguage( "自增字段名" ),
+                        "type": "select",
+                        "value":fieldName[0]['value'] ,
+                        "valid": fieldName,
+                        "onChange": function( name, key, value ){
+                           $scope.AutoIncrementWindow.sequenceContent = sequenceContent[value] ;
+                        }
+                     }
+                  ]
+               } ;
+               $timeout( function(){
+                  $scope.bindResize() ;
+               } ) ;
+               $scope.AutoIncrementWindow.sequenceContent = sequenceContent[0] ;
+               $scope.AutoIncrementWindow['callback']['Open']() ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  exec() ;
+                  return true ;
+               }, $scope.autoLanguage( '获取自增字段失败' ) ) ;
+            }
+         }, { 'showLoading': true } ) ;
       }
 
       //打开 切分范围 的窗口

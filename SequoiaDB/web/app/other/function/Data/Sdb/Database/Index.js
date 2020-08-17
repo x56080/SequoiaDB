@@ -115,6 +115,7 @@ _DataDatabaseIndex.buildClList = function( $scope, clList ){
             'lobPageSize': lobPageSize,
             'MainCLName': clInfo['MainCLName'],
             'ShardingType': clInfo['ShardingType'],
+            'AutoIncrement': clInfo['AutoIncrement'],
             'Info': {
                'Name':                clName,
                'IsMainCL':            clInfo['IsMainCL'],
@@ -474,6 +475,11 @@ _DataDatabaseIndex.getCLInfo = function( $scope, SdbRest )
                   if( typeof( cataInfo['CompressionTypeDesc'] ) != 'undefined' )
                   {
                      clInfo['CompressionTypeDesc'] = cataInfo['CompressionTypeDesc'] ;
+                  }
+                  if( !isUndefined( cataInfo['AutoIncrement'] )  && !isEmpty( cataInfo['AutoIncrement'] ) )
+                  {
+                     clInfo['AutoIncrement'] = cataInfo['AutoIncrement'] ;
+                     $scope.HasAutoIncrement = true ;
                   }
                }
             } ) ;
