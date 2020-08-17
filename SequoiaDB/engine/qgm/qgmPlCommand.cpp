@@ -408,6 +408,7 @@ namespace engine
          transMsg.header.opCode = MSG_BS_TRANS_COMMIT_REQ ;
          transMsg.header.TID = 0 ;
          transMsg.header.routeID.value = 0 ;
+         transMsg.commitTime = 0LL ;
 
          rc = opr.init( sdbGetResourceContainer()->getResource(), eduCB ) ;
          if ( rc )

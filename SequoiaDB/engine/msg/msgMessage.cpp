@@ -2290,6 +2290,7 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.messageLength = packetLength;
    pMsg->header.opCode = MSG_BS_TRANS_COMMIT_REQ;
    pMsg->header.routeID.value = 0;
+   pMsg->commitTime = 0LL ;
 
 done:
    return rc;
