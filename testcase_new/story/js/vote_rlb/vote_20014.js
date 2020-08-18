@@ -76,6 +76,7 @@ function addNode( groupName, hostName )
          }
       }
       db.getRG(groupName).start();
+      sleep( 14000 );
    }
    catch(e)
    {

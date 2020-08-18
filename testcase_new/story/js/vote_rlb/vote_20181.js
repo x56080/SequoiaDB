@@ -65,11 +65,12 @@ function test()
    finally
    {
       db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).start();
+      sleep( 14000 );     
    }
  
    //指定主机名和服务名不存在，重新选主
    var hostName = group2SlaveNode.HostName;
-   var svcName = group2SlaveNode .svcname;
+   var svcName = group2SlaveNode.svcname;
    println("start to reelect node with hostName " + hostName + " and serviceName " + svcName + " to primary node");
    try
    {

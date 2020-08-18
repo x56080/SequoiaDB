@@ -31,5 +31,6 @@ function test()
    finally
    { 
       db.getRG( groupName ).start();  
+      sleep( 14000 );   
    }
 }
