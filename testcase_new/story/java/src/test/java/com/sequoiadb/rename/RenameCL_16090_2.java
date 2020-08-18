@@ -1,6 +1,7 @@
 package com.sequoiadb.rename;
 
 import java.util.ArrayList;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -42,6 +43,9 @@ public class RenameCL_16090_2 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            CommLib.clearCS( sdb, csName );
+        }
         cs = sdb.createCollectionSpace( csName );
         cl = cs.createCollection( clName );
         for ( int i = 0; i < 10; i++ ) {
@@ -75,7 +79,9 @@ public class RenameCL_16090_2 extends SdbTestBase {
         try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" )) {
             RenameUtil.checkRenameCLResult( db, csName, clName, newCLName );
             checkCreateIndex( db, csName, newCLName, create );
+
         }
+
     }
 
     @AfterClass
@@ -98,6 +104,9 @@ public class RenameCL_16090_2 extends SdbTestBase {
                     "" )) {
                 CollectionSpace cs = db.getCollectionSpace( csName );
                 cs.renameCollection( clName, newCLName );
+                if ( !CommLib.isStandAlone( db ) ) {
+                    checkCLRename( db, newCLName );
+                }
             }
         }
     }
@@ -160,4 +169,35 @@ public class RenameCL_16090_2 extends SdbTestBase {
         }
     }
 
+    /**
+     * @Description：直连数据节点检查复制组内修改clname是否成功
+     * @author: zhaohailin
+     * @param sdb
+     * @param newCLName
+     */
+    private void checkCLRename( Sequoiadb sdb, String newCLName ) {
+        DBCollection cl = sdb.getCollectionSpace( csName )
+                .getCollection( newCLName );
+        List< String > clGroups = CommLib.getCLGroups( cl );
+        for ( int i = 0; i < clGroups.size(); i++ ) {
+            String groupname = clGroups.get( i );
+            int successNodeNum = 0;
+            List< String > nodeAddrs = CommLib.getNodeAddress( sdb, groupname );
+            for ( int j = 0; j < nodeAddrs.size(); j++ ) {
+                try ( Sequoiadb dataDB = new Sequoiadb( nodeAddrs.get( j ), "",
+                        "" )) {
+                    CollectionSpace dataCl = dataDB
+                            .getCollectionSpace( csName );
+                    if ( dataCl.isCollectionExist( newCLName ) ) {
+                        successNodeNum++;
+                    }
+                }
+            }
+            if ( successNodeNum < ( nodeAddrs.size() / 2 + 1 ) ) {
+                Assert.fail(
+                        "check clname error, exp:successNodeNum not more than a half.  act : successNodeNum ="
+                                + successNodeNum );
+            }
+        }
+    }
 }
