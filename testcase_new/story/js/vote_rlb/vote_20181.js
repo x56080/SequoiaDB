@@ -49,24 +49,28 @@ function test()
 
    //指定本组故障的备节点ID，重新选主
    db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).stop();
+   nodeID = slaveNode1.NodeID;
+   println("start to reelect node " + nodeID + " to primary node");
    try
    {
-      nodeID = slaveNode1.NodeID;
-      println("start to reelect node " + nodeID + " to primary node");
       db.getRG( groupName1 ).reelect({Seconds: 60, NodeID: parseInt(nodeID)});
-      
-      var node = db.getRG( groupName1 ).getMaster();
-      var nodeName = node.getHostName() + ":" + node.getServiceName();
-      if( nodeName !== slaveNode2.HostName + ":" + slaveNode2.svcname )
+   }
+   catch( e )
+   {
+      if( e != -13 )
       {
-         throw new Error( "\nnodeName: " + nodeName + "\nsalveNode2: " + slaveNode2.HostName + ":" + slaveNode2.svcname );
+         throw new Error( e );
       }
    }
-   finally
+      
+   var node = db.getRG( groupName1 ).getMaster();
+   var nodeName = node.getHostName() + ":" + node.getServiceName();
+   if( nodeName !== slaveNode2.HostName + ":" + slaveNode2.svcname )
    {
-      db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).start();
-      sleep( 14000 );     
+      throw new Error( "\nnodeName: " + nodeName + "\nsalveNode2: " + slaveNode2.HostName + ":" + slaveNode2.svcname );
    }
+   db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).start();
+   sleep( 14000 );     
  
    //指定主机名和服务名不存在，重新选主
    var hostName = group2SlaveNode.HostName;
