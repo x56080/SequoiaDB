@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListSession12526 : public testBase 
 {
 protected:
    sdbCursor cursor ;
@@ -44,7 +44,7 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listSessions )
+TEST_F( getListSession12526, listSessions )
 {
    // get list
    INT32 rc = SDB_OK ;
@@ -57,7 +57,7 @@ TEST_F( getList12526, listSessions )
    ASSERT_TRUE( res.hasField( "TID" ) ) ;
 }
 
-TEST_F( getList12526, listSessionsCurrent )
+TEST_F( getListSession12526, listSessionsCurrent )
 {
    // get list
    INT32 rc = SDB_OK ;

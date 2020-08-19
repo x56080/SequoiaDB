@@ -16,10 +16,11 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListStorageUnit12526 : public testBase 
 {
 protected:
    sdb dataDB ;
+   sdbNode dataNode ;
    sdbCursor cursor ;
    BSONObj res ;
    const CHAR *pCsName ;
@@ -29,8 +30,8 @@ protected:
       testBase::SetUp() ;
 
       // create cs cl
-      pCsName = "getList12526" ;
-      const CHAR *pClName = "getList12526" ;
+      pCsName = "getListStorageUnit12526" ;
+      const CHAR *pClName = "getListStorageUnit12526" ;
       sdbCollectionSpace cs ;
       sdbCollection cl ;
 
@@ -50,7 +51,7 @@ protected:
 
       // get cl group name
       vector<string> groupNames ;
-      rc = getClGroups( db, "getList12526.getList12526", groupNames ) ;
+      rc = getClGroups( db,"getListStorageUnit12526.getListStorageUnit12526", groupNames ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
 
       // select a data group name
@@ -70,7 +71,6 @@ protected:
       sdbReplicaGroup dataGroup ;
       rc = db.getReplicaGroup( dataGroupName.c_str(), dataGroup ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      sdbNode dataNode ;
       rc = dataGroup.getMaster( dataNode ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = dataNode.connect( dataDB ) ;
@@ -94,12 +94,12 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listStorageUnits )
+TEST_F( getListStorageUnit12526, listStorageUnits )
 {
    INT32 rc = SDB_OK ;
    rc = dataDB.getList( cursor, SDB_LIST_STORAGEUNITS ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cursor.next( res ) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "list执行在:" << dataNode.getNodeName() ;
    ASSERT_TRUE( res.hasField( "CollectionHWM" ) ) ;
 }

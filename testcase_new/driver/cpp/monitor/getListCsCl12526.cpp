@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListCsCl12526 : public testBase 
 {
 protected:
    const CHAR *pCsName ;
@@ -29,8 +29,8 @@ protected:
    {
       testBase::SetUp() ;
 
-      pCsName = "getList12526" ;
-      pClName = "getList12526" ;
+      pCsName = "getListCsCl12526_cs" ;
+      pClName = "getListCsCl12526_cl" ;
       sdbCollectionSpace cs ;
       sdbCollection cl ;
 
@@ -57,7 +57,7 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listCollections )
+TEST_F( getListCsCl12526, listCollections )
 {
    // get list
    INT32 rc = SDB_OK ;
@@ -71,7 +71,7 @@ TEST_F( getList12526, listCollections )
    ASSERT_EQ( SDB_OK, rc ) ;
 }
 
-TEST_F( getList12526, listCollectionSpaces )
+TEST_F( getListCsCl12526, listCollectionSpaces )
 {
    // get list
    INT32 rc = SDB_OK ;

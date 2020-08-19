@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListTransaction12526 : public testBase 
 {
 protected:
    const CHAR *pCsName ;
@@ -29,8 +29,8 @@ protected:
    {
       testBase::SetUp() ;
 
-      pCsName = "getList12526" ;
-      pClName = "getList12526" ;
+      pCsName = "getListTransaction12526" ;
+      pClName = "getListTransaction12526" ;
       sdbCollectionSpace cs ;
       sdbCollection cl ;
 
@@ -68,7 +68,7 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listTransactions )
+TEST_F( getListTransaction12526, listTransactions )
 {
    INT32 rc = SDB_OK ;
    rc = db.getList( cursor, SDB_LIST_TRANSACTIONS ) ;
@@ -77,7 +77,7 @@ TEST_F( getList12526, listTransactions )
    ASSERT_EQ( SDB_OK, rc ) ;
 }
 
-TEST_F( getList12526, listTransactionsCurrent )
+TEST_F( getListTransaction12526, listTransactionsCurrent )
 {
    INT32 rc = SDB_OK ;
    rc = db.getList( cursor, SDB_LIST_TRANSACTIONS_CURRENT ) ;

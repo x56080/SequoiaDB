@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListContext12526 : public testBase 
 {
 protected:
    sdbCursor cursor ;
@@ -44,7 +44,7 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listContexts )
+TEST_F( getListContext12526, listContexts )
 {
    // get list
    INT32 rc = SDB_OK ;
@@ -57,7 +57,7 @@ TEST_F( getList12526, listContexts )
    ASSERT_TRUE( res.hasField( "Contexts" ) ) ;
 }
 
-TEST_F( getList12526, listContextsCurrent )
+TEST_F( getListContext12526, listContextsCurrent )
 {
    // get list
    INT32 rc = SDB_OK ;
