@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getSnapshot12662 : public testBase 
+class getSnapshotCata12662 : public testBase 
 {
 protected:
    const CHAR *pCsName ;
@@ -29,8 +29,8 @@ protected:
    {
       testBase::SetUp() ;
 
-      pCsName = "getSnapshot12662" ;
-      pClName = "getSnapshot12662" ;
+      pCsName = "getSnapshotCata12662" ;
+      pClName = "getSnapshotCata12662" ;
       sdbCollectionSpace cs ;
       sdbCollection cl ;
 
@@ -57,7 +57,7 @@ protected:
    }
 } ;
 
-TEST_F( getSnapshot12662, snapshotCollections )
+TEST_F( getSnapshotCata12662, snapshotCollections )
 {
    if( isStandalone( db ) )
    {

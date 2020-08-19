@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getSnapshot12662 : public testBase 
+class getSnapshotCsCl12662 : public testBase 
 {
 protected:
    const CHAR *pCsName ;
@@ -29,8 +29,8 @@ protected:
    {
       testBase::SetUp() ;
 
-      pCsName = "getSnapshot12662" ;
-      pClName = "getSnapshot12662" ;
+      pCsName = "getSnapshotCsCl12662" ;
+      pClName = "getSnapshotCsCl12662" ;
       sdbCollectionSpace cs ;
       sdbCollection cl ;
 
@@ -57,7 +57,7 @@ protected:
    }
 } ;
 
-TEST_F( getSnapshot12662, snapshotCollections )
+TEST_F( getSnapshotCsCl12662, snapshotCollections )
 {
    // get snapshot
    INT32 rc = SDB_OK ;
@@ -71,7 +71,7 @@ TEST_F( getSnapshot12662, snapshotCollections )
    ASSERT_EQ( SDB_OK, rc ) ;
 }
 
-TEST_F( getSnapshot12662, snapshotCollectionSpaces )
+TEST_F( getSnapshotCsCl12662, snapshotCollectionSpaces )
 {
    // get snapshot
    INT32 rc = SDB_OK ;

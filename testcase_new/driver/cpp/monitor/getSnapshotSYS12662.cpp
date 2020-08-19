@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getSnapshot12662 : public testBase 
+class getSnapshotSYS12662 : public testBase 
 {
 protected:
    sdbCursor cursor ;
@@ -32,7 +32,7 @@ protected:
    }
 } ;
 
-TEST_F( getSnapshot12662, snapshotSystem )
+TEST_F( getSnapshotSYS12662, snapshotSystem )
 {
    // snapshot database
    INT32 rc = SDB_OK ;

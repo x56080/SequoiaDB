@@ -16,7 +16,7 @@ using namespace sdbclient ;
 using namespace bson ;
 using namespace std ;
 
-class getList12526 : public testBase 
+class getListGroups12526 : public testBase 
 {
 protected:
    sdbCursor cursor ;
@@ -32,7 +32,7 @@ protected:
    }
 } ;
 
-TEST_F( getList12526, listGroups )
+TEST_F( getListGroups12526, listGroups )
 {
    if( isStandalone( db ) )
    {
