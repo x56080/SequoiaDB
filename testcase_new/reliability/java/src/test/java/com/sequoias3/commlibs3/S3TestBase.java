@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 
 import org.testng.Assert;
+import org.testng.ITestContext;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Optional;
@@ -12,6 +13,7 @@ import org.testng.annotations.Parameters;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.commlib.Ssh;
@@ -43,12 +45,13 @@ public class S3TestBase {
     private static String clusterFileName = "";
     private static String clusterInfo = "";
     private static StorageInterface storage = new SdbStorage();
+    private final static String S3_CS_PREFIX = "S3_SYS";
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "S3HOSTNAME", "S3PORT",
             "S3USERNAME", "S3ACCESSKEYID", "ROOTPASSWD", "REMOTEUSER",
             "REMOTEPASSWD", "SCRIPTDIR" })
-    @BeforeSuite
+    @BeforeSuite(alwaysRun = true)
     public void initSuite( String HOSTNAME, String SVCNAME, String COMMCSNAME,
             int RSRVPORTBEGIN, int RSRVPORTEND, String RSRVNODEDIR,
             String WORKDIR, String S3HOSTNAME, @Optional("8002") String S3PORT,
@@ -89,14 +92,17 @@ public class S3TestBase {
         cleanS3EnvAndPrepare();
     }
 
-    @AfterSuite
-    public void finiSuite() throws Exception {
+    @AfterSuite(alwaysRun = true)
+    public void finiSuite( ITestContext context ) throws Exception {
         try {
             execCmd( Command.S3_RESTORECONF );
             clusterFileName = installPath + "/tools/sequoias3/log/cluster.log";
             clusterInfo = storage.getClusterInfo( coordUrl );
             execCmd( Command.S3_SAVECLUSTERINFO );
             storage.envRestore( coordUrl );
+            if ( context.getFailedTests().size() == 0 ) {
+                dropS3CS();
+            }
         } finally {
             execCmd( Command.S3_STOP );
         }
@@ -151,6 +157,28 @@ public class S3TestBase {
                 db.createCollectionSpace( csName );
             }
         } finally {
+            if ( db != null ) {
+                db.close();
+            }
+        }
+    }
+
+    public static void dropS3CS() {
+        Sequoiadb db = null;
+        DBCursor cursor = null;
+        try {
+            db = new Sequoiadb( coordUrl, "", "" );
+            cursor = db.listCollectionSpaces();
+            while ( cursor.hasNext() ) {
+                String csName = ( String ) cursor.getNext().get( "Name" );
+                if ( csName.startsWith( S3_CS_PREFIX ) ) {
+                    db.dropCollectionSpace( csName );
+                }
+            }
+        } finally {
+            if ( cursor != null ) {
+                cursor.close();
+            }
             if ( db != null ) {
                 db.close();
             }
