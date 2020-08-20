@@ -7,18 +7,15 @@ testConf.clName = CHANGEDPREFIX + "_11407";
 
 main( test );
 
-function test ()
+function test ( args )
 {
-   var dataGroupNames = commGetDataGroupNames( db );
    var clName = CHANGEDPREFIX + "_11407";
    var idxName1 = "index_abc_11407";
    var idxName2 = "index_ab_11407";
    var idxName3 = "index_a_11407";
    var tbIdx = "";
 
-   commDropCL( db, COMMCSNAME, clName );
-
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: dataGroupNames[0] }, false );
+   var cl = args.testCL;
 
    cl.createIndex( idxName1, { a: 1, b: -1, c: 1 } );
    cl.createIndex( idxName2, { a: -1, b: 1 } );
@@ -53,6 +50,4 @@ function test ()
    var expIndexName = tbIdx;
    var expScanType = "tbscan";
    testExplain( cl, cond, expIndexName, expScanType );
-
-   commDropCL( db, COMMCSNAME, clName, false );
 }

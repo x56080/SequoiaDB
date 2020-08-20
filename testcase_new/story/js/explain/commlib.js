@@ -16,20 +16,15 @@ function testExplain ( conds, dbcl, indexName, scanType )
 
 function checkExplain ( dbcl, cond, expIndexName, expScanType, sortCond, hintCond )
 {
-   if( sortCond == undefined )
-   {
-      sortCond = {};
-   }
-   if( hintCond == undefined )
-   {
-      hintCond = {};
-   }
+   if( sortCond == undefined ) { sortCond = {}; }
+   if( hintCond == undefined ) { hintCond = {}; }
    var explainObj = dbcl.find( cond ).sort( sortCond ).hint( hintCond ).explain().next().toObj();
    var IndexName = explainObj.IndexName;
    var ScanType = explainObj.ScanType;
    if( expIndexName !== IndexName || expScanType !== ScanType )
    {
-      throw new Error( "索引选择错误！" )
+      throw new Error( "index select error！" + "expect index is:" + expIndexName + ",actually index is:" + IndexName + "\n"
+         + "expect scanType is:" + expScanType + ",actually scanType is:" + ScanType );
    }
 }
 function checkNeedEvalIO ( cl, expNeedEvalIO )

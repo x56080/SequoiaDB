@@ -1,39 +1,30 @@
 /************************************
-*@Description: seqDB-13868:Ö÷×Ó±íÊ¹ÓÃSearch²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13870:Ö÷×Ó±íÊ¹ÓÃEvaluate²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13872:Ö÷×Ó±íÊ¹ÓÃEstimate²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13874:Ö÷×Ó±íÊ¹ÓÃExpand²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13877:Ö÷×Ó±íÊ¹ÓÃSubCollections²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13879:Ö÷×Ó±íÊ¹ÓÃFilter²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13881:Ö÷×Ó±íÊ¹ÓÃDetail²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-13883:Ö÷×Ó±íÊ¹ÓÃRun²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
-seqDB-14012:Ö÷×Ó±íÊ¹ÓÃFlatten²ÎÊýÕ¹Ê¾·ÃÎÊ¼Æ»®
+*@Description: seqDB-13868:主子表使用Search参数展示访问计划
+seqDB-13870:主子表使用Evaluate参数展示访问计划
+seqDB-13872:主子表使用Estimate参数展示访问计划
+seqDB-13874:主子表使用Expand参数展示访问计划
+seqDB-13877:主子表使用SubCollections参数展示访问计划
+seqDB-13879:主子表使用Filter参数展示访问计划
+seqDB-13881:主子表使用Detail参数展示访问计划
+seqDB-13883:主子表使用Run参数展示访问计划
+seqDB-14012:主子表使用Flatten参数展示访问计划
 *@author:      zhaoyu
 *@createdate:  2019.7.13
 *@testlinkCase: seqDB-13867
 **************************************/
-function main ()
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
+testConf.clName = COMMCLNAME + "_maincl_13868";
+testConf.clOpt = { ShardingType: "range", ShardingKey: { a: 1 }, IsMainCL: true };
+main( test );
+function test ( args )
 {
-   if( commIsStandalone( db ) )
-   {
-      println( "------Deploy is standalone" );
-      return;
-   }
-
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      println( "Deploy is only one group!" );
-      return;
-   }
-
    var configPath = "./config.txt";
-   var mainCLName = COMMCLNAME + "_maincl_13868";
    var subCLName1 = COMMCLNAME + "_subcl_13868_1";
    var subCLName2 = COMMCLNAME + "_subcl_13868_2";
-   commDropCL( db, COMMCSNAME, mainCLName, true );
    commDropCL( db, COMMCSNAME, subCLName1, true );
    commDropCL( db, COMMCSNAME, subCLName2, true );
-   var dbcl = commCreateCL( db, COMMCSNAME, mainCLName, { ShardingType: "range", ShardingKey: { a: 1 }, IsMainCL: true } );
+   var dbcl = args.testCL;
    commCreateCL( db, COMMCSNAME, subCLName1 );
    commCreateCL( db, COMMCSNAME, subCLName2 );
    dbcl.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 10000 } } );
@@ -64,18 +55,12 @@ function main ()
          }
          else
          {
-            throw e;
+            throw new Error( e );
          }
       }
    }
 
-   //Ê¹ÓÃSubCollectionsÕ¹Ê¾·ÃÎÊ¼Æ»®
+   //使用SubCollections展示访问计划
    var explainCursor = dbcl.find( { a: { $in: [1, 10000] } } ).explain( { SubCollections: COMMCSNAME + "." + subCLName1 } );
    while( explainCursor.next() ) { };
-
-   commDropCL( db, COMMCSNAME, mainCLName, true );
-   commDropCL( db, COMMCSNAME, subCLName1, true );
-   commDropCL( db, COMMCSNAME, subCLName2, true );
-
 }
-main(); 
