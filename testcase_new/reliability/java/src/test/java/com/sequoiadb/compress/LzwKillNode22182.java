@@ -34,7 +34,6 @@ import com.sequoiadb.task.TaskMgr;
  */
 
 public class LzwKillNode22182 extends SdbTestBase {
-    private boolean runSuccess = false;
     private GroupMgr groupMgr = null;
     private String groupName = null;
     private String csName = "cs22182";
@@ -134,21 +133,17 @@ public class LzwKillNode22182 extends SdbTestBase {
                 db.disconnect();
             }
         }
-
-        runSuccess = true;
     }
 
     @AfterClass
     public void tearDown() {
-        if ( !runSuccess ) {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-                db.dropCollectionSpace( csName );
-            } finally {
-                if ( db != null ) {
-                    db.disconnect();
-                }
+        Sequoiadb db = null;
+        try {
+            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+            db.dropCollectionSpace( csName );
+        } finally {
+            if ( db != null ) {
+                db.disconnect();
             }
         }
     }
@@ -174,11 +169,11 @@ public class LzwKillNode22182 extends SdbTestBase {
      * 
      * @param cl
      * @param recsNum
-     *            插入的记录数
+     *                            插入的记录数
      * @param flag
-     *            区分是哪个阶段插入的记录
+     *                            区分是哪个阶段插入的记录
      * @param checkDirCreated
-     *            是否检查字典已构建，不检查则插入recsNum条记录，检查则构建字段后就终止插入
+     *                            是否检查字典已构建，不检查则插入recsNum条记录，检查则构建字段后就终止插入
      */
     private void insertRecs( DBCollection cl, int recsNum, int flag,
             boolean checkDirCreated ) {
