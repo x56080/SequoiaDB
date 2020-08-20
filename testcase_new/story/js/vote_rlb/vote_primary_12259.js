@@ -33,6 +33,7 @@ function test()
    finally
    {
       db.getRG( groupName ).start();
+      commCheckBusinessStatus ( db );
       sleep( 14000 );
    }
 }

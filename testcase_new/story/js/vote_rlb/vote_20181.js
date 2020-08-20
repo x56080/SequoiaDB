@@ -71,6 +71,7 @@ function test()
    }
    db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).start();
    sleep( 14000 );     
+   commCheckBusinessStatus ( db );
  
    //指定主机名和服务名不存在，重新选主
    var hostName = group2SlaveNode.HostName;

@@ -29,10 +29,10 @@ function test()
    masterNode.HostName = hostName;
    masterNode.svcname = node.getServiceName();
    var slaveNode = addNode( groupName, hostName );
-   waitSync( masterNode, slaveNode );
 
    //节点创建成功启动后会有两个心跳窗口时间（一个心跳窗口时间是7s）的静默期，此时不会接受选主消息，因此这里停14s再执行选主
    sleep(14000);
+   commCheckBusinessStatus ( db );
 
    db.getRG( groupName ).reelect({ Seconds: 60 });
    checkReelect( groupName, slaveNode.HostName, slaveNode.svcname );
@@ -76,7 +76,6 @@ function addNode( groupName, hostName )
          }
       }
       db.getRG(groupName).start();
-      sleep( 14000 );
    }
    catch(e)
    {

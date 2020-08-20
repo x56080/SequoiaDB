@@ -32,5 +32,6 @@ function test()
    { 
       db.getRG( groupName ).start();  
       sleep( 14000 );   
+      commCheckBusinessStatus ( db );
    }
 }
