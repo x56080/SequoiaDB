@@ -1176,8 +1176,8 @@ namespace engine
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
-         PD_LOG ( PDERROR, "Invalid length for collectionspace: %s, rc: %d",
-                  pCollectionSpace, rc ) ;
+         PD_LOG ( PDERROR, "Invalid length of collectionspace name: %s, "
+                  "rc: %d", pCollectionSpace, rc ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }

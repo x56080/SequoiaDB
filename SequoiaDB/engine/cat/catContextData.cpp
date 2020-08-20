@@ -644,6 +644,15 @@ namespace engine
       {
          rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_SPACE_NAME,
                                       _targetName ) ;
+
+         if ( _targetName.empty() || _targetName.length() > DMS_SU_NAME_SZ )
+         {
+            PD_LOG ( PDERROR, "Invalid length of collectionspace name: "
+                     "%s, rc: %d", _targetName.c_str(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
                       CAT_COLLECTION_SPACE_NAME, rc ) ;
