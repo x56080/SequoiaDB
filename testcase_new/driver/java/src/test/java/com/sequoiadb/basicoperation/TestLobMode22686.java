@@ -66,19 +66,6 @@ public class TestLobMode22686 extends SdbTestBase {
         } finally {
             readLob.close();
         }
-
-        DBLob shareLob = cl.openLob( lobId, DBLob.SDB_LOB_SHAREREAD );
-        try {
-            byte[] data = new byte[ 1024 ];
-            shareLob.write( data );
-            Assert.fail( "cannot write in shareread mode." );
-        } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -6 ) {
-                throw e;
-            }
-        } finally {
-            shareLob.close();
-        }
     }
 
     @AfterClass
