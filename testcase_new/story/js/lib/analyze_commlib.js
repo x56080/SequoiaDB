@@ -366,7 +366,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          //需要检查cl统计表信息时，统计表信息不能为空
          if( clExistStat === true && clStats.length < 1 )
          {
-            throw "NO_CL_STAT";
+            throw new Error( "NO_CL_STAT" );
          }
 
          //cl统计表信息中存在统计信息且数据页不小于10
@@ -388,7 +388,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          if( ( clExistStat ^ clStatFlag ) === 1 )
          {
             println( "host:" + nodesInGroup[j] + "\nclExistStat:" + clExistStat + "\nclStatFlag:" + clStatFlag );
-            throw "NO_CL_STAT";
+            throw new Error( "NO_CL_STAT" );
          }
 
          //检查索引统计表信息
@@ -400,7 +400,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          {
             println( "indexExistStat:" + indexExistStat );
             println( "indexStats.length:" + indexStats.length );
-            throw "NO_INDEX_STAT";
+            throw new Error( "NO_INDEX_STAT" );
          }
 
          //索引统计表信息中存在统计信息
@@ -423,7 +423,7 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          if( ( indexExistStat ^ indexStatFlag ) === 1 )
          {
             println( "host:" + nodesInGroup[j] + "\nIndexName:" + indexName + "\nindexExistStat:" + indexExistStat + "\nindexStatFlag:" + indexStatFlag );
-            throw "NO_INDEX_STAT";
+            throw new Error( "NO_INDEX_STAT" );
          }
 
       }
@@ -920,12 +920,12 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
    for( var i = 0; i < expectAccessPlans.length; i++ )
    {
       var newObj1 = objSortByKey( expectAccessPlans[i] );
-      newActAccessPlans.push( newObj1 );
+      newExpAccessPlans.push( newObj1 );
    }
    for( var i = 0; i < actAccessPlans.length; i++ )
    {
       var newObj2 = objSortByKey( actAccessPlans[i] );
-      newExpAccessPlans.push( newObj2 );
+      newActAccessPlans.push( newObj2 );
    }
    var actStr = JSON.stringify( newActAccessPlans );
    for( var i = 0; i < newExpAccessPlans.length; i++ )
@@ -934,8 +934,7 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
       var expStr = JSON.stringify( newExpAccessPlans[i] );
       if( actStr.indexOf( expStr ) === -1 )
       {
-         throw buildException( "check access plan", "access plan", "fail",
-            expStr, actStr );
+         throw new Error( "check access plan fail" + "\nexp:" + JSON.stringify( newExpAccessPlans ) + "\nact:", actStr );
       }
    }
    println( "check accessPlan snapshot success" );

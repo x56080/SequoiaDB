@@ -82,7 +82,7 @@ function test ()
 
    //invoke analyze
    var options = { CollectionSpace: csName };
-   analyze( db, options );
+   db.analyze( options );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -127,8 +127,6 @@ function test ()
 
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
-
-   println( "check result success before alter!" );
 
    //alter CLs
    var alterOption1 = { ShardingKey: { a0: 1 }, ShardingType: 'hash' };
@@ -179,8 +177,6 @@ function test ()
 
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
-
-   println( "check result success after alter before analyze!" );
 
    //split CLs
    var group1 = ClSplitOneTimes( csName, clName1, 50 );
@@ -236,11 +232,10 @@ function test ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result success after split before analyze!" );
 
    //check alter after analyze
    var options = { CollectionSpace: csName };
-   analyze( db, options );
+   db.analyze( options );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -286,7 +281,5 @@ function test ()
 
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
-
-   println( "check result success after alter after split after analyze!" );
 
 }

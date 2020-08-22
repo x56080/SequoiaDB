@@ -4,20 +4,12 @@
 *@createdate:  2018.1.18
 *@testlinkCase:seqDB-12974
 **************************************/
-function main ()
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
+testConf.csName = COMMCSNAME + "_12974";
+main( test );
+function test ()
 {
-   if( commIsStandalone( db ) )
-   {
-      println( "skip standalone environment" );
-      return;
-   }
-
-   //判断1节点模式
-   if( true == isOnlyOneNodeInGroup() )
-   {
-      println( "only one node" );
-      return;
-   }
 
    var allGroups = commGetGroups( db );
    var groups = new Array();
@@ -30,9 +22,6 @@ function main ()
    var clFullName2 = csName + "." + clName2;
    var insertNum = 2000;
    var sameValues = 9000;
-
-   //清理环境
-   commDropCS( db, csName, true, "drop subcs before test" );
 
    var groupName = groups[0];
    //创建2个cl在同一个数据组上
@@ -62,7 +51,7 @@ function main ()
    var dbclSlave2 = db2.getCS( csName ).getCL( clName2 );
 
    //执行统计
-   analyze( db, { CollectionSpace: csName } );
+   db.analyze( { CollectionSpace: csName } );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -145,10 +134,6 @@ function main ()
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName2 } );
    checkSnapShotAccessPlans( clFullName2, expAccessPlan, actAccessPlan );
 
-   //清空环境
-   commDropCS( db, csName, true, "drop subcs in the end" );
    db1.close();
    db2.close();
-
 }
-main()

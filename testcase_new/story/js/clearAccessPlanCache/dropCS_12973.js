@@ -4,21 +4,11 @@
 *@createdate:  2018.1.18
 *@testlinkCase:seqDB-12973
 **************************************/
-function main ()
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
+main( test );
+function test ()
 {
-   if( commIsStandalone( db ) ) 
-   {
-      println( "skip standalone environment" );
-      return;
-   }
-
-   //判断1节点模式
-   if( true == isOnlyOneNodeInGroup() )
-   {
-      println( "only one node" );
-      return;
-   }
-
    var allGroups = commGetGroups( db );
    var groups = new Array();
    for( var i = 0; i < allGroups.length; i++ ) { groups.push( allGroups[i][0].GroupName ); }
@@ -67,8 +57,8 @@ function main ()
    var dbclSlave2 = db2.getCS( csName2 ).getCL( clName );
 
    //执行统计
-   analyze( db, { CollectionSpace: csName1 } );
-   analyze( db, { CollectionSpace: csName2 } );
+   db.analyze( { CollectionSpace: csName1 } );
+   db.analyze( { CollectionSpace: csName2 } );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -158,4 +148,3 @@ function main ()
    db1.close();
    db2.close();
 }
-main()
