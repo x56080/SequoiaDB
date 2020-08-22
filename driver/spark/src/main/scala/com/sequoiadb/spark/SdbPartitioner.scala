@@ -325,6 +325,10 @@ private object SdbPartitioner extends Logging {
                     s"$csName.$clName")
             }
 
+            val blocks = ArrayBuffer[Int]()
+            var firstHostName:String = null;
+            var firstServiceName:String = null;
+
             val cursor = cl.getQueryMeta(null, null, null, 0, -1, 0)
             while (cursor.hasNext) {
                 val obj = cursor.getNext
@@ -332,14 +336,25 @@ private object SdbPartitioner extends Logging {
                 val hostName = obj.get("HostName").asInstanceOf[String]
                 val serviceName = obj.get("ServiceName").asInstanceOf[String]
 
-                val blocks = ArrayBuffer[Int]()
+                if (null == firstHostName) {
+                    firstHostName = hostName;
+                    firstServiceName = serviceName;
+                }
+                else {
+                    if (!firstHostName.equals(hostName) || !firstServiceName.equals(serviceName)) {
+                        throw new SdbException(s"Node is mismatch: " +
+                            s"first node, $firstHostName:$firstServiceName, this node, $hostName:$serviceName");
+                    }
+                }
 
                 val datablocks = obj.get("Datablocks").asInstanceOf[BasicBSONList]
                 for (blockId <- datablocks) {
                     blocks += blockId.asInstanceOf[Int]
                 }
+            }
 
-                val meta = new QueryMeta(hostName + ":" + serviceName,
+            if (blocks.size > 0) {
+                val meta = new QueryMeta(firstHostName + ":" + firstServiceName,
                     csName, clName, blocks.toList)
                 queryMetas += meta
             }
