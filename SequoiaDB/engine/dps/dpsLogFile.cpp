@@ -104,7 +104,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_INIT ) ;
       BOOLEAN created = FALSE ;
 
-      SDB_ASSERT ( 0 == ( _fileSize % DPS_DEFAULT_PAGE_SIZE ),
+      SDB_ASSERT ( 0 == ( size % DPS_DEFAULT_PAGE_SIZE ),
                    "Size must be multiple of DPS_DEFAULT_PAGE_SIZE bytes" ) ;
 
       _fileSize = size ;
@@ -159,8 +159,12 @@ namespace engine
             else
             {
                close () ;
-
-               if ( SDB_INVALIDSIZE != rc || !crashStart )
+               // During crash, the header of the log file may be corrupted. In
+               // this case, we should be sure the node is able to start. So if
+               // the eye catcher is wrong, the file will be recreated.
+               if ( ( SDB_INVALIDSIZE != rc &&
+                      !( crashStart && SDB_DPS_FILE_NOT_RECOGNISE == rc ) )
+                    || !crashStart )
                {
                   PD_LOG ( PDERROR, "Restore dps log file[%s] failed[rc:%d]",
                            path, rc ) ;
@@ -464,7 +468,7 @@ namespace engine
             PD_LOG( PDEVENT, "last log record(lsn:%lld) is corrupted.",
                     corruptedHeader->_lsn ) ;
 
-            /// only one corrupted log in this file. Should use the previous 
+            /// only one corrupted log in this file. Should use the previous
             /// file as the working log file.
             if ( 0 == offSet )
             {
