@@ -57,6 +57,13 @@ namespace engine
    // default value for default synchronize clients per port is 10
    #define STP_OPTION_DEFCLIENTSPERPORT_DFT  ( 10 )
 
+   // minimum value of maxtimeerror option ( 1000 microseconds )
+   #define STP_OPTION_MAXTIMEERROR_MIN       ( STP_MIN_TIME_ERROR_US )
+   // maximum value for maxtimeerror option, 10 seconds in microseconds
+   #define STP_OPTION_MAXTIMEERROR_MAX       ( 10000000 )
+   // default value for maxtimeerror option ( 50000 microseconds )
+   #define STP_OPTION_MAXTIEMERROR_DEF       ( STP_MAX_TIME_ERROR_US )
+
    #define FILE_OPTIONS \
       ( STP_OPTION_PORT, \
             po::value<string>(), \
@@ -76,7 +83,8 @@ namespace engine
             "STP synchronize interval in seconds, default is 60" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000" ) \
+            "STP max time error in microseconds, default is 50000, " \
+            "value range is [ 1000, 10000000 ]" ) \
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
@@ -126,7 +134,8 @@ namespace engine
             "STP synchronize interval in seconds, default is 60" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000" ) \
+            "STP max time error in microseconds, default is 50000, " \
+            "value range is [ 1000, 10000000 ]" ) \
       ( STP_OPTION_DIAGLEVEL, \
             po::value<INT32>(), \
             "STP dialog level, default is 3" ) \
@@ -184,7 +193,7 @@ namespace engine
    _stpOptions::_stpOptions()
    : _weight( 0 ),
      _syncInterval( STP_DEF_SYNC_INTERVAL ),
-     _maxTimeErrorUS( STP_MAX_TIME_ERROR_US ),
+     _maxTimeErrorUS( STP_OPTION_MAXTIEMERROR_DEF ),
      _maxSyncHist( STP_DEF_SYNC_HIST_SIZE ),
      _maxSyncPorts( STP_OPTION_MAXSYNCPORTS_DFT ),
      _defClientsPerPort( STP_OPTION_DEFCLIENTSPERPORT_DFT ),
@@ -448,6 +457,8 @@ namespace engine
       // --maxtimeerror
       rdxUInt( ex, STP_OPTION_MAXTIMEERROR, _maxTimeErrorUS, FALSE,
                PMD_CFG_CHANGE_RUN, _maxTimeErrorUS ) ;
+      rdvMinMax( ex, _maxTimeErrorUS, STP_OPTION_MAXTIMEERROR_MIN,
+                 STP_OPTION_MAXTIMEERROR_MAX, TRUE ) ;
 
       // --maxsynchist
       rdxUInt( ex, STP_OPTION_MAXSYNCHIST, _maxSyncHist, FALSE,
