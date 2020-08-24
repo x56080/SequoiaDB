@@ -3533,9 +3533,10 @@ INT32 sequoiaFS::release(const CHAR *path, struct fuse_file_info *fi)
 done:
    delete lob;
    delete lh->hSysFileMetaCL;
+   pthread_mutex_destroy(&lh->lock);
    delete lh;
    releaseConnection(db);
-   pthread_mutex_destroy(&lh->lock);
+   
    return rc;
 
 error:
