@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: doesObjectExist查询删除标记的对象 testlink-case: seqDB-16673
+ * @Description: doesObjectExist查询删除标记的对象 testlink-case: seqDB-16673
  *
  * @author wangkexin
  * @Date 2018.12.07

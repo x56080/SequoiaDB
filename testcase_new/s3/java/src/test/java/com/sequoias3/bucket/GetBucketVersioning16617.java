@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 并发查询桶版本状态控制信息 testlink-case: seqDB-16617
+ * @Description: 并发查询桶版本状态控制信息 testlink-case: seqDB-16617
  *
  * @author wangkexin
  * @Date 2018.11.19

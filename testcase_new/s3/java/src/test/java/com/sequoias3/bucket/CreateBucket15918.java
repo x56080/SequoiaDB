@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: concurrent delete same bucket testlink-case: seqDB-15918
+ * @Description: concurrent delete same bucket testlink-case: seqDB-15918
  *
  * @author wangkexin
  * @Date 2018.10.16

@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 设置分隔符，指定分隔符为多字符 testlink-case: seqDB-18090
+ * @Description: 设置分隔符，指定分隔符为多字符 testlink-case: seqDB-18090
  *
  * @author wangkexin
  * @Date 2019.04.12

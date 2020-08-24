@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 并发删除同一对象 testlink-case: seqDB-16489
+ * @Description: 并发删除同一对象 testlink-case: seqDB-16489
  *
  * @author wangkexin
  * @Date 2019.01.03

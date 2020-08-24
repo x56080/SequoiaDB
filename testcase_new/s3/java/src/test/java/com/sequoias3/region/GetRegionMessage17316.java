@@ -1,21 +1,21 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.Region;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.UserUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+import com.sequoias3.testcommon.s3utils.UserUtils;
+
 /**
- * test content: 非桶所有者获取桶所在区域信息 testlink-case: seqDB-17316
- *
+ * @Description seqDB-17316:非桶所有者获取桶所在区域信息
  * @author wangkexin
  * @Date 2019.01.24
  * @version 1.00
@@ -31,6 +31,7 @@ public class GetRegionMessage17316 extends S3TestBase {
     private String bucketName = "bucket17316";
     private String regionName = "beijing17316";
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -43,16 +44,14 @@ public class GetRegionMessage17316 extends S3TestBase {
         s3Client = CommLib.buildS3Client();
 
         CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
     }
 
     @Test
     public void testGetRegionMessage() throws Exception {
         // create region
-        Region region = new Region();
-        region.withName( regionName );
-        RegionUtils.putRegion( region );
-
+        regionClient.createRegion( regionName );
         s3ClientA.createBucket(
                 new CreateBucketRequest( bucketName, regionName ) );
         try {
@@ -70,13 +69,22 @@ public class GetRegionMessage17316 extends S3TestBase {
         try {
             if ( runSuccess ) {
                 s3ClientA.deleteBucket( bucketName );
-                RegionUtils.deleteRegion( regionName );
+                regionClient.deleteRegion( regionName );
                 UserUtils.deleteUser( userNameA );
                 UserUtils.deleteUser( userNameB );
             }
         } finally {
+            if ( regionClient != null ) {
+                regionClient.shutdown();
+            }
             if ( s3Client != null ) {
                 s3Client.shutdown();
+            }
+            if ( s3ClientA != null ) {
+                s3ClientA.shutdown();
+            }
+            if ( s3ClientB != null ) {
+                s3ClientB.shutdown();
             }
         }
     }

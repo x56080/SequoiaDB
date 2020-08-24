@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 非桶管理用户删除对象
+ * @Description: 非桶管理用户删除对象
  *
  * @author wangkexin
  * @Date 2018.11.28

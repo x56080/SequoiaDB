@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 带前缀prefix和delimiter查询对象版本列表，匹配删除标记对象 testlink-case: seqDB-18145
+ * @Description: 带前缀prefix和delimiter查询对象版本列表，匹配删除标记对象 testlink-case: seqDB-18145
  *
  * @author wangkexin
  * @Date 2019.04.25

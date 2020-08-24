@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，并发删除同一对象 testlink-case: seqDB-16501
+ * @Description: 开启版本控制，并发删除同一对象 testlink-case: seqDB-16501
  *
  * @author wangkexin
  * @Date 2019.01.04

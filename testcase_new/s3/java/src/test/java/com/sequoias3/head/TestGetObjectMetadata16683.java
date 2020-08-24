@@ -15,7 +15,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 带versionId查询对象，不匹配ifMatch条件 testlink-case: seqDB-16683
+ * @Description: 带versionId查询对象，不匹配ifMatch条件 testlink-case: seqDB-16683
  *
  * @author wangkexin
  * @Date 2018.12.10

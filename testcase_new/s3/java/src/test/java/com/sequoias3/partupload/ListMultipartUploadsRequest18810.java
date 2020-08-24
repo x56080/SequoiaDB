@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: listMultipartUploads接口参数校验 testlink-case: seqDB-18810
+ * @Description: listMultipartUploads接口参数校验 testlink-case: seqDB-18810
  *
  * @author wangkexin
  * @Date 2019.8.7

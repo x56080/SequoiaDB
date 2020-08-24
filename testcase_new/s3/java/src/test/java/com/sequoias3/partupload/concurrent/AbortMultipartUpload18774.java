@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * test content: 版本: 1 :: 上传分段过程中终止分段上传 testlink-case: seqDB-18774
+ * @Description: 版本: 1 :: 上传分段过程中终止分段上传 testlink-case: seqDB-18774
  *
  * @author wangkexin
  * @Date 2019.8.8

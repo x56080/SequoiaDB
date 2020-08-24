@@ -1,19 +1,22 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.exception.SequoiaS3ServiceException;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
+
 /**
- * test content: GetRegion接口参数校验 testlink-case: seqDB-17354
- *
+ * @Description seqDB-17354:GetRegion接口参数校验
  * @author wangkexin
  * @Date 2019.01.24
  * @version 1.00
@@ -26,25 +29,27 @@ public class TestGetRegion17354 extends S3TestBase {
     private String[] metaClNames = { "metaCL17354", "metaHistoryCL17354" };
     private String[] dataClName = { "dataCL17354" };
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         RegionUtils.createCSAndCL( metaCSName, metaClNames );
         RegionUtils.createCSAndCL( dataCSName, dataClName );
 
-        RegionUtils.clearRegion( regionName );
-        Region region = new Region();
-        region.withName( regionName )
-                .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
+
+        CreateRegionRequest request = new CreateRegionRequest( regionName );
+        request.withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
                 .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
                 .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
-        RegionUtils.putRegion( region );
+        regionClient.createRegion( request );
     }
 
     @Test
     public void testCreateRegion() throws Exception {
         // 合法值
-        GetRegionResult result = RegionUtils.getRegion( regionName );
+        GetRegionResult result = regionClient.getRegion( regionName );
         Region region = result.getRegion();
         Assert.assertEquals( region.getName(), regionName );
         Assert.assertEquals( region.getMetaLocation(),
@@ -56,19 +61,18 @@ public class TestGetRegion17354 extends S3TestBase {
 
         // 非法值
         try {
-            RegionUtils.getRegion( "" );
+            regionClient.getRegion( "" );
             Assert.fail( "get region with '' region name should fail" );
-        } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getStatusCode(), 404 );
+        } catch ( SequoiaS3ServiceException e ) {
+            Assert.assertEquals( e.getErrorCode(), "NoSuchRegion" );
         }
-
-        try {
-            RegionUtils.getRegion( new String() );
-            Assert.fail(
-                    "get region with new String() region name should fail" );
-        } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getStatusCode(), 404 );
-        }
+        // http://jira:8080/browse/SEQUOIADBMAINSTREAM-6163
+        // try {
+        // regionClient.getRegion( null );
+        // Assert.fail( "get region with null region name should fail" );
+        // } catch ( SequoiaS3ServiceException e ) {
+        // Assert.assertEquals( e.getErrorCode(), "NoSuchRegion" );
+        // }
 
         runSuccess = true;
     }
@@ -78,9 +82,11 @@ public class TestGetRegion17354 extends S3TestBase {
         if ( runSuccess ) {
             try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
                     "" )) {
-                RegionUtils.deleteRegion( regionName );
+                regionClient.deleteRegion( regionName );
                 sdb.dropCollectionSpace( dataCSName );
                 sdb.dropCollectionSpace( metaCSName );
+            } finally {
+                regionClient.shutdown();
             }
         }
     }

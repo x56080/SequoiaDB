@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: CompleteMultipartUploadRequest接口参数校验 testlink-case: seqDB-18811
+ * @Description: CompleteMultipartUploadRequest接口参数校验 testlink-case: seqDB-18811
  *
  * @author wangkexin
  * @Date 2019.8.7

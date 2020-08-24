@@ -9,18 +9,19 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
- * test content: 获取区域信息 testlink-case: seqDB-17320
- *
+ * @Description seqDB-17320:获取区域信息
  * @author wangkexin
  * @Date 2019.01.24
  * @version 1.00
@@ -42,116 +43,107 @@ public class GetRegionMessage17320 extends S3TestBase {
     private String shmodeBucket = "bucket17320-2";
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket( s3Client, spmodeBucket );
-        CommLib.clearBucket( s3Client, shmodeBucket );
+        CommLib.clearBucket(s3Client, spmodeBucket);
+        CommLib.clearBucket(s3Client, shmodeBucket);
 
         // delete data/meta cs
-        shardingDataCSName = RegionUtils.getDataCSName(
-                shardingModeRegion.toLowerCase(), "quarter", new Date() )
-                + "_1";
-        shardingMetaCSName = RegionUtils
-                .getMetaCSName( shardingModeRegion.toLowerCase() );
-        sdb = new Sequoiadb( S3TestBase.coordUrl, "", "" );
-        if ( sdb.isCollectionSpaceExist( shardingDataCSName ) ) {
-            sdb.dropCollectionSpace( shardingDataCSName );
+        shardingDataCSName = RegionUtils.getDataCSName(shardingModeRegion.toLowerCase(), DataShardingType.QUARTER,
+                new Date()) + "_1";
+        shardingMetaCSName = RegionUtils.getMetaCSName(shardingModeRegion.toLowerCase());
+        sdb = new Sequoiadb(S3TestBase.coordUrl, "", "");
+        if (sdb.isCollectionSpaceExist(shardingDataCSName)) {
+            sdb.dropCollectionSpace(shardingDataCSName);
         }
-        if ( sdb.isCollectionSpaceExist( shardingMetaCSName ) ) {
-            sdb.dropCollectionSpace( shardingMetaCSName );
+        if (sdb.isCollectionSpaceExist(shardingMetaCSName)) {
+            sdb.dropCollectionSpace(shardingMetaCSName);
         }
 
-        RegionUtils.dropDomain( metaDomain );
-        RegionUtils.dropDomain( dataDomain );
+        RegionUtils.dropDomain(metaDomain);
+        RegionUtils.dropDomain(dataDomain);
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, specifiedModeRegion);
+        RegionUtils.clearRegion(regionClient, shardingModeRegion);
 
-        RegionUtils.clearRegion( specifiedModeRegion );
-        RegionUtils.clearRegion( shardingModeRegion );
+        RegionUtils.createCSAndCL(metaCSName, metaClNames);
+        RegionUtils.createCSAndCL(dataCSName, dataClName);
 
-        RegionUtils.createCSAndCL( metaCSName, metaClNames );
-        RegionUtils.createCSAndCL( dataCSName, dataClName );
-
-        RegionUtils.createDomain( dataDomain );
-        RegionUtils.createDomain( metaDomain );
+        RegionUtils.createDomain(dataDomain);
+        RegionUtils.createDomain(metaDomain);
 
         // create region with specified mode
-        Region region1 = new Region();
-        region1.withName( specifiedModeRegion )
-                .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
-                .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
-                .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
-        RegionUtils.putRegion( region1 );
+        CreateRegionRequest request = new CreateRegionRequest(specifiedModeRegion);
+        request.withMetaLocation(metaCSName + "." + metaClNames[0])
+                .withMetaHisLocation(metaCSName + "." + metaClNames[1])
+                .withDataLocation(dataCSName + "." + dataClName[0]);
+        regionClient.createRegion(request);
 
         // create region with ShardingType mode
-        Region region2 = new Region();
-        region2.withName( shardingModeRegion )
-                .withDataCSShardingType( "quarter" )
-                .withDataCLShardingType( "month" ).withDataDomain( dataDomain )
-                .withMetaDomain( metaDomain );
-        RegionUtils.putRegion( region2 );
+        CreateRegionRequest request1 = new CreateRegionRequest(shardingModeRegion);
+        request1.withDataCSShardingType(DataShardingType.QUARTER).withDataCLShardingType(DataShardingType.MONTH)
+                .withDataDomain(dataDomain).withMetaDomain(metaDomain);
+        regionClient.createRegion(request1);
 
         // create bucket and put object
-        s3Client.createBucket( new CreateBucketRequest( spmodeBucket,
-                specifiedModeRegion.toLowerCase() ) );
-        s3Client.createBucket( new CreateBucketRequest( shmodeBucket,
-                shardingModeRegion.toLowerCase() ) );
+        s3Client.createBucket(new CreateBucketRequest(spmodeBucket, specifiedModeRegion.toLowerCase()));
+        s3Client.createBucket(new CreateBucketRequest(shmodeBucket, shardingModeRegion.toLowerCase()));
 
-        s3Client.putObject( spmodeBucket, "key17320_1", "content17320_1" );
-        s3Client.putObject( shmodeBucket, "key17320_2", "content17320_2" );
+        s3Client.putObject(spmodeBucket, "key17320_1", "content17320_1");
+        s3Client.putObject(shmodeBucket, "key17320_2", "content17320_2");
     }
 
     @Test
     public void testCreateRegion() throws Exception {
         // specified mode : get region
-        GetRegionResult spResult = RegionUtils.getRegion( specifiedModeRegion );
+        GetRegionResult spResult = regionClient.getRegion(specifiedModeRegion);
         Region spRegion = spResult.getRegion();
-        Assert.assertEquals( spRegion.getName(),
-                specifiedModeRegion.toLowerCase() );
-        Assert.assertEquals( spRegion.getMetaLocation(),
-                metaCSName + "." + metaClNames[ 0 ] );
-        Assert.assertEquals( spRegion.getMetaHisLocation(),
-                metaCSName + "." + metaClNames[ 1 ] );
-        Assert.assertEquals( spRegion.getDataLocation(),
-                dataCSName + "." + dataClName[ 0 ] );
-        List< Bucket > buckets = spResult.getBuckets();
-        Assert.assertEquals( buckets.get( 0 ).getName(), spmodeBucket );
+        Assert.assertEquals(spRegion.getName(), specifiedModeRegion.toLowerCase());
+        Assert.assertEquals(spRegion.getMetaLocation(), metaCSName + "." + metaClNames[0]);
+        Assert.assertEquals(spRegion.getMetaHisLocation(), metaCSName + "." + metaClNames[1]);
+        Assert.assertEquals(spRegion.getDataLocation(), dataCSName + "." + dataClName[0]);
+        List<String> buckets = spResult.getBuckets();
+        Assert.assertEquals(buckets.get(0), spmodeBucket);
 
         // ShardingType mode : get region
-        GetRegionResult stResult = RegionUtils.getRegion( shardingModeRegion );
+        GetRegionResult stResult = regionClient.getRegion(shardingModeRegion);
         Region stRegion = stResult.getRegion();
-        Assert.assertEquals( stRegion.getName(),
-                shardingModeRegion.toLowerCase() );
-        Assert.assertEquals( stRegion.getDataCSShardingType(), "quarter" );
-        Assert.assertEquals( stRegion.getDataCLShardingType(), "month" );
-        Assert.assertEquals( stRegion.getMetaDomain(), metaDomain );
-        Assert.assertEquals( stRegion.getDataDomain(), dataDomain );
-        List< Bucket > buckets2 = stResult.getBuckets();
-        Assert.assertEquals( buckets2.get( 0 ).getName(), shmodeBucket );
-
+        Assert.assertEquals(stRegion.getName(), shardingModeRegion.toLowerCase());
+        Assert.assertEquals(stRegion.getDataCSShardingType(), DataShardingType.QUARTER);
+        Assert.assertEquals(stRegion.getDataCLShardingType(), DataShardingType.MONTH);
+        Assert.assertEquals(stRegion.getMetaDomain(), metaDomain);
+        Assert.assertEquals(stRegion.getDataDomain(), dataDomain);
+        List<String> buckets2 = stResult.getBuckets();
+        Assert.assertEquals(buckets2.get(0), shmodeBucket);
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if ( runSuccess ) {
-                CommLib.clearBucket( s3Client, spmodeBucket );
-                CommLib.clearBucket( s3Client, shmodeBucket );
-                sdb.dropCollectionSpace( metaCSName );
-                sdb.dropCollectionSpace( dataCSName );
-                sdb.dropCollectionSpace( shardingDataCSName );
-                sdb.dropCollectionSpace( shardingMetaCSName );
-                RegionUtils.dropDomain( dataDomain );
-                RegionUtils.dropDomain( metaDomain );
-                RegionUtils.deleteRegion( specifiedModeRegion );
-                RegionUtils.deleteRegion( shardingModeRegion );
+            if (runSuccess) {
+                CommLib.clearBucket(s3Client, spmodeBucket);
+                CommLib.clearBucket(s3Client, shmodeBucket);
+                sdb.dropCollectionSpace(metaCSName);
+                sdb.dropCollectionSpace(dataCSName);
+                sdb.dropCollectionSpace(shardingDataCSName);
+                sdb.dropCollectionSpace(shardingMetaCSName);
+                RegionUtils.dropDomain(dataDomain);
+                RegionUtils.dropDomain(metaDomain);
+                regionClient.deleteRegion(specifiedModeRegion);
+                regionClient.deleteRegion(shardingModeRegion);
             }
         } finally {
-            if ( sdb != null ) {
+            if (sdb != null) {
                 sdb.close();
             }
-            if ( s3Client != null ) {
+            if (regionClient != null) {
+                regionClient.shutdown();
+            }
+            if (s3Client != null) {
                 s3Client.shutdown();
             }
         }

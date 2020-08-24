@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 多次查询结果在commprefix中有相同记录 testlink-case: seqDB-16439
+ * @Description: 多次查询结果在commprefix中有相同记录 testlink-case: seqDB-16439
  *
  * @author wangkexin
  * @Date 2018.11.22

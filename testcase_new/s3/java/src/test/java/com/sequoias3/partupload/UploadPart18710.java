@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * test content: 开启分段检测，开启版本控制，相同key不同uploadId多次分段上传 testlink-case: seqDB-18710
+ * @Description: 开启分段检测，开启版本控制，相同key不同uploadId多次分段上传 testlink-case: seqDB-18710
  *
  * @author wangkexin
  * @Date 2019.7.30

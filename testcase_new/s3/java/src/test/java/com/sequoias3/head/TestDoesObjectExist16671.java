@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: doesObjectExist查询指定桶不存在 testlink-case: seqDB-16671
+ * @Description: doesObjectExist查询指定桶不存在 testlink-case: seqDB-16671
  *
  * @author wangkexin
  * @Date 2018.12.07

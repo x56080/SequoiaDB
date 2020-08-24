@@ -21,7 +21,7 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 不带versionId查询对象，指定匹配range范围 testlink-case: seqDB-16680
+ * @Description: 不带versionId查询对象，指定匹配range范围 testlink-case: seqDB-16680
  *
  * @author wangkexin
  * @Date 2018.12.07

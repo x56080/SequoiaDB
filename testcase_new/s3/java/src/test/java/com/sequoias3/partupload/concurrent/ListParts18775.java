@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * test content: 版本: 1 :: 并发上传分段和查询分段列表 testlink-case: seqDB-18775
+ * @Description: 版本: 1 :: 并发上传分段和查询分段列表 testlink-case: seqDB-18775
  *
  * @author wangkexin
  * @Date 2019.8.8

@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * test content: Suspended bucket versioning , delete object on the bucket
+ * @Description: Suspended bucket versioning , delete object on the bucket
  * testlink-case: seqDB-16445
  *
  * @author wuyan

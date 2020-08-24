@@ -14,7 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 指定versionID查询对象不存在 testlink-case: seqDB-16688
+ * @Description: 指定versionID查询对象不存在 testlink-case: seqDB-16688
  *
  * @author wangkexin
  * @Date 2018.12.10

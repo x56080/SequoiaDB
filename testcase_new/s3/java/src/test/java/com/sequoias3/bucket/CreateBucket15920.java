@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: concurrent create and delete bucket testlink-case: seqDB-15920
+ * @Description: concurrent create and delete bucket testlink-case: seqDB-15920
  *
  * @author wangkexin
  * @Date 2018.10.16

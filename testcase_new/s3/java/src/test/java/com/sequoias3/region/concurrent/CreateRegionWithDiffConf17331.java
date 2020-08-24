@@ -1,24 +1,26 @@
 package com.sequoias3.region.concurrent;
 
+import java.io.File;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.exception.SequoiaS3ServiceException;
+import com.sequoias3.model.CreateRegionRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
 
 /**
- * @Description seqDB-17331: concurrent create Region and specify different
- *              configuration mode.
+ * @Description seqDB-17331: concurrent create Region and specify different configuration mode.
  * @author wuyan
  * @Date 2019.1.30
  * @version 1.00
@@ -32,63 +34,56 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
     private String[] csNames = { "metaCS17331", "dataCS17331" };
     private String[] metaclNames = { "metaCL17331", "metaHistroyCL17331" };
     private String[] dataclNames = { "dataCL17331" };
-    private String metaLocation = csNames[ 0 ] + "." + metaclNames[ 0 ];
-    private String metaHisLocation = csNames[ 0 ] + "." + metaclNames[ 1 ];
-    private String dataLocation = csNames[ 1 ] + "." + dataclNames[ 0 ];
-    private String shardingType = "month";
+    private String metaLocation = csNames[0] + "." + metaclNames[0];
+    private String metaHisLocation = csNames[0] + "." + metaclNames[1];
+    private String dataLocation = csNames[1] + "." + dataclNames[0];
+    private DataShardingType shardingType = DataShardingType.MONTH;
     private int fileSize = 1024 * 10;
     private File localPath = null;
     private String filePath = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator
-                + TestTools.getClassName() );
-        filePath = localPath + File.separator + "localFile_" + fileSize
-                + ".txt";
+        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
+        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
 
-        TestTools.LocalFile.removeFile( localPath );
-        TestTools.LocalFile.createDir( localPath.toString() );
-        TestTools.LocalFile.createFile( filePath, fileSize );
+        TestTools.LocalFile.removeFile(localPath);
+        TestTools.LocalFile.createDir(localPath.toString());
+        TestTools.LocalFile.createFile(filePath, fileSize);
 
-        RegionUtils.createCSAndCL( csNames[ 0 ], metaclNames );
-        RegionUtils.createCSAndCL( csNames[ 1 ], dataclNames );
+        RegionUtils.createCSAndCL(csNames[0], metaclNames);
+        RegionUtils.createCSAndCL(csNames[1], dataclNames);
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
+        CommLib.clearBucket(s3Client, bucketName);
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, regionName);
     }
 
     @Test
-    public void checkResult() throws Exception {
+    public void test() throws Exception {
         PutRegionWithSpecifyCSCL putRegionWithSpecifyCSCL = new PutRegionWithSpecifyCSCL();
         PutRegionWithDynamic putRegionWithDynamic = new PutRegionWithDynamic();
         putRegionWithDynamic.start();
         putRegionWithSpecifyCSCL.start();
-        if ( putRegionWithDynamic.isSuccess()
-                && !putRegionWithSpecifyCSCL.isSuccess() ) {
-            AmazonS3Exception e = ( AmazonS3Exception ) ( putRegionWithSpecifyCSCL
-                    .getExceptions().get( 0 ) );
+
+        if (putRegionWithDynamic.isSuccess() && !putRegionWithSpecifyCSCL.isSuccess()) {
+            SequoiaS3ServiceException e = (SequoiaS3ServiceException) (putRegionWithSpecifyCSCL.getExceptions().get(0));
             // 409:ConflictRegionType
-            if ( e.getStatusCode() != 409 ) {
-                Assert.fail( "put region with specifycscl fail:"
-                        + e.getErrorMessage() + "/n e:" + e.getStatusCode() );
+            if (e.getStatusCode() != 409) {
+                Assert.fail("put region with specifycscl fail:" + e.getErrorMessage() + "/n e:" + e.getStatusCode());
             }
-            RegionUtils.checkRegionWithShardingType( regionName, shardingType,
-                    shardingType );
-        } else if ( putRegionWithSpecifyCSCL.isSuccess()
-                && !putRegionWithDynamic.isSuccess() ) {
-            AmazonS3Exception e = ( AmazonS3Exception ) ( putRegionWithDynamic
-                    .getExceptions().get( 0 ) );
+            RegionUtils.checkRegionWithShardingType(regionClient, regionName, shardingType, shardingType);
+        } else if (putRegionWithSpecifyCSCL.isSuccess() && !putRegionWithDynamic.isSuccess()) {
+            SequoiaS3ServiceException e = (SequoiaS3ServiceException) (putRegionWithDynamic.getExceptions().get(0));
             // 409:ConflictRegionType
-            if ( e.getStatusCode() != 409 ) {
-                Assert.fail( "put region with dynamic fail:"
-                        + e.getErrorMessage() + "/n e:" + e.getStatusCode() );
+            if (e.getStatusCode() != 409) {
+                Assert.fail("put region with dynamic fail:" + e.getErrorMessage() + "/n e:" + e.getStatusCode());
             }
-            RegionUtils.checkRegionWithLocation( regionName, metaLocation,
-                    metaHisLocation, dataLocation );
+            RegionUtils.checkRegionWithLocation(regionClient, regionName, metaLocation, metaHisLocation, dataLocation);
         } else {
-            Assert.fail( "unexpected results!" );
+            Assert.fail("unexpected results!");
         }
 
         // create object on region
@@ -99,46 +94,54 @@ public class CreateRegionWithDiffConf17331 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if ( runSuccess ) {
-                CommLib.clearBucket( s3Client, bucketName );
-                RegionUtils.deleteRegion( regionName );
-                RegionUtils.dropCS( csNames );
-                TestTools.LocalFile.removeFile( localPath );
+            if (runSuccess) {
+                CommLib.clearBucket(s3Client, bucketName);
+                regionClient.deleteRegion(regionName);
+                RegionUtils.dropCS(csNames);
+                TestTools.LocalFile.removeFile(localPath);
             }
         } finally {
+            regionClient.shutdown();
             s3Client.shutdown();
         }
     }
 
     @SuppressWarnings("deprecation")
     private void createObjectAndCheckResult() throws Exception {
-        s3Client.createBucket( bucketName, regionName );
-        s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
-                bucketName, key );
-        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+        s3Client.createBucket(bucketName, regionName);
+        s3Client.putObject(bucketName, key, new File(filePath));
+        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
+        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
     }
 
     private class PutRegionWithSpecifyCSCL extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            Region region = new Region();
-            region.withMetaLocation( metaLocation )
-                    .withDataLocation( dataLocation )
-                    .withMetaHisLocation( metaHisLocation )
-                    .withName( regionName );
-            RegionUtils.putRegion( region );
+            SequoiaS3 regionClient1 = CommLib.regionClient();
+            try {
+                CreateRegionRequest request = new CreateRegionRequest(regionName);
+                request.withMetaLocation(metaLocation).withDataLocation(dataLocation)
+                        .withMetaHisLocation(metaHisLocation);
+                regionClient1.createRegion(request);
+            } finally {
+                regionClient1.shutdown();
+            }
+
         }
     }
 
     private class PutRegionWithDynamic extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            Region region = new Region();
-            region.withDataCLShardingType( shardingType )
-                    .withDataCSShardingType( shardingType )
-                    .withName( regionName );
-            RegionUtils.putRegion( region );
+            SequoiaS3 regionClient2 = CommLib.regionClient();
+            try {
+                CreateRegionRequest request = new CreateRegionRequest(regionName);
+                request.withDataCLShardingType(shardingType).withDataCSShardingType(shardingType);
+                regionClient2.createRegion(request);
+            } finally {
+                regionClient2.shutdown();
+            }
+
         }
     }
 

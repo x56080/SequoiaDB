@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: concurrent get bucket information testlink-case: seqDB-15912
+ * @Description: concurrent get bucket information testlink-case: seqDB-15912
  *
  * @author wangkexin
  * @Date 2018.10.16

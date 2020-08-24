@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 不带versionId查询删除标记的对象 testlink-case: seqDB-16678
+ * @Description: 不带versionId查询删除标记的对象 testlink-case: seqDB-16678
  *
  * @author wangkexin
  * @Date 2018.12.07

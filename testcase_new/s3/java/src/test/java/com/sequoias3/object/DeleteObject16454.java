@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，带versionId删除对象，该对象无历史版本
+ * @Description: 开启版本控制，带versionId删除对象，该对象无历史版本
  *
  * @author wangkexin
  * @Date 2018.11.28

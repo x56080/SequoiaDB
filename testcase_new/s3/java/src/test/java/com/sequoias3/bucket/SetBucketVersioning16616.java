@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 不同用户查询同一个桶的版本控制状态 testlink-case: seqDB-16616
+ * @Description: 不同用户查询同一个桶的版本控制状态 testlink-case: seqDB-16616
  *
  * @author wangkexin
  * @Date 2018.11.19

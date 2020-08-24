@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.Random;
 
 /**
- * test content: head查询桶接口参数校验 testlink-case: seqDB-16668
+ * @Description: head查询桶接口参数校验 testlink-case: seqDB-16668
  *
  * @author wangkexin
  * @Date 2018.12.07

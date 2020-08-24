@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 带前缀prefix和delimiter查询对象版本列表，不匹配prefix testlink-case:
+ * @Description: 带前缀prefix和delimiter查询对象版本列表，不匹配prefix testlink-case:
  * seqDB-18146
  *
  * @author wangkexin

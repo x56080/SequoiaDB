@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 并发增加相同对象 testlink-case: seqDB-16484
+ * @Description: 并发增加相同对象 testlink-case: seqDB-16484
  *
  * @author wangkexin
  * @Date 2018.12.18

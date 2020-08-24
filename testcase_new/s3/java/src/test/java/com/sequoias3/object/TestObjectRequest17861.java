@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * test content: Put/Get/Delete/HeadObject请求携带特殊字符校验 testlink-case: seqDB-17861
+ * @Description: Put/Get/Delete/HeadObject请求携带特殊字符校验 testlink-case: seqDB-17861
  *
  * @author wangkexin
  * @Date 2019.02.15

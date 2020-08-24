@@ -16,7 +16,7 @@ import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 
 /**
- * test content: create bucket testlink-case: seqDB-15901
+ * @Description: create bucket testlink-case: seqDB-15901
  *
  * @author wuyan
  * @Date 2018.09.28

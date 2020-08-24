@@ -1,20 +1,23 @@
 package com.sequoias3.region;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * @Description: seqDB-17322 :: 区域中创建/删除多个桶，获取区域信息
@@ -29,11 +32,13 @@ public class CreateRegion17322 extends S3TestBase {
     private int bucketNum = 80;
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.clearRegion( regionName );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
         for ( int i = 0; i < bucketNum; i++ ) {
             bucketNames.add( bucketNameBase + "-" + i );
         }
@@ -45,10 +50,10 @@ public class CreateRegion17322 extends S3TestBase {
     @Test
     private void test() throws Exception {
         // create region
-        Region region = new Region();
-        region.withDataCSShardingType( "year" ).withDataCLShardingType( "year" )
-                .withName( regionName );
-        RegionUtils.putRegion( region );
+        CreateRegionRequest request = new CreateRegionRequest( regionName );
+        request.withDataCSShardingType( DataShardingType.YEAR )
+                .withDataCLShardingType( DataShardingType.YEAR );
+        regionClient.createRegion( request );
 
         // create bucket
         for ( String bucketName : bucketNames ) {
@@ -56,9 +61,8 @@ public class CreateRegion17322 extends S3TestBase {
                     new CreateBucketRequest( bucketName, regionName ) );
         }
 
-        // get region info
-        GetRegionResult result = RegionUtils.getRegion( regionName );
-        checkGetRegionResult( result, region, bucketNames );
+        GetRegionResult result = regionClient.getRegion( regionName );
+        checkGetRegionResult( result, bucketNames );
 
         // delete bockets
         for ( int i = bucketNum / 2; i < ( bucketNum * 3 ) / 4; i++ ) {
@@ -67,8 +71,8 @@ public class CreateRegion17322 extends S3TestBase {
         }
 
         // get region info again
-        GetRegionResult result1 = RegionUtils.getRegion( regionName );
-        checkGetRegionResult( result1, region, bucketNames );
+        GetRegionResult result1 = regionClient.getRegion( regionName );
+        checkGetRegionResult( result1, bucketNames );
         runSuccess = true;
     }
 
@@ -79,33 +83,36 @@ public class CreateRegion17322 extends S3TestBase {
                 for ( String bucketName : bucketNames ) {
                     CommLib.clearBucket( s3Client, bucketName );
                 }
-                RegionUtils.deleteRegion( regionName );
+                regionClient.deleteRegion( regionName );
             }
         } finally {
+            if ( regionClient != null ) {
+                regionClient.shutdown();
+            }
             if ( s3Client != null ) {
                 s3Client.shutdown();
             }
         }
     }
 
-    private void checkGetRegionResult( GetRegionResult result, Region expRegion,
+    private void checkGetRegionResult( GetRegionResult result,
             List< String > expBucketNames ) throws Exception {
         Region actRegion = result.getRegion();
-        Assert.assertEquals( actRegion.getDataCSShardingType(),
-                expRegion.getDataCSShardingType() );
-        Assert.assertEquals( actRegion.getDataCLShardingType(),
-                expRegion.getDataCLShardingType() );
-        Assert.assertEquals( actRegion.getDataLocation(), "" );
-        Assert.assertEquals( actRegion.getMetaLocation(), "" );
-        Assert.assertEquals( actRegion.getMetaHisLocation(), "" );
-        Assert.assertEquals( actRegion.getMetaDomain(), "" );
-        Assert.assertEquals( actRegion.getDataDomain(), "" );
-        List< Bucket > actBuckets = result.getBuckets();
+        Assert.assertEquals( actRegion.getDataCSShardingType().toString(),
+                "year" );
+        Assert.assertEquals( actRegion.getDataCLShardingType().toString(),
+                "year" );
+        Assert.assertEquals( actRegion.getDataLocation(), null );
+        Assert.assertEquals( actRegion.getMetaLocation(), null );
+        Assert.assertEquals( actRegion.getMetaHisLocation(), null );
+        Assert.assertEquals( actRegion.getMetaDomain(), null );
+        Assert.assertEquals( actRegion.getDataDomain(), null );
+        List< String > actBuckets = result.getBuckets();
         Assert.assertEquals( actBuckets.size(), expBucketNames.size(),
                 "actBuckets = " + actBuckets.toString() + ",expBucketNames = "
                         + expBucketNames.toString() );
         for ( int i = 0; i < actBuckets.size(); i++ ) {
-            if ( !expBucketNames.contains( actBuckets.get( i ).getName() ) ) {
+            if ( !expBucketNames.contains( actBuckets.get( i ) ) ) {
                 throw new Exception( "exp bucketName not in act BuckNames"
                         + ",actBucket = " + actBuckets.toString()
                         + ",expBuckets = " + expBucketNames.toString() );

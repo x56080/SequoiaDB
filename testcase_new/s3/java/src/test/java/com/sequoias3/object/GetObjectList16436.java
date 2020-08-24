@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 带start-after和maxkeys查询对象元数据列表 testlink-case: seqDB-16436
+ * @Description: 带start-after和maxkeys查询对象元数据列表 testlink-case: seqDB-16436
  *
  * @author wangkexin
  * @Date 2018.11.16

@@ -17,9 +17,11 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.Md5Utils;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
@@ -34,37 +36,39 @@ public class CreateRegion20406 extends S3TestBase {
     private String objectNameBase = "object20406-";
     private int objectNum = 10;
     private int[] dataCSRanges = { 0, -5 };
-    private Region region = new Region();
-    private AtomicInteger counter = new AtomicInteger( objectNum );
+    private AtomicInteger counter = new AtomicInteger(objectNum);
     private String regionName = "region20406";
     private AmazonS3 s3Client = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
-    @SuppressWarnings("deprecation")
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.clearRegion( regionName );
-        region.withDataCSShardingType( "year" ).withDataCLShardingType( "year" )
-                .withName( regionName );
-        RegionUtils.putRegion( region );
-        // create bucket
-        s3Client.createBucket( bucketName, regionName );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, regionName);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testRegion() throws Exception {
-        for ( int i = 0; i < dataCSRanges.length; i++ ) {
-            region.withDataCSRange( dataCSRanges[ i ] );
-            RegionUtils.putRegion( region );
+        CreateRegionRequest request = new CreateRegionRequest(regionName);
+        request.withDataCSShardingType(DataShardingType.YEAR).withDataCLShardingType(DataShardingType.YEAR);
+        regionClient.createRegion(request);
+        // create bucket
+        s3Client.createBucket(bucketName, regionName);
+
+        for (int i = 0; i < dataCSRanges.length; i++) {
+            request.withDataCSRange(dataCSRanges[i]);
+            regionClient.createRegion(request);
             // create object on region
             ThreadExecutor executor = new ThreadExecutor();
-            for ( int j = 0; j < objectNum; j++ ) {
-                executor.addWorker( new CreateObject() );
+            for (int j = 0; j < objectNum; j++) {
+                executor.addWorker(new CreateObject());
             }
             executor.run();
-            counter.set( objectNum );
+            counter.set(objectNum);
             // check result
-            checkResults( dataCSRanges[ i ] );
+            checkResults(dataCSRanges[i]);
         }
         runSuccess = true;
     }
@@ -72,44 +76,40 @@ public class CreateRegion20406 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if ( runSuccess ) {
-                CommLib.clearBucket( s3Client, bucketName );
-                RegionUtils.deleteRegion( regionName );
+            if (runSuccess) {
+                CommLib.clearBucket(s3Client, bucketName);
+                regionClient.deleteRegion(regionName);
             }
         } finally {
+            regionClient.shutdown();
             s3Client.shutdown();
         }
     }
 
-    private void checkResults( int dataCSRange ) throws IOException {
-        String prefix = RegionUtils.getDataCSName( regionName, "year",
-                new Date() );
-        List< String > csList = RegionUtils.listCS( prefix );
-        List< Integer > csNumList = new ArrayList<>();
-        Assert.assertTrue( csList.size() > 0, csList.toString() );
+    private void checkResults(int dataCSRange) throws IOException {
+        String prefix = RegionUtils.getDataCSName(regionName, DataShardingType.YEAR, new Date());
+        List<String> csList = RegionUtils.listCS(prefix);
+        List<Integer> csNumList = new ArrayList<>();
+        Assert.assertTrue(csList.size() > 0, csList.toString());
         // get dataCS index
-        for ( String csName : csList ) {
-            csNumList.add( Integer.parseInt( csName.substring(
-                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
+        for (String csName : csList) {
+            csNumList.add(Integer.parseInt(csName.substring(csName.lastIndexOf("_") + 1, csName.length())));
         }
-        Collections.sort( csNumList );
-        if ( dataCSRange < 0 ) {
+        Collections.sort(csNumList);
+        if (dataCSRange < 0) {
             // (dataCSRange + 1)< csNum <= 1
-            Assert.assertTrue( csNumList.get( 0 ) >= ( dataCSRange + 1 ),
-                    csList.toString() );
-            Assert.assertTrue( csNumList.get( csNumList.size() - 1 ) <= 1,
-                    csList.toString() );
-        } else if ( dataCSRange == 0 ) {
-            Assert.assertEquals( csNumList.size(), 1, csNumList.toString() );
-            Assert.assertTrue( csNumList.get( 0 ) == 1, csNumList.toString() );
+            Assert.assertTrue(csNumList.get(0) >= (dataCSRange + 1), csList.toString());
+            Assert.assertTrue(csNumList.get(csNumList.size() - 1) <= 1, csList.toString());
+        } else if (dataCSRange == 0) {
+            Assert.assertEquals(csNumList.size(), 1, csNumList.toString());
+            Assert.assertTrue(csNumList.get(0) == 1, csNumList.toString());
         }
         // check object content
-        for ( int i = 1; i <= objectNum; i++ ) {
-            S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
-            Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
-                    Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = "
-                            + objectNameBase + i );
+        for (int i = 1; i <= objectNum; i++) {
+            S3Object obj = s3Client.getObject(bucketName, objectNameBase + i);
+            Assert.assertEquals(Md5Utils.md5AsBase64(obj.getObjectContent()),
+                    Md5Utils.md5AsBase64(String.valueOf(i).getBytes()),
+                    "bucketName = " + bucketName + ",objectName = " + objectNameBase + i);
         }
     }
 
@@ -119,8 +119,7 @@ public class CreateRegion20406 extends S3TestBase {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
                 int i = counter.getAndDecrement();
-                s3Client.putObject( bucketName, objectNameBase + i,
-                        String.valueOf( i ) );
+                s3Client.putObject(bucketName, objectNameBase + i, String.valueOf(i));
             } finally {
                 s3Client.shutdown();
             }

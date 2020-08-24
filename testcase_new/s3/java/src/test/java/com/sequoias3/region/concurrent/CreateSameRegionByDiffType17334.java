@@ -1,20 +1,24 @@
 package com.sequoias3.region.concurrent;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.S3ThreadBase;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
+import java.util.UUID;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.UUID;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.S3ThreadBase;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * @Description: seqDB-17334 :: 并发更新相同区域（配置不同）
@@ -24,31 +28,37 @@ import java.util.UUID;
  */
 public class CreateSameRegionByDiffType17334 extends S3TestBase {
     private boolean runSuccess = false;
-    private String regionName = "region17332";
-    private String bucketName = "bucket17332";
-    private String objectName = "object17332";
+    private String regionName = "region17334";
+    private String bucketName = "bucket17334";
+    private String objectName = "object17334";
     private AmazonS3 s3Client = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.clearRegion( regionName );
-        Region region = new Region().withDataCSShardingType( "year" )
-                .withDataCLShardingType( "month" ).withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
+        CreateRegionRequest request = new CreateRegionRequest( regionName );
+        request.withDataCSShardingType( DataShardingType.YEAR )
+                .withDataCLShardingType( DataShardingType.MONTH );
+        regionClient.createRegion( request );
     }
 
     @Test
     private void test() throws Exception {
-        CreateRegion cThread = new CreateRegion( "month", "quarter" );
+        CreateRegion cThread = new CreateRegion( DataShardingType.MONTH,
+                DataShardingType.QUARTER );
         cThread.start( 10 );
         Assert.assertEquals( cThread.isSuccess(), true, cThread.getErrorMsg() );
         // get region
-        GetRegionResult result = RegionUtils.getRegion( regionName );
+        GetRegionResult result = regionClient.getRegion( regionName );
         // check region sharding type
         Region region = result.getRegion();
-        Assert.assertEquals( region.getDataCSShardingType(), "month" );
-        Assert.assertEquals( region.getDataCLShardingType(), "quarter" );
+        Assert.assertEquals( region.getDataCSShardingType(),
+                DataShardingType.MONTH );
+        Assert.assertEquals( region.getDataCLShardingType(),
+                DataShardingType.QUARTER );
         // craete bucket for check
         s3Client.createBucket(
                 new CreateBucketRequest( bucketName, regionName ) );
@@ -66,29 +76,35 @@ public class CreateSameRegionByDiffType17334 extends S3TestBase {
 
     @AfterClass
     private void tearDown() throws Exception {
-        if ( runSuccess ) {
-            CommLib.clearBucket( s3Client, bucketName );
-            RegionUtils.deleteRegion( regionName );
+        try {
+            if ( runSuccess ) {
+                CommLib.clearBucket( s3Client, bucketName );
+                regionClient.deleteRegion( regionName );
+            }
+        } finally {
+            regionClient.shutdown();
         }
+
     }
 
     private class CreateRegion extends S3ThreadBase {
-        private String dataCSShardingType;
-        private String dataCLShardingType;
+        private DataShardingType dataCSShardingType;
+        private DataShardingType dataCLShardingType;
 
-        public CreateRegion( String dataCSShardingType,
-                String dataCLShardingType ) {
+        public CreateRegion( DataShardingType dataCSShardingType,
+                DataShardingType dataCLShardingType ) {
             this.dataCSShardingType = dataCSShardingType;
             this.dataCLShardingType = dataCLShardingType;
         }
 
         @Override
         public void exec() throws Exception {
-            Region region = new Region()
-                    .withDataCSShardingType( this.dataCSShardingType )
-                    .withDataCLShardingType( this.dataCLShardingType )
-                    .withName( regionName );
-            RegionUtils.putRegion( region );
+            SequoiaS3 regionClient = CommLib.regionClient();
+            CreateRegionRequest request = new CreateRegionRequest( regionName );
+            request.withDataCSShardingType( this.dataCSShardingType )
+                    .withDataCLShardingType( this.dataCLShardingType );
+            regionClient.createRegion( request );
+            regionClient.shutdown();
         }
     }
 }

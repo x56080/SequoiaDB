@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: delete some buckets and get bucket list information
+ * @Description: delete some buckets and get bucket list information
  * testlink-case: seqDB-15911
  *
  * @author wangkexin

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 上传多个对象（对象名包含分隔符），更新分隔符 testlink-case: seqDB-18084
+ * @Description: 上传多个对象（对象名包含分隔符），更新分隔符 testlink-case: seqDB-18084
  *
  * @author wangkexin
  * @Date 2019.04.12

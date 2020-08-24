@@ -14,7 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: GET /s3/bucketname验证 testlink-case: seqDB-17864
+ * @Description: GET /s3/bucketname验证 testlink-case: seqDB-17864
  *
  * @author wangkexin
  * @Date 2019.02.15

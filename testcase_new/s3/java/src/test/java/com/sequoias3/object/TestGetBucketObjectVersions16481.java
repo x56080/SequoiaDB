@@ -17,7 +17,7 @@ import java.net.URLEncoder;
 import java.util.List;
 
 /**
- * test content: GetBucketObjectVersion接口参数校验 testlink-case: seqDB-16481
+ * @Description: GetBucketObjectVersion接口参数校验 testlink-case: seqDB-16481
  *
  * @author wangkexin
  * @Date 2019.01.08

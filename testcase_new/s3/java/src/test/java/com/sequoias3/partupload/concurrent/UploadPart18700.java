@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * test content: 开启检测开关，上传多个分段不存在partNum为1、连续分段号且分段长度不一致
+ * @Description: 开启检测开关，上传多个分段不存在partNum为1、连续分段号且分段长度不一致
  * testlink-case:seqDB-18700
  *
  * @author wangkexin

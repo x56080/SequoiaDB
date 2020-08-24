@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 设置不同版本控制状态，删除对象
+ * @Description: 设置不同版本控制状态，删除对象
  *
  * @author wangkexin
  * @Date 2018.11.28

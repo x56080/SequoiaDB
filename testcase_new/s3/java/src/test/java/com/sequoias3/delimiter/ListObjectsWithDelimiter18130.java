@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 带delimiter和maxkeys多次查询对象元数据列表 testlink-case: seqDB-18130
+ * @Description: 带delimiter和maxkeys多次查询对象元数据列表 testlink-case: seqDB-18130
  *
  * @author wangkexin
  * @Date 2019.04.23

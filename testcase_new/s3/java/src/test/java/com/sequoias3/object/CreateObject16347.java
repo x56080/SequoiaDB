@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 非桶管理用户增加对象 testlink-case: seqDB-16347
+ * @Description: 非桶管理用户增加对象 testlink-case: seqDB-16347
  *
  * @author wangkexin
  * @Date 2018.11.13

@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: withMetadata接口参数校验 testlink-case: seqDB-16479
+ * @Description: withMetadata接口参数校验 testlink-case: seqDB-16479
  *
  * @author wangkexin
  * @Date 2019.01.07

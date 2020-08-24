@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: GetBucketVersion2接口参数校验 testlink-case: seqDB-16480
+ * @Description: GetBucketVersion2接口参数校验 testlink-case: seqDB-16480
  *
  * @author wangkexin
  * @Date 2019.01.08

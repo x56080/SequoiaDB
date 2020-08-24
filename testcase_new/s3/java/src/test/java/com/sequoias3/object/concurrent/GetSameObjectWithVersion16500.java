@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，并发获取同一对象 testlink-case: seqDB-16500
+ * @Description: 开启版本控制，并发获取同一对象 testlink-case: seqDB-16500
  *
  * @author wangkexin
  * @Date 2019.01.04

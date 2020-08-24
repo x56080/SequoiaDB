@@ -1,22 +1,24 @@
 package com.sequoias3.delimiter;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.testcommon.s3utils.bean.Region;
-import com.sequoias3.testcommon.CommLib;
-import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.DelimiterUtils;
-import com.sequoias3.testcommon.s3utils.RegionUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.testcommon.CommLib;
+import com.sequoias3.testcommon.S3TestBase;
+import com.sequoias3.testcommon.TestTools;
+import com.sequoias3.testcommon.s3utils.DelimiterUtils;
+import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
  * @Description seqDB-18105: create Region by bucket, create objects,the object
@@ -36,6 +38,7 @@ public class CreateObject18105 extends S3TestBase {
     private int fileSize = 1024;
     private File localPath = null;
     private String filePath = null;
+    private SequoiaS3 regionClient = null;
 
     @SuppressWarnings("deprecation")
     @BeforeClass
@@ -50,19 +53,18 @@ public class CreateObject18105 extends S3TestBase {
 
         s3Client = CommLib.buildS3Client();
         CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
 
-        Region region = new Region();
-        region.withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient.createRegion( regionName );
         s3Client.createBucket( bucketName, regionName );
         DelimiterUtils.putBucketDelimiter( bucketName, delimiter );
     }
 
     @Test
     public void testCreateObject() throws Exception {
-        List< String > matchDelimiterKeyList = new ArrayList<>();
-        List< String > keyNameList = new ArrayList<>();
+        List< String > matchDelimiterKeyList = new ArrayList< >();
+        List< String > keyNameList = new ArrayList< >();
         for ( int i = 0; i < keyNum; i++ ) {
             String subKeyName = keyName + "_" + i + "_" + delimiter
                     + "/test.png";
@@ -73,7 +75,7 @@ public class CreateObject18105 extends S3TestBase {
             matchDelimiterKeyList.add( matchDelimiterKey );
         }
 
-        List< String > expContentList = new ArrayList<>();
+        List< String > expContentList = new ArrayList< >();
         DelimiterUtils.listObjectsWithDelimiter( s3Client, bucketName,
                 delimiter, matchDelimiterKeyList, expContentList );
 
@@ -102,12 +104,12 @@ public class CreateObject18105 extends S3TestBase {
     }
 
     private void deleteRegionAndCheckResult() throws Exception {
-        RegionUtils.deleteRegion( regionName );
+        regionClient.deleteRegion( regionName );
 
         // check cs clear result
         Date date = Calendar.getInstance().getTime();
-        String datacsName = RegionUtils.getDataCSName( regionName, "year",
-                date ) + "_1";
+        String datacsName = RegionUtils.getDataCSName( regionName,
+                DataShardingType.YEAR, date ) + "_1";
         String metacsName = RegionUtils.getMetaCSName( regionName );
         Assert.assertFalse( RegionUtils.doesCSExist( datacsName ) );
         Assert.assertFalse( RegionUtils.doesCSExist( metacsName ) );

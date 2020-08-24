@@ -19,7 +19,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，不带versionId删除对象 testlink-case: seqDB-18172
+ * @Description: 开启版本控制，不带versionId删除对象 testlink-case: seqDB-18172
  *
  * @author wangkexin
  * @Date 2019.04.29

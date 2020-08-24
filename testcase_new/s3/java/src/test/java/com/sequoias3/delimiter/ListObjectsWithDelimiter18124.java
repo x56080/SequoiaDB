@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带分隔符delimiter和start-after查询对象元数据列表 testlink-case: seqDB-18124
+ * @Description: 带分隔符delimiter和start-after查询对象元数据列表 testlink-case: seqDB-18124
  *
  * @author wangkexin
  * @Date 2019.04.16

@@ -24,7 +24,7 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * test content: 开启版本控制增加对象，桶中增加/删除多个对象 testlink-case: seqDB-16344
+ * @Description: 开启版本控制增加对象，桶中增加/删除多个对象 testlink-case: seqDB-16344
  *
  * @author wangkexin
  * @Date 2018.11.12

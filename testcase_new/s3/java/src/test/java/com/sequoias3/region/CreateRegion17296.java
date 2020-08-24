@@ -8,12 +8,14 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.TestTools;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
@@ -28,30 +30,28 @@ public class CreateRegion17296 extends S3TestBase {
     private String key = "key17296";
     private String regionName = "region17296";
     private AmazonS3 s3Client = null;
-    private int fileSize = 1024 * 1024 * 2;
+    private int fileSize = 1024 * 2;
     private File localPath = null;
     private String filePath = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        localPath = new File( S3TestBase.workDir + File.separator
-                + TestTools.getClassName() );
-        filePath = localPath + File.separator + "localFile_" + fileSize
-                + ".txt";
-        TestTools.LocalFile.removeFile( localPath );
-        TestTools.LocalFile.createDir( localPath.toString() );
-        TestTools.LocalFile.createFile( filePath, fileSize );
+        localPath = new File(S3TestBase.workDir + File.separator + TestTools.getClassName());
+        filePath = localPath + File.separator + "localFile_" + fileSize + ".txt";
+        TestTools.LocalFile.removeFile(localPath);
+        TestTools.LocalFile.createDir(localPath.toString());
+        TestTools.LocalFile.createFile(filePath, fileSize);
 
         s3Client = CommLib.buildS3Client();
-        CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
+        CommLib.clearBucket(s3Client, bucketName);
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, regionName);
     }
 
     @Test
     public void testRegion() throws Exception {
-        Region region = new Region();
-        region.withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient.createRegion(regionName);
 
         // get region and check region info
         checkRegion();
@@ -64,36 +64,36 @@ public class CreateRegion17296 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if ( runSuccess ) {
-                CommLib.clearBucket( s3Client, bucketName );
-                RegionUtils.deleteRegion( regionName );
-                TestTools.LocalFile.removeFile( localPath );
+            if (runSuccess) {
+                CommLib.clearBucket(s3Client, bucketName);
+                regionClient.deleteRegion(regionName);
+                TestTools.LocalFile.removeFile(localPath);
             }
         } finally {
+            regionClient.shutdown();
             s3Client.shutdown();
         }
     }
 
     private void checkRegion() throws Exception {
-        GetRegionResult result = RegionUtils.getRegion( regionName );
+        GetRegionResult result = regionClient.getRegion(regionName);
         Region regionInfo = result.getRegion();
         // get the region infor to take the default value.
-        Assert.assertEquals( regionInfo.getDataCLShardingType(), "quarter" );
-        Assert.assertEquals( regionInfo.getDataCSShardingType(), "year" );
-        Assert.assertEquals( regionInfo.getMetaDomain(), "" );
-        Assert.assertEquals( regionInfo.getDataDomain(), "" );
-        Assert.assertEquals( regionInfo.getMetaLocation(), "" );
-        Assert.assertEquals( regionInfo.getMetaHisLocation(), "" );
-        Assert.assertEquals( regionInfo.getDataLocation(), "" );
+        Assert.assertEquals(regionInfo.getDataCLShardingType(), DataShardingType.QUARTER);
+        Assert.assertEquals(regionInfo.getDataCSShardingType(), DataShardingType.YEAR);
+        Assert.assertEquals(regionInfo.getMetaDomain(), null);
+        Assert.assertEquals(regionInfo.getDataDomain(), null);
+        Assert.assertEquals(regionInfo.getMetaLocation(), null);
+        Assert.assertEquals(regionInfo.getMetaHisLocation(), null);
+        Assert.assertEquals(regionInfo.getDataLocation(), null);
     }
 
     @SuppressWarnings("deprecation")
     private void createObjectAndCheckResult() throws Exception {
-        s3Client.createBucket( bucketName, regionName );
-        s3Client.putObject( bucketName, key, new File( filePath ) );
-        String downfileMd5 = ObjectUtils.getMd5OfObject( s3Client, localPath,
-                bucketName, key );
-        Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
+        s3Client.createBucket(bucketName, regionName);
+        s3Client.putObject(bucketName, key, new File(filePath));
+        String downfileMd5 = ObjectUtils.getMd5OfObject(s3Client, localPath, bucketName, key);
+        Assert.assertEquals(downfileMd5, TestTools.getMD5(filePath));
     }
 
 }

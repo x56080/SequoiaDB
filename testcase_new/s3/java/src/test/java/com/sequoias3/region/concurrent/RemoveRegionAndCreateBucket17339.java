@@ -1,9 +1,21 @@
 package com.sequoias3.region.concurrent;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
-import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
@@ -11,16 +23,6 @@ import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 import com.sequoias3.testcommon.s3utils.UserUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 
 /**
  * @Description seqDB-17339: concurrent remove region and create bucket on
@@ -38,10 +40,11 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
     private String roleName = "normal";
     private String[] accessKeys;
     private AmazonS3 s3Client = null;
-    private List< String > bucketNames = new ArrayList<>();
+    private List< String > bucketNames = new ArrayList< >();
     private int fileSize = 1024 * 10;
     private File localPath = null;
     private String filePath = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -56,10 +59,9 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
 
         s3Client = CommLib.buildS3Client();
         CommLib.clearUser( userName );
-        RegionUtils.clearRegion( regionName );
-        Region region = new Region();
-        region.withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
+        regionClient.createRegion( regionName );
     }
 
     @Test
@@ -99,23 +101,24 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
         try {
             if ( runSuccess ) {
                 CommLib.clearUser( userName );
-                if ( RegionUtils.headRegion( regionName ) ) {
-                    RegionUtils.deleteRegion( regionName );
+                if ( regionClient.headRegion( regionName ) ) {
+                    regionClient.deleteRegion( regionName );
                 }
                 TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
+            regionClient.shutdown();
             s3Client.shutdown();
         }
     }
 
     private void checkRemoveRegionResult( boolean doesExistRegion )
             throws Exception {
-        boolean curDoesExistRegion = RegionUtils.headRegion( regionName );
+        boolean curDoesExistRegion = regionClient.headRegion( regionName );
         // check that the auto create cs have been deleted
         String metaCSName = RegionUtils.getMetaCSName( regionName );
-        String dataCSName = RegionUtils.getDataCSName( regionName, "year",
-                new Date() ) + "_1";
+        String dataCSName = RegionUtils.getDataCSName( regionName,
+                DataShardingType.YEAR, new Date() ) + "_1";
         if ( doesExistRegion ) {
             Assert.assertTrue( curDoesExistRegion );
             Assert.assertTrue( RegionUtils.doesCSExist( metaCSName ),
@@ -137,7 +140,7 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
                 accessKeys[ 1 ] );
         try {
             List< Bucket > buckets = s3Client.listBuckets();
-            List< String > actbucketNameLists = new ArrayList<>();
+            List< String > actbucketNameLists = new ArrayList< >();
             for ( Bucket bucket : buckets ) {
                 String actBucketName = bucket.getName();
                 String actRegion = s3Client.getBucketLocation( actBucketName );
@@ -187,11 +190,13 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
     private class RemoveRegion extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
+            SequoiaS3 regionClientNew = CommLib.regionClient();
             // random waiting time to remove region,impersionate remove and
             // create bucket different time periods.
             int random = ( int ) ( Math.random() * 80 );
             Thread.sleep( random );
-            RegionUtils.deleteRegion( regionName );
+            regionClientNew.deleteRegion( regionName );
+            regionClientNew.shutdown();
         }
     }
 }

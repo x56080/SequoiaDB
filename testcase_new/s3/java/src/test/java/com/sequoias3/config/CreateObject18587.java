@@ -42,7 +42,7 @@ import com.sequoias3.testcommon.s3utils.bean.DelimiterConfiguration;
 import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
- * test content: 开启鉴权，执行对象管理操作 testlink-case: seqDB-18587
+ * @Description: 开启鉴权，执行对象管理操作 testlink-case: seqDB-18587
  *
  * @author wangkexin
  * @Date 2019.06.21

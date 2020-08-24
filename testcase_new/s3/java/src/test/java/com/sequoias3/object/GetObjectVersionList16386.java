@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 查询桶中对象版本列表 testlink-case: seqDB-16386
+ * @Description: 查询桶中对象版本列表 testlink-case: seqDB-16386
  *
  * @author wangkexin
  * @Date 2018.11.23

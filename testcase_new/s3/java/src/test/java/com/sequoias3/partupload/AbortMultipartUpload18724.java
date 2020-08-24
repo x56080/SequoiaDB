@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content:终止分段上传，其中指定key和uploadId不一致 testlink-case: seqDB-18724
+ * @Description:终止分段上传，其中指定key和uploadId不一致 testlink-case: seqDB-18724
  *
  * @author wangkexin
  * @Date 2019.8.5

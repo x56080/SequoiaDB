@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，增加同名对象 testlink-case: seqDB-18101
+ * @Description: 开启版本控制，增加同名对象 testlink-case: seqDB-18101
  *
  * @author wangkexin
  * @Date 2019.04.15

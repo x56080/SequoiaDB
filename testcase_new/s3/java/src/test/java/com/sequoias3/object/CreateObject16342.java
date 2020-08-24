@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.Date;
 
 /**
- * test content: 禁用版本控制，增加同名对象 testlink-case: seqDB-16342
+ * @Description: 禁用版本控制，增加同名对象 testlink-case: seqDB-16342
  *
  * @author wangkexin
  * @Date 2018.11.8

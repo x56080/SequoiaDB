@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 设置分隔符，指定桶不属于自己 testlink-case: seqDB-18092
+ * @Description: 设置分隔符，指定桶不属于自己 testlink-case: seqDB-18092
  *
  * @author wangkexin
  * @Date 2019.04.13

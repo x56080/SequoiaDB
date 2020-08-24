@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，增加多个同名对象 testlink-case: seqDB-16345
+ * @Description: 开启版本控制，增加多个同名对象 testlink-case: seqDB-16345
  *
  * @author wangkexin
  * @Date 2018.11.12

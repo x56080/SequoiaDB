@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * test content: 增加对象，携带md5值 testlink-case: seqDB-16350
+ * @Description: 增加对象，携带md5值 testlink-case: seqDB-16350
  *
  * @author wangkexin
  * @Date 2018.11.13

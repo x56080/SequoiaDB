@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 指定ifNoneMatch和ifModifiedSince条件查询对象，不匹配ifModifiedSince
+ * @Description: 指定ifNoneMatch和ifModifiedSince条件查询对象，不匹配ifModifiedSince
  * testlink-case: seqDB-16705
  *
  * @author wangkexin

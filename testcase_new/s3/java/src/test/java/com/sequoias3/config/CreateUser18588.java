@@ -24,7 +24,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /**
- * test content: 开启鉴权，使用默认用户执行用户管理操作 testlink-case: seqDB-18588
+ * @Description: 开启鉴权，使用默认用户执行用户管理操作 testlink-case: seqDB-18588
  *
  * @author wangkexin
  * @Date 2019.06.21

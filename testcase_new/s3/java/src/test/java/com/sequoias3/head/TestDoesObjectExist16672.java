@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 存在多个版本对象，doesObjectExist查询对象 testlink-case: seqDB-16672
+ * @Description: 存在多个版本对象，doesObjectExist查询对象 testlink-case: seqDB-16672
  *
  * @author wangkexin
  * @Date 2018.12.07

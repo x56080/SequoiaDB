@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 指定versionId查询历史版本对象 testlink-case: seqDB-16682
+ * @Description: 指定versionId查询历史版本对象 testlink-case: seqDB-16682
  *
  * @author wangkexin
  * @Date 2018.12.07

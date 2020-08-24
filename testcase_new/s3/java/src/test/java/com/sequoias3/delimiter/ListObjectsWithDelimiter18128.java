@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带prefix、start-after、delimiter在设置continueation-token前后匹配条件不一致
+ * @Description: 带prefix、start-after、delimiter在设置continueation-token前后匹配条件不一致
  * testlink-case: seqDB-18128
  *
  * @author wangkexin

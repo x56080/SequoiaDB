@@ -17,7 +17,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * test content: 带prefix、delimiter和和start-after查询对象元数据列表，不匹配start-after
+ * @Description: 带prefix、delimiter和和start-after查询对象元数据列表，不匹配start-after
  * testlink-case: seqDB-18122
  *
  * @author wangkexin

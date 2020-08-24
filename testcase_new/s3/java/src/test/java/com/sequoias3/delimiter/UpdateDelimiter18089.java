@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 更新分隔符，指定不同格式分隔符 testlink-case: seqDB-18089
+ * @Description: 更新分隔符，指定不同格式分隔符 testlink-case: seqDB-18089
  *
  * @author wangkexin
  * @Date 2019.04.12

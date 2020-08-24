@@ -29,7 +29,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 上传分段时指定分段长度较大 testlink-case: seqDB-18712
+ * @Description: 上传分段时指定分段长度较大 testlink-case: seqDB-18712
  * (由于50G的文件运行时间较长，用例中使用5G文件进行测试)
  *
  * @author wangkexin

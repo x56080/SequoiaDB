@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * test content: bucket name parameter verification testlink-case: seqDB-15908
+ * @Description: bucket name parameter verification testlink-case: seqDB-15908
  *
  * @author wangkexin
  * @Date 2018.09.28

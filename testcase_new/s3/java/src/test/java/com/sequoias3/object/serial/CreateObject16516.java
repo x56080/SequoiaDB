@@ -22,7 +22,7 @@ import java.math.BigInteger;
 import java.util.Random;
 
 /**
- * test content: 增加对象内容较大 testlink-case: seqDB-16516
+ * @Description: 增加对象内容较大 testlink-case: seqDB-16516
  *
  * @author wangkexin
  * @Date 2018.11.15

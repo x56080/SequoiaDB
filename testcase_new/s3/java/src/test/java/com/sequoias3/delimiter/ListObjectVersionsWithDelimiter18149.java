@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 指定不同格式分割符查询 testlink-case: seqDB-18149
+ * @Description: 指定不同格式分割符查询 testlink-case: seqDB-18149
  *
  * @author wangkexin
  * @Date 2019.04.28

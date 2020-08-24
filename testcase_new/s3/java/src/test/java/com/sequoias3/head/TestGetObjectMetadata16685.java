@@ -18,7 +18,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 带versionId查询删除标记的对象 testlink-case: seqDB-16685
+ * @Description: 带versionId查询删除标记的对象 testlink-case: seqDB-16685
  *
  * @author wangkexin
  * @Date 2018.12.10

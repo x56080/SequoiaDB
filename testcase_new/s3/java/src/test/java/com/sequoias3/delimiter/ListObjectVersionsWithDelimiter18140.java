@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 不开启版本控制，带分隔符查询桶中对象版本列表 testlink-case: seqDB-18140
+ * @Description: 不开启版本控制，带分隔符查询桶中对象版本列表 testlink-case: seqDB-18140
  *
  * @author wangkexin
  * @Date 2019.04.25

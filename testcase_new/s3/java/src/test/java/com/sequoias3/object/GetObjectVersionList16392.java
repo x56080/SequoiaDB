@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带分隔符delimiter查询对象版本列表 testlink-case: seqDB-16392
+ * @Description: 带分隔符delimiter查询对象版本列表 testlink-case: seqDB-16392
  *
  * @author wangkexin
  * @Date 2018.11.24

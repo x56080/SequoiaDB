@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 带versionId查询对象，匹配ifUnModifiedSince条件 testlink-case: seqDB-16686
+ * @Description: 带versionId查询对象，匹配ifUnModifiedSince条件 testlink-case: seqDB-16686
  *
  * @author wangkexin
  * @Date 2018.12.10

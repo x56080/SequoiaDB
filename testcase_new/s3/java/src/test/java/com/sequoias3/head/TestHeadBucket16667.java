@@ -15,7 +15,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 并发head查询和删除相同桶 testlink-case: seqDB-16667
+ * @Description: 并发head查询和删除相同桶 testlink-case: seqDB-16667
  *
  * @author wangkexin
  * @Date 2018.10.16

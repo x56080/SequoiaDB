@@ -12,7 +12,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 
 /**
- * test content: 指定桶不存在 testlink-case: seqDB-16348
+ * @Description: 指定桶不存在 testlink-case: seqDB-16348
  *
  * @author wangkexin
  * @Date 2018.11.13

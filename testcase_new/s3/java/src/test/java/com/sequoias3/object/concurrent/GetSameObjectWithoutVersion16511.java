@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 禁用版本控制，并发获取不同版本的同一对象 testlink-case: seqDB-16511
+ * @Description: 禁用版本控制，并发获取不同版本的同一对象 testlink-case: seqDB-16511
  *
  * @author wangkexin
  * @Date 2019.01.04

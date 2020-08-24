@@ -116,7 +116,7 @@ public class GetRegionResult {
     }
 
     public List< com.amazonaws.services.s3.model.Bucket > getBuckets() {
-        List< com.amazonaws.services.s3.model.Bucket > amazonBuckets = new ArrayList<>();
+        List< com.amazonaws.services.s3.model.Bucket > amazonBuckets = new ArrayList< >();
         if ( buckets != null ) {
             for ( Bucket bucket : buckets ) {
                 com.amazonaws.services.s3.model.Bucket amazonBucket = new com.amazonaws.services.s3.model.Bucket();

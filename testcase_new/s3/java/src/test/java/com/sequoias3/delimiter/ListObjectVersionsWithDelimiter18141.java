@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 开启版本控制存在删除标记的对象，查询对象版本列表 testlink-case: seqDB-18141
+ * @Description: 开启版本控制存在删除标记的对象，查询对象版本列表 testlink-case: seqDB-18141
  *
  * @author wangkexin
  * @Date 2019.04.25

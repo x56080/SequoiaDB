@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带prefix、delimiter和start-after匹配查询对象元数据列表 testlink-case:
+ * @Description: 带prefix、delimiter和start-after匹配查询对象元数据列表 testlink-case:
  * seqDB-18123
  *
  * @author wangkexin

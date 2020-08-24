@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 带prefix、start-after、delimiter匹配查询对象元数据列表 testlink-case:
+ * @Description: 带prefix、start-after、delimiter匹配查询对象元数据列表 testlink-case:
  * seqDB-16432
  *
  * @author wangkexin

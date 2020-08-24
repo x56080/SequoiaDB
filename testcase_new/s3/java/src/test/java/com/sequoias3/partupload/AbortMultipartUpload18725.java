@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * test content:开启版本控制，更新对象指定上传多个分段，终止分段上传 testlink-case: seqDB-18725
+ * @Description:开启版本控制，更新对象指定上传多个分段，终止分段上传 testlink-case: seqDB-18725
  *
  * @author wangkexin
  * @Date 2019.8.5

@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 不存在桶，设置桶版本控制状态 testlink-case: seqDB-16613
+ * @Description: 不存在桶，设置桶版本控制状态 testlink-case: seqDB-16613
  *
  * @author wangkexin
  * @Date 2018.11.19

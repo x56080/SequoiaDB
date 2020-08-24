@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content:InitiateMultipartUploadRequest接口参数校验 testlink-case: seqDB-18806
+ * @Description:InitiateMultipartUploadRequest接口参数校验 testlink-case: seqDB-18806
  *
  * @author wangkexin
  * @Date 2019.8.6

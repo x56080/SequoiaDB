@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 指定ifUnModifiedSince和ifModifiedSince条件查询对象 testlink-case:
+ * @Description: 指定ifUnModifiedSince和ifModifiedSince条件查询对象 testlink-case:
  * seqDB-16699
  *
  * @author wangkexin

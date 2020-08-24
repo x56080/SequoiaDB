@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * test content: 相同key相同uploadId多次分段上传 testlink-case: seqDB-18707
+ * @Description: 相同key相同uploadId多次分段上传 testlink-case: seqDB-18707
  *
  * @author wangkexin
  * @Date 2019.7.30

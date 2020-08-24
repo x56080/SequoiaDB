@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * test content: 带分隔符delimiter和maxkeys查询 testlink-case: seqDB-18148
+ * @Description: 带分隔符delimiter和maxkeys查询 testlink-case: seqDB-18148
  *
  * @author wangkexin
  * @Date 2019.04.28

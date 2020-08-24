@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 查询对象，指定range范围不匹配 testlink-case: seqDB-16690
+ * @Description: 查询对象，指定range范围不匹配 testlink-case: seqDB-16690
  *
  * @author wangkexin
  * @Date 2018.12.10

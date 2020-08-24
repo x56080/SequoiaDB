@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 指定encoding-type查询对象元数据列表 testlink-case: seqDB-16440
+ * @Description: 指定encoding-type查询对象元数据列表 testlink-case: seqDB-16440
  *
  * @author wangkexin
  * @Date 2018.11.22

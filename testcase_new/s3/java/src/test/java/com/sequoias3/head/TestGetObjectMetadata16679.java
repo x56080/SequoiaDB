@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * test content: 匹配if-match条件，不带versionId查询对象 testlink-case: seqDB-16679
+ * @Description: 匹配if-match条件，不带versionId查询对象 testlink-case: seqDB-16679
  *
  * @author wangkexin
  * @Date 2018.12.07

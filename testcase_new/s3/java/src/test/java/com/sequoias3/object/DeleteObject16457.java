@@ -9,7 +9,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 空桶删除对象
+ * @Description: 空桶删除对象
  *
  * @author wangkexin
  * @Date 2018.11.28

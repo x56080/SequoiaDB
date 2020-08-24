@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * test content: 指定对象数据不存在 testlink-case: seqDB-16349
+ * @Description: 指定对象数据不存在 testlink-case: seqDB-16349
  *
  * @author wangkexin
  * @Date 2018.11.13

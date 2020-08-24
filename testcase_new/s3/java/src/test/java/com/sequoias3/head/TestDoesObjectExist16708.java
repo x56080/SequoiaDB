@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * test content: head查询对象接口参数校验 testlink-case: seqDB-16708
+ * @Description: head查询对象接口参数校验 testlink-case: seqDB-16708
  *
  * @author wangkexin
  * @Date 2018.12.07

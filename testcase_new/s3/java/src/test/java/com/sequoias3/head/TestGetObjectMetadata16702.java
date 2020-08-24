@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 指定ifMatch和ifUnModifiedSince条件查询对象，不匹配ifUnModifiedSince
+ * @Description: 指定ifMatch和ifUnModifiedSince条件查询对象，不匹配ifUnModifiedSince
  * testlink-case: seqDB-16702
  *
  * @author wangkexin

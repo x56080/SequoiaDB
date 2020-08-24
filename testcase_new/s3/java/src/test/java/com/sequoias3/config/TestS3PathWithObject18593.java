@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 设置带s3路径校验，执行对象管理操作 testlink-case: seqDB-18593
+ * @Description: 设置带s3路径校验，执行对象管理操作 testlink-case: seqDB-18593
  *
  * @author wangkexin
  * @Date 2019.06.25

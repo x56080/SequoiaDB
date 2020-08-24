@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 带分隔符delimiter和maxkeys查询 testlink-case: seqDB-16393
+ * @Description: 带分隔符delimiter和maxkeys查询 testlink-case: seqDB-16393
  *
  * @author wangkexin
  * @Date 2018.11.27

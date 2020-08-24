@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * test content: 关闭分段检测，指定分段etag值不正确 testlink-case: seqDB-18705
+ * @Description: 关闭分段检测，指定分段etag值不正确 testlink-case: seqDB-18705
  *
  * @author wangkexin
  * @Date 2019.7.30

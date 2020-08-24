@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 带指定fetch-owner查询对象元数据列表，显示所有者信息 testlink-case: seqDB-16441
+ * @Description: 带指定fetch-owner查询对象元数据列表，显示所有者信息 testlink-case: seqDB-16441
  *
  * @author wangkexin
  * @Date 2018.11.23

@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 桶版本控制状态参数校验 testlink-case: seqDB-16611
+ * @Description: 桶版本控制状态参数校验 testlink-case: seqDB-16611
  *
  * @author wangkexin
  * @Date 2018.11.19

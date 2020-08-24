@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: delete non existent bucket testlink-case: seqDB-15915
+ * @Description: delete non existent bucket testlink-case: seqDB-15915
  *
  * @author wangkexin
  * @Date 2018.10.16

@@ -20,7 +20,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * test content: 设置分隔符，增加同名对象 testlink-case: seqDB-18100
+ * @Description: 设置分隔符，增加同名对象 testlink-case: seqDB-18100
  *
  * @author wangkexin
  * @Date 2019.04.13

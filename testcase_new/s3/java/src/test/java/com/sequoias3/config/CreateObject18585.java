@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 关闭鉴权，设置鉴权头部错误，上传对象 testlink-case: seqDB-18585
+ * @Description: 关闭鉴权，设置鉴权头部错误，上传对象 testlink-case: seqDB-18585
  *
  * @author wangkexin
  * @Date 2019.06.20

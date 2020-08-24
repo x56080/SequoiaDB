@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 开启版本控制，带versionId删除最新版本对象 testlink-case: seqDB-18174
+ * @Description: 开启版本控制，带versionId删除最新版本对象 testlink-case: seqDB-18174
  *
  * @author wangkexin
  * @Date 2019.04.29

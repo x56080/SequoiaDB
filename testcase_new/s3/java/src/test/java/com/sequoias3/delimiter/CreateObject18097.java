@@ -19,7 +19,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * test content: 设置分隔符，新增对象 testlink-case: seqDB-18097
+ * @Description: 设置分隔符，新增对象 testlink-case: seqDB-18097
  *
  * @author wangkexin
  * @Date 2019.04.13

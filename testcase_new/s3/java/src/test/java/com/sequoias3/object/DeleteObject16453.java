@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 带versionId删除对象，该对象为删除标记
+ * @Description: 带versionId删除对象，该对象为删除标记
  *
  * @author wangkexin
  * @Date 2018.11.28

@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: doesObjectExist查询其它用户的对象 testlink-case: seqDB-16670
+ * @Description: doesObjectExist查询其它用户的对象 testlink-case: seqDB-16670
  *
  * @author wangkexin
  * @Date 2018.12.07

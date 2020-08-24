@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 上传一个分段 testlink-case: seqDB-18674
+ * @Description: 上传一个分段 testlink-case: seqDB-18674
  *
  * @author wangkexin
  * @Date 2019.7.25

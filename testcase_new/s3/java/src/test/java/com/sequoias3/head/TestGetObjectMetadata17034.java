@@ -20,7 +20,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 带versionId查询对象，指定ifModifiedSince与对象LastModified时间相等
+ * @Description: 带versionId查询对象，指定ifModifiedSince与对象LastModified时间相等
  * testlink-case: seqDB-17034
  *
  * @author wangkexin

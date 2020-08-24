@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 指定delimiter为旧分隔符查询对象列表 testlink-case: seqDB-18135
+ * @Description: 指定delimiter为旧分隔符查询对象列表 testlink-case: seqDB-18135
  *
  * @author wangkexin
  * @Date 2019.04.24

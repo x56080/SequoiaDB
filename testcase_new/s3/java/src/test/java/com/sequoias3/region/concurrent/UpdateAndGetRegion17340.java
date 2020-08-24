@@ -1,20 +1,24 @@
 package com.sequoias3.region.concurrent;
 
+import java.io.File;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
 
 /**
  * @Description seqDB-17340: concurrent update region and get region.
@@ -28,11 +32,12 @@ public class UpdateAndGetRegion17340 extends S3TestBase {
     private String key = "key17340";
     private String regionName = "region17340";
     private AmazonS3 s3Client = null;
-    private String oldShardingType = "year";
-    private String newShardingType = "month";
+    private DataShardingType oldShardingType = DataShardingType.YEAR;
+    private DataShardingType newShardingType = DataShardingType.MONTH;
     private int fileSize = 1024 * 20;
     private File localPath = null;
     private String filePath = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -47,12 +52,13 @@ public class UpdateAndGetRegion17340 extends S3TestBase {
 
         s3Client = CommLib.buildS3Client();
         CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
-        Region region = new Region();
-        region.withDataCSShardingType( oldShardingType )
-                .withDataCLShardingType( oldShardingType )
-                .withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
+
+        CreateRegionRequest request = new CreateRegionRequest( regionName );
+        request.withDataCSShardingType( oldShardingType )
+                .withDataCLShardingType( oldShardingType );
+        regionClient.createRegion( request );
     }
 
     @Test
@@ -73,17 +79,18 @@ public class UpdateAndGetRegion17340 extends S3TestBase {
         try {
             if ( runSuccess ) {
                 CommLib.clearBucket( s3Client, bucketName );
-                RegionUtils.deleteRegion( regionName );
+                regionClient.deleteRegion( regionName );
                 TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
+            regionClient.shutdown();
             s3Client.shutdown();
         }
     }
 
     @SuppressWarnings("deprecation")
     private void checkResult() throws Exception {
-        Assert.assertTrue( RegionUtils.headRegion( regionName ) );
+        Assert.assertTrue( regionClient.headRegion( regionName ) );
 
         // create bucket and object on region
         s3Client.createBucket( bucketName, regionName );
@@ -96,20 +103,23 @@ public class UpdateAndGetRegion17340 extends S3TestBase {
     private class UpdateRegion extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            Region region = new Region();
-            region.withDataCSShardingType( newShardingType )
-                    .withDataCLShardingType( newShardingType )
-                    .withName( regionName );
-            RegionUtils.putRegion( region );
+            SequoiaS3 regionClientNew = CommLib.regionClient();
+            CreateRegionRequest request = new CreateRegionRequest( regionName );
+            request.withDataCSShardingType( newShardingType )
+                    .withDataCLShardingType( newShardingType );
+            regionClientNew.createRegion( request );
+            regionClientNew.shutdown();
         }
     }
 
     private class GetRegion extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            GetRegionResult result = RegionUtils.getRegion( regionName );
+            SequoiaS3 regionClientNew = CommLib.regionClient();
+            GetRegionResult result = regionClientNew.getRegion( regionName );
             Region regionInfo = result.getRegion();
-            String dataCLShardingType = regionInfo.getDataCLShardingType();
+            DataShardingType dataCLShardingType = regionInfo
+                    .getDataCLShardingType();
             if ( dataCLShardingType.equals( newShardingType ) ) {
                 Assert.assertEquals( regionInfo.getDataCSShardingType(),
                         newShardingType );
@@ -118,11 +128,12 @@ public class UpdateAndGetRegion17340 extends S3TestBase {
                         oldShardingType );
             }
             // get the region infor to take the default value
-            Assert.assertEquals( regionInfo.getMetaDomain(), "" );
-            Assert.assertEquals( regionInfo.getDataDomain(), "" );
-            Assert.assertEquals( regionInfo.getMetaLocation(), "" );
-            Assert.assertEquals( regionInfo.getMetaHisLocation(), "" );
-            Assert.assertEquals( regionInfo.getDataLocation(), "" );
+            Assert.assertEquals( regionInfo.getMetaDomain(), null );
+            Assert.assertEquals( regionInfo.getDataDomain(), null );
+            Assert.assertEquals( regionInfo.getMetaLocation(), null );
+            Assert.assertEquals( regionInfo.getMetaHisLocation(), null );
+            Assert.assertEquals( regionInfo.getDataLocation(), null );
+            regionClientNew.shutdown();
         }
     }
 

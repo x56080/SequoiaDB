@@ -20,7 +20,7 @@ import com.sequoias3.testcommon.s3utils.UserUtils;
 import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
- * test content: 开启鉴权，authorization头部非法格式校验testlink-case: seqDB-18591
+ * @Description: 开启鉴权，authorization头部非法格式校验testlink-case: seqDB-18591
  *
  * @author wangkexin
  * @Date 2019.06.24

@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，对象已存在，并发更新相同对象 testlink-case: seqDB-16497
+ * @Description: 开启版本控制，对象已存在，并发更新相同对象 testlink-case: seqDB-16497
  *
  * @author wangkexin
  * @Date 2019.01.04

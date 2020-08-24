@@ -18,7 +18,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，设置分隔符新增对象 testlink-case: seqDB-18098
+ * @Description: 开启版本控制，设置分隔符新增对象 testlink-case: seqDB-18098
  *
  * @author wangkexin
  * @Date 2019.04.13

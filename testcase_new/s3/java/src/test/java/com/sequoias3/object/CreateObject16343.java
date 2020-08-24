@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Date;
 
 /**
- * test content: 开启版本控制增加对象，禁用版本控制后上传同名对象 testlink-case: seqDB-16343
+ * @Description: 开启版本控制增加对象，禁用版本控制后上传同名对象 testlink-case: seqDB-16343
  *
  * @author wangkexin
  * @Date 2018.11.9

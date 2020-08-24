@@ -8,15 +8,17 @@ import org.testng.annotations.Test;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
- * test content: 创建桶指定区域，获取区域信息 testlink-case: seqDB-17313
- *
+ * @Description seqDB-17313:创建桶指定区域，获取区域信息
  * @author wangkexin
  * @Date 2019.01.23
  * @version 1.00
@@ -35,96 +37,89 @@ public class GetRegionMessage17313 extends S3TestBase {
     private String metaDomain = "metaDomain17313";
     private AmazonS3 s3Client = null;
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.dropCS( metaCSName );
-        RegionUtils.dropCS( dataCSName );
+        RegionUtils.dropCS(metaCSName);
+        RegionUtils.dropCS(dataCSName);
         ;
-        RegionUtils.dropDomain( dataDomain );
-        RegionUtils.dropDomain( metaDomain );
+        RegionUtils.dropDomain(dataDomain);
+        RegionUtils.dropDomain(metaDomain);
 
-        RegionUtils.createDomain( dataDomain );
-        RegionUtils.createDomain( metaDomain );
+        RegionUtils.createDomain(dataDomain);
+        RegionUtils.createDomain(metaDomain);
 
-        RegionUtils.createCSAndCL( metaCSName, metaClNames );
-        RegionUtils.createCSAndCL( dataCSName, dataClName );
+        RegionUtils.createCSAndCL(metaCSName, metaClNames);
+        RegionUtils.createCSAndCL(dataCSName, dataClName);
 
-        RegionUtils.clearRegion( specifiedRegionName );
-        RegionUtils.clearRegion( shardingTypeRegionName );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, specifiedRegionName);
+        RegionUtils.clearRegion(regionClient, shardingTypeRegionName);
     }
 
     @Test
     public void testGetRegionMessage() throws Exception {
-        String metaLocation = metaCSName + "." + metaClNames[ 0 ];
-        String metaHisLocation = metaCSName + "." + metaClNames[ 1 ];
-        String dataLocation = dataCSName + "." + dataClName[ 0 ];
+        String metaLocation = metaCSName + "." + metaClNames[0];
+        String metaHisLocation = metaCSName + "." + metaClNames[1];
+        String dataLocation = dataCSName + "." + dataClName[0];
 
         // test a : in specified mode,get region message
-        Region specifiedModeRegion = new Region();
-        specifiedModeRegion.withName( specifiedRegionName )
-                .withMetaLocation( metaLocation )
-                .withMetaHisLocation( metaHisLocation )
-                .withDataLocation( dataLocation );
-        RegionUtils.putRegion( specifiedModeRegion );
+        CreateRegionRequest request = new CreateRegionRequest(specifiedRegionName);
+        request.withMetaLocation(metaLocation).withMetaHisLocation(metaHisLocation).withDataLocation(dataLocation);
+        regionClient.createRegion(request);
 
-        Assert.assertTrue( RegionUtils.headRegion( specifiedRegionName ) );
-        s3Client.createBucket( new CreateBucketRequest( specifiedBucket,
-                specifiedRegionName.toLowerCase() ) );
-        Assert.assertEquals( s3Client.getBucketLocation( specifiedBucket ),
-                specifiedRegionName.toLowerCase() );
+        Assert.assertTrue(regionClient.headRegion(specifiedRegionName));
+        s3Client.createBucket(new CreateBucketRequest(specifiedBucket, specifiedRegionName.toLowerCase()));
+        Assert.assertEquals(s3Client.getBucketLocation(specifiedBucket), specifiedRegionName.toLowerCase());
 
-        GetRegionResult specifiedResult = RegionUtils
-                .getRegion( specifiedRegionName );
+        GetRegionResult specifiedResult = regionClient.getRegion(specifiedRegionName);
         Region currRegion = specifiedResult.getRegion();
-        Assert.assertEquals( currRegion.getName(),
-                specifiedRegionName.toLowerCase() );
-        Assert.assertEquals( currRegion.getMetaLocation(), metaLocation );
-        Assert.assertEquals( currRegion.getMetaHisLocation(), metaHisLocation );
-        Assert.assertEquals( currRegion.getDataLocation(), dataLocation );
+        Assert.assertEquals(currRegion.getName(), specifiedRegionName.toLowerCase());
+        Assert.assertEquals(currRegion.getMetaLocation(), metaLocation);
+        Assert.assertEquals(currRegion.getMetaHisLocation(), metaHisLocation);
+        Assert.assertEquals(currRegion.getDataLocation(), dataLocation);
 
         // test b : in ShardingType mode,get region message
-        Region shardingTypeModeRegion = new Region();
-        shardingTypeModeRegion.withName( shardingTypeRegionName )
-                .withDataCSShardingType( "quarter" )
-                .withDataCLShardingType( "month" ).withDataDomain( dataDomain )
-                .withMetaDomain( metaDomain );
-        RegionUtils.putRegion( shardingTypeModeRegion );
+        CreateRegionRequest requestb = new CreateRegionRequest(shardingTypeRegionName);
+        requestb.withDataCSShardingType(DataShardingType.QUARTER).withDataCLShardingType(DataShardingType.MONTH)
+                .withDataDomain(dataDomain).withMetaDomain(metaDomain);
+        regionClient.createRegion(requestb);
 
-        Assert.assertTrue( RegionUtils.headRegion( shardingTypeRegionName ) );
-        s3Client.createBucket( new CreateBucketRequest( shardingBucket,
-                shardingTypeRegionName.toLowerCase() ) );
-        Assert.assertEquals( s3Client.getBucketLocation( shardingBucket ),
-                shardingTypeRegionName.toLowerCase() );
+        Assert.assertTrue(regionClient.headRegion(shardingTypeRegionName));
+        s3Client.createBucket(new CreateBucketRequest(shardingBucket, shardingTypeRegionName.toLowerCase()));
+        Assert.assertEquals(s3Client.getBucketLocation(shardingBucket), shardingTypeRegionName.toLowerCase());
 
-        GetRegionResult shardingTypeResult = RegionUtils
-                .getRegion( shardingTypeRegionName );
+        GetRegionResult shardingTypeResult = regionClient.getRegion(shardingTypeRegionName);
         Region currRegion2 = shardingTypeResult.getRegion();
-        Assert.assertEquals( currRegion2.getName(),
-                shardingTypeRegionName.toLowerCase() );
-        Assert.assertEquals( currRegion2.getDataCSShardingType(), "quarter" );
-        Assert.assertEquals( currRegion2.getDataCLShardingType(), "month" );
-        Assert.assertEquals( currRegion2.getDataDomain(), dataDomain );
-        Assert.assertEquals( currRegion2.getMetaDomain(), metaDomain );
+        Assert.assertEquals(currRegion2.getName(), shardingTypeRegionName.toLowerCase());
+        Assert.assertEquals(currRegion2.getDataCSShardingType(), DataShardingType.QUARTER);
+        Assert.assertEquals(currRegion2.getDataCLShardingType(), DataShardingType.MONTH);
+        Assert.assertEquals(currRegion2.getDataDomain(), dataDomain);
+        Assert.assertEquals(currRegion2.getMetaDomain(), metaDomain);
 
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if ( runSuccess ) {
-            try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" )) {
-                s3Client.deleteBucket( specifiedBucket );
-                s3Client.deleteBucket( shardingBucket );
-                sdb.dropCollectionSpace( dataCSName );
-                sdb.dropCollectionSpace( metaCSName );
-                RegionUtils.deleteRegion( specifiedRegionName );
-                RegionUtils.deleteRegion( shardingTypeRegionName );
-                RegionUtils.dropDomain( metaDomain );
-                RegionUtils.dropDomain( dataDomain );
+        try {
+            if (runSuccess) {
+                try (Sequoiadb sdb = new Sequoiadb(S3TestBase.coordUrl, "", "")) {
+                    s3Client.deleteBucket(specifiedBucket);
+                    s3Client.deleteBucket(shardingBucket);
+                    sdb.dropCollectionSpace(dataCSName);
+                    sdb.dropCollectionSpace(metaCSName);
+                    regionClient.deleteRegion(specifiedRegionName);
+                    regionClient.deleteRegion(shardingTypeRegionName);
+                    RegionUtils.dropDomain(metaDomain);
+                    RegionUtils.dropDomain(dataDomain);
+                }
             }
+        } finally {
+            regionClient.shutdown();
+            s3Client.shutdown();
         }
     }
 }

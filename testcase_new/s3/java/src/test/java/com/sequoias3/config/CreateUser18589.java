@@ -23,7 +23,7 @@ import org.testng.annotations.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 开启鉴权，使用普通用户执行用户管理操作 testlink-case: seqDB-18589
+ * @Description: 开启鉴权，使用普通用户执行用户管理操作 testlink-case: seqDB-18589
  *
  * @author wangkexin
  * @Date 2019.06.24

@@ -20,7 +20,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 禁用版本控制，对象已存在，并发更新相同对象 testlink-case: seqDB-16510
+ * @Description: 禁用版本控制，对象已存在，并发更新相同对象 testlink-case: seqDB-16510
  *
  * @author wangkexin
  * @Date 2019.01.04

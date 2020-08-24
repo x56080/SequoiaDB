@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: UploadPartRequest接口参数校验 testlink-case: seqDB-18808
+ * @Description: UploadPartRequest接口参数校验 testlink-case: seqDB-18808
  *
  * @author wangkexin
  * @Date 2019.8.6

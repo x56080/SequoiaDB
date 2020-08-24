@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 上传分段，其中指定key和uploadId不一致 testlink-case: seqDB-18714
+ * @Description: 上传分段，其中指定key和uploadId不一致 testlink-case: seqDB-18714
  *
  * @author wangkexin
  * @Date 2019.8.1

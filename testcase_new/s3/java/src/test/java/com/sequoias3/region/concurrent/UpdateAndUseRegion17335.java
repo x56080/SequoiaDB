@@ -14,18 +14,20 @@ import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.model.GetRegionResult;
+import com.sequoias3.model.Region;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
 import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.bean.GetRegionResult;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 
 /**
- * test content: 并发更新区域和使用区域 testlink-case: seqDB-17335
- *
+ * @Description seqDB-17335:并发更新区域和使用区域
  * @author wangkexin
  * @Date 2019.01.29
  * @version 1.00
@@ -41,6 +43,7 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
     private String filePath = null;
     private int objectNums = 20;
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
@@ -54,10 +57,10 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
 
         s3Client = CommLib.buildS3Client();
         CommLib.clearBucket( s3Client, bucketName );
-        RegionUtils.clearRegion( regionName );
-        Region region = new Region();
-        region.withName( regionName );
-        RegionUtils.putRegion( region );
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion( regionClient, regionName );
+
+        regionClient.createRegion( regionName );
         s3Client.createBucket( new CreateBucketRequest( bucketName,
                 regionName.toLowerCase() ) );
     }
@@ -65,7 +68,7 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
     @Test
     public void testCreateRegion() throws Exception {
         UpdateRegionThread updateRegion = new UpdateRegionThread();
-        List< CreateAndGetObjectThread > createAndGetObjs = new ArrayList<>(
+        List< CreateAndGetObjectThread > createAndGetObjs = new ArrayList< >(
                 objectNums );
 
         for ( int i = 0; i < objectNums; i++ ) {
@@ -84,7 +87,6 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
 
         Assert.assertTrue( updateRegion.isSuccess(),
                 updateRegion.getErrorMsg() );
-
         checkUpdate();
         runSuccess = true;
     }
@@ -94,10 +96,13 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
         try {
             if ( runSuccess ) {
                 CommLib.clearBucket( s3Client, bucketName );
-                RegionUtils.deleteRegion( regionName );
+                regionClient.deleteRegion( regionName );
                 TestTools.LocalFile.removeFile( localPath );
             }
         } finally {
+            if ( regionClient != null ) {
+                regionClient.shutdown();
+            }
             if ( s3Client != null ) {
                 s3Client.shutdown();
             }
@@ -120,21 +125,25 @@ public class UpdateAndUseRegion17335 extends S3TestBase {
     }
 
     private void checkUpdate() throws Exception {
-        GetRegionResult result = RegionUtils.getRegion( regionName );
-        String actBucketName = result.getBuckets().get( 0 ).getName();
+        GetRegionResult result = regionClient.getRegion( regionName );
+        String actBucketName = result.getBuckets().get( 0 );
         Assert.assertEquals( actBucketName, bucketName );
         Region region = result.getRegion();
-        Assert.assertEquals( region.getDataCSShardingType(), "quarter" );
-        Assert.assertEquals( region.getDataCLShardingType(), "month" );
+        Assert.assertEquals( region.getDataCSShardingType(),
+                DataShardingType.QUARTER );
+        Assert.assertEquals( region.getDataCLShardingType(),
+                DataShardingType.MONTH );
     }
 
     private class UpdateRegionThread extends S3ThreadBase {
         @Override
         public void exec() throws Exception {
-            Region region = new Region();
-            region.withName( regionName ).withDataCSShardingType( "quarter" )
-                    .withDataCLShardingType( "month" );
-            RegionUtils.putRegion( region );
+            SequoiaS3 regionClientNew = CommLib.regionClient();
+            CreateRegionRequest request = new CreateRegionRequest( regionName );
+            request.withDataCSShardingType( DataShardingType.QUARTER )
+                    .withDataCLShardingType( DataShardingType.MONTH );
+            regionClientNew.createRegion( request );
+            regionClientNew.shutdown();
         }
     }
 

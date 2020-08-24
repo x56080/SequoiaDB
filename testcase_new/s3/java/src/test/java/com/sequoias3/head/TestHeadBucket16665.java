@@ -14,7 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: headBucket查询指定返回region信息 testlink-case: seqDB-16665
+ * @Description: headBucket查询指定返回region信息 testlink-case: seqDB-16665
  *
  * @author wangkexin
  * @Date 2018.12.14

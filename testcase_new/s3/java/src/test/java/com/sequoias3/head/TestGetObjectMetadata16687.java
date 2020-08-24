@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 带versionId查询对象，指定range范围 testlink-case: seqDB-16687
+ * @Description: 带versionId查询对象，指定range范围 testlink-case: seqDB-16687
  *
  * @author wangkexin
  * @Date 2018.12.10

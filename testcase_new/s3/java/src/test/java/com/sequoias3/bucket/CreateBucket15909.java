@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: create multiple buckets to get bucket list information
+ * @Description: create multiple buckets to get bucket list information
  * testlink-case: seqDB-15909
  *
  * @author wangkexin

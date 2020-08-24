@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: no bucket and get bucket list information testlink-case:
+ * @Description: no bucket and get bucket list information testlink-case:
  * seqDB-15910
  *
  * @author wangkexin

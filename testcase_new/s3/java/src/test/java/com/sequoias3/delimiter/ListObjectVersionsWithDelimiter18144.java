@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带前缀prefix和delimiter查询对象版本列表，匹配对象无对应目录 testlink-case:seqDB-18144
+ * @Description: 带前缀prefix和delimiter查询对象版本列表，匹配对象无对应目录 testlink-case:seqDB-18144
  *
  * @author wangkexin
  * @Date 2019.05.05

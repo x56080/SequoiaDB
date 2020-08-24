@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 
 /**
- * test content: enabling bucket versioning,get the object key does not exist.
+ * @Description: enabling bucket versioning,get the object key does not exist.
  * test 16365:Do not specify versionId test 16366:specify versionId
  * testlink-case: seqDB-16365/16366
  *

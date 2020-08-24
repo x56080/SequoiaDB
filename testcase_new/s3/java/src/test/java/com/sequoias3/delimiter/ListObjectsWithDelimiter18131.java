@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 指定nextContinuationToken匹配记录被删除，查询列表元数据 testlink-case:
+ * @Description: 指定nextContinuationToken匹配记录被删除，查询列表元数据 testlink-case:
  * seqDB-18131
  *
  * @author wangkexin

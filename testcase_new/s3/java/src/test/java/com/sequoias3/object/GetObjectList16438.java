@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 两次查询间隔时间超过上下文生命周期时间
+ * @Description: 两次查询间隔时间超过上下文生命周期时间
  *
  * @author wangkexin
  * @Date 2018.11.21

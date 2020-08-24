@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 并发更新和获取对象 testlink-case: seqDB-16493
+ * @Description: 并发更新和获取对象 testlink-case: seqDB-16493
  *
  * @author wangkexin
  * @Date 2019.01.04

@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 指定桶不存在
+ * @Description: 指定桶不存在
  *
  * @author wangkexin
  * @Date 2018.11.28

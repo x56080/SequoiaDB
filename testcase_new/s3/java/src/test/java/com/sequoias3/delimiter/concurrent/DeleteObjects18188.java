@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 开启版本控制，并发删除相同目录下不同对象 testlink-case: seqDB-18188
+ * @Description: 开启版本控制，并发删除相同目录下不同对象 testlink-case: seqDB-18188
  *
  * @author wangkexin
  * @Date 2019.05.09

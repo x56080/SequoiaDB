@@ -18,7 +18,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 并发更新不同分隔符 testlink-case: seqDB-18181
+ * @Description: 并发更新不同分隔符 testlink-case: seqDB-18181
  *
  * @author wangkexin
  * @Date 2019.05.08

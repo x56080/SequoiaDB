@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 并发删除相同目录下不同对象 testlink-case: seqDB-18187
+ * @Description: 并发删除相同目录下不同对象 testlink-case: seqDB-18187
  *
  * @author wangkexin
  * @Date 2019.05.09

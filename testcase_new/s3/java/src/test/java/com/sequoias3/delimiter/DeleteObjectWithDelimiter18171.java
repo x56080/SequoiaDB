@@ -13,7 +13,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 不开启版本控制，不带versionId删除不存在的对象 testlink-case: seqDB-18171
+ * @Description: 不开启版本控制，不带versionId删除不存在的对象 testlink-case: seqDB-18171
  *
  * @author wangkexin
  * @Date 2019.04.29

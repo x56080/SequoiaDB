@@ -1,5 +1,12 @@
 package com.sequoias3.testcommon;
 
+import java.util.Iterator;
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.testng.Assert;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -16,18 +23,16 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.SetBucketVersioningConfigurationRequest;
 import com.amazonaws.services.s3.model.VersionListing;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.SequoiaS3ClientBuilder;
 import com.sequoias3.testcommon.s3utils.UserUtils;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
-import org.testng.Assert;
-
-import java.util.Iterator;
-import java.util.List;
 
 public class CommLib {
     private static String AWS_ACCESS_KEY = "ABCDEFGHIJKLMNOPQRST";
     private static String AWS_SECRET_KEY = "abcdefghijklmnopqrstuvwxyz0123456789ABCD";
     private static String clientRegion = "us-east-1";
+    // private static String endpoint = "http://192.168.29.61:8002";
+    private static String endpoint = S3TestBase.s3ClientUrl;
 
     /**
      * build S3 client by admin
@@ -58,6 +63,21 @@ public class CommLib {
                         new AWSStaticCredentialsProvider( credentials ) )
                 .build();
         return s3Client;
+    }
+
+    public static SequoiaS3 regionClient() {
+        return regionClient( AWS_ACCESS_KEY, AWS_SECRET_KEY );
+    }
+
+    public static SequoiaS3 regionClient( String ACCESS_KEY,
+            String SECRET_KEY ) {
+        SequoiaS3 region = SequoiaS3ClientBuilder.standard()
+                .withEndpoint( endpoint )
+                .withAccessKeys( ACCESS_KEY, SECRET_KEY )
+                .withConnectionRequestTimeout( 10000 )
+                .withConnectTimeout( 60000 ).withSocketTimeout( 180000 )
+                .build();
+        return region;
     }
 
     /*

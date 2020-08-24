@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 空桶更新分隔符 testlink-case: seqDB-18083
+ * @Description: 空桶更新分隔符 testlink-case: seqDB-18083
  *
  * @author wangkexin
  * @Date 2019.04.12

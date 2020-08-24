@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 带前缀prefix查询对象版本列表，匹配不到对象数据 testlink-case: seqDB-16391
+ * @Description: 带前缀prefix查询对象版本列表，匹配不到对象数据 testlink-case: seqDB-16391
  *
  * @author wangkexin
  * @Date 2018.11.24

@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * test content: 分隔符状态不可用，查询对象列表 testlink-case: seqDB-18134
+ * @Description: 分隔符状态不可用，查询对象列表 testlink-case: seqDB-18134
  *
  * @author wangkexin
  * @Date 2019.04.23

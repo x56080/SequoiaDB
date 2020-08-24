@@ -5,15 +5,17 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.common.DataShardingType;
+import com.sequoias3.exception.SequoiaS3ServiceException;
+import com.sequoias3.model.CreateRegionRequest;
+import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
 
 /**
- * test content: 创建和更新区域配置方式不同 testlink-case: seqDB-17312
- *
+ * @Description seqDB-17312:创建和更新区域配置方式不同
  * @author wangkexin
  * @Date 2019.01.23
  * @version 1.00
@@ -27,72 +29,66 @@ public class ChangeConfigurationMode17312 extends S3TestBase {
     private String[] metaClNames = { "metaCL17312", "metaHistoryCL17312" };
     private String[] dataClName = { "dataCL17312" };
     private boolean runSuccess = false;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
-        RegionUtils.createCSAndCL( metaCSName, metaClNames );
-        RegionUtils.createCSAndCL( dataCSName, dataClName );
-        RegionUtils.clearRegion( specifiedRegionName );
-        RegionUtils.clearRegion( shardingTypeRegionName );
+        RegionUtils.createCSAndCL(metaCSName, metaClNames);
+        RegionUtils.createCSAndCL(dataCSName, dataClName);
+        regionClient = CommLib.regionClient();
+        RegionUtils.clearRegion(regionClient, specifiedRegionName);
+        RegionUtils.clearRegion(regionClient, shardingTypeRegionName);
     }
 
     @Test
     public void testCreateRegion() throws Exception {
         // test a : change the specified mode to ShardingType mode
-        Region oldRegion_1 = new Region();
-        oldRegion_1.withName( specifiedRegionName )
-                .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
-                .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
-                .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
-        RegionUtils.putRegion( oldRegion_1 );
+        CreateRegionRequest request = new CreateRegionRequest(specifiedRegionName);
+        request.withMetaLocation(metaCSName + "." + metaClNames[0])
+                .withMetaHisLocation(metaCSName + "." + metaClNames[1])
+                .withDataLocation(dataCSName + "." + dataClName[0]);
+        regionClient.createRegion(request);
 
-        Assert.assertTrue( RegionUtils.headRegion( specifiedRegionName ) );
+        Assert.assertTrue(regionClient.headRegion(specifiedRegionName));
 
-        Region newRegion_1 = new Region();
-        newRegion_1.withName( specifiedRegionName )
-                .withDataCSShardingType( "year" )
-                .withDataCLShardingType( "month" );
+        request.withDataCSShardingType(DataShardingType.YEAR).withDataCLShardingType(DataShardingType.MONTH);
 
         try {
-            RegionUtils.putRegion( newRegion_1 );
-            Assert.fail(
-                    "change the specified mode to ShardingType mode should fail" );
-        } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getErrorCode(), "ConflictRegionType" );
+            regionClient.createRegion(request);
+            Assert.fail("change the specified mode to ShardingType mode should fail");
+        } catch (SequoiaS3ServiceException e) {
+            Assert.assertEquals(e.getErrorCode(), "ConflictRegionType");
+            Assert.assertEquals(e.getStatusCode(), 409);
         }
 
         // test b : change ShardingType mode to the specified mode
-        Region oldRegion_2 = new Region();
-        oldRegion_2.withName( shardingTypeRegionName );
-        RegionUtils.putRegion( oldRegion_2 );
-
-        Assert.assertTrue( RegionUtils.headRegion( shardingTypeRegionName ) );
-
-        Region newRegion_2 = new Region();
-        newRegion_2.withName( shardingTypeRegionName )
-                .withMetaLocation( metaCSName + "." + metaClNames[ 0 ] )
-                .withMetaHisLocation( metaCSName + "." + metaClNames[ 1 ] )
-                .withDataLocation( dataCSName + "." + dataClName[ 0 ] );
+        CreateRegionRequest requestb = new CreateRegionRequest(shardingTypeRegionName);
+        regionClient.createRegion(requestb);
+        Assert.assertTrue(regionClient.headRegion(shardingTypeRegionName));
+        requestb.withMetaLocation(metaCSName + "." + metaClNames[0])
+                .withMetaHisLocation(metaCSName + "." + metaClNames[1])
+                .withDataLocation(dataCSName + "." + dataClName[0]);
 
         try {
-            RegionUtils.putRegion( newRegion_2 );
-            Assert.fail(
-                    "change ShardingType mode to the specified mode should fail" );
-        } catch ( AmazonS3Exception e ) {
-            Assert.assertEquals( e.getErrorCode(), "ConflictRegionType" );
+            regionClient.createRegion(requestb);
+            Assert.fail("change ShardingType mode to the specified mode should fail");
+        } catch (SequoiaS3ServiceException e) {
+            Assert.assertEquals(e.getErrorCode(), "ConflictRegionType");
+            Assert.assertEquals(e.getStatusCode(), 409);
         }
         runSuccess = true;
     }
 
     @AfterClass
     private void tearDown() throws Exception {
-        if ( runSuccess ) {
-            try ( Sequoiadb sdb = new Sequoiadb( S3TestBase.coordUrl, "",
-                    "" ) ;) {
-                sdb.dropCollectionSpace( metaCSName );
-                sdb.dropCollectionSpace( dataCSName );
-                RegionUtils.deleteRegion( specifiedRegionName );
-                RegionUtils.deleteRegion( shardingTypeRegionName );
+        if (runSuccess) {
+            try (Sequoiadb sdb = new Sequoiadb(S3TestBase.coordUrl, "", "");) {
+                sdb.dropCollectionSpace(metaCSName);
+                sdb.dropCollectionSpace(dataCSName);
+                regionClient.deleteRegion(specifiedRegionName);
+                regionClient.deleteRegion(shardingTypeRegionName);
+            } finally {
+                regionClient.shutdown();
             }
         }
     }

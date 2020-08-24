@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 
 /**
- * test content: 并发获取同一对象 testlink-case: seqDB-16488
+ * @Description: 并发获取同一对象 testlink-case: seqDB-16488
  *
  * @author wangkexin
  * @Date 2019.01.03

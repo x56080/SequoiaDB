@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: 开启版本控制，并发更新和删除相同对象 testlink-case: seqDB-16504
+ * @Description: 开启版本控制，并发更新和删除相同对象 testlink-case: seqDB-16504
  *
  * @author wangkexin
  * @Date 2019.01.04

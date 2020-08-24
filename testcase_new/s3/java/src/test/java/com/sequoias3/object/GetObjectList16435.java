@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 带maxkeys多次查询对象元数据列表 testlink-case: seqDB-16435
+ * @Description: 带maxkeys多次查询对象元数据列表 testlink-case: seqDB-16435
  *
  * @author wangkexin
  * @Date 2018.11.16

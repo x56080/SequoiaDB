@@ -15,7 +15,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: lobPageSize和replSize配置校验 testlink-case: seqDB-18596
+ * @Description: lobPageSize和replSize配置校验 testlink-case: seqDB-18596
  *
  * @author wangkexin
  * @Date 2019.06.26

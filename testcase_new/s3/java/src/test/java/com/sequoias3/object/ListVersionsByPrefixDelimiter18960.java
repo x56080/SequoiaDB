@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * test content: 带prefix和delimiter查询对象版本列表，存在不匹配delimiter且最新记录为deletemarker的对象
+ * @Description: 带prefix和delimiter查询对象版本列表，存在不匹配delimiter且最新记录为deletemarker的对象
  * testlink-case: seqDB-18960
  *
  * @author wangkexin

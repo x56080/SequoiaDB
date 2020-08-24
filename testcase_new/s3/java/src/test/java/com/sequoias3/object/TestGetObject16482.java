@@ -20,7 +20,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 /**
- * test content: GetObject接口range参数校验 testlink-case: seqDB-16482
+ * @Description: GetObject接口range参数校验 testlink-case: seqDB-16482
  *
  * @author wangkexin
  * @Date 2019.01.08

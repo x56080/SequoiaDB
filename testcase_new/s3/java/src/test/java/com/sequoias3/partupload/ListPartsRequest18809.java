@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: ListPartsRequest接口参数校验 testlink-case: seqDB-18809
+ * @Description: ListPartsRequest接口参数校验 testlink-case: seqDB-18809
  *
  * @author wangkexin
  * @Date 2019.8.6

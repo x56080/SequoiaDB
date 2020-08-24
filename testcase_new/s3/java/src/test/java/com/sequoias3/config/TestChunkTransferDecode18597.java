@@ -22,7 +22,7 @@ import com.sequoias3.testcommon.s3utils.UserUtils;
 import com.sequoias3.testcommon.s3utils.bean.UserCommDefind;
 
 /**
- * test content: 支持chunk解码，创建对象 testlink-case: seqDB-18597
+ * @Description: 支持chunk解码，创建对象 testlink-case: seqDB-18597
  *
  * @author wangkexin
  * @Date 2019.06.26

@@ -34,8 +34,8 @@ public class DefaultRegion20405 extends S3TestBase {
     private String objectNameBase = "object20405";
     private int dataCSRange = 10;
     private int objectNum = 20;
-    private List< String > csNameList;
-    private AtomicInteger counter = new AtomicInteger( objectNum );
+    private List<String> csNameList;
+    private AtomicInteger counter = new AtomicInteger(objectNum);
     private AmazonS3 s3Client = null;
 
     @BeforeClass
@@ -44,24 +44,22 @@ public class DefaultRegion20405 extends S3TestBase {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void testRegion() throws Exception {
         // create bucket
-        s3Client.createBucket( bucketName );
+        s3Client.createBucket(bucketName);
         // create object
-        ThreadExecutor executor = new ThreadExecutor( 1000 * 60 * 5 );
-        for ( int i = 0; i < objectNum; i++ ) {
-            executor.addWorker( new CreateObject() );
+        ThreadExecutor executor = new ThreadExecutor(1000 * 60 * 5);
+        for (int i = 0; i < objectNum; i++) {
+            executor.addWorker(new CreateObject());
         }
         executor.run();
         // check result
         checkResults();
         // delete data cs exclude "S3_" + regionName + "_Data_" + new Date()
         // .getYear() + "_1"
-        csNameList.remove( "S3_SYS_Data_"
-                + Calendar.getInstance().get( Calendar.YEAR ) + "_1" );
-        for ( String csName : csNameList ) {
-            RegionUtils.dropCS( csName );
+        csNameList.remove("S3_SYS_Data_" + Calendar.getInstance().get(Calendar.YEAR) + "_1");
+        for (String csName : csNameList) {
+            RegionUtils.dropCS(csName);
         }
         runSuccess = true;
     }
@@ -69,8 +67,8 @@ public class DefaultRegion20405 extends S3TestBase {
     @AfterClass
     private void tearDown() throws Exception {
         try {
-            if ( runSuccess ) {
-                CommLib.clearBucket( s3Client, bucketName );
+            if (runSuccess) {
+                CommLib.clearBucket(s3Client, bucketName);
             }
         } finally {
             s3Client.shutdown();
@@ -78,28 +76,24 @@ public class DefaultRegion20405 extends S3TestBase {
     }
 
     private void checkResults() throws IOException {
-        String prefix = "S3_SYS_Data_"
-                + Calendar.getInstance().get( Calendar.YEAR );
-        csNameList = RegionUtils.listCS( prefix );
-        List< Integer > csNumList = new ArrayList<>();
-        Assert.assertTrue( csNameList.size() > 0, csNameList.toString() );
+        String prefix = "S3_SYS_Data_" + Calendar.getInstance().get(Calendar.YEAR);
+        csNameList = RegionUtils.listCS(prefix);
+        List<Integer> csNumList = new ArrayList<>();
+        Assert.assertTrue(csNameList.size() > 0, csNameList.toString());
         // get dataCS index
-        for ( String csName : csNameList ) {
-            csNumList.add( Integer.parseInt( csName.substring(
-                    csName.lastIndexOf( "_" ) + 1, csName.length() ) ) );
+        for (String csName : csNameList) {
+            csNumList.add(Integer.parseInt(csName.substring(csName.lastIndexOf("_") + 1, csName.length())));
         }
-        Collections.sort( csNumList );
+        Collections.sort(csNumList);
         // 0 < csNum <= dataCSRange
-        Assert.assertTrue( csNumList.get( 0 ) >= 0, csNameList.toString() );
-        Assert.assertTrue( csNumList.get( csNumList.size() - 1 ) <= dataCSRange,
-                csNameList.toString() );
+        Assert.assertTrue(csNumList.get(0) >= 0, csNameList.toString());
+        Assert.assertTrue(csNumList.get(csNumList.size() - 1) <= dataCSRange, csNameList.toString());
         // check object content
-        for ( int i = 1; i <= objectNum; i++ ) {
-            S3Object obj = s3Client.getObject( bucketName, objectNameBase + i );
-            Assert.assertEquals( Md5Utils.md5AsBase64( obj.getObjectContent() ),
-                    Md5Utils.md5AsBase64( String.valueOf( i ).getBytes() ),
-                    "bucketName = " + bucketName + ",objectName = "
-                            + objectNameBase + i );
+        for (int i = 1; i <= objectNum; i++) {
+            S3Object obj = s3Client.getObject(bucketName, objectNameBase + i);
+            Assert.assertEquals(Md5Utils.md5AsBase64(obj.getObjectContent()),
+                    Md5Utils.md5AsBase64(String.valueOf(i).getBytes()),
+                    "bucketName = " + bucketName + ",objectName = " + objectNameBase + i);
         }
     }
 
@@ -109,8 +103,7 @@ public class DefaultRegion20405 extends S3TestBase {
             AmazonS3 s3Client = CommLib.buildS3Client();
             try {
                 int i = counter.getAndDecrement();
-                s3Client.putObject( bucketName, objectNameBase + i,
-                        String.valueOf( i ) );
+                s3Client.putObject(bucketName, objectNameBase + i, String.valueOf(i));
             } finally {
                 s3Client.shutdown();
             }

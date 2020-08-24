@@ -14,7 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 并发增加和删除相同对象 testlink-case: seqDB-16490
+ * @Description: 并发增加和删除相同对象 testlink-case: seqDB-16490
  *
  * @author wangkexin
  * @Date 2019.01.03

@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: remove empty bucket testlink-case: seqDB-15914
+ * @Description: remove empty bucket testlink-case: seqDB-15914
  *
  * @author wangkexin
  * @Date 2018.10.16

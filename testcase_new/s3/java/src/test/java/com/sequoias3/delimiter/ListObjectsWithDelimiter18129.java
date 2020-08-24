@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带prefix、delimiter查询设置continueation-token前后更新分隔符 testlink-case:
+ * @Description: 带prefix、delimiter查询设置continueation-token前后更新分隔符 testlink-case:
  * seqDB-18129
  *
  * @author wangkexin

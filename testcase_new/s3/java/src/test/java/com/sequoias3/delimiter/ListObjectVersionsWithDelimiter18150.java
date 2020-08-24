@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 带prefix、Key-marker和delimiter查询对象版本列表 testlink-case: seqDB-18150
+ * @Description: 带prefix、Key-marker和delimiter查询对象版本列表 testlink-case: seqDB-18150
  *
  * @author wangkexin
  * @Date 2019.04.28

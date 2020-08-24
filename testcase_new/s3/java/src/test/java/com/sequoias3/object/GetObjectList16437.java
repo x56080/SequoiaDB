@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 指定nextContinuationToken匹配记录被删除，查询列表元数据
+ * @Description: 指定nextContinuationToken匹配记录被删除，查询列表元数据
  *
  * @author wangkexin
  * @Date 2018.11.16

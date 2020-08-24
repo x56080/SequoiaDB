@@ -14,7 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 指定vesion查询对象，其中指定key不存在 testlink-case: seqDB-16689
+ * @Description: 指定vesion查询对象，其中指定key不存在 testlink-case: seqDB-16689
  *
  * @author wangkexin
  * @Date 2018.12.10

@@ -26,7 +26,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * test content: 开启版本控制，增加对象，指定headers请求参数 testlink-case: seqDB-16346
+ * @Description: 开启版本控制，增加对象，指定headers请求参数 testlink-case: seqDB-16346
  *
  * @author wangkexin
  * @Date 2018.11.12

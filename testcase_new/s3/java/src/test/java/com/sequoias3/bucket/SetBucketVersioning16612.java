@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 桶版本控制状态切换 testlink-case: seqDB-16612
+ * @Description: 桶版本控制状态切换 testlink-case: seqDB-16612
  *
  * @author wangkexin
  * @Date 2018.11.19

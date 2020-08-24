@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 
 /**
- * test content: 对象已存在，并发更新相同对象 testlink-case: seqDB-16485
+ * @Description: 对象已存在，并发更新相同对象 testlink-case: seqDB-16485
  *
  * @author wangkexin
  * @Date 2018.12.18

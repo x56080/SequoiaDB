@@ -22,7 +22,7 @@ import com.sequoias3.testcommon.TestTools;
 import com.sequoias3.testcommon.s3utils.ObjectUtils;
 
 /**
- * test content: 带前缀prefix查询对象版本列表 testlink-case: seqDB-16390
+ * @Description: 带前缀prefix查询对象版本列表 testlink-case: seqDB-16390
  *
  * @author wangkexin
  * @Date 2018.11.23

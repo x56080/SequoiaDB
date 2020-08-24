@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 并发不同条件查询对象列表 testlink-case: seqDB-18185
+ * @Description: 并发不同条件查询对象列表 testlink-case: seqDB-18185
  *
  * @author wangkexin
  * @Date 2019.05.08

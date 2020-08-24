@@ -18,7 +18,7 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 /**
- * test content: 同时设置新分隔符和旧分隔符 testlink-case: seqDB-18182
+ * @Description: 同时设置新分隔符和旧分隔符 testlink-case: seqDB-18182
  *
  * @author wangkexin
  * @Date 2019.05.08

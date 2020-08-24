@@ -16,7 +16,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 
 /**
- * test content: AbortMultipartUploadRequest接口参数校验 testlink-case: seqDB-18812
+ * @Description: AbortMultipartUploadRequest接口参数校验 testlink-case: seqDB-18812
  *
  * @author wangkexin
  * @Date 2019.8.7

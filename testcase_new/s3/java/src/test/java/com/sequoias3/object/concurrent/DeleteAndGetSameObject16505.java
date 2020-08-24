@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * test content: 开启版本控制，并发删除和获取对象（不指定版本） testlink-case: seqDB-16505
+ * @Description: 开启版本控制，并发删除和获取对象（不指定版本） testlink-case: seqDB-16505
  *
  * @author wangkexin
  * @Date 2019.01.04

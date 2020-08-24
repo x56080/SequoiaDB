@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: 开启分段检测，指定分段长度不正确 testlink-case: seqDB-18706
+ * @Description: 开启分段检测，指定分段长度不正确 testlink-case: seqDB-18706
  *
  * @author wangkexin
  * @Date 2019.7.30

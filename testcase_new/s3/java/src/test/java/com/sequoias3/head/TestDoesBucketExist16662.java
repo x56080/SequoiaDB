@@ -13,7 +13,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: doesBucketExist查询其它用户的桶 testlink-case: seqDB-16662
+ * @Description: doesBucketExist查询其它用户的桶 testlink-case: seqDB-16662
  *
  * @author wangkexin
  * @Date 2018.12.06

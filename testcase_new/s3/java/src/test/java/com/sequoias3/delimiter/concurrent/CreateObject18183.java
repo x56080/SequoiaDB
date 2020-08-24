@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 并发增加相同对象 testlink-case: seqDB-18183
+ * @Description: 并发增加相同对象 testlink-case: seqDB-18183
  *
  * @author wangkexin
  * @Date 2019.05.08

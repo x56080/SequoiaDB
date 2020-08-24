@@ -6,11 +6,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.sequoias3.SequoiaS3;
+import com.sequoias3.exception.SequoiaS3ServiceException;
+import com.sequoias3.model.CreateRegionRequest;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.s3utils.RegionUtils;
-import com.sequoias3.testcommon.s3utils.bean.Region;
 
 /**
  * @Description: seqDB-22093:指定模式配置DataLobPageSize和DataReplSize，创建/更新区域
@@ -26,29 +27,29 @@ public class CuRegion22093 extends S3TestBase {
     private String[] metaclNames = { "metaCL22093", "metaHistroyCL22093" };
     private String[] dataclNames = { "dataCL22093" };
     private AmazonS3 s3Client = null;
+    private SequoiaS3 regionClient = null;
 
     @BeforeClass
     private void setUp() throws Exception {
         s3Client = CommLib.buildS3Client();
-        RegionUtils.createCSAndCL( csNames[ 0 ], metaclNames );
-        RegionUtils.createCSAndCL( csNames[ 1 ], dataclNames );
+        regionClient = CommLib.regionClient();
+        RegionUtils.createCSAndCL(csNames[0], metaclNames);
+        RegionUtils.createCSAndCL(csNames[1], dataclNames);
     }
 
     @Test
     private void test1() throws Exception {
-        Region region = new Region();
-        String metaLocation = csNames[ 0 ] + "." + metaclNames[ 0 ];
-        String metaHisLocation = csNames[ 0 ] + "." + metaclNames[ 1 ];
-        String dataLocation = csNames[ 1 ] + "." + dataclNames[ 0 ];
-        region.withMetaLocation( metaLocation ).withDataLocation( dataLocation )
-                .withMetaHisLocation( metaHisLocation )
-                .withName( regionNameBase + "A" )
-                .withDataLobPageSize( "262144" ).withDataReplSize( "-1" );
+        String metaLocation = csNames[0] + "." + metaclNames[0];
+        String metaHisLocation = csNames[0] + "." + metaclNames[1];
+        String dataLocation = csNames[1] + "." + dataclNames[0];
+        CreateRegionRequest request = new CreateRegionRequest(regionNameBase + "A");
+        request.withMetaLocation(metaLocation).withDataLocation(dataLocation).withMetaHisLocation(metaHisLocation)
+                .withDataLobPageSize(262144).withDataReplSize(-1);
         try {
-            RegionUtils.putRegion( region );
-            Assert.fail( "exp fail but act success!!!" );
-        } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 409 ) {
+            regionClient.createRegion(request);
+            Assert.fail("exp fail but act success!!!");
+        } catch (SequoiaS3ServiceException e) {
+            if (e.getStatusCode() != 409) {
                 throw e;
             }
         }
@@ -58,35 +59,36 @@ public class CuRegion22093 extends S3TestBase {
     @Test
     private void test2() throws Exception {
         String regionName = regionNameBase + "B";
-        Region region = new Region();
-        String metaLocation = csNames[ 0 ] + "." + metaclNames[ 0 ];
-        String metaHisLocation = csNames[ 0 ] + "." + metaclNames[ 1 ];
-        String dataLocation = csNames[ 1 ] + "." + dataclNames[ 0 ];
-        region.withMetaLocation( metaLocation ).withDataLocation( dataLocation )
-                .withMetaHisLocation( metaHisLocation ).withName( regionName );
-        RegionUtils.putRegion( region );
+        String metaLocation = csNames[0] + "." + metaclNames[0];
+        String metaHisLocation = csNames[0] + "." + metaclNames[1];
+        String dataLocation = csNames[1] + "." + dataclNames[0];
+        CreateRegionRequest request = new CreateRegionRequest(regionName);
+        request.withMetaLocation(metaLocation).withDataLocation(dataLocation).withMetaHisLocation(metaHisLocation);
+        regionClient.createRegion(request);
 
         // update region
-        region.withDataLobPageSize( "262144" ).withDataReplSize( "-1" );
+        request.withDataLobPageSize(262144).withDataReplSize(-1);
         try {
-            RegionUtils.putRegion( region );
-            Assert.fail( "exp fail but act success!!!" );
-        } catch ( AmazonS3Exception e ) {
-            if ( e.getStatusCode() != 409 ) {
+            regionClient.createRegion(request);
+            Assert.fail("exp fail but act success!!!");
+        } catch (SequoiaS3ServiceException e) {
+            if (e.getStatusCode() != 409) {
                 throw e;
             }
         }
-        RegionUtils.clearRegion( regionName );
+
+        RegionUtils.clearRegion(regionClient, regionName);
         runSuccess2 = true;
     }
 
     @AfterClass
     private void tearDown() {
-        if ( runSuccess1 && runSuccess2 ) {
-            if ( s3Client != null ) {
+        if (runSuccess1 && runSuccess2) {
+            regionClient.shutdown();
+            if (s3Client != null) {
                 s3Client.shutdown();
             }
-            RegionUtils.dropCS( csNames );
+            RegionUtils.dropCS(csNames);
         }
     }
 }

@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: DeleteObject接口参数校验 testlink-case: seqDB-16483
+ * @Description: DeleteObject接口参数校验 testlink-case: seqDB-16483
  *
  * @author wangkexin
  * @Date 2019.01.08

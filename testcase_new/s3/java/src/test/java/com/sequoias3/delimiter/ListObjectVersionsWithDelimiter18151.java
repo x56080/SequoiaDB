@@ -13,7 +13,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * test content: 带prefix、keyMarker、delimiter和versionIdMarker查询对象版本列表，不匹配prefix
+ * @Description: 带prefix、keyMarker、delimiter和versionIdMarker查询对象版本列表，不匹配prefix
  * testlink-case: seqDB-18151
  *
  * @author wangkexin

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * test content: 不开启版本控制，对象较大，分段上传更新对象 testlink-case: seqDB-18713
+ * @Description: 不开启版本控制，对象较大，分段上传更新对象 testlink-case: seqDB-18713
  *
  * @author wangkexin
  * @Date 2019.8.1

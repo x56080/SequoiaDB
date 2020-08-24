@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * test content: 带分隔符查询桶中对象版本列表，匹配部分记录 testlink-case: seqDB-18139
+ * @Description: 带分隔符查询桶中对象版本列表，匹配部分记录 testlink-case: seqDB-18139
  *
  * @author wangkexin
  * @Date 2019.04.24

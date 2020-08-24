@@ -21,7 +21,7 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * test content: PutObjectRequest接口参数校验 testlink-case: seqDB-16478
+ * @Description: PutObjectRequest接口参数校验 testlink-case: seqDB-16478
  *
  * @author wangkexin
  * @Date 2019.01.07

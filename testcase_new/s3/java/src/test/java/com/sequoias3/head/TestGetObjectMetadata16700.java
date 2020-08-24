@@ -20,7 +20,7 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- * test content: 指定ifUnModifiedSince和ifModifiedSince条件查询对象，不匹配ifUnModifiedSince
+ * @Description: 指定ifUnModifiedSince和ifModifiedSince条件查询对象，不匹配ifUnModifiedSince
  * testlink-case: seqDB-16700
  *
  * @author wangkexin
