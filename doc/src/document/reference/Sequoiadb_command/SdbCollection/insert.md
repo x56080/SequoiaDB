@@ -57,6 +57,11 @@ Collection
 	* 单条插入：直接返回插入记录的“_id”字段的内容。
 	* 批量插入：以数组的方式返回插入记录的“_id”字段的内容。
 
+  当集合包含[自增字段](data_model/auto_increment.md)时，详细结果中还包含 "LastGenerateID" 字段。它返回了插入记录中自动生成的自增字段值。当插入操作生成多个自增字段值时，总是取第一个值，情况如下：
+
+    * 批量插入：只返回第一条记录的自增字段值。
+    * 多个自增字段：只返回第一个自增字段的值。
+
 * 出错抛异常。
 
 ##错误##
@@ -141,4 +146,11 @@ v1.0及以上版本。
 		"InsertedNum": 2,
 		"DuplicatedNum": 0
  	}
+    > db.foo.bar.createAutoIncrement({ Field: "ID" })
+    > db.foo.bar.insert({ a: 1 })
+    {
+        "InsertedNum": 1,
+        "DuplicatedNum": 0,
+        "LastGenerateID": 1
+    }
  	```
