@@ -43,6 +43,7 @@
 
     <test name="reliability_normal" preserve-order="true">
         <packages>
+            <package name="com.sequoiadb.snapshot" />
             <package name="com.sequoiadb.subcl.brokennetwork" />
             <package name="com.sequoiadb.subcl.killnode"></package>
             <package name="com.sequoiadb.subcl.restartnode"></package>
@@ -104,4 +105,3 @@
         </packages>
     </test>
 </suite>
-   

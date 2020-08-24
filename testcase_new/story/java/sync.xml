@@ -32,6 +32,7 @@
     <test name="normal" preserve-order="true">
         <packages>
             <package name="com.sequoiadb.rename"/>
+            <package name="com.sequoiadb.snapshot"/>
         </packages>
     </test>
     
