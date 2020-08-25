@@ -509,14 +509,8 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
    }
    amIInPD = TRUE ;
 
-   // if we run outside engine, _pdLogPath may not be set, in this case we
-   // simply output to screen
-#if defined (_DEBUG) && defined (SDB_ENGINE)
-      ossPrintf ( "%s"OSS_NEWLINE, pData ) ;
-#else
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo( PD_DIAGLOG ).isEnabled() )
-#endif
    {
       rc = pdLogFileWrite ( PD_DIAGLOG, pData ) ;
       if ( rc )

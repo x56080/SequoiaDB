@@ -290,6 +290,7 @@ namespace engine
       pmdSetQuit() ;
       removePIDFile( pidFile ) ;
       krcb->destroy () ;
+      pmdDisableSignalEvent() ;
       PD_LOG ( PDEVENT, "Stop programme, exit code: %d",
                krcb->getShutdownCode() ) ;
       return rc == SDB_OK ? 0 : 1 ;

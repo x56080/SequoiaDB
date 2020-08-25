@@ -355,6 +355,7 @@ namespace engine
          pmdGetStartup().restart( TRUE, rc ) ;
       }
       pmdGetStartup().final() ;
+      pmdDisableSignalEvent() ;
       PD_LOG ( PDEVENT, "Stop sequoiadb, exit code: %d",
                krcb->getShutdownCode() ) ;
       PD_TRACE_EXITRC ( SDB_PMDMSTTHRDMAIN, rc );

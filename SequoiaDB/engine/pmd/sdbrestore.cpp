@@ -273,9 +273,9 @@ namespace engine
                        FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
             rdxString( pEX, PMD_OPTION_SVCNAME, _svcName, sizeof( _svcName ),
                        FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
-            rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE, 
+            rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE,
                          PMD_CFG_CHANGE_FORBIDDEN, FALSE ) ;
-            rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE, 
+            rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE,
                          PMD_CFG_CHANGE_FORBIDDEN, TRUE ) ;
             rdxInt( pEX, RS_INC_ID, _incID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
             rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
@@ -646,6 +646,7 @@ namespace engine
       pmdSetQuit() ;
       krcb->destroy () ;
       pmdGetStartup().final() ;
+      pmdDisableSignalEvent() ;
       PD_LOG ( PDEVENT, "Stop sdbrestore, exit code: %d",
                krcb->getShutdownCode() ) ;
 

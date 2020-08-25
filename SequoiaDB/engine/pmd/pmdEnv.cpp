@@ -427,6 +427,25 @@ namespace engine
 #endif
    }
 
+   INT32 pmdDisableSignalEvent()
+   {
+      INT32     rc = SDB_OK ;
+      ossSigSet sigSet ;
+
+      sigSet.fillSet() ;
+
+      rc = ossRegisterSignalHandle( sigSet, NULL ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDWARNING, "Failed to register signals, rc: %d", rc ) ;
+         // we don't abort the process if any signal handler can't be
+         // installed
+         rc = SDB_OK ;
+      }
+
+      return rc ;
+   }
+
    INT32 pmdEnableSignalEvent( const CHAR *filepath, PMD_ON_QUIT_FUNC pFunc,
                                INT32 *pDelSig )
    {
@@ -616,6 +635,12 @@ namespace engine
       PD_TRACE1 ( SDB_PMDCTRLHND, PD_PACK_INT(ret) ) ;
       PD_TRACE_EXIT ( SDB_PMDCTRLHND ) ;
       return ret ;
+   }
+
+   INT32 pmdDisableSignalEvent()
+   {
+      SetConsoleCtrlHandler( (PHANDLER_ROUTINE)pmdCtrlHandler, FALSE ) ;
+      return SDB_OK ;
    }
 
    INT32 pmdEnableSignalEvent( const CHAR * filepath, PMD_ON_QUIT_FUNC pFunc,

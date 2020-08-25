@@ -190,6 +190,7 @@ namespace engine
    INT32    pmdEnableSignalEvent( const CHAR *filepath,
                                   PMD_ON_QUIT_FUNC pFunc,
                                   INT32 *pDelSig = NULL ) ;
+   INT32    pmdDisableSignalEvent() ;
 
    INT32&   pmdGetSigNum() ;
 

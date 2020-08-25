@@ -288,6 +288,7 @@ namespace seadapter
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy() ;
+      pmdDisableSignalEvent() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;
       procMutex.destroy() ;
