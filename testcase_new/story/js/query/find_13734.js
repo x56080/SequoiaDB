@@ -1,58 +1,34 @@
+/*******************************************************************************
+*@Description : seqDB-13734:query.count/query.size查询，组合skip/limit
+*@Modify List : 2020-08-12   wuyan   Modify
+*******************************************************************************/
+testConf.clName = COMMCLNAME + "_query_cl_13734";
+main( test );
 
-try
+function test (testPara)
 {
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
-}
-
-try
-{
-   var varCS = commCreateCS( db, COMMCSNAME, true, "create CS in the beginning" );
-   var varCL = varCS.createCL( COMMCLNAME, { ReplSize: 0, Compressed: true } );
-} catch( e )
-{
-   println( "createCS or createCL fail" );
-   throw e;
-}
-
-try
-{
-   for( var i = 0; i < 100; i++ )
+   var recsNum = 1000;
+   var rd = new commDataGenerator();
+   var recs = rd.getRecords( recsNum, "int,float,string", ['a', 'b', 'c']);
+   testPara.testCL.insert( recs );
+   
+   //query.limit.count,query.skip.count
+   var count1 = testPara.testCL.find().limit( 10 ).count();
+   var count2 = testPara.testCL.find().skip( recsNum - 1 ).count();
+   if( Number(count1) !== recsNum || Number(count2) !== recsNum )
    {
-      varCL.insert( { a: i } );
+      throw new Error( "query count failed! count1= " + count1 + "\n count2= " + count2  );
    }
-   if( 10 != varCL.find().limit( 10 ).size() )
-      throw -1;
-   if( 100 != varCL.find().limit( 10 ).count() )
-      throw -1;
-   if( 10 != varCL.find().skip( 90 ).size() )
-      throw -1;
-   if( 100 != varCL.find().skip( 90 ).count() )
-      throw -1;
-} catch( e )
-{
-   if( e == -1 )
+   
+   //query.limit.size,query.skip.size
+   var size1 = testPara.testCL.find().limit( 10 ).size();
+   if( size1 !== 10 )
    {
-      println( "find() with limit or skip count/size have error \n" );
-      throw -1;
+      throw new Error( "query.limit.size failed! act size = " + size1  );
    }
-   else
+    var size2 = testPara.testCL.find().skip( recsNum - 1 ).size();
+   if( size2 !== 1 )
    {
-      throw e;
+      throw new Error( "query.skip.size failed! act size = " + size2  );
    }
-
-}
-
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false, "drop cl in the end" );
-}
-catch( e )
-{
-   println( "failed to drop cs, rc= " + e );
-   throw e;
 }

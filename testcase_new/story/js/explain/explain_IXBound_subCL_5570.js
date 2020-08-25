@@ -2,87 +2,35 @@
 *@Description:  seqDB-5570:主子表上使用访问计划，查询条件为空/仅为索引字段/不仅有索引字段_ST.explainAdd.02
 *@Author:  2016/7/11  huangxiaoni
 ************************************************************************/
-main();
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
 
-function main ()
+testConf.clName = COMMCLNAME + "_mcl_5570";
+testConf.clOpt = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", Compressed: true };
+main( test );
+
+function test(testPara)
 {
-   try
-   {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
+   var subCLName = COMMCLNAME + "_scl_5570";
+   var idxName = CHANGEDPREFIX + "_idx";
 
-      var mainCLName = COMMCLNAME + "_mcl_5570";
-      var subCLName = COMMCLNAME + "_scl_5570";
-      var idxName = CHANGEDPREFIX + "_idx";
+   commDropCL( db, COMMCSNAME, subCLName, true, true, "Failed to drop CL in the begin." );
+   commCreateCL( db, COMMCSNAME, subCLName, { ShardingKey: { a: 1 }, ShardingType: "hash",Compressed: true } );
 
-      commDropCL( db, COMMCSNAME, mainCLName, true, true, "Failed to drop CL in the begin." );
-      commDropCL( db, COMMCSNAME, subCLName, true, true, "Failed to drop CL in the begin." );
-
-      var mainCL = createMainCL( COMMCSNAME, mainCLName );
-      createSubCL( COMMCSNAME, subCLName );
-      attachCL( COMMCSNAME, mainCL, subCLName );
-
-      insertRecs( mainCL );
-      createIdx( mainCL, idxName );
-      var rc = explain( mainCL );
-      checkResult( rc );
-
-      cleanCL( subCLName );
-      cleanCL( mainCLName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   attachCLAndInsertRecs( testPara.testCL, subCLName );
+   testPara.testCL.createIndex( idxName, { b: 1 } );
+   var rc = explain( testPara.testCL );
+   checkResult( rc );
 }
 
-function createMainCL ( csName, mainCLName )
+function attachCLAndInsertRecs( dbcl, subCLName )
 {
-   println( "\n---Begin to create MainCL." );
-
-   var options = { ShardingKey: { a: 1 }, IsMainCL: true };
-   var mainCL = commCreateCL( db, csName, mainCLName, options, false,
-      true, "Failed to create mainCL." );
-   return mainCL;
-}
-
-function createSubCL ( csName, subCLName )
-{
-   println( "\n---Begin to create subCL." );
-
-   var options = {
-      ShardingKey: { a: 1 }, ShardingType: "hash",
-      ReplSize: 0, Compressed: true
-   };
-   var subCL = commCreateCL( db, csName, subCLName, options, false,
-      true, "Failed to create subCL." );
-   return subCL;
-}
-
-function attachCL ( csName, mainCL, subCLName )
-{
-   println( "\n---Begin to attach CL." );
-
+   println( "\n---Begin to attach cl,then insert records." );
    var options = { LowBound: { "a": { $minKey: 1 } }, UpBound: { "a": { $maxKey: 1 } } };
-   mainCL.attachCL( csName + "." + subCLName, options );
-}
+   dbcl.attachCL( COMMCSNAME + "." + subCLName, options );
 
-function insertRecs ( cl )
-{
-   println( "\n---Begin to insert records." );
-
-   cl.insert( { a: 1, b: 1, c: 1 } );
-   cl.insert( { a: 2, b: 2, c: 2 } );
-}
-
-function createIdx ( cl, idxName )
-{
-   println( "\n---Begin to create index." );
-
-   cl.createIndex( idxName, { b: 1 } );
+   dbcl.insert( { a: 1, b: 1, c: 1 } );
+   dbcl.insert( { a: 2, b: 2, c: 2 } );
 }
 
 function explain ( cl )

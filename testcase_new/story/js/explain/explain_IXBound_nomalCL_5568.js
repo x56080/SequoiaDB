@@ -2,28 +2,18 @@
 *@Description:  seqDB-5568:普通表上使用访问计划，查询条件为空/仅为索引字段/不仅有索引字段_ST.explainAdd.01
 *@Author:  2016/7/11  huangxiaoni
 ************************************************************************/
-main();
+testConf.clName = COMMCLNAME + "_cl_5568";
+main( test );
 
-function main ()
+function test(testPara)
 {
-   try
-   {
-      var clName = COMMCLNAME + "_5568";
-      var idxName = CHANGEDPREFIX + "_idx";
-
-      var cl = readyCL( clName );
-
-      insertRecs( cl );
-      createIdx( cl, idxName );
-      var rc = explain( cl );
-      checkResult( rc );
-
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   insertRecs( testPara.testCL );
+   
+   var idxName = CHANGEDPREFIX + "_idx";
+   testPara.testCL.createIndex( idxName, { a: 1 } );
+   
+   var rc = explain( testPara.testCL );
+   checkResult( rc );
 }
 
 function insertRecs ( cl )
@@ -33,13 +23,6 @@ function insertRecs ( cl )
    cl.insert( { a: 1, b: 1 } );
    cl.insert( { a: 2, b: 2 } );
    cl.insert( { a: 3, b: 3 } );
-}
-
-function createIdx ( cl, idxName )
-{
-   println( "\n---Begin to create index." );
-
-   cl.createIndex( idxName, { a: 1 } );
 }
 
 function explain ( cl )
@@ -53,7 +36,6 @@ function explain ( cl )
    rc.push( rc0 );
    rc.push( rc1 );
    rc.push( rc2 );
-
    return rc;
 }
 
@@ -95,7 +77,6 @@ function checkResult ( rc )
    var IXBound = JSON.stringify( rc[2]["IXBound"] );
    var NeedMatch = rc[2]["NeedMatch"];
 
-   //var expQuery     = '[{"$and":[{"b":{"$et":2}},{"a":{"$gte":1}}]}]';
    var expQuery = '[{"b":{"$et":2}},{"a":{"$gte":1}}]';
    var expIXBound = '{"a":[[1,{"$decimal":"MAX"}]]}';
    var expNeedMatch = true;

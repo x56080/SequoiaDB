@@ -2,45 +2,28 @@
 *@Description:  seqDB-5569:切分表上使用访问计划，查询条件为空/仅为索引字段/不仅有索引字段_ST.explainAdd.02
 *@Author:  2016/7/11  huangxiaoni
 ************************************************************************/
-main();
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
 
-function main ()
+testConf.useSrcGroup = true;
+testConf.useDstGroup = true;
+testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'range'};
+testConf.clName = COMMCLNAME + "_cl5569";
+main( test );
+
+function test(testPara)
 {
-   try
-   {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
+   insertRecs( testPara.testCL );
+   var idxName = CHANGEDPREFIX + "_idx";
+   testPara.testCL.createIndex( idxName, { b: 1 } );
 
-      var clName = COMMCLNAME + "_5569";
-      var idxName = CHANGEDPREFIX + "_idx";
-
-      var cl = createCL( clName );
-
-      insertRecs( cl );
-      createIdx( cl, idxName );
-      var rc = explain( cl );
-      checkResult( rc );
-
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
-}
-
-function createCL ( clName )
-{
-   println( "\n---Begin to create CL." );
-
-   commDropCL( db, COMMCSNAME, clName, true, true, "Failed to drop CL in the begin." );
-   var options = { ShardingKey: { a: 1 }, ShardingType: "range", ReplSize: 0 };
-   var cl = commCreateCL( db, COMMCSNAME, clName, options, false,
-      true, "Failed to create cl." );
-   return cl;
+   
+   var srcGroupName = testPara.srcGroupName;
+   var dstGroupName = testPara.dstGroupNames[0];
+   testPara.testCL.split( srcGroupName, dstGroupName, 50 );
+   
+   var rc = explain( testPara.testCL );
+   checkResult( rc );   
 }
 
 function insertRecs ( cl )

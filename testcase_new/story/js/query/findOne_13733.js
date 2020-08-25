@@ -1,52 +1,44 @@
 ﻿/*******************************************************************************
-*@Description : 验证findOne
+*@Description : seqDB-13733:findOne简单查询
 *@Modify List : 2014-9-26   xiaojunHu  Init
                 2016-3-17   Ting YU    modify
+                2020-08-12  wuyan      modify
 *******************************************************************************/
-main();
+testConf.clName = COMMCLNAME + "_query_cl_13733";
+main( test );
 
-function main ()
+function test (testPara)
 {
-   try
+   var recs = [{ a: 1 }, { a: 1 }, { a: 2 }];
+   testPara.testCL.insert( recs );
+   
+   println( "---begin to findOne without option" );
+   var rc = testPara.testCL.findOne();
+   var cnt = rc.toArray().length;
+   if( cnt !== 1 )
    {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
-
-      //insert records
-      var clObj = new Collection( csName, clName, { ReplSize: 0 } );
-      var cl = clObj.create();
-      clObj.insertRecs( [{ a: 1 }, { a: 1 }, { a: 2 }] );
-
-      //findOne without option
-      println( "---begin to findOne without option" );
-      var rc = cl.findOne();
-      var cnt = rc.toArray().length;
-      if( cnt !== 1 )
-      {
-         throw buildException( "check", "", "findOne().toArray().length", 1, cnt );
-      }
-
-      //findOne with option
-      println( "---begin to findOne with option" );
-      var rc = cl.findOne( { a: { $lte: 1 } } );
-      var cnt = 0;
-      while( rc.next() )
-      {
-         cnt++;
-         var val = rc.current().toObj().a;
-         if( val !== 1 )
-         {
-            throw buildException( "check record", "", "findOne({a:{$lte:1}).current().toObj().a", 1, val );
-         }
-      }
-      if( cnt !== 1 )
-      {
-         throw buildException( "check count", "", "findOne({a:{$lte:1})", 1, cnt );
-      }
-
+      throw buildException( "check", "", "findOne().toArray().length", 1, cnt );
    }
-   catch( e )
+   rc.close();
+   
+   println( "---begin to findOne with option" );
+   var rc = testPara.testCL.findOne( { a: { $lte: 1 } } );
+   var cnt = 0;
+   while( rc.next() )
    {
-      throw e;
+      cnt++;
+      var val = rc.current().toObj().a;
+      if( val !== 1 )
+      {
+         throw new Error( "query num is  " + val + "\n exp query num is 1" );
+      }
+   }
+   rc.close();
+   
+   if( cnt !== 1 )
+   {
+      throw new Error( "query count is  " + cnt + "\n exp query count is 1" );
    }
 }
+
+   

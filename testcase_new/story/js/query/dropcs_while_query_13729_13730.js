@@ -1,47 +1,36 @@
 ﻿/*******************************************************************************
-*@Description : 1、在同一个session中，未关闭游标时，drop cs，可以删除成功
-                2、在不同的session中，一个session未关闭游标时，另一个session删除cs，会报-147
+*@Description :  seqDB-13729:游标未关闭时，在同一个session中删除cs
+                 seqDB-13730:游标未关闭时，在不同个session中删除cs
 *@Modify List : 2014-9-26   xiaojunHu  Init
                 2016-3-17   Ting YU    modify
 *******************************************************************************/
-main();
 
-function main ()
+testConf.csName = COMMCSNAME + "_query_cs_13729";
+testConf.clName = COMMCLNAME + "_query_cl_13729";
+main( test );
+
+function test (testPara)
 {
-   try
+   var rd = new commDataGenerator();
+   var recs = rd.getRecords( 1000, "string", ['a', 'b', 'c']);
+   testPara.testCL.insert( recs );
+   
+   //cursor not close
+   var rc = testPara.testCL.find();
+   rc.next();
+   var hasDataContext = checkContext();
+
+   //drop cs
+   if( hasDataContext === true )
    {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
-
-      //insert records > 128M
-      var cl = new Collection( csName, clName, { ReplSize: 0 } );
-      cl.create();
-      cl.insert( 1000, "string", ['a', 'b', 'c'] );
-
-      //cursor not close
-      var rc = db.getCS( csName ).getCL( clName ).find();
-      rc.next();
-
-      var hasDataContext = checkContext();
-
-      //drop cs
-      if( hasDataContext === true )
-      {
-         dropcsDiffSession( csName );
-         dropcsSameSession( csName );
-      }
-
-   }
-   catch( e )
-   {
-      throw e;
+      dropcsDiffSession( testConf.csName );
+      dropcsSameSession( testConf.csName );
    }
 }
 
 function checkContext ()
 {
    println( "---begin to check context is exits or not" );
-
    var sp = db.snapshot( SDB_SNAP_CONTEXTS_CURRENT );
    var hasDataContext = false;
    while( sp.next() && hasDataContext === false )
@@ -57,8 +46,7 @@ function checkContext ()
          }
       }
    }
-   println( "-----'DATA' Context = " + hasDataContext );
-
+   println( "---'DATA' Context = " + hasDataContext );
    return hasDataContext;
 }
 
