@@ -4,17 +4,36 @@
 *   2019-11-12 wenjing Wang  Init
 *******************************************************************************/
 
+/*
+入参配置项：
+testConf.skipStandAlone = true;                 跳过独立模式
+testConf.skipOneGroup = true;                   跳过只有一个组的环境
+testConf.skipOneDuplicatePerGroup = true;       跳过每组一个节点的环境
+testConf.useSrcGroup = true;                    存储创建的 cl 所在组
+testConf.useDstGroup = true;                    存储创建的 cl 不在的组
+testConf.csName  = COMMCSNAME + "_xxx";         指定框架创建的 cs 名
+testConf.csOpt = {};                            指定创建的 cs 配置项
+testConf.clName = COMMCLNAME = "_xxx";          指定框架创建的 cl 名
+testConf.clOpt = {};                            指定创建的 cl 配置项
+
+出参：
+function test(testPara) {}
+testPara.groups           获取数据组的信息，没有前置要求，可直接获取
+testPara.testCS           获取创建的 cs，需要指定 testConf.csName
+testPara.testCL           获取创建的 cl，需要指定 testConf.clName
+testPara.srcGroupName     获取创建的 cl 所在组，需要指定 testConf.clName,testConf.clOpt,testConf.useSrcGroup = true
+testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testConf.clName,testConf.clOpt,testConf.useDstGroup = true
+*/
+
 var testConf = {
    skipStandAlone: false, skipOneDuplicatePerGroup: false,
-   skipOneGroup: false, clean: false, message: "", skip: false,
-   useSrcGroup: false, useDstGroup: false
+   skipOneGroup: false, useSrcGroup: false, useDstGroup: false
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
 // e.g. testConf.clName:COMMCLNAME, testConf.clOpt:{AutoSplit:true} } ;
 // e.g. testConf.useSrcGroup:true  返回源组，一般用于创建CL时指定组；设置true后在测试方法中获取源组，如test( arg ){ arg.srcGroupName ...}
 // e.g. testConf.useDstGroup:true  返回目标组，一般用于切分；设置为true返回除源组外的所有组，在测试方法中获取源组，如test( arg ){ arg.dstGroupNames ...}
 
-testConf.clean = CLEANFORFAIL;
 var testPara = {};
 
 var oneGroup = 1;
@@ -29,7 +48,6 @@ function checkEnv ( db, testConf )
    testPara.groups = commGetGroups( db );
    if( testConf.skipOneGroup )
    {
-
       if( testPara.groups.length === oneGroup )
       {
          throw new Error( "one data group" );
@@ -38,11 +56,6 @@ function checkEnv ( db, testConf )
 
    if( testConf.skipOneDuplicatePerGroup )
    {
-      if( testPara.groups === undefined )
-      {
-         testPara.groups = commGetGroups( db );
-      }
-
       for( var i = 0; i < testPara.groups.length; ++i )
       {
          if( testPara.groups[i].length - 1 > nodeNum )
@@ -56,21 +69,6 @@ function checkEnv ( db, testConf )
          throw new Error( "one duplicate per group" );
       }
    }
-}
-
-function createCommonCS ( db )
-{
-   return commCreateCS( db, COMMCSNAME, true );
-}
-
-function createCommonCL ( db )
-{
-   return commCreateCL( db, COMMCSNAME, COMMCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
-}
-
-function createDummyCL ( db )
-{
-   return commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );
 }
 
 function buildDomainContainGroups ()
@@ -165,7 +163,7 @@ function createTestCL ( db, testConf )
    {
       if( testConf.clName !== COMMCLNAME )
       {
-         commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
+         commDropCL( db, testConf.csName, testConf.clName, true, true );
       }
 
       if( testConf.clOpt !== undefined )
@@ -196,7 +194,7 @@ function dropTestCS ( db, testConf )
    {
       commDropCS( db, testConf.csName, true );
 
-      if( testConf.csOpt !== undefined && testConf.csOpt.Domain !== undefined )
+      if( testConf.skipStandAlone !== true && testConf.csOpt !== undefined && testConf.csOpt.Domain !== undefined )
       {
          commDropDomain( db, testConf.csOpt.Domain, true );
       }
@@ -209,37 +207,30 @@ function dropTestCL ( db, testConf )
       testConf.clName !== COMMCLNAME &&
       testConf.csName === COMMCSNAME )
    {
-      commDropCL( db, testConf.csName, testConf.clName, true, true, testConf.message );
+      commDropCL( db, testConf.csName, testConf.clName, true, true );
    }
 }
 
 function commonSetUp ( db, testConf )
 {
    checkEnv( db, testConf );
-   testPara.commonCS = createCommonCS( db );
-   testPara.commonCL = createCommonCL( db );
-   createDummyCL( db );
 
    testPara.testCS = createTestCS( db, testConf );
    testPara.testCL = createTestCL( db, testConf );
 }
 
-function commonTearDown ( db, testConf, isExecSuccess )
+function commonTearDown ( db, testConf )
 {
    if( db !== undefined )
    {
-      if( isExecSuccess || testConf.clean )
-      {
-         dropTestCL( db, testConf );
-         dropTestCS( db, testConf );
-      }
+      dropTestCL( db, testConf );
+      dropTestCS( db, testConf );
       db.close();
    }
 }
 
 function main ()
 {
-   var isExecSuccess = false;
    try
    {
       commonSetUp( db, testConf );
@@ -248,18 +239,13 @@ function main ()
       {
          if( typeof ( arguments[i] ) === "function" )
          {
-            if( testConf.skip === false )
-            {
-               arguments[i]( testPara );
-            }
+            arguments[i]( testPara );
          }
       }
-
-      isExecSuccess = true;
    }
    catch( e )
    {
-      if( e.constructor === Error )
+      if( e instanceof Error )
       {
          if( e.message === "standalone" ||
             e.message === "one data group" ||
@@ -273,6 +259,6 @@ function main ()
    }
    finally
    {
-      commonTearDown( db, testConf, isExecSuccess );
+      commonTearDown( db, testConf );
    }
 }

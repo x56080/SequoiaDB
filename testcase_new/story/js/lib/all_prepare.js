@@ -21,29 +21,26 @@ function createDummyCollection ( db )
       }
       var sourceGroup = dataGroups[0][0]["GroupName"];
       var cl = commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME,
-         { Group: sourceGroup, ShardingKey: { a: 1 }, ShardingType: 'hash', Partition: 4096 },
+         { Group: sourceGroup, ShardingKey: { a: 1 }, ShardingType: 'hash', Partition: 4096, AutoSplit: true },
          true, true, "Create dummy collection" );
-      for( var i = 1; i < dataGroups.length; ++i )
-      {
-         cl.split( sourceGroup, dataGroups[i][0]["GroupName"], 1 );
-      }
    }
 }
 
 function main ( db )
 {
    // 1. check nodes
-   var groups = commGetGroups( db, "", "", false );
-   var errNodes = commCheckBusiness( groups, true );
-   if( errNodes.length == 0 )
-   {
-   }
-   else
-   {
-      println( "Has " + errNodes.length + " nodes in fault before all test-cases: " );
-      commPrint( errNodes );
-   }
-
+   /*  var groups = commGetGroups( db, "", "", false );
+     var errNodes = commCheckBusiness( groups, true );
+     if( errNodes.length == 0 )
+     {
+     }
+     else
+     {
+        println( "Has " + errNodes.length + " nodes in fault before all test-cases: " );
+        commPrint( errNodes );
+     }
+     
+*/
    // 2. drop CHANGEDPREFIX's all collection space
    var cols = commGetCSCL( db, CHANGEDPREFIX );
    for( var i = 0; i < cols.length; ++i )
@@ -58,10 +55,53 @@ function main ( db )
       }
    }
 
+
    // 3. create dummy collection and split to all group
    createDummyCollection( db );
 
    commMakeDir( COORDHOSTNAME, WORKDIR );
+
+   // 4. drop CHANGEDPREFIX backups
+   var backups = commGetBackups( db, CHANGEDPREFIX );
+   for( var j = 0; j < backups.length; ++j )
+   {
+      try
+      {
+         db.removeBackup( { "Name": backups[j] } );
+      }
+      catch( e )
+      {
+         println( "Drop backup " + backups[j] + " failed before test-case: " + e );
+      }
+   }
+
+   // 4. drop CHANGEDPREFIX domain
+   var domains = commGetDomains( db, CHANGEDPREFIX );
+   for( var j = 0; j < domains.length; ++j )
+   {
+      try
+      {
+         db.dropDomain( domains[j] );
+      }
+      catch( e )
+      {
+         println( "Drop domain " + domains[j] + " failed before test-case: " + e );
+      }
+   }
+
+   // 5. drop CHANGEDPREFIX procedure
+   var procedures = commGetProcedures( db, CHANGEDPREFIX );
+   for( var j = 0; j < procedures.length; ++j )
+   {
+      try
+      {
+         db.removeProcedure( procedures[j] );
+      }
+      catch( e )
+      {
+         println( "Drop procedure " + procedures[j] + " failed before test-case: " + e );
+      }
+   }
 }
 
 try

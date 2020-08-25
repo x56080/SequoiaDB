@@ -4,7 +4,7 @@
   2014-2-28 Jianhui Xu  Init
 ***************************************************************************** */
 
-var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+//var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
 function main ( db )
 {
@@ -89,7 +89,7 @@ function main ( db )
 
 try
 {
-   main( db );
+   //  main( db );
 }
 catch( e )
 {

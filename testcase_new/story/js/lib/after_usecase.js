@@ -9,7 +9,7 @@ if( typeof ( RUNRESULT ) == "undefined" )
 {
    RUNRESULT = 0;
 }
-var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+//var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
 function main ( db )
 {
@@ -40,7 +40,7 @@ function main ( db )
 
 try
 {
-   main( db );
+   //  main( db );
 }
 catch( e )
 {
