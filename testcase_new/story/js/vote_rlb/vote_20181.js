@@ -53,7 +53,13 @@ function test()
    println("start to reelect node " + nodeID + " to primary node");
    try
    {
-      db.getRG( groupName1 ).reelect({Seconds: 60, NodeID: parseInt(nodeID)});
+      db.getRG( groupName1 ).reelect({ Seconds: 60, NodeID: parseInt( nodeID ) });
+      var node = db.getRG( groupName1 ).getMaster();
+      var nodeName = node.getHostName() + ":" + node.getServiceName();
+      if( nodeName !== slaveNode2.HostName + ":" + slaveNode2.svcname )
+      {
+         throw new Error( "\nnodeName: " + nodeName + "\nsalveNode2: " + slaveNode2.HostName + ":" + slaveNode2.svcname );
+      }
    }
    catch( e )
    {
@@ -61,13 +67,6 @@ function test()
       {
          throw new Error( e );
       }
-   }
-      
-   var node = db.getRG( groupName1 ).getMaster();
-   var nodeName = node.getHostName() + ":" + node.getServiceName();
-   if( nodeName !== slaveNode2.HostName + ":" + slaveNode2.svcname )
-   {
-      throw new Error( "\nnodeName: " + nodeName + "\nsalveNode2: " + slaveNode2.HostName + ":" + slaveNode2.svcname );
    }
    db.getRG(groupName1).getNode(slaveNode1.HostName, slaveNode1.svcname).start();
    sleep( 14000 );     
