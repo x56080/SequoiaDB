@@ -1170,7 +1170,7 @@
                            "cn": "配置快照",
                            "en": "SDB_SNAP_CONFIGS"
                         },
-                  {
+                        {
                            "id": 1565839362,
                            "file": "SDB_SNAP_SVCTASKS",
                            "cn": "服务任务快照",
@@ -1181,6 +1181,24 @@
                            "file": "SDB_SNAP_SEQUENCES",
                            "cn": "序列快照",
                            "en": "SDB_SNAP_SEQUENCES"
+                        },
+                        {
+                           "id": 1598034944,
+                           "file": "SDB_SNAP_QUERIES",
+                           "cn": "查询快照",
+                           "en": "SDB_SNAP_QUERIES"
+                        },
+                        {
+                           "id": 1598034972,
+                           "file": "SDB_SNAP_LOCKWAITS",
+                           "cn": "锁等待快照",
+                           "en": "SDB_SNAP_LOCKWAITS"
+                        },
+                        {
+                           "id": 1598034986,
+                           "file": "SDB_SNAP_LATCHWAITS",
+                           "cn": "闩锁等待快照",
+                           "en": "SDB_SNAP_LATCHWAITS"
                         }
                      ]
                   },
