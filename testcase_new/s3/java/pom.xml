@@ -17,6 +17,8 @@
       <java.version>1.7</java.version>
         <sdbdriver.version>${sdbdriver}</sdbdriver.version>
         <sdbdriver.dir>${sdbdriverDir}</sdbdriver.dir>
+        <s3client.version>${s3client}</s3client.version>
+        <s3client.dir>${s3clientDir}</s3client.dir>
         <threadexecutor.dir>${threadexecutorDir}</threadexecutor.dir>
       <jsch.version>0.1.54</jsch.version>
         <!-- spring jars -->
@@ -68,6 +70,14 @@
          <version>${sdbdriver.version}</version>
          <scope>system</scope>
          <systemPath>${sdbdriver.dir}/sequoiadb-driver-${sdbdriver.version}.jar</systemPath>
+      </dependency>
+      
+      <dependency>
+         <groupId>com.sequoiadb</groupId>
+         <artifactId>sequoiadbs3</artifactId>
+         <version>${s3client.version}</version>
+         <scope>system</scope>
+         <systemPath>${s3client.dir}/sequoias3-client-${s3client.version}.jar</systemPath>
       </dependency>
      
     <dependency>

@@ -260,9 +260,11 @@
       <attribute name="sdbdriverdir"/>
       <attribute name="eshostname"/>
       <attribute name="essvcname"/>
+      <attribute name="s3client"/>
+      <attribute name="s3clientdir"/>
       <sequential>
          <hostinfo prefix="host" />
-         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DS3HOSTNAME=${host.ADDR4} -DS3SVCNAME=${s3svcname} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX}"/>
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DS3HOSTNAME=${host.ADDR4} -DS3SVCNAME=${s3svcname} -Ds3client=@{s3client} -Ds3clientDir=@{s3clientdir} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX}"/>
          <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
             <arg line="${cmd}" />
