@@ -4,7 +4,7 @@
 @Author: liuxiaoxuan
 @call：fullText、fulltext_rlb、fullText_sync                
 ****************************************************/
-
+import( "../lib/main.js" );
 import( "../lib/basic_operation/sequoiadb.js" );
 
 try
