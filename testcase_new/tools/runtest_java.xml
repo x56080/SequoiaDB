@@ -177,7 +177,7 @@
                   <generatexml filename="${xmlfile}"/>
                </else>
             </if>
-            <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" eshostname="${eshostname}" essvcname="${essvcname}"/>
+            <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}"/>
          </default>
       </switch>
 
