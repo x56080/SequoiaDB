@@ -75,9 +75,17 @@ public class Region {
         return this;
     }
 
+    public String getDataCSShardingType() {
+        return dataCSShardingType;
+    }
+
     public Region withDataCLShardingType( String dataCLShardingType ) {
         this.dataCLShardingType = dataCLShardingType;
         return this;
+    }
+
+    public String getDataCLShardingType() {
+        return dataCLShardingType;
     }
 
     public Region withDataDomain( String dataDomain ) {
@@ -85,9 +93,17 @@ public class Region {
         return this;
     }
 
+    public String getDataDomain() {
+        return dataDomain;
+    }
+
     public Region withDataLobPageSize( String dataLobPageSize ) {
         this.dataLobPageSize = dataLobPageSize;
         return this;
+    }
+
+    public String withDataLobPageSize() {
+        return dataLobPageSize;
     }
 
     public Region withDataReplSize( String dataReplSize ) {
@@ -98,6 +114,10 @@ public class Region {
     public Region withMetaDomain( String metaDomain ) {
         this.metaDomain = metaDomain;
         return this;
+    }
+
+    public String getMetaDomain() {
+        return metaDomain;
     }
 
     public Region withDataLocation( String dataLocation ) {

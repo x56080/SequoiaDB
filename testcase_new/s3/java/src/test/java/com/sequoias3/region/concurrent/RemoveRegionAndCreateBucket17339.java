@@ -16,6 +16,7 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.sequoias3.SequoiaS3;
 import com.sequoias3.common.DataShardingType;
+import com.sequoias3.exception.SequoiaS3ServiceException;
 import com.sequoias3.testcommon.CommLib;
 import com.sequoias3.testcommon.S3TestBase;
 import com.sequoias3.testcommon.S3ThreadBase;
@@ -80,8 +81,8 @@ public class RemoveRegionAndCreateBucket17339 extends S3TestBase {
             }
             checkRemoveRegionResult( false );
         } else if ( createBuckets.isSuccess() && !removeRegion.isSuccess() ) {
-            AmazonS3Exception e = ( AmazonS3Exception ) ( removeRegion
-                    .getExceptions().get( 0 ) );
+            SequoiaS3ServiceException e = ( SequoiaS3ServiceException ) removeRegion
+                    .getExceptions().get( 0 );
             // -312, "RegionNotEmpty"
             if ( e.getStatusCode() != 409 ) {
                 Assert.fail( "remove Region fail:" + e.getErrorMessage()
