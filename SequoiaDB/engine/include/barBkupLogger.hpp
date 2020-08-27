@@ -114,6 +114,11 @@ namespace engine
    #define BAR_MIN_DATAFILE_SIZE                      (32)        // MB
 
    /*
+      Header: global backup defines
+   */
+   const UINT32 BAR_BACKUP_GLOBAL_BKP =               1 ;
+
+   /*
       _barBackupHeader define
    */
    struct _barBackupHeader : public SDBObject
@@ -149,7 +154,8 @@ namespace engine
       UINT64            _thinDataSize ;
       UINT64            _compressDataSize ;
       INT32             _compressionType ;
-      CHAR              _pad[61932] ;
+      UINT32            _global ;
+      CHAR              _pad[61928] ;
 
       _barBackupHeader ()
       {

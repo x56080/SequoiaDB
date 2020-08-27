@@ -420,6 +420,11 @@ namespace engine
       _metaHeader.setPath( _path.c_str() ) ;
       _metaHeader.setName( _backupName.c_str(), NULL ) ;
 
+      if ( _pTransCB->isGlobTransOn() )
+      {
+         _metaHeader._global = BAR_BACKUP_GLOBAL_BKP ;
+      }
+
    done:
       return rc ;
    error:
@@ -3474,6 +3479,10 @@ namespace engine
 
       builder.append( FIELD_NAME_ENSURE_INC,
                       pHeader->_opType == BAR_BACKUP_OP_TYPE_INC ?
+                      true : false ) ;
+
+      builder.append( FIELD_NAME_GLOBAL,
+                      pHeader->_global & BAR_BACKUP_GLOBAL_BKP ?
                       true : false ) ;
 
       // stat info
