@@ -51,6 +51,9 @@ SDB_LIST_SVCTASKS = 14
 SDB_LIST_SEQUENCES = 15
 SDB_LIST_USERS = 16
 SDB_LIST_BACKUPS = 17
+#SDB_LIST_RESERVED1 = 18
+#SDB_LIST_RESERVED2 = 19
+#SDB_LIST_RESERVED3 = 20
 SDB_LIST_CL_IN_DOMAIN = 129
 SDB_LIST_CS_IN_DOMAIN = 130
 
@@ -92,11 +95,11 @@ SDB_SNAP_HEALTH = 12
 SDB_SNAP_CONFIGS = 13
 SDB_SNAP_SVCTASKS = 14
 SDB_SNAP_SEQUENCES = 15
-
-# Open comments after these snapshot type tests are successful.
-#SDB_SNAP_QUERIES = 18
-#SDB_SNAP_LATCHWAITS = 19
-#SDB_SNAP_LOCKWAITS = 20
+#SDB_SNAP_RESERVED1 = 16
+#SDB_SNAP_RESERVED2 = 17
+SDB_SNAP_QUERIES = 18
+SDB_SNAP_LATCHWAITS = 19
+SDB_SNAP_LOCKWAITS = 20
 
 SDB_SNAP_TYPE = [
     SDB_SNAP_CONTEXTS,
@@ -115,9 +118,9 @@ SDB_SNAP_TYPE = [
     SDB_SNAP_CONFIGS,
     SDB_SNAP_SVCTASKS,
     SDB_SNAP_SEQUENCES,
-    #SDB_SNAP_QUERIES,
-    #SDB_SNAP_LATCHWAITS,
-    #SDB_SNAP_LOCKWAITS,
+    SDB_SNAP_QUERIES,
+    SDB_SNAP_LATCHWAITS,
+    SDB_SNAP_LOCKWAITS,
 ]
 
 class client(object):
@@ -555,6 +558,10 @@ class client(object):
                     SDB_SNAP_CONFIGS               : Get node configuration's snapshot
                     SDB_SNAP_SVCTASKS              : Get the snapshot of service tasks
                     SDB_SNAP_SEQUENCES             : Get the snapshot of sequences
+                    SDB_SNAP_QUERIES               : Get the snapshot of queries
+                    SDB_SNAP_LATCHWAITS            : Get the snapshot of latch waits
+                    SDB_SNAP_LOCKWAITS             : Get the snapshot of lock waits
+
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
