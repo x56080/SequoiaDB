@@ -824,6 +824,9 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_CONFIGS
          *      SDBConst.SDB_SNAP_SVCTASKS
          *      SDBConst.SDB_SNAP_SEQUENCES
+         *      SDBConst.SDB_SNAP_QUERIES
+         *      SDBConst.SDB_SNAP_LATCHWAITS
+         *      SDBConst.SDB_SNAP_LOCKWAITS
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -859,6 +862,9 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_CONFIGS
          *      SDBConst.SDB_SNAP_SVCTASKS
          *      SDBConst.SDB_SNAP_SEQUENCES
+         *      SDBConst.SDB_SNAP_QUERIES
+         *      SDBConst.SDB_SNAP_LATCHWAITS
+         *      SDBConst.SDB_SNAP_LOCKWAITS
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -897,6 +903,9 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_CONFIGS
          *      SDBConst.SDB_SNAP_SVCTASKS
          *      SDBConst.SDB_SNAP_SEQUENCES
+         *      SDBConst.SDB_SNAP_QUERIES
+         *      SDBConst.SDB_SNAP_LATCHWAITS
+         *      SDBConst.SDB_SNAP_LOCKWAITS
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -983,6 +992,18 @@ namespace SequoiaDB
                 case SDBConst.SDB_SNAP_SEQUENCES:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
                            SequoiadbConstants.SEQUENCES;
+                    break;
+                case SDBConst.SDB_SNAP_QUERIES:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.QUERIES;
+                    break;
+                case SDBConst.SDB_SNAP_LATCHWAITS:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.LATCHWAITS;
+                    break;
+                case SDBConst.SDB_SNAP_LOCKWAITS:
+                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
+                           SequoiadbConstants.LOCKWAITS;
                     break;
                 default:
                     throw new BaseException("SDB_INVALIDARG");

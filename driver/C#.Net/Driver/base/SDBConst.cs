@@ -62,6 +62,11 @@ namespace SequoiaDB
         public const int SDB_SNAP_CONFIGS          = 13;
         public const int SDB_SNAP_SVCTASKS         = 14;
         public const int SDB_SNAP_SEQUENCES        = 15;
+        //public const int SDB_SNAP_RESERVED1      = 16;
+        //public const int SDB_SNAP_RESERVED2      = 17;
+        public const int SDB_SNAP_QUERIES          = 18;
+        public const int SDB_SNAP_LATCHWAITS       = 19;
+        public const int SDB_SNAP_LOCKWAITS        = 20;
 
         public const int SDB_LIST_CONTEXTS         = 0;
         public const int SDB_LIST_CONTEXTS_CURRENT = 1;
@@ -80,6 +85,9 @@ namespace SequoiaDB
         public const int SDB_LIST_SEQUENCES        = 15;
         public const int SDB_LIST_USERS            = 16;
         public const int SDB_LIST_BACKUPS          = 17;
+        //public const int SDB_LIST_RESERVED1      = 18;
+        //public const int SDB_LIST_RESERVED2      = 19;
+        //public const int SDB_LIST_RESERVED3      = 20;
         public const int SDB_LIST_CL_IN_DOMAIN     = 129;
         public const int SDB_LIST_CS_IN_DOMAIN     = 130;
 
