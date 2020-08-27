@@ -88,6 +88,7 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
 
         // create object on region
         createObjectAndCheckResult();
+        actSuccessTests.getAndIncrement();
     }
 
     @AfterClass
@@ -113,5 +114,4 @@ public class CreateRegionWithSameConf17330 extends S3TestBase {
                 bucketName, key );
         Assert.assertEquals( downfileMd5, TestTools.getMD5( filePath ) );
     }
-
 }
