@@ -1063,6 +1063,38 @@ namespace engine
             }
          }
 
+         // new collection, add to collection list, no need to replay
+         if ( LOG_TYPE_CL_CRT == header->_type )
+         {
+            dpsLogRecord record ;
+            dpsLogRecord::iterator itrName ;
+            rc = record.load( itr ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            itrName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
+            if ( !itrName.valid() )
+            {
+               PD_LOG( PDERROR, "Session[%s]: Failed to find tag "
+                       "fullname", sessionName() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            if ( _addCollection ( itrName.value() ) > 0 )
+            {
+               PD_LOG( PDEVENT, "Session[%s] add new collection [%s] into "
+                       "collection list", sessionName(), itrName.value() ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Session[%s] new collection [%s] is already "
+                       "in collection list", sessionName(), itrName.value() ) ;
+            }
+            goto done ;
+         }
+
          rc = _replayer.replay( header, eduCB() ) ;
          if ( SDB_OK != rc )
          {
@@ -1071,8 +1103,7 @@ namespace engine
             goto error ;
          }
 
-         if ( LOG_TYPE_CL_CRT == header->_type ||
-              LOG_TYPE_CL_TRUNC == header->_type )
+         if ( LOG_TYPE_CL_TRUNC == header->_type )
          {
             dpsLogRecord record ;
             dpsLogRecord::iterator itrName ;
