@@ -61,7 +61,9 @@ namespace engine
                                   const BSONObj &record,
                                   INT32 flags,
                                   pmdEDUCB *cb,
+                                  SDB_DMSCB *dmsCB,
                                   SDB_DPSCB *dpsCB,
+                                  INT16 w,
                                   BOOLEAN mustOID,
                                   BOOLEAN canUnLock,
                                   dmsMBContext *context,
@@ -110,7 +112,7 @@ namespace engine
 
             updator = generateUpdator( record ) ;
             rc = rtnUpdate( clFullName, matcher, updator, hint,
-                            0, cb, &upResult ) ;
+                            0, cb, dmsCB, dpsCB, w, &upResult ) ;
             if ( rc )
             {
                insertResult->setErrInfo( &upResult ) ;
@@ -242,8 +244,8 @@ namespace engine
             BSONObj record ( (const CHAR*)pDataPos ) ;
 
             rc = _rtnInsertRecord( su, pCollectionName, pCollectionShortName,
-                                   record, flags, cb, dpsCB, TRUE, TRUE, NULL,
-                                   -1, pResult ) ;
+                                   record, flags, cb, dmsCB, dpsCB, w, TRUE,
+                                   TRUE, NULL, -1, pResult ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                          "collection [%s], rc: %d", pCollectionName, rc ) ;
 
@@ -342,7 +344,7 @@ namespace engine
          }
 
          rc = _rtnInsertRecord( su, pCollectionName, clShortName, obj, flags,
-                                cb, dpsCB, TRUE, TRUE, NULL, position,
+                                cb, dmsCB, dpsCB, w, TRUE, TRUE, NULL, position,
                                 pResult ) ;
          if ( SDB_OK != rc )
          {
