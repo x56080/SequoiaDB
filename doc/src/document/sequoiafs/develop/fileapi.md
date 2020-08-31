@@ -21,7 +21,7 @@ SequoiaFS 现支持以下文件操作 API：
 
 创建或打开一个文件
 
-* flags 只支持"O_RDONLY"、"O_WRONLY"和"O_CREATE"，填入其他参数则报错
+* flags 支持"O_RDONLY"、"O_WRONLY"、"O_RDWR"和"O_CREATE"
 * mode 缺省，则默认值为 644
 
 **close(int fd)**
