@@ -3905,8 +3905,8 @@ namespace engine
                                          &newMatch, NULL,
                                          &oldShardingKey, &newShardingKey ) ;
                   // obj and newobj's life cycle is too short to log dps.
-                  oldChg = obj.copy() ;
-                  newChg = newobj.copy() ;
+                  oldChg = obj.getOwned() ;
+                  newChg = newobj.getOwned() ;
                   // others write tag DPS_LOG_UPDATE_WRITEMOD
                   pWriteMod = &writeMod ;
                }

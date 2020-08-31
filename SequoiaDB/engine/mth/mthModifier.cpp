@@ -1558,14 +1558,14 @@ namespace engine
                                        INT32 beginPos, INT32 endPos,
                                        const BSONObj &arr )
    {
+      _hasModified = TRUE ;
+
       if ( !builder )
       {
          return ;
       }
 
       SDB_ASSERT( beginPos >= 0, "beginPos must >= 0" ) ;
-
-      _hasModified = TRUE ;
 
       if ( beginPos <= 10 && endPos < 0 )
       {
@@ -1629,14 +1629,14 @@ namespace engine
    void _mthModifier::_buildSetArray ( Builder *builder, const CHAR *pRoot,
                                        INT32 beginPos, const BSONObj &arr )
    {
+      _hasModified = TRUE ;
+
       if ( !builder )
       {
          return ;
       }
 
       SDB_ASSERT( beginPos >= 0, "beginPos must >= 0" ) ;
-
-      _hasModified = TRUE ;
 
       if ( beginPos == 0 )
       {
@@ -1657,14 +1657,14 @@ namespace engine
    void _mthModifier::_buildSetArray ( Builder *builder, const CHAR *pRoot,
                                        INT32 beginPos, const BSONElement &ele )
    {
+      _hasModified = TRUE ;
+
       if ( !builder )
       {
          return ;
       }
 
       SDB_ASSERT( beginPos >= 0, "beginPos must >= 0" ) ;
-
-      _hasModified = TRUE ;
 
       if ( beginPos == 0 )
       {
@@ -3148,15 +3148,18 @@ namespace engine
       {
          const CHAR *pDotR = ossStrrchr( *ppRoot, '.' ) ;
          UINT32 pos = pDotR ? ( pDotR - *ppRoot + 1 ) : 0 ;
-         string newNameStr( *ppRoot, pos ) ;
-         newNameStr += me->_toModify.valuestr() ;
+         _utilString<> newNameStr ;
+         
+         newNameStr.append( *ppRoot, pos ) ;
+         newNameStr.append( me->_toModify.valuestr(),
+                            ossStrlen( me->_toModify.valuestr() ) ) ;
 
          ADD_CHG_ELEMENT_AS ( _srcChgBuilder, e, *ppRoot, "$set" ) ;
-         ADD_CHG_UNSET_FIELD ( _srcChgBuilder, newNameStr ) ;
+         ADD_CHG_UNSET_FIELD ( _srcChgBuilder, newNameStr.str() ) ;
 
          //for the new obj,should unset the old, and set the new
          ADD_CHG_UNSET_FIELD ( _dstChgBuilder, *ppRoot ) ;
-         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, e, newNameStr, "$set" ) ;
+         ADD_CHG_ELEMENT_AS ( _dstChgBuilder, e, newNameStr.str(), "$set" ) ;
 
          b.appendAs ( e, me->_toModify.valuestr() ) ;
          break ;
