@@ -1,3 +1,4 @@
+import("../lib/main.js")
 /*******************************************************************************
 @Description : Query common functions
 @Modify list :
