@@ -536,6 +536,8 @@
 #define FIELD_NAME_TRANS_GLOBLOWTRAN         "GlobLowTran"
 #define FIELD_NAME_TRANS_EXPTRAN             "ExpireTran"
 #define FIELD_NAME_TRANS_GLOBEXPTRAN         "GlobExpireTran"
+#define FIELD_NAME_TRANS_MAX_COMMIT_TIME     "MaxTransCommitTime"
+#define FIELD_NAME_TRANS_MIN_RECOVER_TIME    "MinRecoverableTime"
 #define FIELD_NAME_STP_AVAILABLE             "STPAvailable"
 #define FIELD_NAME_LAST_GENERATE_ID          "LastGenerateID"
 #define FIELD_NAME_INSERT_NUM                "InsertedNum"

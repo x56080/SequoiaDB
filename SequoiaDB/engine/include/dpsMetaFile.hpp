@@ -86,6 +86,10 @@ namespace engine
 
    #define DPS_INVALID_FILE_SN               ( (UINT32)~0 )
 
+   #define DPS_METAFILE_PADDING_SIZE         ( DPS_METAFILE_CONTENT_LEN - \
+                                               48 - \
+                                               sizeof( dpsLogSummary ) )
+
    /*
       _dpsMetaFileContent define
    */
@@ -100,8 +104,8 @@ namespace engine
       DPS_LSN_VER    _memBeginLsnVer ;
       UINT32         _reserved ;
       DPS_LSN_OFFSET _memBeginLsnOffset ;
-      // 48 == sizeof(_dpsMetaFileContent)
-      CHAR           _padding [ DPS_METAFILE_CONTENT_LEN - 48 ] ;
+      dpsLogSummary  _summary ;
+      CHAR           _padding [ DPS_METAFILE_PADDING_SIZE ] ;
 
       _dpsMetaFileContent ( DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET )
       {
@@ -124,6 +128,7 @@ namespace engine
          _curLsnOffset     = DPS_INVALID_LSN_OFFSET ;
          _memBeginLsnVer   = DPS_INVALID_LSN_VERSION ;
          _memBeginLsnOffset= DPS_INVALID_LSN_OFFSET ;
+         _summary.reset() ;
       }
 
       void  reset()
@@ -176,10 +181,17 @@ namespace engine
 
       INT32 invalidateStatus() ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
+      INT32 writeTransMeta( DPS_LSN_OFFSET offset,
+                            const dpsLogSummary &summary ) ;
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;
       BOOLEAN        hasInvalidateStatus() const { return _invalidateStatus ; }
+
+      const dpsLogSummary &getCacheSummary() const
+      {
+         return _content._summary ;
+      }
 
       dpsMetaFileContent  getContent() const { return _content ; }
 

@@ -546,6 +546,14 @@ namespace engine
          goto done;
       }
 
+      if ( NULL == info.getEDUCB() ||
+           !info.getEDUCB()->getTransID().isGlobTrans() ||
+           !info.isTransEnabled() )
+      {
+         // for non-global transaction operators, set irreversible
+         info.setIrreversible() ;
+      }
+
       rc = _buf.preparePages( info ) ;
       if ( rc )
       {

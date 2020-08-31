@@ -148,7 +148,7 @@ TEST( dpsGTSTest, arbitTrans_2 )
    recHistInfo._beginTime.setTime( 10000 ) ;
    recHistInfo._preCommitTime.setTime( 15000 ) ;
 
-   transCB.addHisTrans( recTransID, recHistInfo ) ;
+   transCB.addHisTrans( recTransID, recHistInfo, FALSE ) ;
 
    // check visibility
    rc = transCB.isVersionVisible( &eduCB, recTransID, transID,

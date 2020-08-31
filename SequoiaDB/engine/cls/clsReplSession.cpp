@@ -424,7 +424,9 @@ namespace engine
       {
          if ( sdbGetTransCB()->isNeedSyncTrans() )
          {
-            sdbGetTransCB()->syncTransInfoFromLocal( msg->oldestTransLsn ) ;
+            sdbGetTransCB()->syncTransInfoFromLocal( msg->oldestTransLsn,
+                                                     DPS_INVALID_TRANS_TIME,
+                                                     DPS_INVALID_TRANS_TIME ) ;
             sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
          }
       }
@@ -670,7 +672,9 @@ namespace engine
            sdbGetTransCB()->isNeedSyncTrans() )
       {
          DPS_LSN beginLsn = _logger->getStartLsn() ;
-         sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset ) ;
+         sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset,
+                                                  DPS_INVALID_TRANS_TIME,
+                                                  DPS_INVALID_TRANS_TIME ) ;
          sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
       }
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN_HNDSSTRES ) ;

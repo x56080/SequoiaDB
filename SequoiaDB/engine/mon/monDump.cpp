@@ -314,6 +314,7 @@ namespace engine
             DPS_TRANSID_SN lowTran = DPS_INVALID_TRANSID_SN ;
             DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
             DPS_TRANSID_SN treeLowTran = DPS_INVALID_TRANSID_SN ;
+            dpsLogSummary logSummary ;
             CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             SINT64 treeSizeHWM = 0 ;
 
@@ -326,6 +327,7 @@ namespace engine
                globExpireTran = transCB->getGlobExpireTran().getGlobSN() ;
                lowTran = transCB->getLocalLowTran().getGlobSN() ;
                expireTran = transCB->getLocalExpireTran().getGlobSN() ;
+               transCB->dumpLogSummary( FALSE, logSummary ) ;
                if ( NULL != transCB->getOldVCB() )
                {
                   treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
@@ -361,6 +363,12 @@ namespace engine
             // tree min lowTran
             dpsTransSNToHEXString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
             subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
+
+            // restore PIT window
+            subTrans.append( FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+                             (INT64)( logSummary._minRecoverableTime ) ) ;
+            subTrans.append( FIELD_NAME_TRANS_MAX_COMMIT_TIME,
+                             (INT64)( logSummary._maxTransCommitTime ) ) ;
 
             // tree size High water mark
             subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;

@@ -131,14 +131,34 @@ namespace engine
          {
             _transEnabled = TRUE ;
          }
+
+         void setIrreversible()
+         {
+            _irreversible = TRUE ;
+         }
+
+         void setTransTime( UINT64 transTime )
+         {
+            _transTime = transTime ;
+         }
+
+         BOOLEAN hasTransTime() const
+         {
+            return ( DPS_INVALID_TRANS_TIME != _transTime ) ? TRUE : FALSE ;
+         }
+
          void resetInfoEx()
-         { 
+         {
             _needNty = FALSE ;
             _transEnabled = FALSE ;
+            _irreversible = FALSE ;
+            _transTime = DPS_INVALID_TRANS_TIME ;
             _pCB     = NULL ;
          }
          BOOLEAN isNeedNotify() const { return _needNty ; }
          BOOLEAN isTransEnabled() const { return _transEnabled ; }
+         BOOLEAN isIrreversible() const { return _irreversible ; }
+         UINT64  getTransTime() const { return _transTime ; }
          UINT32  getCSLID() const { return _csLID ; }
          UINT32  getCLLID() const { return _clLID ; }
          dmsExtentID getExtentLID() const { return _extLID ; }
@@ -155,6 +175,13 @@ namespace engine
          dmsExtentID          _extLID ;
          BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
+         // indicate this record is irreversible when rolling back during
+         // restore PIT
+         // NOTE: currently, only operators in global transactions are
+         // reversible during restore PIT
+         BOOLEAN              _irreversible ;
+         // transaction time with this record
+         UINT64               _transTime ;
          IExecutor            *_pCB ;
 
    } ;

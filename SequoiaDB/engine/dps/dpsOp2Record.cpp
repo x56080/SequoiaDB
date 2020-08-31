@@ -2968,7 +2968,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to load record, rc: %d", rc ) ;
 
       rc = dpsGetTransIDFromRecord( record, transID ) ;
-      PD_RC_CHECK( rc, PDDEBUG, "Failed to get transaction ID, rc: %d", rc ) ;
+      if ( SDB_OK != rc )
+      {
+         // keep quiet, caller should check error if needed
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC, rc ) ;

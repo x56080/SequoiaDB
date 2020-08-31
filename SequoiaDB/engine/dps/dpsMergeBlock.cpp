@@ -76,6 +76,8 @@ namespace engine
       _extLID  = DMS_INVALID_EXTENT ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
+      _irreversible = FALSE ;
+      _transTime = DPS_INVALID_TRANS_TIME ;
    }
 
    _dpsMergeInfo::_dpsMergeInfo( dpsMergeBlock &block )
@@ -87,6 +89,8 @@ namespace engine
       _extLID  = DMS_INVALID_EXTENT ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
+      _irreversible = FALSE ;
+      _transTime = DPS_INVALID_TRANS_TIME ;
    }
 
    _dpsMergeInfo::~_dpsMergeInfo ()

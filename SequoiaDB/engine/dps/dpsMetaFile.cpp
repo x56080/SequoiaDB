@@ -317,6 +317,15 @@ namespace engine
    INT32 _dpsMetaFile::writeOldestLSNOffset( DPS_LSN_OFFSET offset )
    {
       _content._oldestLSNOffset = offset ;
+      _content._summary.reset() ;
+      return writeContent() ;
+   }
+
+   INT32 _dpsMetaFile::writeTransMeta( DPS_LSN_OFFSET offset,
+                                       const dpsLogSummary &summary )
+   {
+      _content._oldestLSNOffset = offset ;
+      _content._summary = summary ;
       return writeContent() ;
    }
 

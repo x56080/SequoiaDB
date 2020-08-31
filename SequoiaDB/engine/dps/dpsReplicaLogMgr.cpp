@@ -505,8 +505,33 @@ namespace engine
          _lsn.version = head._version ;
       }
 
+      if ( head._lsn % logFileSz == 0 )
+      {
+         // record will be saved in a new log file, save snapshot of
+         // transaction information into next file's header
+         // NOTE: the next file ( file to store current log record ) will be
+         // write later in asynchronous, so we only save the summary in cache
+         // of the file, then the write processing of log file will save into
+         // disk from cache
+         dpsLogSummary summary ;
+         UINT32 fileID = head._lsn / logFileSz ;
+         _transCB->dumpLogSummary( TRUE, summary ) ;
+         _logger.updateCachedSummary( fileID, summary ) ;
+      }
+
       // Update the max LR size as needed. Protected under _writeMutex
       _transCB->updateMaxLRSize( head._length, _lsn.offset ) ;
+      if ( info.hasTransTime() )
+      {
+         // there is transaction time with the log, update the restore PIT
+         // window
+         _transCB->updateRestorePITWindow( info.getTransTime() ) ;
+      }
+      else if ( info.isIrreversible() )
+      {
+         // the log is irreversible, reset the restore PIT window
+         _transCB->resetRestorePITWindow() ;
+      }
 
       // change global metadata
       _currentLsn = _lsn ;
@@ -561,11 +586,13 @@ namespace engine
             dpsLogRecord newRecord ;
             newRecord = info.getMergeBlock().record() ;
             newRecord.loadRowBody() ;
-            _transCB->saveTransInfoFromLog( newRecord ) ;
+            _transCB->saveTransInfoFromLog( newRecord, TRUE ) ;
          }
          else
          {
-            _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
+            // already handled with outside caller
+            _transCB->saveTransInfoFromLog( info.getMergeBlock().record(),
+                                            FALSE ) ;
          }
       }
 
@@ -1369,7 +1396,7 @@ namespace engine
          // same as _pageFlushCount % 0x4000 == 0
          if ( ( _pageFlushCount & 0x3FFF ) == 0 )
          {
-            _flushOldestTransBeginLSN() ;
+            _flushTransMeta() ;
          }
 
          rc = _flushPage ( page ) ;
@@ -1387,15 +1414,17 @@ namespace engine
       goto done ;
    }
 
-   void _dpsReplicaLogMgr::_flushOldestTransBeginLSN()
+   void _dpsReplicaLogMgr::_flushTransMeta()
    {
       if ( NULL != _transCB )
       {
          DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
+         dpsLogSummary summary ;
+         _transCB->dumpLogSummary( FALSE, summary ) ;
          if ( DPS_INVALID_LSN_OFFSET != offset )
          {
             // offset is valid, just save offset.
-            _metaFile.writeOldestLSNOffset( offset ) ;
+            _metaFile.writeTransMeta( offset, summary ) ;
          }
          else
          {
@@ -1404,7 +1433,7 @@ namespace engine
             // in this case we can safely save _pageFlushedBeginLSN.offset.
             if ( !_pageFlushedBeginLSN.invalid() )
             {
-               _metaFile.writeOldestLSNOffset( _pageFlushedBeginLSN.offset ) ;
+               _metaFile.writeTransMeta( offset, summary ) ;
             }
          }
       }
@@ -1666,5 +1695,49 @@ namespace engine
    error:
       goto done ;
    }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_GETCURRENTSUMMARY, "_dpsReplicaLogMgr::getCurrentSummary" )
+   INT32 _dpsReplicaLogMgr::getCurrentSummary( DPS_LSN_OFFSET offset,
+                                               dpsLogSummary &summary,
+                                               BOOLEAN &isValid )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSRPCMGR_GETCURRENTSUMMARY ) ;
+
+      UINT32 logicalFileID = DPS_INVALID_LOG_FILE_ID ;
+
+      if ( 0LL == offset )
+      {
+         // first LSN of all, summary is invalid
+         summary.reset() ;
+         isValid = TRUE ;
+         goto done ;
+      }
+      else if ( 0 == offset % _logger.getLogFileSz() )
+      {
+         // first LSN of log file ( which exactly the end of the previous
+         // log file ), look for summary saved in this file
+         logicalFileID = offset / _logger.getLogFileSz() ;
+      }
+      else
+      {
+         // look for summary saved in the next file
+         logicalFileID = offset / _logger.getLogFileSz() + 1 ;
+      }
+
+      // get summary from log file
+      rc = _logger.getSummary( logicalFileID, summary, isValid ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get summary for file [%u], rc: %d",
+                   logicalFileID, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSRPCMGR_GETCURRENTSUMMARY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }
 

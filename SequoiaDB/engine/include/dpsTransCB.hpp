@@ -626,6 +626,101 @@ namespace engine
          _maxReadTran.swapGreaterThan( readTime ) ;
       }
 
+      // get restore PIT window
+      // output :
+      // - minTime: minimum global logical time ( in microseconds ) to restore
+      // - maxTime: maximum global logical time ( in microseconds ) to restore
+      // return :
+      // - SDB_OK: succeed
+      // NOTE:
+      // - currently, the restore PIT window is
+      //   [ minRecoverableTime, maxTransCommitTime ]
+      INT32 getRestorePITWindow( UINT64 &minTime, UINT64 &maxTime ) ;
+
+      // get max transaction commit time before given LSN
+      // input:
+      // - lsn: given LSN to get max transaction commit time before
+      // output:
+      // - maxTime: max transaction commit time before given LSN
+      // return :
+      // - SDB_OK: succeed
+      // - SDB_DPS_LSN_OUTOFRANGE: given LSN could not been found in log files
+      // NOTE: this commit time is calculate from log summary
+      INT32 getMaxCommitTimeBefore( DPS_LSN_OFFSET lsn, UINT64 &maxTime ) ;
+
+      // set minimum recoverable time
+      OSS_INLINE void setMinRecoverableTime( UINT64 minRecoverableTime )
+      {
+         ossAtomicExchangePtr( &_minRecoverableTime, minRecoverableTime ) ;
+      }
+
+      // set maximum transaction commit time
+      OSS_INLINE void setMaxTransCommitTime( UINT64 maxTransCommitTime )
+      {
+         ossAtomicExchangePtr( &_maxTransCommitTime, maxTransCommitTime ) ;
+      }
+
+      // dump transaction information into log summary
+      // - dump minimum recoverable time
+      // - dump maximum transaction time
+      // input:
+      // - inLock: whether call this function under protection of log lock
+      //           ( write mutex of DPS log )
+      // output:
+      // - summary: log summary to dump transaction information
+      OSS_INLINE void dumpLogSummary( BOOLEAN inLock,
+                                      dpsLogSummary &summary )
+      {
+         if ( inLock )
+         {
+            // in lock, no need to use atomic fetch
+            summary._minRecoverableTime = _minRecoverableTime ;
+            summary._maxTransCommitTime = _maxTransCommitTime ;
+         }
+         else
+         {
+            // not in lock, use atomic fetch
+            summary._minRecoverableTime =
+                  ossAtomicFetch64( &_minRecoverableTime ) ;
+            summary._maxTransCommitTime =
+                  ossAtomicFetch64( &_maxTransCommitTime ) ;
+         }
+      }
+
+      // update restore PIT window
+      // - update minimum recoverable time if needed
+      // - update maximum transaction commit time
+      OSS_INLINE void updateRestorePITWindow( UINT64 transTime )
+      {
+         // if minimum recoverable time is invalid, set to given time
+         if ( DPS_INVALID_TRANSID_SN == _minRecoverableTime )
+         {
+            _minRecoverableTime = transTime ;
+         }
+         // if maximum transaction commit time is smaller than given time,
+         // set to given time
+         if ( _maxTransCommitTime < transTime ||
+              DPS_INVALID_TRANSID_SN == _maxTransCommitTime )
+         {
+            _maxTransCommitTime = transTime ;
+         }
+      }
+
+      // reset restore PIT window to invalid values
+      OSS_INLINE void resetRestorePITWindow()
+      {
+         // reset to invalid values
+         _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
+         _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
+      }
+
+      // rollback restore PIT window to given transaction time
+      OSS_INLINE void rollbackRestorePITWindow( UINT64 transTime )
+      {
+         _minRecoverableTime = transTime ;
+         _maxTransCommitTime = transTime ;
+      }
+
       OSS_INLINE ossEvent *getUpdateLowTranEvent()
       {
          return &( _updateLowTranEvent ) ;
@@ -676,6 +771,7 @@ namespace engine
       //    - lsnOffset: last LSN offset of transaction
       //    - status: status of transaction
       //    - transTime: begin time or commit time of transaction
+      //    - checkRstPITWindow: whether to check restore PIT window
       // WARNING: this should be only called in callback of DPS logger
       //          these inputs should be only parsed from DPS record
       //          the DPS record could be replayed or rollbacked multiple
@@ -684,7 +780,8 @@ namespace engine
       void updateTransInfo( const DPS_TRANS_ID &transID,
                             DPS_LSN_OFFSET lsnOffset,
                             INT32 status,
-                            const stpLogicalTimeUS &transTime ) ;
+                            const stpLogicalTimeUS &transTime,
+                            BOOLEAN checkRstPITWindow ) ;
       // update transaction info with given transaction ID
       // output:
       //    - transInfo: transaction info to be updated
@@ -717,14 +814,16 @@ namespace engine
       void     cloneTransMap( TRANS_DUMP_MAP &result ) ;
 
       void     addHisTrans( const DPS_TRANS_ID &transID,
-                            const dpsHisTransStatus &histInfo ) ;
+                            const dpsHisTransStatus &histInfo,
+                            BOOLEAN checkRstPITWindow ) ;
       void     delHisTrans( const DPS_TRANS_ID &transID ) ;
       void     clearHisTrans() ;
       void     clearOutDateHisTrans( DPS_LSN_OFFSET lsn ) ;
 
       void     clearTransInfo() ;
 
-      void     saveTransInfoFromLog( const dpsLogRecord &record ) ;
+      void     saveTransInfoFromLog( const dpsLogRecord &record,
+                                     BOOLEAN checkRstPITWindow ) ;
       // rollback transaction info to expect LSN ( generally it is older than
       // replayer's completed LSN )
       INT32    rollbackTransInfoFromLog( _dpsLogWrapper *dpsCB,
@@ -741,7 +840,9 @@ namespace engine
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;
 
-      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn ) ;
+      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
+                                    UINT64 minRecoverableTime,
+                                    UINT64 maxTransCommitTime ) ;
 
       // get record-X-lock: also get the space-IS-lock and collection-IX-lock
       // get collection-X-lock: also get the space-IX-lock
@@ -930,6 +1031,9 @@ namespace engine
       // initialize transaction maps
       void _initTransMaps() ;
 
+      // initialize transaction info from DPS
+      INT32 _initFromDPS() ;
+
       // get global lowTran with a given time error as offset
       // return:
       //    - DPS_INVALID_TRANSID_SN: global lowTran is invalid
@@ -1117,22 +1221,22 @@ namespace engine
 
       // minimum logical time to accept global transactions
       // NOTE: set to logical time of this node to become primary
-      ossAtomic64          _primaryActiveTime ;
+      DPS_TRANSID_SN_ATOMIC _primaryActiveTime ;
 
       // global lowTran ( global minimum running transaction )
       // NOTE: only save timestamp SN and global tag )
-      ossAtomic64          _globLowTran ;
+      DPS_TRANSID_SN_ATOMIC _globLowTran ;
 
       // global expireTran ( global maximum expired transaction )
       // NOTE: only save timestamp SN and global tag )
-      ossAtomic64          _globExpireTran ;
+      DPS_TRANSID_SN_ATOMIC _globExpireTran ;
 
       // archived lowTran from cb map
       // NOTE:
       // - cb map might be cleared, so keep an archived value for lowTran
       // - archived lowTran is the largest finished transaction ID
       // - if cb map is empty, archived lowTran will be the local lowTran
-      ossAtomic64          _archivedLowTran ;
+      DPS_TRANSID_SN_ATOMIC _archivedLowTran ;
 
       // upper bound of max read transaction ID ( with time error )
       // NOTE:
@@ -1141,7 +1245,26 @@ namespace engine
       // - maxReadTran is used to check pre-commit time of write transactions
       //   which should be delayed by running read transactions ( which is
       //   indicates by maxReadTran )
-      ossAtomic64          _maxReadTran ;
+      DPS_TRANSID_SN_ATOMIC _maxReadTran ;
+
+      // maximum commit time of global transactions in this node
+      // NOTE:
+      // - only for write transactions
+      // - no need to be atomic
+      //   - for primary node, it is protected by mutex of log writer
+      //   - for secondary node or restore mode, it is updated by main thread
+      //     of log replayer
+      UINT64               _maxTransCommitTime ;
+
+      // minimum recoverable time in this node
+      // NOTE:
+      // - affected by irreversible operators ( DDL operators, e.g. drop,
+      //   truncate, etc )
+      // - no need to be atomic
+      //   - for primary node, it is protected by mutex of log writer
+      //   - for secondary node or restore mode, it is updated by main thread
+      //     of log replayer
+      UINT64               _minRecoverableTime ;
 
       // update event to notify lowTran job to update global lowTran
       ossEvent             _updateLowTranEvent ;

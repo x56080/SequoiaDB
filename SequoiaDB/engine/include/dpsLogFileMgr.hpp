@@ -140,6 +140,17 @@ namespace engine
 
       INT32 sync() ;
 
+      INT32 getWorkSummary( dpsLogSummary &summary, BOOLEAN &isValid )
+      {
+         return getSummary( _logicalWork, summary, isValid ) ;
+      }
+
+      INT32 getSummary( UINT32 logicalFileID,
+                        dpsLogSummary &summary,
+                        BOOLEAN &isValid ) ;
+      void updateCachedSummary( UINT32 logicalFileID,
+                                const dpsLogSummary &summary ) ;
+
    protected:
       void     _analysis ( const dpsMetaFileContent &content,
                            BOOLEAN &needRetry ) ;

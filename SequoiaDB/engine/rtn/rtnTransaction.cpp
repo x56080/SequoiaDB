@@ -484,6 +484,7 @@ namespace engine
 
       info.setInfoEx( ~0, DMS_INVALID_CLID, DMS_INVALID_EXTENT, cb ) ;
       info.enableTrans() ;
+      info.setTransTime( commitTime.getTime() ) ;
       rc = dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                    "log(rc=%d)", rc ) ;

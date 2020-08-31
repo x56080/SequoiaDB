@@ -3043,7 +3043,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to load logRecord, lsn[%d,%lld], "
                          "type: %d, rc: %d", pHeader->_version, pHeader->_lsn,
                          pHeader->_type, rc ) ;
-            _pTransCB->saveTransInfoFromLog( record ) ;
+            _pTransCB->saveTransInfoFromLog( record, TRUE ) ;
          }
 
          pLogIndex += pHeader->_length ;

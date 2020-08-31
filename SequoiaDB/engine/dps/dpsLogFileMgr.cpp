@@ -299,7 +299,8 @@ namespace engine
          {
             _files[tmpWork]->reset( DPS_INVALID_LOG_FILE_ID,
                                     DPS_INVALID_LSN_OFFSET,
-                                    DPS_INVALID_LSN_VERSION ) ;
+                                    DPS_INVALID_LSN_VERSION,
+                                    FALSE ) ;
          }
          tmpWork = _incFileID( tmpWork ) ;
          ++i ;
@@ -377,7 +378,8 @@ namespace engine
       if ( pWork->getIdleSize() == 0 ||
            pWork->getIdleSize() == pWork->size() )
       {
-         pWork->reset( _logicalWork, beginLsn.offset, beginLsn.version ) ;
+         pWork->reset( _logicalWork, beginLsn.offset, beginLsn.version,
+                       TRUE ) ;
       }
 
       // write into log file for page size
@@ -547,7 +549,8 @@ namespace engine
          {
             rc = _files[_work]->reset ( DPS_INVALID_LOG_FILE_ID,
                                         DPS_INVALID_LSN_OFFSET,
-                                        DPS_INVALID_LSN_VERSION ) ;
+                                        DPS_INVALID_LSN_VERSION,
+                                        FALSE ) ;
          }
 
          if ( SDB_OK != rc )
@@ -566,7 +569,7 @@ namespace engine
          _work = file ;
          _rollFlag = FALSE ;
          _logicalWork = DPS_LSN_2_FILEID( offset, _logFileSz ) ;
-         rc = _files[_work]->reset ( _logicalWork, offset, version ) ;
+         rc = _files[_work]->reset ( _logicalWork, offset, version, FALSE ) ;
          _files[_work]->idleSize ( _logFileSz - fileOffset ) ;
       }
 
@@ -632,6 +635,64 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_GETSUMMARY, "_dpsLogFileMgr::getSummary" )
+   INT32 _dpsLogFileMgr::getSummary( UINT32 logicalFileID,
+                                     dpsLogSummary &summary,
+                                     BOOLEAN &isValid )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSLGFILEMGR_GETSUMMARY ) ;
+
+      if ( _begin == logicalFileID % _logFileNum )
+      {
+         // this first file ( rolled or not ), summary is invalid
+         // NOTE: summary is for files before this file
+         summary.reset() ;
+         isValid = FALSE ;
+      }
+      else
+      {
+         // file is no the first file
+         dpsLogFile *file = LOG_FILE( logicalFileID ) ;
+         if ( file->header()._logID != logicalFileID )
+         {
+            // logical ID is not matched, it might be rolled
+            summary.reset() ;
+            isValid = FALSE ;
+            PD_LOG( PDERROR, "Failed to get summary of log file [%u], "
+                    "it is out of range, current file ID is [%u]",
+                    logicalFileID, file->header()._logID ) ;
+            rc = SDB_DPS_LSN_OUTOFRANGE ;
+            goto error ;
+         }
+         else
+         {
+            // logical ID is valid
+            summary = LOG_FILE( logicalFileID )->getFileLogSummary() ;
+            isValid = TRUE ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGFILEMGR_GETSUMMARY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY, "_dpsLogFileMgr::updateCachedSummary" )
+   void _dpsLogFileMgr::updateCachedSummary( UINT32 logicalFileID,
+                                             const dpsLogSummary &summary )
+   {
+      PD_TRACE_ENTRY( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY ) ;
+
+      LOG_FILE( logicalFileID )->updateCachedLogSummary( summary ) ;
+
+      PD_TRACE_EXIT( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY ) ;
    }
 
 }

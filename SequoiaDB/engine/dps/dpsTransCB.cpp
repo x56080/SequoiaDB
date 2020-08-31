@@ -82,6 +82,8 @@ namespace engine
     _globExpireTran( DPS_INVALID_TRANSID_SN ),
     _archivedLowTran( DPS_INVALID_TRANSID_SN ),
     _maxReadTran( DPS_INVALID_TRANSID_SN ),
+    _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
+    _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
     _gtsAgent( NULL )
@@ -124,7 +126,6 @@ namespace engine
    INT32 dpsTransCB::init ()
    {
       INT32 rc = SDB_OK ;
-      DPS_LSN_OFFSET startLsnOffset = DPS_INVALID_LSN_OFFSET ;
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
       _isGlobTransOn = pmdGetOptionCB()->globTransOn() ;
@@ -162,7 +163,7 @@ namespace engine
                     rc ) ;
             goto error ;
          }
-        
+
          _oldVCB = SDB_OSS_NEW oldVersionCB() ;
          if ( !_oldVCB )
          {
@@ -189,33 +190,9 @@ namespace engine
       if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) &&
            !pmdGetKRCB()->isRestore() )
       {
-         UINT32 transMapSize = 0 ;
-         UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
-         UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
-         _logFileTotalSize = logFileSize * logFileNum ;
-
-         startLsnOffset = sdbGetDPSCB()->readOldestBeginLsnOffset() ;
-         if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
-              SDB_ROLE_STANDALONE != pmdGetDBRole() )
-         {
-            rc = syncTransInfoFromLocal( startLsnOffset ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",
-                       rc ) ;
-               goto error ;
-            }
-         }
-         setIsNeedSyncTrans( FALSE ) ;
-
-         transMapSize = getTransMapSize() ;
-         // if have trans info, need log
-         if ( transMapSize > 0 )
-         {
-            PD_LOG( PDEVENT, "Restored trans info, have %u trans not "
-                    "be complete, the oldest lsn offset is %lld",
-                    transMapSize, getOldestBeginLsn() ) ;
-         }
+         rc = _initFromDPS() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize transaction "
+                      "information from DPS log, rc: %d", rc ) ;
       }
 
    done:
@@ -309,6 +286,118 @@ namespace engine
          bucket.getLatch()->setLatchID( MON_LATCH_DPSTRANSCB_HISMUTEX ) ;
       }
       FOR_EACH_CMAP_BUCKET_END
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB__INITFROMDPS, "dpsTransCB::_initFromDPS" )
+   INT32 dpsTransCB::_initFromDPS()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB__INITFROMDPS ) ;
+
+      SDB_DPSCB *dpsCB = sdbGetDPSCB() ;
+      dpsReplicaLogMgr *logMgr = dpsCB->getLogMgr() ;
+      UINT32 transMapSize = 0 ;
+      UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
+      UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
+      dpsLogSummary summary ;
+      BOOLEAN isSummaryValid = FALSE ;
+      _logFileTotalSize = logFileSize * logFileNum ;
+
+      DPS_LSN_OFFSET startLsnOffset = dpsCB->readOldestBeginLsnOffset() ;
+      DPS_LSN_OFFSET workBeginOffset = logMgr->getWorkBeginOffset() ;
+
+      // first, try get summary from meta file
+      rc = logMgr->getMetaSummary( summary ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get summary from meta, "
+                   "rc: %d", rc ) ;
+
+      if ( DPS_INVALID_TRANS_TIME == summary._maxTransCommitTime ||
+           DPS_INVALID_TRANS_TIME == summary._minRecoverableTime )
+      {
+         // summary from meta file is invalid, need get from log file
+         summary.reset() ;
+         // restore summary for DPS log file
+         rc = dpsCB->getLogMgr()->getWorkSummary( summary, isSummaryValid ) ;
+         if ( SDB_OK != rc )
+         {
+            // should not fail the initialize
+            // let's start without log summary
+            summary.reset() ;
+            PD_LOG( PDWARNING, "Failed to get current log summary, "
+                    "rc: %d", rc ) ;
+            rc = SDB_OK ;
+         }
+
+         // since we are going to restore the summary from log file
+         // adjust the start lsn to scan the log files
+         if ( DPS_INVALID_LSN_OFFSET == startLsnOffset &&
+              DPS_INVALID_LSN_OFFSET != workBeginOffset )
+         {
+            // start lsn from log meta is invalid, means there is no running
+            // transactions before the last shutdown in this case, we only need
+            // to scan from the beginning of the working log file
+            startLsnOffset = workBeginOffset ;
+         }
+         else if ( DPS_INVALID_LSN_OFFSET != startLsnOffset &&
+                   DPS_INVALID_LSN_OFFSET != workBeginOffset &&
+                   startLsnOffset > workBeginOffset )
+         {
+            // start lsn from log meta is larger than begin lsn of working log
+            // file means there is no running transactions is started after DPS
+            // switched to working log file
+            // so we need to scan from the beginning of the work file
+            startLsnOffset = workBeginOffset ;
+         }
+      }
+      else
+      {
+         isSummaryValid = TRUE ;
+      }
+
+      // restore valid summary back
+      // NOTE: this is only the summary from log files before working log file
+      if ( isSummaryValid )
+      {
+         setMinRecoverableTime( summary._minRecoverableTime ) ;
+         setMaxTransCommitTime( summary._maxTransCommitTime ) ;
+      }
+
+      PD_LOG( PDEVENT, "Restored log summary [ minRecoverableTime: %llu,"
+              "maxTransCommitTime: %llu ], begin LSN [%llu]",
+              summary._minRecoverableTime, summary._maxTransCommitTime,
+              startLsnOffset ) ;
+
+      if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
+           SDB_ROLE_STANDALONE != pmdGetDBRole() )
+      {
+         rc = syncTransInfoFromLocal( startLsnOffset,
+                                      DPS_INVALID_TRANS_TIME,
+                                      DPS_INVALID_TRANS_TIME ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      setIsNeedSyncTrans( FALSE ) ;
+
+      transMapSize = getTransMapSize() ;
+      // if have trans info, need log
+      if ( transMapSize > 0 )
+      {
+         PD_LOG( PDEVENT, "Restored trans info, have %u trans not "
+                 "be complete, the oldest lsn offset is %lld",
+                 transMapSize, getOldestBeginLsn() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB__INITFROMDPS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ALLOCTRANSID, "dpsTransCB::allocTransID" )
@@ -1893,6 +1982,74 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETRESTOREPITWINDOW, "dpsTransCB::getRestorePITWindow" )
+   INT32 dpsTransCB::getRestorePITWindow( UINT64 &minTime, UINT64 &maxTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETRESTOREPITWINDOW ) ;
+
+      if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+      {
+         // CATALOG nodes do not have global transactions, so we need to
+         // make the restore PIT window from CATALOG covers full time interval
+         minTime = DPS_MIN_TRANS_TIME ;
+         maxTime = DPS_MAX_TRANS_TIME ;
+      }
+      else
+      {
+         dpsReplicaLogMgr *logMgr = sdbGetDPSCB()->getLogMgr() ;
+
+         // block log writing
+         ossScopedLock lock( logMgr->getWriteMutex() ) ;
+
+         minTime = _minRecoverableTime ;
+         maxTime = _maxTransCommitTime ;
+      }
+
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETRESTOREPITWINDOW, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETMAXCOMMITTIMEBEFORE, "dpsTransCB::getMaxCommitTimeBefore" )
+   INT32 dpsTransCB::getMaxCommitTimeBefore( DPS_LSN_OFFSET lsn,
+                                             UINT64 &maxTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETMAXCOMMITTIMEBEFORE ) ;
+
+      dpsReplicaLogMgr *logMgr = sdbGetDPSCB()->getLogMgr() ;
+      dpsLogSummary summary ;
+      BOOLEAN isValid = FALSE ;
+
+      // block log writing
+      ossScopedLock lock( logMgr->getWriteMutex() ) ;
+
+      rc = logMgr->getCurrentSummary( lsn, summary, isValid ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get log summary for LSN [%llu], "
+                   "rc: %d", lsn, rc ) ;
+
+      if ( isValid )
+      {
+         // it is valid, get maximum transaction commit time from summary
+         maxTime = summary._maxTransCommitTime ;
+      }
+      else
+      {
+         // invalid, use the maximum value of trnasaction time
+         maxTime = DPS_MAX_TRANS_TIME ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETMAXCOMMITTIMEBEFORE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    void dpsTransCB::onRegistered( const MsgRouteID &nodeID )
    {
       _TransIDH16 = (DPS_TRANSID_NODEID)( nodeID.columns.nodeID ) ;
@@ -2058,7 +2215,8 @@ namespace engine
    void dpsTransCB::updateTransInfo( const DPS_TRANS_ID &transID,
                                      DPS_LSN_OFFSET lsnOffset,
                                      INT32 status,
-                                     const stpLogicalTimeUS &transTime )
+                                     const stpLogicalTimeUS &transTime,
+                                     BOOLEAN checkRstPITWindow )
    {
       PD_TRACE_ENTRY ( SDB_DPSTRANSCB_SVTRANSINFO ) ;
 
@@ -2179,7 +2337,7 @@ namespace engine
          //       nor history map
          if ( transFinished )
          {
-            addHisTrans( transID, histInfo ) ;
+            addHisTrans( transID, histInfo, checkRstPITWindow ) ;
          }
       }
 
@@ -2572,7 +2730,7 @@ namespace engine
             lsnOffset = relatedLsn ;
          }
 
-         updateTransInfo( transID, lsnOffset, transStatus, transTime ) ;
+         updateTransInfo( transID, lsnOffset, transStatus, transTime, FALSE ) ;
       }
 
    done:
@@ -2582,7 +2740,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SAVETRANSINFOFROMLOG, "dpsTransCB::saveTransInfoFromLog" )
-   void dpsTransCB::saveTransInfoFromLog( const dpsLogRecord &record )
+   void dpsTransCB::saveTransInfoFromLog( const dpsLogRecord &record,
+                                          BOOLEAN checkRstPITWindow )
    {
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_SAVETRANSINFOFROMLOG ) ;
 
@@ -2595,7 +2754,21 @@ namespace engine
       {
          // Failed to get transaction ID from record
          // ( maybe it is not in transaction )
+         if ( checkRstPITWindow &&
+              LOG_TYPE_DUMMY != record.head()._type )
+         {
+            // for irreversible operators, reset restore PIT window
+            // NOTE: dummy logs are meaningless, and only used to fullfill the
+            // log files, so skip dummy logs
+            resetRestorePITWindow() ;
+         }
          goto done ;
+      }
+
+      if ( checkRstPITWindow && !transID.isGlobTrans() )
+      {
+         // operators in non-global transactions are irreversible as well
+         resetRestorePITWindow() ;
       }
 
       if ( transID.isValid() )
@@ -2652,7 +2825,8 @@ namespace engine
          {
             delBeginLsn( transID ) ;
          }
-         updateTransInfo( transID, lsnOffset, transStatus, transTime ) ;
+         updateTransInfo( transID, lsnOffset, transStatus, transTime,
+                          checkRstPITWindow ) ;
       }
 
    done:
@@ -2661,13 +2835,22 @@ namespace engine
    }
 
    void dpsTransCB::addHisTrans( const DPS_TRANS_ID &transID,
-                                 const dpsHisTransStatus &histInfo  )
+                                 const dpsHisTransStatus &histInfo,
+                                 BOOLEAN checkRstPITWindow )
    {
       if ( transID.isGlobTrans() )
       {
          // transaction is global, save to global transaction map
          /// NOTE: will be gc by lowTran/expiredTran
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
+
+         // update restore PIT window if needed
+         if ( checkRstPITWindow &&
+              origID.isGlobTrans() &&
+              DPS_TRANS_COMMIT == histInfo._status )
+         {
+            updateRestorePITWindow( histInfo._commitTime.getTime() ) ;
+         }
 
          // find and lock bucket
          TRANS_HIST_MAP::Bucket &bucket = _histGlobMap.getBucket( origID ) ;
@@ -2884,7 +3067,9 @@ namespace engine
       _isNeedSyncTrans = isNeed;
    }
 
-   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn )
+   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
+                                             UINT64 minRecoverableTime,
+                                             UINT64 maxTransCommitTime )
    {
       INT32 rc = SDB_OK ;
       DPS_LSN curLsn ;
@@ -2895,7 +3080,14 @@ namespace engine
       {
          goto done;
       }
+
+      // clear transaction info
       clearTransInfo() ;
+
+      // set restore PIT window
+      setMinRecoverableTime( minRecoverableTime ) ;
+      setMaxTransCommitTime( maxTransCommitTime ) ;
+
       while ( curLsn.offset!= DPS_INVALID_LSN_OFFSET &&
               curLsn.compareOffset( dpsCB->expectLsn().offset ) < 0 )
       {
@@ -2906,7 +3098,7 @@ namespace engine
          _dpsLogRecord record ;
          rc = record.load( mb.readPtr() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to load log record, rc=%d", rc );
-         saveTransInfoFromLog( record ) ;
+         saveTransInfoFromLog( record, TRUE ) ;
          curLsn.offset += record.head()._length;
       }
    done:

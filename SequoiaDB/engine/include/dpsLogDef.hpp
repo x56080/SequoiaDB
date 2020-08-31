@@ -193,6 +193,45 @@ namespace engine
          return rc ;
       }
    } ;
+
+   /*
+      _dpsLogSummary define
+    */
+   // log summary for previous log files including transaction information
+   // for restore PIT window
+   typedef struct _dpsLogSummary
+   {
+      _dpsLogSummary()
+      : _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
+        _maxTransCommitTime( DPS_INVALID_TRANS_TIME )
+      {
+      }
+
+      _dpsLogSummary( const _dpsLogSummary &summary )
+      : _minRecoverableTime( summary._minRecoverableTime ),
+        _maxTransCommitTime( summary._maxTransCommitTime )
+      {
+      }
+
+      _dpsLogSummary &operator =( const _dpsLogSummary &summary )
+      {
+         _minRecoverableTime = summary._minRecoverableTime ;
+         _maxTransCommitTime = summary._maxTransCommitTime ;
+         return ( *this ) ;
+      }
+
+      void reset()
+      {
+         _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
+         _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
+      }
+
+      // minimum recoverable time
+      UINT64   _minRecoverableTime ;
+      // maximum transaction commit time
+      UINT64   _maxTransCommitTime ;
+   } dpsLogSummary ;
+
 }
 
 #endif
