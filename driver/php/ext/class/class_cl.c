@@ -481,10 +481,14 @@ PHP_METHOD( SequoiaCL, insert )
    zval *pFlags   = NULL ;
    zval *pThisObj = getThis() ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
+   bson result ;
    bson record ;
    bson_iterator id ;
    bson_init( &record ) ;
+   bson_init( &result ) ;
+
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
+
    if ( PHP_GET_PARAMETERS( "z|z", &pRecord, &pFlags ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
@@ -510,8 +514,17 @@ PHP_METHOD( SequoiaCL, insert )
    {
       goto error ;
    }
+
+   if ( flags & FLG_INSERT_RETURN_OID )
+   {
+      bson_append_element( &result, "_id", &id ) ;
+   }
+
 done:
-   PHP_RETURN_AUTO_ERROR_ID( FALSE, pThisObj, rc, id ) ;
+   bson_append_int( &result, "errno", rc ) ;
+   bson_finish( &result ) ;
+   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
+   bson_destroy( &result ) ;
    bson_destroy( &record ) ;
    return ;
 error:
