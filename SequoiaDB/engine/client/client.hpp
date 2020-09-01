@@ -4837,6 +4837,9 @@ namespace sdbclient
 
       virtual INT32 getLastResultObj( bson::BSONObj &result,
                                       BOOLEAN getOwned = FALSE ) const = 0 ;
+
+      virtual INT32 rollbackToPIT( const CHAR* rollbackTS,
+         const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7068,6 +7071,21 @@ namespace sdbclient
          return pSDB->getLastResultObj( result, getOwned ) ;
       }
 
+      /** \fn INT32 rollbackToPIT()
+          \brief Rollback the database to a global consistent point in time
+          \param [in] timestamp to rollback to
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 rollbackToPIT( const CHAR* rollbackTS,
+                           const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->rollbackToPIT( rollbackTS, options ) ;
+      }
    } ;
    /** \typedef class sdb sdb
          \brief Class sdb definition for sdb.

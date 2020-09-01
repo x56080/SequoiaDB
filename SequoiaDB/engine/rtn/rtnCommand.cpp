@@ -51,6 +51,7 @@
 #include "aggrDef.hpp"
 #include "utilCompressor.hpp"
 #include "msgMessageFormat.hpp"
+#include "rtnRollbackManager.hpp"
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -5026,5 +5027,66 @@ error:
       goto done ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRollbackToPIT)
+   _rtnRollbackToPIT::_rtnRollbackToPIT ()
+   {
+   }
+
+   _rtnRollbackToPIT::~_rtnRollbackToPIT ()
+   {
+   }
+
+   const CHAR *_rtnRollbackToPIT::name()
+   {
+      return NAME_ROLLBACK_TO_PIT ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRollbackToPIT::type()
+   {
+      return CMD_ROLLBACK_TO_PIT ;
+   }
+
+   BOOLEAN _rtnRollbackToPIT::writable()
+   {
+      return TRUE ;
+   }
+
+   INT32 _rtnRollbackToPIT::init( INT32 flags, INT64 numToSkip,
+                                  INT64 numToReturn,
+                                  const CHAR * pMatcherBuff,
+                                  const CHAR * pSelectBuff,
+                                  const CHAR * pOrderByBuff,
+                                  const CHAR * pHintBuff)
+   {
+      BSONObj matcher ( pMatcherBuff ) ;
+      try
+      {
+         return rtnGetStringElement( matcher, FIELD_NAME_GLOBAL_TIME,
+                                     &_timestamp ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return SDB_SYS;
+      }
+   }
+
+   INT32 _rtnRollbackToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                   INT16 w , INT64 *pContextID )
+   {
+      try
+      {
+         rtnPITRollbackManager rollbackManager(cb, _timestamp);
+         rollbackManager.execute();
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "rtnRollbackToPIT failed: %s", e.what () ) ;
+         return pdGetLastError();
+      }
+      return SDB_OK ;
+
+   }
 }
 

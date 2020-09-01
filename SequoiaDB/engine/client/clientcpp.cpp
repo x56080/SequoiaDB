@@ -11019,6 +11019,26 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbImpl::rollbackToPIT( const CHAR* rollbackTS,
+                                  const BSONObj &options )
+   {
+      BSONObj newObj ;
+      try
+      {
+         BSONObjBuilder ob ;
+         ob.append ( FIELD_NAME_GLOBAL_TIME, rollbackTS ) ;
+         ob.appendElementsUnique( options ) ;
+         newObj = ob.obj () ;
+      }
+      catch( std::exception )
+      {
+         return SDB_DRIVER_BSON_ERROR ;
+      }
+
+      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_ROLLBACK_TO_PIT,
+                           &newObj ) ;
+   }
+
    _sdb *_sdb::getObj ( BOOLEAN useSSL )
    {
       return (_sdb*)(new(std::nothrow) sdbImpl ( useSSL )) ;

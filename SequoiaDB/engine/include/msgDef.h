@@ -396,6 +396,7 @@
 #define VALUE_NAME_MAIN                      "main"
 #define VALUE_NAME_SUB                       "sub"
 #define VALUE_NAME_BOTH                      "both"
+#define FIELD_NAME_GLOBAL_TIME               "GlobalTime"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
@@ -749,6 +750,7 @@
 #define CMD_NAME_ANALYZE                     "analyze"
 #define CMD_NAME_GET_CL_DETAIL               "get collection detail"
 #define CMD_NAME_GET_INDEX_STAT              "get index statistic"
+#define CMD_NAME_ROLLBACK_TO_PIT             "rollback to pit"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"

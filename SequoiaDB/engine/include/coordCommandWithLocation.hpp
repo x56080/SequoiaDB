@@ -252,6 +252,25 @@ namespace engine
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
 
+   /*
+      coordCMDRollbackToPIT define
+   */
+   class coordCMDRollbackToPIT : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         coordCMDRollbackToPIT() {}
+         virtual ~coordCMDRollbackToPIT() {}
+      private :
+         virtual BOOLEAN _useContext () { return FALSE ; }
+
+         virtual INT32   _onLocalMode ( INT32 flag ) { return flag ; }
+
+         virtual void    _preSet ( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+
+         virtual UINT32  _getControlMask () const ;
+   } ;
+
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

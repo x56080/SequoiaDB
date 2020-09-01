@@ -235,6 +235,7 @@ rtnFiles = [
       "rtn/rtnMemIXTreeScanner.cpp",
       "rtn/rtnMergeIXScanner.cpp",
       "rtn/rtnBackup.cpp",
+      "rtn/rtnRollbackManager.cpp",
       "rtn/rtnReorg.cpp",
       "rtn/rtnRecover.cpp",
       "rtn/rtnRemoteExec.cpp",

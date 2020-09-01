@@ -822,4 +822,30 @@ namespace engine
       goto done ;
    }
 
+   /*
+      coordCMDRollbackToPIT define
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( coordCMDRollbackToPIT,
+                                      CMD_NAME_ROLLBACK_TO_PIT,
+                                      FALSE ) ;
+
+   void coordCMDRollbackToPIT::_preSet( pmdEDUCB *cb,
+                                        coordCtrlParam &ctrlParam )
+   {
+      // On global mode
+      ctrlParam._isGlobal = TRUE ;
+
+      // On primary node
+      ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
+
+      // On data group
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   UINT32 coordCMDRollbackToPIT::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
+
 }

@@ -1673,4 +1673,16 @@ namespace engine
    {
       return &_timeMicroSeconds ;
    }
+
+   BOOLEAN _dpsLogRecord::isPreCommit()const
+   {
+      if ( !isCommit() )
+      {
+         return FALSE ;
+      }
+      iterator itr = find( DPS_LOG_TSCOMMIT_ATTR );
+      return itr.valid() &&
+             ( DPS_TS_COMMIT_ATTR_PRE == *(UINT8 *)itr.value() ) ;
+   }
+
 }

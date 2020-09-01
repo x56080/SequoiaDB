@@ -259,6 +259,15 @@ namespace engine
          return _head ;
       }
 
+      // Is this a commit record?
+      OSS_INLINE BOOLEAN isCommit() const
+      {
+         return LOG_TYPE_TS_COMMIT == _head._type;
+      }
+
+      // Is this a pre-commit record?
+      BOOLEAN isPreCommit() const ;
+
       _dpsLogRecord &operator=(const _dpsLogRecord &) ;
 
    protected :
