@@ -222,6 +222,7 @@ namespace engine
          pmdGetStartup().restart( TRUE, rc ) ;
       }
       pmdGetStartup().final() ;
+      pmdDisableSignalEvent() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;
       return rc == SDB_OK ? 0 : 1 ;
