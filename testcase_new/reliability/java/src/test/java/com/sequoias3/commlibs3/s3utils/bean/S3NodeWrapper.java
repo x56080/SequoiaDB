@@ -91,7 +91,7 @@ public class S3NodeWrapper {
             String stdout;
             if ( ssh.getExitStatus() == 0 ) {
                 stdout = ssh.getStdout();
-                if ( stdout.contains( port ) ) {
+                if ( stdout.contains( "sequoias3" ) ) {
                     return true;
                 } else {
                     return false;
