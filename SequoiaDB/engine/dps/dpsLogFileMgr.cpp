@@ -659,14 +659,22 @@ namespace engine
          dpsLogFile *file = LOG_FILE( logicalFileID ) ;
          if ( file->header()._logID != logicalFileID )
          {
-            // logical ID is not matched, it might be rolled
             summary.reset() ;
             isValid = FALSE ;
-            PD_LOG( PDERROR, "Failed to get summary of log file [%u], "
-                    "it is out of range, current file ID is [%u]",
-                    logicalFileID, file->header()._logID ) ;
-            rc = SDB_DPS_LSN_OUTOFRANGE ;
-            goto error ;
+            // logical ID is not matched:
+            // - if the given logical file ID is larger than current working
+            //   logical file ID, the given logical file is not used yet,
+            //   since we always get the summary from next log file, so it
+            //   means the summary has not been generated yet
+            // - other wise, the log files are rolled
+            if ( logicalFileID <= _logicalWork )
+            {
+               PD_LOG( PDERROR, "Failed to get summary of log file [%u], "
+                       "it is out of range, current file ID is [%u]",
+                       logicalFileID, file->header()._logID ) ;
+               rc = SDB_DPS_LSN_OUTOFRANGE ;
+               goto error ;
+            }
          }
          else
          {
