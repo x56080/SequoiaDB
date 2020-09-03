@@ -106,6 +106,7 @@ INT32 _mongoSession::run()
    const CHAR *pBody            = NULL ;
    const CHAR *pInMsg           = NULL ;
    engine::monDBCB *mondbcb     = engine::pmdGetKRCB()->getMonDBCB() ;
+   BOOLEAN handled              = FALSE ;
 
    if ( !_pEDUCB )
    {
@@ -115,149 +116,180 @@ INT32 _mongoSession::run()
 
    pmdEDUMgr = _pEDUCB->getEDUMgr() ;
    bigEndian = checkBigEndian() ;
-   while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
+
+   try
    {
-      // clear interrupt flag
-      _pEDUCB->resetInterrupt() ;
-      _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
-      _pEDUCB->resetLsn() ;
+      while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
+      {
+         // clear interrupt flag
+         _pEDUCB->resetInterrupt() ;
+         _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
+         _pEDUCB->resetLsn() ;
 
-      // recv msg
-      rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
-      if ( rc )
-      {
-         if ( SDB_APP_FORCED != rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to recv msg size, "
-                    "rc: %d", sessionName(), rc ) ;
-         }
-         break ;
-      }
-
-      // if big endian, need to convert len to little endian
-      if ( bigEndian )
-      {
-         // build an incompatible msg
-         // UINT32 tmp = msgSize ;
-         // ossEndianConvert4( tmp, msgSize) ;
-      }
-
-      if ( msgSize < headerLen || msgSize > SDB_MAX_MSG_LENGTH )
-      {
-         PD_LOG( PDERROR, "Session[%s] recv msg size[%d] is less than "
-                 "mongoMsgHeader size[%d] or more than max msg size[%d]",
-                 sessionName(), msgSize, sizeof( mongoMsgHeader ),
-                 SDB_MAX_MSG_LENGTH ) ;
-         rc = SDB_INVALIDARG ;
-         break ;
-      }
-      // other msg
-      else
-      {
-         pBuff = getBuff( msgSize + 1 ) ;
-         if ( !pBuff )
-         {
-            rc = SDB_OOM ;
-            break ;
-         }
-         *(UINT32*)pBuff = msgSize ;
-         // recv the rest msg
-         rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
+         // recv msg
+         rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
          if ( rc )
          {
             if ( SDB_APP_FORCED != rc )
             {
-               PD_LOG( PDERROR, "Session[%s] failed to recv rest msg, rc: %d",
-                       sessionName(), rc ) ;
+               PD_LOG( PDERROR, "Session[%s] failed to recv msg size, "
+                       "rc: %d", sessionName(), rc ) ;
             }
             break ;
          }
-         pBuff[ msgSize ] = 0 ;
+
+         // if big endian, need to convert len to little endian
+         if ( bigEndian )
          {
-            // make sure buffers are empty for coming msg
-            _resetBuffers() ;
-            // convert msg first
-            _converter.loadFrom( pBuff, msgSize ) ;
-            rc = _converter.convert( _inBuffer ) ;
-            if ( SDB_OK != rc && SDB_OPTION_NOT_SUPPORT != rc)
-            {
-               goto error ;
-            }
+            // build an incompatible msg
+            // UINT32 tmp = msgSize ;
+            // ossEndianConvert4( tmp, msgSize) ;
+         }
 
-            _pEDUCB->incEventCount() ;
-            mondbcb->addReceiveNum() ;
-            // activate edu
-            if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
+         if ( msgSize < headerLen || msgSize > SDB_MAX_MSG_LENGTH )
+         {
+            PD_LOG( PDERROR, "Session[%s] recv msg size[%d] is less than "
+                    "mongoMsgHeader size[%d] or more than max msg size[%d]",
+                    sessionName(), msgSize, sizeof( mongoMsgHeader ),
+                    SDB_MAX_MSG_LENGTH ) ;
+            rc = SDB_INVALIDARG ;
+            break ;
+         }
+         // other msg
+         else
+         {
+            pBuff = getBuff( msgSize + 1 ) ;
+            if ( !pBuff )
             {
-               PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
-                       sessionName(), rc ) ;
-               goto error ;
+               rc = SDB_OOM ;
+               break ;
             }
-
-            // handle commands before dispatched
-            if ( _preProcessMsg( _converter.getParser(),
-                                 _resource, _contextBuff ) )
+            *(UINT32*)pBuff = msgSize ;
+            // recv the rest msg
+            rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
+            if ( rc )
             {
-               goto reply ;
-            }
-
-            pInMsg = _inBuffer.data() ;
-            while ( NULL != pInMsg )
-            {
-               // process msg
-               rc = _processMsg( pInMsg ) ;
-               if ( SDB_OK == rc )
+               if ( SDB_APP_FORCED != rc )
                {
-                  _authed = TRUE ;
+                  PD_LOG( PDERROR, "Session[%s] failed to recv rest msg, "
+                          "rc: %d", sessionName(), rc ) ;
+               }
+               break ;
+            }
+            pBuff[ msgSize ] = 0 ;
+            {
+               // make sure buffers are empty for coming msg
+               _resetBuffers() ;
+               // convert msg first
+               _converter.loadFrom( pBuff, msgSize ) ;
+               rc = _converter.convert( _inBuffer ) ;
+               if ( SDB_OK != rc && SDB_OPTION_NOT_SUPPORT != rc)
+               {
+                  goto error ;
                }
 
-               rc = _converter.reConvert( _inBuffer, &_replyHeader ) ;
-               if ( SDB_OK != rc )
+               _pEDUCB->incEventCount() ;
+               mondbcb->addReceiveNum() ;
+               // activate edu
+               if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
+               {
+                  PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
+                          sessionName(), rc ) ;
+                  goto error ;
+               }
+
+               // handle commands before dispatched
+               rc = _preProcessMsg( _converter.getParser(),
+                                    _resource, _contextBuff, handled ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Session[%s] failed to preprocess msg, "
+                          "rc: %d", sessionName(), rc ) ;
+                  goto error ;
+               }
+
+               if ( handled )
                {
                   goto reply ;
                }
-               else
+
+               pInMsg = _inBuffer.data() ;
+               while ( NULL != pInMsg )
                {
-                  // when rc == SDB_OK && _inBuffer is not empty, shoul retry
-                  // to process msg
-                  if ( !_inBuffer.empty() )
+                  // process msg
+                  rc = _processMsg( pInMsg ) ;
+                  if ( SDB_OK == rc )
                   {
-                     _contextBuff.release() ;
-                     pInMsg = _inBuffer.data() ;
+                     _authed = TRUE ;
+                  }
+
+                  rc = _converter.reConvert( _inBuffer, &_replyHeader ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     goto reply ;
                   }
                   else
                   {
-                     // should exit while loop
-                     pInMsg = NULL ;
+                     // when rc == SDB_OK && _inBuffer is not empty, should
+                     // retry to process msg
+                     if ( !_inBuffer.empty() )
+                     {
+                        _contextBuff.release() ;
+                        pInMsg = _inBuffer.data() ;
+                     }
+                     else
+                     {
+                        // should exit while loop
+                        pInMsg = NULL ;
+                     }
                   }
                }
-            }
-         reply:
-            _handleResponse( _converter.getOpType(), _contextBuff ) ;
-            pBody = _contextBuff.data() ;
-            bodyLen = _contextBuff.size() ;
-            // send response
-            INT32 rcTmp = _reply( &_replyHeader, pBody, bodyLen ) ;
-            if ( rcTmp )
-            {
-               PD_LOG( PDERROR, "Session[%s] failed to send response,"
-                       "rc: %d", sessionName(), rcTmp ) ;
-               goto error ;
-            }
-            pBody = NULL ;
-            bodyLen = 0 ;
-            _contextBuff.release() ;
+            reply:
+               rc = _handleResponse( _converter.getOpType(), _contextBuff ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Session[%s] failed to handle Response, "
+                          "rc: %d", sessionName(), rc ) ;
+                  goto error ;
+               }
+               pBody = _contextBuff.data() ;
+               bodyLen = _contextBuff.size() ;
+               // send response
+               INT32 rcTmp = _reply( &_replyHeader, pBody, bodyLen ) ;
+               if ( rcTmp )
+               {
+                  PD_LOG( PDERROR, "Session[%s] failed to send response,"
+                          "rc: %d", sessionName(), rcTmp ) ;
+                  goto error ;
+               }
+               pBody = NULL ;
+               bodyLen = 0 ;
+               _contextBuff.release() ;
 
-            // wait edu
-            if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
-            {
-               PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
-                       sessionName(), rc ) ;
-               goto error ;
+               // wait edu
+               if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
+               {
+                  PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
+                          sessionName(), rc ) ;
+                  goto error ;
+               }
             }
          }
       }
-   } // end while
+   }// end while
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Occur exception: %s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Occur exception: %s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+
 done:
    disconnect() ;
    return rc ;
@@ -275,6 +307,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
    bson::BSONObjBuilder bob ;
    bson::BSONObjBuilder retBuilder ;
    mongoDataPacket &packet = _converter.getParser().dataPacket() ;
+   const CHAR* commandName = _converter.getParser().command()->name() ;
 
    rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
    if ( SDB_OK != rc )
@@ -282,6 +315,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
       goto error ;
    }
 
+   try
    {
       rc = getProcessor()->processMsg( (MsgHeader *) pMsg,
                                        _contextBuff, _replyHeader.contextID,
@@ -322,32 +356,48 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
       _replyHeader.numReturned = _contextBuff.recordNum() ;
       _replyHeader.startFrom = (INT32)_contextBuff.getStartFrom() ;
       _replyHeader.flags = rc ;
-   }
 
-   // when msg is with $cmd, need to reply
-   // so value of bodyLen cannot be 0
-   if ( packet.with( OPTION_CMD ) )
-   {
-      if ( 0 == bodyLen )
+      // when msg is with $cmd, need to reply
+      // so value of bodyLen cannot be 0
+      if ( packet.with( OPTION_CMD ) )
       {
-         tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
-         if ( SDB_OK != rc )
+         if ( 0 == bodyLen )
          {
-            // build error msg
-            bob.append( "ok", FALSE ) ;
-            bob.append( "code",  tmp ) ;
-            bob.append( "errmsg", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
-            bob.append( "err", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
-         }
-         else
-         {
-            bob.append( "ok", TRUE ) ;
-            bob.appendNull( "err" ) ;
-         }
+            tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
+            if ( SDB_OK != rc )
+            {
+               // build error msg
+               bob.append( "ok", FALSE ) ;
+               bob.append( "code",  tmp ) ;
+               bob.append( "errmsg",
+                           _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
+               bob.append( "err",
+                           _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
+            }
+            else
+            {
+               bob.append( "ok", TRUE ) ;
+               bob.appendNull( "err" ) ;
+            }
 
-         _contextBuff = engine::rtnContextBuf( bob.obj() ) ;
-         _replyHeader.flags = rc ;
+            _contextBuff = engine::rtnContextBuf( bob.obj() ) ;
+            _replyHeader.flags = rc ;
+         }
       }
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Process command[%s] exception: %s, rc: %d",
+               commandName, ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Process command[%s] exception: %s, rc: %d",
+               commandName, ex.what(), rc ) ;
+      goto error ;
    }
 
    _onMsgEnd( rc, (MsgHeader *) pMsg ) ;
@@ -405,6 +455,13 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
    bson::BSONObj bsonBody ;
    bson::BSONObj objToSend ;
    mongoDataPacket &packet = _converter.getParser().dataPacket() ;
+   baseCommand *&cmd       = _converter.getParser().command() ;
+   const CHAR* commandName = NULL ;
+
+   if ( NULL != cmd )
+   {
+      commandName = cmd->name() ;
+   }
 
    if ( OP_KILLCURSORS == _converter.getOpType() ||
         dbInsert == packet.opCode ||
@@ -474,57 +531,73 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
       reply.nReturned = replyHeader->numReturned ;
    }
 
-   if ( reply.nReturned > 1 )
+   try
    {
-      while ( offset < len )
+      if ( reply.nReturned > 1 )
       {
-         bsonBody.init( pBody + offset ) ;
-         _outBuffer.write( bsonBody.objdata(), bsonBody.objsize() ) ;
-         offset += ossRoundUpToMultipleX( bsonBody.objsize(), 4 ) ;
-      }
-   }
-   else
-   {
-      if ( pBody )
-      {
-         if ( 0 == reply.cursorId &&
-             ( SDB_OK == _replyHeader.flags &&
-               OP_QUERY != _converter.getOpType() ) )
+         while ( offset < len )
          {
-            // error or command
-            bsonBody.init( pBody ) ;
-            if ( !bsonBody.hasField( "ok" ) )
+            bsonBody.init( pBody + offset ) ;
+            _outBuffer.write( bsonBody.objdata(), bsonBody.objsize() ) ;
+            offset += ossRoundUpToMultipleX( bsonBody.objsize(), 4 ) ;
+         }
+      }
+      else
+      {
+         if ( pBody )
+         {
+            if ( 0 == reply.cursorId &&
+                ( SDB_OK == _replyHeader.flags &&
+                  OP_QUERY != _converter.getOpType() ) )
             {
-               bob.append( "ok", 0 == replyHeader->flags ? TRUE : FALSE ) ;
-               bob.append( "code", replyHeader->flags ) ;
-               bob.append( "err", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
-               bob.appendElements( bsonBody ) ;
-               objToSend = bob.obj() ;
-               _outBuffer.write( objToSend ) ;
-               //pBody = objToSend.objdata() ;
-               //reply.header.len = sizeof( mongoMsgReply ) + objToSend.objsize() ;
+               // error or command
+               bsonBody.init( pBody ) ;
+               if ( !bsonBody.hasField( "ok" ) )
+               {
+                  bob.append( "ok", 0 == replyHeader->flags ? TRUE : FALSE ) ;
+                  bob.append( "code", replyHeader->flags ) ;
+                  bob.append( "err",
+                              _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
+                  bob.appendElements( bsonBody ) ;
+                  objToSend = bob.obj() ;
+                  _outBuffer.write( objToSend ) ;
+               }
+               else
+               {
+                  _outBuffer.write( bsonBody ) ;
+               }
             }
             else
             {
+               bsonBody.init( pBody ) ;
                _outBuffer.write( bsonBody ) ;
             }
          }
          else
          {
-            bsonBody.init( pBody ) ;
-            _outBuffer.write( bsonBody ) ;
+            if ( OP_GETMORE != _converter.getOpType() &&
+                 OP_CMD_GET_INDEX == _converter.getOpType()  )
+            {
+               bob.append( "ok", 1.0 ) ;
+               objToSend = bob.obj() ;
+               _outBuffer.write( objToSend ) ;
+            }
          }
       }
-      else
-      {
-         if ( OP_GETMORE != _converter.getOpType() &&
-              OP_CMD_GET_INDEX == _converter.getOpType()  )
-         {
-            bob.append( "ok", 1.0 ) ;
-            objToSend = bob.obj() ;
-            _outBuffer.write( objToSend ) ;
-         }
-      }
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of command[%s] exception: %s, rc: %d",
+               commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of command[%s] exception: %s, rc: %d",
+               commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
    }
 
    if ( !_outBuffer.empty() )
@@ -558,44 +631,70 @@ error:
    goto done ;
 }
 
-BOOLEAN _mongoSession::_preProcessMsg( msgParser &parser,
-                                       engine::IResource *resource,
-                                       engine::rtnContextBuf &buff )
+INT32 _mongoSession::_preProcessMsg( msgParser &parser,
+                                     engine::IResource *resource,
+                                     engine::rtnContextBuf &buff,
+                                     BOOLEAN &handled )
 {
-   BOOLEAN handled = FALSE ;
-   mongoDataPacket &packet = parser.dataPacket() ;
+   INT32           rc          = SDB_OK ;
+   const CHAR*     commandName = NULL ;
+   baseCommand     *&cmd       = parser.command() ;
+   mongoDataPacket &packet     = parser.dataPacket() ;
+   handled                     = FALSE ;
 
-   if ( OP_CMD_ISMASTER == parser.currentOption() )
+   if ( NULL != cmd )
    {
-      handled = TRUE ;
-      // build ismaster msg
-      fap::mongo::buildIsMasterReplyMsg( resource, buff ) ;
+      commandName = cmd->name() ;
    }
-   else if ( OP_CMD_GETNONCE == parser.currentOption() )
+
+   try
    {
-      handled = TRUE ;
-      // build getnonce msg
-      bson::BSONObj obj ;
-      obj.init( _inBuffer.data() ) ;
-      buff = engine::rtnContextBuf( obj ) ;
-      //fap::mongo::buildGetNonceReplyMsg( buff ) ;
+      if ( OP_CMD_ISMASTER == parser.currentOption() )
+      {
+         handled = TRUE ;
+         // build ismaster msg
+         fap::mongo::buildIsMasterReplyMsg( resource, buff ) ;
+      }
+      else if ( OP_CMD_GETNONCE == parser.currentOption() )
+      {
+         handled = TRUE ;
+         // build getnonce msg
+         bson::BSONObj obj ;
+         obj.init( _inBuffer.data() ) ;
+         buff = engine::rtnContextBuf( obj ) ;
+         //fap::mongo::buildGetNonceReplyMsg( buff ) ;
+      }
+      else if ( OP_CMD_GETLASTERROR == parser.currentOption() )
+      {
+         handled = TRUE ;
+         // build getlasterror msg
+         fap::mongo::buildGetLastErrorReplyMsg( _errorInfo, buff ) ;
+      }
+      else if ( OP_CMD_NOT_SUPPORTED == parser.currentOption() )
+      {
+         handled = TRUE ;
+         fap::mongo::buildNotSupportReplyMsg( _contextBuff,
+                                   packet.all.firstElementFieldName() ) ;
+      }
+      else if ( OP_CMD_PING == parser.currentOption() )
+      {
+          handled = TRUE ;
+          fap::mongo::buildPingReplyMsg( _contextBuff ) ;
+      }
    }
-   else if ( OP_CMD_GETLASTERROR == parser.currentOption() )
+   catch( std::bad_alloc &ex )
    {
-      handled = TRUE ;
-      // build getlasterror msg
-      fap::mongo::buildGetLastErrorReplyMsg( _errorInfo, buff ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Preprocess command[%s] exception: %s, rc: %d",
+               commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
    }
-   else if ( OP_CMD_NOT_SUPPORTED == parser.currentOption() )
+   catch ( std::exception &ex )
    {
-      handled = TRUE ;
-      fap::mongo::buildNotSupportReplyMsg( _contextBuff,
-                                packet.all.firstElementFieldName() ) ;
-   }
-   else if ( OP_CMD_PING == parser.currentOption() )
-   {
-       handled = TRUE ;
-       fap::mongo::buildPingReplyMsg( _contextBuff ) ;
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Preprocess command[%s] exception: %s, rc: %d",
+               commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
    }
 
    if ( handled )
@@ -611,82 +710,116 @@ BOOLEAN _mongoSession::_preProcessMsg( msgParser &parser,
       _replyHeader.flags         = SDB_OK ;
    }
 
-   return handled ;
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
-void _mongoSession::_handleResponse( const INT32 opType,
-                                     engine::rtnContextBuf &buff )
+INT32 _mongoSession::_handleResponse( const INT32 opType,
+                                      engine::rtnContextBuf &buff )
 {
-   if ( SDB_AUTH_AUTHORITY_FORBIDDEN == _replyHeader.flags )
+   INT32       rc          = SDB_OK ;
+   baseCommand *&cmd       = _converter.getParser().command() ;
+   const CHAR* commandName = NULL ;
+
+   if ( NULL != cmd )
    {
-      bson::BSONObjBuilder bob ;
-      bson::BSONObj obj( buff.data() ) ;
-      bob.append( "ok", obj.getIntField( "ok" ) ) ;
-      bob.append( "$err", obj.getStringField( "err" ) ) ;
-      bob.append( "code", obj.getIntField( "code" ) ) ;
-      buff = engine::rtnContextBuf( bob.obj() ) ;
+      commandName = cmd->name() ;
    }
 
-   if ( OP_CMD_COUNT_MORE == opType )
+   try
    {
-      bson::BSONObjBuilder bob ;
-      bson::BSONObj obj( buff.data() ) ;
-      bob.append( "n", obj.getIntField( "Total" ) ) ;
-      buff = engine::rtnContextBuf( bob.obj() ) ;
-      _replyHeader.contextID = -1 ;
-      _replyHeader.startFrom = 0 ;
-   }
-
-   if ( OP_CMD_GET_CLS == opType &&
-        SDB_DMS_EOC != _replyHeader.flags &&
-        _replyHeader.numReturned > 0 )
-   {
-      INT32 offset = 0 ;
-      INT32 len = buff.size() ;
-      const CHAR *pBody = buff.data() ;
-      INT32 recordNum = buff.recordNum() ;
-      bson::BSONObj obj, tmp ;
-      _tmpBuffer.zero() ;
-      while ( offset < len )
+      if ( SDB_AUTH_AUTHORITY_FORBIDDEN == _replyHeader.flags )
       {
-         tmp.init( pBody + offset ) ;
-         obj = BSON( "name" << tmp.getStringField( "Name" ) ) ;
-         _tmpBuffer.write( obj.objdata(), obj.objsize(), TRUE ) ;
-         offset += ossRoundUpToMultipleX( tmp.objsize(), 4 ) ;
+         bson::BSONObjBuilder bob ;
+         bson::BSONObj obj( buff.data() ) ;
+         bob.append( "ok", obj.getIntField( "ok" ) ) ;
+         bob.append( "$err", obj.getStringField( "err" ) ) ;
+         bob.append( "code", obj.getIntField( "code" ) ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
       }
-      const CHAR *pBuffer = _tmpBuffer.data() ;
-      INT32 size = _tmpBuffer.size() ;
-      engine::rtnContextBuf ctx( pBuffer, size, recordNum ) ;
-      buff = ctx ;
-   }
 
-   if ( OP_CMD_GET_INDEX == opType )
-   {
-      INT32 rNum = buff.recordNum() ;
-      INT32 len = buff.size() ;
-      const CHAR *pBody = buff.data() ;
-      INT32 offset = 0 ;
-      bson::BSONObj obj, tmp, indexObj, value ;
-      _tmpBuffer.zero() ;
-      while ( offset < len )
+      if ( OP_CMD_COUNT_MORE == opType )
       {
-         tmp.init( pBody + offset ) ;
-         obj = tmp.getObjectField( "IndexDef" ) ;
-         _tmpBuffer.write( obj.objdata(), obj.objsize(), TRUE ) ;
-         offset += ossRoundUpToMultipleX( tmp.objsize(), 4 ) ;
+         bson::BSONObjBuilder bob ;
+         bson::BSONObj obj( buff.data() ) ;
+         bob.append( "n", obj.getIntField( "Total" ) ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
+         _replyHeader.contextID = -1 ;
+         _replyHeader.startFrom = 0 ;
       }
-      const CHAR *pBuffer = _tmpBuffer.data() ;
-      INT32 size = _tmpBuffer.size() ;
-      engine::rtnContextBuf ctx( pBuffer, size, rNum ) ;
-      buff = ctx ;
+
+      if ( OP_CMD_GET_CLS == opType &&
+           SDB_DMS_EOC != _replyHeader.flags &&
+           _replyHeader.numReturned > 0 )
+      {
+         INT32 offset = 0 ;
+         INT32 len = buff.size() ;
+         const CHAR *pBody = buff.data() ;
+         INT32 recordNum = buff.recordNum() ;
+         bson::BSONObj obj, tmp ;
+         _tmpBuffer.zero() ;
+         while ( offset < len )
+         {
+            tmp.init( pBody + offset ) ;
+            obj = BSON( "name" << tmp.getStringField( "Name" ) ) ;
+            _tmpBuffer.write( obj.objdata(), obj.objsize(), TRUE ) ;
+            offset += ossRoundUpToMultipleX( tmp.objsize(), 4 ) ;
+         }
+         const CHAR *pBuffer = _tmpBuffer.data() ;
+         INT32 size = _tmpBuffer.size() ;
+         engine::rtnContextBuf ctx( pBuffer, size, recordNum ) ;
+         buff = ctx ;
+      }
+
+      if ( OP_CMD_GET_INDEX == opType )
+      {
+         INT32 rNum = buff.recordNum() ;
+         INT32 len = buff.size() ;
+         const CHAR *pBody = buff.data() ;
+         INT32 offset = 0 ;
+         bson::BSONObj obj, tmp, indexObj, value ;
+         _tmpBuffer.zero() ;
+         while ( offset < len )
+         {
+            tmp.init( pBody + offset ) ;
+            obj = tmp.getObjectField( "IndexDef" ) ;
+            _tmpBuffer.write( obj.objdata(), obj.objsize(), TRUE ) ;
+            offset += ossRoundUpToMultipleX( tmp.objsize(), 4 ) ;
+         }
+         const CHAR *pBuffer = _tmpBuffer.data() ;
+         INT32 size = _tmpBuffer.size() ;
+         engine::rtnContextBuf ctx( pBuffer, size, rNum ) ;
+         buff = ctx ;
+      }
+
+      if ( SDB_DMS_EOC == _replyHeader.flags )
+      {
+         buff = engine::rtnContextBuf() ;
+         _replyHeader.numReturned = 0 ;
+         _replyHeader.startFrom = _cursorStartFrom.startFrom ;
+      }
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Handle the response of command[%s] exception: %s, "
+               "rc: %d", commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Handle the response of command[%s] exception: %s, "
+               "rc: %d", commandName ? commandName : "", ex.what(), rc ) ;
+      goto error ;
    }
 
-   if ( SDB_DMS_EOC == _replyHeader.flags )
-   {
-      buff = engine::rtnContextBuf() ;
-      _replyHeader.numReturned = 0 ;
-      _replyHeader.startFrom = _cursorStartFrom.startFrom ;
-   }
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 INT32 _mongoSession::_setSeesionAttr()

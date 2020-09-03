@@ -153,75 +153,92 @@ INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
       insert->flags |= FLG_INSERT_CONTONDUP ;
    }
 
-   if ( packet.with( OPTION_CMD ) )
+   try
    {
-      const CHAR *clName = NULL ;
-      packet.fullName = packet.csName ;
-      packet.fullName += "." ;
-      clName = packet.all.getStringField( "insert" ) ;
-      if ( 0 == ossStrcmp( clName, "system.users" ) )
+      if ( packet.with( OPTION_CMD ) )
       {
-         packet.optionMask |= OPTION_USR ;
-         cmd = commandMgr::instance()->findCommand( "createUser" ) ;
-         if ( NULL == cmd )
+         const CHAR *clName = NULL ;
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         clName = packet.all.getStringField( "insert" ) ;
+         if ( 0 == ossStrcmp( clName, "system.users" ) )
          {
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+            packet.optionMask |= OPTION_USR ;
+            cmd = commandMgr::instance()->findCommand( "createUser" ) ;
+            if ( NULL == cmd )
+            {
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+            }
+
+            sdbMsg.zero() ;
+            rc = cmd->buildMsg( parser, sdbMsg ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            goto done ;
+         }
+         packet.fullName += packet.all.getStringField( "insert" ) ;
+         insert->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
+
+         if ( !packet.all.getBoolField( "ordered" ) )
+         {
+            insert->flags |= FLG_INSERT_CONTONDUP ;
          }
 
-         sdbMsg.zero() ;
-         rc = cmd->buildMsg( parser, sdbMsg ) ;
-         if ( SDB_OK != rc )
+         bson::BSONElement e = packet.all.getField( "documents" ) ;
+         if ( bson::Array != e.type() )
          {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         {
+            bson::BSONObjIterator it( e.Obj() ) ;
+            while( it.more() )
+            {
+               bson::BSONElement be = it.next() ;
+               sdbMsg.write( be.Obj(), TRUE ) ;
+            }
+         }
+      }
+      else
+      {
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
 
-         goto done ;
-      }
-      packet.fullName += packet.all.getStringField( "insert" ) ;
-      insert->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
+         parser.readNextObj( packet.all ) ;
 
-      if ( !packet.all.getBoolField( "ordered" ) )
-      {
-         insert->flags |= FLG_INSERT_CONTONDUP ;
-      }
+         insert->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
+         sdbMsg.write( packet.all, TRUE ) ;
 
-      bson::BSONElement e = packet.all.getField( "documents" ) ;
-      if ( bson::Array != e.type() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      {
-         bson::BSONObjIterator it( e.Obj() ) ;
-         while( it.more() )
+         bson::BSONObj doc ;
+         while ( parser.more() )
          {
-            bson::BSONElement be = it.next() ;
-            sdbMsg.write( be.Obj(), TRUE ) ;
+            parser.readNextObj( doc ) ;
+            sdbMsg.write( doc, TRUE ) ;
          }
       }
    }
-   else
+   catch( std::bad_alloc &ex )
    {
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      parser.readNextObj( packet.all ) ;
-
-      insert->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
-      sdbMsg.write( packet.all, TRUE ) ;
-
-      bson::BSONObj doc ;
-      while ( parser.more() )
-      {
-         parser.readNextObj( doc ) ;
-         sdbMsg.write( doc, TRUE ) ;
-      }
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of insert command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of insert command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.doneLen() ;
@@ -303,77 +320,94 @@ INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       del->flags |= FLG_DELETE_SINGLEREMOVE ;
    }
 
-   if ( packet.with( OPTION_CMD ) )
+   try
    {
-      const CHAR *clName = NULL ;
-      packet.fullName = packet.csName ;
-      packet.fullName += "." ;
-      clName = packet.all.getStringField( "delete" ) ;
-      if ( 0 == ossStrcmp( clName, "system.users" ) )
+      if ( packet.with( OPTION_CMD ) )
       {
-         packet.optionMask |= OPTION_USR ;
-         cmd = commandMgr::instance()->findCommand( "dropUser" ) ;
-         if ( NULL == cmd )
+         const CHAR *clName = NULL ;
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         clName = packet.all.getStringField( "delete" ) ;
+         if ( 0 == ossStrcmp( clName, "system.users" ) )
          {
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
-         }
+            packet.optionMask |= OPTION_USR ;
+            cmd = commandMgr::instance()->findCommand( "dropUser" ) ;
+            if ( NULL == cmd )
+            {
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+            }
 
-         sdbMsg.zero() ;
-         rc = cmd->buildMsg( parser, sdbMsg ) ;
-         if ( SDB_OK != rc )
+            sdbMsg.zero() ;
+            rc = cmd->buildMsg( parser, sdbMsg ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+
+            goto done ;
+         }
+         packet.fullName += packet.all.getStringField( "delete" ) ;
+         del->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
+
+         bson::BSONElement e = packet.all.getField( "deletes" ) ;
+         if ( bson::Array != e.type() )
          {
+            rc = SDB_INVALIDARG ;
             goto error ;
          }
 
-         goto done ;
+         std::vector< bson::BSONElement > objList ;
+         std::vector< bson::BSONElement >::const_iterator cit ;
+         bson::BSONObj obj, cond, hint ;
+         bson::BSONObj subObj ;
+         objList = e.Array() ;
+         cit = objList.begin() ;
+         while ( objList.end() != cit )
+         {
+            subObj = (*cit).Obj() ;
+            obj = subObj.getObjectField( "q" ) ;
+            cond = getQueryObj( obj ) ;
+            hint = getHintObj( obj ) ;
+            sdbMsg.write( cond, TRUE ) ;
+            sdbMsg.write( hint, TRUE ) ;
+            ++cit ;
+         }
       }
-      packet.fullName += packet.all.getStringField( "delete" ) ;
-      del->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
-
-      bson::BSONElement e = packet.all.getField( "deletes" ) ;
-      if ( bson::Array != e.type() )
+      else
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-      std::vector< bson::BSONElement > objList ;
-      std::vector< bson::BSONElement >::const_iterator cit ;
-      bson::BSONObj obj, cond, hint ;
-      bson::BSONObj subObj ;
-      objList = e.Array() ;
-      cit = objList.begin() ;
-      while ( objList.end() != cit )
-      {
-         subObj = (*cit).Obj() ;
-         obj = subObj.getObjectField( "q" ) ;
-         cond = getQueryObj( obj ) ;
-         hint = getHintObj( obj ) ;
+         parser.readNextObj( packet.all ) ;
+
+         del->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
+
+         bson::BSONObj cond, hint ;
+         cond = getQueryObj( packet.all ) ;
+         hint = getHintObj( packet.all ) ;
          sdbMsg.write( cond, TRUE ) ;
          sdbMsg.write( hint, TRUE ) ;
-         ++cit ;
       }
    }
-   else
+   catch( std::bad_alloc &ex )
    {
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      parser.readNextObj( packet.all ) ;
-
-      del->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
-
-      bson::BSONObj cond, hint ;
-      cond = getQueryObj( packet.all ) ;
-      hint = getHintObj( packet.all ) ;
-      sdbMsg.write( cond, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of delete command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of delete command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.doneLen() ;
@@ -449,34 +483,90 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    update->padding = 0 ;
    update->flags = 0 ;
 
-   if ( packet.with( OPTION_CMD ) )
+   try
    {
-      packet.fullName = packet.csName ;
-      packet.fullName += "." ;
-      packet.fullName += packet.all.getStringField( "update" ) ;
-      update->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(),
-                    packet.fullName.length() + 1, TRUE ) ;
-
-      bson::BSONElement e = packet.all.getField( "updates" ) ;
-      if ( bson::Array != e.type() )
+      if ( packet.with( OPTION_CMD ) )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         packet.fullName += packet.all.getStringField( "update" ) ;
+         update->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(),
+                       packet.fullName.length() + 1, TRUE ) ;
+
+         bson::BSONElement e = packet.all.getField( "updates" ) ;
+         if ( bson::Array != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         bson::BSONObj obj, subObj, cond, updator, hint ;
+         std::vector< bson::BSONElement > objList ;
+         std::vector< bson::BSONElement >::const_iterator cit ;
+         objList = e.Array() ;
+         cit = objList.begin() ;
+         while ( objList.end() != cit )
+         {
+            subObj = (*cit).Obj() ;
+            obj = subObj.getObjectField( "q" ) ;
+            //cond = getQueryObj( obj ) ;
+            updator = subObj.getObjectField( "u" ) ;
+            hint = getHintObj( obj ) ;
+
+            if( updator.nFields() > 0 &&
+                updator.firstElement().fieldName()[0] != '$' )
+            {
+               updator = BSON( "$replace" << updator ) ;
+            }
+
+            if ( subObj.getBoolField( "multi" ) )
+            {
+               update->flags |= FLG_UPDATE_MULTIUPDATE ;
+            }
+            if ( subObj.getBoolField( "upsert" ) )
+            {
+               update->flags |= FLG_UPDATE_UPSERT ;
+            }
+
+            sdbMsg.write( obj, TRUE ) ;
+            sdbMsg.write( updator, TRUE ) ;
+            sdbMsg.write( hint, TRUE ) ;
+            ++cit ;
+         }
       }
-
-      bson::BSONObj obj, subObj, cond, updator, hint ;
-      std::vector< bson::BSONElement > objList ;
-      std::vector< bson::BSONElement >::const_iterator cit ;
-      objList = e.Array() ;
-      cit = objList.begin() ;
-      while ( objList.end() != cit )
+      else
       {
-         subObj = (*cit).Obj() ;
-         obj = subObj.getObjectField( "q" ) ;
-         //cond = getQueryObj( obj ) ;
-         updator = subObj.getObjectField( "u" ) ;
-         hint = getHintObj( obj ) ;
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
+           goto error ;
+         }
+
+         parser.readNextObj( packet.all ) ;
+
+         update->nameLength = packet.fullName.length() ;
+         sdbMsg.write( packet.fullName.c_str(), update->nameLength + 1, TRUE ) ;
+         // in update option, nToSkip is used as updateFlags
+         if ( packet.nToSkip & UPDATE_UPSERT )
+         {
+            update->flags |= FLG_UPDATE_UPSERT ;
+         }
+         if ( packet.nToSkip & UPDATE_MULTI )
+         {
+            update->flags |= FLG_UPDATE_MULTIUPDATE ;
+         }
+
+         bson::BSONObj cond, updator, hint ;
+         if ( !parser.more() )
+         {
+            // lack of updator object
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         parser.readNextObj( updator ) ;
+         cond = getQueryObj( packet.all ) ;
+         hint = getHintObj( packet.all ) ;
 
          if( updator.nFields() > 0 &&
              updator.firstElement().fieldName()[0] != '$' )
@@ -484,64 +574,24 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
             updator = BSON( "$replace" << updator ) ;
          }
 
-         if ( subObj.getBoolField( "multi" ) )
-         {
-            update->flags |= FLG_UPDATE_MULTIUPDATE ;
-         }
-         if ( subObj.getBoolField( "upsert" ) )
-         {
-            update->flags |= FLG_UPDATE_UPSERT ;
-         }
-
-         sdbMsg.write( obj, TRUE ) ;
+         sdbMsg.write( cond, TRUE ) ;
          sdbMsg.write( updator, TRUE ) ;
          sdbMsg.write( hint, TRUE ) ;
-         ++cit ;
       }
    }
-   else
+   catch( std::bad_alloc &ex )
    {
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-        goto error ;
-      }
-
-      parser.readNextObj( packet.all ) ;
-
-      update->nameLength = packet.fullName.length() ;
-      sdbMsg.write( packet.fullName.c_str(), update->nameLength + 1, TRUE ) ;
-      // in update option, nToSkip is used as updateFlags
-      if ( packet.nToSkip & UPDATE_UPSERT )
-      {
-         update->flags |= FLG_UPDATE_UPSERT ;
-      }
-      if ( packet.nToSkip & UPDATE_MULTI )
-      {
-         update->flags |= FLG_UPDATE_MULTIUPDATE ;
-      }
-
-      bson::BSONObj cond, updator, hint ;
-      if ( !parser.more() )
-      {
-         // lack of updator object
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      parser.readNextObj( updator ) ;
-      cond = getQueryObj( packet.all ) ;
-      hint = getHintObj( packet.all ) ;
-
-      if( updator.nFields() > 0 &&
-          updator.firstElement().fieldName()[0] != '$' )
-      {
-         updator = BSON( "$replace" << updator ) ;
-      }
-
-
-      sdbMsg.write( cond, TRUE ) ;
-      sdbMsg.write( updator, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of update command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of update command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.doneLen() ;
@@ -577,46 +627,64 @@ INT32 queryCommand::convert( msgParser &parser )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   parser.readNextObj( packet.all ) ;
 
-   if ( 0 !=  packet.optionMask )
+   try
    {
-      if ( packet.with( OPTION_IDX ) )
-      {
-         cmd = commandMgr::instance()->findCommand( "listIndexes" ) ;
-      }
-      else if ( packet.with( OPTION_CLS ) )
-      {
-         cmd = commandMgr::instance()->findCommand( "listCollection" ) ;
-      }
-      else if ( packet.with( OPTION_USR ) )
-      {
-         cmd = commandMgr::instance()->findCommand( "listUsers" ) ;
-      }
-      else if ( packet.with( OPTION_CMD ) )
-      {
-         const CHAR *cmdName = packet.all.firstElementFieldName() ;
-         packet.fullName = packet.csName ;
-         packet.fullName += "." ;
-         packet.fullName += packet.all.getStringField( cmdName ) ;
+      parser.readNextObj( packet.all ) ;
 
-         cmd = commandMgr::instance()->findCommand( cmdName ) ;
-      }
-
-      if ( NULL == cmd )
+      if ( 0 !=  packet.optionMask )
       {
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
-         goto error ;
-      }
+         if ( packet.with( OPTION_IDX ) )
+         {
+            cmd = commandMgr::instance()->findCommand( "listIndexes" ) ;
+         }
+         else if ( packet.with( OPTION_CLS ) )
+         {
+            cmd = commandMgr::instance()->findCommand( "listCollection" ) ;
+         }
+         else if ( packet.with( OPTION_USR ) )
+         {
+            cmd = commandMgr::instance()->findCommand( "listUsers" ) ;
+         }
+         else if ( packet.with( OPTION_CMD ) )
+         {
+            const CHAR *cmdName = packet.all.firstElementFieldName() ;
+            packet.fullName = packet.csName ;
+            packet.fullName += "." ;
+            packet.fullName += packet.all.getStringField( cmdName ) ;
 
-      rc = cmd->convert( parser ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
+            cmd = commandMgr::instance()->findCommand( cmdName ) ;
+         }
 
-      goto done ;
+         if ( NULL == cmd )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+            goto error ;
+         }
+
+         rc = cmd->convert( parser ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         goto done ;
+      }
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Convert query msg exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Convert query msg exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
 done:
@@ -630,6 +698,7 @@ INT32 queryCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    INT32 rc                = SDB_OK ;
    MsgOpQuery *query       = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
+   bson::BSONObj cond, orderby, hint ;
 
    parser.setCurrentOp( OP_QUERY ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -649,42 +718,59 @@ INT32 queryCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToReturn = packet.nToReturn ;
    query->nameLength = packet.fullName.length() ;
 
-   if ( packet.all.hasField( "limit" ) )
+   try
    {
-      query->numToReturn = packet.all.getIntField( "limit" ) ;
-   }
+      if ( packet.all.hasField( "limit" ) )
+      {
+         query->numToReturn = packet.all.getIntField( "limit" ) ;
+      }
 
-   if ( packet.all.hasField( "skip" ) )
-   {
-      query->numToSkip = packet.all.getIntField( "skip" ) ;
-   }
+      if ( packet.all.hasField( "skip" ) )
+      {
+         query->numToSkip = packet.all.getIntField( "skip" ) ;
+      }
 
-   if ( packet.all.getBoolField( "$explain" ) )
-   {
-      query->flags |= FLG_QUERY_EXPLAIN ;
-   }
+      if ( packet.all.getBoolField( "$explain" ) )
+      {
+         query->flags |= FLG_QUERY_EXPLAIN ;
+      }
 
-   {
       if ( parser.more() )
       {
          parser.readNextObj( packet.fieldToReturn ) ;
       }
 
-      bson::BSONObj cond, orderby, hint ;
       cond = getQueryObj( packet.all ) ;
       orderby = getSortObj( packet.all ) ;
       hint = getHintObj( packet.all ) ;
 
-      sdbMsg.write( packet.fullName.c_str(), query->nameLength + 1, TRUE ) ;
-      sdbMsg.write( cond, TRUE ) ;
-      sdbMsg.write( packet.fieldToReturn, TRUE ) ;
-      sdbMsg.write( orderby, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of query command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of query command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
+   sdbMsg.write( packet.fullName.c_str(), query->nameLength + 1, TRUE ) ;
+   sdbMsg.write( cond, TRUE ) ;
+   sdbMsg.write( packet.fieldToReturn, TRUE ) ;
+   sdbMsg.write( orderby, TRUE ) ;
+   sdbMsg.write( hint, TRUE ) ;
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 queryCommand::doCommand( void *pData )
@@ -792,17 +878,36 @@ INT32 getnonceCommand::convert( msgParser &parser )
 INT32 getnonceCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 {
    INT32 rc = SDB_OK ;
+   bson::BSONObjBuilder bob ;
+   std::stringstream ss ;
 
    parser.setCurrentOp( OP_CMD_GETNONCE ) ;
 
-   bson::BSONObjBuilder bob ;
-   std::stringstream ss ;
-   generateNonce( ss ) ;
-   bob.append( "nonce", ss.str() ) ;
+   try
+   {
+      generateNonce( ss ) ;
+      bob.append( "nonce", ss.str() ) ;
+      sdbMsg.write( bob.obj(), TRUE ) ;
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of getnonce command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of getnonce command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
 
-   sdbMsg.write( bob.obj(), TRUE ) ;
-
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 getnonceCommand::doCommand( void *pData )
@@ -820,14 +925,11 @@ INT32 authenticateCommand::buildMsg( msgParser &parser,  msgBuffer &sdbMsg )
    INT32 rc                = SDB_OK ;
    MsgAuthentication *auth = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
+   bson::BSONObj obj ;
 
    parser.setCurrentOp( OP_CMD_AUTH ) ;
    sdbMsg.reverse( sizeof( MsgAuthentication ) ) ;
    sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
-
-   bson::BSONObj user = packet.all ;
-   const CHAR *pUsername = user.getStringField( "user" ) ;
-   const CHAR *pKey = user.getStringField( "key" ) ;
 
    auth = ( MsgAuthentication * ) sdbMsg.data() ;
    auth->header.opCode = MSG_AUTH_VERIFY_REQ ;
@@ -835,17 +937,34 @@ INT32 authenticateCommand::buildMsg( msgParser &parser,  msgBuffer &sdbMsg )
    auth->header.routeID.value = 0 ;
    auth->header.requestID = packet.requestId ;
 
+   try
    {
-      bson::BSONObj obj ;
-      obj = BSON( SDB_AUTH_USER << pUsername
-                  << SDB_AUTH_PASSWD << pKey
+      obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "user" )
+                  << SDB_AUTH_PASSWD << packet.all.getStringField( "key" )
                   << SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
-      sdbMsg.write( obj, TRUE ) ;
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of auth command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of auth command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
    }
 
+   sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 authenticateCommand::doCommand( void *pData )
@@ -878,61 +997,79 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
    const CHAR *pName = NULL ;
    const CHAR *pPasswd = NULL ;
 
-   if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
+   try
    {
-      bson::BSONElement e = packet.all.getField( "documents" ) ;
-      if ( bson::Array != e.type() )
+      if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      {
-         bson::BSONObjIterator it( e.Obj() ) ;
-         while( it.more() )
+         bson::BSONElement e = packet.all.getField( "documents" ) ;
+         if ( bson::Array != e.type() )
          {
-            bson::BSONElement be = it.next() ;
-            cond = be.Obj() ;
-            break ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
+         {
+            bson::BSONObjIterator it( e.Obj() ) ;
+            while( it.more() )
+            {
+               bson::BSONElement be = it.next() ;
+               cond = be.Obj() ;
+               break ;
+            }
+            pName = cond.getStringField( "user" ) ;
+            pPasswd = cond.getStringField( "pwd" ) ;
+         }
+      }
+      else if ( packet.with( OPTION_CMD ) )
+      {
+         bson::BSONObj cond = packet.all.getObjectField( "createUser" ) ;
          pName = cond.getStringField( "user" ) ;
          pPasswd = cond.getStringField( "pwd" ) ;
       }
-   }
-   else if ( packet.with( OPTION_CMD ) )
-   {
-      bson::BSONObj cond = packet.all.getObjectField( "createUser" ) ;
-      pName = cond.getStringField( "user" ) ;
-      pPasswd = cond.getStringField( "pwd" ) ;
-   }
-   else
-   {
-      if ( !parser.more() )
+      else
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         parser.readNextObj( packet.all ) ;
+
+         pName = packet.all.getStringField( "user" ) ;
+         pPasswd = packet.all.getStringField( "pwd" ) ;
       }
+      // build md5
+      {
+         std::stringstream ss ;
+         generateNonce( ss ) ;
+         md5::md5digest d ;
+         md5_state_t st ;
+         md5_init( &st ) ;
+         md5_append( &st, ( const md5_byte_t * )ss.str().c_str(),
+                     ossStrlen( ss.str().c_str() ) ) ;
+         md5_append( &st, ( const md5_byte_t * )pName, ossStrlen( pName ) ) ;
+         md5_append( &st, ( const md5_byte_t * )pPasswd,
+                     ossStrlen( pPasswd ) ) ;
+         md5_finish( &st, d ) ;
 
-      parser.readNextObj( packet.all ) ;
-
-      pName = packet.all.getStringField( "user" ) ;
-      pPasswd = packet.all.getStringField( "pwd" ) ;
+         obj = BSON( SDB_AUTH_USER << pName <<
+                     SDB_AUTH_PASSWD << md5::digestToString( d ).c_str() <<
+                     SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      }
    }
-   // build md5
+   catch( std::bad_alloc &ex )
    {
-      std::stringstream ss ;
-      generateNonce( ss ) ;
-      md5::md5digest d ;
-      md5_state_t st ;
-      md5_init( &st ) ;
-      md5_append( &st, ( const md5_byte_t * )ss.str().c_str(),
-                  ossStrlen( ss.str().c_str() ) ) ;
-      md5_append( &st, ( const md5_byte_t * )pName, ossStrlen( pName ) ) ;
-      md5_append( &st, ( const md5_byte_t * )pPasswd, ossStrlen( pPasswd ) ) ;
-      md5_finish( &st, d ) ;
-
-      obj = BSON( SDB_AUTH_USER << pName <<
-                  SDB_AUTH_PASSWD << md5::digestToString( d ).c_str() <<
-                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of createUser command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of createUser command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.write( obj, TRUE ) ;
@@ -959,6 +1096,7 @@ INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    INT32 rc                = SDB_OK ;
    MsgAuthDelUsr *auth     = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
+   bson::BSONObj obj ;
 
    parser.setCurrentOp( OP_CMD_DELUSER ) ;
    sdbMsg.reverse( sizeof( MsgAuthDelUsr ) ) ;
@@ -975,48 +1113,65 @@ INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       parser.readInt( sizeof( INT32 ), (CHAR *)&removeFlags ) ;
    }
 
-   bson::BSONObj obj ;
-   if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
+   try
    {
-      bson::BSONElement e = packet.all.getField( "deletes" ) ;
-      if ( bson::Array != e.type() )
+      if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         bson::BSONElement e = packet.all.getField( "deletes" ) ;
+         if ( bson::Array != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-      std::vector< bson::BSONElement > objList ;
-      std::vector< bson::BSONElement >::const_iterator cit ;
-      bson::BSONObj cond, subObj ;
-      objList = e.Array() ;
-      cit = objList.begin() ;
-      while ( objList.end() != cit )
-      {
-         subObj = (*cit).Obj() ;
-         cond = subObj.getObjectField( "q" ) ;
-         break ;
+         std::vector< bson::BSONElement > objList ;
+         std::vector< bson::BSONElement >::const_iterator cit ;
+         bson::BSONObj cond, subObj ;
+         objList = e.Array() ;
+         cit = objList.begin() ;
+         while ( objList.end() != cit )
+         {
+            subObj = (*cit).Obj() ;
+            cond = subObj.getObjectField( "q" ) ;
+            break ;
+         }
+         obj = BSON( SDB_AUTH_USER << cond.getStringField( "user" ) <<
+                     SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
       }
-      obj = BSON( SDB_AUTH_USER << cond.getStringField( "user" ) <<
-                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      else if ( packet.with( OPTION_CMD ) )
+      {
+         obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "dropUser" ) <<
+                     SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      }
+      else
+      {
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         parser.readNextObj( packet.all ) ;
+
+         obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "user" ) <<
+                     SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      }
    }
-   else if ( packet.with( OPTION_CMD ) )
+   catch( std::bad_alloc &ex )
    {
-      obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "dropUser" ) <<
-                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of dropUser command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
    }
-   else
+   catch ( std::exception &ex )
    {
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      parser.readNextObj( packet.all ) ;
-
-      obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "user" ) <<
-                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of dropUser command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
    }
+
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
 
@@ -1092,6 +1247,7 @@ INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
+   bson::BSONObj obj, empty ;
 
    parser.setCurrentOp( OP_CMD_CREATE_CS ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1113,9 +1269,26 @@ INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->nameLength = ossStrlen( cmdName ) ;
 
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
-   bson::BSONObj obj, empty ;
-   obj = BSON( FIELD_NAME_NAME << packet.csName
-                               << FIELD_NAME_PAGE_SIZE << 65536 ) ;
+
+   try
+   {
+      obj = BSON( FIELD_NAME_NAME << packet.csName
+                                  << FIELD_NAME_PAGE_SIZE << 65536 ) ;
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of createCS command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of createCS command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
 
    sdbMsg.write( obj, TRUE ) ;    // condition
    sdbMsg.write( empty, TRUE ) ;  // selector
@@ -1124,7 +1297,10 @@ INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 createCSCommand::doCommand( void *pData )
@@ -1143,6 +1319,7 @@ INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query       = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
+   bson::BSONObj obj, empty ;
 
    parser.setCurrentOp( OP_CMD_CREATE ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1163,17 +1340,33 @@ INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToSkip = packet.nToSkip ;
    query->numToReturn = packet.nToReturn ;
 
-   if ( packet.with( OPTION_CMD ) )
+   try
    {
-      packet.fullName = packet.csName ;
-      packet.fullName += "." ;
-      packet.fullName += packet.all.getStringField( "create" ) ;
+      if ( packet.with( OPTION_CMD ) )
+      {
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         packet.fullName += packet.all.getStringField( "create" ) ;
+      }
+
+      sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+      obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
    }
-
-   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
-
-   bson::BSONObj obj, empty ;
-   obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of createCL command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of createCL command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
 
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.write( empty, TRUE ) ;
@@ -1182,7 +1375,10 @@ INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 createCommand::doCommand( void *pData )
@@ -1201,6 +1397,7 @@ INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query       = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+   bson::BSONObj cond, selector, orderby, hint ;
 
    parser.setCurrentOp( OP_CMD_GET_CLS ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1223,8 +1420,9 @@ INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToReturn = packet.nToReturn ;
 
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   try
    {
-      bson::BSONObj cond, selector, orderby, hint ;
       if ( parser.more() )
       {
          parser.readNextObj( packet.fieldToReturn ) ;
@@ -1236,20 +1434,38 @@ INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
       query->numToSkip = getFieldInt( packet.all, "skip" ) ;
       query->numToReturn = getFieldInt( packet.all, "limit" ) ;
-      if ( 0 == query->numToReturn )
-      {
-         query->numToReturn = -1 ;
-      }
-
-      sdbMsg.write( cond, TRUE ) ;
-      sdbMsg.write( selector, TRUE ) ;
-      sdbMsg.write( orderby, TRUE ) ;
-      sdbMsg.write( hint, TRUE ) ;
    }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of listCollections command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of listCollections command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+
+   if ( 0 == query->numToReturn )
+   {
+      query->numToReturn = -1 ;
+   }
+
+   sdbMsg.write( cond, TRUE ) ;
+   sdbMsg.write( selector, TRUE ) ;
+   sdbMsg.write( orderby, TRUE ) ;
+   sdbMsg.write( hint, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 listCollectionCommand::doCommand( void *pData )
@@ -1268,6 +1484,7 @@ INT32 dropCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
+   bson::BSONObj obj, empty ;
 
    parser.setCurrentOp( OP_CMD_DROP ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1289,24 +1506,41 @@ INT32 dropCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToSkip = packet.nToSkip ;
    query->numToReturn = packet.nToReturn ;
 
-   packet.fullName = packet.csName ;
-   packet.fullName += "." ;
-   packet.fullName += packet.all.getStringField( "drop" ) ;
-
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
 
+   try
    {
-      bson::BSONObj obj, empty ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "drop" ) ;
       obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
-      sdbMsg.write( obj, TRUE ) ;    // condition
-      sdbMsg.write( empty, TRUE ) ;  // selector
-      sdbMsg.write( empty, TRUE ) ;  // orderby
-      sdbMsg.write( empty, TRUE ) ;  // hint
    }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of dropCL command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of dropCL command exception: %s, "
+               "rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+
+   sdbMsg.write( obj, TRUE ) ;    // condition
+   sdbMsg.write( empty, TRUE ) ;  // selector
+   sdbMsg.write( empty, TRUE ) ;  // orderby
+   sdbMsg.write( empty, TRUE ) ;  // hint
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 dropCommand::doCommand( void *pData )
@@ -1325,6 +1559,7 @@ INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT ;
+   bson::BSONObj cond, obj, orderby, empty ;
 
    parser.setCurrentOp( OP_CMD_COUNT ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1346,13 +1581,14 @@ INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToSkip = packet.nToSkip ;
    query->numToReturn = packet.nToReturn ;
 
-   packet.fullName = packet.csName ;
-   packet.fullName += "." ;
-   packet.fullName += packet.all.getStringField( "count" ) ;
-
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   try
    {
-      bson::BSONObj cond, obj, orderby, empty ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "count" ) ;
+
       cond = packet.all.getObjectField( "query" ) ;
       obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() ) ;
 
@@ -1366,16 +1602,33 @@ INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       {
          query->numToSkip = packet.all.getIntField( "skip" ) ;
       }
-
-      sdbMsg.write( cond, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( obj, TRUE ) ;
    }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of count command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of count command exception: %s, rc: %d",
+               ex.what(), rc ) ;
+      goto error ;
+   }
+
+   sdbMsg.write( cond, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( obj, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 countCommand::doCommand( void *pData )
@@ -1409,9 +1662,26 @@ INT32 aggregateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    aggre->padding = 0 ;
    aggre->flags = 0 ;
 
-   packet.fullName = packet.csName ;
-   packet.fullName += "." ;
-   packet.fullName += packet.all.getStringField( "aggregate" ) ;
+   try
+   {
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "aggregate" ) ;
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of aggregate command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of aggregate command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
 
    aggre->nameLength = packet.fullName.length() ;
    sdbMsg.write( packet.fullName.c_str(), aggre->nameLength + 1, TRUE ) ;
@@ -1419,7 +1689,10 @@ INT32 aggregateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( packet.all, TRUE ) ;
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 aggregateCommand::doCommand( void *pData )
@@ -1438,6 +1711,7 @@ INT32 dropDatabaseCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query       = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
+   bson::BSONObj obj, empty ;
 
    parser.setCurrentOp( OP_CMD_DROP_DATABASE ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1460,19 +1734,37 @@ INT32 dropDatabaseCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToReturn = packet.nToReturn ;
 
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
-   {
-      bson::BSONObj obj, empty ;
-      obj = BSON( FIELD_NAME_NAME << packet.csName ) ;
 
-      sdbMsg.write( obj, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
+   try
+   {
+      obj = BSON( FIELD_NAME_NAME << packet.csName ) ;
    }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of dropDatabase command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of dropDatabase command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+
+   sdbMsg.write( obj, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 dropDatabaseCommand::doCommand( void *pData )
@@ -1520,72 +1812,89 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    std::vector< bson::BSONElement > objList ;
    std::vector< bson::BSONElement >::const_iterator cit ;
 
-   if ( packet.with( OPTION_CMD ) )
+   try
    {
-      packet.fullName = packet.csName ;
-      packet.fullName += "." ;
-      packet.fullName += packet.all.getStringField( "createIndexes" ) ;
-      bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
-
-      e = packet.all.getField( "indexes" ) ;
-      if( bson::Array != e.type() )
+      if ( packet.with( OPTION_CMD ) )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         packet.fullName += packet.all.getStringField( "createIndexes" ) ;
+         bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
+
+         e = packet.all.getField( "indexes" ) ;
+         if( bson::Array != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         objList = e.Array() ;
+         cit = objList.begin() ;
+         while ( objList.end() != cit )
+         {
+            subObj = (*cit).Obj() ;
+            indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
+                             "name" << subObj.getStringField( "name") <<
+                             "unique" << subObj.getBoolField( "unique" ) );
+            bob.append( "Index", indexObj ) ;
+            sdbMsg.write( bob.obj(), TRUE ) ;
+            ++cit ;
+         }
       }
-
-      objList = e.Array() ;
-      cit = objList.begin() ;
-      while ( objList.end() != cit )
+      else if ( packet.with( OPTION_IDX ) )
       {
-         subObj = (*cit).Obj() ;
-         indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
-                          "name" << subObj.getStringField( "name") <<
-                          "unique" << subObj.getBoolField( "unique" ) );
-         bob.append( "Index", indexObj ) ;
-         sdbMsg.write( bob.obj(), TRUE ) ;
-         ++cit ;
-      }
-   }
-   else if ( packet.with( OPTION_IDX ) )
-   {
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      parser.readNextObj( packet.all ) ;
+         if ( !parser.more() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         parser.readNextObj( packet.all ) ;
 
-      packet.fullName = packet.all.getStringField( "ns" ) ;
-      bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
+         packet.fullName = packet.all.getStringField( "ns" ) ;
+         bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
 
-      indexObj = BSON( "key" << packet.all.getObjectField( "key" ) <<
-                       "name" << packet.all.getStringField( "name") <<
-                       "unique" << packet.all.getBoolField( "unique" ) );
-      bob.append( "Index", indexObj ) ;
-      sdbMsg.write( bob.obj(), TRUE ) ;
-   }
-   else
-   {
-      e = packet.all.getField( "documents" ) ;
-      if ( bson::Array != e.type() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      objList = e.Array() ;
-      cit = objList.begin() ;
-      while ( objList.end() != cit )
-      {
-         subObj = (*cit).Obj() ;
-         bob.append( FIELD_NAME_COLLECTION, subObj.getStringField("ns") ) ;
-         indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
-                          "name" << subObj.getStringField( "name") <<
-                          "unique" << subObj.getBoolField( "unique" ) );
+         indexObj = BSON( "key" << packet.all.getObjectField( "key" ) <<
+                          "name" << packet.all.getStringField( "name") <<
+                          "unique" << packet.all.getBoolField( "unique" ) );
          bob.append( "Index", indexObj ) ;
          sdbMsg.write( bob.obj(), TRUE ) ;
       }
+      else
+      {
+         e = packet.all.getField( "documents" ) ;
+         if ( bson::Array != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         objList = e.Array() ;
+         cit = objList.begin() ;
+         while ( objList.end() != cit )
+         {
+            subObj = (*cit).Obj() ;
+            bob.append( FIELD_NAME_COLLECTION, subObj.getStringField("ns") ) ;
+            indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
+                             "name" << subObj.getStringField( "name") <<
+                             "unique" << subObj.getBoolField( "unique" ) );
+            bob.append( "Index", indexObj ) ;
+            sdbMsg.write( bob.obj(), TRUE ) ;
+         }
+      }
+   }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of createIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of createIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.write( empty, TRUE ) ;
@@ -1616,6 +1925,7 @@ INT32 deleteIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    MsgOpQuery *query = NULL ;
    mongoDataPacket &packet = parser.dataPacket() ;
    const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
+   bson::BSONObj obj, indexObj, empty ;
 
    parser.setCurrentOp( OP_CMD_DROP_INDEX ) ;
    sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
@@ -1638,24 +1948,43 @@ INT32 deleteIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    query->numToReturn = packet.nToReturn ;
 
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   try
    {
       packet.fullName = packet.csName ;
       packet.fullName += "." ;
       packet.fullName += packet.all.getStringField( "dropIndexes" ) ;
 
-      bson::BSONObj obj, indexObj, empty ;
       indexObj = BSON( "" << packet.all.getStringField( "index" ) ) ;
       obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() <<
                   FIELD_NAME_INDEX << indexObj ) ;
-      sdbMsg.write( obj, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
-      sdbMsg.write( empty, TRUE ) ;
    }
+   catch( std::bad_alloc &ex )
+   {
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of deleteIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of deleteIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
+   }
+
+   sdbMsg.write( obj, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 deleteIndexesCommand::doCommand( void *pData )
@@ -1698,38 +2027,52 @@ INT32 listIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
 
    bson::BSONObj obj, cond, indexObj, empty ;
-   if ( packet.with( OPTION_IDX ) )
+
+   try
    {
-      cond = getQueryObj( packet.all ) ;
-      if( !cond.isEmpty() )
+      if ( packet.with( OPTION_IDX ) )
       {
-         if ( cond.hasField( "index" ) )
+         cond = getQueryObj( packet.all ) ;
+         if( !cond.isEmpty() )
          {
-            indexObj = BSON( "indexDef.name" << cond.getStringField( "index" ) ) ;
+            if ( cond.hasField( "index" ) )
+            {
+               indexObj = BSON( "indexDef.name" <<
+                                cond.getStringField( "index" ) ) ;
+            }
+            obj = BSON( FIELD_NAME_COLLECTION << cond.getStringField( "ns" ) ) ;
          }
-         obj = BSON( FIELD_NAME_COLLECTION << cond.getStringField( "ns" ) ) ;
+         else
+         {
+            if ( packet.all.hasField( "index" ) )
+            {
+               indexObj = BSON( "indexDef.name" <<
+                                packet.all.getStringField( "index" ) ) ;
+            }
+            obj = BSON( FIELD_NAME_COLLECTION <<
+                        packet.all.getStringField( "ns" ) ) ;
+         }
       }
-      else
+      else if ( packet.with( OPTION_CMD ) )
       {
-         if ( packet.all.hasField( "index" ) )
-         {
-            indexObj = BSON( "indexDef.name" <<
-                             packet.all.getStringField( "index" ) ) ;
-         }
-         obj = BSON( FIELD_NAME_COLLECTION << packet.all.getStringField( "ns" ) ) ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         goto error ;
       }
    }
-   else if ( packet.with( OPTION_CMD ) )
+   catch( std::bad_alloc &ex )
    {
-      rc = SDB_OPTION_NOT_SUPPORT ;
-      parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+      rc = SDB_OOM ;
+      PD_LOG ( PDERROR, "Build the msg of listIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
-
-      //packet.fullName = packet.csName ;
-      //packet.fullName += "." ;
-      //packet.fullName += packet.all.getStringField( "listIndexes" ) ;
-
-      //obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() ) ;
+   }
+   catch ( std::exception &ex )
+   {
+      rc = SDB_SYS ;
+      PD_LOG ( PDERROR, "Build the msg of listIndexes command exception: "
+               "%s, rc: %d", ex.what(), rc ) ;
+      goto error ;
    }
 
    sdbMsg.write( indexObj, TRUE ) ;

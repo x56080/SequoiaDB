@@ -65,9 +65,10 @@ protected:
    virtual void  _onDetach() {}
 
 protected:
-   BOOLEAN _preProcessMsg( msgParser &parser,
-                           engine::IResource *resource,
-                           engine::rtnContextBuf &buff ) ;
+   INT32 _preProcessMsg( msgParser &parser,
+                         engine::IResource *resource,
+                         engine::rtnContextBuf &buff,
+                         BOOLEAN &handled ) ;
    INT32 _processMsg( const CHAR *pMsg ) ;
    INT32 _onMsgBegin( MsgHeader *msg ) ;
    INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
@@ -76,7 +77,7 @@ protected:
 private:
    void  _resetBuffers() ;
    INT32 _setSeesionAttr() ;
-   void  _handleResponse( const INT32 opType, engine::rtnContextBuf &buff ) ;
+   INT32 _handleResponse( const INT32 opType, engine::rtnContextBuf &buff ) ;
 
 private:
    mongoConverter          _converter ;
