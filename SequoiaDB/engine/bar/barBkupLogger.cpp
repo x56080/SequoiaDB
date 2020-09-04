@@ -49,6 +49,7 @@
 #include "utilCompressor.hpp"
 #include "pdTrace.hpp"
 #include "barTrace.hpp"
+#include "catCommon.hpp"
 
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -2895,16 +2896,11 @@ namespace engine
                   restoreInc = TRUE ;
                   _closeSUFile() ;
 
-                  PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
-                  std::cout << "Begin to load all collection spaces..."
-                            << std::endl ;
-                  // need to load dms
-                  pmdGetKRCB()->setIsRestore( FALSE ) ;
-                  rc = _pDMSCB->init() ;
-                  pmdGetKRCB()->setIsRestore( TRUE ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
-                               "rc: %d", rc ) ;
-                  _hasLoadDMS = TRUE ;
+                  rc = _loadDMS() ;
+                  if ( SDB_OK != rc )
+                  {
+                     goto error ;
+                  }
                }
                rc = _processReplLog( pExtHeader, pBuff, restoreInc, cb ) ;
                break ;
@@ -3218,18 +3214,10 @@ namespace engine
 
       if ( DPS_INVALID_LSN_OFFSET != _metaHeader._transLSNOffset )
       {
-         if ( !_hasLoadDMS )
+         rc = _loadDMS() ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
-            std::cout << "Begin to load all collection spaces..." << std::endl ;
-
-            // load all collectionspaces
-            pmdGetKRCB()->setIsRestore( FALSE ) ;
-            rc = _pDMSCB->init() ;
-            pmdGetKRCB()->setIsRestore( TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
-                         "rc: %d", rc ) ;
-            _hasLoadDMS = TRUE ;
+            goto error ;
          }
 
          PD_LOG( PDEVENT, "Begin to rollback all trans..." ) ;
@@ -3240,10 +3228,63 @@ namespace engine
                       rc ) ;
       }
 
+      if ( SDB_ROLE_CATALOG == pmdGetDBRole() &&
+           _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      {
+         // This is a global restore. The cluster is now rollback-pending.
+         // Need to set RollbackPending: true in SYSINFO.SYSDCBASE
+         // This requires a real update operation - need to fully init some CBs
+
+         // Fully init transCB
+         pmdGetKRCB()->setIsRestore( FALSE ) ;
+         rc = _pTransCB->init() ;
+         pmdGetKRCB()->setIsRestore( TRUE ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to init transCB." ) ;
+            goto error ;
+         }
+
+         // Fully init DMS
+         if ( rc = _loadDMS() != SDB_OK )
+         {
+            goto error ;
+         }
+
+         PD_LOG( PDEVENT, "Setting DC to rollback-pending..." ) ;
+         std::cout << "Setting DC to rollback-pending..." << std::endl ;
+         if ((rc = catUpdateDCStatus(FIELD_NAME_ROLLBACK_PENDING, TRUE, cb, 1,
+                                     _pDMSCB, _pDPSCB)) != SDB_OK)
+         {
+            PD_LOG( PDERROR, "Failed to set rollback-pending." ) ;
+            goto error ;
+         }
+      }
+
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _barRSOfflineLogger::_loadDMS()
+   {
+      if ( _hasLoadDMS )
+      {
+         return SDB_OK ;
+      }
+      PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
+      std::cout << "Begin to load all collection spaces..." << std::endl ;
+      pmdGetKRCB()->setIsRestore( FALSE ) ;
+      INT32 rc = _pDMSCB->init() ;
+      pmdGetKRCB()->setIsRestore( TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to load DMS collection spaces, rc: %d", rc ) ;
+         return rc ;
+      }
+      _hasLoadDMS = TRUE ;
+      return SDB_OK ;
    }
 
    /*

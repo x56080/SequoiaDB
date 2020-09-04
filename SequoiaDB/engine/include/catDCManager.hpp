@@ -89,6 +89,8 @@ namespace engine
       void    setWritedCommand( BOOLEAN writed ) { _isWritedCmd = writed ; }
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
 
+      INT32 setRollbackPending() ;
+
    public :
       // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }

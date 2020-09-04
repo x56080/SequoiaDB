@@ -692,6 +692,7 @@ namespace engine
                                              UINT64 &offset ) ;
          INT32             _writeSU( barBackupExtentHeader *pExtHeader,
                                      const CHAR *pData ) ;
+         INT32             _loadDMS () ;
 
       private:
          string               _curSUName ;

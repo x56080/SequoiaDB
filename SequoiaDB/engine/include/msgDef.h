@@ -398,6 +398,7 @@
 #define VALUE_NAME_SUB                       "sub"
 #define VALUE_NAME_BOTH                      "both"
 #define FIELD_NAME_GLOBAL_TIME               "GlobalTime"
+#define FIELD_NAME_ROLLBACK_PENDING          "RollbackPending"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"

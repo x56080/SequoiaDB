@@ -1347,7 +1347,8 @@ namespace engine
                            FIELD_NAME_BUSINESSNAME << businessName <<
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
-                         FIELD_NAME_READONLY << false ) ;
+                         FIELD_NAME_READONLY << false <<
+                         FIELD_NAME_ROLLBACK_PENDING << false ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "
@@ -1481,6 +1482,11 @@ namespace engine
       goto done ;
    }
 
+   INT32 _catDCManager::setRollbackPending()
+   {
+      return catUpdateDCStatus( FIELD_NAME_ROLLBACK_PENDING, TRUE, _pEduCB,
+                                1, _pDmsCB, _pDpsCB ) ;
+   }
 }
 
 
