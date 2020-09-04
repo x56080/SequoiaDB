@@ -34,9 +34,9 @@ from pysequoiadb.error import (SDBBaseError,
                                raise_if_error)
 from pysequoiadb.errcode import (SDB_OOM, SDB_INVALIDARG)
 
-QUERY_FLG_WITH_RETURNDATA = 0x00000080
+QUERY_FLG_FORCE_HINT      = 0x00000080
 QUERY_FLG_PARALLED        = 0x00000100
-QUERY_FLG_FORCE_HINT      = 0x00000200
+QUERY_FLG_WITH_RETURNDATA = 0x00000200
 
 class collection(object):
     """Collection for SequoiaDB
@@ -475,9 +475,9 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
         """
 
         bson_condition = None
@@ -566,11 +566,11 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_WITH_RETURNDATA            : Force to use specified hint to query, if database have
+           QUERY_FLG_FORCE_HINT                 : Force to use specified hint to query, if database have
                                                         no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED                   : Enable parallel sub query, each sub query will finish scanning
                                                         different part of the data
-           QUERY_FLG_FORCE_HINT                 : In general, query won't return data until cursor gets from
+           QUERY_FLG_WITH_RETURNDATA            : In general, query won't return data until cursor gets from
                                                         database, when add this flag, return data in query response,
                                                         it will be more high-performance
         """
@@ -679,9 +679,9 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
         """
 
         bson_condition = None
@@ -1134,9 +1134,9 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
         """
         bson_condition = None
         bson_selector = None
@@ -1224,9 +1224,9 @@ class collection(object):
            pysequoiadb.error.SDBBaseError
         Info:
            query flags:
-           QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+           QUERY_FLG_FORCE_HINT      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
-           QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
+           QUERY_FLG_WITH_RETURNDATA : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
         """
 
         bson_condition = None
