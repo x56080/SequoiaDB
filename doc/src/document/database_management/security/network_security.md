@@ -83,4 +83,4 @@ SequoiaDB 在开启 SSL 后会自动创建证书，不需要用户指定。
 
 sdbexprt、sdbimprt、sdblobtool、sdbtop 支持 SSL连接。
 
-参见：[sdbexprt](database_management/tools/sdbexprt.md)，[sdbimprt](database_management/tools/sdbimprt.md)，[sdblobtool](database_management/tools/sdblob.md)，[sdbtop](database_management/tools/sdbtop.md)。
+参见：[sdbexprt](database_management/tools/sdbexprt.md)，[sdbimprt](database_management/tools/sdbimprt.md)，[sdblobtool](database_management/tools/sdblobtool.md)，[sdbtop](database_management/tools/sdbtop.md)。

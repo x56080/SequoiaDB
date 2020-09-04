@@ -1,129 +1,123 @@
-sdbpasswd 是一个 SequoiaDB 数据库的密码管理工具。它可以将用户的密码保存到文件，并以此给其他 SequoiaDB 数据库工具提供基于文件的密码输入功能。
+sdbpasswd 是 SequoiaDB 密码管理工具，该工具可以把该数据库用户的用户名和密码以密文方式保存在密文文件中，使用户可以基于该密文文件使用密文模式输入密码。
 
-##权限需求##
+> **Note：**
+> 
+> 关于密文模式的介绍可参考[密码管理](database_management/security/system_security.md)。
 
-运行 sdbpasswd 命令的用户必须对准备写入密码的加密文件具有读写权限，加密文件的权限设置为 600。
+##参数说明##
 
-##连接需求##
-
-sdbpasswd 不需要与数据库连接。
-
-##选项##
+sdbpasswd 工具支持以下设置参数：
 
 | 参数        | 缩写 | 描述                                              | 是否必填 |
 | ----------- | ---- | ------------------------------------------------- | -------- |
 | --help      | -h   | 返回帮助说明                                      |    否    |
-| --adduser   | -a   | 增加用户，支持使用 @ 符区分同名用户，格式：user@cluster1，最大值 256 个字符 |  adduser/removeuser 必选其一 |
+| --adduser   | -a   | 增加用户，支持使用 @ 符区分同名用户，格式：user@cluster1，输入的用户名不能超过 256 个字符 |  adduser/removeuser 必选其一 |
 | --removeuser| -r   | 删除用户                                          | adduser/removeuser 必选其一 |
-| --password  | -p   | 用户密码，指定值则使用明文输入，不指定值则命令行提示输入，最大值 256 个字符 | 是 |
-| --token     | -t   | 对保存的密码指定加密口令以增强安全性，最大值 256 个字符 | 否 |
-| --file      | -f   | 指定加密文件用于密码的保存，默认为 ~/sequoiadb/passwd | 否 |
+| --password  | -p   | 指定数据库用户密码，如果不使用该参数指定密码，工具会通过交互式界面提示用户输入密码，所输入的密码不能超过 256 个字符 | 是 |
+| --token     | -t   | 对保存的密码指定加密令牌以增强安全性，所设置的加密令牌不能超过 256 个字符 | 否 |
+| --file      | -f   | 指定密文文件的路径，默认为 `~/sequoiadb/passwd`；如果是新文件，默认创建权限为 0600 | 否 |
 
-##用法##
+> **Note:**
+>
+> - 用户通过 sdbpasswd 工具增加和删除用户只会在密文文件中进行操作，而不会在 SequoiaDB 引擎中进行操作。因此 SequoiaDB 引擎的用户信息发生变化时，需要使用 sdbpasswd 工具同步更新密文文件中的用户信息。
+> - 用户通过 sdbpasswd 工具更改数据库用户的密码时，只需要重新添加用户，使密文文件中相同用户名的记录被覆盖即可。
 
-1. 增加用户 sdbadmin，并指定密码为 sdbadmin
+##使用##
 
- ```lang-bash
- $ sdbpasswd --adduser sdbadmin --password sdbadmin
- ```
+运行 sdbpasswd 命令的用户必须对准备写入密码的加密文件具有读写权限。
 
-2. 增加用户 sdbadmin，并使用命令行提示的方式输入密码
+* 增加用户 sdbadmin，并指定密码为 sdbadmin
 
- ```lang-bash
- $ sdbpasswd --adduser sdbadmin --password
- password:
- ```
+   ```lang-bash
+   $ sdbpasswd --adduser sdbadmin --password sdbadmin
+   ```
 
-3. 增加用户 sdbadmin，且通过 @ 符区分从属于不同集群的用户
+* 增加用户 sdbadmin，不指定 password 的值
 
- ```lang-bash
- $ sdbpasswd --adduser sdbadmin@db1 --password 123456
- $ sdbpasswd --adduser sdbadmin@db2 --password 654321
- ```
- > Note:
- >
- > 数据库工具在使用加密文件方式连接数据库时，会自动去掉 @ 及后面部分，使用原始用户名连接数据库。
+   ```lang-bash
+   $ sdbpasswd --adduser sdbadmin --password
+   password:
+   ```
 
-4. 增加用户 sdbadmin，指定密码为 sdbadmin，并指定加密口令为 sequoiadb
+* 增加用户 sdbadmin，且通过 @ 符区分从属于不同集群的用户
 
- ```lang-bash
- $ sdbpasswd --adduser sdbadmin --password sdbadmin --token sequoiadb
- ```
+   ```lang-bash
+   $ sdbpasswd --adduser sdbadmin@db1 --password 123456
+   $ sdbpasswd --adduser sdbadmin@db2 --password 654321
+   ```
+   > Note:
+   >
+   > 数据库工具在使用加密文件方式连接数据库时，会自动去掉 @ 及后面部分，使用原始用户名连接数据库。
 
-5. 增加用户 sdbadmin，指定密码为 sdbadmin，并指定加密文件位置
+* 增加用户 sdbadmin，指定密码为 sdbadmin，并指定加密令牌为 sequoiadb
 
- ```lang-bash
- $ sdbpasswd --adduser sdbadmin --password sdbadmin --file ./cipher
- ```
+   ```lang-bash
+   $ sdbpasswd --adduser sdbadmin --password sdbadmin --token sequoiadb
+   ```
 
-6. 删除用户 sdbadmin@db1
+* 增加用户 sdbadmin，指定密码为 sdbadmin，并指定待写入密文文件路径
 
- ```lang-bash
- $ sdbpasswd --removeuser sdbadmin@db1
- ```
- > Note:
- >
- > 删除用户时，对于使用了 @ 符的用户，需要指定全名才能匹配删除。
+   ```lang-bash
+   $ sdbpasswd --adduser sdbadmin --password sdbadmin --file ./cipher
+   ```
 
-##和数据库工具配合使用##
+* 删除用户 sdbadmin@db1
 
-通过 sdbpasswd 增加密码后就可以在各个数据库工具使用加密文件的方式输入密码了。
+   ```lang-bash
+   $ sdbpasswd --removeuser sdbadmin@db1
+   ```
+   > Note:
+   >
+   > 删除用户时，对于使用了 @ 符的用户，需要指定全名才能匹配删除。
 
-下列工具都是通过指定用户名，再加上打开 cipher 开关来指定使用加密文件，指定的用户名对应通过 sdbpasswd 增加的用户名，对于参数的详细介绍请访问各工具的介绍页面：
+##与数据库工具配合使用##
 
-|   工具名        | 使用加密文件的参数组合 |                                           
-| --------------- | ---------------------- |
-| sdbexprt        | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
-| sdbimprt        | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
-| sdbreplay       | --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
-| sdbtop          | --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd          |
-| sdblobtool      | --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd   |
-| sdbinspect      | --auth sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd   |
-| Sequoiasql-pgsql| user 'sdbadmin', cipher 'on', token 'sequoiadb', cipherfile '/opt/sequoiadb/passwd'   |
- > Note:
- >
- > 在 sdbpasswd 增加密码时指定了 token 的情况下才需指定 --token，在使用了与默认值不同的加密文件路径时才需指定 --cipherfile。
+其他数据库工具在连接数据库时可以使用密文模式输入密码。
+
+> **Note:**
+>
+> 若用户使用 sdbpasswd 工具增加用户时指定了 token，其他工具在使用密文模式时也需要指定 token。
 
 ###示例###
 
-####sdbexprt:####
+* 与[数据导出工具](database_management/tools/sdbexprt.md)配合使用
 
- ```lang-bash
- $ sdbexprt -s localhost -p 11810 --type csv --file foo.bar.csv --fields field1,fieldNotExist,field3 -c foo -l bar --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdbexprt -s localhost -p 11810 --type csv --file SAMPLE.EMPLOYEE.csv --fields field1,fieldNotExist,field3 -c SAMPLE -l EMPLOYEE --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####sdbimprt:####
+* 与[数据导入工具](database_management/tools/sdbimprt.md)配合使用
 
- ```lang-bash
- $ sdbimprt -s localhost -p 11810 -c foo -l bar --file foo.bar.csv --type csv --headerline true --fields='c int,d string' --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdbimprt -s localhost -p 11810 -c SAMPLE -l EMPLOYEE --file SAMPLE.EMPLOYEE.csv --type csv --headerline true --fields='c int,d string' --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####sdbreplay:####
+* 与[日志重放工具](database_management/log_archiving_replay/log_replay.md)配合使用
 
- ```lang-bash
- $ sdbreplay --hostname localhost --svcname 11810 --path 20000/archivelog/archivelog.0 --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdbreplay --hostname localhost --svcname 11810 --path 20000/archivelog/archivelog.0 --user sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####sdbtop:####
+* 与[数据库性能工具](database_management/tools/sdbtop.md)配合使用
 
- ```lang-bash
- $ sdbtop -i localhost -s 11810 --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdbtop -i localhost -s 11810 --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####sdblobtool:####
+* 与[大对象工具](database_management/tools/sdblobtool.md)配合使用
 
- ```lang-bash
- $ sdblobtool --operation export --hostname localhost --svcname 50000 --collection foo.bar --file /opt/mylob --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdblobtool --operation export --hostname localhost --svcname 50000 --collection SAMPLE.EMPLOYEE --file /opt/mylob --usrname sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####sdbinspect####
+* 与[节点数据一致性检测工具](database_management/tools/sdbinspect.md)配合使用
 
- ```lang-bash
- $ sdbinspect -d localhost:50000 -o item.bin --auth sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
- ```
+   ```lang-bash
+   $ sdbinspect -d localhost:50000 -o item.bin --auth sdbadmin --cipher true --token sequoiadb --cipherfile ./passwd
+   ```
 
-####Sequoiasql-pgsql####
+* 与[Sequoiasql-pgsql](connector/postgresql/connection.md)配合使用
 
- ```lang-bash
- foo=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', cipher 'on', token 'sequoiadb', cipherfile '/opt/sequoiadb/passwd', preferedinstance 'A', transaction 'off');
- ```
+   ```lang-bash
+   SAMPLE=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', cipher 'on', token 'sequoiadb', cipherfile '/opt/sequoiadb/passwd', preferedinstance 'A', transaction 'off');
+   ```

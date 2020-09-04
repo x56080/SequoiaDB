@@ -839,12 +839,6 @@
                "en": "EDU"
             },
             {
-               "id": 1587027446,
-               "file": "auditlog",
-               "cn": "审计日志",
-               "en": "auditlog"
-            },
-            {
               "id": 1577931587,
               "dir": "database_configuration",
               "cn": "数据库配置",
@@ -964,7 +958,7 @@
                   },
                   {
                      "id": 1432190659,
-                     "file": "sdblob",
+                     "file": "sdblobtool",
                      "cn": "大对象工具",
                      "en": "Large Object Tools"
                   },
@@ -1331,7 +1325,13 @@
                      "file": "network_security",
                      "cn": "网络安全",
                      "en": "Network Security"
-                  }
+                  },
+                  {
+                     "id": 1587027446,
+                     "file": "auditlog",
+                     "cn": "审计日志",
+                     "en": "auditlog"
+                  }                  
                ]
             },
             {
