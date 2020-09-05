@@ -30,7 +30,6 @@ function main ()
 
    var textIndexName = "a_11979";
    commCreateIndex( dbcl, textIndexName, { content: "text" } );
-   commCheckIndexConsistency( dbcl, textIndexName, true );
 
    //固定集合属性为默认值(与原集合属性无关)
    var dbOperator = new DBOperator();

@@ -22,7 +22,7 @@ function main ()
    commCheckIndexConsistency( dbcl, indexName, true );
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
-   dropIndex ( dbcl, indexName );
+   dropIndex( dbcl, indexName );
 
    //删除不存在的全文索引，删除失败
    commCheckIndexConsistency( dbcl, indexName, false );
@@ -38,7 +38,6 @@ function main ()
          throw e;
       }
    }
-   commCheckIndexConsistency( dbcl, indexName, false );
    checkIndexNotExistInES( esIndexNames );
 
    dropCL( db, COMMCSNAME, clName, true, true );

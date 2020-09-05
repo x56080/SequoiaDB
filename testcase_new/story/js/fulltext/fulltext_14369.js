@@ -19,7 +19,6 @@ function main ()
    //索引名长度为1时，全文索引创建成功
    var indexName = "a_14369";
    dbcl.createIndex( indexName, { content: "text" } );
-   commCheckIndexConsistency( dbcl, indexName, true );
    println( "===create index success===" );
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
@@ -33,7 +32,6 @@ function main ()
       indexName = indexName + "a";
    }
    dbcl.createIndex( indexName, { content: "text" } );
-   commCheckIndexConsistency( dbcl, indexName, true );
    println( "===create index success===" );
    dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
@@ -77,7 +75,6 @@ function main ()
          throw e;
       }
    }
-   commCheckIndexConsistency( dbcl, indexName, false );
    checkIndexNotExistInES( esIndexNames );
    println( "===create index fail===" );
 
@@ -100,7 +97,6 @@ function main ()
          throw e;
       }
    }
-   commCheckIndexConsistency( dbcl, indexName, false );
    checkIndexNotExistInES( esIndexNames );
    println( "===create index fail===" );
 

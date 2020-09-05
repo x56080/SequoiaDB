@@ -30,7 +30,6 @@ function main ()
          throw e;
       }
    }
-   commCheckIndexConsistency( dbcl, indexName, false );
 
    //创建非法的复合索引
    try
@@ -45,11 +44,9 @@ function main ()
          throw e;
       }
    }
-   commCheckIndexConsistency( dbcl, indexName, false );
 
    //指定isUnique、enforced、sortBufferSize创建全文索引
    dbcl.createIndex( indexName, { content: "text" }, true, true, 128 );
-   commCheckIndexConsistency( dbcl, indexName, true );
 
    dbcl.insert( [{ content: "a" }, { content: "a" }] );
    var dbOperator = new DBOperator();
