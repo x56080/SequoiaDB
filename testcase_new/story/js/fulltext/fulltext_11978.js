@@ -16,7 +16,7 @@ function main ()
    dropCS( db, csName );
 
    //指定集合空间的PageSize、LobPageSize指定为非默认值
-   commCreateCS( db, csName, false, { PageSize: 4096, LobPageSize: 4096 } );
+   commCreateCS( db, csName, false, "", { PageSize: 4096, LobPageSize: 4096 } );
    var dbcl = commCreateCL( db, csName, clName );
 
    var textIndexName = "a_11978";
