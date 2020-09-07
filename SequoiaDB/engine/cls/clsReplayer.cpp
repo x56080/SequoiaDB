@@ -2542,7 +2542,7 @@ namespace engine
       dpsMergeInfo info ;
 
       // no need for notify LSN
-      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
+      info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, eduCB ) ;
 
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
@@ -2558,6 +2558,9 @@ namespace engine
                                     record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to transform record into "
                    "transaction rollback record, rc: %d", rc ) ;
+
+      // it is a transaction record
+      info.enableTrans() ;
 
       rc = _dpsCB->prepare( info ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare transaction rollback "

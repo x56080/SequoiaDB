@@ -330,6 +330,10 @@ namespace engine
       {
          ftMask |= PMD_FT_MASK_SLOWNODE ;
       }
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_TRANSERR_STR, len ) )
+      {
+         ftMask |= PMD_FT_MASK_TRANSERR ;
+      }
       else if ( 0 == ossStrncasecmp( start, "NONE", len ) )
       {
          /// do nothing
@@ -404,6 +408,10 @@ namespace engine
       if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_SLOWNODE ) )
       {
          _utilAppendOrString( pBuff, size, PMD_FT_MASK_SLOWNODE_STR ) ;
+      }
+      if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_TRANSERR ) )
+      {
+         _utilAppendOrString( pBuff, size, PMD_FT_MASK_TRANSERR_STR ) ;
       }
    }
 

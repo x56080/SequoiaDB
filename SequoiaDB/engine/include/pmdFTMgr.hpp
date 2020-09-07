@@ -261,6 +261,8 @@ namespace engine
          ftSampleWindow _sampleWnd ;
          UINT64         _lastSampleTick ;
          UINT64         _lastSucCount ;
+         UINT64         _lastTransSucCount ;
+         UINT64         _lastTransErrCount ;
          UINT32         _confirmPeriod ;  /// Unit(s)
          UINT32         _ftMask ;
          UINT32         _confirmRatio ;   /// %
@@ -272,7 +274,6 @@ namespace engine
 
          UINT32         _confirmedStat ;
          INT32          _indoubtErr ;
-
    } ;
    typedef _pmdFTMgr pmdFTMgr ;
 

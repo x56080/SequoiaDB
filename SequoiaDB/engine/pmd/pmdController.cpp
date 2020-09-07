@@ -306,9 +306,19 @@ namespace engine
       pmdFTMgr *ftMgr = pmdGetKRCB()->getFTMgr() ;
       if ( ftMgr )
       {
+         UINT64 ftMask = pmdGetOptionCB()->ftMask() ;
+         // enable TRANSERR monitoring if needed
+         if ( pmdGetOptionCB()->transactionOn() )
+         {
+            OSS_BIT_SET( ftMask, PMD_FT_MASK_TRANSERR ) ;
+         }
+         else
+         {
+            OSS_BIT_CLEAR( ftMask, PMD_FT_MASK_TRANSERR ) ;
+         }
          ftMgr->setConfirmPeriod( pmdGetOptionCB()->ftConfirmPeriod() ) ;
          ftMgr->setConfrimRatio( pmdGetOptionCB()->ftConfirmRatio() ) ;
-         ftMgr->setMask( pmdGetOptionCB()->ftMask() ) ;
+         ftMgr->setMask( ftMask ) ;
          ftMgr->setFTLevel( pmdGetOptionCB()->ftLevel() ) ;
          ftMgr->setSlowNodeInfo( pmdGetOptionCB()->ftSlowNodeThreshold(),
                                  pmdGetOptionCB()->ftSlowNodeIncrement() ) ;

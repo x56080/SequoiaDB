@@ -296,9 +296,9 @@ namespace engine
       BOOLEAN isDoRollback() const { return _doRollback ; }
       INT32   waitRollback( UINT64 millicSec = -1 ) ;
 
-      void addTransInfo( DPS_TRANS_ID transID,
-                         DPS_LSN_OFFSET lsnOffset,
-                         INT32 status ) ;
+      INT32 addTransInfo( DPS_TRANS_ID transID,
+                          DPS_LSN_OFFSET lsnOffset,
+                          INT32 status ) ;
       // NOTE: log rollback means rollbacked by consulting or replay failure
       void updateTransInfo( DPS_TRANS_ID transID,
                             DPS_LSN_OFFSET lsnOffset,
@@ -489,6 +489,27 @@ namespace engine
       void   updateMaxLRSize( UINT32 recordSize, DPS_LSN_OFFSET curLSN ) ;
       void   printCounters() ;
 
+      // succeed and error counts
+      UINT64 getSucCount() const
+      {
+         return _sucCount ;
+      }
+
+      UINT64 getErrCount() const
+      {
+         return _errCount ;
+      }
+
+      void incSucCount()
+      {
+         ++ _sucCount ;
+      }
+
+      void incErrCount()
+      {
+         ++ _errCount ;
+      }
+
    private:
       DPS_TRANS_ID      _TransIDH16 ;
       ossAtomic64       _TransIDL48Cur ;
@@ -538,6 +559,10 @@ namespace engine
 
       dpsTransEvent        *_pEventHandler ;
 
+      // succeed and error counts
+      // no need to be atomic
+      volatile UINT64      _sucCount ;
+      volatile UINT64      _errCount ;
    } ;
 
    /*

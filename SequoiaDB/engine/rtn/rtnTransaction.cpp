@@ -53,6 +53,74 @@ namespace engine
    #define RTN_TRANS_ROLLBACK_RETRY_TIMES             ( 20 )
    #define RTN_TRANS_ROLLBACK_RETRY_INTERVAL          OSS_ONE_SEC
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNSAVETRANSINFO, "_rtnSaveTransInfo" )
+   static INT32 _rtnSaveTransInfo( pmdEDUCB *cb,
+                                   DPS_TRANS_ID transID,
+                                   DPS_LSN_OFFSET curLsnOffset )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNSAVETRANSINFO ) ;
+
+      // loop until we save the info successfully
+      while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
+      {
+         rc = sdbGetTransCB()->addTransInfo( transID, curLsnOffset,
+                                             cb->getTransStatus() ) ;
+         if ( SDB_OK != rc )
+         {
+            // report error
+            sdbGetTransCB()->incErrCount() ;
+            PD_LOG( PDERROR, "Failed to add transaction information [%s], "
+                    "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
+            ossSleep( RTN_TRANS_ROLLBACK_RETRY_INTERVAL ) ;
+         }
+         break ;
+      }
+
+      PD_TRACE_EXITRC( SDB__RTNSAVETRANSINFO, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRANSCHKRECORD, "_rtnTransCheckRecord" )
+   static INT32 _rtnTransCheckRecord( const DPS_TRANS_ID &transID,
+                                      DPS_LSN_OFFSET lsnOffset,
+                                      const dpsMessageBlock &mb,
+                                      dpsLogRecord &record )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNTRANSCHKRECORD ) ;
+
+      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
+      dpsLogRecord::iterator itr ;
+
+      rc = record.load( mb.offset( 0 ) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse log [LSN: %llu], rc: %d",
+                   lsnOffset, rc ) ;
+
+      itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      PD_CHECK( itr.valid(), SDB_SYS, error, PDERROR, "Failed to find "
+                "DPS_LOG_PUBLIC_TRANSID in record [LSN: %llu]",
+                lsnOffset ) ;
+
+      curTransID = sdbGetTransCB()->getTransID(
+                                          *((DPS_TRANS_ID *)itr.value()) ) ;
+      PD_CHECK( curTransID == DPS_TRANS_GET_ID( transID ),
+                SDB_DPS_CORRUPTED_LOG, error,
+                PDERROR, "Failed to rollback(lsn=%llu, Log TransID:%llu, "
+                "Session TransID:%llu), the log is damaged",
+                lsnOffset, curTransID, DPS_TRANS_GET_ID( transID ) ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNTRANSCHKRECORD, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRANSBEGIN, "rtnTransBegin" )
    INT32 rtnTransBegin( _pmdEDUCB * cb,
                         BOOLEAN isAutoCommit,
@@ -251,10 +319,15 @@ namespace engine
       // reduce the reservedLogSpace from dps for the transaction
       sdbGetTransCB()->releaseRBLogSpace( cb ) ;
 
+      // report succeed
+      sdbGetTransCB()->incSucCount() ;
+
    done:
       PD_TRACE_EXITRC ( SDB_RTNTRANSCOMMIT, rc ) ;
       return rc ;
    error:
+      // report error
+      sdbGetTransCB()->incErrCount() ;
       goto done ;
    }
 
@@ -268,7 +341,6 @@ namespace engine
       DPS_LSN dpsLsn ;
       DPS_LSN_OFFSET curLsnOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
       DPS_TRANS_ID rollbackID = DPS_INVALID_TRANS_ID ;
       UINT32 retryTimes = 0 ;
       BOOLEAN doRollback = FALSE ;
@@ -301,42 +373,39 @@ namespace engine
       // read the log and rollback one by one
       while ( curLsnOffset != DPS_INVALID_LSN_OFFSET )
       {
-         dpsLogRecord record;
-         mb.clear() ;
-         dpsLsn.offset = curLsnOffset ;
-         rc = dpsCB->search( dpsLsn, &mb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Rollback failed, "
-                      "failed to get the log(offset=%llu, version=%d, rc=%d)",
-                      curLsnOffset, dpsLsn.version, rc ) ;
-         rc = record.load( mb.offset( 0 ) ) ;
-         PD_RC_CHECK( rc, PDERROR, "Rollback failed, failed to parse log",
-                      "(lsn=%llu, rc=%d)", curLsnOffset, rc ) ;
-         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-         if ( !itr.valid() )
-         {
-            PD_LOG( PDERROR, "can not find DPS_LOG_PUBLIC_TRANSID "
-                    "in record" ) ;
-            rc = SDB_SYS ;
-            break ;
-         }
-         curTransID = sdbGetTransCB()->getTransID(
-            *((DPS_TRANS_ID *)itr.value()) ) ;
-         PD_CHECK( curTransID == DPS_TRANS_GET_ID( transID ),
-                   SDB_DPS_CORRUPTED_LOG, error,
-                   PDERROR, "Failed to rollback(lsn=%llu, Log TransID:%llu, "
-                   "Session TransID:%llu), the log is damaged",
-                   curLsnOffset, curTransID, DPS_TRANS_GET_ID( transID ) ) ;
+         dpsLogRecord record ;
 
          // in cluster mode, when not primary, need add trans info to map
          if ( pmdGetKRCB()->isCBValue( SDB_CB_CLS ) && !pmdIsPrimary() )
          {
-            sdbGetTransCB()->addTransInfo( transID,
-                                           curLsnOffset,
-                                           cb->getTransStatus() ) ;
-            mapPendingObj.clear() ;
+            rc = _rtnSaveTransInfo( cb, transID, curLsnOffset ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save transaction info, "
+                         "rc: %d", rc ) ;
             rc = SDB_CLS_NOT_PRIMARY ;
             goto error ;
          }
+
+         mb.clear() ;
+         dpsLsn.offset = curLsnOffset ;
+         rc = dpsCB->search( dpsLsn, &mb ) ;
+         if ( SDB_OK != rc )
+         {
+            // report error
+            sdbGetTransCB()->incErrCount() ;
+            PD_LOG( PDERROR, "Failed to get log LSN [%llu], rc: %d",
+                    curLsnOffset, rc ) ;
+            // retry after a while
+            ossSleep( RTN_TRANS_ROLLBACK_RETRY_INTERVAL ) ;
+            continue ;
+         }
+
+         // parse the record
+         // WARNING: should not be failed
+         rc = _rtnTransCheckRecord( transID, curLsnOffset, mb, record ) ;
+         SDB_ASSERT( SDB_OK == rc, "DPS record is invalid for rollback" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to check record [LSN: %llu] for "
+                      "transaction [%s], rc: %d", curLsnOffset,
+                      dpsTransIDToString( transID ).c_str(), rc ) ;
 
          {
             cb->setRelatedTransLSN( curLsnOffset ) ;
@@ -383,6 +452,9 @@ namespace engine
          }
       }
 
+      // report succeed
+      sdbGetTransCB()->incSucCount() ;
+
    done:
       // complete the transaction whether success or not,
       // this avoid infinite recursion when rollback failed
@@ -403,7 +475,8 @@ namespace engine
 
       cb->stopTransRollback() ;
 
-      if ( !mapPendingObj.empty() )
+      // should not have pending object if rollback succeed
+      if ( !mapPendingObj.empty() && SDB_OK == rc )
       {
          SDB_ASSERT( FALSE, "Transaction's pending object map is "
                      "not empty" ) ;
@@ -432,6 +505,8 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNTRANSROLLBACK, rc ) ;
       return rc ;
    error:
+      // report error
+      sdbGetTransCB()->incErrCount() ;
       goto done ;
    }
 
@@ -494,45 +569,24 @@ namespace engine
             rc = pDpsCB->search( dpsLsn, &mb ) ;
             if ( rc )
             {
-               // don't return,
-               // stop rollback current transaction,
-               // go on to rollback other transaction
-               PD_LOG ( PDERROR, "Rollback failed, failed to get the "
-                        "log( offset =%llu, version=%d, rc=%d)",
-                        curLsnOffset, dpsLsn.version, rc ) ;
-               break ;
-            }
-            recordHeader = (dpsLogRecordHeader *)( mb.offset( 0 ) ) ;
-            rc = record.load( mb.offset( 0 ) ) ;
-            if ( rc )
-            {
-               // don't return,
-               // stop rollback current transaction,
-               // go on to rollback other transaction
-               PD_LOG ( PDERROR, "Rollback failed, "
-                        "failed to parse log(lsn=%llu, rc=%d)",
-                        curLsnOffset, rc ) ;
-               break;
-            }
-            dpsLogRecord::iterator itr =
-                            record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-            if ( !itr.valid() )
-            {
-               PD_LOG( PDERROR, "failed to find transid in record." ) ;
-               rc = SDB_SYS ;
-               break ;
+               // report error
+               pTransCB->incErrCount() ;
+               PD_LOG( PDERROR, "Failed to get log LSN [%llu], rc: %d",
+                       curLsnOffset, rc ) ;
+               // retry after a while
+               ossSleep( RTN_TRANS_ROLLBACK_RETRY_INTERVAL ) ;
+               continue ;
             }
 
-            if ( transID != pTransCB->getTransID(
-                                     *(DPS_TRANS_ID *)(itr.value()) ))
-            {
-               // don't return,
-               // stop rollback current transaction,
-               // go on to rollback other transaction
-               PD_LOG ( PDERROR, "Failed to rollback(lsn=%llu), "
-                        "the log is damaged", curLsnOffset ) ;
-               break ;
-            }
+            // parse the record
+            // WARNING: should not be failed
+            rc = _rtnTransCheckRecord( transID, curLsnOffset, mb, record ) ;
+            SDB_ASSERT( SDB_OK == rc, "DPS record is invalid for rollback" ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check record [LSN: %llu] for "
+                         "transaction [%s], rc: %d", curLsnOffset,
+                         dpsTransIDToString( transID ).c_str(), rc ) ;
+
+            recordHeader = &( record.head() ) ;
 
             {
                cb->setRelatedTransLSN( curLsnOffset ) ;
@@ -632,6 +686,9 @@ namespace engine
                  "with rc[%d]", dpsTransIDToString( transID ).c_str(),
                  dpsTransIDAttrToString( transID ).c_str(),
                  rc ) ;
+
+         // report succeed
+         pTransCB->incSucCount() ;
       } /// while ( tmpTransMap.size() != 0 )
 
    done:
@@ -649,6 +706,7 @@ namespace engine
                "rc[%d]", rc ) ;
       return rc ;
    error:
+      pTransCB->incErrCount() ;
       goto done ;
    }
 
@@ -679,9 +737,20 @@ namespace engine
       }
 
       // in cluster mode, when not primary, need add trans info to map
-      sdbGetTransCB()->addTransInfo( transID, curLsnOffset,
-                                     cb->getTransStatus() ) ;
+      rc = _rtnSaveTransInfo( cb, transID, curLsnOffset ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save transaction info, "
+                   "rc: %d", rc ) ;
 
+      savedAsWaitCommit = TRUE ;
+
+      PD_LOG ( PDEVENT, "Save transaction(ID:%s, IDAttr:%s) as wait-commit "
+               "finished", dpsTransIDToString( transID ).c_str(),
+               dpsTransIDAttrToString( transID ).c_str() ) ;
+
+      // report succeed
+      sdbGetTransCB()->incSucCount() ;
+
+   done:
       // just clear meta-block statistics
       cb->getTransExecutor()->clearMBStats() ;
 
@@ -697,15 +766,14 @@ namespace engine
       // reduce the reservedLogSpace from dps for the transaction
       sdbGetTransCB()->releaseRBLogSpace( cb ) ;
 
-      savedAsWaitCommit = TRUE ;
-
-      PD_LOG ( PDEVENT, "Save transaction(ID:%s, IDAttr:%s) as wait-commit "
-               "finished", dpsTransIDToString( transID ).c_str(),
-               dpsTransIDAttrToString( transID ).c_str() ) ;
-
-   done :
       PD_TRACE_EXITRC( SDB_RTNTRANSSAVEWAITCOMMIT, rc ) ;
+
       return rc ;
+
+   error:
+      // report error
+      sdbGetTransCB()->incErrCount() ;
+      goto done ;
    }
 
    INT32 rtnTransTryOrTestLockCL( const CHAR *pCollection,

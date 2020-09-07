@@ -210,6 +210,8 @@ namespace engine
    {
       _lastSampleTick = 0 ;
       _lastSucCount = 0 ;
+      _lastTransSucCount = 0 ;
+      _lastTransErrCount = 0 ;
       _confirmPeriod = PMD_FT_CACL_INTERVAL_DFT ;
       _ftMask = 0 ;
       _confirmRatio = PMD_FT_CACL_RATIO_DFT ;
@@ -335,6 +337,7 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       ICluster *pCluster = krcb->getCluster() ;
       SDB_DPSCB *pDpsCB = krcb->getDPSCB() ;
+      dpsTransCB *pTransCB = krcb->getTransCB() ;
 
       DPS_LSN expectLsn ;
 
@@ -345,6 +348,8 @@ namespace engine
       UINT64 sucCount = 0 ;
 
       UINT32 countInc = 0 ;
+      UINT32 transSucInc = 0 ;
+      UINT32 transErrInc = 0 ;
       monDBCB *pMonDB = krcb->getMonDBCB() ;
 
       if ( !pDpsCB )
@@ -366,6 +371,31 @@ namespace engine
          countInc = sucCount - _lastSucCount ;
       }
       _lastSucCount = sucCount ;
+
+      // calculate succeed and error counts of transaction
+      if ( NULL != pTransCB )
+      {
+         UINT64 transSucCount = pTransCB->getSucCount() ;
+         UINT64 transErrCount = pTransCB->getErrCount() ;
+         if ( transSucCount < _lastTransSucCount )
+         {
+            transSucInc = transSucCount ;
+         }
+         else
+         {
+            transSucInc = transSucCount - _lastTransSucCount ;
+         }
+         _lastTransSucCount = transSucCount ;
+         if ( transErrCount < _lastTransErrCount )
+         {
+            transErrInc = transErrCount ;
+         }
+         else
+         {
+            transErrInc = transErrCount - _lastTransErrCount ;
+         }
+         _lastTransErrCount = transErrCount ;
+      }
 
       pItem = _sampleWnd.slideForward( dbTick ) ;
       pPrevItem = _sampleWnd.prev( pItem->getPos() ) ;
@@ -511,6 +541,23 @@ namespace engine
          }
       }
 
+      /// trans
+      if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_TRANSERR ) && NULL != pTransCB )
+      {
+         if ( 0 != pPrevItem->_time )
+         {
+            // Once we have error transactions and no succeed transactions
+            // we will report transaction risk
+            if ( transErrInc > 0 && 0 == transSucInc )
+            {
+               _sampleWnd.reportRisk( FT_RISK_TRANSERR ) ;
+               PD_LOG( PDINFO, "Report risk( FT_RISK_TRANS ), Expr: "
+                       "Trans Suc (%u) == 0 && Trans Err (%u) > 0",
+                       transSucInc, transErrInc ) ;
+            }
+         }
+      }
+
       /// nospc
       if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_NOSPC ) )
       {
@@ -627,6 +674,29 @@ namespace engine
          {
             PD_LOG( PDEVENT,
                     "Disable Risk( FT_RISK_DEADSYNC ), Expr: "
+                    "Ratio(%.2f) < ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+      }
+
+      /// Risk: FT_RISK_TRANS
+      if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_TRANSERR ) )
+      {
+         ratio = (FLOAT64)statItem._risk[ FT_RISK_TRANSERR ]._count /
+                 confirmWndSize ;
+         if ( ratio >= confirmRatio )
+         {
+            OSS_BIT_SET( confirmStat, PMD_FT_MASK_TRANSERR ) ;
+            PD_LOG( ( ( _confirmedStat & PMD_FT_MASK_TRANSERR ) ?
+                    PDINFO : PDWARNING ),
+                    "Confirm Risk( FT_RISK_TRANSERR ), Expr: "
+                    "Ratio(%.2f) >= ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+         else if ( _confirmedStat & PMD_FT_MASK_TRANSERR )
+         {
+            PD_LOG( PDEVENT,
+                    "Disable Risk( FT_RISK_TRANSERR ), Expr: "
                     "Ratio(%.2f) < ConfirmRatio(%.2f)",
                     ratio, confirmRatio ) ;
          }

@@ -327,6 +327,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT32 index = 0 ;
+      UINT32 ftMask = _optioncb.ftMask() ;
       IControlBlock *pCB = NULL ;
 
       rc = utilGetGlobalMemPool()->init( (UINT64)_optioncb.memPoolSize()
@@ -354,7 +355,17 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      rc = _pFTMgr->init( _optioncb.ftMask(), _optioncb.ftConfirmPeriod(),
+      // enable TRANSERR monitoring if needed
+      if ( _optioncb.transactionOn() )
+      {
+         OSS_BIT_SET( ftMask, PMD_FT_MASK_TRANSERR ) ;
+      }
+      else
+      {
+         OSS_BIT_CLEAR( ftMask, PMD_FT_MASK_TRANSERR ) ;
+      }
+      rc = _pFTMgr->init( ftMask,
+                          _optioncb.ftConfirmPeriod(),
                           _optioncb.ftConfirmRatio(),
                           _optioncb.ftLevel() ) ;
       if ( rc )

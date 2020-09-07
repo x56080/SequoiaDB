@@ -61,7 +61,9 @@ namespace engine
     _lsnMapMutex( MON_LATCH_DPSTRANSCB_LSNMAPMUTEX ),
     _hisMutex( MON_LATCH_DPSTRANSCB_HISMUTEX ),
     _reservedRBSpace( 0 ) ,
-    _reservedSpace( 0 )
+    _reservedSpace( 0 ),
+    _sucCount( 0LL ),
+    _errCount( 0LL )
    {
       _TransIDH16          = 0;
       _isOn                = FALSE ;
@@ -449,10 +451,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_ADDTRANSINFO, "dpsTransCB::addTransInfo" )
-   void dpsTransCB::addTransInfo( DPS_TRANS_ID transID,
-                                  DPS_LSN_OFFSET lsnOffset,
-                                  INT32 status )
+   INT32 dpsTransCB::addTransInfo( DPS_TRANS_ID transID,
+                                   DPS_LSN_OFFSET lsnOffset,
+                                   INT32 status )
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB_DPSTRANSCB_ADDTRANSINFO ) ;
 
       TRANS_MAP::iterator it ;
@@ -466,15 +470,31 @@ namespace engine
       if ( it == _TransMap.end() )
       {
          SDB_ASSERT( !rbPending, "should not be rollback pending" ) ;
-         // it is means transaction is synchronous by log if transID is exist
-         _TransMap[ transID ] = dpsTransBackInfo( lsnOffset, status ) ;
+         try
+         {
+            // it is means transaction is synchronous by log if transID
+            // is exist
+            _TransMap[ transID ] = dpsTransBackInfo( lsnOffset, status ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add transaction into transaction "
+                    "map, occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
       }
       else
       {
          updateTransInfo( it->second, status, lsnOffset, rbPending ) ;
       }
 
-      PD_TRACE_EXIT( SDB_DPSTRANSCB_ADDTRANSINFO ) ;
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_ADDTRANSINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_UPDATETRANSINFO_INFO, "dpsTransCB::updateTransInfo" )

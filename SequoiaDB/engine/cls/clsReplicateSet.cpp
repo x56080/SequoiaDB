@@ -739,17 +739,28 @@ namespace engine
          _vote.handleTimeout( interval ) ;
          _sync.handleTimeout( interval ) ;
 
-         /// When self is primary and NOSPC, should force to secondary
-         if ( _vote.primaryIsMe() &&
-              _info.groupSize() > 1 &&
-              OSS_BIT_TEST( _pFTMgr->getConfirmedStat(), PMD_FT_MASK_NOSPC ) )
+         /// When self is primary NOSPC or TRANSERR, should force to secondary
+         if ( _vote.primaryIsMe() && _info.groupSize() > 1 )
          {
-            DPS_LSN lsn = _logger->getCurrentLsn() ;
-            if ( lsn.invalid() || _sync.atLeastOne( lsn.offset ) )
+            UINT32 ftConfirmedStat = _pFTMgr->getConfirmedStat() ;
+            if ( OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_NOSPC ) ||
+                 OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_TRANSERR ) )
             {
-               PD_LOG( PDEVENT, "Force to secondary due to no disk space" ) ;
-               _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
-               _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+               DPS_LSN lsn = _logger->getCurrentLsn() ;
+               if ( lsn.invalid() || _sync.atLeastOne( lsn.offset ) )
+               {
+                  CHAR ftStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
+                  utilFTMaskToStr( ftConfirmedStat &
+                                   ( PMD_FT_MASK_NOSPC |
+                                     PMD_FT_MASK_TRANSERR ),
+                                   ftStatStr,
+                                   CLS_FORMART_STR_128 ) ;
+
+                  PD_LOG( PDEVENT, "Force to secondary due to %s",
+                          ftStatStr ) ;
+                  _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
+                  _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+               }
             }
          }
       }
