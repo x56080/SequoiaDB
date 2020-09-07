@@ -505,12 +505,91 @@ namespace bson {
         return x;
     }*/
 
+    inline int compareLongValues( long long lValue, long long rValue )
+    {
+       return lValue == rValue ? 0 : lValue < rValue ? -1 : 1 ;
+    }
+
+    inline int compareIntValues( int lValue, int rValue )
+    {
+       return lValue == rValue ? 0 : lValue < rValue ? -1 : 1 ;
+    }
+
+    inline int compareNumberValues( const BSONElement &l, const BSONElement &r )
+    {
+#define LONG_UPPER_SAFE_BOUND (9007199254740991L)
+#define LONG_LOWER_SAFE_BOUND (-9007199254740991L)
+       double x;
+       if ( r.type() == NumberLong )
+       {
+           long long R = r._numberLong();
+           double L = l.numberDouble() ;
+           // out of safe bound,
+           // convert to double will loss precision
+           if ( ( R > LONG_UPPER_SAFE_BOUND ||
+                  R < LONG_LOWER_SAFE_BOUND ) &&
+                ( L > LONG_UPPER_SAFE_BOUND ||
+                  L < LONG_LOWER_SAFE_BOUND ) )
+           {
+               return l.numberDecimal()
+                       .compare( r.numberDecimal() ) ;
+           }
+       }
+       else if ( l.type() == NumberLong )
+       {
+           long long L = l._numberLong();
+           double R = r.numberDouble() ;
+           // out of safe bound,
+           // convert to double will loss precision
+           if ( ( L > LONG_UPPER_SAFE_BOUND ||
+                  L < LONG_LOWER_SAFE_BOUND ) &&
+                ( R > LONG_UPPER_SAFE_BOUND ||
+                  R < LONG_LOWER_SAFE_BOUND ) )
+           {
+               return l.numberDecimal()
+                       .compare( r.numberDecimal() ) ;
+           }
+       }
+
+       int sign = 0 ;
+       double left = l.number();
+       double right = r.number();
+       bool lNan = isNaN( left ) ;
+       bool rNan = isNaN( right ) ;
+       if ( lNan ) {
+           if ( rNan ) {
+               return 0;
+           }
+           else {
+               return -1;
+           }
+       }
+       else if ( rNan ) {
+           return 1;
+       }
+       if( isInf( left, &sign ) && isInf( right, &sign ) )
+       {
+          if( left == right )
+          {
+             return 0 ;
+          }
+          else if( left < right )
+          {
+             return -1 ;
+          }
+          else
+          {
+             return 1 ;
+          }
+       }
+       x = left - right;
+       if ( x < 0 ) return -1;
+       return x == 0 ? 0 : 1;
+    }
+
     /* must be same type when called, unless both sides are #s*/
     int compareElementValues(const BSONElement& l, const BSONElement& r) {
-        #define LONG_UPPER_SAFE_BOUND (9007199254740991L)
-        #define LONG_LOWER_SAFE_BOUND (-9007199254740991L)
         int f;
-        double x;
         if ( l.type() == NumberDecimal || r.type() == NumberDecimal )
         {
             return l.numberDecimal()
@@ -579,83 +658,28 @@ namespace bson {
                return ( r.timestampInc() % 1000 ) > 0 ? -1 : 0 ;
             }
         }
-        case NumberLong:
         case NumberInt:
-            if( r.type() == NumberLong || r.type() == NumberInt ) {
-                long long L = l.numberLong();
-                long long R = r.numberLong();
-                if( L < R ) return -1;
-                if( L == R ) return 0;
-                return 1;
-            }
-            // else fall through
-        case NumberDouble: {
-            if ( r.type() == NumberLong )
-            {
-                long long R = r._numberLong();
-                double L = l.numberDouble() ;
-                // out of safe bound,
-                // convert to double will loss precision
-                if ( ( R > LONG_UPPER_SAFE_BOUND ||
-                       R < LONG_LOWER_SAFE_BOUND ) &&
-                     ( L > LONG_UPPER_SAFE_BOUND ||
-                       L < LONG_LOWER_SAFE_BOUND ) )
-                {
-                    return l.numberDecimal()
-                            .compare( r.numberDecimal() ) ;
-                }
-            }
-            else if ( l.type() == NumberLong )
-            {
-                long long L = l._numberLong();
-                double R = r.numberDouble() ;
-                // out of safe bound,
-                // convert to double will loss precision
-                if ( ( L > LONG_UPPER_SAFE_BOUND ||
-                       L < LONG_LOWER_SAFE_BOUND ) &&
-                     ( R > LONG_UPPER_SAFE_BOUND ||
-                       R < LONG_LOWER_SAFE_BOUND ) )
-                {
-                    return l.numberDecimal()
-                            .compare( r.numberDecimal() ) ;
-                }
-            }
-
-            int sign = 0 ;
-            double left = l.number();
-            double right = r.number();
-            bool lNan = isNaN( left ) ;
-            bool rNan = isNaN( right ) ;
-            if ( lNan ) {
-                if ( rNan ) {
-                    return 0;
-                }
-                else {
-                    return -1;
-                }
-            }
-            else if ( rNan ) {
-                return 1;
-            }
-            if( isInf( left, &sign ) && isInf( right, &sign ) )
-            {
-               if( left == right )
-               {
-                  return 0 ;
-               }
-               else if( left < right )
-               {
-                  return -1 ;
-               }
-               else
-               {
-                  return 1 ;
-               }
-            }
-            x = left - right;
-            if ( x < 0 ) return -1;
-            return x == 0 ? 0 : 1;
-        }
+           if ( NumberInt == r.type() )
+           {
+              return compareIntValues( l._numberInt(), r._numberInt() ) ;
+           }
+           else if ( NumberLong == r.type() )
+           {
+              return compareLongValues( l._numberInt(), r._numberLong() ) ;
+           }
+           return compareNumberValues( l, r ) ;
+        case NumberLong:
+           if ( NumberInt == r.type() )
+           {
+              return compareLongValues( l._numberLong(), r._numberInt() ) ;
+           }
+           else if ( NumberLong == r.type() )
+           {
+              return compareLongValues( l._numberLong(), r._numberLong() ) ;
+           }
+           return compareNumberValues( l, r ) ;
+        case NumberDouble:
+            return compareNumberValues( l, r ) ;
         case jstOID:
             return memcmp(l.value(), r.value(), 12);
         case Code:
