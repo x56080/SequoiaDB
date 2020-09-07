@@ -187,7 +187,14 @@ namespace bson {
     }
 
     inline BSONElement BSONObj::getField(const StringData& name) const {
-        return getField( name.data() );
+       assert( name.data() );
+       BSONObjIterator i(*this);
+       while ( i.more() ) {
+           BSONElement e = i.next();
+           if ( strncmp(e.fieldName(), name.data(), name.size()) == 0 )
+               return e;
+       }
+       return BSONElement();
     }
 
     inline BSONElement BSONObj::getField(const char *name) const {
