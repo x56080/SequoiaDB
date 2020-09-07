@@ -12,11 +12,13 @@
 
 - MySQL 实例不支持在 BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB 和 JSON 类型的字段上创建索引。
 
+- MySQL 实例不支持对接独立模式的 SequoiaDB。
+
 - 一个 MySQL 实例节点仅可与一个 SequoiaDB 集群对接，不支持同时对接多个 SequoiaDB 集群。
 
 - VARCHAR 和 TEXT 在 SequoiaDB 上进行查询比较时不会忽略尾部空格，而 MySQL 会忽略尾部空格，因此对于尾部含有空格的字符串，查询结果可能会不准确。
 
-- DDL操作不支持事务功能。
+- DDL 操作不支持事务功能。
 
 - MySQL 实例不支持在虚拟列上创建索引。
 
