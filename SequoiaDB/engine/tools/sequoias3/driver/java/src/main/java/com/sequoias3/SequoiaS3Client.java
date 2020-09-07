@@ -125,6 +125,9 @@ public class SequoiaS3Client implements SequoiaS3 {
     @Override
     public void deleteRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
+            if (null == regionName){
+                throw new IllegalArgumentException("Region name cannot be null");
+            }
             // url = http://ip:port/region/?Action=DeleteRegion&RegionName=regionName
             String url = endpoint + PATH_REGION + "?" +
                     ACTION + "=" + DELETE_REGION + "&" +
@@ -158,6 +161,9 @@ public class SequoiaS3Client implements SequoiaS3 {
         ResponseEntity<?> resp;
         GetRegionResult result;
         try {
+            if (null == regionName){
+                throw new IllegalArgumentException("Region name cannot be null");
+            }
             // url = http://ip:port/region/?Action=GetRegion&RegionName=regionName
             String url = endpoint + PATH_REGION + "?" +
                     ACTION + "=" + GET_REGION + "&" +
@@ -203,6 +209,9 @@ public class SequoiaS3Client implements SequoiaS3 {
     @Override
     public boolean headRegion(String regionName) throws SequoiaS3ClientException, SequoiaS3ServiceException {
         try {
+            if (null == regionName){
+                throw new IllegalArgumentException("Region name cannot be null");
+            }
             // url = http://ip:port/region/?Action=HeadRegion&RegionName=regionName
             String url = endpoint + PATH_REGION + "?" +
                     ACTION + "=" + HEAD_REGION + "&" +
