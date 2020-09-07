@@ -45,6 +45,10 @@
 
 namespace engine
 {
+
+   /*
+      _rtnContextSort define
+    */
    class _rtnContextSort : public _rtnContextBase,
                            public _rtnSubContextHolder
    {
