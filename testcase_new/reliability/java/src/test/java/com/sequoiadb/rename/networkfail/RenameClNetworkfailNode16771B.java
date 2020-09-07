@@ -83,7 +83,7 @@ public class RenameClNetworkfailNode16771B extends SdbTestBase {
         Assert.assertTrue( mgr.isAllSuccess(), mgr.getErrorMsg() );
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
 
-        String match = "Name:" + csName;
+        String match = csName;
         CommLib.waitContextClose( sdb, match, 300, false );
         CollectionSpace cs = sdb.getCollectionSpace( csName );
         for ( int i = 0; i < oldCLNameList.size(); i++ ) {
