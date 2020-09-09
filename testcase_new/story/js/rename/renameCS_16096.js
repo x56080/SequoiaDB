@@ -14,7 +14,7 @@ function main ()
    var clName = CHANGEDPREFIX + "_16096_cl";
    var lobName = CHANGEDPREFIX + "_16096_lob";
 
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine" );
    var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    println( "---create index---" );
@@ -50,7 +50,7 @@ function main ()
    }
 
    deleteFile( lobName );
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
 }
 
 function checkRecord ( dbcl, recordNum )
@@ -62,4 +62,5 @@ function checkRecord ( dbcl, recordNum )
          recordNum, actNum );
    }
 }
+
 

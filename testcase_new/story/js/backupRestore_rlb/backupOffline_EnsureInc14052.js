@@ -16,7 +16,7 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in begin" );
    bakRemoveBackups( db, CHANGEDPREFIX, true );
    // create cl
-   var varCL = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false, "create cl in begin" );
+   var varCL = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false, "create cl in begin" );
    // insert data
    bakInsertData( varCL );
    // define backup object array
@@ -33,7 +33,7 @@ function main ()
    // backup
    for( var i = 0; i < bkObjArray.length; ++i )
    {
-      commPrint( bkObjArray[i] );
+      println( JSON.stringify( bkObjArray[i], "", 3 ) );
       bakBackup( db, bkObjArray[i] );
       varCL.insert( { times: i } );
    }

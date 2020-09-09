@@ -11,7 +11,7 @@ function main ()
 {
    var csName = COMMCSNAME + "_16552";
 
-   var cs = commCreateCS( db, csName, false, "create cs in begine", "" );
+   var cs = commCreateCS( db, csName, false, "create cs in begine" );
 
    // rename cs new name is begin with $
    checkNewCSName( db, csName, "$csName16552", -6 );
@@ -55,7 +55,7 @@ function main ()
    // rename cs new name is begin with SYS
    checkNewCSName( db, csName, "SYScsName16552", -6 );
 
-   commDropCS( db, csName, true, false, "clean cs---" );
+   commDropCS( db, csName, true, "clean cs---" );
 
 }
 
@@ -77,4 +77,5 @@ function checkNewCSName ( db, oldCSName, newCSName, error )
       }
    }
 }
+
 

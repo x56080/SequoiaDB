@@ -9,7 +9,7 @@ function main ( db )
    var path = "";
    var clName = COMMCLNAME + "_cl14053";
    commDropCL( db, COMMCSNAME, clName, true, true, "Drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false,
       "Create collection in the beginning" );
    bakInsertData( cl );
    bakRemoveBackups( db, CHANGEDPREFIX, true );
@@ -23,7 +23,7 @@ function main ( db )
       var backup = { "GroupID": [] };
       backup["GroupID"].push( groupID[i][0].GroupID );
       backup["Name"] = bakName;
-      commPrint( backup );
+      println( JSON.stringify( backup, "", 3 ) );
       bakBackup( db, backup );
       checkBackupInfo( db, "", bakName, path, alreadStart );
       bakRemoveBackups( db, bakName, alreadStart, path );

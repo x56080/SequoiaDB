@@ -13,7 +13,7 @@ function main ()
    var newcsName = CHANGEDPREFIX + "_16099_newcs";
    var clName = CHANGEDPREFIX + "_16099_cl";
 
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine" );
    var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    println( "---insert 1000 record---" );
@@ -39,7 +39,7 @@ function main ()
    //delete no < 500 data, and check data
    deleteData( cl );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
 }
 
 function insertData ( cl, insertNum, expNum )
@@ -94,6 +94,7 @@ function deleteData ( cl )
       throw buildException( "deleteData()", "", "delete", "delete 1000 record", "delete fail, have: " + recordNum );
    }
 }
+
 
 
 

@@ -9,14 +9,10 @@ main( test );
 
 function test ()
 {
-   commDropUsr( db, "name_21909_0", "password_201909_0" );
-   commDropUsr( db, "name_21909_1", "password_201909_1" );
-   commDropUsr( db, "name_21909_2", "password_201909_2" );
-
-   var option = { AuditMask: "ALL" };
-   commCreateUsr( db, "name_21909_0", "password_201909_0", option );
-   commCreateUsr( db, "name_21909_1", "password_201909_1", option );
-   commCreateUsr( db, "name_21909_2", "password_201909_2", option );
+   var options = { AuditMask: "ALL" };
+   db.createUsr( "name_21909_0", "password_201909_0", options );
+   db.createUsr( "name_21909_1", "password_201909_1", options );
+   db.createUsr( "name_21909_2", "password_201909_2", options );
 
    // 内置 sql 语句查询用户信息
    var cur = db.exec( "select * from $LIST_USER" );
@@ -38,7 +34,8 @@ function test ()
       throw new Error( "expected result is " + 3 + ",but actually result is " + usrCount );
    }
 
-   commDropUsr( db, "name_21909_0", "password_201909_0" );
-   commDropUsr( db, "name_21909_1", "password_201909_1" );
-   commDropUsr( db, "name_21909_2", "password_201909_2" );
+   db.dropUsr( "name_21909_0", "password_201909_0" );
+   db.dropUsr( "name_21909_1", "password_201909_1" );
+   db.dropUsr( "name_21909_2", "password_201909_2" );
 }
+

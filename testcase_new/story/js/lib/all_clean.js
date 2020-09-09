@@ -1,7 +1,7 @@
-﻿/* *****************************************************************************
+﻿﻿/* *****************************************************************************
 @discretion: Clean after all test-cases
 @modify list:
-  2014-3-1 Jianhui Xu  Init
+   2014-3-1 Jianhui Xu  Init
 ***************************************************************************** */
 
 // RUNRESULT is input parameter
@@ -13,38 +13,12 @@ var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
 function main ( db )
 {
-   // 1. check nodes
-   /*  var groups = commGetGroups( db, "", "", false );
-     var errNodes = commCheckBusiness( groups, true );
-     if( errNodes.length == 0 )
-     {
-     }
-     else
-     {
-        println( "Has " + errNodes.length + " nodes in fault after all test-cases: " );
-        commPrint( errNodes );
-     }
-  
-     if( 0 != RUNRESULT )
-     {
-        // not clean
-        return;
-     }
-     */
-   // 2. drop CHANGEDPREFIX's all collection space
-   var cols = commGetCSCL( db, CHANGEDPREFIX );
+   // 1. 删除名称含 local_test 的 cs
+   var cols = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES, { "Name": Regex( CHANGEDPREFIX, "i" ) }, { "Name": "" } );
    for( var i = 0; i < cols.length; ++i )
    {
-      try
-      {
-         commDropCS( db, cols[i].cs, true, " after all test-cases" );
-      }
-      catch( e )
-      {
-         println( "Drop " + cols[i].cs + " failed after all test-cases: " + e );
-      }
+      commDropCS( db, cols[i].Name, true, " before all test-cases" );
    }
-
 }
 
 try
@@ -55,3 +29,4 @@ catch( e )
 {
    println( "After all test-cases environment clean failed: " + e );
 }
+

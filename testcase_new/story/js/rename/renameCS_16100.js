@@ -16,7 +16,7 @@ function main ()
    var fileName = CHANGEDPREFIX + "_16100lob";
    var lobNum = 10;
 
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine" );
    var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
    var lobMD5 = createFile( fileName );
@@ -38,9 +38,10 @@ function main ()
 
    checkLob( cl, lobArrnew, lobMD5new );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
    println( "---end the test---" );
 }
+
 

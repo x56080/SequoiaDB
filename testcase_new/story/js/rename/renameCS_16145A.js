@@ -24,7 +24,7 @@ function main ()
    var subCLName1 = CHANGEDPREFIX + "_16145A_subCL1";
    var subCLName2 = CHANGEDPREFIX + "_16145A_subCL2";
 
-   var cs = commCreateCS( db, oldcsName, false, "create cs in begine", "" );
+   var cs = commCreateCS( db, oldcsName, false, "create cs in begine" );
    var mainOptions = { ShardingType: 'range', ShardingKey: { a: 1 }, IsMainCL: true };
    var subOptions = { ShardingType: 'hash', ShardingKey: { a: 1 } };
    var mainCL = commCreateCL( db, oldcsName, mainCLName, mainOptions, false, false, "create MainCL in the begin" );
@@ -52,7 +52,7 @@ function main ()
    //delete no < 500 data, and check data
    deleteData( mainCL );
 
-   commDropCS( db, newcsName, true, false, "clean cs---" );
+   commDropCS( db, newcsName, true, "clean cs---" );
    println( "---end the test---" );
 }
 
@@ -75,6 +75,7 @@ function deleteData ( cl )
       throw buildException( "deleteData()", "", "delete", "delete 1000 record", "delete fail, have: " + recordNum );
    }
 }
+
 
 
 

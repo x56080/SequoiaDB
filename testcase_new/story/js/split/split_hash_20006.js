@@ -36,7 +36,7 @@ function main ()
    var recordsNum = 1000;
 
    commDropCS( db, csName, true, "drop cs in the begin" );
-   commDropDomain( db, dmName, true, "drop domain in the end." );
+   commDropDomain( db, dmName, true );
    dm = db.createDomain( dmName, [groupNames[0], groupNames[1]] );
    var cs = db.createCS( csName, { "Domain": dmName } );
    cl = cs.createCL( clName, { "ShardingKey": { "id": 1 }, "ShardingType": "hash", "AutoSplit": true } );
@@ -62,7 +62,7 @@ function main ()
    checkShardingRange( csName, clName );
 
    commDropCS( db, csName, false, "drop cs in the end." );
-   commDropDomain( db, dmName, false, "drop domain in the end." );
+   commDropDomain( db, dmName, false );
 }
 
 function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )

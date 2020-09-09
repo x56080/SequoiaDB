@@ -311,6 +311,7 @@ function Sequoiadb ( hostname, svcname, username, password )
       function( name, groups, options )
       {
          if( options === undefined ) { options = {}; }
+         if( groups === undefined ) { options = []; }
          try
          {
             var domain = db.createDomain( name, groups, options );
@@ -453,16 +454,16 @@ function Sequoiadb ( hostname, svcname, username, password )
             throw new Error( e );
          }
       }
-  
+
    this.getSessionAttr =
       function()
-      {  
+      {
          try
-         {  
+         {
             var cursor = db.getSessionAttr();
          }
          catch( e )
-         {  
+         {
             throw new Error( e );
          }
          return new Cursor( cursor );
@@ -594,3 +595,4 @@ function Sequoiadb ( hostname, svcname, username, password )
       }
 
 }
+

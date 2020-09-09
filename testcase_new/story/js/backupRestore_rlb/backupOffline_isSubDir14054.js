@@ -10,7 +10,7 @@ function main ( db )
    var clName = COMMCLNAME + "_cl14054";
    commDropCL( db, COMMCSNAME, clName, true, true,
       "Drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false,
       "Create collection in the beginning" );
    bakInsertData( cl );
    bakRemoveBackups( db, CHANGEDPREFIX, true );
@@ -25,8 +25,7 @@ function main ( db )
          var backup = { "IsSubDir": true };
          backup["Name"] = bakName;
          backup["Gruop"] = groups[i][0].GroupName;
-
-         commPrint( backup );
+         println( JSON.stringify( backup, "", 3 ) );
          bakBackup( db, backup );
          checkBackupInfo( db, "", bakName, path, alreadStart );
          bakRemoveBackups( db, bakName, alreadStart, path );

@@ -89,7 +89,7 @@ function truncateVerify ( db, tableName, obj )
       var snapshotOfCLPerNode = snapShotInfoSet[i];
       if( !checkResult( snapshotOfCLPerNode, obj ) )
       {
-         commPrint( snapshotOfCLPerNode );
+         println( JSON.stringify( snapshotOfCLPerNode, "", 3 ) );
          throw new Error( "truncateVerify", "compare error" );
       }
    }
@@ -216,5 +216,6 @@ function truncatePutLob ( cl, lobSize, lobNumber )
    }
    return lobIDs;
 }
+
 
 

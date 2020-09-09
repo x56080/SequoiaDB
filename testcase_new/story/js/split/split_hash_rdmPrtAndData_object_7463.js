@@ -42,7 +42,7 @@ function main ()
    var recordsNum = getRandomInt( 1000, 3000 );
 
    commDropCS( db, csName, true, "drop cs in the begin" );
-   commDropDomain( db, dmName, true, "drop domain in the end." );
+   commDropDomain( db, dmName, true );
 
    // create domain / cs / cl
    db.createDomain( dmName, groupNames, { "AutoSplit": true } );
@@ -60,7 +60,7 @@ function main ()
    checkHashDistribution( groupNames, csName, clName, recordsNum );
 
    commDropCS( db, csName, false, "drop cs in the end." );
-   commDropDomain( db, dmName, false, "drop domain in the end." );
+   commDropDomain( db, dmName, false );
 }
 
 function readyRdmRecs ( recordsNum ) 

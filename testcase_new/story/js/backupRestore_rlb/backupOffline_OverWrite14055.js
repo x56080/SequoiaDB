@@ -10,7 +10,7 @@ function main ( db )
    var path = "";
    var clName = COMMCLNAME + "_cl14055";
    commDropCL( db, csName, clName, true, true, "Drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false,
       "Create collection in the beginning" );
    bakInsertData( cl );
    bakRemoveBackups( db, CHANGEDPREFIX, true );
@@ -28,14 +28,14 @@ function main ( db )
          var backup = { EnsureInc: false, OverWrite: false, Description: "backup description" };
          backup["GroupName"] = groups[i][0].GroupName;
          backup["Name"] = bakName;
-         commPrint( backup );
+         println( JSON.stringify( backup, "", 3 ) );
          bakBackup( db, backup );
          println( "Backup offline first" );
-         commPrint( backup );
+         println( JSON.stringify( backup, "", 3 ) );
          bakBackupByCheckError( db, backup );
          println( "Backup offline second" );
          backup["OverWrite"] = true;
-         commPrint( backup );
+         println( JSON.stringify( backup, "", 3 ) );
          bakBackup( db, backup );
          println( "Backup offline thrid" );
          checkBackupInfo( db, "", bakName, path, true );
@@ -49,14 +49,14 @@ function main ( db )
       var bakName = CHANGEDPREFIX + "BAK" + i;
       var backup = { EnsureInc: false, OverWrite: false, Description: "backup description" };
       backup["Name"] = bakName;
-      commPrint( backup );
+      println( JSON.stringify( backup, "", 3 ) );
       bakBackup( db, backup );
       println( "Backup offline first" );
-      commPrint( backup );
+      println( JSON.stringify( backup, "", 3 ) );
       bakBackupByCheckError( db, backup );
       println( "Backup offline second" );
       backup["OverWrite"] = true;
-      commPrint( backup );
+      println( JSON.stringify( backup, "", 3 ) );
       bakBackup( db, backup );
       println( "Backup offline thrid" );
       checkBackupInfo( db, "", bakName, path, true );
@@ -77,4 +77,3 @@ catch( e )
 {
    throw e;
 }
-

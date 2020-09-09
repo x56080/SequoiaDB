@@ -72,11 +72,11 @@ function testTruncateMixtureCLMultiIndex ( db )
    }
    commCreateDomain( db, domainName, domainRGs, { AutoSplit: true } );
 
-   var mainCL = commCreateCL( db, mainCS, COMMCLNAME, mainCLOption, true, true, false, "create collection begin" );
+   var mainCL = commCreateCL( db, mainCS, COMMCLNAME, mainCLOption );
    commCreateCS( db, subCS1, false, "create sub cs1", { "Domain": domainName } );
-   var subCL1 = commCreateCL( db, subCS1, COMMCLNAME, subCLOption, true, true, false, "create collection begin" );
+   var subCL1 = commCreateCL( db, subCS1, COMMCLNAME, subCLOption );
    commCreateCS( db, subCS2, false, "create sub cs2", { "Domain": domainName } );
-   var subCL2 = commCreateCL( db, subCS2, COMMCLNAME, subCLOption, true, true, false, "create collection begin" );
+   var subCL2 = commCreateCL( db, subCS2, COMMCLNAME, subCLOption );
    var subTable1 = subCS1 + "." + COMMCLNAME;
    var subTable2 = subCS2 + "." + COMMCLNAME;
 
@@ -133,4 +133,5 @@ catch( e )
    }
    throw e;
 }
+
 

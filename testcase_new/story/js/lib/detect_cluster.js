@@ -24,7 +24,7 @@ function main ( db )
       else
       {
          println( "Has " + errNodes.length + " nodes in fault before all test-cases: " );
-         commPrint( errNodes );
+         println( JSON.stringify( errNodes, "", 3 ) );
       }
    }
 

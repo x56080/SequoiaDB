@@ -455,3 +455,44 @@ function evalSdbDate ( db )
 
    commRemoveProcedure( db, "getSdbDate" );
 }
+
+/******************************************************************************
+@description  create procedure
+@author  zhaoyu
+@parameter
+***************************************************************************** */
+function commCreateProcedure ( db, code, ignoreExisted )
+{
+   if( ignoreExisted == undefined ) { ignoreExisted = false; }
+   try
+   {
+      db.createProcedure( code );
+   } catch( e )
+   {
+      if( !commCompareErrorCode( e, -342 ) || !ignoreExisted )
+      {
+         commThrowError( e, "commCreateProcedure, create procedure: " + code + " failed: " + e );
+      }
+   }
+}
+
+/******************************************************************************
+@description  remove procedure
+@author  zhaoyu
+@parameter
+***************************************************************************** */
+function commRemoveProcedure ( db, functionName, ignoreNotExist )
+{
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+   try
+   {
+      db.removeProcedure( functionName );
+   } catch( e )
+   {
+      if( !commCompareErrorCode( e, -233 ) || !ignoreNotExist )
+      {
+         commThrowError( e, "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e );
+      }
+   }
+}
+

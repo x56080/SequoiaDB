@@ -36,8 +36,7 @@ function createCLAndInsertData ( csName, clName, pageSize )
       "ShardingKey": { "ID_Default": 1 }, "ShardingType": "hash"
    };
 
-   var cl = commCreateCL( db, csName, clName, clOption, true,
-      true, false, "create collection begin" );
+   var cl = commCreateCL( db, csName, clName, clOption, true, false, "create collection begin" );
 
    var lobNum = 4;
    var lobSize = pageSize * 4;
@@ -66,3 +65,4 @@ function truncateAndCheckResult ( cl, csName, clName )
       throw new Error( "expCount: " + expCount + "\nactLobCount: " + actLobCount + "\nexpCount: " + expCount + "\nactRecordCount: " + actRecordCount );
    }
 }
+

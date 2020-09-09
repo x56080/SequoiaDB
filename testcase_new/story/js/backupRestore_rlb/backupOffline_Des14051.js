@@ -11,7 +11,7 @@ function main ( db )
    // Clear the collection space in the beginning
    commDropCL( db, COMMCSNAME, clName, true, true,
       "clean collection space in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {ReplSize: -1}, true, false,
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false,
       "create collection in the beginning" );
    // Insert data to SDB
    bakInsertData( cl );
@@ -49,7 +49,7 @@ function main ( db )
             backup["Path"] = path;
          }
          println( groups[i][0].GroupName );
-         commPrint( backup );
+         println( JSON.stringify( backup, "", 3 ) );
 
          bakBackup( db, backup );
          checkBackupInfo( db, "check description backup failed", bakName, path, alreadStart );

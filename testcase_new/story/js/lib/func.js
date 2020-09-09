@@ -1,13 +1,57 @@
 /*******************************************************************************
-*@Description: JavaScript common function library
+*@description JavaScript common function library
 *@Modify list:
 *   2014-2-24 Jianhui Xu  Init
 *******************************************************************************/
 
+/***********************************************
+func.js 中方法：
+   1、判断
+      判断是否为独立模式     commIsStandalone(db)
+      比较结果集            commCompareResults(cursor,expRecs,exceptId)
+      判断两个对象是否相等   commCompareObject(expObj,actObj)
+      比较错误码是否一致     commCompareErrorCode(e,code)
+      
+   2、创建
+      创建并返回 cs          commCreateCS(db,csName,ignoreExisted,message,options)
+      创建并返回 cl          commCreateCL(db,csName,clName,optionObj,autoCreateCS,ignoreExisted,message) 
+      创建索引               commCreateIndex(cl,indexName,indexDef,options,ignoreExist)
+      创建并启动 group       commCreateRG(db,rgName,nodeNum,hostname,nodeOption)
+      在指定主机创建目录      commMakeDir(hostName,dir)
+      创建并返回 domain      commCreateDomain(db,domainName,groupNames,options)
+      
+   3、删除
+      删除 cs                commDropCS(db,csName,ignoreNotExist,message,options)   
+      删除 cl                commDropCL(db,csName,clName,ignoreCSNotExist,ignoreCLNotExist,message)   
+      删除索引               commDropIndex(cl,indexName,ignoreNotExist)   
+      删除 domain            commDropDomain(db,domainName,ignoreNotExist)
+
+   4、检查
+      检查索引一致性          commCheckIndexConsistency(cl,indexName,exist,timeout)   
+      检查集群状态            commCheckBusinessStatus(db,timeout,checkLSN)
+      检测 group 状态        commCheckBusiness(groups,checkLSN)
+      检测主备 LSN           commCheckLSN(db,groupNames,timeout)
+   
+   5、获取
+      获取 cl 所属 group     commGetCLGroups(db,fullClName)   
+      获取 cl 所在节点       commGetCLNodes(db,fullclName)
+      获取 cs 所属 group     commGetCSGroups(db,csName)
+      获取 group 详细信息    commGetGroups(db,print,filter,excludeCata,excludeCoord,excludeSpare)
+      获取 group 个数        commGetGroupsNum(db)
+      获取所有 data group    commGetDataGroupNames(db)
+      获取 group 所有节点    commGetGroupNodes(db,groupName)
+      获取 backup           commGetBackups(db,filter,path,isSubDir,cond,grpNameArray)
+      获取 procedure        commGetProcedures(db,filter)
+      获取 sdb 安装路径      commGetInstallPath()
+      获取指定快照类型       commGetSnapshot(db,snapshotType,condObj,selObj,sortObj,skipNum,limitNum,optionsObj)
+      
+   6、其他
+      将游标结果存入数组     commCursor2Array(cursor,fieldName,filter)
+      随机生成数据           commDataGenerator()
+      封装错误信息           commThrowError(e,msg)
+*****************************************************************************************/
+
 // begin global variable configuration
-// CSPREFIX, COORDSVCNAME, COORDHOSTNAME  is input parameter
-// UUID, UUNAME is input parameter
-//if ( typeof(CSPREFIX) == "undefined" ) { CSPREFIX = "local_test"; }
 //cm端口号
 if( typeof ( CMSVCNAME ) == "undefined" ) { CMSVCNAME = "11790"; }
 //公共CS前缀
@@ -34,6 +78,7 @@ if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 
+// CHANGEDPREFIX = local_test
 var COMMCSNAME = CHANGEDPREFIX + "_cs";
 var COMMCLNAME = CHANGEDPREFIX + "_cl";
 var COMMDUMMYCLNAME = "test_dummy_cl";
@@ -59,10 +104,13 @@ var funcCommCreateCLOptTimes = 0;
 var funcCommDropCLTimes = 0;
 // end control variable
 
-/* *****************************************************************************
-@discription: check database mode is standalone
-              判断集群是否是独立模式
-@author: Jianhui Xu
+/******************************************************************************
+@description 判断集群是否是独立模式
+     （请勿直接使用，新用例中用 testConf.skipStandAlone = true 来实现）
+@author Jianhui Xu
+@return  {boolean}  是否是独立模式
+       true   :  是独立模式
+       false  :  不是独立模式
 ***************************************************************************** */
 function commIsStandalone ( db ) 
 {
@@ -73,7 +121,6 @@ function commIsStandalone ( db )
    }
    catch( e )
    {
-
       if( commCompareErrorCode( e, -159 ) )
       {
          return true;
@@ -85,34 +132,35 @@ function commIsStandalone ( db )
    }
 }
 
-/* *****************************************************************************
-@discription: create collection space
-              创建并返回cs对象
-@author: Jianhui Xu
+/******************************************************************************
+@description  创建并返回 cs 对象
+@author Jianhui Xu
 @parameter
-   ignoreExisted: default = false, value: true/false, cs已存在则直接返回getCS
-   message: user define message, default:""
-   options: create CS specify options, default:"";[by  xiaojun Hu ]
-           exp : {"Domain":"domName"}
-           
+   ignoreExisted  {boolean}  :  默认为 false，重复创建 cs 报错
+   message        {string}   :  默认为 ""，创建或获取 cs 失败时报错信息
+   options        {object}   :  默认为 {}，创建 cs 指定的可选属性
+@return  {object}  创建或者获取的 cs 对象
 ***************************************************************************** */
 function commCreateCS ( db, csName, ignoreExisted, message, options )
 {
    ++funcCommCreateCSTimes;
    if( ignoreExisted == undefined ) { ignoreExisted = false; }
    if( message == undefined ) { message = ""; }
-   if( options == undefined ) { options = ""; }
+   if( options == undefined ) { options = {}; }
+   commCheckType( ignoreExisted, "boolean" );
+   commCheckType( message, "string" );
+   commCheckType( options, "object" );
+
    try
    {
-      if( "" == options )
-         return db.createCS( csName );
-      else
-         return db.createCS( csName, options );
+      return db.createCS( csName, options );
    }
    catch( e )
    {
-
-      if( !commCompareErrorCode( e, -33 ) || !ignoreExisted )
+      if( commCompareErrorCode( e, -33 ) && ignoreExisted )
+      {
+         // think right
+      } else
       {
          commThrowError( e, "commCreateCS[" + funcCommCreateCSTimes + "] Create collection space[" + csName + "] failed: " + e + ", message: " + message );
       }
@@ -128,16 +176,15 @@ function commCreateCS ( db, csName, ignoreExisted, message, options )
    }
 }
 
-/* *****************************************************************************
-@discription: create collection by user option
-              创建并返回cl对象
-@author: Jianhui Xu
+/******************************************************************************
+@description  创建并返回 cl 对象
+@author Jianhui Xu
 @parameter
-   optionObj: option object, default {}
-   compressed: default = true, value: true/false
-   autoCreateCS: default = true, value: true/false, 自动创建cs
-   ignoreExisted: default = false, value: true/false, cl已存在则直接返回getCL
-   message: default = "", value: user defined message string
+   optionObj      {object}   :  默认为 {}，创建 cl 指定的可选属性
+   autoCreateCS   {boolean}  :  默认为 true，cs 不存在时自动创建 cs
+   ignoreExisted  {boolean}  :  默认为 false，重复创建 cl 报错
+   message        {string}   :  默认为 ""，创建或获取 cl 失败时报错信息，（逐步废弃，新用例请勿使用）
+@return  {object}  创建或者获取的 cl 对象
 ***************************************************************************** */
 function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExisted, message )
 {
@@ -146,11 +193,12 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
    if( autoCreateCS == undefined ) { autoCreateCS = true; }
    if( ignoreExisted == undefined ) { ignoreExisted = false; }
    if( message == undefined ) { message = ""; }
+   commCheckType( optionObj, "object" );
+   commCheckType( autoCreateCS, "boolean" );
+   commCheckType( ignoreExisted, "boolean" );
+   commCheckType( message, "string" );
 
-   if( typeof ( optionObj ) != "object" )
-   {
-      throw new Error( "commCreateCL: optionObj is not object" );
-   }
+   // try create or get cs 
    var csObj;
    if( autoCreateCS )
    {
@@ -174,7 +222,10 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
    }
    catch( e )
    {
-      if( !commCompareErrorCode( e, -22 ) || !ignoreExisted )
+      if( commCompareErrorCode( e, -22 ) && ignoreExisted )
+      {
+         // think right
+      } else
       {
          commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
@@ -183,31 +234,43 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
    //get collection
    try
    {
-      return db.getCS( csName ).getCL( clName );
+      return csObj.getCL( clName );
    }
    catch( e )
    {
       commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
+
 }
 
-/* *****************************************************************************
-@discription: drop collection space
-              删除集合空间
-@author: Jianhui Xu
+/******************************************************************************
+@description  删除 cs
+@author Jianhui Xu
 @parameter
-   ignoreNotExist: default = true, value: true/false, 忽略不存在错误
-   message: default = ""
+   ignoreNotExist {boolean}  :  默认为 true，要删除的 cs 不存在时不报错
+   message        {string}   :  默认为 ""，删除 cs 失败时报错信息
+   options        {object}   :  默认为 {}，删除 cs 指定选项
 ***************************************************************************** */
-function commDropCS ( db, csName, ignoreNotExist, message )
+function commDropCS ( db, csName, ignoreNotExist, message, options )
 {
    ++funcCommDropCSTimes;
    if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    if( message == undefined ) { message = ""; }
+   if( options == undefined ) { options = {}; }
+   commCheckType( ignoreNotExist, "boolean" );
+   commCheckType( message, "string" );
+   commCheckType( options, "object" );
 
    try
-   {
-      db.dropCS( csName );
+   {   
+      if( JSON.stringify( options ) == "{}" )
+      {   
+         db.dropCS( csName );
+      } else
+      {
+         db.dropCS( csName, options );
+      }
+
    }
    catch( e )
    {
@@ -222,14 +285,13 @@ function commDropCS ( db, csName, ignoreNotExist, message )
    }
 }
 
-/* *****************************************************************************
-@discription: drop collection
-              删除集合
-@author: Jianhui Xu
+/******************************************************************************
+@description  删除 cl
+@author Jianhui Xu
 @parameter
-   ignoreCSNotExist: default = true, value: true/false, 忽略集合空间不存在错误
-   ignoreCLNotExist: default = true, value: true/false, 忽略集合不存在错误
-   message: default = ""
+   ignoreCSNotExist   {boolean}  :  默认为 true，要获取的 cs 不存在时不报错
+   ignoreCLNotExist   {boolean}  :  默认为 true，要删除的 cl 不存在时不报错
+   message            {object}   :  默认为 ""，删除 cl 失败时报错信息吗，（逐步废弃，新用例请勿使用）
 ***************************************************************************** */
 function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, message )
 {
@@ -237,6 +299,9 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
    if( message == undefined ) { message = ""; }
    if( ignoreCSNotExist == undefined ) { ignoreCSNotExist = true; }
    if( ignoreCLNotExist == undefined ) { ignoreCLNotExist = true; }
+   commCheckType( ignoreCSNotExist, "boolean" );
+   commCheckType( ignoreCLNotExist, "boolean" );
+   commCheckType( message, "string" );
 
    try
    {
@@ -255,54 +320,52 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
    }
 }
 
-/* *****************************************************************************
-@discription: create index
-              创建索引
-@author: Jianhui Xu
+/******************************************************************************
+@description  创建索引
+@author Jianhui Xu
 @parameter
-   indexDef: index define object
-   options: index options
-   ignoreExist: default is false, 忽略索引已存在错误
+   indexDef        {object}   :  必填项，索引键
+   options         {object}   :  默认为 {}，创建索引指定选项
+   ignoreExist     {boolean}  :  默认为 false，创建索引失败报错
 ***************************************************************************** */
-function commCreateIndex ( cl, name, indexDef, options, ignoreExist )
+function commCreateIndex ( cl, indexName, indexDef, options, ignoreExist )
 {
    if( options == undefined ) { options = {}; }
    if( ignoreExist == undefined ) { ignoreExist = false; }
-
-   if( typeof ( indexDef ) != "object" )
-   {
-      throw new Error( "commCreateIndex: indexDef is not object" );
-   }
-   if( typeof ( options ) != "object" )
-   {
-      throw new Error( "commCreateIndex: options is not object" );
-   }
+   commCheckType( options, "object" );
+   commCheckType( ignoreExist, "boolean" );
 
    try
    {
-      cl.createIndex( name, indexDef, options );
+      cl.createIndex( indexName, indexDef, options );
    }
    catch( e )
    {
-      println( "commCreateIndex: create index[" + name + "] failed: " + e );
       if( ignoreExist && ( commCompareErrorCode( e, -46 ) || commCompareErrorCode( e, -247 ) ) )
       {
          // ok
       }
       else
       {
-         commThrowError( e, "commCreateIndex: create index[" + name + "] failed: " + e );
+         commThrowError( e, "commCreateIndex: create index[" + indexName + "] failed: " + e );
       }
    }
 }
 
-function commDropIndex ( cl, name, ignoreNotExist )
+/******************************************************************************
+@description  删除索引
+@author Jianhui Xu
+@parameter
+   ignoreNotExist     {boolean}  :  默认为 false，删除索引失败报错
+***************************************************************************** */
+function commDropIndex ( cl, indexName, ignoreNotExist )
 {
    if( ignoreNotExist == undefined ) { ignoreNotExist = false; }
+   commCheckType( ignoreNotExist, "boolean" );
 
    try
    {
-      cl.dropIndex( name );
+      cl.dropIndex( indexName );
    }
    catch( e )
    {
@@ -312,30 +375,33 @@ function commDropIndex ( cl, name, ignoreNotExist )
       }
       else
       {
-         commThrowError( e, "commDropIndex: drop index[" + name + "] failed: " + e );
+         commThrowError( e, "commDropIndex: drop index[" + indexName + "] failed: " + e );
       }
    }
 }
 
-/* *****************************************************************************
-@discription: check index consistency
-@author: Jianhui Xu
+/******************************************************************************
+@description  检查索引一致性，在超时时间内所有节点存在/不存在索引通过检测
+@author Jianhui Xu
 @parameter
-   exist: true/false, if true check index exist, else check index not exist, default is true
-   timeout: default 30 secs
-***************************************************************************** */
-function commCheckIndexConsistency ( cl, name, exist, timeout )
+   exist     {boolean}  :  默认为 true，检测索引存在
+   timeout   {number}   :  默认为 30，检测超时时间
+******************************************************************************/
+function commCheckIndexConsistency ( cl, indexName, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
    if( timeout == undefined ) { timeout = 30; }
-   
+   commCheckType( exist, "boolean" );
+   commCheckType( timeout, "number" );
+
    //cl.toString = hostname:svc.csName.clName
+   println( "cl :" + cl.toString() );
    var parts = cl.toString().split( ":" );
    var infoArr = parts[1].split( "." );
    var csName = infoArr[1];
    var clName = infoArr[2];
-   var nodes = commGetCLNodes( db, csName, clName );
-   
+   var nodes = commGetCLNodes( db, csName + "." + clName );
+
    var timecount = 0;
    while( true )
    {
@@ -344,7 +410,7 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
          try
          {
             var nodeConn = new Sdb( nodes[j].HostName, nodes[j].svcname );
-            var tmpInfo = nodeConn.getCS( csName ).getCL( clName ).getIndex( name );
+            var tmpInfo = nodeConn.getCS( csName ).getCL( clName ).getIndex( indexName );
             nodeConn.close();
          }
          catch( e )
@@ -355,7 +421,7 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
          if( tmpInfo != undefined )
          {
             var tmpObj = tmpInfo.toObj();
-            if( tmpObj.IndexDef.name != name )
+            if( tmpObj.IndexDef.name != indexName )
             {
                println( "commCheckIndexConsistency: get index name[" + tmpObj.IndexDef.name + "] is not the same with name[" + name + "]" );
                println( tmpInfo );
@@ -363,7 +429,7 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
             }
          }
       }
-      //var tmpInfo = cl.getIndex( name ) ;
+      //var tmpInfo = cl.getIndex( indexName ) ;
       if( ( exist && tmpInfo == undefined ) ||
          ( !exist && tmpInfo != undefined ) )
       {
@@ -373,183 +439,54 @@ function commCheckIndexConsistency ( cl, name, exist, timeout )
             sleep( 1000 );
             continue;
          }
-         throw new Error( "commCheckIndexConsistency: check index[" + name + "] time out" );
+         throw new Error( "commCheckIndexConsistency: check index[" + indexName + "] time out" );
       }
       break;
    }
 }
 
-/* *****************************************************************************
-@discription: print object function
-@author: Jianhui Xu
+/*******************************************************************************
+@description  获取 cl 所属的 groups
+@author  xiaojun Hu
+@parameter  
+   fullClName    {string}  :  必填项，"csName.clName"
+@return  {array}  存放 groupName 的数组
+   e.g: 
+      ["grou1","group2","group3"]
 ***************************************************************************** */
-function commPrintIndent ( str, deep, withRN )
+function commGetCLGroups ( db, fullClName )
 {
-   if( undefined == deep ) { deep = 0; }
-   if( undefined == withRN ) { withRN = true; }
-   for( var i = 0; i < 3 * deep; ++i )
+   if( typeof ( fullClName ) != "string" || fullClName.length == 0 )
    {
-      print( " " );
-   }
-   if( withRN )
-   {
-      println( str );
-   }
-   else
-   {
-      print( str );
-   }
-}
-
-function commPrint ( obj, deep )
-{
-   var isArray = false;
-   if( typeof ( obj ) != "object" )
-   {
-      println( obj );
-      return;
-   }
-   if( undefined == deep ) { deep = 0; }
-   if( typeof ( obj.length ) == "number" ) { isArray = true; }
-
-   if( 0 == deep )
-   {
-      if( !isArray )
-      {
-         commPrintIndent( "{", deep, false );
-      }
-      else
-      {
-         commPrintIndent( "[", deep, false );
-      }
+      throw new Error( "commGetCLGroups: Invalid fullClName parameter or fullClName is empty" );
    }
 
-   var i = 0;
-   for( var p in obj )
-   {
-      if( i == 0 ) { commPrintIndent( "", 0, true ); }
-      else if( i > 0 ) { commPrintIndent( ",", 0, true ); }
-      ++i;
-
-      if( typeof ( obj[p] ) == "object" )
-      {
-         if( typeof ( obj[p].length ) == "undefined" )
-         {
-            if( !isArray )
-            {
-               commPrintIndent( p + ": {", deep + 1, false );
-            }
-            else
-            {
-               commPrintIndent( "{", deep + 1, false );
-            }
-         }
-         else if( !isArray )
-         {
-            commPrintIndent( p + ": [", deep + 1, false );
-         }
-         else
-         {
-            commPrintIndent( "[", deep + 1, false );
-         }
-         commPrint( obj[p], deep + 1 );
-      }
-      else if( typeof ( obj[p] ) == "function" )
-      {
-         // not print
-      }
-      else if( typeof ( obj[p] ) == "string" )
-      {
-         if( !isArray )
-         {
-            commPrintIndent( p + ': "' + obj[p] + '"', deep + 1, false );
-         }
-         else
-         {
-            commPrintIndent( '"' + obj[p] + '"', deep + 1, false );
-         }
-      }
-      else
-      {
-         if( !isArray )
-         {
-            commPrintIndent( p + ': ' + obj[p], deep + 1, false );
-         }
-         else
-         {
-            commPrintIndent( obj[p], deep + 1, false );
-         }
-      }
-   }
-   if( i == 0 )
-   {
-      if( !isArray )
-      {
-         commPrintIndent( "}", 0, false );
-      }
-      else
-      {
-         commPrintIndent( "]", 0, false );
-      }
-   }
-   else
-   {
-      commPrintIndent( "", 0, true );
-      if( !isArray )
-      {
-         commPrintIndent( "}", deep, false );
-      }
-      else
-      {
-         commPrintIndent( "]", deep, false );
-      }
-   }
-   if( deep == 0 ) { commPrintIndent( "", deep, true ) };
-}
-
-/* ******************************************************************************
-@description : get collection groups
-               获取集合所属的group名，返回已去重的groupName数组
-@author : xiaojun Hu
-@parameter:
-   clname: collection name, such as : "foo.bar"
-@return array[] ex:
-   array[0] group1
-   ...
-***************************************************************************** */
-function commGetCLGroups ( db, clName )
-{
-   if( typeof ( clName ) != "string" || clName.length == 0 )
-   {
-      throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
-   }
    if( commIsStandalone( db ) )
    {
       return new Array();
    }
 
    var tmpArray = new Array();
-   var groups = {};
-   var cursor;
    try
    {
-      cursor = db.snapshot( 8, { Name: clName } );
+      var cursor = db.snapshot( SDB_SNAP_CATALOG, { Name: fullClName } );
+      while( cursor.next() )
+      {
+         var cataInfo = cursor.current().toObj()['CataInfo'];
+         for( var i = 0; i < cataInfo.length; ++i )
+         {
+            tmpArray.push( cataInfo[i].GroupName );
+         }
+      }
    }
    catch( e )
    {
-      commThrowError( e, "commGetCLGroups: snapshot collection space failed: " + e );
-   }
-
-   while( cursor.next() )
+      commThrowError( e, "commGetCLGroups: snapshot SDB_SNAP_CATALOG  failed: " + e );
+   } finally
    {
-      var cataInfo = cursor.current().toObj()['CataInfo'];
-      for( var i = 0; i < cataInfo.length; ++i )
+      if( cursor != null )
       {
-         if( groups[cataInfo[i].GroupName] === undefined )
-         {
-            tmpArray.push( cataInfo[i].GroupName );
-            groups[cataInfo[i].GroupName] = 1;
-         }
+         cursor.close();
       }
    }
 
@@ -557,34 +494,29 @@ function commGetCLGroups ( db, clName )
 }
 
 /******************************************************************************
-@description : get collection nodes
-               获取集合所在的节点
-@author : luweikang
-@parameter:
-   csName: cs name
-   clName: cl name 
-@return array[] ex:
-   array[0] {"HostName": "XXXX", "svcname": "XXXX"}
-   array[1] {"HostName": "XXXX", "svcname": "XXXX"}
-   ...
+@description  获取 cl 所在的节点
+@author  luweikang
+@parameter
+   fullClName    {string}  :  必填项，"csName.clName"
+@return  {array}   存放节点 HostName 和 ServiceName 的数组；
+   e.g:
+     array[0] {"HostName": "sdbserver1", "svcname": "11820"}
+     array[1] {"HostName": "sdbserver2", "svcname": "11820"}
+     ...
 ******************************************************************************/
-function commGetCLNodes( db, csName, clName )
+function commGetCLNodes ( db, fullclName )
 {
-   if( typeof ( csName ) != "string" || csName.length == 0 )
+   if( typeof ( fullclName ) != "string" || fullclName.length == 0 )
    {
-      throw new Error( "commGetCLGroups: Invalid csName parameter or clName is empty" );
+      throw new Error( "commGetCLGroups: Invalid fullclName parameter or fullclName is empty" );
    }
-   if( typeof ( clName ) != "string" || clName.length == 0 )
-   {
-      throw new Error( "commGetCLGroups: Invalid clName parameter or clName is empty" );
-   }
-   
+
    if( commIsStandalone( db ) )
    {
-      return [ { "HostName": COORDHOSTNAME, "svcname": COORDSVCNAME } ];
+      return [{ "HostName": COORDHOSTNAME, "svcname": COORDSVCNAME }];
    }
-   
-   var clGroups = commGetCLGroups( db, csName + "." + clName );
+
+   var clGroups = commGetCLGroups( db, fullclName );
    var nodes = [];
    for( var i = 0; i < clGroups.length; i++ )
    {
@@ -593,67 +525,69 @@ function commGetCLNodes( db, csName, clName )
    return nodes;
 }
 
-/* *****************************************************************************
-@discription: get collection space groups
-              获取集合空间所属的group名，返回groupName数组
-@author: Jianhui Xu
-@parameter:
-   csname: collection space name
-@return array[] ex:
-   array[0] group1
-   ...
-***************************************************************************** */
-function commGetCSGroups ( db, csname )
+/******************************************************************************
+@description 获取 cs 所属的 group
+@author Jianhui Xu
+@return  {array}  存放 groupName 的数组
+   e.g: 
+      ["grou1","group2"]
+******************************************************************************/
+function commGetCSGroups ( db, csName )
 {
-   if( typeof ( csname ) != "string" || csname.length == 0 )
+   if( typeof ( csName ) != "string" || csName.length == 0 )
    {
       throw new Error( "commGetCSGroups: Invalid csname parameter or csname is empty" );
    }
+
    if( commIsStandalone( db ) )
    {
       return new Array();
    }
 
    var tmpArray = [];
-   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES );
+   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES, { Name: csName } );
 
    for( var i = 0; i < tmpInfo.length; ++i )
    {
-      var tmpObj = tmpInfo[i];
-      if( tmpObj.Name != csname )
+      for( var j = 0; j < tmpInfo[i].Group.length; ++j )
       {
-         continue;
-      }
-      for( var j = 0; j < tmpObj.Group.length; ++j )
-      {
-         tmpArray.push( tmpObj.Group[j] );
+         tmpArray.push( tmpInfo[i].Group[j] );
       }
    }
    return tmpArray;
 }
 
-/* *****************************************************************************
-@discription: get all groups
-              获取所有group的详细信息，默认只获取数据组
-@author: Jianhui Xu
-@parameter:
-   filter: group name filter
-   exceptCata : default true
-   exceptCoord: default true
-@return array[][] ex:
-        [0]
-           [0] {"GroupName":"XXXX", "GroupID":XXXX, "Status":XX, "Version":XX, "Role":XX, "PrimaryNode":XXXX, "Length":XXXX, "PrimaryPos":XXXX}
-           [1] {"HostName":"XXXX", "dbpath":"XXXX", "svcname":"XXXX", "NodeID":XXXX}
-           [N] ...
-        [N]
-           ...
+/******************************************************************************
+@description   获取 group 的详细信息，默认只获取数据组
+@author  Jianhui Xu
+@parameter 
+   print           {boolean}   :    已废弃
+   filter          {string}    :    对 GroupName 模糊查询，不指定返回所有查询到的 group
+   excludeCata     {boolean}   :    默认为 true，不获取 Catalog group 信息
+   excludeCoord    {boolean}   :    默认为 true，不获取 Coord group 信息
+   excludeSpare    {boolean}   :    默认为 true，不获取 spare group 信息
+@return  {array}
+   e.g:
+      array[0]
+         array[0][0] {"GroupName":"group1","GroupID":1000,"Status":1,"Version":7,"Role":0,"PrimaryNode":1002,"PrimaryPos":3,"Length":3}
+         array[0][1] {"HostName":"sdbserver1","dbpath":"/opt/sequoiadb/database/data/11820/","svcname":"11820","NodeID":1000}
+         array[0][2] {"HostName":"sdbserver2","dbpath":"/opt/sequoiadb/database/data/11820/","svcname":"11820","NodeID":1001}
+         array[0][3] {"HostName":"sdbserver3","dbpath":"/opt/sequoiadb/database/data/11820/","svcname":"11820","NodeID":1002}
+      array[1]
+         array[1][0] {"GroupName":"group2","GroupID":1001,"Status":1,"Version":7,"Role":0,"PrimaryNode":1005,"PrimaryPos":3,"Length":3}
+         array[1][1] {"HostName":"sdbserver1","dbpath":"/opt/sequoiadb/database/data/11830/","svcname":"11830","NodeID":1003}
+         array[1][2] {"HostName":"sdbserver2","dbpath":"/opt/sequoiadb/database/data/11830/","svcname":"11830","NodeID":1004}
+         array[1][3] {"HostName":"sdbserver3","dbpath":"/opt/sequoiadb/database/data/11830/","svcname":"11830","NodeID":1005}
+      ...
 ***************************************************************************** */
-function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+function commGetGroups ( db, print, filter, excludeCata, excludeCoord, excludeSpare )
 {
-   if( undefined == print ) { print = false; }
-   if( undefined == exceptCata ) { exceptCata = true; }
-   if( undefined == exceptCoord ) { exceptCoord = true; }
-   if( undefined == exceptSpare ) { exceptSpare = true; }
+   if( undefined == excludeCata ) { excludeCata = true; }
+   if( undefined == excludeCoord ) { excludeCoord = true; }
+   if( undefined == excludeSpare ) { excludeSpare = true; }
+   commCheckType( excludeCata, "boolean" );
+   commCheckType( excludeCoord, "boolean" );
+   commCheckType( excludeSpare, "boolean" );
 
    var tmpArray = [];
    var tmpInfoCur;
@@ -669,8 +603,6 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
       }
       else
       {
-         if( true == print )
-            println( "commGetGroups failed: " + e );
          commThrowError( e, "commGetGroups failed: " + e );
       }
    }
@@ -680,15 +612,15 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
    for( var i = 0; i < tmpInfo.length; ++i )
    {
       var tmpObj = tmpInfo[i];
-      if( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
+      if( true == excludeCata && tmpObj.GroupID == CATALOG_GROUPID )
       {
          continue;
       }
-      if( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
+      if( true == excludeCoord && tmpObj.GroupID == COORD_GROUPID )
       {
          continue;
       }
-      if( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
+      if( true == excludeSpare && tmpObj.GroupID == SPARE_GROUPID )
       {
          continue;
       }
@@ -732,75 +664,26 @@ function commGetGroups ( db, print, filter, exceptCata, exceptCoord, exceptSpare
    return tmpArray;
 }
 
-
-/* *****************************************************************************
-@discription: get the number of groups
-               获取集群所有group个数，默认只获取数据组
-@author: Jianhua Li
-@parameter:
-   filter: group name filter
-   exceptCata : default true
-   exceptCoord: default true
-@return integer
+/******************************************************************************
+@description  获取 group 个数，默认只获取数据组
+@author Jianhua Li
+@return  {number}  group 个数
 ***************************************************************************** */
-function commGetGroupsNum ( db, print, filter, exceptCata, exceptCoord, exceptSpare )
+function commGetGroupsNum ( db )
 {
-   if( undefined == print ) { print = false; }
-   if( undefined == exceptCata ) { exceptCata = true; }
-   if( undefined == exceptCoord ) { exceptCoord = true; }
-   if( undefined == exceptSpare ) { exceptSpare = true; }
-
-   var tmpInfoCur;
-   var num = 0;
-   try
-   {
-      tmpInfoCur = db.listReplicaGroups();
-   }
-   catch( e )
-   {
-      if( commCompareErrorCode( e, -159 ) )
-      {
-         return num;
-      }
-      else
-      {
-         if( true == print )
-            println( "commGetGroups failed: " + e );
-         commThrowError( e, "commGetGroups failed: " + e );
-      }
-   }
-   var tmpInfo = commCursor2Array( tmpInfoCur, "GroupName", filter );
-
-   for( var i = 0; i < tmpInfo.length; ++i )
-   {
-      var tmpObj = tmpInfo[i];
-      if( true == exceptCata && tmpObj.GroupID == CATALOG_GROUPID )
-      {
-         continue;
-      }
-      if( true == exceptCoord && tmpObj.GroupID == COORD_GROUPID )
-      {
-         continue;
-      }
-      if( true == exceptSpare && tmpObj.GroupID == SPARE_GROUPID )
-      {
-         continue;
-      }
-      ++num;
-   }
-
-   return num;
+   return commGetGroups( db ).length;
 }
 
-/* *****************************************************************************
-@discription: get data groups name
-              获取所有数据组名
-@author: luweikang
-@return integer
+/******************************************************************************
+@description  获取所有数据组名
+@author  luweikang
+@return  {array}  数据组
+   e.g:
+      ["group1","group2","group3"]
 ***************************************************************************** */
 function commGetDataGroupNames ( db )
 {
-   var groups = commGetGroups( db, false, "", true, true, true );
+   var groups = commGetGroups( db );
    var groupNames = [];
    for( var i = 0; i < groups.length; i++ )
    {
@@ -809,17 +692,17 @@ function commGetDataGroupNames ( db )
    return groupNames;
 }
 
-/* ****************************************************************************
-@discription: get all node from specified group
-              获取指定数据组的所有节点
-@author: luweikang
-@parameter: 
-   groupName: group name
-@return: array[] ex:
-   array[0] {"HostName": "XXXX", "svcname": "XXXX"}
-   array[1] {"HostName": "XXXX", "svcname": "XXXX"}
-   ...
-**************************************************************************** */
+/*****************************************************************************
+@description  获取指定 group 的所有节点
+@author  luweikang
+@parameter
+   groupName     {string}   :  group name
+@return {array}   存放节点 HostName 和 ServiceName 的数组；
+   e.g:
+     array[0] {"HostName": "sdbserver1", "svcname": "11820"}
+     array[1] {"HostName": "sdbserver2", "svcname": "11820"}
+     ...
+*****************************************************************************/
 function commGetGroupNodes ( db, groupName )
 {
    if( typeof ( groupName ) != "string" || groupName.length == 0 )
@@ -849,78 +732,27 @@ function commGetGroupNodes ( db, groupName )
    return tmpArray;
 }
 
-/* *****************************************************************************
-@discription: get cs and cl
-@author: Jianhui Xu
-@parameter:
-   csfilter : collection space filter
-   clfilter : collection filter
-@return array[] ex:
-        [0] {"cs":"XXXX", "cl":["XXXX", "XXXX",...] }
-        [N] ...
-***************************************************************************** */
-function commGetCSCL ( db, csfilter, clfilter )
-{
-   if( csfilter == undefined ) { csfilter = ""; }
-   if( clfilter == undefined ) { clfilter = ""; }
-
-   var tmpCSCL = new Array();
-   var tmpInfo = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES );
-
-   var m = 0;
-   for( var i = 0; i < tmpInfo.length; ++i )
-   {
-      var tmpObj = tmpInfo[i];
-      if( csfilter.length != 0 && tmpObj.Name.indexOf( csfilter, 0 ) == -1 )
-      {
-         continue;
-      }
-      tmpCSCL[m] = new Object();
-      tmpCSCL[m].cs = tmpObj.Name;
-      tmpCSCL[m].cl = new Array();
-
-      var tmpCollection = tmpObj.Collection;
-      for( var j = 0; j < tmpCollection.length; ++j )
-      {
-         if( clfilter.length != 0 && tmpCollection[j].Name.indexOf( clfilter, 0 ) == -1 )
-         {
-            continue;
-         }
-         tmpCSCL[m].cl.push( tmpCollection[j].Name );
-      }
-      ++m;
-   }
-   return tmpCSCL;
-}
-
-/* *****************************************************************************
-@discription: get backup
-@author: Jianhui Xu
-@parameter:
-   filter : backup name filter
-   path : backup path
-   isSubDir: true/false, default is false
-   condObj : condition object
-   grpNameArray : group name array
-@return array[] ex:
-        [0] "XXXX"
-        [N] ...
+/******************************************************************************
+@description    获取backup
+@author  Jianhui Xu
+@parameter
+   filter         {string}   :  模糊查询backup名
+   path           {string}   :  默认为 ""，备份路径
+   isSubDir       {string}   :  默认为 false，path 参数配置路径不是配置参数指定的备份路径的子目录
+   cond           {string}   :  已废弃，随便传
+   grpNameArray   {array}    :  默认为 []，指定备份的 group
+@return {array}   返回满足条件的 backup 名
+   e.g:
+     ["bk1","bk2"]
 ***************************************************************************** */
 function commGetBackups ( db, filter, path, isSubDir, cond, grpNameArray )
 {
    if( path == undefined ) { path = ""; }
    if( isSubDir == undefined ) { isSubDir = false; }
-   if( cond == undefined ) { cond = {}; }
    if( grpNameArray == undefined ) { grpNameArray = new Array(); }
-
-   if( typeof ( cond ) != "object" )
-   {
-      throw new Error( "commGetBackups: cond is not a object" );
-   }
-   if( typeof ( grpNameArray ) != "object" )
-   {
-      throw new Error( "commGetBackups: grpNameArray is not a array" );
-   }
+   commCheckType( path, "string" );
+   commCheckType( isSubDir, "boolean" );
+   commCheckType( grpNameArray, "array" );
 
    var tmpBackup = [];
    var tmpInfoCur;
@@ -942,39 +774,28 @@ function commGetBackups ( db, filter, path, isSubDir, cond, grpNameArray )
    }
    var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
 
+   var exists = [];
    for( var i = 0; i < tmpInfo.length; ++i )
    {
       var tmpBackupObj = tmpInfo[i];
-      if( typeof ( tmpBackupObj.Name ) == "undefined" )
+      if( exists[tmpBackupObj.Name] == undefined )
       {
-         continue;
+         tmpBackup.push( tmpBackupObj.Name );
+         exists[tmpBackupObj.Name] = "exist";
       }
-      var exist = false;
-      for( var j = 0; j < tmpBackup.length; ++j )
-      {
-         if( tmpBackupObj.Name == tmpBackup[j] )
-         {
-            exist = true;
-            break;
-         }
-      }
-      if( exist )
-      {
-         continue;
-      }
-      tmpBackup.push( tmpBackupObj.Name );
+
    }
    return tmpBackup;
 }
 
-/* *****************************************************************************
-@discription: get procedure
-@author: Jianhui Xu
-@parameter:
-   filter : procedure name filter
-@return array[] ex:
-        [0] "XXXX"
-        [N] ...
+/******************************************************************************
+@description  获取 procedure
+@author  Jianhui Xu
+@parameter
+   filter    {string}   :   模糊查询 procedure 名
+@return   {array}   返回满足条件的 procedure 名
+   e.g:
+      ["local_test_createCSAndCL","local_test_insertRecord"]
 ***************************************************************************** */
 function commGetProcedures ( db, filter )
 {
@@ -994,102 +815,31 @@ function commGetProcedures ( db, filter )
    for( var i = 0; i < tmpInfo.length; ++i )
    {
       var tmpProcedureObj = tmpInfo[i];
-      if( typeof ( tmpProcedureObj.name ) == "undefined" )
-      {
-         continue;
-      }
       tmpProcedure.push( tmpProcedureObj.name );
    }
    return tmpProcedure;
 }
 
-/* *****************************************************************************
-@discription: get domains
-@author: Jianhui Xu
-@parameter:
-   filter : domain name filter
-@return array[] ex:
-        [0] "XXXX"
-        [N] ...
+/******************************************************************************
+@description  检查 data group 和 coord group 状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选），超时检测不过报错
+         此处检测 LSN 的逻辑是：假设主 LSN 为 A，备 LSN 为 B，多次更新 A、B，检测 A、B 是否相等
+@author  Jianhui Xu
+@parameter
+   timeout           {number}   :   默认为 120s，超时时间
+   checkLSN          {boolean}  :   默认为 true，检测 LSN
 ***************************************************************************** */
-function commGetDomains ( db, filter )
-{
-   var tmpDomain = new Array();
-   var tmpInfoCur;
-   try
-   {
-      tmpInfoCur = db.listDomains();
-   }
-   catch( e )
-   {
-      println( "commGetDomains failed: " + e );
-      return tmpDomain;
-   }
-   var tmpInfo = commCursor2Array( tmpInfoCur, "Name", filter );
-
-   for( var i = 0; i < tmpInfo.length; ++i )
-   {
-      var tmpDomainObj = tmpInfo[i];
-      if( typeof ( tmpDomainObj.Name ) == "undefined" )
-      {
-         continue;
-      }
-      tmpDomain.push( tmpDomainObj.Name );
-   }
-   return tmpDomain;
-}
-
-/* *****************************************************************************
-@discription: check nodes function
-              检查节点是否可以连接，返回连接失败的节点
-@author: Jianhui Xu
-@return array[] ex:
-        [0] {"HostName":"XXXX", "dbpath":"XXXX", "svcname":"XXXX", "NodeID":XXXX}
-        [N] ...
-***************************************************************************** */
-function commCheckNodes ( groups )
-{
-   var tmpFailedGrp = new Array();
-   for( var i = 0; i < groups.length; ++i )
-   {
-      for( var j = 1; j < groups[i].length; ++j )
-      {
-         var tmpDB;
-         try
-         {
-            tmpDB = new Sdb( groups[i][j].HostName, groups[i][j].svcname );
-            tmpDB.close();
-         }
-         catch( e )
-         {
-            tmpFailedGrp.push( groups[i][j] );
-         }
-      }
-   }
-   return tmpFailedGrp;
-}
-
-/* *****************************************************************************
-@discription: check business right function
-              检查集群状态，返回故障的节点
-@author: Jianhui Xu
-@return array[][] ex:
-        [0]
-           [0] {"GroupName":"XXXX", "GroupID":XXXX, "PrimaryNode":XXXX, "ConnCheck":t/f, "PrimaryCheck":t/f, "LSNCheck":t/f, "ServiceCheck":t/f, "DiskCheck":t/f }
-           [1] {"HostName":"XXXX", "svcname":"XXXX", "NodeID":XXXX, "Connect":t/f, "IsPrimay":t/f, "LSN":XXXX, "ServiceStatus":t/f, "FreeSpace":XXXX }
-           [N] ...
-        [N]
-           ...
-***************************************************************************** */
-function commCheckBusinessStatus ( db, timeout, checkLSN, diskThreshold )
+function commCheckBusinessStatus ( db, timeout, checkLSN )
 {
    if( checkLSN == undefined ) { checkLSN = true; }
    if( timeout == undefined ) { timeout = 120 }
+   commCheckType( checkLSN, "boolean" );
+   commCheckType( timeout, "number" );
 
    for( var i = 0; i < timeout; i++ )
    {
+      // data and cata group
       var groups = commGetGroups( db, false, "", false );
-      var tmpArr = commCheckBusiness( groups, checkLSN, diskThreshold );
+      var tmpArr = commCheckBusiness( groups, checkLSN );
       if( tmpArr.length == 0 )
       {
          break;
@@ -1101,27 +851,36 @@ function commCheckBusinessStatus ( db, timeout, checkLSN, diskThreshold )
       else
       {
          throw new Error( "check the cluster state timeout, check failed nodes: "
-            + JSON.stringify( tmpArr ) );
+            + JSON.stringify( tmpArr, "", 1 ) );
       }
    }
 }
 
-/* *****************************************************************************
-@discription: check business right function
-              检查集群状态，返回故障的节点
-@author: Jianhui Xu
-@return array[][] ex:
-        [0]
-           [0] {"GroupName":"XXXX", "GroupID":XXXX, "PrimaryNode":XXXX, "ConnCheck":t/f, "PrimaryCheck":t/f, "LSNCheck":t/f, "ServiceCheck":t/f, "DiskCheck":t/f }
-           [1] {"HostName":"XXXX", "svcname":"XXXX", "NodeID":XXXX, "Connect":t/f, "IsPrimay":t/f, "LSN":XXXX, "ServiceStatus":t/f, "FreeSpace":XXXX }
-           [N] ...
-        [N]
-           ...
+/******************************************************************************
+@description  检查集群状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选），返回故障的节点
+@author  Jianhui Xu
+@parameter
+   groups            {array}    :   从 commGetGroups 方法中取到的 group 信息
+   checkLSN          {boolean}  :   默认为 false，不检测 LSN
+@return  {array}
+   e.g:
+      array[0]
+         array[0][0]  {"GroupName":"group1","GroupID":1000,"PrimaryNode":1001,"ConnCheck":true,"PrimaryCheck":true,"LSNCheck":false,"ServiceCheck":true}
+         array[0][1]  {"HostName":"lyysdbserver1","svcname":"11820","NodeID":1000,"Connect":true,"IsPrimay":false,"LSN":9484,"ServiceStatus":true,"FreeSpace":-1}
+         array[0][2]  {"HostName":"lyysdbserver2","svcname":"11820","NodeID":1001,"Connect":true,"IsPrimay":true,"LSN":9484,"ServiceStatus":true,"FreeSpace":-1}
+         array[0][3]  {"HostName":"lyysdbserver3","svcname":"11820","NodeID":1002,"Connect":true,"IsPrimay":false,"LSN":9300,"ServiceStatus":true,"FreeSpace":-1}
+      array[1]
+         array[1][0]  {"GroupName":"group2","GroupID":1001,"PrimaryNode":1005,"ConnCheck":false,"PrimaryCheck":true,"LSNCheck":true,"ServiceCheck":true}
+         array[1][1]  {"HostName":"lyysdbserver1","svcname":"11830","NodeID":1003,"Connect":true,"IsPrimay":false,"LSN":9256,"ServiceStatus":true,"FreeSpace":-1}
+         array[1][2]  {"HostName":"lyysdbserver2","svcname":"11830","NodeID":1004,"Connect":false,"IsPrimay":false,"LSN":-1,"ServiceStatus":true,"FreeSpace":-1}
+         array[1][3]  {"HostName":"lyysdbserver3","svcname":"11830","NodeID":1005,"Connect":true,"IsPrimay":true,"LSN":9256,"ServiceStatus":true,"FreeSpace":-1}
+      ...
 ***************************************************************************** */
-function commCheckBusiness ( groups, checkLSN, diskThreshold )
+function commCheckBusiness ( groups, checkLSN )
 {
    if( checkLSN == undefined ) { checkLSN = false; }
-   if( diskThreshold == undefined ) { diskThreshold = 134217728; }
+   commCheckType( checkLSN, "boolean" );
+
    var tmpCheckGrp = new Array();
    var grpindex = 0;
    var ndindex = 1;
@@ -1140,7 +899,6 @@ function commCheckBusiness ( groups, checkLSN, diskThreshold )
       tmpCheckGrp[grpindex][0].PrimaryCheck = true;
       tmpCheckGrp[grpindex][0].LSNCheck = true;
       tmpCheckGrp[grpindex][0].ServiceCheck = true;
-      tmpCheckGrp[grpindex][0].DiskCheck = true;
 
       // if no primary
       if( groups[i][0].PrimaryNode == -1 )
@@ -1179,7 +937,7 @@ function commCheckBusiness ( groups, checkLSN, diskThreshold )
          var tmpSysInfoCur;
          try
          {
-            tmpSysInfoCur = tmpDB.snapshot( 6 );
+            tmpSysInfoCur = tmpDB.snapshot( SDB_SNAP_DATABASE );
          }
          catch( e )
          {
@@ -1190,7 +948,6 @@ function commCheckBusiness ( groups, checkLSN, diskThreshold )
             continue;
          }
          var tmpSysInfo = commCursor2Array( tmpSysInfoCur );
-
          //delete tmpCheckGrp[grpindex][ndindex].Connect ;
          // check primary
          var tmpSysInfoObj = tmpSysInfo[0];
@@ -1218,13 +975,6 @@ function commCheckBusiness ( groups, checkLSN, diskThreshold )
             error = true;
             tmpCheckGrp[grpindex][ndindex].ServiceStatus = false;
             tmpCheckGrp[grpindex][0].ServiceCheck = false;
-         }
-         // check disk
-         tmpCheckGrp[grpindex][ndindex].FreeSpace = tmpSysInfoObj.Disk.FreeSpace;
-         if( tmpCheckGrp[grpindex][ndindex].FreeSpace < diskThreshold )
-         {
-            error = true;
-            tmpCheckGrp[grpindex][0].DiskCheck = false;
          }
          // check LSN
          tmpCheckGrp[grpindex][ndindex].LSN = tmpSysInfoObj.CurrentLSN.Offset;
@@ -1257,12 +1007,13 @@ function commCheckBusiness ( groups, checkLSN, diskThreshold )
    return tmpCheckGrp;
 }
 
-/* *****************************************************************************
-@discription: check whether the lsn of the group is consistent
-@author: luweikang
-@parameter:
-   groupNames: groups name, default is all data group and catalog group name.
-   timeout: check the maximum amount of time each group take, default is 60s.
+/******************************************************************************
+@description  检测主备 LSN 是否一致
+              假设主节点 LSN 为 A，备节点 LSN 为 B，多次更新 B，当 B 大于等于 A，检测通过
+@author  luweikang
+@parameter 
+   groupNames      {array}   :   默认为所有 data group 和 catalog group 名，group 名
+   timeout         {number}  :   默认为 60s，超时时间
 ***************************************************************************** */
 function commCheckLSN ( db, groupNames, timeout )
 {
@@ -1272,8 +1023,10 @@ function commCheckLSN ( db, groupNames, timeout )
       groupNames.push( "SYSCatalogGroup" );
    }
    if( timeout == undefined ) { timeout = 60; }
-
    if( typeof ( groupNames ) == "string" ) { groupNames = [groupNames]; }
+   commCheckType( timeout, "number" );
+   commCheckType( groupNames, "array" );
+
 
    for( var i = 0; i < groupNames.length; i++ )
    {
@@ -1315,8 +1068,8 @@ function commCheckLSN ( db, groupNames, timeout )
          }
          else if( time === timeout )
          {
-            println( "master snapshot: " + JSON.stringify( masterSnapshot ) );
-            println( "slave snapshot: " + JSON.stringify( slaveSnapshot ) );
+            println( "master snapshot: " + JSON.stringify( masterSnapshot, "", 1 ) );
+            println( "slave snapshot: " + JSON.stringify( slaveSnapshot, "", 1 ) );
             throw new Error( "check catalog failed: the standby node is not consistency after " + timeout + "consistency, see console snapshot detailed" )
          }
          else
@@ -1328,16 +1081,12 @@ function commCheckLSN ( db, groupNames, timeout )
    }
 }
 
-/* *****************************************************************************
-@discription: check business right function
-@author: xiaojun Hu
-@return array[][] ex:
-        [0]
-           [0] {"GroupName":"XXXX", "GroupID":XXXX, "PrimaryNode":XXXX, "ConnCheck":t/f, "PrimaryCheck":t/f, "LSNCheck":t/f, "ServiceCheck":t/f, "DiskCheck":t/f }
-           [1] {"HostName":"XXXX", "svcname":"XXXX", "NodeID":XXXX, "Connect":t/f, "IsPrimay":t/f, "LSN":XXXX, "ServiceStatus":t/f, "FreeSpace":XXXX }
-           [N] ...
-        [N]
-           ...
+/******************************************************************************
+@description  获取 sdb 安装路径
+@author  xiaojun Hu
+@return  {string}  sdb 安装路径
+   e.g:
+       "/opt/sequoiadb"
 ***************************************************************************** */
 function commGetInstallPath ()
 {
@@ -1367,12 +1116,17 @@ function commGetInstallPath ()
                }
             }
             if( 2 <= fcnt )
+            {
                InstallPath = LocalPath;
-            else
+            } else
+            {
                throw new Error( "Don'tGetLocalPath" );
+            }
          }
          else
+         {
             commThrowError( e, "Don'tGetLocalPath" );
+         }
       }
    }
    catch( e )
@@ -1382,16 +1136,16 @@ function commGetInstallPath ()
    return InstallPath;
 }
 
-/* *****************************************************************************
-@Description: build exception
-@author: wenjing wang
-@parameter:
-  funname  : funnction name
-  e        : js exception
-  operate  : current operation
-  expectval: expect value
-  realval  : real value
-@return string:exception msg
+/******************************************************************************
+@description  构建异常信息（逐步废弃，新用例请勿使用）
+@author  wenjing wang
+@parameter 
+   funname    {string}  :   函数名称
+   e          {Error}   :   错误信息
+   operate    {string}  :   操作信息
+   expectval  {string}  :   期望值
+   realval    {}        :   实际值
+@return  {string}  构建出的错误信息
 ***************************************************************************** */
 function buildException ( funname, e, operate, expectval, realval )
 {
@@ -1408,38 +1162,19 @@ function buildException ( funname, e, operate, expectval, realval )
    }
 }
 
-/* *****************************************************************************
-@Description: The number or string is whether in Array
-@author: xujianhui
-@parameter:
-   needle: the compared value, number or string
-   hayStack : the array
-@return string:true/false
-***************************************************************************** */
-function commInArray ( needle, hayStack )
-{
-   type = typeof needle;
-   if( type == 'string' || type == 'number' )
-   {
-      for( var i in hayStack )
-      {
-         if( hayStack[i] == needle ) return true;
-      }
-      return false;
-   }
-}
-
-/* ********************************************************************
-@Description: comparison result set
-@parameter:
-         cursor:  DBCursor
-         expRecs: array
-         exceptId: noncomparison of _id, default true
-@author: luweikang
+/*********************************************************************
+@description  比较结果集，不一致抛错
+@author luweikang
+@parameter
+   cursor      {object}   :   必填项，游标对象
+   expRecs     {array}    :   期望结果集  
+   exceptId    {boolean}  :   默认为 true，不考虑 _id
 ********************************************************************* */
 function commCompareResults ( cursor, expRecs, exceptId )
 {
    if( exceptId == undefined ) { exceptId = true; }
+   commCheckType( exceptId, "boolean" );
+
    var actRecs = [];
    var pos = 0;
    var isSuccess = true;
@@ -1516,10 +1251,13 @@ function commCompareResults ( cursor, expRecs, exceptId )
    }
 }
 
-/* *******************************************************************
-@Description: comparison two objects are equal
-@author: luweikang
-@return: true/false
+/********************************************************************
+@description   判断两个对象是否相等
+@author  luweikang
+@return  {boolean}
+   e.g:
+      true   expObj 与 actObj 相等
+      false  expObj 与 actObj 不相等
 ******************************************************************* */
 function commCompareObject ( expObj, actObj )
 {
@@ -1576,14 +1314,22 @@ function commCompareObject ( expObj, actObj )
    return true;
 }
 
-
-
-/* ********************************************************************
-@Description: get snapshot
-@author: luweikang
-@return array[][] ex:
-        [0]{"xxxx": "xxxx", "xxxx": "xxxx"}
-        [1]{"xxxx": "xxxx", "xxxx": "xxxx"}
+/*********************************************************************
+@description  获取指定快照信息
+@author  luweikang
+@parameter
+   snapshotType     {enum}    :   必填项，快照类型
+   condObj          {object}  :   默认为 {}，匹配条件
+   selObj           {object}  :   默认为 {}，返回字段
+   sortObj          {object}  :   默认为 {}，排序字段
+   skipNum          {number}  :   默认为 0，开始返回记录
+   limitNum         {number}  :   默认为 -1，记录返回条数
+   optionsObj       {object}  :   默认为 {}，快照参数
+@return  {array}   快照信息
+   e.g:
+      array[0]  {"xxxx": "xxxx", "xxxx": "xxxx"}
+      array[1]  {"xxxx": "xxxx", "xxxx": "xxxx"}
+      ...
 ********************************************************************* */
 function commGetSnapshot ( db, snapshotType, condObj, selObj, sortObj, skipNum, limitNum, optionsObj )
 {
@@ -1593,52 +1339,41 @@ function commGetSnapshot ( db, snapshotType, condObj, selObj, sortObj, skipNum, 
    if( skipNum == undefined ) { skipNum = 0; }
    if( limitNum == undefined ) { limitNum = -1; }
    if( optionsObj == undefined ) { optionsObj = {}; }
-
-   if( typeof ( condObj ) != "object" || condObj == null ) { throw new Error( "cond must be obj, can't be null" ); }
-   if( typeof ( selObj ) != "object" || selObj == null ) { throw new Error( "sel must be obj, can't be null" ); }
-   if( typeof ( sortObj ) != "object" || sortObj == null ) { throw new Error( "sort must be obj, can't be null" ); }
-   if( typeof ( optionsObj ) != "object" || optionsObj == null ) { throw new Error( "options must be obj, can't be null" ); }
+   commCheckType( condObj, "object" );
+   commCheckType( selObj, "object" );
+   commCheckType( sortObj, "object" );
+   commCheckType( skipNum, "number" );
+   commCheckType( limitNum, "number" );
+   commCheckType( optionsObj, "object" );
 
    var snapshotOption = new SdbSnapshotOption();
    snapshotOption.cond( condObj ).sel( selObj ).options( optionsObj );
    snapshotOption.sort( sortObj ).skip( skipNum ).limit( limitNum );
 
-   var tmpArr = [];
-   var cursor = null;
-   try
-   {
-      cursor = db.snapshot( snapshotType, snapshotOption );
-      while( cursor.next() )
-      {
-         tmpArr.push( cursor.current().toObj() );
-      }
-   }
-   catch( e )
-   {
-      commThrowError( e );
-   }
-   finally
-   {
-      if( cursor != null )
-      {
-         cursor.close();
-      }
-   }
+   var cursor = db.snapshot( snapshotType, snapshotOption );
+   var tmpArr = commCursor2Array( cursor );
+
    return tmpArr;
 }
 
-/* ********************************************************************
-@Description: traversal cursor
-@author: luweikang
-@return array[]
+/*********************************************************************
+@description  遍历游标，将查询结果或模糊查询匹配项存入数组
+@author  luweikang
+@parameter
+   cursor      {object}   :   必填项，游标对象
+   fieldName   {string}   :   可选项，模糊查询的属性
+   filter      {string}   :   可选项，模糊查询匹配的值
+@return  {array}   将游标对象遍历（且过滤）的值存入数组
+   e.g:
+      array[0]  [object Object]
+      array[1]  [object Object]
+      ...
 ********************************************************************* */
 function commCursor2Array ( cursor, fieldName, filter )
 {
+   commCheckType( cursor, "object" );
+
    var tmpArray = [];
-   if( cursor === undefined || cursor === null )
-   {
-      throw new Error( "cursor can't be undefined or null." );
-   }
    try
    {
       while( cursor.next() )
@@ -1663,80 +1398,52 @@ function commCursor2Array ( cursor, fieldName, filter )
    }
    finally
    {
-      cursor.close();
+      if( cursor != null )
+      {
+         cursor.close();
+      }
    }
 
    return tmpArray;
 }
 
-/* *******************************************************************
-@Description: check node data consistency
-@author: luweikang
+/********************************************************************
+@description  创建并启动 group，group 中创建指定个数 node
+            创建的 node 端口号为 26000 26100 ..
+@author  luweikang
+@parameter
+   rgName        {string}    :    必填项，分区组名
+   nodeNum       {number}    :    必填项，group 中 node 个数
+   hostname      {string}    :    默认为 coord 节点，主机名
+   nodeOption    {object}    :    默认开启 debug 日志，节点配置信息
+@return    {array}   节点信息
+   e.g:
+      array[0] {"hostname":"lyysdbserver1","svcname":26000,"logpath":"lyysdbserver1:11790@/opt/sequoiadb/database/data/26000/diaglog/sdbdiag.log"}
+      ...
 ******************************************************************* */
-function commInspectData( db, group, csName, clName, loop )
-{
-   var coord = " -d " + db.toString();
-   var installDir = commGetInstallPath();
-   var romdom = Math.floor( ( Math.random() * 10000 ) );
-   var reportPath = WORKDIR + "/inspect_" + romdom;
-   var output = " -o " + reportPath;
-   ( group === undefined || group === "" ) ? group = "" : group = " -g " + group;
-   ( csName === undefined || csName === "" ) ? csName = "" : csName = " -c " + csName;
-   ( clName === undefined || clName === "" ) ? clName = "" : clName = " -l " + clName;
-   ( loop === undefined ) ? loop = "" : loop = " -t " + loop;
-   
-   var inspect = installDir + "/bin/sdbinspect" + coord + group + csName + clName + output + loop;
-   println( inspect );
-   
-   try
-   {
-      var cmd = new Cmd();
-      var result = cmd.run( inspect );   
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
-   
-   var tmpArr = result.split("\n");
-   if( tmpArr[ tmpArr.length - 3 ] !== "Reason for exit : exit with no records different" )
-   {
-      throw new Error( "report path: " + reportPath + "\n" + result );
-   }
-   cmd.run( "rm -rf " + reportPath + "*" );
-}
-
-/* *******************************************************************
-@Description: create group and start
-              db: connection handle, can't be standalone                
-              rgName: group name
-              nodesNum: node num, node svc like 26000 26010 ....
-@return       nodeInfos : hostname, svcname, log paths to be backed up
-               array[]:
-                  [{hostname: "xxx", svcname: "xxx", logpath: "xxx"}]
-@author: luweikang
-******************************************************************* */
-function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
+function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
 {
    if( hostname === undefined )
-   { 
-      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, {Role: "coord", RawData: true} );
+   {
+      var nodeList = commGetSnapshot( db, SDB_SNAP_SYSTEM, { Role: "coord", RawData: true } );
       hostname = nodeList[0].HostName;
    }
    if( nodeOption === undefined )
    {
       nodeOption = { diaglevel: 5 };
    }
-   
+   commCheckType( hostname, "string" );
+   commCheckType( nodeOption, "object" );
+
    try
    {
-      var rg = db.createRG( rgName );   
+      var rg = db.createRG( rgName );
    }
    catch( e )
    {
       throw new Error( e );
    }
-   
+
    var maxRetryTimes = 100;
    var nodeInfos = [];
    for( var i = 0; i < nodeNum; i++ )
@@ -1755,10 +1462,10 @@ function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
             continue;
          }
          catch( e )
-         { 
+         {
             if( e !== 1 )
             {
-               throw new Error( "lsof check port error: " + e ); 
+               throw new Error( "lsof check port error: " + e );
             }
          }
          try
@@ -1783,20 +1490,40 @@ function commCreateRG( db, rgName, nodeNum, hostname, nodeOption )
                throw new Error( "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e );
             }
          }
-      }
-      while( failedCount < maxRetryTimes );
+      } while( failedCount < maxRetryTimes );
    }
    rg.start();
    return nodeInfos;
 }
 
 /**********************************************************************
-@Description:  generate all kinds of types data randomly
-@author:       Ting YU
-@usage:        var rd = new commDataGenerator();
-               1.var recs = rd.getRecords( 300, "int", ['a','b'] );
-               2.var recs = rd.getRecords( 3, ["int", "string"] );
-               3.rd.getValue("string");
+@description  随机生成指定类型的数据，包括 int、long、float、string、OID、bool、date、timestamp、binary、regex、object、array、null
+@author  Ting YU
+@function getRecords
+   @parameter 
+      recNum         {number}           :    必填项，指定随机生成的数据数
+      dataTypes      {string | array}   :    必填项，指定随机生成数据的类型，如果传入类型为数组，每条数据随机选择数组中数据类型生成
+      fieldNames     {array}            :    默认值为随机长度数组，该数组中每个值由'a'~'z'随机长度的字符串的组成，指定随机生成数据的属性名
+   @returns    {array}   随机生成的数据
+      e.g:
+         当执行： 
+            var rd = new commDataGenerator();
+            rd.getRecords( 30, "int", ['a','b'] );
+         返回值为：
+            array[0]  {"a":-353903809,"b":1620652070}
+            array[1]  {"a":1708939799,"b":1730495500}
+            ...
+            array[29] {"a":-324168767,"b":481875392}
+@function getValue
+   @parameter
+      dataType       {string}     :     必填项，指定随机生成数据的类型
+   @returns     {any}   根据指定类型生成的数据
+      e.g：
+         当执行：
+            var rd = new commDataGenerator();
+            rd.getValue("string");
+         返回值为：
+            "`\PjHqMu:`Z^fV"
 ***********************************************************************/
 function commDataGenerator ()
 {
@@ -1815,7 +1542,9 @@ function commDataGenerator ()
    function getRandomRecords ( recNum, dataTypes, fieldNames )
    {
       if( fieldNames === undefined ) { fieldNames = getRandomFieldNames(); }
-      if( dataTypes.constructor !== Array ) { dataTypes = [dataTypes]; }
+      if( !Array.isArray( dataTypes ) ) { dataTypes = [dataTypes]; }
+      commCheckType( dataTypes, "array" );
+      commCheckType( fieldNames, "array" );
 
       var recs = [];
       for( var i = 0; i < recNum; i++ )
@@ -2048,38 +1777,42 @@ function commDataGenerator ()
 
       return arr;
    }
-}
 
-Date.prototype.Format = function( fmt )   
-{ //author: meizz   
-   var o = {
-      "M+": this.getMonth() + 1,                 //month   
-      "d+": this.getDate(),                    //date  
-      "h+": this.getHours(),                   //hour  
-      "m+": this.getMinutes(),                 //minute 
-      "s+": this.getSeconds(),                 //second   
-      "q+": Math.floor( ( this.getMonth() + 3 ) / 3 ), //quarter   
-      "S": this.getMilliseconds()             //millisecond   
-   };
-   if( /(y+)/.test( fmt ) )
-      fmt = fmt.replace( RegExp.$1, ( this.getFullYear() + "" ).substr( 4 - RegExp.$1.length ) );
-   for( var k in o )
-      if( new RegExp( "(" + k + ")" ).test( fmt ) )
-         fmt = fmt.replace( RegExp.$1, ( RegExp.$1.length == 1 ) ? ( o[k] ) : ( ( "00" + o[k] ).substr( ( "" + o[k] ).length ) ) );
-   return fmt;
+   // 重写 Date 的 Format 方法
+   Date.prototype.Format = function( fmt )   
+   { //author: meizz   
+      var o = {
+         "M+": this.getMonth() + 1,                 //month   
+         "d+": this.getDate(),                    //date  
+         "h+": this.getHours(),                   //hour  
+         "m+": this.getMinutes(),                 //minute 
+         "s+": this.getSeconds(),                 //second   
+         "q+": Math.floor( ( this.getMonth() + 3 ) / 3 ), //quarter   
+         "S": this.getMilliseconds()             //millisecond   
+      };
+      if( /(y+)/.test( fmt ) )
+         fmt = fmt.replace( RegExp.$1, ( this.getFullYear() + "" ).substr( 4 - RegExp.$1.length ) );
+      for( var k in o )
+         if( new RegExp( "(" + k + ")" ).test( fmt ) )
+            fmt = fmt.replace( RegExp.$1, ( RegExp.$1.length == 1 ) ? ( o[k] ) : ( ( "00" + o[k] ).substr( ( "" + o[k] ).length ) ) );
+      return fmt;
+   }
 }
 
 /**********************************************************************
-@Description:  make dir in host( can be used to make WORKDIR )
-@author:       Liangxw
-@usage:        1. commMakeDir( COORDHOSTNAME, WORKDIR )
+@description   在指定主机创建目录
+@author        Liangxw
+@parameter
+   host        {string}     :     主机名
+   dir         {string}     :     创建目录名
+@usage         1. commMakeDir( COORDHOSTNAME, WORKDIR )
                2. commMakeDir( "localhost", WORKDIR )
 ***********************************************************************/
-function commMakeDir ( host, dir )
+function commMakeDir ( hostName, dir )
 {
    try
    {
-      var remote = new Remote( host, CMSVCNAME );
+      var remote = new Remote( hostName, CMSVCNAME );
       var file = remote.getFile();
       if( file.exist( dir ) )
       {
@@ -2089,53 +1822,51 @@ function commMakeDir ( host, dir )
    }
    catch( e )
    {
-      commThrowError( e, "commMakeDir make dir " + dir + " in " + host + " error: " + e )
+      commThrowError( e, "commMakeDir make dir " + dir + " in " + hostName + " error: " + e )
    }
 }
 
-/* *****************************************************************************
-@discription: create domain
-@author: zhaoyu
+/******************************************************************************
+@description   创建 domain，先删除已有 domain，再创建
+@author  zhaoyu
 @parameter
+   domainName       {string}    :    必填项，domain 名
+   groupNames       {array}     :    默认为 []，domain 所在的 group
+   options          {object}    :    默认为 {}，创建 domain 设置的属性
+@return    {object}    新建 domain 的引用
 ***************************************************************************** */
-function commCreateDomain ( db, domainName, groupNames, options, ignoreExisted, message )
+function commCreateDomain ( db, domainName, groupNames, options )
 {
-   var outmessage = "";
+   if( groupNames == undefined ) { groupNames = []; }
    if( options == undefined ) { options = {}; }
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if( ignoreExisted == undefined ) { ignoreExisted = false; }
+   commCheckType( groupNames, "object" );
+   commCheckType( options, "object" );
+
+   // drop old domain before create new domain
+   commDropDomain( db, domainName );
+
    try
    {
       return db.createDomain( domainName, groupNames, options );
    }
    catch( e )
    {
-      if( !commCompareErrorCode( e, -215 ) || !ignoreExisted )
-      {
-         commThrowError( e, "commCreateDomain, create domain: " + domainName + " failed: " + e + outmessage );
-      }
-   }
-
-   try
-   {
-      return db.getDomain( domainName );
-   }
-   catch( e )
-   {
-      commThrowError( e, "commCreateDomain, get domain: " + domainName + " failed: " + e + outmessage )
+      commThrowError( e, "commCreateDomain, create domain: " + domainName + " failed: " + e );
    }
 }
 
-/* *****************************************************************************
-@discription: drop domain
-@author: zhaoyu
+/******************************************************************************
+@description  删除 domain
+@author  zhaoyu
 @parameter
-***************************************************************************** */
-function commDropDomain ( db, domainName, ignoreNotExist, message )
+   domainName        {string}     :     必填项，要删除的 domain 名
+   ignoreNotExist    {boolean}    :     默认为 true，忽略 domain 不存在的错误
+******************************************************************************/
+function commDropDomain ( db, domainName, ignoreNotExist )
 {
-   var outmessage = "";
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
    if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
+   commCheckType( ignoreNotExist, "boolean" );
+
    try
    {
       var domain = db.getDomain( domainName );
@@ -2148,101 +1879,87 @@ function commDropDomain ( db, domainName, ignoreNotExist, message )
       db.dropDomain( domainName );
    } catch( e )
    {
-      if( !commCompareErrorCode( e, -214 ) || !ignoreNotExist )
+      if( commCompareErrorCode( e, -214 ) && ignoreNotExist )
       {
-         commThrowError( e, "commDropDomain, drop domain: " + domainName + " failed: " + e + outmessage )
+         // think right
+      } else
+      {
+         commThrowError( e, "commDropDomain, drop domain: " + domainName + " failed: " + e )
       }
    }
 }
 
-/* *****************************************************************************
-@discription: create procedure
-@author: zhaoyu
+/******************************************************************************
+@description  对比错误码
+@author  luweikang
 @parameter
-***************************************************************************** */
-function commCreateProcedure ( db, code, ignoreExisted, message )
+   e         {Error}     :     必填项，catch 到的错误信息
+   code      {number}    :     必填项，期望对比的错误码
+******************************************************************************/
+function commCompareErrorCode ( e, code )
 {
-   var outmessage = "";
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if( ignoreExisted == undefined ) { ignoreExisted = false; }
-   try
+   if( e.constructor === Error )
    {
-      db.createProcedure( code );
-   } catch( e )
+      return e.message == code;
+   } else
    {
-      if( !commCompareErrorCode( e, -38 ) || !ignoreExisted )
+      return e == code;
+   }
+}
+
+/******************************************************************************
+@description   封装错误信息
+@author  luweikang
+@parameter
+   e         {Error}     :     必填项，catch 到的错误信息
+   msg       {string}    :     错误信息
+******************************************************************************/
+function commThrowError ( e, msg )
+{
+   if( e.constructor === Error )
+   {
+      throw e;
+   } else
+   {
+      if( msg === undefined )
       {
-         commThrowError( e, "commCreateProcedure, create procedure: " + code + " failed: " + e + outmessage );
+         throw new Error( e );
+      } else
+      {
+         throw new Error( msg );
       }
    }
 }
 
-/* *****************************************************************************
-@discription: remove procedure
-@author: zhaoyu
+/******************************************************************************
+@description   类型检测（func自用）
+@author  lyy
 @parameter
-***************************************************************************** */
-function commRemoveProcedure ( db, functionName, ignoreNotExist, message )
+   variable         {any}     :     检测变量
+   expType          {"string",""}    :     期望类型
+******************************************************************************/
+function commCheckType ( variable, expType )
 {
-   var outmessage = "";
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
-   try
+   if( variable == null )
    {
-      db.removeProcedure( functionName );
-   } catch( e )
-   {
-      if( !commCompareErrorCode( e, -233 ) || !ignoreNotExist )
-      {
-         commThrowError( e, "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e + outmessage );
-      }
+      throw new Error( variable + " == null " );
    }
-}
-
-/* *****************************************************************************
-@discription: create userName
-@author: zhaoyu
-@parameter
-***************************************************************************** */
-function commCreateUsr ( db, userName, password, options, ignoreExisted, message )
-{
-   var outmessage = "";
-   if( options == undefined ) { options = {}; }
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if( ignoreExisted == undefined ) { ignoreExisted = false; }
-   try
+   if( expType == "string" || expType == "number" || expType == "boolean" || "object" == expType )
    {
-      db.createUsr( userName, password, options );
-   } catch( e )
-   {
-      if( !commCompareErrorCode( e, -295 ) || !ignoreExisted )
+      if( typeof ( variable ) != expType )
       {
-         commThrowError( e, "commCreateUsr, create userName: " + userName + " failed: " + e + outmessage );
+         throw new Error( variable + " isn't " + expType );
       }
-   }
-}
-
-/* *****************************************************************************
-@discription: drop userName
-@author: zhaoyu
-@parameter
-***************************************************************************** */
-function commDropUsr ( db, userName, password, ignoreNotExist, message )
-{
-   var outmessage = "";
-   if( message !== undefined && message !== "" ) { var outmessage = ",message:" + message; }
-   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
-   try
+   } else if( expType == "array" )
    {
-      db.dropUsr( userName, password );
-   } catch( e )
-   {
-      if( !commCompareErrorCode( e, -300 ) || !ignoreNotExist )
+      if( !Array.isArray( variable ) )
       {
-         commThrowError( e, "commDropUsr, drop userName: " + userName + " failed: " + e + outmessage );
+         throw new Error( variable + " isn't " + expType );
       }
+   } else
+   {
+      throw new Error( expType + "not exists" );
    }
-
 }
 
 // common database connection
@@ -2255,36 +1972,3 @@ catch( e )
    commThrowError( e, "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME );
 }
 
-function commCompareErrorCode ( e, code )
-{
-   if( e.constructor === Error )
-   {
-      var errorCode = e.message;
-      return errorCode == code;
-   }
-   else
-   {
-      return e == code;
-   }
-}
-
-function commThrowError ( e, msg )
-{
-   if( e.constructor === Error )
-   {
-      throw e;
-   }
-   else
-   {
-      if( msg === undefined )
-      {
-         throw new Error( e );
-      }
-      else
-      {
-         throw new Error( msg );
-      }
-   }
-}
-
-//commCreateCL( db, COMMCSNAME, COMMDUMMYCLNAME, { ShardingType: 'hash', ShardingKey: { _id: 1 }, AutoSplit: true }, true, true );

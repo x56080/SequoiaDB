@@ -208,7 +208,7 @@ function bakBackup ( db, backupObj )
    catch( e )
    {
       println( "bakBackup: backup failed: " + e );
-      commPrint( backupObj );
+      println( JSON.stringify( backupObj, "", 3 ) );
       throw e;
    }
 }
@@ -253,12 +253,13 @@ function checkBackupInfo ( db, errDesc, bakName, path, alreadStart, opt )
    {
       if( 0 === backups.length )
       {
-         commPrint( backups );
+         println( JSON.stringify( backups, "", 3 ) );
          throw "check backup failed";
       }
    } else if( 1 != backups.length )
    {
-      commPrint( backups );
+
+      println( JSON.stringify( backups, "", 3 ) );
       throw "check backup failed";
    }
    return backups[0];
@@ -647,7 +648,7 @@ backupTestCase.prototype.init =
       else
       {
          println( " running in standalone " );
-         this.cl = commCreateCL( this.sdb, this.csName, this.clName, {ReplSize: -1}, true, false,
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, { ReplSize: -1 }, true, false,
             "Create collection in the beginning" );
          this.cmd = getCmdByHostName( this.localCmd, COORDHOSTNAME );
       }

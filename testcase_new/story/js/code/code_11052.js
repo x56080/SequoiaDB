@@ -25,7 +25,6 @@ function main ()
    }
    //ready env
    var procedureName = "abc11052";
-   commRemoveProcedure( db, procedureName );
 
    //structural data
    println( "\n---Begin to createProcedure." );
@@ -33,7 +32,7 @@ function main ()
    db.eval( cmd );
 
    checkResult( procedureName );
-   commRemoveProcedure( db, procedureName );
+   db.removeProcedure( procedureName );
 }
 
 function checkResult ( procedureName )

@@ -10,7 +10,7 @@ function main ()
     var csName = COMMCSNAME;
     var clName = "cl11071";
 
-    var cl = commCreateCL( db, csName, clName, null, null, true, false, "create cl in the begin" );
+    var cl = commCreateCL( db, csName, clName );
 
     //insert data 
     cl.insert( { a: [1, 2, 3] } );

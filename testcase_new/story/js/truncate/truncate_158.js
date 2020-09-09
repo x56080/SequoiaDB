@@ -51,7 +51,7 @@ function createCLAndAttachCL ( mainCSName, mainCLName, subCLName1, subCLName2, p
    var clOption = {
       "ShardingKey": { "ID_Default": 1 }, "ShardingType": "range", "IsMainCL": true
    };
-   var mainCL = commCreateCL( db, mainCSName, mainCLName, clOption, true, true, false, "create collection begin" );
+   var mainCL = commCreateCL( db, mainCSName, mainCLName, clOption, true, false, "create collection begin" );
    commCreateCL( db, mainCSName, subCLName1, {}, true, false, "create sub CL1 begin" );
    commCreateCL( db, mainCSName, subCLName2, {}, true, false, "create sub CL2 begin" );
    mainCL.attachCL( mainCSName + "." + subCLName1, { "LowBound": { "ID_Default": 0 }, "UpBound": { "ID_Default": 3 } } );
@@ -90,5 +90,6 @@ function truncateAndCheckResult ( mainCL, subCLFullName1, subCLFullName2 )
       throw new Error( "expCount: " + expCount + "\ncount: " + count );
    }
 }
+
 
 
