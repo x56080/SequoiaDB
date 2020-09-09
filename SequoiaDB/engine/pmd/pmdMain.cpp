@@ -50,6 +50,10 @@
 #include "pmdEnv.hpp"
 #include "pmdStartupHistoryLogger.hpp"
 #include "pmdPipeManager.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+
+namespace fs = boost::filesystem ;
 
 using namespace std;
 using namespace bson;
@@ -105,9 +109,118 @@ namespace engine
       PMD_SHUTDOWN_DB( SDB_INTERRUPT ) ;
    }
 
+
+   static INT32 _pmdRestoreDirectory( const fs::path &backupPath,
+                                      const fs::path &origPath )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         PD_CHECK( fs::exists( backupPath ), SDB_FNE, error, PDWARNING,
+                   "Failed to restore directory, backup path [%s] "
+                   "does not exist", backupPath.string().c_str() ) ;
+
+         PD_CHECK( fs::exists( origPath ) ||
+                   fs::create_directories( origPath ),
+                   SDB_FNE, error, PDWARNING,
+                   "Failed to restore directory, origin path [%s] "
+                   "does not exist", origPath.string().c_str() ) ;
+
+         for ( fs::directory_iterator fileIter( backupPath ) ;
+               fileIter != fs::directory_iterator() ;
+               ++ fileIter )
+         {
+            fs::path backupFile( fileIter->path() ) ;
+            fs::path origFile = origPath / backupFile.filename() ;
+            if ( fs::is_directory( backupFile ) )
+            {
+               // is a directory, recursively copy
+               rc = _pmdRestoreDirectory( backupFile, origFile ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to restore directory "
+                            "from [%s] to [%s], rc: %d",
+                            backupFile.string().c_str(),
+                            origFile.string().c_str(), rc ) ;
+            }
+            else
+            {
+               // force to cover the original file
+               fs::copy_file( backupFile, origFile,
+                              fs::copy_option::overwrite_if_exists ) ;
+               PD_LOG( PDDEBUG, "Restored file from [%s] to [%s]",
+                       backupFile.string().c_str(),
+                       origFile.string().c_str() ) ;
+            }
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to restore [%s] to [%s], "
+                 "occur exception: %s", backupPath.string().c_str(),
+                 origPath.string().c_str(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   static INT32 _pmdRestoreBackup()
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         // copy files from "<dbpath>/../.<servicename>"
+         const CHAR *dbPathStr = pmdGetOptionCB()->getDbPath() ;
+         fs::path dbPath( dbPathStr ) ;
+         fs::path backupPath( dbPathStr ) ;
+         string backupDirName = "." ;
+         backupDirName += pmdGetOptionCB()->getServiceAddr() ;
+         backupPath.append( ".." ) ;
+         backupPath.append( backupDirName ) ;
+
+         if ( fs::exists( backupPath ) )
+         {
+            // has backup path
+            PD_LOG( PDDEBUG, "Restore backup data from [%s] to [%s]",
+                    backupPath.string().c_str(), dbPathStr ) ;
+            rc = _pmdRestoreDirectory( backupPath, dbPath ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Failed to restore directory "
+                         "from [%s] to [%s], rc: %d",
+                         backupPath.string().c_str(),
+                         dbPath.string().c_str(), rc ) ;
+         }
+         else
+         {
+            // has no backup path
+            PD_LOG( PDDEBUG, "No backup data from [%s]",
+                    backupPath.string().c_str() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to restore backup, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    static INT32 _pmdSystemInit()
    {
       INT32 rc = SDB_OK ;
+
       SDB_START_TYPE startType = SDB_START_NORMAL ;
       BOOLEAN bOk = TRUE ;
       pmdStartupHistoryLogger *logger = pmdGetStartupHstLogger() ;
@@ -133,6 +246,18 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Failed to init start-up logger, rc: %d", rc );
          rc = SDB_OK ;
+      }
+
+      if ( !bOk )
+      {
+         // data is abnormal, try restore from backup
+         INT32 tmpRC = _pmdRestoreBackup() ;
+         if ( SDB_OK != tmpRC )
+         {
+            // ignore errors
+            PD_LOG( PDWARNING, "Failed to recovery from data backup, "
+                    "rc: %d", tmpRC ) ;
+         }
       }
 
    done:
