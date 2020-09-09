@@ -549,6 +549,12 @@ namespace engine
       if ( _isDestNotify )
       {
          repl->voteMachine()->setShadowWeight( CLS_ELECTION_WEIGHT_MAX ) ;
+
+         /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
+         if ( repl->voteMachine()->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+         {
+            repl->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         }
       }
       else
       {
