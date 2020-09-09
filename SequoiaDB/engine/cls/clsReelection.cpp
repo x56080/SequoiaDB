@@ -130,7 +130,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "can not do reelection when last"
                  " reelection is not done" ) ;
-         rc = SDB_SYS ;
+         rc = SDB_OPERATION_CONFLICT ;
          goto error ;
       }
 
