@@ -216,8 +216,17 @@ public class NetSplit2569 extends SdbTestBase {
             Sequoiadb db = new Sequoiadb( connectUrl, "", "" );
             DBCollection cl = db.getCollectionSpace( csName )
                     .getCollection( clName );
-            insertData( cl, 1000, 3000 );
-            db.disconnect();
+            try {
+                insertData( cl, 1000, 3000 );
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != -134 ) {
+                    throw e;
+                }
+            } finally {
+                if ( db != null ) {
+                    db.disconnect();
+                }
+            }
         }
     }
 
