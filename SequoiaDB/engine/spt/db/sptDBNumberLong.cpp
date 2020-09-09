@@ -46,6 +46,7 @@ namespace engine
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_SET_SPECIAL_FIELD_NAME( SPT_NUMBERLONG_SPECIALOBJ_FIELD )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBNumberLong::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBNumberLong::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBNumberLong::bsonToJSObj )
@@ -416,7 +417,7 @@ namespace engine
       ss << endl ;
       ss << "   --Constructor methods for class \"NumberLong\": " << endl ;
       ss << "   { \"$numberLong\": <data> }   " << endl ;
-      ss << "   NumberLong( <data> )             "
+      ss << "   NumberLong( <data> )        "
          << "-- Data type: long integer" << endl ;
       ss << endl ;
       ss << "   --Static methods for class \"NumberLong\": " << endl ;

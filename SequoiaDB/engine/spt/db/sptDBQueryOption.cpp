@@ -49,6 +49,7 @@ namespace engine
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBQueryOption::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBQueryOption::bsonToJSObj )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
    JS_MAPPING_END()
 
    _sptDBQueryOption::_sptDBQueryOption()
@@ -196,6 +197,7 @@ namespace engine
                                   BSONObj &detail )
    {
       stringstream ss ;
+      ss << endl ;
       ss << "   --Constructor methods for class SdbQueryOption : " << endl ;
       ss << "   SdbQueryOption[.cond(<cond>)]" << endl ;
       ss << "                 [.sel(<sel>)]" << endl ;
@@ -206,7 +208,9 @@ namespace engine
       ss << "                 [.update(<rule>, [returnNew], [options])]" << endl ;
       ss << "                 [.remove()]   "
          << "   -- Create a SdbQueryOption object" << endl ;
+      ss << endl ;
       ss << "   --Static methods for class SdbQueryOption : " << endl ;
+      ss << endl ;
       ss << "   --Instance methods for class SdbQueryOption : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;

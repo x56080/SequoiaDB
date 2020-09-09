@@ -48,6 +48,7 @@ namespace engine
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_SET_SPECIAL_FIELD_NAME( SPT_BINDATA_SPECIALOBJ_BINARY_FIELD )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBBinData::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBBinData::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBBinData::bsonToJSObj )
@@ -345,12 +346,15 @@ namespace engine
                               BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class BinData : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class BinData : " << endl ;
       ss << "   { \"$binary\": <data>, \"$type\": <type> }   " << endl ;
-      ss << "   BinData( <data>, <type> )                    "
+      ss << "   BinData( <data>, <type> )                "
          << "-- Data type: binary data in base64 form" << endl ;
-      ss << "--Static methods for class BinData : " << endl ;
-      ss << "--Instance methods for class BinData : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class BinData : " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class BinData : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

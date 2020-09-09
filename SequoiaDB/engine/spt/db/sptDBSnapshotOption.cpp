@@ -49,6 +49,7 @@ namespace engine
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBOptionBase::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBSnapshotOption::bsonToJSObj )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
    JS_MAPPING_END()
 
    _sptDBSnapshotOption::_sptDBSnapshotOption()
@@ -111,6 +112,7 @@ namespace engine
                                      BSONObj &detail )
    {
       stringstream ss ;
+      ss << endl ;
       ss << "   --Constructor methods for class SdbSnapshotOption : " << endl ;
       ss << "   SdbSnapshotOption[.cond(<cond>)]" << endl ;
       ss << "                    [.sel(<sel>)]" << endl ;
@@ -119,7 +121,9 @@ namespace engine
       ss << "                    [.skip(<skipNum>)]" << endl ;
       ss << "                    [.limit(<retNum>)]   "
          << "   -- Create a SdbSnapshotOption object" << endl ;
+      ss << endl ;
       ss << "   --Static methods for class SdbSnapshotOption : " << endl ;
+      ss << endl ;
       ss << "   --Instance methods for class SdbSnapshotOption : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;

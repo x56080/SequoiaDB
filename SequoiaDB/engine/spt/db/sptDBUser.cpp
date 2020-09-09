@@ -50,6 +50,7 @@ namespace engine
       JS_ADD_CONSTRUCT_FUNC( construct )
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
 #if !defined( SDB_FMP )
       JS_ADD_MEMBER_FUNC( "_promptPassword", promptPassword )
 #endif

@@ -48,6 +48,7 @@ namespace engine
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_SET_SPECIAL_FIELD_NAME( SPT_OID_SPECIAL_FIELD )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBOID::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBOID::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBOID::bsonToJSObj )
@@ -206,12 +207,15 @@ namespace engine
                           BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class ObjectId : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class ObjectId : " << endl ;
       ss << "   { \"$oid\": <data> }   " << endl ;
-      ss << "   ObjectId( [data] )     "
+      ss << "   ObjectId( [data] )   "
          << "-- Data type: object id( OID )" << endl ;
-      ss << "--Static methods for class ObjectId : " << endl ;
-      ss << "--Instance methods for class ObjectId : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class ObjectId : " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class ObjectId : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

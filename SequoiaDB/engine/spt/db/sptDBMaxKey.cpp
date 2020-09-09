@@ -44,6 +44,7 @@ namespace engine
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_SET_SPECIAL_FIELD_NAME( SPT_MAXKEY_SPECIAL_FIELD )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBMaxKey::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBMaxKey::bsonToJSObj )
    JS_MAPPING_END()
@@ -115,12 +116,15 @@ namespace engine
                              BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class MaxKey : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class MaxKey : " << endl ;
       ss << "   { \"$maxKey\": 1 }   " << endl ;
-      ss << "   MaxKey()             "
+      ss << "   MaxKey()           "
          << "-- Data type: the maximum of all data types" << endl ;
-      ss << "--Static methods for class MaxKey : " << endl ;
-      ss << "--Instance methods for class MaxKey : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class MaxKey : " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class MaxKey : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

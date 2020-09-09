@@ -44,6 +44,7 @@ namespace engine
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_SET_SPECIAL_FIELD_NAME( SPT_MINKEY_SPECIAL_FIELD )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBMinKey::cvtToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBMinKey::bsonToJSObj )
    JS_MAPPING_END()
@@ -116,12 +117,15 @@ namespace engine
                              BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class MinKey : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class MinKey : " << endl ;
       ss << "   { \"$minKey\": 1 }   " << endl ;
-      ss << "   MinKey()             "
+      ss << "   MinKey()           "
          << "-- Data type: the minimum of all data types" << endl ;
-      ss << "--Static methods for class MinKey : " << endl ;
-      ss << "--Instance methods for class MinKey : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class MinKey : " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class MinKey : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

@@ -44,6 +44,7 @@ namespace engine
       JS_ADD_CONSTRUCT_FUNC( construct )
       JS_ADD_DESTRUCT_FUNC( destruct )
       JS_ADD_STATIC_FUNC( "help", help )
+      JS_ADD_MEMBER_FUNC( "help", help )
       JS_SET_SPECIAL_FIELD_NAME( SPT_TIMESTAMP_SPECIAL_FIELD )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBTimestamp::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBTimestamp::fmpToBSON )
@@ -271,13 +272,16 @@ namespace engine
                                 BSONObj &detail )
    {
       stringstream ss ;
-      ss << "--Constructor methods for class Timestamp : " << endl ;
+      ss << endl ;
+      ss << "   --Constructor methods for class Timestamp : " << endl ;
       ss << "   { \"$timestamp\": <time> }             " << endl ;
       ss << "   Timestamp( [time] )                    " << endl ;
       ss << "   Timestamp( <second>, <microsecond> )   "
          << "-- Data type: timestamp" << endl ;
-      ss << "--Static methods for class Timestamp : " << endl ;
-      ss << "--Instance methods for class Timestamp : " << endl ;
+      ss << endl ;
+      ss << "   --Static methods for class Timestamp : " << endl ;
+      ss << endl ;
+      ss << "   --Instance methods for class Timestamp : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }
