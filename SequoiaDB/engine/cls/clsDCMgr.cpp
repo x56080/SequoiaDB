@@ -148,6 +148,20 @@ namespace engine
          goto error ;
       }
 
+      e = obj.getField( FIELD_NAME_ROLLBACK_PENDING ) ;
+      if ( e.eoo() )
+      {
+         _rbPending = FALSE ;
+      }
+      else if ( Bool == e.type() )
+      {
+         _rbPending = e.Bool() ? TRUE : FALSE ;
+      }
+      else
+      {
+         goto error;
+      }
+
       e = obj.getField( FIELD_NAME_CSUNIQUEHWM ) ;
       if ( e.eoo() )
       {

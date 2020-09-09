@@ -627,6 +627,30 @@ retry :
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
 
+      // Get the BSON object within the message body,
+      // retrieve and update the RB Pending state
+      {
+      BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( pMsg ) ) ;
+      if ( msgIsInnerOpReply( pMsg ) &&
+           pMsg->messageLength > (INT32)sizeof( MsgOpReply ) +
+           msgObject.objsize() + 5 )
+      {
+         MsgOpReply *pReply = ( MsgOpReply* )pMsg ;
+         if ( pReply->numReturned > 1 )
+         {
+            BSONObj objDCInfo( ( const CHAR* )pMsg + sizeof( MsgOpReply ) +
+                               ossAlign4( (UINT32)msgObject.objsize() ) ) ;
+            BOOLEAN rbPending = FALSE ;
+            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_ROLLBACK_PENDING ) ;
+            if ( !rbEle.eoo() )
+            {
+               rbPending = rbEle.Bool() ;
+            }
+            pmdGetKRCB()->setDBRBPending( rbPending ) ;
+         }
+      }
+      }
+
       rc = _resource.active() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to active resource, rc: %d", rc ) ;
 

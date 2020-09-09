@@ -2438,7 +2438,7 @@ namespace engine
       if ( SDB_DMS_EOC == rc )
       {
          isExist = FALSE ;
-         rc = SDB_OK ;
+         return SDB_OK ;
       }
       else if ( SDB_OK == rc )
       {
@@ -2449,13 +2449,9 @@ namespace engine
          PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
                  matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME,
                  rc ) ;
-         goto error ;
       }
 
-   done :
       return rc ;
-   error :
-      goto done ;
    }
 
    INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, BOOLEAN self,

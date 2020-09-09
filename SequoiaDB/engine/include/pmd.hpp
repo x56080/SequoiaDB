@@ -154,6 +154,7 @@ namespace engine
       virtual std::string        getDBModeDesp() const ;
       virtual BOOLEAN            isDBReadonly() const ;
       virtual BOOLEAN            isDBDeactivated() const ;
+      virtual BOOLEAN            isDBRBPending() const ;
 
       virtual BOOLEAN            isInFlowControl() const ;
 
@@ -411,6 +412,17 @@ namespace engine
          else
          {
             _dbMode &= ~SDB_DB_MODE_DEACTIVATED ;
+         }
+      }
+      void setDBRBPending( BOOLEAN rbPending )
+      {
+         if ( rbPending )
+         {
+            _dbMode |= SDB_DB_MODE_RBPENDING ;
+         }
+         else
+         {
+            _dbMode &= ~SDB_DB_MODE_RBPENDING ;
          }
       }
       void setFlowControl( BOOLEAN flowControl )

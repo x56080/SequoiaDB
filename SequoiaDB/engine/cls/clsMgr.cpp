@@ -1983,6 +1983,7 @@ namespace engine
 
                pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
                pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
+               pmdGetKRCB()->setDBRBPending( pInfo->isRBPending() ) ;
             }
          }
       }

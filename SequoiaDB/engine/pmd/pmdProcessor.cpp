@@ -1693,8 +1693,15 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
+      pmdRBPendingChecker rbPendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
+
+      if ( !rbPendingChecker.isOpAllowed() )
+      {
+         rc = SDB_ROLLBACK_PENDING ;
+         goto error ;
+      }
 
       if ( MSG_AUTH_VERIFY_REQ == opCode || MSG_AUTH_VERIFY1_REQ == opCode )
       {
@@ -2291,5 +2298,51 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN pmdRBPendingChecker::_isOpAllowed()
+   {
+      switch ( _msg->opCode )
+      {
+      case MSG_AUTH_VERIFY_REQ: /// connect
+      case MSG_AUTH_VERIFY1_REQ: /// connect
+      case MSG_COM_REMOTE_DISC: /// disconnect
+      case MSG_COM_SESSION_INIT_REQ:  /// init session
+      case MSG_BS_DISCONNECT:   ////// disconnect session
+      case MSG_BS_INTERRUPTE:   ////// interrupt session
+      case MSG_BS_KILL_CONTEXT_REQ:  //// kill context in session
+         {
+            return TRUE ;
+         }
+      case MSG_BS_QUERY_REQ:
+         {
+            // only the rollbackToPIT command is allowed
+
+            CHAR *pCollectionName = NULL ;
+
+            // ignore error, only want the collection name
+            msgExtractQuery ( (CHAR *)_msg, NULL, &pCollectionName,
+                              NULL, NULL, NULL, NULL, NULL, NULL ) ;
+
+            if ( rtnIsCommand( pCollectionName) &&
+                 ( 0 == ossStrcmp( &(pCollectionName[1]), CMD_NAME_ROLLBACK_TO_PIT ) )
+               )
+            {
+               return TRUE ;
+            }
+            break ;
+         }
+      default:
+         break ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN pmdRBPendingChecker::isOpAllowed()
+   {
+      if ( pmdGetKRCB()->isDBRBPending() )
+      {
+         return _isOpAllowed() ;
+      }
+      return TRUE;
+   }
 }
 

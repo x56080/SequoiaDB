@@ -193,6 +193,24 @@ namespace engine
    } ;
 
    typedef _pmdCoordProcessor pmdCoordProcessor ;
+
+   /*
+    * Check if the database is in rollback pending state, and
+    * whether a msg is allowed to be processed. Only used in
+    * the coord right now.
+    */
+   class pmdRBPendingChecker
+   {
+      public:
+         pmdRBPendingChecker( MsgHeader *msg ) : _msg(msg) {}
+         ~pmdRBPendingChecker() {}
+
+         // check if the operation is allowed to be processed
+         BOOLEAN isOpAllowed() ;
+      private:
+         BOOLEAN _isOpAllowed() ;
+         MsgHeader *_msg ;
+   } ;
 }
 
 #endif  /*PMD_PROCESSOR_HPP_*/

@@ -2866,5 +2866,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ROLLBACK_PENDING</name>
+         <description>
+            <en>Database is in rollback pending state</en>
+            <cn>数据库处于回滚挂起状态</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
