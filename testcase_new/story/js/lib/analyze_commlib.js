@@ -217,7 +217,7 @@ function checkLSNConsistency ( db, csName, clName, groups )
          }
          else
          {
-            throw "check lsn time out";
+            throw new Error( "check lsn time out" );
          }
       }
       else
@@ -979,36 +979,28 @@ function getMainclAccessPlans ( db, findConf, sortConf, selectorConf )
 **************************************/
 function checkMainclAccessPlans ( expAccessPlans, actAccessPlans )
 {
-   //校验计划个数
-   if( expAccessPlans.length !== actAccessPlans.length )
-   {
-      println( 'expAccessPlans: ' + JSON.stringify( expAccessPlans ) + "\nactAccessPlans: " + JSON.stringify( actAccessPlans ) );
-      throw buildException( "check length", "accessPlan length", "check failed!",
-         expAccessPlans.length, actAccessPlans.length );
-   }
-
-   //校验查询计划，不校验元素顺序
    var newExpAccessPlans = new Array();
    var newActAccessPlans = new Array();
    for( var i = 0; i < expAccessPlans.length; i++ )
    {
-      var newObj1 = objSortByKey( actAccessPlans[i] );
-      newActAccessPlans.push( newObj1 );
-
-      var newObj2 = objSortByKey( expAccessPlans[i] );
-      newExpAccessPlans.push( newObj2 );
+      var newObj1 = objSortByKey( expAccessPlans[i] );
+      newExpAccessPlans.push( newObj1 );
    }
-
-   for( var i = 0; i < expAccessPlans.length; i++ )
+   for( var i = 0; i < actAccessPlans.length; i++ )
    {
-      if( JSON.stringify( newActAccessPlans ).indexOf( JSON.stringify( newExpAccessPlans[i] ) ) === -1
-         || JSON.stringify( newExpAccessPlans ).indexOf( JSON.stringify( newActAccessPlans[i] ) ) === -1 )
+      var newObj2 = objSortByKey( actAccessPlans[i] );
+      newActAccessPlans.push( newObj2 );
+   }
+   var actStr = JSON.stringify( newActAccessPlans );
+   for( var i = 0; i < newExpAccessPlans.length; i++ )
+   {
+      // 期望是实际的子集
+      var expStr = JSON.stringify( newExpAccessPlans[i] );
+      if( actStr.indexOf( expStr ) === -1 )
       {
-         throw buildException( "check access plan", "access plan", "fail",
-            JSON.stringify( newExpAccessPlans ), JSON.stringify( newActAccessPlans ) );
+         throw new Error( "check access plan fail" + "\nexp:" + JSON.stringify( newExpAccessPlans ) + "\nact:", actStr );
       }
    }
-   println( "check accessPlan snapshot success" );
 }
 
 

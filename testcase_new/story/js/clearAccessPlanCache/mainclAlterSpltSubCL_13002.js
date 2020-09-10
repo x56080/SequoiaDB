@@ -4,77 +4,35 @@
 *@createdate:  2018.1.26
 *@testlinkCase:seqDB-13002
 **************************************/
-var maincsName = COMMCSNAME + "_maincs_13002";
-var subcsName1 = COMMCSNAME + "_subcs_13002_1";
-var mainclName = COMMCLNAME + "_maincl_13002";
-var subclName1 = COMMCLNAME + "_subcl_13002_1";
-var mainclFullName = maincsName + "." + mainclName;
-var subclFullName1 = subcsName1 + "." + subclName1;
-
-var maincl;
-
-var srcGroupName;
-var desGroupName;
-
-var insertDiffNum = 4000;
-var insertSameNum = 2000;
-
-var db1;
-var db2;
-var dbclPrimary;
-var dbclSlave;
-
-
-function main ()
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
+testConf.skipOneGroup = true;
+main( test );
+function test ( args )
 {
-   //独立模式及1组模式不执行该用例
-   try
-   {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
+   var maincsName = COMMCSNAME + "_maincs_13002";
+   var subcsName1 = COMMCSNAME + "_subcs_13002_1";
+   var mainclName = COMMCLNAME + "_maincl_13002";
+   var subclName1 = COMMCLNAME + "_subcl_13002_1";
+   var mainclFullName = maincsName + "." + mainclName;
+   var subclFullName1 = subcsName1 + "." + subclName1;
 
-      //判断1组模式
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
-
-      //判断1节点模式
-      if( true == isOnlyOneNodeInGroup() )
-      {
-         println( "only one node" );
-         return;
-      }
-
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var insertDiffNum = 4000;
+   var insertSameNum = 2000;
 
    //清理环境
    commDropCS( db, subcsName1, true, "drop subcs before test" );
    commDropCS( db, maincsName, true, "drop maincs before test" );
 
    //获取数据组
-   var temp = commGetGroups( db );
-   if( commIsStandalone( db ) == false )
-   {
-      srcGroupName = temp[0][0].GroupName;
-      desGroupName = temp[1][0].GroupName;
-   }
+   srcGroupName = args.groups[0][0].GroupName;
+   desGroupName = args.groups[1][0].GroupName;
    println( "srcGroupName:" + srcGroupName );
    println( "desGroupName:" + desGroupName );
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
-   maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
+   var maincl = commCreateCL( db, maincsName, mainclName, mainclOption );
 
    //创建子表cl
    var subclOption1 = { Group: srcGroupName };
@@ -91,12 +49,12 @@ function main ()
    insertSameDatas( maincl, insertSameNum, 0 );
 
    //获取主备节点
-   db1 = new Sdb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
-   dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   db2 = new Sdb( db );
+   var dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
+   var db2 = new Sdb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
-   dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
+   var dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 
    //指定主表cl执行统计
    analyze( db, { Collection: mainclFullName } );
@@ -163,6 +121,4 @@ function main ()
    commDropCS( db, maincsName );
    db1.close();
    db2.close();
-
 }
-main()
