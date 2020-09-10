@@ -273,6 +273,8 @@ namespace engine
                          recordHeader->_type, recordHeader->_lsn, rc ) ;
             break ;
          }
+         case LOG_TYPE_TS_COMMIT :
+         case LOG_TYPE_TS_ROLLBACK :
          case LOG_TYPE_DUMMY :
             bucketID = 0 ;
             break ;
