@@ -3522,7 +3522,7 @@ namespace engine
                       pHeader->_opType == BAR_BACKUP_OP_TYPE_INC ?
                       true : false ) ;
 
-      builder.append( FIELD_NAME_GLOBAL,
+      builder.append( FIELD_NAME_GLOBAL_TRANS,
                       pHeader->_global & BAR_BACKUP_GLOBAL_BKP ?
                       true : false ) ;
 
