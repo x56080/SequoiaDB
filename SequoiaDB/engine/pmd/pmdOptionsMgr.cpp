@@ -2223,7 +2223,7 @@ done:
       // --sharingBreak
       rdxUInt( pEX, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_OPTION_BRK_TIME_DEFAULT, TRUE ) ;
-      rdvMinMax( pEX, _sharingBreakTime, 5000, 300000, TRUE ) ;
+      rdvMinMax( pEX, _sharingBreakTime, 2000, 300000, TRUE ) ;
       // --startshifttime
       rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_START_SHIFT_TIME, TRUE ) ;
