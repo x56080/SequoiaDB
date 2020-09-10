@@ -5,7 +5,7 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME;
+var csname = COMMCSNAME + "_13530";
 var clnum = 100;
 var clnames = [];
 var doc = { a: 1 };
@@ -15,6 +15,9 @@ main();
 
 function main ()
 {
+   commDropCS( db, csname );
+   commCreateCS( db, csname );
+
    for( var i = 0; i < clnum; i++ )
    {
       var clname = COMMCLNAME + "_sdbexprt13530_" + i;
@@ -55,4 +58,6 @@ function testExprtCsv ()
    }
 
    cmd.run( "rm -rf " + csvDir );
+
+   commDropCS( db, COMMCSNAME, false );
 }

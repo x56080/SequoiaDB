@@ -10,15 +10,16 @@ main();
 
 function main ()
 {
-   commCreateCL( db, COMMCSNAME, COMMCLNAME );
+   var clName = COMMCLNAME + "_13564";
+   commCreateCL( db, COMMCSNAME, clName, {}, true, true );
 
-   testExprtNotExistCs();
-   testExprtNotExistCl();
+   testExprtNotExistCs( clName );
+   testExprtNotExistCl( clName );
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME );
+   commDropCL( db, COMMCSNAME, clName );
 }
 
-function testExprtNotExistCs ()
+function testExprtNotExistCs ( clName )
 {
    var csvfile = tmpFileDir + "sdbexprt13564.csv";
    cmd.run( "rm -rf " + csvfile );
@@ -36,7 +37,7 @@ function testExprtNotExistCs ()
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +
       " -c notExistCs " +
-      " -l " + COMMCLNAME +
+      " -l " + clName +
       " --file " + csvfile +
       " --type csv" +
       " --force true";
