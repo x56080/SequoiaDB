@@ -10,6 +10,7 @@ import( "./objectIdObj.js" );
 import( "./query.js" );
 import( "./replicaGroup.js" );
 import( "./ssh.js" );
+import( "./assert.js" );
 
 if( COORDHOSTNAME == undefined ) { var COORDHOSTNAME = "localhost"; }
 if( COORDSVCNAME == undefined ) { var COORDSVCNAME = 11810; }

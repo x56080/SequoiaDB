@@ -1944,7 +1944,7 @@ function commCheckType ( variable, expType )
    {
       throw new Error( variable + " == null " );
    }
-   if( expType == "string" || expType == "number" || expType == "boolean" || "object" == expType )
+   if( expType == "string" || expType == "number" || expType == "boolean" || "object" == expType || "function" == expType )
    {
       if( typeof ( variable ) != expType )
       {
