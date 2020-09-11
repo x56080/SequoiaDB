@@ -5,9 +5,9 @@
 *@testlinkCase:seqDB-16102
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var oldcsName = CHANGEDPREFIX + "_16102_oldcs";
    var newcsName = CHANGEDPREFIX + "_16102_newcs";
@@ -22,7 +22,6 @@ function main ()
    //insert 1000 data
    insertData( cl, 1000 );
 
-   println( "---rename cs---" );
    db.renameCS( oldcsName, newcsName );
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
@@ -42,14 +41,10 @@ function main ()
    {
       var index = cur.current().toObj();
       var name = index.IndexDef.name;
-      if( indexArr.indexOf( name ) === -1 )// review 3:这种校验索引的方法不严谨，如果查不到索引或者索引不足3个，那么这种方法就无法检测到
-      {
-         throw buildException( "checkIndex", e, "index", indexArr.toString, name );
-      }
+      assert.notEqual( indexArr.indexOf( name ), -1 );
    }
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
 
    commDropCS( db, newcsName, true, "clean cs---" );
 }
-

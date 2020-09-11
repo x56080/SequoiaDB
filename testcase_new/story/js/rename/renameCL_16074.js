@@ -3,8 +3,8 @@
              seqDB-16074
 @author��2018-10-15 chensiqin  Init
 ***************************************************************************** */
-main( db );
-function main ( db )
+main( test );
+function test ()
 {
    /*
      1��cs�´������cl���������cl������4096��cl�� 
@@ -60,12 +60,7 @@ function checkRenameAllCL ( csName, newClPerfix )
             num++;
          }
       }
-      if( num != 4096 )
-      {
-         throw buildException( "check datas", null, "check the newcl nums",
-            4096, num );
-      }
+      assert.equal( num, 4096 );
    }
    cur.close();
-
 }

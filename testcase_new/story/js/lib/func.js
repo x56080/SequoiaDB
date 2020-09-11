@@ -1267,7 +1267,7 @@ function commCompareObject ( expObj, actObj )
       {
          return true;
       }
-      else if( value === null )
+      else if( value == null )  // null and undefined
       {
          return true;
       }
@@ -1283,7 +1283,7 @@ function commCompareObject ( expObj, actObj )
 
    if( typeof ( expObj ) != typeof ( actObj ) )
    {
-      return false;
+      return expObj == actObj;
    }
    if( isDirectCompare( actObj ) )
    {

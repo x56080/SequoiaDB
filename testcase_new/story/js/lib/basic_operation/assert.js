@@ -10,7 +10,7 @@ function Assert ()
 
          if( !commCompareObject( actual, expected ) )
          {
-            throw new Error( "\nactual:" + JSON.stringify( actual, "", 1 ) + "\nexpected:" + JSON.stringify( expected, "", 1 ) + "\n" + message );
+            throw new Error( "equal error\nactual:" + JSON.stringify( actual, "", 1 ) + "\nexpected:" + JSON.stringify( expected, "", 1 ) + "\n" + message );
          }
       }
 
@@ -22,7 +22,7 @@ function Assert ()
 
          if( commCompareObject( actual, expected ) )
          {
-            throw new Error( "\nactual:" + JSON.stringify( actual, "", 1 ) + "\nexpected:" + JSON.stringify( expected, "", 1 ) + "\n" + message );
+            throw new Error( "notEqual error\nactual:" + JSON.stringify( actual, "", 1 ) + "\nexpected:" + JSON.stringify( expected, "", 1 ) + "\n" + message );
          }
       }
 

@@ -5,9 +5,9 @@
 *@testlinkCase:seqDB-16144
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -17,7 +17,6 @@ function main ()
    {
       return;
    }
-   println( "---begin rename cs test---" );
    var oldcsName = CHANGEDPREFIX + "_16144B_oldcs";
    var newcsName = CHANGEDPREFIX + "_16144B_newcs";
    var clName = CHANGEDPREFIX + "_16144B_CL";
@@ -58,30 +57,18 @@ function main ()
    commDropCS( db, newcsName, true, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
-   println( "---end the test---" );
 }
 
 function updateData ( cl )
 {
    cl.update( { $set: { no: 10086 } } );
    var recordNum = cl.count( { no: 10086 } );
-   if( recordNum != 2000 )
-   {
-      throw buildException( "updateData()", "", "update", "update 2000 record", "update fail, only: " + recordNum );
-   }
+   assert.equal( recordNum, 2000 );
 }
 
 function deleteData ( cl )
 {
    cl.remove( { a: { $lt: 500 } } );
    var recordNum = cl.count();
-   if( recordNum != 1000 )
-   {
-      throw buildException( "deleteData()", "", "delete", "delete 1000 record", "delete fail, have: " + recordNum );
-   }
+   assert.equal( recordNum, 1000 );
 }
-
-
-
-
-

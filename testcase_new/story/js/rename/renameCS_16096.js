@@ -5,9 +5,9 @@
 *@testlinkCase:seqDB-16096
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var oldcsName = COMMCSNAME + "_16096_old";
    var newcsName = COMMCSNAME + "_16096_new";
@@ -17,18 +17,14 @@ function main ()
    var cs = commCreateCS( db, oldcsName, false, "create cs in begine" );
    var cl = commCreateCL( db, oldcsName, clName, {}, false, false, "create CL in the begin" );
 
-   println( "---create index---" );
    cl.createIndex( "index16096", { age: 1 }, false );
 
-   println( "---insert record---" );
    insertData( cl, 1000 );
 
    var cmd5 = createFile( lobName );
 
-   println( "---put lob---" );
    var lobArray = putLobs( cl, lobName );
 
-   println( "---test rename cs---" );
    db.renameCS( oldcsName, newcsName );
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
@@ -43,10 +39,7 @@ function main ()
    {
       var index = cur.current().toObj();
       var name = index.IndexDef.name;
-      if( indexArr.indexOf( name ) === -1 )
-      {
-         throw buildException( "checkIndex", "", "index", indexArr, name );
-      }
+      assert.notEqual( indexArr.indexOf( name ), -1, "checkIndex" + indexArr + name );
    }
 
    deleteFile( lobName );
@@ -56,11 +49,5 @@ function main ()
 function checkRecord ( dbcl, recordNum )
 {
    var actNum = dbcl.count();
-   if( actNum != recordNum )
-   {
-      throw buildException( "checkRecord()", null, "check the new cl record nums",
-         recordNum, actNum );
-   }
+   assert.equal( actNum, recordNum );
 }
-
-

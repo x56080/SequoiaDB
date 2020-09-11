@@ -3,8 +3,8 @@
              seqDB-16143
 @author��2018-10-15 chensiqin  Init
 ***************************************************************************** */
-main( db );
-function main ( db )
+main( test );
+function test ()
 {
    if( commGetGroupsNum( db ) < 2 )
    {
@@ -23,14 +23,8 @@ function main ( db )
    var recordNums = 2000;
    insertData( varCL, recordNums );
    varCL.split( groupName1, groupName2, 50 );
-   try
-   {
-      cs.renameCL( clName, newClName );
-   }
-   catch( e )
-   {
-      throw buildException( "renameCS( clName, newClName ) fail", e, "rename", "success", e );
-   }
+   cs.renameCL( clName, newClName );
+
    //��cl��ִ�в���
    varCL = cs.getCL( newClName );
    insertData( varCL, recordNums );
@@ -49,19 +43,8 @@ function main ( db )
 
 function checkDatas ( csName, newClName, expRecordNums, cond )
 {
-   try
-   {
-      //check the record nums      
-      var dbcl = db.getCS( csName ).getCL( newClName );
-      var count = dbcl.count( cond );
-      if( count != expRecordNums )
-      {
-         throw buildException( "check datas", null, "check the new cl record nums",
-            expRecordNums, count );
-      }
-   }
-   catch( e )
-   {
-      throw buildException( "checkDatas", e )
-   }
+   //check the record nums      
+   var dbcl = db.getCS( csName ).getCL( newClName );
+   var count = dbcl.count( cond );
+   assert.equal( count, expRecordNums );
 }

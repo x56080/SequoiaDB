@@ -4,8 +4,8 @@
 @author��2018-10-13 chensiqin  Init
 ***************************************************************************** */
 
-main( db );
-function main ( db )
+main( test );
+function test ()
 {
    /*
      1������cs�Ͷ��cl���ֱ���cl�ϴ���������� 
@@ -35,14 +35,7 @@ function main ( db )
    commCreateIndex( cl2, indexName2, { b: 1 } );
    commCreateIndex( cl3, indexName1, { a: 1 } );
    commCreateIndex( cl3, indexName2, { b: 1 } );
-   try
-   {
-      db.renameCS( csName1, csName2 );
-   }
-   catch( e )
-   {
-      throw buildException( "renameCS( csName1, csName2 ) fail", e, "rename", "success", e );
-   }
+   db.renameCS( csName1, csName2 );
 
    checkRenameCSResult( csName1, csName2, 3 );
 
@@ -81,12 +74,6 @@ function checkClIndex ( cl, indexName1, indexName3 )
       }
    }
    indexInfos.close();
-   if( cnt !== 3 )
-   {
-      throw buildException( "check cl.listIndexes() num fail", "fail", "check", 3, cnt );
-   }
-   if( myIndexNum !== 2 )
-   {
-      throw buildException( "check expected indexnum fail", "fail", "check", 2, cnt );
-   }
+   assert.equal( cnt, 3 );
+   assert.equal( myIndexNum, 2 );
 }

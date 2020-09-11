@@ -5,9 +5,9 @@
 *@testlinkCase:seqDB-16556
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var csName = COMMCSNAME + "_16556";
    var clName = "cl_16656";
@@ -15,13 +15,13 @@ function main ()
    commCreateCL( db, csName, clName );
 
    // rename cs new name is begin with $
-   checkNewCLName( db, csName, clName, "$clName16556", -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, "$clName16556" );
 
    // rename cs new name is contains .
-   checkNewCLName( db, csName, clName, "clName.16556", -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, "clName.16556" );
 
    // rename cs new name is ""
-   checkNewCLName( db, csName, clName, "", -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, "" );
 
    // rename cs new name is long str
    var longStr = "a";
@@ -29,7 +29,7 @@ function main ()
    {
       longStr += "a";
    }
-   checkNewCLName( db, csName, clName, longStr, -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, longStr );
 
    // rename cs new name is 128 str
    var boundStr = "";
@@ -37,7 +37,7 @@ function main ()
    {
       boundStr += "s";
    }
-   checkNewCLName( db, csName, clName, boundStr, -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, boundStr );
 
    // rename cs new name is 127 str
    var shotStr = "";
@@ -45,37 +45,17 @@ function main ()
    {
       shotStr += "a";
    }
-   checkNewCLName( db, csName, clName, shotStr, 0 );
+   db.getCS( csName ).renameCL( clName, shotStr );
    db.getCS( csName ).renameCL( shotStr, clName );
 
    // rename cs new name is contains ~!@#$%^()_+
    var nameStr = "~!@#$%^()_+"
-   checkNewCLName( db, csName, clName, nameStr, 0 );
+   db.getCS( csName ).renameCL( clName, nameStr );
    db.getCS( csName ).renameCL( nameStr, clName );
 
    // rename cs new name is begin with SYS
-   checkNewCLName( db, csName, clName, "SYScsName16556", -6 );
+   assert.tryThrow( -6, db.getCS( csName ).renameCL, clName, "SYScsName16556" );
 
    commDropCS( db, csName, true, "clean cs---" );
 
 }
-
-function checkNewCLName ( db, csName, oldCLName, newCLName, error )
-{
-   try
-   {
-      db.getCS( csName ).renameCL( oldCLName, newCLName );
-      if( error !== 0 )
-      {
-         throw buildException( "rename cl new name is error, exp error: " + error );
-      }
-   }
-   catch( e )
-   {
-      if( e != error )
-      {
-         throw buildException( "rename cl new name is error:" + newCLName, e, "rename", error, e );
-      }
-   }
-}
-

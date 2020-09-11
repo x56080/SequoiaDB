@@ -9,8 +9,8 @@
  2���޸�cs����ִ�����ݲ������磺���룩��LOB���������������� 
  3�����cs��cl���գ������ļ��������ļ���LOB�ļ���LOBԪ�����ļ�
 */
-main( db );
-function main ( db )
+main( test );
+function test ()
 {
    if( commGetGroupsNum( db ) < 3 )
    {
@@ -43,19 +43,12 @@ function main ( db )
    var subcl2 = commCreateCL( db, csName3, clName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024, Group: groupName2 }, true, false, "create sub cl2 in the beginning" );
 
    //����
-   attachCL( varCL, csName3 + "." + clName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
-   attachCL( varCL, csName3 + "." + clName2, { LowBound: { a: 1000 }, UpBound: { a: 3000 } } );
+   varCL.attachCL( csName3 + "." + clName1, { LowBound: { a: 0 }, UpBound: { a: 1000 } } );
+   varCL.attachCL( csName3 + "." + clName2, { LowBound: { a: 1000 }, UpBound: { a: 3000 } } );
 
    subcl2.split( groupName2, groupName3, 50 );
    //�޸��ӱ�cs name
-   try
-   {
-      db.renameCS( csName3, csName4 );
-   }
-   catch( e )
-   {
-      throw buildException( "renameCS( csName3, csName4 ) fail", e, "rename", "success", e );
-   }
+   db.renameCS( csName3, csName4 );
 
    var recordNums = 2000;
    insertData( varCL, recordNums );
@@ -71,34 +64,10 @@ function main ( db )
 
 }
 
-function attachCL ( dbcl, subCLName, range )
-{
-   try
-   {
-      dbcl.attachCL( subCLName, range );
-      println( "--attach cl success" );
-   }
-   catch( e )
-   {
-      throw buildException( "attachCL()", e, "attach cl", "attach cl success", "attach cl fail" );
-   }
-}
-
 function checkDatas ( csName, newCLName, expRecordNums, srcMd5, expLobArr )
 {
-   try
-   {
-      //check the record nums      
-      var dbcl = db.getCS( csName ).getCL( newCLName );
-      var count = dbcl.count();
-      if( count != expRecordNums )
-      {
-         throw buildException( "check datas", null, "check the new cl record nums",
-            expRecordNums, count );
-      }
-   }
-   catch( e )
-   {
-      throw buildException( "checkDatas", e )
-   }
+   //check the record nums      
+   var dbcl = db.getCS( csName ).getCL( newCLName );
+   var count = dbcl.count();
+   assert.equal( count, expRecordNums );
 }

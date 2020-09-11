@@ -3,8 +3,8 @@
              seqDB-16073
 @author��2018-10-15 chensiqin  Init
 ***************************************************************************** */
-main( db );
-function main ( db )
+main( test );
+function test ()
 {
    var csName = CHANGEDPREFIX + "_cs16073";
    var fileName = CHANGEDPREFIX + "_lobtest16073.file";
@@ -29,12 +29,7 @@ function main ( db )
 
       checkDatas( csName, clName, recordNums, srcMd5, lobIdArr );
       commDropCS( db, csName, true, "ignoreNotExist is true" );
-   }
-   catch( e )
-   {
-      throw e;
-   }
-   finally
+   } finally
    {
       var cmd = new Cmd();
       cmd.run( "rm -rf *" + fileName );
@@ -44,22 +39,12 @@ function main ( db )
 
 function checkDatas ( csName, newCLName, expRecordNums, srcMd5, expLobArr )
 {
-   try
-   {
-      //check the record nums      
-      var dbcl = db.getCS( csName ).getCL( newCLName );
-      var count = dbcl.count();
-      if( count != expRecordNums )
-      {
-         throw buildException( "check datas", null, "check the new cl record nums",
-            expRecordNums, count );
-      }
+   //check the record nums      
+   var dbcl = db.getCS( csName ).getCL( newCLName );
+   var count = dbcl.count();
+   assert.equal( count, expRecordNums );
 
-      //check the lob
-      checkLob( dbcl, expLobArr, srcMd5 );
-   }
-   catch( e )
-   {
-      throw buildException( "checkDatas", e )
-   }
+   //check the lob
+   checkLob( dbcl, expLobArr, srcMd5 );
+
 }

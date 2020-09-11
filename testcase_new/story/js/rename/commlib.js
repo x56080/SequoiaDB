@@ -3,31 +3,26 @@
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
+import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+
 function insertData ( dbcl, number )
 {
    if( undefined == number ) { number = 1000; }
-   try
+   var docs = [];
+   for( var i = 0; i < number; ++i )
    {
-      println( "---begin to insert data " );
-      var docs = [];
-      for( var i = 0; i < number; ++i )
-      {
-         var no = i;
-         var a = i;
-         var user = "test" + i;
-         var phone = 13700000000 + i;
-         var time = new Date().getTime();
-         var doc = { no: no, a: a, customerName: user, phone: phone, openDate: time };
-         //data example: {"no":5, customerName:"test5", "phone":13700000005, "openDate":1402990912105
+      var no = i;
+      var a = i;
+      var user = "test" + i;
+      var phone = 13700000000 + i;
+      var time = new Date().getTime();
+      var doc = { no: no, a: a, customerName: user, phone: phone, openDate: time };
+      //data example: {"no":5, customerName:"test5", "phone":13700000005, "openDate":1402990912105
 
-         docs.push( doc );
-      }
-      dbcl.insert( docs );
+      docs.push( doc );
    }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert", "insert success", "insert fail" );
-   }
+   dbcl.insert( docs );
 }
 
 /************************************
@@ -66,7 +61,6 @@ function putLobs ( cl, fileName, lobNum )
 {
    if( undefined == lobNum ) { lobNum = 1; }
 
-   println( "---begin to put lob " );
    var lobIdArr = [];
    for( var i = 0; i < lobNum; i++ )
    {
@@ -83,8 +77,6 @@ function putLobs ( cl, fileName, lobNum )
 **************************************/
 function deleteLobs ( cl, lobIdArr )
 {
-   println( "\n---begin to deleteLobs " );
-
    for( var i in lobIdArr )
    {
       cl.deleteLob( lobIdArr[i] );
@@ -99,8 +91,6 @@ function deleteLobs ( cl, lobIdArr )
 **************************************/
 function checkLob ( cl, expLobArr, srcMd5 )
 {
-   println( "---begin to checkLob " );
-
    var rc = cl.listLobs();
 
    //check Available
@@ -111,34 +101,18 @@ function checkLob ( cl, expLobArr, srcMd5 )
       var lobId = lobInfo["Oid"]["$oid"];
       var isNormal = lobInfo["Available"];
       lobArr.push( lobId );
-
-      if( isNormal !== true )
-      {
-         println( "lobId=" + lobId );
-         throw buildException( "check Available", null, "cl.listLobs()",
-            '"Available":true', '"Available":' + isNormal );
-      }
+      assert.equal( isNormal, true );
    }
 
    //check lob number 
-   if( lobArr.length !== expLobArr.length )
-   {
-      throw buildException( "check lob number", null, "cl.listLobs()",
-         'lob number:' + expLobArr.length,
-         'lob number:' + lobArr.length );
-   }
+   assert.equal( lobArr.length, expLobArr.length );
 
    lobArr.sort();
    expLobArr.sort();
    //check lob Id
    for( var i in expLobArr )
    {
-      if( lobArr[i] !== expLobArr[i] )
-      {
-         throw buildException( "check lob Id", null, "cl.listLobs()",
-            'lob Id:' + expLobArr[i],
-            'lob Id:' + lobArr[i] );
-      }
+      assert.equal( lobArr[i], expLobArr[i] );
    }
 
    //get lob and check md5sum
@@ -150,12 +124,7 @@ function checkLob ( cl, expLobArr, srcMd5 )
 
       var cmd = new Cmd();
       var desMd5 = cmd.run( "md5sum " + fileName ).split( " " )[0];
-      if( desMd5 !== srcMd5 )
-      {
-         throw buildException( "get lob and check md5sum", null, "md5sum " + fileName,
-            srcMd5, desMd5 );
-      }
-
+      assert.equal( desMd5, srcMd5 );
       cmd.run( "rm -rf " + fileName );
    }
 }
@@ -168,34 +137,10 @@ function checkLob ( cl, expLobArr, srcMd5 )
 **************************************/
 function checkRenameCLResult ( csName, oldCLName, newCLName )
 {
-   try
-   {
-      var clFullName = csName + "." + newCLName;
-      var getNewCLName = db.snapshot( SDB_SNAP_COLLECTIONS, { "Name": clFullName } ).current().toObj().Name;
-      if( getNewCLName !== clFullName )
-      {
-         throw buildException( "check cl name", null, "check the new cl name",
-            clFullName, getNewCLName );
-      }
-
-      //check the old cl is not exist
-      try
-      {
-         db.getCS( csName ).getCL( oldCLName );
-         throw "need throw error";
-      }
-      catch( e )
-      {
-         if( e !== -23 )
-         {
-            throw buildException( "check old clName:", e );
-         }
-      }
-   }
-   catch( e )
-   {
-      throw buildException( "checkRenameCLResult", e )
-   }
+   var clFullName = csName + "." + newCLName;
+   var getNewCLName = db.snapshot( SDB_SNAP_COLLECTIONS, { "Name": clFullName } ).current().toObj().Name;
+   assert.equal( getNewCLName, clFullName );
+   assert.tryThrow( -23, db.getCS( csName ).getCL, oldCLName );
 }
 
 /************************************
@@ -205,35 +150,18 @@ function checkRenameCLResult ( csName, oldCLName, newCLName )
 **************************************/
 function checkRenameMainCLResult ( maincs, subcs, newMainCLName, oldMainCLName, subclName )
 {
-   try
-   {
-      var subclFullName = subcs + "." + subclName;
-      var newMainCLFullName = maincs + "." + newMainCLName;
-      var getMainCLName = db.snapshot( 8, { "Name": subclFullName } ).current().toObj().MainCLName;
-      if( getMainCLName !== newMainCLFullName )
-      {
-         throw buildException( "check mainclName", null, "check the new maincl name",
-            newMainCLFullName, getMainCLName );
-      }
 
-      //check the old maincl is not exist
-      try
-      {
-         db.getCS( maincs ).getCL( oldMainCLName );
-         throw "need throw error";
-      }
-      catch( e )
-      {
-         if( e !== -23 )
-         {
-            throw buildException( "check old mianclName:", e );
-         }
-      }
-   }
-   catch( e )
+   var subclFullName = subcs + "." + subclName;
+   var newMainCLFullName = maincs + "." + newMainCLName;
+   var getMainCLName = db.snapshot( 8, { "Name": subclFullName } ).current().toObj().MainCLName;
+   if( getMainCLName !== newMainCLFullName )
    {
-      throw buildException( "checkRenameMainCLResult", e )
+      throw buildException( "check mainclName", null, "check the new maincl name",
+         newMainCLFullName, getMainCLName );
    }
+
+   //check the old maincl is not exist
+   assert.tryThrow( -23, db.getCS( maincs ).getCL, oldMainCLName );
 }
 
 /************************************
@@ -243,15 +171,7 @@ function checkRenameMainCLResult ( maincs, subcs, newMainCLName, oldMainCLName, 
 **************************************/
 function getGroupName ( db, mustBePrimary )
 {
-   var RGname = null;
-   try
-   {
-      RGname = db.listReplicaGroups().toArray();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var RGname = db.listReplicaGroups().toArray();
    var j = 0;
    var arrGroupName = Array();
    for( var i = 1; i != RGname.length; ++i )
@@ -287,22 +207,15 @@ function getGroupName ( db, mustBePrimary )
 **************************************/
 function getSrcGroup ( csName, clName )
 {
-   try
+
+   var clFullName = csName + "." + clName;
+   var clInfo = db.snapshot( 8, { Name: clFullName } );
+   while( clInfo.next() )
    {
-      var clFullName = csName + "." + clName;
-      var clInfo = db.snapshot( 8, { Name: clFullName } );
-      while( clInfo.next() )
-      {
-         var clInfoObj = clInfo.current().toObj();
-         var srcGroupName = clInfoObj.CataInfo[0].GroupName;
-      }
-      return srcGroupName;
+      var clInfoObj = clInfo.current().toObj();
+      var srcGroupName = clInfoObj.CataInfo[0].GroupName;
    }
-   catch( e )
-   {
-      println( "failed to get source group, cl name: " + clFullName );
-      throw e;
-   }
+   return srcGroupName;
 }
 
 /************************************
@@ -356,16 +269,7 @@ function getSplitGroups ( csName, clName, targetGrMaxNums )
 
 function splitCL ( dbcl, srcGroupName, dstGroupName )
 {
-   try
-   {
-      var percent = 50;
-      dbcl.split( srcGroupName, dstGroupName, percent );
-   }
-   catch( e )
-   {
-      throw buildException( "splitcl", null, "split fail!",
-         srcGroupName, dstGroupName + "  e:" + e );
-   }
+   dbcl.split( srcGroupName, dstGroupName, 50 );
 }
 
 /************************************
@@ -375,8 +279,6 @@ function splitCL ( dbcl, srcGroupName, dstGroupName )
 **************************************/
 function createMainCL ( csName, mainCLName, shardingKey )
 {
-   println( "---begin to create MainCL." );
-
    var options = { ShardingKey: shardingKey, IsMainCL: true, ReplSize: 0 };
    var mainCL = commCreateCL( db, csName, mainCLName, options, false,
       true, "Failed to create mainCL." );
@@ -386,7 +288,6 @@ function createMainCL ( csName, mainCLName, shardingKey )
 function createCL ( csName, clName, shardingKey, shardingType )
 {
    if( typeof ( shardingType ) == "undefined" ) { shardingType = "hash"; }
-   println( "---begin to create cl:" + csName + "." + clName );
 
    var options = { ShardingKey: shardingKey, ShardingType: shardingType, ReplSize: 0, Compressed: true };
    var dbcl = commCreateCL( db, csName, clName, options, true,
@@ -402,7 +303,6 @@ function createCL ( csName, clName, shardingKey, shardingType )
 **************************************/
 function checkRenameCSResult ( oldCSName, newCSName, clNum )
 {
-   println( "---begin to check cs: " + newCSName );
    if( undefined == clNum ) { clNum = 1; }
    //max cycle
    var maxTime = 5000;
@@ -419,90 +319,39 @@ function checkRenameCSResult ( oldCSName, newCSName, clNum )
       currentTime += intervalTime;
       clArray = getCSSnapshotCLArray( newCSName );
    }
-   if( currentTime === maxTime )
-   {
-      throw buildException( "check cl num time out, it took five seconds ", null, JSON.stringify( clArray ),
-         clNum, clArray.length );
-   }
+   assert.notEqual( currentTime, maxTime, "check cl num time out, it took five seconds " + clNum );
 
    //when the cl num expected results are met��check the cl name
    for( i = 0; i < clArray.length; i++ )
    {
       var csname = clArray[i].Name.split( "." )[0];
-      if( csname !== newCSName )
-      {
-         throw buildException( "check cs.cl name", null, JSON.stringify( newCSObj ),
-            newCSName, csname );
-      }
+      assert.equal( csname, newCSName );
    }
 
    //check the old cl is not exist
-   try
-   {
-      db.getCS( oldCSName );
-      throw "CS_IS_EXIT";
-   }
-   catch( e )
-   {
-      if( e !== -34 )
-      {
-         throw buildException( "check old csName:", e );
-      }
-   }
+   assert.tryThrow( -34, db.getCS, oldCSName );
 }
 
 function getCSSnapshotCLArray ( newCSName )
 {
    var newCSObj = db.snapshot( SDB_SNAP_COLLECTIONSPACES, { "Name": newCSName } ).current().toObj();
    var getNewCSName = newCSObj.Name;
-   if( getNewCSName !== newCSName )
-   {
-      throw buildException( "check cs name", null, "check the new cs name",
-         newCSName, getNewCSName );
-   }
+   assert.equal( getNewCSName, newCSName );
 
-   var clArray = newCSObj.Collection;
-   return clArray;
+   return newCSObj.Collection;
 }
 
 function checkRenameSubCLResult ( maincs, mainCLName, subcs, oldSubCLName, newSubCLName )
 {
-   try
-   {
-      println( "---begin to check the rename Subcl name" );
-      var newSubCLFullName = subcs + "." + newSubCLName;
-      var mainCLFullName = maincs + "." + mainCLName;
-      var subCLInfo = db.snapshot( 8, { "Name": newSubCLFullName } ).current().toObj();
-      var getMainCLName = subCLInfo.MainCLName;
-      if( getMainCLName !== mainCLFullName )
-      {
-         throw buildException( "check maincl Name", null, "check the new maincl name",
-            mainCLFullName, getMainCLName );
-      }
+   var newSubCLFullName = subcs + "." + newSubCLName;
+   var mainCLFullName = maincs + "." + mainCLName;
+   var subCLInfo = db.snapshot( 8, { "Name": newSubCLFullName } ).current().toObj();
+   var getMainCLName = subCLInfo.MainCLName;
+   assert.equal( getMainCLName, mainCLFullName );
 
-      var getSubCLName = subCLInfo.Name;
-      if( getSubCLName !== newSubCLFullName )
-      {
-         throw buildException( "check new subclName", null, "check the new subcl name",
-            newSubCLFullName, getSubCLName );
-      }
+   var getSubCLName = subCLInfo.Name;
+   assert.equal( getSubCLName, newSubCLFullName );
 
-      //check the old subcl is not exist
-      try
-      {
-         db.getCS( subcs ).getCL( oldSubCLName );
-         throw "need throw error";
-      }
-      catch( e )
-      {
-         if( e !== -23 )
-         {
-            throw buildException( "check old subclName:", e );
-         }
-      }
-   }
-   catch( e )
-   {
-      throw buildException( "checkRenameSubCLResult", e )
-   }
+   //check the old subcl is not exist
+   assert.tryThrow( -23, db.getCS( subcs ).getCL, oldSubCLName );
 }

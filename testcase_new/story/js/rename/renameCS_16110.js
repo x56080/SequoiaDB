@@ -4,9 +4,9 @@
 @author��2018-10-13 chensiqin  Init
 ***************************************************************************** */
 
-main( db );
+main( test );
 
-function main ( db )
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -48,42 +48,22 @@ function testRenameCS16110 ( db, domainName, domain, oldName, newName, clName )
    cs.setDomain( { Domain: domainName } )
    var csList = domain.listCollectionSpaces().toArray();
    var cs = eval( '(' + csList[0] + ')' );
-   if( cs["Name"] !== newName )
-   {
-      throw buildException( "check domain.listCollectionSpaces() fail", "fail", "check", "success", "fail" );
-   }
+   assert.equal( cs["Name"], newName );
+
    checkDatas( newName, clName );
 }
 
 function checkDatas ( csName2, clName )
 {
-   try
-   {
-      //check the record nums      
-      var dbcl = db.getCS( csName2 ).getCL( clName );
-      var count = dbcl.count();
-      if( count != 100 )
-      {
-         throw buildException( "check datas", null, "check the new cl record nums",
-            100, count );
-      }
 
-   }
-   catch( e )
-   {
-      throw buildException( "checkDatas", e )
-   }
+   //check the record nums      
+   var dbcl = db.getCS( csName2 ).getCL( clName );
+   var count = dbcl.count();
+   assert.equal( count, 100 );
 }
 
 function afterClear ( db, domainName, csName2 )
 {
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
-   try 
-   {
-      commDropDomain( db, domainName );
-   }
-   catch( e )
-   {
-      throw buildException( "dropDomain fail", e, "drop", "success", e );
-   }
+   commDropDomain( db, domainName );
 }

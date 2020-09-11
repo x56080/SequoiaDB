@@ -6,59 +6,51 @@
 @author��2018-10-15 wuyan  Init
 ***************************************************************************** */
 
-main( db );
-function main ( db )
+
+main( test );
+function test ()
 {
-   try
+   if( true == commIsStandalone( db ) )
    {
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //split at least two groups
-      var allGroupName = getGroupName( db, true );
-      if( 1 === allGroupName.length )
-      {
-         println( "--least two groups" );
-         return;
-      }
-
-      var mainCLName = CHANGEDPREFIX + "_rename_maincl16061";
-      var newMainCLName = CHANGEDPREFIX + "_newrename_maincl16061";
-      var csName = CHANGEDPREFIX + "_cs16061";
-      var subCLName1 = CHANGEDPREFIX + "_subcl16061a";
-      var subCLName2 = CHANGEDPREFIX + "_subcl16061b";
-      var subCLName3 = CHANGEDPREFIX + "_subcl16061c";
-      var newSubCLName1 = CHANGEDPREFIX + "_newsubcl16061a";
-      var newSubCLName2 = CHANGEDPREFIX + "_newsubcl16061b";
-      var newSubCLName3 = CHANGEDPREFIX + "_newsubcl16061c";
-      commDropCS( db, csName, true, "Failed to drop CS." );
-      commDropCL( db, COMMCSNAME, subCLName2, true, true, "clear collection in the beginning" );
-      commDropCL( db, COMMCSNAME, newSubCLName2, true, true, "clear collection in the beginning" );
-
-      commCreateCS( db, csName, false, "Failed to create CS." );
-      var groupName1 = allGroupName[0][0];
-      var groupName2 = allGroupName[1][0];
-      createCLAndSplitCL( csName, mainCLName, COMMCSNAME, subCLName1, subCLName2, subCLName3, groupName1, groupName2 );
-
-      db.getCS( csName ).renameCL( mainCLName, newMainCLName );
-
-      //test a: rename mainCL with subcls, maincl and subcl in different cs
-      testRenameSubCLInDiffGroups( csName, newMainCLName, COMMCSNAME, subCLName1, newSubCLName1, subCLName2, newSubCLName2 );
-
-      //test b: rename mainCL with subcls, maincl and subcl in same cs   
-      testRenameSubCLInSameGroups( csName, newMainCLName, csName, subCLName3, newSubCLName3 );
-
-      commDropCS( db, csName, true, "clear cs in the ending" );
-      commDropCL( db, COMMCSNAME, subCLName2, true, true, "clear collection in the ending" );
-      commDropCL( db, COMMCSNAME, newSubCLName2, true, true, "clear collection in the ending" );
+      return;
    }
-   catch( e )
+
+   //split at least two groups
+   var allGroupName = getGroupName( db, true );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
    }
+
+   var mainCLName = CHANGEDPREFIX + "_rename_maincl16061";
+   var newMainCLName = CHANGEDPREFIX + "_newrename_maincl16061";
+   var csName = CHANGEDPREFIX + "_cs16061";
+   var subCLName1 = CHANGEDPREFIX + "_subcl16061a";
+   var subCLName2 = CHANGEDPREFIX + "_subcl16061b";
+   var subCLName3 = CHANGEDPREFIX + "_subcl16061c";
+   var newSubCLName1 = CHANGEDPREFIX + "_newsubcl16061a";
+   var newSubCLName2 = CHANGEDPREFIX + "_newsubcl16061b";
+   var newSubCLName3 = CHANGEDPREFIX + "_newsubcl16061c";
+   commDropCS( db, csName, true, "Failed to drop CS." );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true, "clear collection in the beginning" );
+   commDropCL( db, COMMCSNAME, newSubCLName2, true, true, "clear collection in the beginning" );
+
+   commCreateCS( db, csName, false, "Failed to create CS." );
+   var groupName1 = allGroupName[0][0];
+   var groupName2 = allGroupName[1][0];
+   createCLAndSplitCL( csName, mainCLName, COMMCSNAME, subCLName1, subCLName2, subCLName3, groupName1, groupName2 );
+
+   db.getCS( csName ).renameCL( mainCLName, newMainCLName );
+
+   //test a: rename mainCL with subcls, maincl and subcl in different cs
+   testRenameSubCLInDiffGroups( csName, newMainCLName, COMMCSNAME, subCLName1, newSubCLName1, subCLName2, newSubCLName2 );
+
+   //test b: rename mainCL with subcls, maincl and subcl in same cs   
+   testRenameSubCLInSameGroups( csName, newMainCLName, csName, subCLName3, newSubCLName3 );
+
+   commDropCS( db, csName, true, "clear cs in the ending" );
+   commDropCL( db, COMMCSNAME, subCLName2, true, true, "clear collection in the ending" );
+   commDropCL( db, COMMCSNAME, newSubCLName2, true, true, "clear collection in the ending" );
 }
 
 function createCLAndSplitCL ( maincsName, mainCLName, subcsName, subCLName1, subCLName2, subCLName3, groupName1, groupName2 )
@@ -88,7 +80,6 @@ function createCLAndSplitCL ( maincsName, mainCLName, subcsName, subCLName1, sub
 
 function testRenameSubCLInDiffGroups ( maincsName, mainCLName, subcsName, oldSubCLName1, newSubCLName1, oldSubCLName2, newSubCLName2 )
 {
-   println( "---test a: rename subcls, the subcl1 and subcl2 in diff groups" );
    db.getCS( maincsName ).renameCL( oldSubCLName1, newSubCLName1 );
    db.getCS( subcsName ).renameCL( oldSubCLName2, newSubCLName2 );
 
@@ -98,11 +89,6 @@ function testRenameSubCLInDiffGroups ( maincsName, mainCLName, subcsName, oldSub
 
 function testRenameSubCLInSameGroups ( maincsName, mainCLName, subcsName, oldSubCLName, newSubCLName )
 {
-   println( "---test b/c: rename subcl3, the subcl3 and subcl1 in same groups, adn subcl3 had split" );
    db.getCS( maincsName ).renameCL( oldSubCLName, newSubCLName );
    checkRenameSubCLResult( maincsName, mainCLName, maincsName, oldSubCLName, newSubCLName );
-
 }
-
-
-

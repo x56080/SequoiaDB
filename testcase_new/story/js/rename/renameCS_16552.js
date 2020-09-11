@@ -5,22 +5,22 @@
 *@testlinkCase:seqDB-16552
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var csName = COMMCSNAME + "_16552";
 
    var cs = commCreateCS( db, csName, false, "create cs in begine" );
 
    // rename cs new name is begin with $
-   checkNewCSName( db, csName, "$csName16552", -6 );
+   assert.tryThrow( -6, db.renameCS, csName, "$csName16552" );
 
    // rename cs new name is contains .
-   checkNewCSName( db, csName, "csName.16552", -6 );
+   assert.tryThrow( -6, db.renameCS, csName, "csName.16552" );
 
    // rename cs new name is ""
-   checkNewCSName( db, csName, "", -6 );
+   assert.tryThrow( -6, db.renameCS, csName, "" );
 
    // rename cs new name is long str
    var longStr = "a";
@@ -28,7 +28,7 @@ function main ()
    {
       longStr += "a";
    }
-   checkNewCSName( db, csName, longStr, -6 );
+   assert.tryThrow( -6, db.renameCS, csName, longStr );
 
    // rename cs new name is 128 str
    var boundStr = "";
@@ -36,7 +36,7 @@ function main ()
    {
       boundStr += "s";
    }
-   checkNewCSName( db, csName, boundStr, -6 );
+   assert.tryThrow( -6, db.renameCS, csName, boundStr );
 
    // rename cs new name is 127 str
    var shotStr = "";
@@ -44,38 +44,16 @@ function main ()
    {
       shotStr += "a";
    }
-   checkNewCSName( db, csName, shotStr, 0 );
+   db.renameCS( csName, shotStr );
    db.renameCS( shotStr, csName );
 
    // rename cs new name is contains ~!@#$%^()_+
    var nameStr = "~!@#$%^()_+"
-   checkNewCSName( db, csName, nameStr, 0 );
+   db.renameCS( csName, nameStr );
    db.renameCS( nameStr, csName );
 
    // rename cs new name is begin with SYS
-   checkNewCSName( db, csName, "SYScsName16552", -6 );
+   assert.tryThrow( -6, db.renameCS, csName, "SYScsName16552" );
 
    commDropCS( db, csName, true, "clean cs---" );
-
 }
-
-function checkNewCSName ( db, oldCSName, newCSName, error )
-{
-   try
-   {
-      db.renameCS( oldCSName, newCSName );
-      if( error !== 0 )
-      {
-         throw buildException( "rename cs new name is error, exp error: " + error );
-      }
-   }
-   catch( e )
-   {
-      if( e != error )
-      {
-         throw buildException( "rename cs new name is error: " + newCSName, e, "rename", error, e );
-      }
-   }
-}
-
-

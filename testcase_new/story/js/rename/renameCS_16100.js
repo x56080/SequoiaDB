@@ -5,11 +5,10 @@
 *@testlinkCase:seqDB-16100
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   println( "---begin rename cs test---" );
    var oldcsName = COMMCSNAME + "_16100_old";
    var newcsName = COMMCSNAME + "_16100_new";
    var clName = CHANGEDPREFIX + "_16100_cl";
@@ -41,7 +40,4 @@ function main ()
    commDropCS( db, newcsName, true, "clean cs---" );
    deleteFile( fileName );
    deleteFile( fileName + "_new" );
-   println( "---end the test---" );
 }
-
-
