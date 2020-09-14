@@ -11,7 +11,7 @@ main();
 function main ()
 {
    var clName = COMMCLNAME + "_13564";
-   commCreateCL( db, COMMCSNAME, clName, {}, true, true );
+   commCreateCL( db, COMMCSNAME, clName, 1, true, true, true );
 
    testExprtNotExistCs( clName );
    testExprtNotExistCl( clName );
