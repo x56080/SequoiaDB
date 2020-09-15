@@ -667,6 +667,10 @@
          {
             length = '' ;
          }
+         else
+         {
+            length = length.toString() ;
+         }
          $scope.EditFieldWindow['config'] = {
             'inputList': [
                {
