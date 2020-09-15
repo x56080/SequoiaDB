@@ -140,7 +140,10 @@ function checkRenameCLResult ( csName, oldCLName, newCLName )
    var clFullName = csName + "." + newCLName;
    var getNewCLName = db.snapshot( SDB_SNAP_COLLECTIONS, { "Name": clFullName } ).current().toObj().Name;
    assert.equal( getNewCLName, clFullName );
-   assert.tryThrow( -23, db.getCS( csName ).getCL, oldCLName );
+   assert.tryThrow( -23, function()
+   {
+      db.getCS( csName ).getCL( oldCLName );
+   } );
 }
 
 /************************************
@@ -154,14 +157,11 @@ function checkRenameMainCLResult ( maincs, subcs, newMainCLName, oldMainCLName, 
    var subclFullName = subcs + "." + subclName;
    var newMainCLFullName = maincs + "." + newMainCLName;
    var getMainCLName = db.snapshot( 8, { "Name": subclFullName } ).current().toObj().MainCLName;
-   if( getMainCLName !== newMainCLFullName )
-   {
-      throw buildException( "check mainclName", null, "check the new maincl name",
-         newMainCLFullName, getMainCLName );
-   }
+   assert.equal( getMainCLName, newMainCLFullName );
 
    //check the old maincl is not exist
-   assert.tryThrow( -23, db.getCS( maincs ).getCL, oldMainCLName );
+   assert.tryThrow( -23, function()
+   { db.getCS( maincs ).getCL( oldMainCLName ); } );
 }
 
 /************************************
@@ -329,7 +329,10 @@ function checkRenameCSResult ( oldCSName, newCSName, clNum )
    }
 
    //check the old cl is not exist
-   assert.tryThrow( -34, db.getCS, oldCSName );
+   assert.tryThrow( -34, function()
+   {
+      db.getCS( oldCSName );
+   } );
 }
 
 function getCSSnapshotCLArray ( newCSName )
@@ -353,5 +356,8 @@ function checkRenameSubCLResult ( maincs, mainCLName, subcs, oldSubCLName, newSu
    assert.equal( getSubCLName, newSubCLFullName );
 
    //check the old subcl is not exist
-   assert.tryThrow( -23, db.getCS( subcs ).getCL, oldSubCLName );
+   assert.tryThrow( -23, function()
+   {
+      db.getCS( subcs ).getCL( oldSubCLName );
+   } );
 }

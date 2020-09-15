@@ -20,11 +20,9 @@ function test ()
    var maincl = commCreateCL( db, csName, mainclName, { "ShardingKey": { "a": 1 }, "IsMainCL": true, "Compressed": false } );
    commCreateCL( db, csName, subclName, { "Group": dataGroupName, "Compressed": false } );
    maincl.attachCL( csName + "." + subclName, { "LowBound": { "a": 1 }, "UpBound": { "a": 10 } } );
-
    var cond = { Name: { $regex: csName + "." + CHANGEDPREFIX + testcaseID } };
 
    maincl.alter( { "StrictDataMode": true } );
-
    // 检查主备一致
    commCheckLSN( db, dataGroupName, 600 );
 

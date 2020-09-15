@@ -44,18 +44,14 @@ function Assert ()
          if( !Array.isArray( errno ) ) { errno = [Number( errno )]; }
          commCheckType( func, "function" );
 
-         var args = [];
-         for( var i = 2; i < arguments.length; i++ )
-         {
-            args.push( arguments[i] );
-         }
          try
          {
-            func.apply( null, args );
+            func();
             throw new Error( "should error but success" );
          } catch( e )
          {
-            if( errno.indexOf( Number( e.message ) ) )
+            var err = e.message || e;
+            if( errno.indexOf( Number( err ) ) === -1 )
             {
                throw e;
             }

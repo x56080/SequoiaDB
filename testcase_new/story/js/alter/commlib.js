@@ -3,7 +3,7 @@
 @Modify list :
 2018-4-25  wuyan  Init
 *******************************************************************************/
-import ("../lib/main.js");
+import( "../lib/main.js" );
 import( "../lib/basic_operation/sequoiadb.js" );
 
 //inspect the alter field is success or not.
@@ -13,60 +13,23 @@ function checkAlterResult ( clName, fieldName, expFieldValue, csName )
    var clFullName = csName + "." + clName;
    var cur = db.snapshot( 8, { "Name": clFullName } );
    var actualFieldValue = cur.current().toObj()[fieldName];
-
-   if( typeof ( expFieldValue ) === "object" )
-   {
-      if( JSON.stringify( expFieldValue ) !== JSON.stringify( actualFieldValue ) )
-      {
-         throw buildException( "test fieldvalue1", "check field", "value is wrong", JSON.stringify( expFieldValue ), JSON.stringify( actualFieldValue ) );
-      }
-
-   }
-   else
-   {
-      if( expFieldValue !== actualFieldValue )
-      {
-         throw buildException( "test fieldvalue2", "check field", "value is wrong", expFieldValue, actualFieldValue );
-      }
-   }
+   assert.equal( expFieldValue, actualFieldValue );
 
 }
 
 //inspect the alter cs field is success or not.
 function checkAlterCSResult ( csName, fieldName, expFieldValue )
 {
-   try
+   var rg = db.getRG( "SYSCatalogGroup" );
+   var dbca = new Sdb( rg.getMaster() );
+   var cur = dbca.SYSCAT.SYSCOLLECTIONSPACES.find( { "Name": csName } );
+   while( cur.next() )
    {
-      var rg = db.getRG( "SYSCatalogGroup" );
-      var dbca = new Sdb( rg.getMaster() );
-      var cur = dbca.SYSCAT.SYSCOLLECTIONSPACES.find( { "Name": csName } );
-      while( cur.next() )
-      {
-         var tempinfo = cur.current().toObj();
-         var actFieldValue = tempinfo[fieldName];
-      }
-
-      if( expFieldValue !== actFieldValue )
-      {
-
-         println( "---" + expFieldValue );
-         throw buildException( "test fieldvalue", "check field", "", expFieldValue, actFieldValue );
-      }
-
+      var tempinfo = cur.current().toObj();
+      var actFieldValue = tempinfo[fieldName];
    }
-   catch( e )
-   {
-      throw buildException( "check alter cs result:", e );
-   }
-   finally
-   {
-      if( dbca != null )
-      {
-         dbca.close()
-      }
-   }
+   assert.equal( expFieldValue, actFieldValue );
 }
-
 
 /************************************
 *@Description: check snapshot
@@ -79,24 +42,7 @@ function checkSnapshot ( db, snapType, csName, clName, field, expFieldValue )
    var cursor = db.snapshot( snapType, { 'Name': clFullName } );
    var Obj = cursor.current().toObj();
    var actualFieldValue = Obj[field];
-   println( "expFieldValue   : " + expFieldValue );
-   println( "actualFieldValue: " + actualFieldValue );
-   if( typeof ( expFieldValue ) === "object" )
-   {
-      if( JSON.stringify( expFieldValue ) !== JSON.stringify( actualFieldValue ) )
-      {
-         throw buildException( "test fieldvalue1", "check field", "value is wrong", JSON.stringify( expFieldValue ), JSON.stringify( actualFieldValue ) );
-      }
-
-   }
-   else
-   {
-      if( expFieldValue !== actualFieldValue )
-      {
-         throw buildException( "test fieldvalue2", "check field", "value is wrong", expFieldValue, actualFieldValue );
-      }
-   }
-
+   assert.equal( expFieldValue, actualFieldValue );
 }
 
 /************************************
@@ -152,18 +98,10 @@ function getSplitGroup ( db, csName, clName )
 **************************************/
 function clSetAttributes ( cl, options )
 {
-   try
+   assert.tryThrow( -32, function()
    {
       cl.setAttributes( options );
-      throw new Error( "ALTER_SHOULD_ERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -32 )
-      {
-         throw e;
-      }
-   }
+   } );
 }
 
 /* *****************************************************************************
@@ -206,18 +144,11 @@ function checkSplitResult ( csName, clName, srcGroupName, tarGroupName, expDataN
    var dataNode2 = new Sdb( db.getRG( tarGroupName ).getMaster() );
    var checkCL2 = dataNode2.getCS( csName ).getCL( clName );
    var recordNum2 = checkCL2.count();
+   assert.notEqual( recordNum2, 0 );
 
-   if( recordNum2 == 0 )
-   {
-      throw "The number returned by target group is 0. srcRG :" + srcGroupName + ", tarRG :" + tarGroupName;
-   }
    actDataNum = actDataNum + recordNum2;
    dataNode2.close();
-
-   if( actDataNum !== expDataNum )
-   {
-      throw buildException( "checkData", "check field", "total num is wrong", expDataNum, actDataNum );
-   }
+   assert.equal( actDataNum, expDataNum );
 }
 
 /* *****************************************************************************
@@ -237,24 +168,45 @@ function checkNotSplitResult ( csName, clName, srcGroupName, tarGroupName, expDa
    var dataNode = new Sdb( db.getRG( srcGroupName ).getMaster() );
    var checkCL = dataNode.getCS( csName ).getCL( clName );
    actDataNum = actDataNum + checkCL.count();
-   if( actDataNum !== expDataNum )
-   {
-      throw buildException( "checkData", "check field", "total num is wrong", expDataNum, actDataNum );
-   }
+   assert.equal( actDataNum, expDataNum );
    dataNode.close();
 
    var dataNode2 = new Sdb( db.getRG( tarGroupName ).getMaster() );
-   try
+   assert.tryThrow( -23, function()
    {
-      //if not split, get collection from target group will fail.
       dataNode2.getCS( csName ).getCL( clName );
-      throw "exp fail but found success."
-   }
-   catch( e )
+   } );
+}
+
+function checkDomain ( db, domainName, expGroups, expAutoSplit, expAutoRebalance )
+{
+   var domainMsg = db.listDomains( { Name: domainName } ).current().toObj();
+   actGroups = domainMsg.Groups;
+   actAutoSplit = domainMsg.AutoSplit;
+   actAutoRebalance = domainMsg.AutoRebalance;
+
+   assert.equal( actGroups.length, expGroups.length );
+
+   for( var i in expGroups )
    {
-      if( e !== -23 )
-      {
-         throw "unexpected error: " + e;
-      }
+      var groupName = actGroups[i].GroupName;
+      assert.notEqual( expGroups.indexOf( groupName ), -1 );
    }
+   assert.equal( actAutoSplit, expAutoSplit );
+
+   assert.equal( actAutoRebalance, expAutoRebalance );
+}
+
+function checkCL ( groupNames, csName, clName )
+{
+   assert.tryThrow( [-34, -23], function()
+   {
+      for( var i in groupNames )
+      {
+         var groupName = groupNames[i];
+         var nodeName = db.getRG( groupName ).getMaster();
+         var sdb = new Sdb( nodeName );
+         sdb.getCS( csName ).getCL( clName );
+      }
+   } );
 }
