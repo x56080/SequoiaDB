@@ -907,5 +907,6 @@
    "最大副本数": "Max Replica",
    "最大值": "Max value",
    "最小值": "Min value",
-   "最小副本数": "Min Replica"
+   "最小副本数": "Min Replica",
+   "StartValue 的值必须大于等于 MinValue，小于等于 MaxValue": "The StartValue must be more than or equal to MinValue, and less than or equal to MaxValue"
 }

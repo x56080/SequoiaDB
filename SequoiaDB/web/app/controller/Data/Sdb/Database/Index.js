@@ -2909,7 +2909,14 @@
          } ;
          
          $scope.CreateAutoIncrementWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            var isClear = $scope.CreateAutoIncrementWindow['config'].check() ;
+            var isClear = $scope.CreateAutoIncrementWindow['config'].check( function( valueJson ){
+               var rv = [] ;
+               if( valueJson['StartValue'] < valueJson['MinValue'] || valueJson['StartValue'] > valueJson['MaxValue'] )
+               {
+                  rv.push( { 'name': 'StartValue', 'error': $scope.autoLanguage( 'StartValue 的值必须大于等于 MinValue，小于等于 MaxValue') } ) ;
+               }
+               return rv ;
+            } ) ;
             if( isClear )
             {
                var formVal = $scope.CreateAutoIncrementWindow['config'].getValue() ;
