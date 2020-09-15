@@ -5,86 +5,40 @@
 @Modify list :
                2014-6-18  xiaojun Hu  Init
 ******************************************************************************/
-
-function main ( db )
+testConf.skipStandAlone = true;
+main( test );
+function test ()
 {
-   // Inspect the run mode
-   runMode = inspectRunMode( db );
-   if( "standalone" == runMode )
-      throw "RunMode_StandAlone";
-
-   var domNames = new Array( CHANGEDPREFIX + "DomTest1", CHANGEDPREFIX + "DomTest2",
-      CHANGEDPREFIX + "DomTest3", CHANGEDPREFIX + "DomTest4" );
+   var domNames = new Array( CHANGEDPREFIX + "DomTest1_8128", CHANGEDPREFIX + "DomTest2_8128",
+      CHANGEDPREFIX + "DomTest3_8128", CHANGEDPREFIX + "DomTest4_8128" );
 
    // Drop all domains, if have
    for( var i = 0; i < domNames.length; ++i )
    {
       clearDomain( db, domNames[i] );
    }
-   println( "Clear domain in the beginning" );
 
-   // Get all data groups and create domain by specify AutoSplit
-   try
+   var group = getGroup( db );
+   for( var i = 0; i < domNames.length; ++i )
    {
-      var group = new Array();
-      group = getGroup( db );
-      //println( "Get Groups = " + group ) ;
-      for( var i = 0; i < domNames.length; ++i )
-      {
-         createDomain( db, domNames[i], group );
-      }
-      println( "Success to create Domain : [" + domNames + "]" );
-   }
-   catch( e )
-   {
-      if( -159 != e )
-      {
-         println( "Failed to create domain, rc = " + e );
-         throw e;
-      }
-      else
-         println( "The mode is standalong, not group" );
+      db.createDomain( domNames[i], group );
    }
 
    // Inspect the specify domain
    for( var j = 0; j <= domNames.length; ++j )
    {
-      var listDom = db.listDomains( { "Name": domNames[j] }
-      ).current().toObj()["Name"];
-      //println( "list domain" + listDom ) ;
+      var listDom = db.listDomains( { "Name": domNames[j] } ).current().toObj()["Name"];
       if( listDom == domNames[j] )
       {
          break;
-      }
-      else
+      } else
       {
-         println( "Don't have domnames, domains = [" + domNames[j] +
-            "] ... [" + listDom + "]" );
-         throw "ErrDomains";
+         throw new Error( "ErrDomains" );
       }
    }
 
    for( var i = 0; i < domNames.length; ++i )
    {
-      // Inspect domain
-      inspectDomain( db, domNames[i] );
-
-      // Drop domain int the end
       clearDomain( db, domNames[i] );
    }
-   // Clear Env
-   println( "Success to drop domains = [" + domNames + "]" );
-}
-
-try
-{
-   if( false == commIsStandalone( db ) )
-      main( db );
-   else
-      println( "run mode : standalone" );
-   db.close();
-}
-catch( e )
-{
-   throw e;
 }

@@ -4,16 +4,10 @@
 *@createDate:  2019.6.5
 *@testlinkCase: seqDB-4484
 **************************************/
-main();
-function main ()
+testConf.skipStandAlone = true;
+main( test );
+function test ()
 {
-   if( true == commIsStandalone( db ) )
-   {
-      println( "run mode is standalone" );
-      return;
-   }
-
-
    var groupsArray = commGetGroups( db, false, "", true, true, true );
    var dataRGArr = [];
    var csNames = ["cs_4484_a", "cs_4484_b", "cs_4484_c"];
@@ -54,18 +48,10 @@ function main ()
    checkByCreateCS( domain3, csNames[2] );
 
    //域名覆盖不为string类型
-   try
+   assert.tryThrow( -6, function()
    {
       db.createDomain( 1000000000000000, dataRGArr[0] );
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw buildException( "main()", e, "create domain " + domainNames[i] + " failed", -6, e );
-      }
-   }
+   } )
 
    dropCSAndDomain( csNames, domainNames );
 }
@@ -89,21 +75,14 @@ function checkDomain ( domain, datagroups, autosplit )
    }
    else
    {
-      throw "can not find domain : " + domain;
+      throw new Error( "can not find domain : " + domain );
    }
 
    actGroups.sort();
    datagroups.sort();
-   if( JSON.stringify( datagroups ) !== JSON.stringify( actGroups ) )
-   {
-      throw buildException( "checkDomain()", null, "groups is wrong", JSON.stringify( datagroups ), JSON.stringify( actGroups ) );
-   }
-   if( autosplit !== actAutoSplit )
-   {
-      throw buildException( "checkDomain()", null, "autoSplit value is wrong", autosplit, actAutoSplit );
-   }
+   assert.equal( datagroups, actGroups );
+   assert.equal( autosplit, actAutoSplit );
 }
-
 function dropCSAndDomain ( csNames, domainNames )
 {
    for( var i = 0; i < csNames.length; i++ )
@@ -113,29 +92,13 @@ function dropCSAndDomain ( csNames, domainNames )
 
    for( var i = 0; i < domainNames.length; i++ )
    {
-      try
-      {
-         db.dropDomain( domainNames[i] );
-      }
-      catch( e )
-      {
-         if( -214 !== e )
-         {
-            throw buildException( "dropDomain()", e, "drop domain " + domainNames[i] + " failed", -214, e );
-         }
-      }
+      commDropDomain( db, domainNames[i] );
    }
 }
+
 
 function checkByCreateCS ( domain, csName )
 {
    db.createCS( csName, { Domain: domain } );
-   try
-   {
-      db.getCS( csName );
-   }
-   catch( e )
-   {
-      throw "get cs " + csName + "failed, e = " + e;
-   }
+   db.getCS( csName );
 }

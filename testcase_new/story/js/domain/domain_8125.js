@@ -4,109 +4,33 @@
 @Modify list :
                2014-6-18  xiaojun Hu  Init
 ******************************************************************************/
-
-function main ( db )
+testConf.skipStandAlone = true;
+main( test );
+function test ()
 {
-   // Inspect the run mode
-   runMode = inspectRunMode( db );
-   if( "standalone" == runMode )
-      throw "RunMode_StandAlone";
+   var domName = csName + "_8125";
+   commDropCS( db, csName, true );
+   clearDomain( db, domName );
 
-   var domName = csName + "_DomDropNotExistName";
-   // Drop CS
-   commDropCS( db, csName, true,
-      "clear collection space in the beginning" );
+   var group = new Array();
+   group = getGroup( db );
+   db.createDomain( domName, group );
 
-   // Drop the domain we specify in the begnning
-   clearDomain( db, domName )
-
-   // Get all data groups and create domain by specify AutoSplit
-   try
-   {
-      var group = new Array();
-      group = getGroup( db );
-      //println( "Get Groups = " + group ) ;
-      createDomain( db, domName, group );
-   }
-   catch( e )
-   {
-      if( -159 != e )
-      {
-         println( "Failed to create domain, rc = " + e );
-         throw e;
-      }
-      else
-         println( "The mode is standalong, not group" );
-   }
-
-   // Create CS in domain and create collection
-   try
-   {
-      commCreateCS( db, csName, false, "create CS specify domain",
-         { "Domain": domName } );
-      commCreateCL( db, csName, clName, {}, false, false,
-         "create collection in domain" );
-   }
-   catch( e )
-   {
-      println( "Failed to create CS by specify domain, rc = " + e );
-      throw e;
-   }
-
+   commCreateCS( db, csName, false, "create CS specify domain", { "Domain": domName } );
+   commCreateCL( db, csName, clName, {}, false, false );
 
    // Drop not exist domain [Testing Point]
-   try
+   assert.tryThrow( -214, function()
    {
       db.dropDomain( "SYSDOMAIN" );
-   }
-   catch( e )
-   {
-      if( -214 != e )
-      {
-         println( "Failed to dropDomain, rc = " + e );
-         throw e;
-      }
-      else
-         println( "Don't have domain : SYSDOMAIN" );
-   }
+   } );
 
    // Drop domain where CS/CL/data record in [Testing Point]
-   try
+   assert.tryThrow( -256, function()
    {
       db.dropDomain( domName );
-   }
-   catch( e )
-   {
-      if( -256 != e )
-      {
-         println( "Faild to drop Domain, rc = " + e );
-         throw e;
-      }
-      else
-         println( "Domain is not empty, cannot drop" );
-   }
+   } );
 
-   // Inspect domain
-   inspectDomain( db, domName );
-
-   // Drop CS int the end
-   commDropCS( db, csName, true,
-      "clear collection space in the end" );
-
-   // Drop domain in the end
+   commDropCS( db, csName, true );
    clearDomain( db, domName );
-   println( "Success to clear domain : [" + domName + "]" );
-}
-
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   if( "RunMode_StandAlone" != e )
-      throw e;
-   else
-      println( "WARNNING! Run Mode is : [ standalone ]" );
 }
