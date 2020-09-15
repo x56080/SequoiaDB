@@ -712,29 +712,46 @@ namespace engine
       INIT_OBJ_GOTO_ERROR ( getReplCB() ) ;
 
       // 2. create listen socket
-      nodeID.columns.serviceID = _replServiceID ;
-      _replNetRtAgent->updateRoute( nodeID, hostName, _replServiceName ) ;
-      rc = _replNetRtAgent->listen( nodeID ) ;
-      if ( SDB_OK != rc )
+      if ( optCB->serviceMask() & PMD_SVC_MASK_REPLICATE )
       {
-         PD_LOG ( PDERROR, "Create listen[Hostname:%s, ServiceName:%s] failed",
-                  hostName, _replServiceName ) ;
-         goto error ;
+         PD_LOG( PDEVENT, "Replicate listener is disabled" ) ;
       }
-      PD_LOG ( PDEVENT, "Create replicate group listen[ServiceName:%s] succeed",
-               _replServiceName ) ;
+      else
+      {
+         nodeID.columns.serviceID = _replServiceID ;
+         _replNetRtAgent->updateRoute( nodeID, hostName, _replServiceName ) ;
+         rc = _replNetRtAgent->listen( nodeID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG ( PDERROR, "Create listen[Hostname:%s, ServiceName:%s]"
+                              " failed",
+                     hostName, _replServiceName ) ;
+            goto error ;
+         }
+         PD_LOG ( PDEVENT, "Create replicate group listen[ServiceName:%s]"
+                           " succeed",
+                  _replServiceName ) ;
+      }
 
-      nodeID.columns.serviceID = _shardServiceID ;
-      _shardNetRtAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
-      rc = _shardNetRtAgent->listen( nodeID ) ;
-      if ( SDB_OK != rc )
+      if ( optCB->serviceMask() & PMD_SVC_MASK_SHARD )
       {
-         PD_LOG ( PDERROR, "Create listen[Hostname:%s, ServiceName:%s] failed",
-                  hostName, _shdServiceName ) ;
-         goto error ;
+         PD_LOG( PDEVENT, "Shard listener is disabled" ) ;
       }
-      PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
-               _shdServiceName ) ;
+      else
+      {
+         nodeID.columns.serviceID = _shardServiceID ;
+         _shardNetRtAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
+         rc = _shardNetRtAgent->listen( nodeID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG ( PDERROR, "Create listen[Hostname:%s, ServiceName:%s]"
+                              " failed",
+                     hostName, _shdServiceName ) ;
+            goto error ;
+         }
+         PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
+                  _shdServiceName ) ;
+      }
 
       // 3. init session manager
       rc = _shardSessionMgr.init( _shardNetRtAgent, _shdTimerHandler,

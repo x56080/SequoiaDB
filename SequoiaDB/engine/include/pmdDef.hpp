@@ -470,6 +470,20 @@ namespace engine
       FT_LEVEL_WHOLE    = 3
    } ;
 
+   #define PMD_SVC_MASK_LOCAL            0x00000001
+   #define PMD_SVC_MASK_REPLICATE        0x00000002
+   #define PMD_SVC_MASK_SHARD            0x00000004
+   #define PMD_SVC_MASK_CATALOG          0x00000008
+   #define PMD_SVC_MASK_HTTP             0x00000010
+   #define PMD_SVC_MASK_NONE             0
+
+   #define PMD_SVC_MASK_LOCAL_STR        "LOCAL"
+   #define PMD_SVC_MASK_REPLICATE_STR    "REPL"
+   #define PMD_SVC_MASK_SHARD_STR        "SHARD"
+   #define PMD_SVC_MASK_CATALOG_STR      "CATALOG"
+   #define PMD_SVC_MASK_HTTP_STR         "HTTP"
+   #define PMD_SVC_MASK_ALL_STR          "ALL"
+   #define PMD_SVC_MASK_NONE_STR         "NONE"
 }
 
 #endif // PMD_DEF_HPP__

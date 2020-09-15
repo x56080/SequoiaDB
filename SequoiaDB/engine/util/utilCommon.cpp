@@ -382,6 +382,111 @@ namespace engine
       return rc ;
    }
 
+   static INT32 _utilStrToServiceMask( const CHAR *pStr, UINT32 &svcMask )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 len = 0 ;
+      const CHAR *start = pStr ;
+      const CHAR *end   = NULL ;
+
+      if ( !pStr || !*pStr )
+      {
+         goto done ;
+      }
+
+      while( ' ' == *start || '\t' == *start )
+      {
+         ++start ;
+      }
+
+      if ( !*start )
+      {
+         goto done ;
+      }
+
+      end = start + ossStrlen( start ) - 1 ;
+
+      while( end != start && ( ' ' == *end || '\t' == *end ) )
+      {
+         --end ;
+      }
+
+      len = end - start + 1 ;
+
+      /// compare
+      if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_LOCAL_STR, len ) )
+      {
+         svcMask |= PMD_SVC_MASK_LOCAL ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_REPLICATE_STR, len ) )
+      {
+         svcMask |= PMD_SVC_MASK_REPLICATE ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_SHARD_STR, len ) )
+      {
+         svcMask |= PMD_SVC_MASK_SHARD ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_CATALOG_STR, len ) )
+      {
+         svcMask |= PMD_SVC_MASK_CATALOG ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_HTTP_STR, len ) )
+      {
+         svcMask |= PMD_SVC_MASK_HTTP ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_SVC_MASK_NONE_STR, len ) )
+      {
+         /// do nothing
+      }
+      else
+      {
+         return SDB_INVALIDARG ;
+      }
+
+   done:
+      return rc ;
+   }
+
+   INT32 utilStrToServiceMask( const CHAR *pStr, UINT32 &svcMask )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *p = NULL ;
+      CHAR *p1 = NULL ;
+
+      svcMask = 0 ;
+
+      if ( !pStr || !*pStr )
+      {
+         goto done ;
+      }
+
+      p = pStr ;
+
+      while( p && *p )
+      {
+         p1 = (CHAR*)ossStrchr( p, '|' ) ;
+         if ( p1 )
+         {
+            *p1 = 0 ;
+         }
+
+         rc = _utilStrToServiceMask( p, svcMask ) ;
+         if ( p1 )
+         {
+            *p1 = '|' ;
+         }
+
+         if ( rc )
+         {
+            break ;
+         }
+         p = p1 ? p1 + 1 : NULL ;
+      }
+
+   done:
+      return rc ;
+   }
+
    static void _utilAppendOrString( CHAR *pBuffer, INT32 bufSize,
                                     const CHAR *flagStr )
    {

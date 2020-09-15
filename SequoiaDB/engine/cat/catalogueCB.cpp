@@ -299,30 +299,38 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init cat dc manager, rc: %d", rc ) ;
 
       // 4. create listen
-      PD_TRACE1 ( SDB_CATALOGCB_INIT,
-                  PD_PACK_ULONG ( _routeID.value ) ) ;
-      _pNetWork->setLocalID( _routeID );
-      rc = _pNetWork->updateRoute( _routeID,
-                                   _strHostName.c_str(),
-                                   _strCatServiceName.c_str() );
-      if ( rc != SDB_OK )
+      if ( pmdGetOptionCB()->serviceMask() & PMD_SVC_MASK_CATALOG )
       {
-         PD_LOG ( PDERROR, "Failed to update route(routeID=%lld, host=%s, "
-                  "service=%s, rc=%d)", _routeID.value, _strHostName.c_str(),
-                  _strCatServiceName.c_str(), rc);
-         goto error ;
+         PD_LOG( PDEVENT, "Catalog listener is disabled" );
       }
-      rc = _pNetWork->listen( _routeID );
-      if ( rc != SDB_OK )
+      else
       {
-         PD_LOG ( PDERROR, "Failed to open listen-port(host=%s, service=%s, "
-                  "rc=%d)", _strHostName.c_str(), _strCatServiceName.c_str(),
-                  rc );
-         goto error ;
-      }
+         PD_TRACE1 ( SDB_CATALOGCB_INIT,
+                     PD_PACK_ULONG ( _routeID.value ) ) ;
+         _pNetWork->setLocalID( _routeID );
+         rc = _pNetWork->updateRoute( _routeID,
+                                      _strHostName.c_str(),
+                                      _strCatServiceName.c_str() );
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to update route(routeID=%lld, host=%s, "
+                     "service=%s, rc=%d)", _routeID.value, _strHostName.c_str(),
+                     _strCatServiceName.c_str(), rc);
+            goto error ;
+         }
+         rc = _pNetWork->listen( _routeID );
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to open listen-port(host=%s, service=%s, "
+                     "rc=%d)", _strHostName.c_str(), _strCatServiceName.c_str(),
+                     rc );
+            goto error ;
+         }
 
-      PD_LOG ( PDEVENT, "Success to listen[host=%s, service=%s] for catalog cb",
-               _strHostName.c_str(), _strCatServiceName.c_str() );
+         PD_LOG ( PDEVENT, "Success to listen[host=%s, service=%s]"
+                           " for catalog cb",
+                  _strHostName.c_str(), _strCatServiceName.c_str() );
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGCB_INIT, rc ) ;

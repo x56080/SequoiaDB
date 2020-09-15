@@ -276,18 +276,18 @@
       <long>svcname</long>
       <short>p</short>
       <description>
-         <en>Local service name or port</en>
-         <cn>本地服务名或端口</cn>
+         <en>Local service port</en>
+         <cn>本地服务端口</cn>
       </description>
       <catalogdft>11800</catalogdft>
       <coorddft>11810</coorddft>
       <datadft>11820</datadft>
       <standdft>11810</standdft>
       <detail>
-         <en>1. It specifies local service port.<fig></fig>
-             2. If it is not specified, the default value are 11810 for coord, 11800 for catalog, 11820 for datanode.</en>
-         <cn>1. 指定本地服务端口。<fig></fig>
-             2. 如果不指定则默认为11810端口用于协调节点，11800用于编目节点，11820用于数据节点。</cn>
+         <en>1. Specify the local service port, which used to provide services to the client.<fig></fig>
+             2. The default port of the coord node is 11810,while the catalog node is 11800 and the data node is 11820.</en>
+         <cn>1. 指定本地服务端口，用于对客户端提供服务。<fig></fig>
+             2. 协调节点默认端口为 11810，编目节点默认端口为 11800，数据节点默认端口为 11820。</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -297,18 +297,18 @@
       <long>replname</long>
       <short>r</short>
       <description>
-         <en>Replication service name or port, default: 'svcname'+1</en>
-         <cn>复制通讯服务名或端口,默认:'svcname'+1</cn>
+         <en>The replication service port is svcname+1 by default.</en>
+         <cn>数据复制服务端口，默认端口为 svcname+1</cn>
       </description>
       <catalogdft>11801</catalogdft>
       <coorddft>11811</coorddft>
       <datadft>11821</datadft>
       <standdft>11811</standdft>
       <detail>
-         <en>1. It specifies data synch port.<fig></fig>
-             2. If it is not specified, the default value is "svcname+1".</en>
-         <cn>1. 指定数据同步平面端口。<fig></fig>
-             2. 如果不指定则默认为svcname+1。</cn>
+         <en>1. Specify the replication service port,which is svcname+1 by default.<fig></fig>
+             2. The parameter is only valid for catalog nodes and data nodes.</en>
+         <cn>1. 指定数据复制服务端口，默认端口为 svcname+1。<fig></fig>
+             2. 该参数只对编目节点和数据节点有效。</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -318,18 +318,16 @@
       <long>shardname</long>
       <short>a</short>
       <description>
-         <en>Sharding service name or port, default: 'svcname'+2</en>
-         <cn>分片通讯服务名或端口,默认:'svcname'+2</cn>
+         <en>The shard service port, default: 'svcname'+2</en>
+         <cn>数据分区服务端口，默认端口为 svcname+2</cn>
       </description>
       <catalogdft>11802</catalogdft>
       <coorddft>11812</coorddft>
       <datadft>11822</datadft>
       <standdft>11812</standdft>
       <detail>
-         <en>1. It specifies shard port.<fig></fig>
-             2. If it is not specified, the default value is "svcname+2".</en>
-         <cn>1. 指定shard平面端口。<fig></fig>
-             2. 如果不指定则默认为svcname+2。</cn>
+         <en>Specify the shard service port, which is svcname+2 by default.</en>
+         <cn>指定数据分区服务端口，默认端口为 svcname+2</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -339,18 +337,18 @@
       <long>catalogname</long>
       <short>x</short>
       <description>
-         <en>Catalog service name or port, default: 'svcname'+3</en>
-         <cn>编目通讯服务名或端口, 默认:'svcname'+3</cn>
+         <en>The catalog service port is svcname+3 by default.</en>
+         <cn>编目服务端口，默认端口为 svcname+3</cn>
       </description>
       <catalogdft>11803</catalogdft>
       <coorddft>11813</coorddft>
       <datadft>11823</datadft>
       <standdft>11813</standdft>
       <detail>
-         <en>1. It specifies catalog port.<fig></fig>
-             2. If it is not specified, the default value is "svcname+3".</en>
-         <cn>1. 指定catalog平面端口。<fig></fig>
-             2. 如果不指定则默认为svcname+3。</cn>
+         <en>1. Specify the catalog service port, which is svcname+3 by default.<fig></fig>
+             2. The parameter is only valid for catalog nodes.</en>
+         <cn>1. 指定编目服务端口，默认端口为 svcname+3。<fig></fig>
+             2. 该参数只对编目节点有效。</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -360,18 +358,16 @@
       <long>httpname</long>
       <short>s</short>
       <description>
-         <en>REST service name or port, default: 'svcname'+4</en>
-         <cn>REST服务名或端口, 默认:'svcname'+4</cn>
+         <en>The HTTP service port is svcname+4 by default.</en>
+         <cn>HTTP 服务端口，默认端口为 svcname+4</cn>
       </description>
       <catalogdft>11804</catalogdft>
       <coorddft>11814</coorddft>
       <datadft>11824</datadft>
       <standdft>11814</standdft>
       <detail>
-         <en>1. It specifies http port.<fig></fig>
-             2. If it is not specified, the default value is "svcname+4".</en>
-         <cn>1. 指定http端口。<fig></fig>
-             2. 如果不指定则默认为svcname+4。</cn>
+         <en>Specify the HTTP service port, which is svcname+4 by default.</en>
+         <cn>指定 HTTP 服务端口，默认端口为 svcname+4</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -2490,5 +2486,34 @@
       <type>int</type>
       <default>1200</default>
       <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_SERVICE_MASK</name>
+      <long>servicemask</long>
+      <description>
+         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and HTTP. Users can use ‘|’ to connect multiple values. The default value is NONE.</en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。</cn>
+      </description>
+      <detail>
+         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and HTTP. Users can use ‘|’ to connect multiple values. The default value is NONE.<fig></fig>
+         LOCAL: Disable the local service port. If the local service port of the coordination node is disabled, the database will not be able to provide services to clients.<fig></fig>
+         REPL: Disable the replication service port. If the replication service port of the catalog node or data node is disabled, the data of the primary node and the standby node will be inconsistent. Generally, it should not be disabled.<fig></fig>
+         SHARD: Disable the shard service port. If the shard service port of any node is disabled, data operations will fail. Generally, it should not be disabled.<fig></fig>
+         CATALOG: Disable the catalog service port. If the catalog service port of the catalog node is disabled, the node operation will fail and the data operation will fail. Generally, it should not be disabled.<fig></fig>
+         HTTP: Disable the HTTP service port. If the HTTP service port of a node is disabled, the node cannot provide HTTP services.<fig></fig></en>
+         <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。<fig></fig>
+         LOCAL：禁用本地服务端口。如果禁用协调节点的本地服务端口，会导致数据库不能为客户端提供服务。<fig></fig>
+         REPL：禁用数据同步服务端口。如果禁用编目节点或数据节点的数据同步服务端口，会导致主节点和备节点数据不一致，通常不应该禁用。<fig></fig>
+         SHARD：禁用数据分区服务端口。如果禁用任一节点的数据分区服务端口，会导致数据操作失败，通常不应该禁用。<fig></fig>
+         CATALOG：禁用编目服务端口。如果禁用编目节点的编目服务端口，会导致节点操作失败、数据操作失败，通常不应该禁用。<fig></fig>
+         HTTP：禁用 HTTP 服务端口。如果禁用节点的 HTTP 服务端口，会导致该节点不能提供 HTTP 服务。<fig></fig></cn>
+      </detail>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <hidden>false</hidden>
+      <typeofweb>str</typeofweb>
    </opt>
 </optlist>

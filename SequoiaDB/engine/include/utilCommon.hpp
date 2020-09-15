@@ -93,6 +93,11 @@ namespace engine
    void        utilFTMaskToStr( UINT32 ftMask, CHAR *pBuff, UINT32 size ) ;
 
    /*
+      PMD_OPTION_SERVICE_MASK
+   */
+   INT32 utilStrToServiceMask( const CHAR *pStr, UINT32 &svcMask ) ;
+
+   /*
       instance ID
     */
    BOOLEAN     utilCheckInstanceID ( UINT32 instanceID, BOOLEAN includeUnknown ) ;

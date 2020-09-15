@@ -60,8 +60,6 @@ namespace engine
    #define PMD_FIX_PTR_TO_BUFF(ptr)             ((CHAR*)(ptr)+sizeof(INT32))
    #define PMD_FIX_BUFF_HEADER(buff)            (*(INT32*)((CHAR*)(buff)-sizeof(INT32)))
 
-   #define PMD_SERVICE_DISABLED_STR             "-"
-
    _pmdController::_pmdController ()
    {
       _pTcpListener        = NULL ;
@@ -101,7 +99,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       pmdOptionsCB *pOptCB = pmdGetOptionCB() ;
-      const CHAR *pRestService = NULL ;
       UINT16 port = 0 ;
       CHAR fapModuleName[ FAP_MODULE_NAME_SIZE + 1 ] = { 0 } ;
 
@@ -117,36 +114,41 @@ namespace engine
       }
 
       // 1. create tcp listerner
-      port = pOptCB->getServicePort() ;
-      // memory will be freed in fini
-      _pTcpListener = SDB_OSS_NEW ossSocket( port ) ;
-      if ( !_pTcpListener )
+      if ( pOptCB->serviceMask() & PMD_SVC_MASK_LOCAL )
       {
-         PD_LOG( PDERROR, "Failed to alloc socket" ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         PD_LOG( PDEVENT, "TCP listener is disabled" ) ;
       }
-      rc = _pTcpListener->initSocket() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init tcp listener socket[%d], "
-                   "rc: %d", port, rc ) ;
+      else
+      {
+         port = pOptCB->getServicePort() ;
+         // memory will be freed in fini
+         _pTcpListener = SDB_OSS_NEW ossSocket( port ) ;
+         if ( !_pTcpListener )
+         {
+            PD_LOG( PDERROR, "Failed to alloc socket" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         rc = _pTcpListener->initSocket() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init tcp listener socket[%d], "
+                      "rc: %d", port, rc ) ;
 
-      rc = _pTcpListener->bind_listen() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to bind tcp listener socket[%d], "
-                   "rc: %d", port, rc ) ;
-      PD_LOG( PDEVENT, "Listerning on port[%d]", port ) ;
+         rc = _pTcpListener->bind_listen() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to bind tcp listener socket[%d], "
+                      "rc: %d", port, rc ) ;
+         PD_LOG( PDEVENT, "Listerning on port[%d]", port ) ;
+      }
 
       // 2. create http listerner
-      pRestService = pOptCB->getRestService() ;
-      if ( 1 == ossStrlen( pRestService ) &&
-           0 == ossStrncmp( pRestService, PMD_SERVICE_DISABLED_STR, 1 ) )
+      if ( pOptCB->serviceMask() & PMD_SVC_MASK_HTTP )
       {
          PD_LOG( PDEVENT, "Http Listener disabled" ) ;
       }
       else
       {
-         rc = ossGetPort( pRestService, port ) ;
+         rc = ossGetPort( pOptCB->getRestService(), port ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get port by service name: %s, "
-                      "rc: %d", pRestService, rc ) ;
+                      "rc: %d", pOptCB->getRestService(), rc ) ;
          _pHttpListener = SDB_OSS_NEW ossSocket( port ) ;
          if ( !_pHttpListener )
          {
@@ -199,16 +201,19 @@ namespace engine
       }
 #endif // _LINUX
 
-      // start tcp listern edu and http listerner edu
-      rc = pEDUMgr->startEDU( EDU_TYPE_TCPLISTENER, (void*)_pTcpListener,
-                              &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start tcp listerner, rc: %d",
-                   rc ) ;
+      if ( _pTcpListener )
+      {
+         // start tcp listern edu and http listerner edu
+         rc = pEDUMgr->startEDU( EDU_TYPE_TCPLISTENER, (void*)_pTcpListener,
+                                 &eduID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to start tcp listerner, rc: %d",
+                      rc ) ;
 
-      // wait until tcp listener starts
-      rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
-      PD_RC_CHECK( rc, PDERROR, "Wait Tcp Listerner active failed, rc: %d",
-                   rc ) ;
+         // wait until tcp listener starts
+         rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
+         PD_RC_CHECK( rc, PDERROR, "Wait Tcp Listerner active failed, rc: %d",
+                      rc ) ;
+      }
 
       if ( _pHttpListener )
       {

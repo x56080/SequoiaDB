@@ -164,13 +164,20 @@ namespace engine
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
       // 3. create listen socket
-      nodeID.columns.serviceID = _shardServiceID ;
-      _pAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
-      rc = _pAgent->listen( nodeID ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Create listen[Hostname:%s, ServiceName:%s] "
-                    "failed", hostName, _shdServiceName ) ;
-      PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
-               _shdServiceName ) ;
+      if ( optCB->serviceMask() & PMD_SVC_MASK_SHARD )
+      {
+         PD_LOG( PDEVENT, "Shard listener is disabled" ) ;
+      }
+      else
+      {
+         nodeID.columns.serviceID = _shardServiceID ;
+         _pAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
+         rc = _pAgent->listen( nodeID ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Create listen[Hostname:%s, ServiceName:%s] "
+                       "failed", hostName, _shdServiceName ) ;
+         PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
+                  _shdServiceName ) ;
+      }
 
       // 4. set bussiness OK, do not need wait register successfully
       pmdGetKRCB()->setBusinessOK( TRUE ) ;

@@ -1859,6 +1859,7 @@ done:
       ossMemset( _auditMaskStr, 0, sizeof( _auditMaskStr ) ) ;
       ossMemset( _ftMaskStr, 0, sizeof( _ftMaskStr ) ) ;
       ossMemset( _memDebugMaskStr, 0, sizeof( _memDebugMaskStr ) ) ;
+      ossMemset( _serviceMaskStr, 0, sizeof( _serviceMaskStr ) ) ;
 
       _krcbMaxPool         = 0 ;
       _krcbDiagLvl         = (UINT16)PDWARNING ;
@@ -1919,6 +1920,7 @@ done:
       _syncInterval        = PMD_DFT_SYNC_INTERVAL ;
       _syncRecordNum       = PMD_DFT_SYNC_RECORDNUM ;
       _syncDeep            = FALSE ;
+      _serviceMask         = PMD_SVC_MASK_NONE ;
 
       // archive related
       _archiveOn = FALSE ;
@@ -2448,6 +2450,12 @@ done:
       // --monhistevent
       rdxUInt( pEX, PMD_OPTION_MON_HIST_EVENT, _monHistEvent, FALSE,
                PMD_CFG_CHANGE_RUN, 1000, TRUE ) ;
+
+      // --serviceumask
+      rdxString( pEX, PMD_OPTION_SERVICE_MASK, _serviceMaskStr,
+                 sizeof( _serviceMaskStr ), FALSE, PMD_CFG_CHANGE_REBOOT,
+                 PMD_SVC_MASK_NONE_STR ) ;
+
       // end map
 
       return getResult () ;
@@ -2559,6 +2567,14 @@ done:
       {
          std::cerr << "Failed to parse preferd instance str, rc: "
                    << rc << endl ;
+         goto error ;
+      }
+
+      // service mask check
+      if ( SDB_OK != utilStrToServiceMask( _serviceMaskStr, _serviceMask ) )
+      {
+         std::cerr << PMD_OPTION_SERVICE_MASK << " value error" << endl ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 

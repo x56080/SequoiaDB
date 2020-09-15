@@ -665,6 +665,7 @@ namespace engine
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
+         OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
          std::string getOmAddr() const ;
 
 #ifdef SDB_ENTERPRISE
@@ -700,6 +701,7 @@ namespace engine
          CHAR        _ftMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _memDebugMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          CHAR        _monGroupMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
+         CHAR        _serviceMaskStr[ PMD_MAX_LONG_STR_LEN + 1 ] ;
          UINT32      _logFileSz ;
          UINT32      _logFileNum ;
          UINT32      _numPreLoaders ;
@@ -794,6 +796,7 @@ namespace engine
          UINT32      _slowQueryThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
+         UINT32      _serviceMask ;
 
 #ifdef SDB_ENTERPRISE
 
