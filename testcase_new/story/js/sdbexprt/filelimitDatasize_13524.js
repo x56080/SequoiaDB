@@ -6,139 +6,143 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME ;
-var clname = COMMCLNAME + "_sdbexprt13524" ;
-var clname1 = COMMCLNAME + "_sdbimprt13524" ;
-var kbs = [ 10, 12 ] ;
-var filelimit = "10K" ;
-var expSize = 10*1024 ;
-var kb ;
+var csname = COMMCSNAME;
+var clname = COMMCLNAME + "_sdbexprt13524";
+var clname1 = COMMCLNAME + "_sdbimprt13524";
+var kbs = [10, 12];
+var filelimit = "10K";
+var expSize = 10 * 1024;
+var kb;
 
-main() ;
+main();
 
-function main()
+function main ()
 {
-   for( var i = 0;i < kbs.length;i++ )
+   for( var i = 0; i < kbs.length; i++ )
    {
-      kb = kbs[i] ;
-      println( "test filelimit: " + filelimit + " data: " + kb ) ;
-      testFileLimit() ;
+      kb = kbs[i];
+      println( "test filelimit: " + filelimit + " data: " + kb );
+      testFileLimit();
    }
+
+   // clean *.rec file
+   var tmpRec = csname + "_" + clname1 + "*.rec";
+   cmd.run( "rm -rf " + tmpRec );
 }
 
-function testFileLimit()
+function testFileLimit ()
 {
-   var cl = commCreateCL( db, csname, clname, 0 ) ;
-   var cl1 = commCreateCL( db, csname, clname1, 0 ) ;
-   
-   insertDocs( cl, kb ) ; 
-  
-   testExprtImprtCsv() ;
-   testExprtImprtJson() ;
-  
-   if( parseInt( cl1.count() ) !== 2*(kb*1024-1) )
+   var cl = commCreateCL( db, csname, clname, 0 );
+   var cl1 = commCreateCL( db, csname, clname1, 0 );
+
+   insertDocs( cl, kb );
+
+   testExprtImprtCsv();
+   testExprtImprtJson();
+
+   if( parseInt( cl1.count() ) !== 2 * ( kb * 1024 - 1 ) )
    {
-      throw buildException( "testFileLimit", null, "check import cl count", 
-            2*(kb*1024-1), cl1.count() ) ;   
+      throw buildException( "testFileLimit", null, "check import cl count",
+         2 * ( kb * 1024 - 1 ), cl1.count() );
    }
-   var cursor = cl1.find() ;
-   var obj ;
+   var cursor = cl1.find();
+   var obj;
    while( obj = cursor.next() )
    {
-      var actVal = obj.toObj()["a"] ;
+      var actVal = obj.toObj()["a"];
       if( actVal !== 1 )
       {
          throw buildException( "testFileLimit", null, "check import cl rec",
-               1, actVal ) ;
+            1, actVal );
       }
    }
-   
-   commDropCL( db, csname, clname ) ;
-   commDropCL( db, csname, clname1 ) ;
+
+   commDropCL( db, csname, clname );
+   commDropCL( db, csname, clname1 );
 }
 
 // insert { a: 1 } repeatly until kb
-function insertDocs( cl, kb )
+function insertDocs ( cl, kb )
 {
-   var bytes = kb*1024 ;
-   for( var i = 0;i < bytes-1;i++ )
+   var bytes = kb * 1024;
+   for( var i = 0; i < bytes - 1; i++ )
    {
-      cl.insert( { a: 1 } ) ;
+      cl.insert( { a: 1 } );
    }
 }
 
-function testExprtImprtCsv()
+function testExprtImprtCsv ()
 {
-   var csvDir = tmpFileDir + "13524/" ;
-   cmd.run( "mkdir -p " + csvDir ) ;
-   var csvfile = csvDir + "sdbexprt13524.csv" ;
-   cmd.run( "rm -rf " + csvfile ) ;
-   
+   var csvDir = tmpFileDir + "13524/";
+   cmd.run( "mkdir -p " + csvDir );
+   var csvfile = csvDir + "sdbexprt13524.csv";
+   cmd.run( "rm -rf " + csvfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname + 
-                 " -l " + clname +
-                 " --file " + csvfile + 
-                 " --filelimit " + filelimit +
-                 " --type csv" +
-                 " --included false" +
-                 " --fields a" ;
-   testRunCommand( command ) ;
-   
-   var actSize = parseInt( File.stat( csvfile ).toObj()["size"] ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + csvfile +
+      " --filelimit " + filelimit +
+      " --type csv" +
+      " --included false" +
+      " --fields a";
+   testRunCommand( command );
+
+   var actSize = parseInt( File.stat( csvfile ).toObj()["size"] );
    if( actSize !== expSize )
    {
       throw buildException( "testExprtImprtCsv", null, "check file size",
-            expSize, actSize ) ;
+         expSize, actSize );
    }
-   
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + csvDir +
-             " --type csv " +
-             " --fields='a int'" ;  
-   testRunCommand( command ) ;
-   
-   cmd.run( "rm -rf " + csvDir ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --file " + csvDir +
+      " --type csv " +
+      " --fields='a int'";
+   testRunCommand( command );
+
+   cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtImprtJson()
+function testExprtImprtJson ()
 {
-   var jsonDir = tmpFileDir + "13527/" ;
-   cmd.run( "mkdir -p " + jsonDir ) ;
-   var jsonfile = jsonDir + "sdbexprt13527.json" ;
-   cmd.run( "rm -rf " + jsonfile ) ;
-   
+   var jsonDir = tmpFileDir + "13527/";
+   cmd.run( "mkdir -p " + jsonDir );
+   var jsonfile = jsonDir + "sdbexprt13527.json";
+   cmd.run( "rm -rf " + jsonfile );
+
    var command = installPath + "bin/sdbexprt" +
-                 " -s " + COORDHOSTNAME +
-                 " -p " + COORDSVCNAME + 
-                 " -c " + csname + 
-                 " -l " + clname +
-                 " --file " + jsonfile + 
-                 " --filelimit " + filelimit +
-                 " --type json" +
-                 " --fields a" ;
-   testRunCommand( command ) ;
-   
-   var actSize = parseInt( File.stat( jsonfile ).toObj()["size"] ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname +
+      " --file " + jsonfile +
+      " --filelimit " + filelimit +
+      " --type json" +
+      " --fields a";
+   testRunCommand( command );
+
+   var actSize = parseInt( File.stat( jsonfile ).toObj()["size"] );
    if( actSize > expSize )
    {
       throw buildException( "testExprtImprtJson", null, "check file size",
-            expSize, actSize ) ;
+         expSize, actSize );
    }
-   
+
    command = installPath + "bin/sdbimprt" +
-             " -s " + COORDHOSTNAME +
-             " -p " + COORDSVCNAME +
-             " -c " + csname +
-             " -l " + clname1 +
-             " --file " + jsonDir +
-             " --type json" ;  
-   testRunCommand( command ) ;
-   
-   cmd.run( "rm -rf " + jsonDir ) ;
+      " -s " + COORDHOSTNAME +
+      " -p " + COORDSVCNAME +
+      " -c " + csname +
+      " -l " + clname1 +
+      " --file " + jsonDir +
+      " --type json";
+   testRunCommand( command );
+
+   cmd.run( "rm -rf " + jsonDir );
 }
