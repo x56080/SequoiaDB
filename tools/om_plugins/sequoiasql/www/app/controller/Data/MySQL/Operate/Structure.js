@@ -213,7 +213,6 @@
                      case 'varchar':
                      case 'character':
                      case 'char':
-                     case 'decimal':
                      case 'numeric':
                      case 'int':
                      case 'bit':
@@ -226,6 +225,29 @@
                      case 'time':
                      case 'binary':
                         subSql += '(' + fieldInfo['length'] + ') ' ;
+                        break ;
+                     case 'decimal':
+                     case 'float':
+                     case 'double':
+                        if( fieldInfo['length'].indexOf( ',' ) >= 0 )
+                        {
+                           var tmpArray = fieldInfo['length'].split( ',' ) ;
+                           var first = true ;
+                           subSql += '(' ;
+                           $.each( tmpArray, function( index, value ){
+                              if( !first )
+                              {
+                                 subSql += ',' ;
+                              }
+                              subSql = subSql + value ;
+                              first = false ;
+                           } ) ;
+                           subSql += ')' ;
+                        }
+                        else
+                        {
+                           subSql += '(' + fieldInfo['length'] + ')' ;
+                        }
                         break ;
                      case 'set':
                      case 'enum':
@@ -667,6 +689,18 @@
          {
             length = '' ;
          }
+         else
+         {
+            length = length.toString() ;
+         }
+
+         if( ( type == 'double' || type == 'float' || type == 'decimal' ) && columnType.indexOf('(') > -1 )
+         {
+            var tempLength = columnType.slice( columnType.indexOf('(') + 1 ) ;
+            tempLength = tempLength.substring( 0, tempLength.length - 1 ) ;
+            length = tempLength ;
+         }
+
          $scope.EditFieldWindow['config'] = {
             'inputList': [
                {
@@ -747,7 +781,6 @@
                   case 'varchar':
                   case 'character':
                   case 'char':
-                  case 'decimal':
                   case 'numeric':
                   case 'int':
                   case 'bit':
@@ -760,6 +793,29 @@
                   case 'time':
                   case 'binary':
                      subSql += '(' + formVal['length'] + ') ' ;
+                     break ;
+                  case 'decimal':
+                  case 'float':
+                  case 'double':
+                     if( formVal['length'].indexOf( ',' ) >= 0 )
+                     {
+                        var tmpArray = formVal['length'].split( ',' ) ;
+                        var first = true ;
+                        subSql += '(' ;
+                        $.each( tmpArray, function( index, value ){
+                           if( !first )
+                           {
+                              subSql += ',' ;
+                           }
+                           subSql = subSql + value ;
+                           first = false ;
+                        } ) ;
+                        subSql += ')' ;
+                     }
+                     else
+                     {
+                        subSql += '(' + formVal['length'] + ')' ;
+                     }
                      break ;
                   case 'set':
                   case 'enum':

@@ -974,7 +974,6 @@
                      case 'varchar':
                      case 'character':
                      case 'char':
-                     case 'decimal':
                      case 'numeric':
                      case 'int':
                      case 'bit':
@@ -987,6 +986,29 @@
                      case 'time':
                      case 'binary':
                         subSql += '(' + fieldInfo['length'] + ') ' ;
+                        break ;
+                     case 'decimal':
+                     case 'float':
+                     case 'double':
+                        if( fieldInfo['length'].indexOf( ',' ) >= 0 )
+                        {
+                           var tmpArray = fieldInfo['length'].split( ',' ) ;
+                           var first = true ;
+                           subSql += '(' ;
+                           $.each( tmpArray, function( index, value ){
+                              if( !first )
+                              {
+                                 subSql += ',' ;
+                              }
+                              subSql = subSql + value ;
+                              first = false ;
+                           } ) ;
+                           subSql += ')' ;
+                        }
+                        else
+                        {
+                           subSql += '(' + fieldInfo['length'] + ')' ;
+                        }
                         break ;
                      case 'set':
                      case 'enum':
