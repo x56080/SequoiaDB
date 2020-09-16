@@ -2529,8 +2529,16 @@ namespace engine
       }
 
       rc = _checkPrimaryStatus() ;
-      if ( rc )
+      if ( SDB_OK != rc )
       {
+         PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _checkRollbackStatus() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDINFO, "Failed to check rollback status, rc: %d", rc ) ;
          goto error ;
       }
 
