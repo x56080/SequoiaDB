@@ -115,7 +115,8 @@ namespace engine
                              UINT32 workFile,
                              const DPS_LSN &curLSN,
                              UINT32 curLsnLength,
-                             const DPS_LSN &memBeginLSN )
+                             const DPS_LSN &memBeginLSN,
+                             const dpsLogSummary &summary )
    {
       INT32 rc = SDB_OK ;
 
@@ -127,6 +128,7 @@ namespace engine
       _content._curLsnLength = curLsnLength ;
       _content._memBeginLsnVer = memBeginLSN.version ;
       _content._memBeginLsnOffset = memBeginLSN.offset ;
+      _content._summary = summary ;
 
       rc = writeContent() ;
       if ( SDB_OK == rc )
@@ -137,7 +139,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) succeed",
+                                          "MemBeginLsn: %d.%lld, "
+                                          "MinRecoverableTime: %llu, "
+                                          "MaxTransCommitTime: %llu ) succeed",
                  _content._oldestLSNOffset,
                  _content._beginFile,
                  _content._workFile,
@@ -145,7 +149,9 @@ namespace engine
                  _content._curLsnOffset,
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
-                 _content._memBeginLsnOffset ) ;
+                 _content._memBeginLsnOffset,
+                 _content._summary._minRecoverableTime,
+                 _content._summary._maxTransCommitTime ) ;
       }
       else
       {
@@ -154,7 +160,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) "
+                                          "MemBeginLsn: %d.%lld, "
+                                          "MinRecoverableTime: %llu, "
+                                          "MaxTransCommitTime: %llu ) "
                                           "failed, rc: %d",
                  _content._oldestLSNOffset,
                  _content._beginFile,
@@ -164,6 +172,8 @@ namespace engine
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
                  _content._memBeginLsnOffset,
+                 _content._summary._minRecoverableTime,
+                 _content._summary._maxTransCommitTime,
                  rc ) ;
       }
 
@@ -210,7 +220,9 @@ namespace engine
                                        "WorkFile: %d, "
                                        "CurLsn: %d.%lld, "
                                        "CurLsnLength: %u, "
-                                       "MemBeginLsn: %d.%lld ) succeed",
+                                       "MemBeginLsn: %d.%lld, "
+                                       "MinRecoverableTime: %llu, "
+                                       "MaxTransCommitTime: %llu ) succeed",
               _content._oldestLSNOffset,
               _content._beginFile,
               _content._workFile,
@@ -218,7 +230,9 @@ namespace engine
               _content._curLsnOffset,
               _content._curLsnLength,
               _content._memBeginLsnVer,
-              _content._memBeginLsnOffset ) ;
+              _content._memBeginLsnOffset,
+              _content._summary._minRecoverableTime,
+              _content._summary._maxTransCommitTime ) ;
 
    done:
       return rc ;
@@ -329,13 +343,13 @@ namespace engine
       return writeContent() ;
    }
 
-   INT32 _dpsMetaFile::invalidateStatus()
+   INT32 _dpsMetaFile::invalidateStatus( BOOLEAN resetSummary )
    {
       INT32 rc = SDB_OK ;
 
       if ( !_invalidateStatus )
       {
-         _content.resetStatus() ;
+         _content.resetStatus( resetSummary ) ;
          rc =  writeContent() ;
          if ( SDB_OK == rc )
          {

@@ -109,7 +109,7 @@ namespace engine
 
       _dpsMetaFileContent ( DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET )
       {
-         resetStatus() ;
+         resetStatus( TRUE ) ;
 
          _oldestLSNOffset = offset ;
          _reserved = 0 ;
@@ -119,7 +119,7 @@ namespace engine
                      "Dps meta file content size must be 4K" ) ;
       }
 
-      void  resetStatus()
+      void  resetStatus( BOOLEAN resetSummary = FALSE )
       {
          _beginFile        = DPS_INVALID_FILE_SN ;
          _workFile         = DPS_INVALID_FILE_SN ;
@@ -128,13 +128,16 @@ namespace engine
          _curLsnOffset     = DPS_INVALID_LSN_OFFSET ;
          _memBeginLsnVer   = DPS_INVALID_LSN_VERSION ;
          _memBeginLsnOffset= DPS_INVALID_LSN_OFFSET ;
-         _summary.reset() ;
+         if ( resetSummary )
+         {
+            _summary.reset() ;
+         }
       }
 
       void  reset()
       {
          _oldestLSNOffset  = DPS_INVALID_LSN_OFFSET ;
-         resetStatus() ;
+         resetStatus( TRUE ) ;
       }
 
       DPS_LSN_OFFSET getOldestLSNOffset() const
@@ -177,9 +180,10 @@ namespace engine
                   UINT32 workFile,
                   const DPS_LSN &curLSN,
                   UINT32 curLsnLength,
-                  const DPS_LSN &memBeginLSN ) ;
+                  const DPS_LSN &memBeginLSN,
+                  const dpsLogSummary &summary ) ;
 
-      INT32 invalidateStatus() ;
+      INT32 invalidateStatus( BOOLEAN resetSummary ) ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
       INT32 writeTransMeta( DPS_LSN_OFFSET offset,
                             const dpsLogSummary &summary ) ;

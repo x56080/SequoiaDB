@@ -371,9 +371,7 @@ namespace engine
       if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
            SDB_ROLE_STANDALONE != pmdGetDBRole() )
       {
-         rc = syncTransInfoFromLocal( startLsnOffset,
-                                      DPS_INVALID_TRANS_TIME,
-                                      DPS_INVALID_TRANS_TIME ) ;
+         rc = syncTransInfoFromLocal( startLsnOffset ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",
@@ -2339,6 +2337,14 @@ namespace engine
          {
             addHisTrans( transID, histInfo, checkRstPITWindow ) ;
          }
+
+         // update restore PIT window if needed
+         if ( checkRstPITWindow &&
+              origID.isGlobTrans() &&
+              DPS_TRANS_COMMIT == status )
+         {
+            updateRestorePITWindow( transTime.getTime() ) ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_SVTRANSINFO ) ;
@@ -2844,14 +2850,6 @@ namespace engine
          /// NOTE: will be gc by lowTran/expiredTran
          DPS_TRANS_ID origID = transID.getOrigTransID() ;
 
-         // update restore PIT window if needed
-         if ( checkRstPITWindow &&
-              origID.isGlobTrans() &&
-              DPS_TRANS_COMMIT == histInfo._status )
-         {
-            updateRestorePITWindow( histInfo._commitTime.getTime() ) ;
-         }
-
          // find and lock bucket
          TRANS_HIST_MAP::Bucket &bucket = _histGlobMap.getBucket( origID ) ;
          BUCKET_XLOCK( bucket ) ;
@@ -3067,9 +3065,7 @@ namespace engine
       _isNeedSyncTrans = isNeed;
    }
 
-   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
-                                             UINT64 minRecoverableTime,
-                                             UINT64 maxTransCommitTime )
+   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn )
    {
       INT32 rc = SDB_OK ;
       DPS_LSN curLsn ;
@@ -3083,10 +3079,6 @@ namespace engine
 
       // clear transaction info
       clearTransInfo() ;
-
-      // set restore PIT window
-      setMinRecoverableTime( minRecoverableTime ) ;
-      setMaxTransCommitTime( maxTransCommitTime ) ;
 
       while ( curLsn.offset!= DPS_INVALID_LSN_OFFSET &&
               curLsn.compareOffset( dpsCB->expectLsn().offset ) < 0 )

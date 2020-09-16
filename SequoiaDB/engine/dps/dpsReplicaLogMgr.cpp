@@ -159,14 +159,14 @@ namespace engine
       /// read meta content
       metaContent = _metaFile.getContent() ;
       /// invalid meta status
-      rc = _metaFile.invalidateStatus() ;
+      rc = _metaFile.invalidateStatus( !pmdGetStartup().isOK() ) ;
       PD_RC_CHECK( rc, PDERROR, "Invalidate dps meta status failed, rc: %d",
                    rc ) ;
 
       /// when start from crash
       if ( metaContent.isStatusValid() && !pmdGetStartup().isOK() )
       {
-         metaContent.resetStatus() ;
+         metaContent.resetStatus( TRUE ) ;
       }
 
       // initialize log files
@@ -249,7 +249,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed, rc: %d", rc ) ;
       }
 
-      rc = _metaFile.invalidateStatus() ;
+      rc = _metaFile.invalidateStatus( FALSE ) ;
       if ( rc )
       {
          goto error ;
@@ -1519,11 +1519,13 @@ namespace engine
       /// save info to meta file
       {
          DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
+         dpsLogSummary summary ;
          UINT32 curLsnLength = 0 ;
 
          if ( _transCB )
          {
             offset = _transCB->getOldestBeginLsn() ;
+            _transCB->dumpLogSummary( FALSE, summary ) ;
          }
 
          if ( offset == DPS_INVALID_LSN_OFFSET )
@@ -1543,7 +1545,8 @@ namespace engine
                          _logger.getWorkPos(),
                          _currentLsn,
                          curLsnLength,
-                         _getStartLsn() ) ;
+                         _getStartLsn(),
+                         summary ) ;
       }
 
    done :

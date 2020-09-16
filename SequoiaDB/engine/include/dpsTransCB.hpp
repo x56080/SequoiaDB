@@ -840,9 +840,7 @@ namespace engine
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;
 
-      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
-                                    UINT64 minRecoverableTime,
-                                    UINT64 maxTransCommitTime ) ;
+      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn ) ;
 
       // get record-X-lock: also get the space-IS-lock and collection-IX-lock
       // get collection-X-lock: also get the space-IX-lock
