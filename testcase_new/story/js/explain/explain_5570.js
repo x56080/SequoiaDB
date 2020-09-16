@@ -9,13 +9,13 @@ testConf.clName = COMMCLNAME + "_mcl_5570";
 testConf.clOpt = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", Compressed: true };
 main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    var subCLName = COMMCLNAME + "_scl_5570";
    var idxName = CHANGEDPREFIX + "_idx";
 
    commDropCL( db, COMMCSNAME, subCLName, true, true, "Failed to drop CL in the begin." );
-   commCreateCL( db, COMMCSNAME, subCLName, { ShardingKey: { a: 1 }, ShardingType: "hash",Compressed: true } );
+   commCreateCL( db, COMMCSNAME, subCLName, { ShardingKey: { a: 1 }, ShardingType: "hash", Compressed: true } );
 
    attachCLAndInsertRecs( testPara.testCL, subCLName );
    testPara.testCL.createIndex( idxName, { b: 1 } );
@@ -23,9 +23,8 @@ function test(testPara)
    checkResult( rc );
 }
 
-function attachCLAndInsertRecs( dbcl, subCLName )
+function attachCLAndInsertRecs ( dbcl, subCLName )
 {
-   println( "\n---Begin to attach cl,then insert records." );
    var options = { LowBound: { "a": { $minKey: 1 } }, UpBound: { "a": { $maxKey: 1 } } };
    dbcl.attachCL( COMMCSNAME + "." + subCLName, options );
 
@@ -35,7 +34,6 @@ function attachCLAndInsertRecs( dbcl, subCLName )
 
 function explain ( cl )
 {
-   println( "\n---Begin to find and explain." );
 
    var rc = [];
    var rc0 = cl.find().explain( { Run: true } ).current().toObj();
@@ -50,7 +48,6 @@ function explain ( cl )
 
 function checkResult ( rc )
 {
-   println( "\n---Begin to check result." );
 
    //compare the returned records for rc[0]
    var Query = JSON.stringify( rc[0]["SubCollections"][0]["Query"]["$and"] );
@@ -62,9 +59,7 @@ function checkResult ( rc )
    if( Query !== expQuery || IXBound !== expIXBound
       || NeedMatch !== expNeedMatch )
    {
-      throw buildException( "checkResult", null, "[ rc0 ]",
-         "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]",
-         "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
+      throw new Error( "checkResult", null, "[ rc0 ]" + "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]" + "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
    }
 
    //compare the returned records for rc[1]
@@ -78,9 +73,7 @@ function checkResult ( rc )
    if( Query !== expQuery || IXBound !== expIXBound
       || NeedMatch !== expNeedMatch )
    {
-      throw buildException( "checkResult", null, "[ rc1 ]",
-         "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]",
-         "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
+      throw new Error( "checkResult", null, "[ rc1 ]" + "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]" + "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
    }
 
    //compare the returned records for rc[2]
@@ -95,9 +88,7 @@ function checkResult ( rc )
    if( Query !== expQuery || IXBound !== expIXBound
       || NeedMatch !== expNeedMatch )
    {
-      throw buildException( "checkResult", null, "[ rc2 ]",
-         "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]",
-         "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
+      throw new Error( "checkResult", null, "[ rc2 ]" + "[Query:" + expQuery + ",IXBound:" + expIXBound + ",NeedMatch:" + expNeedMatch + "]" + "[Query:" + Query + ",IXBound:" + IXBound + ",NeedMatch:" + NeedMatch + "]" );
    }
 
 }

@@ -8,12 +8,12 @@ testConf.clName = CHANGEDPREFIX + "_22485_22486";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    var indexName = "index_22485_22486";
    testPara.testCL.createIndex( indexName, { "a": 1 }, false );
 
-   var expIXBound = { "a": [[ "", {} ]]};
+   var expIXBound = { "a": [["", {}]] };
    var cond = { "a": { "$regex": "^rg", "$options": "i" } };
    var ixBound = testPara.testCL.find( cond ).hint( { "": indexName } ).explain().current().toObj().IXBound;
    if( !commCompareObject( expIXBound, ixBound ) )
@@ -21,12 +21,11 @@ function test( testPara )
       throw new Error( "expIXBound: " + JSON.stringify( expIXBound ) + ", ixBound: " + JSON.stringify( ixBound ) );
    }
 
-   expIXBound = { "a": [[{ "$regex": "^rg", "$options": "i" }, { "$regex": "^rg", "$options": "i" }]]};
+   expIXBound = { "a": [[{ "$regex": "^rg", "$options": "i" }, { "$regex": "^rg", "$options": "i" }]] };
    cond = { "a": { "$et": { "$regex": "^rg", "$options": "i" } } };
    ixBound = testPara.testCL.find( cond ).hint( { "": indexName } ).explain().current().toObj().IXBound;
    if( !commCompareObject( expIXBound, ixBound ) )
    {
       throw new Error( "expIXBound: " + JSON.stringify( expIXBound ) + ", ixBound: " + JSON.stringify( ixBound ) );
-   } 
+   }
 }
-
