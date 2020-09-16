@@ -5,24 +5,12 @@
 *               2015-03-28 xiaojun Hu    Changed
 *               2019-10-21  luweikang modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -107,4 +95,3 @@ function main ()
    commDropCL( db, COMMCSNAME, mainCLName );
    commDropCL( db, COMMCSNAME, subCLName );
 }
-

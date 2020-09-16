@@ -1,51 +1,30 @@
 /******************************************************************************
-*@Description : 1. range collection alters replsize
+*@Description : 1. normal collection alters replsize
 *@Modify list :
-*               2014-07-07  pusheng Ding  Init
+*               2014-07-08  pusheng Ding  Init
 *               2015-03-28  xiaojun Hu    Changed
-*               2017-02-08  zhaoyu   Changed
 *               2019-10-21  luweikang modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
-      return;
-   }
-   var groupName = commGetGroups( db );
-   if( groupName.length < 2 )
-   {
-      println( "group num less 2" );
       return;
    }
 
-   var clName = "alter8177";
-   var srcGroup = groupName[0][0]["GroupName"];
-   var tarGroup = groupName[1][0]["GroupName"];
+   var clName = "alter8181";
    commDropCL( db, COMMCSNAME, clName );
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { id: 1 }, ShardingType: "range", Group: srcGroup, ReplSize: 1 } );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 1 } );
 
    //alters replsize
    cl.alter( { ReplSize: 2 } );
 
    //check snapshot
-   var snap1 = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
-   var replsize = snap1.current().toObj()['ReplSize'];
+   var snap = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
+   var replsize = snap.current().toObj()['ReplSize'];
    if( replsize !== 2 )
    {
       throw new Error( "check replsize, \nexpect: 2, \nbut found: " + replsize );
@@ -57,18 +36,22 @@ function main ()
       data.push( { "id": i, "text": "test alter " + i } );
    }
    cl.insert( data );
-   cl.split( srcGroup, tarGroup, 50 );
+
+   //alters replsize
    cl.alter( { ReplSize: 3 } );
 
    //check snapshot
-   var snap2 = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
-   var replsize = snap2.current().toObj()['ReplSize'];
+   var snap = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
+   var replsize = snap.current().toObj()['ReplSize'];
    if( replsize !== 3 )
    {
       throw new Error( "check replsize, \nexpect: 3, \nbut found: " + replsize );
    }
 
+   cl.remove();
    cl.insert( data );
+   cl.insert( data );
+
    var num = cl.count();
    if( num != 2000 )
    {
@@ -78,4 +61,3 @@ function main ()
    //clean test-env
    commDropCL( db, COMMCSNAME, clName );
 }
-

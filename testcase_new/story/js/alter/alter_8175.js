@@ -6,7 +6,6 @@
                2020-07-06 liyuanyue modify
 ******************************************************************************/
 testConf.skipStandAlone = true;
-
 main( test );
 
 function test ()
