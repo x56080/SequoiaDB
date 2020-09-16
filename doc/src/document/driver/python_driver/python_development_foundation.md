@@ -55,7 +55,7 @@
   ```lang-python
   # creat dict object
   record = {"name":"Tom", "age":24}
-  oid = cl.insert ( record ) ;
+  oid = cl.insert ( record )
   ```
   
   record 为输入参数，为要插入的数据。dict 对象将会被转换成 BSON 插入到集合中。oid 是插入该记录时，返回的 BSON 结构的 ObjectId。
@@ -84,7 +84,7 @@
   ```lang-python
   index_name = "index_name"
   idx = OrderedDict([('name', 1), ('age', -1)])
-  cl.create_index ( idx, index_name, False, False ) ;
+  cl.create_index ( idx, index_name, False, False )
   ```
   
   在集合对象 cl 中创建一个以 “name” 为升序，“age” 为降序的索引。
@@ -145,8 +145,8 @@
   rg = db.get_replica_group_by_name("group1")
   
   # 获取数据主节点
-  master = rg.get_master() ;
+  master = rg.get_master()
   
   # 获取数据备节点
-  slave = rg.get_slave() ;
+  slave = rg.get_slave()
   ```
