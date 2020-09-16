@@ -29,6 +29,10 @@ function main ()
    testFilelimit13537( cl, kb, "2K", "csv", exportDir );
 
    commDropCL( db, csname, clname );
+
+   // clean *.rec file
+   var tmpRec = csname + "_" + clname + "*.rec";
+   cmd.run( "rm -rf " + tmpRec );
 }
 
 //指定文件大小=数据量大小
