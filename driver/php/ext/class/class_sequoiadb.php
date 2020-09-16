@@ -56,6 +56,14 @@ class SequoiaDB
    define( "SDB_SNAP_SVCTASKS",            14 ) ;
    /** Get the snapshot of sequences. */
    define( "SDB_SNAP_SEQUENCES",           15 ) ;
+   /** Get the snapshot of queries */
+   define( "SDB_SNAP_QUERIES",             18 ) ;
+   /** Get the snapshot of latch waits */
+   define( "SDB_SNAP_LATCHWAITS",          19 ) ;
+   /** Get the snapshot of lock waits */
+   define( "SDB_SNAP_LOCKWAITS",           20 ) ;
+   /** Get the snapshot of index statistics */
+   define( "SDB_SNAP_INDEXSTATS",          21 ) ;
 
    /**
     * Get the snapshot of all the collections.
@@ -135,9 +143,9 @@ class SequoiaDB
    /** Get the list of users. */
    define( "SDB_LIST_USERS",                    16 ) ;
    /** Get the list of the collections in specified domain. */
-   define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
+   define( "SDB_LIST_CL_IN_DOMAIN",             129 ) ;
    /** Get the list of the collection spaces in specified domain. */
-   define( "SDB_LIST_CS_IN_DOMAIN",     130 ) ;
+   define( "SDB_LIST_CS_IN_DOMAIN",             130 ) ;
 
    /**
     * SequoiaDB class constructor.
@@ -640,24 +648,29 @@ class SequoiaDB
    /**
     * Get the snapshot.
     *
-    * @param $type	an integer argument. The snapshot type as below: @code
-    *                                                               SDB_SNAP_CONTEXTS              : Get the snapshot of all the contexts
-    *                                                               SDB_SNAP_CONTEXTS_CURRENT      : Get the snapshot of current context
-    *                                                               SDB_SNAP_SESSIONS              : Get the snapshot of all the sessions
-    *                                                               SDB_SNAP_SESSIONS_CURRENT      : Get the snapshot of current session
-    *                                                               SDB_SNAP_COLLECTIONS           : Get the snapshot of all the collections
-    *                                                               SDB_SNAP_COLLECTIONSPACES      : Get the snapshot of all the collection spaces
-    *                                                               SDB_SNAP_DATABASE              : Get the snapshot of the database
-    *                                                               SDB_SNAP_SYSTEM                : Get the snapshot of the system
-    *                                                               SDB_SNAP_CATALOG               : Get the snapshot of the catalog
-    *                                                               SDB_SNAP_TRANSACTIONS          : Get the snapshot of transactions
-    *                                                               SDB_SNAP_TRANSACTIONS_CURRENT  : Get the snapshot of all the transactions in current session
-    *                                                               SDB_SNAP_ACCESSPLANS           : Get the snapshot of cached access plans
-    *                                                               SDB_SNAP_HEALTH                : Get the snapshot of node health detection
-    *                                                               SDB_SNAP_CONFIGS               : Get the snapshot of node configurations
-    *                                                               SDB_SNAP_SVCTASKS              : Get the snapshot of service tasks
-    *                                                               SDB_SNAP_SEQUENCES             : Get the snapshot of sequences
-    *                                                               @endcode
+    * @param $type   an integer argument. The snapshot type as below:
+    *                   @code
+    *                   SDB_SNAP_CONTEXTS              : Get the snapshot of all the contexts
+    *                   SDB_SNAP_CONTEXTS_CURRENT      : Get the snapshot of current context
+    *                   SDB_SNAP_SESSIONS              : Get the snapshot of all the sessions
+    *                   SDB_SNAP_SESSIONS_CURRENT      : Get the snapshot of current session
+    *                   SDB_SNAP_COLLECTIONS           : Get the snapshot of all the collections
+    *                   SDB_SNAP_COLLECTIONSPACES      : Get the snapshot of all the collection spaces
+    *                   SDB_SNAP_DATABASE              : Get the snapshot of the database
+    *                   SDB_SNAP_SYSTEM                : Get the snapshot of the system
+    *                   SDB_SNAP_CATALOG               : Get the snapshot of the catalog
+    *                   SDB_SNAP_TRANSACTIONS          : Get the snapshot of transactions
+    *                   SDB_SNAP_TRANSACTIONS_CURRENT  : Get the snapshot of all the transactions in current session
+    *                   SDB_SNAP_ACCESSPLANS           : Get the snapshot of cached access plans
+    *                   SDB_SNAP_HEALTH                : Get the snapshot of node health detection
+    *                   SDB_SNAP_CONFIGS               : Get the snapshot of node configurations
+    *                   SDB_SNAP_SVCTASKS              : Get the snapshot of service tasks
+    *                   SDB_SNAP_SEQUENCES             : Get the snapshot of sequences
+    *                   SDB_SNAP_QUERIES               : Get the snapshot of queries
+    *                   SDB_SNAP_LATCHWAITS            : Get the snapshot of latch waits
+    *                   SDB_SNAP_LOCKWAITS             : Get the snapshot of lock waits
+    *                   SDB_SNAP_INDEXSTATS            : Get the snapshot of index statistics
+    *                   @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
     *
