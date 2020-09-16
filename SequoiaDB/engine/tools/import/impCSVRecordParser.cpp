@@ -412,6 +412,155 @@ namespace import
       return ss.str();
    }
 
+   static INT32 _parseStringLimit( const CHAR* data, INT32 length,
+                                   CSVFieldOpt& opt )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 len    = length ;
+      INT32 min    = 0 ;
+      INT32 max    = -1 ;
+      INT32 numLen = 0 ;
+      CHAR* str    = (CHAR*)data ;
+      SDB_ASSERT( NULL != data, "data can't be NULL" ) ;
+
+      if ( LEFT_BRACKET != *str )
+      {
+         goto done ;
+      }
+
+      ++str ;
+      --len ;
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( RIGHT_BRACKET == *str )
+      {
+         goto done ;
+      }
+
+      if ( !isdigit( *str ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = _str2i( str, len, min, numLen ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "invalid string argument" ) ;
+         goto error ;
+      }
+
+      str += numLen ;
+      len -= numLen ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( RIGHT_BRACKET == *str )
+      {
+         max = min ;
+         min = 0 ;
+         opt.opt.stringOpt.minLength = min ;
+         opt.opt.stringOpt.maxLength = max ;
+         opt.hasOpt = TRUE ;
+         goto done ;
+      }
+      else if ( COMMA != *str )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ++str ;
+      --len ;
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      numLen = 0 ;
+      rc = _str2i( str, len, max, numLen ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "invalid string max length" ) ;
+         goto error ;
+      }
+
+      if ( max < 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "invalid string max length" ) ;
+         goto error ;
+      }
+
+      str += numLen ;
+      len -= numLen ;
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 == len )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( RIGHT_BRACKET != *str )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ++str ;
+      --len ;
+
+      _skipSpace( &str, len ) ;
+
+      if ( 0 != len )
+      {
+         rc = SDB_INVALIDARG; 
+         goto error ;
+      }
+
+      if ( min > max && max > 0 )
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG( PDERROR, "string min length can't be greater than"
+                          " max length" ) ;
+         goto error ;
+      }
+
+      opt.opt.stringOpt.minLength = min ;
+      opt.opt.stringOpt.maxLength = max ;
+      opt.hasOpt = TRUE ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    static INT32 _parseDecimalPrecision(const CHAR* data,
                                        INT32 length,
                                        CSVFieldOpt& opt)
@@ -796,9 +945,23 @@ namespace import
       case 'S':
          // string
          // skip
-         if (CSV_STR_TYPE_EQ(CSV_STR_STRING, str, length))
+         if ( CSV_STR_TYPE_EQ( CSV_STR_STRING, str, length ) )
          {
-            type = CSV_TYPE_STRING;
+            type = CSV_TYPE_STRING ;
+         }
+         else if ( length > (INT32)CSV_STR_STRING_SIZE &&
+                   0 == ossStrncasecmp( str, CSV_STR_STRING,
+                                        CSV_STR_STRING_SIZE ) )
+         {
+            rc = _parseStringLimit( data + CSV_STR_STRING_SIZE,
+                                    length - CSV_STR_STRING_SIZE, opt ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "invalid string type" ) ;
+               goto error ;
+            }
+
+            type = CSV_TYPE_STRING ;
          }
          else if (CSV_STR_TYPE_EQ(CSV_STR_SKIP, str, length))
          {
@@ -3831,6 +3994,18 @@ namespace import
                goto error;
             }
          }
+         if ( opt.hasOpt )
+         {
+            if ( fieldValue.strVal.length < opt.opt.stringOpt.minLength )
+            {
+               type = CSV_TYPE_NULL ;
+            }
+            else if ( opt.opt.stringOpt.maxLength > 0 &&
+                      fieldValue.strVal.length > opt.opt.stringOpt.maxLength )
+            {
+               fieldValue.strVal.length = opt.opt.stringOpt.maxLength ;
+            }
+         }
          goto done;
       case CSV_TYPE_AUTO_TIMESTAMP:
          autoDateTime = TRUE;
@@ -3962,7 +4137,7 @@ namespace import
          if (CSV_TYPE_NULL != type && CSV_TYPE_AUTO != type)
          {
             rc = _stringToRawNull(data, length, fieldDel, fieldDelLen,
-                               valueLength, fieldEnd);
+                                  valueLength, fieldEnd);
             if (SDB_OK == rc)
             {
                type = CSV_TYPE_NULL;

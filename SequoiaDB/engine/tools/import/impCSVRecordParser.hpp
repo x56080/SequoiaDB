@@ -135,6 +135,12 @@ namespace import
       }
    };
 
+   struct CSVStringOpt
+   {
+      INT32 minLength ;
+      INT32 maxLength ;
+   } ;
+
    struct CSVDecimalOpt
    {
       INT32 precision;
@@ -152,6 +158,7 @@ namespace import
    {
       BOOLEAN hasOpt;
       union {
+         CSVStringOpt stringOpt ;
          CSVDecimalOpt decimalOpt;
          CSVTimestampOpt timestampOpt ;
       } opt;
