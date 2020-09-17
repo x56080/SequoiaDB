@@ -35,49 +35,25 @@ function insertDiffDatas ( dbcl, insertNum )
 **************************************/
 function insertSameDatas ( dbcl, insertNum, value )
 {
-   try
+   //插入相同的记录
+   var doc = [];
+   for( var i = 0; i < insertNum; i++ )
    {
-      //插入相同的记录
-      var doc = [];
-      for( var i = 0; i < insertNum; i++ )
-      {
-         doc.push(
-            {
-               a: value, a0: value, a1: value, a2: value, a3: value, a4: value, a5: value, a6: value, a7: value, a8: value, a9: value,
-               a10: value, a11: value, a12: value, a13: value, a14: value, a15: value, a16: value, a17: value, a18: value, a19: value,
-               a20: value, a21: value, a22: value, a23: value, a24: value, a25: value, a26: value, a27: value, a28: value, a29: value,
-               a30: value, a31: value, a32: value, a33: value, a34: value, a35: value, a36: value, a37: value, a38: value, a39: value,
-               a40: value, a41: value, a42: value, a43: value, a44: value, a45: value, a46: value, a47: value, a48: value, a49: value,
-               a50: value, a51: value, a52: value, a53: value, a54: value, a55: value, a56: value, a57: value, a58: value, a59: value,
-               a60: value, a61: value, a62: value, a63: value, a64: value, a65: value, a66: value, a67: value, a68: value, a69: value,
-               b: value, c: "test" + value
-            } );
-      }
-      dbcl.insert( doc );
+      doc.push(
+         {
+            a: value, a0: value, a1: value, a2: value, a3: value, a4: value, a5: value, a6: value, a7: value, a8: value, a9: value,
+            a10: value, a11: value, a12: value, a13: value, a14: value, a15: value, a16: value, a17: value, a18: value, a19: value,
+            a20: value, a21: value, a22: value, a23: value, a24: value, a25: value, a26: value, a27: value, a28: value, a29: value,
+            a30: value, a31: value, a32: value, a33: value, a34: value, a35: value, a36: value, a37: value, a38: value, a39: value,
+            a40: value, a41: value, a42: value, a43: value, a44: value, a45: value, a46: value, a47: value, a48: value, a49: value,
+            a50: value, a51: value, a52: value, a53: value, a54: value, a55: value, a56: value, a57: value, a58: value, a59: value,
+            a60: value, a61: value, a62: value, a63: value, a64: value, a65: value, a66: value, a67: value, a68: value, a69: value,
+            b: value, c: "test" + value
+         } );
    }
-   catch( e )
-   {
-      throw buildException( "insertSameDatas()", e, "insert", "insert success", e );
-   }
+   dbcl.insert( doc );
 }
 
-/************************************
-*@Description: 执行统计
-*@author:      zhaoyu
-*@createDate:  2017.11.8
-**************************************/
-function analyze ( db, options )
-{
-   if( typeof ( options ) == "undefined" ) { options = null; }
-   try
-   {
-      db.analyze( options );
-   }
-   catch( e )
-   {
-      throw buildException( "analyze()", e, "analyze", "analyze success", e );
-   }
-}
 
 /************************************
 *@Description: 获取所有组的数据节点
@@ -142,7 +118,6 @@ function getPrimaryNodeLSNs ( db, groups )
          }
       }
    }
-
    return LSNs;
 }
 
@@ -387,7 +362,6 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          //是否存在cl统计表信息与预期结果校验
          if( ( clExistStat ^ clStatFlag ) === 1 )
          {
-            println( "host:" + nodesInGroup[j] + "\nclExistStat:" + clExistStat + "\nclStatFlag:" + clStatFlag );
             throw new Error( "NO_CL_STAT" );
          }
 
@@ -398,8 +372,6 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          //需要检查索引统计表信息时，统计表信息不能为空
          if( indexExistStat === true && indexStats.length < 1 )
          {
-            println( "indexExistStat:" + indexExistStat );
-            println( "indexStats.length:" + indexStats.length );
             throw new Error( "NO_INDEX_STAT" );
          }
 
@@ -422,14 +394,11 @@ function checkStat ( db, csName, clName, indexName, clExistStat, indexExistStat,
          //是否存在索引统计表信息与预期结果校验
          if( ( indexExistStat ^ indexStatFlag ) === 1 )
          {
-            println( "host:" + nodesInGroup[j] + "\nIndexName:" + indexName + "\nindexExistStat:" + indexExistStat + "\nindexStatFlag:" + indexStatFlag );
             throw new Error( "NO_INDEX_STAT" );
          }
 
       }
    }
-   println( "check stat sucess" );
-
 }
 
 /************************************
@@ -457,7 +426,6 @@ function getCommonExplain ( dbcl, findConf, sortConf, hintConf )
    }
    explains.push( explainObj );
    return explains;
-
 }
 
 /************************************
@@ -488,7 +456,6 @@ function getSplitExplain ( dbcl, findConf, sortConf, hintConf )
       explains.push( explainObj );
    }
    return explains;
-
 }
 
 /************************************
@@ -524,7 +491,6 @@ function getMainclExplain ( dbcl, findConf, sortConf, hintConf )
             if( ( f == "Name" ) || ( f == "ScanType" ) || ( f == "IndexName" ) || ( f == "ReturnNum" ) )
             {
                explainObj[f] = subCollections[j][f];
-
             }
          }
          explains.push( explainObj );
@@ -562,15 +528,8 @@ function checkExplain ( actExplains, expExplains )
 
    for( var i = 0; i < expExplains.length; i++ )
    {
-      if( JSON.stringify( newActArray ).indexOf( JSON.stringify( newExpArray[i] ) ) === -1 )
-      {
-         throw buildException( "checkExplain", "CHECK_EXPLAIN_FAIL", "check explain failed!",
-            JSON.stringify( newExpArray[i] ), JSON.stringify( newActArray ) );
-      }
+      assert.notEqual( JSON.stringify( newActArray ).indexOf( JSON.stringify( newExpArray[i] ) ), -1 );
    }
-
-   println( "check explain success" )
-
 }
 
 /************************************
@@ -641,33 +600,23 @@ return the informations of the srcGroups and targetGroups
 **************************************/
 function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 {
-   try
+
+   var targetGroupNums = 1;
+   var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
+   var srcGrName = groupsInfo[0].GroupName;
+   var tarGrName = groupsInfo[1].GroupName;
+   var CL = db.getCS( csName ).getCL( clName );
+   if( typeof ( startCondition ) === "number" )//percentage split
    {
-      var targetGroupNums = 1;
-      var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
-      var srcGrName = groupsInfo[0].GroupName;
-      var tarGrName = groupsInfo[1].GroupName;
-      println( csName + "." + clName + "'s target group: " + tarGrName );
-      var CL = db.getCS( csName ).getCL( clName );
-      println( "--begin split" )
-      if( typeof ( startCondition ) === "number" )//percentage split
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-      }
-      else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-         println( "startCondition=" + startCondition )
-      }
-      else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition, endCondition );
-      }
-      println( "--end split" )
+      CL.split( srcGrName, tarGrName, startCondition );
    }
-   catch( e )
+   else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
    {
-      throw e;
+      CL.split( srcGrName, tarGrName, startCondition );
+   }
+   else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
+   {
+      CL.split( srcGrName, tarGrName, startCondition, endCondition );
    }
    return groupsInfo;
 }
@@ -678,15 +627,7 @@ function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 **************************************/
 function getGroupName ( db, mustBePrimary )
 {
-   var RGname = null;
-   try
-   {
-      RGname = db.listReplicaGroups().toArray();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var RGname = db.listReplicaGroups().toArray();
    var j = 0;
    var arrGroupName = Array();
    for( var i = 1; i != RGname.length; ++i )
@@ -723,36 +664,25 @@ function getGroupName ( db, mustBePrimary )
 **************************************/
 function getSrcGroup ( csName, clName )
 {
-   try
+   if( undefined == csName || undefined == clName )
    {
-      if( undefined == csName || undefined == clName )
-      {
-         println( "cs name: " + csName + ", clName: " + clName );
-         throw "cs or cl name is undefined";
-      }
-      var tableName = csName + "." + clName;
-      var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
-      var catadb = new Sdb( cataMaster[0], cataMaster[1] );
-      var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
-      var srcGroupName;
-      for( var i = 0; i < Group.length; ++i )
-      {
-         var eachID = eval( "( " + Group[i] + " )" );
-         if( tableName == eachID["Name"] )
-         {
-            srcGroupName = eachID["CataInfo"][0]["GroupName"];
-            println( csName + "." + clName + "'s source group: " + srcGroupName );
-            break;
-         }
-      }
-      return srcGroupName;
+      throw new Error( "cs or cl name is undefined" );
    }
-   catch( e )
+   var tableName = csName + "." + clName;
+   var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
+   var catadb = new Sdb( cataMaster[0], cataMaster[1] );
+   var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
+   var srcGroupName;
+   for( var i = 0; i < Group.length; ++i )
    {
-      println( "failed to get source group, cs name: " + csName +
-         ", cl name: " + clName );
-      throw e;
+      var eachID = eval( "( " + Group[i] + " )" );
+      if( tableName == eachID["Name"] )
+      {
+         srcGroupName = eachID["CataInfo"][0]["GroupName"];
+         break;
+      }
    }
+   return srcGroupName;
 }
 
 /************************************
@@ -771,21 +701,12 @@ function updateIndexStateInfo ( db, csName, clName, indexName, mcvValues, fracs 
       var nodesInGroup = datas[i];
       for( var j in nodesInGroup )
       {
-         try
-         {
-            var rec = nodesInGroup[j].getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find().toArray();
-            var rule = { "$set": { "MCV": { "Values": mcvValues, "Frac": fracs } } };
-            var matcher = { "CollectionSpace": csName, "Collection": clName, "Index": indexName };
-            nodesInGroup[j].getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).upsert( rule, matcher );
-         }
-         catch( e )
-         {
-            throw buildException( "modify SYSIndexInfo", e, "modify", "modify success", e );
-         }
-
+         var rec = nodesInGroup[j].getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find().toArray();
+         var rule = { "$set": { "MCV": { "Values": mcvValues, "Frac": fracs } } };
+         var matcher = { "CollectionSpace": csName, "Collection": clName, "Index": indexName };
+         nodesInGroup[j].getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).upsert( rule, matcher );
       }
    }
-
 }
 
 /************************************
@@ -806,10 +727,7 @@ function query ( dbcl, findConf, sortConf, hintConf, expRecordNum )
    {
       count++;
    }
-   if( count !== expRecordNum )
-   {
-      throw buildException( "query", "COUNT_ERR", "query get count", expRecordNum, count );
-   }
+   assert.equal( count, expRecordNum );
 }
 
 /************************************
@@ -824,33 +742,21 @@ function getCommonAccessPlans ( db, findConf, selectorConf, sortConf )
    if( typeof ( selectorConf ) == "undefined" ) { selectorConf = null; }
 
    var accessPlans = new Array();
-   try
+   //获取快照信息
+   var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
+   for( var i = 0; i < rc.length; i++ )
    {
-      //获取快照信息
-      var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
-      println( "rc.length:" + rc.length );
-      for( var i = 0; i < rc.length; i++ )
+      var accessPlan = eval( "( " + rc[i] + " )" );
+      var accessPlanObj = {};
+      for( var f in accessPlan )
       {
-         var accessPlan = eval( "( " + rc[i] + " )" );
-         var accessPlanObj = {};
-         println( "i:" + i + ", NodeName:" + JSON.stringify( accessPlan.NodeName ) +
-            ", GroupName:" + JSON.stringify( accessPlan.GroupName ) +
-            ", IndexName:" + JSON.stringify( accessPlan.IndexName ) +
-            ", Query:" + JSON.stringify( accessPlan.Query ) );
-         for( var f in accessPlan )
+         if( ( f == "ScanType" ) || ( f == "IndexName" ) )
          {
-            if( ( f == "ScanType" ) || ( f == "IndexName" ) )
-            {
-               accessPlanObj[f] = accessPlan[f];
-            }
+            accessPlanObj[f] = accessPlan[f];
          }
-
-         accessPlans.push( accessPlanObj );
       }
-   }
-   catch( e )
-   {
-      throw buildException( "getCommonAccessPlans", e, "get access plans", "success", e );
+
+      accessPlans.push( accessPlanObj );
    }
    return accessPlans;
 }
@@ -866,44 +772,36 @@ function getSplitAccessPlans ( db, findConf, selectorConf, sortConf )
    if( typeof ( sortConf ) == "undefined" ) { sortConf = null; }
    if( typeof ( selectorConf ) == "undefined" ) { selectorConf = null; }
 
-   try
-   {
-      var accessPlans = new Array();
+   var accessPlans = new Array();
 
-      //获取快照信息
-      var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
-      for( var i = 0; i < rc.length; i++ )
+   //获取快照信息
+   var rc = db.snapshot( 11, findConf, selectorConf, sortConf ).toArray();
+   for( var i = 0; i < rc.length; i++ )
+   {
+      var accessPlan = eval( "( " + rc[i] + " )" );
+
+      //过滤hash、range切分时生成的查询计划
+      if( accessPlan['IndexName'] == '$id' )
+         continue;
+      if( accessPlan['ScanType'] == 'tbscan'
+         && JSON.stringify( accessPlan['Query'] ) == "{}" )
+         continue;
+      if( accessPlan['IndexName'] == '$shard'
+         && JSON.stringify( accessPlan['Query'] ) == "{}" )
+         continue;
+
+      var accessPlanObj = {};
+      for( var f in accessPlan )
       {
-         var accessPlan = eval( "( " + rc[i] + " )" );
-
-         //过滤hash、range切分时生成的查询计划
-         if( accessPlan['IndexName'] == '$id' )
-            continue;
-         if( accessPlan['ScanType'] == 'tbscan'
-            && JSON.stringify( accessPlan['Query'] ) == "{}" )
-            continue;
-         if( accessPlan['IndexName'] == '$shard'
-            && JSON.stringify( accessPlan['Query'] ) == "{}" )
-            continue;
-
-         var accessPlanObj = {};
-         for( var f in accessPlan )
+         if( ( f == "GroupName" ) || ( f == "ScanType" ) || ( f == "IndexName" ) )
          {
-            if( ( f == "GroupName" ) || ( f == "ScanType" ) || ( f == "IndexName" ) )
-            {
-               accessPlanObj[f] = accessPlan[f];
-            }
+            accessPlanObj[f] = accessPlan[f];
          }
-
-         accessPlans.push( accessPlanObj );
       }
-      return accessPlans;
-   }
-   catch( e )
-   {
-      throw buildException( "getSplitAccessPlans", e, "get access plans", "success", e );
-   }
 
+      accessPlans.push( accessPlanObj );
+   }
+   return accessPlans;
 }
 
 /************************************
@@ -937,7 +835,6 @@ function checkSnapShotAccessPlans ( clFullName, expectAccessPlans, actAccessPlan
          throw new Error( "check access plan fail" + "\nexp:" + JSON.stringify( newExpAccessPlans ) + "\nact:", actStr );
       }
    }
-   println( "check accessPlan snapshot success" );
 }
 /************************************
 *@Description: 按组获取主子表访问计划快照
@@ -969,7 +866,6 @@ function getMainclAccessPlans ( db, findConf, sortConf, selectorConf )
       accessPlans.push( accessPlanObj );
    }
    return accessPlans;
-
 }
 
 /************************************
@@ -1003,7 +899,6 @@ function checkMainclAccessPlans ( expAccessPlans, actAccessPlans )
    }
 }
 
-
 /************************************
 *@Description: split
 *@author:      zhaoyu
@@ -1012,28 +907,17 @@ function checkMainclAccessPlans ( expAccessPlans, actAccessPlans )
 function split ( csName, clName, srcGroupName, desGroupName, startCondition, endCondition )
 {
    var CL = db.getCS( csName ).getCL( clName );
-   try
+   if( typeof ( startCondition ) === "number" )//percentage split
    {
-      println( "--begin split" )
-      if( typeof ( startCondition ) === "number" )//percentage split
-      {
-         CL.split( srcGroupName, desGroupName, startCondition );
-      }
-      else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
-      {
-         CL.split( srcGroupName, desGroupName, startCondition );
-         println( "startCondition=" + startCondition )
-      }
-      else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
-      {
-         CL.split( srcGroupName, desGroupName, startCondition, endCondition );
-      }
-      println( "--end split" )
-
+      CL.split( srcGroupName, desGroupName, startCondition );
    }
-   catch( e )
+   else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
    {
-      throw e;
+      CL.split( srcGroupName, desGroupName, startCondition );
+   }
+   else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
+   {
+      CL.split( srcGroupName, desGroupName, startCondition, endCondition );
    }
 }
 
@@ -1051,7 +935,6 @@ function getGroupsFromcl ( db, clFullName )
       if( groupNames.indexOf( tmpArray[i] ) === -1 )
       {
          groupNames.push( tmpArray[i] );
-
       }
    }
    return groupNames;
@@ -1082,7 +965,6 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
    //get all nodes
    var datas = getNodesInGroups( db, groups );
    //check each node
-   println( "datas:" + datas );
    for( var i = 0; i < datas.length; i++ )
    {
       var nodesInGroup = datas[i];
@@ -1094,7 +976,7 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
          //需要检查cl统计表信息时，统计表信息不能为空
          if( clExistStat === true && clStats.length < 1 )
          {
-            throw "NO_CL_STAT";
+            throw new Error( "NO_CL_STAT" );
          }
 
          //cl统计表信息中存在统计信息且数据页不小于10
@@ -1115,13 +997,11 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
          //是否存在cl统计表信息与预期结果校验
          if( clExistStat && clExistsStatCount !== clNames.length )
          {
-            println( "host:" + nodesInGroup[j] + "\nclExistStat:" + clExistStat + "\nclExistsStatCount:" + clExistsStatCount + ", clNames.length:" + clNames.length );
-            throw "CL_HAS_STAT_ERR";
+            throw new Error( "CL_HAS_STAT_ERR" );
          }
          if( !clExistStat && clExistsStatCount !== 0 )
          {
-            println( "host:" + nodesInGroup[j] + "\nclExistStat:" + clExistStat + "\nclExistsStatCount:" + clExistsStatCount );
-            throw "CL_HAS_NO_STAT_ERR";
+            throw new Error( "CL_HAS_NO_STAT_ERR" );
          }
 
          //检查索引统计表信息
@@ -1130,9 +1010,7 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
          //需要检查索引统计表信息时，统计表信息不能为空
          if( indexExistStat === true && indexStats.length < 1 )
          {
-            println( "indexExistStat:" + indexExistStat );
-            println( "indexStats.length:" + indexStats.length );
-            throw "NO_INDEX_STAT";
+            throw new Error( "NO_INDEX_STAT" );
          }
 
          //索引统计表信息中存在统计信息
@@ -1155,19 +1033,15 @@ function checkStats ( db, csName, clNames, indexName, clExistStat, indexExistSta
          //是否存在索引统计表信息与预期结果校验
          if( indexExistStat && indexExistsStatCount !== clNames.length * indexNames.length )
          {
-            println( "host:" + nodesInGroup[j] + "\nindexExistStat:" + indexExistStat + "\nindexExistsStatCount:" + indexExistsStatCount + ", clNames.length * indexNames.length:" + clNames.length * indexNames.length );
-            throw "INDEX_HAS_STAT_ERR";
+            throw new Error( "INDEX_HAS_STAT_ERR" );
          }
 
          if( !indexExistStat && indexExistsStatCount !== 0 )
          {
-            println( "host:" + nodesInGroup[j] + "\nindexExistStat:" + indexExistStat + "\nindexExistsStatCount:" + indexExistsStatCount );
-            throw "INDEX_HAS_NO_STAT_ERR";
+            throw new Error( "INDEX_HAS_NO_STAT_ERR" );
          }
-
       }
    }
-   println( "check stat sucess" );
 
 }
 
@@ -1198,3 +1072,4 @@ function isOnlyOneNodeInGroup ()
 
    return false;
 }
+
