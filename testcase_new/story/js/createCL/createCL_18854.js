@@ -4,8 +4,8 @@
 *@createDate:  2019.7.17
 *@testlinkCase: seqDB-18854
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var csName = "18854cs01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789length127B";
    var clName_126 = "18854cl0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678length126B";
@@ -43,30 +43,17 @@ function checkCL ( cs, clName )
    cl.insert( records );
 
    var count = cl.count();
-   if( Number( count ) !== 100 )
-   {
-      throw buildException( "checkCL", null, "check inserted records", 100, Number( count ) );
-   }
+   assert.equal( count, 100 );
 }
 
 function checkReNameCL ( cs, clName, renameClName )
 {
-   try
+   assert.tryThrow( -23, function()
    {
       cs.getCL( clName );
-      throw "cl : " + clName + "is still exist.";
-   }
-   catch( e )
-   {
-      if( e !== -23 )
-      {
-         throw buildException( "checkReNameCL", e, "check cl : " + clName, -23, e );
-      }
-   }
+   } );
+
    var renameCL = cs.getCL( renameClName );
    var count = renameCL.count();
-   if( Number( count ) !== 100 )
-   {
-      throw buildException( "checkReNameCL", null, "check inserted records", 100, Number( count ) );
-   }
+   assert.equal( count, 100 );
 }

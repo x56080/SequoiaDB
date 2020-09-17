@@ -4,46 +4,24 @@
 *@createDate:  2019.6.6
 *@testlinkCase: seqDB-4539
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
-   var clName = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890test4539"
-   try
+   //128B
+   var clName = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890test4539";
+   assert.tryThrow( -6, function()
    {
       db.getCS( COMMCSNAME ).createCL();
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( -259 !== e )
-      {
-         throw buildException( "main()", e, "create cl1 failed", -259, e );
-      }
-   }
+   } );
 
-   try
+   assert.tryThrow( -6, function()
    {
       db.getCS( COMMCSNAME ).createCL( "" );
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw buildException( "main()", e, "create cl2 failed", -6, e );
-      }
-   }
+   } );
 
-   try
+   assert.tryThrow( -6, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName );
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw buildException( "main()", e, "create cl3 failed", -6, e );
-      }
-   }
+   } );
+
 }

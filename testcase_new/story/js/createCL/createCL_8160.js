@@ -1,54 +1,13 @@
 //creat cl
 //innomal case3
 
-TESTCLNAME = CHANGEDPREFIX + "bar";
-
-try
+main( test );
+function test ()
 {
-   commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the beginning" );
-}
-catch( e )
-{
-   if( e != -34 )
+   var clName = "";
+   var cs = db.getCS( COMMCSNAME );
+   assert.tryThrow( -6, function()
    {
-      println( "unexpected err happened when clear cs:" + e );
-      throw e;
-   }
-}
-
-try
-{
-   var varCS = commCreateCS( db, COMMCSNAME, true, "failed to create CS" );
-}
-catch( e )
-{
-   println( "failed to create cs,rc=" + e );
-   throw e;
-}
-
-var res = false;
-try
-{
-   varCS.createCL( "" );
-}
-catch( e )
-{
-   if( e == -6 )
-   {
-      res = true;
-   }
-}
-if( !res )
-{
-   throw -1;
-}
-
-try
-{
-   commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the end" );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
+      cs.createCL( clName );
+   } );
 }

@@ -4,12 +4,11 @@
 *@createDate:  2019.6.6
 *@testlinkCase: seqDB-4530
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 
@@ -78,22 +77,7 @@ function checkResult ( clName, fieldName, expFieldValue )
    var clFullName = COMMCSNAME + "." + clName;
    var cur = db.snapshot( 8, { "Name": clFullName } );
    var actualFieldValue = cur.current().toObj()[fieldName];
-
-   if( typeof ( expFieldValue ) === "object" )
-   {
-      if( JSON.stringify( expFieldValue ) !== JSON.stringify( actualFieldValue ) )
-      {
-         throw buildException( "test fieldvalue1", "check field", "value is wrong", JSON.stringify( expFieldValue ), JSON.stringify( actualFieldValue ) );
-      }
-
-   }
-   else
-   {
-      if( expFieldValue !== actualFieldValue )
-      {
-         throw buildException( "test fieldvalue2", "check field", "value is wrong", expFieldValue, actualFieldValue );
-      }
-   }
+   assert.equal( expFieldValue, actualFieldValue );
 
 }
 
@@ -111,11 +95,7 @@ function checkGroup ( clName, groupName )
          actGroups.push( groups[i].GroupName );
       }
    }
-
-   if( JSON.stringify( expGroups ) !== JSON.stringify( actGroups ) )
-   {
-      throw buildException( "checkGroup()", null, "groups is wrong", JSON.stringify( expGroups ), JSON.stringify( actGroups ) );
-   }
+   assert.equal( expGroups, actGroups );
 }
 
 function checkCLByInsertData ( cl )
@@ -129,8 +109,6 @@ function checkCLByInsertData ( cl )
    cl.insert( dataArray );
 
    var actCount = cl.count();
-   if( Number( actCount ) != 1000 )
-   {
-      throw "insert data field, act insert number is " + Number( actCount );
-   }
+   assert.equal( actCount, 1000 );
+
 }

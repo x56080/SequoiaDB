@@ -1,72 +1,25 @@
 // create cl.
 // normal case.
 
-TESTCLNAME = CHANGEDPREFIX + "foo";
+main( test );
+function test ()
+{
+   var clName = CHANGEDPREFIX + "_8167";
+   var cs = db.getCS( COMMCSNAME );
 
-try
-{
-   commDropCL( db, COMMCSNAME, TESTCLNAME, true, true, "drop CL in the beginning" );
-}
-catch( e )
-{
-   if( e != -34 )
+   var len = clName.length;
+   for( var i = 0; i < ( 127 - len ); ++i )
    {
-      println( "unexpected err happened when clear cs:" + e );
-      throw e;
+      clName += "a";
    }
-}
 
-try
-{
-   var varCS = commCreateCS( db, COMMCSNAME, true, "failed to create CS" );
-}
-catch( e )
-{
-   println( "failed to create cs, rc= " + e );
-   throw e;
-}
+   commDropCL( db, COMMCSNAME, clName );
 
-for( var i = 0; i < ( 127 - TESTCLNAME.length ); ++i )
-{
-   TESTCLNAME = TESTCLNAME + "a";
-}
+   var cl = cs.createCL( clName );
 
-try
-{
-   var varCL = varCS.createCL( TESTCLNAME );
-}
-catch( e )
-{
-   println( "failed to create cl, rc= " + e );
-   throw e;
-}
+   cs.getCL( clName );
 
-try
-{
-   var rc = varCS.getCL( TESTCLNAME );
-}
-catch( e )
-{
-   println( "failed to get cl, rc= " + e );
-   throw e;
-}
+   cl.insert( { a: 1 } );
 
-try
-{
-   varCL.insert( { a: 1 } );
-}
-catch( e )
-{
-   println( "failed to insert record to cl, rc= " + e );
-   throw e;
-}
-
-try
-{
-   commDropCL( db, COMMCSNAME, TESTCLNAME, false, false, "drop CL in the end" );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
+   commDropCL( db, COMMCSNAME, clName );
 }

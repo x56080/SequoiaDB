@@ -3,88 +3,21 @@ TESTCSNAME_1 = CHANGEDPREFIX + "foo_1";
 TESTCSNAME_2 = CHANGEDPREFIX + "foo_2";
 TESTCLNAME = CHANGEDPREFIX + "bar";
 
-try
+main( test );
+function test ()
 {
-   db.dropCS( TESTCSNAME_1 );
-}
-catch( e )
-{
-   if( e != -34 )
-   {
-      println( "unexpected err happened when clear cs:" + e );
-      throw e;
-   }
-}
+   var csName1 = COMMCSNAME + "_8164_1";
+   var csName2 = COMMCSNAME + "_8164_2";
+   var clName = COMMCLNAME + "_8164";
+   commDropCS( db, csName1 );
+   commDropCS( db, csName2 );
 
-try
-{
-   db.dropCS( TESTCSNAME_2 );
-}
-catch( e )
-{
-   if( e != -34 )
-   {
-      println( "unexpected err happened when clear cs:" + e );
-      throw e;
-   }
-}
+   var cs1 = commCreateCS( db, csName1 );
+   var cs2 = commCreateCS( db, csName2 );
 
-try
-{
-   var varCS = commCreateCS( db, TESTCSNAME_1, false, "failed to create CS" );
-}
-catch( e )
-{
-   println( "failed to create cs,rc=" + e );
-   throw e;
-}
+   cs1.createCL( clName, { Compressed: true } );
+   cs2.createCL( clName, { Compressed: true } );
 
-try
-{
-   var varCS1 = commCreateCS( db, TESTCSNAME_2, false, "failed to create CS" );
-}
-catch( e )
-{
-   println( "failed to create cs,rc=" + e );
-   throw e;
-}
-
-try
-{
-   varCS.createCL( TESTCLNAME, { Compressed: true } );
-}
-catch( e )
-{
-   println( "failed to create cl, rc= " + e );
-   throw e;
-}
-
-try
-{
-   varCS1.createCL( TESTCLNAME, { Compressed: true } );
-}
-catch( e )
-{
-   println( "failed to create cl, rc= " + e );
-   throw e;
-}
-
-try
-{
-   db.dropCS( TESTCSNAME_1 );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
-}
-
-try
-{
-   db.dropCS( TESTCSNAME_2 );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
+   commDropCS( db, csName1 );
+   commDropCS( db, csName2 );
 }
