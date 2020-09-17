@@ -4,25 +4,13 @@
 *               2015-01-27  pusheng Ding  Init
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_12269";
    rowcnt = 100;
 
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "drop cl in the beginning" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
    //create cl
    var varCL = commCreateCL( db, COMMCSNAME, clName );
@@ -43,6 +31,5 @@ function main ()
    var cursor = varCL.find();
    commCompareResults( cursor, docs );
    //clean test-env
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "drop cl in the end" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }

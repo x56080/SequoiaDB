@@ -1,20 +1,8 @@
 // delete record.
 // normal case.
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_12264";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning" );
