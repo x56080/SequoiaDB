@@ -4,20 +4,8 @@
                 seqDB-12133:插入sequoadb支持所有类型数据
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_12131";
    var cl = readyCL( clName );

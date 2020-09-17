@@ -5,20 +5,8 @@
 *@testlinkCase: seqDB-16714:options取值验证
 ******************************************************************************/
 
-try
-{
-   main( db );
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ( db )
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_16714";
    var oid = "5bf7575bdc4e88fa3dd16714";

@@ -4,20 +4,8 @@
 *@Author      : 2019-3-13  XiaoNi Huang
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_18003";
    var idxName = "idx";

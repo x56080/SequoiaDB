@@ -5,20 +5,8 @@
 *@testlinkCase: seqDB-19949:插入记录，指定oid值非法
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_insert19949";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );

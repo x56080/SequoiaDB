@@ -2,20 +2,8 @@
 *@Description : seqDB-6710:插入binary类型$type非法_ST.basicOperate.insert.03.001
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_6710";
    var cl = readyCL( clName );

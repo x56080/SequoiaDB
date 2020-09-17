@@ -4,24 +4,11 @@
 *@Author      : 2019-3-13  XiaoNi Huang
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( " Deploy mode is standalone!" );
       return;
    }
 
@@ -53,10 +40,7 @@ function main ()
 
    // SDB_INSERT_RETURN_ID
    var rc = cl.insert( { a: 1, b: 3 }, { ReturnOID: true, ReplaceOnDup: true } );
-   if( null === rc )
-   {
-      throw buildException( "insertSetFlag_ReturnOid", null, "", "return oid", "  " + null );
-   }
+   assert.notEqual( rc, null );
    var expRecs = [{ "a": 1, "b": 3 }, { "a": 2 }, { "a": 3 }];
    checkRecords( cl, expRecs );
 

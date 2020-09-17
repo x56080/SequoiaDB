@@ -3,20 +3,8 @@
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_4941";
    var cl = readyCL( clName );

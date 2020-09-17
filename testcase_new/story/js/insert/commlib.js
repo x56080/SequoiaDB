@@ -3,7 +3,7 @@
 @modify list:
              2014-3-1 Jianhui Xu  Init
 ***************************************************************************** */
-
+import( "../lib/main.js" );
 import( "../lib/basic_operation/sequoiadb.js" );
 
 function readyCL ( clName )
@@ -15,9 +15,9 @@ function readyCL ( clName )
 
 function checkRecords ( cl, recs, exceptId )
 {
-   if (  exceptId === undefined ){exceptId = true; }
+   if( exceptId === undefined ) { exceptId = true; }
    var sel = {};
-   if ( exceptId === true ){ sel = { _id: { $include: 0 } }; }
+   if( exceptId === true ) { sel = { _id: { $include: 0 } }; }
    var rc = cl.find( {}, sel ).sort( { a: 1 } );
    commCompareResults( rc, recs, exceptId );
 }
@@ -31,14 +31,14 @@ function keyConflict ( cl, recsArray )
       {
          cl.insert( recsArray[i] );
          throw new Error( "need throw error" );
-      }  
+      }
       catch( e )
       {
          if( -38 != e.message )
          {
             throw e;
-         }  
-      }  
+         }
+      }
    }
 }
 

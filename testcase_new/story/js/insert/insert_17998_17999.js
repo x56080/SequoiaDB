@@ -4,21 +4,8 @@
 *               seqDB-17999:单条插入，指定flag为SDB_INSERT_REPLACEONDUP，插入数据冲突
 *@Author      : 2019-3-13  XiaoNi Huang
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_17998";
    var idxName = "idx";
@@ -35,7 +22,7 @@ function main ()
    // key conflict
    var recsArray = [{ c: 2 }, { a: 2, c: 3 }, { a: 3, b: 3, c: 4 }];
    keyConflict( cl, recsArray );
-   
+
    // key conflict, set flag[SDB_INSERT_REPLACEONDUP]
    for( var i = 0; i < recsArray.length; i++ )
    {

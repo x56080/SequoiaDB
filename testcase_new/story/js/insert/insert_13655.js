@@ -4,20 +4,8 @@
 *@createDate:  2019.3.12
 *@testlinkCase: seqDB-13655
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_13655";
 

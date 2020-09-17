@@ -4,20 +4,8 @@
                2015-01-29 pusheng Ding  Init
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_12133";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in begin" );

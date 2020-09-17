@@ -2,20 +2,8 @@
 *@Description : seqDB-8582:插入超出double类型表示范围的数据并读取
 *@Author      : 2019-5-29  wuyan modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_8582";
    var cl = readyCL( clName );

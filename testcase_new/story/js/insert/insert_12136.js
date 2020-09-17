@@ -5,11 +5,11 @@
                2014-6-4  xiaojun Hu  Init
 ***************************************************************************** */
 
-var csName = COMMCSNAME;
-var clName = COMMCLNAME + "_12136";
-
-function main ( db )
+main( test );
+function test ()
 {
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_12136";
    var varCL = readyCL( clName );
 
    // special character put in array
@@ -35,21 +35,6 @@ function main ( db )
 
    // clean - drop cl
    commDropCL( db, csName, clName, false, false, "Failed to drop CL in the end-condition" );
-}
-
-// main entry
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }
 
 /*********************************************************************************
