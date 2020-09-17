@@ -873,6 +873,8 @@
                               { "key": 'longtext', "value": "longtext" },
                               { "key": 'binary', "value": "binary" },
                               { "key": 'blob', "value": "blob" },
+                              { "key": 'clob', "value": "longtext" },
+                              { "key": 'nclob', "value": "longtext" },
                               { "key": 'tinyblob', "value": "tinyblob" },
                               { "key": 'mediumblob', "value": "mediumblob" },
                               { "key": 'longblob', "value": "longblob" },
