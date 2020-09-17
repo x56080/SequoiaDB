@@ -3,13 +3,11 @@
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main();
-
-function main ()
+main( test );
+function test ()
 {
    if( true === commIsStandalone( db ) )
    {
-      println( "Standalone environment!" );
       return;
    }
 
@@ -17,17 +15,14 @@ function main ()
    var groupName = groups[0][0]["GroupName"];
 
    var domainNameLen = 1;
-   println( "---Begin to test domainName len is 1. " );
    createCSAndCheckResult( domainNameLen, groupName );
 
-   println( "---Begin to test domainName len is 127B." );
    var domainNameLen = 127;
    createCSAndCheckResult( domainNameLen, groupName );
 }
 
 function createCSAndCheckResult ( domainNameLen, groupName )
 {
-   println( "\n---Begin to createCS.the domainName length is " + domainNameLen );
    var domainName = getRandomString( domainNameLen );
    var csName = "cs4511";
    var clName = "cl4511"
@@ -74,9 +69,6 @@ function checkCSInDomain ( domainName, csName )
    {
       var domainInfo = domainCur.current();
       var csNameInDomain = domainInfo.toObj().Name;
-      if( csName !== csNameInDomain )
-      {
-         throw buildException( "checkCSInDomain", "", "csName:" + csName, "the Name of Domain is :" + csNameInDomain );
-      }
+      assert.equal( csName, csNameInDomain );
    }
 }

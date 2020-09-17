@@ -595,5 +595,18 @@ function Sequoiadb ( hostname, svcname, username, password )
          }
       }
 
+   this.sync =
+      function( options )
+      {
+         if( options == undefined ) { options = {}; }
+         try
+         {
+            db.sync( options );
+         }
+         catch( e )
+         {
+            throw new Error( e );
+         }
+      }
 }
 

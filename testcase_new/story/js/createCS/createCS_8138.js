@@ -1,43 +1,16 @@
 //creat same collection space
-TESTCSNAMGE = CHANGEDPREFIX + "foo";
 
-TESTCLNAMGE = CHANGEDPREFIX + "bar";
-try
+main( test );
+function test ()
 {
-   db.dropCS( TESTCSNAMGE );
-}
-catch( e )
-{
+   var csName = COMMCSNAME + "_8138";
 
-}
-try
-{
-   db.createCS( TESTCSNAMGE );
-}
-catch( e )
-{
-   println( "failed to create cs, rc=" + e );
-   throw e;
-}
+   commDropCS( db, csName );
+   db.createCS( csName );
 
-var res = false;
-try
-{
-   db.createCS( TESTCSNAMGE );
-}
-catch( e )
-{
-   if( e == -33 ) res = true;
-}
-
-if( !res ) { throw -1; }
-
-try
-{
-   db.dropCS( TESTCSNAMGE );
-}
-catch( e )
-{
-   println( "failed to drop cs, rc= " + e );
-   throw e;
+   assert.tryThrow( -33, function()
+   {
+      db.createCS( csName );
+   } );
+   commDropCS( db, csName );
 }

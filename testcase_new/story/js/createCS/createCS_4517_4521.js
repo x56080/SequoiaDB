@@ -4,18 +4,16 @@ seqDB-4521:createCS��createCS��options:LobPageSize��Чȡֵ
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
    var csName = "cs4517";
    commDropCS( db, csName, true, "clear cs in the beginning." );
 
-   println( "---Begin to test testcase-4517. " );
    var pageSizes = ["", 4097, -4096];
    var lobPageSize = 4096;
    for( var i = 0; i < pageSizes.length; i++ )
@@ -24,7 +22,6 @@ function main ()
       createCSWithLobPageSize( csName, lobPageSize, pageSize );
    }
 
-   println( "---Begin to test testcase-4521. " );
    var lobPageSizes = ["", 1, -4096];
    var pageSize = 4096;
    for( var i = 0; i < lobPageSizes.length; i++ )
@@ -37,36 +34,17 @@ function main ()
 
 function createCSWithLobPageSize ( csName, lobPageSize, pageSize )
 {
-   println( "\n---Begin to createCS with lobPageSize:" + lobPageSize + " pageSize:" + pageSize );
    //create cs; 
-   try
+   assert.tryThrow( -6, function()
    {
       var options = { LobPageSize: lobPageSize, PageSize: pageSize };
       db.createCS( csName, options );
-      throw "create cs should be fail!";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "create cs", e );
-      }
-
-   }
+   } );
 
    //check cs is not exist; 
-   try
+   assert.tryThrow( -34, function()
    {
       db.getCS( csName );
-      throw "get cs should be fail!"
-   }
-   catch( e )
-   {
-      if( e !== -34 )
-      {
-         throw buildException( "check cs", e );
-      }
-   }
+   } );
 
 }
-

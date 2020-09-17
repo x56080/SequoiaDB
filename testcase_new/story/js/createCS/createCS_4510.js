@@ -3,8 +3,8 @@
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var csName = CHANGEDPREFIX + "cs4510";
    var pageSizes = [0, 4096, 8192, 16384, 32768, 65536];
@@ -20,7 +20,6 @@ function main ()
 
 function createCSAndCheckResult ( csName, pageSize )
 {
-   println( "\n---Begin to createCS. pageSize =" + pageSize );
 
    var options = { PageSize: pageSize };
    //create cs; 
@@ -33,7 +32,7 @@ function createCSAndCheckResult ( csName, pageSize )
    //check the options
    db.sync( { "CollectionSpace": csName } );
 
-   var cursor = db.snapshot( 5, { Name: csName,NodeSelect:"master" } );
+   var cursor = db.snapshot( 5, { Name: csName, NodeSelect: "master" } );
    var actPageSize = 0;
    while( cursor.next() )
    {
@@ -47,11 +46,6 @@ function createCSAndCheckResult ( csName, pageSize )
       expPageSize = 65536;
    }
 
-   if( Number( expPageSize ) !== Number( actPageSize ) )
-   {
-      throw buildException( "check pageSize", "", "", "pageSize:" + expPageSize, "actPageSize:" + actPageSize );
-   }
-
+   assert.equal( expPageSize, actPageSize );
 
 }
-

@@ -3,53 +3,31 @@
 @author:
 2019-6-4 wuyan init
 ****************************************************/
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var csNameLen = 0;
-   println( "---Begin to test csName len is 0 " );
    createCSAndCheckResult( csNameLen );
 
-   println( "---Begin to test csName len is 128B" );
    var csNameLen = 128;
    createCSAndCheckResult( csNameLen );
 }
 
 function createCSAndCheckResult ( csNameLen )
 {
-   println( "\n---Begin to createCS." );
    var csName = getRandomString( csNameLen );
 
    //create cs; 
-   try
+   assert.tryThrow( -6, function()
    {
       db.createCS( csName );
-      throw "create cs should be fail!";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "create cs", e );
-      }
-
-   }
+   } );
 
    //check cs is not exist; 
-   try
+   assert.tryThrow( -6, function()
    {
       db.getCS( csName );
-      throw "get cs should be fail!"
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "check cs", e );
-      }
-   }
-
+   } );
 }
 
 function getRandomString ( len )

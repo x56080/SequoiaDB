@@ -1,21 +1,12 @@
 // create cs.
 // unnormal_3 case
-var res = false;
-try
+main( test );
+function test ()
 {
-   db.createCS( "" );
-}
-catch( e )
-{
-   if( e == -6 )
+   var csName = "";
+
+   assert.tryThrow( -6, function()
    {
-      res = true;
-   }
+      db.createCS( csName );
+   } );
 }
-if( !res )
-{
-   throw -1;
-}
-
-
-

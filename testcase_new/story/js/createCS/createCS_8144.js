@@ -1,38 +1,18 @@
 // create cs.
 // CSname's large is 127.
-TESTCSNAMGE = CHANGEDPREFIX + "foo";
-
-TESTCLNAMGE = CHANGEDPREFIX + "bar";
-
-
-var _CSPREFIX = TESTCSNAMGE;
-var tmpLen = _CSPREFIX.length;
-for( var i = 0; i < ( 128 - tmpLen ); ++i )
+main( test );
+function test ()
 {
-   TESTCSNAMGE = TESTCSNAMGE + "a";
-}
+   var csName = COMMCSNAME + "_8144";
 
-var res = false;
-try
-{
-   db.createCS( TESTCSNAMGE );
-}
-catch( e )
-{
+   var len = csName.length;
+   for( var i = 0; i < 128 - len; i++ )
+   {
+      csName += "a";
+   }
 
-   res = true;
-
+   assert.tryThrow( -6, function()
+   {
+      db.createCS( csName );
+   } );
 }
-if( !res )
-{
-   throw -1;
-}
-try
-{
-   db.dropCS( TESTCSNAMGE );
-}
-catch( e )
-{
-
-}
-

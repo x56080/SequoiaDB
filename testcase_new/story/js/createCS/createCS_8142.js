@@ -1,26 +1,17 @@
 // create cs
 // unnormal case
-TESTCSNAMGE = CHANGEDPREFIX + "foo";
+main( test );
+function test ()
+{
+   var csName = COMMCSNAME + "_8142";
 
-TESTCLNAMGE = CHANGEDPREFIX + "bar";
-var res = false;
-var name = "";
-for( var i = 0; i < 10000; i++ )
-{
-   name = name + "a";
-}
-try
-{
-   db.createCS( name );
-}
-catch( e )
-{
-   if( e == -6 )
+   for( var i = 0; i < 10000; i++ )
    {
-      res = true;
+      csName += "a";
    }
-}
-if( !res )
-{
-   throw -1;
+
+   assert.tryThrow( -6, function()
+   {
+      db.createCS( csName );
+   } );
 }
