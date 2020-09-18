@@ -1,16 +1,16 @@
 ﻿/************************************
-*@Description: 主子表上某个子表analyze，清空缓存功能验证
+*@Description: 主子表上某个子表创建删除索引，清空缓存功能验证
 *@author:      zhaoyu
 *@createdate:  2018.1.26
-*@testlinkCase:seqDB-13007
+*@testlinkCase:seqDB-13005
 **************************************/
-var maincsName = COMMCSNAME + "_maincs_13007";
-var subcsName1 = COMMCSNAME + "_subcs_13007_1";
-var mainclName = COMMCLNAME + "_maincl_13007";
-var subclName1 = COMMCLNAME + "_subcl_13007_1";
-var subclName2 = COMMCLNAME + "_subcl_13007_2";
-var subclName3 = COMMCLNAME + "_subcl_13007_3";
-var subclName4 = COMMCLNAME + "_subcl_13007_4";
+var maincsName = COMMCSNAME + "_maincs_13005";
+var subcsName1 = COMMCSNAME + "_subcs_13005_1";
+var mainclName = COMMCLNAME + "_maincl_13005";
+var subclName1 = COMMCLNAME + "_subcl_13005_1";
+var subclName2 = COMMCLNAME + "_subcl_13005_2";
+var subclName3 = COMMCLNAME + "_subcl_13005_3";
+var subclName4 = COMMCLNAME + "_subcl_13005_4";
 var mainclFullName = maincsName + "." + mainclName;
 var subclFullName1 = maincsName + "." + subclName1;
 var subclFullName2 = maincsName + "." + subclName2;
@@ -31,37 +31,26 @@ var dbclPrimary;
 var dbclSlave;
 
 
-function main ()
+main( test );
+function test ()
 {
-   //独立模式及1组模式不执行该用例
-   try
+   //判断独立模式
+   if( true == commIsStandalone( db ) )
    {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //判断1组模式
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
-
-      //判断1节点模式
-      if( true == isOnlyOneNodeInGroup() )
-      {   
-         println( "only one node" );
-         return;
-      }   
-
+      return;
    }
-   catch( e )
+
+   //判断1组模式
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
+   }
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {
+      return;
    }
 
    //清理环境
@@ -75,8 +64,6 @@ function main ()
       srcGroupName = temp[0][0].GroupName;
       desGroupName = temp[1][0].GroupName;
    }
-   println( "srcGroupName:" + srcGroupName );
-   println( "desGroupName:" + desGroupName );
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -108,15 +95,15 @@ function main ()
    insertSameDatas( maincl, insertSameNum, 10000 );
 
    //获取主备节点
-   db1 = new Sdb( db );
+   db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   db2 = new Sdb( db );
+   db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 
    //指定主表cl执行统计
-   analyze( db, { Collection: mainclFullName } );
+   db.analyze( { Collection: mainclFullName } );
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
@@ -139,8 +126,9 @@ function main ()
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
-   //analyze子表cs
-   analyze( db, { CollectionSpace: subcsName1 } );
+   //主表cs上的子表创建索引
+   var subcl = db.getCS( maincsName ).getCL( subclName1 );
+   commCreateIndex( subcl, "a1", { a1: 1 } );
 
    //检查访问计划快照
    var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
@@ -149,8 +137,8 @@ function main ()
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
-   //analyze主表cs上的子表cl
-   analyze( db, { Collection: subclFullName1 } );
+   //主表cs上的子表上删除索引
+   commDropIndex( subcl, "a1" );
 
    //检查访问计划快照
    var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
@@ -159,8 +147,19 @@ function main ()
    var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
-   //analyze其他cs上的子表cl
-   analyze( db, { Collection: subclFullName3 } );
+   //其他cs上的子表创建索引
+   var subcl = db.getCS( subcsName1 ).getCL( subclName3 );
+   commCreateIndex( subcl, "a1", { a1: 1 } );
+
+   //检查访问计划快照
+   var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
+   { GroupName: srcGroupName, ScanType: "tbscan", IndexName: "" }];
+   var expAccessPlan = tmp.concat( tmp );
+   var actAccessPlan = getMainclAccessPlans( db, { Collection: mainclFullName } );
+   checkMainclAccessPlans( expAccessPlan, actAccessPlan );
+
+   //其他cs上的子表上删除索引
+   commDropIndex( subcl, "a1" );
 
    //检查访问计划快照
    var tmp = [{ GroupName: desGroupName, ScanType: "tbscan", IndexName: "" },
@@ -176,4 +175,3 @@ function main ()
    db2.close();
 
 }
-main()

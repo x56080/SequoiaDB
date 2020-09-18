@@ -31,37 +31,26 @@ var dbclPrimary;
 var dbclSlave;
 
 
-function main ()
+main( test );
+function test ()
 {
-   //独立模式及1组模式不执行该用例
-   try
+   //判断独立模式
+   if( true == commIsStandalone( db ) )
    {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //判断1组模式
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
-
-      //判断1节点模式
-      if( true == isOnlyOneNodeInGroup() )
-      {   
-         println( "only one node" );
-         return;
-      }   
-
+      return;
    }
-   catch( e )
+
+   //判断1组模式
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
+   }
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
+   {
+      return;
    }
 
    //清理环境
@@ -75,8 +64,6 @@ function main ()
       srcGroupName = temp[0][0].GroupName;
       desGroupName = temp[1][0].GroupName;
    }
-   println( "srcGroupName:" + srcGroupName );
-   println( "desGroupName:" + desGroupName );
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -111,15 +98,15 @@ function main ()
    insertSameDatas( maincl, insertSameNum, 10000 );
 
    //获取主备节点
-   db1 = new Sdb( db );
+   db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   db2 = new Sdb( db );
+   db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 
    //指定主表cl执行统计
-   analyze( db, { Collection: mainclFullName } );
+   db.analyze( { Collection: mainclFullName } );
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
@@ -291,4 +278,3 @@ function main ()
    db2.close();
 
 }
-main()

@@ -4,20 +4,19 @@
 *@createdate:  2017.11.09
 *@testlinkCase: seqDB-12977
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
    //判断1节点模式
    if( true == isOnlyOneNodeInGroup() )
-   {   
-      println( "only one node" );
+   {
       return;
-   }   
+   }
 
    var csName = COMMCSNAME + "12977";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -34,11 +33,11 @@ function main ()
    var clFullName = csName + "." + clName;
 
    //get master/slave datanode
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
-   db1 = new Sdb( db );
+   db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db1.getCS( csName ).getCL( clName );
 
@@ -51,7 +50,7 @@ function main ()
 
    //invoke analyze
    var options = { CollectionSpace: csName };
-   analyze( db, options );
+   db.analyze( options );
 
    //检查主备同步
    checkConsistency( db, csName, clName );
@@ -79,8 +78,6 @@ function main ()
    { ScanType: "tbscan", IndexName: "" }];
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
-
-   println( "check result after create id index!" );
 
    //create id index
    createIdIndex( dbcl );
@@ -117,8 +114,6 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after create id index!" );
-
    //create common index
    commCreateIndex( dbcl, "a", { a: 1 } );
 
@@ -154,11 +149,9 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after create common index!" );
-
    //analyze after create id index
    var options = { CollectionSpace: csName };
-   analyze( db, options );
+   db.analyze( options );
 
    //检查主备同步
    checkConsistency( db, csName, clName );
@@ -191,7 +184,6 @@ function main ()
    { ScanType: "tbscan", IndexName: "" }];
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
-   println( "check result after analyze success!" );
 
    //drop id index
    dropIdIndex( dbcl );
@@ -223,49 +215,25 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after drop id success!" );
-
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
 }
 
 function insertDifferentDatas ( dbcl, insertNum )
 {
-   try
+   var doc = [];
+   for( var i = 0; i < insertNum; i++ )
    {
-      var doc = [];
-      for( var i = 0; i < insertNum; i++ )
-      {
-         doc.push( { _id: i, a: i } );
-      }
-      dbcl.insert( doc );
+      doc.push( { _id: i, a: i } );
    }
-   catch( e )
-   {
-      throw buildException( "insert datas", e, "insert", "insert success", e );
-   }
+   dbcl.insert( doc );
 }
 function createIdIndex ( dbcl )
 {
-   try
-   {
-      dbcl.createIdIndex();
-   }
-   catch( e )
-   {
-      throw buildException( "create id index", e, "create IdIndex", "success", e );
-   }
+   dbcl.createIdIndex();
 }
 
 function dropIdIndex ( dbcl )
 {
-   try
-   {
-      dbcl.dropIdIndex();
-   }
-   catch( e )
-   {
-      throw buildException( "drop id index", e, "drop IdIndex", "success", e );
-   }
+   dbcl.dropIdIndex();
 }
-main(); 

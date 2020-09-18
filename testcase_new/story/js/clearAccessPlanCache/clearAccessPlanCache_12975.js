@@ -4,20 +4,19 @@
 *@createdate:  2017.11.8
 *@testlinkCase:seqDB-12975
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) ) 
-   {   
-      println( "skip standalone environment" );
+   {
       return;
-   }   
+   }
 
    //判断1节点模式
    if( true == isOnlyOneNodeInGroup() )
-   {   
-      println( "only one node" );
+   {
       return;
-   }   
+   }
 
    var allGroups = commGetGroups( db );
    var groups = new Array();
@@ -51,11 +50,11 @@ function main ()
    insertSameDatas( dbcl2, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary1 = db1.getCS( COMMCSNAME ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( COMMCSNAME ).getCL( clName2 );
-   var db2 = new Sdb( db );
+   var db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave1 = db2.getCS( COMMCSNAME ).getCL( clName1 );
    var dbclSlave2 = db2.getCS( COMMCSNAME ).getCL( clName2 );
@@ -90,11 +89,10 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result before analyze success!" );
 
    //执行统计
-   analyze( db, { Collection: COMMCSNAME + "." + clName1 } );
-   analyze( db, { Collection: COMMCSNAME + "." + clName2 } );
+   db.analyze( { Collection: COMMCSNAME + "." + clName1 } );
+   db.analyze( { Collection: COMMCSNAME + "." + clName2 } );
 
    //检查主备同步
    checkConsistency( db, null, null, groups );
@@ -137,7 +135,6 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result after analyze success!" );
 
    //truncate cl
    dbcl1.truncate();
@@ -186,7 +183,6 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result after truncate cl success!" );
 
    //再次插入相同数据
    insertDiffDatas( dbcl1, insertNum );
@@ -222,7 +218,6 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result after create the same index success!" );
 
    //清空环境
    commDropCL( db, COMMCSNAME, clName1, true, true, "drop CL in the end" );
@@ -231,4 +226,3 @@ function main ()
    db2.close();
 
 }
-main()

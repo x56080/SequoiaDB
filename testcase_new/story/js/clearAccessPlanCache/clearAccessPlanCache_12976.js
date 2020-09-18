@@ -4,21 +4,20 @@
 *@createdate:  2017.11.8
 *@testlinkCase:seqDB-12976
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) ) 
-   {   
-      println( "skip standalone environment" );
+   {
       return;
-   }   
+   }
 
    //判断1节点模式
    if( true == isOnlyOneNodeInGroup() )
-   {   
-      println( "only one node" );
+   {
       return;
-   }   
-                                                                                                   
+   }
+
    var clName = COMMCLNAME + "12976";
    var insertNum = 5000;
    var sameValues = 9000;
@@ -40,10 +39,10 @@ function main ()
    insertSameDatas( dbcl, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
-   var db2 = new Sdb( db );
+   var db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName );
 
@@ -73,10 +72,9 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result before analyze success!" );
 
    //执行统计
-   analyze( db, { Collection: COMMCSNAME + "." + clName } );
+   db.analyze( { Collection: COMMCSNAME + "." + clName } );
 
    //检查主备同步
    checkConsistency( db, COMMCSNAME, clName );
@@ -110,7 +108,6 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success!" );
 
    //删除索引
    commDropIndex( dbcl, "a" );
@@ -147,7 +144,6 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after drop index success!" );
 
    //再次创建相同索引
    commCreateIndex( dbcl, "a", { a: 1 } );
@@ -184,7 +180,6 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after create the same index success!" );
 
    //清空环境
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
@@ -192,4 +187,3 @@ function main ()
    db2.close();
 
 }
-main()

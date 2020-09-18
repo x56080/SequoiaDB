@@ -27,8 +27,6 @@ function test ( args )
    //获取数据组
    srcGroupName = args.groups[0][0].GroupName;
    desGroupName = args.groups[1][0].GroupName;
-   println( "srcGroupName:" + srcGroupName );
-   println( "desGroupName:" + desGroupName );
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -49,15 +47,15 @@ function test ( args )
    insertSameDatas( maincl, insertSameNum, 0 );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   var db2 = new Sdb( db );
+   var db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 
    //指定主表cl执行统计
-   analyze( db, { Collection: mainclFullName } );
+   db.analyze( { Collection: mainclFullName } );
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
