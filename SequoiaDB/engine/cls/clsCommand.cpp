@@ -537,6 +537,9 @@ namespace engine
       goto done ;
    }
 
+   #define CLS_REELECT_WAIT_TIME          ( 10000 )       /// 10 secs
+   #define CLS_REELECT_WAIT_INTERVAL      ( 100 )         /// 100 ms
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_DOIT, "_rtnReelect::doit" )
    INT32 _rtnReelect::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                             _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
@@ -548,6 +551,16 @@ namespace engine
 
       if ( _isDestNotify )
       {
+         UINT32 timeout = 0 ;
+
+         /// Wait repl down group info
+         while ( !repl->voteMachine()->isInit() &&
+                 timeout < CLS_REELECT_WAIT_TIME )
+         {
+            ossSleep( CLS_REELECT_WAIT_INTERVAL ) ;
+            timeout += CLS_REELECT_WAIT_INTERVAL ;
+         }
+
          repl->voteMachine()->setShadowWeight( CLS_ELECTION_WEIGHT_MAX ) ;
 
          /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary

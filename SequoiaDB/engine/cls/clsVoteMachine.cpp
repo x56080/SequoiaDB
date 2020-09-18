@@ -67,6 +67,7 @@ namespace engine
               SDB_ASSERT( next < (INT32)_status.size() &&\
                           0 <= next,\
                           "valid: 0 <= status < status.size()" ) ;\
+              ossScopedLock lock( &_latch ) ; \
               INT32 now = CLS_INVALID_VOTE_ID ;\
               INT32 nextStatus = next ;\
               _clsVoteStatus *prevVS = _current ; \
@@ -109,7 +110,6 @@ namespace engine
     _shadowTimeout( 0 ),
     _forceMillis( 0 )
    {
-
    }
 
    _clsVoteMachine::~_clsVoteMachine()
@@ -160,7 +160,7 @@ namespace engine
 
       INT32 rc = SDB_OK ;
       INT32 next = CLS_INVALID_VOTE_ID ;
-      
+
       if ( !_current )
       {
          rc = SDB_INVALIDARG ;

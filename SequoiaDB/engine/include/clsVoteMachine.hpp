@@ -40,6 +40,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "clsVoteStatus.hpp"
+#include "ossLatch.hpp"
 #include <vector>
 
 using namespace std ;
@@ -102,7 +103,7 @@ namespace engine
 
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
-      BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
+      BOOLEAN  isInit() const { return _status ? TRUE : FALSE ; }
 
    private:
       vector<_clsVoteStatus *>   _status ;
@@ -112,6 +113,8 @@ namespace engine
       UINT8                      _shadowWeight ;
       UINT32                     _shadowTimeout ;  /// ms
       UINT32                     _forceMillis ;
+
+      ossSpinXLatch              _latch ;
    } ;
 
    typedef class _clsVoteMachine clsVoteMachine ;
