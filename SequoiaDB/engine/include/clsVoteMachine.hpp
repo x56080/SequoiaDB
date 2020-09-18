@@ -103,7 +103,7 @@ namespace engine
 
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
-      BOOLEAN  isInit() const { return _status ? TRUE : FALSE ; }
+      BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
 
    private:
       vector<_clsVoteStatus *>   _status ;
