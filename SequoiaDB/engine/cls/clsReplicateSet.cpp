@@ -269,6 +269,13 @@ namespace engine
          goto error ;
       }
 
+      rc = _vote.init() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init vote machine failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
       // init start shift time
       g_startShiftTime = (INT32)pmdGetOptionCB()->startShiftTime() ;
 
@@ -957,7 +964,6 @@ namespace engine
          _clsCB->startInnerSession ( CLS_REPL, CLS_TID_REPL_SYC ) ;
 
          _active = TRUE ;
-         _vote.init() ;
       }
 
    done :
