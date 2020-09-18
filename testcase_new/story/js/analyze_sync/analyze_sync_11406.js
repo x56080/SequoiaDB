@@ -4,20 +4,8 @@
 *@createdate:  2017.11.9
 *@testlinkCase:seqDB-11406
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_11406";
    var insertNum = 2000;
@@ -43,12 +31,12 @@ function main ()
    insertSameDatas( dbcl, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
 
    //执行统计
-   analyze( db, { Collection: COMMCSNAME + "." + clName } );
+   db.analyze( { Collection: COMMCSNAME + "." + clName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -67,7 +55,6 @@ function main ()
       var actExplains = getCommonExplain( dbclPrimary, findConf );
       checkExplain( actExplains, expExplains );
    }
-   println( "check result after analyze success!" );
 
    //删除索引
    for( var i = 0; i < indexNum; i++ )
@@ -92,7 +79,6 @@ function main ()
       var actExplains = getCommonExplain( dbclPrimary, findConf );
       checkExplain( actExplains, expExplains );
    }
-   println( "check result drop index success!" );
 
    //清理环境
    commDropCL( db, COMMCSNAME, clName );

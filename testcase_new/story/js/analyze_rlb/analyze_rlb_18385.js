@@ -6,25 +6,12 @@ var csName = "cs18385";
 var groupName = "group18385";
 var svcName = "";
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    //判断独立模式
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 
@@ -35,11 +22,9 @@ function main ()
 
    try
    {
-      println( "---create rg and node---" );
       var rg = db.createRG( groupName );
       srcLogPath = createData( rg, hostName );
 
-      println( "---create cs and cl, insert record and create index---" );
       var cl = db.createCS( csName ).createCL( clName, { "Group": groupName } );
       cl.createIndex( indexName, { "a": 1 } );
       for( var i = 0; i < 1000; i++ )
@@ -47,34 +32,29 @@ function main ()
          cl.insert( { a: i } );
       }
 
-      println( "---analyze---" );
       db.analyze();
 
-      var data = new Sdb( hostName, svcName );
+      var data = new Sequoiadb( hostName, svcName );
       var cur = data.getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find( { "Index": indexName } );
       if( !cur.next() )
       {
-         throw buildException( "", "", "create index and analyze, data node shuold be had index info", "exist", "not exist" );
+         throw new Error( "create index and analyze, data node shuold be had index info " + " exist not exist" );
       }
 
-      println( "---restart group---" );
       rg.stop();
       rg.start();
 
-      println( "---drop index---" );
       db.getCS( csName ).getCL( clName ).dropIndex( indexName );
 
-      println( "---check data node SYSSTAT.SYSINDEXSTAT---" );
-      data = new Sdb( hostName, svcName );
+      data = new Sequoiadb( hostName, svcName );
       cur = data.getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find( { "Index": indexName } );
       if( cur.next() )
       {
-         throw buildException( "", "", "drop index, data node shuold be no index info", "not exist", "exist" );
+         throw new Error( "drop index, data node shuold be no index info not exist exist" );
       }
    }
    catch( e )
    {
-      println( "catch e : " + e );
       //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
       var backupDir = "/tmp/ci/rsrvnodelog/18385";
       File.mkdir( backupDir );
@@ -112,14 +92,13 @@ function createData ( rg, hostName )
       catch( e )
       {
          //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-         if( e == -145 || e == -290 )
+         if( e.message == -145 || e.message == -290 )
          {
             svcName = svcName + 10;
             dataPath = RSRVNODEDIR + "data/" + svcName;
-         }
-         else
+         } else
          {
-            throw "create node failed!  svcName = " + svcName + " dataPath = " + dataPath + " errorCode: " + e;
+            throw new Error( "create node failed!  svcName = " + svcName + " dataPath = " + dataPath + " errorCode: " + e );
          }
          times++;
       }

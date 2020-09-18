@@ -4,24 +4,11 @@
 *@createdate:  2017.11.15
 *@testlinkCase: seqDB-11759
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
@@ -47,7 +34,7 @@ function main ()
    commCreateIndex( dbcl, "a", { a: 1 } );
 
    //get master/slave datanode
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
@@ -72,7 +59,6 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result before correct analyze success!" );
 
    //get Group and Node info
    var groupName = commGetCLGroups( db, csName + "." + clName );
@@ -95,7 +81,7 @@ function main ()
 
    //analyze with group
    var options = { GroupID: groupId, GroupName: groupName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after correct analyze  
    checkConsistency( db, csName, clName );
@@ -123,11 +109,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after correct analyze group success!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate
    checkConsistency( db, csName, clName );
@@ -154,11 +139,10 @@ function main ()
    var expAccessPlans = [{ ScanType: "ixscan", IndexName: "a" }];
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after first truncate analyze info!" );
 
    //analyze with primary node
    var options = { NodeID: priNodeId };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after correct analyze  
    checkConsistency( db, csName, clName );
@@ -185,11 +169,10 @@ function main ()
    var expAccessPlans = [{ ScanType: "tbscan", IndexName: "" }];
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after correct analyze node success!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate   
    checkConsistency( db, csName, clName );
@@ -216,11 +199,10 @@ function main ()
    var expAccessPlans = [{ ScanType: "ixscan", IndexName: "a" }];
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after second truncate analyze info!" );
 
    //analyze with primary host
    var options = { HostName: priHostname, svcname: priSvcname };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after correct analyze 
    checkConsistency( db, csName, clName );
@@ -247,7 +229,6 @@ function main ()
    var expAccessPlans = [{ ScanType: "tbscan", IndexName: "" }];
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after correct analyze host success!" );
 
    //check error analyze, location : slave node
    //skip one group one node
@@ -261,7 +242,6 @@ function main ()
          checkAnalyzeResult( options[i] );
       }
 
-      println( "check error analyze success!" );
    }
 
    db1.close();

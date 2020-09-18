@@ -4,42 +4,19 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11640
 **************************************/
-try
+main( test );
+function test ()
 {
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
+   //判断独立模式
+   if( true == commIsStandalone( db ) )
    {
-      println( e.stack );
+      return;
    }
-   throw e;
-}
 
-function main ()
-{
-   //独立模式及1组模式不执行该用例
-   try
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
    {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //判断1节点模式
-      if( true == isOnlyOneNodeInGroup() )
-      {   
-         println( "only one node" );
-         return;
-      }   
-
-   }
-   catch( e )
-   {
-      throw e;
+      return;
    }
 
    var clName = COMMCLNAME + "_11640";
@@ -73,15 +50,15 @@ function main ()
    insertSameDatas( dbcl, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( COMMCSNAME ).getCL( clName );
-   var db2 = new Sdb( db );
+   var db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( COMMCSNAME ).getCL( clName );
 
    //收集统计信息
-   analyze( db, { Collection: COMMCSNAME + "." + clName } );
+   db.analyze( { Collection: COMMCSNAME + "." + clName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -101,7 +78,7 @@ function main ()
 
    //指定cl+index+group生成默认统计信息
    var groupName = getSrcGroup( COMMCSNAME, clName );
-   analyze( db, { Mode: 3, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
+   db.analyze( { Mode: 3, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -125,7 +102,7 @@ function main ()
    updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs );
 
    //统计信息加载至缓存
-   analyze( db, { Mode: 4, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
+   db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -144,7 +121,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan1, actAccessPlan );
 
    //清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -184,7 +161,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan1, actAccessPlan );
 
    //再次清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -205,8 +182,7 @@ function main ()
    //指定cl+index+node生成默认统计信息
    var primaryNode = db.getRG( groupName ).getMaster();
    var nodeId = parseInt( primaryNode.getNodeDetail().split( ":" )[0] );
-   println( "nodeId:" + nodeId );
-   analyze( db, { Mode: 3, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
+   db.analyze( { Mode: 3, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -230,7 +206,7 @@ function main ()
    updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs );
 
    //统计信息加载至缓存
-   analyze( db, { Mode: 4, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
+   db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -249,7 +225,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
 
    //清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -289,7 +265,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
 
    //再次清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, Index: "a", NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -309,7 +285,7 @@ function main ()
 
    //指定cl+group+node生成默认统计信息
    var groupName = getSrcGroup( COMMCSNAME, clName );
-   analyze( db, { Mode: 3, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
+   db.analyze( { Mode: 3, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -333,7 +309,7 @@ function main ()
    updateIndexStateInfo( db, COMMCSNAME, clName, "a", mcvValues, fracs );
 
    //统计信息加载至缓存
-   analyze( db, { Mode: 4, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
+   db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -352,7 +328,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
 
    //清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -392,7 +368,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName, expAccessPlan4, actAccessPlan );
 
    //再次清空缓存
-   analyze( db, { Mode: 5, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
+   db.analyze( { Mode: 5, Collection: COMMCSNAME + "." + clName, GroupName: groupName, NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, COMMCSNAME, clName );
@@ -414,27 +390,21 @@ function main ()
    analyzeInvalidPara( db, { mode: 3, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a" } );
    analyzeInvalidPara( db, { mode: 4, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a" } );
    analyzeInvalidPara( db, { mode: 5, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, Index: "a" } );
-   println( "check result after analyze set cs+cl+index success!" );
    analyzeInvalidPara( db, { mode: 3, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, GroupName: groupName } );
    analyzeInvalidPara( db, { mode: 4, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, GroupName: groupName } );
    analyzeInvalidPara( db, { mode: 5, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, GroupName: groupName } );
-   println( "check result after analyze set cs+cl+group success!" );
    analyzeInvalidPara( db, { mode: 3, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 4, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 5, CollectionSpace: COMMCSNAME, Collection: COMMCSNAME + "." + clName, NodeID: nodeId } );
-   println( "check result after analyze set cs+cl+node success!" );
    analyzeInvalidPara( db, { mode: 3, CollectionSpace: COMMCSNAME, Index: "a", GroupName: groupName } );
    analyzeInvalidPara( db, { mode: 4, CollectionSpace: COMMCSNAME, Index: "a", GroupName: groupName } );
    analyzeInvalidPara( db, { mode: 5, CollectionSpace: COMMCSNAME, Index: "a", GroupName: groupName } );
-   println( "check result after analyze set cs+index+group success!" );
    analyzeInvalidPara( db, { mode: 3, CollectionSpace: COMMCSNAME, Index: "a", NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 4, CollectionSpace: COMMCSNAME, Index: "a", NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 5, CollectionSpace: COMMCSNAME, Index: "a", NodeID: nodeId } );
-   println( "check result after analyze set cs+index+node success!" );
    analyzeInvalidPara( db, { mode: 3, Index: "a", GroupName: groupName, NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 4, Index: "a", GroupName: groupName, NodeID: nodeId } );
    analyzeInvalidPara( db, { mode: 5, Index: "a", GroupName: groupName, NodeID: nodeId } );
-   println( "check result after analyze set index+group+node success!" );
 
    //清理环境
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );

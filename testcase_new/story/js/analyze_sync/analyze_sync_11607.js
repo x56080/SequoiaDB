@@ -4,30 +4,16 @@
 *@createdate:  2017.11.10
 *@testlinkCase: seqDB-11607
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
    if( 2 > commGetGroupsNum( db ) )
    {
-      println( "group less than 2" );
       return;
    }
 
@@ -83,7 +69,7 @@ function main ()
    var subclFullName = maincsName + "." + subclName;
 
    //get master/slave datanode
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbCommCLPrimary1 = db1.getCS( csName1 ).getCL( clName1 );
    var dbCommCLPrimary2 = db1.getCS( csName2 ).getCL( clName1 );
@@ -273,10 +259,9 @@ function main ()
    checkSnapShotAccessPlans( clFullName23, expAccessPlans23, actAccessPlans23 );
    //   checkMainclAccessPlans(expAccessPlansMainCL, actAccessPlansMainCL);
 
-   println( "check result before analyze success!" );
 
    //analyze
-   analyze( db );
+   db.analyze( db );
 
    //check all groups consistency
    checkConsistency( db, null, null, groups );
@@ -424,10 +409,9 @@ function main ()
    checkSnapShotAccessPlans( clFullName23, expAccessPlans23, actAccessPlans23 );
    //   checkMainclAccessPlans(expAccessPlansMainCL, actAccessPlansMainCL);
 
-   println( "check result after analyze all success!" );
 
    //analyze
-   analyze( db, { Mode: 2 } );
+   db.analyze( { Mode: 2 } );
 
    //check all groups consistency
    checkConsistency( db, null, null, groups );
@@ -575,7 +559,6 @@ function main ()
    checkSnapShotAccessPlans( clFullName23, expAccessPlans23, actAccessPlans23 );
    //   checkMainclAccessPlans(expAccessPlansMainCL, actAccessPlansMainCL);
 
-   println( "check result after analyze success with mode:2!" );
 
    db1.close();
    commDropCS( db, csName1, true, "drop CS in the end" );

@@ -4,20 +4,8 @@
 *@createdate:  2017.11.13
 *@testlinkCase:seqDB-11630
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    //get all groups
    var allGroups = commGetGroups( db );
@@ -73,7 +61,7 @@ function main ()
    insertSameDatas( dbcl22, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary11 = db1.getCS( csName1 ).getCL( clName1 );
    var dbclPrimary12 = db1.getCS( csName1 ).getCL( clName2 );
@@ -81,7 +69,7 @@ function main ()
    var dbclPrimary22 = db1.getCS( csName2 ).getCL( clName2 );
 
    //执行统计
-   analyze( db );
+   db.analyze( db );
 
    //检查所有组主备是否一致
    checkConsistency( db, null, null, groups );
@@ -108,7 +96,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName4, expAccessPlan1, actAccessPlan );
 
    //生成默认统计信息
-   analyze( db, { Mode: 3, Collection: clFullName1 } );
+   db.analyze( { Mode: 3, Collection: clFullName1 } );
 
    //检查所有组主备是否一致
    checkConsistency( db, null, null, groups );
@@ -154,7 +142,7 @@ function main ()
    updateIndexStateInfo( db, csName2, clName2, "a", mcvValues, fracs );
 
    //统计信息加载至缓存
-   analyze( db, { Mode: 4 } );
+   db.analyze( { Mode: 4 } );
 
    //检查所有组主备是否一致
    checkConsistency( db, null, null, groups );
@@ -191,7 +179,7 @@ function main ()
    checkSnapShotAccessPlans( clFullName4, expAccessPlan2, actAccessPlan );
 
    //清空统计信息
-   analyze( db, { Mode: 5 } );
+   db.analyze( { Mode: 5 } );
 
    //检查所有组主备是否一致
    checkConsistency( db, null, null, groups );

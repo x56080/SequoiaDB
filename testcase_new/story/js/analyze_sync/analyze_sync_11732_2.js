@@ -4,32 +4,13 @@
 *@createdate:  2017.11.15
 *@testlinkCase:seqDB-11732
 **************************************/
-try
+main( test );
+function test ()
 {
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
+   //判断独立模式
+   if( true == commIsStandalone( db ) )
    {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
-{
-   try
-   {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-   } catch( e )
-   {
-      throw e;
+      return;
    }
 
    var csName = COMMCSNAME + "_11732";
@@ -51,18 +32,17 @@ function main ()
    var groupName = getSrcGroup( csName, clName );
    var primaryNode = db.getRG( groupName ).getMaster();
    var nodeId = parseInt( primaryNode.getNodeDetail().split( ":" )[0] );
-   println( "nodeId:" + nodeId );
 
    //创建索引
    commCreateIndex( dbcl, "a", { a: 1 } );
 
    //获取主备节点
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
    //执行统计
-   analyze( db, { GroupName: groupName } );
+   db.analyze( { GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, csName, clName );
@@ -80,7 +60,7 @@ function main ()
    insertSameDatas( dbcl, insertNum, sameValues );
 
    //执行统计
-   analyze( db, { GroupName: groupName } );
+   db.analyze( { GroupName: groupName } );
 
    //检查统计信息
    checkConsistency( db, csName, clName );
@@ -101,7 +81,7 @@ function main ()
    dbcl.truncate();
 
    //执行统计
-   analyze( db, { NodeID: nodeId } );
+   db.analyze( { NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, csName, clName );
@@ -123,7 +103,7 @@ function main ()
    insertSameDatas( dbcl, insertNum, sameValues );
 
    //执行统计
-   analyze( db, { NodeID: nodeId } );
+   db.analyze( { NodeID: nodeId } );
 
    //检查统计信息
    checkConsistency( db, csName, clName );

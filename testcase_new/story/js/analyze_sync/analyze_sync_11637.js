@@ -4,24 +4,11 @@
 *@createdate:  2017.11.11
 *@testlinkCase: seqDB-11637
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
@@ -37,7 +24,7 @@ function main ()
    var clFullName = csName + "." + clName;
 
    //get master/slave datanode          
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 
@@ -81,11 +68,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result before analyze success!" );
 
    //analyze with cs+group
    var options = { CollectionSpace: csName, GroupID: groupId };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after analyze success with cs+group
    checkConsistency( db, csName, clName );
@@ -116,11 +102,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success with options cs+group!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate   
    checkConsistency( db, csName, clName );
@@ -151,7 +136,7 @@ function main ()
 
    //analyze with cs+node
    var options = { CollectionSpace: csName, NodeID: priNodeId };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after analyze success with cs+node
    checkConsistency( db, csName, clName );
@@ -181,11 +166,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success with options cs+node!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate  
    checkConsistency( db, csName, clName );
@@ -216,7 +200,7 @@ function main ()
 
    //analyze with cl+group
    var options = { Collection: csName + "." + clName, GroupName: groupName[0] };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after analyze success with cl+group
    checkConsistency( db, csName, clName );
@@ -246,11 +230,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success with options cl+group!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate      
    checkConsistency( db, csName, clName );
@@ -281,7 +264,7 @@ function main ()
 
    //analyze with cl+node
    var options = { Collection: csName + "." + clName, NodeID: priNodeId };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after analyze success with cl+node
    checkConsistency( db, csName, clName );
@@ -311,11 +294,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success with options cl+node!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate   
    checkConsistency( db, csName, clName );
@@ -346,7 +328,7 @@ function main ()
 
    //analyze with group+node
    var options = { GroupID: groupId, NodeID: priNodeId };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after analyze success with group+node
    checkConsistency( db, csName, clName );
@@ -376,11 +358,10 @@ function main ()
 
    checkSnapShotAccessPlans( clFullName, expAccessPlans, actAccessPlans );
 
-   println( "check result after analyze success with options group+node!" );
 
    //truncate analyze info
    var options = { Mode: 3, Collection: csName + "." + clName };
-   analyze( db, options );
+   db.analyze( options );
 
    //check after truncate      
    checkConsistency( db, csName, clName );
@@ -421,7 +402,6 @@ function main ()
       checkAnalyzeInvalidResult( options[i] );
    }
 
-   println( "check invalid analyze success!" );
 
    //check out snapshot access plans
    var accessFindOption = { Collection: clFullName };

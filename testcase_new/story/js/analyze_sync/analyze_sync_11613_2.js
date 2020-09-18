@@ -30,50 +30,26 @@ var db2;
 var dbclPrimary;
 var dbclSlave;
 
-try
+main( test );
+function test ()
 {
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
+   //判断独立模式
+   if( true == commIsStandalone( db ) )
    {
-      println( e.stack );
+      return;
    }
-   throw e;
-}
 
-function main ()
-{
-   //独立模式及1组模式不执行该用例
-   try
+   //判断1组模式
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      //判断独立模式
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-
-      //判断1组模式
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
-
-      //判断1节点模式
-      if( true == isOnlyOneNodeInGroup() )
-      {   
-         println( "only one node" );
-         return;
-      }   
-
+      return;
    }
-   catch( e )
+
+   //判断1节点模式
+   if( true == isOnlyOneNodeInGroup() )
    {
-      throw e;
+      return;
    }
 
    //清理环境
@@ -87,8 +63,6 @@ function main ()
       srcGroupName = temp[0][0].GroupName;
       desGroupName = temp[1][0].GroupName;
    }
-   println( "srcGroupName:" + srcGroupName );
-   println( "desGroupName:" + desGroupName );
 
    //创建主表cl
    var mainclOption = { IsMainCL: true, ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -123,10 +97,10 @@ function main ()
    insertSameDatas( maincl, insertSameNum, 10000 );
 
    //获取主备节点
-   db1 = new Sdb( db );
+   db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   db2 = new Sdb( db );
+   db2 = new Sequoiadb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 
@@ -145,7 +119,6 @@ function main ()
 
    //主备节点上检查访问计划
    checkExplainBeforeAnalyze();
-   println( "---check all explain before analyze success" );
 
    //执行查询
    var findConf = { a0: { $in: [0, 10000] } };
@@ -165,7 +138,7 @@ function main ()
    checkMainclAccessPlans( expAccessPlan, actAccessPlan );
 
    //指定主表cl执行统计
-   analyze( db, { Collection: mainclFullName } );
+   db.analyze( { Collection: mainclFullName } );
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
@@ -205,10 +178,9 @@ function main ()
 
    //主备节点上检查访问计划
    checkExplainAfterAnalyzeMaincl();
-   println( "---check all explain after anlyze maincl success" );
 
    //指定主表cl执行统计
-   analyze( db, { Mode: 2, Collection: mainclFullName } );
+   db.analyze( { Mode: 2, Collection: mainclFullName } );
 
    //检查主备同步
    checkConsistency( db, null, null, [srcGroupName, desGroupName] );
@@ -248,7 +220,6 @@ function main ()
 
    //主备节点上检查访问计划
    checkExplainAfterAnalyzeMaincl();
-   println( "---check all explain after anlyze maincl success" );
 
    //先detach再attach的子表,分别落在主表cs、子表cs上
    maincl.detachCL( subclFullName1 );
@@ -277,7 +248,6 @@ function main ()
 
    //主备节点上检查访问计划
    checkExplainAfterAnalyzeMaincl();
-   println( "---check all explain after detach/attach cl success" );
 
    //清理环境
    commDropCS( db, subcsName1 );
@@ -325,7 +295,6 @@ function checkExplainAfterAnalyzeMaincl ()
    var actExplains = getMainclExplain( dbclSlave, findConf );
    checkExplain( actExplains, expExplains );
 
-   println( "check subcl key after analyze maincl success!" );
 
    //索引键查询
    var findConf = { a1: { $in: [0, 10000] } };
@@ -368,7 +337,6 @@ function checkExplainAfterAnalyzeMaincl ()
    var actExplains = getMainclExplain( dbclSlave, findConf );
    checkExplain( actExplains, expExplains );
 
-   println( "check index after analyze maincl success!" );
 }
 
 function checkExplainBeforeAnalyze ()
@@ -410,7 +378,6 @@ function checkExplainBeforeAnalyze ()
    var actExplains = getMainclExplain( dbclSlave, findConf );
    checkExplain( actExplains, expExplains );
 
-   println( "check subcl key before analyze success!" );
 
    //索引键查询
    var findConf = { a1: { $in: [0, 10000] } };
@@ -453,5 +420,4 @@ function checkExplainBeforeAnalyze ()
    var actExplains = getMainclExplain( dbclSlave, findConf );
    checkExplain( actExplains, expExplains );
 
-   println( "check index before analyze success!" );
 }

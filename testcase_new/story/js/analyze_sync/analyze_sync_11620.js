@@ -4,30 +4,16 @@
 *@createdate:  2017.11.10
 *@testlinkCase: seqDB-11620
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
    if( 2 > commGetGroupsNum( db ) )
    {
-      println( "group less than 2" );
       return;
    }
 
@@ -56,7 +42,7 @@ function main ()
    var clFullName2 = csName + "." + clName2;
 
    //get master/slave datanode
-   var db1 = new Sdb( db );
+   var db1 = new Sequoiadb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );
@@ -104,11 +90,10 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans, actAccessPlans2 );
 
-   println( "check result before analyze success!" );
 
    //invoke analyze
    var options = { GroupName: groupName1 };
-   analyze( db, options );
+   db.analyze( options );
 
    //check specify groups
    checkConsistency( db, null, null, groups );
@@ -166,7 +151,6 @@ function main ()
    var options3 = { GroupName: "SYSCatalogGroup" };
    checkAnalyzeCataGroup( options3 );
 
-   println( "check result after analyze success!" );
 
    //query
    query( dbclPrimary1, findConf, null, null, insertNums );
@@ -184,11 +168,10 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans1, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans2, actAccessPlans2 );
 
-   println( "check result before analyze success in mode 2!" );
 
    //invoke analyze
    var options = { Mode: 2, GroupName: groupName2 };
-   analyze( db, options );
+   db.analyze( options );
 
    //check specify groups
    checkConsistency( db, null, null, groups );
@@ -233,7 +216,6 @@ function main ()
    checkSnapShotAccessPlans( clFullName1, expAccessPlans, actAccessPlans1 );
    checkSnapShotAccessPlans( clFullName2, expAccessPlans, actAccessPlans2 );
 
-   println( "check result before analyze success in mode 2!" );
 
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
@@ -253,43 +235,34 @@ function checkAnalyzeInvalidGroup ( options )
          throw e;
       }
    }
-   println( "checkAnalyzeInvalidGroup success." );
 }
 
 function checkAnalyzeCataGroup ( options )
 {
-   try
+   db.analyze( options );
+
+   //get and connect to master node
+   var cataRG = db.getCatalogRG();
+   var priNode = cataRG.getMaster();
+   var cataDB = priNode.connect();
+
+   //check analyze stat info
+   var sysStatCLName = "SYSSTAT.SYSCOLLECTIONSTAT";
+   var sysStatIndexName = "SYSSTAT.SYSINDEXSTAT";
+
+   var count = 0;
+   var cursor = cataDB.listCollections();
+   while( cursor.next() )
    {
-      db.analyze( options );
-
-      //get and connect to master node
-      var cataRG = db.getCatalogRG();
-      var priNode = cataRG.getMaster();
-      var cataDB = priNode.connect();
-
-      //check analyze stat info
-      var sysStatCLName = "SYSSTAT.SYSCOLLECTIONSTAT";
-      var sysStatIndexName = "SYSSTAT.SYSINDEXSTAT";
-
-      var count = 0;
-      var cursor = cataDB.listCollections();
-      while( cursor.next() )
+      var name = cursor.current().toObj().Name;
+      if( sysStatCLName == name || sysStatIndexName == name )
       {
-         var name = cursor.current().toObj().Name;
-         if( sysStatCLName == name || sysStatIndexName == name )
-         {
-            count++;
-         }
+         count++;
       }
-
-      if( count > 0 )
-      {
-         throw new Error( 'CHECK CATAGROUP FAIL' );
-      }
-
    }
-   catch( e )
+
+   if( count > 0 )
    {
-      throw e;
+      throw new Error( 'CHECK CATAGROUP FAIL' );
    }
 }
