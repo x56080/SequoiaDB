@@ -94,21 +94,15 @@ testFiles = [
    [ "./cls/getSlaveMultiPos13782.cpp" ], # sync
    [ "./cls/getSlaveNoPos13783.cpp" ], # sync
    [ "./cls/getSlaveParaCheck13780.cpp" ],
-   [ "./tdd/bson_test.cpp" ],
-   [ "./tdd/cbson.cpp" ],
-   [ "./tdd/collection.cpp" ],
-   [ "./tdd/collectionspace.cpp" ],
-   [ "./tdd/concurrent_insert.cpp" ],
-   [ "./tdd/cursor.cpp" ],
-   [ "./tdd/domain.cpp" ],
-   [ "./tdd/mutex.cpp" ],
-   [ "./tdd/newapi.cpp" ],
-   [ "./tdd/rg.cpp" ],
-   [ "./tdd/sdb.cpp" ],
-   [ "./tdd/selector_query.cpp" ],
-   [ "./tdd/shard.cpp" ],
-   [ "./tdd/snapshot.cpp" ],
-   [ "./tdd/lobTest.cpp" ],
+   [ "./cbsonTest/cbson22070.cpp" ],
+   [ "./cls/collection.cpp" ],
+   [ "./meta/collectionspace.cpp" ],
+   [ "./concurrent/concurrentInsert11187.cpp" ],
+   [ "./meta/domain10401.cpp" ],
+   [ "./concurrent/mutex22071.cpp" ],
+   [ "./meta/sdb.cpp" ],
+   [ "./misc/snapshot.cpp" ],
+   [ "./misc/rgTest22056.cpp" ],
    #[ "./crud/updateShardingKey.cpp" ],
    #[ "./crud/queryAndUpdateShardingKey.cpp" ],
    #[ "./crud/upsertShardingKey.cpp"],
@@ -116,6 +110,7 @@ testFiles = [
    [ "./crud/specialDecimal_14004.cpp" ],
    [ "./crud/snapshotPlan14515.cpp" ],
    [ "./crud/pop14506.cpp" ],
+   [ "./paraVerify/domain22020.cpp" ],
    [ "./paraVerify/lobFunc14388.cpp" ],
    [ "./paraVerify/sdbFunc14277.cpp" ],
    [ "./paraVerify/clFunc14281.cpp" ],
@@ -134,9 +129,10 @@ testFiles = [
    [ "./crud/autoIncrementSequence16623_16624_16654.cpp"],
    [ "./crud/insertReplaceondup18581.cpp" ],
    [ "./sessionAttr/sessionAttrCache19208_19209.cpp" ],   # sync
-   [ "./list/list19948.cpp" ],   # sync
    [ "./crud/query10404.cpp" ],
+   [ "./list/list19948.cpp" ],   # sync
    [ "./cls/getCLDetail22183.cpp" ]
+   [ "./list/listTest.cpp" ],
 #   [ "./crud/closeAllCursors20122.cpp" ]
 ]
 
