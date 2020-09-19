@@ -81,6 +81,7 @@ namespace engine
          UINT32            processPending() ;
 
       protected:
+         virtual void      _onFini() ;
          void              _checkAndStartJob( BOOLEAN needLock = TRUE ) ;
 
       protected:

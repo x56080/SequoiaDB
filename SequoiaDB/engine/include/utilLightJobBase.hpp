@@ -178,6 +178,9 @@ namespace engine
          BOOLEAN        pop( utilLightJobInfo &job, INT64 millisec ) ;
          UINT64         allocID() ;
 
+      protected:
+         virtual void   _onFini() {}
+
       private:
          ossPriorityQueue<utilLightJobInfo>     _queue ;
          ossAtomic64                            _id ;

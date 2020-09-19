@@ -299,6 +299,15 @@ namespace engine
       }
    }
 
+   void _pmdLightJobMgr::_onFini()
+   {
+      for ( LIGHT_JOB_VEC_IT it = _pendingJobVec.begin() ;
+            it != _pendingJobVec.end() ; ++it )
+      {
+         _utilLightJobMgr::push( *it ) ;
+      }
+   }
+
    /*
       _pmdLightJobExe implement
    */

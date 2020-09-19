@@ -151,7 +151,7 @@ namespace engine
    {
       _priority = adjustPriority( _priority + 1 ) ;
    }
-   
+
    void _utilLightJobInfo::downPriority()
    {
       _priority = adjustPriority( _priority - 1 ) ;
@@ -266,9 +266,11 @@ namespace engine
 
    void _utilLightJobMgr::fini( IExecutor *pExe )
    {
-      utilLightJobInfo job ;
+      _onFini() ;
 
+      utilLightJobInfo job ;
       UTIL_LJOB_DO_RESULT result = UTIL_LJOB_DO_FINISH ;
+
       while( pop( job, 0 ) )
       {
          job.doit( pExe, result ) ;
