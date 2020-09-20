@@ -1,19 +1,17 @@
 /************************************
-*@Description: upsert any object(exist or not exist) use operator addtoset            
+*@Description: seqDB-7996:匹配不到记录，upsert使用addtoset更新符更新数组对象            
 *@author:      zhaoyu
 *@createdate:  2016.5.17
 **************************************/
-function main ()
+
+testConf.clName = COMMCLNAME + "_addtoset7996";
+main(test);
+
+function test(testPara)
 {
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-
    //insert object
-   var Doc = { a: 1 };
-   insertData( dbcl, Doc );
+   var doc = { a: 1 };
+   insertData( testPara.testCL, doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -31,7 +29,7 @@ function main ()
       { "e.name.firstName": "han" },
       { arr3: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( dbcl, upsertCondition1, findCondition1 );
+   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -42,7 +40,7 @@ function main ()
       arr3: [55, [35, 25, 40, 55, 60], 50, 45, 70]
    },
    { a: 1 }];
-   checkResult( dbcl, null, null, expRecs1, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    var upsertCondition2 = {
@@ -60,7 +58,7 @@ function main ()
       { "e.name.lastName": "meimei" },
       { arr4: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( dbcl, upsertCondition2, findCondition2 );
+   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{
@@ -76,10 +74,10 @@ function main ()
       arr3: { 1: [40, 55, 60] }
    },
    { a: 1 }];
-   checkResult( dbcl, null, null, expRecs2, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
 
    //delete all data
-   deleteData( dbcl, null );
+   deleteData( testPara.testCL, null );
 
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {
@@ -97,7 +95,7 @@ function main ()
       { "e.name.lastName": "meimei" },
       { arr4: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( dbcl, upsertCondition3, findCondition3 );
+   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{
@@ -105,18 +103,5 @@ function main ()
       arr2: { 1: [10, 15, 35] },
       arr3: { 1: [40, 55, 60] }
    }];
-   checkResult( dbcl, null, null, expRecs3, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

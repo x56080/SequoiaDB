@@ -1,19 +1,16 @@
 /************************************
-*@Description: upsert any object(exist or not exist) use operator pop
+*@Description: seqDB-7999:匹配不到记录，upsert使用pop更新符更新数组对象
 *@author:      zhaoyu
 *@createdate:  2016.5.18
 **************************************/
-function main ()
+testConf.clName = COMMCLNAME + "_pop7999";
+main(test);
+
+function test(testPara)
 {
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-
    //insert object
-   var Doc = { a: 1 };
-   insertData( dbcl, Doc );
+   var doc = { a: 1 };
+   insertData( testPara.testCL, doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -38,7 +35,7 @@ function main ()
       { d: 1000 },
       { "e.name.firstName": "han", "e.name.lastName": "meimei", "e.name.midName": "test" }]
    };
-   upsertData( dbcl, upsertCondition1, findCondition1 );
+   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -54,7 +51,7 @@ function main ()
       e: { name: { firstName: "han", lastName: "meimei", midName: "test" } }
    },
    { a: 1 }];
-   checkResult( dbcl, null, null, expRecs1, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    /*var upsertCondition2 = {$pop:{object1:1,
@@ -68,7 +65,7 @@ function main ()
                               {object2:{$all:[15,25,35]}},
                               {c:{$gt:100}},
                               {d:1001}]};
-   upsertData( dbcl, upsertCondition2, findCondition2 );
+   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
    
    //check result
    var expRecs2 = [{object12:[50,[30,50,[],80],25,40,15],
@@ -82,10 +79,10 @@ function main ()
                    d:1000,
                    e:{name:{firstName:"han",lastName:"meimei",midName:"test"}}},
                   {a:1}];
-   checkResult( dbcl, null, null, expRecs2, {a:1} );
+   checkResult( testPara.testCL, null, null, expRecs2, {a:1} );
    
    //delete all data
-   deleteData( dbcl, null );
+   deleteData( testPara.testCL, null );
    
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {$pop:{object1:1,
@@ -99,23 +96,10 @@ function main ()
                                {object2:{$all:[15,25,35]}},
                                {c:{$gt:100}},
                                {d:1001}]};
-   upsertData( dbcl, upsertCondition3, findCondition3 );
+   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
    
    //check result
    var expRecs3 = [];
-   checkResult( dbcl, null, null, expRecs3, {a:1} );*/
+   checkResult( testPara.testCL, null, null, expRecs3, {a:1} );*/
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

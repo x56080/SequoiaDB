@@ -1,19 +1,16 @@
 /************************************
-*@Description: update object does not exist,use operator push_all
+*@Description: seqDB-8009:update使用push_all更新符更新不存在的数组对象
 *@author:      zhaoyu
 *@createdate:  2016.5.19
 **************************************/
-function main ()
+testConf.clName = COMMCLNAME + "_push_all8009";
+main(test);
+
+function test(testPara)
 {
-   //clear environment
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-
    //insert data
    var doc1 = [{ object0: [10, -30, 20] }];
-   insertData( dbcl, doc1 );
+   insertData( testPara.testCL, doc1 );
 
    //update use push_all object does not exist,no matches
    var updateCondition1 = {
@@ -22,7 +19,7 @@ function main ()
          "object4.1": [5, { $date: "2016-05-16" }, 7, 4]
       }
    };
-   updateData( dbcl, updateCondition1 );
+   updateData( testPara.testCL, updateCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -30,11 +27,11 @@ function main ()
       object1: [10, 50, "string"],
       object4: { 1: [5, { $date: "2016-05-16" }, 7, 4] }
    }];
-   checkResult( dbcl, null, null, expRecs1, { _id: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
 
    //insert data
    var doc2 = [{ object5: [10, -30, 20] }];
-   insertData( dbcl, doc2 );
+   insertData( testPara.testCL, doc2 );
 
    //update use push_all object does not exist,with matches
    var updateCondition2 = {
@@ -44,7 +41,7 @@ function main ()
       }
    };
    var findCondition2 = { object1: { $exists: 1 } };
-   updateData( dbcl, updateCondition2, findCondition2 );
+   updateData( testPara.testCL, updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{
@@ -53,19 +50,6 @@ function main ()
       object4: { 1: [5, { $date: "2016-05-16" }, 7, 4], 2: [5, { $date: "2016-05-16" }, 7, 4] }
    },
    { object5: [10, -30, 20] }];
-   checkResult( dbcl, null, null, expRecs2, { _id: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -1,20 +1,18 @@
 /************************************
-*@Description: upsert any object(exist or not exist) use operator set            
+*@Description: seqDB-7990:匹配不到记录，upsert使用set更新符
+               seqDB-11064:upsert不存在的记录，匹配条件使用$or下只包含单条件
 *@author:      zhaoyu
 *@createdate:  2016.5.17
 *@update:      2017.2.17/zhaoyu
 **************************************/
-function main ()
+testConf.clName = COMMCLNAME + "_set7990";
+main(test);
+
+function test(testPara)
 {
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-
    //insert object
-   var Doc = { a: 1 };
-   insertData( dbcl, Doc );
+   var doc = { a: 1 };
+   insertData( testPara.testCL, doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -42,7 +40,7 @@ function main ()
       { d: 1000 },
       { "e.name.firstName": null }]
    };
-   upsertData( dbcl, upsertCondition1, findCondition1 );
+   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -64,7 +62,7 @@ function main ()
       e: { name: { firstName: null } }
    },
    { a: 1 }];
-   checkResult( dbcl, null, null, expRecs1, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs1, { a: 1 } );
 
    //upsert any object when match nothing,use matches or
    var upsertCondition2 = {
@@ -92,7 +90,7 @@ function main ()
       { d: 1001 },
       { "e.name.firstName": "han" }]
    };
-   upsertData( dbcl, upsertCondition2, findCondition2 );
+   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{
@@ -130,10 +128,10 @@ function main ()
       object14: null
    },
    { a: 1 }];
-   checkResult( dbcl, null, null, expRecs2, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
 
    //delete all data
-   deleteData( dbcl, null );
+   deleteData( testPara.testCL, null );
 
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {
@@ -161,7 +159,7 @@ function main ()
       { d: 1001 },
       { "e.name.firstName": "han" }]
    };
-   upsertData( dbcl, upsertCondition3, findCondition3 );
+   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{
@@ -180,44 +178,30 @@ function main ()
       object13: [12, 34, 36],
       object14: null
    }];
-   checkResult( dbcl, null, null, expRecs3, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
 
    //delete all data
-   deleteData( dbcl, null );
+   deleteData( testPara.testCL, null );
 
    //upsert use or has one condition,2017.2.17/zhaoyu/seqDB-11064
    var upsertCondition4 = { $set: { a: 1 } };
    var findCondition4 = { $or: [{ b: 1 }] };
-   upsertData( dbcl, upsertCondition4, findCondition4 );
+   upsertData( testPara.testCL, upsertCondition4, findCondition4 );
    var expRecs4 = [{ a: 1, b: 1 }];
-   checkResult( dbcl, null, null, expRecs4, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs4, { a: 1 } );
 
    var upsertCondition5 = { $set: { a: 2 } };
    var findCondition5 = { $or: [{ b: { $et: 2 } }] };
-   upsertData( dbcl, upsertCondition5, findCondition5 );
+   upsertData( testPara.testCL, upsertCondition5, findCondition5 );
    var expRecs5 = [{ a: 1, b: 1 },
    { a: 2, b: 2 }];
-   checkResult( dbcl, null, null, expRecs5, { a: 1 } );
+   checkResult( testPara.testCL, null, null, expRecs5, { a: 1 } );
 
    var upsertCondition6 = { $set: { a: 3 } };
    var findCondition6 = { $or: [{ b: { $all: [3] } }] };
-   upsertData( dbcl, upsertCondition6, findCondition6 );
+   upsertData( testPara.testCL, upsertCondition6, findCondition6 );
    var expRecs6 = [{ a: 1, b: 1 },
    { a: 2, b: 2 },
    { a: 3, b: [3] }];
-   checkResult( dbcl, null, null, expRecs6, { a: 1 } );
-
+   checkResult( testPara.testCL, null, null, expRecs6, { a: 1 } );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

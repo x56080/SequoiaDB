@@ -1,44 +1,28 @@
 /************************************
-*@Description: update object(basic types,null array) with pull_all_by
+*@Description: seqDB-12761:update使用pull_all_by更新非数组对象
+               seqDB-12762:update使用pull_all_by更新空数组对象
 *@author:      liuxiaoxuan
 *@createdate:  2017.09.19
-*@testlinkCase: seqDB-12761/seqDB-12762
 **************************************/
-function main ()
+testConf.clName = COMMCLNAME + "_pull_all_by_12761";
+main(test);
+
+function test(testPara)
 {
-   //clean environment before test
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
-
-   //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
-
    //insert data   
    var doc = [{ a1: 1 },
    { a2: 'aaa' },
    { a3: [] }];
-   insertData( dbcl, doc );
+   insertData( testPara.testCL, doc );
 
    //pull_by
    var updateRule = { $pull_all_by: { a1: [1], a2: ['aaa'], a3: [[]] } };
-   updateData( dbcl, updateRule );
+   updateData( testPara.testCL, updateRule );
 
    //check result
    var expResult = [{ a1: 1 },
    { a2: 'aaa' },
    { a3: [] }];
-   checkResult( dbcl, null, null, expResult, { _id: 1 } );
+   checkResult( testPara.testCL, null, null, expResult, { _id: 1 } );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
