@@ -22,7 +22,7 @@ client_include = join(root_dir, path + 'SequoiaDB/engine/include')
 common_include_dir = join(root_dir, path + 'SequoiaDB/engine/client')
 bson_include_dir = join(root_dir, path + 'SequoiaDB/engine/bson')
 boost_dir = join(root_dir, path + 'thirdparty/boost')
-ssl_dir = join(root_dir, path + 'thirdparty/crypto/openssl-1.0.1c')
+ssl_dir = join(root_dir, path + 'thirdparty/crypto/openssl-1.1.1g')
 ssl_include = join(ssl_dir, 'include')
 ssl_lib_dir = join(ssl_dir, 'lib')
 

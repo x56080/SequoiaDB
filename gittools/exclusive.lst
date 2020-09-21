@@ -6,3 +6,5 @@ thirdparty/boost/lib/win32
 thirdparty/boost/lib/win64
 thirdparty/crypto/openssl-1.0.1c/lib/win32
 thirdparty/crypto/openssl-1.0.1c/lib/win64
+thirdparty/crypto/openssl-1.1.1g/lib/win64
+

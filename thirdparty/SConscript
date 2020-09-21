@@ -600,7 +600,7 @@ if "win32" != guess_os:
     # windows for now.
     boost_compiler = BoostCompiler('boost')
     # spidermonkey_compiler = SpiderMonkeyCompiler('parser/sm/js')
-    ssl_compiler = SslCompiler('crypto/openssl-1.0.1c')
+    ssl_compiler = SslCompiler('crypto/openssl-1.1.1g')
     components.append(boost_compiler)
     # components.append(spidermonkey_compiler)
     components.append(ssl_compiler)

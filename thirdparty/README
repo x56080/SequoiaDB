@@ -10,71 +10,66 @@ The compiled libraries have to be copied into the target directory before perfor
 Note: users may have to deal with compatibility issues by using different version of libraries, and the compiled image should be fully tested before using in production environment.
 
 Windows32:
-	Building Prerequisites:
-		Microsoft Windows SDK 7.1 32 bit
-		Python 2.7.3
-		autoconf 2.13 ( source code in ..\tools\compile\autoconf-2.13 )
-		Windows 7, Windows 2003, Windows 2008
-		mozilla-build ( installation image in ..\tools\mozilla dir )
-		scons
-		ActivePerl
-		cygwin
+    Building Prerequisites:
+        Microsoft Windows SDK 7.1 32 bit
+        Python 2.7.3
+        autoconf 2.13 ( source code in ..\tools\compile\autoconf-2.13 )
+        Windows 7, Windows 2003, Windows 2008
+        mozilla-build ( installation image in ..\tools\mozilla dir )
+        scons
+        ActivePerl
+        cygwin
 
-	Boost 1.60.0:
-		cd boost\tools\build\v2\
-		bootstrap.bat
-		cd boost
-		tools\build\v2\bjam.exe link=static threading=multi variant=release address-model=32 toolset=msvc runtime-link=static
-		tools\build\v2\bjam.exe link=static threading=multi variant=debug address-model=32 toolset=msvc
-		copy boost\stage\lib\* to boost\lib\win32\
+    Boost 1.60.0:
+        cd boost\tools\build\v2\
+        bootstrap.bat
+        cd boost
+        tools\build\v2\bjam.exe link=static threading=multi variant=release address-model=32 toolset=msvc runtime-link=static
+        tools\build\v2\bjam.exe link=static threading=multi variant=debug address-model=32 toolset=msvc
+        copy boost\stage\lib\* to boost\lib\win32\
 
-	SpiderMonkey 1.8.5:
-		install ..\tools\mozilla\MozillaBuildSetup-Latest.exe to c:\mozilla\build
-		c:\mozilla-build\msys\msys.bat
-		install python to c:\Python27
-		export PATH=$PATH:/c/Python27
-		export PATH=$PATH:/c/mozilla-build/info-zip
-		export MOZ_TOOLS=/c/mozilla-build/moztools
-		cd parser\sm\js\src
-		autoconf-2.13
-		mkdir build-release
-		cd build-release
-		..\configure
-		make
-		cd ..
-		mkdir build-debug
-		cd build-debug
-		..\configure --enable-debug --disable-optimize
-		make
-		copy parser\sm\js\src\build-release\dist\include and parser\sm\js\src\build-release\dist\lib directory to parser\sm\js\lib\win32\
-		copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
-		do same operation for build-debug
+    SpiderMonkey 1.8.5:
+        install ..\tools\mozilla\MozillaBuildSetup-Latest.exe to c:\mozilla\build
+        c:\mozilla-build\msys\msys.bat
+        install python to c:\Python27
+        export PATH=$PATH:/c/Python27
+        export PATH=$PATH:/c/mozilla-build/info-zip
+        export MOZ_TOOLS=/c/mozilla-build/moztools
+        cd parser\sm\js\src
+        autoconf-2.13
+        mkdir build-release
+        cd build-release
+        ..\configure
+        make
+        cd ..
+        mkdir build-debug
+        cd build-debug
+        ..\configure --enable-debug --disable-optimize
+        make
+        copy parser\sm\js\src\build-release\dist\include and parser\sm\js\src\build-release\dist\lib directory to parser\sm\js\lib\win32\
+        copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
+        do same operation for build-debug
+  
+  OpenSSL 1.1.1g:
+    win32 not used, so not compile and not support.
 
-	OpenSSL 1.0.1c:
-		cd crypto\openssl-1.0.1c\
-		perl Configure VC-WIN32 no-asm
-		ms\do_ms
-		nmake -f ms\ntdll.mak
-		copy the following files to crypto\openssl-1.0.1c\lib\win32:
-			libeay32.dll  libeay32.exp  libeay32.lib  libeay32.pdb  ssleay32.dll  ssleay32.exp  ssleay32.lib  ssleay32.pdb
-
-	snappy 1.1.0:
-		cd snappy
+    snappy 1.1.0:
+        cd snappy
         scons [--dd|--release]
         By default it will compile in release mode.
 
-	lz4 1.7.1:
-		cd lz4
+    lz4 1.7.1:
+        cd lz4
         scons [--dd|--release]
         By default it will compile in release mode.
 
-	zlib 1.2.8:
-		cd zlib
-		nmake -f win32\Makefile.msc
-		copy the following file to zlib\lib\win32
-			libzlib.lib
-	The second way to build:
-		cd zlib
+    zlib 1.2.8:
+        cd zlib
+        nmake -f win32\Makefile.msc
+        copy the following file to zlib\lib\win32
+            libzlib.lib
+    The second way to build:
+        cd zlib
         scons [--dd|--release]
         By default it will compile in release mode.
 
@@ -116,16 +111,15 @@ Windows64:
         ..\configure --enable-debug --disable-optimize --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
         make
         copy parser\sm\js\src\build-release\dist\include and parser\sm\js\src\build-release\dist\lib directory to parser\sm\js\lib\win64\
-		copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
+        copy parser\sm\js\src\build-release\bin\dist\*.dll to parser\sm\js\src\build-release\dist\lib\
         do same operation for build-debug
 
-    OpenSSL 1.0.1c:
-        cd crypto\openssl-1.0.1c\
-        perl Configure VC-WIN64A
-        ms\do_win64a
-        nmake -f ms\ntdll.mak
-        copy the following files to crypto\openssl-1.0.1c\lib\win64:
-                libeay32.dll  libeay32.exp  libeay32.lib  libeay32.pdb  ssleay32.dll  ssleay32.exp  ssleay32.lib  ssleay32.pdb
+    OpenSSL 1.1.1g:
+      cd crypto/openssl.1.1g\
+      perl Configure VC-WIN64A
+      nmake
+      copy the following files to crypto\openssl-1.1.1g\lib\win64:
+        libssl.lib libcrypto.lib
 
     snappy 1.1.0:
         cd snappy
@@ -189,11 +183,11 @@ Linux32:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.0.1c:
-        cd crypto/openssl-1.0.1c/
+    OpenSSL 1.1.1g:
+        cd crypto/openssl-1.1.1g/
         ./configure
         make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.0.1c/lib/linux32/
+        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1g/lib/linux32/
 
     snappy 1.1.0:
         cd snappy
@@ -257,11 +251,11 @@ Linux64:
             Then check if it's installed successfully:
             autoconf2.13 --version
 
-    OpenSSL 1.0.1c:
-        cd crypto/openssl-1.0.1c/
+    OpenSSL 1.1.1g:
+        cd crypto/openssl-1.1.1g/
         ./configure
         make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.0.1c/lib/linux64/
+        copy libcrypto.a and libssl.a to crypto/openssl-1.1.1g/lib/linux64/
 
     snappy 1.1.0:
         cd snappy
@@ -321,11 +315,8 @@ PowerLinux64:
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclinux64.
         do same operation for build-debug
 
-    OpenSSL 1.0.1c:
-        cd crypto/openssl-1.0.1c/
-        ./Configure linux-ppc64
-        make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.0.1c/lib/ppclinux64/
+    OpenSSL 1.1.1g:
+        not compiled.
 
     snappy 1.1.0:
         cd snappy
@@ -378,12 +369,8 @@ PowerleLinux64:
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclelinux64.
         do same operation for build-debug
 
-    OpenSSL 1.0.2h:
-        cd crypto/openssl-1.0.2h/
-        ./Configure linux-ppc64le -fPIC
-        make depend
-        make
-        copy libcrypto.a and libssl.a to crypto/openssl-1.0.2h/lib/ppclelinux64/
+    OpenSSL 1.1.1g:
+        not compiled.
 
     snappy 1.1.0:
         cd snappy
@@ -418,13 +405,8 @@ Aix64:
         ./bjam link=static threading=multi variant=release address-model=64 toolset=gcc runtime-link=static cxxflags="-maix64" linkflags="-maix64"
         copy boost/stage/lib/* to boost/lib/aix64
 
-    OpenSSL 1.0.1c:
-        NOTE: use GNU ld
-        cd crypto/openssl-1.0.1c/
-        ./Configure aix64-gcc -fPIC threads
-        make
-        make test
-        copy libcrypto.a and libssl.a to crypto/openssl-1.0.1c/lib/aix64/
+    OpenSSL 1.1.1g:
+        not compiled.
 
     snappy 1.1.0:
         cd snappy

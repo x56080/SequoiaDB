@@ -10,8 +10,8 @@ EXTERNAL_PATH = $(CURRENT_PATH)/external/client
 BSON_PATH = $(EXTERNAL_PATH)/sdbbson
 ENGINE_PATH = $(CURRENT_PATH)/../../SequoiaDB/engine
 
-OPENSSL_PATH = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.0.1c
-OPENSSL_LIBRARY = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.0.1c/lib
+OPENSSL_PATH = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.1.1g
+OPENSSL_LIBRARY = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.1.1g/lib
 
 BSON_SOURCE = $(BSON_PATH)/numbers.c $(BSON_PATH)/bson.c $(BSON_PATH)/encoding.c $(BSON_PATH)/common_decimal.c
 
