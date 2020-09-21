@@ -131,7 +131,7 @@ testFiles = [
    [ "./sessionAttr/sessionAttrCache19208_19209.cpp" ],   # sync
    [ "./crud/query10404.cpp" ],
    [ "./list/list19948.cpp" ],   # sync
-   [ "./cls/getCLDetail22183.cpp" ]
+   [ "./cls/getCLDetail22183.cpp" ],
    [ "./list/listTest.cpp" ],
 #   [ "./crud/closeAllCursors20122.cpp" ]
 ]
