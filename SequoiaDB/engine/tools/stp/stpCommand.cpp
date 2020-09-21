@@ -49,9 +49,6 @@ using namespace bson ;
 namespace engine
 {
 
-   // default timeout to reelect, 30 seconds
-   #define STP_REELECT_DFT_TIMEOUT ( 30 )
-
    /*
       _stpCommand implement
     */
@@ -295,12 +292,65 @@ namespace engine
    IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpGetTimeCMD )
 
    _stpGetTimeCMD::_stpGetTimeCMD( STPCB *stpCB )
-   : stpCommand( stpCB )
+   : stpCommand( stpCB ),
+     _format( STP_FORMAT_UNKNOWN )
    {
    }
 
    _stpGetTimeCMD::~_stpGetTimeCMD()
    {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMECMD_INITIALIZE, "_stpGetTimeCMD::initialize" )
+   INT32 _stpGetTimeCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPGETTIMECMD_INITIALIZE ) ;
+
+      try
+      {
+         // parse new configs
+         BSONObj temp( option ) ;
+         BSONElement subElement ;
+         const CHAR *formatName = NULL ;
+
+         _options = temp.getOwned() ;
+         subElement = _options.getField( STP_FIELD_NAME_TYPE ) ;
+         if ( EOO == subElement.type() )
+         {
+            // by default
+            _format = STP_FORMAT_LOGICAL_TIME_NS ;
+         }
+         else
+         {
+            PD_CHECK( String == subElement.type(),
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s], it is not a string",
+                      STP_FIELD_NAME_TYPE ) ;
+            formatName = subElement.valuestr() ;
+
+            _format = stpGetTimeFormat( formatName ) ;
+         }
+         PD_CHECK( STP_FORMAT_UNKNOWN != _format,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse option for command [%s], "
+                   "format [%s] is unknown", getName(), formatName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse option for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPGETTIMECMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMECMD_DOIT, "_stpGetTimeCMD::doit" )
@@ -313,19 +363,52 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPGETTIMECMD_DOIT ) ;
 
-      stpLogicalTimeNS time ;
-      UINT32 waitTimeUS = 0 ;
-
-      // get logical time in nanoseconds
-      rc = _stpCB->getMetaData()->getLogicalTimeNS( time, FALSE, FALSE,
-                                                    waitTimeUS ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
-
       try
       {
-         rc = time.toBSON( result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for logical time, "
-                      "rc: %d", rc ) ;
+         switch ( _format )
+         {
+            case STP_FORMAT_LOGICAL_TIME_NS :
+            {
+               stpLogicalTimeNS time ;
+               UINT32 waitTimeUS = 0 ;
+
+               // get logical time in nanoseconds
+               rc = _stpCB->getMetaData()->getLogicalTimeNS( time ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get logical time "
+                            "in nanoseconds, rc: %d", rc ) ;
+
+               rc = time.toBSON( result ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "logical time in nanoseconds, rc: %d", rc ) ;
+
+               break ;
+            }
+            case STP_FORMAT_LOGICAL_TIME_US :
+            {
+               stpLogicalTimeUS resultTime ;
+               stpLogicalTimeNS time ;
+               UINT32 waitTimeUS = 0 ;
+
+               // get logical time in microseconds
+               rc = _stpCB->getMetaData()->getLogicalTimeNS( time ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get logical time "
+                            "in nanoseconds, rc: %d", rc ) ;
+
+               // convert to microseconds
+               resultTime = time ;
+               rc = resultTime.toBSON( result ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
+                            "logical time in microseconds, rc: %d", rc ) ;
+
+               break ;
+            }
+            default :
+            {
+               PD_LOG( PDERROR, "Failed to get time, unknown format" ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
       }
       catch ( exception &e )
       {
@@ -338,61 +421,6 @@ namespace engine
    done:
       finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPGETTIMECMD_DOIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   /*
-      _stpGetTimeUSCMD implement
-    */
-   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpGetTimeUSCMD )
-
-   _stpGetTimeUSCMD::_stpGetTimeUSCMD( STPCB *stpCB )
-   : stpCommand( stpCB )
-   {
-   }
-
-   _stpGetTimeUSCMD::~_stpGetTimeUSCMD()
-   {
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMEUSCMD_DOIT, "_stpGetTimeUSCMD::doit" )
-   INT32 _stpGetTimeUSCMD::doit( stpSession *session,
-                                 MsgHeader *message,
-                                 BSONObj &result,
-                                 BOOLEAN &finished )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPGETTIMEUSCMD_DOIT ) ;
-
-      stpLogicalTimeUS time ;
-      UINT32 waitTimeUS = 0 ;
-
-      // get logical time in microseconds
-      rc = _stpCB->getMetaData()->getLogicalTimeUS( time, FALSE, FALSE,
-                                                    waitTimeUS ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
-
-      try
-      {
-         rc = time.toBSON( result ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for logical time, "
-                      "rc: %d", rc ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to build result for command [%s], "
-                 "occurred unexpected error: %s", getName(), e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      finished = TRUE ;
-      PD_TRACE_EXITRC( SDB__STPGETTIMEUSCMD_DOIT, rc ) ;
       return rc ;
 
    error:
@@ -1035,12 +1063,12 @@ namespace engine
 
          _options = temp.getOwned() ;
 
-         element = _options.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
+         element = _options.getField( STP_FIELD_NAME_REELECT_TIMEOUT ) ;
          if ( EOO != element.type() )
          {
             PD_CHECK( element.isNumber(), SDB_INVALIDARG, error, PDERROR,
                       "Failed to get field [%s] from option, "
-                      "it is not a number", FIELD_NAME_REELECTION_TIMEOUT ) ;
+                      "it is not a number", STP_FIELD_NAME_REELECT_TIMEOUT ) ;
             _timeout = (UINT32)( element.numberInt() ) ;
          }
          else
@@ -1048,12 +1076,12 @@ namespace engine
             _timeout = STP_REELECT_DFT_TIMEOUT ;
          }
 
-         element = _options.getField( FIELD_NAME_HOST ) ;
+         element = _options.getField( STP_FIELD_NAME_HOST ) ;
          if ( EOO != element.type() )
          {
             PD_CHECK( String == element.type(), SDB_INVALIDARG, error, PDERROR,
                       "Failed to get field [%s] from option, "
-                      "it is not a string", FIELD_NAME_HOST ) ;
+                      "it is not a string", STP_FIELD_NAME_HOST ) ;
             _targetHostName = element.valuestr() ;
          }
       }

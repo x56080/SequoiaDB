@@ -39,6 +39,8 @@
 #define STP_CLIENT_INTERNAL_HPP__
 
 #include "oss.hpp"
+#include "ossUtil.hpp"
+#include "ossSocket.hpp"
 #include "msg.hpp"
 #include <string>
 
@@ -54,7 +56,9 @@ namespace engine
    public:
       // constructor and destructor
       _stpClientInternal() ;
-      ~_stpClientInternal() ;
+      _stpClientInternal( const CHAR *hostName, const CHAR *serviceName ) ;
+      _stpClientInternal( const _stpClientInternal &client ) ;
+      virtual ~_stpClientInternal() ;
 
    public:
       // check if client is connected
@@ -62,6 +66,33 @@ namespace engine
       {
          return ( 0 != _handle ) ;
       }
+
+      // get host name
+      OSS_INLINE const CHAR *getHostName() const
+      {
+         return _hostName ;
+      }
+
+      // get service name
+      OSS_INLINE const CHAR *getServiceName() const
+      {
+         return _serviceName ;
+      }
+
+      // set connection information of STP
+      // input:
+      // - hostName: host name of STP node
+      // - serviceName: service name of STP ( port )
+      // return:
+      // - SDB_OK: succeed to connect
+      // - other error code: failed to connect
+      INT32 setConnInfo( const CHAR *hostName, const CHAR *serviceName ) ;
+
+      // connect to STP
+      // return:
+      // - SDB_OK: succeed to connect
+      // - other error code: failed to connect
+      INT32 connect() ;
 
       // connect to STP
       // input:
@@ -71,6 +102,7 @@ namespace engine
       // - SDB_OK: succeed to connect
       // - other error code: failed to connect
       INT32 connect( const CHAR *hostName, const CHAR *serviceName ) ;
+
       // disconnect from STP
       // return:
       // - SDB_OK: succeed to disconnect
@@ -93,6 +125,9 @@ namespace engine
                         INT32 &returnCode ) ;
 
    protected:
+      // connect to STP
+      INT32 _connect() ;
+
       // run command
       INT32 _runCommand( ossValuePtr handle,
                          const CHAR *command,
@@ -141,6 +176,32 @@ namespace engine
       // reset error information
       void _resetError() ;
 
+      // set host name
+      void _setHostName( const CHAR *hostName )
+      {
+         if ( NULL != hostName && '\0' != hostName[ 0 ] )
+         {
+            ossStrncpy( _hostName, hostName, OSS_MAX_HOSTNAME ) ;
+         }
+         else
+         {
+            _hostName[ 0 ] = '\0' ;
+         }
+      }
+
+      // set service name
+      void _setServiceName( const CHAR *serviceName )
+      {
+         if ( NULL != serviceName && '\0' != serviceName[ 0 ] )
+         {
+            ossStrncpy( _serviceName, serviceName, OSS_MAX_SERVICENAME ) ;
+         }
+         else
+         {
+            _serviceName[ 0 ] = '\0' ;
+         }
+      }
+
    protected:
       // handle of connection
       ossValuePtr _handle ;
@@ -150,6 +211,12 @@ namespace engine
       std::string _lastErrorDescription ;
       // error information: detail of the last error
       std::string _lastErrorDetail ;
+
+      // host name
+      CHAR _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
+
+      // service name
+      CHAR _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
    } ;
 
    typedef class _stpClientInternal stpClientInternal ;

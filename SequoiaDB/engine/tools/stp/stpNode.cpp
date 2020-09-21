@@ -955,7 +955,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTNODE_ONSYNC, "_stpClientNode::onSync" )
    void _stpClientNode::onSync( STP_SYNC_STATUS status )
    {
-      PD_TRACE_ENTRY( SDB__STPCLIENTNODE_ONPRESYNC ) ;
+      PD_TRACE_ENTRY( SDB__STPCLIENTNODE_ONSYNC ) ;
 
       // update status
       _status = status ;
@@ -964,7 +964,7 @@ namespace engine
       // increase synchronize count
       _syncCount ++ ;
 
-      PD_TRACE_EXIT( SDB__STPCLIENTNODE_ONPRESYNC ) ;
+      PD_TRACE_EXIT( SDB__STPCLIENTNODE_ONSYNC ) ;
    }
 
    UINT32 _stpClientNode::getIncTimeError( UINT32 timeError,

@@ -67,6 +67,15 @@ namespace engine
    class _stpHPTime ;
    typedef class _stpHPTime stpHPTime ;
 
+   class _stpLogicalTimeBase ;
+   typedef class _stpLogicalTimeBase stpLogicalTimeBase ;
+
+   class _stpLogicalTimeNS ;
+   typedef class _stpLogicalTimeNS stpLogicalTimeNS ;
+
+   class _stpLogicalTimeUS ;
+   typedef class _stpLogicalTimeUS stpLogicalTimeUS ;
+
    // _stpHPTime represents for high precision time in nanoseconds
    class _stpHPTime : public utilPooledObject
    {
@@ -202,6 +211,21 @@ namespace engine
                 STP_NANOSEC_TO_MICROSEC( _nanoSecond ) ;
       }
 
+      // parse from second
+      OSS_INLINE void fromSecond( UINT64 second )
+      {
+         _second = second ;
+         _nanoSecond = 0LL ;
+      }
+
+      // parse from milliseconds
+      OSS_INLINE void fromMilliSecond( UINT64 milliSecond )
+      {
+         _second = STP_MILLISEC_TO_SEC( milliSecond ) ;
+         _nanoSecond =
+               STP_MILLISEC_TO_NANOSEC( milliSecond % OSS_ONE_THOUSAND ) ;
+      }
+
       // parse from microseconds
       OSS_INLINE void fromMicroSecond( UINT64 microSecond )
       {
@@ -292,6 +316,70 @@ namespace engine
             _nanoSecond = (UINT64)( element.numberLong() ) ;
          }
          catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // format time to BSON timestamp
+      OSS_INLINE INT32 toBSONTimestamp( bson::BSONObjBuilder &builder,
+                                        const CHAR *fieldName )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            UINT64 milliSecond = STP_SEC_TO_MILLISEC( _second ) +
+                                 STP_NANOSEC_TO_MILLISEC( _nanoSecond ) ;
+            UINT32 microSecond = STP_NANOSEC_TO_MICROSEC(
+                                             _nanoSecond % OSS_ONE_MILLION ) ;
+            builder.appendTimestamp( fieldName, milliSecond, microSecond ) ;
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      // format time to BSON timestamp
+      OSS_INLINE INT32 toBSONTimestamp( bson::BSONObjBuilder &builder )
+      {
+         return toBSONTimestamp( builder, STP_FIELD_NAME_TIMESTAMP ) ;
+      }
+
+      // parse time from BSON timestamp
+      OSS_INLINE INT32 fromBSONTimestamp( const bson::BSONElement &element )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( bson::Timestamp != element.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+
+            fromMilliSecond( (UINT64)( element.timestampTime() ) ) ;
+            adjust( STP_MICROSEC_TO_NANOSEC( element.timestampInc() ) ) ;
+         }
+         catch ( exception &e )
          {
             (void)e ;
             rc = SDB_SYS ;
@@ -555,9 +643,6 @@ namespace engine
    /*
       _tpLogicalTimeBase define
     */
-   class _stpLogicalTimeBase ;
-   typedef class _stpLogicalTimeBase stpLogicalTimeBase ;
-
    // _tpLogicalTimeBase is base class for logical time in different units
    class _stpLogicalTimeBase : public utilPooledObject
    {
@@ -624,9 +709,6 @@ namespace engine
    /*
       _stpLogicalTimeNS define
     */
-   class _stpLogicalTimeNS ;
-   typedef class _stpLogicalTimeNS stpLogicalTimeNS ;
-
    // _stpLogicalTimeNS is logical time measured in nanoseconds
    class _stpLogicalTimeNS : public stpLogicalTimeBase
    {
@@ -662,6 +744,9 @@ namespace engine
          _timeError = time._timeError ;
          return (*this) ;
       }
+
+      // convert from microseconds
+      OSS_INLINE stpLogicalTimeNS &operator =( const stpLogicalTimeUS &time ) ;
 
       // equal with time error
       OSS_INLINE BOOLEAN operator ==( const stpLogicalTimeNS &time ) const
@@ -833,9 +918,6 @@ namespace engine
    /*
       _stpLogicalTimeUS define
     */
-   class _stpLogicalTimeUS ;
-   typedef class _stpLogicalTimeUS stpLogicalTimeUS ;
-
    // _stpLogicalTimeUS is logical time measured in microseconds
    class _stpLogicalTimeUS : public stpLogicalTimeBase
    {
@@ -880,12 +962,7 @@ namespace engine
       }
 
       // convert from nanoseconds
-      OSS_INLINE stpLogicalTimeUS &operator =( const stpLogicalTimeNS &time )
-      {
-         _time = time.getTime().toMicroSecond() ;
-         _timeError = time.getTimeError() ;
-         return (*this) ;
-      }
+      OSS_INLINE stpLogicalTimeUS &operator =( const stpLogicalTimeNS &time ) ;
 
       // equal with time error
       OSS_INLINE BOOLEAN operator ==( const stpLogicalTimeUS &time ) const
@@ -1087,6 +1164,22 @@ namespace engine
       // time in microseconds
       UINT64 _time ;
    } ;
+
+   // convert from microseconds to nanoseconds
+   OSS_INLINE stpLogicalTimeNS &stpLogicalTimeNS::operator =( const stpLogicalTimeUS &time )
+   {
+      _time.fromMicroSecond( time.getTime() ) ;
+      _timeError = time.getTimeError() ;
+      return (*this) ;
+   }
+
+   // convert from nanoseconds to microseconds
+   OSS_INLINE stpLogicalTimeUS &stpLogicalTimeUS::operator =( const stpLogicalTimeNS &time )
+   {
+      _time = time.getTime().toMicroSecond() ;
+      _timeError = time.getTimeError() ;
+      return (*this) ;
+   }
 
 }
 

@@ -114,6 +114,11 @@ namespace engine
          _serviceName.assign( serviceName ) ;
       }
 
+      OSS_INLINE BOOLEAN isValidAddress() const
+      {
+         return ( _hostName.empty() || _serviceName.empty() ) ? FALSE : TRUE ;
+      }
+
    public:
       // check if route ID is valid
       OSS_INLINE BOOLEAN isValidRoute() const

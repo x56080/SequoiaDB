@@ -144,12 +144,9 @@ namespace engine
       switch ( taskType )
       {
          case STPQ_TASK_GETTIME :
-         {
-            return CMD_NAME_STP_GET_TIME ;
-         }
          case STPQ_TASK_GETTIMEUS :
          {
-            return CMD_NAME_STP_GET_TIME_US ;
+            return CMD_NAME_STP_GET_TIME ;
          }
          case STPQ_TASK_GETCONF :
          case STPQ_TASK_GETCONFFULL :
@@ -401,34 +398,6 @@ namespace engine
                                ossStrlen( tmpOutput ) ) ) ;
    }
 
-   // helper function to run specified command to STP and get back result
-   static INT32 _stpqRunCommand( stpClient &client,
-                                 const CHAR *command,
-                                 const BSONObj &argument,
-                                 BSONObj &result )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 returnCode = SDB_OK ;
-
-      rc = client.runCommand( command, argument, result, returnCode ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      if ( SDB_OK != returnCode )
-      {
-         rc = returnCode ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // output time
    static INT32 _stpqOutputTime( const stpLogicalTimeNS &currentTime )
    {
@@ -450,24 +419,13 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       stpLogicalTimeNS currentTime ;
-      BSONObj argument, result ;
 
       // run get time command
-      rc = _stpqRunCommand( client, _stpqGetTaskCommand( STPQ_TASK_GETTIME ),
-                            argument, result ) ;
+      rc = client.getTime( currentTime ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETTIME ), rc ) ;
-         goto error ;
-      }
-
-      // parse time from BSON
-      rc = currentTime.fromBSON( result ) ;
-      if ( SDB_OK != rc )
-      {
-         ossPrintf( "Error: Failed to parse BSONObj for logical time, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -506,24 +464,13 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       stpLogicalTimeUS currentTime ;
-      BSONObj argument, result ;
 
       // run get time command
-      rc = _stpqRunCommand( client, _stpqGetTaskCommand( STPQ_TASK_GETTIMEUS ),
-                            argument, result ) ;
+      rc = client.getTimeUS( currentTime ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETTIMEUS ), rc ) ;
-         goto error ;
-      }
-
-      // parse time from BSON
-      rc = currentTime.fromBSON( result ) ;
-      if ( SDB_OK != rc )
-      {
-         ossPrintf( "Error: Failed to parse BSONObj for logical time, "
-                    "rc: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
 
@@ -610,25 +557,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj argument, result, errorResult ;
       stpOptions options ;
 
       // run get config command
-      rc = _stpqRunCommand( client, _stpqGetTaskCommand( STPQ_TASK_GETCONF ),
-                            argument, result ) ;
+      rc = client.getConf( options ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETCONF ), rc ) ;
-         goto error ;
-      }
-
-      // parse config from BSON
-      rc = options.update( result, FALSE, errorResult ) ;
-      if ( SDB_OK != rc )
-      {
-         ossPrintf( "Error: Failed to parse BSON for config, rc: %d",
-                    rc ) ;
          goto error ;
       }
 
@@ -705,14 +641,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj argument, result ;
       string shmKey ;
-      stpMetaData meta ;
+      stpMetaData metaData ;
       DPS_LSN metaLSN ;
 
       // run get meta command
-      rc = _stpqRunCommand( client, _stpqGetTaskCommand( STPQ_TASK_GETMETA ),
-                            argument, result ) ;
+      rc = client.getMetaData( shmKey, metaData, metaLSN ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
@@ -720,89 +654,8 @@ namespace engine
          goto error ;
       }
 
-      // parse BSON to get meta
-      try
-      {
-         BSONElement subElement ;
-
-         // get shared memory key
-         subElement = result.getField( STP_FIELD_NAME_META_SHMKEY ) ;
-         if ( String != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_META_SHMKEY ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         shmKey = subElement.str() ;
-
-         // get meta data
-         subElement = result.getField( STP_FIELD_NAME_META_DATA ) ;
-         if ( Object != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_META_DATA ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         // parse meta data
-         rc = meta.fromBSON( subElement.embeddedObject() ) ;
-         if ( SDB_OK != rc )
-         {
-            ossPrintf( "Error: Failed to parse BSONObj for BSON, "
-                       "rc: %d"OSS_NEWLINE, rc ) ;
-            goto error ;
-         }
-
-         // get meta LSN
-         subElement = result.getField( STP_FIELD_NAME_META_LSN ) ;
-         if ( Object != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_META_LSN ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         else
-         {
-            // parse meta LSN
-            BSONObj lsnObject = subElement.embeddedObject() ;
-            BSONElement lsnElement ;
-
-            // get offset
-            lsnElement = lsnObject.getField( STP_FIELD_NAME_META_OFFSET ) ;
-            if ( NumberLong != lsnElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"
-                          OSS_NEWLINE, STP_FIELD_NAME_META_OFFSET ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            metaLSN.offset = (DPS_LSN_OFFSET)( lsnElement.numberLong() ) ;
-
-            // get version
-            lsnElement = lsnObject.getField( STP_FIELD_NAME_META_VERSION ) ;
-            if ( NumberInt != lsnElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"
-                          OSS_NEWLINE, STP_FIELD_NAME_META_VERSION ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            metaLSN.version = (DPS_LSN_VER)( lsnElement.numberInt() ) ;
-         }
-      }
-      catch ( exception &e )
-      {
-         ossPrintf( "Error: Failed to parse BSON for meta, "
-                    "error: %s"OSS_NEWLINE, e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
       // print meta
-      rc = _stpqOutputMeta( shmKey, meta, metaLSN ) ;
+      rc = _stpqOutputMeta( shmKey, metaData, metaLSN ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output meta, rc: %d"OSS_NEWLINE,
@@ -859,116 +712,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj argument, result ;
-
       UINT32 version = STP_GROUP_INVALID_VERSION ;
       STP_SERVER_LIST serverList ;
       stpServerNode primaryNode ;
 
       // run get server command
-      rc = _stpqRunCommand( client, _stpqGetTaskCommand( STPQ_TASK_GETSERVERS ),
-                            argument, result ) ;
+      rc = client.getServers( version, serverList, primaryNode ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSERVERS ), rc ) ;
-         goto error ;
-      }
-
-      // parse meta from BSON
-      try
-      {
-         BSONElement subElement ;
-
-         // get version
-         subElement = result.getField( STP_FIELD_NAME_VERSION ) ;
-         if ( NumberInt != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_VERSION ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         version = (UINT32)( subElement.numberInt() ) ;
-
-         // get server group
-         subElement = result.getField( STP_FIELD_NAME_GROUP ) ;
-         if ( Array != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_GROUP ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         else
-         {
-            // parse servers
-            BSONObj serverInfo = subElement.embeddedObject() ;
-            BSONObjIterator serverEleIter( serverInfo ) ;
-            while ( serverEleIter.more() )
-            {
-               stpServerNode server ;
-               BSONElement serverElement = serverEleIter.next() ;
-               if ( Object != serverElement.type() )
-               {
-                  ossPrintf( "Error: Unknown format for server: %s"OSS_NEWLINE,
-                             serverElement.toString().c_str() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-               rc = server.fromBSON( serverElement.embeddedObject(), TRUE ) ;
-               if ( SDB_OK != rc )
-               {
-                  ossPrintf( "Error: Failed to parse BSONObj for server, "
-                             "rc: %d"OSS_NEWLINE, rc ) ;
-                  goto error ;
-               }
-               serverList.push_back( server ) ;
-            }
-         }
-
-         // parse primary
-         subElement = result.getField( STP_FIELD_NAME_PRIMARY ) ;
-         if ( Object != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_PRIMARY ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         else
-         {
-            BSONObj primaryObject = subElement.embeddedObject() ;
-            BSONElement primaryElement ;
-
-            // get host name
-            primaryElement = primaryObject.getField( STP_FIELD_NAME_HOST ) ;
-            if ( String != primaryElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_HOST ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            primaryNode.setHostName( primaryElement.valuestr() ) ;
-
-            // get service name
-            primaryElement = primaryObject.getField( STP_FIELD_NAME_SERVICE ) ;
-            if ( String != primaryElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_SERVICE ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            primaryNode.setServiceName( primaryElement.valuestr() ) ;
-         }
-      }
-      catch ( exception &e )
-      {
-         ossPrintf( "Error: Failed to parse BSON for servers, "
-                    "error: %s"OSS_NEWLINE, e.what() ) ;
-         rc = SDB_SYS ;
          goto error ;
       }
 
@@ -989,15 +742,14 @@ namespace engine
    }
 
    // output synchronize clients
-   static INT32 _stpqOutputSyncClients( const CHAR *sourceAddr,
+   static INT32 _stpqOutputSyncClients( const stpSourceNode &sourceNode,
                                         const STP_CLIENT_LIST &clientList )
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( NULL != sourceAddr, "source address is invalid" ) ;
-
       // print source
-      ossPrintf( "Synchronize Source: %s"OSS_NEWLINE, sourceAddr ) ;
+      ossPrintf( "Synchronize Source: %s:%s"OSS_NEWLINE,
+                 sourceNode.getHostName(), sourceNode.getServiceName() ) ;
 
       // print synchronize client in below fields
       // address: address of client
@@ -1192,15 +944,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj argument, result ;
       STP_CLIENT_LIST clientList ;
-      CHAR sourceAddr[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 2 ] = { '\0' } ;
-
+      stpSourceNode sourceNode ;
 
       // run get synchronize clients command
-      rc = _stpqRunCommand( client,
-                            _stpqGetTaskCommand( STPQ_TASK_GETSYNCCLIENTS ),
-                            argument, result ) ;
+      rc = client.getSyncClients( sourceNode, clientList ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
@@ -1208,96 +956,8 @@ namespace engine
          goto error ;
       }
 
-      // parse clients from BSON
-      try
-      {
-         BSONElement subElement ;
-
-         subElement = result.getField( STP_FIELD_NAME_SYNC_SOURCE ) ;
-         if ( Object != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_SYNC_SOURCE ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         else
-         {
-            BSONObj sourceObj = subElement.embeddedObject() ;
-            BSONElement sourceElement ;
-            const CHAR *hostName = NULL ;
-            const CHAR *serviceName = NULL ;
-
-            sourceElement = sourceObj.getField( STP_FIELD_NAME_HOST ) ;
-            if ( String != sourceElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_HOST ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            hostName = sourceElement.valuestr() ;
-
-            sourceElement = sourceObj.getField( STP_FIELD_NAME_SERVICE ) ;
-            if ( String != sourceElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_SERVICE ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            serviceName = sourceElement.valuestr() ;
-
-            ossSnprintf( sourceAddr, OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1,
-                         "%s:%s", hostName, serviceName ) ;
-         }
-
-         // get clients
-         subElement = result.getField( STP_FIELD_NAME_SYNC_CLIENTS ) ;
-         if ( Array != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_SYNC_CLIENTS ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         else
-         {
-            // parse clients
-            BSONObj clientInfo = subElement.embeddedObject() ;
-            BSONObjIterator clientEleIter( clientInfo ) ;
-            while ( clientEleIter.more() )
-            {
-               stpClientNode client ;
-               BSONElement clientElement = clientEleIter.next() ;
-               if ( Object != clientElement.type() )
-               {
-                  ossPrintf( "Error: Unknown format for client: %s"OSS_NEWLINE,
-                             clientElement.toString().c_str() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-               rc = client.fromBSON( clientElement.embeddedObject(), TRUE ) ;
-               if ( SDB_OK != rc )
-               {
-                  ossPrintf( "Error: Failed to parse BSONObj for "
-                             "synchronize client, rc: %d"OSS_NEWLINE, rc ) ;
-                  goto error ;
-               }
-               clientList.push_back( client ) ;
-            }
-         }
-      }
-      catch ( exception &e )
-      {
-         ossPrintf( "Error: Failed to parse BSONObj, error: %s"OSS_NEWLINE,
-                    e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
       // print synchronize clients
-      rc = _stpqOutputSyncClients( sourceAddr, clientList ) ;
+      rc = _stpqOutputSyncClients( sourceNode, clientList ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize clients, "
@@ -1313,12 +973,16 @@ namespace engine
    }
 
    // output synchronize status
-   static INT32 _stpqOutputSyncStatus( const CHAR *roleName,
-                                       const CHAR *statusName,
+   static INT32 _stpqOutputSyncStatus( STP_ROLE role,
+                                       STP_SYNC_STATUS status,
                                        BOOLEAN isPrimary,
-                                       BOOLEAN hasSource,
                                        const stpSourceNode &source )
    {
+      const CHAR *roleName = stpGetRoleName( role ) ;
+      const CHAR *statusName =
+            isPrimary ? "-" : stpGetSyncStatusName( status ) ;
+      BOOLEAN hasSource = source.isValidAddress() ;
+
       // print synchronize status in below fields
       // role: role of this STP node
       // primary: if this STP node is primary
@@ -1561,17 +1225,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      const CHAR *roleName = STP_ROLE_MANE_UNKNOWN ;
-      const CHAR *statusName = STP_SYNC_STATUS_NAME_UNKNOWN ;
-      BOOLEAN isPrimary = FALSE, hasSource = FALSE ;
-      stpSourceNode source ;
-
-      BSONObj argument, result ;
+      STP_ROLE role = STP_ROLE_SERVER ;
+      STP_SYNC_STATUS status = STP_SYNC_NOSOURCE ;
+      BOOLEAN isPrimary = FALSE ;
+      stpSourceNode sourceNode ;
 
       // run get synchronize clients command
-      rc = _stpqRunCommand( client,
-                            _stpqGetTaskCommand( STPQ_TASK_GETSYNCSTATUS ),
-                            argument, result ) ;
+      rc = client.getSyncStatus( role, isPrimary, status, sourceNode ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
@@ -1579,87 +1239,8 @@ namespace engine
          goto error ;
       }
 
-      // parse source from BSON
-      try
-      {
-         BSONElement subElement ;
-
-         // parse role
-         subElement = result.getField( STP_FIELD_NAME_ROLE ) ;
-         if ( String != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_ROLE ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         roleName = subElement.valuestr() ;
-
-         // parse primary
-         subElement = result.getField( STP_FIELD_NAME_IS_PRIMARY ) ;
-         if ( Bool != subElement.type() )
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_IS_PRIMARY ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         isPrimary = subElement.boolean() ;
-
-         if ( isPrimary )
-         {
-            statusName = "-" ;
-         }
-         else
-         {
-            BSONObj subObject ;
-
-            subElement = result.getField( STP_FIELD_NAME_SYNC_STATUS ) ;
-            if ( String != subElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_SYNC_STATUS ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            statusName = subElement.valuestr() ;
-
-            // get source
-            subElement = result.getField( STP_FIELD_NAME_SYNC_SOURCE ) ;
-            if ( Object != subElement.type() )
-            {
-               ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                          STP_FIELD_NAME_SYNC_SOURCE ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-
-            subObject = subElement.embeddedObject() ;
-            if ( subObject.nFields() > 0 )
-            {
-               rc = source.fromBSON( subElement.embeddedObject(), TRUE, TRUE ) ;
-               if ( SDB_OK != rc )
-               {
-                  ossPrintf( "Error: Failed to parse BSONObj for "
-                             "synchronize source, rc: %d"OSS_NEWLINE, rc ) ;
-                  goto error ;
-               }
-
-               hasSource = TRUE ;
-            }
-         }
-      }
-      catch ( exception &e )
-      {
-         ossPrintf( "Error: Failed to parse BSONObj, error: %s"OSS_NEWLINE,
-                    e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
       // print synchronize status
-      rc = _stpqOutputSyncStatus( roleName, statusName, isPrimary,
-                                  hasSource, source ) ;
+      rc = _stpqOutputSyncStatus( role, status, isPrimary, sourceNode ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to output synchronize status, "
@@ -1901,70 +1482,13 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       STP_SOURCE_LIST sourceList ;
-      BSONObj argument, result ;
 
       // run get synchronize clients command
-      rc = _stpqRunCommand( client,
-                            _stpqGetTaskCommand( STPQ_TASK_GETSYNCHISTORY ),
-                            argument, result ) ;
+      rc = client.getSyncHistory( sourceList ) ;
       if ( SDB_OK != rc )
       {
          ossPrintf( "Error: Failed to execute [%s] command, rc: %d"OSS_NEWLINE,
                     _stpqGetTaskCommand( STPQ_TASK_GETSYNCHISTORY ), rc ) ;
-         goto error ;
-      }
-
-      // parse source from BSON
-      try
-      {
-         BSONElement element ;
-
-         element = result.getField( STP_FIELD_NAME_SYNC_SOURCES ) ;
-         if ( Array == element.type() )
-         {
-            BSONObjIterator iter( element.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               stpSourceNode source ;
-               string address ;
-               BSONElement subElement = iter.next() ;
-
-               if ( Object != subElement.type() )
-               {
-                  ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                             STP_FIELD_NAME_SYNC_SOURCES ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-
-               rc = source.fromBSON( subElement.embeddedObject(), FALSE, TRUE ) ;
-               if ( SDB_OK != rc )
-               {
-                  ossPrintf( "Error: Failed to parse BSONObj for "
-                             "synchronize source, rc: %d"OSS_NEWLINE, rc ) ;
-                  goto error ;
-               }
-
-               address = source.getHostName() ;
-               address += ":" ;
-               address += source.getServiceName() ;
-
-               sourceList.push_back( source ) ;
-            }
-         }
-         else
-         {
-            ossPrintf( "Error: Failed to get [%s] field from BSON"OSS_NEWLINE,
-                       STP_FIELD_NAME_SYNC_SOURCE ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-      catch ( exception &e )
-      {
-         ossPrintf( "Error: Failed to parse BSONObj, error: %s"OSS_NEWLINE,
-                    e.what() ) ;
-         rc = SDB_SYS ;
          goto error ;
       }
 

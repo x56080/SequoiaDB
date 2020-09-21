@@ -41,6 +41,7 @@
 #include "stpCommon.hpp"
 #include "stpLogicalTime.hpp"
 #include "stpMetaData.hpp"
+#include "stpClient.hpp"
 #include "utilSHMBuffer.hpp"
 #include "utilNodeOpr.hpp"
 
@@ -129,6 +130,9 @@ namespace engine
       {
          return getLogicalTimeUS( time, 0, monotonic ) ;
       }
+
+      // get interface of STP client
+      INT32 getClient( stpClient &client ) ;
    } ;
 
    typedef class _stpAgent stpAgent ;

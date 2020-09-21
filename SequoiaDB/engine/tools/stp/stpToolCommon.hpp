@@ -369,6 +369,39 @@ namespace engine
       return STP_NODE_STATUS_NAME_UNKNOWN ;
    }
 
+   /*
+      STP_TIME_FORMAT
+    */
+   // format of time in STP
+   enum STP_TIME_FORMAT
+   {
+      // unknown format
+      STP_FORMAT_UNKNOWN = 0,
+      // logical time in nanoseconds
+      STP_FORMAT_LOGICAL_TIME_NS,
+      // logical time in microseconds
+      STP_FORMAT_LOGICAL_TIME_US,
+   } ;
+
+   #define STP_FORMAT_NAME_FORMAT            "unknown"
+   #define STP_FORMAT_NAME_LOGICAL_TIME_NS   "logicalTimeNS"
+   #define STP_FORMAT_NAME_LOGICAL_TIME_US   "logicalTimeUS"
+
+   OSS_INLINE STP_TIME_FORMAT stpGetTimeFormat( const CHAR *formatName )
+   {
+      if ( 0 == ossStrcasecmp( STP_FORMAT_NAME_LOGICAL_TIME_NS,
+                               formatName ) )
+      {
+         return STP_FORMAT_LOGICAL_TIME_NS ;
+      }
+      else if ( 0 == ossStrcasecmp( STP_FORMAT_NAME_LOGICAL_TIME_US,
+                                    formatName ) )
+      {
+         return STP_FORMAT_LOGICAL_TIME_US ;
+      }
+      return STP_FORMAT_UNKNOWN ;
+   }
+
    // names of fields for STP BSON output
    #define STP_FIELD_NAME_VERSION            FIELD_NAME_VERSION
    #define STP_FIELD_NAME_ROLE               FIELD_NAME_ROLE
@@ -418,6 +451,11 @@ namespace engine
    #define STP_FIELD_NAME_NANO_SECOND        "NanoSecond"
    #define STP_FIELD_NAME_REQUEST_ID         "RequestID"
    #define STP_FIELD_NAME_DELAY              "Delay"
+   #define STP_FIELD_NAME_TYPE               FIELD_NAME_TYPE
+   #define STP_FIELD_NAME_REELECT_TIMEOUT    FIELD_NAME_REELECTION_TIMEOUT
+
+   // default timeout to reelect, 30 seconds
+   #define STP_REELECT_DFT_TIMEOUT ( 30 )
 
 }
 

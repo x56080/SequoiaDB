@@ -82,6 +82,8 @@ namespace engine
                               INT32 timeout = -1,
                               BOOLEAN monotonic = TRUE ) ;
 
+      INT32 getClient( stpClient &client ) ;
+
    protected:
       // clear agent
       void  _clear() ;
@@ -120,8 +122,10 @@ namespace engine
 
       // PID of STP
       OSSPID            _stpPID ;
+      // host name
+      CHAR              _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
       // service name ( port ) of STP
-      ossPoolString     _stpServiceName ;
+      CHAR              _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 
       // lock to protect meta data from shared memory
       // - when reads meta data, should get the shared lock
@@ -145,6 +149,11 @@ namespace engine
      _stpPID( OSS_INVALID_PID ),
      _lastSyncTick( 0LL )
    {
+      if ( SDB_OK != ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) )
+      {
+         _hostName[ 0 ] = '\0' ;
+      }
+      _serviceName[ 0 ] = '\0' ;
    }
 
    _stpAgentService::~_stpAgentService()
@@ -231,9 +240,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to test STP node, rc: %d", rc ) ;
 
       // check meta data
-      rc = _checkMetaData( _stpServiceName.c_str() ) ;
+      rc = _checkMetaData( _serviceName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check meta data with key [%s], "
-                   "rc: %d", _stpServiceName.c_str(), rc ) ;
+                   "rc: %d", _serviceName, rc ) ;
 
    done:
       // exit critical section
@@ -386,6 +395,34 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE_GETCLIENT, "_stpAgentService::getClient" )
+   INT32 _stpAgentService::getClient( stpClient &client )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENTSERVICE_GETCLIENT ) ;
+
+      ossScopedRWLock lock( &_metaMutex, SHARED ) ;
+
+      // check available
+      PD_CHECK( isAvailable(), STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get logical time, STP is not available" ) ;
+      // check meta data
+      PD_CHECK( NULL != getMetaData(), STP_NOT_AVAILABLE, error, PDERROR,
+                "Failed to get logical time, meta data is not available" ) ;
+
+      rc = client.setConnInfo( _hostName, _serviceName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set connection information for "
+                   "STP client, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENTSERVICE_GETCLIENT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENTSERVICE__CLEAR, "_stpAgentService::_clear" )
    void _stpAgentService::_clear()
    {
@@ -394,7 +431,7 @@ namespace engine
       // reset PID of STP
       _stpPID = OSS_INVALID_PID ;
       // reset service name of STP
-      _stpServiceName.clear() ;
+      _serviceName[ 0 ] = '\0' ;
       // release meta data
       _releaseMetaData() ;
       // reset synchronize notification tick
@@ -412,6 +449,17 @@ namespace engine
 
       utilNodeInfo node ;
       UTIL_VEC_NODES listNodes ;
+
+      // check host name if needed
+      if ( '\0' == _hostName[ 0 ] )
+      {
+         rc = ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to get host name, rc: %d", rc ) ;
+            _hostName[ 0 ] = '\0' ;
+         }
+      }
 
       // list running nodes, filtered by STP
       rc = utilListNodes( listNodes, SDB_TYPE_STP, NULL, OSS_INVALID_PID, -1 ) ;
@@ -432,7 +480,8 @@ namespace engine
               node._pid ) ;
 
       // extract service name
-      _stpServiceName.assign( node._svcname.c_str() ) ;
+      ossStrncpy( _serviceName, node._svcname.c_str(), OSS_MAX_SERVICENAME ) ;
+
       // extract PID
       _stpPID = node._pid ;
 
@@ -462,11 +511,11 @@ namespace engine
                               sizeof( test ),
                               FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to test from STP "
-                   "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
+                   "node [%s] pid [%u], rc: %d", _serviceName,
                    _stpPID, rc ) ;
 
       PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
-              _stpServiceName.c_str(), _stpPID, STP_PIPE_MSG_TEST ) ;
+              _serviceName, _stpPID, STP_PIPE_MSG_TEST ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__TESTSTP, rc ) ;
@@ -489,11 +538,11 @@ namespace engine
                           STP_PIPE_MSG_SYNC,
                           sizeof( STP_PIPE_MSG_SYNC ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to notify synchronize to STP "
-                   "node [%s] pid [%u], rc: %d", _stpServiceName.c_str(),
+                   "node [%s] pid [%u], rc: %d", _serviceName,
                    _stpPID, rc ) ;
 
       PD_LOG( PDINFO, "Send STP node [%s] pid [%u] with command [%s] done",
-              _stpServiceName.c_str(), _stpPID, STP_PIPE_MSG_SYNC ) ;
+              _serviceName, _stpPID, STP_PIPE_MSG_SYNC ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENTSERVICE__NOTIFYSTPSYNC, rc ) ;
@@ -863,6 +912,28 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPAGENT_GETLOGICALTIMEUS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPAGENT_GETCLIENT, "_stpAgent::getClient" )
+   INT32 _stpAgent::getClient( stpClient &client )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPAGENT_GETCLIENT ) ;
+
+      stpAgentService *service = _stpGetAgentService() ;
+
+      SDB_ASSERT( NULL != service, "service is invalid" ) ;
+
+      rc = service->getClient( client ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get STP client, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPAGENT_GETCLIENT, rc ) ;
       return rc ;
 
    error:

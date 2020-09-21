@@ -64,42 +64,107 @@ namespace engine
    : _handle( 0 ),
      _lastErrorCode( SDB_OK )
    {
+      _hostName[ 0 ] = '\0' ;
+      _serviceName[ 0 ] = '\0' ;
+   }
+
+   _stpClientInternal::_stpClientInternal( const CHAR *hostName,
+                                           const CHAR *serviceName )
+   : _handle( 0 ),
+     _lastErrorCode( SDB_OK )
+   {
+      _setHostName( hostName ) ;
+      _setServiceName( serviceName ) ;
+   }
+
+   _stpClientInternal::_stpClientInternal( const _stpClientInternal &client )
+   : _handle( 0 ),
+     _lastErrorCode( SDB_OK )
+   {
+      _setHostName( client.getHostName() ) ;
+      _setServiceName( client.getServiceName() ) ;
    }
 
    _stpClientInternal::~_stpClientInternal()
    {
+      disconnect() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT_SETCONNINFO, "_stpClientInternal::setConnInfo" )
+   INT32 _stpClientInternal::setConnInfo( const CHAR *hostName,
+                                          const CHAR *serviceName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENTINT_SETCONNINFO ) ;
+
+      // disconnect from old connection first
+      disconnect() ;
+
+      PD_CHECK( NULL != hostName && '\0' != hostName[ 0 ],
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to connect to STP, host name is empty" ) ;
+      PD_CHECK( NULL != serviceName && '\0' != serviceName[ 0 ],
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to connect to STP, service name is empty" ) ;
+
+      _setHostName( hostName ) ;
+      _setServiceName( serviceName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENTINT_SETCONNINFO, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT_CONNECT, "_stpClientInternal::connect" )
-   INT32 _stpClientInternal::connect( const CHAR *hostName,
-                                      const CHAR *serviceName )
+   INT32 _stpClientInternal::connect()
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__STPCLIENTINT_CONNECT ) ;
 
-      // close old connection before connect
-      rc = disconnect() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to disconnect" ) ;
+      rc = _connect() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to connect to STP, rc: %d", rc ) ;
 
-      // connect
-      // NOTE: currently we only use default user and password
-      rc = sdbConnect( hostName, serviceName, STP_USER, STP_USERPASSWD,
-                       &_handle ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to connect to %s:%s, rc: %d",
-                   hostName, serviceName, rc ) ;
    done:
       PD_TRACE_EXITRC( SDB__STPCLIENTINT_CONNECT, rc ) ;
       return rc ;
 
    error:
-      disconnect() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT_CONNECT_HOST, "_stpClientInternal::connect" )
+   INT32 _stpClientInternal::connect( const CHAR *hostName,
+                                      const CHAR *serviceName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENTINT_CONNECT_HOST ) ;
+
+      rc = setConnInfo( hostName, serviceName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set connection information, "
+                   "rc: %d", rc ) ;
+
+      rc = _connect() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to connect to STP, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENTINT_CONNECT_HOST, rc ) ;
+      return rc ;
+
+   error:
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT_DISCONNECT, "_stpClientInternal::disconnect" )
    INT32 _stpClientInternal::disconnect()
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__STPCLIENTINT_DISCONNECT ) ;
 
       // check handle
@@ -110,9 +175,9 @@ namespace engine
          _handle = 0 ;
       }
 
-      PD_TRACE_EXITRC( SDB__STPCLIENTINT_DISCONNECT, SDB_OK ) ;
+      PD_TRACE_EXITRC( SDB__STPCLIENTINT_DISCONNECT, rc ) ;
 
-      return SDB_OK ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT_RUNCOMMAND, "_stpClientInternal::runCommand" )
@@ -153,6 +218,41 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT__CONNECT, "_stpClientInternal::_connect" )
+   INT32 _stpClientInternal::_connect()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENTINT__CONNECT ) ;
+
+      SDB_ASSERT( NULL != _hostName && '\0' != _hostName[ 0 ],
+                  "host name is invalid" ) ;
+      SDB_ASSERT( NULL != _serviceName && '\0' != _serviceName[ 0 ],
+                  "service name is invalid" ) ;
+
+      // close old connection before connect
+      rc = disconnect() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to disconnect" ) ;
+
+      // connect
+      // NOTE: currently we only use default user and password
+      rc = sdbConnect( _hostName, _serviceName, STP_USER, STP_USERPASSWD,
+                       &_handle ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to connect to %s:%s, rc: %d",
+                   _hostName, _serviceName, rc ) ;
+
+      PD_LOG( PDINFO, "Connected to STP [ host: %s, service: %s ]",
+              _hostName, _serviceName ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENTINT__CONNECT, rc ) ;
+      return rc ;
+
+   error:
+      disconnect() ;
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENTINT__RUNCOMMAND, "_stpClientInternal::_runCommand" )
    INT32 _stpClientInternal::_runCommand( ossValuePtr handle,
                                           const CHAR *command,
@@ -175,7 +275,8 @@ namespace engine
 
       // check connection
       PD_CHECK( isConnected(), SDB_NETWORK, error, PDERROR,
-                "Failed to run command on STP node, network is closed" ) ;
+                "Failed to run command [%s] on STP node, network is closed",
+                command ) ;
 
       connection = (sdbConnectionStruct *)handle ;
 
@@ -185,7 +286,8 @@ namespace engine
                                    command, 0, 0, -1, -1,
                                    options, NULL, NULL, NULL,
                                    connection->_endianConvert ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build query message, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build query message for "
+                   "command [%s], rc: %d", command, rc ) ;
 
       // send request and get reply
       rc = _sendAndReceive( handle,
@@ -193,8 +295,8 @@ namespace engine
                             ( MsgHeader** )&( connection->_pReceiveBuffer ),
                             &( connection->_receiveBufferSize ),
                             connection->_endianConvert ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build send and receive message, "
-                   "rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build send and receive message "
+                   "for command [%s], rc: %d", command, rc ) ;
 
       // extract reply
       rc = _extractReply( (MsgHeader *)( connection->_pReceiveBuffer ),
@@ -206,14 +308,14 @@ namespace engine
       {
          if ( !extracted )
          {
-            PD_LOG( PDERROR, "Failed to extract result from reply, rc: %d",
-                    rc ) ;
+            PD_LOG( PDERROR, "Failed to extract result from reply "
+                    "for command [%s], rc: %d", command, rc ) ;
             goto error ;
          }
          else
          {
             PD_LOG( PDINFO, "Failed to run command [%s] in STP, rc: %d",
-                    rc ) ;
+                    command, rc ) ;
             returnCode = rc ;
             rc = SDB_OK ;
             goto error ;
@@ -225,8 +327,8 @@ namespace engine
       {
          rc = _getReturnBuffer( connection->_pReceiveBuffer,
                                 returnBuffer ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get result from reply, rc: %d",
-                      rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get result from reply "
+                      "for command [%s], rc: %d", command, rc ) ;
       }
 
    done:
@@ -509,11 +611,15 @@ namespace engine
       INT32 bsonRC = BSON_OK ;
       bson errorObject ;
       bson_iterator iter ;
+      BOOLEAN errorInited = FALSE ;
 
       _resetError() ;
 
       PD_CHECK( NULL != errorBuffer, SDB_INVALIDARG, error, PDERROR,
                 "Failed to extract error message, error buffer is invalid" ) ;
+
+      bson_init( &errorObject ) ;
+      errorInited = TRUE ;
 
       bsonRC = bson_init_finished_data( &errorObject, errorBuffer ) ;
       PD_CHECK( BSON_OK == bsonRC, SDB_CORRUPTED_RECORD, error, PDERROR,
@@ -536,7 +642,10 @@ namespace engine
       }
 
    done:
-      bson_destroy( &errorObject ) ;
+      if ( errorInited )
+      {
+         bson_destroy( &errorObject ) ;
+      }
       PD_TRACE_EXITRC( SDB__STPCLIENTINT__EXTRACTERROR, rc ) ;
       return rc ;
 

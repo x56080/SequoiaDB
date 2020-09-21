@@ -217,43 +217,20 @@ namespace engine
          return CMD_NAME_STP_GET_TIME ;
       }
 
+      // initialize with given option
+      virtual INT32 initialize( const CHAR *option ) ;
       // run command
       virtual INT32 doit( stpSession *session,
                           MsgHeader *message,
                           bson::BSONObj &result,
                           BOOLEAN &finished ) ;
+
+   protected:
+      BSONObj           _options ;
+      STP_TIME_FORMAT   _format ;
    } ;
 
    typedef class _stpGetTimeCMD stpGetTimeCMD ;
-
-   /*
-      _stpGetTimeUSCMD define
-    */
-   // _stpGetTimeUSCMD gets logical time in microsecond
-   class _stpGetTimeUSCMD : public stpCommand
-   {
-      DECLARE_STP_CMD_AUTO_REGISTER()
-
-   public:
-      // constructor and destructor
-      _stpGetTimeUSCMD( STPCB *stpCB ) ;
-      virtual ~_stpGetTimeUSCMD() ;
-
-   public:
-      // get name of command
-      OSS_INLINE virtual const CHAR *getName() const
-      {
-         return CMD_NAME_STP_GET_TIME_US ;
-      }
-
-      // run command
-      virtual INT32 doit( stpSession *session,
-                          MsgHeader *message,
-                          bson::BSONObj &result,
-                          BOOLEAN &finished ) ;
-   } ;
-
-   typedef class _stpGetTimeUSCMD stpGetTimeUSCMD ;
 
    /*
       _stpGetMetaCMD define

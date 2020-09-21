@@ -186,6 +186,10 @@ namespace engine
       // reset meta data to given time
       void reset( UINT64 timeUS ) ;
 
+      // quick interface to get non-monotonic logical time
+      // NOTE: timeout in one second
+      INT32 getLogicalTimeNS( stpLogicalTimeNS &time ) const ;
+
       // get logical time in nanoseconds
       // NOTE: check whether time is synchronized if needed
       INT32 getLogicalTimeNS( stpLogicalTimeNS &time,

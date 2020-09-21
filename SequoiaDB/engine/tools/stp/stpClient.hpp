@@ -39,7 +39,12 @@
 #define STP_CLIENT_HPP__
 
 #include "oss.hpp"
+#include "ossSocket.hpp"
 #include "stpClientInternal.hpp"
+#include "stpMetaData.hpp"
+#include "stpOptions.hpp"
+#include "stpNode.hpp"
+#include "dpsLogDef.hpp"
 #include "../bson/bson.h"
 
 namespace engine
@@ -54,10 +59,25 @@ namespace engine
    {
    public:
       _stpClient() ;
-      ~_stpClient() ;
+      _stpClient( const CHAR *hostName, const CHAR *serviceName ) ;
+      _stpClient( const _stpClient &client ) ;
+      virtual ~_stpClient() ;
 
    public:
       // run command on STP node to get back BSON object
+      // input:
+      // - command: command to be executed
+      // - argument: argument to be executed in BSON format
+      // output:
+      // - returnObject: result of command in BSON format
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 runCommand( const CHAR *command,
+                        const bson::BSONObj &argument,
+                        bson::BSONObj &returnObject ) ;
+
+      // run command on STP node to get back BSON object and return code
       // input:
       // - command: command to be executed
       // - argument: argument to be executed in BSON format
@@ -71,6 +91,99 @@ namespace engine
                         const bson::BSONObj &argument,
                         bson::BSONObj &returnObject,
                         INT32 &returnCode ) ;
+
+      // get configure options from STP
+      // output:
+      // - options: configure options of STP
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getConf( stpOptions &options ) ;
+
+      // get meta data from STP
+      // output:
+      // - shmKey: key of shared memory to get meta data of STP
+      // - metaData: current meta data of STP
+      // - metaLSN: current LSN of STP
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getMetaData( std::string &shmKey,
+                         stpMetaData &metaData,
+                         DPS_LSN &metaLSN ) ;
+
+      // get logical time in nanoseconds from STP
+      // output:
+      // - logicalTime: current logical time in nanoseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getTime( stpLogicalTimeNS &logicalTime ) ;
+
+      // get logical time in microseconds from STP
+      // output:
+      // - logicalTime: current logical time in microseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getTimeUS( stpLogicalTimeUS &logicalTime ) ;
+
+      // get server information from STP
+      // output:
+      // - version: version of servers
+      // - serverList: list of servers
+      // - primaryNode: primary node of servers
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getServers( UINT32 &version,
+                        STP_SERVER_LIST &serverList,
+                        stpServerNode &primaryNode ) ;
+
+      // get synchronizing clients from STP
+      // output:
+      // - sourceNode: current source node ( primary node )
+      // - clientList: list of synchronize clients
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      // NOTE: will redirect to primary node
+      INT32 getSyncClients( stpSourceNode &sourceNode,
+                            STP_CLIENT_LIST &clientList ) ;
+
+      // get synchronize status
+      // output:
+      // - role: role of STP
+      // - isPrimary: indicates if STP is primary
+      // - sourceNode: current source node to synchronize, and with
+      //               synchronize status
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getSyncStatus( STP_ROLE &role,
+                           BOOLEAN &isPrimary,
+                           STP_SYNC_STATUS &status,
+                           stpSourceNode &sourceNode ) ;
+
+      // get synchronize history
+      // output:
+      // - sourceList: list of history source nodes with synchronize
+      //               statistics
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 getSyncHistory( STP_SOURCE_LIST &sourceList ) ;
+
+      // reelect STP servers
+      // input:
+      // - timeout: timeout of reelection
+      // - targetHost: host name of new primary
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 reelect( UINT32 timeout = STP_REELECT_DFT_TIMEOUT,
+                     const CHAR *targetHost = NULL ) ;
+
    } ;
 
    typedef class _stpClient stpClient ;

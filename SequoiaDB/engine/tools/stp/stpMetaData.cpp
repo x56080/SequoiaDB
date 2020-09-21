@@ -47,6 +47,11 @@ using namespace bson ;
 namespace engine
 {
 
+   // time wait to acquire logical time
+   #define STP_META_GET_TIME_WAITTIME  ( 10 )
+   // timeout to acquire logical time
+   #define STP_META_GET_TIME_TIEMOUT   ( OSS_ONE_SEC )
+
    /*
       _stpMetaSHMContent define
     */
@@ -128,6 +133,39 @@ namespace engine
       _syncHWTime.sampleMonotonic() ;
 
       PD_TRACE_EXIT( SDB__STPMETADATA_RESET ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_GETLOGICALTIMENS_QUICK, "_stpMetaData::getLogicalTimeNS" )
+   INT32 _stpMetaData::getLogicalTimeNS( stpLogicalTimeNS &time ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETADATA_GETLOGICALTIMENS_QUICK ) ;
+
+      UINT32 waitTime = 0, retryTime = 0 ;
+
+      while ( TRUE )
+      {
+         // check synchronize
+         rc = getLogicalTimeNS( time, FALSE, TRUE, waitTime ) ;
+         if ( STP_SYNC_BUSY == rc && retryTime < STP_META_GET_TIME_TIEMOUT )
+         {
+            // the STP is synchronizing, wait for a while
+            ossSleep( STP_META_GET_TIME_WAITTIME ) ;
+            retryTime += STP_META_GET_TIME_WAITTIME ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, "
+                      "rc: %d", rc ) ;
+         break ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETADATA_GETLOGICALTIMENS_QUICK, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETADATA_GETLOGICALTIMENS, "_stpMetaData::getLogicalTimeNS" )

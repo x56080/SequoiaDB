@@ -872,7 +872,8 @@ Stp.prototype.getTime = function() {
 }
 
 Stp.prototype.getTimeUS = function() {
-   return this._runCommand( "stp get time us" ) ;
+   var options = { "Type" : "logicalTimeUS" } ;
+   return this._runCommand( "stp get time", options ) ;
 }
 
 Stp.prototype.getMeta = function() {
