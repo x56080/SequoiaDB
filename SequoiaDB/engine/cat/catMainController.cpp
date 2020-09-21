@@ -51,6 +51,7 @@
 #include "catTrace.hpp"
 #include "catCommon.hpp"
 #include "catContextData.hpp"
+#include "catCMDBase.hpp"
 
 using namespace bson;
 namespace engine
@@ -953,14 +954,135 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_QUERYMSG, "catMainController::_processQueryMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_PRCSCMD, "catMainController::_processCommand" )
+   INT32 catMainController::_processCommand( const NET_HANDLE &handle,
+                                             MsgHeader *pMsg )
+   {
+      PD_TRACE_ENTRY ( SDB_CATMAINCT_PRCSCMD ) ;
+      INT32 rc             = SDB_OK ;
+      SINT32 flags         = 0 ;
+      SINT64 numToSkip     = 0 ;
+      SINT64 numToReturn   = -1 ;
+      CHAR *pName          = NULL ;
+      CHAR *pQuery         = NULL ;
+      CHAR *pSelector      = NULL ;
+      CHAR *pOrderBy       = NULL ;
+      CHAR *pHint          = NULL ;
+      catCMDBase *pCommand = NULL ;
+      rtnContextBuf ctxBuff ;
+      INT64 contextID = -1 ;
+
+      // extract message
+      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pName,
+                             &numToSkip, &numToReturn, &pQuery,
+                             &pSelector, &pOrderBy, &pHint ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to extract query message, rc: %d",
+                    rc ) ;
+
+      if ( !rtnIsCommand( pName ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "%s is not command", pName ) ;
+         goto error ;
+      }
+
+      // build command
+      rc = getCatCmdBuilder()->create( &pName[1], pCommand ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to create command[%s], rc: %d",
+                    pName, rc ) ;
+
+      // primary check
+      if ( pCommand->needCheckPrimary() )
+      {
+         BOOLEAN isDelay = FALSE ;
+         rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, isDelay ) ;
+         if ( isDelay )
+         {
+            goto done ;
+         }
+         PD_RC_CHECK( rc, PDWARNING, "Service deactive "
+                      "but received command: %s, opCode: %d, rc: %d",
+                      pCommand->name(), pMsg->opCode, rc ) ;
+      }
+
+      if ( pCommand->needCheckDCStatus() && _pCatCB->isDCReadonly() )
+      {
+         rc = SDB_CAT_CLUSTER_IS_READONLY ;
+         goto error ;
+      }
+
+      // do command
+      rc = pCommand->init( pQuery, pSelector, pOrderBy, pHint,
+                           flags, numToSkip, numToReturn ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to init command[%s], rc: %d",
+                    pCommand->name(), rc ) ;
+
+      rc = pCommand->doit( _pEDUCB, ctxBuff, contextID ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to do command[%s], rc: %d",
+                    pCommand->name(), rc ) ;
+
+      // TODO add context by catMainController::addContext()
+
+   done:
+      if ( !_pCatCB->isDelayed() )
+      {
+         // send reply
+         MsgOpReply replyHeader ;
+         replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
+         replyHeader.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode );
+         replyHeader.header.TID = pMsg->TID;
+         replyHeader.header.routeID.value = 0;
+         replyHeader.header.requestID = pMsg->requestID;
+         replyHeader.contextID = contextID ;
+         replyHeader.flags = rc ;
+         replyHeader.startFrom = 0 ;
+         replyHeader.numReturned = 0 ;
+         if( SDB_CLS_NOT_PRIMARY == rc )
+         {
+            replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
+         }
+         if ( 0 == ctxBuff.size() )
+         {
+            rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
+         }
+         else
+         {
+            replyHeader.header.messageLength += ctxBuff.size() ;
+            replyHeader.numReturned = ctxBuff.recordNum() ;
+            rc = _pCatCB->sendReply( handle, &replyHeader, rc,
+                                     (void *)ctxBuff.data(), ctxBuff.size() ) ;
+         }
+      }
+      if ( pCommand )
+      {
+         getCatCmdBuilder()->release( pCommand ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATMAINCT_PRCSCMD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 catMainController::_processQueryMsg( const NET_HANDLE &handle,
                                               MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_CATMAINCT_QUERYMSG ) ;
-      rc = _processQueryRequest( handle, pMsg, NULL ) ;
-      PD_TRACE_EXITRC ( SDB_CATMAINCT_QUERYMSG, rc ) ;
+
+      CHAR *pCollectionName = ((MsgOpQuery*)pMsg)->name ;
+
+      if ( rtnIsCommand( pCollectionName ) )
+      {
+         rc = _processCommand( handle, pMsg ) ;
+      }
+      else
+      {
+         rc = _processQueryRequest( handle, pMsg, NULL ) ;
+      }
+
       return rc ;
    }
 

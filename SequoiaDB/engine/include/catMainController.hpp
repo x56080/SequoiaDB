@@ -157,6 +157,8 @@ namespace engine
       INT32 _processQueryRequest ( const NET_HANDLE &handle,
                                    MsgHeader *pMsg,
                                    const CHAR *pCollectionName ) ;
+      INT32 _processCommand( const NET_HANDLE &handle,
+                             MsgHeader *pMsg ) ;
       INT32 _processDelayReply ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
 
    protected:

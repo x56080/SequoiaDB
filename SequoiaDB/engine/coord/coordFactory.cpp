@@ -79,7 +79,7 @@ namespace engine
             else
             {
                pOperator->setReadOnly( item._isReadOnly ) ;
-               pOperator->setName( it->first ) ;
+               pOperator->setName( it->first._pString ) ;
             }
          }
          else
@@ -120,7 +120,15 @@ namespace engine
          }
          else
          {
-            _mapCommand[ pCmdName ] = coordFactoryItem( isReadOnly, pFunc ) ;
+            try
+            {
+               coordFactoryItem item( isReadOnly, pFunc ) ;
+               _mapCommand.insert( MAP_COMMAND::value_type( pCmdName, item ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_OOM ;
+            }
          }
       }
       return rc ;
