@@ -148,14 +148,14 @@ namespace engine
          goto error ;
       }
 
-      e = obj.getField( FIELD_NAME_ROLLBACK_PENDING ) ;
+      e = obj.getField( FIELD_NAME_RESTORING ) ;
       if ( e.eoo() )
       {
-         _rbPending = FALSE ;
+         _restoring = FALSE ;
       }
       else if ( Bool == e.type() )
       {
-         _rbPending = e.Bool() ? TRUE : FALSE ;
+         _restoring = e.Bool() ? TRUE : FALSE ;
       }
       else
       {
@@ -476,6 +476,11 @@ namespace engine
    void _clsDCBaseInfo::setReadonly( BOOLEAN readonly )
    {
       _readonly = readonly ;
+   }
+
+   void _clsDCBaseInfo::setRestoring( BOOLEAN restoring)
+   {
+      _restoring = restoring  ;
    }
 
    INT32 _clsDCBaseInfo::_addGroup( const BSONObj &obj, BOOLEAN check,

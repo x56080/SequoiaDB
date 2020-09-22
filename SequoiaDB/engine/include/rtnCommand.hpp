@@ -1637,13 +1637,13 @@ namespace engine
       rtnAnalyzeParam   _param ;
    } ;
 
-   class _rtnRollbackToPIT : public _rtnCommand
+   class _rtnRestoreToPIT : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnRollbackToPIT () ;
-         virtual ~_rtnRollbackToPIT () ;
+         _rtnRestoreToPIT () ;
+         virtual ~_rtnRestoreToPIT () ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -1658,8 +1658,9 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       private:
-         const CHAR *_timestamp ;
+         UINT64 _timestamp ;
    };
+
 }
 
 const UINT32 pdGetTraceFunctionListNum();

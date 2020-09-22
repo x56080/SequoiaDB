@@ -503,6 +503,12 @@ namespace engine
             rc = processCmdDisableReadonly(  handle, &dcMgr,
                                              objQuery, retObjBuilder ) ;
          }
+         else if ( 0 == ossStrcasecmp( pAction,
+                                       CMD_VALUE_NAME_DISABLE_RESTORING ) )
+         {
+            rc = processCmdDisableRestoring(handle, &dcMgr, objQuery,
+                                            retObjBuilder);
+         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -1202,6 +1208,42 @@ namespace engine
       goto done ;
    }
 
+   // Sets the RestoreInProgress state to false
+   INT32 _catDCManager::processCmdDisableRestoring( const NET_HANDLE &handle,
+                                                    _clsDCMgr *pDCMgr,
+                                                    const BSONObj &objQuery,
+                                                    BSONObjBuilder &retObjBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
+      vector< string > vecGroups ;
+
+      _pCatCB->getGroupsName( vecGroups ) ;
+      vecGroups.push_back( CATALOG_GROUPNAME ) ;
+
+      // make return obj
+      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
+      {
+         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
+         return rc;
+      }
+
+      if ( pBaseInfo->isRestoring() )
+      {
+         // update to collection
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE,
+                                      _pEduCB, _majoritySize(), _pDmsCB,
+                                      _pDpsCB )))
+         {
+            // update failed, undo the change
+            catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE, _pEduCB, 1,
+                               _pDmsCB, _pDpsCB ) ;
+            return rc;
+         }
+      }
+      return rc ;
+   }
+
    void _catDCManager::_fillRspHeader( MsgHeader * rspMsg,
                                        const MsgHeader * reqMsg )
    {
@@ -1348,7 +1390,7 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_ROLLBACK_PENDING << false ) ;
+                         FIELD_NAME_RESTORING << false ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "
@@ -1480,12 +1522,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 _catDCManager::setRollbackPending()
-   {
-      return catUpdateDCStatus( FIELD_NAME_ROLLBACK_PENDING, TRUE, _pEduCB,
-                                1, _pDmsCB, _pDpsCB ) ;
    }
 }
 

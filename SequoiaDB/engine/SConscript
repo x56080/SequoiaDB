@@ -603,6 +603,7 @@ coordFiles = [
       "coord/coordCommandDC.cpp",
       "coord/coordCommandList.cpp",
       "coord/coordCommandSnapshot.cpp",
+      "coord/coordCommandRestoreToPIT.cpp",
       "coord/coordSqlOperator.cpp",
       "coord/coordLobStream.cpp",
       "coord/coordLobOperator.cpp",

@@ -2867,10 +2867,18 @@
       </code>
 
       <code>
-         <name>SDB_ROLLBACK_PENDING</name>
+         <name>SDB_RESTORE_IN_PROGRESS</name>
          <description>
-            <en>Database is in rollback pending state</en>
-            <cn>数据库处于回滚挂起状态</cn>
+            <en>Database is in restore-in-progress state</en>
+            <cn>数据库处于恢复中状态</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RESTORE_NO_CONSISTENT_PIT</name>
+         <description>
+            <en>No valid consistency point for point-in-time restore</en>
+            <cn>按时间还原没有一致的有效时间点</cn>
          </description>
       </code>
 

@@ -39,6 +39,7 @@
 #include "clsTrace.hpp"
 #include "rtn.hpp"
 #include "rtnContextAlter.hpp"
+#include "rtnContextDump.hpp"
 #include "msgMessageFormat.hpp"
 
 using namespace bson ;
@@ -763,6 +764,12 @@ namespace engine
          pInfo->setReadonly( FALSE ) ;
          pmdGetKRCB()->setDBReadonly( FALSE ) ;
       }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING,
+                                    _pAction ) )
+      {
+         pInfo->setRestoring( FALSE ) ;
+         pmdGetKRCB()->setDBRestoring( FALSE ) ;
+      }
       else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) )
       {
          pInfo->setAcitvated( TRUE ) ;
@@ -1123,6 +1130,120 @@ namespace engine
 
    error :
       goto done ;
+   }
+
+   /*
+      _rtnGetPITWindow implementation
+   */
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetPITWindow)
+   _rtnGetPITWindow::_rtnGetPITWindow() { _context = NULL; }
+
+   _rtnGetPITWindow::~_rtnGetPITWindow() {}
+
+   const CHAR *_rtnGetPITWindow::name() { return NAME_GET_PIT_WINDOW; }
+
+   RTN_COMMAND_TYPE _rtnGetPITWindow::type() { return CMD_GET_PIT_WINDOW; }
+
+   INT32 _rtnGetPITWindow::init(INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                                const CHAR *pMatcherBuff,
+                                const CHAR *pSelectBuff,
+                                const CHAR *pOrderByBuff, const CHAR *pHintBuff)
+   {
+      return SDB_OK;
+   }
+
+   INT32 _rtnGetPITWindow::doit(pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB, INT16 w,
+                                INT64 *pContextID)
+   {
+      INT32 rc = SDB_OK;
+      if ((rc = _getWindow(cb, rtnCB, pContextID)))
+      {
+         PD_LOG(PDERROR, "Failed to get PIT window");
+         _closeContext(cb, rtnCB, pContextID);
+      }
+      return rc;
+   }
+
+   INT32 _rtnGetPITWindow::_getWindow(pmdEDUCB *cb, SDB_RTNCB *rtnCB,
+                                      INT64 *pContextID)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(pContextID, "context id can't be NULL");
+      BSONObj result;
+
+      // The caller will clean up the context
+      if ((rc = _openContext(cb, rtnCB, pContextID)))
+      {
+         return rc;
+      }
+      if ((rc = _getResult(&result)))
+      {
+         return rc;
+      }
+      // Append the result to the context
+      if ((rc = _context->monAppend(result)))
+      {
+         PD_LOG(PDERROR, "Failed to append to context");
+         return rc;
+      }
+
+      return rc;
+   }
+
+   INT32 _rtnGetPITWindow::_openContext(pmdEDUCB *cb, SDB_RTNCB *rtnCB,
+                                        INT64 *pContextID)
+   {
+      INT32 rc = SDB_OK;
+      if ((rc = rtnCB->contextNew(RTN_CONTEXT_DUMP, (rtnContext **)(&_context),
+                                  *pContextID, cb)))
+      {
+         PD_LOG(PDERROR, "Failed to create context");
+         return rc;
+      }
+      if ((rc = _context->open(BSONObj(), BSONObj())))
+      {
+         PD_LOG(PDERROR, "Failed to open context");
+         return rc;
+      }
+      return rc;
+   }
+
+   void _rtnGetPITWindow::_closeContext(pmdEDUCB *cb, SDB_RTNCB *rtnCB,
+                                        INT64 *pContextID)
+   {
+      if (-1 != *pContextID)
+      {
+         rtnCB->contextDelete(*pContextID, cb);
+         *pContextID = -1;
+      }
+   }
+
+   INT32 _rtnGetPITWindow::_getResult(BSONObj *result)
+   {
+      INT32 rc = SDB_OK;
+      UINT64 minTime;
+      UINT64 maxTime;
+      // Get the window
+      if ((rc = sdbGetTransCB()->getRestoreWindow(minTime, maxTime)))
+      {
+         PD_LOG(PDERROR, "Get PIT window failed");
+         return rc;
+      }
+      try
+      {
+         // {min: 123, max, 456}
+         *result =
+             BSON(FIELD_NAME_MIN_VALUE << (INT64)minTime << FIELD_NAME_MAX_VALUE
+                                       << (INT64)maxTime);
+      }
+      catch (std::exception &e)
+      {
+         PD_LOG(PDERROR, "Failed to build result");
+         return SDB_SYS;
+      }
+      PD_LOG(PDEVENT, "Get PIT window result: %s", result->toString().c_str());
+      return rc;
    }
 }
 

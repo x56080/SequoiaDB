@@ -640,13 +640,13 @@ retry :
          {
             BSONObj objDCInfo( ( const CHAR* )pMsg + sizeof( MsgOpReply ) +
                                ossAlign4( (UINT32)msgObject.objsize() ) ) ;
-            BOOLEAN rbPending = FALSE ;
-            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_ROLLBACK_PENDING ) ;
+            BOOLEAN restoring = FALSE ;
+            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORING ) ;
             if ( !rbEle.eoo() )
             {
-               rbPending = rbEle.Bool() ;
+               restoring = rbEle.Bool() ;
             }
-            pmdGetKRCB()->setDBRBPending( rbPending ) ;
+            pmdGetKRCB()->setDBRestoring( restoring ) ;
          }
       }
       }

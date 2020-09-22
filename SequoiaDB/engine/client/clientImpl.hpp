@@ -1766,8 +1766,7 @@ namespace sdbclient
       INT32 getLastResultObj( bson::BSONObj &result,
                               BOOLEAN getOwned = FALSE ) const ;
 
-      INT32 rollbackToPIT( const CHAR* rollbackTS,
-                           const bson::BSONObj &options = _sdbStaticObject ) ;
+      INT32 restoreToPIT( const bson::BSONObj &options = _sdbStaticObject ) ;
 
    } ;
    typedef class _sdbImpl sdbImpl ;

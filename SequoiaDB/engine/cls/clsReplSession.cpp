@@ -424,7 +424,7 @@ namespace engine
       {
          if ( sdbGetTransCB()->isNeedSyncTrans() )
          {
-            sdbGetTransCB()->resetRestorePITWindow() ;
+            sdbGetTransCB()->resetRestoreWindow() ;
             sdbGetTransCB()->syncTransInfoFromLocal( msg->oldestTransLsn ) ;
             sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
          }
@@ -671,7 +671,7 @@ namespace engine
            sdbGetTransCB()->isNeedSyncTrans() )
       {
          DPS_LSN beginLsn = _logger->getStartLsn() ;
-         sdbGetTransCB()->resetRestorePITWindow() ;
+         sdbGetTransCB()->resetRestoreWindow() ;
          sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset ) ;
          sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
       }

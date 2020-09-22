@@ -1980,17 +1980,17 @@ namespace engine
       PD_TRACE_EXIT( SDB_DPSTRANSCB_CHECKPRIMARYACTIVETIME ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETRESTOREPITWINDOW, "dpsTransCB::getRestorePITWindow" )
-   INT32 dpsTransCB::getRestorePITWindow( UINT64 &minTime, UINT64 &maxTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETRESTOREWINDOW, "dpsTransCB::getRestoreWindow" )
+   INT32 dpsTransCB::getRestoreWindow( UINT64 &minTime, UINT64 &maxTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETRESTOREPITWINDOW ) ;
+      PD_TRACE_ENTRY( SDB_DPSTRANSCB_GETRESTOREWINDOW ) ;
 
       if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
       {
          // CATALOG nodes do not have global transactions, so we need to
-         // make the restore PIT window from CATALOG covers full time interval
+         // make the restore window from CATALOG covers full time interval
          minTime = DPS_MIN_TRANS_TIME ;
          maxTime = DPS_MAX_TRANS_TIME ;
       }
@@ -2005,7 +2005,7 @@ namespace engine
          maxTime = _maxTransCommitTime ;
       }
 
-      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETRESTOREPITWINDOW, rc ) ;
+      PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETRESTOREWINDOW, rc ) ;
 
       return rc ;
    }
@@ -2338,12 +2338,12 @@ namespace engine
             addHisTrans( transID, histInfo, checkRstPITWindow ) ;
          }
 
-         // update restore PIT window if needed
+         // update restore window if needed
          if ( checkRstPITWindow &&
               origID.isGlobTrans() &&
               DPS_TRANS_COMMIT == status )
          {
-            updateRestorePITWindow( transTime.getTime() ) ;
+            updateRestoreWindow( transTime.getTime() ) ;
          }
       }
 
@@ -2763,10 +2763,10 @@ namespace engine
          if ( checkRstPITWindow &&
               LOG_TYPE_DUMMY != record.head()._type )
          {
-            // for irreversible operators, reset restore PIT window
+            // for irreversible operators, reset restore window
             // NOTE: dummy logs are meaningless, and only used to fullfill the
             // log files, so skip dummy logs
-            resetRestorePITWindow() ;
+            resetRestoreWindow() ;
          }
          goto done ;
       }
@@ -2774,7 +2774,7 @@ namespace engine
       if ( checkRstPITWindow && !transID.isGlobTrans() )
       {
          // operators in non-global transactions are irreversible as well
-         resetRestorePITWindow() ;
+         resetRestoreWindow() ;
       }
 
       if ( transID.isValid() )

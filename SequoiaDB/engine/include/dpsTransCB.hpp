@@ -626,16 +626,16 @@ namespace engine
          _maxReadTran.swapGreaterThan( readTime ) ;
       }
 
-      // get restore PIT window
+      // get restore window for point-in-time restore
       // output :
       // - minTime: minimum global logical time ( in microseconds ) to restore
       // - maxTime: maximum global logical time ( in microseconds ) to restore
       // return :
       // - SDB_OK: succeed
       // NOTE:
-      // - currently, the restore PIT window is
+      // - currently, the restore window is
       //   [ minRecoverableTime, maxTransCommitTime ]
-      INT32 getRestorePITWindow( UINT64 &minTime, UINT64 &maxTime ) ;
+      INT32 getRestoreWindow( UINT64 &minTime, UINT64 &maxTime ) ;
 
       // get max transaction commit time before given LSN
       // input:
@@ -687,10 +687,10 @@ namespace engine
          }
       }
 
-      // update restore PIT window
+      // update restore window
       // - update minimum recoverable time if needed
       // - update maximum transaction commit time
-      OSS_INLINE void updateRestorePITWindow( UINT64 transTime )
+      OSS_INLINE void updateRestoreWindow( UINT64 transTime )
       {
          // if minimum recoverable time is invalid, set to given time
          if ( DPS_INVALID_TRANSID_SN == _minRecoverableTime )
@@ -706,16 +706,16 @@ namespace engine
          }
       }
 
-      // reset restore PIT window to invalid values
-      OSS_INLINE void resetRestorePITWindow()
+      // reset restore window to invalid values
+      OSS_INLINE void resetRestoreWindow()
       {
          // reset to invalid values
          _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
          _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
       }
 
-      // rollback restore PIT window to given transaction time
-      OSS_INLINE void rollbackRestorePITWindow( UINT64 transTime )
+      // rollback restore window to given transaction time
+      OSS_INLINE void rollbackRestoreWindow( UINT64 transTime )
       {
          _minRecoverableTime = transTime ;
          _maxTransCommitTime = transTime ;
@@ -771,7 +771,7 @@ namespace engine
       //    - lsnOffset: last LSN offset of transaction
       //    - status: status of transaction
       //    - transTime: begin time or commit time of transaction
-      //    - checkRstPITWindow: whether to check restore PIT window
+      //    - checkRstPITWindow: whether to check restore window
       // WARNING: this should be only called in callback of DPS logger
       //          these inputs should be only parsed from DPS record
       //          the DPS record could be replayed or rollbacked multiple

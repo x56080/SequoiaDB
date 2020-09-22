@@ -368,7 +368,7 @@
 #define FIELD_NAME_IMAGE                     "Image"
 #define FIELD_NAME_ACTIVATED                 "Activated"
 #define FIELD_NAME_READONLY                  "Readonly"
-#define FIELD_NAME_ROLLBACK_PENDING          "RollbackPending"
+#define FIELD_NAME_RESTORING                 "RestoreInProgress"
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
 #define FIELD_NAME_GLOBALID                  "GlobalID"
@@ -752,7 +752,8 @@
 #define CMD_NAME_ANALYZE                     "analyze"
 #define CMD_NAME_GET_CL_DETAIL               "get collection detail"
 #define CMD_NAME_GET_INDEX_STAT              "get index statistic"
-#define CMD_NAME_ROLLBACK_TO_PIT             "rollback to pit"
+#define CMD_NAME_RESTORE_TO_PIT              "restore to pit"
+#define CMD_NAME_GET_PIT_WINDOW              "get pit window"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"
@@ -806,6 +807,7 @@
 #define CMD_VALUE_NAME_DEACTIVATE            "deactivate"
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
+#define CMD_VALUE_NAME_DISABLE_RESTORING     "disable restoring"
 
 /*
    alter user

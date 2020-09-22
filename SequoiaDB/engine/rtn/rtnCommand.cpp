@@ -5027,66 +5027,67 @@ error:
       goto done ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRollbackToPIT)
-   _rtnRollbackToPIT::_rtnRollbackToPIT ()
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToPIT)
+   _rtnRestoreToPIT::_rtnRestoreToPIT ()
    {
    }
 
-   _rtnRollbackToPIT::~_rtnRollbackToPIT ()
+   _rtnRestoreToPIT::~_rtnRestoreToPIT ()
    {
    }
 
-   const CHAR *_rtnRollbackToPIT::name()
+   const CHAR *_rtnRestoreToPIT::name()
    {
-      return NAME_ROLLBACK_TO_PIT ;
+      return NAME_RESTORE_TO_PIT ;
    }
 
-   RTN_COMMAND_TYPE _rtnRollbackToPIT::type()
+   RTN_COMMAND_TYPE _rtnRestoreToPIT::type()
    {
-      return CMD_ROLLBACK_TO_PIT ;
+      return CMD_RESTORE_TO_PIT ;
    }
 
-   BOOLEAN _rtnRollbackToPIT::writable()
+   BOOLEAN _rtnRestoreToPIT::writable()
    {
       return TRUE ;
    }
 
-   INT32 _rtnRollbackToPIT::init( INT32 flags, INT64 numToSkip,
-                                  INT64 numToReturn,
-                                  const CHAR * pMatcherBuff,
-                                  const CHAR * pSelectBuff,
-                                  const CHAR * pOrderByBuff,
-                                  const CHAR * pHintBuff)
+   INT32 _rtnRestoreToPIT::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
    {
-      BSONObj matcher ( pMatcherBuff ) ;
-      try
+      INT32 rc = SDB_OK;
+      BSONObj matcher(pMatcherBuff);
+      INT64 timestamp;
+      if ((rc = rtnGetNumberLongElement(matcher, FIELD_NAME_GLOBAL_TIME, timestamp)))
       {
-         return rtnGetStringElement( matcher, FIELD_NAME_GLOBAL_TIME,
-                                     &_timestamp ) ;
+         return rc;
       }
-      catch ( std::exception &e )
+      if (0 > timestamp)
       {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         return SDB_SYS;
+         PD_LOG(PDERROR, "Invalid timestamp");
+         return SDB_INVALIDARG;
       }
+      _timestamp = (UINT64)timestamp;
+      return SDB_OK;
    }
 
-   INT32 _rtnRollbackToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                                   INT16 w , INT64 *pContextID )
+   INT32 _rtnRestoreToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
    {
-      try
+      INT32 rc = SDB_OK;
+      // restoreToPIT on a data node is a type of rollback
+      rtnPITRollbackManager rollbackManager(cb, _timestamp);
+      if ((rc = rollbackManager.execute()))
       {
-         rtnPITRollbackManager rollbackManager(cb, _timestamp);
-         rollbackManager.execute();
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "rtnRollbackToPIT failed: %s", e.what () ) ;
-         return pdGetLastError();
+         PD_LOG(PDERROR, "Failed to rollback during restore to point-in-time");
+         return rc;
       }
       return SDB_OK ;
-
    }
+
 }
 

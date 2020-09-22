@@ -525,12 +525,12 @@ namespace engine
       {
          // there is transaction time with the log, update the restore PIT
          // window
-         _transCB->updateRestorePITWindow( info.getTransTime() ) ;
+         _transCB->updateRestoreWindow( info.getTransTime() ) ;
       }
       else if ( info.isIrreversible() )
       {
          // the log is irreversible, reset the restore PIT window
-         _transCB->resetRestorePITWindow() ;
+         _transCB->resetRestoreWindow() ;
       }
 
       // change global metadata

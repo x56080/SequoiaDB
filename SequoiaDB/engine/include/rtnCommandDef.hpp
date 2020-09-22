@@ -122,7 +122,8 @@ namespace engine
 #define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
 #define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
-#define NAME_ROLLBACK_TO_PIT                 CMD_NAME_ROLLBACK_TO_PIT
+#define NAME_RESTORE_TO_PIT                  CMD_NAME_RESTORE_TO_PIT
+#define NAME_GET_PIT_WINDOW                  CMD_NAME_GET_PIT_WINDOW
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -296,7 +297,8 @@ namespace engine
 
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
       CMD_SNAPSHOT_INDEXSTATS                = 256,
-      CMD_ROLLBACK_TO_PIT                    = 257,
+      CMD_RESTORE_TO_PIT                     = 257,
+      CMD_GET_PIT_WINDOW                     = 258,
       CMD_UNKNOW                             = 65535
    };
 

@@ -89,8 +89,6 @@ namespace engine
       void    setWritedCommand( BOOLEAN writed ) { _isWritedCmd = writed ; }
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
 
-      INT32 setRollbackPending() ;
-
    public :
       // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
@@ -148,8 +146,12 @@ namespace engine
                                        _clsDCMgr *pDCMgr,
                                        const BSONObj &objQuery,
                                        BSONObjBuilder &retObjBuilder ) ;
+      INT32 processCmdDisableRestoring(const NET_HANDLE &handle,
+                                       _clsDCMgr *pDCMgr,
+                                       const BSONObj &objQuery,
+                                       BSONObjBuilder &retObjBuilder);
 
-   protected:
+     protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
       INT32 _mapData2DCMgr( _clsDCMgr *pDCMgr ) ;

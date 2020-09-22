@@ -3231,8 +3231,8 @@ namespace engine
       if ( SDB_ROLE_CATALOG == pmdGetDBRole() &&
            _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
       {
-         // This is a global restore. The cluster is now rollback-pending.
-         // Need to set RollbackPending: true in SYSINFO.SYSDCBASE
+         // This is a global restore. The cluster is now awaiting restoreToPIT.
+         // Need to set RestoreInProgress: true in SYSINFO.SYSDCBASE
          // This requires a real update operation - need to fully init some CBs
 
          // Fully init transCB
@@ -3246,17 +3246,17 @@ namespace engine
          }
 
          // Fully init DMS
-         if ( rc = _loadDMS() != SDB_OK )
+         if ( (rc = _loadDMS()) != SDB_OK )
          {
             goto error ;
          }
 
-         PD_LOG( PDEVENT, "Setting DC to rollback-pending..." ) ;
-         std::cout << "Setting DC to rollback-pending..." << std::endl ;
-         if ((rc = catUpdateDCStatus(FIELD_NAME_ROLLBACK_PENDING, TRUE, cb, 1,
+         PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
+         std::cout << "Setting DC to restore-in-progress..." << std::endl ;
+         if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORING, TRUE, cb, 1,
                                      _pDMSCB, _pDPSCB)) != SDB_OK)
          {
-            PD_LOG( PDERROR, "Failed to set rollback-pending." ) ;
+            PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;
             goto error ;
          }
       }

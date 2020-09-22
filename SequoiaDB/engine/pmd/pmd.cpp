@@ -234,9 +234,9 @@ namespace engine
       return ( SDB_DB_MODE_DEACTIVATED & _dbMode ) ? TRUE : FALSE ;
    }
 
-   BOOLEAN _SDB_KRCB::isDBRBPending() const
+   BOOLEAN _SDB_KRCB::isDBRestoring() const
    {
-      return ( SDB_DB_MODE_RBPENDING & _dbMode ) ? TRUE : FALSE ;
+      return ( SDB_DB_MODE_RESTORING & _dbMode ) ? TRUE : FALSE ;
    }
 
    BOOLEAN _SDB_KRCB::isInFlowControl() const

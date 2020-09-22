@@ -1699,7 +1699,7 @@ namespace engine
 
       if ( !rbPendingChecker.isOpAllowed() )
       {
-         rc = SDB_ROLLBACK_PENDING ;
+         rc = SDB_RESTORE_IN_PROGRESS ;
          goto error ;
       }
 
@@ -2323,7 +2323,7 @@ namespace engine
                               NULL, NULL, NULL, NULL, NULL, NULL ) ;
 
             if ( rtnIsCommand( pCollectionName) &&
-                 ( 0 == ossStrcmp( &(pCollectionName[1]), CMD_NAME_ROLLBACK_TO_PIT ) )
+                 ( 0 == ossStrcmp( &(pCollectionName[1]), CMD_NAME_RESTORE_TO_PIT ) )
                )
             {
                return TRUE ;
@@ -2338,7 +2338,7 @@ namespace engine
 
    BOOLEAN pmdRBPendingChecker::isOpAllowed()
    {
-      if ( pmdGetKRCB()->isDBRBPending() )
+      if ( pmdGetKRCB()->isDBRestoring() )
       {
          return _isOpAllowed() ;
       }

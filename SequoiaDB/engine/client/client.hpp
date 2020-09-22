@@ -4838,8 +4838,8 @@ namespace sdbclient
       virtual INT32 getLastResultObj( bson::BSONObj &result,
                                       BOOLEAN getOwned = FALSE ) const = 0 ;
 
-      virtual INT32 rollbackToPIT( const CHAR* rollbackTS,
-         const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 restoreToPIT(
+                        const bson::BSONObj &options = _sdbStaticObject) = 0;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7071,20 +7071,20 @@ namespace sdbclient
          return pSDB->getLastResultObj( result, getOwned ) ;
       }
 
-      /** \fn INT32 rollbackToPIT()
-          \brief Rollback the database to a global consistent point in time
-          \param [in] timestamp to rollback to
+      /** \fn INT32 restoreToPIT()
+          \brief Restore the database to a global consistent point in time
+          \param [in] options Optional parameters object. Parameters are:
+              GlobalTime(NumberLong) : If specified, the time to restore to. Otherwise restores to the latest consistency point.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
-      INT32 rollbackToPIT( const CHAR* rollbackTS,
-                           const bson::BSONObj &options = _sdbStaticObject )
+      INT32 restoreToPIT( const bson::BSONObj &options = _sdbStaticObject )
       {
          if( !pSDB )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pSDB->rollbackToPIT( rollbackTS, options ) ;
+         return pSDB->restoreToPIT( options ) ;
       }
    } ;
    /** \typedef class sdb sdb

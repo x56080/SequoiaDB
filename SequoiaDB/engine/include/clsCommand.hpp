@@ -384,19 +384,18 @@ namespace engine
 
    } ;
 
-   class rtnRollbackToPITCmd : public _rtnCommand
+   class _rtnContextDump;
+   class _rtnGetPITWindow : public _rtnCommand
    {
-         DECLARE_CMD_AUTO_REGISTER()
+      DECLARE_CMD_AUTO_REGISTER()
 
-      public :
-         rtnRollbackToPITCmd() ;
-         virtual ~rtnRollbackToPITCmd() ;
+      public:
+         _rtnGetPITWindow () ;
+         virtual ~_rtnGetPITWindow () ;
 
-      public :
-         virtual const CHAR * name () { return NAME_ROLLBACK_TO_PIT ; }
-         virtual RTN_COMMAND_TYPE type () { return CMD_ROLLBACK_TO_PIT ; }
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
 
-         virtual BOOLEAN      writable () ;
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                               const CHAR *pMatcherBuff,
                               const CHAR *pSelectBuff,
@@ -404,8 +403,16 @@ namespace engine
                               const CHAR *pHintBuff ) ;
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+      private:
+         INT32 _getWindow(pmdEDUCB *cb, _SDB_RTNCB *rtnCB, INT64 *pContextID);
+         INT32 _openContext(pmdEDUCB *cb, _SDB_RTNCB *rtnCB, INT64 *pContextID);
+         void _closeContext(pmdEDUCB *cb, _SDB_RTNCB *rtnCB, INT64 *pContextID);
+         INT32 _getResult(BSONObj *result);
+      protected:
+         _rtnContextDump *_context;
    } ;
+
 }
 
 

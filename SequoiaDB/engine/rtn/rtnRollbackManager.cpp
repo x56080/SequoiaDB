@@ -24,12 +24,11 @@
 #include "dpsLogWrapper.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsOp2Record.hpp"
+#include "dpsTransCB.hpp"
 #include "dpsTransID.hpp"
 #include "ossUtil.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
-
-#include "boost/lexical_cast.hpp"
 
 namespace engine
 {
@@ -38,127 +37,163 @@ namespace engine
 // rtnRollbackManager
 //
 
-rtnRollbackManager::rtnRollbackManager(_pmdEDUCB *cb)
-    : _cb(cb), _dpsCB(pmdGetKRCB()->getDPSCB()),
+rtnRollbackManager::rtnRollbackManager(pmdEDUCB *cb)
+    : _cb(cb), _dpsCB(pmdGetKRCB()->getDPSCB()), _transCB(sdbGetTransCB()),
       _cursor(DPS_INVALID_LSN_OFFSET),
       _mb(dpsMessageBlock(DPS_MSG_BLOCK_DEF_LEN)), _replayer(TRUE)
 {
 }
 
-void rtnRollbackManager::execute()
+INT32 rtnRollbackManager::execute()
 {
-   _init();
+   INT32 rc = SDB_OK;
+   if ((rc = _init()))
+   {
+      return rc;
+   }
+   if ((rc = _readLogAndRollback()))
+   {
+      PD_LOG(PDERROR, "Error during rollback loop");
+      return rc;
+   }
+   return _finalize();
+}
+
+INT32 rtnRollbackManager::_readLogAndRollback()
+{
+   INT32 rc = SDB_OK;
    // Read the log and rollback one by one
    while (_cursor != DPS_INVALID_LSN_OFFSET)
    {
-      try
+      dpsLogRecord record;
+      BOOLEAN undone = FALSE;
+      if ((rc = _getRecord(&record)) || (rc = _preProcess(record)) ||
+          (rc = _rollback(record, &undone)) ||
+          (rc = _postProcess(record, undone)) || (rc = _nextRecord(record)))
       {
-         const dpsLogRecord record = _getRecord();
-         _preProcess(record);
-         const BOOLEAN undone = _rollback(record);
-         _postProcess(record, undone);
-         _nextRecord(record);
-      }
-      catch (std::exception &e)
-      {
-         _abort();
-         throw pdGeneralException(pdGetLastError(), "Rollback failed");
+         // Error case
+         PD_LOG(PDERROR, "Rollback failed at LSN [%llu]", _cursor);
+         break;
       }
    }
-   _finalize();
+   if (SDB_OK != rc)
+   {
+      _abort();
+      return rc;
+   }
+   return rc;
 }
 
-dpsLogRecord rtnRollbackManager::_getRecord()
+INT32 rtnRollbackManager::_getRecord(dpsLogRecord *record)
 {
-   dpsLogRecord record;
+   INT32 rc = SDB_OK;
    DPS_LSN dpsLsn;
    dpsLsn.offset = _cursor;
    _mb.clear(); // clean up the tmp storage
-   if (INT32 rc = _dpsCB->search(dpsLsn, &_mb))
+   if ((rc = _dpsCB->search(dpsLsn, &_mb)))
    {
       PD_LOG(PDERROR, "LSN search failed (LSN %llu)", _cursor);
-      throw pdGeneralException(rc, "LSN search failed");
+      return rc;
    }
-   if (INT32 rc = record.load(_mb.offset(0)))
+   if ((rc = record->load(_mb.offset(0))))
    {
       PD_LOG(PDERROR, "Loading record failed (LSN %llu)", _cursor);
-      throw pdGeneralException(rc, "Loading record failed");
+      return rc;
    }
-   return record;
+   return rc;
 }
 
-BOOLEAN rtnRollbackManager::_rollback(const dpsLogRecord &record)
+INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
 {
-   if (!_shouldUndo(record))
+   INT32 rc = SDB_OK;
+   if (_shouldUndo(record))
    {
-      // Do not undo this record
-      return FALSE;
+      if ((rc = _undo()))
+      {
+         PD_LOG(PDERROR, "failed to undo record");
+         return rc;
+      }
+      *undone = TRUE;
    }
-   _undo();
-   return TRUE;
+   return rc;
 }
 
-void rtnRollbackManager::_undo()
+INT32 rtnRollbackManager::_undo()
 {
+   INT32 rc = SDB_OK;
    // Set the TransRelatedLSN of the undo record to the record being undone
    _cb->setRelatedTransLSN(_cursor);
    // Perform the undo of the record
-   if (INT32 rc = _replayer.rollback((dpsLogRecordHeader *)_mb.offset(0), _cb))
+   if ((rc = _replayer.rollback((dpsLogRecordHeader *)_mb.offset(0), _cb)))
    {
-      throw pdGeneralException(rc, "rollbackTrans failed");
+      PD_LOG(PDERROR, "Replayer failed to rollback record");
+      return rc;
    }
+   return rc;
 }
 
 //
 // rtnPITRollbackManager
 //
 
-rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb,
-                                             const std::string targetTimeString)
-    : rtnRollbackManager(cb)
+rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime)
+    : rtnRollbackManager(cb), _continue(TRUE)
 {
    _targetTime = stpLogicalTimeUS();
-   _targetTime.setTime(boost::lexical_cast<UINT64>(targetTimeString));
+   _targetTime.setTime(targetTime);
 }
 
-void rtnPITRollbackManager::_init()
+INT32 rtnPITRollbackManager::_init()
 {
+   INT32 rc = SDB_OK;
+   PD_LOG(PDEVENT, "Starting rollback to point-in-time (%llu)",
+          _targetTime.getTime());
+
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;
 
    // Start a new transaction for the rollback
-   if (INT32 rc = rtnTransBegin(_cb, FALSE, TRUE))
+   if ((rc = rtnTransBegin(_cb, FALSE, TRUE)))
    {
-      throw pdGeneralException(rc, "rtnTransBegin failed");
+      PD_LOG(PDERROR, "Failed in transaction begin");
+      return rc;
    }
+   return rc;
 }
 
-void rtnPITRollbackManager::_finalize()
+INT32 rtnPITRollbackManager::_finalize()
 {
+   INT32 rc = SDB_OK;
    // Commit the transaction
-   if (INT32 rc = rtnTransCommit(_cb, _dpsCB, _rollbackTime))
+   if ((rc = rtnTransCommit(_cb, _dpsCB, _rollbackTime)))
    {
-      throw pdGeneralException(rc, "rtnTransCommit failed");
+      PD_LOG(PDERROR, "Failed in transaction commit");
+      return rc;
    }
+   return rc;
 }
 
-void rtnPITRollbackManager::_abort()
+INT32 rtnPITRollbackManager::_abort()
 {
    // Rollback the rollback transaction
    if (INT32 rc = rtnTransRollback(_cb, _dpsCB))
    {
-      throw pdGeneralException(rc, "rtnTransRollback failed");
+      // The rc here is just temporary - abort if only called during failure
+      PD_LOG(PDERROR, "Failed in transaction abort (rc=%d)", rc);
    }
+   return SDB_OK;
 }
 
-void rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
+INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
 {
+   INT32 rc = SDB_OK;
    // Get the transaction time from the commit record
    stpLogicalTimeUS recordTransTime;
-   if (INT32 rc =
-           dpsGetTransTimeFromRecord(record, _recordTransID, recordTransTime))
+   if ((rc =
+            dpsGetTransTimeFromRecord(record, _recordTransID, recordTransTime)))
    {
-      throw pdGeneralException(rc, "dpsGetTransTimeFromRecord failed");
+      PD_LOG(PDERROR, "Failed to get transaction time from record");
+      return rc;
    }
    if (recordTransTime.getTime() > _rollbackTime.getTime())
    {
@@ -169,7 +204,7 @@ void rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
    if (recordTransTime < _targetTime)
    {
       // This transaction committed before the target so skip it
-      return;
+      return SDB_OK;
    }
    if (_isTransInUndoTransSet())
    {
@@ -177,51 +212,78 @@ void rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
       SDB_ASSERT(record.isPreCommit(),
                  "Found a final commit record for a transaction already in the "
                  "undo transaction set");
-      return;
+      return SDB_OK;
    }
    _undoTransSet.insert(_recordTransID);
+   return rc;
 }
 
-void rtnPITRollbackManager::_processBeginRecord()
+INT32 rtnPITRollbackManager::_processBeginRecord()
 {
+   INT32 rc = SDB_OK;
    // All records for this transaction have been processed. Remove this
    // transaction from the set of transactions to undo.
    _undoTransSet.erase(_recordTransID);
+   if (_undoTransSet.empty() && _isTargetTimeReached(&rc))
+   {
+      // Transaction map is empty and there are no outstanding commits before
+      // the target time
+      PD_LOG(PDEVENT, "Ending rollback (LSN %llu)", _cursor);
+      _continue = FALSE;
+   }
+   else if (SDB_OK != rc)
+   {
+      // Error
+      return rc;
+   }
+   return rc;
 }
 
-void rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
+INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
 {
+   INT32 rc = SDB_OK;
+   _recordTransID.reset();
    // Extract the transaction ID. Don't check the rc because failure just means
    // it is a non-transactional record, in which case the ID will fail its
    // isValid() check later.
-   _recordTransID.reset();
    dpsGetTransIDFromRecord(record, _recordTransID);
    if (record.isCommit())
    {
-      _processCommitRecord(record);
+      rc = _processCommitRecord(record);
    }
+   return rc;
 }
 
-void rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
-                                         BOOLEAN undone)
+INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
+                                          BOOLEAN undone)
 {
+   INT32 rc = SDB_OK;
    if (!undone)
    {
-      return;
+      return SDB_OK;
    }
    if (_recordTransID.isFirstOp())
    {
-      _processBeginRecord();
+      // Finished an entire transaction
+      if ((rc = _processBeginRecord()))
+      {
+         return rc;
+      }
    }
-   // Trans info for the next undo record should point to this one
-   // TODO: is this necessary? I think it gets done automatically
-   // _cb->setCurTransLsn(_dpsCB->getCurrentLsn().offset);
+   return rc;
 }
 
-void rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
+INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
 {
-   // Set the cursor to the previous contiguous record
-   _cursor = record.head()._preLsn;
+   if (_continue)
+   {
+      // Set the cursor to the previous contiguous record
+      _cursor = record.head()._preLsn;
+      return SDB_OK;
+   }
+   // End of the rollback
+   _cursor = DPS_INVALID_LSN_OFFSET;
+   return SDB_OK;
 }
 
 BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
@@ -252,6 +314,19 @@ BOOLEAN rtnPITRollbackManager::_isTransInUndoTransSet()
 BOOLEAN rtnPITRollbackManager::_isRecordTransactional()
 {
    return _recordTransID.isValid();
+}
+
+BOOLEAN rtnPITRollbackManager::_isTargetTimeReached(INT32 *rc)
+{
+   // Check if the max commit time before this log record is less than the
+   // target time
+   UINT64 maxTime;
+   if ((*rc = _transCB->getMaxCommitTimeBefore(_cursor, maxTime)))
+   {
+      PD_LOG(PDERROR, "Failed to get max commit time before record");
+      return FALSE;
+   }
+   return maxTime < _targetTime.getTime();
 }
 
 } // namespace engine

@@ -122,7 +122,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, analyze )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
-   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, rollbackToPIT )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToPIT )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -183,7 +183,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "analyze", analyze )
       JS_ADD_MEMBER_FUNC( "updateConf", updateConfig )
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
-      JS_ADD_MEMBER_FUNC( "rollbackToPIT", rollbackToPIT )
+      JS_ADD_MEMBER_FUNC( "restoreToPIT", restoreToPIT )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -2943,27 +2943,21 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptDBSdb::rollbackToPIT( const _sptArguments &arg,
-                                   _sptReturnVal &rval,
-                                   bson::BSONObj &detail )
+   INT32 _sptDBSdb::restoreToPIT( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
       string ts ;
       BSONObj options ;
-      rc = arg.getString( 0, ts ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "timestamp must be a string" ) ;
-         return rc ;
-      }
-      rc = arg.getBsonobj( 1, options ) ;
+      rc = arg.getBsonobj( 0, options ) ;
       if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
          detail = BSON( SPT_ERR << "Options must be obj" ) ;
          return rc ;
       }
 
-      rc = _sptSdb.rollbackToPIT( ts.c_str(), options ) ;
+      rc = _sptSdb.restoreToPIT( options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to rollback to point in time" ) ;

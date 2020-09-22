@@ -150,7 +150,7 @@ namespace engine
    */
    #define SDB_DB_MODE_READONLY        0x00000001
    #define SDB_DB_MODE_DEACTIVATED     0x00000002
-   #define SDB_DB_MODE_RBPENDING       0x00000004
+   #define SDB_DB_MODE_RESTORING       0x00000004
 
    /*
       _ISDBRoot define

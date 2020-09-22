@@ -17,6 +17,9 @@
 
 *******************************************************************************/
 
+#ifndef RTN_ROLLBACK_MANAGER_HPP__
+#define RTN_ROLLBACK_MANAGER_HPP__
+
 #include <string>
 
 #include "clsReplayer.hpp"
@@ -32,6 +35,7 @@ namespace engine
 {
 
 class _dpsLogWrapper;
+class dpsTransCB;
 class _pmdEDUCB;
 
 /// Rollback operation management class.
@@ -41,47 +45,50 @@ class _pmdEDUCB;
 class rtnRollbackManager
 {
  public:
-   rtnRollbackManager(pmdEDUCB *cb);
+   rtnRollbackManager(_pmdEDUCB *cb);
    virtual ~rtnRollbackManager(){};
 
    // Perform the rollback
-   void execute();
+   INT32 execute();
 
  protected:
    _pmdEDUCB *_cb;
    _dpsLogWrapper *_dpsCB;
+   dpsTransCB *_transCB;
    DPS_LSN_OFFSET _cursor;
    dpsMessageBlock _mb;
    clsReplayer _replayer;
 
+   // Main execution loop
+   INT32 _readLogAndRollback();
    // Load the record
-   dpsLogRecord _getRecord();
+   INT32 _getRecord(dpsLogRecord *record);
    // Perform the record rollback
    // @return    True if the record was rolled back, else false
-   BOOLEAN _rollback(const dpsLogRecord &record);
+   BOOLEAN _rollback(const dpsLogRecord &record, BOOLEAN *undone);
    // Perform the undo of the current record
    // @return    True if the record was undone, else false
-   void _undo();
+   INT32 _undo();
 
    //
    // Child classes need to define the following:
    //
 
-   virtual void _init() = 0;
+   virtual INT32 _init() = 0;
 
    // End a successful rollback
-   virtual void _finalize() = 0;
+   virtual INT32 _finalize() = 0;
 
    // Abort due to an error during rollback
-   virtual void _abort() = 0;
+   virtual INT32 _abort() = 0;
 
    // Do any processing of the record before/after it is rolled back
-   virtual void _preProcess(const dpsLogRecord &record) = 0;
-   virtual void _postProcess(const dpsLogRecord &record,
-                             const BOOLEAN undone) = 0;
+   virtual INT32 _preProcess(const dpsLogRecord &record) = 0;
+   virtual INT32 _postProcess(const dpsLogRecord &record,
+                              const BOOLEAN undone) = 0;
 
    // Get the next record (earlier record in the log)
-   virtual void _nextRecord(const dpsLogRecord &record) = 0;
+   virtual INT32 _nextRecord(const dpsLogRecord &record) = 0;
 
    // Check if this record should be undone
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record) = 0;
@@ -93,7 +100,7 @@ class rtnRollbackManager
 class rtnPITRollbackManager : public rtnRollbackManager
 {
  public:
-   rtnPITRollbackManager(pmdEDUCB *cb, const std::string targetTimeString);
+   rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime);
    virtual ~rtnPITRollbackManager(){};
 
  protected:
@@ -108,27 +115,30 @@ class rtnPITRollbackManager : public rtnRollbackManager
    // Set of transIDs for transactions that need to be undone
    // DPS_TRANS_ID implements 'operator <' so it can be used in a set
    ossPoolSet<DPS_TRANS_ID> _undoTransSet;
-
    // Current record transaction ID
    DPS_TRANS_ID _recordTransID;
+   BOOLEAN _continue;
 
-   virtual void _init();
-   virtual void _finalize();
-   virtual void _abort();
+   virtual INT32 _init();
+   virtual INT32 _finalize();
+   virtual INT32 _abort();
 
    // Reads the preceding record in the log
-   virtual void _nextRecord(const dpsLogRecord &record);
+   virtual INT32 _nextRecord(const dpsLogRecord &record);
 
    // Processes the log records
-   virtual void _preProcess(const dpsLogRecord &record);
-   virtual void _postProcess(const dpsLogRecord &record, const BOOLEAN undone);
-   void _processCommitRecord(const dpsLogRecord &record);
-   void _processBeginRecord();
+   virtual INT32 _preProcess(const dpsLogRecord &record);
+   virtual INT32 _postProcess(const dpsLogRecord &record, const BOOLEAN undone);
+   INT32 _processCommitRecord(const dpsLogRecord &record);
+   INT32 _processBeginRecord();
 
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record);
 
    BOOLEAN _isTransInUndoTransSet();
    BOOLEAN _isRecordTransactional();
+   BOOLEAN _isTargetTimeReached(INT32 *rc);
 };
 
 } // namespace engine
+
+#endif // RTN_ROLLBACK_MANAGER_HPP__
