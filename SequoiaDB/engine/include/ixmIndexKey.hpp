@@ -44,25 +44,100 @@
 #include "../bson/bson.h"
 #include "pd.hpp"
 #include "ossMemPool.hpp"
+#include "utilArray.hpp"
 
 using namespace bson;
 
 namespace engine
 {
+
+   // pre-definition
+   class _ixmIndexCB ;
+   class _ixmIndexKeyGen ;
+   class _ixmKeyGenBase ;
+
    /*
-      IXM get undefine key object
-   */
+      IXM get undefined key object
+    */
    BSONObj ixmGetUndefineKeyObj( INT32 fieldNum ) ;
 
-   enum IndexSuitability { USELESS = 0 , HELPFUL = 1 , OPTIMAL = 2 };
-   class _ixmIndexCB ;
-
-   enum IXM_KEYGEN_TYPE
+   /*
+      _ixmKeyField define
+    */
+   // parsed key field in key generator
+   class _ixmKeyField : public utilPooledObject
    {
-      GEN_OBJ_NO_FIELD_NAME         = 1,
-      GEN_OBJ_KEEP_FIELD_NAME       = 2,
-      GEN_OBJ_ARRAY_FIELD_NAME      = 3
+   public:
+      _ixmKeyField()
+      : _order( 0 ),
+        _nameLen( 0 ),
+        _name( NULL )
+      {
+      }
+
+      _ixmKeyField( const _ixmKeyField &field )
+      : _order( field._order ),
+        _nameLen( field._nameLen ),
+        _name( field._name ),
+        _keyElement( field._keyElement )
+      {
+      }
+
+      ~_ixmKeyField()
+      {
+      }
+
+      _ixmKeyField &operator =( const _ixmKeyField &field )
+      {
+         _order = field._order ;
+         _nameLen = field._nameLen ;
+         _name = field._name ;
+         _keyElement = field._keyElement ;
+
+         return ( *this ) ;
+      }
+
+      INT32 init( const BSONElement &element, BOOLEAN needOrder ) ;
+      INT32 getOrder( const BSONObj &keyPattern, INT32 &order ) ;
+
+      OSS_INLINE INT32 getOrder() const
+      {
+         return _order ;
+      }
+
+      OSS_INLINE UINT32 getNameLen() const
+      {
+         return _nameLen ;
+      }
+
+      OSS_INLINE const CHAR *getName() const
+      {
+         return _name ;
+      }
+
+      OSS_INLINE void setKeyEle( const BSONElement &element )
+      {
+         _keyElement = element ;
+      }
+
+      OSS_INLINE const BSONElement &getKeyEle() const
+      {
+         return _keyElement ;
+      }
+
+   protected:
+      // order of key
+      INT32          _order ;
+      // name length of key
+      UINT32         _nameLen ;
+      // field name of key
+      const CHAR *   _name ;
+      // cache of key element during generation
+      BSONElement    _keyElement ;
    } ;
+
+   typedef class _ixmKeyField ixmKeyField ;
+   typedef _utilArray< ixmKeyField > IXM_KEY_FIELD_ARRAY ;
 
    // Index KeyGen is the operator to extract keys from given object
    // It depends on its underlying ixmIndexDetails control block
@@ -70,45 +145,112 @@ namespace engine
    class _ixmIndexKeyGen : public utilPooledObject
    {
    protected:
-      INT32 indexVersion() const ;
-      IndexSuitability _suitability( const BSONObj& query ,
-                                     const BSONObj& order ) const ;
-      //BSONSizeTracker _sizeTracker ;
-      ossPoolVector<const CHAR*>    _fieldNames ; // vector contains all fields
-      ossPoolVector<BSONElement>    _fixedElements ; // dummy element for KeyGenerator
-      BSONObj _undefinedKey ;
-
-      INT32                _nFields ; // number of fields
       // index key pattern
       BSONObj              _keyPattern ;
-      BSONObj              _info ;
-      UINT16               _type ;
 
-      IXM_KEYGEN_TYPE      _keyGenType ;
+      // number of fields
+      UINT32               _nFields ;
+      // list of parsed key fields
+      IXM_KEY_FIELD_ARRAY  _keyFields ;
+      // key builder contains buffer which could be reused
+      // WARNING: should not take memory owned from this builder
+      BSONObjBuilder       _keyBuilder ;
+      // undefined key contains specified number of elements
+      // used to shortcut for generate undefined keys if the given
+      // object matches no key pattern
+      BSONObj              _undefinedKey ;
 
-      //const _ixmIndexCB *_indexCB ;
-      void _init() ;
-      friend class _ixmKeyGenerator ;
+      friend class _ixmKeyGenBase ;
+
    public:
+      // default constructor
+      _ixmIndexKeyGen() ;
       // create key generator from index control block
-      _ixmIndexKeyGen ( const _ixmIndexCB *indexCB,
-                        IXM_KEYGEN_TYPE genType = GEN_OBJ_NO_FIELD_NAME ) ;
+      _ixmIndexKeyGen ( const _ixmIndexCB *indexCB ) ;
       // create key generator from key def
-      _ixmIndexKeyGen ( const BSONObj &keyDef,
-                        IXM_KEYGEN_TYPE genType = GEN_OBJ_NO_FIELD_NAME ) ;
-      // this function overwrite _keyPattern and _info with a new index info
-      // object. This will make the ixmIndexKeyGen generate different key than
+      _ixmIndexKeyGen ( const BSONObj &keyDef ) ;
+      // destructor
+      ~_ixmIndexKeyGen() ;
+
+      // this function overwrite _keyPattern.
+      // This will make the ixmIndexKeyGen generate different key than
       // it supposed to
-      INT32 reset ( const BSONObj & info ) ;
-      INT32 reset ( const _ixmIndexCB *indexCB ) ;
-      INT32 getKeys ( const BSONObj &obj, BSONObjSet &keys,
+      INT32 setKeyPattern( const BSONObj &keyPattern ) ;
+
+      OSS_INLINE const BSONObj &getKeyPattern() const
+      {
+         return _keyPattern ;
+      }
+
+      OSS_INLINE UINT32 getNFields() const
+      {
+         return _nFields ;
+      }
+
+      // get only one key object from object
+      // for array key
+      // - if order > 0, get smallest value of array
+      // - if order < 0, get largest value of array
+      INT32 getKeys ( const BSONObj &obj,
+                      BSONObj &keys,
                       BSONElement *pArrEle = NULL,
-                      BOOLEAN isKeepKeyName = FALSE,
-                      BOOLEAN ignoreUndefined = FALSE ) const ;
-      BSONElement missingField() const ;
-      IndexSuitability suitability( const BSONObj &query ,
-                                    const BSONObj &order ) const ;
+                      BOOLEAN keepKeyName = FALSE,
+                      BOOLEAN ignoreUndefined = FALSE ) ;
+      // get key set from object
+      // for array key, generate all possible values from array
+      INT32 getKeys ( const BSONObj &obj,
+                      BSONObjSet &keySet,
+                      BSONElement *pArrEle = NULL,
+                      BOOLEAN keepKeyName = FALSE,
+                      BOOLEAN ignoreUndefined = FALSE ) ;
+
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
+
+   protected:
+      // disable copy
+      _ixmIndexKeyGen( const _ixmIndexKeyGen & ) {}
+      _ixmIndexKeyGen &operator =( const _ixmIndexKeyGen & ) { return *this ; }
+
+      BOOLEAN _isInit() const
+      {
+         return 0 != _nFields ;
+      }
+
+      INT32 _init( BOOLEAN needOrder ) ;
+      void _release() ;
+
+      // implement of get keys
+      INT32 _getKeys( _ixmKeyGenBase *keyGen ) ;
+
+      // extract keys from object
+      INT32 _extractKeys( const BSONObj &obj,
+                          BOOLEAN &allUndefined,
+                          BSONElement &arrEle,
+                          const CHAR *&arrEleName,
+                          INT32 &arrElePos ) ;
+
+      // build keys
+      INT32 _buildKeys( BOOLEAN keepKeyName,
+                        BOOLEAN ignoreUndefined,
+                        BSONObj &keys ) ;
+
+      // save array key into output
+      INT32 _saveArrayKey( const BSONElement &arrEle,
+                           ixmKeyField &arrKeyField,
+                           BOOLEAN keepKeyName,
+                           BOOLEAN ignoreUndefined,
+                           BSONObjSet *keySet,
+                           BSONElement *foundArrEle ) ;
+
+      // extract key from array
+      INT32 _extractArrayKey( const BSONElement &arrEle,
+                              const CHAR *arrEleName,
+                              _ixmKeyGenBase *keyGen ) ;
+
+      // build a key into key set
+      INT32 _buildKeySet( BOOLEAN keepKeyName,
+                          BOOLEAN ignoreUndefined,
+                          BSONObjSet &keySet ) ;
    } ;
    typedef class _ixmIndexKeyGen ixmIndexKeyGen ;
 }

@@ -37,10 +37,10 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "ossMem.hpp"
+#include "ossMemPool.hpp"
 #include "ossUtil.hpp"
 
-#define UTIL_ARRAY_DEFAULT_SIZE        4 
+#define UTIL_ARRAY_DEFAULT_SIZE        4
 
 namespace engine
 {
@@ -124,7 +124,7 @@ namespace engine
       {
          if ( resetMem && _dynamicBuf != _staticBuf )
          {
-            SDB_OSS_FREE( _dynamicBuf ) ;
+            SDB_THREAD_FREE( _dynamicBuf ) ;
             _dynamicBuf = _staticBuf ;
             _bufSize = stackSize ;
          }
@@ -161,7 +161,7 @@ namespace engine
          }
          else if ( _dynamicBuf == _staticBuf )
          {
-            T* pTmp = (T*)SDB_OSS_MALLOC( sizeof( T ) * size ) ;
+            T* pTmp = (T*)SDB_THREAD_ALLOC( sizeof( T ) * size ) ;
             if ( !pTmp )
             {
                rc = SDB_OOM ;
@@ -176,8 +176,8 @@ namespace engine
          else
          {
             T *tmp = _dynamicBuf ;
-            _dynamicBuf = (T*)SDB_OSS_REALLOC( _dynamicBuf,
-                                               sizeof( T ) * size ) ;
+            _dynamicBuf = (T*)SDB_THREAD_REALLOC( _dynamicBuf,
+                                                  sizeof( T ) * size ) ;
             if ( NULL == _dynamicBuf )
             {
                _dynamicBuf = tmp ;

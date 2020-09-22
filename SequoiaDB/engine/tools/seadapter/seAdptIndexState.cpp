@@ -1526,7 +1526,7 @@ namespace seadapter
          BSONElement arrayEle ;
          BSONObjSet keySet ;
          SDB_ASSERT( !_idxDef.isEmpty(), "Index definition is empty" ) ;
-         ixmIndexKeyGen keygen( _idxDef, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         ixmIndexKeyGen keygen( _idxDef ) ;
          rc = keygen.getKeys( origRecord, keySet, &arrayEle, TRUE, TRUE ) ;
          if ( SDB_IXM_MULTIPLE_ARRAY == rc )
          {

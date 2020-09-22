@@ -57,7 +57,6 @@ namespace engine
    _rtnContextSort::_rtnContextSort( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
     _rtnSubContextHolder(),
-    _keyGen ( BSONObj() ),
     _dataSorted ( FALSE ),
     _numToSkip( 0 ),
     _numToReturn( -1 )
@@ -131,7 +130,9 @@ namespace engine
       }
       _setSubContext( context, cb ) ;
       _orderby = orderby.getOwned() ;
-      _keyGen = _ixmIndexKeyGen( _orderby ) ;
+
+      rc = _keyGen.setKeyPattern( _orderby ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
 
    done:
       return rc ;
@@ -226,17 +227,15 @@ namespace engine
          while ( SDB_OK == ( rc = bufObj.nextObj( obj ) ) )
          {
             BSONElement arrEle ;
-            BSONObjSet keySet( _orderby ) ;
-            rc = _keyGen.getKeys( obj, keySet, &arrEle ) ;
+            BSONObj keyObj ;
+            rc = _keyGen.getKeys( obj, keyObj, &arrEle ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed gen sort keys:%d", rc ) ;
                goto error ;
             }
 
-            SDB_ASSERT( !keySet.empty(), "can not be empty" ) ;
-            const BSONObj &keyObj = *(keySet.begin() ) ;
-
+            SDB_ASSERT( !keyObj.isEmpty(), "can not be empty" ) ;
             rc = _sorting.push( keyObj,
                                 obj.objdata(), obj.objsize(),
                                 &arrEle, cb ) ;

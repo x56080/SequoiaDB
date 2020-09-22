@@ -124,6 +124,9 @@ namespace engine
       bson::BufBuilder   _bufBuilder ;
       dmsDupKeyProcessor *_dkProcessor ;
 
+      // index key generator
+      ixmIndexKeyGen     _keyGen ;
+
    public:
       static _dmsIndexBuilder* createInstance( _dmsStorageIndex* indexSU,
                                                _dmsStorageData* dataSU,

@@ -734,7 +734,7 @@ namespace engine
             BSONObj record ;
             // Get index keys from the record. If none is there, the record will
             // be ignored in text index.
-            ixmIndexKeyGen keygen( _meta._idxKeyDef, GEN_OBJ_KEEP_FIELD_NAME ) ;
+            ixmIndexKeyGen keygen( _meta._idxKeyDef ) ;
             rc = keygen.getKeys( origRecord, keySet, &arrayEle, TRUE, TRUE ) ;
             if ( rc )
             {
@@ -867,7 +867,7 @@ namespace engine
          BSONObjSet keySet ;
          BSONObjSet keySetNew ;
          BSONElement arrayEle ;
-         ixmIndexKeyGen keygen( _meta._idxKeyDef, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         ixmIndexKeyGen keygen( _meta._idxKeyDef ) ;
          rc = keygen.getKeys( origRecord, keySet, &arrayEle, TRUE, TRUE ) ;
          if ( rc )
          {

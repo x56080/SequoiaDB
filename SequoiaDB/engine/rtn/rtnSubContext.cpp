@@ -91,14 +91,12 @@ namespace engine
       SDB_ASSERT( keyGen != NULL, "keyGen can't be null!" ) ;
       PD_TRACE_ENTRY ( SDB_RTNORDERKEY_GENKEY ) ;
       clear();
-      BSONObjSet keySet( _orderBy ) ;
-
-      rc = keyGen->getKeys( record, keySet, &_arrEle ) ;
+      BSONObj keys ;
+      rc = keyGen->getKeys( record, keys, &_arrEle ) ;
       PD_RC_CHECK( rc, PDERROR,
                   "failed to generate order-key(rc=%d)",
                   rc ) ;
-      SDB_ASSERT( !keySet.empty(), "empty key-set!" ) ;
-      _keyObj = *(keySet.begin()) ;
+      _keyObj = keys.getOwned() ;
       if ( _arrEle.eoo() )
       {
          _hash.hash = 0 ;

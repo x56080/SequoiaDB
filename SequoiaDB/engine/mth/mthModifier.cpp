@@ -2606,8 +2606,7 @@ namespace engine
 
       if ( NULL != shardingKey && !shardingKey->isEmpty() )
       {
-         _shardingKeyGen = SDB_OSS_NEW _ixmIndexKeyGen(
-                              *shardingKey, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         _shardingKeyGen = SDB_OSS_NEW _ixmIndexKeyGen( *shardingKey ) ;
          if ( NULL == _shardingKeyGen )
          {
             rc = SDB_OOM ;
