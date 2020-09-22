@@ -6,8 +6,17 @@
          <div ng-click="GotoHostList()">{{autoLanguage("主机")}}</div>
       </div>
    </div>
+
+   <div ng-windows="config as SetThreshold.config" windows-callback="SetThreshold.callback">
+      <div form-create para="config"></div>
+   </div>
    <div style="padding:10px 15px;" ng-container="{offsetY:-60}">
       <div style="background-color:#f0f0f0;" ng-container="{height:2}"></div>
+      <div style="height:30px;margin:10px 0;">
+         <button class="btn btn-default" ng-click="OpenSetThreshold()">
+            <span>告警阈值设置</span>
+         </button>
+      </div>
       <div class="well Ellipsis" style="margin-top:10px;">
          <i class="fa fa-circle" ng-if="DBStatus" ng-style="{'normal':{'color':'#00CC66'},'warning':{'color':'#F9A937'},'error':{'color':'#D9534F'}}[DBStatus]"></i>&nbsp;<span style="font-weight:bold;color:#006699;">{{ModuleName}}</span>&nbsp;
          <span>{{ErrorMsg}}</span>

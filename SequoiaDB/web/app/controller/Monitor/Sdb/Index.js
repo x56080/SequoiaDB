@@ -51,6 +51,12 @@
       var errMsgs = [] ;                     //执行查询，返回失败的信息列表
       var databaseStatus = [] ;              //数据库每个组的状态
 
+      var sumRX = [] ;
+      var sumTX = [] ;
+      var netIn = 0 ;
+      var netOut = 0 ;
+      $scope.NetWorkData = [] ;
+
       //获取时间
       var getTime = function(){
          var date = new Date();
@@ -93,8 +99,121 @@
       } ;
       getClList() ;
 
+      
+      $scope.SetThreshold = {
+         'config': {},
+         'callback': {}
+      } ;
+
+      $scope.OpenSetThreshold = function(){
+         var cpuPer = SdbFunction.LocalData( 'SdbMonitorCpu' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorCpu' ) ;
+         var memoryPer = SdbFunction.LocalData( 'SdbMonitorMemory' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorMemory' ) ;
+         var diskPer = SdbFunction.LocalData( 'SdbMonitorDisk' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorDisk' ) ;
+         var netIn = SdbFunction.LocalData( 'SdbMonitorNetIn' ) == null ? 10 : SdbFunction.LocalData( 'SdbMonitorNetIn' ) ;
+         var netOut = SdbFunction.LocalData( 'SdbMonitorNetOut' ) == null ? 10 : SdbFunction.LocalData( 'SdbMonitorNetOut' ) ;
+         $scope.SetThreshold['config'] = {
+            'inputList': [
+               {
+                  "name": "cpu",
+                  "webName": $scope.autoLanguage( 'CPU（%）' ),
+                  "type": "int",
+                  "value": cpuPer,
+                  "valid": {
+                     'empty': true,
+                     'min': 1,
+                     'max': 100
+                  }
+               },
+               {
+                  "name": "memory",
+                  "webName": $scope.autoLanguage( '内存（%）' ),
+                  "type": "int",
+                  "value": memoryPer,
+                  "valid": {
+                     'empty': true,
+                     'min': 1,
+                     'max': 100
+                  }
+               },
+               {
+                  "name": "disk",
+                  "webName": $scope.autoLanguage( '磁盘（%）' ),
+                  "type": "int",
+                  "value": diskPer,
+                  "valid": {
+                     'empty': true,
+                     'min': 1,
+                     'max': 100
+                  }
+               },
+               {
+                  "name": "netIn",
+                  "webName": $scope.autoLanguage( '接收网络（MB）' ),
+                  "type": "int",
+                  "value": netIn,
+                  "valid": {
+                     'empty': true,
+                     'min': 1
+                  }
+               },
+               {
+                  "name": "netOut",
+                  "webName": $scope.autoLanguage( '发送网络（MB）' ),
+                  "type": "int",
+                  "value": netOut,
+                  "valid": {
+                     'empty': true,
+                     'min': 1
+                  }
+               }
+            ]
+         } ;
+
+         //设置确定按钮
+         $scope.SetThreshold['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+            var isAllClear = $scope.SetThreshold['config'].check() ;
+            if( isAllClear )
+            {
+               var formVal = $scope.SetThreshold['config'].getValue() ;
+               if( formVal['cpu'] > 0 )
+               {
+                  SdbFunction.LocalData( 'SdbMonitorCpu', formVal['cpu'] ) ;
+               }
+               if( formVal['memory'] > 0 )
+               {
+                  SdbFunction.LocalData( 'SdbMonitorMemory', formVal['memory'] ) ;
+               }
+               if( formVal['disk'] > 0 )
+               {
+                  SdbFunction.LocalData( 'SdbMonitorDisk', formVal['disk'] ) ;
+               }
+               if( formVal['netIn'] > 0 )
+               {
+                  SdbFunction.LocalData( 'SdbMonitorNetIn', formVal['netIn'] ) ;
+               }
+               if( formVal['netOut'] > 0 )
+               {
+                  SdbFunction.LocalData( 'SdbMonitorNetOut', formVal['netOut'] ) ;
+               }
+            }
+            return isAllClear ;
+         } ) ;
+         //设置标题
+         $scope.SetThreshold['callback']['SetTitle']( $scope.autoLanguage( '告警阈值设置' ) ) ;
+         //设置图标
+         $scope.SetThreshold['callback']['SetIcon']( '' ) ;
+         //打开窗口
+         $scope.SetThreshold['callback']['Open']() ;
+      }
+
+
       //设置系统状态信息
       var setStatusMsg = function(){
+         var cpuPer = SdbFunction.LocalData( 'SdbMonitorCpu' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorCpu' ) ;
+         var memoryPer = SdbFunction.LocalData( 'SdbMonitorMemory' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorMemory' ) ;
+         var diskPer = SdbFunction.LocalData( 'SdbMonitorDisk' ) == null ? 60 : SdbFunction.LocalData( 'SdbMonitorDisk' ) ;
+         var netIn = SdbFunction.LocalData( 'SdbMonitorNetIn' ) == null ? 10 : SdbFunction.LocalData( 'SdbMonitorNetIn' ) ;
+         var netOut = SdbFunction.LocalData( 'SdbMonitorNetOut' ) == null ? 10 : SdbFunction.LocalData( 'SdbMonitorNetOut' ) ;
          getTime() ; //获取时间
          $scope.ErrResult = [] ;
          //错误节点
@@ -103,21 +222,33 @@
          } ) ;
 
          //cpu
-         if( $scope.moduleInfo['cpuUse'] > 90 )
+         if( $scope.moduleInfo['cpuUse'] > cpuPer )
          {
-            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - CPU使用超过90%。' ), $scope.Time ), 'type': 'warning' } ) ;
+            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - CPU使用超过?%。' ), $scope.Time, cpuPer ), 'type': 'warning' } ) ;
          }
 
          //memory
-         if( $scope.moduleInfo['memoryUse'] > 90 )
+         if( $scope.moduleInfo['memoryUse'] > memoryPer )
          {
-            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 内存使用超过90%。' ), $scope.Time ), 'type': 'warning' } ) ;
+            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 内存使用超过?%。' ), $scope.Time, memoryPer ), 'type': 'warning' } ) ;
          }
 
          //disk
-         if( $scope.moduleInfo['diskUse'] > 90 )
+         if( $scope.moduleInfo['diskUse'] > diskPer )
          {
-            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 磁盘使用超过90%。' ), $scope.Time ), 'type': 'warning' } ) ;
+            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 磁盘使用超过?%。' ), $scope.Time, diskPer ), 'type': 'warning' } ) ;
+         }
+
+         //netin
+         if( $scope.moduleInfo['netIn'] > netIn )
+         {
+            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 接收网络超过?MB/s。' ), $scope.Time, netIn ), 'type': 'warning' } ) ;
+         }
+
+         //netout
+         if( $scope.moduleInfo['netOut'] > netOut )
+         {
+            $scope.ErrResult.push( { 'info': sprintf( $scope.autoLanguage( '? [warning] - 发送网络超过?MB/s。' ), $scope.Time, netOut ), 'type': 'warning' } ) ;
          }
 
          //判断系统状态
@@ -276,7 +407,7 @@
          } ) ;
       } ;
       getDbList() ;
-      
+
       //获取主机性能快照
       var queryHostSnapshot = function(){
          var data = {
@@ -306,6 +437,48 @@
                   //disk
                   $scope.moduleInfo['diskUse'] = getDiskUsePercent( info[0]['HostInfo'] ) ;
                   $scope.charts['Host']['Disk'] = { 'percent': $scope.moduleInfo['diskUse'] } ;
+
+                  var chartInfo = {
+                     'NetIn': 0,
+                     'NetOut': 0,
+                  }
+                  $.each( info[0]['HostInfo'], function( index, hostInfo ){
+                     if( isNaN( hostInfo['errno'] ) == false && hostInfo['errno'] != 0 )
+                     {
+                        return true ;
+                     }
+                     //计算网络
+                     $.each( hostInfo['Net']['Net'], function( netIndex, netInfo ){
+                        if( typeof( sumTX[index][netIndex] ) == 'undefined' || typeof( sumRX[index][netIndex] ) == 'undefined' )
+                        {
+                           $scope.NetWorkData[index]['NetIn'][netIndex] = 0 ;
+                           $scope.NetWorkData[index]['NetOut'][netIndex] = 0 ;
+                           sumRX[index][netIndex] = 0 ;
+                           sumTX[index][netIndex] = 0 ;
+                        }
+                        else
+                        {
+                           
+                           $scope.NetWorkData[index]['NetIn'][netIndex] = netInfo['RXBytes']['Megabit']  + netInfo['RXBytes']['Unit'] / 1024 / 1024 - sumRX[index][netIndex]  ;
+                           $scope.NetWorkData[index]['NetOut'][netIndex] = netInfo['TXBytes']['Megabit']  + netInfo['TXBytes']['Unit'] / 1024 / 1024 - sumTX[index][netIndex]  ;
+                        }
+                          
+                        sumRX[index][netIndex] = netInfo['RXBytes']['Megabit'] + netInfo['RXBytes']['Unit'] / 1024 / 1024  ;
+                        sumTX[index][netIndex] = netInfo['TXBytes']['Megabit'] + netInfo['TXBytes']['Unit'] / 1024 / 1024  ;
+                     } ) ;
+                     
+                     $.each( $scope.NetWorkData, function( HostIndex, HostInfo ){
+                        $.each( HostInfo['NetIn'], function( netInIndex, netInValue ){
+                           chartInfo['NetIn'] += netInValue ;
+                        } ) ;
+                        $.each( HostInfo['NetOut'], function( netOutIndex, netOutValue ){
+                           chartInfo['NetOut'] += netOutValue ;
+                        } ) ;
+                     } ) ;
+
+                     $scope.moduleInfo['netIn'] = fixedNumber( chartInfo['NetIn'] / 5, 0 ) ;
+                     $scope.moduleInfo['netOut'] = fixedNumber( chartInfo['NetOut'] / 5, 0 ) ;
+                  } ) ;
                }
             },
             'complete': function(){
@@ -350,6 +523,14 @@
                $.each( hostList, function( index, hostInfo ){
                   if( typeof( hostInfo['HostName'] ) == 'string' )
                   {
+                     sumTX[index] = [] ;
+                     sumRX[index] = [] ;
+                     $scope.NetWorkData.push(
+                        {
+                           'NetIn': [],
+                           'NetOut': []
+                        }
+                     ) ;
                      ++$scope.HostNum ;
                      hostJson.push( { 'HostName': hostInfo['HostName'] } ) ;
                      standaloneHostName = hostInfo['HostName'] ;
