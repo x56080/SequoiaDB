@@ -241,6 +241,10 @@
                fieldList = result ;
                $.each( fieldList, function( index, fieldInfo ){
                   var disabled = fieldInfo['IS_NULLABLE'] == 'YES' ? false : true ;
+                  if( fieldInfo['DATA_TYPE'] == 'mediumtext' )
+                  {
+                     fieldInfo['DATA_TYPE'] = 'clob' ;
+                  }
                   var insertLine = {
                      'Column' : { 'type': 'textual', 'value': fieldInfo['COLUMN_NAME'] },
                      'Type'   : { 'type': 'textual', 'value': fieldInfo['DATA_TYPE'] },

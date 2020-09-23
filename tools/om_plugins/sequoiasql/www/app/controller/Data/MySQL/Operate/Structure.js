@@ -25,6 +25,13 @@
          var data = { 'Sql': sql, 'DbName': SdbSwap.dbName, 'Type': 'mysql', 'IsAll': 'true' } ;
          SdbRest.DataOperationV2( '/sql', data, {
             'success': function( fieldList ){
+               $.each( fieldList, function( index, info ){
+                  if( info['COLUMN_TYPE'] == 'mediumtext' )
+                  {
+                     info['COLUMN_TYPE'] = 'clob' ;
+                     info['DATA_TYPE'] = 'clob' ;
+                  }
+               } ) ;
                SdbSignal.commit( 'setTableData', fieldList ) ;
                
                SdbSignal.commit( 'setPrimarySelect', fieldList ) ;
@@ -131,12 +138,10 @@
                               { "key": 'varchar', "value": "varchar" },
                               { "key": 'text', "value": "text" },
                               { "key": 'tinytext', "value": "tinytext" },
-                              { "key": 'mediumtext', "value": "mediumtext" },
                               { "key": 'longtext', "value": "longtext" },
                               { "key": 'binary', "value": "binary" },
+                              { "key": 'clob', "value": "clob" },
                               { "key": 'blob', "value": "blob" },
-                              { "key": 'clob', "value": "longtext" },
-                              { "key": 'nclob', "value": "longtext" },
                               { "key": 'tinyblob', "value": "tinyblob" },
                               { "key": 'mediumblob', "value": "mediumblob" },
                               { "key": 'longblob', "value": "longblob" },
@@ -206,6 +211,11 @@
                   if( index > 0 )
                   {
                      subSql += ', ' ;
+                  }
+                  
+                  if( fieldInfo['type'] == 'clob' )
+                  {
+                     fieldInfo['type'] = 'mediumtext' ;
                   }
                   subSql += 'ADD `' + fieldInfo['name'] + '` ' + fieldInfo['type'] ;
                   if( fieldInfo['length'].length > 0 )
@@ -736,12 +746,10 @@
                      { "key": 'varchar', "value": "varchar" },
                      { "key": 'text', "value": "text" },
                      { "key": 'tinytext', "value": "tinytext" },
-                     { "key": 'mediumtext', "value": "mediumtext" },
+                     { "key": 'clob', "value": "clob" },
                      { "key": 'longtext', "value": "longtext" },
                      { "key": 'binary', "value": "binary" },
                      { "key": 'blob', "value": "blob" },
-                     { "key": 'clob', "value": "longtext" },
-                     { "key": 'nclob', "value": "longtext" },
                      { "key": 'tinyblob', "value": "tinyblob" },
                      { "key": 'mediumblob', "value": "mediumblob" },
                      { "key": 'longblob', "value": "longblob" },
@@ -777,6 +785,10 @@
             {
                var subSql = '' ;
                var formVal = $scope.EditFieldWindow['config'].getValue() ;
+               if( formVal['newType'] == 'clob' )
+               {
+                  formVal['newType'] = 'mediumtext' ;
+               }
                var sql = sprintf( 'alter table `?` change `?` `?` ?', SdbSwap.tbName, fieldName, formVal['fieldName'], formVal['newType'] ) ;
                if( formVal['length'].length > 0 )
                {
