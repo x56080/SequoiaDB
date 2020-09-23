@@ -3147,7 +3147,7 @@ namespace engine
 
       options.setQuery( boNewMatcher ) ;
 
-      if ( includeShardingOrder )
+      if ( includeShardingOrder && strSubCLList.size() > 1 )
       {
          rc = _sortSubCLListByBound( options.getCLFullName(), strSubCLList ) ;
          if ( rc )
