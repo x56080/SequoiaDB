@@ -290,41 +290,41 @@ namespace engine
          {
             switch ( op )
             {
-               case MON_DATA_READ :
-                  _totalDataRead += delta ;
-                  break ;
                case MON_INDEX_READ :
                   _totalIndexRead += delta ;
                   break ;
-               case MON_LOB_READ :
-                  _totalLobRead += delta ;
+               case MON_DATA_READ :
+                  _totalDataRead += delta ;
                   break ;
-               case MON_DATA_WRITE :
-                  _totalDataWrite += delta ;
+               case MON_READ :
+                  _totalRead += delta ;
+                  break ;
+               case MON_SELECT :
+                  _totalSelect += delta ;
                   break ;
                case MON_INDEX_WRITE :
                   _totalIndexWrite += delta ;
                   break ;
-               case MON_LOB_WRITE :
-                  _totalLobWrite += delta ;
+               case MON_DATA_WRITE :
+                  _totalDataWrite += delta ;
                   break ;
                case MON_UPDATE :
                   _totalUpdate += delta ;
-                  _totalWrite += delta ;
-                  break ;
-               case MON_DELETE :
-                  _totalDelete += delta ;
                   _totalWrite += delta ;
                   break ;
                case MON_INSERT :
                   _totalInsert += delta ;
                   _totalWrite += delta ;
                   break ;
-               case MON_SELECT :
-                  _totalSelect += delta ;
+               case MON_DELETE :
+                  _totalDelete += delta ;
+                  _totalWrite += delta ;
                   break ;
-               case MON_READ :
-                  _totalRead += delta ;
+               case MON_LOB_READ :
+                  _totalLobRead += delta ;
+                  break ;
+               case MON_LOB_WRITE :
+                  _totalLobWrite += delta ;
                   break ;
                default :
                   break ;
@@ -335,38 +335,32 @@ namespace engine
          {
             switch ( op )
             {
-               case MON_DATA_READ :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataRead ),
-                                    delta ) ;
-                  break ;
                case MON_INDEX_READ :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalIndexRead ),
                                     delta ) ;
                   break ;
-               case MON_LOB_READ :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobRead ),
+               case MON_DATA_READ :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataRead ),
                                     delta ) ;
                   break ;
-               case MON_DATA_WRITE :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataWrite ),
+               case MON_READ :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalRead ),
+                                    delta ) ;
+                  break ;
+               case MON_SELECT :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalSelect ),
                                     delta ) ;
                   break ;
                case MON_INDEX_WRITE :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalIndexWrite ),
                                     delta ) ;
                   break ;
-               case MON_LOB_WRITE :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobWrite ),
+               case MON_DATA_WRITE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDataWrite ),
                                     delta ) ;
                   break ;
                case MON_UPDATE :
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalUpdate ),
-                                    delta ) ;
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalWrite ),
-                                    delta ) ;
-                  break ;
-               case MON_DELETE :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDelete ),
                                     delta ) ;
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalWrite ),
                                     delta ) ;
@@ -377,12 +371,18 @@ namespace engine
                   ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalWrite ),
                                     delta ) ;
                   break ;
-               case MON_SELECT :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalSelect ),
+               case MON_DELETE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalDelete ),
+                                    delta ) ;
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalWrite ),
                                     delta ) ;
                   break ;
-               case MON_READ :
-                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalRead ),
+               case MON_LOB_READ :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobRead ),
+                                    delta ) ;
+                  break ;
+               case MON_LOB_WRITE :
+                  ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobWrite ),
                                     delta ) ;
                   break ;
                default :
@@ -491,40 +491,48 @@ namespace engine
       {
          switch ( op )
          {
-            case MON_DATA_READ :
-               ossFetchAndAdd64( &totalDataRead, delta ) ;
-               break ;
-
             case MON_INDEX_READ :
                ossFetchAndAdd64( &totalIndexRead, delta ) ;
                break ;
 
-            case MON_LOB_READ :
-               ossFetchAndAdd64( &totalLobRead, delta ) ;
+            case MON_DATA_READ :
+               ossFetchAndAdd64( &totalDataRead, delta ) ;
                break ;
 
-            case MON_DATA_WRITE :
-               ossFetchAndAdd64( &totalDataWrite, delta ) ;
+            case MON_READ :
+               ossFetchAndAdd64( &totalRead, delta ) ;
+               break ;
+
+            case MON_SELECT :
+               ossFetchAndAdd64( &totalSelect, delta ) ;
                break ;
 
             case MON_INDEX_WRITE :
                ossFetchAndAdd64( &totalIndexWrite, delta ) ;
                break ;
 
-            case MON_LOB_WRITE :
-               ossFetchAndAdd64( &totalLobWrite, delta ) ;
+            case MON_DATA_WRITE :
+               ossFetchAndAdd64( &totalDataWrite, delta ) ;
                break ;
 
             case MON_UPDATE :
                ossFetchAndAdd64( &totalUpdate, delta ) ;
                break ;
 
+            case MON_INSERT :
+               ossFetchAndAdd64( &totalInsert, delta ) ;
+               break ;
+
             case MON_DELETE :
                ossFetchAndAdd64( &totalDelete, delta ) ;
                break ;
 
-            case MON_INSERT :
-               ossFetchAndAdd64( &totalInsert, delta ) ;
+            case MON_LOB_READ :
+               ossFetchAndAdd64( &totalLobRead, delta ) ;
+               break ;
+
+            case MON_LOB_WRITE :
+               ossFetchAndAdd64( &totalLobWrite, delta ) ;
                break ;
 
             case MON_UPDATE_REPL :
@@ -537,14 +545,6 @@ namespace engine
 
             case MON_INSERT_REPL :
                ossFetchAndAdd64( &replInsert, delta ) ;
-               break ;
-
-            case MON_SELECT :
-               ossFetchAndAdd64( &totalSelect, delta ) ;
-               break ;
-
-            case MON_READ :
-               ossFetchAndAdd64( &totalRead, delta ) ;
                break ;
 
             default:
@@ -624,41 +624,41 @@ namespace engine
       {
          switch ( op )
          {
-            case MON_DATA_READ :
-               ossFetchAndAdd64( &_totalDataRead, delta ) ;
-               break ;
             case MON_INDEX_READ :
                ossFetchAndAdd64( &_totalIndexRead, delta ) ;
                break ;
-            case MON_LOB_READ :
-               ossFetchAndAdd64( &_totalLobRead, delta ) ;
+            case MON_DATA_READ :
+               ossFetchAndAdd64( &_totalDataRead, delta ) ;
                break ;
-            case MON_DATA_WRITE :
-               ossFetchAndAdd64( &_totalDataWrite, delta ) ;
+            case MON_READ :
+               ossFetchAndAdd64( &_totalRead, delta ) ;
+               break ;
+            case MON_SELECT :
+               ossFetchAndAdd64( &_totalSelect, delta ) ;
                break ;
             case MON_INDEX_WRITE :
                ossFetchAndAdd64( &_totalIndexWrite, delta ) ;
                break ;
-            case MON_LOB_WRITE :
-               ossFetchAndAdd64( &_totalLobWrite, delta ) ;
+            case MON_DATA_WRITE :
+               ossFetchAndAdd64( &_totalDataWrite, delta ) ;
                break ;
             case MON_UPDATE :
                ossFetchAndAdd64( &_totalUpdate, delta ) ;
-               ossFetchAndAdd64( &_totalWrite, delta ) ;
-               break ;
-            case MON_DELETE :
-               ossFetchAndAdd64( &_totalDelete, delta ) ;
                ossFetchAndAdd64( &_totalWrite, delta ) ;
                break ;
             case MON_INSERT :
                ossFetchAndAdd64( &_totalInsert, delta ) ;
                ossFetchAndAdd64( &_totalWrite, delta ) ;
                break ;
-            case MON_SELECT :
-               ossFetchAndAdd64( &_totalSelect, delta ) ;
+            case MON_DELETE :
+               ossFetchAndAdd64( &_totalDelete, delta ) ;
+               ossFetchAndAdd64( &_totalWrite, delta ) ;
                break ;
-            case MON_READ :
-               ossFetchAndAdd64( &_totalRead, delta ) ;
+            case MON_LOB_READ :
+               ossFetchAndAdd64( &_totalLobRead, delta ) ;
+               break ;
+            case MON_LOB_WRITE :
+               ossFetchAndAdd64( &_totalLobWrite, delta ) ;
                break ;
             default:
                break ;
@@ -747,48 +747,48 @@ namespace engine
       {
          switch ( op )
          {
-            case MON_DATA_READ :
-               totalDataRead += delta ;
-               break ;
-
             case MON_INDEX_READ :
                totalIndexRead += delta ;
                break ;
 
-            case MON_LOB_READ :
-               totalLobRead += delta ;
+            case MON_DATA_READ :
+               totalDataRead += delta ;
                break ;
 
-            case MON_DATA_WRITE :
-               totalDataWrite += delta ;
-               break ;
-
-            case MON_INDEX_WRITE :
-               totalIndexWrite += delta ;
-               break ;
-
-            case MON_LOB_WRITE :
-               totalLobWrite += delta ;
-               break ;
-
-            case MON_UPDATE :
-               totalUpdate += delta ;
-               break ;
-
-            case MON_DELETE :
-               totalDelete += delta ;
-               break ;
-
-            case MON_INSERT :
-               totalInsert += delta ;
+            case MON_READ :
+               totalRead += delta ;
                break ;
 
             case MON_SELECT :
                totalSelect += delta ;
                break ;
 
-            case MON_READ :
-               totalRead += delta ;
+            case MON_INDEX_WRITE :
+               totalIndexWrite += delta ;
+               break ;
+
+            case MON_DATA_WRITE :
+               totalDataWrite += delta ;
+               break ;
+
+            case MON_UPDATE :
+               totalUpdate += delta ;
+               break ;
+
+            case MON_INSERT :
+               totalInsert += delta ;
+               break ;
+
+            case MON_DELETE :
+               totalDelete += delta ;
+               break ;
+
+            case MON_LOB_READ :
+               totalLobRead += delta ;
+               break ;
+
+            case MON_LOB_WRITE :
+               totalLobWrite += delta ;
                break ;
 
             default:
