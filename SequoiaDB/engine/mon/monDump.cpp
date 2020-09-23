@@ -4844,15 +4844,10 @@ namespace engine
       _addInfoMask = MON_MASK_NODEID ;
       _viewArchive = FALSE ;
       _isDetail= TRUE ;
-      _scanner = NULL ;
    }
 
    _monQueriesFetch::~_monQueriesFetch()
    {
-      if ( _scanner )
-      {
-         SDB_OSS_DEL ( _scanner ) ;
-      }
    }
 
    INT32 _monQueriesFetch::init( pmdEDUCB *cb,
@@ -4874,15 +4869,15 @@ namespace engine
 
       if ( _viewArchive )
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_QUERY, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ARCHIVED_LIST) ;
       }
       else
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_QUERY, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ACTIVE_LIST) ;
       }
-      _queryCB = (monClassQuery*)_scanner->getNext() ;
 
-      _hitEnd = ( NULL == _queryCB ) ? TRUE : FALSE ;
+      _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;
+      _itr = _cachedMonClassList.begin() ;
       _isDetail = isDetail ;
       _addInfoMask = addInfoMask ;
 
@@ -4900,8 +4895,8 @@ namespace engine
    INT32 _monQueriesFetch::fetch( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      ossTimestamp createTS = _queryCB->getCreateTS() ;
-      ossTimestamp endTS = _queryCB->getEndTS() ;
+      ossTimestamp createTS = _itr->getCreateTS() ;
+      ossTimestamp endTS = _itr->getEndTS() ;
       CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
       UINT32 seconds, microseconds ;
       FLOAT64 responseTime ;
@@ -4916,7 +4911,7 @@ namespace engine
          BSONObjBuilder builder( _builder ) ;
 
          ossTimestampToString ( createTS, timestamp ) ;
-         _queryCB->responseTime.convertToTime ( factor, seconds, microseconds ) ;
+         _itr->responseTime.convertToTime ( factor, seconds, microseconds ) ;
          responseTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
          /// add system info
@@ -4928,64 +4923,73 @@ namespace engine
 
          ossTimestampToString ( endTS, timestamp ) ;
          builder.append( FIELD_NAME_ENDTIMESTAMP, timestamp ) ;
-         builder.append( FIELD_NAME_TID, _queryCB->tid ) ;
+         builder.append( FIELD_NAME_TID, _itr->tid ) ;
          //FIXME: PASSING IN FALSE AS DEFAULT
          builder.append( FIELD_NAME_OPTYPE,
-                         msgType2String( (MSG_TYPE)_queryCB->opCode, FALSE ) ) ;
+                         msgType2String( (MSG_TYPE)_itr->opCode, FALSE ) ) ;
 
-         builder.append( FIELD_NAME_NAME, _queryCB->name.c_str() ) ;
+         builder.append( FIELD_NAME_NAME, _itr->name.c_str() ) ;
          builder.append( FIELD_NAME_QUERYTIMESPENT, responseTime ) ;
-         builder.append( FIELD_NAME_RETURN_NUM, _queryCB->rowsReturned ) ;
+         builder.append( FIELD_NAME_RETURN_NUM, _itr->rowsReturned ) ;
 
          if ( SDB_ROLE_COORD == role )
          {
             FLOAT64 nodeWaitTime ;
             FLOAT64 msgSentTime ;
             BSONObjBuilder clientInfoBuilder ;
-            _queryCB->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->remoteNodesResponseTime.convertToTime ( factor, seconds, microseconds ) ;
             nodeWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
-            _queryCB->msgSentTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->msgSentTime.convertToTime ( factor, seconds, microseconds ) ;
             msgSentTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
-            builder.append( FIELD_NAME_NUM_MSG_SENT, _queryCB->numMsgSent ) ;
-            builder.append( FIELD_NAME_LASTOPINFO, _queryCB->queryText.c_str() ) ;
+            builder.append( FIELD_NAME_NUM_MSG_SENT, _itr->numMsgSent ) ;
+            builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
             builder.append( FIELD_NAME_MSG_SENT_TIME, msgSentTime ) ;
             builder.append( FIELD_NAME_NODEWAITTIME, nodeWaitTime ) ;
-            clientInfoBuilder.appendElements( _queryCB->clientInfo ) ;
-            clientInfoBuilder.append( FIELD_NAME_CLIENTTID, _queryCB->clientTID ) ;
-            clientInfoBuilder.append( FIELD_NAME_CLIENTHOST, _queryCB->clientHost.c_str() ) ;
+            clientInfoBuilder.appendElements( _itr->clientInfo ) ;
+            clientInfoBuilder.append( FIELD_NAME_CLIENTTID, _itr->clientTID ) ;
+            clientInfoBuilder.append( FIELD_NAME_CLIENTHOST, _itr->clientHost.c_str() ) ;
             builder.append( FIELD_NAME_CLIENTINFO, clientInfoBuilder.obj() ) ;
 
-            if ( _queryCB->nodes.size() > 0 )
+            if ( _itr->nodes.size() > 0 )
             {
-               builder.append( FIELD_NAME_RELATED_NODE, _queryCB->nodes ) ;
+               /// add nodes
+               BSONArrayBuilder ba( builder.subarrayStart( FIELD_NAME_RELATED_NODE ) ) ;
+               ossPoolSet<UINT32>::const_iterator nodeItr ;
+               for ( nodeItr = _itr->nodes.begin() ;
+                     nodeItr != _itr->nodes.end() ;
+                     ++nodeItr )
+               {
+                  ba.append( *nodeItr ) ;
+               }
+               ba.done() ;
+
             }
          }
          else
          {
-            _queryCB->latchWaitTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->latchWaitTime.convertToTime ( factor, seconds, microseconds ) ;
             latchWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
-            _queryCB->lockWaitTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->lockWaitTime.convertToTime ( factor, seconds, microseconds ) ;
             lockWaitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
 
-            builder.append( FIELD_NAME_RELATED_NID, _queryCB->relatedNID.columns.nodeID ) ;
-            builder.append( FIELD_NAME_RELATED_TID, _queryCB->relatedTID ) ;
-            builder.append( FIELD_NAME_SESSIONID, _queryCB->sessionID ) ;
-            builder.append( FIELD_NAME_ACCESSPLAN_ID, _queryCB->accessPlanID ) ;
-            builder.append( FIELD_NAME_DATAREAD, _queryCB->dataRead ) ;
-            builder.append( FIELD_NAME_DATAWRITE, _queryCB->dataWrite ) ;
-            builder.append( FIELD_NAME_INDEXREAD, _queryCB->indexRead ) ;
-            builder.append( FIELD_NAME_INDEXWRITE, _queryCB->indexWrite ) ;
-            builder.append( FIELD_NAME_LOBREAD, _queryCB->lobRead ) ;
-            builder.append( FIELD_NAME_LOBWRITE, _queryCB->lobWrite ) ;
+            builder.append( FIELD_NAME_RELATED_NID, _itr->relatedNID.columns.nodeID ) ;
+            builder.append( FIELD_NAME_RELATED_TID, _itr->relatedTID ) ;
+            builder.append( FIELD_NAME_SESSIONID, _itr->sessionID ) ;
+            builder.append( FIELD_NAME_ACCESSPLAN_ID, _itr->accessPlanID ) ;
+            builder.append( FIELD_NAME_DATAREAD, _itr->dataRead ) ;
+            builder.append( FIELD_NAME_DATAWRITE, _itr->dataWrite ) ;
+            builder.append( FIELD_NAME_INDEXREAD, _itr->indexRead ) ;
+            builder.append( FIELD_NAME_INDEXWRITE, _itr->indexWrite ) ;
+            builder.append( FIELD_NAME_LOBREAD, _itr->lobRead ) ;
+            builder.append( FIELD_NAME_LOBWRITE, _itr->lobWrite ) ;
             builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, lockWaitTime ) ;
             builder.append( FIELD_NAME_LATCH_WAIT_TIME, latchWaitTime ) ;
          }
 
-         _queryCB = (monClassQuery*)_scanner->getNext() ;
-
-         if ( NULL == _queryCB )
+         ++_itr ;
+         if ( _itr == _cachedMonClassList.end() )
          {
             _hitEnd = TRUE ;
          }
@@ -4999,6 +5003,7 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -5015,15 +5020,10 @@ namespace engine
       _addInfoMask = MON_MASK_NODE_NAME ;
       _viewArchive = FALSE ;
       _isDetail= TRUE ;
-      _scanner = NULL ;
    }
 
    _monLatchWaitsFetch::~_monLatchWaitsFetch()
    {
-      if ( _scanner )
-      {
-         SDB_OSS_DEL ( _scanner ) ;
-      }
    }
 
    INT32 _monLatchWaitsFetch::init( pmdEDUCB *cb,
@@ -5043,16 +5043,15 @@ namespace engine
 
       if ( _viewArchive )
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_LATCH, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LATCH, MON_CLASS_ARCHIVED_LIST) ;
       }
       else
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_LATCH, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LATCH, MON_CLASS_ACTIVE_LIST) ;
       }
 
-      _latchCB = (monClassLatch*)_scanner->getNext() ;
-
-      _hitEnd = ( NULL == _latchCB ) ? TRUE : FALSE ;
+      _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;
+      _itr = _cachedMonClassList.begin() ;
       _isDetail = isDetail ;
       _addInfoMask = addInfoMask ;
 
@@ -5081,19 +5080,19 @@ namespace engine
          _builder.reset() ;
          BSONObjBuilder builder( _builder ) ;
 
-         ossTimestamp createTS = _latchCB->getCreateTS() ;
+         ossTimestamp createTS = _itr->getCreateTS() ;
          ossTimestampToString ( createTS, timestamp ) ;
 
          if ( !_viewArchive )
          {
             ossTick now ;
             now.sample() ;
-            ossTickDelta delta = now - _latchCB->getCreateTSTick() ;
+            ossTickDelta delta = now - _itr->getCreateTSTick() ;
             delta.convertToTime ( factor, seconds, microseconds ) ;
          }
          else
          {
-            _latchCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
          }
 
          waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
@@ -5103,8 +5102,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                       rc ) ;
 
-         builder.append( FIELD_NAME_WAITER_TID, _latchCB->waiterTID ) ;
-         if ( EXCLUSIVE == _latchCB->latchMode )
+         builder.append( FIELD_NAME_WAITER_TID, _itr->waiterTID ) ;
+         if ( EXCLUSIVE == _itr->latchMode )
          {
             builder.append( FIELD_NAME_REQUIRED_MODE, "X" ) ;
          }
@@ -5112,30 +5111,29 @@ namespace engine
          {
             builder.append( FIELD_NAME_REQUIRED_MODE, "S" ) ;
          }
-         builder.append( FIELD_NAME_LATCH_NAME, monLatchIDtoName(_latchCB->latchID) ) ;
+         builder.append( FIELD_NAME_LATCH_NAME, monLatchIDtoName(_itr->latchID) ) ;
 
-         ossSnprintf( addr, sizeof(addr)-1, "%p", _latchCB->latchAddr ) ;
+         ossSnprintf( addr, sizeof(addr)-1, "%p", _itr->latchAddr ) ;
          builder.append( FIELD_NAME_ADDRESS, addr ) ;
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
          builder.append( FIELD_NAME_LATCH_WAIT_TIME, waitTime ) ;
 
-         if ( _latchCB->xOwnerTID )
+         if ( _itr->xOwnerTID )
          {
-            builder.append( FIELD_NAME_LATEST_OWNER, _latchCB->xOwnerTID ) ;
+            builder.append( FIELD_NAME_LATEST_OWNER, _itr->xOwnerTID ) ;
             builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
          }
          else
          {
-            builder.append( FIELD_NAME_LATEST_OWNER, _latchCB->lastSOwner ) ;
+            builder.append( FIELD_NAME_LATEST_OWNER, _itr->lastSOwner ) ;
             builder.append( FIELD_NAME_LATEST_OWNER_MODE, "S" ) ;
          }
-         builder.append( FIELD_NAME_NUM_OWNER, _latchCB->numOwner ) ;
+         builder.append( FIELD_NAME_NUM_OWNER, _itr->numOwner ) ;
 
-         _latchCB = (monClassLatch*)_scanner->getNext() ;
-
-         if ( NULL == _latchCB )
+         ++_itr ;
+         if ( _itr == _cachedMonClassList.end() )
          {
-            _hitEnd = TRUE ;
+             _hitEnd = TRUE ;
          }
 
          obj = builder.done() ;
@@ -5147,6 +5145,7 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -5164,15 +5163,10 @@ namespace engine
       _addInfoMask = MON_MASK_NODE_NAME ;
       _viewArchive = FALSE ;
       _isDetail= TRUE ;
-      _scanner = NULL ;
    }
 
    _monLockWaitsFetch::~_monLockWaitsFetch()
    {
-      if ( _scanner )
-      {
-         SDB_OSS_DEL ( _scanner ) ;
-      }
    }
 
    INT32 _monLockWaitsFetch::init( pmdEDUCB *cb,
@@ -5190,19 +5184,17 @@ namespace engine
       {
          goto error ;
       }
-
       if ( _viewArchive )
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_LOCK, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LOCK, MON_CLASS_ARCHIVED_LIST) ;
       }
       else
       {
-         _scanner = monMgr->getReadScanner(MON_CLASS_LOCK, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LOCK, MON_CLASS_ACTIVE_LIST) ;
       }
 
-      _lockCB = (monClassLock*)_scanner->getNext() ;
-
-      _hitEnd = ( NULL == _lockCB ) ? TRUE : FALSE ;
+      _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;
+      _itr = _cachedMonClassList.begin() ;
       _isDetail = isDetail ;
       _addInfoMask = addInfoMask ;
 
@@ -5229,19 +5221,19 @@ namespace engine
       {
          _builder.reset() ;
          BSONObjBuilder builder( _builder ) ;
-         ossTimestamp createTS = _lockCB->getCreateTS() ;
+         ossTimestamp createTS = _itr->getCreateTS() ;
          ossTimestampToString ( createTS, timestamp ) ;
 
          if ( !_viewArchive )
          {
             ossTick now ;
             now.sample() ;
-            ossTickDelta delta = now - _lockCB->getCreateTSTick() ;
+            ossTickDelta delta = now - _itr->getCreateTSTick() ;
             delta.convertToTime ( factor, seconds, microseconds ) ;
          }
          else
          {
-            _lockCB->waitTime.convertToTime ( factor, seconds, microseconds ) ;
+            _itr->waitTime.convertToTime ( factor, seconds, microseconds ) ;
          }
 
          waitTime = (FLOAT64)(seconds*1000) + ( (FLOAT64)(microseconds) / 1000) ;
@@ -5250,18 +5242,17 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                       rc ) ;
 
-         builder.append( FIELD_NAME_WAITER_TID, _lockCB->waiterTID ) ;
-         builder.append( FIELD_NAME_REQUIRED_MODE, lockModeToString( _lockCB->lockMode ) );
-         _lockCB->lockID.toBson(builder) ;
+         builder.append( FIELD_NAME_WAITER_TID, _itr->waiterTID ) ;
+         builder.append( FIELD_NAME_REQUIRED_MODE, lockModeToString( _itr->lockMode ) );
+         _itr->lockID.toBson(builder) ;
          builder.append( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
          builder.append( FIELD_NAME_TRANS_WAITLOCKTIME, waitTime ) ;
-         builder.append( FIELD_NAME_LATEST_OWNER, _lockCB->xOwnerTID ) ;
+         builder.append( FIELD_NAME_LATEST_OWNER, _itr->xOwnerTID ) ;
          builder.append( FIELD_NAME_LATEST_OWNER_MODE, "X" ) ;
-         builder.append( FIELD_NAME_NUM_OWNER, _lockCB->numOwner ) ;
+         builder.append( FIELD_NAME_NUM_OWNER, _itr->numOwner ) ;
 
-         _lockCB = (monClassLock*)_scanner->getNext() ;
-
-         if ( NULL == _lockCB )
+         _itr++ ;
+         if ( _itr == _cachedMonClassList.end() )
          {
             _hitEnd = TRUE ;
          }
@@ -5275,6 +5266,7 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
    done:
       return rc ;
    error:

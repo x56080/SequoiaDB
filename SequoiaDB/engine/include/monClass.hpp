@@ -130,11 +130,12 @@ typedef boost::intrusive::list_base_hook< > BaseHook ;
  */
 class _monClass : public BaseHook, public utilPooledObject
 {
+
+protected:
    ossTimestamp    _endTS ;      /**! end timestamp for this object */
    ossTick  _createTSTick ;      /**! create tick for this object */
    UINT16         _status ;      /**! object status */
 
-protected:
    MON_CLASS_TYPE _type ;      /**! object type */
 
 public:
@@ -186,6 +187,11 @@ public:
     * Get the end timestamp
     */
    ossTimestamp &getEndTS() { return _endTS ; }
+
+   /**
+    * Get the end timestamp
+    */
+   ossTimestamp getEndTSConst() const { return _endTS ; }
 
    /**
     * Get the create timestamp tick
@@ -291,7 +297,7 @@ public:
    UINT32            lobWrite ;  /**! Total LOB write */
    UINT32        rowsReturned ;  /**! Total number of rows returned */
    UINT32          numMsgSent ;  /**! Total # of msgs sent to remote nodes */
-   std::set<UINT32>     nodes ;  /**! Node ID where messages were sent to */
+   ossPoolSet<UINT32>   nodes ;  /**! Node ID where messages were sent to */
    MsgRouteID      relatedNID ;  /**! coordinator node node ID */
    UINT32          relatedTID ;  /**! coordinator node edu TID */
    BOOLEAN    anchorToContext ;  /**! Whether this obj anchored to a context */
@@ -318,6 +324,41 @@ public:
       _type = MON_CLASS_QUERY ;
       relatedNID.value = 0 ;
    }
+
+   _monClassQuery ( const _monClassQuery &monClassQuery)
+     : tid( monClassQuery.tid ),
+       clientTID( monClassQuery.clientTID ),
+       accessPlanID( monClassQuery.accessPlanID),
+       opCode( monClassQuery.opCode ),
+       sessionID( monClassQuery.sessionID ),
+       responseTime( monClassQuery.responseTime ),
+       latchWaitTime( monClassQuery.latchWaitTime ),
+       lockWaitTime( monClassQuery.lockWaitTime ),
+       dataRead( monClassQuery.dataRead ),
+       indexRead( monClassQuery.indexRead ),
+       lobRead( monClassQuery.lobRead ),
+       dataWrite( monClassQuery.dataWrite ),
+       indexWrite( monClassQuery.indexWrite ),
+       lobWrite( monClassQuery.lobWrite ),
+       rowsReturned( monClassQuery.rowsReturned ),
+       numMsgSent( monClassQuery.numMsgSent ),
+       relatedNID( monClassQuery.relatedNID ),
+       relatedTID( monClassQuery.relatedTID ),
+       anchorToContext( monClassQuery.anchorToContext ),
+       remoteNodesResponseTime( monClassQuery.remoteNodesResponseTime ),
+       msgSentTime( monClassQuery.msgSentTime )
+   {
+      _endTS =  monClassQuery.getEndTSConst() ;
+      _createTSTick = monClassQuery.getCreateTSTick() ;
+      _status =  monClassQuery.getStatus() ;
+      clientInfo = monClassQuery.clientInfo.getOwned() ;
+      clientHost.assign( monClassQuery.clientHost ) ;
+      name.assign( monClassQuery.name ) ;
+      nodes = monClassQuery.nodes ;
+      queryText.assign( monClassQuery.queryText ) ;
+      _type = MON_CLASS_QUERY ;
+   }
+
    static MON_CLASS_TYPE getType () { return MON_CLASS_QUERY ; }
 
    //TODO: to be implemented
@@ -374,6 +415,23 @@ public:
       }
       _type = MON_CLASS_LATCH ;
    }
+
+   _monClassLatch( const _monClassLatch & monClassLatch )
+      : waitTime( monClassLatch.waitTime ),
+        xOwnerTID ( monClassLatch.xOwnerTID ),
+        waiterTID ( monClassLatch.waiterTID ),
+        latchID ( monClassLatch.latchID ),
+        latchAddr ( monClassLatch.latchAddr ),
+        latchMode ( monClassLatch.latchMode ),
+        numOwner ( monClassLatch.numOwner ),
+        lastSOwner ( monClassLatch.lastSOwner )
+   {
+      _endTS = monClassLatch.getEndTSConst() ;
+      _createTSTick = monClassLatch.getCreateTSTick() ;
+      _status = monClassLatch.getStatus() ;
+      _type = MON_CLASS_LATCH ;
+   }
+
    static MON_CLASS_TYPE getType () { return MON_CLASS_LATCH ; }
 
    virtual void dump( BSONObj &obj ) {}
@@ -401,6 +459,20 @@ public:
    {
       _type = MON_CLASS_LOCK ;
       waiterTID = 0 ;
+   }
+
+   _monClassLock ( const _monClassLock & monClassLock)
+      : waitTime( monClassLock.waitTime ),
+        xOwnerTID( monClassLock.xOwnerTID ),
+        waiterTID( monClassLock.waiterTID ),
+        numOwner( monClassLock.numOwner ),
+        lockID( monClassLock.lockID ),
+        lockMode( monClassLock.lockMode )
+   {
+      _endTS = monClassLock.getEndTSConst() ;
+      _createTSTick = monClassLock.getCreateTSTick() ;
+      _status = monClassLock.getStatus() ;
+      _type = MON_CLASS_LOCK ;
    }
 
    static MON_CLASS_TYPE getType () { return MON_CLASS_LOCK ; }
@@ -643,6 +715,8 @@ private:
    /**< The minimum collection level when monClass objects will get created */
    MON_DATA_LEVEL _minOperationalLvl ;
 
+   MON_CLASS_TYPE _classType ;
+
    archiveFunc _doArchive ;
 
    /*
@@ -782,50 +856,69 @@ public:
          return iterator( _activeList.end() ) ;
       }
    }
-} ;
 
-typedef _monClassContainer monClassContainer ;
-
-class _monClassReadScanner : public utilPooledObject
-{
-private:
-   typedef _monClassContainer::iterator IT ;
-
-   monClassContainer *_container ; /**< container for the type of monClass */
-   IT _itr ;                       /**< iterator pointing to current node */
-   MON_CLASS_LIST_TYPE _listType ; /**< Type of list to scan (active/archive) */
-   BOOLEAN _initCalled ;           /**< Whether scan initialization has done */
-   BOOLEAN _endReached ;         /**< Whether the scan has read all the nodes */
-   BOOLEAN _hasArchiveLatch ;      /**< Whether the archive latch was acquired */
-
-   void initScan() ;
-
-public:
-   _monClassReadScanner( monClassContainer *container,
-                         MON_CLASS_LIST_TYPE listType )
-     : _container( container ),
-       _listType( listType ),
-       _initCalled( FALSE ),
-       _endReached( FALSE ),
-       _hasArchiveLatch( FALSE )
+   /*
+    * dump correspond monClass object this container has depends on the input listType.
+    * @param cachedMonClassList target list we are going to populate
+    * @param listType the type of list to read
+    */
+   template<class T> void dumpList(ossPoolVector<T> &cachedMonClassList, MON_CLASS_LIST_TYPE listType)
    {
-   }
+      BOOLEAN _hasArchiveLatch = FALSE ;
+      iterator itr ;
 
-   ~_monClassReadScanner()
-   {
-      if ( _hasArchiveLatch )
+      if ( ! this->isEmpty( listType ) )
       {
-         _container->releaseArchiveLatch( SHARED ) ;
+
+         try
+         {
+
+            if ( listType == MON_CLASS_ARCHIVED_LIST )
+            {
+               this->getArchiveLatch( SHARED ) ;
+               _hasArchiveLatch = TRUE ;
+            }
+
+            itr = begin(listType) ;
+            while ( itr != end(listType) )
+            {
+               // 1. We skip any pending deletes
+               // 2. Skip if this is a pending archive and we are only interested in$
+               //    the active list$
+               // 3. Skip if this is active and we are only interested in the$
+               //    archived list$
+               if (! ( itr->isPendingDelete() ||
+                       (itr->isPendingArchive() && listType == MON_CLASS_ACTIVE_LIST ) ||
+                       (!itr->isPendingArchive() && listType == MON_CLASS_ARCHIVED_LIST ) ))
+               {
+                  monClass * monClassElement = &(*itr) ;
+                  T* monClassT = (T *) monClassElement ;
+                  cachedMonClassList.push_back(*monClassT) ;
+               }
+               ++itr ;
+            }
+         }
+
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to add monClass into vector:%s", e.what() ) ;
+         }
+         if ( _hasArchiveLatch )
+         {
+            this->releaseArchiveLatch( SHARED ) ;
+         }
       }
    }
 
-   /**
-    * Return the next node
+   /*
+    * return whether this container is empty for  the correspond list depends
+    * on the listType.
+    * @param listType the type of list to read
     */
-   _monClass* getNext() ;
+   BOOLEAN isEmpty(MON_CLASS_LIST_TYPE listType) ;
 } ;
 
-typedef _monClassReadScanner monClassReadScanner ;
+typedef _monClassContainer monClassContainer ;
 
 } // namespace engine
 

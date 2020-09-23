@@ -193,18 +193,17 @@ public:
          _monClass[i]->setMaxArchivedListLen( size ) ;
       }
    }
+
    /**
-    * Get a scanner to read a class' content
-    *
-    * @param classType the class type to scan
-    * @param listType the list to scan (active/archived)
+    * return the list of the target monClass
+    * @param cachedMonClassList the vector to populate
+    * @param classType the specific monClass to read
+    * @param listType the type of list to read
     */
-   monClassReadScanner* getReadScanner ( MON_CLASS_TYPE classType,
-                                         MON_CLASS_LIST_TYPE listType )
+   template <class T> void dumpList ( ossPoolVector<T> & cachedMonClassList, MON_CLASS_TYPE classType,
+                                                    MON_CLASS_LIST_TYPE listType)
    {
-      monClassReadScanner *scanner =
-         SDB_OSS_NEW monClassReadScanner( _monClass[classType], listType ) ;
-      return scanner ;
+      _monClass[classType]->dumpList(cachedMonClassList, listType) ;
    }
 
    /**
