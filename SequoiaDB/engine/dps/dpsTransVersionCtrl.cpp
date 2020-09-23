@@ -46,6 +46,7 @@
 #include "dmsRBSSUMgr.hpp"
 #include "dpsTransCB.hpp"
 #include "ixmExtent.hpp" // for _keyCmp
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -90,7 +91,7 @@ namespace engine
       std::stringstream ss ;
       ss << "RID(" << _rid._extent << ", " << _rid._offset
          << "), Key:" << _keyObj.toString() 
-         << ", TransID:" << DPS_TRANS_GET_SN(_transID) ;
+         << ", TransID:" << dpsTransIDToString( _transID ).c_str() ;
       return ss.str() ;
    }
 
@@ -179,7 +180,7 @@ namespace engine
    preIdxTree::preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB )
    {
       _isValid = TRUE ;
-      _lastGCTime = DPS_INVALID_TRANS_ID ;
+      _lastGCTime = DPS_INVALID_TRANSID_SN ;
       _idxLID = idxID ;
       _keyPattern = indexCB->keyPattern().getOwned() ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
@@ -195,7 +196,7 @@ namespace engine
       _isValid = intree._isValid ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
    }
-   
+
    // destructor
    preIdxTree::~preIdxTree() 
    {
@@ -903,19 +904,19 @@ namespace engine
    }
 
    // run garbage collection on a tree, erase all nodes older than lowtran
-   void preIdxTree::gc( UINT64 lowTran )
+   void preIdxTree::gc( DPS_TRANSID_SN lowTran )
    {
       INDEX_TREE_POS pos ;
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "gc memixtree(%d) to lowTran %llu)",
-               _idxLID, DPS_TRANS_GET_SN(lowTran) ); 
+               _idxLID, lowTran );
 #endif
 
       lockX(); 
 
       // Only gc if lowtran moved up
-      if ( DPS_TRANS_GET_SN(lowTran) > DPS_TRANS_GET_SN(_lastGCTime) )
+      if ( lowTran > _lastGCTime )
       {
          pos = _tree.begin() ;
 
@@ -924,14 +925,14 @@ namespace engine
          while ( pos != _tree.end() )
          {
             // FIXME: use proper comparison
-            if ( DPS_TRANS_GET_SN(pos->first.getNodeTransID()) <
-                 DPS_TRANS_GET_SN(lowTran) )
+            // only compare serial number with global transaction tag
+            if ( pos->first.getNodeTransID().getGlobSN() < lowTran )
             {
                INDEX_TREE_POS temp = pos ;
 #ifdef _DEBUG
                PD_LOG ( PDDEBUG, "Remove node(%s) from ixtree(%d),lowTran(%llu)",
                         pos->first.toString().c_str(), _idxLID, 
-                        DPS_TRANS_GET_SN(lowTran) ); 
+                        lowTran );
 #endif   
                pos++ ;
                _tree.erase(temp) ;
@@ -960,7 +961,7 @@ namespace engine
          {
             ss << "==> Index tree[Key: " << _keyPattern.toString()
                << ", LID:" << _idxLID
-               << ", lastGCTime:" << DPS_TRANS_GET_SN(_lastGCTime)
+               << ", lastGCTime:" << _lastGCTime
                << ", Size:" << _tree.size()
                << " nodes:" << std::endl ;
             // only print each node if asked for detailed info
@@ -1459,7 +1460,7 @@ namespace engine
    {
       preIdxTreePtr treePtr ;
       IDXID_TO_TREE_MAP_IT it ;
-      DPS_TRANS_ID  lowTran = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID  lowTran ;
 
       latchS() ;
 
@@ -1482,10 +1483,11 @@ namespace engine
             PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, lowtran(%llu)",
                     it->first.toString().c_str(),
                     treePtr->getKeyPattern().toString().c_str(),
-                    DPS_TRANS_GET_SN(lowTran) ) ;
+                    lowTran.getGlobSN() ) ;
             treePtr->printTree( FALSE ) ;
 #endif
-            treePtr->gc( lowTran ) ;
+            // NOTE: we need global transaction tag with SN
+            treePtr->gc( lowTran.getGlobSN() ) ;
 #ifdef _DEBUG
             treePtr->printTree( FALSE ) ;
 #endif
@@ -1813,12 +1815,10 @@ namespace engine
                                              INT32 csID, UINT16 clID,
                                              UINT32 csLID, UINT32 clLID )
    :_csID( csID ), _clID( clID ), _csLID( csLID ), _clLID( clLID ),
-    _rid( rid )
+    _rid( rid ), _recordTransID(), _ownerTransID()
    {
       _statMask      = 0 ;
       _ownerTID      = 0 ;
-      _ownerTransID  = DPS_INVALID_TRANS_ID ;
-      _recordTransID = DPS_INVALID_TRANS_ID ;
       _prev          = NULL ;
       _next          = NULL ;
       _isOnChain     = FALSE ;
@@ -1864,7 +1864,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 recSize = 0 ;
       dmsRecord *pNewRecord = NULL ;
-      DPS_TRANS_ID recordTransID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID recordTransID ;
 
       SDB_ASSERT( !_recordPtr.get(), "Old record is not NULL" ) ;
       SDB_ASSERT( pRecord, "Record is NULL" ) ;
@@ -1912,10 +1912,10 @@ namespace engine
 #ifdef _DEBUG
       PD_LOG ( PDDEBUG,
                "Thread(%d) Saved old copy for rid(%d, %d) to oldVer(%x) "
-               "through transaction(%llu), recordTransID(%llu)",
+               "through transaction(%s), recordTransID(%s)",
                ownerTID, _rid._extent, _rid._offset, 
-               this, DPS_TRANS_GET_SN(_ownerTransID), 
-               DPS_TRANS_GET_SN(_recordTransID) ) ;
+               this, dpsTransIDToString( _ownerTransID ).c_str(),
+               dpsTransIDToString( _recordTransID ).c_str() ) ;
 #endif //_DEBUG
 
    done:
@@ -1963,8 +1963,10 @@ namespace engine
          }
 #ifdef _DEBUG
          PD_LOG( PDDEBUG, "Successfully saved record to RBS: "
-                 "rid(%d, %d), ownertransid(%llu), recordtransID(%llu), obj(%s)",
-                  _rid._extent, _rid._offset, _ownerTransID, _recordTransID,
+                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+                  _rid._extent, _rid._offset,
+                  dpsTransIDToString( _ownerTransID ).c_str(),
+                  dpsTransIDToString( _recordTransID ).c_str(),
                   this->getRecordObj().toString().c_str() ) ;
 #endif
 
@@ -1994,8 +1996,10 @@ namespace engine
             {
 #ifdef _DEBUG   // FIXME: to be removed
          PD_LOG( PDDEBUG, "Removing index from mem tree: "
-                 "rid(%d, %d), ownertransid(%llu), recordtransID(%llu), obj(%s)",
-                  _rid._extent, _rid._offset, _ownerTransID, _recordTransID,
+                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+                  _rid._extent, _rid._offset,
+                  dpsTransIDToString( _ownerTransID ).c_str(),
+                  dpsTransIDToString( _recordTransID ).c_str(),
                   this->getRecordObj().toString().c_str() ) ;
 #endif
                // pTree->remove( &(tmpObj.getKeyObj()), _rid, FALSE ) ;
@@ -2006,8 +2010,10 @@ namespace engine
             {
 #ifdef _DEBUG   // FIXME: to be removed
          PD_LOG( PDDEBUG, "Resetting index in mem tree: "
-                 "rid(%d, %d), ownertransid(%llu), recordtransID(%llu), obj(%s)",
-                  _rid._extent, _rid._offset, _ownerTransID, _recordTransID,
+                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+                  _rid._extent, _rid._offset,
+                  dpsTransIDToString( _ownerTransID ).c_str(),
+                  dpsTransIDToString( _recordTransID ).c_str(),
                   this->getRecordObj().toString().c_str() ) ;
 #endif
                // reset the tree node value if mvcc is on
@@ -2026,8 +2032,9 @@ namespace engine
       _recordPtr = dpsOldRecordPtr() ;
       _statMask = 0 ;
       _ownerTID = 0 ;
-      _ownerTransID = DPS_INVALID_TRANS_ID ;
-      _recordTransID = DPS_INVALID_TRANS_ID ;
+
+      _ownerTransID.reset() ;
+      _recordTransID.reset() ;
 
       return ;
    }

@@ -496,12 +496,13 @@ namespace engine
 
       // compare and update GlobTransID if the one passed in is newer
       // FIXME: need implement automic compare and swap for DPS_TRANS_ID later
-      // Also, we have to use DPS_TRANS_GET_SN for comparison purpose, but 
+      // Also, we have to use global serial number for comparison purpose, but
       // we should remove it after switching to timestamp
       void updateGlobTransIDWithComp( DPS_TRANS_ID transID )
       {
-         DPS_TRANS_ID  temp = DPS_TRANS_GET_SN(transID) ;
-         _maxGlobTransID.swapGreaterThan( temp ) ;
+         // TODO: should consider maximum time error
+         // only compare serial number with global transaction tag
+         _maxGlobTransID.swapGreaterThan( transID.getGlobSN() ) ;
       }
 
       // get the max GlobTransID 

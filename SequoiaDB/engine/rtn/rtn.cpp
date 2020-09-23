@@ -1679,8 +1679,9 @@ namespace engine
       mthMatchRuntime *matchRuntime = NULL ;
 
       rtnScannerFactory    f ;
-      IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
-                                 SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+      // choose merge scanner if in transaction
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
+                                                     SCANNER_TYPE_DISK ;
       // delete and update should also use scanner properly
       _rtnIXScanner * scanner     = NULL ;
 

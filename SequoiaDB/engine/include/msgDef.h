@@ -371,6 +371,7 @@
 #define FIELD_NAME_DATALEN                   "DataLen"
 #define FIELD_NAME_ORG_LSNOFFSET             "OrgOffset"
 #define FIELD_NAME_TRANSACTION_ID            "TransactionID"
+#define FIELD_NAME_TRANSACTION_ID_NODEID     "TransactionIDNodeID"
 #define FIELD_NAME_TRANSACTION_ID_SN         "TransactionIDSN"
 #define FIELD_NAME_TRANS_LSN_CUR             "CurrentTransLSN"
 #define FIELD_NAME_TRANS_LSN_BEGIN           "BeginTransLSN"

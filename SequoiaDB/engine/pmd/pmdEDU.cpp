@@ -47,6 +47,8 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "utilUniqueID.hpp"
+#include "dpsUtil.hpp"
+
 #include <map>
 
 namespace engine
@@ -129,7 +131,6 @@ namespace engine
       _doRollback       = FALSE ;
 
       _curTransLSN      = DPS_INVALID_LSN_OFFSET ;
-      _curTransID       = DPS_INVALID_TRANS_ID ;
       _transWritingID   = 0 ;
 
 #if defined (_LINUX)
@@ -163,6 +164,8 @@ namespace engine
       _monQueryCB = NULL ;
 
       _isAffectGIndex = FALSE ;
+
+      _curTransID.reset() ;
    }
 
    _pmdEDUCB::~_pmdEDUCB ()
@@ -765,29 +768,35 @@ namespace engine
       _doRollback = isRollback ;
    }
 
-   void _pmdEDUCB::setTransID( UINT64 transID )
+   void _pmdEDUCB::resetTransID()
    {
+      DPS_TRANS_ID transID ;
+      setTransID( transID ) ;
+   }
+
+   void _pmdEDUCB::setTransID( const DPS_TRANS_ID &transID )
+   {
+#if defined ( SDB_ENGINE )
       // FIXME: to be removed
 #ifdef _DEBUG
-      PD_LOG( PDDEBUG, "setting edu transID from %llu to %llu",
-              DPS_TRANS_GET_SN(_curTransID),
-              DPS_TRANS_GET_SN( transID ) ) ;
+      PD_LOG( PDDEBUG, "setting edu transID from %s to %s",
+              dpsTransIDToString( _curTransID ).c_str(),
+              dpsTransIDToString( transID ).c_str() ) ;
 #endif
-#if defined ( SDB_ENGINE )
-      if ( DPS_INVALID_TRANS_ID == _curTransID &&
-           DPS_INVALID_TRANS_ID != transID )
+
+      if ( _curTransID.isInvalid() && transID.isValid() )
       {
          /// begin trans
          _transStatus = DPS_TRANS_DOING ;
          _transRC = SDB_OK ;
       }
-      else if ( DPS_INVALID_TRANS_ID == transID )
+      else if ( transID.isInvalid() )
       {
          /// end trans
          _transStatus = DPS_TRANS_UNKNOWN ;
       }
 #endif //SDB_ENGINE
-      if ( DPS_INVALID_TRANS_ID == transID )
+      if ( transID.isInvalid() )
       {
          _curAutoTransCtxID = -1 ;
       }
@@ -883,21 +892,21 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::isTransRBPending() const
    {
-      return DPS_TRANS_IS_RBPENDING( _curTransID ) ? TRUE : FALSE ;
+      return _curTransID.isRBPending() ;
    }
 
    void _pmdEDUCB::setTransRBPending()
    {
-      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
+      SDB_ASSERT( _curTransID.isRollback(),
                   "Current transaction is not rollback" ) ;
-      DPS_TRANS_SET_RBPENDING( _curTransID ) ;
+      _curTransID.setRBPending() ;
    }
 
    void _pmdEDUCB::clearTransRBPending()
    {
-      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
+      SDB_ASSERT( _curTransID.isRollback(),
                   "Current transaction is not rollback" ) ;
-      DPS_TRANS_CLEAR_RBPENDING( _curTransID ) ;
+      _curTransID.clearRBPending() ;
    }
 
    void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
@@ -1091,7 +1100,8 @@ namespace engine
 #if defined ( SDB_ENGINE )
    void _pmdEDUCB::clearTransInfo()
    {
-      _curTransID = DPS_INVALID_TRANS_ID ;
+      _curTransID.reset() ;
+
       _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
       _transRC = SDB_OK ;
@@ -1106,7 +1116,7 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::isTransaction() const
    {
-      return ( DPS_INVALID_TRANS_ID != _curTransID ) ? TRUE : FALSE ;
+      return _curTransID.isValid() ;
    }
 
    BOOLEAN _pmdEDUCB::isTransRU () const
@@ -1135,7 +1145,7 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::isAutoCommitTrans() const
    {
-      return DPS_TRANS_IS_AUTOCOMMIT( _curTransID ) ? TRUE : FALSE ;
+      return _curTransID.isAutoCommit() ;
    }
 
    void _pmdEDUCB::dumpTransInfo( monTransInfo &transInfo )

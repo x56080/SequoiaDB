@@ -388,7 +388,7 @@ namespace engine
             goto error ;
          }
 
-         if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
+         if ( cb->getTransID().isInvalid() )
          {
             rc = SDB_DPS_TRANS_NO_TRANS ;
             goto error ;

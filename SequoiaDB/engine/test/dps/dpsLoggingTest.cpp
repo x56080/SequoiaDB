@@ -108,9 +108,10 @@ TEST(logWrapperTest, recordInsert_1)
    CRE_OBJ(obj)
 
    dpsMergeInfo mergeInfo ;
-   dpsLogRecord &record = mergeInfo.getMergeBlock().record();
+   dpsLogRecord &record = mergeInfo.getMergeBlock().record() ;
+   DPS_TRANS_ID transID ;
    rc = dpsInsert2Record( name.c_str(),
-                          obj, DPS_INVALID_TRANS_ID,
+                          obj, transID,
                           DPS_INVALID_LSN_OFFSET,
                           DPS_INVALID_LSN_OFFSET,
                           record ) ;

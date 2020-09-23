@@ -169,8 +169,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPIXSC );
 
       rtnScannerFactory f ;
-      IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
-                               SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+      // use merge scaner if in transaction
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
+                                                     SCANNER_TYPE_DISK ;
       rtnPredicateList *predList = NULL ;
 
       // for index scan, we maintain context by runtime instead of by DMS

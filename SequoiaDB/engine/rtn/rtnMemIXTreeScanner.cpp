@@ -42,6 +42,7 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -66,13 +67,13 @@ namespace engine
                                                 _pmdEDUCB        *cb,
                                                 BOOLEAN indexCBOwnned )
    :_rtnIXScanner( pIndexCB, predList, su, cb, indexCBOwnned ),
-    _listIterator(*predList)
+    _listIterator(*predList),
+    _savedTransID()
    {
       _pTransCB = pmdGetKRCB()->getTransCB() ;
       _available = FALSE ;
       _treeLatchHeld = FALSE ;
 
-      _savedTransID = DPS_INVALID_TRANS_ID ;
       reset() ;
    }
 
@@ -473,16 +474,17 @@ namespace engine
 #ifdef _DEBUG
                   PD_LOG( PDDEBUG,
                           "Skipping rid(%d, %d) in memory tree due to "
-                          "lowtran(%llu), node transid(%llu)",
+                          "lowtran(%s), node transid(%s)",
                           nodeKey.getRID()._extent,
-                          nodeKey.getRID()._offset, 
-                          DPS_TRANS_GET_SN( _pTransCB->getLowTran() ),
-                          nodeKey.getNodeTransID() ) ;
+                          nodeKey.getRID()._offset,
+                          dpsTransIDToString(
+                                      _pTransCB->getLowTran() ).c_str(),
+                          dpsTransIDToString(
+                                      nodeKey.getNodeTransID() ).c_str() ) ;
 #endif
                   _savedRID.reset() ;
                   goto begin ;
                }
-               
             }
             else if (nodeVal.isRecordDeleted() )
             {

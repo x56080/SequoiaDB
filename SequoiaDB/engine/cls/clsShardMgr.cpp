@@ -45,6 +45,7 @@
 #include "clsTrace.hpp"
 #include "clsAdapterJob.hpp"
 #include "rtnExtDataHandler.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -3303,7 +3304,13 @@ namespace engine
          DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET ;
 
          MsgClsTransCheckReq *pReq = ( MsgClsTransCheckReq* )msg ;
-         INT32 status = transCB->checkTransStatus( pReq->transID, lsn ) ;
+
+         // extract transaction ID
+         DPS_TRANS_ID transID ;
+         transID.setNodeID( pReq->transIDNodeID ) ;
+         transID.setSN( pReq->transID ) ;
+
+         INT32 status = transCB->checkTransStatus( transID, lsn ) ;
 
          // for wait-commit status, we need to make sure pre-commit log
          // is replicated to at least one other replicate node ( group with
@@ -3317,7 +3324,8 @@ namespace engine
             if ( SDB_OK != checkRC )
             {
                PD_LOG( PDWARNING, "Failed to check sync for transaction "
-                       "[%llu] lsn [%llu], rc: %d", pReq->transID, lsn, checkRC ) ;
+                       "[%s] lsn [%llu], rc: %d",
+                       dpsTransIDToString( transID ).c_str(), lsn, checkRC ) ;
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
             }
             reply.flags = checkRC ;
@@ -3334,7 +3342,10 @@ namespace engine
             reply.flags = SDB_OK ;
          }
 
-         retObj = BSON( FIELD_NAME_TRANSACTION_ID << (INT64)pReq->transID <<
+         retObj = BSON( FIELD_NAME_TRANSACTION_ID_SN <<
+                        (INT64)( pReq->transID ) <<
+                        FIELD_NAME_TRANSACTION_ID_NODEID <<
+                        (INT32)( pReq->transIDNodeID ) <<
                         FIELD_NAME_STATUS << status ) ;
       }
 

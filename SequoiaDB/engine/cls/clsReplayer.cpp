@@ -50,6 +50,7 @@
 #include "utilCompressor.hpp"
 #include "mthModifier.hpp"
 #include "utilBsonHash.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -772,7 +773,7 @@ namespace engine
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
       BOOLEAN startedRollback = FALSE ;
 
       if ( !_dpsCB )
@@ -788,7 +789,7 @@ namespace engine
          goto error ;
       }
 
-      if ( DPS_INVALID_TRANS_ID != transID &&
+      if ( transID.isValid() &&
            transCB->isRollback( transID ) )
       {
          eduCB->startTransRollback() ;
@@ -2552,8 +2553,9 @@ namespace engine
       DPS_LSN_OFFSET relatedTransLSN = eduCB->getRelatedTransLSN() ;
 
       PD_CHECK( DPS_INVALID_LSN_OFFSET == preTransLSN, SDB_SYS, error, PDERROR,
-                "Failed to log transaction rollback for transaction [%llu], "
-                "preTransLSN is not empty [%llu]", transID, preTransLSN ) ;
+                "Failed to log transaction rollback for transaction [%s], "
+                "preTransLSN is not empty [%llu]",
+                dpsTransIDToString( transID ).c_str(), preTransLSN ) ;
 
       rc = dpsTransRollback2Record( transID, preTransLSN, relatedTransLSN,
                                     record ) ;

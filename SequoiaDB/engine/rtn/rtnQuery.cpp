@@ -678,7 +678,7 @@ namespace engine
       }
 
       /// When in transaction, can't enable prefetch and paralled query
-      if ( DPS_INVALID_TRANS_ID != cb->getTransID() )
+      if ( cb->isTransaction() )
       {
          enablePrefetch = FALSE ;
          options.clearFlag( FLG_QUERY_PARALLED ) ;
@@ -1011,10 +1011,9 @@ namespace engine
 
       // start building scanner
       {
-         IXScannerType scannerType = ( DPS_INVALID_TRANS_ID !=
-                                       cb->getTransID() ) ?
-                                       SCANNER_TYPE_MERGE :
-                                       SCANNER_TYPE_DISK ;
+         // use merge scan if in transaction
+         IXScannerType scannerType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
+                                                           SCANNER_TYPE_DISK ;
          dmsRecordID      rid ;
          if ( -1 == dir )
          {
@@ -1078,7 +1077,7 @@ namespace engine
          *ppContext = context ;
       }
       /// In transaction, can't use prefetch
-      if ( enablePrefetch && DPS_INVALID_TRANS_ID == cb->getTransID() )
+      if ( enablePrefetch && !( cb->isTransaction() ) )
       {
          context->enablePrefetch ( cb ) ;
       }

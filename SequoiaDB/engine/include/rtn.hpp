@@ -531,7 +531,7 @@ namespace engine
 
    INT32 rtnTransBegin( _pmdEDUCB *cb,
                         BOOLEAN isAutoCommit = FALSE,
-                        DPS_TRANS_ID specID = DPS_INVALID_TRANS_ID ) ;
+                        DPS_TRANS_ID specID = DPS_TRANS_ID() ) ;
    INT32 rtnTransPreCommit( _pmdEDUCB *cb, UINT32 nodeNum,
                             const UINT64 *pNodes, INT16 w,
                             SDB_DPSCB *dpsCB ) ;

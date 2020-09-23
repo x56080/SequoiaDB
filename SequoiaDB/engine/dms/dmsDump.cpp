@@ -48,6 +48,7 @@
 #include "utilDictionary.hpp"
 #include "dmsStorageDataCapped.hpp"
 #include "rtnLobPieces.hpp"
+#include "dpsUtil.hpp"
 
 using namespace bson ;
 
@@ -1399,8 +1400,9 @@ namespace engine
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Trans ID     : 0x%08x (%llu)"OSS_NEWLINE,
-                              record->_globTransID, record->_globTransID ) ;
+                              "       Trans ID     : %s"OSS_NEWLINE,
+                              dpsTransIDToString(
+                                          record->_globTransID ).c_str() ) ;
       }
 
       nextRecord = record->_nextOffset ;
@@ -1505,8 +1507,9 @@ namespace engine
                               "       LSN offset   : 0x%08x (%llu)"OSS_NEWLINE,
                               record->_lsnOffset, record->_lsnOffset ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       Trans ID     : 0x%08x (%llu)"OSS_NEWLINE,
-                              record->_globTransID, record->_globTransID ) ;
+                              "       Trans ID     : %s"OSS_NEWLINE,
+                              dpsTransIDToString(
+                                          record->_globTransID ).c_str() ) ;
       }
 
       try

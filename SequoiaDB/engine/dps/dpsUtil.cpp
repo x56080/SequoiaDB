@@ -40,7 +40,11 @@
 #include "dpsUtil.hpp"
 #include "dpsTransDef.hpp"
 #include "ossUtil.hpp"
+#include "msgDef.hpp"
 #include "pd.hpp"
+
+using namespace bson ;
+using namespace std ;
 
 namespace engine
 {
@@ -88,9 +92,10 @@ namespace engine
    {
       SDB_ASSERT( pBuff && bufSize > 0, "Invalid input" ) ;
 
-      ossSnprintf( pBuff, bufSize, "0x%04x%010llx",
-                   DPS_TRANS_GET_NODEID( transID ),
-                   DPS_TRANS_GET_SN( transID ) ) ;
+      ossSnprintf( pBuff, bufSize, "0x%04x%014x%s",
+                   transID.getNodeID(),
+                   transID.getRawSN(),
+                   transID.isGlobTrans() ? "(Global)" : "" ) ;
 
       return pBuff ;
    }
@@ -121,21 +126,25 @@ namespace engine
    {
       SDB_ASSERT( pBuff && bufSize > 0, "Invalid input" ) ;
 
-      if ( DPS_TRANS_IS_FIRSTOP( transID ) )
+      if ( transID.isFirstOp() )
       {
          _dpsAppendFlagString( pBuff, bufSize, "Start" ) ;
       }
-      if ( DPS_TRANS_IS_AUTOCOMMIT( transID ) )
+      if ( transID.isAutoCommit() )
       {
          _dpsAppendFlagString( pBuff, bufSize, "AutoCommit" ) ;
       }
-      if ( DPS_TRANS_IS_ROLLBACK( transID ) )
+      if ( transID.isRollback() )
       {
          _dpsAppendFlagString( pBuff, bufSize, "Rollback" ) ;
       }
-      if ( DPS_TRANS_IS_RBPENDING( transID ) )
+      if ( transID.isRBPending() )
       {
          _dpsAppendFlagString( pBuff, bufSize, "Pending" ) ;
+      }
+      if ( transID.isGlobTrans() )
+      {
+         _dpsAppendFlagString( pBuff, bufSize, "Global" ) ;
       }
 
       return pBuff ;
@@ -147,5 +156,124 @@ namespace engine
       return dpsTransIDAttrToString( transID, tmpStr, DPS_TRANS_STR_LEN ) ;
    }
 
-}
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
 
+      try
+      {
+         // append node ID component
+         builder.append( FIELD_NAME_TRANSACTION_ID_NODEID,
+                         (INT32)( transID.getNodeID() ) ) ;
+         // append serial number component with necessary tags,
+         // e.g. global transaction
+         builder.append( FIELD_NAME_TRANSACTION_ID_SN,
+                         (INT64)( transID.getGlobSN() ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build transaction into BSON format, "
+                 "error: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           BSONObjBuilder &builder,
+                           const CHAR *fieldName )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
+
+      // check field name
+      PD_CHECK( NULL != fieldName, SDB_INVALIDARG, error, PDERROR,
+                "Failed to build transaction ID with field name, field name "
+                "is invalid" ) ;
+
+      try
+      {
+         // sub-object builder
+         BSONObjBuilder subBuilder( builder.subobjStart( fieldName ) ) ;
+
+         // build BSON
+         rc = dpsTransIDToBSON( transID, subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build transaction ID into "
+               "BSON format, rc: %d", rc ) ;
+
+         // finish sub-object builder
+         subBuilder.doneFast() ;
+
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build transaction into BSON format, "
+                 "error: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 dpsTransIDFromBSON( const BSONObj &object,
+                             DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement element ;
+
+         // get node ID component
+         element = object.getField( FIELD_NAME_TRANSACTION_ID_NODEID ) ;
+         // node ID component should not be empty
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], field does not exist",
+                   FIELD_NAME_TRANSACTION_ID_NODEID ) ;
+         // node ID component should be an integer
+         PD_CHECK( NumberInt == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], field should be an integer "
+                   "value", FIELD_NAME_TRANSACTION_ID_NODEID ) ;
+
+         transID.setNodeID( (DPS_TRANSID_NODEID)( element.numberInt() ) ) ;
+
+         // get serial number component
+         element = object.getField( FIELD_NAME_TRANSACTION_ID_SN ) ;
+         PD_CHECK( EOO != element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], field does not exist",
+                   FIELD_NAME_TRANSACTION_ID_SN ) ;
+         // node ID component should be an integer
+         PD_CHECK( NumberLong == element.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s], field should be a long value",
+                   FIELD_NAME_TRANSACTION_ID_SN ) ;
+
+         transID.resetSN( (DPS_TRANSID_SN)( element.numberLong() ) ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse transaction from BSON object, "
+                 "error: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+}

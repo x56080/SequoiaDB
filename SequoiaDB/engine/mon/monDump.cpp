@@ -2357,14 +2357,13 @@ namespace engine
          monAppendSystemInfo( builder, _addInfoMask ) ;
          builder.append( FIELD_NAME_SESSIONID,
                          (INT64)_curTransInfo._eduID ) ;
-         /// nodeID(16bit) | TAG(8bit) | SN(40bit)
+         /// nodeID(16bit) | TAG(8bit) | SN(56bit)
          CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          dpsTransIDToString( _curTransInfo._transID, strTransID,
                              DPS_TRANS_STR_LEN ) ;
          builder.append( FIELD_NAME_TRANSACTION_ID, strTransID ) ;
-
          builder.append( FIELD_NAME_TRANSACTION_ID_SN,
-                         (INT64)DPS_TRANS_GET_SN( _curTransInfo._transID ) ) ;
+                         (INT64)_curTransInfo._transID.getRawSN() ) ;
          builder.appendBool( FIELD_NAME_IS_ROLLBACK,
                              pTransCB->isRollback( _curTransInfo._transID ) ?
                              TRUE : FALSE ) ;

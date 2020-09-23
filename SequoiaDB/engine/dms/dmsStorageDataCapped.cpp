@@ -40,6 +40,7 @@
 #include "dpsOp2Record.hpp"
 #include "pmd.hpp"
 #include "dmsTrace.hpp"
+#include "dpsUtil.hpp"
 
 #define DMS_CAP_CL_MIN_SZ                 DMS_CAP_EXTENT_SZ
 #define DMS_CAP_EXTENT_PAGE_NUM           \
@@ -1136,8 +1137,13 @@ namespace engine
       dmsCappedRecord *pRecord     = NULL ;
       monAppCB        *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
       dmsExtentInfo   *workExtInfo = getWorkExtInfo( context->mbID() ) ;   
-      DPS_TRANS_ID     transID     = cb ? cb->getTransID() : 
-                                          DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID     transID ;
+
+      // get transaction ID
+      if ( NULL != cb )
+      {
+         transID = cb->getTransID() ;
+      }
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1158,10 +1164,10 @@ namespace engine
       pRecord->setRecordNo( workExtInfo->currentRecNo() + 1 ) ;
       // setup global transaction id
       // FIXME: to be removed
-      PD_LOG ( PDDEBUG, "set cappedrecord(%d, %d) transID: %llu",
+      PD_LOG ( PDDEBUG, "set cappedrecord(%d, %d) transID: %s",
                recordRW.getRecordID()._extent,
                recordRW.getRecordID()._offset,
-               DPS_TRANS_GET_SN(transID) ) ;
+               dpsTransIDToString( transID ).c_str() ) ;
       pRecord->setGlobTransID( transID ) ;
 
       {
@@ -1177,14 +1183,14 @@ namespace engine
          PD_LOG( PDDEBUG, 
                  "insert record (recordsize=%d, Bson obj size=%d) to capped cl,"
                  "with flag(%d) logicalid(%lld), rid(%d, %d), "
-                 "recsize(%d),reclogicID(%lld), recTransID(%llu), recLSN(%llu)",
+                 "recsize(%d),reclogicID(%lld), recTransID(%s), recLSN(%llu)",
                  recordSize, recordData.len(), (*lidPtr), 
                  pRecord->getFlag(),
                  recordRW.getRecordID()._extent, 
                  recordRW.getRecordID()._offset,
                  pRecord->getSize(),
                  pRecord->getLogicalID(),
-                 pRecord->getGlobTransID(),
+                 dpsTransIDToString( pRecord->getGlobTransID() ).c_str(),
                  pRecord->getLSNOffset() ) ;
 #endif
       }

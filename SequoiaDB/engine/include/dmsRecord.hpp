@@ -417,7 +417,7 @@ namespace engine
 
       void resetGlobTransID ( )
       {
-         _globTransID = DPS_INVALID_TRANS_ID ;
+         _globTransID.reset() ;
          setHasGlobTransID() ;
       }
 
@@ -430,7 +430,7 @@ namespace engine
 
       void setGlobTransID ( const DPS_TRANS_ID &globtransid )
       {
-         _globTransID = DPS_TRANS_GET_SN(globtransid) ;
+         _globTransID = globtransid.getOrigTransID() ;
          setHasGlobTransID() ;
       }
 
@@ -669,14 +669,14 @@ namespace engine
          return ((const dmsRecord*)this)->getState() ;
       }
 
-      DPS_TRANS_ID getGlobTransID() const
+      const DPS_TRANS_ID &getGlobTransID() const
       {
          return _globTransID ;
       }
 
       void setGlobTransID ( const DPS_TRANS_ID &globtransid )
       {
-         _globTransID = DPS_TRANS_GET_SN(globtransid) ;
+         _globTransID = globtransid.getOrigTransID() ;
          ((dmsRecord*)this)->setHasGlobTransID() ;
       }
 
@@ -768,7 +768,7 @@ namespace engine
       void resetGlobTransID()
       {
          setHasGlobTransID() ;
-         _globTransID = DPS_INVALID_TRANS_ID ;
+         _globTransID.reset() ;
       }
       void resetLSNOffset ( )
       {

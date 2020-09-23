@@ -43,6 +43,7 @@
 #include "ossTypes.h"
 #include "dpsDef.hpp"
 #include "ossMemPool.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -54,10 +55,12 @@ namespace engine
 
    const CHAR* dpsTransStatusToString( INT32 status ) ;
 
+   // format transaction ID to string format
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,
                                    UINT32 bufSize ) ;
 
+   // format transaction ID to string format
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID ) ;
 
    const CHAR* dpsTransIDAttrToString( const DPS_TRANS_ID &transID,
@@ -65,6 +68,20 @@ namespace engine
                                        UINT32 bufSize ) ;
 
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID ) ;
+
+   // format transaction ID into BSON object
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           bson::BSONObjBuilder &builder ) ;
+
+   // format transaction ID into BSON object with field name
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           bson::BSONObjBuilder &builder,
+                           const CHAR *fieldName ) ;
+
+   // parse BSON object into transaction ID
+   INT32 dpsTransIDFromBSON( const bson::BSONObj &object,
+                             DPS_TRANS_ID &transID ) ;
+
 }
 
 #endif // DPSUTIL_HPP_

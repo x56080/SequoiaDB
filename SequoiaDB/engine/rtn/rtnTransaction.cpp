@@ -94,25 +94,24 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNTRANSCHKRECORD ) ;
 
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID curTransID ;
       dpsLogRecord::iterator itr ;
 
       rc = record.load( mb.offset( 0 ) ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse log [LSN: %llu], rc: %d",
                    lsnOffset, rc ) ;
 
-      itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      PD_CHECK( itr.valid(), SDB_SYS, error, PDERROR, "Failed to find "
-                "DPS_LOG_PUBLIC_TRANSID in record [LSN: %llu]",
-                lsnOffset ) ;
+      rc = dpsGetTransIDFromRecord( record, curTransID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID from "
+                   "record [LSN: %llu]", lsnOffset ) ;
 
-      curTransID = sdbGetTransCB()->getTransID(
-                                          *((DPS_TRANS_ID *)itr.value()) ) ;
-      PD_CHECK( curTransID == DPS_TRANS_GET_ID( transID ),
+      curTransID = sdbGetTransCB()->getTransID( curTransID ) ;
+      PD_CHECK( curTransID == transID.getOrigTransID(),
                 SDB_DPS_CORRUPTED_LOG, error,
-                PDERROR, "Failed to rollback(lsn=%llu, Log TransID:%llu, "
-                "Session TransID:%llu), the log is damaged",
-                lsnOffset, curTransID, DPS_TRANS_GET_ID( transID ) ) ;
+                PDERROR, "Failed to rollback(lsn=%llu, Log TransID:%s, "
+                "Session TransID:%s), the log is damaged",
+                lsnOffset, dpsTransIDToString( curTransID ).c_str(),
+                dpsTransIDToString( transID.getOrigTransID() ).c_str() ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNTRANSCHKRECORD, rc ) ;
@@ -137,16 +136,19 @@ namespace engine
          rc = SDB_DPS_TRANS_DIABLED ;
          goto error;
       }
-      if ( DPS_INVALID_TRANS_ID == transID )
+      if ( transID.isInvalid() )
       {
-         if ( DPS_INVALID_TRANS_ID != specID )
+         DPS_TRANS_ID tempID ;
+         if ( specID.isValid() )
          {
-            cb->setTransID( DPS_TRANS_SET_FIRSTOP( specID ) ) ;
+            tempID = specID ;
+            tempID.setFirstOp() ;
          }
          else
          {
-            cb->setTransID( sdbGetTransCB()->allocTransID( isAutoCommit ) ) ;
+            tempID = sdbGetTransCB()->allocTransID( isAutoCommit ) ;
          }
+         cb->setTransID( tempID ) ;
          cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
          // refresh local transID after set
          transID = cb->getTransID() ;
@@ -179,7 +181,7 @@ namespace engine
                             SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID curTransID ;
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       UINT8 attr = DPS_TS_COMMIT_ATTR_PRE ;
@@ -190,8 +192,8 @@ namespace engine
       curTransID = cb->getTransID() ;
       preTransLsn = cb->getCurTransLsn() ;
 
-      if ( curTransID == DPS_INVALID_TRANS_ID ||
-           preTransLsn == DPS_INVALID_LSN_OFFSET )
+      if ( curTransID.isInvalid() ||
+            DPS_INVALID_LSN_OFFSET == preTransLsn )
       {
          goto done ;
       }
@@ -249,7 +251,7 @@ namespace engine
 
       IRemoteOperator *pRemoteOperator = NULL ;
 
-      DPS_TRANS_ID curTransID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID curTransID ;
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
       dpsMergeInfo info ;
@@ -269,8 +271,8 @@ namespace engine
       curTransID = cb->getTransID() ;
       preTransLsn = cb->getCurTransLsn() ;
 
-      if ( curTransID == DPS_INVALID_TRANS_ID ||
-           preTransLsn == DPS_INVALID_LSN_OFFSET )
+      if ( curTransID.isInvalid() ||
+            DPS_INVALID_LSN_OFFSET == preTransLsn )
       {
          cb->setTransStatus( DPS_TRANS_COMMIT ) ;
 
@@ -279,7 +281,7 @@ namespace engine
          cb->getTransExecutor()->commitMBStats() ;
 
          sdbGetTransCB()->delTransCB( curTransID ) ;
-         cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+         cb->resetTransID() ;
          // release all transactions lock
          sdbGetTransCB()->transLockReleaseAll( cb ) ;
          // reduce the reservedLogSpace from dps for the transaction
@@ -328,7 +330,7 @@ namespace engine
       cb->getTransExecutor()->commitMBStats() ;
 
       sdbGetTransCB()->delTransCB( curTransID ) ;
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+      cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping
       cb->getTransExecutor()->clearRecordMap() ;
@@ -360,8 +362,8 @@ namespace engine
       _dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN );
       DPS_LSN dpsLsn ;
       DPS_LSN_OFFSET curLsnOffset = DPS_INVALID_LSN_OFFSET ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_TRANS_ID rollbackID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
+      DPS_TRANS_ID rollbackID ;
       UINT32 retryTimes = 0 ;
       BOOLEAN doRollback = FALSE ;
       _clsReplayer replayer( TRUE ) ;
@@ -383,7 +385,7 @@ namespace engine
          }
       }
 
-      if ( DPS_INVALID_TRANS_ID == transID ||
+      if ( transID.isInvalid() ||
            DPS_INVALID_LSN_OFFSET == curLsnOffset )
       {
          goto done;
@@ -494,7 +496,7 @@ namespace engine
       cb->getTransExecutor()->rollbackMBStats() ;
 
       sdbGetTransCB()->delTransCB( transID ) ;
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+      cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
       // clear all lsn mapping
@@ -549,8 +551,8 @@ namespace engine
       TRANS_MAP *pTransMap = pTransCB->getTransMap();
       TRANS_MAP tmpTransMap ;
       DPS_LSN dpsLsn;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-      DPS_TRANS_ID rollbackID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
+      DPS_TRANS_ID rollbackID ;
       DPS_LSN_OFFSET curLsnOffset = DPS_INVALID_LSN_OFFSET ;
       UINT32 retryTimes = 0 ;
       _clsReplayer replayer( TRUE );
@@ -756,7 +758,7 @@ namespace engine
 
       savedAsWaitCommit = FALSE ;
 
-      if ( DPS_INVALID_TRANS_ID == transID ||
+      if ( transID.isInvalid() ||
            DPS_INVALID_LSN_OFFSET == curLsnOffset ||
            !dpsCB ||
            !pmdGetKRCB()->isCBValue( SDB_CB_CLS ) ||
@@ -786,7 +788,7 @@ namespace engine
       cb->getTransExecutor()->clearMBStats() ;
 
       sdbGetTransCB()->delTransCB( transID ) ;
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
+      cb->resetTransID() ;
       cb->setCurTransLsn( DPS_INVALID_LSN_OFFSET ) ;
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
 
