@@ -742,6 +742,7 @@ namespace engine
       // Set the compress flags whether the collection is compressed or not
       _compressorEntry[mbID].setFlags( _dmsMME->_mbList[mbID]._compressFlags ) ;
 
+
       /*
        * If the compression type is lzw and the dictionary has not been created,
        * return directly.
@@ -751,18 +752,24 @@ namespace engine
          goto done ;
       }
 
-      compressor = getCompressorByType( type ) ;
-      SDB_ASSERT( compressor, "compressor pointer should not be NULL" ) ;
-      if ( !compressor )
+      // check compressor is valid
+      if ( OSS_BIT_TEST( _dmsMME->_mbList[ mbID ]._attributes,
+                         DMS_MB_ATTR_COMPRESSED ) )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Failed to get compressor for collection[%s], "
-                 "type: %d, rc: %d", _dmsMME->_mbList[mbID]._collectionName,
-                 type, rc ) ;
-         goto error ;
+         compressor = getCompressorByType( type ) ;
+         SDB_ASSERT( compressor, "compressor pointer should not be NULL" ) ;
+         if ( !compressor )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get compressor for collection[%s], "
+                    "type: %d, rc: %d", _dmsMME->_mbList[mbID]._collectionName,
+                    type, rc ) ;
+            goto error ;
+         }
+         _compressorEntry[mbID].setCompressor( compressor ) ;
       }
-      _compressorEntry[mbID].setCompressor( compressor ) ;
 
+      // set dictionary if needed
       if ( DMS_INVALID_EXTENT != dictExtID )
       {
          dmsExtRW rw = extent2RW( dictExtID, mbID ) ;
@@ -995,9 +1002,7 @@ namespace engine
       /* Initialize compressor entries for collections. */
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
-         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) &&
-              OSS_BIT_TEST( _dmsMME->_mbList[i]._attributes,
-                            DMS_MB_ATTR_COMPRESSED ) )
+         if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
             rc = _initCompressorEntry( i ) ;
             PD_RC_CHECK( rc, PDERROR,
