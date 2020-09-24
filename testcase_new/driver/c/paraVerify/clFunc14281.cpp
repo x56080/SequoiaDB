@@ -412,7 +412,7 @@ TEST_F( clParaVerify, query )
 
    // sdbQuery sdbQueryAndRemove same with sdbQuery1, no need to test
    // test sdbQuery1
-   sdbCursorHandle cursor ;
+   sdbCursorHandle cursor = 0;
    rc = sdbQuery1( NULL, NULL, NULL, NULL, NULL, 0, -1, 0, &cursor ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
    rc = sdbQuery1( SDB_INVALID_HANDLE, NULL, NULL, NULL, NULL, 0, -1, 0, &cursor ) ;
@@ -421,6 +421,13 @@ TEST_F( clParaVerify, query )
    ASSERT_EQ( SDB_CLT_INVALID_HANDLE, rc ) ;
    rc = sdbQuery1( cl, NULL, NULL, NULL, NULL, 0, -1, 0, NULL ) ;
    ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   bson orderby ;
+   bson_init(&orderby) ;
+   bson_append_string(&orderby, "sort", "INVALID") ;
+   bson_finish(&orderby) ;
+   rc = sdbQuery1( cl, NULL, NULL, &orderby, NULL, 0, -1, 0, &cursor ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc );
+   bson_destroy(&orderby);
 
    // test sdbQueryAndUpdate
    rc = sdbQueryAndUpdate( cl, NULL, NULL, NULL, NULL, NULL, 0, -1, 0, TRUE, &cursor ) ;

@@ -175,7 +175,7 @@ TEST_F( lobCreateandListTest, listLobs_22191 )
    bson_init(&hint) ;
    bson_append_int(&hint, "ListPieces", 1) ;
    bson_finish(&hint) ;
-   rc = sdbListLobs1(cl, &cond, &selected, &selected, &hint, 0, 1, &cursor);
+   rc = sdbListLobs1(cl, &cond, &selected, &orderby, &hint, 0, 1, &cursor);
    ASSERT_EQ( SDB_OK, rc ) << "fail to list lob" ;
    while ( (rc = sdbNext(cursor, &obj)) == 0 )
    {
@@ -250,7 +250,7 @@ TEST_F( lobCreateandListTest, listLobPieces_22192 )
    bson_init(&hint) ;
    bson_append_int(&hint, "ListPieces", 1) ;
    bson_finish(&hint) ;
-   rc = sdbListLobPieces1(cl, &cond, &selected, &selected, NULL, 0, 1, &cursor);
+   rc = sdbListLobPieces1(cl, &cond, &selected, &orderby, NULL, 0, 1, &cursor);
    ASSERT_EQ( SDB_OK, rc ) << "fail to list lob pieces" ;
    bson_init(&obj) ;
    while ( (rc = sdbNext(cursor, &obj)) == 0 )
@@ -276,4 +276,3 @@ TEST_F( lobCreateandListTest, listLobPieces_22192 )
    bson_destroy( &orderby );
    bson_destroy( &hint );
 }
-
