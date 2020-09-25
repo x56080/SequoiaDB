@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description:   seqDB-5435:指定errorstop为true，即导入失败时中断导入（单线程解析和导入）
+*@Description:   seqDB-5543:导入的数据不在子表的区间范围内
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
 main();
@@ -8,16 +8,32 @@ function main ()
 {
    try
    {
+      if( commIsStandalone( db ) )
+      {
+         println( " Deploy mode is standalone!" );
+         return;
+      }
+
       var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5435";
-      var cl = readyCL( csName, clName );
+      var mainclName = COMMCLNAME + "_5543_mainCL";
+      var subclName = COMMCLNAME + "_5543_subCL";
+      //create mainCL
+      var opt1 = { ShardingKey: { a: 1 }, IsMainCL: true };
+      var mainCL = readyCL( csName, mainclName, opt1, "[mainCL]" );
+      //create subCL
+      var opt2 = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
+      readyCL( csName, subclName, opt2, "[subCL]" );
+      //attach cl
+      var options = { LowBound: { "a": 1 }, UpBound: { "a": 10 } };
+      mainCL.attachCL( csName + "." + subclName, options );
 
-      var imprtFile = tmpFileDir + "5435.csv";
+      var imprtFile = tmpFileDir + "5543.csv";
       readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+      importData( csName, mainclName, imprtFile );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
+      checkCLData( mainCL );
+      cleanCL( csName, subclName );
+      cleanCL( csName, mainclName );
    }
    catch( e )
    {
@@ -30,7 +46,7 @@ function readyData ( imprtFile )
    println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
-   file.write( "at int,bt date\n1,2016-1-1\n2,2016-1-2\n3,2016-0-0\n4,2016-1-3" );
+   file.write( "a int\n1\n6\n9\n0\n10" );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );
    file.close();
@@ -39,36 +55,38 @@ function readyData ( imprtFile )
 function importData ( csName, clName, imprtFile )
 {
    println( "\n---Begin to import data and check exec result." );
+   //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
-      + ' --type csv --headerline true --errorstop true -n 1 --parsers 1 -j 1'
+      + ' --type csv --headerline true --sharding true -n 1 --parsers 1 -j 1'
       + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
    println( rc );
 
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 2";
-   var expParseFailure = "parse failure: 1";
-   var expImportedRecords = "imported records: 2";
+   var expParseRecords = "parsed records: 5";
+   var expImportedRecords = "imported records: 3";
+   var expImportFailure = "import failure: 2";
    var actParseRecords = rcObj[0];
-   var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
-      || expImportedRecords !== actImportedRecords )
+   var actImportFailure = rcObj[5];
+   if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords
+      || expImportFailure !== actImportFailure )
    {
       throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
-         "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
+         "[" + expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "]",
+         "[" + actParseRecords + ", " + actImportedRecords + ", " + actImportFailure + "]" );
    }
 
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
-   var failedRecs = cmd.run( "cat " + rec ).split( "\n" )[0];
+   var tmpRecs = cmd.run( "cut -c 49-56 " + rec ).split( "\n" );
+   var failedRecs = String( [tmpRecs[0], tmpRecs[1]] );
    println( rec + "\n" + failedRecs );
-   var expRecRecs = '3,2016-0-0';
+   var expRecRecs = ' "a": 0 , "a": 10';
    var actRecRecs = failedRecs;
    if( expRecRecs !== actRecRecs )
    {
@@ -77,6 +95,7 @@ function importData ( csName, clName, imprtFile )
          "[failedRecs:" + actRecRecs + "]" );
    }
 
+   // clean tmpRec
    cmd.run( "rm -rf " + tmpRec );
 
 }
@@ -85,15 +104,15 @@ function checkCLData ( cl )
 {
    println( "\n---Begin to check cl data." );
 
-   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "at": 1 } );
+   var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];
    while( tmpRecs = rc.next() )
    {
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 2;
-   var expRecs = '[{"at":1,"bt":{"$date":"2016-01-01"}},{"at":2,"bt":{"$date":"2016-01-02"}}]';
+   var expCnt = 3;
+   var expRecs = '[{"a":1},{"a":6},{"a":9}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
@@ -102,6 +121,4 @@ function checkCLData ( cl )
          "[cnt:" + expCnt + ", recs:" + expRecs + "]",
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
-
 }

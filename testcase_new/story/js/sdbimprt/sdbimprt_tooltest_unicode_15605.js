@@ -1,5 +1,5 @@
 /***********************************************************************************************
-*@Description:   seqDB-15605:ָ��unicodeΪfalse��������json����ʱ��unicode���벻����ת�����
+*@Description:   seqDB-15605:导入文件编码含有Unicode格式的JSON文件数据，Unicode转义选项设置为false
 *@Author:        2018-8-16  wangkexin
 ***********************************************************************************************/
 main();
@@ -61,7 +61,7 @@ function importData ( csName, clName, imprtFile )
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+   if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
       throw buildException( "importData", null, "[sdbimprt results]",

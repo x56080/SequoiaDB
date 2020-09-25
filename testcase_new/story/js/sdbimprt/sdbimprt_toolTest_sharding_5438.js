@@ -1,106 +1,120 @@
 /************************************************************************
-*@Description:   seqDB-5437:导入不在sharding分区范围内的记录，并按分区信息重新打包记录
+*@Description:   seqDB-5437:指定--sharding导入csv格式数据
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
 main();
 
 function main ()
 {
-   try
+   if( commIsStandalone( db ) )
    {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
-
-      var csName = COMMCSNAME;
-      var mainclName = COMMCLNAME + "_5438_mainCL";
-      var subclName = COMMCLNAME + "_5438_subCL";
-      //create mainCL
-      var opt1 = { ShardingKey: { a: 1 }, IsMainCL: true };
-      var mainCL = readyCL( csName, mainclName, opt1, "[mainCL]" );
-      //create subCL
-      var opt2 = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-      var subCL = readyCL( csName, subclName, opt2, "[subCL]" );
-      //attach cl
-      var options = { LowBound: { "a": 1 }, UpBound: { "a": 10 } };
-      mainCL.attachCL( csName + "." + subclName, options );
-
-      var imprtFile = tmpFileDir + "5438.csv";
-      readyData( imprtFile );
-      importData( csName, mainclName, imprtFile );
-
-      checkCLData( mainCL );
-      cleanCL( csName, subclName );
-      cleanCL( csName, mainclName );
+      println( "The mode is standalone. Skip!!!" );
+      return;
    }
-   catch( e )
+
+   var dataGroupNames = commGetDataGroupNames( db );
+   if( dataGroupNames.length < 2 )
    {
-      throw e;
+      println( "Least 2 groups. Skip!!!" );
+      return;
    }
+
+   var srcRG = dataGroupNames[0];
+   var dstRG = dataGroupNames[1];
+   var csName = COMMCSNAME;
+   var recsNum = 1000;
+   var expRecs = new Array();
+   var imprtFile = tmpFileDir + "5437.csv";
+   readyData( imprtFile, recsNum, expRecs );
+
+   // range cl, --sharding true
+   var clName1 = COMMCLNAME + "_5437_range";
+   var opt1 = { "ShardingKey": { "a": 1 }, "ShardingType": "range", "Group": srcRG };
+   var cl1 = readyCL( csName, clName1, opt1, "range cl" );
+
+   cl1.insert( { "a": recsNum / 2 } );
+   cl1.split( srcRG, dstRG, 50 );
+   cl1.remove();
+
+   importData( csName, clName1, recsNum, imprtFile, true );
+   checkCLData( cl1, recsNum, expRecs );
+
+
+   // hash cl, --sharding true
+   var clName2 = COMMCLNAME + "_5437_hash";
+   var opt2 = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "Group": srcRG };
+   var cl2 = readyCL( csName, clName2, opt2, "hash cl" );
+   cl2.split( srcRG, dstRG, 50 );
+
+   importData( csName, clName2, recsNum, imprtFile, true );
+   checkCLData( cl2, recsNum, expRecs );
+
+
+   // clean
+   cleanCL( csName, clName1 );
+   cleanCL( csName, clName2 );
+   cmd.run( "rm " + imprtFile );
 }
 
-function readyData ( imprtFile )
+function readyData ( imprtFile, recsNum, expRecs )
 {
-   println( "\n---Begin to ready data." );
+   println( "\n---Begin to ready data for import." );
+   // sharding value array, value random sort
+   // ready sharding value array
+   var tmpArray = new Array();
+   for( var i = 0; i < recsNum; i++ )
+   {
+      tmpArray.push( i );
+   }
+   // random sort
+   tmpArray.sort(
+      function() 
+      {
+         return Math.random() > 0.5 ? -1 : 1;
+      }
+   );
 
+   // ready data for import file
+   var str = "";
+   for( var i = 0; i < recsNum; i++ )
+   {
+      str = str + "\n{ \"a\": " + tmpArray[i] + ", \"b\": " + tmpArray[i] + " }";
+
+      expRecs.push( { "a": i, "b": i } );
+   }
    var file = fileInit( imprtFile );
-   file.write( "a int\n1\n6\n9\n0\n10" );
-   var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
+   file.write( str );
    file.close();
 }
 
-function importData ( csName, clName, imprtFile )
+function importData ( csName, clName, recsNum, imprtFile, isSharding )
 {
    println( "\n---Begin to import data and check exec result." );
-   //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
-      + ' --type csv --headerline true --sharding true -n 1 -j 1 --parsers 1'
+      + ' --type json --headerline true --sharding ' + isSharding
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
-
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 5";
-   var expImportedRecords = "imported records: 3";
-   var expImportFailure = "import failure: 2";
+   var expParseRecords = "parsed records: " + recsNum;
+   var expImportedRecords = "imported records: " + recsNum;
+   var expImportFailure = "import failure: 0";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    var actImportFailure = rcObj[5];
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords
       || expImportFailure !== actImportFailure )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "]",
-         "[" + actParseRecords + ", " + actImportedRecords + ", " + actImportFailure + "]" );
+      println( imprtOption );
+      throw new Error( expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "\n"
+         + actParseRecords + ", " + actImportedRecords + ", " + actImportFailure );
    }
-
-   var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
-   var tmpRecs = cmd.run( "cut -c 49-56 " + rec ).split( "\n" );
-   var failedRecs = String( [tmpRecs[0], tmpRecs[1]] );
-   println( rec + "\n" + failedRecs );
-   var expRecRecs = ' "a": 0 , "a": 10';
-   var actRecRecs = failedRecs;
-   if( expRecRecs !== actRecRecs )
-   {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[failedRecs:" + expRecRecs + "]",
-         "[failedRecs:" + actRecRecs + "]" );
-   }
-
-   // clean tmpRec
-   cmd.run( "rm -rf " + tmpRec );
-
 }
 
-function checkCLData ( cl )
+function checkCLData ( cl, recsNum, expRecs )
 {
    println( "\n---Begin to check cl data." );
 
@@ -111,16 +125,11 @@ function checkCLData ( cl )
       recsArray.push( tmpRecs.toObj() );
    }
 
-   var expCnt = 3;
-   var expRecs = '[{"a":1},{"a":6},{"a":9}]';
    var actCnt = recsArray.length;
    var actRecs = JSON.stringify( recsArray );
-   if( actCnt !== expCnt || actRecs !== expRecs )
+   if( actCnt !== recsNum || actRecs !== JSON.stringify( expRecs ) )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
-         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
+      throw new Error( "expCnt: " + recsNum + ", expRecs: " + JSON.stringify( expRecs ) + "\n"
+         + "actCnt: " + actCnt + ", actRecs: " + actRecs );
    }
-   //println( "cl records: "+ actRecs );
-
 }

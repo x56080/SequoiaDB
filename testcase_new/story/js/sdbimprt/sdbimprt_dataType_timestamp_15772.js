@@ -1,5 +1,5 @@
 /*******************************************************************************
-*@Description:   seqDB-15772:fields֧��ʱ����ʽ
+*@Description:   seqDB-15772:fields支持时区格式
 *@Author:        2018-9-10  wangkexin
 ********************************************************************************/
 main();
@@ -63,7 +63,7 @@ function importData ( csName, clName, imprtFile )
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+   if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
       throw buildException( "importData", null, "[sdbimprt results]",

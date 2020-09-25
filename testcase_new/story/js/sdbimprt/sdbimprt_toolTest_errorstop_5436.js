@@ -39,13 +39,12 @@ function readyData ( imprtFile )
 function importData ( csName, clName, imprtFile )
 {
    println( "\n---Begin to import data and check exec result." );
-   //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
-      + ' --type csv --headerline true --errorstop false -n 1'
+      + ' --type csv --headerline true --errorstop false -n 1 --parsers 1 -j 1'
       + ' --file ' + imprtFile;
    println( imprtOption );
    var rc = cmd.run( imprtOption );
@@ -58,7 +57,7 @@ function importData ( csName, clName, imprtFile )
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+   if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
       throw buildException( "importData", null, "[sdbimprt results]",
@@ -78,7 +77,6 @@ function importData ( csName, clName, imprtFile )
          "[failedRecs:" + actRecRecs + "]" );
    }
 
-   // clean tmpRec
    cmd.run( "rm -rf " + tmpRec );
 
 }

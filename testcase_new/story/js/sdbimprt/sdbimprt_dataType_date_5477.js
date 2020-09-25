@@ -67,7 +67,7 @@ function importData ( csName, clName, imprtFile )
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];
-   if( expParseRecords !== actParseRecords || expParseRecords !== actParseRecords
+   if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
       throw buildException( "importData", null, "[sdbimprt results]",
