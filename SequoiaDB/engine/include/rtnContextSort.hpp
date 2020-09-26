@@ -111,6 +111,7 @@ namespace engine
    private:
       BSONObj _orderby ;
       _ixmIndexKeyGen _keyGen ;
+      ixmKeyBuilder   _keyBuilder ;
       BOOLEAN _dataSorted ;
       _rtnSorting _sorting ;
       SINT64 _numToSkip ;

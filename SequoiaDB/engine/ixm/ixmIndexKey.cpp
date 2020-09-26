@@ -106,7 +106,7 @@ namespace engine
       _ixmKeyField implement
     */
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMKEYFIELD_INIT, "_ixmKeyField::init" )
-   INT32 _ixmKeyField::init( const BSONElement &element, BOOLEAN needOrder )
+   INT32 _ixmKeyField::init( const BSONElement &element )
    {
       INT32 rc = SDB_OK ;
 
@@ -118,14 +118,12 @@ namespace engine
          _name = element.fieldName() ;
          // cache length of name
          _nameLen = ossStrlen( _name ) ;
-         // cache order if needed
-         if ( needOrder )
-         {
-            _order = element.numberInt() ;
-            PD_CHECK( -1 == _order || 1 == _order, SDB_SYS, error, PDERROR,
-                      "Failed to initialize key field [%s], "
-                      "order [%d] is invalid", _name, _order ) ;
-         }
+         // cache order
+         _order = element.numberInt() ;
+         PD_CHECK( -1 == _order || 1 == _order,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to initialize key field [%s], "
+                   "order [%d] is invalid", _name, _order ) ;
       }
       catch ( exception &e )
       {
@@ -137,33 +135,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__IXMKEYFIELD_INIT, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _ixmKeyField::getOrder( const BSONObj &keyPattern,
-                                 INT32 &order )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == _order )
-      {
-         // order is not cached, calculate now
-         BSONElement fieldEle = keyPattern.getField( _name ) ;
-         PD_CHECK( fieldEle.isNumber(), SDB_SYS, error, PDERROR,
-                   "Failed to get key [%s] from key pattern", _name ) ;
-
-         _order = fieldEle.numberInt() ;
-         PD_CHECK( -1 == _order || 1 == _order, SDB_SYS, error, PDERROR,
-                   "Failed to initialize key field [%s], "
-                   "order [%d] is invalid", _name, _order ) ;
-      }
-
-      order = _order ;
-
-   done:
       return rc ;
 
    error:
@@ -185,11 +156,17 @@ namespace engine
         _pObject( pObject ),
         _keepKeyName( keepKeyName ),
         _ignoreUndefined( ignoreUndefined ),
+        _arrElePos( -1 ),
         _pArrEle( arrEle ),
-        _pArrKeyField( NULL )
+        _pArrKeyField( NULL ),
+        _tempBuilder( TRUE ),
+        _pBuilder( ( NULL == pIndexGen->_pKeyBuilder ) ?
+                   ( &_tempBuilder ) :
+                   ( pIndexGen->_pKeyBuilder ) )
       {
-         SDB_ASSERT( NULL != pIndexGen, "index generator is invalid" ) ;
-         SDB_ASSERT( NULL != pObject, "object is invalid" ) ;
+         SDB_ASSERT( NULL != _pIndexGen, "index generator is invalid" ) ;
+         SDB_ASSERT( NULL != _pObject, "object is invalid" ) ;
+         SDB_ASSERT( NULL != _pBuilder, "builder is invalid" ) ;
       }
 
       virtual ~_ixmKeyGenBase()
@@ -199,6 +176,11 @@ namespace engine
       OSS_INLINE const BSONObj &getObject() const
       {
          return ( *_pObject ) ;
+      }
+
+      OSS_INLINE IXM_KEY_ELEMENT_ARRAY &getKeyCache()
+      {
+         return _pBuilder->getKeyCache() ;
       }
 
       OSS_INLINE ixmKeyField *getArrKeyField()
@@ -223,9 +205,13 @@ namespace engine
       virtual INT32 saveWithNormalKeys() = 0 ;
       virtual INT32 saveWithArrayKey( const BSONElement &arrEle ) = 0 ;
 
-      OSS_INLINE virtual INT32 prepareForArrayKey( ixmKeyField *pArrKeyField )
+      OSS_INLINE virtual INT32 prepareForArrayKey( INT32 arrElePos,
+                                                   ixmKeyField *pArrKeyField )
       {
+         SDB_ASSERT( arrElePos >= 0 && arrElePos < (INT32)( _getNFields() ),
+                     "array position is invalid" ) ;
          SDB_ASSERT( NULL != pArrKeyField, "array key field is invalid" ) ;
+         _arrElePos = arrElePos ;
          _pArrKeyField = pArrKeyField ;
          return SDB_OK ;
       }
@@ -238,7 +224,8 @@ namespace engine
    protected:
       OSS_INLINE INT32 _buildKeys( BSONObj &keys )
       {
-         return _pIndexGen->_buildKeys( _keepKeyName,
+         return _pIndexGen->_buildKeys( _pBuilder,
+                                        _keepKeyName,
                                         _ignoreUndefined,
                                         keys ) ;
       }
@@ -273,8 +260,11 @@ namespace engine
       const BSONObj *   _pObject ;
       BOOLEAN           _keepKeyName ;
       BOOLEAN           _ignoreUndefined ;
+      INT32             _arrElePos ;
       BSONElement *     _pArrEle ;
       ixmKeyField *     _pArrKeyField ;
+      ixmKeyBuilder     _tempBuilder ;
+      ixmKeyBuilder *   _pBuilder ;
    } ;
 
    typedef class _ixmKeyGenBase ixmKeyGenBase ;
@@ -323,15 +313,16 @@ namespace engine
 
       virtual INT32 saveWithArrayKey( const BSONElement &arrEle ) ;
 
-      OSS_INLINE virtual INT32 prepareForArrayKey( ixmKeyField *pArrKeyField )
+      OSS_INLINE virtual INT32 prepareForArrayKey( INT32 arrElePos,
+                                                   ixmKeyField *pArrKeyField )
       {
          _foundArrEle = BSONElement() ;
-         return _ixmKeyGenBase::prepareForArrayKey( pArrKeyField ) ;
+         return _ixmKeyGenBase::prepareForArrayKey( arrElePos, pArrKeyField ) ;
       }
 
       OSS_INLINE virtual INT32 doneForArrayKey()
       {
-         _pArrKeyField->setKeyEle( _foundArrEle ) ;
+         _pBuilder->getKeyCache()[ _arrElePos ] = _foundArrEle ;
          return _buildKeys( *_pOutputKeys ) ;
       }
 
@@ -362,9 +353,7 @@ namespace engine
       {
          // already found one, save the field with comparison against key
          // pattern
-         INT32 order = 0 ;
-         rc = _pArrKeyField->getOrder( _getKeyPattern(), order ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get order, rc: %d", rc ) ;
+         INT32 order = _pArrKeyField->getOrder() ;
 
          // - if order > 0, get smallest value of array
          // - if order < 0, get largest value of array
@@ -377,12 +366,9 @@ namespace engine
          }
       }
 
-   done:
       PD_TRACE_EXITRC( SDB_IXMKEYOBJGEN_SAVEWITHARRKEY, rc ) ;
-      return SDB_OK ;
 
-   error:
-      goto done ;
+      return rc ;
    }
 
    /*
@@ -428,7 +414,7 @@ namespace engine
 
       OSS_INLINE virtual INT32 saveWithArrayKey( const BSONElement &arrEle )
       {
-         _pArrKeyField->setKeyEle( arrEle ) ;
+         _pBuilder->getKeyCache()[ _arrElePos ] = arrEle ;
          return _saveKeys() ;
       }
 
@@ -471,20 +457,27 @@ namespace engine
     */
    // default constructor
    _ixmIndexKeyGen::_ixmIndexKeyGen()
-   : _nFields( 0 )
+   : _nFields( 0 ),
+     _pKeyBuilder( NULL )
    {
    }
 
    // create key generator from index control block
    _ixmIndexKeyGen::_ixmIndexKeyGen ( const _ixmIndexCB *indexCB )
-   : _nFields( 0 )
+   : _nFields( 0 ),
+     _pKeyBuilder( NULL )
    {
       SDB_ASSERT ( indexCB, "details can't be NULL" ) ;
       _keyPattern = indexCB->keyPattern() ;
+      if ( SDB_OK != _init() )
+      {
+         PD_LOG( PDWARNING, "Failed to initialize key generator" ) ;
+      }
    }
    // create key generator from key
    _ixmIndexKeyGen::_ixmIndexKeyGen ( const BSONObj &keyDef )
-   : _nFields( 0 )
+   : _nFields( 0 ),
+     _pKeyBuilder( NULL )
    {
       try
       {
@@ -494,6 +487,10 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to get key pattern owned, "
                  "occur exception: %s", e.what() ) ;
+      }
+      if ( SDB_OK != _init() )
+      {
+         PD_LOG( PDWARNING, "Failed to initialize key generator" ) ;
       }
    }
 
@@ -579,6 +576,11 @@ namespace engine
          goto error ;
       }
 
+      // initialize with new key pattern
+      rc = _init() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize key generator,"
+                   "rc: %d", rc ) ;
+
    done:
       PD_TRACE_EXITRC( SDB_IXMINXKEYGEN_SETKEYPATTERN, rc ) ;
       return rc ;
@@ -621,13 +623,18 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__INIT, "_ixmIndexKeyGen::_init" )
-   INT32 _ixmIndexKeyGen::_init( BOOLEAN needOrder )
+   INT32 _ixmIndexKeyGen::_init()
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__IXMINXKEYGEN__INIT ) ;
 
       _release() ;
+
+      if ( _keyPattern.isEmpty() )
+      {
+         goto done ;
+      }
 
       try
       {
@@ -638,7 +645,7 @@ namespace engine
             BSONElement keyElement = iter.next() ;
 
             ixmKeyField keyField ;
-            rc = keyField.init( keyElement, needOrder ) ;
+            rc = keyField.init( keyElement ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to initialize key field, "
                          "rc: %d", rc ) ;
 
@@ -682,7 +689,6 @@ namespace engine
 
       _nFields = 0 ;
       _keyFields.clear() ;
-      _keyBuilder.reset() ;
       _undefinedKey = BSONObj() ;
 
       PD_TRACE_EXIT( SDB__IXMINXKEYGEN__RELEASE ) ;
@@ -697,12 +703,8 @@ namespace engine
 
       SDB_ASSERT( NULL != keyGen, "key generator is invalid" ) ;
 
-      if ( !_isInit() )
-      {
-         rc = _init( keyGen->needParseOrder() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to initialize generator, "
-                      "rc: %d" ) ;
-      }
+      PD_CHECK( isInit(), SDB_SYS, error, PDERROR,
+                "Failed to get keys, key generator is not initialized " ) ;
 
       try
       {
@@ -714,8 +716,8 @@ namespace engine
          const CHAR *arrEleName = NULL ;
          INT32 arrElePos = -1 ;
 
-         rc = _extractKeys( keyGen->getObject(), allUndefined, arrEle,
-                            arrEleName, arrElePos ) ;
+         rc = _extractKeys( keyGen->getObject(), keyGen->getKeyCache(),
+                            allUndefined, arrEle, arrEleName, arrElePos ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to extract keys from object, "
                       "rc: %d", rc ) ;
 
@@ -734,7 +736,7 @@ namespace engine
 
             ixmKeyField &arrKeyField = _keyFields[ arrElePos ] ;
 
-            rc = keyGen->prepareForArrayKey( &arrKeyField ) ;
+            rc = keyGen->prepareForArrayKey( arrElePos, &arrKeyField ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to prepare for "
                          "extract array key [%s], rc: %d",
                          arrEleName, rc ) ;
@@ -775,6 +777,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__EXTRACTKEYS, "_ixmIndexKeyGen::_extractKeys" )
    INT32 _ixmIndexKeyGen::_extractKeys( const BSONObj &obj,
+                                        IXM_KEY_ELEMENT_ARRAY &keyCache,
                                         BOOLEAN &allUndefined,
                                         BSONElement &arrEle,
                                         const CHAR *&arrEleName,
@@ -785,6 +788,9 @@ namespace engine
       PD_TRACE_ENTRY( SDB__IXMINXKEYGEN__EXTRACTKEYS ) ;
 
       UINT32 eooNum = 0 ;
+
+      rc = keyCache.resize( _nFields ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare key cache, rc: %d", rc ) ;
 
       for ( UINT32 i = 0 ; i < _nFields ; ++ i )
       {
@@ -810,7 +816,7 @@ namespace engine
          }
          // cache in key field, and will be generated in an output key object
          // later
-         _keyFields[ i ].setKeyEle( e ) ;
+         keyCache[ i ] = e ;
       }
 
       allUndefined = ( eooNum == _nFields ? TRUE : FALSE ) ;
@@ -824,7 +830,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__BUILDKEYS, "_ixmIndexKeyGen::_buildKeys" )
-   INT32 _ixmIndexKeyGen::_buildKeys( BOOLEAN keepKeyName,
+   INT32 _ixmIndexKeyGen::_buildKeys( _ixmKeyBuilder *pBuilder,
+                                      BOOLEAN keepKeyName,
                                       BOOLEAN ignoreUndefined,
                                       BSONObj &keys )
    {
@@ -832,18 +839,22 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__IXMINXKEYGEN__BUILDKEYS ) ;
 
+      SDB_ASSERT( NULL != pBuilder, "builder is invalid" ) ;
+
       try
       {
-         _keyBuilder.reset() ;
+         IXM_KEY_ELEMENT_ARRAY &keyArray = pBuilder->getKeyCache() ;
+         BSONObjBuilder &builder = pBuilder->getBuilder() ;
 
+         builder.reset() ;
          for ( UINT32 i = 0 ; i < _nFields ; ++ i )
          {
             const CHAR *keyName = "" ;
             UINT32 keyNameLen = 0 ;
-            ixmKeyField &field = _keyFields[ i ] ;
-            BSONElement keyEle = field.getKeyEle() ;
+            const BSONElement &keyEle = keyArray[ i ] ;
             if ( keepKeyName )
             {
+               const ixmKeyField &field = _keyFields[ i ] ;
                // keep key name
                keyName = field.getName() ;
                keyNameLen = field.getNameLen() ;
@@ -852,19 +863,27 @@ namespace engine
             {
                if ( !ignoreUndefined )
                {
-                  _keyBuilder.appendUndefined( StringData( keyName,
-                                                           keyNameLen ) ) ;
+                  builder.appendUndefined( StringData( keyName,
+                                                       keyNameLen ) ) ;
                }
             }
             else
             {
-               _keyBuilder.appendAs( keyEle,
-                                     StringData( keyName, keyNameLen ) ) ;
+               builder.appendAs( keyEle,
+                                 StringData( keyName, keyNameLen ) ) ;
             }
          }
 
-         // WARNING: should not take owned
-         keys = _keyBuilder.done() ;
+         if ( pBuilder->isTemporary() )
+         {
+            // temporary builder, take owned
+            keys = builder.obj() ;
+         }
+         else
+         {
+            // WARNING: reusable builder, should not take owned
+            keys = builder.done() ;
+         }
       }
       catch ( exception &e )
       {
@@ -876,61 +895,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__IXMINXKEYGEN__BUILDKEYS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__SAVEARRKEY, "_ixmIndexKeyGen::_saveArrayKey" )
-   INT32 _ixmIndexKeyGen::_saveArrayKey( const BSONElement &arrEle,
-                                         ixmKeyField &arrKeyField,
-                                         BOOLEAN keepKeyName,
-                                         BOOLEAN ignoreUndefined,
-                                         BSONObjSet *keySet,
-                                         BSONElement *foundArrEle )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__IXMINXKEYGEN__SAVEARRKEY ) ;
-
-      if ( NULL != keySet )
-      {
-         // key set is given, we need to get all possible keys with array
-         // element, save to key set
-         arrKeyField.setKeyEle( arrEle ) ;
-         rc = _buildKeySet( keepKeyName, ignoreUndefined, *keySet ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build key set for array "
-                      "element, rc: %d", rc ) ;
-      }
-      if ( NULL != foundArrEle )
-      {
-         // found array element needs to be returned
-         if ( EOO == foundArrEle->type() )
-         {
-            // not found yet, save the field
-            *foundArrEle = arrEle ;
-         }
-         else
-         {
-            // already found one, save the field with comparison against key
-            // pattern
-            INT32 order = 0 ;
-            rc = arrKeyField.getOrder( _keyPattern, order ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get order, rc: %d", rc ) ;
-
-            // - if order > 0, get smallest value of array
-            // - if order < 0, get largest value of array
-            if ( ( order > 0 && foundArrEle->woCompare( arrEle, FALSE ) > 0 ) ||
-                 ( order < 0 && foundArrEle->woCompare( arrEle, FALSE ) < 0 ) )
-            {
-               *foundArrEle = arrEle ;
-            }
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__IXMINXKEYGEN__SAVEARRKEY, rc ) ;
       return rc ;
 
    error:
@@ -1016,42 +980,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__IXMINXKEYGEN__EXTARRKEY, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__BLDKEYSET, "_ixmIndexKeyGen::_buildKeySet" )
-   INT32 _ixmIndexKeyGen::_buildKeySet( BOOLEAN keepKeyName,
-                                        BOOLEAN ignoreUndefined,
-                                        BSONObjSet &keySet )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__IXMINXKEYGEN__BLDKEYSET ) ;
-
-      try
-      {
-         BSONObj keys ;
-
-         // build keys from current saved elements
-         rc = _buildKeys( keepKeyName, ignoreUndefined, keys ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build keys, rc: %d", rc ) ;
-
-         // insert into key set
-         keySet.insert( keys.getOwned() ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to generate keys with normal elements, "
-                 "occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__IXMINXKEYGEN__BLDKEYSET, rc ) ;
       return rc ;
 
    error:

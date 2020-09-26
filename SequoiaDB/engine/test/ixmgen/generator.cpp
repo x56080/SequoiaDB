@@ -455,6 +455,26 @@ TEST( generator, test_ignore_undefined )
    }
 }
 
+TEST( generator, test_multikeys )
+{
+   BSONObj obj( BSON( "a" << 1 << "b" << 1 << "c" << 1 << "d" << 1 <<
+                      "e" << 1 << "f" << 1 << "g" << 1 << "h" << 1 ) ) ;
+
+   {
+      BSONObj keyDef( BSON( "a" << 1 << "b" << 1 << "c" << 1 << "d" << 1 <<
+                            "e" << 1 << "f" << 1 << "g" << 1 << "h" << 1 ) ) ;
+      BSONObjSet keySetExp( keyDef ) ;
+      BSONObj keyExp ;
+      keyExp = BSON( "a" << 1 << "b" << 1 << "c" << 1 << "d" << 1 <<
+                     "e" << 1 << "f" << 1 << "g" << 1 << "h" << 1 ) ;
+      keySetExp.insert( keyExp ) ;
+
+      BSONElement arrExp ;
+
+      _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
+   }
+}
+
 TEST( generator, test_error )
 {
    {
@@ -473,4 +493,3 @@ TEST( generator, test_error )
       _testGetKeysErr( obj, keyDef, SDB_IXM_MULTIPLE_ARRAY ) ;
    }
 }
-

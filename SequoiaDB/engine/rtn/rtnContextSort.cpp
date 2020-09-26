@@ -57,6 +57,7 @@ namespace engine
    _rtnContextSort::_rtnContextSort( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
     _rtnSubContextHolder(),
+    _keyBuilder( FALSE ),
     _dataSorted ( FALSE ),
     _numToSkip( 0 ),
     _numToReturn( -1 )
@@ -133,6 +134,9 @@ namespace engine
 
       rc = _keyGen.setKeyPattern( _orderby ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
+
+      // reusable key builder
+      _keyGen.setKeyBuilder( &_keyBuilder ) ;
 
    done:
       return rc ;

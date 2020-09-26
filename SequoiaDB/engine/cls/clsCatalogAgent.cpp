@@ -1993,9 +1993,14 @@ namespace engine
                     "Failed to alloc memory for CataOrder" ) ;
       }
 
-      _pKeyGen = SDB_OSS_NEW ixmIndexKeyGen ( _shardingKey ) ;
-      PD_CHECK ( _pKeyGen, SDB_OOM, error, PDERROR,
-                 "Failed to alloc memory for KeyGen" ) ;
+      if ( !_shardingKey.isEmpty() )
+      {
+         _pKeyGen = SDB_OSS_NEW ixmIndexKeyGen ( _shardingKey ) ;
+         PD_CHECK ( _pKeyGen, SDB_OOM, error, PDERROR,
+                    "Failed to alloc memory for KeyGen" ) ;
+         PD_CHECK( _pKeyGen->isInit(), SDB_SYS, error, PDERROR,
+                   "Failed to initialize key generator" ) ;
+      }
 
       //need to update map and also the vector, usually CATALOGINFO field is
       //required, however for data node we didn't pass range from catalog in
