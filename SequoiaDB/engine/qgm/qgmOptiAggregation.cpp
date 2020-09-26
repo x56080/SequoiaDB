@@ -260,6 +260,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION__GETFIELDALIAS ) ;
       UINT32 count = 0 ;
       _tmpSelector.clear() ;
+      _tmpSelector.reserve( _selector.size() ) ;
       qgmAggrSelectorVec::iterator it = _selector.begin() ;
       while ( it != _selector.end() )
       {
