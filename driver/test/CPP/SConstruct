@@ -181,6 +181,8 @@ elif guess_os == "linux":
 
     env.Append( CPPDEFINES=["PHP_ATOM_INC","HAVE_CONFIG_H","PIC"])
     env.Append( CPPFLAGS="-ggdb" )
+    env.Append( CPPFLAGS=" -pthread " )
+    env.Append( LINKFLAGS=" -pthread " )
     env['ENV']['HOME']=os.environ['HOME']
     env['ENV']['TERM']=os.environ['TERM']
     if guess_arch == "ia64":
@@ -198,7 +200,7 @@ elif guess_os == "linux":
 
 
     #winLibString = "boost_program_options boost_thread boost_system boost_filesystem gtest pthread"
-    winLibString = "gtest pthread"
+    winLibString = "gtest"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 -fstack-protector")
@@ -208,6 +210,8 @@ elif guess_os == "linux":
 elif guess_os == 'aix':
     env.Append( CPPDEFINES=["PHP_ATOM_INC","HAVE_CONFIG_H","PIC"])
     env.Append( CPPFLAGS="-ggdb" )
+    env.Append( CPPFLAGS=" -pthread " )
+    env.Append( LINKFLAGS=" -pthread " )
     env['ENV']['HOME']=os.environ['HOME']
     # AIX64
     env.Append( CPPFLAGS=" -maix64 " )
@@ -218,7 +222,7 @@ elif guess_os == 'aix':
     env.Append( LIBPATH="/lib" )
     # use project-related boost library
     #env.Append( LIBPATH=[join(boost_lib_dir,'aix64')] )
-    winLibString = "gtest pthread"
+    winLibString = "gtest"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:
         env.Append( CPPFLAGS=" -O0 ")
