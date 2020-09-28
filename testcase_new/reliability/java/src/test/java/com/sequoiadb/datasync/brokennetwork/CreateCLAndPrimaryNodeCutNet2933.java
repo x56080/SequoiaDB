@@ -92,6 +92,10 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
                     "check LSN consistency fail" );
 
+             // clear context
+            String match = preCLName;
+            CommLib.waitContextClose( sdb, match, 300, false );
+
             // check result
             checkCreateCLResult();
 
