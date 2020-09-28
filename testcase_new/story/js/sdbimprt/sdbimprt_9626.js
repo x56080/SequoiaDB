@@ -2,7 +2,6 @@
 *@Description: seqDB-9626:导入JSON文件数据，文件内容为非json格式
 *@Author: 2019-11-26 Zhao xiaoni Init
 ************************************************************************/
-import( "../lib/main.js" )
 
 testConf.csName = COMMCSNAME;
 testConf.clName = COMMCLNAME + "_9626";

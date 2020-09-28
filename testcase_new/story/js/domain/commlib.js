@@ -7,7 +7,7 @@ var cataPort = CATASVCNAME;
 var csName = CHANGEDPREFIX + "_dom_cs";
 var clName = CHANGEDPREFIX + "_dom_cl";
 import( "../lib/main.js" );
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 // Insert data to SequoiaDB
 function insertData ( db, csName, clName, insertNum )

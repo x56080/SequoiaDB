@@ -102,7 +102,7 @@ function mycommCreateRG ( db, rgName, instanceidList )
          }
          catch( e )
          {
-            if( e !== 1 )
+            if( e.message != 1 )
             {
                throw new Error( "lsof check port error: " + e );
             }

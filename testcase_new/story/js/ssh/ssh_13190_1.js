@@ -34,7 +34,7 @@ function test()
    file.close();
    remote.close();
    
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    ssh.push( srcFile, dstFile );
    ssh.close();
 

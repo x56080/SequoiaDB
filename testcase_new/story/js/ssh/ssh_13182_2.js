@@ -24,7 +24,7 @@ function test()
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );   
 
    var remote = getRemote( hostName, CMSVCNAME );
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    for( var i = 0; i < srcModes.length; i++ )
    {
       var file = remote.getFile( remoteFile );

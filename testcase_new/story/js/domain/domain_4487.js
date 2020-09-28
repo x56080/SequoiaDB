@@ -12,7 +12,7 @@ function test ()
    var groupName = [groupsArray[0][0].GroupName];
    var domainName = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890test4487";
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( -259, function()
    {
       db.createDomain();
    } );

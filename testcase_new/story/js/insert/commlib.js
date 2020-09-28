@@ -4,7 +4,7 @@
              2014-3-1 Jianhui Xu  Init
 ***************************************************************************** */
 import( "../lib/main.js" );
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 function readyCL ( clName )
 {

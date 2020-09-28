@@ -18,7 +18,7 @@ function test()
    //使用未建立信赖关系的用户名建立ssh连接
    try
    {
-      var ssh = new SshObj( COORDHOSTNAME, "user" );
+      var ssh = new Ssh( COORDHOSTNAME, "user" );
       throw "Connect to " + COORDHOSTNAME + " should be failed!";
    }
    catch( e )
@@ -32,7 +32,7 @@ function test()
    //使用错误的密码建立ssh连接
    try
    {
-      ssh = new SshObj( COORDHOSTNAME, user, "password" );
+      ssh = new Ssh( COORDHOSTNAME, user, "password" );
       throw "Connect to " + COORDHOSTNAME + " should be failed!";
    }
    catch( e )
@@ -46,7 +46,7 @@ function test()
    //使用错误的端口号建立ssh连接
    try
    {
-      ssh = new SshObj( COORDHOSTNAME, user, password, 8 );
+      ssh = new Ssh( COORDHOSTNAME, user, password, 8 );
       throw "Connect to " + COORDHOSTNAME + " should be failed!";
    }
    catch( e )
@@ -60,7 +60,7 @@ function test()
    //password和port使用默认值建立ssh连接
    
    //指定用户名、密码、端口号建立ssh连接
-   ssh = new SshObj( COORDHOSTNAME, user, password, port );
+   ssh = new Ssh( COORDHOSTNAME, user, password, port );
    ssh.close()
 }
 

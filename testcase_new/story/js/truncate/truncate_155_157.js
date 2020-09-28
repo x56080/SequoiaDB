@@ -19,7 +19,7 @@ catch( e )
 function main ()
 {
    var clName = "truncate_155";
-   var db = new Sequoiadb( COORDHOSTNAME, COORDSVCNAME );
+   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection begin" );
    var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
       "create collection begin" );

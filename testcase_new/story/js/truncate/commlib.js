@@ -4,7 +4,8 @@
 *              2015-5-8  xiaojun Hu   Init
 ******************************************************************************/
 
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 function checkResult ( real, expect )
 {

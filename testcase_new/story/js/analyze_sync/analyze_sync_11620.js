@@ -42,7 +42,7 @@ function test ()
    var clFullName2 = csName + "." + clName2;
 
    //get master/slave datanode
-   var db1 = new Sequoiadb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );

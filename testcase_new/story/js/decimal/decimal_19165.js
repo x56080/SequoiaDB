@@ -23,16 +23,16 @@ function main ()
 
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
-   var docs = [{ a: NumberDecimalObj( "9223372036854775807198410" ) },
-   { a: NumberDecimalObj( "-9223372036854775808197101" ) },
-   { a: NumberDecimalObj( "-4.94065645841246544E-380" ) },
-   { a: NumberDecimalObj( "4.94065645841246544E-390" ) },
-   { a: NumberDecimalObj( "9223372036854775807198411", [1000, 100] ) },
-   { a: NumberDecimalObj( "-9223372036854775808197102", [1000, 100] ) },
-   { a: NumberDecimalObj( "-1.71E+398", [1000, 100] ) },
-   { a: NumberDecimalObj( "1.71E+378", [1000, 100] ) },
-   { a: NumberDecimalObj( "-4.964065645841246544E-380", [1000, 999] ) },
-   { a: NumberDecimalObj( "4.964065645841246544E-390", [1000, 999] ) }];
+   var docs = [{ a: NumberDecimal( "9223372036854775807198410" ) },
+   { a: NumberDecimal( "-9223372036854775808197101" ) },
+   { a: NumberDecimal( "-4.94065645841246544E-380" ) },
+   { a: NumberDecimal( "4.94065645841246544E-390" ) },
+   { a: NumberDecimal( "9223372036854775807198411", [1000, 100] ) },
+   { a: NumberDecimal( "-9223372036854775808197102", [1000, 100] ) },
+   { a: NumberDecimal( "-1.71E+398", [1000, 100] ) },
+   { a: NumberDecimal( "1.71E+378", [1000, 100] ) },
+   { a: NumberDecimal( "-4.964065645841246544E-380", [1000, 999] ) },
+   { a: NumberDecimal( "4.964065645841246544E-390", [1000, 999] ) }];
 
    var expDocs = [{ a: { $decimal: "9223372036854775807198410" } },
    { a: { $decimal: "-9223372036854775808197101" } },

@@ -34,7 +34,7 @@ function test ()
    commCreateIndex( dbcl, "a", { a: 1 } );
 
    //get master/slave datanode
-   var db1 = new Sequoiadb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( csName ).getCL( clName );
 

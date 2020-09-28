@@ -27,7 +27,7 @@ function test()
    file.close();
 
    //使用ssh推送文件
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    ssh.push( srcFile, dstFile );
    checkRemoteFile( hostName, dstFile, mode, content ) 
 

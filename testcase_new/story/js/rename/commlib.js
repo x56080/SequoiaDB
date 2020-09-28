@@ -3,7 +3,7 @@
 *@author:      wuyan
 *@createDate:  2018.1.22
 **************************************/
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
 
 function insertData ( dbcl, number )

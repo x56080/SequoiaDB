@@ -2,7 +2,7 @@
 *@Description : Public function for testing split.
 *@author : XiaoJun Hu 2014.6.17 init
 ******************************************************************************/
-import( "./basic_operation/sequoiadb.js" );
+import( "./basic_operation/commlib.js" );
 import( "./main.js" );
 
 function insertData ( cl, insertNum )

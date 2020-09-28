@@ -4,7 +4,7 @@
 2018-4-25  wuyan  Init
 *******************************************************************************/
 import( "../lib/main.js" );
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 //inspect the alter field is success or not.
 function checkAlterResult ( clName, fieldName, expFieldValue, csName )

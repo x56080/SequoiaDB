@@ -43,7 +43,7 @@ function test ()
    //插入Oid值长度等于24字节但内容不正确
    try
    {
-      dbcl.insert( { a: ObjectIdObj( "123abcd00ef12358902300eg" ) } );
+      dbcl.insert( { a: ObjectId( "123abcd00ef12358902300eg" ) } );
       throw new Error( "need throw error" );
    }
    catch( e )

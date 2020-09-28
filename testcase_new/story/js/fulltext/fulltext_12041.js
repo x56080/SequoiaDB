@@ -26,7 +26,7 @@ function main ()
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 30 );
 
    //指定索引字段进行全文检索，指定查询覆盖：走主节点、走备节点，检查结果 
-   var masterDB = new Sequoiadb( COORDHOSTNAME, COORDSVCNAME );
+   var masterDB = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    masterDB.setSessionAttr( { PreferedInstance: "M" } );
    var dbOperator = new DBOperator();
    var masActRecords = getActRecords( textIndexName, dbOperator, dbcl );
@@ -34,7 +34,7 @@ function main ()
    masterDB.close();
    checkRecords( expRecords, masActRecords );
 
-   var slaveDB = new Sequoiadb( COORDHOSTNAME, COORDSVCNAME );
+   var slaveDB = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    slaveDB.setSessionAttr( { PreferedInstance: "S" } );
    var slaActRecords = getActRecords( textIndexName, dbOperator, dbcl );
    slaveDB.close();

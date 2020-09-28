@@ -821,7 +821,8 @@ Remote.prototype._runCommand = function( command, optionObj,
    }
    catch( e )
    {
-      if( SDB_INVALIDARG == e || SDB_OUT_OF_BOUND == e )
+      var errValue = e.message || e;
+      if( SDB_INVALIDARG == errValue || SDB_OUT_OF_BOUND == errValue )
       {
          var errMsg = getLastErrMsg() ;
          var errObj = getLastErrObj().toObj() ;
@@ -2587,7 +2588,8 @@ File.scp = function( src, dst, isReplace, mode ) {
    {
       srcFile.close() ;
       dstFile.close() ;
-      if( -9 == e )
+      var errValue = e.message || e;
+      if( -9 == errValue )
       {
          println( "Success to copy file from " + src + " to " + dst ) ;
       }

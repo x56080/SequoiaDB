@@ -1,0 +1,10 @@
+var tmpTimestamp = {
+   help: Timestamp.prototype.help,
+   toString: Timestamp.prototype.toString
+};
+var funcTimestamp = Timestamp;
+var funchelp = Timestamp.help;
+Timestamp=function(){try{return funcTimestamp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Timestamp.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Timestamp.prototype.help=function(){try{return tmpTimestamp.help.apply(this,arguments);}catch(e){commThrowError(e);}};
+Timestamp.prototype.toString=function(){try{return tmpTimestamp.toString.apply(this,arguments);}catch(e){commThrowError(e);}};

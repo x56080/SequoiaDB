@@ -61,7 +61,7 @@ function test ()
    insertSameDatas( dbcl22, insertNum, sameValues );
 
    //获取主备节点
-   var db1 = new Sequoiadb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary11 = db1.getCS( csName1 ).getCL( clName1 );
    var dbclPrimary12 = db1.getCS( csName1 ).getCL( clName2 );

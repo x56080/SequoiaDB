@@ -1463,7 +1463,7 @@ function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
          }
          catch( e )
          {
-            if( e !== 1 )
+            if( !commCompareErrorCode( e, 1) )
             {
                throw new Error( "lsof check port error: " + e );
             }
@@ -1898,13 +1898,8 @@ function commDropDomain ( db, domainName, ignoreNotExist )
 ******************************************************************************/
 function commCompareErrorCode ( e, code )
 {
-   if( e.constructor === Error )
-   {
-      return e.message == code;
-   } else
-   {
-      return e == code;
-   }
+   var errValue = e.message || e;
+   return errValue == code;
 }
 
 /******************************************************************************

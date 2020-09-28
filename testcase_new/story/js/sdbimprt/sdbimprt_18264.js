@@ -6,9 +6,9 @@
 *@Author:   2019-4-18  chensiqin
 ************************************************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    try
    {
@@ -23,10 +23,6 @@ function main ()
       importDataEA( csName, clName, imprtFile, cl );
       cleanCL( csName, clName );
    }
-   catch( e )
-   {
-      throw e;
-   }
    finally
    {
       cmd.run( "rm -rf " + imprtFile );
@@ -35,7 +31,6 @@ function main ()
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( "cYdY1YYexprtTestYY" );
@@ -82,24 +77,9 @@ function importDataEA ( csName, clName, imprtFile, cl )
 
 function testRunCommand ( command )
 {
-   println( command );
-   try
-   {
+   assert.tryThrow(127,function(){
       cmd.run( command );
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "expected thow exception",
-         "actual success" );
-   }
-   catch( e )
-   {
-      if( e !== 127 )
-      {
-         throw buildException( "importData", null, "[sdbimprt results]",
-            "expected thow exception",
-            "actual success" );
-      }
-   }
-
+   });
 }
 
 function checkCLData ( cl )
@@ -115,11 +95,6 @@ function checkCLData ( cl )
 
    var expCnt = 0;
    var actCnt = recsArray.length;
-   if( actCnt !== expCnt )
-   {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + "]",
-         "[cnt:" + actCnt + "]" );
-   }
+   assert.equal( actCnt, expCnt );
 
 }

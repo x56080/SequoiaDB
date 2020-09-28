@@ -12,7 +12,7 @@ function test()
       return;
    }
 
-   var ssh = new SshObj( COORDHOSTNAME, user, password, port );
+   var ssh = new Ssh( COORDHOSTNAME, user, password, port );
    ssh.close();
    ssh.close();
   

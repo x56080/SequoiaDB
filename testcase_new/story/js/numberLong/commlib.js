@@ -3,7 +3,7 @@
 @Modify list : 2016-3-28  Ting YU  Init
 *******************************************************************************/
 import( "../lib/main.js" );
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 function checkExplain ( rc, expIdxName )
 {
@@ -44,16 +44,8 @@ function runCurl ( curlPara, expErrno )
    var curlCommand = geneCurlCommad( curlPara ); //generate curl command
 
    //run
-   try
-   {
-      var cmd = new Cmd();
-      var rtnInfo = cmd.run( curlCommand );
-   }
-   catch( e )
-   {
-      throw buildException( "runCurl():run", null,
-         curlCommand, "excute succed", "excute fail" );
-   }
+   var cmd = new Cmd();
+   var rtnInfo = cmd.run( curlCommand );
 
    //check return value
    var curlInfo = resolveRtnInfo( rtnInfo );

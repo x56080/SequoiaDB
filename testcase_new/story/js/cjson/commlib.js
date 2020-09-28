@@ -4,7 +4,8 @@
 *                2016/7/28  wu yan Init
 *******************************************************************************/
 
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 try
 {
@@ -50,7 +51,7 @@ function readyTmpDir ()
 **************************************************** */
 function cmdInit ()
 {
-   var cmd = new Command();
+   var cmd = new Cmd();
    return cmd;
 }
 
@@ -85,7 +86,7 @@ function initPath ()
 **************************************************** */
 function fileInit ( fileName )
 {
-   var file = new FileObj( fileName );
+   var file = new File( fileName );
    return file;
 }
 

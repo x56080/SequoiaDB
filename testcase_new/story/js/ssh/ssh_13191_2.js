@@ -31,7 +31,7 @@ function test()
    file.close();
    remote.close();
 
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    for( var i = 0; i < dstModes.length; i++ )
    {
       var file = new File( localFile );

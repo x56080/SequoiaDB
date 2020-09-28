@@ -41,7 +41,7 @@ function test ( args )
       }
       catch( e )
       {
-         if( e === -9 )
+         if( e.message == -9 )
          {
             break;
          }

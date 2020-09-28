@@ -1,2 +1,2 @@
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );

@@ -5,11 +5,11 @@
 @call：fullText、fulltext_rlb、fullText_sync                
 ****************************************************/
 import( "../lib/main.js" );
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 try
 {
-   var cmd = new Command();
+   var cmd = new Cmd();
    var HEADER = "'Content-Type: application/json'";
    var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
    var esOpr = new ESOperator();

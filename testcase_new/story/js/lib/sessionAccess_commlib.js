@@ -1,5 +1,5 @@
 import( "../lib/main.js" )
-import( "../lib/basic_operation/sequoiadb.js" )
+import( "../lib/basic_operation/commlib.js" )
 
 /************************************************************************
 *@Description: 获取满足指定节点数目的组

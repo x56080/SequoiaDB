@@ -57,15 +57,8 @@ function testImprtJson( clName, cl )
    
    // decimalto
    cl.remove();
-   try
+   assert.tryThrow( 127, function()
    {
       cmd.run( command + " --decimalto");
-   }
-   catch(e)
-   {
-     if( e != 127)
-     {
-        throw e;
-     }
-   }
+   });
 }

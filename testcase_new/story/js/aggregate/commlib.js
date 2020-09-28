@@ -5,7 +5,8 @@
 *               2016-03-18  wenjing wang modify
 *******************************************************************************/
 
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 function compareObj ( lobj, robj, ignoreId )

@@ -48,7 +48,7 @@ function main ()
       checkConsistency( COMMCSNAME, clName );
 
       // 走主节点执行全文检索
-      var dbMaster = new Sequoiadb( preMasterNodeName );
+      var dbMaster = new Sdb( preMasterNodeName );
       var masterCL = dbMaster.getCS( COMMCSNAME ).getCL( clName );
       var findConf = { "$not": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14407" } } } } }] };
       var actResult = dbOpr.findFromCL( masterCL, findConf, { 'a': '' }, { a: 1 } );
@@ -58,7 +58,7 @@ function main ()
       dbMaster.close();
 
       // 走原备节点执行全文检索
-      var dbSlave = new Sequoiadb( preSlaveNodeName );
+      var dbSlave = new Sdb( preSlaveNodeName );
       var slaveCL = dbSlave.getCS( COMMCSNAME ).getCL( clName );
       var actResult = dbOpr.findFromCL( slaveCL, findConf, { 'a': '' }, { a: 1 } );
       var expResult = dbOpr.findFromCL( slaveCL, { "b": { "$lt": 10000 } }, { 'a': '' }, { a: 1 } );

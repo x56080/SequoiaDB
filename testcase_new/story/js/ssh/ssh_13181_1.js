@@ -20,7 +20,7 @@ function test()
    cleanLocalFile( srcFile );
    cleanRemoteFile( hostName, CMSVCNAME, dstFile );
 
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    try
    {
       ssh.push( srcFile, dstFile );

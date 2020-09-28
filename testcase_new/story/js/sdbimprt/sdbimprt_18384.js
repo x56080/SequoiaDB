@@ -68,7 +68,7 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
    }
    catch( e )
    {
-      if( e !== 127 )
+      if( e.message != 127)
       {
          throw buildException( "exprtData", null, "[exprt results]",
             "expected thow exception",
@@ -96,7 +96,7 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
    }
    catch(e)
    {
-      if( e !== 127 )
+      if( e.message != 127)
       {
         throw buildException( "importData", null, "[sdbimprt results]", 
                            "expected thow exception", 
@@ -222,7 +222,7 @@ function exportImportDataEContainA ( csName, clName, imprtFile, exprtFile, cl, d
    }
    catch( e )
    {
-      if( e !== 127 )
+      if( e.message != 127)
       {
          throw buildException( "exprtData", null, "[exprt results]",
             "expected thow exception",
@@ -250,7 +250,7 @@ function exportImportDataEContainA ( csName, clName, imprtFile, exprtFile, cl, d
    }
    catch(e)
    {
-      if( e !== 127 )
+      if( e.message != 127)
       {
         throw buildException( "importData", null, "[sdbimprt results]", 
                            "expected thow exception", 
@@ -302,3 +302,4 @@ function checkCLData ( cl )
    }
 
 }
+

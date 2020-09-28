@@ -33,7 +33,7 @@ function main ()
    db.createProcedure( function insert19435 () { db.getCS( "cs19435" ).getCL( "cl19435" ).insert( { a: NumberDecimal( "100.04", [5, 2] ) } ); } );
    db.eval( "insert19435()" );
 
-   var cursor = cl.find( { a: NumberDecimalObj( "100.04", [5, 2] ) } );
+   var cursor = cl.find( { a: NumberDecimal( "100.04", [5, 2] ) } );
    var expRecs = [{ "a": { "$decimal": "100.04", "$precision": [5, 2] } }];
    commCompareResults( cursor, expRecs );
 

@@ -67,7 +67,7 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
    }
    catch( e )
    {
-      if( e !== 127 )
+      if( e.message != 127 )
       {
          throw buildException( "exprtData", null, "[exprt results]",
             "expected thow exception",

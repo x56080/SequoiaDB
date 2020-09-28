@@ -34,7 +34,7 @@ function test ()
 
       db.analyze();
 
-      var data = new Sequoiadb( hostName, svcName );
+      var data = new Sdb( hostName, svcName );
       var cur = data.getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find( { "Index": indexName } );
       if( !cur.next() )
       {
@@ -46,7 +46,7 @@ function test ()
 
       db.getCS( csName ).getCL( clName ).dropIndex( indexName );
 
-      data = new Sequoiadb( hostName, svcName );
+      data = new Sdb( hostName, svcName );
       cur = data.getCS( "SYSSTAT" ).getCL( "SYSINDEXSTAT" ).find( { "Index": indexName } );
       if( cur.next() )
       {

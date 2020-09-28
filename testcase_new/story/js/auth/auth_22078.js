@@ -50,17 +50,10 @@ function test ()
       // drop user1
       sdb.dropUsr( user1, user1 );
       // use db1
-      try
+      assert.tryThrow( -179, function()
       {
-         db1.getRG( groupName ).getMaster().connect();
-      }
-      catch( e )
-      {
-         if( e !== -179 )
-         {
-            throw new Error( e );
-         }
-      }
+        db1.getRG( groupName ).getMaster().connect();
+      });
       // use db2
       var nodeDB = db2.getRG( groupName ).getMaster().connect();
       nodeDB.close();

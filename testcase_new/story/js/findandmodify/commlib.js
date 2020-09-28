@@ -3,8 +3,8 @@
 *@Modify list:
 *   2014-3-4 wenjing wang  Init
 *******************************************************************************/
-
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 var dataGroupNum = 0;
 

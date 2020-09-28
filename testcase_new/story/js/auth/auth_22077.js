@@ -53,17 +53,10 @@ function test ()
       // drop user1
       sdb.dropUsr( user1, user1 );
       // use db1
-      try
+      assert.tryThrow( -152, function()
       {
-         db1.eval( procFunc );
-      }
-      catch( e )
-      {
-         if( e !== -152 )
-         {
-            throw new Error( e );
-         }
-      }
+        db1.eval( procFunc1 );
+      });
       // use db2
       var cursor = db2.eval( procFunc );
       checkResults( cursor.size() );

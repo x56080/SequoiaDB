@@ -97,10 +97,10 @@ function test ()
    insertSameDatas( maincl, insertSameNum, 10000 );
 
    //获取主备节点
-   db1 = new Sequoiadb( db );
+   db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   db2 = new Sequoiadb( db );
+   db2 = new Sdb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 

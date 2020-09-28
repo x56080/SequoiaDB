@@ -2,7 +2,8 @@
 * @Description :  common function
 * @Author : 2020/07/15 XiaoNi Huang Init
 ****************************************************************************** */
-import( "../lib/basic_operation/sequoiadb.js" )
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" )
 
 var cmd = initRemoteCmd();
 var tmpFileDir = WORKDIR + '/sequoiafs/';

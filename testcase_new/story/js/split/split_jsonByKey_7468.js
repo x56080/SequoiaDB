@@ -49,7 +49,7 @@ function main ()
    cl.insert( docs );
 
    // split
-   cl.split( srcGroupName, dstGroupName, docs[recsNum / 2], docs[recsNum] );
+   cl.split( srcGroupName, dstGroupName, docs[recsNum / 2] );
 
    // check result
    var sort = { a: 1 };

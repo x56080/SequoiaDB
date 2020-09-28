@@ -33,7 +33,7 @@ function test()
    file.write( dstContent );
    file.close();
 
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    ssh.pull( remoteFile, localFile );
    ssh.close();
 

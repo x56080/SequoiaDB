@@ -29,7 +29,7 @@ function test()
    file.write( content );
    file.close();
 
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    for( var i = 0; i < modes.length; i++ )
    {
       ssh.pull( remoteFile, localFile, modes[i] );

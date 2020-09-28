@@ -9,7 +9,7 @@ function test ()
 {
    //128B
    var clName = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890test4539";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( -259, function()
    {
       db.getCS( COMMCSNAME ).createCL();
    } );

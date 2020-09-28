@@ -30,7 +30,7 @@ function test ()
    var dbcl2 = commCreateCL( db, csName, clName2 );
 
    //get master datanode
-   var db1 = new Sequoiadb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m", PreferedPeriod: -1 } );
    var dbclPrimary1 = db1.getCS( csName ).getCL( clName1 );
    var dbclPrimary2 = db1.getCS( csName ).getCL( clName2 );

@@ -3,7 +3,7 @@
 *@author : chimanzhao
 *@createdate:  2020.5.6
 **************************************/
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
 
 function testExplain ( conds, dbcl, indexName, scanType )

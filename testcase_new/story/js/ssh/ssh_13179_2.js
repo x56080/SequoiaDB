@@ -28,7 +28,7 @@ function test()
    file.close();
 
    //使用ssh拉取文件
-   var ssh = new SshObj( hostName, user, password, port );
+   var ssh = new Ssh( hostName, user, password, port );
    ssh.pull( remoteFile, localFile );
    ssh.close();
 

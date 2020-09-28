@@ -4,6 +4,7 @@
 *                2016/7/14  XiaoNi Huang Init
 *******************************************************************************/
 import("../lib/main.js");
+import( "../lib/basic_operation/commlib.js" );
 
 var testCaseDir = initTestCaseDir();
 var tmpFileDir = WORKDIR + "/sdbimprt/";

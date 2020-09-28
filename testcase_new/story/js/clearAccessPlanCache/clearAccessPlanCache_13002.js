@@ -47,10 +47,10 @@ function test ( args )
    insertSameDatas( maincl, insertSameNum, 0 );
 
    //获取主备节点
-   var db1 = new Sequoiadb( db );
+   var db1 = new Sdb( db );
    db1.setSessionAttr( { PreferedInstance: "m" } );
    var dbclPrimary = db1.getCS( maincsName ).getCL( mainclName );
-   var db2 = new Sequoiadb( db );
+   var db2 = new Sdb( db );
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( maincsName ).getCL( mainclName );
 

@@ -17,7 +17,7 @@ function test ()
    commDropCL( db, COMMCSNAME, clNameOne );
    commDropCL( db, COMMCSNAME, clNameTwo );
 
-   var next_db = new Sequoiadb( COORDHOSTNAME, COORDSVCNAME );
+   var next_db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
    var opt = { "Group": groupName };
 

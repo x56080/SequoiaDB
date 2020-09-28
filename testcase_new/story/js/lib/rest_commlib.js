@@ -4,11 +4,12 @@
                 2015-4-3 Ting YU init
 ****************************************************/
 
-import( "../lib/basic_operation/sequoiadb.js" );
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 try
 {
-   var com = new Command();              //com.run("command");
+   var com = new Cmd();              //com.run("command");
    var info;                             //returned information after curl command
    var errno;                            //errno in returned information
    var infoSplit = new Array();          //split info to array 
