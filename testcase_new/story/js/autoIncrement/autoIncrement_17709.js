@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-24  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -29,7 +29,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,11],[12,22],[23,33]
       var doc = [];
@@ -41,7 +40,6 @@ function main ()
       }
       cl[k].insert( doc );
    }
-   println( "---prepare insert success" );
 
    //coordB插入记录，指定自增字段，插入值小于所有缓存值
    var insertValue = -100;
@@ -49,7 +47,6 @@ function main ()
    cl[1].insert( record );
    expR.push( record );
    sortField++;
-   println( "---insert set autoIncrement success" );
 
    //coordA再次插入，消耗本coord缓存，不指定自增字段,[1,11]
    for( var i = 0; i < 8; i++ )
@@ -58,7 +55,6 @@ function main ()
       expR.push( { a: sortField, id: 4 + i } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    //coordA再次插入，从catalog重新获取缓存，不指定自增字段,[34,44]
    for( var i = 0; i < 2; i++ )
@@ -67,7 +63,6 @@ function main ()
       expR.push( { a: sortField, id: 34 + i } );
       sortField++;
    }
-   println( "---coordA get new autoIncrement cache success" );
 
    //coordB再次插入记录，消耗本coord缓存，不指定自增字段,[12,22]
    for( var i = 0; i < 8; i++ )
@@ -76,7 +71,6 @@ function main ()
       expR.push( { a: sortField, id: 15 + i } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    //coordB再次插入，从catalog重新获取缓存，不指定自增字段,[45,55]
    for( var i = 0; i < 2; i++ )
@@ -85,7 +79,6 @@ function main ()
       expR.push( { a: sortField, id: 45 + i } );
       sortField++;
    }
-   println( "---coordB get new autoIncrement cache success" );
 
    //coordC再次插入，消耗本coord缓存，不指定自增字段,[23,33]
    for( var i = 0; i < 8; i++ )
@@ -94,7 +87,6 @@ function main ()
       expR.push( { a: sortField, id: 26 + i } );
       sortField++;
    }
-   println( "---coordC insert success" );
 
    //coordC再次插入，从catalog重新获取缓存，不指定自增字段,[56,66]
    for( var i = 0; i < 2; i++ )
@@ -103,23 +95,9 @@ function main ()
       expR.push( { a: sortField, id: 56 + i } );
       sortField++;
    }
-   println( "---coordC get autoIncrement cache success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

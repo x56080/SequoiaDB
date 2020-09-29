@@ -2,11 +2,11 @@
 @Description :   seqDB-15991: 创建集合时，创建1个自增字段 
 @Modify list :   2018-10-17    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -17,11 +17,11 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expArr = [{ Field: field, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   checkSequence( sequenceName, {} );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
+   checkSequence( db, sequenceName, {} );
 
    dbcl.insert( { a: 1 } );
 
@@ -32,15 +32,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

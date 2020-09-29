@@ -2,12 +2,12 @@
 @Description :    seqDB-17741:increment为负值，插入值比序列的MinValue稍大，再次插入自增字段超过MinValue  
 @Modify list :   2018-1-29    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -69,16 +69,4 @@ function main ()
    checkRec( rc, expRecs.sort( compare( "id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-24  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -23,15 +24,13 @@ function main ()
    var maxValue = -1;
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   println( "---check autoIncrement success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
 
    var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: maxValue, MinValue: minValue, MaxValue: maxValue, StartValue: maxValue };
-   checkSequence( clSequenceName, expObj );
-   println( "---check sequence success" );
+   checkSequence( db, clSequenceName, expObj );
 
    var doc = [];
    var expR = [];
@@ -45,21 +44,18 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when set increment = -1 success" );
 
    dbcl.dropAutoIncrement( fieldName );
    var increment = -2147483647;
    dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   println( "---check autoIncrement when set increment -2147483647 success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
 
    var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: maxValue, MinValue: minValue, MaxValue: maxValue, StartValue: maxValue };
-   checkSequence( clSequenceName, expObj );
-   println( "---check sequence when set increment -2147483647 success" );
+   checkSequence( db, clSequenceName, expObj );
 
    var doc = [];
    for( var i = 0; i < 2000; i++ )
@@ -72,20 +68,7 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when set increment = -2147483647 success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

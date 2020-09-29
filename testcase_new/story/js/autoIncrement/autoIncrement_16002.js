@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-24  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -24,15 +25,13 @@ function main ()
    var startValue = 0;
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   println( "---check autoIncrement success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
 
    var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: startValue, MinValue: minValue, MaxValue: maxValue, StartValue: startValue };
-   checkSequence( clSequenceName, expObj );
-   println( "---check sequence success" );
+   checkSequence( db, clSequenceName, expObj );
 
    var doc = [];
    var expR = [];
@@ -46,7 +45,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when set cacheSize success" );
 
    dbcl.dropAutoIncrement( fieldName );
    var increment = -3;
@@ -56,29 +54,10 @@ function main ()
    var minValue = -2147483647;
    var maxValue = 2147483647;
    var startValue = 0;
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } );
-      throw "NEED_CREATE_ERR";
-   } catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

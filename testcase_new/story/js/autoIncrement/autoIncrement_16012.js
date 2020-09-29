@@ -2,11 +2,11 @@
 @Description :   seqDB-16012:  修改自增字段名
 @Modify list :   2018-10-22    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -17,7 +17,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
    //insert records and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var expRecs = [];
    for( var i = 0; i < coordNodes.length; i++ )
    {
@@ -34,17 +34,10 @@ function main ()
    var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs.sort( compare( "id1" ) ) );
 
-   try
+   assert.tryThrow( -333, function()
    {
       dbcl.setAttributes( { AutoIncrement: { Field: "id2" } } );
-      throw "alter error!";
-   } catch( e )
-   {
-      if( e !== -333 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //insert records and check
    for( var i = 0; i < coordNodes.length; i++ )
@@ -62,15 +55,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

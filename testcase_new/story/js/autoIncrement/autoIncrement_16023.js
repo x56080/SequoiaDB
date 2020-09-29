@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-25  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -19,7 +20,7 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fieldName1 }, { Field: fieldName2 }] } );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var k = 0; k < coordNum; k++ )
@@ -38,7 +39,6 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    var increment1 = 10;
    var cacheSize1 = 32;
@@ -51,22 +51,19 @@ function main ()
       AutoIncrement: [{ Field: fieldName1, Increment: increment1, CacheSize: cacheSize1, AcquireSize: acquireSize1, Generated: generated1 },
       { Field: fieldName2, Increment: increment2, CacheSize: cacheSize2, AcquireSize: acquireSize2 }]
    } );
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName1 = "SYS_" + clID + "_" + fieldName1 + "_SEQ";
    var clSequenceName2 = "SYS_" + clID + "_" + fieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: fieldName1, SequenceName: clSequenceName1, Generated: generated1 },
    { Field: fieldName2, SequenceName: clSequenceName2 }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
-   println( "---check cl autoIncrement success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
 
    var currentValue1 = coordNum * 1000 + 1;
    var clExpSequenceObj = { Increment: increment1, CacheSize: cacheSize1, AcquireSize: acquireSize1, CurrentValue: currentValue1 };
-   checkSequence( clSequenceName1, clExpSequenceObj );
-   println( "---check cl sequence1 success" );
+   checkSequence( db, clSequenceName1, clExpSequenceObj );
    var currentValue2 = coordNum * 1000 + 1;
    var clExpSequenceObj = { Increment: increment2, CacheSize: cacheSize2, AcquireSize: acquireSize2, CurrentValue: currentValue2 };
-   checkSequence( clSequenceName2, clExpSequenceObj );
-   println( "---check cl sequence2 success" );
+   checkSequence( db, clSequenceName2, clExpSequenceObj );
    for( var k = 0; k < coordNum; k++ )
    {
       var coord = new Sdb( coordNodes[k] );
@@ -86,18 +83,5 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -3,11 +3,11 @@
   @Modify list :
   2020-04-26  liuxiaoxuan  Create
  ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -20,22 +20,14 @@ function main ()
    dbcl.insert( [{ a: 1 }, { a: 1 }] );
 
    //获取自增字段名
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    //插入重复键
-   try
+   assert.tryThrow( -38, function()
    {
       dbcl.insert( { id: 2, a: 1 } );
-      throw "inert should fail!";
-   }
-   catch( e )
-   {
-      if( -38 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //继续不指定自增字段值插入1条记录，检查序列缓存未丢
    var expLastGenerateID = 3;
@@ -43,47 +35,25 @@ function main ()
    var actLastGenerateID = ret.toObj().LastGenerateID;
    var expSeq = { CurrentValue: 1001 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
-   checkSequence( clSequenceName, expSeq );
-   println( "---check insert with duplicate key success" );
+   checkSequence( db, clSequenceName, expSeq );
 
 
    //更新后与原有记录冲突
-   try 
+   assert.tryThrow( -38, function()
    {
       dbcl.update( { $set: { id: 1 } }, { a: 1 } );
-      throw "update should fail!";
-   }
-   catch( e ) 
-   {
-      if( -38 !== e ) 
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //继续插入1条记录，检查序列缓存未丢
    expLastGenerateID = 4;
    ret = dbcl.insert( { a: 4 } );
    actLastGenerateID = ret.toObj().LastGenerateID;
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    expR = [{ id: 1, a: 1 }, { id: 2, a: 1 }, { id: 3, a: 1 }, { id: 4, a: 4 }];
    actR = dbcl.find().sort( { id: 1 } );
    commCompareResults( actR, expR );
-   println( "---check update with duplicate key success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

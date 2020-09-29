@@ -3,13 +3,14 @@
 @Modify list :
               2018-10-17  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -25,13 +26,13 @@ function main ()
       AutoIncrement: { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment }
    } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expIncrementArr = [{ Field: "id", SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrementArr );
 
    var expSequenceObj = { AcquireSize: acquireSize, CacheSize: cacheSize, Increment: increment };
-   checkSequence( sequenceName, expSequenceObj );
+   checkSequence( db, sequenceName, expSequenceObj );
 
    var doc = [];
    var expR = [];
@@ -45,7 +46,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert before split success" );
 
    dbcl.split( dataGroupNames[0], dataGroupNames[1], 50 );
 
@@ -63,19 +63,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after split success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

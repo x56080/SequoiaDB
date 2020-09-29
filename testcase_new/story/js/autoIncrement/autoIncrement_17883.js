@@ -3,12 +3,12 @@
 @Modify list :
               2019-2-19  Zhao Xiaoni  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -62,16 +62,4 @@ function main ()
    checkRec( rc, expRecs.sort( compare( "_id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

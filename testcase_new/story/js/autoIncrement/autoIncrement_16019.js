@@ -2,11 +2,11 @@
 @Description :   seqDB-16019:  修改Cycled属性值   
 @Modify list :   2018-10-22    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -17,7 +17,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1", MaxValue: 3000 } } );
 
    //insert records and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length !== 3 )
    {
       return;
@@ -38,7 +38,7 @@ function main ()
    //alter attributes default and check
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", Cycled: false } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    if( cursor.current().toObj().Cycled !== false )
@@ -51,23 +51,15 @@ function main ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      try
+      assert.tryThrow( -325, function()
       {
          cl.insert( { "a": i, "b": i } );
-         throw "insert error!";
-      } catch( e )
-      {
-         if( e !== -325 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
       coord.close();
    }
 
    var rc = dbcl.find();
    checkRec( rc, expRecs );
-   println( "===check Cycled succeed!===" );
 
    //alter Cycled true
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", Cycled: true } } );
@@ -90,7 +82,6 @@ function main ()
 
    var rc = dbcl.find();
    checkRec( rc, expRecs );
-   println( "===check Cycled true succeed!===" );
 
    //alter Cycled false
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", Cycled: false } } );
@@ -106,35 +97,16 @@ function main ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      try
+      assert.tryThrow( -325, function()
       {
          cl.insert( { "a": i, "b": i } );
-         throw "insert error";
-      } catch( e )
-      {
-         if( e !== -325 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
+
       coord.close();
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs.sort( compare( "id1" ) ) );
-   println( "===check Cycled false succeed!===" );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

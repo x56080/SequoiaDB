@@ -4,13 +4,12 @@
               2018-10-25  zhaoyu  Create
 ****************************************************************************/
 var sortField = 0;
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -78,58 +77,46 @@ function main ()
    maincl.attachCL( subclFullName2, { LowBound: { a1: 20 }, UpBound: { a1: 40 } } );
    maincl.attachCL( subclFullName3, { LowBound: { a1: 40 }, UpBound: { a1: 6000 } } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + mainclFieldName + "_SEQ";
    var expIncrementArr = [{ Field: mainclFieldName, SequenceName: mainclSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
-   println( "---check maincl autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
-   var subclID = getCLID( maincsName, subclName1 );
+   var subclID = getCLID( db, maincsName, subclName1 );
    var subclSequenceName1 = "SYS_" + subclID + "_" + subclFieldName1 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName1, SequenceName: subclSequenceName1 }];
-   checkAutoIncrementonCL( maincsName, subclName1, expIncrementArr );
-   println( "---check subcl1 autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, subclName1, expIncrementArr );
 
-   var subclID = getCLID( subcsName, subclName2 );
+   var subclID = getCLID( db, subcsName, subclName2 );
    var subclSequenceName2 = "SYS_" + subclID + "_" + subclFieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName2, SequenceName: subclSequenceName2 }];
-   checkAutoIncrementonCL( subcsName, subclName2, expIncrementArr );
-   println( "---check subcl2 autoIncrement success" );
+   checkAutoIncrementonCL( db, subcsName, subclName2, expIncrementArr );
 
-   var subclID = getCLID( subcsName, subclName3 );
+   var subclID = getCLID( db, subcsName, subclName3 );
    var subclSequenceName3 = "SYS_" + subclID + "_" + subclFieldName3 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName3, SequenceName: subclSequenceName3 }];
-   checkAutoIncrementonCL( subcsName, subclName3, expIncrementArr );
-   println( "---check subcl3 autoIncrement success" );
+   checkAutoIncrementonCL( db, subcsName, subclName3, expIncrementArr );
 
-   var clID = getCLID( maincsName, clName1 );
+   var clID = getCLID( db, maincsName, clName1 );
    var clSequenceName1 = "SYS_" + clID + "_" + subclFieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName2, SequenceName: clSequenceName1 }];
-   checkAutoIncrementonCL( maincsName, clName1, expIncrementArr );
-   println( "---check cl1 autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, clName1, expIncrementArr );
 
-   var clID = getCLID( maincsName, clName2 );
+   var clID = getCLID( db, maincsName, clName2 );
    var clSequenceName2 = "SYS_" + clID + "_" + subclFieldName3 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName3, SequenceName: clSequenceName2 }];
-   checkAutoIncrementonCL( maincsName, clName2, expIncrementArr );
-   println( "---check cl2 autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, clName2, expIncrementArr );
 
    var mainExpSequenceObj = {
       Increment: increment, StartValue: startValue, MinValue: minValue, MaxValue: maxValue, CacheSize: cacheSize,
       AcquireSize: acquireSize, Cycled: cycled, CurrentValue: startValue
    };
-   checkSequence( mainclSequenceName, mainExpSequenceObj );
-   println( "---check maincl sequence success" );
-   checkSequence( subclSequenceName1, {} );
-   println( "---check subcl1 sequence success" );
-   checkSequence( subclSequenceName2, {} );
-   println( "---check subcl2 sequence success" );
-   checkSequence( subclSequenceName3, {} );
-   println( "---check subcl3 sequence success" );
-   checkSequence( clSequenceName1, {} );
-   println( "---check cl1 sequence success" );
-   checkSequence( clSequenceName2, {} );
-   println( "---check cl2 sequence success" );
+   checkSequence( db, mainclSequenceName, mainExpSequenceObj );
+   checkSequence( db, subclSequenceName1, {} );
+   checkSequence( db, subclSequenceName2, {} );
+   checkSequence( db, subclSequenceName3, {} );
+   checkSequence( db, clSequenceName1, {} );
+   checkSequence( db, clSequenceName2, {} );
 
    var doc = [];
    var expR = [];
@@ -142,7 +129,6 @@ function main ()
    maincl.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    var doc = [];
    var expR = [];
@@ -155,7 +141,6 @@ function main ()
    cl1.insert( doc );
    var actR = cl1.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into cl1 success" );
 
    var doc = [];
    var expR = [];
@@ -168,13 +153,10 @@ function main ()
    cl2.insert( doc );
    var actR = cl2.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into cl2 success" );
 
    commDropCS( db, maincsName );
-   checkSequence( subclSequenceName2, {} );
-   println( "---check subcl2 sequence success" );
-   checkSequence( subclSequenceName3, {} );
-   println( "---check subcl3 sequence success" );
+   checkSequence( db, subclSequenceName2, {} );
+   checkSequence( db, subclSequenceName3, {} );
 
    var mainclSequenceNum = db.snapshot( 15, { Name: mainclSequenceName } ).toArray().length;
    var subclSequenceNum1 = db.snapshot( 15, { Name: subclSequenceName1 } ).toArray().length;
@@ -182,21 +164,8 @@ function main ()
    var clSequenceNum2 = db.snapshot( 15, { Name: clSequenceName2 } ).toArray().length;
    if( mainclSequenceNum !== 0 || subclSequenceNum1 !== 0 || clSequenceNum1 !== 0 || clSequenceNum2 !== 0 )
    {
-      println( "mainclSequenceNum: " + mainclSequenceNum + ",subclSequenceNum1: " + subclSequenceNum1 + ",clSequenceNum1 " + clSequenceNum1 + ",clSequenceNum2: " + clSequenceNum2 );
       throw new Error( "SEQUENCE_NOT_DROP" );
    }
 
    commDropCS( db, subcsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

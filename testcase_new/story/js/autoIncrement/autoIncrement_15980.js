@@ -2,11 +2,11 @@
 @Description :   seqDB-15980:  truncate集合  
 @Modify list :   2018-10-15  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -17,7 +17,7 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: [{ Field: fields[0] }, { Field: fields[1] }] } );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var expRecs = [];
    for( var i = 0; i < coordNodes.length; i++ )
    {
@@ -53,36 +53,14 @@ function main ()
 
 function checkCurrentValue ( db, csName, clName, fields )
 {
-   try
+   var clID = getCLID( db, csName, clName );
+   for( var i in fields )
    {
-      var clID = getCLID( csName, clName );
-      for( var i in fields )
-      {
-         var sequenceName = "SYS_" + clID + "_" + fields[i] + "_SEQ";
-         var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
-         var currentValue = cursor.current().toObj().CurrentValue;
-         var startValue = cursor.current().toObj().StartValue
-         if( currentValue !== startValue )
-         {
-            throw "currentValue is " + currentValue + ", but startValue is " + startValue;
-         }
-      }
+      var sequenceName = "SYS_" + clID + "_" + fields[i] + "_SEQ";
+      var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
+      var currentValue = cursor.current().toObj().CurrentValue;
+      var startValue = cursor.current().toObj().StartValue;
+      assert.equal( currentValue, startValue );
    }
-   catch( e )
-   {
-      throw new Error( e );
-   }
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

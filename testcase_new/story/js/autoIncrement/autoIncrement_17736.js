@@ -2,12 +2,12 @@
 @Description :    seqDB-17736:    increment为负值，插入值是序列的currentValue 
 @Modify list :   2018-1-25    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -38,7 +38,7 @@ function main ()
    expRecs.push( insertR1 );
 
    //检查catalog已丢弃老的缓存，重新生成新的缓存
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    if( cursor.current().toObj().CurrentValue !== -2002 )
@@ -85,16 +85,4 @@ function main ()
    checkRec( rc, expRecs.sort( compare( "id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

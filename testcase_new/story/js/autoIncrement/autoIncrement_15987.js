@@ -2,12 +2,12 @@
 @Description :   seqDB-15987:hash分区表上创建/删除自增字段 
 @Modify list :   2018-10-15    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var dataGroupNames = commGetDataGroupNames( db);
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -28,11 +28,11 @@ function main ()
 
    dbcl.createAutoIncrement( { Field: field, AcquireSize: acquireSize } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expArr = [{ Field: field, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
-   checkSequence( sequenceName, { AcquireSize: acquireSize } );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expArr );
+   checkSequence( db, sequenceName, { AcquireSize: acquireSize } );
 
    dbcl.insert( { a: 2 } );
 
@@ -57,13 +57,13 @@ function main ()
    dbcl.createAutoIncrement( { Field: field, AcquireSize: acquireSize } );
 
    //check autoIncrement 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expIncrement = [{ Field: field, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrement );
-   checkSequence( sequenceName, { AcquireSize: acquireSize } );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrement );
+   checkSequence( db, sequenceName, { AcquireSize: acquireSize } );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    for( var i = 0; i < coordNodes.length; i++ )
    {
       var coord = new Sdb( coordNodes[i] );
@@ -79,15 +79,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

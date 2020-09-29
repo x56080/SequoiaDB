@@ -2,11 +2,11 @@
 @Description :   seqDB-16020:  修改Generated属性值  
 @Modify list :   2018-10-23    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -27,7 +27,7 @@ function main ()
    //alter Generated always
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", Generated: "always" } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
    if( cursor.current().toObj().AutoIncrement[0].Generated !== "always" )
@@ -36,7 +36,7 @@ function main ()
    }
 
    //insert records and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    for( var i = 0; i < coordNodes.length; i++ )
    {
       var coord = new Sdb( coordNodes[i] );
@@ -63,17 +63,11 @@ function main ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      try
+      assert.tryThrow( -6, function()
       {
          cl.insert( { "id1": "a" + i } );
-         throw "insert error!";
-      } catch( e )
-      {
-         if( e !== -6 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
+
       coord.close();
    }
 
@@ -100,16 +94,4 @@ function main ()
    checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

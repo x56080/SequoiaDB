@@ -3,14 +3,14 @@
 @Modify list :
               2018-10-26  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -56,15 +56,15 @@ function main ()
    maincl.attachCL( subclFullName2, { LowBound: { a: 20 }, UpBound: { a: 40 } } );
    maincl.attachCL( subclFullName3, { LowBound: { a: 40 }, UpBound: { a: 6000 } } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
    var expSequenceObj = { AcquireSize: acquireSize, CacheSize: cacheSize, Increment: increment };
-   checkSequence( mainclSequenceName, expSequenceObj );
+   checkSequence( db, mainclSequenceName, expSequenceObj );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var k = 0; k < coordNum; k++ )
@@ -84,7 +84,6 @@ function main ()
 
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    /*每个coord插入100条记录，需要从catalog上取acquireSizeNum = Math.ceil(100 /acquireSize)次序列值，多个coord总共取coordNum*acquireSizeNum
      再计算这么多序列值，catalog需要生成多少次，再加上初始值*/
@@ -95,17 +94,15 @@ function main ()
    var cacheSize = 32;
    var acquireSize = 12;
    maincl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } } );
-   var clID = getCLID( maincsName, mainclName );
+   var clID = getCLID( db, maincsName, mainclName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
-   println( "---check cl autoIncrement after alter success" );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
    var clExpSequenceObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: currentValue };
-   checkSequence( clSequenceName, clExpSequenceObj );
-   println( "---check cl sequence after alter success" );
+   checkSequence( db, clSequenceName, clExpSequenceObj );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    for( var k = 0; k < coordNum; k++ )
    {
@@ -124,20 +121,7 @@ function main ()
    }
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
 
    commDropCS( db, subcsName );
    commDropCS( db, maincsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

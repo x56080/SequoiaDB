@@ -3,12 +3,12 @@
 @Modify list :
               2018-10-17  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -29,13 +29,13 @@ function main ()
       AutoIncrement: { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment }
    } );
 
-   var clID = getCLID( csName, clName );
+   var clID = getCLID( db, csName, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expIncrementArr = [{ Field: "id", SequenceName: sequenceName }];
-   checkAutoIncrementonCL( csName, clName, expIncrementArr );
+   checkAutoIncrementonCL( db, csName, clName, expIncrementArr );
 
    var expSequenceObj = { AcquireSize: acquireSize, CacheSize: cacheSize, Increment: increment };
-   checkSequence( sequenceName, expSequenceObj );
+   checkSequence( db, sequenceName, expSequenceObj );
 
    var doc = [];
    var expR = [];
@@ -51,16 +51,4 @@ function main ()
 
    commDropCS( db, csName );
    commDropDomain( db, domainName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

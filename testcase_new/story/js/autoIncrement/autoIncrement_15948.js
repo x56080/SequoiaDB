@@ -3,12 +3,12 @@
 @Modify list :
               2018-10-17  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -23,13 +23,13 @@ function main ()
       AutoIncrement: { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize }
    } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expIncrementArr = [{ Field: "id", SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrementArr );
 
    var expSequenceObj = { AcquireSize: acquireSize, CacheSize: cacheSize };
-   checkSequence( sequenceName, expSequenceObj );
+   checkSequence( db, sequenceName, expSequenceObj );
 
    dbcl.split( dataGroupNames[0], dataGroupNames[1], { id: 50 } );
 
@@ -42,22 +42,10 @@ function main ()
    }
    dbcl.insert( doc );
 
-   checkCountFromNode( dataGroupNames[0], COMMCSNAME, clName, 49 );
-   checkCountFromNode( dataGroupNames[1], COMMCSNAME, clName, 51 );
+   checkCountFromNode( db, dataGroupNames[0], COMMCSNAME, clName, 49 );
+   checkCountFromNode( db, dataGroupNames[1], COMMCSNAME, clName, 51 );
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

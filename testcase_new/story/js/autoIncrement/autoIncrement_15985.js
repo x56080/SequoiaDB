@@ -2,11 +2,11 @@
 @Description :   seqDB-15985:新增自增字段与已存在的自增字段存在包含关系
 @Modify list :   2018-10-16    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -26,30 +26,22 @@ function main ()
    dbcl.createAutoIncrement( { Field: "a.bb" } );
 
    //check autoIncrement 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a.aa_SEQ",
    "SYS_" + clID + "_a.bb_SEQ"];
    var expIncrements = [{ Field: "a.aa", SequenceName: sequenceNames[0] },
    { Field: "a.bb", SequenceName: sequenceNames[1] }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrements );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrements );
 
    //check sequence
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], {} );
+      checkSequence( db, sequenceNames[i], {} );
    }
-
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.insert( { a: 1 } );
-      throw "insert error!";
-   } catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    var doc = [{ a: { cc: 2 } }, { a: { bb: { bbb: 3 } } }];
    dbcl.insert( doc );
@@ -64,28 +56,9 @@ function main ()
 
 function createAutoIncrement ( dbcl, field )
 {
-   try
+   assert.tryThrow( -332, function()
    {
       dbcl.createAutoIncrement( { Field: field } );
-      throw "create autoIncrement error!";
-   } catch( e )
-   {
-      if( e !== -332 )
-      {
-         throw new Error( e );
-      }
-   }
-}
+   } );
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

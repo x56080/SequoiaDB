@@ -2,11 +2,11 @@
 @Description :   seqDB-16041:  Cycled字段参数校验 
 @Modify list :   2018-10-25    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -41,46 +41,19 @@ function main ()
    //alter Cycled false
    dbcl.setAttributes( { AutoIncrement: { Field: "a0", Cycled: false, MaxValue: 1001, Increment: 1000, CacheSize: 1, AcquireSize: 1 } } );
 
-   try
+   assert.tryThrow( -325, function()
    {
       dbcl.insert( { "a": i } );
-      throw new Error( "inert error!" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    var rc = dbcl.find();
    checkRec( rc, expRecs );
 
    //alter Cycled string
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.setAttributes( { Field: "a0", Cycled: "cycled" } );
-      throw new Error( "create error!" );
-   } catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

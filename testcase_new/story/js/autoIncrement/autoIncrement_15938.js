@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-16  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -19,13 +20,12 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id", AcquireSize: acquireSize } } );
    commCreateIndex( dbcl, "id", { id: 1 }, { Unique: true }, true );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var k = 0; k < coordNum; k++ )
    {
       var coord = new Sdb( coordNodes[k] );
-      println( "coord:" + coord );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
       for( var j = 0; j < 2; j++ )
       {
@@ -43,19 +43,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

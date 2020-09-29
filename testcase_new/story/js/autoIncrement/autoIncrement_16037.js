@@ -2,11 +2,11 @@
 @Description :   seqDB-16037:  StartValue字段参数校验 
 @Modify list :   2018-10-23    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -38,7 +38,7 @@ function main ()
    }
 
    //check Sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a1_SEQ",
    "SYS_" + clID + "_a4_SEQ",
    "SYS_" + clID + "_a5_SEQ",
@@ -71,22 +71,15 @@ function main ()
    { StartValue: 10000, CurrentValue: 10000, MaxValue: 10000 }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expSequences[i] );
+      checkSequence( db, sequenceNames[i], expSequences[i] );
    }
 
    //insert records
    dbcl.insert( { "q": 1 } );
-   try
+   assert.tryThrow( -325, function()
    {
       dbcl.insert( { "q": 2 } );
-      throw new Error( "need_error" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //check records
    var rc = dbcl.find();
@@ -100,15 +93,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

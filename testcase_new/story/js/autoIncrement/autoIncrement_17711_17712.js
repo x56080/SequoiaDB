@@ -4,13 +4,13 @@
 @Modify list :
               2019-1-24  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -30,7 +30,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,11],[12,22],[23,33]
       var doc = [];
@@ -42,7 +41,6 @@ function main ()
       }
       cl[k].insert( doc );
    }
-   println( "---prepare insert success" );
 
    //coordB指定自增字段值插入记录，插入值落在当前coord缓存范围，大于nextValue
    var insertValue = 18;
@@ -50,25 +48,21 @@ function main ()
    cl[1].insert( record );
    expR.push( record );
    sortField++;
-   println( "---insert set autoIncrement>nextValue success" );
 
    //coordA再次插入，不指定自增字段
    cl[0].insert( { a: sortField } );
    expR.push( { a: sortField, id: 4 } );
    sortField++;
-   println( "---coordA insert success" );
 
    //coordB再次插入，不指定自增字段
    cl[1].insert( { a: sortField } );
    expR.push( { a: sortField, id: insertValue + increment } );
    sortField++;
-   println( "---coordB insert success" );
 
    //coordC再次插入，不指定自增字段
    cl[2].insert( { a: sortField } );
    expR.push( { a: sortField, id: 26 } );
    sortField++;
-   println( "---coordC insert success" );
 
    //coordB指定自增字段值插入记录，插入值落在当前coord缓存范围，小于nextValue
    var insertValue = 16;
@@ -76,41 +70,24 @@ function main ()
    cl[1].insert( record );
    expR.push( record );
    sortField++;
-   println( "---insert set autoIncrement<nextValue success" );
 
    //coordA再次插入，不指定自增字段
    cl[0].insert( { a: sortField } );
    expR.push( { a: sortField, id: 5 } );
    sortField++;
-   println( "---coordA insert success" );
 
    //coordB再次插入，不指定自增字段
    cl[1].insert( { a: sortField } );
    expR.push( { a: sortField, id: 20 } );
    sortField++;
-   println( "---coordB insert success" );
 
    //coordC再次插入，不指定自增字段
    cl[2].insert( { a: sortField } );
    expR.push( { a: sortField, id: 27 } );
    sortField++;
-   println( "---coordC insert success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

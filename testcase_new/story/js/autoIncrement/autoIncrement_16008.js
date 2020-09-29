@@ -2,12 +2,12 @@
 @Description :   seqDB-16008:  hash分区集合中存在自增字段，删除集合  
 @Modify list :   2018-10-18    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -51,15 +51,3 @@ function main ()
    commDropDomain( db, domainName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

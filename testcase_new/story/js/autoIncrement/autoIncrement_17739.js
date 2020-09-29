@@ -2,12 +2,12 @@
 @Description :    seqDB-17739:increment为负值，不允许翻转，插入值是序列的MinValue 
 @Modify list :   2018-1-29    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -53,30 +53,16 @@ function main ()
    }
 
    //coordA超范围插入失败
-   try
+   assert.tryThrow( -325, function()
    {
       cl[0].insert( { a: 0 } );
-      throw new Error( "coordA insert error!" );
-   } catch( e )
-   {
-      if( e != -325 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //coordB超范围插入失败
-   try
+   assert.tryThrow( -325, function()
    {
       cl[1].insert( { a: 0 } );
-      throw new Error( "coordB insert error!" );
-   } catch( e )
-   {
-      if( e != -325 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //coordC不指定自增字段插入记录,耗尽本coord缓存[-300,-201]
    for( var i = 0; i < 99; i++ )
@@ -86,32 +72,13 @@ function main ()
    }
 
    //coordC不指定自增字段插入，待coordC缓存耗尽后，超范围插入失败
-   try
+   assert.tryThrow( -325, function()
    {
       cl[2].insert( { a: 0 } );
-      throw new Error( "coordC insert error!" );
-   } catch( e )
-   {
-      if( e != -325 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    var rc = dbcl.find().sort( { id: 1 } );
    checkRec( rc, expRecs.sort( compare( "id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

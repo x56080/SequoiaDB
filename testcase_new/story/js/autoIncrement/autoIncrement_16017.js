@@ -2,11 +2,11 @@
 @Description :   seqDB-16017:  修改catalog一次生成序列值数量  
 @Modify list :   2018-10-22    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -18,7 +18,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1", AcquireSize: acquireSize } } );
 
    //insert records and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var expRecs = [];
    for( var i = 0; i < coordNodes.length; i++ )
    {
@@ -35,7 +35,7 @@ function main ()
    //alter attributes and check
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CacheSize: 3000 } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    if( cursor.current().toObj().CacheSize !== 3000 )
@@ -60,16 +60,4 @@ function main ()
    checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

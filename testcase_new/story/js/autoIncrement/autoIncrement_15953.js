@@ -3,11 +3,11 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -20,10 +20,10 @@ function main ()
    var generated = "always";
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var mainclSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
 
    var expR = [];
    for( var i = 0; i < 100; i++ )
@@ -42,7 +42,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check set increment field insert record success" );
 
    dbcl.insert( { "id.1": 100 } );
    expR.push( { "id.1": 100, id: 101 } );
@@ -51,19 +50,6 @@ function main ()
    expR.push( { "id.a": 101, id: 102 } );
    var actR = dbcl.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check set \"id.xxx\" insert record success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

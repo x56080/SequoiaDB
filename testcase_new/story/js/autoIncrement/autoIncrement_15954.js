@@ -3,11 +3,11 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -20,10 +20,10 @@ function main ()
    var generated = "strict";
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated } } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var mainclSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
 
    var expR = [];
    var currentValue = 0;
@@ -44,7 +44,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    var doc = { id: { $numberLong: "9223372036854775807" }, a: "numberLong" };
    expR.push( { id: { $numberLong: "9223372036854775807" }, a: "numberLong" } );
@@ -52,7 +51,6 @@ function main ()
 
    var actR = dbcl.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check increment field set numberLong success" );
 
    var arr = [{ id: 1.25, a: "float" },
    { id: { $decimal: "123" }, a: "decimal" },
@@ -68,19 +66,6 @@ function main ()
    { id: { $maxKey: 1 }, a: "maxKey" },
    { id: { $minKey: 1 }, a: "minkey" }];
    insertOtherTypeDatas( dbcl, arr );
-   println( "---check increment field set other dataType success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-24  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -29,14 +29,12 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
    }
 
    //coordB指定自增字段插入记录，本coord缓存更新为[118,128]
    cl[1].insert( { a: sortField, id: 117 } );
    expR.push( { a: sortField, id: 117 } );
-   println( "---insert set autoIncrement success" );
 
    //coordA插入记录，不指定自增字段，本coord缓存更新为[129,139]
    for( var i = 0; i < 2; i++ )
@@ -45,7 +43,6 @@ function main ()
       expR.push( { a: sortField, id: 129 + i } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    //coordB插入记录，不指定自增字段
    for( var i = 0; i < 2; i++ )
@@ -54,7 +51,6 @@ function main ()
       expR.push( { a: sortField, id: 118 + i } );
       sortField++;
    }
-   println( "---coordB insert success" );
 
    //coordC插入记录，不指定自增字段,本coord缓存更新为[140,150]
    for( var i = 0; i < 2; i++ )
@@ -63,23 +59,9 @@ function main ()
       expR.push( { a: sortField, id: 140 + i } );
       sortField++;
    }
-   println( "---coordC insert success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

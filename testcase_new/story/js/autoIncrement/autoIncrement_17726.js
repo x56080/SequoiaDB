@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-28  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -34,7 +34,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,51],[56,106],[111,161]
       var doc = [];
@@ -59,13 +58,11 @@ function main ()
    expR.push( { a: 6, id: { $numberLong: "-9223372036854775693" } } );
    expR.push( { a: 7, id: { $numberLong: "-9223372036854775688" } } );
    expR.push( { a: 8, id: { $numberLong: "-9223372036854775683" } } );
-   println( "---prepare insert success" );
 
    //coordB指定自增字段插入记录，指定自增字段值为最大值
    cl[1].insert( { a: sortField, id: { $numberLong: "9223372036854775807" } } );
    expR.push( { a: sortField, id: { $numberLong: "9223372036854775807" } } );
    sortField++;
-   println( "---insert set autoIncrement success" );
 
    //coordA插入记录，消耗完本coord的缓存，[{$numberLong:"-9223372036854775803"}, {$numberLong:"-9223372036854775753"}]
    for( var i = 0; i < 8; i++ )
@@ -81,35 +78,18 @@ function main ()
    expR.push( { a: 15, id: { $numberLong: "-9223372036854775763" } } );
    expR.push( { a: 16, id: { $numberLong: "-9223372036854775758" } } );
    expR.push( { a: 17, id: { $numberLong: "-9223372036854775753" } } );
-   println( "---coordA insert success" );
 
    //coordA插入记录，插入失败，超出序列值返回
-   try
+   assert.tryThrow( -325, function()
    {
       cl[0].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordA get cache success" );
+   } );
 
    //coordB插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[1].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordB get cache success" );
+   } );
 
    //coordC插入记录，消耗完本coord的缓存，[{$numberLong:"-9223372036854775693"}, {$numberLong:"-9223372036854775643"}]
    for( var i = 0; i < 8; i++ )
@@ -125,37 +105,15 @@ function main ()
    expR.push( { a: 23, id: { $numberLong: "-9223372036854775653" } } );
    expR.push( { a: 24, id: { $numberLong: "-9223372036854775648" } } );
    expR.push( { a: 25, id: { $numberLong: "-9223372036854775643" } } );
-   println( "---coordC insert success" );
 
    //coordC插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[2].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordC get cache success" );
+   } );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -3,14 +3,14 @@
 @Modify list :
               2018-10-18  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -55,14 +55,14 @@ function main ()
    maincl.attachCL( subclFullName2, { LowBound: { a1: 21 }, UpBound: { a1: 41 } } );
    maincl.attachCL( subclFullName3, { LowBound: { a1: 41 }, UpBound: { a1: 61 } } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName1 = "SYS_" + mainclID + "_" + fieldNames[0] + "_SEQ";
    var mainclSequenceName2 = "SYS_" + mainclID + "_" + fieldNames[1] + "_SEQ";
    var expIncrementArr = [{ Field: fieldNames[0], SequenceName: mainclSequenceName1 }, { Field: fieldNames[1], SequenceName: mainclSequenceName2 }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
    var expSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize };
-   checkSequence( mainclSequenceName1, expSequenceObj );
+   checkSequence( db, mainclSequenceName1, expSequenceObj );
 
    var doc = [];
    var expR = [];
@@ -75,7 +75,6 @@ function main ()
    maincl.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    var doc = [];
    for( var i = 1; i < 61; i++ )
@@ -87,20 +86,7 @@ function main ()
    subcl1.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into subcl success" );
 
    commDropCS( db, subcsName );
    commDropCS( db, maincsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

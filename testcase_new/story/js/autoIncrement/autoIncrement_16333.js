@@ -2,11 +2,11 @@
 @Description :   seqDB-16333:  删除不存在的自增字段 
 @Modify list :   2018-11-12    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -16,29 +16,10 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1" } } );
 
-   try
+   assert.tryThrow( -333, function()
    {
       dbcl.dropAutoIncrement( "b1" );
-      throw new Error( "drop error!" );
-   } catch( e )
-   {
-      if( e !== -333 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -4,13 +4,12 @@
               2018-10-26  zhaoyu  Create
 ****************************************************************************/
 var sortField = 0;
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -60,26 +59,22 @@ function main ()
    maincl.createAutoIncrement( { Field: fieldName1, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment } );
    subcl1.createAutoIncrement( { Field: fieldName2, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + fieldName1 + "_SEQ";
    var expIncrementArr = [{ Field: fieldName1, SequenceName: mainclSequenceName }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
-   println( "---check maincl autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
-   var subclID = getCLID( maincsName, subclName1 );
+   var subclID = getCLID( db, maincsName, subclName1 );
    var subclSequenceName = "SYS_" + subclID + "_" + fieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: fieldName2, SequenceName: subclSequenceName }];
-   checkAutoIncrementonCL( maincsName, subclName1, expIncrementArr );
-   println( "---check subcl autoIncrement success" );
+   checkAutoIncrementonCL( db, maincsName, subclName1, expIncrementArr );
 
    var mainExpSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment };
-   checkSequence( mainclSequenceName, mainExpSequenceObj );
-   println( "---check maincl sequence success" );
+   checkSequence( db, mainclSequenceName, mainExpSequenceObj );
    var subExpSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment };
-   checkSequence( subclSequenceName, subExpSequenceObj );
-   println( "---check subcl sequence success" );
+   checkSequence( db, subclSequenceName, subExpSequenceObj );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    var mainclCoordCurrentvalue = [];
@@ -103,7 +98,6 @@ function main ()
 
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    for( var k = 0; k < coordNum; k++ )
    {
@@ -121,7 +115,6 @@ function main ()
    }
    var actR = subcl1.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into subcl1 success" );
 
    /*每个coord插入100条记录，需要从catalog上取acquireSizeNum = Math.ceil(100 /acquireSize)次序列值，多个coord总共取coordNum*acquireSizeNum
      再计算这么多序列值，catalog需要生成多少次，再加上初始值*/
@@ -132,15 +125,13 @@ function main ()
    var cacheSize = 32;
    var acquireSize = 12;
    subcl1.setAttributes( { AutoIncrement: { Field: fieldName2, CacheSize: cacheSize, AcquireSize: acquireSize } } );
-   var clID = getCLID( maincsName, subclName1 );
+   var clID = getCLID( db, maincsName, subclName1 );
    var clSequenceName = "SYS_" + clID + "_" + fieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: fieldName2, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( maincsName, subclName1, expIncrementArr );
-   println( "---check cl autoIncrement after alter subcl success" );
+   checkAutoIncrementonCL( db, maincsName, subclName1, expIncrementArr );
 
    var clExpSequenceObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: currentValue };
-   checkSequence( clSequenceName, clExpSequenceObj );
-   println( "---check cl sequence after alter subcl success" );
+   checkSequence( db, clSequenceName, clExpSequenceObj );
 
    for( var k = 0; k < coordNum; k++ )
    {
@@ -154,7 +145,6 @@ function main ()
    }
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
 
    for( var k = 0; k < coordNum; k++ )
    {
@@ -175,20 +165,7 @@ function main ()
    }
    var actR = subcl1.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
 
    commDropCS( db, subcsName );
    commDropCS( db, maincsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

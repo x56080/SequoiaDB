@@ -3,11 +3,11 @@
   @Modify list :
   2020-04-26  liuxiaoxuan  Create
  ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -20,7 +20,7 @@ function main ()
    dbcl.insert( [{ a: 1 }, { a: 2 }] );
 
    //获取自增字段名
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    //修改CurrentValue:1
@@ -32,73 +32,43 @@ function main ()
    var actLastGenerateID = ret.toObj().LastGenerateID;
    var expSeq = { CurrentValue: 2001 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    //检查查询结果
    var expR = [{ id: 1, a: 1 }, { id: 2, a: 2 }, { id: 1002, a: 3 }];
    var actR = dbcl.find().sort( { id: 1 } );
    commCompareResults( actR, expR );
-   println( "---check insert with duplicate autoincrement key success" );
 
    //再次修改CurrentValue:1
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: 1 } } );
 
    //再次不指定自增字段值单插时，与id:1002索引键冲突
-   try
+   assert.tryThrow( -38, function()
    {
       dbcl.insert( { a: 4 } );
-      throw "inert should fail!";
-   }
-   catch( e )
-   {
-      if( -38 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //检查序列缓存还原为2001
    expSeq = { CurrentValue: 2001 };
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    //修改CurrentValue:1001
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: 1001 } } );
 
    //不指定自增字段值批插时，与id:1002索引键冲突
-   try
+   assert.tryThrow( -38, function()
    {
       dbcl.insert( [{ a: 5 }, { a: 6 }, { a: 7 }] );
-      throw "bulk inert should fail!";
-   }
-   catch( e )
-   {
-      if( -38 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //检查序列缓存还原为2001
    expSeq = { CurrentValue: 2001 };
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    //检查查询结果
    expR = [{ id: 1, a: 1 }, { id: 2, a: 2 }, { id: 1002, a: 3 }];
    actR = dbcl.find().sort( { id: 1 } );
    commCompareResults( actR, expR );
-   println( "---check result success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

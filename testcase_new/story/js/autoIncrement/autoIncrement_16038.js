@@ -2,11 +2,11 @@
 @Description :   seqDB-16038:  MinValue字段参数校验 
 @Modify list :   2018-10-23    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -32,7 +32,7 @@ function main ()
       create( dbcl, options[i], false );
    }
    //check Sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a_SEQ",
    "SYS_" + clID + "_a1_SEQ",
    "SYS_" + clID + "_a2_SEQ",
@@ -43,7 +43,7 @@ function main ()
    { MinValue: { "$numberLong": "-9223372036854775808" } }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expSequences[i] );
+      checkSequence( db, sequenceNames[i], expSequences[i] );
    }
 
    dbcl.insert( { "q": 1 } );
@@ -55,15 +55,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

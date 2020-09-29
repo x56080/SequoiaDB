@@ -2,11 +2,11 @@
 @Description :   seqDB-16040:  AcquireSize字段参数校验
 @Modify list :   2018-10-25    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -30,7 +30,7 @@ function main ()
    }
 
    //check Sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a0_SEQ",
    "SYS_" + clID + "_a1_SEQ",
    "SYS_" + clID + "_a2_SEQ"];
@@ -39,11 +39,11 @@ function main ()
    { AcquireSize: 2000, CacheSize: 2000 }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expSequences[i] );
+      checkSequence( db, sequenceNames[i], expSequences[i] );
    }
 
    //insert records
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var expRecs = [];
    for( var i = 0; i < coordNodes.length; i++ )
    {
@@ -60,15 +60,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

@@ -2,11 +2,11 @@
 @Description :   seqDB-16042:  Generated字段参数校验  
 @Modify list :   2018-10-24    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -24,17 +24,10 @@ function main ()
    dbcl.createAutoIncrement( { Field: "id3", Generated: "strict" } );
 
    //create autoIncrement Generated "a"
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createAutoIncrement( { Field: "id3", Generated: "a" } );
-      throw "create error!";
-   } catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //check autoIncrement
    var cursor = db.snapshot( 8, { Name: COMMCSNAME + "." + clName } );
@@ -56,17 +49,10 @@ function main ()
    //insert records and check
    dbcl.insert( { "q": 1, "id2": 5, "id3": 5 } );
    dbcl.insert( { "q": 2, "id1": 5 } );
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.insert( { "q": 2, "id1": 2, "id2": 5, "id3": "f" } );
-      throw "need error for insert";
-   } catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    var rc = dbcl.find().sort( { "id1": 1 } );
    var expRecs = [{ "q": 1, "id1": 1, "id2": 1, "id3": 5 },
@@ -74,16 +60,4 @@ function main ()
    checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

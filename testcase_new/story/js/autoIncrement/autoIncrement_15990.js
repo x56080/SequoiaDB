@@ -3,14 +3,14 @@
 @Modify list :
               2018-10-23  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db);
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -59,24 +59,20 @@ function main ()
    maincl.createAutoIncrement( { Field: fieldName, CacheSize: mainclCacheSize, AcquireSize: mainclAcquireSize } );
    subcl1.createAutoIncrement( { Field: fieldName, Increment: subclIncrement } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db,  maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
-   println( "---check maincl autoIncrement success" );
+   checkAutoIncrementonCL( db,  maincsName, mainclName, expIncrementArr );
 
-   var subclID = getCLID( maincsName, subclName1 );
+   var subclID = getCLID( db,  maincsName, subclName1 );
    var subclSequenceName = "SYS_" + subclID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: subclSequenceName }];
-   checkAutoIncrementonCL( maincsName, subclName1, expIncrementArr );
-   println( "---check subcl autoIncrement success" );
+   checkAutoIncrementonCL( db,  maincsName, subclName1, expIncrementArr );
 
    var mainExpSequenceObj = { CacheSize: mainclCacheSize, AcquireSize: mainclAcquireSize };
-   checkSequence( mainclSequenceName, mainExpSequenceObj );
-   println( "---check maincl sequence success" );
+   checkSequence( db, mainclSequenceName, mainExpSequenceObj );
    var subExpSequenceObj = { Increment: subclIncrement };
-   checkSequence( subclSequenceName, subExpSequenceObj );
-   println( "---check subcl sequence success" );
+   checkSequence( db, subclSequenceName, subExpSequenceObj );
 
    var doc = [];
    var expR = [];
@@ -89,7 +85,6 @@ function main ()
    maincl.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    var doc = [];
    for( var i = 1; i < 61; i++ )
@@ -101,7 +96,6 @@ function main ()
    subcl1.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into subcl success" );
 
    subcl1.dropAutoIncrement( fieldName );
 
@@ -117,7 +111,6 @@ function main ()
    maincl.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl after drop increment field success" );
 
    var doc = [];
    for( var i = 1; i < 61; i++ )
@@ -129,20 +122,7 @@ function main ()
    subcl1.insert( doc );
    var actR = maincl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into subcl after drop increment field success" );
 
    commDropCS( db, subcsName );
    commDropCS( db, maincsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -2,12 +2,12 @@
 @Description :    seqDB-17740: increment为负值，插入值比序列的MinValue稍大，再次插入自增字段未超MinValue  
 @Modify list :   2018-1-29    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -53,17 +53,10 @@ function main ()
 
    //coordA不指定自增字段插入,获取新的缓存[-100，-1]，此时生成id:-1,首次唯一索引冲突不报错，
    //再次取缓存范围[-200，-101]，生成id:-101唯一索引冲突报错-38，插入失败
-   try
+   assert.tryThrow( -38, function()
    {
       cl[0].insert( { a: i } );
-      throw new Error( "coordA insert error!" );
-   } catch( e )
-   {
-      if( e != -38 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //coordB不指定自增字段插入,使自增字段值达到minValue
    for( var i = 0; i < 10; i++ )
@@ -90,16 +83,4 @@ function main ()
    checkRec( rc, expRecs.sort( compare( "id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

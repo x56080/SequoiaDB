@@ -2,11 +2,11 @@
 @Description :   seqDB-15981:  集合中不存在记录，创建/删除自增字段 
 @Modify list :   2018-10-15    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -22,10 +22,10 @@ function main ()
    dbcl.createAutoIncrement( { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize } );
 
    //check sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize };
-   checkSequence( sequenceName, expSequenceObj );
+   checkSequence( db, sequenceName, expSequenceObj );
 
    dbcl.insert( { a: 7 } );
 
@@ -56,7 +56,7 @@ function main ()
    dbcl.createAutoIncrement( { Field: field, CacheSize: cacheSize, AcquireSize: acquireSize } );
 
    //insert records and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    for( var i = 0; i < coordNodes.length; i++ )
    {
       var coord = new Sdb( coordNodes[i] );
@@ -72,15 +72,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

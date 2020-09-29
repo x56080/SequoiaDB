@@ -2,11 +2,11 @@
 @Description :   seqDB-15993: 创建集合时，创建16个自增字段 
 @Modify list :   2018-10-17    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -21,11 +21,11 @@ function main ()
    //check autoIncrement and sequence
    var sequenceNames = getSequenceNames( COMMCSNAME, clName, autoIncrements );
    var expIncrements = getExpIncrements( sequenceNames, autoIncrements );
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrements );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrements );
 
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], {} );
+      checkSequence( db, sequenceNames[i], {} );
    }
 
    //insert records
@@ -48,65 +48,33 @@ function main ()
 
 function getAutoIncrements ()
 {
-   try
+   var autoIncrements = new Array();
+   for( var i = 0; i < 16; i++ )
    {
-      var autoIncrements = new Array();
-      for( var i = 0; i < 16; i++ )
-      {
-         autoIncrements.push( { Field: "id" + i } );
-      }
-      return autoIncrements;
+      autoIncrements.push( { Field: "id" + i } );
    }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   return autoIncrements;
 }
 
 function getSequenceNames ( csName, clName, autoIncrements )
 {
-   try
+
+   var sequenceNames = new Array();
+   var clID = getCLID( db,  csName, clName );
+   for( var i in autoIncrements )
    {
-      var sequenceNames = new Array();
-      var clID = getCLID( csName, clName );
-      for( var i in autoIncrements )
-      {
-         sequenceNames.push( "SYS_" + clID + "_" + autoIncrements[i].Field + "_SEQ" );
-      }
-      return sequenceNames;
+      sequenceNames.push( "SYS_" + clID + "_" + autoIncrements[i].Field + "_SEQ" );
    }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   return sequenceNames;
 }
 
 function getExpIncrements ( sequenceNames, autoIncrements )
 {
-   try
+   var expIncrements = new Array();
+   for( var i in autoIncrements )
    {
-      var expIncrements = new Array();
-      for( var i in autoIncrements )
-      {
-         expIncrements.push( { Field: autoIncrements[i].Field, SequenceName: sequenceNames[i] } );
-      }
-      return expIncrements;
+      expIncrements.push( { Field: autoIncrements[i].Field, SequenceName: sequenceNames[i] } );
    }
-   catch( e )
-   {
-      throw new Error( e );
-   }
-}
+   return expIncrements;
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

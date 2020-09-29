@@ -2,11 +2,11 @@
 @Description :   seqDB-16330:  MaxValue字段参数校验  
 @Modify list :   2018-11-13    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -30,7 +30,7 @@ function main ()
    { Field: "a8", MaxValue: { "$numberLong": "9223372036854775808" } }] );
 
    //check Sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a1_SEQ",
    "SYS_" + clID + "_a4_SEQ",
    "SYS_" + clID + "_a7_SEQ",
@@ -41,7 +41,7 @@ function main ()
    { MaxValue: { "$numberLong": "9223372036854775807" } }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expSequences[i] );
+      checkSequence( db, sequenceNames[i], expSequences[i] );
    }
 
    var expRecs = [];
@@ -57,15 +57,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

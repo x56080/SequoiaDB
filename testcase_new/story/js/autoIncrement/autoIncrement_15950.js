@@ -3,14 +3,14 @@
 @Modify list :
               2018-10-19  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
-   println( "dataGroupNames:" + dataGroupNames );
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -55,15 +55,15 @@ function main ()
    maincl.attachCL( subclFullName2, { LowBound: { a: 2001 }, UpBound: { a: 4001 } } );
    maincl.attachCL( subclFullName3, { LowBound: { a: 4001 }, UpBound: { a: 6001 } } );
 
-   var mainclID = getCLID( maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: mainclSequenceName }];
-   checkAutoIncrementonCL( maincsName, mainclName, expIncrementArr );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
    var expSequenceObj = { CacheSize: cacheSize, AcquireSize: acquireSize };
-   checkSequence( mainclSequenceName, expSequenceObj );
+   checkSequence( db, mainclSequenceName, expSequenceObj );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var j = 0; j < 30; j++ )
@@ -87,20 +87,7 @@ function main ()
 
    var actR = maincl.find().sort( { a1: 1 } );
    checkRec( actR, expR );
-   println( "---check insert into maincl success" );
 
    commDropCS( db, subcsName );
    commDropCS( db, maincsName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

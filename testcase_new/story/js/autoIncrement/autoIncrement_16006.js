@@ -2,11 +2,11 @@
 @Description :   seqDB-16006:  普通集合中存在自增字段，删除集合 
 @Modify list :   2018-10-18    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -39,14 +39,14 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: field } } );
 
    //check autoIncrement and sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expSequenceObj = [{ Field: field, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expSequenceObj );
-   checkSequence( sequenceName, {} );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expSequenceObj );
+   checkSequence( db, sequenceName, {} );
 
    //insert record and check
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var expRecs = new Array();
    for( var i = 0; i < coordNodes.length; i++ )
    {
@@ -63,15 +63,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

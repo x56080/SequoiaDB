@@ -2,12 +2,12 @@
 @Description :    seqDB-17744: increment为负值，超大范围调整 
 @Modify list :   2018-1-29    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -58,35 +58,18 @@ function main ()
    expRecs.push( { a: 1, id: { $numberLong: "9223372036854775804" } } );
    expRecs.push( { a: 2, id: { $numberLong: "9223372036854775803" } } );
    expRecs.push( { a: 3, id: { $numberLong: "9223372036854775802" } } );
-   println( "---coordA insert success" );
 
    //coordA插入记录，插入失败，超出序列值返回
-   try
+   assert.tryThrow( -325, function()
    {
       cl[0].insert( { a: 1 } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordA get cache success" );
+   } );
 
    //coordB插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[1].insert( { a: 1 } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordB get cache success" );
+   } );
 
    //coordC插入记录，消耗完本coord的缓存[{ "$numberLong" : "922337203685477601" },{ "$numberLong" : "9223372036854775705" }]
    for( var i = 0; i < 4; i++ )
@@ -97,36 +80,15 @@ function main ()
    expRecs.push( { a: 1, id: { $numberLong: "9223372036854775794" } } );
    expRecs.push( { a: 2, id: { $numberLong: "9223372036854775793" } } );
    expRecs.push( { a: 3, id: { $numberLong: "9223372036854775792" } } );
-   println( "---coordC insert success" );
 
    //coordC插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[2].insert( { a: 1 } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordC get cache success" );
+   } );
 
    var rc = dbcl.find().sort( { _id: 1 } );
    checkRec( rc, expRecs.sort( compare( "_id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

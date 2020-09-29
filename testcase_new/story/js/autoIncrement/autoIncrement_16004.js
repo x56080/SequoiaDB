@@ -3,14 +3,15 @@
 @Modify list :
               2018-10-25  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var sortField = 0;
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    };
 
@@ -35,29 +36,21 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when set Increment>0 success" );
 
    for( var k = 0; k < coordNum; k++ )
    {
       var coord = new Sdb( coordNodes[k] );
-      println( "coord:" + coord );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      try
+
+      assert.tryThrow( -325, function()
       {
          cl.insert( { a: "insert" } );
-         throw "NEED_INSERT_ERROR";
-      } catch( e )
-      {
-         if( -325 !== e )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
+
       coord.close();
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when Sequence is exceeded success" );
 
    dbcl.dropAutoIncrement( fieldName );
    var increment = -13;
@@ -75,41 +68,21 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when set Increment<0 success" );
 
    for( var k = 0; k < coordNum; k++ )
    {
       var coord = new Sdb( coordNodes[k] );
-      println( "coord:" + coord );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      try
+
+      assert.tryThrow( -325, function()
       {
          cl.insert( { a: "insert" } );
-         throw new Error( "NEED_INSERT_ERROR" );
-      } catch( e )
-      {
-         if( -325 !== e )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
+
       coord.close();
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert when Sequence is exceeded success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

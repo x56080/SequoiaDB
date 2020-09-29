@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-25  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -18,7 +19,7 @@ function main ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName } } );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var k = 0; k < coordNum; k++ )
@@ -37,7 +38,6 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    var increment = 10;
    var startValue = 100;
@@ -54,18 +54,16 @@ function main ()
          CacheSize: cacheSize, AcquireSize: acquireSize, Cycled: cycled, Generated: generated, CurrentValue: currentValue
       }
    } );
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
-   println( "---check cl autoIncrement success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
 
    var clExpSequenceObj = {
       Increment: increment, StartValue: startValue, MinValue: minValue, MaxValue: maxValue, CacheSize: cacheSize,
       AcquireSize: acquireSize, Cycled: cycled, CurrentValue: currentValue
    };
-   checkSequence( clSequenceName, clExpSequenceObj );
-   println( "---check cl sequence success" );
+   checkSequence( db, clSequenceName, clExpSequenceObj );
 
    for( var k = 0; k < coordNum; k++ )
    {
@@ -86,18 +84,5 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

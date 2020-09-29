@@ -2,12 +2,12 @@
 @Description :   seqDB-15988:range分区表上创建/删除自增字段 
 @Modify list :   2018-10-16    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var dataGroupNames = commGetDataGroupNames( db);
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -24,12 +24,12 @@ function main ()
 
    dbcl.createAutoIncrement( { Field: field } );
 
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expArr = [{ Field: field, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expArr );
 
-   checkSequence( sequenceName, {} );
+   checkSequence( db, sequenceName, {} );
 
    dbcl.insert( { a: 2 } );
 
@@ -54,15 +54,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

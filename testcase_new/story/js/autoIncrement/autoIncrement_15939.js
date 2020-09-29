@@ -3,11 +3,11 @@
 @Modify list :
               2018-10-16  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -35,20 +35,7 @@ function main ()
 
    var actR = dbcl.find().sort( { _id: 1 } );
    checkRec( actR, doc );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
 
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

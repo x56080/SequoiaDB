@@ -2,12 +2,12 @@
 @Description : seqDB-17895:Increment为负值，自增字段为嵌套字段，插入值大于当前缓存范围，但在其他缓存范围内
 @Modify list :   2018-1-25    Zhao Xiaoni  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    if( coordNodes.length < 3 || commIsStandalone( db ) )
    {
-      println( "Deploy is standalone or coord nodes is less than 3!" );
       return;
    }
 
@@ -76,16 +76,4 @@ function main ()
    checkRec( rc, expRecs.sort( compare( "_id" ) ) );
 
    commDropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

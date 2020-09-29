@@ -3,11 +3,11 @@
   @Modify list :
   2020-04-27  liuxiaoxuan  Create
  ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -18,7 +18,7 @@ function main ()
    commCreateIndex( dbcl, "id", { id: 1 }, { Unique: true } );
 
    //获取自增字段名
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    var expLastGenerateID = 1;
@@ -26,7 +26,7 @@ function main ()
    var actLastGenerateID = ret.toObj().LastGenerateID;
    var expSeq = { CurrentValue: 1001 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    //指定自增字段执行更新，且更新后的值与自动生成的自增字段值冲突
    dbcl.update( { $set: { id: 3 } }, { id: 2 } );
@@ -37,24 +37,11 @@ function main ()
    actLastGenerateID = ret.toObj().LastGenerateID;
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
    expSeq = { CurrentValue: 2001 };
-   checkSequence( clSequenceName, expSeq );
+   checkSequence( db, clSequenceName, expSeq );
 
    expR = [{ id: 1, a: 1 }, { id: 3, a: 2 }, { id: 1001, a: 1001 }];
    actR = dbcl.find().sort( { id: 1 } );
    commCompareResults( actR, expR );
-   println( "---check result success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

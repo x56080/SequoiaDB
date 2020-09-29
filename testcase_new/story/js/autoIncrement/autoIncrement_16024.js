@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-26  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
+   var sortField = 0;
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -20,7 +21,7 @@ function main ()
    var acquireSize = 11;
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, AcquireSize: acquireSize } } );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    var expR = [];
    for( var k = 0; k < coordNum; k++ )
@@ -39,25 +40,21 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    var cacheSize = 32;
    var acquireSize = 11;
    var generated = "strict";
    var currentValue = 1000 * increment + 1;
    dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, CompressionType: 'lzw' } );
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrementArr );
-   println( "---check cl autoIncrement success" );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
 
    var clExpSequenceObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: currentValue };
-   checkSequence( clSequenceName, clExpSequenceObj );
-   println( "---check cl sequence success" );
+   checkSequence( db, clSequenceName, clExpSequenceObj );
 
    checkSnapshot8onCL( COMMCSNAME, clName );
-   println( "---check cl shardingType and compressType success" );
 
    for( var k = 0; k < coordNum; k++ )
    {
@@ -78,51 +75,23 @@ function main ()
    }
    var actR = dbcl.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
 
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.insert( { id: "a" } );
-      throw ( "NEED_INSERT_ERR" );
-   } catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---check insert after alter generated success" );
+   } );
+
    commDropCL( db, COMMCSNAME, clName, true, true );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
 function checkSnapshot8onCL ( csName, clName )
 {
-   try
+   var obj = db.snapshot( 8, { Name: csName + "." + clName } ).next().toObj();
+   var shardingType = obj.ShardingType;
+   var compressionType = obj.CompressionTypeDesc;
+   if( shardingType !== "hash" || compressionType !== "lzw" )
    {
-      var obj = db.snapshot( 8, { Name: csName + "." + clName } ).next().toObj();
-      var shardingType = obj.ShardingType;
-      var compressionType = obj.CompressionTypeDesc;
-      if( shardingType !== "hash" || compressionType !== "lzw" )
-      {
-         println( "shardingType:" + shardingType + ",compressionType:" + compressionType + "\n" );
-         throw "ALTER_CL_ERR";
-      }
-   }
-   catch( e )
-   {
-      throw new Error( e );
+      throw new Error( "ALTER_CL_ERR" );
    }
 }

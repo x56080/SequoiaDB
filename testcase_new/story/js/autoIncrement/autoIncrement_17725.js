@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-28  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -30,7 +30,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,51],[56,106],[111,161]
       var doc = [];
@@ -42,13 +41,11 @@ function main ()
       }
       cl[k].insert( doc );
    }
-   println( "---prepare insert success" );
 
    //coordB指定自增字段插入记录，插入值是序列的maxValue-5,coordB丢弃本coord的缓存，重新从catalog上获取新缓存,[maxValue,maxValue]
    cl[1].insert( { a: sortField, id: { $numberLong: "9223372036854775801" } } );
    expR.push( { a: sortField, id: { $numberLong: "9223372036854775801" } } );
    sortField++;
-   println( "---insert set autoIncrement success" );
 
    //coordA插入记录，消耗完本coord的缓存，[1,51]
    for( var i = 0; i < 8; i++ )
@@ -57,45 +54,26 @@ function main ()
       expR.push( { a: sortField, id: 16 + i * increment } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    //coordB插入记录，插入成功，消耗完最后一个自增字段值
    cl[1].insert( { a: sortField } );
    expR.push( { a: sortField, id: { $numberLong: "9223372036854775806" } } );
    sortField++;
-   println( "---coordB insert success" );
 
    //coordA插入记录，插入失败，超出序列值返回
-   try
+   assert.tryThrow( -325, function()
    {
       cl[0].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordA get cache success" );
+   } );
 
    //coordB插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[1].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordB get cache success" );
+   } );
 
    //coordC插入记录，消耗完本coord的缓存，[111,161]
    for( var i = 0; i < 8; i++ )
@@ -104,37 +82,15 @@ function main ()
       expR.push( { a: sortField, id: 126 + i * increment } );
       sortField++;
    }
-   println( "---coordC insert success" );
 
    //coordC插入记录，插入失败，超出序列值范围
-   try
+   assert.tryThrow( -325, function()
    {
       cl[2].insert( { a: sortField } );
-      throw new Error( "NEED_ERROR" );
-   } catch( e )
-   {
-      if( e !== -325 )
-      {
-         throw new Error( e );
-      }
-   }
-   println( "---coordC get cache success" );
+   } );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

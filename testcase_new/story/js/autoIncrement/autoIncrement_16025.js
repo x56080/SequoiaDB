@@ -3,13 +3,14 @@
 @Modify list :
               2018-10-26  zhaoyu  Create
 ****************************************************************************/
-var sortField = 0;
-function main ()
+
+main( test );
+function test ()
 {
-   var dataGroupNames = getDataGroupNames();
+   var sortField = 0;
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
-      println( "Deploy is standalone or only one group" );
       return;
    }
 
@@ -29,15 +30,13 @@ function main ()
       AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Increment: increment }
    } );
 
-   var clID = getCLID( csName, clName );
+   var clID = getCLID( db, csName, clName );
    var sequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: sequenceName }];
-   checkAutoIncrementonCL( csName, clName, expIncrementArr );
-   println( "---check cl autoIncrement success" );
+   checkAutoIncrementonCL( db, csName, clName, expIncrementArr );
 
    var expSequenceObj = { AcquireSize: acquireSize, CacheSize: cacheSize, Increment: increment };
-   checkSequence( sequenceName, expSequenceObj );
-   println( "---check cl sequence success" );
+   checkSequence( db, sequenceName, expSequenceObj );
 
    var doc = [];
    var expR = [];
@@ -51,7 +50,6 @@ function main ()
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    //插入100条记录，catalog上缓存序列生成了100/cacheSize次,且序列值已用完
    var currentValue = ( Math.ceil( 100 / cacheSize ) + 1 ) * cacheSize * increment + 1;
@@ -61,17 +59,15 @@ function main ()
    var cacheSize = 32;
    var acquireSize = 12;
    dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize } } );
-   var clID = getCLID( csName, clName );
+   var clID = getCLID( db, csName, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( csName, clName, expIncrementArr );
-   println( "---check cl autoIncrement after alter success" );
+   checkAutoIncrementonCL( db, csName, clName, expIncrementArr );
 
    var clExpSequenceObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: currentValue };
-   checkSequence( clSequenceName, clExpSequenceObj );
-   println( "---check cl sequence after alter success" );
+   checkSequence( db, clSequenceName, clExpSequenceObj );
 
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    for( var k = 0; k < coordNum; k++ )
    {
@@ -90,20 +86,7 @@ function main ()
    }
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert after alter autoIncrement success" );
 
    commDropCS( db, csName );
    commDropDomain( db, domainName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

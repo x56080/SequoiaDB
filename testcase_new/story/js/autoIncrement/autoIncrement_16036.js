@@ -2,11 +2,11 @@
 @Description :   seqDB-16036:  Increment字段参数校验  
 @Modify list :   2018-10-23    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -37,7 +37,7 @@ function main ()
    { Field: "a3", Increment: 2147483647 }] );
 
    //check Sequence
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_a_SEQ",
    "SYS_" + clID + "_a1_SEQ",
    "SYS_" + clID + "_a2_SEQ",
@@ -51,7 +51,7 @@ function main ()
    { Increment: 2147483647 }];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expSequences[i] );
+      checkSequence( db, sequenceNames[i], expSequences[i] );
    }
 
    //insert records and check
@@ -66,15 +66,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

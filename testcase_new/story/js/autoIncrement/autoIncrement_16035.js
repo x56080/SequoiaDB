@@ -2,11 +2,11 @@
 @Description :   seqDB-16035:  Field字段参数校验 
 @Modify list :   2018-10-23    xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -39,7 +39,7 @@ function main ()
    }
 
    //check autoIncrement value
-   var clID = getCLID( COMMCSNAME, clName );
+   var clID = getCLID( db,  COMMCSNAME, clName );
    var sequenceNames = ["SYS_" + clID + "_id1_SEQ",
    "SYS_" + clID + "_id6_SEQ",
    "SYS_" + clID + "_id$7_SEQ",
@@ -54,7 +54,7 @@ function main ()
    { Field: "id9", SequenceName: sequenceNames[4] },
    { Field: "id", SequenceName: sequenceNames[5] },
    { Field: "id99", SequenceName: sequenceNames[6] }];
-   checkAutoIncrementonCL( COMMCSNAME, clName, expIncrements );
+   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrements );
 
    //insert records and check
    dbcl.insert( { "a": 1 } );
@@ -66,15 +66,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

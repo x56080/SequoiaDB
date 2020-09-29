@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-24  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -29,7 +29,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,11],[12,22],[23,33]
       var doc = [];
@@ -41,12 +40,10 @@ function main ()
       }
       cl[k].insert( doc );
    }
-   println( "---prepare insert success" );
 
    //coordB指定自增字段插入记录，插入值为当前coord缓存范围的最大值，获取新的缓存[34,44]
    cl[1].insert( { a: sortField, id: 22 } );
    expR.push( { a: sortField, id: 22 } );
-   println( "---insert set autoIncrement success" );
 
    //coordA插入记录，不指定自增字段，消耗完本coord缓存[1,11]
    for( var i = 0; i < 8; i++ )
@@ -55,7 +52,6 @@ function main ()
       expR.push( { a: sortField, id: 4 + i } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    //coordA插入记录，不指定自增字段，重新获取序列缓存，[45,55]
    for( var i = 0; i < 2; i++ )
@@ -64,7 +60,6 @@ function main ()
       expR.push( { a: sortField, id: 45 + i } );
       sortField++;
    }
-   println( "---coordA get cache success" );
 
    //coordB插入记录，不指定自增字段,[34,44]
    for( var i = 0; i < 2; i++ )
@@ -73,7 +68,6 @@ function main ()
       expR.push( { a: sortField, id: 34 + i } );
       sortField++;
    }
-   println( "---coordB adjust autoIncrement success" );
 
    //coordC插入记录，不指定自增字段,消耗完本coord缓存，[23,33]
    for( var i = 0; i < 8; i++ )
@@ -82,7 +76,6 @@ function main ()
       expR.push( { a: sortField, id: 26 + i } );
       sortField++;
    }
-   println( "---coordC insert success" );
 
    //coordC插入记录，不指定自增字段,获取新的序列缓存，[56,66]
    for( var i = 0; i < 2; i++ )
@@ -91,23 +84,9 @@ function main ()
       expR.push( { a: sortField, id: 56 + i } );
       sortField++;
    }
-   println( "---coordC get cache success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

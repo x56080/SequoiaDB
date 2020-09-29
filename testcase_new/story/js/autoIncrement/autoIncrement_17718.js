@@ -3,13 +3,13 @@
 @Modify list :
               2019-1-25  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+function test ()
 {
-   var coordNodes = getCoordNodeNames();
+   var coordNodes = getCoordNodeNames( db );
    var coordNum = coordNodes.length;
    if( commIsStandalone( db ) || coordNum !== 3 )
    {
-      println( "Deploy is standalone or coord num !=3" );
       return;
    }
    var sortField = 0;
@@ -29,7 +29,6 @@ function main ()
    for( var k = 0; k < coordNum; k++ )
    {
       coord[k] = new Sdb( coordNodes[k] );
-      println( "coord:" + coord[k] );
       cl[k] = coord[k].getCS( COMMCSNAME ).getCL( clName );
       //连接所有coord插入部分记录,coord缓存分别为[1,11],[12,22],[23,33]
       var doc = [];
@@ -41,12 +40,10 @@ function main ()
       }
       cl[k].insert( doc );
    }
-   println( "---prepare insert success" );
 
    //coordB指定自增字段插入记录，插入值是序列的currentValue:1001，catalog重新生成新的缓存[1002,2002],coordB重新获取新缓存
    cl[1].insert( { a: sortField, id: 1001 } );
    expR.push( { a: sortField, id: 1001 } );
-   println( "---insert set autoIncrement success" );
 
    //coordA插入记录，消耗完本coord的缓存，[1,11]
    for( var i = 0; i < 8; i++ )
@@ -55,7 +52,6 @@ function main ()
       expR.push( { a: sortField, id: 4 + i } );
       sortField++;
    }
-   println( "---coordA insert success" );
 
    //coordA插入记录，不指定自增字段，重新从catalog或者新缓存,[1013,1023]
    for( var i = 0; i < 2; i++ )
@@ -64,7 +60,6 @@ function main ()
       expR.push( { a: sortField, id: 1013 + i } );
       sortField++;
    }
-   println( "---coordA get cache success" );
 
    //coordB插入记录，不指定自增字段，重新从catalog或者新缓存,[1002,1012]
    for( var i = 0; i < 2; i++ )
@@ -73,7 +68,6 @@ function main ()
       expR.push( { a: sortField, id: 1002 + i } );
       sortField++;
    }
-   println( "---coordB get cache success" );
 
    //coordC插入记录，消耗完本coord的缓存，[23,33]
    for( var i = 0; i < 8; i++ )
@@ -82,7 +76,6 @@ function main ()
       expR.push( { a: sortField, id: 26 + i } );
       sortField++;
    }
-   println( "---coordC insert success" );
 
    //coordC插入记录，不指定自增字段，重新从catalog或者新缓存,[1024,1034]
    for( var i = 0; i < 2; i++ )
@@ -91,23 +84,9 @@ function main ()
       expR.push( { a: sortField, id: 1024 + i } );
       sortField++;
    }
-   println( "---coordC get cache success" );
 
    var actR = dbcl.find().sort( { a: 1 } );
    checkRec( actR, expR );
-   println( "---check insert success" );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }
