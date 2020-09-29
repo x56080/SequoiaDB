@@ -8,7 +8,7 @@
 func.js 中方法：
    1、判断
       判断是否为独立模式     commIsStandalone(db)
-      比较结果集            commCompareResults(cursor,expRecs,exceptId)
+      比较结果集             commCompareResults(cursor,expRecs,exceptId)
       判断两个对象是否相等   commCompareObject(expObj,actObj)
       比较错误码是否一致     commCompareErrorCode(e,code)
       
@@ -17,7 +17,7 @@ func.js 中方法：
       创建并返回 cl          commCreateCL(db,csName,clName,optionObj,autoCreateCS,ignoreExisted,message) 
       创建索引               commCreateIndex(cl,indexName,indexDef,options,ignoreExist)
       创建并启动 group       commCreateRG(db,rgName,nodeNum,hostname,nodeOption)
-      在指定主机创建目录      commMakeDir(hostName,dir)
+      在指定主机创建目录     commMakeDir(hostName,dir)
       创建并返回 domain      commCreateDomain(db,domainName,groupNames,options)
       
    3、删除
@@ -27,8 +27,8 @@ func.js 中方法：
       删除 domain            commDropDomain(db,domainName,ignoreNotExist)
 
    4、检查
-      检查索引一致性          commCheckIndexConsistency(cl,indexName,exist,timeout)   
-      检查集群状态            commCheckBusinessStatus(db,timeout,checkLSN)
+      检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout)   
+      检查集群状态           commCheckBusinessStatus(db,timeout,checkLSN)
       检测 group 状态        commCheckBusiness(groups,checkLSN)
       检测主备 LSN           commCheckLSN(db,groupNames,timeout)
    
@@ -40,8 +40,8 @@ func.js 中方法：
       获取 group 个数        commGetGroupsNum(db)
       获取所有 data group    commGetDataGroupNames(db)
       获取 group 所有节点    commGetGroupNodes(db,groupName)
-      获取 backup           commGetBackups(db,filter,path,isSubDir,cond,grpNameArray)
-      获取 procedure        commGetProcedures(db,filter)
+      获取 backup            commGetBackups(db,filter,path,isSubDir,cond,grpNameArray)
+      获取 procedure         commGetProcedures(db,filter)
       获取 sdb 安装路径      commGetInstallPath()
       获取指定快照类型       commGetSnapshot(db,snapshotType,condObj,selObj,sortObj,skipNum,limitNum,optionsObj)
       
@@ -262,9 +262,9 @@ function commDropCS ( db, csName, ignoreNotExist, message, options )
    commCheckType( options, "object" );
 
    try
-   {   
+   {
       if( JSON.stringify( options ) == "{}" )
-      {   
+      {
          db.dropCS( csName );
       } else
       {
@@ -1462,7 +1462,7 @@ function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
             continue;
          }
          catch( e )
-         {
+         {   
             if( !commCompareErrorCode( e, 1) )
             {
                throw new Error( "lsof check port error: " + e );
@@ -1966,4 +1966,3 @@ catch( e )
 {
    commThrowError( e, "connect sdb " + COORDHOSTNAME + ":" + COORDSVCNAME );
 }
-

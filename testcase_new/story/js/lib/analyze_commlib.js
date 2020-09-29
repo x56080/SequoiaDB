@@ -1072,4 +1072,3 @@ function isOnlyOneNodeInGroup ()
 
    return false;
 }
-

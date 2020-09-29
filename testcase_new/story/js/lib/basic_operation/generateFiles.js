@@ -182,4 +182,3 @@ function addStaPrivateFunc ( className, staicFunc )
    }
    return staicFunc;
 }
-

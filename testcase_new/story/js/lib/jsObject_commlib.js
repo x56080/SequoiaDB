@@ -524,7 +524,7 @@ function toolGetCurrentUser ( hostName, cmSvcName )
 ******************************************************************************/
 function toolGetCmUserGroup ( hostname, svcname )
 {
-   var sdbDir = toolGetSdbDir( hostname, svcname );
+   var sdbDir = toolGetSequoiadbDir( hostname, svcname );
    var file = sdbDir[0] + "/conf/sdbcm.conf";
 
    var remote = new Remote( hostname, svcname );
@@ -553,7 +553,7 @@ function isEmptyObject ( obj )
 *@Description : get sequoiadb dir eg: /opt/sequoiadb /opt/sequoiadb/bin/..
 *@author      : Liang XueWang              
 ******************************************************************************/
-function toolGetSdbDir ( hostname, svcname )
+function toolGetSequoiadbDir ( hostname, svcname )
 {
    var dir = [];
    var remote = new Remote( hostname, svcname );

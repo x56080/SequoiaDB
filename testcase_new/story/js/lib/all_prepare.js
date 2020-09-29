@@ -71,4 +71,3 @@ catch( e )
 {
    println( "Before all test-cases environment prepare failed: " + e );
 }
-

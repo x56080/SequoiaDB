@@ -1,4 +1,4 @@
-var assert = new Assert();
+
 function Assert ()
 {
 

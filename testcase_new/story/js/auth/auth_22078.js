@@ -52,8 +52,8 @@ function test ()
       // use db1
       assert.tryThrow( -179, function()
       {
-        db1.getRG( groupName ).getMaster().connect();
-      });
+         db1.getRG( groupName ).getMaster().connect();
+      } );
       // use db2
       var nodeDB = db2.getRG( groupName ).getMaster().connect();
       nodeDB.close();

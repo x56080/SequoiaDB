@@ -261,7 +261,7 @@ function test ()
 
 
    //analyze
-   db.analyze( db );
+   db.analyze( );
 
    //check all groups consistency
    checkConsistency( db, null, null, groups );

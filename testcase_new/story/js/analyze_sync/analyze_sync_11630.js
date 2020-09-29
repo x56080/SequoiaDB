@@ -69,7 +69,7 @@ function test ()
    var dbclPrimary22 = db1.getCS( csName2 ).getCL( clName2 );
 
    //执行统计
-   db.analyze( db );
+   db.analyze( );
 
    //检查所有组主备是否一致
    checkConsistency( db, null, null, groups );
