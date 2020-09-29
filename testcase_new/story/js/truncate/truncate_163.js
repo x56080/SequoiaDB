@@ -65,4 +65,3 @@ function truncateAndCheckResult ( cl, csName, clName )
       throw new Error( "expCount: " + expCount + "\nactLobCount: " + actLobCount + "\nexpCount: " + expCount + "\nactRecordCount: " + actRecordCount );
    }
 }
-

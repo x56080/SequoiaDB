@@ -495,4 +495,3 @@ function commRemoveProcedure ( db, functionName, ignoreNotExist )
       }
    }
 }
-

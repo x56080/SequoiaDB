@@ -85,4 +85,3 @@ function truncateAndCheckResult ( cl, csName, clName )
       throw new Error( "expCount: " + expCount + "\nactCount: " + actCount );
    }
 }
-

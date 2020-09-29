@@ -50,4 +50,3 @@ function main ()
    db.removeProcedure( "delete19435" );
    commDropCS( db, csName, true, "drop CS in the end" );
 }
-

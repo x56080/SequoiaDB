@@ -37,4 +37,3 @@ function importData ( csName, clName )
       cmd.run( imprtOption );
    } );
 }
-

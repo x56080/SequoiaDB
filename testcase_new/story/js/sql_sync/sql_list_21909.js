@@ -38,4 +38,3 @@ function test ()
    db.dropUsr( "name_21909_1", "password_201909_1" );
    db.dropUsr( "name_21909_2", "password_201909_2" );
 }
-

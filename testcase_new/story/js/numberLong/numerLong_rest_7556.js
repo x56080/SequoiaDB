@@ -2,21 +2,9 @@
 *@Description : seqDB-7556:rest_strict格式的参数校验
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_7556";
    commDropCL( db, COMMCSNAME, clName );

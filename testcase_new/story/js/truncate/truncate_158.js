@@ -92,4 +92,3 @@ function truncateAndCheckResult ( mainCL, subCLFullName1, subCLFullName2 )
 }
 
 
-

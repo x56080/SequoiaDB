@@ -38,4 +38,3 @@ function importData ( csName, clName, imprtFile )
       var rc = cmd.run( imprtOption );
    } );
 }
-

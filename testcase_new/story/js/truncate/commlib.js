@@ -219,4 +219,3 @@ function truncatePutLob ( cl, lobSize, lobNumber )
 }
 
 
-

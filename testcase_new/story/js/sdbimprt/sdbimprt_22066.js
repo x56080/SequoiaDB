@@ -9,7 +9,7 @@ testConf.clName = COMMCLNAME + "_22066";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
 
    cl = testPara.testCL;
@@ -17,7 +17,7 @@ function test( testPara )
    testImprtJson( clName, cl );
 }
 
-function testImprtJson( clName, cl )
+function testImprtJson ( clName, cl )
 {
 
 
@@ -30,35 +30,35 @@ function testImprtJson( clName, cl )
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
       " -l " + clName +
-      " --type json " + 
+      " --type json " +
       "--file " + filename;
-   
+
    //不指定--decimalto 
    cmd.run( command );
-   var expectResult = [{ "a" : { "$decimal": "12345.12345678987654321" } },{ "b" : { "$decimal": "123" } } ];
+   var expectResult = [{ "a": { "$decimal": "12345.12345678987654321" } }, { "b": { "$decimal": "123" } }];
    commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
-   
+
    //decimalto ""
    cl.remove();
-   cmd.run( command + " --decimalto ''");
+   cmd.run( command + " --decimalto ''" );
    commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
-   
+
    //decimalto double
    cl.remove();
-   expectResult = [{"a": 12345.12345678988},{"b": 123}];
-   cmd.run( command + " --decimalto double");
+   expectResult = [{ "a": 12345.12345678988 }, { "b": 123 }];
+   cmd.run( command + " --decimalto double" );
    commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
-   
+
    // decimalto string
    cl.remove();
-   cmd.run( command + " --decimalto string");
-   expectResult =  [ {"a": "12345.12345678987654321"},{"b": "123"} ];
-   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult ); 
-   
+   cmd.run( command + " --decimalto string" );
+   expectResult = [{ "a": "12345.12345678987654321" }, { "b": "123" }];
+   commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
+
    // decimalto
    cl.remove();
    assert.tryThrow( 127, function()
    {
-      cmd.run( command + " --decimalto");
-   });
+      cmd.run( command + " --decimalto" );
+   } )
 }

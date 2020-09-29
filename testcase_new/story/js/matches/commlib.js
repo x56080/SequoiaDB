@@ -1,4 +1,3 @@
-import("../lib/main.js")
 /*******************************************************************************
 *@Description : matches testcase common functions and varialb
 *@Modify list :

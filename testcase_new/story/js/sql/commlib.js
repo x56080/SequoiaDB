@@ -4,7 +4,7 @@
    2014-3-14 Jianhui Xu  Init
 ***************************************************************************** */
 import( "../lib/main.js" )
-import( "../lib/basic_operation/sequoiadb.js" )
+import( "../lib/basic_operation/commlib.js" )
 
 // common functions
 function sqlInsertAndCheck ( db, csName, clName, num, removeAll, needCheck, message )
