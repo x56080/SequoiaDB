@@ -6,7 +6,7 @@ data type: int/numberLong/double/decimal/string/bool/date/timestamp/binary/regex
 *@testlinkCase: seqDB-11534
 **************************************/
 
-
+main( test );
 function main ()
 {
    //set find data from master
