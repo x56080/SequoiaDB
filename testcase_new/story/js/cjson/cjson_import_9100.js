@@ -4,20 +4,8 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9100";
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var cl = readyCL( COMMCSNAME, clName );
 
@@ -53,6 +41,3 @@ function checkCLDatas ( cl, expRecs )
       throw new Error( "actCnt: " + actCnt + "\nexpCnt: " + expCnt );
    }
 }
-
-
-

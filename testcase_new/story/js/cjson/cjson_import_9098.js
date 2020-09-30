@@ -4,20 +4,8 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9098";
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var cl = readyCL( COMMCSNAME, clName );
 
@@ -33,6 +21,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
    removeTmpDir();
 }
-
-
-

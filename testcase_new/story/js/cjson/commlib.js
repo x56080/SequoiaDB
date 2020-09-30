@@ -7,22 +7,11 @@
 import( "../lib/main.js" );
 import( "../lib/basic_operation/commlib.js" );
 
-try
-{
-   var tmpFileDir = '/tmp/cjsonOfSdbimprt/';
-   var cmd = cmdInit();
-   readyTmpDir();
-   var LocalPath = null;           // 当前目录       
-   var installDir = initPath();    // import工具所在目录
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+var tmpFileDir = '/tmp/cjsonOfSdbimprt/';
+var cmd = new Cmd();
+readyTmpDir();
+var LocalPath = null;           // 当前目录       
+var installDir = initPath();    // import工具所在目录
 /* ****************************************************
 @description: create cl
 @return: cl
@@ -43,16 +32,6 @@ function readyTmpDir ()
 {
    cmd.run( "rm -rf " + tmpFileDir );
    cmd.run( "mkdir -p " + tmpFileDir );
-}
-
-/* ****************************************************
-@description: new Cmd
-@return: cmd
-**************************************************** */
-function cmdInit ()
-{
-   var cmd = new Cmd();
-   return cmd;
 }
 
 /******************************************************************************
@@ -79,17 +58,6 @@ function initPath ()
    println( "instatllpath = " + installPath );
    return installPath;
 }
-
-/* ****************************************************
-@description: new File
-@return: file
-**************************************************** */
-function fileInit ( fileName )
-{
-   var file = new File( fileName );
-   return file;
-}
-
 /****************************************************
 @description: check the result of import
 @modify list:
@@ -119,7 +87,7 @@ function checkCLData ( cl, expRecs )
 ******************************************************/
 function importData ( csName, clName, imprtFile, datas )
 {
-   var file = fileInit( imprtFile );
+   var file = new File( imprtFile );
    file.write( datas );
    var fileInfo = cmd.run( "cat " + imprtFile );
    println( imprtFile + "\n" + fileInfo );

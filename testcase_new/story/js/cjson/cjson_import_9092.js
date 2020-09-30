@@ -3,20 +3,8 @@
 *@Author:        2016-7-20  wuyan
 ************************************************************************/
 var clName = COMMCLNAME + "_9092";
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    var cl = readyCL( COMMCSNAME, clName );
    cmd.run( 'rm -rf ./sdbimport.log' );
@@ -40,4 +28,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
    removeTmpDir();
 }
-

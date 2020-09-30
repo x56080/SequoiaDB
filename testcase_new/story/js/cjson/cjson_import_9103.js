@@ -4,19 +4,8 @@
 ************************************************************************/
 var clName = COMMCLNAME + "_9103";
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-function main ()
+main( test );
+function test ()
 {
    var cl = readyCL( COMMCSNAME, clName );
    cmd.run( 'rm -rf ./sdbimport.log' );
