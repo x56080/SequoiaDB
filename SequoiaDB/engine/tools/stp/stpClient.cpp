@@ -748,4 +748,128 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS, "_stpClient::convTimeRealToLogical" )
+   INT32 _stpClient::convTimeRealToLogical( const stpHPTime &realTime,
+                                            stpLogicalTimeNS &logicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS ) ;
+
+      rc = _convTime( realTime, logicalTime, TRUE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
+                   "real time, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US, "_stpClient::convTimeRealToLogical" )
+   INT32 _stpClient::convTimeRealToLogical( const stpHPTime &realTime,
+                                            stpLogicalTimeUS &logicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US ) ;
+
+      stpLogicalTimeNS tempTime ;
+      rc = convTimeRealToLogical( realTime, tempTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
+                   "logical time, rc: %d", rc ) ;
+
+      logicalTime = tempTime ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, "_stpClient::convTimeLogicalToReal" )
+   INT32 _stpClient::convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
+                                            stpHPTime &realTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS ) ;
+
+      rc = _convTime( logicalTime, realTime, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
+                   "real time, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US, "_stpClient::convTimeLogicalToReal" )
+   INT32 _stpClient::convTimeLogicalToReal( const stpLogicalTimeUS &logicalTime,
+                                            stpHPTime &realTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US ) ;
+
+      stpLogicalTimeNS tempTime = logicalTime ;
+      rc = convTimeLogicalToReal( tempTime, realTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
+                   "real time, rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT__CONVTIME, "_stpClient::_convTime" )
+   INT32 _stpClient::_convTime( const stpTimeBase &fromTime,
+                                stpTimeBase &toTime,
+                                BOOLEAN isRealToLogical )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS ) ;
+
+      BSONObj argument, result ;
+
+      const CHAR *fromField = isRealToLogical ?
+                              STP_FIELD_NAME_REAL_TIME :
+                              STP_FIELD_NAME_LOGICAL_TIME ;
+      const CHAR *toField = isRealToLogical ?
+                            STP_FIELD_NAME_LOGICAL_TIME :
+                            STP_FIELD_NAME_REAL_TIME ;
+
+      // build argument
+      rc = fromTime.toBSON( fromField, argument ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], "
+                   "rc: %d", fromField, rc ) ;
+
+      // run command
+      rc = runCommand( CMD_NAME_STP_CONV_TIME, argument, result ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
+                   CMD_NAME_STP_CONV_TIME, rc ) ;
+
+      rc = toTime.fromBSON( result, toField ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for [%s], "
+                   "rc: %d", toField, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
 }

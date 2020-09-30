@@ -62,6 +62,105 @@ namespace engine
    } ;
 
    /*
+      _stpTimeBase define
+    */
+   class _stpTimeBase : public utilPooledObject
+   {
+   public:
+      _stpTimeBase() {}
+      virtual ~_stpTimeBase() {}
+
+   public:
+      virtual INT32 fromBSON( const bson::BSONObj & ) = 0 ;
+      virtual INT32 toBSON( bson::BSONObjBuilder & ) const = 0 ;
+      virtual INT32 toBSON( bson::BSONObj & ) const = 0 ;
+
+      // parse from given field of BSON
+      OSS_INLINE INT32 fromBSON( const bson::BSONObj &object,
+                                 const CHAR *fieldName )
+      {
+         INT32 rc = SDB_OK ;
+
+         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
+
+         try
+         {
+            bson::BSONElement element = object.getField( fieldName ) ;
+            if ( bson::Object == element.type() )
+            {
+               rc = fromBSON( element.embeddedObject() ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+         }
+
+         return rc ;
+      }
+
+      // format to given field of BSON
+      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
+                               bson::BSONObjBuilder &builder ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
+
+         try
+         {
+            bson::BSONObjBuilder subBuilder(
+                                          builder.subobjStart( fieldName ) ) ;
+            rc = toBSON( subBuilder ) ;
+            if ( SDB_OK == rc )
+            {
+               subBuilder.doneFast() ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+         }
+
+         return rc ;
+      }
+
+      // format to given field of BSON
+      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
+                               bson::BSONObj &object ) const
+      {
+         INT32 rc = SDB_OK ;
+
+         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
+
+         try
+         {
+            bson::BSONObjBuilder builder ;
+            rc = toBSON( fieldName, builder ) ;
+            if ( SDB_OK == rc )
+            {
+               object = builder.obj() ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+         }
+
+         return rc ;
+      }
+   } ;
+
+   typedef class _stpTimeBase stpTimeBase ;
+
+   /*
       _stpHPTime define
     */
    class _stpHPTime ;
@@ -77,32 +176,36 @@ namespace engine
    typedef class _stpLogicalTimeUS stpLogicalTimeUS ;
 
    // _stpHPTime represents for high precision time in nanoseconds
-   class _stpHPTime : public utilPooledObject
+   class _stpHPTime : public _stpTimeBase
    {
    public:
       // constructor and destructor
       _stpHPTime()
-      : _second( 0LL ),
+      : _stpTimeBase(),
+        _second( 0LL ),
         _nanoSecond( 0LL )
       {
       }
 
       // constructor to sample time
       _stpHPTime( STP_SAMPLE_TIME_MODE mode )
-      : _second( 0LL ),
+      : _stpTimeBase(),
+        _second( 0LL ),
         _nanoSecond( 0LL )
       {
          sample( mode ) ;
       }
 
       _stpHPTime( UINT64 second, UINT64 nanoSecond )
-      : _second( second ),
+      : _stpTimeBase(),
+        _second( second ),
         _nanoSecond( nanoSecond )
       {
       }
 
       _stpHPTime( const stpHPTime &time )
-      : _second( time._second ),
+      : _stpTimeBase(),
+        _second( time._second ),
         _nanoSecond( time._nanoSecond )
       {
       }
@@ -644,7 +747,7 @@ namespace engine
       _tpLogicalTimeBase define
     */
    // _tpLogicalTimeBase is base class for logical time in different units
-   class _stpLogicalTimeBase : public utilPooledObject
+   class _stpLogicalTimeBase : public _stpTimeBase
    {
    public:
       // construct and destructor
@@ -735,6 +838,9 @@ namespace engine
       ~_stpLogicalTimeNS()
       {
       }
+
+      // convert from microseconds to nanoseconds
+      _stpLogicalTimeNS( const stpLogicalTimeUS &time ) ;
 
    public:
       // operators
@@ -935,13 +1041,6 @@ namespace engine
       {
       }
 
-      // convert from nanoseconds
-      _stpLogicalTimeUS( const stpLogicalTimeNS &time )
-      : stpLogicalTimeBase( time ),
-        _time( time.getTime().toMicroSecond() )
-      {
-      }
-
       _stpLogicalTimeUS( UINT64 time, UINT32 timeError )
       : stpLogicalTimeBase( timeError ),
         _time( time )
@@ -951,6 +1050,9 @@ namespace engine
       ~_stpLogicalTimeUS()
       {
       }
+
+      // convert from nanoseconds to microseconds
+      OSS_INLINE _stpLogicalTimeUS( const stpLogicalTimeNS &time ) ;
 
    public:
       // operators
@@ -1166,7 +1268,16 @@ namespace engine
    } ;
 
    // convert from microseconds to nanoseconds
-   OSS_INLINE stpLogicalTimeNS &stpLogicalTimeNS::operator =( const stpLogicalTimeUS &time )
+   OSS_INLINE _stpLogicalTimeNS::_stpLogicalTimeNS( const stpLogicalTimeUS &time )
+   : stpLogicalTimeBase( time ),
+     _time()
+   {
+      _time.fromMicroSecond( time.getTime() ) ;
+   }
+
+   // convert from microseconds to nanoseconds
+   OSS_INLINE stpLogicalTimeNS &_stpLogicalTimeNS::operator =(
+                                                const stpLogicalTimeUS &time )
    {
       _time.fromMicroSecond( time.getTime() ) ;
       _timeError = time.getTimeError() ;
@@ -1174,7 +1285,15 @@ namespace engine
    }
 
    // convert from nanoseconds to microseconds
-   OSS_INLINE stpLogicalTimeUS &stpLogicalTimeUS::operator =( const stpLogicalTimeNS &time )
+   OSS_INLINE _stpLogicalTimeUS::_stpLogicalTimeUS( const stpLogicalTimeNS &time )
+   : stpLogicalTimeBase( time ),
+     _time( time.getTime().toMicroSecond() )
+   {
+   }
+
+   // convert from nanoseconds to microseconds
+   OSS_INLINE stpLogicalTimeUS &_stpLogicalTimeUS::operator =(
+                                                const stpLogicalTimeNS &time )
    {
       _time = time.getTime().toMicroSecond() ;
       _timeError = time.getTimeError() ;

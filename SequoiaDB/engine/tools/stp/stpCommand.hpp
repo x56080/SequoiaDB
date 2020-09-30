@@ -532,6 +532,43 @@ namespace engine
 
    typedef class _stpReelectCMD stpReelectCMD ;
 
+   /*
+      _stpConvTimeCMD define
+    */
+   // convert between logical time and real time
+   class _stpConvTimeCMD : public stpCommand
+   {
+      DECLARE_STP_CMD_AUTO_REGISTER()
+
+   public:
+      // constructor and destructor
+      _stpConvTimeCMD( STPCB *stpCB ) ;
+      virtual ~_stpConvTimeCMD() ;
+
+   public:
+      // get name of command
+      OSS_INLINE virtual const CHAR *getName() const
+      {
+         return CMD_NAME_STP_CONV_TIME ;
+      }
+
+      // initialize with given option
+      virtual INT32 initialize( const CHAR *option ) ;
+      // run command
+      virtual INT32 doit( stpSession *session,
+                          MsgHeader *message,
+                          bson::BSONObj &result,
+                          BOOLEAN &finished ) ;
+
+   protected:
+      BSONObj           _options ;
+      BOOLEAN           _fromRealToLogical ;
+      stpLogicalTimeNS  _logicalTime ;
+      stpHPTime         _realTime ;
+   } ;
+
+   typedef class _stpReelectCMD stpReelectCMD ;
+
 }
 
 #endif // STP_COMMAND_HPP__

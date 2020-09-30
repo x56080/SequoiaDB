@@ -840,6 +840,7 @@
 #define CMD_NAME_STP_UPDATE_CONFIG        CMD_NAME_STP_PREFIX "update config"
 #define CMD_NAME_STP_STOP                 CMD_NAME_STP_PREFIX "stop"
 #define CMD_NAME_STP_REELECT              CMD_NAME_STP_PREFIX "reelect"
+#define CMD_NAME_STP_CONV_TIME            CMD_NAME_STP_PREFIX "conv time"
 
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )

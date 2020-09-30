@@ -283,6 +283,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__POSTACTIVATE, "_stpMetaManager::_postActivate" )
    INT32 _stpMetaManager::_postActivate()
    {
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB__STPMETAMGR__POSTACTIVATE ) ;
 
       // if this is primary ( only one server or test mode ),
@@ -294,9 +296,15 @@ namespace engine
          getMetaData()->updateSyncTime() ;
       }
 
-      PD_TRACE_EXITRC( SDB__STPMETAMGR__POSTACTIVATE, SDB_OK ) ;
+      rc = _saveTimeMapping() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save time mapping, rc: %d", rc ) ;
 
-      return SDB_OK ;
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETAMGR__POSTACTIVATE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__BEFORECHANGEPRIMARY, "_stpMetaManager::_beforeChangePrimary" )
@@ -903,6 +911,212 @@ namespace engine
    {
       // return synchronize interval as meta synchronize interval
       return (UINT64)( _options->getSyncInterval() ) * OSS_ONE_SEC ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__SAVETIMEMAPPING, "_stpMetaManager::_saveTimeMapping" )
+   INT32 _stpMetaManager::_saveTimeMapping()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR__SAVETIMEMAPPING ) ;
+
+      ossScopedRWLock lock( &_timeMapMutex, EXCLUSIVE ) ;
+
+      // TODO: save history records
+      _lastRealTime.sampleReal() ;
+      _lastLogicalTime.setTime( getMetaData()->getLTValue() ) ;
+      _lastLogicalTime.setTimeError( getMetaData()->getTimeError() ) ;
+
+      PD_TRACE_EXITRC( SDB__STPMETAMGR__SAVETIMEMAPPING, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__GETLASTTIMEMAPPING, "_stpMetaManager::_getLastTimeMapping" )
+   INT32 _stpMetaManager::_getLastTimeMapping(
+                                       stpHPTime &lastRealTime,
+                                       stpLogicalTimeNS &lastLogicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR__GETLASTTIMEMAPPING ) ;
+
+      ossScopedRWLock lock( &_timeMapMutex, SHARED ) ;
+
+      lastRealTime = _lastRealTime ;
+      lastLogicalTime = _lastLogicalTime ;
+
+      PD_TRACE_EXITRC( SDB__STPMETAMGR__GETLASTTIMEMAPPING, rc ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR__GETCURTIMEMAPPING, "_stpMetaManager::_getCurTimeMapping" )
+   INT32 _stpMetaManager::_getCurTimeMapping(
+                                       stpHPTime &curRealTime,
+                                       stpLogicalTimeNS &curLogicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR__GETCURTIMEMAPPING ) ;
+
+      // get current logical time
+      rc = getMetaData()->getLogicalTimeNS( curLogicalTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get current logical time, "
+                   "rc: %d", rc ) ;
+
+      // get current real time
+      curRealTime.sample( STP_SAMPLE_TIME_REAL ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETAMGR__GETCURTIMEMAPPING, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR_CONVREALTOLOGIC, "_stpMetaManager::convTimeRealToLogical" )
+   INT32 _stpMetaManager::convTimeRealToLogical(
+                                             const stpHPTime &realTime,
+                                             stpLogicalTimeNS &logicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR_CONVREALTOLOGIC ) ;
+
+      INT64 diffRealTime = 0LL,
+            totalRealTime = 0LL,
+            diffLogicalTime = 0LL,
+            totalLogicalTime = 0LL ;
+      stpHPTime lastRealTime, curRealTime ;
+      stpLogicalTimeNS lastLogicalTime, curLogicalTime ;
+
+      rc = _getLastTimeMapping( lastRealTime, lastLogicalTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get last time mapping, "
+                   "rc: %d", rc ) ;
+
+      rc = _getCurTimeMapping( curRealTime, curLogicalTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get current time mapping, "
+                   "rc: %d", rc ) ;
+
+      // logicalTime = ( realTime - lastRealTime ) /
+      //               ( curRealTime - lastRealTime ) *
+      //               ( curLogicalTime - lastLogicalTime ) + lastLogicalTime
+      diffRealTime = realTime.diff( lastRealTime ) ;
+      totalRealTime = curRealTime.diff( lastRealTime ) ;
+
+      totalLogicalTime =
+            curLogicalTime.getTime().diff( lastLogicalTime.getTime() ) ;
+
+      if ( totalRealTime > 0 )
+      {
+         double rate = (double)( diffRealTime ) / (double)( totalRealTime ) ;
+
+         // calculate time component
+         stpHPTime temp = lastLogicalTime.getTime() ;
+         diffLogicalTime = (INT64)( rate * (double)( totalLogicalTime ) ) ;
+         temp.adjust( diffLogicalTime ) ;
+         logicalTime.setTime( temp ) ;
+
+         // calculate time error component
+         if ( curLogicalTime.getTimeError() == lastLogicalTime.getTimeError() )
+         {
+            logicalTime.setTimeError( curLogicalTime.getTimeError() ) ;
+         }
+         else
+         {
+            INT32 totalTimeError = (INT32)curLogicalTime.getTimeError() -
+                                   (INT32)lastLogicalTime.getTimeError() ;
+            UINT32 lastTimeError = lastLogicalTime.getTimeError() ;
+            INT32 diffTimeError = (INT32)( rate * (double)( totalTimeError ) ) ;
+            if ( diffTimeError > 0 )
+            {
+               logicalTime.setTimeError( lastTimeError + diffTimeError ) ;
+            }
+            else if ( lastTimeError > (UINT32)( -diffTimeError ) )
+            {
+               logicalTime.setTimeError( lastTimeError + diffTimeError ) ;
+            }
+            else
+            {
+               logicalTime.setTimeError( 0 ) ;
+            }
+         }
+      }
+      else
+      {
+         // no difference between last and current real time
+         // use the current logical time
+         logicalTime = curLogicalTime ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETAMGR_CONVREALTOLOGIC, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPMETAMGR_CONVLOGICTOREAL, "_stpMetaManager::convTimeLogicalToReal" )
+   INT32 _stpMetaManager::convTimeLogicalToReal(
+                                          const stpLogicalTimeNS &logicalTime,
+                                          stpHPTime &realTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPMETAMGR_CONVLOGICTOREAL ) ;
+
+      INT64 diffRealTime = 0LL,
+            totalRealTime = 0LL,
+            diffLogicalTime = 0LL,
+            totalLogicalTime = 0LL ;
+      stpHPTime lastRealTime, curRealTime ;
+      stpLogicalTimeNS lastLogicalTime, curLogicalTime ;
+
+      rc = _getLastTimeMapping( lastRealTime, lastLogicalTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get last time mapping, "
+                   "rc: %d", rc ) ;
+
+      rc = _getCurTimeMapping( curRealTime, curLogicalTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get current time mapping, "
+                   "rc: %d", rc ) ;
+
+      // realTime = ( logicalTime - lastLogicalTime ) /
+      //            ( curLogicalTime - lastLogicalTime ) *
+      //            ( curRealTime - lastRealTime ) + lastRealTime
+      diffLogicalTime =
+            logicalTime.getTime().diff( lastLogicalTime.getTime() ) ;
+      totalLogicalTime =
+            curLogicalTime.getTime().diff( lastLogicalTime.getTime() ) ;
+
+      totalRealTime = curRealTime.diff( lastRealTime ) ;
+
+      if ( totalLogicalTime > 0 )
+      {
+         double rate =
+               (double)( diffLogicalTime ) / (double)( totalLogicalTime ) ;
+
+         // calculate real time
+         realTime = lastRealTime ;
+         diffRealTime = (INT64)( rate * (double)( totalRealTime ) ) ;
+         realTime.adjust( diffRealTime ) ;
+      }
+      else
+      {
+         // no difference between last and current logical time
+         // use the current real time
+         realTime = curRealTime ;
+      }
+
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPMETAMGR_CONVLOGICTOREAL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
 }

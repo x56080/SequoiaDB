@@ -184,6 +184,55 @@ namespace engine
       INT32 reelect( UINT32 timeout = STP_REELECT_DFT_TIMEOUT,
                      const CHAR *targetHost = NULL ) ;
 
+      // convert real time to logical time in nanoseconds
+      // input:
+      // - realTime: real time in nanoseconds
+      // output:
+      // - logicalTime: logical time in nanoseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convTimeRealToLogical( const stpHPTime &realTime,
+                                   stpLogicalTimeNS &logicalTime ) ;
+
+      // convert real time to logical time in microseconds
+      // input:
+      // - realTime: real time in nanoseconds
+      // output:
+      // - logicalTime: logical time in microseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convTimeRealToLogical( const stpHPTime &realTime,
+                                   stpLogicalTimeUS &logicalTime ) ;
+
+      // convert logical time in nanoseconds to real time
+      // input:
+      // - logicalTime: logical time in nanoseconds
+      // output:
+      // - realTime: real time in nanoseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
+                                   stpHPTime &realTime ) ;
+
+      // convert logical time in microseconds to real time
+      // input:
+      // - logicalTime: logical time in microseconds
+      // output:
+      // - realTime: real time in nanoseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convTimeLogicalToReal( const stpLogicalTimeUS &logicalTime,
+                                   stpHPTime &realTime ) ;
+
+   protected:
+      // helper to convert times
+      INT32 _convTime( const stpTimeBase &fromTime,
+                       stpTimeBase &toTime,
+                       BOOLEAN isRealToLogical ) ;
    } ;
 
    typedef class _stpClient stpClient ;

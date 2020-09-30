@@ -436,6 +436,8 @@ namespace engine
    #define STP_FIELD_NAME_OFFSET_COUNT       FIELD_NAME_COUNT
    #define STP_FIELD_NAME_OFFSET_MIN         FIELD_NAME_MIN
    #define STP_FIELD_NAME_OFFSET_MAX         FIELD_NAME_MAX
+   #define STP_FIELD_NAME_REAL_TIME          "RealTime"
+   #define STP_FIELD_NAME_LOGICAL_TIME       "LogicalTime"
    #define STP_FIELD_NAME_TIMESTAMP          "TimeStamp"
    #define STP_FIELD_NAME_OFFSET             "Offset"
    #define STP_FIELD_NAME_SLEW_RATE          "SlewRate"

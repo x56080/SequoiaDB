@@ -129,6 +129,13 @@ namespace engine
       // update meta LSN by getting logical time
       INT32 updateMetaLSN() ;
 
+      // convert real time to logical time
+      INT32 convTimeRealToLogical( const stpHPTime &realTime,
+                                   stpLogicalTimeNS &logicalTime ) ;
+      // convert logical time to real time
+      INT32 convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
+                                   stpHPTime &realTime ) ;
+
    protected:
       // set meta LSN
       INT32 _setMetaLSN( UINT64 time, UINT32 version ) ;
@@ -142,6 +149,16 @@ namespace engine
       // get synchronize interval of meta data
       UINT64 _getMetaSyncInterval() ;
 
+      // save time mapping between real time and logical time
+      INT32 _saveTimeMapping() ;
+
+      // get last time mapping
+      INT32 _getLastTimeMapping( stpHPTime &lastRealTime,
+                                 stpLogicalTimeNS &lastLogicalTime ) ;
+
+      INT32 _getCurTimeMapping( stpHPTime &curRealTime,
+                                stpLogicalTimeNS &curLogicalTime ) ;
+
    protected:
       // lock to protect meta
       ossRWMutex     _mutex ;
@@ -151,6 +168,10 @@ namespace engine
       stpMetaStore   _store ;
       // timeout to synchronize meta
       UINT64         _metaSyncTimeout ;
+
+      ossRWMutex        _timeMapMutex ;
+      stpHPTime         _lastRealTime ;
+      stpLogicalTimeNS  _lastLogicalTime ;
    } ;
 
 }

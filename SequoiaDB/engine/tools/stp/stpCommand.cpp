@@ -370,7 +370,6 @@ namespace engine
             case STP_FORMAT_LOGICAL_TIME_NS :
             {
                stpLogicalTimeNS time ;
-               UINT32 waitTimeUS = 0 ;
 
                // get logical time in nanoseconds
                rc = _stpCB->getMetaData()->getLogicalTimeNS( time ) ;
@@ -385,18 +384,17 @@ namespace engine
             }
             case STP_FORMAT_LOGICAL_TIME_US :
             {
-               stpLogicalTimeUS resultTime ;
-               stpLogicalTimeNS time ;
-               UINT32 waitTimeUS = 0 ;
+               stpLogicalTimeUS time ;
+               stpLogicalTimeNS tempTime ;
 
                // get logical time in microseconds
-               rc = _stpCB->getMetaData()->getLogicalTimeNS( time ) ;
+               rc = _stpCB->getMetaData()->getLogicalTimeNS( tempTime ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get logical time "
                             "in nanoseconds, rc: %d", rc ) ;
 
                // convert to microseconds
-               resultTime = time ;
-               rc = resultTime.toBSON( result ) ;
+               time = tempTime ;
+               rc = time.toBSON( result ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for "
                             "logical time in microseconds, rc: %d", rc ) ;
 
@@ -1191,6 +1189,176 @@ namespace engine
    done:
       finished = tempFinished ;
       PD_TRACE_EXITRC( SDB__STPREELECTCMD_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _stpConvTimeCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpConvTimeCMD )
+
+   _stpConvTimeCMD::_stpConvTimeCMD( STPCB *stpCB )
+   : stpCommand( stpCB ),
+     _fromRealToLogical( FALSE ),
+     _logicalTime(),
+     _realTime()
+   {
+   }
+
+   _stpConvTimeCMD::~_stpConvTimeCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD_INITIALIZE, "_stpConvTimeCMD::initialize" )
+   INT32 _stpConvTimeCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD_INITIALIZE ) ;
+
+      try
+      {
+         BSONObj temp = BSONObj( option ) ;
+         BSONObj timestampObject ;
+         BSONElement element ;
+
+         BOOLEAN hasRealTime = FALSE, hasLogicalTime = FALSE ;
+
+         _options = temp.getOwned() ;
+
+         element = _options.getField( STP_FIELD_NAME_REAL_TIME ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( Object == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from option, "
+                      "it is not an object", STP_FIELD_NAME_REAL_TIME ) ;
+
+            rc = _realTime.fromBSON( element.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
+                         rc ) ;
+
+            hasRealTime = TRUE ;
+         }
+
+         element = _options.getField( STP_FIELD_NAME_LOGICAL_TIME ) ;
+         if ( EOO != element.type() )
+         {
+            PD_CHECK( Object == element.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Failed to get field [%s] from option, "
+                      "it is not an object", STP_FIELD_NAME_LOGICAL_TIME ) ;
+
+            rc = _logicalTime.fromBSON( element.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
+                         rc ) ;
+
+            hasLogicalTime = TRUE ;
+         }
+
+         if ( hasRealTime && !hasLogicalTime )
+         {
+            _fromRealToLogical = TRUE ;
+         }
+         else if ( !hasRealTime && hasLogicalTime )
+         {
+            _fromRealToLogical = FALSE ;
+         }
+         else if ( hasRealTime && hasLogicalTime )
+         {
+            PD_LOG( PDERROR, "Failed to parse options for command [%s], "
+                    "can not have both real time and logical time",
+                    getName() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to parse options for command [%s], "
+                    "no real time or logical time is found", getName() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse option for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD_DOIT, "_stpConvTimeCMD::doit" )
+   INT32 _stpConvTimeCMD::doit( stpSession *session,
+                                MsgHeader *message,
+                                BSONObj &result,
+                                BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD_DOIT ) ;
+
+      stpMetaManager *metaManager = _stpCB->getMetaManager() ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         if ( _fromRealToLogical )
+         {
+            rc = metaManager->convTimeRealToLogical( _realTime,
+                                                     _logicalTime ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
+                         "logical time, rc: %d", rc ) ;
+
+            {
+               BSONObjBuilder subBuilder(
+                     builder.subobjStart( STP_FIELD_NAME_LOGICAL_TIME ) ) ;
+               rc = _logicalTime.toBSON( subBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                            "logical time, rc: %d", rc ) ;
+               subBuilder.doneFast() ;
+            }
+         }
+         else
+         {
+            rc = metaManager->convTimeLogicalToReal( _logicalTime,
+                                                     _realTime ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
+                         "logical time, rc: %d", rc ) ;
+
+            {
+               BSONObjBuilder subBuilder(
+                     builder.subobjStart( STP_FIELD_NAME_REAL_TIME ) ) ;
+               rc = _realTime.toBSON( subBuilder ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                            "real time, rc: %d", rc ) ;
+               subBuilder.doneFast() ;
+            }
+         }
+
+         result = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build result for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      finished = TRUE ;
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD_DOIT, rc ) ;
       return rc ;
 
    error:

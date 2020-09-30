@@ -205,12 +205,26 @@ namespace engine
    {
       if ( isGlobTransOn() )
       {
+         stpClient client ;
+         stpLogicalTimeNS currentTime ;
+         stpLogicalTimeNS logicalTime ;
+         stpHPTime realTime ;
+
          // if global transaction feature is required, check available of STP
          // just test available, no need to report error
-         INT32 tmpRC = _stpAgent.checkAvailable() ;
-         if ( SDB_OK != tmpRC )
+         if ( ( SDB_OK == _stpAgent.checkAvailable() ) &&
+              ( SDB_OK == _stpAgent.getClient( client ) ) &&
+              ( SDB_OK == client.getTime( currentTime ) ) &&
+              ( SDB_OK == client.convTimeLogicalToReal( currentTime,
+                                                        realTime ) ) &&
+              ( SDB_OK == client.convTimeRealToLogical( realTime,
+                                                        logicalTime ) ) )
          {
-            PD_LOG( PDWARNING, "STP is not available, rc: %d", tmpRC ) ;
+            PD_LOG( PDDEBUG, "Got time from STP [%llu], real time [%llu], "
+                    "local time [%llu]",
+                    currentTime.getTime().getSecond(),
+                    realTime.getSecond(),
+                    logicalTime.getTime().getSecond() ) ;
          }
       }
 
