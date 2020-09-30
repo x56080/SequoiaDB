@@ -118,12 +118,31 @@ namespace engine
          _name = element.fieldName() ;
          // cache length of name
          _nameLen = ossStrlen( _name ) ;
-         // cache order
-         _order = element.numberInt() ;
-         PD_CHECK( -1 == _order || 1 == _order,
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to initialize key field [%s], "
-                   "order [%d] is invalid", _name, _order ) ;
+         if ( element.isNumber() )
+         {
+            // cache order
+            _order = element.numberInt() ;
+            PD_CHECK( -1 == _order || 1 == _order,
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to initialize key field [%s], "
+                      "order [%d] is invalid", _name, _order ) ;
+         }
+         else if ( String == element.type() &&
+                   ( 0 == ossStrcmp( IXM_2D_KEY_TYPE,
+                                     element.valuestr() ) ||
+                     0 == ossStrcmp( IXM_TEXT_KEY_TYPE,
+                                     element.valuestr() ) ) )
+
+         {
+            // default order
+            _order = 1 ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to parse order, it is invalid format" ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
       catch ( exception &e )
       {
@@ -302,7 +321,10 @@ namespace engine
 
       OSS_INLINE virtual INT32 saveWithUndefinedKeys()
       {
-         *_pOutputKeys = _getUndefinedKeys() ;
+         if ( !_ignoreUndefined )
+         {
+            *_pOutputKeys = _getUndefinedKeys() ;
+         }
          return SDB_OK ;
       }
 
@@ -349,7 +371,7 @@ namespace engine
          // not found yet, save the field
          _foundArrEle = arrEle ;
       }
-      else
+      else if ( !arrEle.eoo() || !_ignoreUndefined )
       {
          // already found one, save the field with comparison against key
          // pattern
@@ -403,7 +425,10 @@ namespace engine
 
       OSS_INLINE virtual INT32 saveWithUndefinedKeys()
       {
-         _pKeySet->insert( _getUndefinedKeys() ) ;
+         if ( !_ignoreUndefined )
+         {
+            _pKeySet->insert( _getUndefinedKeys() ) ;
+         }
          return SDB_OK ;
       }
 
@@ -442,7 +467,10 @@ namespace engine
       rc = _buildKeys( outputKeys ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build keys, rc: %d", rc ) ;
 
-      _pKeySet->insert( outputKeys.getOwned() ) ;
+      if ( !outputKeys.isEmpty() )
+      {
+         _pKeySet->insert( outputKeys.getOwned() ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_IXMKEYSETGEN__SAVEKEYS, rc ) ;

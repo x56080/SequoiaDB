@@ -82,7 +82,8 @@ static void _testGetKeys( const BSONObj &obj,
 
    // check keys
    cout << keys.toString() << endl ;
-   ASSERT_TRUE( *( keySet.begin() ) == keys ) ;
+   ASSERT_TRUE( ( keys.isEmpty() && keySet.empty() ) ||
+                ( *( keySet.begin() ) == keys ) ) ;
 
    // check array element
    cout << "arr:" << arr.toString( true, true )  << endl ;
@@ -428,9 +429,8 @@ TEST( generator, test_empty_arr )
 
 TEST( generator, test_ignore_undefined )
 {
-   BSONObj obj( BSON( "a" << 1 << "c" << 1 << "d" << BSONArray() ) ) ;
-
    {
+      BSONObj obj( BSON( "a" << 1 << "c" << 1 << "d" << BSONArray() ) ) ;
       BSONObj keyDef( BSON( "a" << 1 << "b" << 1 ) ) ;
       BSONObjSet keySetExp( keyDef ) ;
       BSONObj keyExp ;
@@ -443,6 +443,7 @@ TEST( generator, test_ignore_undefined )
    }
 
    {
+      BSONObj obj( BSON( "a" << 1 << "c" << 1 << "d" << BSONArray() ) ) ;
       BSONObj keyDef( BSON( "a" << 1 << "d.e" << 1 ) ) ;
       BSONObjSet keySetExp( keyDef ) ;
       BSONObj keyExp ;
@@ -450,6 +451,55 @@ TEST( generator, test_ignore_undefined )
       keySetExp.insert( keyExp ) ;
 
       BSONElement arrExp = obj.getField( "d" ) ;
+
+      _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
+   }
+
+   {
+      BSONObj obj( BSON( "a" << 1 ) ) ;
+      BSONObj keyDef( BSON( "a.1" << 1 ) ) ;
+      BSONObjSet keySetExp( keyDef ) ;
+      BSONObj keyExp ;
+      BSONElement arrExp ;
+
+      _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
+   }
+
+   {
+      BSONObj obj( BSON( "a" <<
+                         BSON_ARRAY( "update" <<
+                                     "update" <<
+                                     "update" ) ) ) ;
+      BSONObj keyDef( BSON( "a.1" << 1 ) ) ;
+      BSONObjSet keySetExp( keyDef ) ;
+      BSONObj keyExp ;
+      BSONElement arrExp = obj.getField( "a" ) ;
+
+      _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
+   }
+
+   {
+      BSONObj obj( BSON( "a" <<
+                         BSON_ARRAY( BSON( "0" << "update" ) <<
+                                     BSON( "1" << "update" ) <<
+                                     BSON( "2" << "update" ) ) ) ) ;
+      BSONObj keyDef( BSON( "a.1" << 1 ) ) ;
+      BSONObjSet keySetExp( keyDef ) ;
+      BSONObj keyExp( BSON( "a.1" << "update" ) ) ;
+      keySetExp.insert( keyExp ) ;
+      BSONElement arrExp = obj.getField( "a" ) ;
+
+      _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
+   }
+
+   {
+      BSONObj obj( BSON( "a" <<
+                         BSON_ARRAY( BSON( "1" << "update" ) ) ) ) ;
+      BSONObj keyDef( BSON( "a.1" << 1 ) ) ;
+      BSONObjSet keySetExp( keyDef ) ;
+      BSONObj keyExp( BSON( "a.1" << "update" ) ) ;
+      keySetExp.insert( keyExp ) ;
+      BSONElement arrExp = obj.getField( "a" ) ;
 
       _testGetKeys( obj, keyDef, keySetExp, arrExp, TRUE, TRUE ) ;
    }
