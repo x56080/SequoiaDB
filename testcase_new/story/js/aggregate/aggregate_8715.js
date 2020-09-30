@@ -1,4 +1,5 @@
-﻿function main ()
+﻿main( test );
+function test ()
 {
    var cl = new collection( db, COMMCSNAME, COMMCLNAME );
    cl.create();
@@ -9,17 +10,9 @@
    { major: "电学", maxscore: 92, minscore: 74, avg_score: 83.25, sum_score: 333 },
    { major: "计算机工程", maxscore: 70, minscore: 69, avg_score: 69.5, sum_score: 139 },
    { major: "计算机科学与技术", maxscore: 82, minscore: 80, avg_score: 81, sum_score: 162 },
-   { major: "计算机软件与理论", maxscore: 90, minscore: 85, avg_score: 87.5, sum_score: 175 }
-   ];
-   var ret = checkResult( cursor, expectResult );
-   if( !ret[0] )
-   {
-      var parameter = "{$group:{_id:'$major', major:{'$first':'$major'}, maxscore:{$max:'$score'}, " +
-         "minscore:{$min:'$score'}, avg_score:{$avg:'$score'}, sum_score:{$sum:'$score'}}}"
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( expectResult ), JSON.stringify( retResult[1] ) );
-   }
+   { major: "计算机软件与理论", maxscore: 90, minscore: 85, avg_score: 87.5, sum_score: 175 }];
+   var parameters = "{$group:{_id:'$major', major:{'$first':'$major'}, maxscore:{$max:'$score'}, " +
+      "minscore:{$min:'$score'}, avg_score:{$avg:'$score'}, sum_score:{$sum:'$score'}}}"
+   checkResult( cursor, expectResult, parameters );
    cl.drop();
 }
-
-main()

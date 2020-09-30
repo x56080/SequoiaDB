@@ -3,7 +3,18 @@
 *@Modify list :
 *               2016-03-18  wenjing wang rewrite
 *******************************************************************************/
-
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $match: { no: { $lte: 1015, $gte: 1005 } } }, { $project: { no: 1, major: 1, dep: 1 } }, { $group: { _id: "$dep" } } );
+   var expectRes = [{ no: 1007, major: "物理学", dep: "物电学院" }, { no: 1006, major: "计算机工程", dep: "计算机学院" }];
+   var parameters = "{$match:{no:{$lte:1015, $gte:1005}}}, {$project:{no:1, major:1, dep:1}}, {$group:{_id:'$dep'}}";
+   checkResult( cursor, expectRes, parameters );
+   cl.drop();
+}
 function loadData ( cl )
 {
    var docs = [{ no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
@@ -25,21 +36,3 @@ function loadData ( cl )
    { no: 1018, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } }];
    return cl.bulkInsert( docs );
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   loadData( cl );
-   var cursor = cl.execAggregate( { $match: { no: { $lte: 1015, $gte: 1005 } } }, { $project: { no: 1, major: 1, dep: 1 } }, { $group: { _id: "$dep" } } );
-   var expectRes = [{ no: 1007, major: "物理学", dep: "物电学院" }, { no: 1006, major: "计算机工程", dep: "计算机学院" }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      throw buildException( "main", 0, "cl.aggregate( {$match:{no:{$lte:1015, $gte:1005}}}, {$project:{no:1, major:1, dep:1}}, {$group:{_id:'$dep'}} )",
-         JSON.stringify( ret[0] ), JSON.stringify( ret[1] ) );
-   }
-   cl.drop();
-}
-
-main()

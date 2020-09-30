@@ -1,4 +1,18 @@
-﻿function loadData ( cl )
+﻿
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $match: { no: { $lt: 1011 } } }, { $project: { no: 1, info: 1 } }, { $match: { "info.sex": "男" } }, { $limit: 4 } );
+   var expectRes = [{ "no": 1000, "info": { "name": "Tom", "age": 25, "sex": "男" } }, { "no": 1001, "info": { "name": "Json", "age": 20, "sex": "男" } }, { "no": 1003, "info": { "name": "Sam", "age": 30, "sex": "男" } }, { "no": 1004, "info": { "name": "Coll", "age": 26, "sex": "男" } }];
+   var parameter = "{$match:{no:{$lt:1011}}}, {$project:{no:1, info:1}}, {$match:{'info.sex':'男'}}, {$limit:4}"
+   checkResult( cursor, expectRes, parameter );
+   cl.drop();
+}
+
+function loadData ( cl )
 {
    var docs = [{ no: 1000, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
    { no: 1001, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } },
@@ -14,38 +28,3 @@
    { no: 1012, major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } }];
    cl.bulkInsert( docs );
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   loadData( cl );
-   var cursor = cl.execAggregate( { $match: { no: { $in: [1000, 1003, 1007, 1002, 1006, 1004, 1009] } } }, { $project: { no: 1, info: 1 } }, { $skip: 2 }, { $limit: 6 } );
-   var expectRes = [{ "no": 1003, "info": { "name": "Sam", "age": 30, "sex": "男" } },
-   { "no": 1004, "info": { "name": "Coll", "age": 26, "sex": "男" } },
-   { "no": 1006, "info": { "name": "Jim", "age": 24, "sex": "女" } },
-   { "no": 1007, "info": { "name": "Lily", "age": 28, "sex": "女" } },
-   { "no": 1009, "info": { "name": "Coco", "age": 27, "sex": "女" } }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      var parameter = "{$match:{no:{$in:[1000, 1003, 1007, 1002, 1006, 1004, 1009]}}}, {$project:{no:1, info:1}}, {$skip:2}, {$limit:6}"
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( ret[1] ), JSON.stringify( ret[2] ) );
-   }
-   cl.drop();
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

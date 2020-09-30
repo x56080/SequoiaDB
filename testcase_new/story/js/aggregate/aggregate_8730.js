@@ -1,4 +1,18 @@
-﻿function loadData ( cl )
+﻿
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $match: { interest: { $exists: 1 } } }, { $project: { major: 1, "info.age": 1 } }, { $group: { _id: "$major", avg_age: { $avg: "$info.age" } } }, { $sort: { avg_age: -1 } } );
+   var expectRes = [{ "avg_age": 28 }, { "avg_age": 26 }, { "avg_age": 25 }, { "avg_age": 22 }, { "avg_age": 22 }, { "avg_age": 19.5 }];
+   var parameter = "{$match:{interest:{$exists:1}}}, {$project:{major:1, 'info.age':1}}, {$group:{_id:'$major', avg_age:{$avg:'$info.age'}}}, {$sort:{avg_age:-1}}"
+   checkResult( cursor, expectRes, parameter );
+   cl.drop();
+}
+
+function loadData ( cl )
 {
    var docs = [{ no: 1000, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
    { no: 1001, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } },
@@ -20,34 +34,3 @@
    cl.bulkInsert( docs );
 
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   loadData( cl );
-   var cursor = cl.execAggregate( { $match: { interest: { $exists: 1 } } }, { $project: { major: 1, "info.age": 1 } }, { $group: { _id: "$major", avg_age: { $avg: "$info.age" } } }, { $sort: { avg_age: -1 } } );
-   var expectRes = [{ "avg_age": 28 }, { "avg_age": 26 }, { "avg_age": 25 }, { "avg_age": 22 }, { "avg_age": 22 }, { "avg_age": 19.5 }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      var parameter = "{$match:{interest:{$exists:1}}}, {$project:{major:1, 'info.age':1}}, {$group:{_id:'$major', avg_age:{$avg:'$info.age'}}}, {$sort:{avg_age:-1}}"
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( ret[1] ), JSON.stringify( ret[2] ) );
-   }
-   cl.drop();
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

@@ -1,4 +1,19 @@
-﻿function loadData ( cl )
+﻿
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $project: { no: 1, "info.name": 1, major: 1, dep: 1 } }, { $match: { $and: [{ no: { $gt: 1001, $lt: 1012 } }, { dep: "计算机学院" }] } }, { $project: { no: 1, major: 1, "info.name": 1 } }, { $group: { _id: "$major" } }, { $sort: { no: -1 } } );
+   var expectRes = [{ "no": 1004, "major": "计算机工程", "info.name": "Coll" }, { "no": 1002, "major": "计算机软件与理论", "info.name": "Holiday" }];
+   var parameter = "aggregate( {$project:{no:1, 'info.name':1, major:1, dep:1}}, {$match:{$and:[{no:{$gt:1001, $lt:1012}}, {dep:'计算机学院'}]}}, {$project:{no:1, major:1, 'info.name':1}}, {$group:{_id:'$major'}}, {$sort:{no:-1}} )"
+   checkResult( cursor, expectRes, parameter );
+
+   cl.drop();
+}
+
+function loadData ( cl )
 {
    var docs = [{ no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
    { no: 1001, score: 82, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } },
@@ -19,34 +34,3 @@
    { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } }];
    cl.bulkInsert( docs );
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   loadData( cl );
-   var cursor = cl.execAggregate( { $project: { no: 1, "info.name": 1, major: 1, dep: 1 } }, { $match: { $and: [{ no: { $gt: 1001, $lt: 1012 } }, { dep: "计算机学院" }] } }, { $project: { no: 1, major: 1, "info.name": 1 } }, { $group: { _id: "$major" } }, { $sort: { no: -1 } } );
-   var expectRes = [{ "no": 1004, "major": "计算机工程", "info.name": "Coll" }, { "no": 1002, "major": "计算机软件与理论", "info.name": "Holiday" }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      var parameter = "aggregate( {$project:{no:1, 'info.name':1, major:1, dep:1}}, {$match:{$and:[{no:{$gt:1001, $lt:1012}}, {dep:'计算机学院'}]}}, {$project:{no:1, major:1, 'info.name':1}}, {$group:{_id:'$major'}}, {$sort:{no:-1}} )"
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( ret[1] ), JSON.stringify( ret[2] ) );
-   }
-   cl.drop();
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

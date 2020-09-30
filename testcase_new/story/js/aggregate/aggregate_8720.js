@@ -4,6 +4,20 @@
 *@Modify list:
 *              2014/3/10   huxiaojun
 ************************************************************************/
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $group: { max_age: { $max: "$info.age" }, min_age: { $min: "$info.age" }, avg_age: { $avg: "$info.age" }, sum_age: { $sum: "$info.age" } } } );
+
+   var expectResult = [{ "max_age": "twenty", "min_age": 15, "avg_age": 23.9, "sum_age": 239 }];
+   var parameters = "{$group:{max_age:{$max:'$info.age'}, min_age:{$min:'$info.age'}, avg_age:{$avg:'$info.age'}, sum_age:{$sum:'$info.age'}}}";
+   checkResult( cursor, expectResult, parameters );
+
+   cl.drop();
+}
 function loadData ( cl )
 {
    var docs = [{ no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
@@ -26,34 +40,3 @@ function loadData ( cl )
 
    cl.bulkInsert( docs );
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   loadData( cl );
-   var cursor = cl.execAggregate( { $group: { max_age: { $max: "$info.age" }, min_age: { $min: "$info.age" }, avg_age: { $avg: "$info.age" }, sum_age: { $sum: "$info.age" } } } );
-
-   var expectResult = [{ "max_age": "twenty", "min_age": 15, "avg_age": 23.9, "sum_age": 239 }];
-   var ret = checkResult( cursor, expectResult );
-   if( !ret[0] )
-   {
-      var parameter = "{$group:{max_age:{$max:'$info.age'}, min_age:{$min:'$info.age'}, avg_age:{$avg:'$info.age'}, sum_age:{$sum:'$info.age'}}}";
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( expectResult ), JSON.stringify( retResult[1] ) );
-   }
-   cl.drop();
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

@@ -1,8 +1,17 @@
-﻿/*******************************************************************************
-*@Description : Aggregate limit test
-*@Modify list :
-*               2016-03-18  wenjing wang rewrite
-*******************************************************************************/
+﻿
+main( test );
+function test ()
+{
+   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
+   cl.create();
+   loadData( cl );
+   var cursor = cl.execAggregate( { $match: { $and: [{ interest: { $exists: 1 } }, { info: { $elemMatch: { sex: "女" } } }, { "info.name": { $regex: 'k.*', $options: 'i' } }, { dep: { $ne: "计算机学院" } }] } } );
+   var expectResult = [{ "no": 1014, "interest": ["basketball", "football", "photo"], "major": "物理学", "dep": "物电学院", "info": { "name": "Kiki", "age": 18, "sex": "女" } }];
+   var parameters = "{$match:{$and:[{interest:{$exists:1}}, {info:{$elemMatch:{sex:'女'}}}, {'info.name':{$regex:'k.*', $options:'i'}}, {dep:{$ne:'计算机学院'}}]}}";
+   checkResult( cursor, expectResult, parameters );
+   cl.drop();
+}
+
 function loadData ( cl )
 {
    var docs = [{ no: 1000, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } },
@@ -21,32 +30,6 @@ function loadData ( cl )
    { no: 1013, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } },
    { no: 1016, interest: ["football", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Iccra", age: 19, sex: "男" } },
    { no: 1017, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } },
-   { no: 1018, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } }]
-
-   return cl.bulkInsert( docs );
-
+   { no: 1018, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } }];
+   cl.bulkInsert( docs );
 }
-
-function main ()
-{
-   var cl = new collection( db, COMMCSNAME, COMMCLNAME );
-   cl.create();
-   var docNumber = loadData( cl );
-   var cursor = cl.execAggregate( { $match: { $or: [{ $and: [{ no: { $gte: 1000, $lte: 1004 } }, { major: "计算机软件与理论" }] }, { major: "电学" }] } }, { $sort: { no: 1 } } );
-
-   var expectRes = [{ "no": 1002, "interest": ["movie", "photo"], "major": "计算机软件与理论", "dep": "计算机学院", "info": { "name": "Holiday", "age": 22, "sex": "女" } },
-   { "no": 1003, "major": "计算机软件与理论", "dep": "计算机学院", "info": { "name": "Sam", "age": 30, "sex": "男" } },
-   { "no": 1013, "interest": ["basketball", "movie", "photo"], "major": "电学", "dep": "物电学院", "info": { "name": "Jaden", "age": 20, "sex": "男" } },
-   { "no": 1016, "interest": ["football", "movie", "photo"], "major": "电学", "dep": "物电学院", "info": { "name": "Iccra", "age": 19, "sex": "男" } },
-   { "no": 1017, "major": "电学", "dep": "物电学院", "info": { "name": "Jay", "age": 15, "sex": "男" } },
-   { "no": 1018, "major": "电学", "dep": "物电学院", "info": { "name": "Kate", "age": 20, "sex": "男" } }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      throw buildException( "main", 0, "cl.aggregate( {$match:{$or:[{$and:[{no:{$gte:1000, $lte:1004}}, {major:'计算机软件与理论'}]}, {major:'电学'}]}}, {$sort:{no:1}} )",
-         JSON.stringify( ret[1] ), JSON.stringify( ret[2] ) );
-   }
-   cl.drop();
-}
-
-main()

@@ -19,8 +19,8 @@
    { no: 1018, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } }];
    cl.bulkInsert( docs );
 }
-
-function main ()
+main( test );
+function test ()
 {
    var cl = new collection( db, COMMCSNAME, COMMCLNAME );
    cl.create();
@@ -35,26 +35,7 @@ function main ()
    { "no": 1011, "Major": "光学", "name": "Mike" }, { "no": 1013, "Major": "电学", "name": "Jaden" },
    { "no": 1016, "Major": "电学", "name": "Iccra" }, { "no": 1017, "Major": "电学", "name": "Jay" },
    { "no": 1018, "Major": "电学", "name": "Kate" }];
-   var ret = checkResult( cursor, expectRes );
-   if( !ret[0] )
-   {
-      var parameter = "{$project:{no:1, Major:'$major', dep:0, name:'$info.name', 'info.sex':0}}"
-      throw buildException( "main", 0, "cl.aggregate( " + parameter + " )",
-         JSON.stringify( ret[1] ), JSON.stringify( ret[2] ) );
-   }
+   var parameter = "{$project:{no:1, Major:'$major', dep:0, name:'$info.name', 'info.sex':0}}"
+   var ret = checkResult( cursor, expectRes, parameter );
    cl.drop();
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
