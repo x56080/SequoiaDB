@@ -973,10 +973,11 @@ public:
          pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM];
          ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;
 
-         va_start(list,n);
+         va_start(list,numArgs);
          for (INT32 i = 0;i < n; i++)
          {
-            argTuple[i] = va_arg(list , pdTraceArgTuple);
+            void *arg = va_arg(list, void *) ;
+            argTuple[i] = *( (pdTraceArgTuple *)( &arg ) ) ;
          }
          va_end(list);
 
