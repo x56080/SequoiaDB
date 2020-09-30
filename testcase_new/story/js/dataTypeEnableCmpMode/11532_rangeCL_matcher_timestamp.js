@@ -4,7 +4,8 @@
 *@createdate:  2017.5.20
 *@testlinkCase:seqDB-11532
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -14,27 +15,18 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //check test environment before split
-   try
-   {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
-   }
-   catch( e )
-   {
-      throw e;
-   }
 
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
+   {
+      return;
+   }
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
+   {
+      return;
+   }
    var ClOption = { ShardingKey: { "a": 1 }, ShardingType: "range" };
    var dbcl = commCreateCL( db, COMMCSNAME, clName, ClOption, true, true );
 
@@ -58,7 +50,7 @@ function main ()
    { a: true },
    { a: { name: "Jack" } },
    { b: 1 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    var startCondition1 = { a: { $timestamp: "2017-05-01-15.32.18.000000" } };
@@ -141,4 +133,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main()

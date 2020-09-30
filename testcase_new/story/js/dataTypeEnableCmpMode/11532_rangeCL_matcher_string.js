@@ -4,7 +4,8 @@
 *@createdate:  2017.5.20
 *@testlinkCase:seqDB-11532
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -13,26 +14,16 @@ function main ()
    //clean environment before test
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   //check test environment before split
-   try
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
    }
 
    var ClOption = { ShardingKey: { "a": 1 }, ShardingType: "range", ReplSize: 0 };
@@ -68,7 +59,7 @@ function main ()
    { a: ["ad"] },
    { a: ["ae"] },
    { a: ["ba"] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    var startCondition1 = 50;
@@ -244,4 +235,3 @@ function main ()
    checkResult( dbcl, findConf11, hintConf, sortConf, expRecs11 );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main()

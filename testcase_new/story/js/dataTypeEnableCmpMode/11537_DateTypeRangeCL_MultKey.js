@@ -5,7 +5,8 @@ data type: int/numberLong/double/decimal/string/bool/date/timestamp/binary/regex
 *@createdate:  2017.5.24
 *@testlinkCase:seqDB-11537
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -24,30 +25,22 @@ function main ()
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
    //check test environment before split
-   try
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      for( var m = 0; m < allGroupName.length; m++ )
-      {
-         println( "Have Group: " + allGroupName[m] );
-      }
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   for( var m = 0; m < allGroupName.length; m++ )
    {
-      throw e;
    }
+   if( 1 === allGroupName.length )
+   {
+      return;
+   }
+
 
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
@@ -70,17 +63,11 @@ function main ()
    splitGrInfo = ClSplitOneTimes( COMMCSNAME, subCL_Name2, startCondition2, null );
 
    //attach subcl
-   try
-   {
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: -1000, b: -1000 }, UpBound: { a: 0, b: 0 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 0, b: 0 }, UpBound: { a: 1000, b: 1000 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: 1000, b: 1000 }, UpBound: { a: 2000, b: 2000 } } );
-   }
-   catch( e )
-   {
-      println( "failed to attch sub cl, rc = " + e );
-      throw e;
-   }
+
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: -1000, b: -1000 }, UpBound: { a: 0, b: 0 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 0, b: 0 }, UpBound: { a: 1000, b: 1000 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: 1000, b: 1000 }, UpBound: { a: 2000, b: 2000 } } );
+
 
    //insert data
    var doc = [//subcl1
@@ -118,7 +105,7 @@ function main ()
       { a: 1800, b: 1800, c: { name: "Jack" } },
       { a: 1999, b: 1999, c: { $maxKey: 1 } }];
 
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //gt
    var findCondition1 = { $and: [{ a: { $gt: 0 } }, { b: { $gt: 0 } }, { c: { $gt: 100 } }] };
@@ -332,4 +319,3 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean sub collection in the end" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection in the end" );
 }
-main(); 

@@ -4,7 +4,8 @@
 *@createdate:  2017.5.20
 *@testlinkCase:seqDB-11538
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -22,28 +23,17 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-   //check test environment before split
-   try
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 >= allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 >= allGroupName.length )
    {
-      throw e;
+      return;
    }
-
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
    var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
@@ -65,17 +55,10 @@ function main ()
    splitGrInfo = ClSplitOneTimes( COMMCSNAME, subCL_Name2, startCondition2, null );
 
    //attach subcl
-   try
-   {
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: { $date: "2017-01-01" } }, UpBound: { a: { $date: "2017-02-01" } } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: { $date: "2017-05-01" } }, UpBound: { a: { $date: "2017-06-01" } } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: { $date: "2017-11-01" } }, UpBound: { a: { $date: "2017-12-01" } } } );
-   }
-   catch( e )
-   {
-      println( "failed to attch sub cl, rc = " + e );
-      throw e;
-   }
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: { $date: "2017-01-01" } }, UpBound: { a: { $date: "2017-02-01" } } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: { $date: "2017-05-01" } }, UpBound: { a: { $date: "2017-06-01" } } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: { $date: "2017-11-01" } }, UpBound: { a: { $date: "2017-12-01" } } } );
+
 
    //insert data
    var doc = [//subcl1
@@ -105,7 +88,7 @@ function main ()
       { a: [{ $date: "2017-11-02" }], b: [-999] },
       { a: [{ $date: "2017-11-10" }], b: [0] },
       { a: [{ $date: "2017-11-11" }], b: [1] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //gt
    var findConf1 = { $and: [{ b: { $gt: -1000 } }, { a: { $gt: { $date: "2017-05-01" } } }] };
@@ -249,4 +232,3 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection in the end" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection in the end" );
 }
-main()

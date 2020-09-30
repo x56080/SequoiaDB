@@ -6,7 +6,8 @@ data type: int/numberLong/double/decimal/string/bool/date/timestamp/binary/regex
 *@testlinkCase: seqDB-11533
 **************************************/
 
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_11533";
 
@@ -14,25 +15,17 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //check test environment before split
-   try
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
    }
 
    var ClOption = { ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -65,7 +58,7 @@ function main ()
    { a: ["a"] },
    { a: ["z"] },
    { b: 1 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    var startCondition1 = 50;
@@ -307,4 +300,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main(); 

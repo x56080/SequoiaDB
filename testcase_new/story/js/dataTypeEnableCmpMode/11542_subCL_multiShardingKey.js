@@ -4,7 +4,8 @@
 *@createdate:  2017.5.22
 *@testlinkCase:seqDB-11542
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -22,26 +23,16 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-   //check test environment before split
-   try
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 >= allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 >= allGroupName.length )
    {
-      throw e;
+      return;
    }
 
    //create maincl for range split
@@ -65,17 +56,9 @@ function main ()
    splitGrInfo = ClSplitOneTimes( COMMCSNAME, subCL_Name2, startCondition2, null );
 
    //attach subcl
-   try
-   {
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: -1000, b: -1000, c: -1000 }, UpBound: { a: 0, b: 0, c: 0 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 100, b: 100, c: 100 }, UpBound: { a: 200, b: 200, c: 200 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: 1000, b: 1000, c: 1000 }, UpBound: { a: 2000, b: 2000, c: 2000 } } );
-   }
-   catch( e )
-   {
-      println( "failed to attch sub cl, rc = " + e );
-      throw e;
-   }
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { a: -1000, b: -1000, c: -1000 }, UpBound: { a: 0, b: 0, c: 0 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 100, b: 100, c: 100 }, UpBound: { a: 200, b: 200, c: 200 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { a: 1000, b: 1000, c: 1000 }, UpBound: { a: 2000, b: 2000, c: 2000 } } );
 
    //insert data
    var doc = [//subcl1
@@ -87,7 +70,7 @@ function main ()
       //subcl3
       { a: 1000, b: 1000, c: 1000, d: -1 },
       { a: 1501, b: 1501, c: 1501, d: 0 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //gt
    var findConf1 = { $and: [{ a: { $gt: 150 } }, { b: { $gt: 150 } }, { c: { $gt: 150 } }] };
@@ -184,4 +167,3 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection in the end" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection in the end" );
 }
-main(); 

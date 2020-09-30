@@ -5,7 +5,8 @@ indexScan and tableScan have the same result;
 *@createdate:  2017.5.18
 *@testlinkCase: seqDB-11527
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_11527";
    //clean environment before test
@@ -43,7 +44,7 @@ function main ()
    { a: { $minKey: 1 } },
    { a: { $maxKey: 1 } },
    { b: 1 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var findConf1 = { a: { $regex: "^a", $options: "i", $et: "ab" } };
    var expRecs1 = [{ a: "ab" }];
@@ -83,4 +84,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main(); 

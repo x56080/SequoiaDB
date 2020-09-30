@@ -7,7 +7,8 @@ data type: int/numberLong/double/decimal/string/bool/date/timestamp/binary/regex
 **************************************/
 
 
-function main ()
+main( test );
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -17,25 +18,17 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
    //check test environment before split
-   try
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups, can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups, can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
    }
 
    var ClOption = { ShardingKey: { "a": 1 }, ShardingType: "range" };
@@ -66,7 +59,7 @@ function main ()
    { a: 35, b: 34 },
    { a: 35, b: 35 },
    { a: 35, b: 36 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //split cl
    var startCondition1 = { a: 0 };
@@ -468,5 +461,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-
-main(); 

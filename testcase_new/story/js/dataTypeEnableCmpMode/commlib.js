@@ -1,56 +1,6 @@
-﻿/************************************
-*@Description: insert data
-*@author:      zhaoyu
-*@createDate:  2015.5.20
-**************************************/
-function insertData ( dbcl, insertData )
-{
-   try
-   {
-      dbcl.insert( insertData );
-      println( "--insert data success" );
-   }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert", "insert success", "insert fail" );
-   }
-}
-
-/************************************
-*@Description: remove data
-*@author:      zhaoyu
-*@createDate:  2016.10.12
-**************************************/
-function removeData ( dbcl )
-{
-   try
-   {
-      dbcl.remove();
-      println( "--remove data success" );
-   }
-   catch( e )
-   {
-      throw buildException( "removeData()", e, "remove", "remove success", "remove fail" );
-   }
-}
-
-/************************************
-*@Description: find data hint scan mode
-*@author:      zhaoyu
-*@createDate:  2017.5.18
-**************************************/
-function findDataHintScanMode ( dbcl, findConf, sortConf, hintConf )
-{
-   try
-   {
-      var result = dbcl.find( findConf ).sort( sortConf ).hint( hintConf );
-   }
-   catch( e )
-   {
-      throw buildException( "findDataHintScanMode()", e, "find data", "success", "fail" );
-   }
-   return result;
-}
+﻿
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 /************************************
 *@Description: compare actual and expect result, 
@@ -67,53 +17,37 @@ function checkRec ( rc, expRecs )
    {
       actRecs.push( rc.current().toObj() );
    }
-   //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
-   }
 
-   //check every records every fields, expRecs as compare source
+   //check count 
+   assert.equal( actRecs.length, expRecs.length );
+
+   //check every records every fields
    for( var i in expRecs )
    {
       var actRec = actRecs[i];
       var expRec = expRecs[i];
-
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
-   //check every records every fields, actRecs as compare source
-   for( var j in actRecs )
-   {
-      var actRec = actRecs[j];
-      var expRec = expRecs[j];
 
+   //check every records every fields,actRecs as compare source
+   for( var i in actRecs )
+   {
+      var actRec = actRecs[i];
+      var expRec = expRecs[i];
       for( var f in actRec )
       {
          if( f == "_id" )
          {
             continue;
          }
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( j ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }
+
 
 /************************************
 *@Description: get actual result and check it
@@ -124,12 +58,11 @@ function checkResult ( dbcl, findConf, hintConf, sortConf, expRecs )
 {
    if( hintConf == undefined )
    {
-      throw "NOT_SET_HINT";
+      throw new Error( "NOT_SET_HINT" );
    }
    for( var i = 0; i < hintConf.length; i++ )
    {
-      var rc = findDataHintScanMode( dbcl, findConf, sortConf, hintConf[i] );
-      println( "begin to check data, findConf is:" + JSON.stringify( findConf ) + ", hintConf is:" + JSON.stringify( hintConf[i] ) );
+      var rc = dbcl.find( findConf ).sort( sortConf ).hint( hintConf[i] );
       checkRec( rc, expRecs );
    }
 }
@@ -142,23 +75,10 @@ function checkResult ( dbcl, findConf, hintConf, sortConf, expRecs )
 **************************************/
 function InvalidArgCheck ( dbcl, condition, condition2, expRecs )
 {
-   try
+   assert.tryThrow( expRecs, function()
    {
       dbcl.find( condition, condition2 ).toArray();
-      throw "need throw error";
-
-   }
-   catch( e )
-   {
-      if( expRecs != e )
-      {
-         throw buildException( "InvalidArgCheck()" + e + "\ncheckResult " + " \nExpect result: " + expRecs + " \nActual result:" + e );
-      }
-      else
-      {
-         println( "check result is ok!" );
-      }
-   }
+   } );
 }
 
 /************************************
@@ -213,34 +133,24 @@ return the informations of the srcGroups and targetGroups
 **************************************/
 function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 {
-   try
+   var targetGroupNums = 1;
+   var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
+   var srcGrName = groupsInfo[0].GroupName;
+   var tarGrName = groupsInfo[1].GroupName;
+   var CL = db.getCS( csName ).getCL( clName );
+   if( typeof ( startCondition ) === "number" )//percentage split
    {
-      var targetGroupNums = 1;
-      var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
-      var srcGrName = groupsInfo[0].GroupName;
-      var tarGrName = groupsInfo[1].GroupName;
-      println( csName + "." + clName + "'s target group: " + tarGrName );
-      var CL = db.getCS( csName ).getCL( clName );
-      println( "--begin split" )
-      if( typeof ( startCondition ) === "number" )//percentage split
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-      }
-      else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-         println( "startCondition=" + startCondition )
-      }
-      else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition, endCondition );
-      }
-      println( "--end split" )
+      CL.split( srcGrName, tarGrName, startCondition );
    }
-   catch( e )
+   else if( typeof ( startCondition ) === "object" && endCondition === undefined )//range split without end condition
    {
-      throw e;
+      CL.split( srcGrName, tarGrName, startCondition );
    }
+   else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" )//range split with end condition
+   {
+      CL.split( srcGrName, tarGrName, startCondition, endCondition );
+   }
+
    return groupsInfo;
 }
 
@@ -251,14 +161,7 @@ function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 function getGroupName ( db, mustBePrimary )
 {
    var RGname = null;
-   try
-   {
-      RGname = db.listReplicaGroups().toArray();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   RGname = db.listReplicaGroups().toArray();
    var j = 0;
    var arrGroupName = Array();
    for( var i = 1; i != RGname.length; ++i )
@@ -295,34 +198,24 @@ function getGroupName ( db, mustBePrimary )
 **************************************/
 function getSrcGroup ( csName, clName )
 {
-   try
+   if( undefined == csName || undefined == clName )
    {
-      if( undefined == csName || undefined == clName )
-      {
-         println( "cs name: " + csName + ", clName: " + clName );
-         throw "cs or cl name is undefined";
-      }
-      var tableName = csName + "." + clName;
-      var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
-      var catadb = new Sdb( cataMaster[0], cataMaster[1] );
-      var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
-      var srcGroupName;
-      for( var i = 0; i < Group.length; ++i )
-      {
-         var eachID = eval( "( " + Group[i] + " )" );
-         if( tableName == eachID["Name"] )
-         {
-            srcGroupName = eachID["CataInfo"][0]["GroupName"];
-            println( csName + "." + clName + "'s source group: " + srcGroupName );
-            break;
-         }
-      }
-      return srcGroupName;
+      throw new Error( "cs or cl name is undefined" );
    }
-   catch( e )
+   var tableName = csName + "." + clName;
+   var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
+   var catadb = new Sdb( cataMaster[0], cataMaster[1] );
+   var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
+   var srcGroupName;
+   for( var i = 0; i < Group.length; ++i )
    {
-      println( "failed to get source group, cs name: " + csName +
-         ", cl name: " + clName );
-      throw e;
+      var eachID = eval( "( " + Group[i] + " )" );
+      if( tableName == eachID["Name"] )
+      {
+         srcGroupName = eachID["CataInfo"][0]["GroupName"];
+         break;
+      }
    }
+   return srcGroupName;
+
 }
