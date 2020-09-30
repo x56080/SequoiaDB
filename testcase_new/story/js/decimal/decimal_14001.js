@@ -3,21 +3,8 @@
 *               seqDB-14001:特殊decimal值参数校验         
 *@author      : Liang XueWang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_14001";
    commDropCL( db, COMMCSNAME, clName );

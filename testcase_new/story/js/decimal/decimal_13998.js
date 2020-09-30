@@ -4,30 +4,16 @@
 *@author      : Liang XueWang 
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test )
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
    var groups = getGroupName( db );
    if( groups.length < 2 )
    {
-      println( "At least two groups" );
       return;
    }
 

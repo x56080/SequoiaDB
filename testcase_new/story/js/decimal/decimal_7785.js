@@ -5,7 +5,8 @@
 *@author:      zhaoyu
 *@createdate:  2016.4.27
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    //part1:attach bound is int type,and insert decimal data;
 
@@ -25,14 +26,12 @@ function main ()
    //standalone can not split
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
    //less two groups,can not split
    var allGroupName = getGroupName( db );
    if( 1 === allGroupName.length )
    {
-      println( "--least two groups" );
       return;
    }
 
@@ -134,15 +133,3 @@ function main ()
    commDropCS( db, subCSName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

@@ -3,7 +3,8 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.4
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7795"
    //clean environment before test
@@ -26,17 +27,4 @@ function main ()
    var invalidDoc1 = { a: { $decimal: "789", $precision: [5, 3] } };
    invalidDataInsertCheckResult( dbcl, invalidDoc1, -6 );
    commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

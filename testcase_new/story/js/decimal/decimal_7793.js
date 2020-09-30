@@ -3,14 +3,15 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.4
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7793";
    //clean environment before test
    commDropCL( db, COMMCSNAME, clName );
 
    //create cl
-   var dbcl = commCreateCL( db, COMMCSNAME, clName);
+   var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //insert data
    var doc = [{ a: { $decimal: "123", $precision: [5, 2] } }];
@@ -26,15 +27,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

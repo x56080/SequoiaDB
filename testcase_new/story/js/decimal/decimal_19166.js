@@ -3,21 +3,8 @@
 *               seqDB-19166 : Decimal函数参数校验       
 *@author      : luweikang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME );

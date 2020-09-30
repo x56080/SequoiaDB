@@ -3,7 +3,8 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.4
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7796"
    //clean environment before test
@@ -26,17 +27,4 @@ function main ()
    { a: { $decimal: "432.6", $precision: [6, 1] } }];
    checkResult( dbcl, {}, {}, expRecs, { _id: 1 } );
    commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

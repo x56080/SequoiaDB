@@ -4,20 +4,8 @@
 *@author      : Liang XueWang 
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_13991";
    var docs = [{ a: { $decimal: "MAX" } },

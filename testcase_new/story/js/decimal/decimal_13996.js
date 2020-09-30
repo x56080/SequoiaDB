@@ -4,21 +4,8 @@
 *               seqDB-13996:使用聚集符查询特殊decimal值           
 *@author      : Liang XueWang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_13996";
    var docs = [{ a: { $decimal: "MAX" } },

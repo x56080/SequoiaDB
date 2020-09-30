@@ -31,18 +31,9 @@ function checkSqlResult ( db, sql, expRecs )
 **************************************/
 function checkResult ( cl, cond, sel, expRecs, sort )
 {
-   if( typeof ( cond ) === "undefined" ) 
-   {
-      cond = {};
-   }
-   if( typeof ( sel ) === "undefined" ) 
-   {
-      sel = {};
-   }
-   if( typeof ( expRecs ) === "undefined" ) 
-   {
-      expRecs = sel;
-   }
+   if( typeof ( cond ) === "undefined" ) { cond = {}; }
+   if( typeof ( sel ) === "undefined" ) { sel = {}; }
+   if( typeof ( expRecs ) === "undefined" ) { expRecs = sel; }
    var cursor = cl.find( cond, sel ).sort( sort );
    // when expRecs is JSON
    if( expRecs == sel )

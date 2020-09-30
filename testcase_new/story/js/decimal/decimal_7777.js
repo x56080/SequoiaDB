@@ -3,7 +3,8 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.21
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7777";
    //clean environment before test
@@ -186,15 +187,3 @@ function testSpecialDecimal ( dbcl )
    checkResult( dbcl, null, { a: { $cast: "maxkey" } }, expRecs, { _id: 1 } );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

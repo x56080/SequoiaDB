@@ -3,7 +3,8 @@
 *@author:      zhaoyu
 *@createdate:  2016.5.4
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7791";
    //clean environment before test
@@ -41,15 +42,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

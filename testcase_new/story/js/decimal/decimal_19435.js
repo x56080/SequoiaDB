@@ -3,25 +3,12 @@
 *@author      : luweikang
 *@createDate  : 2019.9.12
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-
-function main ()
+main( test )
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
    var csName = "cs19435";

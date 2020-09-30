@@ -3,31 +3,16 @@
 *               seqDB-13999:垂直分区表插入特殊decimal值          
 *@author      : Liang XueWang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
    var groups = getGroupName( db );
    if( groups.length < 2 )
    {
-      println( "At least two groups" );
       return;
    }
 

@@ -4,7 +4,8 @@
 *@createdate:  2016.4.28,
 *@update:      assign the find condition (2016.7.9 by zhaoyu)
 **************************************/
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_7786";
    //clean environment before test
@@ -38,15 +39,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName );
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

@@ -3,21 +3,8 @@
 *               seqDB-14000:创建decimal字段索引后插入特殊decimal值         
 *@author      : Liang XueWang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_14000";
    commDropCL( db, COMMCSNAME, clName );

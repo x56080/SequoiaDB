@@ -3,21 +3,8 @@
 *               seqDB-19165:使用Decimal函数插入/删除decimal类型的普通数据         
 *@author      : luweikang
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
 

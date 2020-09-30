@@ -3,21 +3,8 @@
 *               seqDB-13992:删除特殊decimal值             
 *@author      : Liang XueWang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-
-function main ()
+main( test )
+function test ()
 {
    var clName = COMMCLNAME + "_13992";
    var docs = [{ a: { $decimal: "MAX" } },
