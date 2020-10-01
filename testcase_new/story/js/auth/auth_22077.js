@@ -55,7 +55,7 @@ function test ()
       // use db1
       assert.tryThrow( -152, function()
       {
-        db1.eval( procFunc1 );
+        db1.eval( procFunc );
       });
       // use db2
       var cursor = db2.eval( procFunc );
@@ -93,6 +93,7 @@ function checkResults ( actSize )
 
 function cleanProcedure ( procName )
 {
+   
    try
    {
       db.removeProcedure( procName );
@@ -124,3 +125,4 @@ function cleanUsers ( user1, user2 )
       }
    }
 }
+
