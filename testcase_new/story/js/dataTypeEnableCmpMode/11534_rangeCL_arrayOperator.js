@@ -7,7 +7,7 @@ data type: int/numberLong/double/decimal/string/bool/date/timestamp/binary/regex
 **************************************/
 
 main( test );
-function main ()
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );

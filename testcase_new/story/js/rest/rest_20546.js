@@ -15,17 +15,17 @@ function test()
                     "options={ AutoIncrement: [ { Field: \"field1\", Increment: 10, StartValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: true, Generated: \"always\" },{ Field: \"field2\", Increment: 10, StartValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: false, Generated: \"strict\" } ] }" ];
    runCurl ( curlPara );
 
-   var clID = getCLID( testConf.csName, testConf.clName );
+   var clID = getCLID( db, testConf.csName, testConf.clName );
    var sequenceNames = [ "SYS_" + clID + "_field1_SEQ", "SYS_" + clID + "_field2_SEQ" ];
    var expArr = [{ Field: "field1", SequenceName: sequenceNames[0], Generated: "always" },
                  { Field: "field2", SequenceName: sequenceNames[1], Generated: "strict" }];
-   checkAutoIncrementonCL( testConf.csName, testConf.clName, expArr );
+   checkAutoIncrementonCL( db, testConf.csName, testConf.clName, expArr );
    
    expArr = [ { Increment: 10, StartValue: 100, CurrentValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: true },
               { Increment: 10, StartValue: 100, CurrentValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: false } ];
    for( var i in sequenceNames )
    {
-      checkSequence( sequenceNames[i], expArr[i] );
+      checkSequence( db, sequenceNames[i], expArr[i] );
    }
   
    curlPara = [ "cmd=drop autoincrement",

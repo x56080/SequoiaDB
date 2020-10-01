@@ -16,12 +16,12 @@ function test()
                     "options={ AutoIncrement: { Field: \"" + field + "\", Increment: 10, StartValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: true, Generated: \"always\" } }" ];
    runCurl ( curlPara );
 
-   var clID = getCLID( testConf.csName, testConf.clName );
+   var clID = getCLID( db, testConf.csName, testConf.clName );
    var sequenceName = "SYS_" + clID + "_" + field + "_SEQ";
    var expArr = [{ Field: field, SequenceName: sequenceName, Generated: "always" }];
-   checkAutoIncrementonCL( testConf.csName, testConf.clName, expArr );
+   checkAutoIncrementonCL( db, testConf.csName, testConf.clName, expArr );
    var expObj = { Increment: 10, StartValue: 100, CurrentValue: 100, MinValue: 100, MaxValue: 10000, CacheSize: 100, AcquireSize: 100, Cycled: true };
-   checkSequence( sequenceName, expObj );   
+   checkSequence( db, sequenceName, expObj );   
 
    curlPara = [ "cmd=drop autoincrement",
                     "name=" + testConf.csName + "." + testConf.clName,
