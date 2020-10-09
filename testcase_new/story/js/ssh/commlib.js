@@ -116,14 +116,14 @@ function isUserExist( hostName, user )
    }
    catch( e )
    {
-      if( e == 1 )
+      if( e.message == 1 )
       {
          println( "There is no user: " + user );
          return false;
       }
       else
       {
-         throw new Error( e );
+         throw e;
       }
    }
    return true;
