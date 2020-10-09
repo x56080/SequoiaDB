@@ -50,6 +50,9 @@ function test()
    //删除配置参数值，将配置恢复为默认值
    deleteConf( db, config, options );
 
+   //补充问题单SEQUOIADBMAINSTREAM-4809中关于非法值的测试点
+   testInvalidValue(nodes,groupName);
+
    var key = Object.getOwnPropertyNames( config )[0];
    config[ key ] = getConfigs( "defaultVal" )[ "runConfigs" ][ key ];
    snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
@@ -59,3 +62,80 @@ function test()
 
    db.removeRG( groupName );
 }
+
+/*******************************************************************************
+ @Description : 补充问题单SEQUOIADBMAINSTREAM-4809中的测试点的测试点
+ @Modify list : 2020.9.5 yipan
+ *******************************************************************************/
+function  testInvalidValue(nodes,groupName) {
+   var data = [];
+   data.push(new configuration("preferedinstance","runConfigs","1,N,2,M,Y","M,1,2"));
+   data.push(new configuration("preferedinstance","runConfigs","3,4,A","3,4,A"));
+   data.push(new configuration("preferedinstance","runConfigs","aaa","M"));
+   data.push(new configuration("preferedinstancemode","runConfigs","ordered","ordered"));
+   data.push(new configuration("preferedinstancemode","runConfigs","aaa","random"));
+   data.push(new configuration("diagnum","runConfigs",-10,-1));
+   data.push(new configuration("auditnum","runConfigs",-100,-1));
+   data.push(new configuration("transisolation","runConfigs",-10,0));
+   data.push(new configuration("transisolation","runConfigs",100,2));
+   data.push(new configuration("maxreplsync","runConfigs",300,200));
+   data.push(new configuration("maxreplsync","expFail",-1,10));
+   data.push(new configuration("numpreload","expFail",-1,0));
+   data.push(new configuration("numpreload","rebootConfigs",2000,100));
+   data.push(new configuration("maxprefpool","expFail",-1,0));
+   data.push(new configuration("maxprefpool","rebootConfigs",2000,1000));
+
+   for(var i = 0;i<data.length;i++){
+      var key =  data[i]["name"];
+      //updateConf对象
+      var config = {};
+      config[key] = data[i]["invalidVal"];
+      //预期结果
+      var expResult = {};
+      expResult[key] = data[i]["expResult"]
+      //修改配置
+      if(data[i]["type"]=="expFail"){
+         //期望失败
+         try{
+            db.updateConf(config);
+            throw new Error("updateConf{"+data[i]["name"]+data[i]["invalidVal"]+"} exec success");
+         }catch (e) {
+            if(e != -6 ) {
+               throw e;
+            }
+         }
+      }else if(data[i]["type"]=="rebootConfigs"){
+         //重启生效
+         try{
+            db.updateConf(config);
+            throw new Error("updateConf{"+data[i]["name"]+data[i]["invalidVal"]+"} exec success");
+         }catch (e) {
+            if(e != -322 ){
+               throw e;
+            }
+            db.getRG( groupName ).stop();
+            db.getRG( groupName ).start();
+            var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
+            checkResult(expResult,snapshotInfo);
+            var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
+            checkResult(expResult,fileInfo);
+         }
+      } else if(data[i]["type"]=="runConfigs"){
+         //在线生效
+         db.updateConf(config);
+         var actResult = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
+         checkResult(expResult,actResult);
+         var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
+         checkResult(expResult,fileInfo);
+      }
+   }
+};
+function configuration ( name, type, invalidVal, expResult)
+{
+   this.name = name;//属性名
+   this.type = type;//类型
+   this.invalidVal = invalidVal;//非法输入的数据
+   this.expResult = expResult;//预期结果
+}
+
+
