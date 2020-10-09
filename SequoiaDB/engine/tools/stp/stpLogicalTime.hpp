@@ -62,105 +62,6 @@ namespace engine
    } ;
 
    /*
-      _stpTimeBase define
-    */
-   class _stpTimeBase : public utilPooledObject
-   {
-   public:
-      _stpTimeBase() {}
-      virtual ~_stpTimeBase() {}
-
-   public:
-      virtual INT32 fromBSON( const bson::BSONObj & ) = 0 ;
-      virtual INT32 toBSON( bson::BSONObjBuilder & ) const = 0 ;
-      virtual INT32 toBSON( bson::BSONObj & ) const = 0 ;
-
-      // parse from given field of BSON
-      OSS_INLINE INT32 fromBSON( const bson::BSONObj &object,
-                                 const CHAR *fieldName )
-      {
-         INT32 rc = SDB_OK ;
-
-         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
-
-         try
-         {
-            bson::BSONElement element = object.getField( fieldName ) ;
-            if ( bson::Object == element.type() )
-            {
-               rc = fromBSON( element.embeddedObject() ) ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            (void)e ;
-            rc = SDB_SYS ;
-         }
-
-         return rc ;
-      }
-
-      // format to given field of BSON
-      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
-                               bson::BSONObjBuilder &builder ) const
-      {
-         INT32 rc = SDB_OK ;
-
-         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
-
-         try
-         {
-            bson::BSONObjBuilder subBuilder(
-                                          builder.subobjStart( fieldName ) ) ;
-            rc = toBSON( subBuilder ) ;
-            if ( SDB_OK == rc )
-            {
-               subBuilder.doneFast() ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            (void)e ;
-            rc = SDB_SYS ;
-         }
-
-         return rc ;
-      }
-
-      // format to given field of BSON
-      OSS_INLINE INT32 toBSON( const CHAR *fieldName,
-                               bson::BSONObj &object ) const
-      {
-         INT32 rc = SDB_OK ;
-
-         SDB_ASSERT( NULL != fieldName, "field name is invalid" ) ;
-
-         try
-         {
-            bson::BSONObjBuilder builder ;
-            rc = toBSON( fieldName, builder ) ;
-            if ( SDB_OK == rc )
-            {
-               object = builder.obj() ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            (void)e ;
-            rc = SDB_SYS ;
-         }
-
-         return rc ;
-      }
-   } ;
-
-   typedef class _stpTimeBase stpTimeBase ;
-
-   /*
       _stpHPTime define
     */
    class _stpHPTime ;
@@ -176,36 +77,32 @@ namespace engine
    typedef class _stpLogicalTimeUS stpLogicalTimeUS ;
 
    // _stpHPTime represents for high precision time in nanoseconds
-   class _stpHPTime : public _stpTimeBase
+   class _stpHPTime : public utilPooledObject
    {
    public:
       // constructor and destructor
       _stpHPTime()
-      : _stpTimeBase(),
-        _second( 0LL ),
+      : _second( 0LL ),
         _nanoSecond( 0LL )
       {
       }
 
       // constructor to sample time
       _stpHPTime( STP_SAMPLE_TIME_MODE mode )
-      : _stpTimeBase(),
-        _second( 0LL ),
+      : _second( 0LL ),
         _nanoSecond( 0LL )
       {
          sample( mode ) ;
       }
 
       _stpHPTime( UINT64 second, UINT64 nanoSecond )
-      : _stpTimeBase(),
-        _second( second ),
+      : _second( second ),
         _nanoSecond( nanoSecond )
       {
       }
 
       _stpHPTime( const stpHPTime &time )
-      : _stpTimeBase(),
-        _second( time._second ),
+      : _second( time._second ),
         _nanoSecond( time._nanoSecond )
       {
       }
@@ -747,7 +644,7 @@ namespace engine
       _tpLogicalTimeBase define
     */
    // _tpLogicalTimeBase is base class for logical time in different units
-   class _stpLogicalTimeBase : public _stpTimeBase
+   class _stpLogicalTimeBase : public utilPooledObject
    {
    public:
       // construct and destructor

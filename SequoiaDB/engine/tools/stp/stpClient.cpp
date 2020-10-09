@@ -833,8 +833,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT__CONVTIME, "_stpClient::_convTime" )
-   INT32 _stpClient::_convTime( const stpTimeBase &fromTime,
-                                stpTimeBase &toTime,
+   template <typename FROMTIME, typename TOTIME>
+   INT32 _stpClient::_convTime( const FROMTIME &fromTime,
+                                TOTIME &toTime,
                                 BOOLEAN isRealToLogical )
    {
       INT32 rc = SDB_OK ;
@@ -851,18 +852,49 @@ namespace engine
                             STP_FIELD_NAME_REAL_TIME ;
 
       // build argument
-      rc = fromTime.toBSON( fromField, argument ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], "
-                   "rc: %d", fromField, rc ) ;
+      try
+      {
+         BSONObjBuilder builder ;
+
+         BSONObjBuilder subBuilder( builder.subobjStart( fromField ) ) ;
+         rc = fromTime.toBSON( subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for [%s], "
+                      "rc: %d", fromField, rc ) ;
+         subBuilder.doneFast() ;
+
+         argument = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build BSON for [%s], "
+                 "occur exception %s", fromField, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
       // run command
       rc = runCommand( CMD_NAME_STP_CONV_TIME, argument, result ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
                    CMD_NAME_STP_CONV_TIME, rc ) ;
 
-      rc = toTime.fromBSON( result, toField ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for [%s], "
-                   "rc: %d", toField, rc ) ;
+      try
+      {
+         BSONElement element = result.getField( toField ) ;
+         PD_CHECK( Object == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to parse BSON for [%s], it is not an object",
+                   toField ) ;
+
+         rc = toTime.fromBSON( element.embeddedObject() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for [%s], "
+                      "rc: %d", toField, rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse BSON for [%s], "
+                 "occur exception %s", toField, e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, rc ) ;

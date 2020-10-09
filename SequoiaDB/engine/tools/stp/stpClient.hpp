@@ -230,8 +230,9 @@ namespace engine
 
    protected:
       // helper to convert times
-      INT32 _convTime( const stpTimeBase &fromTime,
-                       stpTimeBase &toTime,
+      template <typename FROMTIME, typename TOTIME>
+      INT32 _convTime( const FROMTIME &fromTime,
+                       TOTIME &toTime,
                        BOOLEAN isRealToLogical ) ;
    } ;
 
