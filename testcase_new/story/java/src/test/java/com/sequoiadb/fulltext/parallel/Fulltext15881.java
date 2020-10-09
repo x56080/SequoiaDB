@@ -82,7 +82,7 @@ public class Fulltext15881 extends FullTestBase {
             this.checkAlterCLResults( false );
         }
 
-        this.checkIndexCommitLSN( 60 );
+        this.checkIndexCommitLSN( 300 );
     }
 
     @Override
