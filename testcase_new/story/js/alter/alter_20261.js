@@ -7,22 +7,22 @@
 try
 {
    var filePath = WORKDIR + "/" + "file20261";
-   main();
+   var isStandalone = commIsStandalone( db );
+   main( test );
 } finally
 {
-   if( !commIsStandalone( db ) )
+   if( !isStandalone )
    {
       File.remove( filePath );
    }
 }
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
       return;
    }
-
    var clName = "alter20261";
    commDropCL( db, COMMCSNAME, clName );
 
