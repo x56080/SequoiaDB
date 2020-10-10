@@ -214,6 +214,16 @@ direct_limit: 将 limit 和 offset 直接下压到 SequoiaDB 执行。优化前�
 + 作用范围：Global, Session
 + 是否支持在线修改生效：是
 
+**sequoiadb_lock_wait_timeout**
+
+该参数可以配置事务锁等待超时时间。
+
++ 类型：int32
++ 默认值：60
++ 取值范围：[0-3600]
++ 作用范围：Global，Session
++ 是否支持在线修改生效：是
+
 ###其它配置###
 
 **sequoiadb_alter_table_overhead_threshold**
