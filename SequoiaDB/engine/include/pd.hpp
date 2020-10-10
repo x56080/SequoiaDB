@@ -106,6 +106,16 @@
       } \
    }while (0)
 
+#define PD_LOG_MSG_CHECK(cond, retCode, gotoLabel, level, fmt, ...)  \
+   do {                                                              \
+      if ( !(cond) )                                                 \
+      {                                                              \
+         rc = (retCode) ;                                            \
+         PD_LOG_MSG( (level), fmt, ##__VA_ARGS__) ;                  \
+         goto gotoLabel ;                                            \
+      }                                                              \
+   } while ( 0 )
+
 #define PD_CHECK(cond, retCode, gotoLabel, level, fmt, ...) \
    do {                                                     \
       if ( !(cond) )                                        \

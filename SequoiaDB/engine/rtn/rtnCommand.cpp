@@ -4385,8 +4385,8 @@ error:
          }
          else if ( !e.eoo() )
          {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_COLLECTION, matcher.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in obj[%s]",
+                        FIELD_NAME_COLLECTION, matcher.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4399,8 +4399,9 @@ error:
          }
          else if ( !e.eoo() )
          {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_COLLECTIONSPACE, matcher.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in obj[%s]",
+                        FIELD_NAME_COLLECTIONSPACE,
+                        matcher.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4413,8 +4414,8 @@ error:
          }
          else if ( !e.eoo() )
          {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_INDEX, matcher.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in obj[%s]",
+                        FIELD_NAME_INDEX, matcher.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4434,16 +4435,17 @@ error:
             }
             else
             {
-               PD_LOG( PDERROR, "Value of field[%s] is invalid",
-                       FIELD_NAME_ANALYZE_MODE ) ;
+               PD_LOG_MSG( PDERROR, "Value of field[%s] is invalid",
+                           FIELD_NAME_ANALYZE_MODE ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
          }
          else if ( !e.eoo() )
          {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_ANALYZE_MODE, matcher.toString().c_str() ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] is invalid in obj[%s]",
+                        FIELD_NAME_ANALYZE_MODE,
+                        matcher.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4456,9 +4458,9 @@ error:
             if ( _param._sampleRecords > SDB_ANALYZE_SAMPLE_MAX ||
                  _param._sampleRecords < SDB_ANALYZE_SAMPLE_MIN )
             {
-               PD_LOG( PDERROR, "Field[%s] %u is out of range [ %d - %d ]",
-                       FIELD_NAME_ANALYZE_NUM, _param._sampleRecords,
-                       SDB_ANALYZE_SAMPLE_MIN, SDB_ANALYZE_SAMPLE_MAX ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] %u is out of range [ %d - %d ]",
+                           FIELD_NAME_ANALYZE_NUM, _param._sampleRecords,
+                           SDB_ANALYZE_SAMPLE_MIN, SDB_ANALYZE_SAMPLE_MAX ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
@@ -4473,9 +4475,9 @@ error:
             if ( _param._samplePercent > 100.0 ||
                  _param._samplePercent <= 0.0 )
             {
-               PD_LOG( PDERROR, "Field[%s] %.2f is out of range ( %.2f - %.2f ]",
-                       FIELD_NAME_ANALYZE_PERCENT, _param._samplePercent,
-                       0.0, 100.0 ) ;
+               PD_LOG_MSG( PDERROR, "Field[%s] %.2f is out of range "
+                           "( %.2f - %.2f ]", FIELD_NAME_ANALYZE_PERCENT,
+                           _param._samplePercent, 0.0, 100.0 ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
@@ -4494,15 +4496,15 @@ error:
       {
          if ( NULL != _clname )
          {
-            PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                    FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_COLLECTION ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] and Field[%s] conflict",
+                        FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_COLLECTION ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
          else if ( NULL != _ixname )
          {
-            PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                    FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_INDEX ) ;
+            PD_LOG_MSG( PDERROR, "Field[%s] and Field[%s] conflict",
+                        FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_INDEX ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -4510,23 +4512,23 @@ error:
 
       if ( NULL != _ixname && NULL == _clname )
       {
-         PD_LOG( PDERROR, "Field[%s] requires Field[%s]",
-                 FIELD_NAME_INDEX, FIELD_NAME_COLLECTION ) ;
+         PD_LOG_MSG( PDERROR, "Field[%s] requires Field[%s]",
+                     FIELD_NAME_INDEX, FIELD_NAME_COLLECTION ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       if ( SDB_ANALYZE_MODE_GENDFT == _param._mode )
       {
-         PD_CHECK( NULL != _clname, SDB_INVALIDARG, error, PDERROR,
-                   "Only support generating default statistics on specified "
-                   "collection or index" ) ;
+         PD_LOG_MSG_CHECK( NULL != _clname, SDB_INVALIDARG, error, PDERROR,
+                           "Only support generating default statistics on "
+                           "specified collection or index" ) ;
       }
 
       if ( sampleByNum && sampleByPercent )
       {
-         PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                 FIELD_NAME_ANALYZE_NUM, FIELD_NAME_ANALYZE_PERCENT ) ;
+         PD_LOG_MSG( PDERROR, "Field[%s] and Field[%s] conflict",
+                     FIELD_NAME_ANALYZE_NUM, FIELD_NAME_ANALYZE_PERCENT ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
