@@ -5,11 +5,12 @@
 *@createdate:  2018.7.29
 **************************************/
 var clName = CHANGEDPREFIX + "_updateShardingKey_15560";
-function main ()
+main( test );
+
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 
@@ -22,39 +23,21 @@ function main ()
 
    //insert data 	
    var doc = [{ no: "testupdate", a: "testa3", b: 3 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //update ShardingKey,set KeepShardingKey=true
    var updateCondition = { $set: { no: "testupdate", a: "testa" } };
-   try
+   assert.tryThrow( -178, function()
    {
-      println( "---begin to update shardingKey" );
       dbcl.update( updateCondition, {}, {}, { KeepShardingKey: true } );
-      throw "updateErrExcute fail!";
-   }
-   catch( e )
-   {
-      if( -178 != e )
-      {
-         throw buildException( "updateDataError()", e );
-      }
-   }
+   } );
 
    var findCondition = { b: { $gte: 2 } };
    var upsertCondition = { $set: { no: "testupdate12807", a: "testa12807" } };
-   try
+   assert.tryThrow( -178, function()
    {
-      println( "---begin to upsert shardingKey" );
       dbcl.upsert( upsertCondition, findCondition, {}, {}, { KeepShardingKey: true } );
-      throw "upsertExcutefail!";
-   }
-   catch( e )
-   {
-      if( -178 != e )
-      {
-         throw buildException( "upsertDataError()", e );
-      }
-   }
+   } );
 
    //check the update result	
    checkResult( dbcl, null, null, doc, { _id: 1 } );
@@ -64,4 +47,3 @@ function main ()
       "drop colleciton in the end" );
 
 }
-main();

@@ -1,16 +1,21 @@
 /************************************
-*@Description: maincl update ShardingKey,the subcl in one group;
+*@Description: maincl update ShardingKey,the subcl has been split;
 *@author:      wuyan
 *@createdate:  2017.8.22
 **************************************/
-var csName = CHANGEDPREFIX + "_cs_12158";
-var mainCLName = CHANGEDPREFIX + "_mcl_12158";
-var subCLName = COMMCLNAME + "_scl_12158";
+var csName = CHANGEDPREFIX + "_cs_12166";
+var mainCLName = CHANGEDPREFIX + "_mcl_12166";
+var subCLName = COMMCLNAME + "_scl_12166";
 main( test );
-
 function test ()
 {
    if( true == commIsStandalone( db ) )
+   {
+      return;
+   }
+   //less two groups no split
+   var allGroupName = getGroupName( db, true );
+   if( 1 === allGroupName.length )
    {
       return;
    }
@@ -27,21 +32,23 @@ function test ()
    mainCL.attachCL( csName + "." + subCLName, { LowBound: { "a": -10 }, UpBound: { "a": 100 } } );
 
    //insert data 	
-   var doc = [{ a: 1, no: 12, test: 1 }, { a: 2, no: 13, test: 2 }, { a: 3, no: 14, test: 3 },
-   { a: 4, no: 12.36 }, { a: 5, no: 1.23 }, { a: 6, no: "test6" }];
+   var doc = [{ a: 1, no: 12, test: 1 }, { a: 4, no: 12.36 }, { a: 5, no: 1.23 }, { a: 6, no: "test6" }];
    mainCL.insert( doc );
+
+   //split subcl                 
+   var percent = 50;
+   clSplit( csName, subCLName, percent )
 
    //update ShardingKey of subcl
    var updateCondition = { $inc: { no: 12, test: 1 } };
-   var findCondition = { a: { $lt: 12 } };
-   updateData( mainCL, updateCondition, {}, {}, true );
+   updateDataError( mainCL, "update", updateCondition );
 
    //check the update result
-   var expRecs = [{ a: 1, no: 24, test: 2 }, { a: 2, no: 25, test: 3 }, { a: 3, no: 26, test: 4 },
-   { a: 4, no: 24.36, test: 1 }, { a: 5, no: 13.23, test: 1 }, { a: 6, no: "test6", test: 1 }];
+   var expRecs = doc;
    checkResult( mainCL, null, null, expRecs, { _id: 1 } );
 
    // drop collectionspace in clean
    commDropCS( db, csName, false, "Failed to drop CS." );
 
 }
+

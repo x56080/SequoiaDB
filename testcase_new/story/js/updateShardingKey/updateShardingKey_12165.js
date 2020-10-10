@@ -1,18 +1,22 @@
 /************************************
-*@Description: shardedCL update ShardingKey,
-                  the ShardingKey and non ShardingKeys are updated successfully
+*@Description: splitCL find and update ShardingKey,set the KeepShardingKey is true
 *@author:      wuyan
 *@createdate:  2017.7.29
 **************************************/
-var clName = CHANGEDPREFIX + "_updateShardingKey_12156";
-//main( test );
+var clName = CHANGEDPREFIX + "_updateShardingKey_12165";
+main( test );
 function test ()
 {
    if( true == commIsStandalone( db ) )
    {
       return;
    }
-
+   //less two groups no split
+   var allGroupName = getGroupName( db, true );
+   if( 1 === allGroupName.length )
+   {
+      return;
+   }
    //clean environment before test
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
@@ -22,17 +26,19 @@ function test ()
 
    //insert data 	
    var doc = [{ no: { "$timestamp": "2017-07-29-13.14.26.124233" }, a: "testa1", b: 1 },
-   { no: { "$date": "2017-07-29" }, a: ["test1", "test2"], b: 2 },
    { no: "testupdate", a: "testa3", b: 3 }];
    dbcl.insert( doc );
 
+   //split cl                 
+   var percent = 50;
+   clSplit( COMMCSNAME, clName, percent )
+
    //update ShardingKey,set KeepShardingKey=true
    var updateCondition = { $set: { no: "testupdate", a: "testa" } };
-   updateData( dbcl, updateCondition, {}, {}, true );
+   updateDataError( dbcl, "findAndUpdate", updateCondition );
 
    //check the update result
-   var expRecs = [{ no: "testupdate", a: "testa", b: 1 }, { no: "testupdate", a: "testa", b: 2 },
-   { no: "testupdate", a: "testa", b: 3 }];;
+   var expRecs = doc;
    checkResult( dbcl, null, null, expRecs, { _id: 1 } );
 
    // drop collectionspace in clean

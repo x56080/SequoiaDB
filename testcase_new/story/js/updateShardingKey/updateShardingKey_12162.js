@@ -1,13 +1,12 @@
 /************************************
-*@Description: maincl update ShardingKey,the subcl in one group;
+*@Description: maincl update ShardingKey,no set KeepShardingKey;
 *@author:      wuyan
 *@createdate:  2017.8.22
 **************************************/
-var csName = CHANGEDPREFIX + "_cs_12158";
-var mainCLName = CHANGEDPREFIX + "_mcl_12158";
-var subCLName = COMMCLNAME + "_scl_12158";
+var csName = CHANGEDPREFIX + "_cs_12162";
+var mainCLName = CHANGEDPREFIX + "_mcl_12162";
+var subCLName = COMMCLNAME + "_scl_12162";
 main( test );
-
 function test ()
 {
    if( true == commIsStandalone( db ) )
@@ -33,12 +32,12 @@ function test ()
 
    //update ShardingKey of subcl
    var updateCondition = { $inc: { no: 12, test: 1 } };
-   var findCondition = { a: { $lt: 12 } };
-   updateData( mainCL, updateCondition, {}, {}, true );
+   var findCondition = { a: { $lt: 5 } };
+   updateData( mainCL, updateCondition, findCondition );
 
    //check the update result
-   var expRecs = [{ a: 1, no: 24, test: 2 }, { a: 2, no: 25, test: 3 }, { a: 3, no: 26, test: 4 },
-   { a: 4, no: 24.36, test: 1 }, { a: 5, no: 13.23, test: 1 }, { a: 6, no: "test6", test: 1 }];
+   var expRecs = [{ a: 1, no: 12, test: 2 }, { a: 2, no: 13, test: 3 }, { a: 3, no: 14, test: 4 },
+   { a: 4, no: 12.36, test: 1 }, { a: 5, no: 1.23 }, { a: 6, no: "test6" }];
    checkResult( mainCL, null, null, expRecs, { _id: 1 } );
 
    // drop collectionspace in clean

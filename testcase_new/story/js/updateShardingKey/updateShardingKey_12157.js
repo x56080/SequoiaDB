@@ -1,10 +1,10 @@
 /************************************
-*@Description: shardedCL update ShardingKey,
+*@Description: shardedCL find And update ShardingKey,
                   the ShardingKey and non ShardingKeys are updated successfully
 *@author:      wuyan
-*@createdate:  2017.7.29
+*@createdate:  2017.8.16
 **************************************/
-var clName = CHANGEDPREFIX + "_updateShardingKey_12156";
+var clName = CHANGEDPREFIX + "_updateShardingKey_12157";
 //main( test );
 function test ()
 {
@@ -26,18 +26,18 @@ function test ()
    { no: "testupdate", a: "testa3", b: 3 }];
    dbcl.insert( doc );
 
-   //update ShardingKey,set KeepShardingKey=true
-   var updateCondition = { $set: { no: "testupdate", a: "testa" } };
-   updateData( dbcl, updateCondition, {}, {}, true );
+   //findAndUpdate ShardingKey,set KeepShardingKey=true
+   var findCondition = { b: { $gte: 2 } };
+   var updateCondition = { $set: { no: "testupdate12157", a: "testa12157" } };
+   findAndUpdateData( dbcl, findCondition, updateCondition, true, true );
 
    //check the update result
-   var expRecs = [{ no: "testupdate", a: "testa", b: 1 }, { no: "testupdate", a: "testa", b: 2 },
-   { no: "testupdate", a: "testa", b: 3 }];;
+   var expRecs = [{ no: { "$timestamp": "2017-07-29-13.14.26.124233" }, a: "testa1", b: 1 },
+   { no: "testupdate12157", a: "testa12157", b: 2 },
+   { no: "testupdate12157", a: "testa12157", b: 3 }];
    checkResult( dbcl, null, null, expRecs, { _id: 1 } );
 
    // drop collectionspace in clean
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 
 }
-
