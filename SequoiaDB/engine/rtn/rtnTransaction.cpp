@@ -74,6 +74,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to add transaction information [%s], "
                     "rc: %d", dpsTransIDToString( transID ).c_str(), rc ) ;
             ossSleep( RTN_TRANS_ROLLBACK_RETRY_INTERVAL ) ;
+            continue ;
          }
          break ;
       }
