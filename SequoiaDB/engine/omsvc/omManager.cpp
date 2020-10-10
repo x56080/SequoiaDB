@@ -489,6 +489,26 @@ namespace engine
          _usrPluginPasswd = passwd ;
       }
 
+      // SYSDEPLOY.SYSSETTINGS
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_SETTINGS ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = dbTool.createCollectionIndex( OM_CS_DEPLOY_CL_SETTINGS,
+                                         OM_CS_DEPLOY_CL_SETTINGSIDX ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = dbTool.setSetting( OM_BSON_MAX_EXEC_TIME, REST_TIMEOUT ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
    done:
       return rc ;
    error:

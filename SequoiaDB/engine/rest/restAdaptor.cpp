@@ -149,8 +149,14 @@ namespace engine
       _timeout = timeout ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVHEADER, "restAdaptor::recvHeader" )
    INT32 restAdaptor::recvHeader( ossSocket *sock, restBase *pRest )
+   {
+      return recvHeader( sock, pRest, _timeout ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVHEADER, "restAdaptor::recvHeader" )
+   INT32 restAdaptor::recvHeader( ossSocket *sock, restBase *pRest,
+                                  INT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR_RECVHEADER ) ;
@@ -185,7 +191,7 @@ namespace engine
 
          rc = _recvData( sock, buffer + recvSize,
                          _maxHttpHeaderSize - recvSize,
-                         FALSE, &tmpRecvSize ) ;
+                         timeout, FALSE, &tmpRecvSize ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
@@ -254,8 +260,14 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVBODY, "restAdaptor::recvBody" )
    INT32 restAdaptor::recvBody( ossSocket *sock, restBase *pRest )
+   {
+      return recvBody( sock, pRest, _timeout ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVBODY, "restAdaptor::recvBody" )
+   INT32 restAdaptor::recvBody( ossSocket *sock, restBase *pRest,
+                                INT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR_RECVBODY ) ;
@@ -266,17 +278,17 @@ namespace engine
       chunk = pRest->getHeader( REST_STRING_TRANSFER ) ;
       if ( chunk.empty() )
       {
-         rc = _recvRestBody( sock, pRest ) ;
+         rc = _recvRestBody( sock, pRest, timeout ) ;
       }
       else if( SDB_REST_RESPONSE == pRest->type() &&
                REST_STRING_CHUNKED == chunk )
       {
-         rc = _recvRestChunk( sock, pRest ) ;
+         rc = _recvRestChunk( sock, pRest, timeout ) ;
       }
       else if( SDB_REST_RESPONSE == pRest->type() &&
                REST_STRING_IDENTITY == chunk )
       {
-         rc = _recvRestIdentity( sock, pRest ) ;
+         rc = _recvRestIdentity( sock, pRest, timeout ) ;
       }
       else
       {
@@ -771,7 +783,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTBODY, "restAdaptor::_recvRestBody" )
-   INT32 restAdaptor::_recvRestBody( ossSocket *sock, restBase *pRest )
+   INT32 restAdaptor::_recvRestBody( ossSocket *sock, restBase *pRest,
+                                     INT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTBODY ) ;
@@ -847,7 +860,8 @@ namespace engine
             if ( bodySize - receivedSize > 0 )
             {
                rc = _recvData( sock, pBuffer + receivedSize,
-                               bodySize - receivedSize, TRUE, &curRecvSize ) ;
+                               bodySize - receivedSize, timeout,
+                               TRUE, &curRecvSize ) ;
                if ( rc )
                {
                   PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
@@ -870,7 +884,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTCHUNK, "restAdaptor::_recvRestChunk" )
-   INT32 restAdaptor::_recvRestChunk( ossSocket *sock, restBase *pRest )
+   INT32 restAdaptor::_recvRestChunk( ossSocket *sock, restBase *pRest,
+                                      INT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTCHUNK ) ;
@@ -917,7 +932,8 @@ namespace engine
       while( TRUE )
       {
          rc = _recvData( sock, pBuffer + receivedSize,
-                         bufSize - receivedSize, FALSE, &curRecvSize ) ;
+                         bufSize - receivedSize, timeout,
+                         FALSE, &curRecvSize ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
@@ -950,7 +966,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTIDENTITY, "restAdaptor::_recvRestIdentity" )
-   INT32 restAdaptor::_recvRestIdentity( ossSocket *sock, restBase *pRest )
+   INT32 restAdaptor::_recvRestIdentity( ossSocket *sock, restBase *pRest,
+                                         INT32 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTIDENTITY ) ;
@@ -997,7 +1014,8 @@ namespace engine
       while( TRUE )
       {
          rc = _recvData( sock, pBuffer + receivedSize,
-                         bufSize - receivedSize, FALSE, &curRecvSize ) ;
+                         bufSize - receivedSize, timeout,
+                         FALSE, &curRecvSize ) ;
          if ( rc )
          {
             rc = SDB_OK ;
@@ -1117,7 +1135,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVDATA, "restAdaptor::_recvData" )
    INT32 restAdaptor::_recvData( ossSocket *sock, CHAR* pData, INT32 size,
-                                 BOOLEAN block, INT32 *pRecvLen )
+                                 INT32 timeout, BOOLEAN block, INT32 *pRecvLen )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVDATA ) ;
@@ -1129,9 +1147,9 @@ namespace engine
       while( TRUE )
       {
          rc = sock->recv( &pData[totalReceivedSize], size - totalReceivedSize,
-                          receivedSize, _timeout, 0, block ) ;
+                          receivedSize, timeout, 0, block ) ;
          totalReceivedSize += receivedSize ;
-         if ( _timeout < 0 && SDB_TIMEOUT == rc )
+         if ( timeout < 0 && SDB_TIMEOUT == rc )
          {
             continue ;
          }

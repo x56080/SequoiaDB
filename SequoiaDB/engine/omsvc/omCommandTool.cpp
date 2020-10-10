@@ -3694,6 +3694,294 @@ namespace engine
       goto done ;
    }
 
+   template<typename T>
+   INT32 omDatabaseTool::setSetting( const string& key, const T& value )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj condition ;
+      BSONObj updator ;
+      BSONObj hint ;
+      utilUpdateResult upResult ;
+
+      try
+      {
+         condition = BSON( OM_SETTINGS_FIELD_KEY << key ) ;
+         updator = BSON( "$set" << BSON( OM_SETTINGS_FIELD_KEY << key <<
+                                         OM_SETTINGS_FIELD_VALUE << value ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( OM_CS_DEPLOY_CL_SETTINGS, condition, updator, hint,
+                      FLG_UPDATE_UPSERT, _cb, &upResult ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "falied to update setting,"
+                          "condition=%s,updator=%s,rc=%d",
+                 condition.toString().c_str(),
+                 updator.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::setSettingNull( const string& key )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj condition ;
+      BSONObj updator ;
+      BSONObj hint ;
+      utilUpdateResult upResult ;
+      BSONObjBuilder builder ;
+
+      try
+      {
+         condition = BSON( OM_SETTINGS_FIELD_KEY << key ) ;
+
+         builder.append( OM_SETTINGS_FIELD_KEY, key ) ;
+         builder.appendNull( OM_SETTINGS_FIELD_VALUE ) ;
+
+         updator = BSON( "$set" << builder.obj() ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = rtnUpdate( OM_CS_DEPLOY_CL_SETTINGS, condition, updator, hint,
+                      FLG_UPDATE_UPSERT, _cb, &upResult ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "falied to update setting,"
+                          "condition=%s,updator=%s,rc=%d",
+                 condition.toString().c_str(),
+                 updator.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::setSettings( const BSONObj& settings )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjIterator iter( settings ) ;
+
+      while ( iter.more() )
+      {
+         BSONElement ele = iter.next() ;
+         string field = ele.fieldName() ;
+
+         switch( ele.type() )
+         {
+         case NumberDouble:
+            rc = setSetting( field, ele.Double() ) ;
+            break ;
+         case String:
+            rc = setSetting( field, ele.String() ) ;
+            break ;
+         case Object:
+            rc = setSetting( field, ele.Obj() ) ;
+            break ;
+         case Array:
+            rc = setSetting( field, ele.Array() ) ;
+            break ;
+         case Bool:
+            rc = setSetting( field, ele.Bool() ) ;
+            break ;
+         case Date:
+            rc = setSetting( field, ele.Date() ) ;
+            break ;
+         case NumberInt:
+            rc = setSetting( field, ele.Int() ) ;
+            break ;
+         case Timestamp:
+            rc = setSetting( field, ele.timestampTime() ) ;
+            break ;
+         case NumberLong:
+            rc = setSetting( field, ele.Long() ) ;
+            break ;
+         case NumberDecimal:
+            rc = setSetting( field, ele.Decimal() ) ;
+            break ;
+         case jstNULL:
+            rc = setSettingNull( field ) ;
+            break ;
+         default:
+            break ;
+         }
+
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::getSettingList( list<BSONObj>& settings )
+   {
+      INT32 rc = SDB_OK ;
+      SINT64 contextID = -1 ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      BSONObj result ;
+
+      rc = rtnQuery( OM_CS_DEPLOY_CL_SETTINGS, selector, matcher, order, hint,
+                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
+                 OM_CS_DEPLOY_CL_SETTINGS, rc ) ;
+         goto error ;
+      }
+
+
+      while ( TRUE )
+      {
+         rtnContextBuf buffObj ;
+
+         rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+
+            contextID = -1 ;
+            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d",
+                    OM_CS_DEPLOY_CL_SETTINGS, rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObj result( buffObj.data() ) ;
+
+            settings.push_back( result.getOwned() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      if( -1 != contextID )
+      {
+         _pRTNCB->contextDelete ( contextID, _cb ) ;
+         contextID = -1 ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::getSetting( const string& key, BSONObj& setting )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isExist  = FALSE ;
+      SINT64 contextID = -1 ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      BSONObj result ;
+
+      try
+      {
+         matcher = BSON( OM_SETTINGS_FIELD_KEY << key ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = rtnQuery( OM_CS_DEPLOY_CL_SETTINGS, selector, matcher, order, hint,
+                     0, _cb, 0, 1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
+                 OM_CS_DEPLOY_CL_SETTINGS, rc ) ;
+         goto error ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buffObj ;
+
+         rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+
+            contextID = -1 ;
+            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d",
+                    OM_CS_DEPLOY_CL_SETTINGS, rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObj result( buffObj.data() ) ;
+
+            setting = result.getOwned() ;
+            isExist = TRUE ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+      if ( FALSE == isExist )
+      {
+         rc = SDB_DMS_RECORD_NOTEXIST ;
+         PD_LOG( PDWARNING, "setting does not exist: key=%s", key.c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         _pRTNCB->contextDelete ( contextID, _cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omDatabaseTool::createCollection( const CHAR *pCollection )
    {
       INT32 rc = SDB_OK ;

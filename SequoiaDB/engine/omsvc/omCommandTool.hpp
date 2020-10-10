@@ -292,6 +292,14 @@ namespace engine
       INT32 unbindHost( const string &clusterName,
                         list<string> &hostList ) ;
 
+      //settings
+      template<typename T>
+      INT32 setSetting( const string& key, const T& value ) ;
+      INT32 setSettingNull( const string& key ) ;
+      INT32 setSettings( const BSONObj& settings ) ;
+      INT32 getSettingList( list<BSONObj>& settings ) ;
+      INT32 getSetting( const string& key, BSONObj& setting ) ;
+
       //collection
       INT32 createCollection( const CHAR *pCollection ) ;
       INT32 createCollectionIndex( const CHAR *pCollection,

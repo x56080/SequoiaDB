@@ -2171,6 +2171,42 @@ namespace engine
 
       const CHAR* name() { return OM_DELETE_BUSINESS_CONFIG_REQ ; }
    } ;
+
+   class omSetSettingsCommand : public omAuthCommand
+   {
+   public:
+      REST_CONSTRUCTOR_PARA_INHERIT( omSetSettingsCommand, omAuthCommand )
+      {
+      }
+
+      ~omSetSettingsCommand()
+      {
+      }
+
+      DECLARE_OMREST_CMD_AUTO_REGISTER() ;
+
+      const CHAR* name() { return OM_SET_SETTINGS_REQ ; }
+
+      virtual INT32  doCommand() ;
+   } ;
+
+   class omListSettingsCommand : public omAuthCommand
+   {
+   public:
+      REST_CONSTRUCTOR_PARA_INHERIT( omListSettingsCommand, omAuthCommand )
+      {
+      }
+
+      ~omListSettingsCommand()
+      {
+      }
+
+      DECLARE_OMREST_CMD_AUTO_REGISTER() ;
+
+      const CHAR* name() { return OM_LIST_SETTINGS_REQ ; }
+
+      virtual INT32  doCommand() ;
+   } ;
 }
 
 #endif /* OM_GETFILECOMMAND_HPP__ */

@@ -9771,6 +9771,7 @@ checking system firewall for blocked ports" ) ;
    {
       UINT16 port = 0 ;
       INT32 rc = SDB_OK ;
+      INT32 timeout = REST_TIMEOUT ;
       omRestTool restTool( _restSession->socket(), _restAdaptor, _response ) ;
       omDatabaseTool dbTool( _cb ) ;
       BSONObj pluginInfo ;
@@ -9778,6 +9779,7 @@ checking system firewall for blocked ports" ) ;
       string serviceName ;
       string businessName ;
       string businessType ;
+      omArgOptions option( _request ) ;
 
       pmdGetThreadEDUCB()->resetInfo( EDU_INFO_ERROR ) ;
 
@@ -9800,6 +9802,27 @@ checking system firewall for blocked ports" ) ;
          _errorMsg.setError( TRUE, "Set socket keep alive failed[ %d ]", rc ) ;
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
+      }
+
+      {
+         BSONObj setting ;
+
+         rc = dbTool.getSetting( OM_SETTINGS_CONFIG_MAXEXECTIME, setting ) ;
+         if ( SDB_OK == rc )
+         {
+            BSONElement ele = setting.getField( OM_SETTINGS_FIELD_VALUE ) ;
+            
+            if ( ele.type() == NumberInt )
+            {
+               timeout = ele.Int() ;
+               if ( timeout == 0 )
+               {
+                  timeout = -1 ;
+               }
+            }
+         }
+
+         rc = SDB_OK ;
       }
 
       serviceName = pluginInfo.getStringField( OM_PLUGINS_FIELD_SERVICENAME ) ;
@@ -9844,7 +9867,7 @@ checking system firewall for blocked ports" ) ;
             goto error ;
          }
 
-         rc = _restAdaptor->recvHeader( &client, _response ) ;
+         rc = _restAdaptor->recvHeader( &client, _response, timeout ) ;
          if ( rc )
          {
             _errorMsg.setError( TRUE, "failed to recv response header: rc=%d",
@@ -9869,7 +9892,7 @@ checking system firewall for blocked ports" ) ;
 
          while( !_cb->isInterrupted() )
          {
-            rc = _restAdaptor->recvBody( &client, _response ) ;
+            rc = _restAdaptor->recvBody( &client, _response, timeout ) ;
             if ( SDB_REST_RECV_SIZE == rc || SDB_OK == rc )
             {
                rc = _restAdaptor->sendBody( _restSession->socket(),

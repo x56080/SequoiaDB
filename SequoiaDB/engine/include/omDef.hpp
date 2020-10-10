@@ -76,6 +76,7 @@ namespace engine
    #define OM_REST_FIELD_ROLE                   "Role"
    #define OM_REST_FIELD_TYPE                   "Type"
    #define OM_REST_FIELD_PUBLIC_KEY             "PublicKey"
+   #define OM_REST_FIELD_SETTINGS               "Settings"
 
    #define OM_REST_VALUE_PLUGIN                 "plugin"
 
@@ -324,6 +325,16 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
 unique: true, enforced: true }"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX2          "{name:\"SYSDEPLOY_PLUGINS_IDX2\
 \",key: {"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, unique: true, enforced: true }"
+
+   /******* SYSSETTINGS *******/
+   #define OM_CS_DEPLOY_CL_SETTINGS             OM_CS_DEPLOY".SYSSETTINGS"
+   #define OM_SETTINGS_FIELD_KEY                "Key"
+   #define OM_SETTINGS_FIELD_VALUE              "Value"
+   #define OM_CS_DEPLOY_CL_SETTINGSIDX          "{name:\"\
+OM_CS_DEPLOY_CL_SETTINGSIDX\",key: {"OM_SETTINGS_FIELD_KEY":1}, unique: true, \
+enforced: true }"
+
+   #define OM_SETTINGS_CONFIG_MAXEXECTIME       "max_execution_time"
 
    /********** SYSSTRATEGY **********/
    #define OM_CS_STRATEGY                       "SYSSTRATEGY"
@@ -682,6 +693,9 @@ unique: true, enforced: true }"
    #define  OM_MODIFY_BUSINESS_CONFIG_REQ    "modify business config"
    #define  OM_UPDATE_BUSINESS_CONFIG_REQ    "update business config"
    #define  OM_DELETE_BUSINESS_CONFIG_REQ    "delete business config"
+
+   #define  OM_SET_SETTINGS_REQ              "set settings"
+   #define  OM_LIST_SETTINGS_REQ             "list settings"
 
    //**************************************************************************
 

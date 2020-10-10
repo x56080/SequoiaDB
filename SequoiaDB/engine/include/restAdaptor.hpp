@@ -80,7 +80,11 @@ namespace engine
 
       INT32 recvHeader( ossSocket *sock, restBase *pRest ) ;
 
+      INT32 recvHeader( ossSocket *sock, restBase *pRest, INT32 timeout ) ;
+
       INT32 recvBody( ossSocket *sock, restBase *pRest ) ;
+
+      INT32 recvBody( ossSocket *sock, restBase *pRest, INT32 timeout ) ;
 
       INT32 sendRest( ossSocket *sock, restBase *pRest ) ;
 
@@ -106,11 +110,14 @@ namespace engine
       BOOLEAN _isEndOfChunk( restBase *pRest, CHAR *buffer,
                              INT32 size ) ;
 
-      INT32 _recvRestBody( ossSocket *sock, restBase *pRest ) ;
+      INT32 _recvRestBody( ossSocket *sock, restBase *pRest,
+                           INT32 timeout ) ;
 
-      INT32 _recvRestChunk( ossSocket *sock, restBase *pRest ) ;
+      INT32 _recvRestChunk( ossSocket *sock, restBase *pRest,
+                            INT32 timeout ) ;
 
-      INT32 _recvRestIdentity( ossSocket *sock, restBase *pRest ) ;
+      INT32 _recvRestIdentity( ossSocket *sock, restBase *pRest,
+                               INT32 timeout ) ;
 
       INT32 _sendChunkData( ossSocket *sock, const CHAR *pBuffer,
                             INT32 length ) ;
@@ -119,7 +126,8 @@ namespace engine
                        BOOLEAN block = TRUE, INT32 *pSentLen = NULL ) ;
 
       INT32 _recvData( ossSocket *sock, CHAR * pData, INT32 size,
-                       BOOLEAN block = TRUE, INT32 *pRecvLen = NULL ) ;
+                       INT32 timeout, BOOLEAN block = TRUE,
+                       INT32 *pRecvLen = NULL ) ;
 
    protected:
       INT32 _maxHttpHeaderSize ;
