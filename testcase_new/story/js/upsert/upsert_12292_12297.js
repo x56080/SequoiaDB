@@ -26,9 +26,10 @@ function test ()
    cl.createIndex( 'aidx', { a: 1 }, false );
    upsertandmergerWithHint( cl, { $set: { a: 1 } }, {}, { "": 'aidx' }, { _id: 1 },
       { a: 1, _id: 1 } );
-   upsertandmergerWithHint( cl, { $set: { a: 1 } }, { "_id.b": 1 }, {}, { "_id.a": new Date() },
-      { a: 1, "_id.b": 1 } );
+   //upsertandmergerWithHint( cl, {$set:{a:1}}, {"_id.b":1}, {}, {"_id.a": new Date()}, 
+   //               {a:1, "_id.b":1} ); 
    upsertandmergerWithHint( cl, { $set: { "_id.a": 1 } }, { "_id.b": 1 }, {}, { "_id.c": 1 },
       { _id: { a: 1, b: 1, c: 1 } } );
+
    commDropCL( db, COMMCSNAME, clName );
 }

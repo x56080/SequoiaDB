@@ -3,6 +3,8 @@
 *@Modify list:
 *   2014-4-21 wenjing wang Init
 *******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 //构造JSON字符串
 function BuildObjStr ( obj )
@@ -106,7 +108,6 @@ function compareObj ( lobj, robj, needObjectID )
 
       if( robj[k] === undefined )
       {
-         println( k + " not exist " );
          return false;
       }
 
@@ -115,19 +116,16 @@ function compareObj ( lobj, robj, needObjectID )
       {
          if( !compareObj( lobj[k], robj[k], true ) )
          {
-            println( JSON.stringify( lobj[k] ) + " not equal " + JSON.stringify( robj[k] ) );
             return false;
          }
       }
       else if( typeof ( lobj[k] ) === "object" ||
          typeof ( robj[k] ) === "object" )
       {
-         println( typeof ( lobj[k] ) + "not equal" + typeof ( robj[k] ) );
          return false;
       }
       else if( lobj[k] !== robj[k] )
       {
-         println( lobj[k] + " not equal " + robj[k] );
          return false;
       }
    }
@@ -182,7 +180,109 @@ function checkResult ( cl, cond, resultSet )
 
    if( !check || realRes.length != resultSet.length )
    {
-      throw "expect:" + JSON.stringify( resultSet ) + "real:" + JSON.stringify( realRes );
+      throw new Error( "expect:" + JSON.stringify( resultSet ) + "real:" + JSON.stringify( realRes ) );
    }
 
+}
+
+function upsertandmergerWithHint ( cl, rule, cond, hint, setoninsert, res, errres )
+{
+   if( undefined == rule )
+   {
+      return;
+   }
+
+   if( undefined == cond )
+   {
+      var cond = {};
+   }
+
+   try
+   {
+      cl.upsert( rule, cond, hint, setoninsert );
+      docnum = cl.find( res ).count();
+      if( 1 != docnum )
+      {
+         throw new Error( -1 );
+      }
+
+      if( undefined != errres )
+      {
+         docnum = cl.find( errres ).count();
+         if( 0 != docnum )
+         {
+            throw new Error( -2 );
+         }
+      }
+   }
+   catch( e )
+   {
+      if( -1 == e.message )
+      {
+         throw new Error( e );
+      }
+      else if( -2 == e.message && undefined != errres )
+      {
+         throw new Error( e );
+      }
+      else
+      {
+         throw e;
+      }
+   }
+   finally
+   {
+      cl.remove();
+   }
+}
+
+function upsertandmerger ( cl, rule, cond, res, errres )
+{
+   if( undefined == rule )
+   {
+      return;
+   }
+
+   if( undefined == cond )
+   {
+      var cond = {};
+   }
+
+   try
+   {
+      cl.upsert( rule, cond );
+      docnum = cl.find( res ).count();
+      if( 1 != docnum )
+      {
+         throw new Error( -1 );
+      }
+
+      if( undefined != errres )
+      {
+         docnum = cl.find( errres ).count();
+         if( 0 != docnum )
+         {
+            throw new Error( -2 );
+         }
+      }
+   }
+   catch( e )
+   {
+      if( -1 == e.message )
+      {
+         throw new Error( e );
+      }
+      else if( -2 == e.message && undefined != errres )
+      {
+         throw new Error( e );
+      }
+      else
+      {
+         throw e;
+      }
+   }
+   finally
+   {
+      cl.remove();
+   }
 }
