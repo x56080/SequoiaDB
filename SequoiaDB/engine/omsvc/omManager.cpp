@@ -503,7 +503,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dbTool.setSetting( OM_BSON_MAX_EXEC_TIME, REST_TIMEOUT ) ;
+      rc = dbTool.setSetting( OM_SETTINGS_CONFIG_MAXEXECTIME, REST_TIMEOUT ) ;
       if ( rc )
       {
          goto error ;
