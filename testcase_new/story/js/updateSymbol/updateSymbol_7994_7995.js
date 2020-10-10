@@ -5,9 +5,9 @@
 *@createdate:  2016.5.17
 **************************************/
 testConf.clName = COMMCLNAME + "_addtoset7994";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data   
    var doc1 = [{ object1: [10, 30, 20] },
@@ -26,7 +26,7 @@ function test(testPara)
       { $regex: "^z", $options: "i" },
          null]
    }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use addtoset,no matches
    var updateCondition1 = {
@@ -39,7 +39,7 @@ function test(testPara)
          "object6.name": [500, 505]
       }
    };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    var expRecs1 = [{
@@ -89,7 +89,7 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs1, { _id: 1 } );
 
    //delete all data
-   deleteData( testPara.testCL, null )
+   testPara.testCL.remove();
 
    //insert data
    var doc2 = [{ object1: [10, 30, 20] },
@@ -108,7 +108,7 @@ function test(testPara)
       { $regex: "^z", $options: "i" },
          null]
    }];
-   insertData( testPara.testCL, doc2 );
+   testPara.testCL.insert( doc2 );
 
    //update use addtoset,with matches
    var updateCondition2 = {
@@ -118,7 +118,7 @@ function test(testPara)
       }
    };
    var findCondition2 = { object1: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 )
+   testPara.testCL.update( updateCondition2, findCondition2 )
 
    //check result
    var expRecs2 = [{ object1: [10, 30, 20, 100, 101], object7: [100, 105] },

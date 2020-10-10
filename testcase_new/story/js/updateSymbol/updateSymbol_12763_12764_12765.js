@@ -6,14 +6,14 @@
 *@createdate:  2017.09.19
 **************************************/
 testConf.clName = COMMCLNAME + "_pull_all_by_12763";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //create index
    var indexName = 'b';
    var key = { b: 1 }
-   createIndex( testPara.testCL, indexName, key )
+   testPara.testCL.createIndex( indexName, key );
 
    //insert data   
    var doc = [{ a1: [1, 2, 3, 0, -2, -1], b1: [10, 20, 30, -30, -10] },
@@ -37,7 +37,7 @@ function test(testPara)
    { b11: [{ obj3: 'tb11obj3hh', obj1: { obj2: 1 } }, { obj1: { obj2: 2 }, obj3: 'tb11obj3ii' }, { obj1: { obj2: 3 }, obj3: 'tb11obj3jj' }] },
    { b12: [{ obj1: { obj2_1: -1, obj2_2: -2 } }, { obj1: { obj2_1: 0, obj2_2: 1 } }, { obj1: { obj2_1: 1, obj2_2: 2 } }] },
    { b13: [{ obj1: { obj2: { obj3: 1 } }, obj4: 'tb13obj4aa' }, { obj1: { obj2: { obj3: 2 } }, obj4: 'tb13obj4bb' }, { obj1: { obj2: { obj3: 2 } } }] }];
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //pull_all_by , without match
    var updateRule1 = {
@@ -56,7 +56,7 @@ function test(testPara)
          b7: [{ obj1: -1, obj2: 'testb72' }, { obj1: -2, obj2: 'testb71' }]
       }
    };
-   updateData( testPara.testCL, updateRule1 );
+   testPara.testCL.update( updateRule1 );
    //check result
    var expResult1 = [{ a1: [1, 2, 3, 0, -2, -1], b1: [10, 20, 30, -30, -10] },
    { a2: ['a', 'b', 'c', 'd', 'e'], b2: ['w', 'x', 'y', 'z'] },
@@ -109,7 +109,7 @@ function test(testPara)
          b13: [{ obj1: { obj2: { obj3: 1 } }, obj4: 'tb13obj4aa' }, { obj4: 'obj4' }]
       }
    };
-   updateData( testPara.testCL, updateRule2 );
+   testPara.testCL.update( updateRule2 );
    //check result
    var expResult2 = [{ a1: [1, 3, 0, -2], b1: [10, 30, -30] },
    { a2: ['b', 'c'], b2: ['w', 'z'] },

@@ -3,11 +3,11 @@
 *@author:      zhaoyu
 *@createdate:  2019.10.29
 **************************************/
-testConf.clOpt = { StrictDataMode: true};
+testConf.clOpt = { StrictDataMode: true };
 testConf.clName = COMMCLNAME + "_20103";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    commCreateIndex( testPara.testCL, "a_20103", { a: 1 } );
    //a字段为数值，Value为数值，Min为数值，Value<Min同时a+Value>=Min，更新成功，更新后a值为a+Value

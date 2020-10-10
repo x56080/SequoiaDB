@@ -4,9 +4,9 @@
 *@createdate:  2016.5.19
 **************************************/
 testConf.clName = COMMCLNAME + "_push_all8010";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data
    var doc1 = [{ object1: [10, -30, { $numberLong: "20" }] },
@@ -16,7 +16,7 @@ function test(testPara)
    { object6: [200, [305, -299, false, 1, 50, 1000], 400] },
    { object7: [200, [305, -299, [400, { $date: "2016-05-16" }, 50], 1000], 400] },
    { object8: [200, [305, -299, 400, 1, null, 1000], 400] }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use push_all exist object,no matches
    var updateCondition1 = {
@@ -30,7 +30,7 @@ function test(testPara)
          "object8.1.2": [20, 90, 10]
       }
    };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -100,7 +100,7 @@ function test(testPara)
 
    //insert data
    var doc1 = [{ object5: [10, -30, { $numberLong: "20" }] }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use push exist object,with matches
    var updateCondition2 = {
@@ -115,7 +115,7 @@ function test(testPara)
       }
    };
    var findCondition2 = { object5: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{

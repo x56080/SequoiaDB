@@ -6,9 +6,9 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_unset7991";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert all kind of data   
    var doc1 = [{ b: -2147483640, c: -2147483640, d: 4096 },
@@ -25,11 +25,11 @@ function test(testPara)
    { a: { name: "hanmeimei" }, b: { name: "hanmeimei" }, c: { name: "hanmeimei" } },
    { a: [10, 100, 1000], b: [11, 101, 1001], f: [12, 102, 1002] },
    { a: null, b: null, c: null }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use unset,no matches
    var updateCondition1 = { $unset: { a: "", b: "", c: "", "d.2": "", "d.3": "", "e.name.firstName": "", f: "", "e.name.firstName1": "" } };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    var expRecs1 = [{ d: 4096 },
@@ -51,7 +51,7 @@ function test(testPara)
    //update use unset,with matches
    var updateCondition2 = { $unset: { d: "" } };
    var findCondition2 = { d: { $type: 1, $et: 4 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 )
+   testPara.testCL.update( updateCondition2, findCondition2 )
 
    //check result
    var expRecs2 = [{ d: 4096 },

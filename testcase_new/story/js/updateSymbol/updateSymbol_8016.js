@@ -5,9 +5,9 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_update_8016";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //create index
    commCreateIndex( testPara.testCL, "ageIndex", { age: 1 } );
@@ -18,12 +18,12 @@ function test(testPara)
    var doc1 = [{ age: 1 },
    { arr: [1, "string", false, [40, null, { $date: "2016-05-20" }, 30], 10, 7, 10, 20] },
    { name: { firstName: "han", lastName: "meimei" } }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update common object as index 
    var updateCondition1 = { $set: { age: 100 } };
    var findCondition1 = { age: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition1, findCondition1 );
+   testPara.testCL.update( updateCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{ age: 100 },
@@ -34,7 +34,7 @@ function test(testPara)
    //update arr object as index 
    var updateCondition2 = { $pull: { arr: 10 } };
    var findCondition2 = { arr: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{ age: 100 },
@@ -45,7 +45,7 @@ function test(testPara)
    //update nested arr's element 
    var updateCondition3 = { $pull: { "arr.3": null } };
    var findCondition3 = { arr: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition3, findCondition3 );
+   testPara.testCL.update( updateCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{ age: 100 },
@@ -56,7 +56,7 @@ function test(testPara)
    //update nested object 
    var updateCondition4 = { $set: { "name.firstName": "li" } };
    var findCondition4 = { name: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition4, findCondition4 );
+   testPara.testCL.update( updateCondition4, findCondition4 );
 
    //check result
    var expRecs4 = [{ age: 100 },

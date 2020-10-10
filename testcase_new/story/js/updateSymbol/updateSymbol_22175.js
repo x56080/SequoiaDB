@@ -6,7 +6,7 @@ testConf.clName = "cl_22175";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    //指定$field字段和更新字段相同
    var expResult = [];
@@ -18,7 +18,7 @@ function test( testPara )
    }
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 
    //指定$field字段值和更新字段值相同，字段名不同
    for( var i = 0; i < allTypeData.length; i++ )
@@ -27,5 +27,5 @@ function test( testPara )
    }
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 }

@@ -8,16 +8,16 @@ testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash" };
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    var expResult = [];
    for( var i = 0; i < allTypeData.length; i++ )
    {
       testPara.testCL.insert( { "a": i, "b": allTypeData[i] } );
       expResult.push( { "a": i, "b": allTypeData[i] } );
-      testPara.testCL.update( { "$set": { "a": { "$field": "b" } }}, { "a": i } );
+      testPara.testCL.update( { "$set": { "a": { "$field": "b" } } }, { "a": i } );
    }
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 }

@@ -6,9 +6,9 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_pop7997";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert arr and common data   
    var doc1 = [{ object1: [10, 30, 20] },
@@ -44,7 +44,7 @@ function test(testPara)
    { object9: [200, [305, 299, 400], 100] },
    { object10: [200, [305, 299, 400], 100] },
    { object11: [10, 30, 20] }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use pop,no matches
    var updateCondition1 = {
@@ -56,7 +56,7 @@ function test(testPara)
          "object4.1": 1, "object9.1": -1, object10: 0
       }
    };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{ object1: [] },
@@ -90,7 +90,7 @@ function test(testPara)
       }
    };
    var findCondition2 = { object3: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{ object1: [] },

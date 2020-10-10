@@ -4,9 +4,9 @@
 *@createdate:  2016.5.16
 **************************************/
 testConf.clName = COMMCLNAME + "_inc7984";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert all kind of data   
    var doc1 = [{ a: -2147483640, b: -2147483640, c: -2147483640 },
@@ -28,11 +28,11 @@ function test(testPara)
    { a: { name: "hanmeimei" }, b: { name: "hanmeimei" }, c: { name: "hanmeimei" } },
    { a: ["b", 0], b: ["b", 0], a: ["b", 0] },
    { a: null, b: null, c: null }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use $inc a non condition
    var updateCondition1 = { $inc: {} };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    checkResult( testPara.testCL, null, null, doc1, { _id: 1 } );

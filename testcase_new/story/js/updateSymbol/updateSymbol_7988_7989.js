@@ -5,9 +5,9 @@
 *@createdate:  2016.5.17
 **************************************/
 testConf.clName = COMMCLNAME + "_set7988";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert all kind of data   
    var doc1 = [{ b: -2147483640, c: -2147483640, d: 4096 },
@@ -24,11 +24,11 @@ function test(testPara)
    { a: { name: "hanmeimei" }, b: { name: "hanmeimei" }, c: { name: "hanmeimei" } },
    { a: ["b", 0], b: ["b", 0], c: ["b", 0] },
    { a: null, b: null, c: null }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use set,no matches
    var updateCondition1 = { $set: { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, "d.0": 25, "e.name.firstName": null } };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    var expRecs1 = [{ a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: 4096, e: { name: { firstName: null } } },
@@ -50,7 +50,7 @@ function test(testPara)
    //update use set,with matches
    var updateCondition2 = { $set: { a: { $regex: "^z", $options: "i" }, b: { $timestamp: "2016-05-16-13.14.26.124233" }, c: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, "d.1": 35, "e.name.firstName": true, f: 56 } };
    var findCondition2 = { d: { $type: 1, $et: 4 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 )
+   testPara.testCL.update( updateCondition2, findCondition2 )
 
    //check result
    var expRecs2 = [{ a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: 4096, e: { name: { firstName: null } } },

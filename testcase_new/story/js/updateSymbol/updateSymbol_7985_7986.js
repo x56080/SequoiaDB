@@ -6,9 +6,9 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_inc7985";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert numberic data,array with 3 layer and common object  
    var doc1 = [{ a: -2147483640, c: -2147483640, e: { name: { firstName: "han", lastName: "meimei" } }, f: { name: { firstNumber: { $decimal: "1" }, lastNumber: { $numberLong: "2" } } } },
@@ -19,11 +19,11 @@ function test(testPara)
    { a: 1.7E+308, b: 1.7E+308 },
    { b: -4.9E-324, c: -4.9E-324 },
    { a: 4.9E-324, c: 4.9E-324 }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use $inc,the operate object is exist or not exist
    var updateCondition1 = { $inc: { a: 1, b: { $numberLong: "-1" }, c: 1.56789, "d.0": { $decimal: "2" }, "e.name.firstName": 100, "f.name.firstNumber": 1000 } };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    var expRecs1 = [{ a: -2147483639, b: -1, c: -2147483638.43211, d: { 0: { $decimal: "2" } }, e: { name: { firstName: "han", lastName: "meimei" } }, f: { name: { firstNumber: { $decimal: "1001" }, lastNumber: 2 } } },
@@ -38,12 +38,12 @@ function test(testPara)
 
    //insert data for updating data with matches symbol
    var doc2 = { g: 1 }
-   insertData( testPara.testCL, doc2 );
+   testPara.testCL.insert( doc2 );
 
    //update when matches condition
    var updateCondition2 = { $inc: { g: 1, h: 1 } };
    var findCondition2 = { g: { $et: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{ a: -2147483639, b: -1, c: -2147483638.43211, d: { 0: { $decimal: "2" } }, e: { name: { firstName: "han", lastName: "meimei" } }, f: { name: { firstNumber: { $decimal: "1001" }, lastNumber: 2 } } },
@@ -60,7 +60,7 @@ function test(testPara)
    //match nothing and update nothing
    var updateCondition3 = { $inc: { g: 1, h: 1 } };
    var findCondition3 = { g: { $et: 1 } };
-   updateData( testPara.testCL, updateCondition3, findCondition3 );
+   testPara.testCL.update( updateCondition3, findCondition3 );
 
    //check result
    checkResult( testPara.testCL, null, null, expRecs2, { _id: 1 } );

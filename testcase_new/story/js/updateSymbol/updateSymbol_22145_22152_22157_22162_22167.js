@@ -10,38 +10,38 @@ testConf.clName = "cl_22145_22152_22157_22162_22167";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    //使用set更新不存在的对象
-   var expResult = [ { "a": 1, "b": 1 } ];
+   var expResult = [{ "a": 1, "b": 1 }];
    testPara.testCL.insert( { "a": 1 } );
    testPara.testCL.update( { "$set": { "b": { "$field": "a" } } } );
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
-  
+   commCompareResults( cursor, expResult );
+
    //使用pop更新不存在对象
    testPara.testCL.update( { "$pop": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 
    //使用pull更新不存在的对象
    testPara.testCL.update( { "$pull": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 
    //使用pull_by更新不存在的对象
    testPara.testCL.update( { "$pull_by": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 
    //使用push更新不存在的对象
-   expResult = [ { "a": 1, "b": 1, "c": [1] } ];
+   expResult = [{ "a": 1, "b": 1, "c": [1] }];
    testPara.testCL.update( { "$push": { "c": { "$field": "a" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 }

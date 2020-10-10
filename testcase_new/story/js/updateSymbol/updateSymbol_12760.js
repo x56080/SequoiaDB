@@ -4,13 +4,13 @@
 *@createdate:  2017.09.18
 **************************************/
 testConf.clName = COMMCLNAME + "_pull_by_12760";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert object
    var doc = [{ a: 1 }, { a: 'a' }];
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //upsert array objects 
    var upsertRule = {
@@ -50,7 +50,7 @@ function test(testPara)
 
    for( var i in findConditions )   
    {
-      upsertData( testPara.testCL, upsertRule, findConditions[i] );
+      testPara.testCL.upsert( upsertRule, findConditions[i] );
    }
 
    //check result
@@ -80,11 +80,11 @@ function test(testPara)
 
    //insert data 
    var doc = [{ a: -1 }, { a: 'test' }];
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //without condition,will not insert data
    upsertRule = { $pull_by: { a1: { obj: 1 } } };
-   upsertData( testPara.testCL, upsertRule );
+   testPara.testCL.upsert( upsertRule );
 
    //check result
    expectResult = [{ a: -1 }, { a: 'test' }];

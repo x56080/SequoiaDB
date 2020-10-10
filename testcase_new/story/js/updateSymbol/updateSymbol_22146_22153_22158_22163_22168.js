@@ -10,7 +10,7 @@ testConf.clName = "cl_22146_22153_22158_22163_22168";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    //使用set更新多个对象
    var expResult = [];
@@ -22,7 +22,7 @@ function test( testPara )
    }
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //使用pop更新多个对象
@@ -37,7 +37,7 @@ function test( testPara )
    }
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //使用pull更新多个对象
@@ -52,7 +52,7 @@ function test( testPara )
    }
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //使用pull_by更新多个对象
@@ -67,7 +67,7 @@ function test( testPara )
    }
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //使用push更新多个对象
@@ -76,9 +76,9 @@ function test( testPara )
    {
       testPara.testCL.insert( { "a": i, "b": [], "c": [], "d": allTypeData[i] } );
       testPara.testCL.update( { "$push": { "b": { "$field": "d" }, "c": { "$field": "d" } } }, { "a": i } );
-      expResult.push( { "a": i, "b": [ allTypeData[i] ], "c": [ allTypeData[i] ], "d": allTypeData[i] } );
+      expResult.push( { "a": i, "b": [allTypeData[i]], "c": [allTypeData[i]], "d": allTypeData[i] } );
    }
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
 }

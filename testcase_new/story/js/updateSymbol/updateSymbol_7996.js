@@ -5,13 +5,13 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_addtoset7996";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert object
    var doc = { a: 1 };
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -29,7 +29,7 @@ function test(testPara)
       { "e.name.firstName": "han" },
       { arr3: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
+   testPara.testCL.upsert( upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -58,7 +58,7 @@ function test(testPara)
       { "e.name.lastName": "meimei" },
       { arr4: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
+   testPara.testCL.upsert( upsertCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{
@@ -77,7 +77,7 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
 
    //delete all data
-   deleteData( testPara.testCL, null );
+   testPara.testCL.remove();
 
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {
@@ -95,7 +95,7 @@ function test(testPara)
       { "e.name.lastName": "meimei" },
       { arr4: [55, [35, 25, 40], 50, 45, 70] }]
    };
-   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
+   testPara.testCL.upsert( upsertCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{

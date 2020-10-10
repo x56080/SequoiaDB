@@ -5,8 +5,8 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_inc7982";
-main(test);
-function test(testPara)
+main( test );
+function test ( testPara )
 {
    //insert all kind of type data
    var doc1 = [{ a: -2147483640 },
@@ -28,11 +28,11 @@ function test(testPara)
    { a: { name: "hanmeimei" } },
    { a: ["b", 0] },
    { a: null }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use $inc a negative number,in range,then check
    var updateCondition1 = { $inc: { a: -8 } };
-   updateData( testPara.testCL, updateCondition1 )
+   testPara.testCL.update( updateCondition1 )
 
    //check result
    var expRecs1 = [{ a: -2147483648 },
@@ -58,7 +58,7 @@ function test(testPara)
 
    //update use $inc a positive number,in range,then check
    var updateCondition2 = { $inc: { a: 15 } };
-   updateData( testPara.testCL, updateCondition2 )
+   testPara.testCL.update( updateCondition2 )
 
    //check result
    var expRecs2 = [{ a: -2147483633 },

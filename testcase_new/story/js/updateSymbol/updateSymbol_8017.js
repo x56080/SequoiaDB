@@ -4,19 +4,19 @@
 *@createdate:  2016.5.19
 **************************************/
 testConf.clName = COMMCLNAME + "_update_8017";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data
    var doc1 = [{ age: 1 },
    { arr: [1, "string", false, [40, null, { $date: "2016-05-20" }, 30], 10, 7, 10, 20] },
    { name: { firstName: "han", lastName: "meimei" } }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update object use more than 1 update operator at the same time 
    var updateCondition1 = { $inc: { age: 100 }, $pull: { arr: 10 }, $set: { "name.firstName": "li" } };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{ age: 101, name: { firstName: "li" } },

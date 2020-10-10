@@ -6,13 +6,13 @@
 *@update:      2017.2.17/zhaoyu
 **************************************/
 testConf.clName = COMMCLNAME + "_set7990";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert object
    var doc = { a: 1 };
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -40,7 +40,7 @@ function test(testPara)
       { d: 1000 },
       { "e.name.firstName": null }]
    };
-   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
+   testPara.testCL.upsert( upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -90,7 +90,7 @@ function test(testPara)
       { d: 1001 },
       { "e.name.firstName": "han" }]
    };
-   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
+   testPara.testCL.upsert( upsertCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{
@@ -131,7 +131,7 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs2, { a: 1 } );
 
    //delete all data
-   deleteData( testPara.testCL, null );
+   testPara.testCL.remove();
 
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {
@@ -159,7 +159,7 @@ function test(testPara)
       { d: 1001 },
       { "e.name.firstName": "han" }]
    };
-   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
+   testPara.testCL.upsert( upsertCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{
@@ -181,25 +181,25 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs3, { a: 1 } );
 
    //delete all data
-   deleteData( testPara.testCL, null );
+   testPara.testCL.remove();
 
    //upsert use or has one condition,2017.2.17/zhaoyu/seqDB-11064
    var upsertCondition4 = { $set: { a: 1 } };
    var findCondition4 = { $or: [{ b: 1 }] };
-   upsertData( testPara.testCL, upsertCondition4, findCondition4 );
+   testPara.testCL.upsert( upsertCondition4, findCondition4 );
    var expRecs4 = [{ a: 1, b: 1 }];
    checkResult( testPara.testCL, null, null, expRecs4, { a: 1 } );
 
    var upsertCondition5 = { $set: { a: 2 } };
    var findCondition5 = { $or: [{ b: { $et: 2 } }] };
-   upsertData( testPara.testCL, upsertCondition5, findCondition5 );
+   testPara.testCL.upsert( upsertCondition5, findCondition5 );
    var expRecs5 = [{ a: 1, b: 1 },
    { a: 2, b: 2 }];
    checkResult( testPara.testCL, null, null, expRecs5, { a: 1 } );
 
    var upsertCondition6 = { $set: { a: 3 } };
    var findCondition6 = { $or: [{ b: { $all: [3] } }] };
-   upsertData( testPara.testCL, upsertCondition6, findCondition6 );
+   testPara.testCL.upsert( upsertCondition6, findCondition6 );
    var expRecs6 = [{ a: 1, b: 1 },
    { a: 2, b: 2 },
    { a: 3, b: [3] }];

@@ -6,19 +6,19 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_pull_by_12755";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data   
    var doc = [{ a1: 1 },
    { a2: 'aaa' },
    { a3: [] }];
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //pull_by
    var updateRule = { $pull_by: { a1: 1, a2: 'aaa', a3: [] } };
-   updateData( testPara.testCL, updateRule );
+   testPara.testCL.update( updateRule );
 
    //check result
    var expResult = [{ a1: 1 },

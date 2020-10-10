@@ -4,13 +4,13 @@
 *@createdate:  2016.5.19
 **************************************/
 testConf.clName = COMMCLNAME + "_pull8002";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert object
    var doc = { a: 1 };
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition1 = {
@@ -41,7 +41,7 @@ function test(testPara)
       { c: { $gt: 100 } },
       { d: 1000 }]
    };
-   upsertData( testPara.testCL, upsertCondition1, findCondition1 );
+   testPara.testCL.upsert( upsertCondition1, findCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -87,7 +87,7 @@ function test(testPara)
                               {object17:[50,[30,70,50,[90,40],80],25,40,15]},
                               {c:{$gt:100}},
                               {d:10000}]};
-   upsertData( testPara.testCL, upsertCondition2, findCondition2 );
+   testPara.testCL.upsert( upsertCondition2, findCondition2 );
    
    //check result
    var expRecs2 = [{object1:[50,[30,50,[90,40],80],25,15],
@@ -109,7 +109,7 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs2, {a:1} );
    
    //delete all data
-   deleteData( testPara.testCL, null );
+  testPara.testCL.remove();
    
    //upsert any object when match nothing,use matches not
    var upsertCondition3 = {$pull:{object1:40,object2:-8,object3:0,
@@ -134,7 +134,7 @@ function test(testPara)
                                {object17:[50,[30,70,50,[90,40],80],25,40,15]},
                                {c:{$gt:100}},
                                {d:10000}]};
-   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
+   testPara.testCL.upsert( upsertCondition3, findCondition3 );
    
    check result
    var expRecs3 = [];

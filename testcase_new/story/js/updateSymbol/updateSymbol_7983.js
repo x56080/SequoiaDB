@@ -4,9 +4,9 @@
 *@createdate:  2016.5.16
 **************************************/
 testConf.clName = COMMCLNAME + "_inc7983";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert numberic data 
    var doc1 = [{ a: -2147483648 },
@@ -17,11 +17,11 @@ function test(testPara)
    { a: 1.7E+308 },
    { a: -4.9E-324 },
    { a: 4.9E-324 }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use $inc,result out of range
    var updateCondition1 = { $inc: { a: -1 } };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
    var expRecs1 = [{ a: -2147483649 },
    { a: 2147483646 },
    { a: { $decimal: "-9223372036854775809" } },
@@ -41,7 +41,7 @@ function test(testPara)
 
    //update use $inc,result out of range
    var updateCondition2 = { $inc: { a: 2 } };
-   updateData( testPara.testCL, updateCondition2 );
+   testPara.testCL.update( updateCondition2 );
 
    //check result
    var expRecs2 = [{ a: -2147483647 },

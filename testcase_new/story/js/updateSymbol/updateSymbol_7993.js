@@ -4,13 +4,13 @@
 *@createdate:  2016.5.17
 **************************************/
 testConf.clName = COMMCLNAME + "_unset7993";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert object
    var doc = { a: 1 };
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //upsert any object when match nothing,use matches and
    var upsertCondition3 = {
@@ -30,7 +30,7 @@ function test(testPara)
       { d: 1000 },
       { "e.name.firstName": "han", "e.name.lastName": "meimei", "e.name.midName": "test" }]
    };
-   upsertData( testPara.testCL, upsertCondition3, findCondition3 );
+   testPara.testCL.upsert( upsertCondition3, findCondition3 );
 
    //check result
    var expRecs3 = [{ d: 1000, e: { name: { firstName: "han", lastName: "meimei" } }, object2: [null, 25, 35] },
@@ -49,7 +49,7 @@ function test(testPara)
                                {c:{$gt:100}},
                                {d:1001},
                                {"e.name.firstName":"han","e.name.lastName":"meimei","e.name.midName":"test"}]};
-   upsertData( testPara.testCL, upsertCondition4, findCondition4 );
+   testPara.testCL.upsert( upsertCondition4, findCondition4 );
    
    //check result
    var expRecs4 = [{d:1000,e:{name:{firstName:"han",lastName:"meimei"}},object2:[null,25,35]},
@@ -57,7 +57,7 @@ function test(testPara)
    checkResult( testPara.testCL, null, null, expRecs4, {a:1} );
    
    //delete all data
-   deleteData( testPara.testCL, null );
+  testPara.testCL.remove();
    
    //upsert any object when match nothing,use matches not
    var upsertCondition5 = {$unset:{object1:"",
@@ -71,7 +71,7 @@ function test(testPara)
                                {c:{$gt:100}},
                                {d:1001},
                                {"e.name.firstName":"han","e.name.lastName":"meimei","e.name.midName":"test"}]};
-   upsertData( testPara.testCL, upsertCondition5, findCondition5 );
+   testPara.testCL.upsert( upsertCondition5, findCondition5 );
    
    //check result
    var expRecs5 = [{d:1000,e:{name:{firstName:"han",lastName:"meimei"}},object2:[null,25,35]},

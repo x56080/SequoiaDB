@@ -4,13 +4,13 @@
 *@createdate:  2016.5.19
 **************************************/
 testConf.clName = COMMCLNAME + "_push8006";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data
    var doc1 = [{ object0: [10, -30, 20] }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use push object does not exist,no matches
    var updateCondition1 = {
@@ -21,7 +21,7 @@ function test(testPara)
          "object4.1": { $date: "2016-05-16" }
       }
    };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -35,7 +35,7 @@ function test(testPara)
 
    //insert data
    var doc2 = [{ object5: [10, -30, 20] }];
-   insertData( testPara.testCL, doc2 );
+   testPara.testCL.insert( doc2 );
 
    //update use push object does not exist,with matches
    var updateCondition2 = {
@@ -47,7 +47,7 @@ function test(testPara)
       }
    };
    var findCondition2 = { object1: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{

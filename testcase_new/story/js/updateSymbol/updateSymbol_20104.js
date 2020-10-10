@@ -3,10 +3,10 @@
 *@author:      zhaoyu
 *@createdate:  2019.10.29
 **************************************/
-testConf.clOpt = { StrictDataMode: true};
+testConf.clOpt = { StrictDataMode: true };
 testConf.clName = COMMCLNAME + "_20104";
-main(test);
-function test(testPara)
+main( test );
+function test ( testPara )
 {
    commCreateIndex( testPara.testCL, "a_20104", { a: 1 } );
 

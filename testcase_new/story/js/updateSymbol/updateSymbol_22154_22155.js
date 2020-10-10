@@ -7,42 +7,42 @@ testConf.clName = "cl_22154_22155";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    //字段a为非数组
-   var expResult = [ { "a": { "parent": { "child": 1 } }, "b": { "child": 1 } } ];
+   var expResult = [{ "a": { "parent": { "child": 1 } }, "b": { "child": 1 } }];
    testPara.testCL.insert( { "a": { "parent": { "child": 1 } }, "b": { "child": 1 } } );
    testPara.testCL.update( { "$pull": { "a": { "$field": "b" } } } );
 
    var cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //字段a为数组，$field字段为对象中的值
-   expResult = [ { "a": [ 2, 3 ], "b": { "field": 1 } } ];
-   testPara.testCL.insert( { "a": [ 1, 2, 3 ], "b": { "field": 1 } } );
+   expResult = [{ "a": [2, 3], "b": { "field": 1 } }];
+   testPara.testCL.insert( { "a": [1, 2, 3], "b": { "field": 1 } } );
    testPara.testCL.update( { "$pull": { "a": { "$field": "b.field" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //字段a为对象数组，$field字段为嵌套对象中的对象
-   expResult = [ { "a": [ { "key1": "value1", "key2": "value2" } ], "b": { "field": { "key1": "value1" } } } ];
-   testPara.testCL.insert( { "a": [ { "key1": "value1" }, { "key1": "value1", "key2": "value2" } ], "b": { "field": { "key1": "value1" } } } );
+   expResult = [{ "a": [{ "key1": "value1", "key2": "value2" }], "b": { "field": { "key1": "value1" } } }];
+   testPara.testCL.insert( { "a": [{ "key1": "value1" }, { "key1": "value1", "key2": "value2" }], "b": { "field": { "key1": "value1" } } } );
    testPara.testCL.update( { "$pull": { "a": { "$field": "b.field" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //字段a为对象数组，$field字段为数组对象中的对象
-   expResult = [ { "a": [ { "key1": "value1", "key2": "value2" } ], "b": [ { "key1": "value1" } ] } ];
-   testPara.testCL.insert( { "a": [ { "key1": "value1" }, { "key1": "value1", "key2": "value2" } ], "b": [ { "key1": "value1" } ] } );
+   expResult = [{ "a": [{ "key1": "value1", "key2": "value2" }], "b": [{ "key1": "value1" }] }];
+   testPara.testCL.insert( { "a": [{ "key1": "value1" }, { "key1": "value1", "key2": "value2" }], "b": [{ "key1": "value1" }] } );
    testPara.testCL.update( { "$pull": { "a": { "$field": "b.0" } } } );
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );
+   commCompareResults( cursor, expResult );
    testPara.testCL.remove();
 
    //字段a为数组，$field字段覆盖其它所有类型
@@ -57,5 +57,5 @@ function test( testPara )
    }
 
    cursor = testPara.testCL.find();
-   commCompareResults ( cursor, expResult );   
+   commCompareResults( cursor, expResult );
 }

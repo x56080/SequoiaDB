@@ -6,17 +6,17 @@
 testConf.skipStandAlone = true;
 testConf.clOpt = { ShardingKey: { "age": 1 }, ShardingType: "range" };
 testConf.clName = COMMCLNAME + "_update_8015";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data
    var doc1 = [{ age: 1 }, { age: 2 }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update common data
    var updateCondition1 = { $unset: { age: "" } };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{ age: 1 }, { age: 2 }];
@@ -24,11 +24,11 @@ function test(testPara)
 
    //insert data
    var doc2 = [{ age: [1, 2, 3] }];
-   insertData( testPara.testCL, doc2 );
+   testPara.testCL.insert( doc2 );
 
    //update common data
    var updateCondition2 = { $addtoset: { age: [3, 4, 5, 6] } };
-   updateData( testPara.testCL, updateCondition2 );
+   testPara.testCL.update( updateCondition2 );
 
    //check result
    var expRecs1 = [{ age: 1 }, { age: 2 }, { age: [1, 2, 3] }];

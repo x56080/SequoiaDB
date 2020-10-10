@@ -4,9 +4,9 @@
 *@createdate:  2016.5.19
 **************************************/
 testConf.clName = COMMCLNAME + "_push8007";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //insert data
    var doc1 = [{ object1: [10, -30, 20] },
@@ -29,7 +29,7 @@ function test(testPara)
    { object6: [200, [305, -299, 400, 1, 50, 1000], 400] },
    { object7: [200, [305, -299, [400, 1, 50], 1000], 400] },
    { object8: [200, [305, -299, 400, 1, 50, 1000], 400] }];
-   insertData( testPara.testCL, doc1 );
+   testPara.testCL.insert( doc1 );
 
    //update use push exist object,no matches
    var updateCondition1 = {
@@ -43,7 +43,7 @@ function test(testPara)
          "object8.1.2": 20
       }
    };
-   updateData( testPara.testCL, updateCondition1 );
+   testPara.testCL.update( updateCondition1 );
 
    //check result
    var expRecs1 = [{
@@ -145,7 +145,7 @@ function test(testPara)
       }
    };
    var findCondition2 = { object4: { $exists: 1 } };
-   updateData( testPara.testCL, updateCondition2, findCondition2 );
+   testPara.testCL.update( updateCondition2, findCondition2 );
 
    //check result
    var expRecs2 = [{

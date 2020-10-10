@@ -7,14 +7,14 @@
 **************************************/
 
 testConf.clName = COMMCLNAME + "_pull_by_12755";
-main(test);
+main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    //create index
    var indexName = 'b';
    var key = { b: 1 }
-   createIndex( testPara.testCL, indexName, key )
+   testPara.testCL.createIndex( indexName, key );
 
    //insert data   
    var doc = [{ a1: [1, 2, 3], b1: [10, 20, 30] },
@@ -43,7 +43,7 @@ function test(testPara)
    { b13: [{ obj1: { obj2: { obj3: 1 } }, obj4: 'tb13obj4aa' }, { obj1: { obj2: { obj3: 1 } } }, { obj1: { obj2: { obj3: 2 } }, obj4: 'tb13obj4bb' }] },
    { b14: [{ obj1: { obj2: { obj3_1: -2, obj3_2: 0 } } }, { obj1: { obj2: { obj3_1: -2, obj3_2: 2 } } }, { obj1: { obj2: { obj3_1: -2 } } }] },
    { b15: [{ obj1: { obj2_1: { obj3_1: -1 }, obj2_2: { obj3_2: 1 } } }, { obj1: { obj2_1: { obj3_1: -1 }, obj2_2: { obj3_2: 2 } } }] }];
-   insertData( testPara.testCL, doc );
+   testPara.testCL.insert( doc );
 
    //pull_by , without match
    var updateRule1 = {
@@ -54,7 +54,7 @@ function test(testPara)
          b4: 300, b5: { obj1: 100 }, b6: { obj3: 'obj3' }
       }
    };
-   updateData( testPara.testCL, updateRule1 );
+   testPara.testCL.update( updateRule1 );
    //check result
    var expResult1 = [{ a1: [1, 2, 3], b1: [10, 20, 30] },
    { a2: ['a', 'b', 'c', 'd', 'e'], b2: ['x', 'y', 'z'] },
@@ -115,7 +115,7 @@ function test(testPara)
          b15: { obj1: { obj2_1: { obj3_1: -1 } } }
       }
    };
-   updateData( testPara.testCL, updateRule2 );
+   testPara.testCL.update( updateRule2 );
    //check result
    var expResult2 = [{ a1: [2, 3], b1: [20, 30] },
    { a2: ['a', 'c', 'd', 'e'], b2: ['x', 'y'] },
