@@ -1,13 +1,14 @@
-import ("../lib/main.js");
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
-function getGroupsWithNodeNum( nodesNum )
+function getGroupsWithNodeNum ( nodesNum )
 {
    var groups = [];
    var commGroups = commGetGroups( db );
    for( var i = 0; i < commGroups.length; i++ )
    {
       var group = commGroups[i];
-      if( group.length >= (nodesNum + 1) )
+      if( group.length >= ( nodesNum + 1 ) )
       {
          groups.push( group );
       }
@@ -15,21 +16,14 @@ function getGroupsWithNodeNum( nodesNum )
    return groups;
 }
 
-function getPrimaryNode( groupName )
+function getPrimaryNode ( groupName )
 {
-   try
-   {
-      var cursor = db.getRG( groupName ).getDetail();
-      var primaryNode = cursor.current().toObj().PrimaryNode;
-      return primaryNode;
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   var cursor = db.getRG( groupName ).getDetail();
+   var primaryNode = cursor.current().toObj().PrimaryNode;
+   return primaryNode;
 }
 
-function notExistPrimaryNode( groupName )
+function notExistPrimaryNode ( groupName )
 {
    var timeOut = 600;
    var doTimes = 0;
@@ -39,160 +33,137 @@ function notExistPrimaryNode( groupName )
       var primaryNode = getPrimaryNode( groupName );
       if( primaryNode !== undefined )
       {
-         sleep(1000);
+         sleep( 1000 );
          doTimes++;
-      } 
+      }
       else
-      { 
+      {
          if( period > 3 )
          {
             break;
          }
          else
          {
-            sleep(3000);
+            sleep( 3000 );
             period++;
-         }  
+         }
       }
    }
    if( doTimes >= timeOut )
    {
       throw new Error( groupName + " has primary node " + primaryNode );
    }
-} 
+}
 
-function existPrimaryNode( groupName )
+function existPrimaryNode ( groupName )
 {
    var timeOut = 600;
-   var doTimes = 0; 
+   var doTimes = 0;
    while( doTimes < timeOut )
-   {  
+   {
       var primaryNode = getPrimaryNode( groupName );
       if( primaryNode === undefined )
-      {  
-         sleep(1000);
+      {
+         sleep( 1000 );
          doTimes++;
-      } 
+      }
       else
       {
-         sleep( 3000 );  
+         sleep( 3000 );
          break;
       }
    }
 
    if( doTimes >= timeOut )
-   {  
+   {
       throw new Error( groupName + " does't have primary node" );
    }
    else
-   {  
+   {
       return primaryNode;
    }
 }
 
-function getMajorityNodeIndexes( group )
+function getMajorityNodeIndexes ( group )
 {
-   var count = group.length/2;
+   var count = group.length / 2;
    var nodeIndexes = [];
-   for(var i = 0; i < count; i++)
-   {  
-      var num = Math.floor( Math.random() * (group.length - 1) + 1 );
+   for( var i = 0; i < count; i++ )
+   {
+      var num = Math.floor( Math.random() * ( group.length - 1 ) + 1 );
       while( nodeIndexes.indexOf( num ) !== -1 )
       {
-         num = Math.floor( Math.random() * (group.length - 1) + 1 );
+         num = Math.floor( Math.random() * ( group.length - 1 ) + 1 );
       }
       nodeIndexes.push( num );
    }
    return nodeIndexes;
 }
 
-function getMinorityNodeIndexes( group )
+function getMinorityNodeIndexes ( group )
 {
    var nodeIndexes = [];
-   var count = group.length/2 - 1;
-   for(var i = 0; i < count; i++)
+   var count = group.length / 2 - 1;
+   for( var i = 0; i < count; i++ )
    {
-      var num = Math.floor( Math.random() * (group.length - 1) + 1 );
+      var num = Math.floor( Math.random() * ( group.length - 1 ) + 1 );
       while( nodeIndexes.indexOf( num ) !== -1 )
       {
-         num = Math.floor( Math.random() * (group.length - 1) + 1 );
+         num = Math.floor( Math.random() * ( group.length - 1 ) + 1 );
       }
       nodeIndexes.push( num );
    }
    return nodeIndexes;
 }
 
-function createGroupAndNode( db, rgName, hostName, nodesNum)
+function createGroupAndNode ( db, rgName, hostName, nodesNum )
 {
-   try
+   var rg = db.createRG( rgName );
+   var failedCount = 0;
+   for( var i = 0; i < nodesNum; i++ )
    {
-      var rg = db.createRG( rgName ) ;
-      var failedCount = 0;
-      for( var i = 0;i < nodesNum;i++ )
+      var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount );
+      var dbPath = RSRVNODEDIR + "data/" + svc;
+      var checkSucc = false;
+      var times = 0;
+      var maxRetryTimes = 10;
+      do
       {
-         var svc = parseInt( RSRVPORTBEGIN ) + 10 * ( i + failedCount ) ;
-         var dbPath = RSRVNODEDIR + "data/" + svc ;
-         var checkSucc = false;
-         var times = 0;
-         var maxRetryTimes = 10;
-         do
+         try
          {
-            try
-            {
-               rg.createNode( hostName, svc, dbPath, {diaglevel:5} ) ;
-               println( "create node: " + hostName + ":" + svc + " dbpath: " + dbPath ) ;
-               checkSucc = true;
-            }
-            catch( e )
-            {
-               //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-               if( e == -145 || e == -290 )
-               {
-                  svc = svc + 10;
-                  dbPath = RSRVNODEDIR + "data/" + svc;
-                  failedCount++;
-               }
-               else
-               {
-                  throw "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e;
-               }
-               times++;
-            }
+            rg.createNode( hostName, svc, dbPath, { diaglevel: 5 } );
+            checkSucc = true;
          }
-         while(!checkSucc && times < maxRetryTimes);
+         catch( e )
+         {
+            //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+            if( e.message == -145 || e.message == -290 )
+            {
+               svc = svc + 10;
+               dbPath = RSRVNODEDIR + "data/" + svc;
+               failedCount++;
+            }
+            else
+            {
+               throw new Error( "create node failed!  port = " + svc + " dataPath = " + dbPath + " errorCode: " + e );
+            }
+            times++;
+         }
       }
-      println( "start group" ) ;
-      rg.start() ;
+      while( !checkSucc && times < maxRetryTimes );
    }
-   catch(e)
-   {
-      throw new Error(e);
-   }
+   rg.start();
 }
 
-function getLSN( node )
+function getLSN ( node )
 {
-   try
-   {
-      var db = new Sdb( node.HostName, node.svcname );
-      var cursor = db.snapshot( SDB_SNAP_DATABASE );
-      var completeLSN = cursor.current().toObj()["CompleteLSN"];
-      return completeLSN;
-   }
-   catch(e)
-   {
-      throw new Error(e);
-   }
-   finally
-   {
-      if( db !== null )
-      {
-         db.close();
-      }
-   }
-} 
+   var db = new Sdb( node.HostName, node.svcname );
+   var cursor = db.snapshot( SDB_SNAP_DATABASE );
+   var completeLSN = cursor.current().toObj()["CompleteLSN"];
+   return completeLSN;
+}
 
-function waitSync(masterNode, slaveNode)
+function waitSync ( masterNode, slaveNode )
 {
    var doTimes = 0;
    var timeout = 300;
@@ -203,7 +174,7 @@ function waitSync(masterNode, slaveNode)
       var slaveNodeLSN = getLSN( slaveNode );
       if( masterNodeLSN > slaveNodeLSN )
       {
-         sleep(1000);
+         sleep( 1000 );
          doTimes++;
       }
       else
@@ -212,16 +183,15 @@ function waitSync(masterNode, slaveNode)
          break;
       }
    }
-   println("masterNodeLSN: " + masterNodeLSN + ", slaveNodeLSN: " + slaveNodeLSN );
    if( !isSync )
    {
       throw new Error( "wait sync failed!" );
    }
 }
- 
-function checkReelect( groupName, hostName, svcName)
+
+function checkReelect ( groupName, hostName, svcName )
 {
-   var masterNode = db.getRG(groupName).getMaster();
+   var masterNode = db.getRG( groupName ).getMaster();
    var masterNodeHostName = masterNode.getHostName();
    var masterNodeSvcName = masterNode.getServiceName();
    if( masterNodeHostName != hostName || masterNodeSvcName != svcName )

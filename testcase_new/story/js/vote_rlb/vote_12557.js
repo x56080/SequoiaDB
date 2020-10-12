@@ -7,7 +7,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -15,30 +15,30 @@ function test()
       return;
    }
    var group = groups[0];
-   var groupName = group[0].GroupName ;
+   var groupName = group[0].GroupName;
    var primaryNode = group[0].PrimaryNode;
    var nodeIndexes = getMinorityNodeIndexes( group );
 
    try
    {
-      for(var i = 0; i < nodeIndexes.length; i++)
+      for( var i = 0; i < nodeIndexes.length; i++ )
       {
-         var svcName = group[nodeIndexes[i]].svcname ;
-         var hostName = group[nodeIndexes[i]].HostName ;
+         var svcName = group[nodeIndexes[i]].svcname;
+         var hostName = group[nodeIndexes[i]].HostName;
          var nodeID = group[nodeIndexes[i]].NodeID;
          if( nodeID === primaryNode )
          {
             var isContainPrimaryNode = true;
          }
-         db.getRG( groupName ).getNode(hostName, svcName).stop();
+         db.getRG( groupName ).getNode( hostName, svcName ).stop();
       }
-   
-      var primaryNodeID = existPrimaryNode( groupName );   
+
+      var primaryNodeID = existPrimaryNode( groupName );
       if( isContainPrimaryNode && primaryNodeID === primaryNode )
       {
          throw new Error( "Primary node id is " + primaryNodeID + "after stop the primary node" );
       }
-      else if( !isContainPrimaryNode && primaryNodeID !== primaryNode)
+      else if( !isContainPrimaryNode && primaryNodeID !== primaryNode )
       {
          throw new Error( "Primary node id changed from " + primaryNode + " to " + primaryNodeID );
       }
@@ -47,7 +47,7 @@ function test()
    {
       db.getRG( groupName ).start();
       sleep( 14000 );
-      commCheckBusinessStatus ( db );
+      commCheckBusinessStatus( db );
    }
 }
 

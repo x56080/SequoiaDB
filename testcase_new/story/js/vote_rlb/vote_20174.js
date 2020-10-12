@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -17,19 +17,18 @@ function test()
    var groupName = group[0].GroupName;
    var primaryPos = group[0].PrimaryPos;
    var slaveNode1Pos = primaryPos === 1 ? primaryPos + 1 : 1;
-   var slaveNode2Pos = primaryPos === group.length -1 ? primaryPos - 1 : group.length -1;
-   var slaveNode1 = group[ slaveNode1Pos ];
-   var slaveNode2 = group[ slaveNode2Pos ];
-   var primaryNode = group[ primaryPos ];
+   var slaveNode2Pos = primaryPos === group.length - 1 ? primaryPos - 1 : group.length - 1;
+   var slaveNode1 = group[slaveNode1Pos];
+   var slaveNode2 = group[slaveNode2Pos];
+   var primaryNode = group[primaryPos];
 
    waitSync( primaryNode, slaveNode1 );
 
    //指定HostName执行选主
    var hostName = slaveNode1.HostName;
-   println( groupName + " start to reelect node with hostName " + hostName + " to primary node" );
-   db.getRG(groupName).reelect({Seconds: 60, HostName: hostName});
+   db.getRG( groupName ).reelect( { Seconds: 60, HostName: hostName } );
 
-   var masterNodeHostName = db.getRG(groupName).getMaster().getHostName();
+   var masterNodeHostName = db.getRG( groupName ).getMaster().getHostName();
    if( masterNodeHostName != hostName )
    {
       throw new Error( "Expected master node's hostName is " + hostName + ", but actual is " + masterNodeHostName );
@@ -39,13 +38,12 @@ function test()
 
    //指定ServiceName执行选主
    svcName = slaveNode2.svcname;
-   println("start to reelect node with svcName " + svcName + " to primary node");
-   db.getRG(groupName).reelect({Seconds: 60, ServiceName: svcName});
+   db.getRG( groupName ).reelect( { Seconds: 60, ServiceName: svcName } );
 
-   var masterNodeSvcName = db.getRG(groupName).getMaster().getServiceName();
+   var masterNodeSvcName = db.getRG( groupName ).getMaster().getServiceName();
    if( masterNodeSvcName != svcName )
    {
       throw new Error( "Reelect failed!" );
-   } 
+   }
 }
 

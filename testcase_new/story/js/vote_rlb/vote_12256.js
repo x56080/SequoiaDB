@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -16,22 +16,22 @@ function test()
    var group = groups[0];
    var groupName = group[0].GroupName;
    var nodeIndexes = getMajorityNodeIndexes( group );
- 
+
    try
    {
-      for(var i = 0; i < nodeIndexes.length; i++)
+      for( var i = 0; i < nodeIndexes.length; i++ )
       {
-         var svcName = group[nodeIndexes[i]].svcname ;    
-         var hostName = group[nodeIndexes[i]].HostName ;
-         db.getRG( groupName ).getNode(hostName, svcName).stop(); 
+         var svcName = group[nodeIndexes[i]].svcname;
+         var hostName = group[nodeIndexes[i]].HostName;
+         db.getRG( groupName ).getNode( hostName, svcName ).stop();
       }
-   
-      notExistPrimaryNode( groupName );  
+
+      notExistPrimaryNode( groupName );
    }
    finally
-   { 
-      db.getRG( groupName ).start();  
-      sleep( 14000 );   
-      commCheckBusinessStatus ( db );
+   {
+      db.getRG( groupName ).start();
+      sleep( 14000 );
+      commCheckBusinessStatus( db );
    }
 }

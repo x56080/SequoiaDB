@@ -6,21 +6,21 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var nodesNum = 2;
    var groupName = "rg_20014";
    var hostName = commGetGroups( db )[0][1].HostName;
-   createGroupAndNode( db, groupName, hostName, nodesNum);
+   createGroupAndNode( db, groupName, hostName, nodesNum );
 
    var clName = "cl_20014";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
-   
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName } );
+
    var data = [];
-   for(var i = 0; i < 10000; i++)
+   for( var i = 0; i < 10000; i++ )
    {
-      data.push({a:i});
+      data.push( { a: i } );
    }
    cl.insert( data );
 
@@ -31,56 +31,48 @@ function test()
    var slaveNode = addNode( groupName, hostName );
 
    //节点创建成功启动后会有两个心跳窗口时间（一个心跳窗口时间是7s）的静默期，此时不会接受选主消息，因此这里停14s再执行选主
-   sleep(14000);
-   commCheckBusinessStatus ( db );
+   sleep( 14000 );
+   commCheckBusinessStatus( db );
 
-   db.getRG( groupName ).reelect({ Seconds: 60 });
+   db.getRG( groupName ).reelect( { Seconds: 60 } );
    checkReelect( groupName, slaveNode.HostName, slaveNode.svcname );
 
-   db.getRG( groupName ).reelect({ Seconds: 60 });//由于内部实现影子权重的作用，再次reelect将切换主节点
-  
+   db.getRG( groupName ).reelect( { Seconds: 60 } );//由于内部实现影子权重的作用，再次reelect将切换主节点
+
    commDropCL( db, COMMCSNAME, clName, false, false );
    db.removeRG( groupName );
 }
 
-function addNode( groupName, hostName )
+function addNode ( groupName, hostName )
 {
-   try
+   var dataNodeAttr = {};
+   dataNodeAttr.HostName = hostName;
+   dataNodeAttr.config = { weight: 100, diaglevel: 5 };
+   var doTimes = 0;
+   var checkSucc = false;
+   var maxRetryTimes = 10;
+   while( !checkSucc && doTimes < maxRetryTimes )
    {
-      var dataNodeAttr = {};
-      dataNodeAttr.HostName = hostName;
-      dataNodeAttr.config = {weight: 100, diaglevel: 5};
-      var doTimes = 0;
-      var checkSucc = false;
-      var maxRetryTimes = 10;
-      while( !checkSucc && doTimes < maxRetryTimes )
+      dataNodeAttr.svcname = parseInt( RSRVPORTBEGIN ) + 10 * ( 2 + doTimes );
+      dataNodeAttr.dbPath = RSRVNODEDIR + "data/" + dataNodeAttr.svcname;
+      try
       {
-         dataNodeAttr.svcname = parseInt( RSRVPORTBEGIN ) + 10*(2 + doTimes );
-         dataNodeAttr.dbPath = RSRVNODEDIR + "data/" + dataNodeAttr.svcname; 
-         try
+         db.getRG( groupName ).createNode( dataNodeAttr.HostName, dataNodeAttr.svcname, dataNodeAttr.dbPath, dataNodeAttr.config );
+         checkSucc = true;
+      }
+      catch( e )
+      {
+         if( e.message == -145 || e.message == -290 )
          {
-            println("add node: " + dataNodeAttr.HostName + ":" + dataNodeAttr.svcname + ", dbpath: " + dataNodeAttr.dbPath );
-            db.getRG(groupName).createNode(dataNodeAttr.HostName, dataNodeAttr.svcname, dataNodeAttr.dbPath, dataNodeAttr.config);
-            checkSucc = true;
+            doTimes++;
          }
-         catch(e)
+         else
          {
-            if( e == -145 || e == -290 )
-            {
-               doTimes++;
-            }
-            else
-            {
-               throw e;
-            }
+            throw e;
          }
       }
-      db.getRG(groupName).start();
    }
-   catch(e)
-   {
-      throw new Error(e);
-   }
+   db.getRG( groupName ).start();
    return dataNodeAttr;
 }
 
