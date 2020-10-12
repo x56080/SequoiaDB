@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11800,seqDB-11801
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11800_11801_";
@@ -38,7 +37,7 @@ function main ()
    { a: ["a", "b", "c"], b: 2 },
    { a: ["z"], b: 2, c: "aaa" },
    { b: 1 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc )
    //check count
    checkCountResult( dbcl, {}, 23 );
 
@@ -81,64 +80,27 @@ function main ()
 
    //clean environment after test  
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 function checkCountResult ( dbcl, options, results )
 {
-   try
-   {
-      var exc = dbcl.count( options )
-   }
-   catch( e )
-   {
-      throw buildException( "checkCountResult()", e, "count record", "count success", "count fail:" + e );
-   }
-   if( Number( exc ) !== results )
-   {
-      throw "ERR_COUNT_NUM";
-   }
+   var exc = dbcl.count( options )
+   assert.equal( exc, results );
 }
 
 function checkFindOneResult ( dbcl, findOption, sortOption, results )
 {
-   try
-   {
-      var rc = dbcl.findOne( findOption ).sort( sortOption );
-   }
-   catch( e )
-   {
-      throw buildException( "checkFindOneResult()", e, "find record", "find success", "find fail:" + e );
-   }
+   var rc = dbcl.findOne( findOption ).sort( sortOption );
+
    var obj = rc.current().toObj();
    var id = obj._id;
-   if( id === undefined )
-   {
-      throw "ERR_VALUE_ID";
-   }
+   assert.notEqual( id, undefined );
    for( var i in obj )
    {
       if( i == "_id" )
       {
          continue;
       }
-      if( JSON.stringify( obj[i] ) !== JSON.stringify( results[i] ) )
-      {
-         throw buildException( "checkFindOneResult()", null, "find record", JSON.stringify( obj ), JSON.stringify( results ) );
-      }
+      assert.equal( obj[i], results[i] );
    }
 }
-
-function insertData ( dbcl, doc )
-{
-   try
-   {
-      dbcl.insert( doc );
-   }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert record", "insert success", "insert fail:" + e );
-   }
-}
-
-

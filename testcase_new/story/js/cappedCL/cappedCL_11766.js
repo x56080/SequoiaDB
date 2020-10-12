@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11766
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var csName1 = COMMCAPPEDCSNAME + "_11766_1";
    var csName2 = COMMCAPPEDCSNAME + "_11766_2";
@@ -18,14 +17,12 @@ function main ()
    commDropCS( db, csName2, true, "drop CS in the beginning" );
 
    //create cappedCS
-   println( "begin to create cappedCS" );
    var options1 = { Capped: true };
    var options2 = { Capped: true, PageSize: 4096 };
    commCreateCS( db, csName1, false, "create cappedCS", options1 );
    commCreateCS( db, csName2, false, "create cappedCS", options2 );
 
    //create normal cappedCL
-   println( "create cappedCL" );
    for( var i = 0; i < 3; i++ )
    {
       var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
@@ -41,7 +38,6 @@ function main ()
    }
 
    //insert data
-   println( "insert data" );
    var doc = [{ No: 1, a: 10 }, { No: 2, a: 50 }, { No: 3, a: -1001 },
    { No: 4, a: { $decimal: "123.456" } }, { No: 5, a: 101.02 },
    { No: 6, a: { $numberLong: "9223372036854775807" } }, { No: 7, a: { $numberLong: "-9223372036854775808" } },
@@ -69,7 +65,6 @@ function main ()
    }
 
    //pop data
-   println( "pop data" );
    var expDoc = [{ No: 11, a: { $regex: "^z", $options: "i" } },
    { No: 12, a: null },
    { No: 13, a: { $oid: "123abcd00ef12358902300ef" } },
@@ -102,27 +97,15 @@ function main ()
    }
 
    //clean environment after test
-   println( "end the test" )
    commDropCS( db, csName1, true, "drop CS in the end" );
    commDropCS( db, csName2, true, "drop CS in the end" );
 }
 
-function insertTestData ( dbcl, insertData )
-{
-   try
-   {
-      dbcl.insert( insertData );
-   }
-   catch( e )
-   {
-      throw buildException( "insertTestData()", e, "insert", "insert success", "insert fail" );
-   }
-}
 
 function checkInsert ( csName, clName, doc )
 {
    var dbcl = db.getCS( csName ).getCL( clName );
-   insertTestData( dbcl, doc );
+   dbcl.insert( doc );
    var rc = dbcl.find( null, { No: "", a: "" } );
    checkRec( rc, doc );
    rc.close();
@@ -134,41 +117,9 @@ function checkPop ( csName, clName, doc )
    var rc = dbcl.find().sort( { "_id": 1 } ).skip( 9 ).limit( 1 );
    var id = rc.next().toObj()._id;
    var options = { 'LogicalID': id, 'Direction': 1 };
-   popData( dbcl, options );
+   dbcl.pop( options );
    var rc2 = dbcl.find( null, { No: "", a: "" } );
    checkRec( rc2, doc );
    rc.close();
    rc2.close();
 }
-
-function popData ( dbcl, options )
-{
-   try
-   {
-      dbcl.pop( options );
-   }
-   catch( e )
-   {
-      throw buildException( "popData()", e, "pop", "pop success", "pop fail:" + e );
-   }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

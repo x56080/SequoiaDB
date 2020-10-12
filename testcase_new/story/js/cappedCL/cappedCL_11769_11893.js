@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11769,seqDB-11893
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11769_11893_";
 
@@ -35,7 +34,6 @@ function main ()
    {
       commDropCL( db, COMMCAPPEDCSNAME, clName + i, true, true, "drop CL in the end" );
    }
-   println( "---end the test---" )
 }
 
 function createCappedCL ( db, csName, clName, optionObj )
@@ -45,14 +43,14 @@ function createCappedCL ( db, csName, clName, optionObj )
       db.getCS( csName ).createCL( clName, optionObj );
       if( optionObj.Compressed !== false )
       {
-         throw "ERR_CREATE_CAPPEDCL";
+         throw new Error( "ERR_CREATE_CAPPEDCL" );
       }
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "create cappedCL AutoIndexId:true", null, "create cappedCL AutoIndexId:true", "-6", e );
+         throw e;
       }
    }
 }

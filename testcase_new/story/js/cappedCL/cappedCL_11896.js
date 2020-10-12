@@ -4,9 +4,10 @@
 *@createdate:  2019.7.17
 *@testlinkCase: seqDB-11896
 **************************************/
-main();
 
-function main ()
+
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -63,8 +64,7 @@ function checkSnapshotResult ( db, expectResult, snapshotType )
    {
       if( actResult.indexOf( expectResult[i] ) === -1 )
       {
-         throw buildException( "check snapshot", "", "check snapshot", expectResult, actResult );
+         throw new Error( "check snapshot check snapshot" + expectResult + actResult );
       }
    }
-   println( "check snapshot success" );
 }

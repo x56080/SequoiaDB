@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11770,seqDB-11771
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11770_11771";
 
@@ -33,17 +32,10 @@ function main ()
    { No: 21, a: [3] },
    { No: 22, a: 22 }];
    var longstr = createBigStr();
-   try
-   {
-      dbcl.insert( doc );
-      dbcl.insert( { No: 23, a: 23 } );
-      dbcl.insert( { No: 24, a: "" } );
-      dbcl.insert( { No: 25, a: longstr } );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   dbcl.insert( doc );
+   dbcl.insert( { No: 23, a: 23 } );
+   dbcl.insert( { No: 24, a: "" } );
+   dbcl.insert( { No: 25, a: longstr } );
 
    //check data
    if( true !== commIsStandalone( db ) )
@@ -57,16 +49,12 @@ function main ()
 
    //clean environment after test  
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "end the test" );
 }
 
 function standaloneCheckData ( dbcl, count )
 {
    var rec = Number( dbcl.count() );
-   if( rec !== count )
-   {
-      throw buildException( "standaloneCheckData()", null, "standalone check  data", count, rec );
-   }
+   assert.equal( rec, count );
 }
 
 function createBigStr ()

@@ -4,9 +4,10 @@
 *@createdate:  2019.7.17
 *@testlinkCase: seqDB-12436
 **************************************/
-main();
 
-function main ()
+
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -62,14 +63,13 @@ function checkSnapshotResult ( db, expectResult, snapshotType, expectExist )
       // expect "expectResult" exist in snapshot
       if( expectExist && actResult.indexOf( expectResult[i] ) === -1 )
       {
-         throw buildException( "check snapshot", "", "check snapshot", expectResult, actResult );
+         throw new Error( "check snapshot check snapshot" + expectResult + actResult );
       }
       // expect "expectResult" not exist in snapshot
       else if( !expectExist && actResult.indexOf( expectResult[i] ) !== -1 )
       {
-         throw buildException( "check snapshot", "", "check snapshot", expectResult, actResult );
+         throw new Error( "check snapshot check snapshot" + expectResult + actResult );
       }
    }
 
-   println( "check snapshot success" );
 }

@@ -4,7 +4,8 @@
 *@createdate:  2017.7.11
 *@testlinkCase: seqDB-11795
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11795";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
@@ -15,7 +16,6 @@ function main ()
    var maxLength = 2048;
    var string = "a";
    repeatedInsertAndPopLastRecord( dbcl, repeatedTimes, minLength, maxLength, string );
-   println( "--end insert and check data" );
 
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
@@ -23,52 +23,37 @@ function main ()
 function repeatedInsertAndPopLastRecord ( dbcl, repeatedTimes, minLength, maxLength, string )
 {
    var preLogicalID = 0;
-   try
+   //repeat pop and insert,check LogicalID is the same
+   for( var i = 1; i < repeatedTimes; i++ )
    {
-      //repeat pop and insert,check LogicalID is the same
-      for( var i = 1; i < repeatedTimes; i++ )
+      //insert record;
+      var doc = new StringBuffer();
+      var range = maxLength - minLength;
+      var stringLength = minLength + parseInt( Math.random() * range );
+      doc.append( stringLength, string );
+      var strings = doc.toString();
+      var recs = [{ a: strings }];
+      dbcl.insert( recs );
+      var record = dbcl.find().sort( { _id: -1 } ).limit( 1 );
+      while( record.next() )
       {
-         //insert record;
-         var doc = new StringBuffer();
-         var range = maxLength - minLength;
-         var stringLength = minLength + parseInt( Math.random() * range );
-         doc.append( stringLength, string );
-         var strings = doc.toString();
-         var recs = [{ a: strings }];
-         dbcl.insert( recs );
-         var record = dbcl.find().sort( { _id: -1 } ).limit( 1 );
-         while( record.next() )
-         {
-            //check logicalID
-            var logicalID = record.current().toObj()._id;
-            var expectLogicalID = preLogicalID;
-            if( logicalID !== expectLogicalID )
-            {
-               println( "actual logicalID: " + logicalID + "\nexpect logicalID: " + expectLogicalID );
-               throw "LOGICAL_ID_CHECK_ERROR";
-            }
+         //check logicalID
+         var logicalID = record.current().toObj()._id;
+         var expectLogicalID = preLogicalID;
+         assert.equal( logicalID, expectLogicalID );
 
-            //check record
-            checkRecords( dbcl, null, null, null, null, null, recs );
-         }
-
-         var recordLength = stringLength + 55;
-         if( recordLength % 4 !== 0 )
-         {
-            recordLength = recordLength + ( 4 - recordLength % 4 );
-
-         }
-         preLogicalID = logicalID + recordLength;
-
-         dbcl.pop( { LogicalID: logicalID, Direction: 1 } );
+         //check record
+         checkRecords( dbcl, null, null, null, null, null, recs );
       }
-   } catch( e )
-   {
-      throw buildException( "repeatedInsertAndPopLastRecord", e, null, null, e );
+
+      var recordLength = stringLength + 55;
+      if( recordLength % 4 !== 0 )
+      {
+         recordLength = recordLength + ( 4 - recordLength % 4 );
+
+      }
+      preLogicalID = logicalID + recordLength;
+
+      dbcl.pop( { LogicalID: logicalID, Direction: 1 } );
    }
-}
-
-main();
-
-
-
+} 

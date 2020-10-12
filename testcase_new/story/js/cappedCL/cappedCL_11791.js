@@ -4,7 +4,8 @@
 *@createdate:  2017.7.12
 *@testlinkCase: seqDB-11791
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var csName = COMMCSNAME + "_11791";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -21,7 +22,6 @@ function main ()
    var recordLength = 986839;
    var string = "a";
    var insertRecords = insertFixedLengthDatas( dbcl, recordNum, recordLength, string );
-   println( "--insert data success!" );
 
    //检查id
    var recordHead = 57;
@@ -44,7 +44,7 @@ function main ()
 
    //逆向pop块尾的记录并插入同样大小的记录
    var logicalID = ( recordLength + recordHead ) * ( recordNum - 1 );//块大小-块头大小
-   pop( dbcl, logicalID, -1 );
+   dbcl.pop( { LogicalID: logicalID, Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, 1, recordLength, string );
 
    var expectID = [];
@@ -53,7 +53,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, expRecs );
 
    //逆向pop块尾的记录并插入比原来短的记录
-   pop( dbcl, logicalID, -1 );
+   dbcl.pop( { LogicalID: logicalID, Direction: -1 } );
    var shortLength = 3;
    var expRecs = insertFixedLengthDatas( dbcl, 1, shortLength, string );
 
@@ -61,7 +61,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, expRecs );
 
    //逆向pop块尾的记录并插入比原来长的记录
-   pop( dbcl, logicalID, -1 );
+   dbcl.pop( { LogicalID: logicalID, Direction: -1 } );
    var longLength = 1000003;
    var expRecs = insertFixedLengthDatas( dbcl, 1, longLength, string );
 
@@ -71,7 +71,7 @@ function main ()
    //逆向pop块中的记录并插入与原来长度相等的记录
    var popNum = 12;
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, popNum );
-   pop( dbcl, logicalID[0], -1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, ( recordNum - popNum ), recordLength, string );
 
    //比较插入后的第一条记录
@@ -91,7 +91,7 @@ function main ()
 
    //逆向pop块中的记录并插入比原来短的记录
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, popNum );
-   pop( dbcl, logicalID[0], -1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, ( recordNum - popNum ), shortLength, string );
 
    //比较插入后的第一条记录
@@ -111,7 +111,7 @@ function main ()
 
    //逆向pop块中的记录并插入比原来长的记录
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, popNum );
-   pop( dbcl, logicalID[0], -1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, ( recordNum - popNum ), longLength, string );
 
    //比较插入后的第一条记录
@@ -130,7 +130,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, lastExpRec );
 
    //逆向pop块头的记录并插入比原来短的记录
-   pop( dbcl, 0, -1 );
+   dbcl.pop( { LogicalID: 0, Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, recordNum, shortLength, string );
 
    //比较插入后的第一条记录
@@ -152,7 +152,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, lastExpRec );
 
    //逆向pop块头的记录并插入比原来长的记录
-   pop( dbcl, 0, -1 );
+   dbcl.pop( { LogicalID: 0, Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, recordNum, longLength, string );
 
    //比较插入后的第一条记录
@@ -174,7 +174,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, lastExpRec );
 
    //逆向pop块头的记录并插入跟原来长度相等的记录
-   pop( dbcl, 0, -1 );
+   dbcl.pop( { LogicalID: 0, Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, recordNum, recordLength, string );
 
    //检查id
@@ -196,7 +196,7 @@ function main ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, lastExpRec );
 
    //正向pop块头的记录
-   pop( dbcl, 0, 1 );
+   dbcl.pop( { LogicalID: 0, Direction: 1 } );
    var expRecs = insertFixedLengthDatas( dbcl, 1, recordLength, string );
    var blockTailRec = recordNum - 2;
 
@@ -208,7 +208,7 @@ function main ()
 
    //正向pop块中的记录
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, popNum );
-   pop( dbcl, logicalID[0], 1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: 1 } );
    var expRecs = insertFixedLengthDatas( dbcl, popNum + 1, recordLength, string );
    blockTailRec = blockTailRec - popNum - 1;
 
@@ -232,7 +232,7 @@ function main ()
 
    //正向pop块尾的记录
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, blockTailRec );
-   pop( dbcl, logicalID[0], 1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: 1 } );
    var expRecs = insertFixedLengthDatas( dbcl, 1, recordLength, string );
 
    var expectID = [];
@@ -242,4 +242,3 @@ function main ()
 
    commDropCS( db, csName, true, "drop CS in the end" );
 }
-main();

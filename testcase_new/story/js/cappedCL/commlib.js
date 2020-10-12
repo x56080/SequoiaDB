@@ -1,4 +1,5 @@
 import( "../lib/main.js" )
+import( "../lib/basic_operation/commlib.js" );
 
 // create WORKDIR in local host
 commMakeDir( "localhost", WORKDIR );
@@ -18,9 +19,7 @@ function checkRecords ( dbcl, findConf, selectConf, sortConf, limitConf, skipCon
    if( typeof ( limitConf ) == "undefined" ) { limitConf = null; }
    if( typeof ( skipConf ) == "undefined" ) { skipConf = null; }
    var rc = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
-   //println("--begin to check the data");
    checkRec( rc, expRecs );
-   //println("--end check the data");
 }
 
 /************************************
@@ -39,12 +38,7 @@ function checkRec ( rc, expRecs )
       actRecs.push( rc.current().toObj() );
    }
    //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
-   }
+   assert.equal( actRecs.length, expRecs.length );
 
    //check every records every fields,expRecs as compare source
    for( var i in expRecs )
@@ -54,13 +48,7 @@ function checkRec ( rc, expRecs )
 
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            //println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));   		
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
    //check every records every fields,actRecs as compare source
@@ -75,13 +63,7 @@ function checkRec ( rc, expRecs )
          {
             continue;
          }
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( j ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            //println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));   		
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }
@@ -95,7 +77,7 @@ function command ( name )
 {
    if( "undefined" === typeof ( name ) )
    {
-      throw buildException( command, "name undefined" );
+      throw new Error( command + "name undefined" );
    }
 
    this.name = name;
@@ -105,25 +87,16 @@ function command ( name )
 command.prototype.exec =
    function( newcmdstr )
    {
-      try
+      if( "undefined" !== typeof ( newcmdstr ) )
       {
-         if( "undefined" !== typeof ( newcmdstr ) )
-         {
-            var cmdstr = newcmdstr;
-         }
-         else
-         {
-            var cmdstr = "undefined" !== typeof ( this.options ) ?
-               this.name + " " + this.options : this.name;
-         }
-         println( cmdstr );
-         var result = this.cmd.run( cmdstr );
+         var cmdstr = newcmdstr;
       }
-      catch( e )
+      else
       {
-         var exceptionMsg = "exec " + cmdstr + e;
-         throw buildException( "command.exec", exceptionMsg )
+         var cmdstr = "undefined" !== typeof ( this.options ) ?
+            this.name + " " + this.options : this.name;
       }
+      var result = this.cmd.run( cmdstr );
 
       return result;
    }
@@ -133,7 +106,7 @@ command.prototype.addOption =
    {
       if( "undefined" === typeof ( option ) )
       {
-         throw buildException( "command.addOption()", "option is undefined" );
+         throw new Error( "command.addOption() option is undefined" );
       }
 
       if( "undefined" === typeof ( this.options ) )
@@ -173,14 +146,10 @@ function checkData ( csName, clName )
    cmd.run( "rm -f " + inspectBinFile );
    cmd.run( "rm -f " + inspectReportFile );
 
-   if( result.lastIndexOf( "inspect done" ) === 0 &&
-      result.lastIndexOf( "exit with no records different" ) !== -1 )
+   if( result.lastIndexOf( "inspect done" ) !== 0 ||
+      result.lastIndexOf( "exit with no records different" ) === -1 )
    {
-      return true;
-   }
-   else
-   {
-      println( "sdbinspect exec result:" + result );
+      throw new Error( "result error" );
    }
 }
 
@@ -206,18 +175,8 @@ function initCappedCS ( csName )
 **************************************/
 function checkCount ( dbcl, findConf, expectCount )
 {
-   try
-   {
-      var actualCount = countRecords( dbcl, findConf );
-      if( actualCount !== expectCount )
-      {
-         println( "actualCount: " + actualCount + ",expectCount: " + expectCount );
-         throw "RECORD_COUNT_ERROR";
-      }
-   } catch( e )
-   {
-      throw buildException( "checkCount", e, null, null, e );
-   }
+   var actualCount = countRecords( dbcl, findConf );
+   assert.equal( actualCount, expectCount );
 }
 
 /************************************
@@ -227,27 +186,13 @@ function checkCount ( dbcl, findConf, expectCount )
 **************************************/
 function checkLogicalID ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf, expectIDs )
 {
-   try
+   var logicalIDs = getLogicalID( dbcl, findConf, selectConf, sortConf, limitConf, skipConf );
+   assert.equal( logicalIDs.length, expectIDs.length );
+   for( var i = 0; i < expectIDs.length; i++ )
    {
-      var logicalIDs = getLogicalID( dbcl, findConf, selectConf, sortConf, limitConf, skipConf );
-      if( logicalIDs.length !== expectIDs.length )
-      {
-         println( "actualIDsLength: " + logicalIDs.length + ",expectIDsLength: " + expectIDs.length );
-         throw "LOGICAL_ID_COUNT_ERROR";
-      }
-      for( var i = 0; i < expectIDs.length; i++ )
-      {
-         if( logicalIDs[i] !== expectIDs[i] )
-         {
-            println( "error occurs in the " + i + "th record," + "actualID:" + logicalIDs[i] + ",expectID: " + expectIDs[i] );
-            throw "LOGICAL_ID_NOT_EQUAL";
-         }
-      }
-
-   } catch( e )
-   {
-      throw buildException( "checkLogicalID", e, null, null, e );
+      assert.equal( logicalIDs[i], expectIDs[i] );
    }
+
 }
 
 /************************************
@@ -257,31 +202,8 @@ function checkLogicalID ( dbcl, findConf, selectConf, sortConf, limitConf, skipC
 **************************************/
 function countRecords ( dbcl, conf )
 {
-   try
-   {
-      var count = dbcl.count( conf );
-      return parseInt( count );
-   } catch( e )
-   {
-      throw buildException( "count", e, null, null, e );
-   }
-}
-
-/************************************
-*@Description: insert data
-*@author:      zhaoyu
-*@createDate:  2017.7.12
-**************************************/
-function insertDatas ( dbcl, datas )
-{
-   try
-   {
-      dbcl.insert( datas );
-   }
-   catch( e )
-   {
-      throw buildException( "insertDatas()", e, null, null, e );
-   }
+   var count = dbcl.count( conf );
+   return parseInt( count );
 }
 
 /************************************
@@ -292,37 +214,15 @@ function insertDatas ( dbcl, datas )
 function getLogicalID ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf )
 {
    var logicalIDs = [];
-   try
+   var cursor = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
+   while( cursor.next() )
    {
-      var cursor = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
-      while( cursor.next() )
-      {
-         var logicalID = cursor.current().toObj()._id;
-         logicalIDs.push( logicalID );
-      }
-      return logicalIDs;
-   } catch( e )
-   {
-      throw buildException( "get logical IDs", e, null, null, e );
+      var logicalID = cursor.current().toObj()._id;
+      logicalIDs.push( logicalID );
    }
+   return logicalIDs;
 }
 
-/************************************
-*@Description: pop datas
-*@author:      zhaoyu
-*@createDate:  2017.7.11
-**************************************/
-function pop ( dbcl, logicalID, direction )
-{
-   try
-   {
-      println( "--pop logicalID: " + logicalID + ", Direction: " + direction )
-      dbcl.pop( { LogicalID: logicalID, Direction: direction } );
-   } catch( e )
-   {
-      throw buildException( "pop", e, null, null, e );
-   }
-}
 /************************************
 *@Description: insert datas
 *@author:      zhaoyu
@@ -330,41 +230,19 @@ function pop ( dbcl, logicalID, direction )
 **************************************/
 function insertFixedLengthDatas ( dbcl, recordNum, stringLength, string )
 {
-   try
-   {
-      var doc = new StringBuffer();
-      doc.append( stringLength, string );
-      var strings = doc.toString();
+   var doc = new StringBuffer();
+   doc.append( stringLength, string );
+   var strings = doc.toString();
 
-      var records = [];
-      for( var i = 0; i < recordNum; i++ )
-      {
-         records.push( { a: strings } );
-      }
-      dbcl.insert( records );
-      doc.clear();
-   } catch( e )
+   var records = [];
+   for( var i = 0; i < recordNum; i++ )
    {
-      throw buildException( "insertFixedLengthDatas", e, null, null, e );
+      records.push( { a: strings } );
    }
+   dbcl.insert( records );
+   doc.clear();
 
    return records;
-
-}
-/************************************
-*@Description: truncate datas
-*@author:      liuxiaoxuan
-*@createDate:  2017.10.09
-**************************************/
-function removeAllDatas ( dbcl )
-{
-   try
-   {
-      dbcl.truncate();
-   } catch( e )
-   {
-      throw buildException( "truncate", e, null, null, e );
-   }
 }
 /************************************
 *@Description: generate strings
@@ -394,9 +272,3 @@ StringBuffer.prototype.size = function()
 {
    return this._strings.length;
 }
-
-
-
-
-
-

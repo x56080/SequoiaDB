@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11830
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11830";
@@ -15,20 +14,11 @@ function main ()
    var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //createIndex
-   println( "---createIndex---" )
-   try
+   assert.tryThrow( -32, function()
    {
       dbcl.createIndex( "ageIndex", { age: 1 }, true );
-   }
-   catch( e )
-   {
-      if( e !== -32 )
-      {
-         throw buildException( "cappedCL createIndex", e, "cappedCL createIndex", "-32", e );
-      }
-   }
+   } );
 
    //clean environment after test
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }

@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11780
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var testFile = CHANGEDPREFIX + "_lobTest11780.file";
    var getTestFile = CHANGEDPREFIX + "_lobTestGet11780.file";
@@ -43,34 +42,19 @@ function main ()
 
    //clean environment after test
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 
 function putLob ( cl, fileName, putNum, lobNum, oids )
 {
-   try
+   for( var i = 0; i < putNum; ++i )
    {
-      println( "---begin to put lob---" );
-      for( var i = 0; i < putNum; ++i )
-      {
-         oids.push( cl.putLob( fileName ) );
-      }
-      println( "put lob over" );
-      // verify
-      var cursor = cl.listLobs().toArray();
-      if( lobNum != cursor.length )
-      {
-         println( "collection have lob: " + cursor.length );
-         throw "ErrNumberPutLob";
-      }
-      println( "success to put lob in colleciton" );
+      oids.push( cl.putLob( fileName ) );
    }
-   catch( e )
-   {
-      println( "failed to put lob in collection, rc = " + e );
-      throw e;
-   }
+   // verify
+   var cursor = cl.listLobs().toArray();
+   assert.equal( lobNum, cursor.length );
+
 }
 
 
@@ -86,10 +70,7 @@ function insertData ( cl, insertNum, expID )
 
    var cursor = cl.findOne().sort( { _id: -1 } );
    var id = cursor.current().toObj()._id;
-   if( expID !== id )
-   {
-      throw buildExecption( "insertData()", e, "check record id", expID, id );
-   }
+   assert.equal( expID, id );
 }
 
 
@@ -102,30 +83,16 @@ function getLob ( cl, getTestFile, oids, testFile, md5, cmd )
          cl.getLob( oids[i], getTestFile, true );
          md5Arr = cmd.run( "md5sum " + getTestFile ).split( " " );
          getMd5 = md5Arr[0];
-         if( getMd5 !== md5 )   // verify put file is equal get file or not
-         {
-            println( "put lob file md5: " + md5 );
-            println( "get lob file md5: " + getMd5 );
-            throw "NotEqualMd5";
-         }
+         assert.equal( getMd5, md5 );// verify put file is equal get file or not
       }
-      println( "success to get lob in colleciton" );
       // delete lobs
       for( var i = 0; i < oids.length; ++i )
       {
          cl.deleteLob( oids[i] );
       }
-      println( "success to delete lob in colleciton" );
       // remove lobfile
       //cmd.run( "rm -rf " + testFile ) ;
       //cmd.run( "rm -rf " + getTestFile ) ;
-   }
-   catch( e )
-   {
-      // remove lobfile
-      //cmd.run( "rm -rf " + testFile ) ;
-      println( "failed to get lob, rc = " + e );
-      throw e;
    }
    finally
    {
@@ -146,22 +113,17 @@ function lobFileIsExist ( fileName )
    }
    catch( e )
    {
-      if( 2 == e ) { isExist = false; }
+      if( 2 == e.message ) { isExist = false; }
    }
    return isExist;
 }
 
 function getMd5ForFile ( testFile )
 {
-   try
-   {
-      var cmd = new Cmd();
-      var md5Arr = cmd.run( "md5sum " + testFile ).split( " " );
-      var md5 = md5Arr[0];
-   } catch( e )
-   {
-      throw e;
-   }
+   var cmd = new Cmd();
+   var md5Arr = cmd.run( "md5sum " + testFile ).split( " " );
+   var md5 = md5Arr[0];
+
    return md5;
 }
 
@@ -172,38 +134,31 @@ function lobGenerateFile ( fileName, fileLine )
       fileLine = 1000;
    }
 
-   try
+   var cnt = 0;
+   while( true == lobFileIsExist( fileName ) )
    {
-      var cnt = 0;
-      while( true == lobFileIsExist( fileName ) )
-      {
-         File.remove( fileName );
-         if( cnt > 10 ) break;
-         cnt++;
-         sleep( 10 );
-      }
+      File.remove( fileName );
+      if( cnt > 10 ) break;
+      cnt++;
+      sleep( 10 );
+   }
 
-      if( 10 <= cnt )
-      {
-         throw "failed to remove file: " + fileName;
-      }
-      var file = new File( fileName );
-      for( var i = 0; i < fileLine; ++i )
-      {
-         var record = '{ no:' + i + ', score:' + i + ', interest:["movie", "photo"],' +
-            '  major:"计算机软件与理论", dep:"计算机学院",' +
-            '  info:{name:"Holiday", age:22, sex:"男"} }';
-         file.write( record );
-      }
-      if( false == lobFileIsExist( fileName ) )
-      {
-         throw "NoFile: " + fileName;
-      }
-   }
-   catch( e )
+   if( 10 <= cnt )
    {
-      println( "faile to auto generate file, rc = " + e );
-      throw e;
+      throw new Error( "failed to remove file: " + fileName );
    }
+   var file = new File( fileName );
+   for( var i = 0; i < fileLine; ++i )
+   {
+      var record = '{ no:' + i + ', score:' + i + ', interest:["movie", "photo"],' +
+         '  major:"计算机软件与理论", dep:"计算机学院",' +
+         '  info:{name:"Holiday", age:22, sex:"男"} }';
+      file.write( record );
+   }
+   if( false == lobFileIsExist( fileName ) )
+   {
+      throw new Error( "NoFile: " + fileName );
+   }
+
 }
 

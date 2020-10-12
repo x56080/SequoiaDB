@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11823
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    var clName1 = COMMCAPPEDCLNAME + "_11823_CL1";
    var clName2 = COMMCAPPEDCLNAME + "_11823_CL2";
@@ -20,7 +19,6 @@ function main ()
    var clName9 = COMMCAPPEDCLNAME + "_11823_CL9";
 
    //check cappedCL Capped
-   println( "---check cl Size---" )
 
    //check Size : 33554432
    var options1 = { Capped: true, Size: 32, Max: 10000000, AutoIndexId: false };
@@ -63,7 +61,6 @@ function main ()
    {
       commDropCL( db, COMMCAPPEDCSNAME, COMMCAPPEDCLNAME + "_11823_CL" + i, true, true, "drop CL in the end" );
    }
-   println( "---end the test---" );
 }
 
 function checkCreateCLOptions ( csName, clName, options, result, expectSize )
@@ -72,10 +69,7 @@ function checkCreateCLOptions ( csName, clName, options, result, expectSize )
    try
    {
       db.getCS( csName ).createCL( clName, options );
-      if( result !== true )
-      {
-         throw "ERR_CREATE_CAPPEDCL";
-      }
+      assert.equal( result, true );
 
       if( true !== commIsStandalone( db ) )
       {
@@ -83,19 +77,15 @@ function checkCreateCLOptions ( csName, clName, options, result, expectSize )
          while( cursor.next() )
          {
             var size = cursor.current().toObj().Size;
-            if( size !== expectSize )
-            {
-               println( "actual Size:" + size );
-               throw "ERR_Size";
-            }
+            assert.equal( size, expectSize );
          }
       }
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "checkCreateCLOptions()", e, "create cappedCL", "-6", clName + ":" + e );
+         throw e;
       }
    }
 }

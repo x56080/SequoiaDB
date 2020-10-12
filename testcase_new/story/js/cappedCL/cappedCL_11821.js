@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11821
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    var csName1 = COMMCAPPEDCSNAME + "_11821_CS1";
    var csName2 = COMMCAPPEDCSNAME + "_11821_CS2";
@@ -25,7 +24,6 @@ function main ()
    commDropCS( db, csName6, true, "drop CS in the end" );
 
    //check cappedCS options
-   println( "---check cs options---" )
 
    //check Capped : true
    var options1 = { Capped: true };
@@ -51,7 +49,6 @@ function main ()
    var options6 = { Caped: true };
    checkCreateCSOptions( csName6, options6, true );
 
-   println( "---end test---" );
 }
 
 function checkCreateCSOptions ( csName, options, result )
@@ -59,17 +56,14 @@ function checkCreateCSOptions ( csName, options, result )
    try
    {
       db.createCS( csName, options );
-      if( result !== true )
-      {
-         throw "ERR_CREATE_CAPPEDCS"
-      }
+      assert.equal( result, true );
       commDropCS( db, csName, true, "drop CS in the end" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "checkCreateCSOptions()", e, "create cappedCS", "-6", csName + ":" + e );
+         throw e;
       }
    }
 }

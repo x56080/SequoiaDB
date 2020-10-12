@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11825
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -43,16 +42,8 @@ function main ()
 
 function checkCreateCLInvalid ( csName, clName, options )
 {
-   try
+   assert.tryThrow( -6, function()
    {
       db.getCS( csName ).createCL( clName, options );
-      throw "create capped cl should fail";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "checkCreateCLInvalid()", e, "create cappedCL", "-6", e );
-      }
-   }
+   } );
 }

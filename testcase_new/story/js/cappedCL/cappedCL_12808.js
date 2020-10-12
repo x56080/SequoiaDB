@@ -4,11 +4,11 @@
 *@createdate:  2017.10.09
 *@testlinkCase: seqDB-12808
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( 'standlone' );
       return;
    }
 
@@ -23,7 +23,6 @@ function main ()
 
    //connect to primary node
    var dataDB = getDataDB( priNodeAddr );
-   println( 'dataDB: ' + dataDB );
    //drop cl at priNode
    commDropCL( dataDB, COMMCAPPEDCSNAME, clName );
 
@@ -34,7 +33,7 @@ function main ()
    {
       doc.push( { a: i } );
    }
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //check cl
    checkCappedCL( dataDB, COMMCAPPEDCSNAME, clName );
@@ -44,32 +43,15 @@ function main ()
 
 function getMasterNodeName ( groupName )
 {
-   println( 'group: ' + groupName );
    var priNode = null;
-   try
-   {
-      var rg = db.getRG( groupName );
-      priNode = rg.getMaster();
-   }
-   catch( e )
-   {
-      throw buildException( "getMasterNodeName()", e, "get master node", "success", "fail:" + e );
-   }
+   var rg = db.getRG( groupName );
+   priNode = rg.getMaster();
    return priNode;
 }
 
 function getDataDB ( nodeAddr )
 {
-   var dataDB = null;
-   try
-   {
-      dataDB = new Sdb( nodeAddr );
-   }
-   catch( e )
-   {
-      throw buildException( null, null,
-         "connect sdb " + nodeAddr, 0, e );
-   }
+   var dataDB = new Sdb( nodeAddr );
    return dataDB;
 }
 
@@ -77,26 +59,18 @@ function checkCappedCL ( dataDB, csName, clName )
 {
    var expectName = csName + "." + clName;
    var isCappedCLExist = false;
-   try
+   var cursor = dataDB.listCollections();
+   while( cursor.next() )
    {
-      var cursor = dataDB.listCollections();
-      while( cursor.next() )
+      var actName = cursor.current().toObj().Name;
+      if( expectName == actName )
       {
-         var actName = cursor.current().toObj().Name;
-         if( expectName == actName )
-         {
-            isCappedCLExist = true;
-         }
-      }
-
-      if( !isCappedCLExist )
-      {
-         throw 'CHECK CAPPED CL FAIL';
+         isCappedCLExist = true;
       }
    }
-   catch( e )
+
+   if( !isCappedCLExist )
    {
-      throw buildException( null, null, "checkCappedCL fail ", 0, e );
+      throw new Error( 'CHECK CAPPED CL FAIL' );
    }
 }
-main();

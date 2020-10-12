@@ -4,7 +4,8 @@
 *@createdate:  2017.10.09
 *@testlinkCase: seqDB-11774
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11774";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
@@ -14,7 +15,7 @@ function main ()
    var data = { a: 1, _id: 0 };
    for( var i = 0; i < 3; i++ )
    {
-      insertDatas( dbcl, data );
+      dbcl.insert( data );
    }
 
    //check find and count
@@ -30,7 +31,7 @@ function main ()
    //pop datas
    var logicalID = 0;
    var direction = -1;
-   pop( dbcl, logicalID, direction );
+   dbcl.pop( { LogicalID: logicalID, Direction: direction } );
 
    //insert datas,_id locate in the front/ending
    var doc = [];
@@ -41,7 +42,7 @@ function main ()
       doc.push( { a: i, _id: i } );
       doc.push( { a: i } );
    }
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //check count
    expectCount = 300;
@@ -59,24 +60,24 @@ function main ()
    dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
    //insert again  
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //check count and find
    checkCount( dbcl, null, expectCount );
    checkLogicalID( dbcl, null, null, sortConf, null, null, expectIDs );
 
    //truncate datas 
-   removeAllDatas( dbcl );
+   dbcl.truncate();
 
    //insert again
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //check count and find
    checkCount( dbcl, null, expectCount );
    checkLogicalID( dbcl, null, null, sortConf, null, null, expectIDs );
 
    //pop datas  
-   pop( dbcl, logicalID, direction )
+   dbcl.pop( { LogicalID: logicalID, Direction: direction } );
 
    //check after pop
    expectCount = 0;
@@ -84,4 +85,3 @@ function main ()
 
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();

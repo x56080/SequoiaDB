@@ -4,9 +4,10 @@
 *@createdate:  2019.7.17
 *@testlinkCase: seqDB-11894/seqDB-11895
 **************************************/
-main();
 
-function main ()
+
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -58,8 +59,7 @@ function checkListResult ( db, expectResult, listType )
    {
       if( actResult.indexOf( expectResult[i] ) === -1 )
       {
-         throw buildException( "check list", "", "check list", expectResult, actResult );
+         throw new Error( "check list check list" + expectResult + actResult );
       }
    }
-   println( "check list success" );
 }

@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-12138
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    var clName1 = COMMCAPPEDCLNAME + "_12138_CL1";
    var clName2 = COMMCAPPEDCLNAME + "_12138_CL2";
@@ -18,7 +17,6 @@ function main ()
    var clName7 = COMMCAPPEDCLNAME + "_12138_CL7";
 
    //check cappedCL Capped
-   println( "---check cl Max---" )
 
    //check OverWrite : true
    var options1 = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false, OverWrite: true };
@@ -53,7 +51,6 @@ function main ()
    {
       commDropCL( db, COMMCAPPEDCSNAME, COMMCAPPEDCLNAME + "_12138_CL" + i, true, true, "drop CL in the end" );
    }
-   println( "---end the test---" );
 }
 
 function checkCreateCLOptions ( csName, clName, options, result )
@@ -63,14 +60,14 @@ function checkCreateCLOptions ( csName, clName, options, result )
       db.getCS( csName ).createCL( clName, options );
       if( result !== true )
       {
-         throw "ERR_CREATE_CAPPEDCL"
+         throw new Error( "ERR_CREATE_CAPPEDCL" );
       }
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "checkCreateCLOptions()", e, "create cappedCL", "-6", e );
+         throw e;
       }
    }
 }

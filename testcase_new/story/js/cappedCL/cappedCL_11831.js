@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11831
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "11831";
@@ -29,31 +28,24 @@ function main ()
 
    //truncate,32M>record
    insertBigData( cl, 32 );
-   println( "truncate 32M data" );
-   truncateData( cl );
+   cl.truncate();
    checkResult( cl, null );
-   println( "---truncate success---" );
 
    //truncate,32M<record<96M
    insertBigData( cl, 64 );
-   println( "truncate 64M data" );
-   truncateData( cl );
+   cl.truncate();
    checkResult( cl, null );
-   println( "---truncate success---" );
 
    //truncate,96M<record
    insertBigData( cl, 108 );
-   println( "truncate 108M data" );
-   truncateData( cl );
+   cl.truncate();
    checkResult( cl, null );
-   println( "---truncate success---" );
 
    //insert data check _id
    insertData( cl );
 
    //clean environment after test
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 function buildData ()
@@ -83,20 +75,10 @@ function checkResult ( cl, expRec )
 {
    if( expRec === null )
    {
-      try
+      assert.tryThrow( [-29, -31], function()
       {
-         var cursor = cl.find();
-         cursor.current();
-         throw "ERR_CL_NOTNULL";
-      }
-      catch( e )
-      {
-         if( e !== -29 && e !== -31 )
-         {
-            throw buildException( "checkResult()", e, "truncate cl should be null", "-29 || -31 ", e );
-         }
-      }
-      cursor.close();
+         cl.find().current();
+      } );
    }
    else
    {
@@ -107,54 +89,22 @@ function checkResult ( cl, expRec )
 
 function updateData ( cl, options )
 {
-   try
+   assert.tryThrow( -279, function()
    {
       cl.update( options );
-      throw "UPDATE_ERROR";
-   }
-   catch( e )
-   {
-      if( e !== -279 )
-      {
-         throw buildException( "updateData()", e, "update record shuld be error", -279, e );
-      }
-   }
+   } );
 }
 
 function removeData ( cl )
 {
-   try
+   assert.tryThrow( -6, function()
    {
       cl.insert( { a: 'test_delete_last_record' } );
-      println( "insert a record in the end" );
       var id = cl.findOne().sort( { _id: -1 } ).current().toObj()._id;
       cl.remove( { _id: id } );
-      println( "remove last record success" );
       cl.remove();
-      throw "REMOVE_ALL_ERROR";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "removeData()", e, "delete record shuld be error", -6, e );
-      }
-   }
+   } );
 }
-
-
-function truncateData ( cl )
-{
-   try
-   {
-      cl.truncate();
-   }
-   catch( e )
-   {
-      throw buildException( "truncateData()", e, "truncate record shuld be success", "success", "faild" );
-   }
-}
-
 
 function insertData ( cl )
 {
@@ -163,24 +113,15 @@ function insertData ( cl )
    { a: "jdwji" },
    { a: "qwieu" },
    { a: "niwew" }];
-   try
+   cl.insert( doc1 );
+   for( i = 0; i < 5; i++ )
    {
-      cl.insert( doc1 );
-      for( i = 0; i < 5; i++ )
-      {
-         var cursor = cl.find().sort( { _id: 1 } ).skip( i ).limit( 1 );
-         var actId = cursor.current().toObj()._id;
-         var expId = i * 60;
-         if( actId !== expId )
-         {
-            throw buildException( "insertData()", e, "check record id", expId, actId );
-         }
-      }
+      var cursor = cl.find().sort( { _id: 1 } ).skip( i ).limit( 1 );
+      var actId = cursor.current().toObj()._id;
+      var expId = i * 60;
+      assert.equal( actId, expId );
    }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert record shuld be success", "success", "faild" );
-   }
+
 }
 
 function insertBigData ( cl, size )
@@ -191,7 +132,6 @@ function insertBigData ( cl, size )
    var record = { a: str };
    for( i = 0; i < 10; i++ )
    {
-
       doc3.push( record );
    }
    for( j = 0; j < recordnum; j++ )
@@ -199,11 +139,3 @@ function insertBigData ( cl, size )
       cl.insert( doc3 );
    }
 }
-
-
-
-
-
-
-
-

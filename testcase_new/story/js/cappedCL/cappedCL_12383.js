@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-12383
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    //Not Exist Parameter AutoIndexId
    var clName = COMMCAPPEDCLNAME + "_12383";
@@ -46,19 +45,14 @@ function checkCreateCLOptions ( csName, clName, options, isValid )
       db.getCS( csName ).createCL( clName, options );
       if( isValid == undefined ) 
       {
-         throw "NEED_CREATE_FAIL_ERROR";
+         throw new Error( "NEED_CREATE_FAIL_ERROR" );
       }
-      println( "Create CL with option: " + JSON.stringify( options ) + " success!" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "Invalid parameter is not -6,error msg is: " + e );
-      }
-      else
-      {
-         println( "check result success!" );
+         throw e;
       }
    }
 }

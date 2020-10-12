@@ -4,7 +4,8 @@
 *@createdate:  2017.7.11
 *@testlinkCase: seqDB-11798
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11798";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
@@ -14,7 +15,7 @@ function main ()
    var recordNum = 10000;
    var recs = rd.getRecords( recordNum, ["int", "string", "bool", "date",
       "binary", "regex", "null"], ['a'] );
-   insertDatas( dbcl, recs );
+   dbcl.insert( recs );
 
    checkRecords( dbcl, null, null, { _id: 1 }, null, null, recs );
 
@@ -22,48 +23,31 @@ function main ()
 
    if( lastLogicalID < 33554396 )
    {
-      pop( dbcl, 0, -1 );
+      dbcl.pop( { LogicalID: 0, Direction: -1 } );
    } else
    {
-      println( "lastLogicalID: " + lastLogicalID );
-      throw "TEST_CONDITION_NOT_FULFILLED";
+      throw new Error( "TEST_CONDITION_NOT_FULFILLED" );
    }
 
    var recordNumPop = countRecords( dbcl, null );
-   if( recordNumPop !== 0 )
-   {
-      println( "recordNumPop: " + recordNumPop );
-      throw "RECORDS_NOT_POP_ALL";
-   } else
-   {
-      println( "--pop data success!" );
-   }
+   assert.equal( recordNumPop, 0 );
 
    var rd = new commDataGenerator();
    var recordNum = 1000;
    var recs = rd.getRecords( recordNum, ["int", "string", "bool", "date",
       "binary", "regex", "null"], ['a'] );
-   insertDatas( dbcl, recs );
+   dbcl.insert( recs );
 
    var firstLogicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, null )[0];
    var lastLogicalID1 = getLogicalID( dbcl, null, null, { _id: -1 }, 1, null )[0];
 
-   if( firstLogicalID !== 0 )
-   {
-      println( "firstLogicalID: " + firstLogicalID );
-      println( "lastLogicalID: " + lastLogicalID );
-      throw "LOGICAL_ID_NOT_CORRECT";
-   }
+   assert.equal( firstLogicalID, 0 )
 
    var recordNumInsert = countRecords( dbcl, null );
-   if( recordNumInsert !== recordNum )
-   {
-      println( "recordNumInsert: " + recordNumInsert );
-      throw "COUNT_RECORDS_INCORRECT";
-   }
+
+   assert.equal( recordNumInsert, recordNum )
 
    checkRecords( dbcl, null, null, { _id: 1 }, null, null, recs );
 
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();

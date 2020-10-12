@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11784,seqDB-11785,seqDB-11786，seqDB-11787
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_11784_11785_11786_11787";
 
@@ -16,21 +15,17 @@ function main ()
    commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //insertData
-   println( "---insert data---" )
    insertData( COMMCAPPEDCSNAME, clName );
 
    //pop data Direction:1
-   println( "---pop data direction:1---" )
    popData( COMMCAPPEDCSNAME, clName, 1, 1 );
    popData( COMMCAPPEDCSNAME, clName, 3, 1 );
 
    //pop data Direction:-1
-   println( "---pop data direction:-1---" )
    popData( COMMCAPPEDCSNAME, clName, 3, -1 );
    popData( COMMCAPPEDCSNAME, clName, 1, -1 );
 
    //check node data
-   println( "---check data---" )
    if( true !== commIsStandalone( db ) )
    {
       checkData( COMMCAPPEDCSNAME, clName );
@@ -42,7 +37,6 @@ function main ()
 
    //clean environment after test
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 function insertData ( csName, clName )
@@ -65,17 +59,11 @@ function insertData ( csName, clName )
    { No: 21, a: [3] },
    { No: 22, a: 22 }];
    var longstr = createBigStr();
-   try
-   {
-      dbcl.insert( doc );
-      dbcl.insert( { No: 23, a: [23, 23.3, "23"] } );
-      dbcl.insert( { No: 24, a: "" } );
-      dbcl.insert( { No: 25, a: longstr } );
-   }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert data", "insert success", "insert fail" );
-   }
+   dbcl.insert( doc );
+   dbcl.insert( { No: 23, a: [23, 23.3, "23"] } );
+   dbcl.insert( { No: 24, a: "" } );
+   dbcl.insert( { No: 25, a: longstr } );
+
 }
 
 function createBigStr ()
@@ -87,26 +75,18 @@ function createBigStr ()
 
 function popData ( csName, clName, popNum, direction )
 {
-   try
-   {
-      var dbcl = db.getCS( csName ).getCL( clName );
-      var rc = dbcl.find().sort( { "_id": 1 } ).skip( popNum - 1 ).limit( 1 );
-      var id = rc.next().toObj()._id;
-      var options = { LogicalID: id, Direction: direction };
-      dbcl.pop( options );
-   }
-   catch( e )
-   {
-      throw buildException( "popData()", e, "pop data", "pop success", "pop fail" );
-   }
+
+   var dbcl = db.getCS( csName ).getCL( clName );
+   var rc = dbcl.find().sort( { "_id": 1 } ).skip( popNum - 1 ).limit( 1 );
+   var id = rc.next().toObj()._id;
+   var options = { LogicalID: id, Direction: direction };
+   dbcl.pop( options );
+
 }
 
 function standaloneCheckData ( csName, clName, count )
 {
    var dbcl = db.getCS( csName ).getCL( clName );
    var rec = Number( dbcl.count() );
-   if( rec !== count )
-   {
-      throw buildException( "standaloneCheckData()", null, "standalone check  data", count, rec );
-   }
+   assert.equal( rec, count );
 }

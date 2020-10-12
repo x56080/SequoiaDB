@@ -24,13 +24,11 @@ function test ( testPara )
    
    //删除最后一个块的最后一条记录
    var _id = testPara.testCL.findOne().sort({_id:-1}).next().toObj()._id;
-   println("_id:" + _id);
    testPara.testCL.remove({_id:_id});
    expRecord.pop();
    
    //删除前一个块的最后一条记录
    var _id = testPara.testCL.findOne().sort({_id:-1}).next().toObj()._id;
-   println("_id:" + _id);
    testPara.testCL.remove({_id:_id});
    expRecord.pop();
    

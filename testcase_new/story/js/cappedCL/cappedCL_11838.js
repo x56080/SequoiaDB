@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11838
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    //create normal CL
    var clName = COMMCLNAME + "_11838";
@@ -17,22 +16,13 @@ function main ()
    normalCLinsertData( dbcl );
 
    //normalCL pop data
-   println( "---pop data---" );
-   try
+   assert.tryThrow( -32, function()
    {
       dbcl.pop( { LogicalID: 0, Direction: -1 } );
-   }
-   catch( e )
-   {
-      if( e !== -32 )
-      {
-         throw buildException( "normalCL pop data", e, "normalCL pop data", "pop fail", "pop success" );
-      }
-   }
+   } );
 
    //clean environment after test
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 function normalCLinsertData ( dbcl )
@@ -52,13 +42,5 @@ function normalCLinsertData ( dbcl )
    { No: 20, a: [1] },
    { No: 21, a: [3] },
    { No: 22, a: 22 }];
-   try
-   {
-      dbcl.insert( doc );
-      //println( "--insert data success" ) ;
-   }
-   catch( e )
-   {
-      throw buildException( "normalCLinsertData()", e, "insert", "insert success", "insert fail" );
-   }
+   dbcl.insert( doc );
 }

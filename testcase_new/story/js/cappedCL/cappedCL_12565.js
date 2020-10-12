@@ -4,7 +4,8 @@
 *@createdate:  2017.8.28
 *@testlinkCase: seqDB-12565
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_12565";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
@@ -16,19 +17,12 @@ function main ()
 
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();
+
 
 function checkPopResult ( dbcl, logicalID, direction )
 {
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.pop( { LogicalID: logicalID, Direction: direction } ).toArray();
-      throw "NEED_POP_ERROR";
-   } catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "pop", e, "pop", -6, e );
-      }
-   }
+   } );
 }

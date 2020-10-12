@@ -5,14 +5,13 @@
 *@testlinkCase:seqDB-11826,seqDB-11827
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    //check cl
    var clName = COMMCAPPEDCLNAME + "_11827";
    var options = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-   var cl = createCL( COMMCAPPEDCSNAME, clName, options );
+   var cl = db.getCS( COMMCAPPEDCSNAME ).createCL( clName, options );
 
    //test record
    var doc = [{ No: 1, a: 10 }, { No: 2, a: 50 }, { No: 3, a: -1001 },
@@ -77,19 +76,6 @@ function main ()
 
    //clean environment after test  
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
-}
-
-function createCL ( csName, clName, options )
-{
-   try
-   {
-      return db.getCS( csName ).createCL( clName, options );
-   }
-   catch( e )
-   {
-      throw buildException( "createCL()", e, "create cappedCL", "-6", e );
-   }
 }
 
 function checkOption ( dbcl, doc, options )
@@ -101,42 +87,26 @@ function checkOption ( dbcl, doc, options )
    }
    catch( e )
    {
-      if( e != -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "checkOption()", e, "check options", "pop success", "pop failed," + e );
+         throw e;
       }
    }
+
 }
 
 function getMiddleID ( dbcl, doc, num )
 {
-   try
-   {
-      dbcl.insert( doc );
-      var cursor = dbcl.find().sort( { No: 1 } ).skip( num ).limit( 1 );
-      var id = cursor.current().toObj()._id;
-      dbcl.truncate();
-      return id;
-   }
-   catch( e )
-   {
-      throw buildException( "getMiddleID()", e, "find record", "find success", "find failed, " + e );
-   }
+   dbcl.insert( doc );
+   var cursor = dbcl.find().sort( { No: 1 } ).skip( num ).limit( 1 );
+   var id = cursor.current().toObj()._id;
+   dbcl.truncate();
+   return id;
 }
 
 function checkPopResult ( dbcl, expRecordNum, msg )
 {
-   try
-   {
-      var act = dbcl.count();
-      if( act != expRecordNum )
-      {
-         throw buildException( "checkPopResult()", null, msg + " compare record num", expRecordNum, act )
-      }
-      dbcl.truncate();
-   }
-   catch( e )
-   {
-      throw buildException( "checkPopResult()", e, "check record", "check success", "check failed, " + e );
-   }
+   var act = dbcl.count();
+   assert.equal( act, expRecordNum );
+   dbcl.truncate();
 }

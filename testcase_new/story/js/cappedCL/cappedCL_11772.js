@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11772
 **************************************/
 
-main()
-
-function main ()
+main( test );
+function test ()
 {
    //create cappedCL
    var clName = COMMCAPPEDCLNAME + "_11772";
@@ -15,7 +14,6 @@ function main ()
    var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //insertData
-   println( "---bulk insert data---" )
    var randomNum = Math.floor( Math.random() * 100 );
    var bigStr = createBigStr( randomNum );
    for( var i = 0; i < 20; i++ )
@@ -28,7 +26,6 @@ function main ()
 
    //clean environment after test  
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
-   println( "---end the test---" );
 }
 
 function bulkInsertData ( dbcl, bigStr, times )
@@ -39,46 +36,29 @@ function bulkInsertData ( dbcl, bigStr, times )
       var options = { a: bigStr };
       doc.push( options );
    }
-   try
-   {
-      dbcl.insert( doc );
-   }
-   catch( e )
-   {
-      throw buildException( "bulkInsertData()", e, "bulk insert data", "insert success", "insert fail:" + e );
-   }
+   dbcl.insert( doc );
 }
 
 function checkId ( dbcl, bigStr, recordNum )
 {
-   try
-   {
-      //dbcl.insert( { a : 1 } );
-      var cursor = dbcl.find( null, { '_id': "" } ).sort( { "_id": -1 } ).limit( 1 );
-      var actID = cursor.next().toObj()._id;
+   //dbcl.insert( { a : 1 } );
+   var cursor = dbcl.find( null, { '_id': "" } ).sort( { "_id": -1 } ).limit( 1 );
+   var actID = cursor.next().toObj()._id;
 
-      var len = fourByte( 55 + bigStr.length );
-      var blank = 33554396 % len;
-      var countLen = len * recordNum;
-      var one = Math.floor( 33554396 / len );
-      var blanks = Math.floor( recordNum / one ) * blank;
-      var expID = countLen + blanks - len;
+   var len = fourByte( 55 + bigStr.length );
+   var blank = 33554396 % len;
+   var countLen = len * recordNum;
+   var one = Math.floor( 33554396 / len );
+   var blanks = Math.floor( recordNum / one ) * blank;
+   var expID = countLen + blanks - len;
 
-      //println(actID+":"+expID)
-      if( actID <= 2147483647 )
-      {
-         throw "ERR_ID_MIN";
-      }
-      if( Number( actID ) !== expID )
-      {
-         throw "ERR_ID_VALUE";
-      }
-      cursor.close();
-   }
-   catch( e )
+   if( actID <= 2147483647 )
    {
-      throw buildException( "checkId()", e, "check Id", "find success", "find fail:" + e );
+      throw new Error( "ERR_ID_MIN" );
    }
+   assert.equal( actID, expID );
+   cursor.close();
+
 }
 
 function fourByte ( len )

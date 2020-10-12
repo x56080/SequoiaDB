@@ -5,9 +5,8 @@
 *@testlinkCase:seqDB-11762
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    var csName = COMMCAPPEDCSNAME + "_11762";
 
@@ -15,7 +14,6 @@ function main ()
    commDropCS( db, csName, true, "drop CS in the beginning" );
 
    //begin create cappedCS
-   println( "---begin to create cappedCS---" )
    var options = { Capped: true }
    commCreateCS( db, csName, false, "beginning to create cappedCS", options );
 
@@ -29,10 +27,8 @@ function main ()
       var nodeList = getNodeList( CATALOG_GROUPNAME );
       checkCappedCS( csName, nodeList );
    }
-   println( "---end create cappedCS---" )
 
    //begin to drop cappedCS 
-   println( "---begin to drop cappedCS---" )
    commDropCS( db, csName, false, "beginning to drop cappedCS" );
 
    //check drop result
@@ -44,34 +40,22 @@ function main ()
    {
       checkDropCS( csName, nodeList );
    }
-   println( "---end to drop cappedCS---" );
 }
 
 function standaloneCheckCreateCS ( csName )
 {
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONSPACES, { 'Name': csName } );
    var type = cursor.next().toObj().Type;
-   if( type !== 1 )
-   {
-      throw buildException( "check cappedCS", null, "check cappedCS", "1", type );
-   }
+   assert.equal( type, 1 );
    cursor.close();
 }
 
 function standaloneCheckDropCS ( csName )
 {
-   try
+   assert.tryThrow( -34, function()
    {
       db.getCS( csName );
-      throw "ERR_DROP_CS";
-   }
-   catch( e )
-   {
-      if( e !== -34 )
-      {
-         throw buildException( "check drop cappedCS", null, "check drop cappedCS", "-34", e );
-      }
-   }
+   } );
 }
 
 function getNodeList ( groupName )
@@ -83,7 +67,6 @@ function getNodeList ( groupName )
       var nodeInfo = groupInfo[i].HostName + ":" + groupInfo[i].Service[0].Name;
       nodeList.push( nodeInfo );
    }
-   //println( "---get nodelist of " + groupName + ": " + nodeList );
 
    return nodeList;
 }
@@ -95,7 +78,6 @@ function checkCappedCS ( csName, nodeList )
    for( var i = 0; i < repeatTime; i++ )
    {
       var j = i % nodeList.length;
-      println( "j: " + j );
       var catadb = new Sdb( nodeList[j] );
       clSize = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
       //judge the current node exist CL or not 
@@ -110,14 +92,11 @@ function checkCappedCS ( csName, nodeList )
       {
          var cursor = catadb.SYSCAT.SYSCOLLECTIONSPACES.find( { 'Name': csName } );
          var type = cursor.next().toObj().Type;
-         if( type !== 1 )
-         {
-            throw buildException( "check cappedCS", null, "check cappedCS", "1", type );
-         }
+         assert.equal( type, 1 );
          cursor.close();
       } else
       {
-         throw buildException( "check cappedCL failed , cursor is null" );
+         throw new Error( "check cappedCL failed , cursor is null" );
       }
       catadb.close();
    }
@@ -128,11 +107,8 @@ function checkDropCS ( csName, nodeList )
    for( var i in nodeList )
    {
       var catadb = new Sdb( nodeList[i] );
-      var count = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } )
-      if( count != 0 )
-      {
-         throw buildException( "check drop cappedCS", null, "check drop cappedCS", "0", count );
-      }
+      var count = catadb.SYSCAT.SYSCOLLECTIONSPACES.count( { 'Name': csName } );
+      assert.equal( count, 0 );
       catadb.close();
    }
 }

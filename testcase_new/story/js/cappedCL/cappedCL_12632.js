@@ -4,7 +4,8 @@
 *@createdate:  2017.8.30
 *@testlinkCase: seqDB-12632
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCAPPEDCLNAME + "_12632";
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
@@ -30,7 +31,7 @@ function main ()
 
    commDropCL( db, COMMCAPPEDCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();
+
 
 function insertData ( dbcl, insertNums )
 {
@@ -39,33 +40,19 @@ function insertData ( dbcl, insertNums )
    {
       doc.push( { a: i } );
    }
-   try
-   {
-      dbcl.insert( doc );
-   }
-   catch( e )
-   {
-      throw buildException( "insert data", e, "insert data", "insert success", "insert fail" );
-   }
+   dbcl.insert( doc );
 }
 
 function getLastLogicalID ( dbcl )
 {
    var logicalID;
-   try
+   sortOpt = { '_id': 1 };
+   var cursor = dbcl.find().sort( sortOpt );
+   while( cursor.next() )
    {
-      sortOpt = { '_id': 1 };
-      var cursor = dbcl.find().sort( sortOpt );
-      while( cursor.next() )
-      {
-         logicalID = cursor.current().toObj()._id;
-      }
-      return logicalID;
+      logicalID = cursor.current().toObj()._id;
    }
-   catch( e )
-   {
-      throw buildException( "get the last logicalId", e, null, null, e );
-   }
+   return logicalID;
 }
 
 function checkPopResult ( dbcl, logicalID, direction, isSuccess )
@@ -73,17 +60,17 @@ function checkPopResult ( dbcl, logicalID, direction, isSuccess )
    try
    {
       dbcl.pop( { LogicalID: logicalID, Direction: direction } );
-      if( isSuccess == undefined ) throw "NEED_POP_ERROR";
+      if( isSuccess == undefined ) throw new Error( "NEED_POP_ERROR" );
    }
    catch( e )
    {
       if( isSuccess == true )
       {
-         throw buildException( "pop", e, "pop", -6, e );
+         throw new Error( e );
       }
-      else if( e !== -6 )
+      else if( e.message != -6 )
       {
-         throw buildException( "pop", e, "pop", -6, e );
+         throw e;
       }
    }
 }
