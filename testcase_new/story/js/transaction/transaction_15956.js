@@ -3,11 +3,12 @@
 @Modify list :
 2018-10-30  zhaoyu  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -34,11 +35,9 @@ function main ()
 
    var actR = dbcl1.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check insert dbcl1, commit success" );
 
    var actR = dbcl2.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check insert dbcl2, commit success" );
 
    dbcl1.insert( { a: "insert" } );
    dbcl2.insert( { a: "insert" } );
@@ -46,24 +45,10 @@ function main ()
 
    var actR = dbcl1.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check insert dbcl1 after transcommit success" );
 
    var actR = dbcl2.find().sort( { _id: 1 } );
    checkRec( actR, expR );
-   println( "---check insert dbcl2 after transcommit success" );
 
    commDropCL( db, COMMCSNAME, clName1, true, true );
    commDropCL( db, COMMCSNAME, clName2, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }
