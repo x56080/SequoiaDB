@@ -5,20 +5,10 @@
 *              2019-05-27 wuyan        modify
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+
+function test ()
 {
    var csName = CHANGEDPREFIX + "_largeThanPageCS163";
    var clName = CHANGEDPREFIX + "_cl163";

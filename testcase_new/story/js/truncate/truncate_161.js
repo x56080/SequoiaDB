@@ -5,24 +5,13 @@
 *              2019-05-27 wuyan        modify
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 
@@ -30,7 +19,6 @@ function main ()
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "--least two groups" );
       return;
    }
 
@@ -80,8 +68,5 @@ function truncateAndCheckResult ( cl, csName, clName )
 
    var expCount = 0;
    var actCount = cl.listLobs();
-   if( Number( expCount ) !== Number( actCount ) )
-   {
-      throw new Error( "expCount: " + expCount + "\nactCount: " + actCount );
-   }
+   assert.equal( expCount, actCount );
 }

@@ -4,25 +4,13 @@
 *              2015-5-8  xiaojun Hu   Init
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_152";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection begin" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "create collection begin" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
    var tableName = COMMCSNAME + "." + clName;
 
    testTruncateNormalTblRecord( db, cl, tableName );
@@ -41,7 +29,6 @@ function main ()
 ********************************************************************************/
 function testTruncateNormalTblRecord ( db, cl, tableName )
 {
-   var funcName = "testTruncateNormalTblRecord";
    var verfify = { "TotalDataPages": 1 };
    truncateVerify( db, tableName );
 
@@ -51,10 +38,7 @@ function testTruncateNormalTblRecord ( db, cl, tableName )
 
    // truncate
    cl.truncate();
-   if( 0 != cl.count() )
-   {
-      throw new Error( "cl.count(): " + cl.count() );
-   }
+   assert.equal( cl.count(), 0 );
 
    truncateVerify( db, tableName );
 }
@@ -66,7 +50,6 @@ function testTruncateNormalTblRecord ( db, cl, tableName )
 ********************************************************************************/
 function testTruncateNormalTblLob ( db, cl, tableName )
 {
-   var funcName = "testTruncateNormalTblLob";
    var verfify = { "TotalLobPages": 5 };
    if( undefined == db ) { throw new Error( "db: " + db ); }
    if( undefined == cl ) { throw new Error( "cl: " + cl ); }
@@ -82,10 +65,7 @@ function testTruncateNormalTblLob ( db, cl, tableName )
    // truncate
    cl.truncate();
    listLobs = cl.listLobs().toArray();
-   if( 0 != listLobs.length )
-   {
-      throw new Error( "listLobs.length: " + listLobs.length );
-   }
+   assert.equal( listLobs.length, 0 );
 
    truncateVerify( db, tableName );
 }
@@ -97,8 +77,6 @@ function testTruncateNormalTblLob ( db, cl, tableName )
 ********************************************************************************/
 function testTruncateNormalTable ( db, cl, tableName )
 {
-   var funcName = "testTruncateNormalTable";
-   var verfify = { "TotalDataPages": 1, "TotalLobPages": 5 };
    if( undefined == db ) { throw new Error( "db: " + db ); }
    if( undefined == cl ) { throw new Error( "cl: " + cl ); }
    if( undefined == tableName ) { throw new Error( "tableName: " + tableName ); }
@@ -114,15 +92,9 @@ function testTruncateNormalTable ( db, cl, tableName )
    }
    // truncate
    cl.truncate();
-   if( 0 != cl.count() )
-   {
-      throw new Error( "cl.count(): " + cl.count() );
-   }
+   assert.equal( cl.count(), 0 );
    listLobs = cl.listLobs().toArray();
-   if( 0 != listLobs.length )
-   {
-      throw new Error( "listLobs.length: " + listLobs.length );
-   }
+   assert.equal( listLobs.length, 0 );
 
    truncateVerify( db, tableName );
 }

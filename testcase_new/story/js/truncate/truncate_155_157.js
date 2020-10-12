@@ -3,26 +3,13 @@
 *@Modify list:
 *              2015-5-8  xiaojun Hu   Init
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
-   var clName = "truncate_155";
-   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+   var clName = COMMCLNAME + "truncate_155";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection begin" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "create collection begin" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
    var tableName = COMMCSNAME + "." + clName;
 
    testTruncateCompareRemveDelete( db );
@@ -40,7 +27,6 @@ function main ()
 ********************************************************************************/
 function testTruncateCompareRemveDelete ( db )
 {
-   var funcName = "testTruncateCompareRemveDelete";
 
    if( undefined == db ) { throw "no sdb connect handle"; }
    var lobSize = 2049;
@@ -54,10 +40,8 @@ function testTruncateCompareRemveDelete ( db )
 
    commDropCL( db, COMMCSNAME, clName1, true, true, "drop collection1 begin" );
    commDropCL( db, COMMCSNAME, clName2, true, true, "drop collection2 begin" );
-   var cl1 = commCreateCL( db, COMMCSNAME, clName1, {}, true, false,
-      "create collection1 begin" );
-   var cl2 = commCreateCL( db, COMMCSNAME, clName2, {}, true, false,
-      "create collection2 begin" );
+   var cl1 = commCreateCL( db, COMMCSNAME, clName1, {}, true, false );
+   var cl2 = commCreateCL( db, COMMCSNAME, clName2, {}, true, false );
    truncateVerify( db, tableName1 );
    truncateVerify( db, tableName2 );
 
@@ -70,35 +54,23 @@ function testTruncateCompareRemveDelete ( db )
    truncateVerify( db, tableName1, verfify1 );
    // remove cl1's records
    cl1.remove();
+   assert.equal( cl1.count(), 0 );
 
-   if( 0 != cl1.count() )
-   {
-      throw new Error( "cl1.count(): " + cl1.count() );
-   }
    // delete cl1's lobs
    for( var i = 0; i < lobIDSet1.length; ++i )
    {
       cl1.deleteLob( lobIDSet1[i] );
    }
 
-   if( 0 != cl1.listLobs().toArray().length )
-   {
-      throw new Error( "cl1.listLobs().toArray().length: " + cl1.listLobs().toArray().length );
-   }
+   assert.equal( cl1.listLobs().toArray().length, 0 );
    var verfify1 = { "TotalDataPages": 1 }
    truncateVerify( db, tableName1, verfify1 );
 
    // truncate
    cl1.truncate();
    cl2.truncate();
-   if( 0 != cl2.count() )
-   {
-      throw new Error( "cl2.count(): " + cl2.count() );
-   }
-   if( 0 != cl2.listLobs().toArray().length )
-   {
-      throw new Error( "cl2.listLobs().toArray().length: " + cl2.listLobs().toArray().length );
-   }
+   assert.equal( cl2.count(), 0 );
+   assert.equal( cl2.listLobs().toArray().length, 0 );
 
    truncateVerify( db, tableName1 );
    truncateVerify( db, tableName2 );
@@ -114,8 +86,6 @@ function testTruncateCompareRemveDelete ( db )
 ********************************************************************************/
 function testTruncateLoopOperation ( db, cl, tableName )
 {
-   var funcName = "testTruncateLoopOperation";
-
    var lobSize = 4097;
    var lobNumber = 3;
    var loopNum = 10;
@@ -129,12 +99,9 @@ function testTruncateLoopOperation ( db, cl, tableName )
          truncateInsertRecord( cl, 1, lobSize, { "LobOID": cursor[j] } );
       }
       // truncate
-      println( "loop number: " + i );
       cl.truncate();
-      if( 0 != cl.count() )
-      {
-         throw new Error( "cl.count(): " + cl.count() );
-      }
+      assert.equal( cl.count(), 0 );
+
       truncateVerify( db, tableName );
    }
 }
@@ -144,11 +111,8 @@ function testTruncateLoopOperation ( db, cl, tableName )
 *@Input: collection.truncate()
 *@Expectation: 多次的truncate操作成功
 ********************************************************************************/
-
 function testTruncateMultiTimes ( db, cl, tableName )
 {
-   var funcName = "testTruncateMultiTimes";
-
    var lobSize = 4097;
    var lobNumber = 3;
    var loopNum = 10;
@@ -165,10 +129,7 @@ function testTruncateMultiTimes ( db, cl, tableName )
    {
       // truncate
       cl.truncate();
-      if( 0 != cl.count() )
-      {
-         throw new Error( "cl.count(): " + cl.count() );
-      }
+      assert.equal( cl.count(), 0 );
       truncateVerify( db, tableName );
    }
 }

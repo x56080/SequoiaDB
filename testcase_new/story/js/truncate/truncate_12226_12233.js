@@ -3,7 +3,21 @@
 *@Modify list:
 *              2015-5-8  xiaojun Hu   Init
 ******************************************************************************/
-
+main( test );
+function test ()
+{
+   testTruncateNormalCLMultiIndexKey( db )
+   if( true == commIsStandalone( db ) )
+   {
+   }
+   else if( commGetGroups( db ).length < 2 )
+   {
+   }
+   else
+   {
+      testTruncateMixtureCLMultiIndex( db )
+   }
+}
 /*******************************************************************************
 *@Description: 测试普通表中的索引是复合索引时,且索引增涨几个页，然后再truncate
 *@Input: collection.truncate()
@@ -12,16 +26,13 @@
 
 function testTruncateNormalCLMultiIndexKey ( db )
 {
-   var funcName = "testTruncateNormalCLMultiIndexKey";
-
    var clName = COMMCLNAME + "_12226";
    var indexName = CHANGEDPREFIX + "_truncate_normal_index";
    var recordNum = 3000;
    var verJsonObj = { "TotalIndexPages": 4 };
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop cl begin" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "create collection begin" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
    commDropIndex( cl, indexName, true )
 
    var tableName = COMMCSNAME + "." + clName;
@@ -41,8 +52,6 @@ function testTruncateNormalCLMultiIndexKey ( db )
 ********************************************************************************/
 function testTruncateMixtureCLMultiIndex ( db )
 {
-   var funcName = "testTruncateMixtureCLMultiIndex";
-
    var mainCS = CHANGEDPREFIX + "_mixtureCL_largeThanPage_mainCL12233";
    var subCS1 = CHANGEDPREFIX + "_mixtureCL_largeThanPage_subCL1_12233";
    var subCS2 = CHANGEDPREFIX + "_mixtureCL_largeThanPage_subCL2_12233";
@@ -102,35 +111,5 @@ function testTruncateMixtureCLMultiIndex ( db )
    commDropCS( db, subCS2, false, "drop sub cs2 end" );
    commDropCS( db, mainCS, false, "drop main cs end" );
    commDropDomain( db, domainName );
-}
-
-function main ()
-{
-   testTruncateNormalCLMultiIndexKey( db )
-   if( true == commIsStandalone( db ) )
-   {
-      println( "Mode is standalone!" );
-   }
-   else if( commGetGroups( db ).length < 2 )
-   {
-      println( "data groups number is less than 2! You need at least 2 groups to split!" );
-   }
-   else
-   {
-      testTruncateMixtureCLMultiIndex( db )
-   }
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }
 

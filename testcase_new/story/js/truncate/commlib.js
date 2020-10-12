@@ -23,7 +23,6 @@ function checkResult ( real, expect )
 
       if( real[key] != expect[key] )
       {
-         println( "<" + key + "> expect: " + expect[key] + ", actual: " );
          return false;
       }
    }
@@ -90,8 +89,7 @@ function truncateVerify ( db, tableName, obj )
       var snapshotOfCLPerNode = snapShotInfoSet[i];
       if( !checkResult( snapshotOfCLPerNode, obj ) )
       {
-         println( JSON.stringify( snapshotOfCLPerNode, "", 3 ) );
-         throw new Error( "truncateVerify", "compare error" );
+         throw new Error( "truncateVerify" + "compare error" );
       }
    }
 }
@@ -210,12 +208,7 @@ function truncatePutLob ( cl, lobSize, lobNumber )
    var listLobs = cl.listLobs().toArray();
    if( lobNumber != listLobs.length )
    {
-      println( listLobs );
-      println( "expect lob number: " + lobNumber +
-         ", actual: " + listLobs.length );
       throw new Error( "lobNumber: " + lobNumber + "\nlistLobs.length: " + listLobs.length );
    }
    return lobIDs;
 }
-
-

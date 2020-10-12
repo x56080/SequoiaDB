@@ -5,24 +5,13 @@
 *              2019-05-27 wuyan        modify
 ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -85,10 +74,5 @@ function truncateAndCheckResult ( mainCL, subCLFullName1, subCLFullName2 )
 
    var expCount = 0;
    var count = mainCL.count();
-   if( Number( expCount ) !== Number( count ) )
-   {
-      throw new Error( "expCount: " + expCount + "\ncount: " + count );
-   }
+   assert.equal( expCount, count );
 }
-
-
