@@ -459,74 +459,113 @@ public:
    UINT64         getSize() const { return _size ; }
    BOOLEAN        isStarted() const { return _traceStarted ; }
 
-   BOOLEAN        checkMask( UINT64 funcCode ) const
+   /*
+   eg:
+   1. if we specify oss component and ossSocket::recv function,
+      we will trace all oss functions.
+
+   2. if we specify oss component and _pmdEDUCB::resetInfo function,
+      we will trace all oss functions and the _pmdEDUCB::resetInfo function.
+
+   3. if we only specify oss component, we will only trace all oss functions.
+
+   4. if we only specify ossSocket::recv function, we will only trace the
+      ossSocket::recv function.
+   */
+   BOOLEAN        checkFunction( UINT64 funcCode )
    {
-      UINT32 component = (UINT32)( funcCode >> 32 ) ;
-      return ( component & _componentMask ) ? TRUE : FALSE ;
+      BOOLEAN needTrace          = FALSE ;
+      BOOLEAN isSpecifyComponent = !( 0xFFFFFFFF == _componentMask ) ;
+      BOOLEAN isSpecifyFunction  = !( 0 == _functionMonitoredNum ) ;
+      UINT32  component ;
+      UINT32  functionId ;
+
+      /* If we don't specify component, it means that we will trace all
+         components. And we don't need to check the component.
+         If we don't specify function, it means that we will trace all
+         functions. And we don't need to check the functionId.
+      */
+      if ( !isSpecifyComponent && !isSpecifyFunction )
+      {
+         // we will trace all functions
+         needTrace = TRUE ;
+         goto done ;
+      }
+
+      component  = ( UINT32 )( funcCode >> 32 ) ;
+      functionId = ( UINT32 )( funcCode & 0xFFFFFFFF ) ;
+
+      if ( isSpecifyComponent && ( component & _componentMask ) )
+      {
+         needTrace = TRUE ;
+         goto done ;
+      }
+
+      if ( isSpecifyFunction )
+      {
+         for ( UINT32 i = 0 ; i < _functionMonitoredNum ; ++i )
+         {
+            if ( _monitoredFunctionNamesId[ i ] == functionId )
+            {
+               needTrace = TRUE ;
+               goto done ;
+            }
+         }
+      }
+
+   done:
+      return needTrace ;
    }
 
-   BOOLEAN        checkThread( UINT32 tid ) const
+   /*
+   The filtering logic of thread types and tids is the same as
+   filtering logic of components and functions.
+   */
+   BOOLEAN        checkThread( UINT32 tid, INT32 threadTypeId )
    {
-      BOOLEAN result = FALSE ;
-      if ( _threadMonitoredNum > 0 )
+      BOOLEAN needTrace           = FALSE ;
+      BOOLEAN isSpecifyTid        = !( 0 == _threadMonitoredNum ) ;
+      BOOLEAN isSpecifyThreadType = !( 0 == _threadTypeMonitoredNum ) ;
+
+      /*
+         If we don't specify tid, it means that we will trace all threads.
+         And we don't need to check the tid.
+         If we don't specify threadType, it means that we will trace all types
+         of threads. And we don't need to check the threadTypeId.
+      */
+      if ( !isSpecifyTid && !isSpecifyThreadType )
+      {
+         // we will trace all threads
+         needTrace = TRUE ;
+         goto done ;
+      }
+
+      if ( isSpecifyTid )
       {
          for ( UINT32 i = 0 ; i < _threadMonitoredNum ; ++i )
          {
             if ( _monitoredThreads[ i ] == tid )
             {
-               result = TRUE ;
-               break ;
+               needTrace = TRUE ;
+               goto done ;
             }
          }
       }
-      else
-      {
-         result = TRUE ;
-      }
-      return result ;
-   }
 
-   BOOLEAN        checkThreadType( INT32 threadTypeId ) const
-   {
-      BOOLEAN result = FALSE ;
-      if ( _threadTypeMonitoredNum > 0 )
+      if ( isSpecifyThreadType )
       {
          for ( UINT32 i = 0 ; i < _threadTypeMonitoredNum ; ++i )
          {
             if ( _monitoredThreadTypes[ i ] == threadTypeId )
             {
-               result = TRUE ;
-               break ;
+               needTrace = TRUE ;
+               goto done ;
             }
          }
       }
-      else
-      {
-         result = TRUE ;
-      }
-      return result ;
-   }
 
-   BOOLEAN        checkFunction( UINT64 functionId ) const
-   {
-      BOOLEAN result = FALSE ;
-      UINT32 code = ( UINT32 )( functionId & 0xFFFFFFFF ) ;
-      if ( _functionMonitoredNum > 0 )
-      {
-         for ( UINT32 i = 0 ; i < _functionMonitoredNum ; ++i )
-         {
-            if ( _monitoredFunctionNamesId[ i ] == code )
-            {
-               result = TRUE ;
-               break ;
-            }
-         }
-      }
-      else
-      {
-         result = TRUE ;
-      }
-      return result ;
+   done:
+      return needTrace ;
    }
 
    void           removeAllBreakPoint() ;
