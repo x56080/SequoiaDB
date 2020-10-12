@@ -34,5 +34,6 @@ function test ()
    {
       varCL.update( { $pop: { a: [2] } } );
    } );
+
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
 }

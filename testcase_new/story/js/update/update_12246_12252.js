@@ -1,7 +1,6 @@
 // nvi iiii viia // update record.
 // normal case.$unset $inc $push $pull $push_all
 // $pull_all $pop $addtoset
-
 main( test );
 function test ()
 {
@@ -12,9 +11,7 @@ function test ()
 
    varCL.insert( { a: 2, b: { name: "YoYo", age: 23, phone: [12, 56, "reqnf"] }, c: "jkdi" } );
 
-
    varCL.update( { $unset: { c: "jkdi" } } );
-
 
    var rc = varCL.find( { c: "jkdi" } );
 
@@ -27,11 +24,12 @@ function test ()
       else
          size++;
    }
-
    assert.equal( size, 0 );
 
    varCL.update( { $inc: { salary: 100 } } );
+
    var rc1 = varCL.find( { salary: 100 } );
+
 
    var size1 = 0;
    while( true )
@@ -42,9 +40,7 @@ function test ()
       else
          size1++;
    }
-
    assert.equal( size1, 1 );
-
 
    varCL.update( { $push: { "b.phone": 3 } } );
    var rc2 = varCL.find( { "b.phone.3": 3 } );
@@ -58,7 +54,7 @@ function test ()
       else
          size2++;
    }
-   assert.equal( 1, size2 );
+   assert.equal( size2, 1 );
    varCL.update( { $pull: { "b.phone": 3 } } );
    var rc3 = varCL.find( { "b.phone.3": 3 } );
 
@@ -71,9 +67,10 @@ function test ()
       else
          size3++;
    }
-   assert.equal( 0, size3 );
+   assert.equal( size3, 0 );
 
    varCL.update( { $push_all: { array: [3, 4] } } );
+
    var rc4 = varCL.find( { array: [3, 4] } );
 
    var size4 = 0;
@@ -85,10 +82,11 @@ function test ()
       else
          size4++;
    }
-
    assert.equal( size4, 1 );
 
+
    varCL.update( { $pull_all: { array: [3, 4] } } );
+
    var rc5 = varCL.find( { array: [] } );
 
    var size5 = 0;
@@ -114,7 +112,6 @@ function test ()
       else
          size6++;
    }
-
    assert.equal( size6, 1 );
 
    varCL.update( { $addtoset: { "b.phone": [12] } } );
@@ -130,7 +127,7 @@ function test ()
       else
          size7++;
    }
+
    assert.equal( size7, 1 );
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
-
 }

@@ -1,6 +1,5 @@
 // update record.
 // normal case. $set
-
 main( test );
 function test ()
 {
@@ -10,11 +9,12 @@ function test ()
    var varCL = varCS.createCL( COMMCLNAME, { ReplSize: 0, Compressed: true } );
 
    var insertCount = 1000;
-
+   var docs = []
    for( i = 0; i < insertCount; i++ ) 
    {
-      varCL.insert( { a: i, b: "fdafdsaf$#@$@%$#%#@!$#@!$", c: null, d: { id: 1.0, name: "qiu" }, e: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
+      docs.push( { a: i, b: "fdafdsaf$#@$@%$#%#@!$#@!$", c: null, d: { id: 1.0, name: "qiu" }, e: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
    }
+   varCL.insert( docs );
 
    varCL.update( { "$unset": { noexist: "" } } )
 
@@ -23,12 +23,14 @@ function test ()
    var recordCount = 0;
    while( true )
    {
-      var record = eval( "(" + rc.current() + ")" );
-
-      assert.equal( record["a"], recordCount );
+      //var record = eval( "("+ rc.current() +")" );
+      var record = rc.current().toObj();
+      if( !compareObj( docs[recordCount], record, false ) )
+      {
+         throw new Error( -1 );
+      }
 
       recordCount++;
-
       if( !rc.next() )
          break;
    }

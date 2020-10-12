@@ -183,7 +183,7 @@ function procJSFile()
    fi
 
    # run prepare for testcase
-   runJSFile "${libRoot}/before_usecase.js"
+   #runJSFile "${libRoot}/before_usecase.js"
 
    testcaseBTimeSec=`date +%s`
    $sdbRoot/sdb -s "try{ db.msg('Begin testcase[$file]') ; } catch( e ) { } "
@@ -212,12 +212,12 @@ function procJSFile()
    # run clear for testcase  
    if [ $ret -ne 0 -a $stopWhenFailed -ne 0 ] ; then
       runresult=$ret
-      runJSFile "${libRoot}/after_usecase.js"
+      #runJSFile "${libRoot}/after_usecase.js"
       return 2
    fi
    
    runresult=0
-   runJSFile "${libRoot}/after_usecase.js"
+   #runJSFile "${libRoot}/after_usecase.js"
 
    if [ $printOut -eq 1 ] ; then
       echo ""
