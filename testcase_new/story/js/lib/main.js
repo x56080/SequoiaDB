@@ -30,9 +30,9 @@ var testConf = {
    skipOneGroup: false, useSrcGroup: false, useDstGroup: false
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
-// e.g. testConf.clName:COMMCLNAME, testConf.clOpt:{AutoSplit:true} } ;
-// e.g. testConf.useSrcGroup:true  返回源组，一般用于创建CL时指定组；设置true后在测试方法中获取源组，如test( arg ){ arg.srcGroupName ...}
-// e.g. testConf.useDstGroup:true  返回目标组，一般用于切分；设置为true返回除源组外的所有组，在测试方法中获取源组，如test( arg ){ arg.dstGroupNames ...}
+// e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} } ;
+// e.g. testConf.useSrcGroup = true  返回源组，一般用于创建CL时指定组；设置true后在测试方法中获取源组，如test( arg ){ arg.srcGroupName ...}
+// e.g. testConf.useDstGroup = true  返回目标组，一般用于切分；设置为true返回除源组外的所有组，在测试方法中获取源组，如test( arg ){ arg.dstGroupNames ...}
 
 var testPara = {};
 
