@@ -814,19 +814,19 @@ typedef MsgOpTransBegin_V2 MsgOpTransBegin ;
 /*
    MsgOpTransCommit
  */
-typedef struct _MsgOpTransCommit_V0
+typedef struct _MsgOpTransCommit
 {
    MsgHeader header;
-} MsgOpTransCommit_V0 ;
+} MsgOpTransCommit ;
 
-typedef struct _MsgOpTransCommit_V1
+// internal message for transaction commit
+// NOTE: used between COORD and DATA
+typedef struct _MsgOpTransCommitInt
 {
    MsgHeader header ;
    // logical time for commit transaction
    UINT64    commitTime ;
-} MsgOpTransCommit_V1 ;
-
-typedef MsgOpTransCommit_V1 MsgOpTransCommit ;
+} MsgOpTransCommitInt ;
 
 /*
    MsgOpTransCommitPre
