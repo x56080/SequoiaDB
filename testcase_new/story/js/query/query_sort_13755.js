@@ -1,54 +1,31 @@
 /*******************************************************************************
-*@Description : [BUG] when run 'db.default.tt.find().sort({"":"a"});' command,
-*                     sequoiadb process(data node) while core dump. [jira_523].
+*@Description : [seqDB-13755] when run 'db.default.tt.find().sort({"":"a"});' command,
+*               sequoiadb process(data node) while core dump.
 *@Modify list :
 *               2015-2-10  xiaojun Hu  Init
+                2020-08-20 Zixian Yan  Modify
 *******************************************************************************/
+testConf.clName = COMMCLNAME + "_13755";
+main( test );
 
-function main ( db )
+
+function test ( testPara )
 {
    var insertNum = 100;
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
-      "failed to create collection in the beignning" );
+   var cl = testPara.testCL;
    // insert data
    idxAutoGenData( cl, insertNum );
-   println( "success to insert data, number = " + insertNum );
 
    // Test Point
    try
    {
-      var list = cl.find().sort( { "": "a" } );
-      println( "get query sort: " + list );
-      throw "success should not be";
+      println(cl.find().sort( { "": "a" } ));
    }
-   catch( e )
+   catch( error )
    {
-      if( -6 != e )
+      if( error != -6 )
       {
-         println( "failed to test command: 'cl.find().sort( {\"\":\"a\"} )'. " + e );
-         throw e;
-      }
-      else
-      {
-         println( "success to test: 'cl.find().sort( {\"\":\"a\"} )'" );
+         throw new Error( "failed to test command: 'cl.find().sort( {\"\":\"a\"} )'. " + error );
       }
    }
-}
-
-// Main
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clear collection in the beginning" );
-   main( db );
-   //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-   //            "clear collection in the end, correct way" ) ;
-   db.close();
-}
-catch( e )
-{
-   //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-   //            "clear collection in the end, wrong way" ) ;
-   db.close();
-   throw e;
 }

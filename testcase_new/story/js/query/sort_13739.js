@@ -2,41 +2,39 @@
 @Description : 1. sort: a[1,2,3] sort
 @Modify list :
                2015-01-15 pusheng Ding  Init
+               2020-08-14 Zixian YAn    Modify
 ******************************************************************************/
-main();
-function main ()
+testConf.clName = COMMCLNAME + "_13739";
+main( test );
+function test ( testPara )
 {
-   var indexName = "index13739";
-   var rownums = 10000;
-   var csName = COMMCSNAME;
-   var clName = "cl13739";
+   var indexName = "index_13739";
+   var rownums = 1000;
 
-   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
-   var options = { ReplSize: 0 };
-   var varCL = commCreateCL( db, csName, clName, options, true, false, "create cl." );
+   var cl = testPara.testCL;
 
    //insert data
-   var records = [];
+   var data = []
+   var reverseData = [];
    for( var i = 0; i < rownums; i++ )
    {
-      records.push( { a: { a1: i, a2: rownums - i }, b: [i, i + 1, i + 2] } );
+      data.push( { a: i, b: [ i + 1, i + 2, i + 3 ] } );
+      var j = rownums - i;
+      reverseData.push( { a: j - 1 , b: [ j, j + 1, j + 2 ] } );
    }
-   varCL.insert( records );
+   cl.insert( reverseData );
 
-   //query1
-   //select a,b from foo.bar order by b
-   var sel = varCL.find( null, { a: null, b: 'b' } ).sort( { b: 1 } );
-   checkRec( sel, records );
+   //query1 - select a,b from cl order by b without index
+   var sel = cl.find( ).sort( { b: 1 } );
+   checkRec( sel, data );
    println( "'select a,b from foo.bar order by b' finished!" );
 
    //create index
-   varCL.createIndex( indexName, { b: 1 } );
+   cl.createIndex( indexName, { b: 1 } );
    println( "create indexes finished!" );
 
-   //query2
-   //select a,b from foo.bar order by b
-   var sel = varCL.find( null, { a: null, b: 'b' } ).sort( { b: 1 } ).hint( { "": indexName } );
-   checkRec( sel, records );
+   //query2 - select a,b from cl order by b with index
+   var sel = cl.find( ).sort( { b: 1 } ).hint( { "": indexName } );
+   checkRec( sel, data );
    println( "'select a,b from foo.bar order by b' with index finished!" );
-   commDropCL( db, csName, clName, false, false, "drop cl in the end" );
 }

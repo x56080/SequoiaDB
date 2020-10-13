@@ -1,51 +1,35 @@
 ﻿/************************************************************************
-@Description : 关闭游标后，查看是否关闭了context
+@Description : [seqDB-_13732] 关闭游标后，查看是否关闭了context
 @Modify list : wang wenjing  Init
                Ting YU       modify
+               2020-08-13  Zixian Yan Modify
 ************************************************************************/
-main();
+testConf.clName = COMMCLNAME + "_13732";
+main( test );
 
-function main ()
+function test ( testPara )
 {
-   try
+   var cl = testPara.testCL;
+   //insert records > 128M
+   var rd = new commDataGenerator();
+   var recs = rd.getRecords( 1000, "string", ['a', 'b', 'c'] );
+   cl.insert( recs );
+
+   var preSize = getSessionContextsSize();
+
+   //cursor not close
+   var cursor = cl.find();
+   cursor.next();
+
+   var hasCursorSize = getSessionContextsSize();
+
+   //close cursor
+   cursor.close();
+
+   var closeCursorSize = getSessionContextsSize();
+   if( closeCursorSize.toString() !== preSize.toString() )
    {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
-
-      //insert records > 128M
-      var cl = new Collection( csName, clName, { ReplSize: 0 } );
-      cl.create();
-      cl.insert( 1000, "string", ['a', 'b', 'c'] );
-      var preSize = getSessionContextsSize();
-
-      //cursor not close
-      println( "---begin to query and check context" );
-      var cursor = db.getCS( csName ).getCL( clName ).find();
-      cursor.next();
-
-      var hasCursorSize = getSessionContextsSize();
-      if( hasCursorSize.toString() !== preSize.toString() ) 
-      {
-         println( "before query context !== query context" )
-      }
-      else
-      {
-         println( "-----before query context === query context" );
-      }
-
-      //close cursor
-      println( "---begin to close cursor and check context" );
-      cursor.close();
-
-      var closeCursorSize = getSessionContextsSize();
-      if( closeCursorSize.toString() !== preSize.toString() ) 
-      {
-         throw buildException( "check context", 0, "cursor.close()", "kill context", "Not kill context" );
-      }
-   }
-   catch( e )
-   {
-      throw e;
+      throw new Error( "\nAfter cursor close, System has not kill context" );
    }
 }
 

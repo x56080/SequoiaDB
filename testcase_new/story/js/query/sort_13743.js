@@ -1,45 +1,26 @@
 /******************************************************************************
-@Description : 1. hash-cl sort
+@Description : 1. hash-cl sort [seqDB-13743]
 @Modify list :
                2015-01-16 pusheng Ding  Init
+               2020-08-17 Zixian Yan    Modify
 ******************************************************************************/
-main();
-function main ()
+testConf.csName = COMMCSNAME + "_13743";
+testConf.clName = COMMCLNAME + "_13743";
+testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'hash', ReplSize: 0 };
+testConf.useSrcGroup = true;
+testConf.useDstGroup = true;
+testConf.skipStandAlone = true;
+testConf.skipOneDuplicatePerGroup = true;
+
+main( test );
+
+function test ( testPara )
 {
-   if( commIsStandalone( db ) )
-   {
-      println( " Deploy mode is standalone!" );
-      return;
-   }
-   //get ReplicaGroups
-   var grouplist = Array();
-   var cur = db.listReplicaGroups();
-   while( cur.next() )
-   {
-      if( cur.current().toObj()['GroupID'] >= DATA_GROUP_ID_BEGIN )
-      {
-         grouplist.push( cur.current().toObj()['GroupName'] );
-      }
-   }
-   var group_num = grouplist.length;
-   if( group_num == 1 )
-   {
-      println( "only one ReplicaGroup:" + grouplist + " Skip the testcase" );
-      return;
-   }
-   println( "ReplicaGroups: " + grouplist );
-
-   var csName = COMMCSNAME;
-   var clName = "cl13743";
-   var indexName = "index13743";
+   var indexName = "index_13743";
    var rownums = 10000;
-   commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
-
-   var options = { ShardingKey: { a: 1 }, ShardingType: 'hash', ReplSize: 0 };
-   var hashCL = commCreateCL( db, csName, clName, options, true, false, "create hash cl." );
-   var sn1 = db.snapshot( 8, { Name: csName + "." + clName } );
-   var sourceGroup = sn1.current().toObj()['CataInfo'][0]['GroupName'];
-   println( "createCL " + clName + " at ReplicaGroup:" + sourceGroup + " finished" );
+   var hashCL = testPara.testCL;
+   var sourceGroup = testPara.srcGroupName;
+   var tarGroupList = testPara.dstGroupNames;
 
    //split ({Partition:1024} {Partition:2048}) {Partition:3072})
    var tarGroupIndex = -1;
@@ -50,40 +31,30 @@ function main ()
    for( var i = 0; i < partId; i++ )
    {
       tarGroupIndex++;
-      if( tarGroupIndex == group_num )
-         tarGroupIndex = 0;
-      if( grouplist[tarGroupIndex] == sourceGroup )
+      if( tarGroupIndex == tarGroupList.length )
       {
-         i--;
-         continue;
+         tarGroupIndex = 0;
       }
       lowPar = i * stepPar;
       highPar = ( i + 1 ) * stepPar;
-      hashCL.split( sourceGroup, grouplist[tarGroupIndex], { Partition: lowPar }, { Partition: highPar } );
-      println( clName + " split from " + sourceGroup + " to " + grouplist[tarGroupIndex] + " {Partition:" + lowPar + "} {Partition:" + highPar + "}" );
+      hashCL.split( sourceGroup, tarGroupList[tarGroupIndex], { Partition: lowPar }, { Partition: highPar } );
    }
 
-   //insert data
-   var inserData = [];
+   var data = [];
    for( var i = 0; i < rownums; i++ )
    {
-      inserData.push( { a: rownums - i, b: i, c: "abcdefghijkl" + i } );
+      data.push( { a: rownums - i, b: i, c: "abcdefghijkl" + i } );
    }
-   hashCL.insert( inserData );
+   hashCL.insert( data );
 
-   //query1
-   //select a,b,c from foo.bar order by a desc
+   //query1 - select a,b,c from foo.bar order by a descending
    var sel = hashCL.find( null, { a: 0, b: 'b', c: 'c' } ).sort( { a: -1 } );
    //expected result {a:rownums,...} {a:rownums-1,...} ... {a:1,...}
-   checkRec( sel, inserData );
-   println( "'select a,b,c from foo.bar order by a desc' finished!" );
+   checkRec( sel, data );
 
-   //create index
    hashCL.createIndex( indexName, { b: 1 } );
-   println( "create indexes finished!" );
 
-   //query2
-   //select b from foo.bar order by b
+   //query2 - select b from cs.cl order by b
    var sel = hashCL.find( null, { b: 'b' } ).sort( { b: 1 } ).hint( { "": indexName } );
    //expected result {b:0} {b:1} ... {b:rownums-1}
    var i = 0;
@@ -92,15 +63,12 @@ function main ()
       var ret = sel.current();
       if( ret.toObj()['b'] != i )
       {
-         throw buildException( "main()", null, "failed to run index query, check rc : b=" + ret.toObj()['b'], i, ret.toObj()['b'] );
+         throw new Error ( "\nFailed to run index query, check rc : b = " + ret.toObj()['b'] + " at " + i + " th position.");
       }
       i++;
    }
    if( i !== rownums )
    {
-      throw "returned record number is : " + i;
+      throw new Error ( "\nReturned record number is : " + i);
    }
-   println( "'select b from foo.bar order by b' finished!" );
-
-   commDropCL( db, csName, clName, false, false, "drop cl in the end" );
 }

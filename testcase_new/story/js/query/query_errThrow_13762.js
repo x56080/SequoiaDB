@@ -1,55 +1,32 @@
 /*******************************************************************************
-*@Description : when query like: db.foo.bar.find({$a:1}), we should throw error
-*               -6 and print string: Invalid Argument
-*               SEQUOIADBMAINSTREAM-512
+*@Description : [seqDB-13762]when query like: db.foo.bar.find({$a:1}), we should
+*               throw error -6 and print string: Invalid Argument
 *@Modify List :
 *               2014-9-26   xiaojunHu  Init
+                2020-08-13 Zixian Yan  Modify
 *******************************************************************************/
+testConf.clName = COMMCLNAME + "_13762";
+main( test );
 
-function main ( db )
+function test ( testPara )
 {
+   var cl = testPara.testCL;
+
+   // insert record
+   cl.insert( { a: 1 } );
+   cl.insert( { b: "testcase" } );
+   // query by use db.cs.cl.find({$a:1}).getLastErrMsg() will get the message
    try
    {
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
-         "create collection in the beginning" );
-      // insert record
-      cl.insert( { a: 1 } );
-      cl.insert( { b: "testcase" } );
-      // query by use db.foo.bar.find({$a:1}).getLastErrMsg() will get the message
-      try
-      {
-         println( cl.find( { $a: 1 } ) );
-         throw "ErrExcuteTest";
-      }
-      catch( e )
-      {
-         var lastOut = getLastErrMsg();
-         println( "Success to print last error msg: " + lastOut );
-         if( getErr( -6 ) != lastOut )
-         {
-            println( "failed to print correct error, rc = " + e );
-            throw e;
-         }
-      }
+      println( cl.find( { $a: 1 } ) );  //Cause Sdb find()- Invalid Argument Error
    }
-   catch( e )
+   catch( errExcuteTest )
    {
-      throw e;
+      var lastOut = getLastErrMsg();
+      if( getErr( -6 ) != lastOut )
+      {
+         throw new Error( "\nFailed to print correct errorMsg. \nCurrently ErrMsg: " + errExcuteTest );
+      }
    }
-}
 
-// run main
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "drop collection in the beginning" );
-   main( db );
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-      "drop collection in the beginning" );
-}
-catch( e )
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "drop collection in the beginning" );
-   throw e;
 }

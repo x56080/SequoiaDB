@@ -4,23 +4,23 @@
 *                                                   $and/$not/$or
 *@Modify list :
 *               2014-5-20  xiaojun Hu  Init
+                2020-08-13 Zixian Yan  Modify
 *******************************************************************************/
+testConf.clName = COMMCLNAME + "_7510";
+main( test );
 
-function main ()
+function test ( testPara )
 {
    var insertNum = 10;
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
-      "create collection in the beginning" );
+   var cl = testPara.testCL;
    // insert data
    idxAutoGenData( cl, insertNum );
-   println( "insert " + insertNum + " data successful" );
 
    // create Index
    var idxName = "noIndex";
    var indexDef = { "no": 1, "no1": 1, "no2": -1, "no3": 1 };
    commCreateIndex( cl, idxName, indexDef );
    commCheckIndexConsistency( cl, idxName, true );
-   println( "create index successful" );
 
    // query data
    var queryCond = {
@@ -36,8 +36,6 @@ function main ()
          }
       }]
    };
-   println( "" );
-   println( "Condition: " + JSON.stringify( queryCond ) );
    idxQueryCheck( cl, queryCond, 1, idxName );
 
    var queryCond = {
@@ -55,8 +53,6 @@ function main ()
          }]
       }]
    };
-   println( "" );
-   println( "Condition: " + JSON.stringify( queryCond ) );
    idxQueryCheck( cl, queryCond, 9, idxName );
 
    var queryCond = {
@@ -90,27 +86,6 @@ function main ()
       }
       ]
    };
-   println( "" );
-   println( "Condition: " + JSON.stringify( queryCond ) );
    idxQueryCheck( cl, queryCond, 10, idxName );
 
-}
-
-// Run Main
-
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "failed to drop collection in the begin" );
-   main( db );
-   commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-      "failed to drop collection in the end, correct" );
-   db.close();
-}
-catch( e )
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "failed to drop collection in the end, wrong" );
-   db.close();
-   throw e;
 }
