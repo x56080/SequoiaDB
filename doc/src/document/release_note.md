@@ -3,7 +3,74 @@
 
 [快速使用SequoiaDB](quickstart.md)
 
-##SequoiaDB version 3.4 版本说明##
+
+##SequoiaDB version 5.0.1 版本说明##
+
+**接口变更：**
+
+- SQL引擎
+  - 配置项 sequoiadb_optimizer_options 增加 direct_sort/direct_limit 项，以控制 order by/limit 是否下压；
+  - 兼容 MariaDB 协议；
+  - 增加参数 sequoiadb_rollback_on_timeout ，开启时当事务锁超时回滚整个事务；
+  - sdb_sql_ctl 改名为 sdb_mysql_ctl 和 sdb_pg_ctl；
+- 兼容 mongodb 3.x/4.x 协议，可以直接使用 mongodb 驱动进行访问；
+- 全文索引支持Elasticearch 6.8.5版本；
+- 系统 limit 配置支持 stack size，并统一单位为 byte；
+
+**主要特性：**
+
+- SQL引擎
+  - 新版实例元数据同步机制，旧版元数据同步使用 meta_sync 脚本工具实现，有诸多限制。新版实例元数据同步使用 mysql 插件引擎实现，简化安装部署，解决旧版同步工具限制问题；
+  - 支持 MySQL 5.7.31；
+  - MySQL 5.7.28/5.7.31/MariaDB 10.4.6 的 OpenSSL 升级到 1.1.1g ；
+  - 支持 geometry 空间数据类型；
+  - 支持 PARTITION BY 语法；
+  - 支持配置安全密码；
+- 分区组内数据节点心跳支持 UDP/TCP 两种协议，并能实现自动探测和切换；
+- 提供基于SCRAM-SHA-256认证机制的安全鉴权协议，可防止重放攻击、网络窃听攻击、数据破解、服务端伪造等；
+- 提供分区组容错熔断机制，通过配置开启错误和风险智能检测，并提供“熔断”、“半容错”和“全容错”三种容错级别，实现高可用；
+- 引入读写分离过期机制，实现“读写分离”和“读我所写”的自动切换，既满足数据的一致性，又实现负载分离；
+- 增加 update one / delete one 功能；
+- 更新符支持用一个字段更新另一个字段；
+- 支持 LOB 并发读写；
+
+**性能优化：**
+
+- 优化事务锁的性能和事务老版本清理的性能；
+- 优化节点启动性能；
+- 优化索引匹配，优先选择 $et 匹配操作字段对应的索引；
+- 优化分区命中算法，提升分区路由性能；
+- SQL引擎
+  - 支持部分条件下压，优化部分条件不满足下压时的性能表现；
+  - direct_count 模式支持带条件语句，优化带条件 select count 语句的性能表现；
+  - 支持 order by/limit 下压，优化 order by/limit 语句的性能表现；
+
+**工具优化：**
+
+- STP 查询工具 stpq，支持查询 STP 节点状态、同步信息等；
+- SDB SHELL支持安全密码、交互密码和密码无痕迹功能；
+- 导入工具支持空字符串的 Decimal 类型；
+- 导入工具支持将 Decimal 转换为其它类型；
+- 导入工具支持将 null 转换为 Date/Timestamp 类型；
+- 优化 SequoiaFS 启动、停止和参数配置；
+- 支持 TRACE 的结果导出到客户端本地；
+- SAC
+  - 提供图形化性能监控工具(SequoiaPerf)，简化端到端的慢查询性能分析；
+
+**解决重要Bug：**
+
+- 修复SQL引擎实例数据同步时，对 ```create table A select * from B``` 语句数据量翻倍的问题；
+- 修复SQL引擎采用 COPY 算法 ALTER TABLE 主子表时丢失子表的问题；
+- 修复SQL引擎查询大量 TEXT 类型记录时内存消耗过大的问题；
+- 修复从旧版本 SequoiaDB 升级到 5.0 SequoiaDB 时的问题；
+- 修复REST接口内存泄漏问题；
+- 修复Java驱动使用中文密码鉴权失败的问题；
+- 修复当集合数量超过6万个时执行集合快照失败的问题；
+- 修复在备节点进行事务 COUNT 报-104的错误；
+- 修复 TRUNCATE 和 DROP INDEX 并发回放时导致节点异常的问题；
+- 修复导出工具开启 ```--withid false``` 导入 JSON 格式不生效的问题；
+
+##SequoiaDB version 5.0 版本说明##
 
 **接口变更：**
 
@@ -24,6 +91,9 @@
   - 支持多实例元数据实时同步，提供高可用能力；
   - Update/Delete/Count/Autocommit下推优化，提升性能；
   - 支持 Insert ... on duplicate key update ... 语法；
+- 支持基于多版本的事务并发控制 ( MVCC, Multi Version Concurrency Contral )
+- 支持全局一致性事务
+- 支持全局逻辑时间 ( STP 逻辑时间协议 )
 - Insert/Update/Delete等支持返回记录数和详细错误信息；
 - 插入数据支持重复键替代( insert ... on duplicate replace )；
 - 访问计划实现自动过期清理，以及对 $in 操作进行参数化和缓存；
@@ -55,64 +125,6 @@
 **解决重要Bug：**
 
 NA
-
-##SequoiaDB version 3.4.1 版本说明##
-
-**接口变更：**
-
-- SQL引擎
-  - 兼容 MariaDB 协议；
-  - 增加参数 sequoiadb_rollback_on_timeout ，开启时当事务锁超时回滚整个事务；
-  - sdb_sql_ctl 改名为 sdb_mysql_ctl 和 sdb_pg_ctl；
-- 兼容 mongodb 3.x/4.x 协议，可以直接使用 mongodb 驱动进行访问；
-- 全文索引支持Elasticearch 6.8.5版本；
-- 系统 limit 配置支持 stack size，并统一单位为 byte；
-
-**主要特性：**
-
-- SQL引擎
-  - 支持 PARTITION BY 语法；
-  - 支持配置安全密码；
-- 分区组内数据节点心跳支持 UDP/TCP 两种协议，并能实现自动探测和切换；
-- 提供基于SCRAM-SHA-256认证机制的安全鉴权协议，可防止重放攻击、网络窃听攻击、数据破解、服务端伪造等；
-- 提供分区组容错熔断机制，通过配置开启错误和风险智能检测，并提供“熔断”、“半容错”和“全容错”三种容错级别，实现高可用；
-- 引入读写分离过期机制，实现“读写分离”和“读我所写”的自动切换，既满足数据的一致性，又实现负载分离；
-- 增加 update one / delete one 功能；
-- 更新符支持用一个字段更新另一个字段；
-- 支持 LOB 并发读写；
-
-**性能优化：**
-
-- 优化事务锁的性能和事务老版本清理的性能；
-- 优化节点启动性能；
-- 优化索引匹配，优先选择 $et 匹配操作字段对应的索引；
-- 优化分区命中算法，提升分区路由性能；
-- SQL引擎
-  - 支持 LIMIT 算子下推；
-
-**工具优化：**
-
-- SDB SHELL支持安全密码、交互密码和密码无痕迹功能；
-- 导入工具支持空字符串的 Decimal 类型；
-- 导入工具支持将 Decimal 转换为其它类型；
-- 导入工具支持将 null 转换为 Date/Timestamp 类型；
-- 优化 SequoiaFS 启动、停止和参数配置；
-- 支持 TRACE 的结果导出到客户端本地；
-- SAC
-  - 提供图形化性能监控工具(SequoiaPerf)，简化端到端的慢查询性能分析；
-
-**解决重要Bug：**
-
-- 修复SQL引擎实例数据同步时，对 ```create table A select * from B``` 语句数据量翻倍的问题；
-- 修复SQL引擎采用 COPY 算法 ALTER TABLE 主子表时丢失子表的问题；
-- 修复SQL引擎查询大量 TEXT 类型记录时内存消耗过大的问题；
-- 修复REST接口内存泄漏问题；
-- 修复Java驱动使用中文密码鉴权失败的问题；
-- 修复当集合数量超过6万个时执行集合快照失败的问题；
-- 修复在备节点进行事务 COUNT 报-104的错误；
-- 修复 TRUNCATE 和 DROP INDEX 并发回放时导致节点异常的问题；
-- 修复导出工具开启 ```--withid false``` 导入 JSON 格式不生效的问题；
-
 
 **注意事项：**
 
