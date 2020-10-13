@@ -3172,7 +3172,7 @@ namespace engine
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
 
-      if ( msg->messageLength == sizeof( MsgOpTransCommit_V0 ) )
+      if ( msg->messageLength == sizeof( MsgOpTransCommit ) )
       {
          // version 0
          // do nothing
@@ -3182,7 +3182,7 @@ namespace engine
          // version 1
          // transaction commit message with global logical time of transaction
          // commit
-         MsgOpTransCommit *message = (MsgOpTransCommit *)msg ;
+         MsgOpTransCommitInt *message = (MsgOpTransCommitInt *)msg ;
          if ( 0LL != message->commitTime )
          {
             // commit time is specified by COORD

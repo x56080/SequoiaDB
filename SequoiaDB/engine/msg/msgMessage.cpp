@@ -234,23 +234,23 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
    INT32 rc = SDB_OK ;
    INT32 offset = 0 ;
    INT32 length = 0 ;
-   MsgOpTransCommit *pCommit = (MsgOpTransCommit*)pBuffer ;
+   MsgOpTransCommitInt *pCommit = (MsgOpTransCommitInt*)pBuffer ;
 
    //old driver use MsgOpTransBegin as messageLength and old driver does not have hint
    if ( NULL != ppHint &&
         pCommit->header.messageLength != sizeof( MsgOpTransBegin_V1 ) )
    {
       if ( ( pCommit->header.messageLength >=
-                 (INT32)( sizeof( MsgOpTransCommit ) ) ) &&
+                 (INT32)( sizeof( MsgOpTransCommitInt ) ) ) &&
            ( 0LL == pCommit->commitTime ) )
       {
          // version 1: fill commit time with zero by client
-         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
+         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommitInt ), 4 ) ;
       }
       else
       {
          // version 0: no commit time field, this place is head of BSON hint
-         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit_V0 ), 4 ) ;
+         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
       }
 
       if ( offset  < pCommit->header.messageLength )
@@ -2279,14 +2279,14 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 {
    SDB_ASSERT( ppBuffer, "invalid input" ) ;
    INT32 rc = SDB_OK;
-   MsgOpTransCommit *pMsg = NULL;
+   MsgOpTransCommitInt *pMsg = NULL;
    INT32 packetLength
-            = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
+            = ossRoundUpToMultipleX( sizeof( MsgOpTransCommitInt ), 4 );
    PD_CHECK( (packetLength > 0), SDB_INVALIDARG, error, PDERROR,
             "Packet size overflow" );
    rc = msgCheckBuffer( ppBuffer, bufferSize, packetLength, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "failed to check buffer" );
-   pMsg = (MsgOpTransCommit *)(*ppBuffer);
+   pMsg = (MsgOpTransCommitInt *)(*ppBuffer);
    pMsg->header.messageLength = packetLength;
    pMsg->header.opCode = MSG_BS_TRANS_COMMIT_REQ;
    pMsg->header.routeID.value = 0;

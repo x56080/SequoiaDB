@@ -3559,7 +3559,6 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg->header.messageLength = len ;
    transCommitMsg->header.routeID.value = 0 ;
    transCommitMsg->header.TID           = ossGetCurrentThreadID() ;
-   transCommitMsg->commitTime           = 0LL ;
 
    offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
 

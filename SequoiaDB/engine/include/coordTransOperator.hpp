@@ -247,7 +247,7 @@ namespace engine
          INT32 _onReply( pmdEDUCB *cb,
                          MsgOpReply *reply ) ;
       private:
-         MsgOpTransCommit                 _phase2Msg ;
+         MsgOpTransCommitInt _phase2Msg ;
    } ;
    typedef _coordTransCommit coordTransCommit ;
 
