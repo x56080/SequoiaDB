@@ -54,7 +54,8 @@ namespace import
                       const string& clname,
                       BOOLEAN useSSL = FALSE,
                       BOOLEAN enableTransaction = FALSE,
-                      BOOLEAN allowKeyDuplication = TRUE ) ;
+                      BOOLEAN allowKeyDuplication = TRUE,
+                      BOOLEAN replaceKeyDuplication = FALSE ) ;
 
       ~RecordImporter() ;
 
@@ -82,6 +83,7 @@ namespace import
       BOOLEAN  _useSSL ;
       BOOLEAN  _enableTransaction ;
       BOOLEAN  _allowKeyDuplication ;
+      BOOLEAN  _replaceKeyDuplication ;
       BOOLEAN  _endianConvert ;
 
       // db handle

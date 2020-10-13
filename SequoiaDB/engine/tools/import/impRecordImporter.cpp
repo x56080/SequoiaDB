@@ -56,12 +56,14 @@ namespace import
                                    const string& clname,
                                    BOOLEAN useSSL,
                                    BOOLEAN enableTransaction,
-                                   BOOLEAN allowKeyDuplication )
+                                   BOOLEAN allowKeyDuplication,
+                                   BOOLEAN replaceKeyDuplication )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
            _useSSL( useSSL ),
            _enableTransaction( enableTransaction ),
            _allowKeyDuplication( allowKeyDuplication ),
+           _replaceKeyDuplication( replaceKeyDuplication ),
            _endianConvert( FALSE ),
            _connection( SDB_INVALID_HANDLE ),
            _collectionSpace( SDB_INVALID_HANDLE ),
@@ -217,13 +219,30 @@ namespace import
       {
          flag |= FLG_INSERT_CONTONDUP ;
       }
+      else if ( _replaceKeyDuplication )
+      {
+         flag |= FLG_INSERT_REPLACEONDUP ;
+      }
 
       rc = _bulkInsert( pageInfo, flag ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "failed to bulk insert, rc=%d", rc ) ;
-         // the transaction is rollbacked automatically
-         goto error;
+
+         if ( _enableTransaction )
+         {
+            INT32 ret = SDB_OK ;
+
+            ret = sdbTransactionRollback( _connection ) ;
+            if ( ret )
+            {
+               PD_LOG( PDERROR, "failed to rollback transaction, rc=%d", ret ) ;
+               rc = ret ;
+               goto error ;
+            }
+         }
+
+         goto error ;
       }
 
       if ( _enableTransaction )
