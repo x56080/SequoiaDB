@@ -89,11 +89,12 @@ namespace engine
    void displayUsage()
    {
       std::cout << "Usage:" << endl ;
-      std::cout << "  sdbstop --all     # stop all nodes include db and om"
+      std::cout << "  sdbstop -a            # stop all nodes include db and om"
                 << endl;
-      std::cout << "  sdbstop -t db     # stop db nodes" << endl ;
-      std::cout << "  sdbstop -r data   # stop data nodes" << endl ;
-      std::cout << "  sdbstop -p 11810  # stop 11810 node" << endl ;
+      std::cout << "  sdbstop -t db         # stop db nodes" << endl ;
+      std::cout << "  sdbstop -r data       # stop data nodes" << endl ;
+      std::cout << "  sdbstop -p <svcname>  # stop the node with the specified service name"
+                << endl ;
    }
 
    void displayArg ( po::options_description &desc )
