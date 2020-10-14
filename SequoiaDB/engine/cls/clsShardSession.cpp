@@ -3028,8 +3028,18 @@ namespace engine
                 "Failed to begin transaction, has in-doubt transaction" ) ;
 
       rc = _checkPrimaryStatus() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check primary status for "
-                   "transaction begin, rc: %d", rc ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDINFO, "Failed to check primary status, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _checkRollbackStatus() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDINFO, "Failed to check rollback status, rc: %d", rc ) ;
+         goto error ;
+      }
 
       if ( msg->messageLength == sizeof( MsgOpTransBegin_V0 ) )
       {
