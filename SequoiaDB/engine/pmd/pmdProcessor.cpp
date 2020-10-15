@@ -2253,7 +2253,6 @@ namespace engine
       commitMsg.header.requestID = 0 ;
       commitMsg.header.routeID.value = 0 ;
       commitMsg.header.TID = 0 ;
-      commitMsg.commitTime = 0LL ;
 
       rc = commitOpr.execute( &commitMsg.header, eduCB(),
                               contextID, NULL ) ;
