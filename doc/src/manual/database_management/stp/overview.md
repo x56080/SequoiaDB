@@ -1,4 +1,4 @@
-时间序列协议（STP，Serial Time Protocol）是 SequoiaDB 内部逻辑时间同步的协议：
+﻿时间序列协议（STP，Serial Time Protocol）是 SequoiaDB 内部逻辑时间同步的协议：
 
 - STP 维护的是逻辑时间，提供逻辑时钟服务
 - 在 SequoiaDB 中逻辑时间戳主要用于全局事务处理
@@ -8,7 +8,7 @@
 >
 > * 逻辑时间是 SequoiaDB 内部用于表示时间但区别于实际时间的逻辑时间戳，请参考[逻辑时间](database_management/stp/logicaltime.md)
 > * STP 需要部署在 SequoiaDB 集群的每个机器中以提供逻辑时钟服务
-> * 全局逻辑时钟服务可以提供全局事务的支持，请参考[事务操作](basic_operation/transaction.md)
+> * 全局逻辑时钟服务可以提供全局事务的支持，请参考[事务操作](infrastructure/Transactions/configurations.md)
 
 STP 节点包含两类角色（Role）：server 和 client
 
