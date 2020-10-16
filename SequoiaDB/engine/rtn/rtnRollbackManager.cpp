@@ -166,6 +166,9 @@ INT32 rtnPITRollbackManager::_init()
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;
 
+   // Get the total log space
+   _remainingLogSpace = _dpsCB->getLogFileNum() * _dpsCB->getLogFileSz();
+
    // Start a new transaction for the rollback
    if (!_testOnly && (rc = rtnTransBegin(_cb, FALSE, TRUE)))
    {
@@ -214,10 +217,10 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
       _rollbackTime.setTime(recordTransTime.getTime() + 1);
       _rollbackTime.setTimeError(1);
    }
-   if (recordTransTime < _targetTime)
+   if (!(recordTransTime.getTime() > _targetTime.getTime()))
    {
-      // This transaction committed before the target so skip it
-      return SDB_OK;
+      // This transaction committed at/before the target so skip it
+      return (rc = _exitConditionCheck());
    }
    if (_isTransInUndoTransSet())
    {
@@ -237,19 +240,7 @@ INT32 rtnPITRollbackManager::_processBeginRecord()
    // All records for this transaction have been processed. Remove this
    // transaction from the set of transactions to undo.
    _undoTransSet.erase(_recordTransID);
-   if (_undoTransSet.empty() && _isTargetTimeReached(&rc))
-   {
-      // Transaction map is empty and there are no outstanding commits before
-      // the target time
-      PD_LOG(PDEVENT, "Ending rollback (LSN %llu)", _cursor);
-      _continue = FALSE;
-   }
-   else if (SDB_OK != rc)
-   {
-      // Error
-      return rc;
-   }
-   return rc;
+   return (rc = _exitConditionCheck());
 }
 
 INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
@@ -299,6 +290,19 @@ INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
    return SDB_OK;
 }
 
+INT32 rtnPITRollbackManager::_exitConditionCheck()
+{
+   INT32 rc = SDB_OK;
+   if (_undoTransSet.empty() && _isTargetTimeReached(&rc))
+   {
+      // Transaction map is empty and there are no outstanding commits before
+      // the target time
+      PD_LOG(PDEVENT, "Ending rollback (LSN %llu)", _cursor);
+      _continue = FALSE;
+   }
+   return rc;
+}
+
 BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
 {
    if (!_isRecordTransactional())
@@ -331,6 +335,11 @@ INT32 rtnPITRollbackManager::_checkUndo(const dpsLogRecord &record)
       PD_LOG(PDERROR, "Not enough log space for rollback");
       return (rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE);
    }
+   else
+   {
+      // Reduce the remaining space by the amount required
+      _remainingLogSpace -= logSpaceRequired;
+   }
    return rc;
 }
 
@@ -344,17 +353,18 @@ BOOLEAN rtnPITRollbackManager::_isRecordTransactional()
    return _recordTransID.isValid();
 }
 
-BOOLEAN rtnPITRollbackManager::_isTargetTimeReached(INT32 *rc)
+BOOLEAN rtnPITRollbackManager::_isTargetTimeReached(INT32 *pRc)
 {
    // Check if the max commit time before this log record is less than the
    // target time
    UINT64 maxTime;
-   if ((*rc = _transCB->getMaxCommitTimeBefore(_cursor, maxTime)))
+   if ((*pRc = _transCB->getMaxCommitTimeBefore(_cursor, maxTime)))
    {
       PD_LOG(PDERROR, "Failed to get max commit time before record");
       return FALSE;
    }
-   return maxTime < _targetTime.getTime();
+   return ((maxTime < _targetTime.getTime()) || // maxTime is less than target
+           (maxTime == DPS_MAX_TRANS_TIME));    // invalid maxTime (first file)
 }
 
 } // namespace engine

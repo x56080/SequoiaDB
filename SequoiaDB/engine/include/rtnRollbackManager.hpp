@@ -139,6 +139,7 @@ class rtnPITRollbackManager : public rtnRollbackManager
    virtual INT32 _postProcess(const dpsLogRecord &record, const BOOLEAN undone);
    INT32 _processCommitRecord(const dpsLogRecord &record);
    INT32 _processBeginRecord();
+   INT32 _exitConditionCheck();
 
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record);
    virtual INT32 _checkUndo(const dpsLogRecord &record);
