@@ -3,7 +3,7 @@
 *@Modify list :
 *              2016-5-16 xiaoni huang
 *******************************************************************************/
-import("../lib/main.js")
+import( "../lib/main.js" );
 
 function readyCL ( clName )
 {
@@ -37,9 +37,7 @@ function checkRec ( rc, expRecs )
    //check count
    if( actRecs.length !== expRecs.length )
    {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
+      throw new Error( "\nActual recs in cl= " + JSON.stringify( actRecs ) + "\n\nExpect recs= " + JSON.stringify( expRecs ) );
    }
 
    //check every records every fields
@@ -51,9 +49,7 @@ function checkRec ( rc, expRecs )
       {
          if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-            throw buildException( "checkRec()", "rec ERROR" );
+            throw new Error ("\nError occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ));
          }
       }
    }
@@ -83,12 +79,11 @@ function idxAutoGenData ( cl, insertNum )
          sleep( 2 );
       }
       if( insertNum != cl.count() )
-         throw "expect insert number: " + insertNum + ", actual: " + cl.count();
+         throw new Error( "Expect insert number: " + insertNum + ", actual: " + cl.count() );
    }
    catch( e )
    {
-      println( "failed to insert data to db, rc = " + e );
-      throw e;
+      throw new Error ( "failed to insert data to db, rc = " + e );
    }
 }
 
@@ -112,15 +107,12 @@ function idxQueryCheck ( cl, queryCond, verifyNum, idxName )
       */
       if( verifyNum != queryObj.ReturnNum )
       {
-         println( "expect number: " + verifyNum + ", actual: " + queryObj.ReturnNum );
-         throw "ErrorvReturnNum";
+         throw new Error ("ErrorvReturnNum, expect number: " + verifyNum + ", actual: " + queryObj.ReturnNum);
       }
    }
    catch( e )
    {
-      println( query );
-      println( "failed to inspect: " + e );
-      throw e;
+      throw new Error ( "failed to inspect: " + e );
    }
 }
 
@@ -132,12 +124,10 @@ function checkExplain ( rc, expIdxName )
 
    if( plan.ScanType !== expScanType )
    {
-      throw buildException( "checkExplain()", null, "query.explain().ScanType",
-         expScanType, plan.ScanType );
+      throw new Error ("checkExplain() query.explain().ScanType, \nExpScanType: " + expScanType + "  actScanType: " + plan.ScanType );
    }
    if( plan.IndexName !== expIdxName )
    {
-      throw buildException( "checkExplain()", null, "query.explain().IndexName",
-         expIdxName, plan.IndexName );
+      throw new Error ("checkExplain() query.explain().IndexName, \nExpIdxName: " + expIdxName + "  ActIndexName: " + plan.IndexName );
    }
 }
