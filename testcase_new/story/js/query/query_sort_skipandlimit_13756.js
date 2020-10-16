@@ -42,7 +42,7 @@ function test( testPara )
    {
       data.push( { _id: i, a: i } );
 
-      if( i < 15)
+      if( i < (totalNum/2) )
       {
          sub_data_1.push( { _id: i, a: i } );
       }

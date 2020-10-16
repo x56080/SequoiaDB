@@ -8,6 +8,7 @@ testConf.csName = COMMCSNAME ;
 testConf.clName = COMMCLNAME + "_13742";
 testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'range', ReplSize: 0 };
 testConf.useSrcGroup = true;
+testConf.useDstGroup = true;
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
 
@@ -19,15 +20,7 @@ function test ( testPara )
    var sourceGroup = testPara.srcGroupName;
    var indexName = "index_13742";
    var rownums = 10000;
-   var dstGrouplist = [];
-   for (var i in testPara.groups)
-   {
-      var tmpGroupName = testPara.groups[i][0]["GroupName"];
-      if (tmpGroupName != sourceGroup)
-      {
-         dstGrouplist.push( tmpGroupName );
-      }
-   }
+   var dstGrouplist = testPara.dstGroupNames;
 
    var stepId = 5000;
    var partId = rownums / stepId;
@@ -38,6 +31,11 @@ function test ( testPara )
       lowId = ( i - 1 ) * stepId;
       highId = i * stepId;
       rangeCL.split( sourceGroup, dstGrouplist[i], { a: lowId }, { a: highId } );
+
+      if ( (i+1) == dstGrouplist.length)
+      {
+         break;
+      }
    }
 
    //insert data
