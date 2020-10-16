@@ -40,7 +40,8 @@ namespace engine
 rtnRollbackManager::rtnRollbackManager(pmdEDUCB *cb)
     : _cb(cb), _dpsCB(pmdGetKRCB()->getDPSCB()), _transCB(sdbGetTransCB()),
       _cursor(DPS_INVALID_LSN_OFFSET),
-      _mb(dpsMessageBlock(DPS_MSG_BLOCK_DEF_LEN)), _replayer(TRUE)
+      _mb(dpsMessageBlock(DPS_MSG_BLOCK_DEF_LEN)), _replayer(TRUE),
+      _testOnly(FALSE)
 {
 }
 
@@ -56,7 +57,19 @@ INT32 rtnRollbackManager::execute()
       PD_LOG(PDERROR, "Error during rollback loop");
       return rc;
    }
-   return _finalize();
+   return (rc = _finalize());
+}
+
+INT32 rtnRollbackManager::test()
+{
+   INT32 rc = SDB_OK;
+   _testOnly = TRUE;
+   if ((rc = execute()))
+   {
+      PD_LOG(PDERROR, "Rollback test failed during execute");
+      return rc;
+   }
+   return rc;
 }
 
 INT32 rtnRollbackManager::_readLogAndRollback()
@@ -79,7 +92,6 @@ INT32 rtnRollbackManager::_readLogAndRollback()
    if (SDB_OK != rc)
    {
       _abort();
-      return rc;
    }
    return rc;
 }
@@ -106,15 +118,16 @@ INT32 rtnRollbackManager::_getRecord(dpsLogRecord *record)
 INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
 {
    INT32 rc = SDB_OK;
-   if (_shouldUndo(record))
+   if (!_shouldUndo(record) || (rc = _checkUndo(record)))
    {
-      if ((rc = _undo()))
-      {
-         PD_LOG(PDERROR, "failed to undo record");
-         return rc;
-      }
-      *undone = TRUE;
+      return rc;
    }
+   if ((rc = _undo()))
+   {
+      PD_LOG(PDERROR, "failed to undo record");
+      return rc;
+   }
+   *undone = TRUE;
    return rc;
 }
 
@@ -124,7 +137,8 @@ INT32 rtnRollbackManager::_undo()
    // Set the TransRelatedLSN of the undo record to the record being undone
    _cb->setRelatedTransLSN(_cursor);
    // Perform the undo of the record
-   if ((rc = _replayer.rollback((dpsLogRecordHeader *)_mb.offset(0), _cb)))
+   if (!_testOnly &&
+       (rc = _replayer.rollback((dpsLogRecordHeader *)_mb.offset(0), _cb)))
    {
       PD_LOG(PDERROR, "Replayer failed to rollback record");
       return rc;
@@ -137,7 +151,7 @@ INT32 rtnRollbackManager::_undo()
 //
 
 rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime)
-    : rtnRollbackManager(cb), _continue(TRUE)
+    : rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0)
 {
    _targetTime = stpLogicalTimeUS();
    _targetTime.setTime(targetTime);
@@ -146,14 +160,14 @@ rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime)
 INT32 rtnPITRollbackManager::_init()
 {
    INT32 rc = SDB_OK;
-   PD_LOG(PDEVENT, "Starting rollback to point-in-time (%llu)",
-          _targetTime.getTime());
+   PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
+          _targetTime.getTime(), _testOnly);
 
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;
 
    // Start a new transaction for the rollback
-   if ((rc = rtnTransBegin(_cb, FALSE, TRUE)))
+   if (!_testOnly && (rc = rtnTransBegin(_cb, FALSE, TRUE)))
    {
       PD_LOG(PDERROR, "Failed in transaction begin");
       return rc;
@@ -165,7 +179,7 @@ INT32 rtnPITRollbackManager::_finalize()
 {
    INT32 rc = SDB_OK;
    // Commit the transaction
-   if ((rc = rtnTransCommit(_cb, _dpsCB, _rollbackTime)))
+   if (!_testOnly && (rc = rtnTransCommit(_cb, _dpsCB, _rollbackTime)))
    {
       PD_LOG(PDERROR, "Failed in transaction commit");
       return rc;
@@ -173,15 +187,14 @@ INT32 rtnPITRollbackManager::_finalize()
    return rc;
 }
 
-INT32 rtnPITRollbackManager::_abort()
+void rtnPITRollbackManager::_abort()
 {
    // Rollback the rollback transaction
-   if (INT32 rc = rtnTransRollback(_cb, _dpsCB))
+   if (!_testOnly && rtnTransRollback(_cb, _dpsCB))
    {
       // The rc here is just temporary - abort if only called during failure
-      PD_LOG(PDERROR, "Failed in transaction abort (rc=%d)", rc);
+      PD_LOG(PDERROR, "Failed in transaction abort");
    }
-   return SDB_OK;
 }
 
 INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
@@ -304,6 +317,21 @@ BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
       return FALSE;
    }
    return TRUE;
+}
+
+INT32 rtnPITRollbackManager::_checkUndo(const dpsLogRecord &record)
+{
+   INT32 rc = SDB_OK;
+   // Log space required is double the record being undone: the undo record
+   // itself and enough space for the redo in case the PIT rollback fails and
+   // the transaction is rolled back
+   UINT64 logSpaceRequired = 2 * record.head()._length;
+   if (logSpaceRequired > _remainingLogSpace)
+   {
+      PD_LOG(PDERROR, "Not enough log space for rollback");
+      return (rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE);
+   }
+   return rc;
 }
 
 BOOLEAN rtnPITRollbackManager::_isTransInUndoTransSet()

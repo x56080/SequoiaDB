@@ -5059,19 +5059,26 @@ error:
                                  const CHAR * pHintBuff)
    {
       INT32 rc = SDB_OK;
-      BSONObj matcher(pMatcherBuff);
-      INT64 timestamp;
-      if ((rc = rtnGetNumberLongElement(matcher, FIELD_NAME_GLOBAL_TIME, timestamp)))
+      const BSONObj matcher(pMatcherBuff);
+      // Get the timestamp
+      if ((rc = rtnGetNumberLongElement(matcher, FIELD_NAME_GLOBAL_TIME,
+                                        _timestamp)) ||
+          (_timestamp < 0))
       {
-         return rc;
+         PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+         return (rc = SDB_INVALIDARG);
       }
-      if (0 > timestamp)
+      // Check for the run type modifiers
+      _testOnly = FALSE;
+      _skipTest = FALSE;
+      rtnGetBooleanElement(matcher, FIELD_NAME_TEST_ONLY, _testOnly);
+      rtnGetBooleanElement(matcher, FIELD_NAME_SKIP_TEST, _skipTest);
+      if (_testOnly && _skipTest)
       {
-         PD_LOG(PDERROR, "Invalid timestamp");
-         return SDB_INVALIDARG;
+         PD_LOG(PDERROR, "Cannot perform a test only and skip test");
+         return (rc = SDB_INVALIDARG);
       }
-      _timestamp = (UINT64)timestamp;
-      return SDB_OK;
+      return rc;
    }
 
    INT32 _rtnRestoreToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
@@ -5080,14 +5087,61 @@ error:
    {
       INT32 rc = SDB_OK;
       // restoreToPIT on a data node is a type of rollback
-      rtnPITRollbackManager rollbackManager(cb, _timestamp);
-      if ((rc = rollbackManager.execute()))
+      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp);
+      if (!_skipTest && (rc = rollbackManager.test()))
+      {
+         PD_LOG(PDERROR,
+                "Failed checks for rollback during restore to point-in-time");
+         return rc;
+      }
+      if (!_testOnly && (rc = rollbackManager.execute()))
       {
          PD_LOG(PDERROR, "Failed to rollback during restore to point-in-time");
          return rc;
       }
-      return SDB_OK ;
+      return rc;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreAbort)
+   _rtnRestoreAbort::_rtnRestoreAbort ()
+   {
+   }
+
+   _rtnRestoreAbort::~_rtnRestoreAbort ()
+   {
+   }
+
+   const CHAR *_rtnRestoreAbort::name()
+   {
+      return NAME_RESTORE_ABORT ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreAbort::type()
+   {
+      return CMD_RESTORE_ABORT ;
+   }
+
+   BOOLEAN _rtnRestoreAbort::writable()
+   {
+      return TRUE ;
+   }
+
+   INT32 _rtnRestoreAbort::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      return SDB_OK;
+   }
+
+   INT32 _rtnRestoreAbort::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      pmdGetKRCB()->setIsRestore(false);
+      return SDB_OK ;
+   }
 }
 

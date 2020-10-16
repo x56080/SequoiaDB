@@ -124,6 +124,7 @@ namespace engine
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
 #define NAME_RESTORE_TO_PIT                  CMD_NAME_RESTORE_TO_PIT
 #define NAME_GET_PIT_WINDOW                  CMD_NAME_GET_PIT_WINDOW
+#define NAME_RESTORE_ABORT                   CMD_NAME_RESTORE_ABORT
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -299,6 +300,7 @@ namespace engine
       CMD_SNAPSHOT_INDEXSTATS                = 256,
       CMD_RESTORE_TO_PIT                     = 257,
       CMD_GET_PIT_WINDOW                     = 258,
+      CMD_RESTORE_ABORT                      = 259,
       CMD_UNKNOW                             = 65535
    };
 

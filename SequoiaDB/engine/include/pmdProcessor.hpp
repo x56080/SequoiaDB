@@ -195,15 +195,15 @@ namespace engine
    typedef _pmdCoordProcessor pmdCoordProcessor ;
 
    /*
-    * Check if the database is in rollback pending state, and
+    * Check if the database is in restore pending state, and
     * whether a msg is allowed to be processed. Only used in
     * the coord right now.
     */
-   class pmdRBPendingChecker
+   class pmdRestorePendingChecker
    {
       public:
-         pmdRBPendingChecker( MsgHeader *msg ) : _msg(msg) {}
-         ~pmdRBPendingChecker() {}
+         pmdRestorePendingChecker( MsgHeader *msg ) : _msg(msg) {}
+         ~pmdRestorePendingChecker() {}
 
          // check if the operation is allowed to be processed
          BOOLEAN isOpAllowed() ;

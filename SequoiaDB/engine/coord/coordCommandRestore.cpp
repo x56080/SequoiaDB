@@ -17,7 +17,7 @@
 
 *******************************************************************************/
 
-#include "coordCommandRestoreToPIT.hpp"
+#include "coordCommandRestore.hpp"
 
 #include <string>
 
@@ -42,17 +42,20 @@ namespace
 {
 
 INT32 getElementFromBSON(const BSONObj &input, const string &fieldName,
-                         BOOLEAN required, BSONElement *output)
+                         BSONElement *output)
 {
+   INT32 rc = SDB_OK;
    *output = input.getField(fieldName);
-   if (required && output->eoo())
+   if (output->eoo())
    {
-      // Field required but not found
-      PD_LOG(PDERROR, "Missing required field (%s)", fieldName.c_str());
-      return SDB_INVALIDARG;
+      // Field not found
+      return (rc = SDB_FIELD_NOT_EXIST);
    }
-   return SDB_OK;
+   return rc;
 }
+
+// The following two functions share a lot of code. When using c++11 this can be
+// simplified using function pointers for the verification part.
 
 // From a BSONObj input, get the value of the field,
 // it should be a long int, and store it in output as a UINT64
@@ -61,19 +64,49 @@ INT32 globalTimeFromBSON(const BSONObj &input, const string &fieldName,
 {
    INT32 rc = SDB_OK;
    BSONElement field;
-   if ((rc = getElementFromBSON(input, fieldName, required, &field)))
+   if ((rc = getElementFromBSON(input, fieldName, &field)))
    {
+      if (!required)
+      {
+         // Field was not found but is not required
+         return (rc = SDB_OK);
+      }
       return rc;
    }
+   // Non-number values will return 0
    INT64 value = field.numberLong();
    if (0 >= value)
    {
       // Field is a negative number or 0 or not a number
-      PD_LOG(PDERROR, "Invalid timestamp (%i)", value);
-      return SDB_INVALIDARG;
+      PD_LOG(PDERROR, "Invalid global time (%i)", value);
+      return (rc = SDB_INVALIDARG);
    }
    *output = (UINT64)value;
-   return SDB_OK;
+   return rc;
+}
+
+// From a BSONObj input, get the value of the field, it should be a boolean
+INT32 boolFromBSON(const BSONObj &input, const string &fieldName,
+                   BOOLEAN required, BOOLEAN *output)
+{
+   INT32 rc = SDB_OK;
+   BSONElement field;
+   if ((rc = getElementFromBSON(input, fieldName, &field)))
+   {
+      if (!required)
+      {
+         // Field was not found but is not required
+         return (rc = SDB_OK);
+      }
+      return rc;
+   }
+   if (!field.isBoolean())
+   {
+      PD_LOG(PDERROR, "Invalid value for %s", fieldName.c_str());
+      return (rc = SDB_INVALIDARG);
+   }
+   *output = field.boolean();
+   return rc;
 }
 
 // Extract the query from a message object
@@ -218,81 +251,23 @@ namespace engine
 {
 
 /*
-   coordCMDRestoreToPIT define
+   _coordCMDRestore definitions
 */
-COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToPIT, CMD_NAME_RESTORE_TO_PIT,
-                                  FALSE);
-
-// Entrypoint for restoreToPIT() on the coordinator
-INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
-                                    INT64 &contextID, rtnContextBuf *buf)
-{
-   INT32 rc = SDB_OK;
-   UINT64 targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
-   if ((rc = _parseRequest(pMsg, &targetTime)))
-   {
-      return rc;
-   }
-   if ((rc = _checkStateAndRestore(cb, targetTime)))
-   {
-      return rc;
-   }
-   if ((rc = _resetState(cb)))
-   {
-      return rc;
-   }
-   PD_LOG(PDEVENT, "restoreToPIT completed successfully");
-   return SDB_OK;
-}
-
-// Parse the client's request, extracting the targetTime if given
-INT32 coordCMDRestoreToPIT::_parseRequest(MsgHeader *pMsg, UINT64 *targetTime)
-{
-   INT32 rc = SDB_OK;
-   // Parse the request message
-   BSONObj query;
-   if ((rc = extractQuery(pMsg, &query)))
-   {
-      PD_LOG(PDERROR, "Extract user query failed");
-      return rc;
-   }
-   // Get the value of the GlobalTime option. Value is not required, in which
-   // case restore will be to the latest consistency point.
-   if ((rc = globalTimeFromBSON(query, FIELD_NAME_GLOBAL_TIME, FALSE,
-                                targetTime)))
-   {
-      PD_LOG(PDERROR, "User query invalid");
-   }
-   return SDB_OK;
-}
-
-// Check that the cluster is awaiting restore and coordinate the operation
-INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
-                                                  UINT64 targetTime)
-{
-   INT32 rc = SDB_OK;
-   if ((rc = _checkClusterState(cb)))
-   {
-      return rc;
-   }
-   return _coordinateRestore(cb, targetTime);
-}
 
 // Check the status of the cluster
-INT32 coordCMDRestoreToPIT::_checkClusterState(pmdEDUCB *cb)
+INT32 _coordCMDRestore::_checkClusterState(pmdEDUCB *cb)
 {
    // Check the local cache
    if (!pmdGetKRCB()->isDBRestoring())
    {
-      PD_LOG(PDERROR, "Cluster is not in [%s] state",
-             FIELD_NAME_RESTORING);
-      return SDB_INVALIDARG; // User error
+      PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
+      return SDB_RESTORE_NOT_IN_PROGRESS;
    }
    return _checkDCForState(cb);
 }
 
 // Query the catalog to confirm - check RestoreInProgress in SYSINFO.SYSDCBASE
-INT32 coordCMDRestoreToPIT::_checkDCForState(pmdEDUCB *cb)
+INT32 _coordCMDRestore::_checkDCForState(pmdEDUCB *cb)
 {
    INT32 rc = SDB_OK;
    BSONObj document;
@@ -315,6 +290,203 @@ INT32 coordCMDRestoreToPIT::_checkDCForState(pmdEDUCB *cb)
       return SDB_SYS;
    }
    return rc;
+}
+
+// Update the catalog with RestoreInProgress: false
+INT32 _coordCMDRestore::_resetState(pmdEDUCB *cb)
+{
+   INT32 rc = SDB_OK;
+   BSONObj query;
+   PD_LOG(PDINFO, "Resetting cluster state");
+   try
+   {
+      query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_DISABLE_RESTORING);
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to create query");
+      return SDB_OOM;
+   }
+   if ((rc = _alterDC(cb, query)))
+   {
+      PD_LOG(PDERROR, "Failed to update DC state across nodes");
+      return rc;
+   }
+   // Update the local cache
+   pmdGetKRCB()->setDBRestoring(FALSE);
+   return rc;
+}
+
+// Get the latest version of SYSINFO.SYSDCBASE
+INT32 _coordCMDRestore::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
+{
+   INT32 rc = SDB_OK;
+   rtnContextBuf buf; // cleans up when it goes out of scope
+   OBJ_VEC results;
+   rtnQueryOptions queryOpt;
+   queryOpt.setFlag(FLG_QUERY_WITH_RETURNDATA);
+   queryOpt.setCLFullName(CAT_SYSDCBASE_COLLECTION_NAME);
+   queryOpt.setQuery(BSON(FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR));
+   // Perform the query
+   if ((rc = queryOnCataAndPushToVec(queryOpt, cb, results, &buf)))
+   {
+      PD_LOG(PDERROR, "Failed during catalog query");
+      return rc;
+   }
+   // Extract the result. Note that SYSINFO.SYSDCBASE only contains one doc.
+   try
+   {
+      *result = results.front().copy();
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to copy BSON object");
+      return SDB_OOM;
+   }
+   return rc;
+}
+
+// Run an ALTERDC command
+INT32 _coordCMDRestore::_alterDC(pmdEDUCB *cb, const BSONObj &query)
+{
+   INT32 rc = SDB_OK;
+   _Operator op(&rc, CMD_NAME_ALTER_DC); // Auto-cleaning
+   if (rc)
+   {
+      return rc;
+   }
+   _QueryMsg msg(&rc, cb, CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC,
+                 MSG_CAT_ALTER_IMAGE_REQ, query);
+   if (rc)
+   {
+      return rc;
+   }
+   if ((rc = op.ptr->init(_pResource, cb, getTimeout())))
+   {
+      PD_LOG(PDERROR, "Failed to init operator");
+      return rc;
+   }
+   INT64 contextID;
+   if ((rc = op.ptr->execute(msg.header, cb, contextID, NULL)))
+   {
+      PD_LOG(PDWARNING, "Failed to execute operator");
+      return rc;
+   }
+   return rc;
+}
+
+// Run the given query against the data groups
+INT32 _coordCMDRestore::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
+                                         const string &clName,
+                                         const BSONObj &query, OBJ_VEC *results)
+{
+   INT32 rc = SDB_OK;
+   CoordGroupList groups;
+   _Context context(cb);                          // Auto-cleaning
+   _QueryMsg msg(&rc, cb, clName, opCode, query); // Auto-cleaning
+   if (rc)
+   {
+      return rc;
+   }
+   // Get the groups list
+   if ((rc = _pResource->updateGroupList(groups, cb, NULL, TRUE, TRUE, FALSE)))
+   {
+      PD_LOG(PDERROR, "Get data groups failed");
+      return rc;
+   }
+   // Run the query
+   if ((rc = executeOnDataGroup(msg.header, cb, groups, TRUE, NULL, NULL,
+                                &(context.ptr), NULL)))
+   {
+      PD_LOG(PDERROR, "Execute on data groups failed");
+      return rc;
+   }
+   if (!results)
+   {
+      // Only gather results if a pointer was provided
+      return rc;
+   }
+   // Get the results
+   if ((rc = gatherQueryResults(cb, context.ptr, results)))
+   {
+      PD_LOG(PDERROR, "Failed to gather query results");
+      return rc;
+   }
+   // Check the number of results is correct
+   if (results->size() != groups.size())
+   {
+      PD_LOG(PDERROR, "The number of results [%u] does not match the number of "
+                      "groups [%u]");
+      return SDB_SYS;
+   }
+   return rc;
+}
+
+/*
+   coordCMDRestoreToPIT definitions
+*/
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToPIT, CMD_NAME_RESTORE_TO_PIT,
+                                  FALSE);
+
+// Entrypoint for restoreToPIT() on the coordinator
+INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                    INT64 &contextID, rtnContextBuf *buf)
+{
+   INT32 rc = SDB_OK;
+   UINT64 targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
+   _optTestOnly = FALSE;
+   _optSkipTest = FALSE;
+   if ((rc = _parseRequest(pMsg, &targetTime)))
+   {
+      return rc;
+   }
+   if ((rc = _checkStateAndRestore(cb, targetTime)))
+   {
+      return rc;
+   }
+   if (!_optTestOnly && (rc = _resetState(cb)))
+   {
+      return rc;
+   }
+   PD_LOG(PDEVENT, "restoreToPIT completed successfully");
+   return SDB_OK;
+}
+
+// Parse the client's request, extracting the targetTime if given
+INT32 coordCMDRestoreToPIT::_parseRequest(MsgHeader *pMsg, UINT64 *targetTime)
+{
+   INT32 rc = SDB_OK;
+   // Parse the request message
+   BSONObj query;
+   if ((rc = extractQuery(pMsg, &query)))
+   {
+      PD_LOG(PDERROR, "Extract user query failed");
+      return rc;
+   }
+   // Get the value of the GlobalTime option. Value is not required, in which
+   // case restore will be to the latest consistency point.
+   // Also get the bools TestOnly and SkipTest (both optional).
+   if ((rc = globalTimeFromBSON(query, FIELD_NAME_GLOBAL_TIME, FALSE,
+                                targetTime)) ||
+       (rc = boolFromBSON(query, FIELD_NAME_TEST_ONLY, FALSE, &_optTestOnly)) ||
+       (rc = boolFromBSON(query, FIELD_NAME_SKIP_TEST, FALSE, &_optSkipTest)))
+   {
+      PD_LOG(PDERROR, "User query invalid");
+      return rc;
+   }
+   return rc;
+}
+
+// Check that the cluster is awaiting restore and coordinate the operation
+INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
+                                                  UINT64 targetTime)
+{
+   INT32 rc = SDB_OK;
+   if ((rc = _checkClusterState(cb)))
+   {
+      return rc;
+   }
+   return _coordinateRestore(cb, targetTime);
 }
 
 INT32 coordCMDRestoreToPIT::_coordinateRestore(pmdEDUCB *cb, UINT64 targetTime)
@@ -363,7 +535,7 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
    {
       // Extract {TransInfo:{MinRecoverableTime or MaxTransCommitTime}}
       BSONElement field; // for the TransInfo field, which is an embedded object
-      if ((rc = getElementFromBSON(*it, FIELD_NAME_TRANS_INFO, TRUE, &field)) ||
+      if ((rc = getElementFromBSON(*it, FIELD_NAME_TRANS_INFO, &field)) ||
           !field.isABSONObj())
       {
          // This should never happen
@@ -400,7 +572,19 @@ INT32 coordCMDRestoreToPIT::_restoreWithWindows(pmdEDUCB *cb, UINT64 targetTime,
    {
       return rc;
    }
-   return _restoreDataGroups(cb, targetTime);
+   // Perform the test run (unless SkipTest)
+   if (!_optSkipTest && (rc = _restoreDataGroups(cb, targetTime, TRUE)))
+   {
+      PD_LOG(PDERROR, "Failed the restore test run. Aborting.");
+      return rc;
+   }
+   // Perform the real run (unless TestOnly)
+   if (!_optTestOnly && (rc = _restoreDataGroups(cb, targetTime, FALSE)))
+   {
+      PD_LOG(PDERROR, "Failed during restore to point-in-time on nodes.");
+      return rc;
+   }
+   return rc;
 }
 
 // Determine the target consistency point - whether the user provided value fits
@@ -422,7 +606,8 @@ INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
 }
 
 // Execute restoreToPIT() on all of the data groups
-INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime)
+INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
+                                               BOOLEAN test)
 {
    INT32 rc = SDB_OK;
    PD_LOG(PDINFO, "Restoring cluster to %llu", targetTime);
@@ -431,7 +616,21 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime)
    BSONObj query;
    try
    {
-      query = BSON(FIELD_NAME_GLOBAL_TIME << (INT64)targetTime);
+      BSONObjBuilder builder;
+      builder.append(FIELD_NAME_GLOBAL_TIME, (INT64)targetTime);
+      if (test)
+      {
+         // The test run to check that the operation would succeed.
+         // Adds the field "TestOnly: true"
+         builder.appendBool(FIELD_NAME_TEST_ONLY, TRUE);
+      }
+      else
+      {
+         // The real run that performs the restore.
+         // Adds the field "SkipTest: true"
+         builder.appendBool(FIELD_NAME_SKIP_TEST, TRUE);
+      }
+      query = builder.obj();
    }
    catch (exception &e)
    {
@@ -448,136 +647,27 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime)
    return SDB_OK;
 }
 
-// Update the catalog with RestoreInProgress: false
-INT32 coordCMDRestoreToPIT::_resetState(pmdEDUCB *cb)
-{
-   INT32 rc = SDB_OK;
-   BSONObj query;
-   PD_LOG(PDINFO, "Resetting cluster state");
-   try
-   {
-      query =
-          BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_DISABLE_RESTORING);
-   }
-   catch (exception &e)
-   {
-      PD_LOG(PDERROR, "Failed to create query");
-      return SDB_OOM;
-   }
-   if ((rc = _alterDC(cb, query)))
-   {
-      PD_LOG(PDERROR, "Failed to update DC state across nodes");
-      return rc;
-   }
-   // Update the local cache
-   pmdGetKRCB()->setDBRestoring(FALSE);
-   return rc;
-}
+/*
+   coordCMDRestoreAbort definitions
+*/
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreAbort, CMD_NAME_RESTORE_ABORT,
+                                  FALSE);
 
-// Get the latest version of SYSINFO.SYSDCBASE
-INT32 coordCMDRestoreToPIT::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
+// Entrypoint for restoreToPIT() on the coordinator
+INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                    INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
-   rtnContextBuf buf; // cleans up when it goes out of scope
-   OBJ_VEC results;
-   rtnQueryOptions queryOpt;
-   queryOpt.setFlag(FLG_QUERY_WITH_RETURNDATA);
-   queryOpt.setCLFullName(CAT_SYSDCBASE_COLLECTION_NAME);
-   queryOpt.setQuery(BSON(FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR));
-   // Perform the query
-   if ((rc = queryOnCataAndPushToVec(queryOpt, cb, results, &buf)))
-   {
-      PD_LOG(PDERROR, "Failed during catalog query");
-      return rc;
-   }
-   // Extract the result. Note that SYSINFO.SYSDCBASE only contains one doc.
-   try
-   {
-      *result = results.front().copy();
-   }
-   catch (exception &e)
-   {
-      PD_LOG(PDERROR, "Failed to copy BSON object");
-      return SDB_OOM;
-   }
-   return rc;
-}
-
-// Run an ALTERDC command
-INT32 coordCMDRestoreToPIT::_alterDC(pmdEDUCB *cb, const BSONObj &query)
-{
-   INT32 rc = SDB_OK;
-   _Operator op(&rc, CMD_NAME_ALTER_DC); // Auto-cleaning
-   if (rc)
+   if ((rc = _checkClusterState(cb)))
    {
       return rc;
    }
-   _QueryMsg msg(&rc, cb, CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC,
-                 MSG_CAT_ALTER_IMAGE_REQ, query);
-   if (rc)
+   if ((rc = _resetState(cb)))
    {
       return rc;
    }
-   if ((rc = op.ptr->init(_pResource, cb, getTimeout())))
-   {
-      PD_LOG(PDERROR, "Failed to init operator");
-      return rc;
-   }
-   INT64 contextID;
-   if ((rc = op.ptr->execute(msg.header, cb, contextID, NULL)))
-   {
-      PD_LOG(PDWARNING, "Failed to execute operator");
-      return rc;
-   }
-   return rc;
-}
-
-// Run the given query against the data groups
-INT32 coordCMDRestoreToPIT::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
-                                             const string &clName,
-                                             const BSONObj &query,
-                                             OBJ_VEC *results)
-{
-   INT32 rc = SDB_OK;
-   CoordGroupList groups;
-   _Context context(cb);                          // Auto-cleaning
-   _QueryMsg msg(&rc, cb, clName, opCode, query); // Auto-cleaning
-   if (rc)
-   {
-      return rc;
-   }
-   // Get the groups list
-   if ((rc = _pResource->updateGroupList(groups, cb, NULL, TRUE, TRUE, FALSE)))
-   {
-      PD_LOG(PDERROR, "Get data groups failed");
-      return rc;
-   }
-   // Run the query
-   if ((rc = executeOnDataGroup(msg.header, cb, groups, TRUE, NULL, NULL,
-                                &(context.ptr), NULL)))
-   {
-      PD_LOG(PDERROR, "Execute on data groups failed");
-      return rc;
-   }
-   if (!results)
-   {
-      // Only gather results if a pointer was provided
-      return rc;
-   }
-   // Get the results
-   if ((rc = gatherQueryResults(cb, context.ptr, results)))
-   {
-      PD_LOG(PDERROR, "Failed to gather query results");
-      return rc;
-   }
-   // Check the number of results is correct
-   if (results->size() != groups.size())
-   {
-      PD_LOG(PDERROR, "The number of results [%u] does not match the number of "
-                      "groups [%u]");
-      return SDB_SYS;
-   }
-   return rc;
+   PD_LOG(PDEVENT, "restoreAbort completed successfully");
+   return SDB_OK;
 }
 
 } // namespace engine

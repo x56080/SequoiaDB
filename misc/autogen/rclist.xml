@@ -2875,6 +2875,14 @@
       </code>
 
       <code>
+         <name>SDB_RESTORE_NOT_IN_PROGRESS</name>
+         <description>
+            <en>Database is not in restore-in-progress state</en>
+            <cn>数据库不处于恢复中状态</cn>
+         </description>
+      </code>
+
+      <code>
          <name>SDB_RESTORE_NO_CONSISTENT_PIT</name>
          <description>
             <en>No valid consistency point for point-in-time restore</en>

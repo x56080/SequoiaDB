@@ -17,8 +17,8 @@
 
 *******************************************************************************/
 
-#ifndef COORD_COMMAND_RESTORETOPIT_HPP__
-#define COORD_COMMAND_RESTORETOPIT_HPP__
+#ifndef COORD_COMMAND_RESTORE_HPP__
+#define COORD_COMMAND_RESTORE_HPP__
 
 #include <string>
 #include <vector>
@@ -34,14 +34,33 @@ namespace engine
 {
 
 /*
-   coordCMDRestoreToPIT
-   This is the coordinator driver for the command restoreToPIT();
+   _coordCMDRestore
+   Abstract base class for coordinator restore commands.
 */
-class coordCMDRestoreToPIT : public _coordCommandBase
+class _coordCMDRestore : public _coordCommandBase
+{
+ protected:
+   typedef std::vector<bson::BSONObj> OBJ_VEC;
+
+   INT32 _checkClusterState(pmdEDUCB *cb);
+   INT32 _checkDCForState(pmdEDUCB *cb);
+   INT32 _resetState(pmdEDUCB *cb);
+   INT32 _queryCataDCBase(pmdEDUCB *cb, bson::BSONObj *result);
+   INT32 _alterDC(pmdEDUCB *cb, const bson::BSONObj &query);
+   INT32 _queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
+                          const std::string &clName, const bson::BSONObj &query,
+                          OBJ_VEC *results);
+};
+
+/*
+   coordCMDRestoreToPIT
+   Coordinator handler for restoreToPIT().
+   The cluster must be in RestoreInProgress state.
+   Performs restoreToPIT() on data nodes and resets the cluster state.
+*/
+class coordCMDRestoreToPIT : public _coordCMDRestore
 {
    COORD_DECLARE_CMD_AUTO_REGISTER();
-
-   typedef std::vector<bson::BSONObj> OBJ_VEC;
 
  public:
    coordCMDRestoreToPIT(){};
@@ -49,12 +68,9 @@ class coordCMDRestoreToPIT : public _coordCommandBase
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
-
  protected:
    INT32 _parseRequest(MsgHeader *pMsg, UINT64 *targetTime);
    INT32 _checkStateAndRestore(pmdEDUCB *cb, UINT64 targetTime);
-   INT32 _checkClusterState(pmdEDUCB *cb);
-   INT32 _checkDCForState(pmdEDUCB *cb);
    INT32 _coordinateRestore(pmdEDUCB *cb, UINT64 targetTime);
    INT32 _getGlobalRestoreWindow(pmdEDUCB *cb, UINT64 *minTime,
                                  UINT64 *maxTime);
@@ -64,15 +80,30 @@ class coordCMDRestoreToPIT : public _coordCommandBase
                              UINT64 maxTime);
    INT32 _setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
                              UINT64 *targetTime);
-   INT32 _restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime);
-   INT32 _resetState(pmdEDUCB *cb);
-   INT32 _queryCataDCBase(pmdEDUCB *cb, bson::BSONObj *result);
-   INT32 _alterDC(pmdEDUCB *cb, const bson::BSONObj &query);
-   INT32 _queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
-                          const std::string &clName, const bson::BSONObj &query,
-                          OBJ_VEC *results);
+   INT32 _restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime, BOOLEAN test);
+
+   BOOLEAN _optTestOnly;
+   BOOLEAN _optSkipTest;
+};
+
+/*
+   coordCMDRestoreAbort
+   Coordinator handler for restoreAbort();
+   The cluster must be in RestoreInProgress state.
+   Resets the cluster state.
+*/
+class coordCMDRestoreAbort : public _coordCMDRestore
+{
+   COORD_DECLARE_CMD_AUTO_REGISTER();
+
+ public:
+   coordCMDRestoreAbort(){};
+   virtual ~coordCMDRestoreAbort(){};
+   // execute is the entrypoint
+   virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
+                         rtnContextBuf *buf);
 };
 
 } // namespace engine
 
-#endif // COORD_COMMAND_RESTORETOPIT_HPP__
+#endif // COORD_COMMAND_RESTORE_HPP__

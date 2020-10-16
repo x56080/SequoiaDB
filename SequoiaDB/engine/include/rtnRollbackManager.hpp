@@ -51,6 +51,9 @@ class rtnRollbackManager
    // Perform the rollback
    INT32 execute();
 
+   // Perform a test run (check only, do not perform any undo operations)
+   INT32 test();
+
  protected:
    _pmdEDUCB *_cb;
    _dpsLogWrapper *_dpsCB;
@@ -58,6 +61,7 @@ class rtnRollbackManager
    DPS_LSN_OFFSET _cursor;
    dpsMessageBlock _mb;
    clsReplayer _replayer;
+   BOOLEAN _testOnly;
 
    // Main execution loop
    INT32 _readLogAndRollback();
@@ -80,7 +84,7 @@ class rtnRollbackManager
    virtual INT32 _finalize() = 0;
 
    // Abort due to an error during rollback
-   virtual INT32 _abort() = 0;
+   virtual void _abort() = 0;
 
    // Do any processing of the record before/after it is rolled back
    virtual INT32 _preProcess(const dpsLogRecord &record) = 0;
@@ -92,6 +96,9 @@ class rtnRollbackManager
 
    // Check if this record should be undone
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record) = 0;
+
+   // Check the record before performing undo
+   virtual INT32 _checkUndo(const dpsLogRecord &record) = 0;
 };
 
 /// Performs the rollback for the restore to point-in-time feature. Unlike the
@@ -118,10 +125,11 @@ class rtnPITRollbackManager : public rtnRollbackManager
    // Current record transaction ID
    DPS_TRANS_ID _recordTransID;
    BOOLEAN _continue;
+   UINT64 _remainingLogSpace;
 
    virtual INT32 _init();
    virtual INT32 _finalize();
-   virtual INT32 _abort();
+   virtual void _abort();
 
    // Reads the preceding record in the log
    virtual INT32 _nextRecord(const dpsLogRecord &record);
@@ -133,6 +141,7 @@ class rtnPITRollbackManager : public rtnRollbackManager
    INT32 _processBeginRecord();
 
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record);
+   virtual INT32 _checkUndo(const dpsLogRecord &record);
 
    BOOLEAN _isTransInUndoTransSet();
    BOOLEAN _isRecordTransactional();

@@ -1693,11 +1693,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
-      pmdRBPendingChecker rbPendingChecker( msg ) ;
+      pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
-      if ( !rbPendingChecker.isOpAllowed() )
+      if ( !restorePendingChecker.isOpAllowed() )
       {
          rc = SDB_RESTORE_IN_PROGRESS ;
          goto error ;
@@ -2297,7 +2297,7 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN pmdRBPendingChecker::_isOpAllowed()
+   BOOLEAN pmdRestorePendingChecker::_isOpAllowed()
    {
       switch ( _msg->opCode )
       {
@@ -2321,9 +2321,11 @@ namespace engine
             msgExtractQuery ( (CHAR *)_msg, NULL, &pCollectionName,
                               NULL, NULL, NULL, NULL, NULL, NULL ) ;
 
-            if ( rtnIsCommand( pCollectionName) &&
-                 ( 0 == ossStrcmp( &(pCollectionName[1]), CMD_NAME_RESTORE_TO_PIT ) )
-               )
+            if (rtnIsCommand(pCollectionName) &&
+                ((0 ==
+                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_TO_PIT)) ||
+                 (0 ==
+                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_ABORT))))
             {
                return TRUE ;
             }
@@ -2335,7 +2337,7 @@ namespace engine
       return FALSE ;
    }
 
-   BOOLEAN pmdRBPendingChecker::isOpAllowed()
+   BOOLEAN pmdRestorePendingChecker::isOpAllowed()
    {
       if ( pmdGetKRCB()->isDBRestoring() )
       {

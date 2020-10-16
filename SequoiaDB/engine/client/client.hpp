@@ -4840,6 +4840,8 @@ namespace sdbclient
 
       virtual INT32 restoreToPIT(
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
+      virtual INT32 restoreAbort(
+                        const bson::BSONObj &options = _sdbStaticObject) = 0;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7085,6 +7087,21 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->restoreToPIT( options ) ;
+      }
+
+      /** \fn INT32 restoreAbort()
+          \brief Aborts a restore in progress.
+          \param [in] options Optional parameters object.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->restoreAbort( options ) ;
       }
    } ;
    /** \typedef class sdb sdb

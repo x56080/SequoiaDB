@@ -399,6 +399,8 @@
 #define VALUE_NAME_BOTH                      "both"
 #define FIELD_NAME_GLOBAL_TIME               "GlobalTime"
 #define FIELD_NAME_GLOBAL_TRANS              "GlobalTrans"
+#define FIELD_NAME_TEST_ONLY                 "TestOnly"
+#define FIELD_NAME_SKIP_TEST                 "SkipTest"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
@@ -754,6 +756,7 @@
 #define CMD_NAME_GET_INDEX_STAT              "get index statistic"
 #define CMD_NAME_RESTORE_TO_PIT              "restore to pit"
 #define CMD_NAME_GET_PIT_WINDOW              "get pit window"
+#define CMD_NAME_RESTORE_ABORT               "abort restore"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"
