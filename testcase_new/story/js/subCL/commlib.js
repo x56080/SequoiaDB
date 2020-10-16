@@ -5,6 +5,7 @@
    2015-12-19 Ting YU modify
 ***************************************************************************** */
 import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 //2015-12-19 Ting YU modify
 function getSourceGroupName_alone ( csName, clName )
@@ -21,7 +22,6 @@ function getSourceGroupName_alone ( csName, clName )
 function getOtherDataGroups ( SourceGroupName )
 {
    var allGroups = db.listReplicaGroups().toArray();
-   var RoleGroupNumbers = 0;
    var Groups = [];
    for( var i = 0; i < allGroups.length; i++ )
    {
@@ -56,14 +56,12 @@ function subCL_split_hash ( subcl, SourceGroupName, OtherDataGroups, Partition )
    {
       var start_Partition = Math.round( Partition_PerGroup * i );
       var end_Partition = Math.round( Partition_PerGroup * ( i + 1 ) );
-      println( start_Partition + '~~~~~~~~~~~~~~~~' + end_Partition );
       try
       {
          subcl.split( SourceGroupName, OtherDataGroups[i], { Partition: start_Partition }, { Partition: end_Partition } );
       }
       catch( e )
       {
-         println( "can't split : " + e );
          return -1
       }
    }
@@ -86,11 +84,7 @@ function checkRec ( rc, expectRecordNum, sortOptions )
       actRecs.push( rc.current().toObj() );
    }
    //check count
-   if( actRecs.length !== expectRecordNum )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) );
-      throw buildException( "check count", null, "", actRecs.length, expectRecordNum );
-   }
+   assert.equal( actRecs.length, expectRecordNum );
 
    //check every records every fields,expRecs as compare source
    var actRecCurrent = actRecs[0];
@@ -99,13 +93,10 @@ function checkRec ( rc, expectRecordNum, sortOptions )
       var actRecNext = actRecs[i];
       if( compareJSONObj( actRecCurrent, actRecNext, sortOptions ) < 0 )
       {
-         println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record" );
-         println( "\ncurrent record= " + JSON.stringify( actRecs[i] ) + "\n\nnext record= " + JSON.stringify( actRecs[i + 1] ) );
-         throw buildException( "checkRec()", "rec ERROR" );
+         throw new Error( "checkRec() rec ERROR" );
       }
       actRecCurrent = actRecNext;
    }
-   println( "--check data success" );
 }
 
 // compareJSONObj(compareObj,toCompareObj,{a:1,b:-1,c:1})
@@ -201,33 +192,22 @@ function getSplitGroups ( csName, clName, targetGrMaxNums )
 **************************************/
 function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 {
-   try
+   var targetGroupNums = 1;
+   var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
+   var srcGrName = groupsInfo[0].GroupName;
+   var tarGrName = groupsInfo[1].GroupName;
+   var CL = db.getCS( csName ).getCL( clName );
+   if( typeof ( startCondition ) === "number" ) //percentage split
    {
-      var targetGroupNums = 1;
-      var groupsInfo = getSplitGroups( csName, clName, targetGroupNums );
-      var srcGrName = groupsInfo[0].GroupName;
-      var tarGrName = groupsInfo[1].GroupName;
-      println( csName + "." + clName + "'s target group: " + tarGrName );
-      var CL = db.getCS( csName ).getCL( clName );
-      println( "--begin split" )
-      if( typeof ( startCondition ) === "number" ) //percentage split
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-      }
-      else if( typeof ( startCondition ) === "object" && endCondition === undefined ) //range split without end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition );
-         println( "startCondition=" + startCondition )
-      }
-      else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" ) //range split with end condition
-      {
-         CL.split( srcGrName, tarGrName, startCondition, endCondition );
-      }
-      println( "--end split" )
+      CL.split( srcGrName, tarGrName, startCondition );
    }
-   catch( e )
+   else if( typeof ( startCondition ) === "object" && endCondition === undefined ) //range split without end condition
    {
-      throw e;
+      CL.split( srcGrName, tarGrName, startCondition );
+   }
+   else if( typeof ( startCondition ) === "object" && typeof ( endCondition ) === "object" ) //range split with end condition
+   {
+      CL.split( srcGrName, tarGrName, startCondition, endCondition );
    }
    return groupsInfo;
 }
@@ -239,14 +219,8 @@ function ClSplitOneTimes ( csName, clName, startCondition, endCondition )
 function getGroupName ( db, mustBePrimary )
 {
    var RGname = null;
-   try
-   {
-      RGname = db.listReplicaGroups().toArray();
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   RGname = db.listReplicaGroups().toArray();
+
    var j = 0;
    var arrGroupName = Array();
    for( var i = 1; i != RGname.length; ++i )
@@ -283,36 +257,21 @@ function getGroupName ( db, mustBePrimary )
 **************************************/
 function getSrcGroup ( csName, clName )
 {
-   try
+   var tableName = csName + "." + clName;
+   var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
+   var catadb = new Sdb( cataMaster[0], cataMaster[1] );
+   var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
+   var srcGroupName;
+   for( var i = 0; i < Group.length; ++i )
    {
-      if( undefined == csName || undefined == clName )
+      var eachID = eval( "(" + Group[i] + ")" );
+      if( tableName == eachID["Name"] )
       {
-         println( "cs name: " + csName + ", clName: " + clName );
-         throw "cs or cl name is undefined";
+         srcGroupName = eachID["CataInfo"][0]["GroupName"];
+         break;
       }
-      var tableName = csName + "." + clName;
-      var cataMaster = db.getCatalogRG().getMaster().toString().split( ":" );
-      var catadb = new Sdb( cataMaster[0], cataMaster[1] );
-      var Group = catadb.SYSCAT.SYSCOLLECTIONS.find().toArray();
-      var srcGroupName;
-      for( var i = 0; i < Group.length; ++i )
-      {
-         var eachID = eval( "(" + Group[i] + ")" );
-         if( tableName == eachID["Name"] )
-         {
-            srcGroupName = eachID["CataInfo"][0]["GroupName"];
-            println( csName + "." + clName + "'s source group: " + srcGroupName );
-            break;
-         }
-      }
-      return srcGroupName;
    }
-   catch( e )
-   {
-      println( "failed to get source group, cs name: " + csName +
-         ", cl name: " + clName );
-      throw e;
-   }
+   return srcGroupName;
 }
 
 /************************************
@@ -322,15 +281,7 @@ function getSrcGroup ( csName, clName )
 **************************************/
 function attachCL ( dbcl, subCLName, range )
 {
-   try
-   {
-      dbcl.attachCL( subCLName, range );
-      println( "--attach cl success" );
-   }
-   catch( e )
-   {
-      throw buildException( "attachCL()", e, "attach cl", "attach cl success", "attach cl fail" );
-   }
+   dbcl.attachCL( subCLName, range );
 }
 
 /************************************
@@ -340,42 +291,18 @@ function attachCL ( dbcl, subCLName, range )
 **************************************/
 function insertBulkData ( dbcl, recordNum, recordStart, recordEnd )
 {
-   try
+   var doc = [];
+   for( var i = 0; i < recordNum; i++ )
    {
-      var doc = [];
-      for( var i = 0; i < recordNum; i++ )
-      {
-         var aValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
-         var bValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
-         var cValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
-         doc.push( { a: aValue, b: bValue, c: cValue } );
-      }
-      dbcl.insert( doc );
-      println( "--bulk insert data success" );
+      var aValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+      var bValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+      var cValue = recordStart + parseInt( Math.random() * ( recordEnd - recordStart ) );
+      doc.push( { a: aValue, b: bValue, c: cValue } );
    }
-   catch( e )
-   {
-      throw buildException( "insertBulkData()", e, "insert", "insert data :" + JSON.stringify( doc ), "insert fail" );
-   }
+   dbcl.insert( doc );
    return doc;
 }
-/************************************************
- * @Description:  insert records by an array
- * @Author:       linsuqiang
- * @Date:         2016-11-30
- * **********************************************/
-function bulkinsert ( mainCL, recs )
-{
-   try
-   {
-      mainCL.insert( recs );
-   }
-   catch( e )
-   {
-      println( "records for inserting contain wrong records." );
-      throw buildException( "bulkinsert", null, "", "", "" + e );
-   }
-}
+
 /************************************************
  * @Description:  insert valid records one by one
  * @Author:       linsuqiang
@@ -385,15 +312,7 @@ function insertValidRecs ( mainCL, recs )
 {
    for( var i = 0; i < recs.length; i++ )
    {
-      try
-      {
-         mainCL.insert( recs[i] );
-      }
-      catch( e )
-      {
-         throw buildException( "insertValidRecs", null, "[" + ( parseInt( i ) + 1 ) + " th record: " + recs[i] + "",
-            "", "" + e );
-      }
+      mainCL.insert( recs[i] );
    }
 }
 /************************************************
@@ -405,21 +324,10 @@ function insertInvalidRecs ( mainCL, recs )
 {
    for( var i = 0; i < recs.length; i++ )
    {
-      try
+      assert.tryThrow( -135, function()
       {
          mainCL.insert( recs[i] );
-         throw "record is valid unexceptedly";
-      }
-      catch( e )
-      {  // -135 is caused by out bound, not useful for all conditions！！
-         var exceptE = -135;
-         if( e !== exceptE )
-         {
-            throw buildException( "insertInvalidRecs", null, "[" + ( parseInt( i ) + 1 ) + " th record]" + recs[i],
-               "[" + exceptE + "]",
-               "[" + e + "]" );
-         }
-      }
+      } );
    }
 }
 /************************************
@@ -438,12 +346,7 @@ function lsqCheckRec ( rc, expRecs )
       actRecs.push( rc.current().toObj() );
    }
    //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
-   }
+   assert.equal( actRecs.length, expRecs.length );
 
    //check every records every fields,expRecs as compare source
    for( var i in expRecs )
@@ -453,17 +356,10 @@ function lsqCheckRec ( rc, expRecs )
 
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-            throw buildException( "lsqCheckRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }
-
 
 /**
  * 比较两个JSON对象是否相等
@@ -545,16 +441,8 @@ function prepareByPositiveSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
    //attach分区表
    mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 10 }, UpBound: { a: 20 } } );
    //对分区字表进行分区
-   try
-   {
-      //sprilt subcl
-      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
-   }
-   catch( e )
-   {
-      throw buildException( "prepareByPositiveSequence()", e, "split subc2", "split subc2 success",
-         "split subc2 fail" );
-   }
+   //sprilt subcl
+   db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
    insertData( mainCL );
 }
 /*******************************
@@ -584,16 +472,8 @@ function prepareByInvertedSequence ( mainCL_Name, subCL_Name1, subCL_Name2 )
    //attach分区表
    mainCL.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { a: 19 }, UpBound: { a: 9 } } );
    //对分区字表进行分区
-   try
-   {
-      //sprilt subcl
-      db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
-   }
-   catch( e )
-   {
-      throw buildException( "prepareByInvertedSequence()", e, "split subc2", "split subc2 success",
-         "split subc2 fail" );
-   }
+   //sprilt subcl
+   db.getCS( COMMCSNAME ).getCL( subCL_Name2 ).split( groupName2, groupName1, { b: 0 }, { b: 50 } );
    insertData( mainCL );
 }
 
@@ -608,44 +488,23 @@ function insertData ( mainCL )
          doc.push( { a: j, b: k, test: "testData" + k } );
       }
    }
-   try
-   {
-      //批量向表插入数据
-      mainCL.insert( doc );
-   }
-   catch( e )
-   {
-      throw buildException( "insertData()", e, "insert data", "insert data success", "insert data fail" );
-   }
+   //批量向表插入数据
+   mainCL.insert( doc );
 }
 
 function zxqCheckRec ( realData, expectDataArray )
 {
-   if( realData.count() != expectDataArray.length )
+   assert.equal( realData.count(), expectDataArray.length );
+   var current;
+   var expect;
+   for( var i = 0; i < realData.count(); i++ )
    {
-      println( realData.count() + "   " + expectDataArray.length );
-      println( "real count is not same as expect count" );
-      throw buildException( "zxqCheckRec()", null, "check data", "check data success", "check data fail" );
-   }
-   else
-   {
-      var current;
-      var expect;
-      for( var i = 0; i < realData.count(); i++ )
+      current = realData.current().toObj();
+      expect = expectDataArray[i];
+      if( current.a !== expect.a || current.b !== expect.b || current.test !== expect.test )
       {
-         current = realData.current().toObj();
-         expect = expectDataArray[i];
-         if( current.a !== expect.a || current.b !== expect.b || current.test !== expect.test )
-         {
-            println( "real data is not same as expect data" );
-            throw buildException( "zxqCheckRec()", null, "check data", "check data success",
-               "check data fail" );
-         }
-         realData.next();
+         throw new Error( "check data fail" );
       }
-      println( "real data is same as expect data" );
+      realData.next();
    }
 }
-
-
-/**=========================================================================*/

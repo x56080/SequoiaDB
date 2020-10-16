@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test( )
+function test ()
 {
    var mainCLName = CHANGEDPREFIX + "_mainCL_21997";
    var subCLName = CHANGEDPREFIX + "_subCL_21997";
@@ -20,34 +20,19 @@ function test( )
    array = array.join( "a" );
    subCL.insert( { a: array } );
 
-   array = new Array( 1024*1024+1 );
+   array = new Array( 1024 * 1024 + 1 );
    array = array.join( "aaaaaaaaaaaaaaa" );
-   try
+   assert.tryThrow( -39, function()
    {
       subCL.insert( { a: array } );
-   }
-   catch( e )
-   {
-      if( e !== -39 )
-      {
-         throw e;
-      }
-   }
+   } )
 
-   array = new Array( 1024*1024+1 );
+   array = new Array( 1024 * 1024 + 1 );
    array = array.join( "aaaaaaaaaaaaaaaaa" );
-   try
+   assert.tryThrow( -10, function()
    {
       subCL.insert( { a: array } );
-      throw new Error( "Insert should be failed!" );
-   }
-   catch( e )
-   {
-      if( e !== -10 )
-      {
-         throw e;
-      }
-   }
+   } )
 
    commDropCL( db, COMMCSNAME, mainCLName, false );
 }
