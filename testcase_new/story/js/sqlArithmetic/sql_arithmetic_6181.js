@@ -2,46 +2,36 @@
 *@Description:     seqDB-6181:针对不同的数据类型做算术运算_st.sql.arithExpre.004
 *@Author:  2016/7/12  huangxiaoni
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( isTransautocommit() ) 
    {
-      println( "\nThe node config[ {transautocommit: true} ]." );
       return;
    }
 
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_6181";
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_6181";
 
-      dropCL( csName, clName, true, "Failed to drop cl in the begin." );
-      createCL( csName, clName, true, true, "Failed to create cl." );
+   dropCL( csName, clName, true, "Failed to drop cl in the begin." );
+   createCL( csName, clName, true, true, "Failed to create cl." );
 
-      insertRecs( csName, clName );
-      var rc = selectRecs( csName, clName );
-      checkResult( rc );
+   insertRecs( csName, clName );
+   var rc = selectRecs( csName, clName );
+   checkResult( rc );
 
-      dropCL( csName, clName, false, "Failed to drop cl in the end." );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   dropCL( csName, clName, false, "Failed to drop cl in the end." );
 }
 
 function insertRecs ( csName, clName )
 {
-   println( "\n---Begin to insert records." );
 
    db.execUpdate( "insert into " + csName + "." + clName + "(a, b, c, d, e, f) values(-2147483648, 2147483647, -9223372036854775808, 9223372036854775807, -1.0000000000001, 1.999999999999)" );
 }
 
 function selectRecs ( csName, clName )
 {
-   println( "\n---Begin to select records." );
 
    var rc0 = db.exec( "select a+1, b+1, c+1, d+1, e+1, f+1 from " + csName + "." + clName );
    var rc1 = db.exec( "select a-1, b-1, c-1, d-1, e-1, f-1 from " + csName + "." + clName );
@@ -54,7 +44,6 @@ function selectRecs ( csName, clName )
 
 function checkResult ( rc )
 {
-   println( "\n---Begin to check result." );
 
    //compare the records for rc[0]
    var expA = -2147483647;
@@ -73,8 +62,8 @@ function checkResult ( rc )
    if( expA !== actA || expB !== actB || expC !== actC || expD !== actD
       || expE !== actE || expF !== actF )
    {
-      throw buildException( "checkResult", null, "[ rc[0] ]",
-         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]",
+      throw new Error( "checkResult fail,[ rc[0] ]" +
+         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]" +
          "[a:" + actA + ",b:" + actB + ",c:" + actC + ",d:" + actD + ",e:" + actE + ",f:" + actF + "]" );
    }
 
@@ -95,8 +84,8 @@ function checkResult ( rc )
    if( expA !== actA || expB !== actB || expC !== actC || expD !== actD
       || expE !== actE || expF !== actF )
    {
-      throw buildException( "checkResult", null, "[ rc[1] ]",
-         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]",
+      throw new Error( "checkResult fail,[ rc[1] ]" +
+         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]" +
          "[a:" + actA + ",b:" + actB + ",c:" + actC + ",d:" + actD + ",e:" + actE + ",f:" + actF + "]" );
    }
 
@@ -117,8 +106,8 @@ function checkResult ( rc )
    if( expA !== actA || expB !== actB || expC !== actC || expD !== actD
       || expE !== actE || expF !== actF )
    {
-      throw buildException( "checkResult", null, "[ rc[2] ]",
-         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]",
+      throw new Error( "checkResult fail,[ rc[2] ]" +
+         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]" +
          "[a:" + actA + ",b:" + actB + ",c:" + actC + ",d:" + actD + ",e:" + actE + ",f:" + actF + "]" );
    }
 
@@ -139,8 +128,8 @@ function checkResult ( rc )
    if( expA !== actA || expB !== actB || expC !== actC || expD !== actD
       || expE !== actE || expF !== actF )
    {
-      throw buildException( "checkResult", null, "[ rc[3] ]",
-         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]",
+      throw new Error( "checkResult fail,[ rc[3] ]" +
+         "[a:" + expA + ",b:" + expB + ",c:" + expC + ",d:" + expD + ",e:" + expE + ",f:" + expF + "]" +
          "[a:" + actA + ",b:" + actB + ",c:" + actC + ",d:" + actD + ",e:" + actE + ",f:" + actF + "]" );
    }
 
