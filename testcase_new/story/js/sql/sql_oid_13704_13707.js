@@ -64,17 +64,10 @@ function insertSQL ( db, cl, csName, clName, insertValue, checkValue, result )
    }
    else
    {
-      try
+      assert.tryThrow( -6, function()
       {
          db.execUpdate( sql );
-      }
-      catch( e )
-      {
-         if( e.message != -6 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
    }
 
 }
@@ -93,17 +86,10 @@ function updateSQL ( db, cl, csName, clName, oldValue, newValue, checkValue, res
    }
    else
    {
-      try
+      assert.tryThrow( -6, function()
       {
          db.execUpdate( sql );
-      }
-      catch( e )
-      {
-         if( e.message != -6 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
    }
 }
 
@@ -120,17 +106,10 @@ function selectSQL ( db, csName, clName, value, result )
    }
    else
    {
-      try
+      assert.tryThrow( -6, function()
       {
          db.execUpdate( sql );
-      }
-      catch( e )
-      {
-         if( e.message != -6 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
    }
 }
 
@@ -148,16 +127,9 @@ function deleteSQL ( db, cl, csName, clName, deleteValue, checkValue, result )
    }
    else
    {
-      try
+      assert.tryThrow( -6, function()
       {
          db.execUpdate( sql );
-      }
-      catch( e )
-      {
-         if( e.message != -6 )
-         {
-            throw new Error( e );
-         }
-      }
+      } );
    }
 }

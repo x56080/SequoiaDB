@@ -175,16 +175,10 @@ function test ()
 }
 function compareError ( sql, message, code, otherCode )
 {
-   try
+   var codes = [code];
+   if( otherCode !== undefined ) { codes.push( otherCode ); }
+   assert.tryThrow( codes, function()
    {
       db.execUpdate( sql );
-      throw message;
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, code ) && ( otherCode === undefined || !commCompareErrorCode( e, otherCode ) ) )
-      {
-         throw new Error( e + " exec:" + sql + " error " );
-      }
-   }
+   } );
 }

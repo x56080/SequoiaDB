@@ -3,11 +3,11 @@
 @author yinzhen
 @date 2019-7-5
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "STANDALONE MODE" );
       return;
    }
 
@@ -46,17 +46,4 @@ function main ()
    }
 
    commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

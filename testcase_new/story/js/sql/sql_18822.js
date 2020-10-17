@@ -2,9 +2,9 @@
 *@Description: seqDB-18822 聚集查询where子句使用“<>”判断
 *@Author     : 2019.07.15 yinzhen 
 **************************************/
-main();
 
-function main ()
+main( test );
+function test ()
 {
    var clName = COMMCLNAME + "_sql_18822";
    commDropCL( db, COMMCSNAME, clName, true, true );
@@ -26,15 +26,15 @@ function main ()
    // check result
    if( actList.length !== 1 )
    {
-      throw buildException( "main", "RESULT ERROR", "check return result length",
-         "{\"min\": \"201901\", \"max\": \"201902\"}",
+      throw new Error( "main RESULT ERROR check return result length" +
+         "{\"min\": \"201901\", \"max\": \"201902\"}" +
          JSON.stringify( actList ) );
    }
    var expObj = { "min": "201901", "max": "201902" };
    if( JSON.stringify( expObj ) !== JSON.stringify( actList[0] ) )
    {
-      throw buildException( "main", "RESULT ERROR", "check return result",
-         "{\"min\": \"201901\", \"max\": \"201902\"}",
+      throw new Error( "main RESULT ERROR check return result" +
+         "{\"min\": \"201901\", \"max\": \"201902\"}" +
          JSON.stringify( actList ) );
    }
 

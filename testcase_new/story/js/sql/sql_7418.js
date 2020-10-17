@@ -18,19 +18,11 @@ function test ()
    for( var i = 0; i < invChars.length; i++ )
    {
       var age = invChars[i] + "age";
-      try
+      assert.tryThrow( -195, function()
       {
          var sql = "insert into " + csName + "." + clName + "(" + age + ")" + " values(25)";
          db.execUpdate( sql );
-         throw "insert into success when '" + invChars[i] + "' at the beginning of field,Expect errorno:-195";
-      }
-      catch( e )
-      {
-         if( !commCompareErrorCode( e, -195 ) )
-         {
-            throw new Error( e + " exec:" + sql + " error " );
-         }
-      }
+      } );
    }
 
    var speChars = [";", ":", "{", "}", "[", "]", ",", "<", ">", "?", "/", "|", "\\", "+", "=", "-", "_", "~", "`", "!", "@", "#", "$", "%", "^", "&", "*"];

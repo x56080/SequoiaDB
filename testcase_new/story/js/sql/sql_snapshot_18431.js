@@ -5,9 +5,8 @@
 *@testlinkCase: seqDB-18431
 **************************************/
 
-main();
-
-function main ()
+main( test );
+function test ()
 {
    if( commGetGroupsNum( db ) < 1 )
    {
@@ -28,29 +27,20 @@ function main ()
 
 function getGroup ( db )
 {
-   try
+   var listGroups = db.listReplicaGroups();
+   var groupArray = new Array();
+   while( listGroups.next() )
    {
-      var listGroups = db.listReplicaGroups();
-      var groupArray = new Array();
-      while( listGroups.next() )
+      if( listGroups.current().toObj()["GroupID"] >= DATA_GROUP_ID_BEGIN )
       {
-         if( listGroups.current().toObj()["GroupID"] >= DATA_GROUP_ID_BEGIN )
-         {
-            groupArray.push( listGroups.current().toObj()["GroupName"] );
-         }
+         groupArray.push( listGroups.current().toObj()["GroupName"] );
       }
-      return groupArray;
    }
-   catch( e )
-   {
-      println( "Failed to get groups from sdb, rc = " + e );
-      throw e;
-   }
+   return groupArray;
 }
 
 function checkRec ( actualRc, expectedRc )
 {
-   println( "---begin to check data context." );
    //get actual records to array
    var actRecs = [];
    var expRecs = [];
@@ -66,11 +56,7 @@ function checkRec ( actualRc, expectedRc )
    }
 
    //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      throw buildException( "check count", expRecs.length, "",
-         expRecs.length, actRecs.length );
-   }
+   assert.equal( actRecs.length, expRecs.length );
 
    //check every records every fields
    for( var i in expRecs )
@@ -79,34 +65,8 @@ function checkRec ( actualRc, expectedRc )
       var expRec = expRecs[i];
       for( var f in expRec )
       {
-         if( !compareObj( actRec[f], expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual recs in cl= " + JSON.stringify( actRecs[i] ) + "\n\nexpect recs= " + JSON.stringify( expRecs[i] ) );
-
-            throw buildException( "checkRec()", "check actRecs fail!" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
-   }
-
-   //compare two basic data type value or json object.
-   function compareObj ( lobj, robj )
-   {
-      if( typeof ( lobj ) === "object" && typeof ( robj ) === "object" )
-      {
-         for( key in lobj )
-         {
-            if( undefined === robj[key] ) return false;
-            if( !compareObj( lobj[key], robj[key] ) ) return false;
-         }
-         return true;
-      }
-      else if( lobj === robj )
-      {
-         return true;
-      }
-      else
-         return false;
    }
 
 }
