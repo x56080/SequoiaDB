@@ -3,9 +3,12 @@
 *@Modify list :
 *              2016/7/11 huangxiaoni
 *******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
+
+
 function createCL ( csName, clName, autoCreateCS, ignoreExisted, message )
 {
-   println( "\n---Begin to create collection[" + clName + "]." );
 
    if( autoCreateCS == undefined ) { autoCreateCS = true; }
    if( ignoreExisted == undefined ) { ignoreExisted = false; }
@@ -24,29 +27,18 @@ function createCL ( csName, clName, autoCreateCS, ignoreExisted, message )
    }
    catch( e )
    {
-      if( e != -22 || !ignoreExisted )
+      if( e.message != -22 || !ignoreExisted )
       {
-         println( message );
          throw e;
       }
    }
 
    //getCL
-   try
-   {
-      return eval( 'db.' + csName + '.getCL("' + clName + '")' );
-   }
-   catch( e )
-   {
-      println( "Failed to getCL." );
-      throw e;
-   }
-
+   return eval( 'db.' + csName + '.getCL("' + clName + '")' );
 }
 
 function dropCL ( csName, clName, ignoreNotExist, message )
 {
-   println( "\n---Begin to drop collection[" + clName + "]." );
 
    if( message == undefined ) { message = ""; }
    if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
@@ -57,13 +49,12 @@ function dropCL ( csName, clName, ignoreNotExist, message )
    }
    catch( e )
    {
-      if( ( e !== -34 && ignoreNotExist ) || ( e === -23 && ignoreNotExist ) )
+      if( ( e.message != -34 && ignoreNotExist ) || ( e.message == -23 && ignoreNotExist ) )
       {
          //continue
       }
       else
       {
-         println( message );
          throw e;
       }
    }
