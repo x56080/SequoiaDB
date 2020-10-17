@@ -117,14 +117,14 @@ namespace engine
    {
       stringstream ss ;
       ss << endl ;
-      ss << "   --Constructor methods for class MaxKey : " << endl ;
-      ss << "   { \"$maxKey\": 1 }   " << endl ;
-      ss << "   MaxKey()           "
-         << "-- Data type: the maximum of all data types" << endl ;
+      ss << "   --Constructor methods for class \"MaxKey\" : " << endl ;
+      ss << "   { \"$maxKey\": 1 }" << endl ;
+      ss << "   MaxKey()                   "
+         << "- Data type: the maximum of all data types" << endl ;
       ss << endl ;
-      ss << "   --Static methods for class MaxKey : " << endl ;
+      ss << "   --Static methods for class \"MaxKey\" : " << endl ;
       ss << endl ;
-      ss << "   --Instance methods for class MaxKey : " << endl ;
+      ss << "   --Instance methods for class \"MaxKey\" : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

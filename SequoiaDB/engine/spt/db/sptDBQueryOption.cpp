@@ -198,7 +198,7 @@ namespace engine
    {
       stringstream ss ;
       ss << endl ;
-      ss << "   --Constructor methods for class SdbQueryOption : " << endl ;
+      ss << "   --Constructor methods for class \"SdbQueryOption\" : " << endl ;
       ss << "   SdbQueryOption[.cond(<cond>)]" << endl ;
       ss << "                 [.sel(<sel>)]" << endl ;
       ss << "                 [.sort(<sort>)]" << endl ;
@@ -206,12 +206,13 @@ namespace engine
       ss << "                 [.skip(<skipNum>)]" << endl ;
       ss << "                 [.limit(<retNum>)]" << endl ;
       ss << "                 [.update(<rule>, [returnNew], [options])]" << endl ;
-      ss << "                 [.remove()]   "
-         << "   -- Create a SdbQueryOption object" << endl ;
+      ss << "                 [.remove()]" << endl ;
+      ss << "                              "
+         << "- Create a SdbQueryOption object" << endl ;
       ss << endl ;
-      ss << "   --Static methods for class SdbQueryOption : " << endl ;
+      ss << "   --Static methods for class \"SdbQueryOption\" : " << endl ;
       ss << endl ;
-      ss << "   --Instance methods for class SdbQueryOption : " << endl ;
+      ss << "   --Instance methods for class \"SdbQueryOption\" : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

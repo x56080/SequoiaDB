@@ -293,14 +293,14 @@ namespace engine
    {
       stringstream ss ;
       ss << endl ;
-      ss << "   --Constructor methods for class SdbDate : " << endl ;
-      ss << "   { \"$date\": <date> }   " << endl ;
-      ss << "   SdbDate( [date] )     "
-         << "-- Data type: date" << endl ;
+      ss << "   --Constructor methods for class \"SdbDate\" : " << endl ;
+      ss << "   { \"$date\": <date> }" << endl ;
+      ss << "   SdbDate( [date] )          "
+         << "- Data type: date" << endl ;
       ss << endl ;
-      ss << "   --Static methods for class SdbDate : " << endl ;
+      ss << "   --Static methods for class \"SdbDate\" : " << endl ;
       ss << endl ;
-      ss << "   --Instance methods for class SdbDate : " << endl ;
+      ss << "   --Instance methods for class \"SdbDate\" : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

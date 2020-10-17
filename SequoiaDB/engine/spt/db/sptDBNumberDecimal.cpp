@@ -468,8 +468,9 @@ namespace engine
       ss << "   { \"$decimal\": <data> }   " << endl ;
       ss << "   { \"$decimal\": <data>, " << endl ;
       ss << "     \"$precision\": [ <precision>, <scale> ] }   " << endl ;
-      ss << "   NumberDecimal( <data>[, [ <precision>, <scale> ] ] )   "
-         << "-- Data type: high-precision number" << endl ;
+      ss << "   NumberDecimal( <data>[, [ <precision>, <scale> ] ] )" << endl ;
+      ss << "                              "
+         << "- Data type: high-precision number" << endl ;
       ss << endl ;
       ss << "   --Static methods for class \"NumberDecimal\": " << endl ;
       ss << endl ;

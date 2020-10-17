@@ -416,9 +416,9 @@ namespace engine
       stringstream ss ;
       ss << endl ;
       ss << "   --Constructor methods for class \"NumberLong\": " << endl ;
-      ss << "   { \"$numberLong\": <data> }   " << endl ;
-      ss << "   NumberLong( <data> )        "
-         << "-- Data type: long integer" << endl ;
+      ss << "   { \"$numberLong\": <data> }" << endl ;
+      ss << "   NumberLong( <data> )       "
+         << "- Data type: long integer" << endl ;
       ss << endl ;
       ss << "   --Static methods for class \"NumberLong\": " << endl ;
       ss << endl ;

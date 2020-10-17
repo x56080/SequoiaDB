@@ -271,20 +271,21 @@ namespace engine
       ss << "   --Constructor methods for class \"CipherUser\": " << endl ;
       ss << "   CipherUser( <username> )[.token( <token> )]" << endl ;
       ss << "                           [.clusterName( <clusterName> )]" << endl ;
-      ss << "                           [.cipherFile( <cipherFile> )]"
-         << "   -- Create a CipherUser object" << endl ;
+      ss << "                           [.cipherFile( <cipherFile> )]" << endl ;
+      ss << "                              "
+         << "- Create a CipherUser object" << endl ;
       ss << endl ;
       ss << "   --Static methods for class \"CipherUser\": " << endl ;
-      ss << "   toString()                     "
-         << "-- Convert CipherUser to string format" << endl ;
+      ss << "   toString()                 "
+         << "- Convert CipherUser to string format" << endl ;
       ss << endl ;
       ss << "   --Instance methods for class \"CipherUser\": " << endl ;
-      ss << "   getUsername()                  "
-         << "-- Get username" << endl ;
-      ss << "   getClusterName()               "
-         << "-- Get cluster name" << endl ;
-      ss << "   getCipherFile()                "
-         << "-- Get cipher file path" << endl ;
+      ss << "   getUsername()              "
+         << "- Get username" << endl ;
+      ss << "   getClusterName()           "
+         << "- Get cluster name" << endl ;
+      ss << "   getCipherFile()            "
+         << "- Get cipher file path" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

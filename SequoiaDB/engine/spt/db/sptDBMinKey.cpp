@@ -118,14 +118,14 @@ namespace engine
    {
       stringstream ss ;
       ss << endl ;
-      ss << "   --Constructor methods for class MinKey : " << endl ;
-      ss << "   { \"$minKey\": 1 }   " << endl ;
-      ss << "   MinKey()           "
-         << "-- Data type: the minimum of all data types" << endl ;
+      ss << "   --Constructor methods for class \"MinKey\" : " << endl ;
+      ss << "   { \"$minKey\": 1 }" << endl ;
+      ss << "   MinKey()                   "
+         << "- Data type: the minimum of all data types" << endl ;
       ss << endl ;
-      ss << "   --Static methods for class MinKey : " << endl ;
+      ss << "   --Static methods for class \"MinKey\" : " << endl ;
       ss << endl ;
-      ss << "   --Instance methods for class MinKey : " << endl ;
+      ss << "   --Instance methods for class \"MinKey\" : " << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }

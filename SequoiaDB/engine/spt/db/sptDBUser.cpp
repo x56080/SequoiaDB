@@ -255,18 +255,19 @@ error:
       stringstream ss ;
       ss << endl ;
       ss << "   --Constructor methods for class \"User\": " << endl ;
-      ss << "   User( <username>, [passwd] )   "
-         << "-- Create a User obj" << endl ;
+      ss << "   User( <username>, [passwd] )" << endl ;
+      ss << "                              "
+         << "- Create a User obj" << endl ;
       ss << endl ;
       ss << "   --Static methods for class \"User\": " << endl ;
-      ss << "   toString()                     "
-         << "-- Convert User to string format" << endl ;
+      ss << "   toString()                 "
+         << "- Convert User to string format" << endl ;
       ss << endl ;
       ss << "   --Instance methods for class \"User\": " << endl ;
-      ss << "   promptPassword()               "
-         << "-- Input password" << endl ;
-      ss << "   getUsername()                  "
-         << "-- Get username" << endl ;
+      ss << "   promptPassword()           "
+         << "- Input password" << endl ;
+      ss << "   getUsername()              "
+         << "- Get username" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }
