@@ -2,30 +2,17 @@
 *@description ： seqDB-4992:hash范围切分设置condition条件值超出partition范围
 *@author ：2019-5-30 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -40,32 +27,16 @@ function main ()
    insertData( cl, 100 );
 
    var condition = { "Partition": 1024 };
-   try
+   assert.tryThrow( -6, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
-      throw new Error( "expect fail but succeed, inavalid condition = " + JSON.stringify( condition ) );
-   }
-   catch( e )
-   {
-      if( e.message !== "-6" )
-      {
-         throw e;
-      }
-   }
+   } );
 
    var condition = { "Partition": -1 };
-   try
+   assert.tryThrow( -6, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
-      throw new Error( "expect fail but succeed, inavalid condition = " + JSON.stringify( condition ) );
-   }
-   catch( e )
-   {
-      if( e.message !== "-6" )
-      {
-         throw e;
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
 }

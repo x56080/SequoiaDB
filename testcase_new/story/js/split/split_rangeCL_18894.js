@@ -2,30 +2,17 @@
 *@description ：seqDB-18894:清理range表切分任务时创建同名hash分区表 
 *@author ：2019-7-20 wuyan
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 

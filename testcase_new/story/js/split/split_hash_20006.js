@@ -2,30 +2,17 @@
 @description : seqDB-20006:hash切分表百分百切分多次，多个组多次切分覆盖边界值
 @author : 2019-10-11   XiaoNi Huang  init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 3 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -69,10 +56,7 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
 {
    // check total count
    var cnt = Number( cl.count() );
-   if( recordsNum !== cnt )
-   {
-      throw new Error( "checkRecs", null, "[check total number]", recordsNum, cnt );
-   }
+   assert.equal( recordsNum, cnt );
 
    // check count for each group
    var totalNodeRecsCnt = 0;
@@ -90,10 +74,7 @@ function checkRecordsNum ( cl, csName, clName, recordsNum, groupNames )
          if( nodeDB !== null ) nodeDB.close();
       }
    }
-   if( recordsNum !== totalNodeRecsCnt )
-   {
-      throw new Error( "checkRecs", null, "[check node records number]", recordsNum, totalNodeRecsCnt );
-   }
+   assert.equal( recordsNum, totalNodeRecsCnt );
 }
 
 function checkShardingRange ( csName, clName ) 

@@ -10,7 +10,6 @@ function test ( arg )
    var dataGroupNames = commGetDataGroupNames( db );
    if( dataGroupNames.length < 3 )
    {
-      println( "Least 3 groups" );
       return;
    }
    dataGroupNames.sort();

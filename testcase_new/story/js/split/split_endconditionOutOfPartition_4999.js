@@ -2,30 +2,17 @@
 *@description ：seqDB-4999:hash范围切分设置endcondition条件值超出partition范围
 *@author ：2019-5-30 wangkexin init; 2020-1-14 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 

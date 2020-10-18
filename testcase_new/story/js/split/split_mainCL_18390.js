@@ -2,30 +2,17 @@
 *@description：seqDB-18390:主表执行切分 
 *@author ：2019-6-6 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -48,18 +35,10 @@ function main ()
    mcl.attachCL( COMMCSNAME + "." + sCLName, { LowBound: { a: 0 }, UpBound: { a: 200 } } );
 
    // split
-   try
+   assert.tryThrow( -246, function()
    {
       mcl.split( srcGroupName, dstGroupName, 50 );
-      throw new Error( "expect failure but succeed." );
-   }
-   catch( e )
-   {
-      if( e.message !== "-246" )
-      {
-         throw e;
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, mCLName, true, true, "drop CL in the end." );
 }

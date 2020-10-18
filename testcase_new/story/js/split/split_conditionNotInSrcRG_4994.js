@@ -2,30 +2,17 @@
 *@description ：seqDB-4994:range分区组进行范围切分，其中condition字段值不在源分区组内
 *@author ：2019-5-30 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -41,33 +28,17 @@ function main ()
 
    //test a : condition为null
    var condition = null;
-   try
+   assert.tryThrow( -6, function()
    {
-      cl.split( srcGroupName, dstGroupName, condition )
-      throw new Error( "expect fail but succeed, condition = " + condition );
-   }
-   catch( e )
-   {
-      if( e.message !== "-6" )
-      {
-         throw e;
-      }
-   }
+      cl.split( srcGroupName, dstGroupName, condition );
+   } );
 
    //test b : condition为空串
    condition = '';
-   try
+   assert.tryThrow( -259, function()
    {
-      cl.split( srcGroupName, dstGroupName, condition )
-      throw new Error( "expect fail but succeed, condition = " + condition );
-   }
-   catch( e )
-   {
-      if( e.message !== "-259" )
-      {
-         throw e;
-      }
-   }
+      cl.split( srcGroupName, dstGroupName, condition );
+   } );
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
 }

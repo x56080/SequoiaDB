@@ -2,30 +2,17 @@
 *@description： seqDB-5001:range分区组进行范围切分，其中endcondition字段值不在源分区组内_ST.split.01.024
 *@author ：2019-5-30 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -41,33 +28,17 @@ function main ()
 
    //test a : endcondition 为null
    var endcondition = null;
-   try
+   assert.tryThrow( -6, function()
    {
-      cl.split( srcGroupName, dstGroupName, 0, endcondition )
-      throw new Error( "expect fail but succeed, endcondition = " + endcondition );
-   }
-   catch( e )
-   {
-      if( e.message !== "-6" )
-      {
-         throw e;
-      }
-   }
+      cl.split( srcGroupName, dstGroupName, 0, endcondition );
+   } );
 
    //test b : endcondition 为空串
    endcondition = '';
-   try
+   assert.tryThrow( -259, function()
    {
-      cl.split( srcGroupName, dstGroupName, endcondition )
-      throw new Error( "expect fail but succeed, endcondition = " + endcondition );
-   }
-   catch( e )
-   {
-      if( e.message !== "-259" )
-      {
-         throw e;
-      }
-   }
+      cl.split( srcGroupName, dstGroupName, endcondition );
+   } );
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end." );
 }

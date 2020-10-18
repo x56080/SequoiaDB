@@ -2,30 +2,17 @@
 @description : seqDB-7471:指定相同范围条件重复切分
 @author : 2014-07-04  PuSheng Ding init; 2016-02-18 Yan Wu modify; 2020-1-14 XiaoNi Huang modify
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -33,18 +20,6 @@ function main ()
    var srcGroupName = groupNames[0];
    var dstGroupName = groupNames[1];
    var clName = CHANGEDPREFIX + "_split_7471";
-
-   if( true == commIsStandalone( db ) )
-   {
-      println( "---Is standalone." );
-      return;
-   }
-
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      println( "---Least two groups" );
-      return;
-   }
 
    var groupNames = commGetDataGroupNames( db );
    var srcGroupName = groupNames[0];
@@ -69,61 +44,31 @@ function main ()
 function splitHash ( cl, srcGroupName, dstGroupName )
 {
    cl.split( srcGroupName, dstGroupName, { "Partition": 10 }, { "Partition": 20 } );
-   try
+   assert.tryThrow( -176, function()
    {
       cl.split( srcGroupName, dstGroupName, { "Partition": 10 }, { "Partition": 30 } );
-      throw new Error( "expect fail but succeed" );
-   }
-   catch( e )
-   {
-      if( e.message !== "-176" )
-      {
-         throw e;
-      }
-   }
+   } );
 
    cl.split( srcGroupName, dstGroupName, { "Partition": 40 }, { "Partition": 60 } );
-   try
+
+   assert.tryThrow( -176, function()
    {
       cl.split( srcGroupName, dstGroupName, { "Partition": 50 }, { "Partition": 60 } );
-      throw new Error( "expect fail but succeed" );
-   }
-   catch( e )
-   {
-      if( e.message !== "-176" )
-      {
-         throw e;
-      }
-   }
+   } );
 }
 
 function splitRange ( cl, srcGroupName, dstGroupName )
 {
    cl.split( srcGroupName, dstGroupName, { "a": 10 }, { "a": 20 } );
-   try
+
+   assert.tryThrow( -176, function()
    {
       cl.split( srcGroupName, dstGroupName, { "a": 10 }, { "a": 30 } );
-      throw new Error( "expect fail but succeed" );
-   }
-   catch( e )
-   {
-      if( e.message !== "-176" )
-      {
-         throw e;
-      }
-   }
+   } );
 
    cl.split( srcGroupName, dstGroupName, { "a": 40 }, { "a": 60 } );
-   try
+   assert.tryThrow( -176, function()
    {
       cl.split( srcGroupName, dstGroupName, { "a": 50 }, { "a": 60 } );
-      throw new Error( "expect fail but succeed" );
-   }
-   catch( e )
-   {
-      if( e.message !== "-176" )
-      {
-         throw e;
-      }
-   }
+   } );
 }

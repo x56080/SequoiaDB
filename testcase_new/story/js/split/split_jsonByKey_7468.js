@@ -2,30 +2,17 @@
 *@description : seqDB-7468:json格式插入数据后切分到不同分区组中
 *@author : 2015-5-28  XiaoJun Hu init; 2020-1-14 XiaoNi Huang modify
 ********************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 

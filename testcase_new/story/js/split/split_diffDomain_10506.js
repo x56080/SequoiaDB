@@ -2,30 +2,17 @@
 *@description ：seqDB-10506:切分源组和目标组不在同一domain中 
 *@author ：2019-3-13 wangkexin init; 2020-01-13 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -44,18 +31,10 @@ function main ()
    var cl = commCreateCL( db, csName, clName, options );
    insertData( cl, 100 );
 
-   try
+   assert.tryThrow( -216, function()
    {
-      cl.split( srcGroupName, dstGroupName, { Partition: 10 }, { Partition: 20 } )
-      throw new Error( "expect fail but succeed" );
-   }
-   catch( e )
-   {
-      if( e.message !== "-216" )
-      {
-         throw e;
-      }
-   }
+      cl.split( srcGroupName, dstGroupName, { Partition: 10 }, { Partition: 20 } );
+   } );
 
    var clGroupNames = commGetCLGroups( db, csName + "." + clName );
    if( clGroupNames.length !== 1 || clGroupNames[0] !== srcGroupName )
