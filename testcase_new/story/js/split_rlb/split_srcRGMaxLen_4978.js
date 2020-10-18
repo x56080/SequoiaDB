@@ -2,30 +2,16 @@
 *@description: seqDB-4978:源分区组名取最大长度值进行数据切分_ST.split.01.001
 *@author :  2019-5-30 wangkexin init; 2020-1-14 huangxiaoni modify
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
-function main ()
+main( test );
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "---Is standalone." );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "---Least two groups" );
       return;
    }
 
@@ -71,7 +57,6 @@ function main ()
       }
       catch( e )
       {
-         println( "srcGroupName = " + srcGroupName );
          var svcname = nodeInfo[0].svcname;
          backupGroupLog( hostname, svcname, "split_4978" );
          throw e;
