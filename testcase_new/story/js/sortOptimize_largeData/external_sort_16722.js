@@ -4,7 +4,9 @@
 *@createdate:  2018.12.04
 *@testlinkCase: seqDB-16722
 **************************************/
-function main ()
+main();
+
+function test ()
 {
    //create CL
    var clName = COMMCLNAME + "_sort_16722";
@@ -38,5 +40,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, clName, true, true );
 }
-
-main();

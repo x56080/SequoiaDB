@@ -4,7 +4,9 @@
 *@createdate:  2018.12.04
 *@testlinkCase: seqDB-16723
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //create CL
    var clName = COMMCLNAME + "_sort_16723";
@@ -41,4 +43,3 @@ function createBigStr ( length )
    }
    return arr;
 }
-main();

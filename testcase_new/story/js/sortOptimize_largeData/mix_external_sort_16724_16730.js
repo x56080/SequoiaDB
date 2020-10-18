@@ -6,7 +6,8 @@
 *@testlinkCase: seqDB-16724
                 seqDB-16730
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -63,4 +64,3 @@ function createBigStr ( str )
    }
    return arr;
 }
-main();
