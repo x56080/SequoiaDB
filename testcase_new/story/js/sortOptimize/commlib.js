@@ -1,16 +1,19 @@
-function getRandomInt ( min, max )// [min, max )
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
+
+function getRandomInt ( min, max ) // [min, max)
 {
    var range = max - min;
    var value = min + parseInt( Math.random() * range );
    return value;
 }
 
-function getRandomString ( strLen )//string length value locate in [minLen, maxLen )
+function getRandomString ( strLen ) //string length value locate in [minLen, maxLen)
 {
    var str = "";
    for( var i = 0; i < strLen; i++ )
    {
-      var ascii = getRandomInt( 48, 127 ); // '0'--'~'
+      var ascii = getRandomInt( 48, 127 ); // '0' -- '~'
       var c = String.fromCharCode( ascii );
       str += c;
    }
@@ -27,19 +30,18 @@ function checkSortResultForLargeData ( cursor, sortCond )
          var actResult = cursor.current().toObj(); // the next one
          for( var sortKey in sortCond )
          {
-            if( expectResult[sortKey] > actResult[sortKey] )// sort result not expected
+            if( expectResult[sortKey] > actResult[sortKey] )  // sort result not expected
             {
-               throw buildException( "checkSortResultForLargeData", "check result", "check result",
-                  JSON.stringify( expectResult ), JSON.stringify( actResult ) );
+               throw new Error( "checkSortResultForLargeData check result" +
+                  JSON.stringify( expectResult ) + JSON.stringify( actResult ) );
             }
-            else if( expectResult[sortKey] < actResult[sortKey] )// compare next record
+            else if( expectResult[sortKey] < actResult[sortKey] ) // compare next record
             {
                break;
             }
          }
       }
    }
-   println( "-----check sort result success-----" );
 }
 
 function getSortType ( dbcl, findConf, selectorCond, sortCond, hintCond )
@@ -61,9 +63,5 @@ function getSortType ( dbcl, findConf, selectorCond, sortCond, hintCond )
 
 function checkSortType ( expectResult, actResult )
 {
-   if( expectResult != actResult )
-   {
-      throw buildException( "checkSortType", "sort type", "check sort type",
-         expectResult, actResult );
-   }
+   assert.equal( expectResult, actResult );
 }
