@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.3.1
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_add_17924";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -12,7 +12,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: 12, d: -1145.934 } },
    { no: 2, test: { a: { no: { float: 1.2e+300 } }, b: { no: { $decimal: "-12.345" } } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //the field is object 
    var findCondition1 = { no: 1 };

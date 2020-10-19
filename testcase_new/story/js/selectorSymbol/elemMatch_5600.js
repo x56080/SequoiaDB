@@ -5,7 +5,8 @@
 *@createdate:  2016.7.14
 *@testlinkCase: seqDB-5600
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -30,7 +31,7 @@ function main ()
    { No: 14, arr: [{ type: "object", value1: { subobj: -2147483648 } }, { type: "arr", value2: [1, 2, 3] }] },
    { No: 15, arr: [{ type: "null", value1: null }, { type: "arr", value2: [1, 2, 3] }] },
    { No: 16, arr: [{ type: "null", value1: null }, { type: "string", value2: "abc" }] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //field and value is existent,cover all type data,seqDB-5600
    var selectCondition1 = { arr: { $elemMatch: { value1: -2147483648 } } };
@@ -128,4 +129,3 @@ function main ()
 
 
 }
-main();

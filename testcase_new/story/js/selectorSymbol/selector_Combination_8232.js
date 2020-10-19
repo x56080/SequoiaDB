@@ -4,7 +4,8 @@
 *@createdate:  2016.7.19
 *@testlinkCase:seqDB-8237/seqDB-5841/seqDB-8232/seqDB-8233/seqDB-8234
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -34,7 +35,7 @@ function main ()
    { r: { name: "zhangsan", age: 18 }, s: [{ name: "zhangsan", age: 18 }, { name: "lisi", age: 18 }] },
    { t: [{ name: "zhangsan", age: 18 }, { name: "lisi", age: 18 }] },
    { u: [1, 2, 3, 4] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //include all selector;
    var selectCondition1 = [{ a: { $abs: 1 } },
@@ -88,7 +89,6 @@ function main ()
    checkResult( dbcl, null, newCondition1, expRecs1, { _id: 1 } );
 }
 
-main();
 
 /************************************
 *@Description: unset the order for arr elements.
@@ -110,6 +110,5 @@ function getRdmDataFromArr ( arr )
          obj[k] = newArr[i][k];
       }
    }
-   println( "---randomSelectors:" + JSON.stringify( obj ) );
    return obj;
 }

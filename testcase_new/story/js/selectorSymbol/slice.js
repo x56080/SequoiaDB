@@ -15,7 +15,9 @@
 *@createdate:  2016.7.14
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -27,7 +29,7 @@ function main ()
    var doc = [{ No: 1, arr: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
    { No: 2, arr: [] },
    { No: 3, arr1: [1, 2, 3, 4, 5, 6, 7, 8, 9], arr2: [11, 22, 33, 44, 55, 66, 77, 88, 99] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //only set value2, seqDB-5614/seqDB-5621/seqDB-5623
    var selectCondition1 = { arr: { $slice: 3 } };
@@ -115,4 +117,3 @@ function main ()
    //then find all data,check result
    checkResult( dbcl, null, null, doc, { No: 1 } );
 }
-main()

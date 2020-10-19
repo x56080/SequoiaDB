@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.2.27
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_default_17916";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -13,7 +13,7 @@ function main ()
    var doc = [{ no: 1, test: true },
    { no: 2, test: { no: { "numberLong": "9223372036854775807" } } },
    { no: 3, test: { a: { name: "lily", age: 29 }, b: { name: "zhangsan", age: 30 } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //test a: field is non-existent,specify default valude is object type   
    var selectCondition1 = { "object": { $default: { name: "test" } } };

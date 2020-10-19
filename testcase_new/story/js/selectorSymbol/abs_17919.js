@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.3.1
 **************************************/
-main()
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_abs_17919";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -12,7 +12,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: -23, d: -2.34 } },
    { no: 2, test: { a: { no: { "$numberLong": "-9223372036854775807" } }, b: { no: -2.45E+10 } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //the field is obj 
    var findCondition1 = { no: 1 };

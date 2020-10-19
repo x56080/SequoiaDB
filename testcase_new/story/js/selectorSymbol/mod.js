@@ -9,7 +9,8 @@
 *@createdate:  2016.7.15
 *@testlinkCase:
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -40,7 +41,7 @@ function main ()
    { a: "abc" },
    { a: MinKey() },
    { a: MaxKey() }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    /*1.one or two fields cover all type of numberic data,include numberic and Non-numberic;seqDB-5639/seqDB-5640/seqDB-8220
      2.mod double;seqDB-5642
@@ -65,4 +66,3 @@ function main ()
    var selectCondition2 = { a: { $mod: 0 } };
    InvalidArgCheck( dbcl, null, selectCondition2, -6 );
 }
-main()

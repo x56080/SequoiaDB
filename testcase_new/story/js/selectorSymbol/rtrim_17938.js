@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.3.4
 ***************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_rtrim_17938";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -12,7 +12,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: " Ad23#$%Ad dd ", d: "\tadgcd123\t" } },
    { no: 2, test: { a: { no: { str: "\rabcdef\r" } }, b: { str: "\n12adgaaa\naaB\n" } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //the field is object 
    var findCondition1 = { no: 1 };

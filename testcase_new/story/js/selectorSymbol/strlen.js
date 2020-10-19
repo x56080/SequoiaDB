@@ -10,7 +10,9 @@
 *@createdate:  2016.7.15
 *@testlinkCase:
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -24,7 +26,7 @@ function main ()
    { No: 3, name: " wa ng wu ", major: "english" },
    { No: 4, name: 123, major: " " },
    { No: 5, name: [" \n\t\rString\n\t "] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    /*1.one or two fields,seqDB-5690/seqDB-8226
      2.exist or Non-exist,seqDB-5696
@@ -44,5 +46,3 @@ function main ()
    selectCondition3 = { name: { $strlen: 0 } };
    InvalidArgCheck( dbcl, null, selectCondition3, -6 );
 }
-
-main();

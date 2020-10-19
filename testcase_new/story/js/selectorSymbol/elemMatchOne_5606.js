@@ -5,7 +5,8 @@
 *@createdate:  2016.7.14
 *@testlinkCase: seqDB-5606/seqDB-5607/seqDB-5608
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -48,7 +49,7 @@ function main ()
       { type: "arr", value: [1, 2, 3] },
       { type: "null", value: null }]
    }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //field and value is existent,cover all type data,one or two record match,seqDB-5606/seqDB-5607
    var selectCondition1 = { arr: { $elemMatchOne: { value: -2147483648 } } };
@@ -139,4 +140,3 @@ function main ()
    //then find all data,check result
    checkResult( dbcl, null, null, doc, { No: 1 } );
 }
-main();

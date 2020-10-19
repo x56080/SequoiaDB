@@ -16,7 +16,8 @@
 *@createdate:  2016.7.18
 *@testlinkCase:cover all testcast in testlink
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -51,7 +52,7 @@ function main ()
    { id: 24, j: { $date: "1900-01-01" } },
    { id: 25, j: { $date: "9999-12-31" } }
    ];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var expRecs = [
       { "a": { "$minKey": 1 }, "b": -2147483648, "c": "-2147483648", "d": null, "e": null, "f": true, "g": { "$date": "1901-12-14" }, "h": null, "i": -2147483648, "k": -2147483648, "l": { "$decimal": "-2147483648" }, "m": { "$maxKey": 1 } },
@@ -143,4 +144,3 @@ function main ()
    checkResult( dbcl, null, selectCondition3, expRecs, { id: 1 } );
 }
 
-main();

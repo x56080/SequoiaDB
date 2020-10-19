@@ -4,7 +4,8 @@
 *@createdate:  2018.12.3
 *@testlinkCase: seqDB-16737
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    commDropCL( db, COMMCSNAME, COMMCLNAME );
    var dbcl = commCreateCL( db, COMMCSNAME, COMMCLNAME );
@@ -13,7 +14,7 @@ function main ()
    { HostName: "ubuntu-test-01", Disk: { Name: "/dev/sda2", Percent: 90 } },
    { HostName: "ubuntu-test-03", Disk: { Name: "/dev/sda2", Percent: 70 } },
    { HostName: "ubuntu-test-01", Disk: { Name: "/dev/sda3", Percent: 60 } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
    var selectCondition1 = { Disk: null, "Disk.Name": null };
    var expRecs1 = [{ "Disk": { "Name": "/dev/sda2", "Percent": 80 } },
    { "Disk": { "Name": "/dev/sda2", "Percent": 90 } },
@@ -30,4 +31,3 @@ function main ()
 
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
 }
-main();

@@ -10,7 +10,8 @@
 *@createdate:  2016.7.14
 *@testlinkCase: seqDB-5609/seqDB-5610/seqDB-5611/seqDB-5612/seqDB-5613/seqDB-8215
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -22,7 +23,7 @@ function main ()
    var doc = [{ No: 1, arr: [] },
    { No: 2, arr: [{ type: "int", value: 1 }] },
    { No: 3, arr: [{ type: "int", value: 2 }], arr1: [{ type: "float", value: 2.23 }] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //arr is empty,seqDB-5609
    var selectCondition1 = { arr: { $elemMatchOne: { value: 1 } } };
@@ -76,4 +77,3 @@ function main ()
    checkResult( dbcl, null, selectCondition8, expRecs8, { No: 1 } );
 
 }
-main()

@@ -16,7 +16,9 @@
 *@createdate:  2016.7.19
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -26,7 +28,7 @@ function main ()
 
    //insert data 
    var doc = [{ No: 1, a: "abcdefghijklmnopqrstuvwxyz", b: "", c: 123, e: "abcdefghijklmnopqrstuvwxyz" }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //value1>0,value1+value2<=str.length;seqDB-5680
    var selectCondition1 = { a: { $substr: [2, 5] } };
@@ -101,11 +103,10 @@ function main ()
 
    //arr
    var doc1 = [{ No: 2, a: [" \n\t\rString\n\t "] }];
-   insertData( dbcl, doc1 );
+   dbcl.insert( doc1 );
    var selectCondition15 = { a: { $substr: -3 }, e: { $substr: -30 } };
    var expRecs15 = [{ No: 1, a: "xyz", b: "", c: 123, e: "" },
    { No: 2, a: ["\n\t "] }];
    checkResult( dbcl, null, selectCondition15, expRecs15, { No: 1 } );
 
 }
-main();

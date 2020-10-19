@@ -8,7 +8,8 @@
 *@createdate:  2016.7.13
 *@testlinkCase:seqDB-5589/seqDB-5590/seqDB-5591/seqDB-5592/seqDB-5593/seqDB-8212
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -20,7 +21,7 @@ function main ()
    var doc = [{ No: 1, name: "zhangsan", age: 18 },
    { No: 2, name: "lisi", age: 19 },
    { No: 3, name: "wangwu", age: 20 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //field exists,value set 1 or -1,check result,eqDB-5589
    var findCondition1 = { No: 1 };
@@ -74,5 +75,3 @@ function main ()
    //then find all data,check result
    checkResult( dbcl, null, null, doc, { No: 1 } );
 }
-
-main();

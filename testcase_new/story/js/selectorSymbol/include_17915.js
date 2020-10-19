@@ -5,8 +5,8 @@
 *@author:      wuyan
 *@createdate:  2019.2.27
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_include_17915";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -15,7 +15,7 @@ function main ()
    var doc = [{ no: 1, test: { c: 1 } },
    { no: 2, test: { name: "lili", age: 19 } },
    { no: 3, test: { a: { name: "lily", age: 29 }, b: { name: "zhangsan", age: 30 } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //test a: field is object ,value set 1    
    var selectCondition1 = { test: { $include: 1 } };

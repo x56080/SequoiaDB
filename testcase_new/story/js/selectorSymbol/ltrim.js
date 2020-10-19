@@ -9,7 +9,8 @@
 *@createdate:  2016.7.15
 *@testlinkCase:
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -24,7 +25,7 @@ function main ()
    { No: 4, name: "\rW an\tgw\nu\r", major: " \t\n\rWangwu\t\n\r " },
    { No: 5, name: 123, major: "" },
    { No: 6, name: [" \n\t\rString\n\t "] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    /*1.one or two fields,with blank spacs or tab,seqDB-5712/seqDB-5713/seqDB-5714/seqDB-5715/seqDB-5716/seqDB-8229
      2.exist or Non-exist,seqDB-5720
@@ -44,5 +45,3 @@ function main ()
    selectCondition3 = { name: { $ltrim: 0 } };
    InvalidArgCheck( dbcl, null, selectCondition3, -6 );
 }
-
-main();

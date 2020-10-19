@@ -8,7 +8,9 @@
 *@createdate:  2016.7.14
 *@testlinkCase: seqDB-5595/seqDB-5596/seqDB-5597/seqDB-5598/seqDB-5599/seqDB-8213
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -20,7 +22,7 @@ function main ()
    var doc = [{ No: 1, name: "zhangsan", age: 18 },
    { No: 2, name: "lisi" },
    { No: 3, name: "wangwu" }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //field is non-existent,command use simple format and standard format,seqDB-5595/seqDB-5596/seqDB-5599/seqDB-8213
    var selectCondition1 = { age: 20, age1: 30, age2: { $default: 40 } };
@@ -74,7 +76,6 @@ function main ()
    //then find all data,check result
    checkResult( dbcl, null, null, doc, { No: 1 } );
 }
-main();
 
 /************************************
 *@Description: get random data from a arr,use default,then check result.
@@ -85,13 +86,6 @@ main();
 function getRdmDataFromArrAndCheck ( dbcl, arr )
 {
    var data = arr[Math.floor( Math.random() * arr.length )];
-   if( typeof ( data ) === "object" )
-   {
-      println( "getRandomData:" + JSON.stringify( data ) );
-   } else
-   {
-      println( "getRandomData:" + data );
-   }
    if( data == "MinKey()" )
    {
       data = { $minKey: 1 }
@@ -107,7 +101,5 @@ function getRdmDataFromArrAndCheck ( dbcl, arr )
    {
       expRecs.push( { age1: data } )
    }
-   println( "--begin to check the data" );
    checkRec( rc, expRecs );
-   println( "--end check the data" );
 }

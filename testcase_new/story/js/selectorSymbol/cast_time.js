@@ -5,7 +5,8 @@
 *@createdate:  2016.8.10
 *@testlinkCase:
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -23,7 +24,7 @@ function main ()
    { a: { $decimal: "2147483647000" } },
    { a: -2147483648000.48 },
    { a: 2147483647000.48 }];;
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //source type:all,destination type:all,for string express,lower letters
    var selectCondition1 = { a: { $cast: "timestamp" } };
@@ -40,8 +41,6 @@ function main ()
    var timeStampexpRecs1 = castNumbericToTimeStamp( expRecs1 );
    checkResult( dbcl, null, selectCondition1, timeStampexpRecs1, { _id: 1 } );
 }
-
-main();
 
 /************************************
 *@Description: change a number to timestamp 

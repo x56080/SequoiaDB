@@ -14,7 +14,8 @@
 *@createdate:  2016.7.19
 *@testlinkCase:
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -43,7 +44,7 @@ function main ()
    { a: "abc" },
    { a: MinKey() },
    { a: MaxKey() }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    /*1.one or two fields cover all type of numberic data,include numberic and Non-numberic;seqDB-8224
      2.divide positive/negative int;seqDB-5670
@@ -92,4 +93,3 @@ function main ()
    var selectCondition4 = { a: { $divide: 0 } };
    InvalidArgCheck( dbcl, null, selectCondition4, -6 );
 }
-main()

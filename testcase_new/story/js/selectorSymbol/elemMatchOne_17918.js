@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.2.27
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_elemMatchOne_17918";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -13,7 +13,7 @@ function main ()
    var doc = [{ no: 1, test: { c: 1 } },
    { no: 2, test: { name: "lili", age: 19 } },
    { no: 3, test: { a: { name: "lily", age: 29 }, b: { name: "zhangsan", age: 29 } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var findCondition = { no: 3 };
    var selectCondition = { "test": { $elemMatchOne: { "a.age": 29 } } };

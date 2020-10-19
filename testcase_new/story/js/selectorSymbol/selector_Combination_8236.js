@@ -4,7 +4,8 @@
 *@createdate:  2016.7.19
 *@testlinkCase:seqDB-8236
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -71,7 +72,7 @@ function main ()
       t: [{ name: "zhangsan", age: 18 }, { name: "lisi", age: 18 }],
       u: [1, 2, 3, 4]
    }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //matches random
    var tmpCond = [{ a: { $ne: 1 } },
@@ -93,7 +94,6 @@ function main ()
    var rmNum1 = parseInt( Math.random() * tmpCond.length );
    var rmNum2 = parseInt( Math.random() * tmpCond.length );
    var matchesCond = { $and: [tmpCond[rmNum1], tmpCond[rmNum2]] };
-   println( "---randomMatches: " + JSON.stringify( matchesCond ) );
 
    //include all selector;
    var selectCondition1 = [{ v: { $abs: 1 } },
@@ -136,8 +136,6 @@ function main ()
    checkResult( dbcl, matchesCond, newCondition1, expRecs1, { _id: 1 } );
 }
 
-main();
-
 /************************************
 *@Description: unset the order for arr elements.
 *@author:      zhaoyu 
@@ -158,6 +156,5 @@ function getRdmDataFromArr ( arr )
          obj[k] = newArr[i][k];
       }
    }
-   println( "---randomSelectors:" + JSON.stringify( obj ) );
    return obj;
 }

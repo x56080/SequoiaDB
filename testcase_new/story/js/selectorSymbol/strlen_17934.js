@@ -3,8 +3,8 @@
 *@author:      wuyan
 *@createdate:  2019.3.4
 **************************************/
-main();
-function main ()
+main( test );
+function test ()
 {
    var clName = "selector_strlen_17934";
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
@@ -12,7 +12,7 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    var doc = [{ no: 1, test: { c: "abcds123#$%Ad ddddd", d: "aggaag~!@abcds123aga " } },
    { no: 2, test: { a: { no: { str: " adg3344dgabacvdgasdg fgdf" } }, b: { str: "testadgsdasdg#$$sdga" } } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //the field is object 
    var findCondition1 = { no: 1 };
