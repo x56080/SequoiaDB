@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var clName1 = CHANGEDPREFIX + "clName1";
    var clName2 = CHANGEDPREFIX + "clName2";
@@ -14,7 +14,7 @@ function test()
    commDropCL( db, COMMCSNAME, clName2 );
    var cl1 = commCreateCL( db, COMMCSNAME, clName1 );
    var cl2 = commCreateCL( db, COMMCSNAME, clName2 );
-   
+
    var names = [];
    var cursor = db.listCollections();
    while( cursor.next() )

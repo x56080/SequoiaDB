@@ -3,34 +3,16 @@
 *               TestLink : seqDB-12253 ����close��ִ�в���
 *@auhor       : Liang XueWang
 ******************************************************************************/
-function main ()
-{
-    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-    db.close();
+main( test );
 
-    try
-    {
-        db.traceResume();
-        throw "NEED_ERROR";
-    }
-    catch( e )
-    {
-        if( e !== -64 && e !== -6 )
-        {
-            throw new Error( e );
-        }
-    }
+function test ()
+{
+   var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+   db.close();
+
+   assert.tryThrow( [-64, -6], function()
+   {
+      db.traceResume();
+   } );
 }
 
-try
-{
-    main() ;
-}
-catch( e )
-{
-    if( e.constructor === Error )
-    {
-        println( e.stack );
-    }
-    throw e;
-}

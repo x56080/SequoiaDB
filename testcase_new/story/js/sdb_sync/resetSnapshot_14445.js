@@ -10,13 +10,12 @@
 // 本用例实现是文本用例的简化，因为功能测试是手工覆盖的，
 // 本自动化只是驱动接口测试
 
-main( db );
+main( test );
 
-function main ( db )
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -37,7 +36,7 @@ function main ( db )
    db.resetSnapshot( { Type: "sessions", SessionID: notExistID } );
    if( isSessionSnapClean( dataDB ) )
    {
-       throw new Error( "session snap shouldn't be reset(notExistID)" );
+      throw new Error( "session snap shouldn't be reset(notExistID)" );
    }
    if( isDatabaseSnapClean( dataDB ) )
    {

@@ -4,24 +4,12 @@
 *@createDate:  2019.5.20
 *@testlinkCase: seqDB-18344
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 

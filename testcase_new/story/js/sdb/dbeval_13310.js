@@ -3,11 +3,12 @@
 *               TestLink : seqDB-13310:执行eval获取集合后插入查询数据
 *@auhor       : Liang XueWang
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -25,17 +26,4 @@ function main ()
    }
 
    commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -4,14 +4,12 @@
 * @author      : Liang XueWang
 *                2018-03-07
 *******************************************************************/
-import( "../sdb_sync/commlib.js" );
-main( db );
+main( test );
 
-function main ( db )
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -24,13 +22,11 @@ function main ( db )
       var nodes = parseGroupNodes( groupname );
       if( nodes.length >= 2 )
       {
-         println( "group: " + groupname );
          break;
       }
    }
    if( groupname === "" )
    {
-      println( "no qualified group" );
       return;
    }
 
@@ -49,20 +45,19 @@ function main ( db )
          try
          {
             rg.createNode( host, svc, dbpath );
-            println( "create node: " + host + ":" + svc );
             checkSucc = true;
          }
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e == -145 || e == -290 )
+            if( e.message == -145 || e.message == -290 )
             {
                svc = svc + 10;
                dbpath = RSRVNODEDIR + "data/" + svc;
             }
             else
             {
-               throw "create node failed!  svc = " + svc + " dbpath = " + dbpath + " errorCode: " + e;
+               throw new Error( "create node failed!  svc = " + svc + " dbpath = " + dbpath + " errorCode: " + e );
             }
             times++;
          }
@@ -76,10 +71,6 @@ function main ( db )
       rg.removeNode( host, svc );
       rg.createNode( host, svc, dbpath );
    }
-   catch( e )
-   {
-      throw "catch exception : " + e;
-   }
    finally
    {
       // remove node in the end
@@ -90,7 +81,7 @@ function main ( db )
       catch( e )
       {
          // -155:Node does not exist
-         if( e !== -155 )
+         if( e.message != -155 )
          {
             throw e;
          }
