@@ -4,11 +4,12 @@
 *@auhor       : yinzhen
 ******************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
    var clName = COMMCLNAME + "_18246";
@@ -30,35 +31,14 @@ function main ()
 
 function recurObj ( obj )
 {
-   try
+   for( var item in obj )
    {
-      for( var item in obj )
+      if( typeof ( obj[item] ) == "object" )
       {
-         if( typeof ( obj[item] ) == "object" )
-         {
-            return recurObj( obj[item] );
-         }
-         if( obj[item] == null )
-         {
-            throw "expResult is " + obj[item] + ", but actResult is null";
-         }
+         return recurObj( obj[item] );
       }
-   }
-   catch( e )
-   {
-      throw new Error( e );
+      assert.notEqual( obj[item], null );
    }
 }
 
-try
-{
-   main( db );
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+

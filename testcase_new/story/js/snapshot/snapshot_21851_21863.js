@@ -8,28 +8,28 @@ testConf.skipStandAlone = true;
 
 //main( test );SEQUOIADBMAINSTREAM-5593;SEQUOIADBMAINSTREAM-5578
 
-function test()
+function test ()
 {
    var clName = "cl_21851_21863";
    var mainCLName = "mainCL_21851_21863"
    var subCLName1 = "subCL_21851_21863_1";
    var subCLName2 = "subCL_21851_21863_2";
-   
-   commDropCL ( db, COMMCSNAME, clName );
-   commDropCL ( db, COMMCSNAME, mainCLName );
-   commDropCL ( db, COMMCSNAME, subCLName1 );
-   commDropCL ( db, COMMCSNAME, subCLName2 );
-   var cl = commCreateCL ( db, COMMCSNAME, clName );
-   var mainCL = commCreateCL ( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
-   var subCL1 = commCreateCL ( db, COMMCSNAME, subCLName1, { ShardingKey: { a: 1 }, ShardingType: "range" } );
-   var subCL2 = commCreateCL ( db, COMMCSNAME, subCLName2, { ShardingKey: { a: 1 }, ShardingType: "hash" } );
+
+   commDropCL( db, COMMCSNAME, clName );
+   commDropCL( db, COMMCSNAME, mainCLName );
+   commDropCL( db, COMMCSNAME, subCLName1 );
+   commDropCL( db, COMMCSNAME, subCLName2 );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
+   var subCL1 = commCreateCL( db, COMMCSNAME, subCLName1, { ShardingKey: { a: 1 }, ShardingType: "range" } );
+   var subCL2 = commCreateCL( db, COMMCSNAME, subCLName2, { ShardingKey: { a: 1 }, ShardingType: "hash" } );
    mainCL.attachCL( COMMCSNAME + "." + subCLName1, { LowBound: { a: 0 }, UpBound: { a: 100 } } )
    mainCL.attachCL( COMMCSNAME + "." + subCLName2, { LowBound: { a: 100 }, UpBound: { a: 200 } } )
 
    //指定ShowMainCLMode为both
    var actResult = [];
-   var containedResult = [ COMMCSNAME + "." + clName, COMMCSNAME + "." + mainCLName, 
-                     COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
+   var containedResult = [COMMCSNAME + "." + clName, COMMCSNAME + "." + mainCLName,
+   COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2];
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "both" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    var actResult = getCursorResult( cursor );
@@ -39,9 +39,9 @@ function test()
    }
 
    //指定ShowMainCLMode为sub
-   var actResult = [];   
-   var notContainedResult = [ COMMCSNAME + "." + mainCLName ];
-   var containedResult = [ COMMCSNAME + "." + clName, COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
+   var actResult = [];
+   var notContainedResult = [COMMCSNAME + "." + mainCLName];
+   var containedResult = [COMMCSNAME + "." + clName, COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2];
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "sub" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    actResult = getCursorResult( cursor );
@@ -49,13 +49,13 @@ function test()
    if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
-                       "]\ncontainedResult [" + containedResult + "]" );
+         "]\ncontainedResult [" + containedResult + "]" );
    }
 
    //指定ShowMainCLMode为main
    var actResult = [];
-   var containedResult = [ COMMCSNAME + "." + mainCLName ];
-   var notContainedResult = [ COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2 ];
+   var containedResult = [COMMCSNAME + "." + mainCLName];
+   var notContainedResult = [COMMCSNAME + "." + subCLName1, COMMCSNAME + "." + subCLName2];
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "main" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    actResult = getCursorResult( cursor );
@@ -63,7 +63,7 @@ function test()
    if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
-                       "]\ncontainedResult [" + containedResult + "]" );
+         "]\ncontainedResult [" + containedResult + "]" );
    }
 
    snapshotOption = "/*+use_option( ShowMainCLMode, main )*/";
@@ -73,9 +73,9 @@ function test()
    if( !isContained( actResult, containedResult ) || !isNotContained( actResult, notContainedResult ) )
    {
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult +
-                       "]\ncontainedResult [" + containedResult + "]" );
+         "]\ncontainedResult [" + containedResult + "]" );
    }
 
-   commDropCL ( db, COMMCSNAME, clName, false, false );
-   commDropCL ( db, COMMCSNAME, mainCLName, false, false );
+   commDropCL( db, COMMCSNAME, clName, false, false );
+   commDropCL( db, COMMCSNAME, mainCLName, false, false );
 }

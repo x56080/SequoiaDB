@@ -4,11 +4,12 @@
 *@auhor       : CSQ 
 ******************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone!" );
       return;
    }
 
@@ -37,15 +38,3 @@ function main ()
    }
 }
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

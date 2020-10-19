@@ -4,7 +4,9 @@
 *@auhor       : CSQ 
 ******************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    var cond = { "role": "data" };
    var sel = { "role": 1, "svcname": 1 };
@@ -28,17 +30,4 @@ function main ()
    {
       throw new Error( "Expect count <=0, but act count is " + count );
    }
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

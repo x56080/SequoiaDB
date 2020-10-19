@@ -4,7 +4,9 @@
 *@auhor       : CSQ 
 ******************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    var groups = commGetGroups( db );
    if( groups.length < 2 )
@@ -63,17 +65,4 @@ function main ()
    {
       throw new Error( "count: " + count );
    }
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

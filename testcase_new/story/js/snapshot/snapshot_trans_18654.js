@@ -3,16 +3,16 @@
 *               seqDB-18656:��ɾ�Ĳ�(��ɨ��/����ɨ��)/�зּ�¼�����Ͽ�����Ϣ��֤
 *@auhor       : ����
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "------Deploy is standalone" );
       return;
    }
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "Deploy is only one group!" );
       return;
    }
 
@@ -42,8 +42,6 @@ function main ()
    db.transCommit();
    var actStatistics = getStatistics( fullName, nodeNames );
    var expStatistics = [{ NodeName: nodeNames[0], TotalDataRead: 0, TotalDataWrite: 1000, TotalIndexWrite: 2000, TotalUpdate: 0, TotalDelete: 0, TotalInsert: 1000, TotalSelect: 0, TotalRead: 0, TotalWrite: 1000, TotalTbScan: 0, TotalIxScan: 0 }];
-   println( "actStatistics: " + JSON.stringify( actStatistics ) );
-   println( "expStatistics: " + JSON.stringify( expStatistics ) );
    checkStatistics( actStatistics, expStatistics );
 
    db.transBegin();
@@ -98,16 +96,4 @@ function main ()
    checkStatistics( actStatistics, expStatistics );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

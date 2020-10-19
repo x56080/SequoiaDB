@@ -2,7 +2,9 @@
 @Description : seqDB-15726:
 modify list : 2019-11-14  Chen siqin  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commGetGroupsNum( db ) < 2 )
    {
@@ -46,7 +48,6 @@ function main ()
    {
       throw new Error( "count: " + count );
    }
-
 
    //cond条件匹配不到记录
    cursor = db.snapshot( SDB_SNAP_CONFIGS, new SdbSnapshotOption().cond( { "key": "value" } ) );
@@ -99,7 +100,6 @@ function main ()
       throw new Error( "count: " + count );
    }
 
-
    //sort升序
    count = 0;
    tmp = 0;
@@ -119,7 +119,6 @@ function main ()
       throw new Error( "count: " + count );
    }
 
-
    //skip为0
    count = 0;
    cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip( 0 ) );
@@ -132,13 +131,11 @@ function main ()
       throw new Error( "count: " + count );
    }
 
-
    cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip( 1 ) );
    while( cursor.next() )
    {
       throw new Error( "Skip failed!" );
    }
-
 
    count = 0;
    cursor = db.snapshot( SDB_SNAP_SYSTEM, new SdbSnapshotOption().skip( 2 ) );
@@ -193,17 +190,3 @@ function main ()
       }
    }
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

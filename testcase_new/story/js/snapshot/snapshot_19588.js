@@ -4,19 +4,9 @@
 *@author      : wangkexin
 *@Date        : 2019-09-27
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-function main ()
+main( test );
+
+function test ()
 {
    var fields = ["TaskName", "TaskID", "Time", "TotalContexts", "TotalDataRead", "TotalIndexRead", "TotalDataWrite", "TotalIndexWrite", "TotalUpdate", "TotalDelete", "TotalInsert", "TotalSelect", "TotalRead", "TotalWrite"];
    var cursor = db.snapshot( SDB_SNAP_SVCTASKS );

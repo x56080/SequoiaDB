@@ -3,17 +3,17 @@
 *               seqDB-18654:��ɾ�Ĳ�(��ɨ��/����ɨ��)/�зּ�¼�����Ͽ�����Ϣ��֤
 *@auhor       : ����
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "Deploy is only one group!" );
       return;
    }
 
@@ -88,17 +88,4 @@ function main ()
    checkStatistics( actStatistics, expStatistics );
 
    commDropCL( db, COMMCSNAME, clName, true, true );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

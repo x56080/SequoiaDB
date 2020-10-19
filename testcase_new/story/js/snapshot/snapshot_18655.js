@@ -3,11 +3,11 @@
 *                seqDB-18655:�̶������в���/pop/��ѯ��¼�����Ͽ�����Ϣ��֤
 *@auhor       : ����
 ******************************************************************************/
-function main ()
+main( test );
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "------Deploy is standalone" );
       return;
    }
 
@@ -56,16 +56,4 @@ function main ()
    checkStatistics( actStatistics, expStatistics );
 
    commDropCS( db, csName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

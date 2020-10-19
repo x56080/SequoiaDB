@@ -7,16 +7,16 @@ testConf.skipStandAlone = true;
 
 //main( test );SEQUOIADBMAINSTREAM-5578
 
-function test()
+function test ()
 {
    var clName = "cl_21852";
    var mainCLName = "mainCL_21852"
-   
-   commDropCL ( db, COMMCSNAME, mainCLName );
-   var mainCL = commCreateCL ( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
+
+   commDropCL( db, COMMCSNAME, mainCLName );
+   var mainCL = commCreateCL( db, COMMCSNAME, mainCLName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range" } );
 
    //指定ShowMainCLMode为main
-   var notContainedResult = [ COMMCSNAME + "." + mainCLName ];
+   var notContainedResult = [COMMCSNAME + "." + mainCLName];
    var sdbsnapshotOption = new SdbSnapshotOption().options( { ShowMainCLMode: "main" } );
    var cursor = db.snapshot( SDB_SNAP_COLLECTIONS, sdbsnapshotOption );
    var actResult = getCursorResult( cursor );
@@ -26,6 +26,6 @@ function test()
       throw new Error( "\nactResult [" + actResult + "]\nnotContainedResult [" + notContainedResult + "]" );
    }
 
-   commDropCL ( db, COMMCSNAME, mainCLName, false, false );
+   commDropCL( db, COMMCSNAME, mainCLName, false, false );
 }
 

@@ -3,24 +3,12 @@
 @Modify list :
               2019-4-17  wangkexin  Create
 ****************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -38,17 +26,10 @@ function main ()
    var option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
    checkResult( option, expResult );
 
-   try
+   assert.tryThrow( -322, function()
    {
       db.deleteConf( { transactionon: 1 }, { 'NodeName': nodeName } );
-   }
-   catch( e )
-   {
-      if( e !== -322 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    expResult = [{ "transactionon": "FALSE" }];
    option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
@@ -67,34 +48,26 @@ function changeConf ( nodeName )
    }
    catch( e )
    {
-      if( e !== -322 )
+      if( e.message != -322 )
       {
          throw new Error( e );
       }
    }
+
 }
 
 function checkResult ( option, expResult )
 {
-   try
+   var actResult = [];
+   var cursor = db.snapshot( SDB_SNAP_CONFIGS, option );
+   while( cursor.next() )
    {
-      var actResult = [];
-      var cursor = db.snapshot( SDB_SNAP_CONFIGS, option );
-      while( cursor.next() )
-      {
-         actResult.push( { "transactionon": cursor.current().toObj().transactionon } );
-      }
-      if( actResult.length !== expResult.length )
-      {
-         throw "expectCount is " + actResult.length + ", but actCount is " + expResult.length;
-      }
-      if( JSON.stringify( actResult ) !== JSON.stringify( expResult ) )
-      {
-         throw "expectResult is " + JSON.stringify( expResult ) + ", but actResult is " + JSON.stringify( actResult );
-      }
+      actResult.push( { "transactionon": cursor.current().toObj().transactionon } );
    }
-   catch( e )
+   assert.equal( actResult.length, expResult.length );
+   if( JSON.stringify( actResult ) !== JSON.stringify( expResult ) )
    {
-      throw new Error( e );
+      throw new Error( "expectResult is " + JSON.stringify( expResult ) + ", but actResult is " + JSON.stringify( actResult ) );
    }
+
 }

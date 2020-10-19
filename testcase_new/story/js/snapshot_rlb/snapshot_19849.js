@@ -3,24 +3,12 @@
 *@author      : Zhao xiaoni
 *@Date        : 2019-09-29
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "The environment is standalone!" );
       return;
    }
 
