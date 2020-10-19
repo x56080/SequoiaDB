@@ -3,20 +3,9 @@
 *@author:      yinzhen
 *@createDate:  2019.10.10
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var filePath = WORKDIR + "/ini19536/";
    var fileName = "file19536";

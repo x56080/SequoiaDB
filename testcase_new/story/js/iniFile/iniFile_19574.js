@@ -3,20 +3,9 @@
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var filePath = WORKDIR + "/ini19574/";
    var fileName = "file19574";
@@ -44,19 +33,12 @@ function main ()
    iniFile.enableItem( section2, key2 );
    iniFile.save();
 
-   try
+   assert.tryThrow( -211, function()
    {
       iniFile.disableItem( "notsection", key1 );
       iniFile.save();
-      throw "SECTION_NOT_EXIST";
-   }
-   catch( e )
-   {
-      if( e != -211 )
-      {
-         throw new Error( e )
-      }
-   }
+   } );
+
 
    var checkFile = new IniFile( fileFullPath );
    var checkItemValue1 = checkFile.getValue( section1, key1 );

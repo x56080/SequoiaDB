@@ -3,34 +3,16 @@
 *@author:      yinzhen
 *@createDate:  2019.10.11
 **************************************/
-try
-{
-    main();
-}
-catch( e )
-{
-    if( e.constructor === Error )
-    {
-        println( e.stack );
-    }
-    throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
-    var filePath = WORKDIR + "/ini19943/";
-    var fileName = "file19943";
-    var fileFullPath = filePath + fileName;
+   var filePath = WORKDIR + "/ini19943/";
+   var fileName = "file19943";
+   var fileFullPath = filePath + fileName;
 
-    try
-    {
-        var iniFile = new IniFile( fileFullPath );
-        throw new Error( "open not exist file need throw error" );
-    } catch( e )
-    {
-        if( e !== -4 )
-        {
-            throw new Error( "expect throw -4 but throw " + e );
-        }
-    }
+   assert.tryThrow( -4, function()
+   {
+      new IniFile( fileFullPath );
+   } );
 }

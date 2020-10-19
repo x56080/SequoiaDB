@@ -1,4 +1,7 @@
-﻿/************************************
+﻿import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
+
+/************************************
 *@Description: 创建ini配置文件
 *@author:      luweikang
 *@createDate:  2019.10.08
@@ -13,9 +16,9 @@ function makeIniFile ( filePath, fileName )
    }
    catch( e )
    {
-      if( e != -4 )
+      if( e.message != -4 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    new File( fileFullPath ).close();
@@ -34,9 +37,9 @@ function deleteIniFile ( filePath )
    }
    catch( e )
    {
-      if( e != -4 )
+      if( e.message != -4 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }
@@ -48,10 +51,7 @@ function deleteIniFile ( filePath )
 **************************************/
 function compareValue ( expValue, actValue )
 {
-   if( expValue != actValue )
-   {
-      throw Error( "\nexpValue: " + expValue + "\nactValue: " + actValue );
-   }
+   assert.equal( expValue, actValue );
 }
 
 /************************************

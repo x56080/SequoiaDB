@@ -3,20 +3,9 @@
 *@author:      luweikang
 *@createDate:  2019.10.08
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var filePath = WORKDIR + "/ini19548/";
    var fileName = "file19548";
@@ -52,33 +41,17 @@ function main ()
    iniFile.addComment( section, key, comment4, false );
    iniFile.save();
 
-   try
+   assert.tryThrow( -211, function()
    {
       iniFile.addComment( "notsection", key, comment1, true );
       iniFile.save();
-      throw "SECTION_NOT_EXIST";
-   }
-   catch( e )
-   {
-      if( e != -211 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
-   try
+   assert.tryThrow( -211, function()
    {
       iniFile.addComment( "notsection", key, comment3, false );
       iniFile.save();
-      throw "SECTION_NOT_EXIST";
-   }
-   catch( e )
-   {
-      if( e != -211 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    var checkFile = new IniFile( fileFullPath );
 
