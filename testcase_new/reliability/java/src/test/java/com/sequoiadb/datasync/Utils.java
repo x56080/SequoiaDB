@@ -9,6 +9,7 @@ import com.sequoiadb.exception.ReliabilityException;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
+import org.testng.Assert;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,6 +195,41 @@ public class Utils {
         for ( BSONObject obj : list ) {
             obj.removeField( "IndexFlag" );
             ( ( BSONObject ) obj.get( "IndexDef" ) ).removeField( "_id" );
+        }
+    }
+    
+    public static void checkConsistencyCL(GroupWrapper dataGroup, String csName, String clName) {
+        BSONObject matcher = new BasicBSONObject();
+        BSONObject subObj = new BasicBSONObject();
+        subObj.put("$regex", "^" + csName + "." + clName);
+        matcher.put("Name", subObj);
+
+        List<String> dataUrls = dataGroup.getAllUrls();
+        List<List<BSONObject>> results = new ArrayList<List<BSONObject>>();
+        for (String dataUrl : dataUrls) {
+            Sequoiadb dataDB = new Sequoiadb(dataUrl, "", "");
+            DBCursor cursor = dataDB.getList(Sequoiadb.SDB_LIST_COLLECTIONS, matcher, null, null, null, 0, 1);
+            List<BSONObject> result = new ArrayList<BSONObject>();
+            while (cursor.hasNext()) {
+                result.add(cursor.getNext());
+            }
+            results.add(result);
+            cursor.close();
+            dataDB.close();
+        }
+
+        List<BSONObject> compareA = results.get(0);
+        sortByName(compareA);
+        for (int i = 1; i < results.size(); i++) {
+            List<BSONObject> compareB = results.get(i);
+            sortByName(compareB);
+            if (!compareA.equals(compareB)) {
+                System.out.println(dataUrls.get(0));
+                System.out.println(compareA);
+                System.out.println(dataUrls.get(i));
+                System.out.println(compareB);
+                Assert.fail("data is different. see the detail in console");
+            }
         }
     }
 }

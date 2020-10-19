@@ -92,7 +92,10 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             // longest waiting time is 600S
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
                     "check LSN consistency fail" );
-
+            
+            // clear context
+            String match = preCLName;
+            CommLib.waitContextClose( sdb, match, 300, false );
             // check result
             count = dTask.getCreateNum();
             checkCreateCLResult();
@@ -101,7 +104,8 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             // longest waiting time is 600S
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
                     "check LSN consistency fail" );
-            checkConsistency();
+            GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
+            Utils.checkConsistencyCL(dataGroup, csName, preCLName);
             // Normal operating environment
             clearFlag = true;
         } catch ( ReliabilityException e ) {
@@ -175,47 +179,6 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             Assert.fail( clName + " insert fail: " + e.getErrorCode()
                     + e.getErrorType() );
         }
-    }
-
-    private void checkConsistency() {
-        GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
-        List< String > dataUrls = dataGroup.getAllUrls();
-        List< List< BSONObject > > results = new ArrayList< List< BSONObject > >();
-        for ( String dataUrl : dataUrls ) {
-            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" );
-            DBCursor cursor = dataDB.listCollections();
-            List< BSONObject > result = new ArrayList< BSONObject >();
-            while ( cursor.hasNext() ) {
-                result.add( cursor.getNext() );
-            }
-            results.add( result );
-            cursor.close();
-            dataDB.close();
-        }
-
-        List< BSONObject > compareA = results.get( 0 );
-        sortByName( compareA );
-        for ( int i = 1; i < results.size(); i++ ) {
-            List< BSONObject > compareB = results.get( i );
-            sortByName( compareB );
-            if ( !compareA.equals( compareB ) ) {
-                System.out.println( dataUrls.get( 0 ) );
-                System.out.println( compareA );
-                System.out.println( dataUrls.get( i ) );
-                System.out.println( compareB );
-                Assert.fail( "data is different. see the detail in console" );
-            }
-        }
-    }
-
-    private void sortByName( List< BSONObject > list ) {
-        Collections.sort( list, new Comparator< BSONObject >() {
-            public int compare( BSONObject a, BSONObject b ) {
-                String aName = ( String ) a.get( "Name" );
-                String bName = ( String ) b.get( "Name" );
-                return aName.compareTo( bName );
-            }
-        } );
     }
 
     private void dropCL() {
