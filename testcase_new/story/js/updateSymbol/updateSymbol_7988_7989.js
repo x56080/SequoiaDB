@@ -27,11 +27,11 @@ function test (testPara)
 	{ a: { name: "hanmeimei" }, b: { name: "hanmeimei" }, c: { name: "hanmeimei" } },
 	{ a: ["b", 0], b: ["b", 0], c: ["b", 0] },
 	{ a: null, b: null, c: null }];
-	insertData( dbCL, doc1 );
+	dbCL.insert( doc1 );
 
 	//update use set,no matches
 	var updateCondition1 = { $set: { a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, "d.0": 25, "e.name.firstName": null } };
-	updateData( dbCL, updateCondition1 )
+   dbCL.update( updateCondition1 );
 
 	//check result
 	var expRecs1 = [{ a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: 4096, e: { name: { firstName: null } } },
@@ -53,7 +53,7 @@ function test (testPara)
 	//update use set,with matches
 	var updateCondition2 = { $set: { a: { $regex: "^z", $options: "i" }, b: { $timestamp: "2016-05-16-13.14.26.124233" }, c: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, "d.1": 35, "e.name.firstName": true, f: 56 } };
 	var findCondition2 = { d: { $type: 1, $et: 4 } };
-	updateData( dbCL, updateCondition2, findCondition2 )
+   dbCL.update( updateCondition2, findCondition2 );
 
 	//check result
 	var expRecs2 = [{ a: 123, b: "veryHappy", c: { $date: "2016-05-17" }, d: 4096, e: { name: { firstName: null } } },
@@ -80,7 +80,7 @@ function matches_isnull_feildExistOrNot_update( cl )
 {
    cl.remove();
    var docList = [ { b: 1 }, { a: null, b: 2 }, { a: 1, b: 3 } ];
-   insertData( cl, docList );
+   cl.insert( docList );
 
    cl.update({ $set: { b: -5 } }, { a: { $isnull: 1 } });
    cl.update({ $set: { b: 5  } }, { a: { $isnull: 0 } });
