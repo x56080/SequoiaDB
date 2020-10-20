@@ -133,6 +133,7 @@ class rtnPITRollbackManager : public rtnRollbackManager
 
    // Reads the preceding record in the log
    virtual INT32 _nextRecord(const dpsLogRecord &record);
+   INT32 _checkExitCondition();
 
    // Processes the log records
    virtual INT32 _preProcess(const dpsLogRecord &record);
@@ -146,6 +147,7 @@ class rtnPITRollbackManager : public rtnRollbackManager
 
    BOOLEAN _isTransInUndoTransSet();
    BOOLEAN _isRecordTransactional();
+   BOOLEAN _isLogFileDone();
    BOOLEAN _isTargetTimeReached(INT32 *rc);
 };
 

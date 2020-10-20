@@ -220,7 +220,7 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
    if (!(recordTransTime.getTime() > _targetTime.getTime()))
    {
       // This transaction committed at/before the target so skip it
-      return (rc = _exitConditionCheck());
+      return rc;
    }
    if (_isTransInUndoTransSet())
    {
@@ -240,7 +240,7 @@ INT32 rtnPITRollbackManager::_processBeginRecord()
    // All records for this transaction have been processed. Remove this
    // transaction from the set of transactions to undo.
    _undoTransSet.erase(_recordTransID);
-   return (rc = _exitConditionCheck());
+   return rc;
 }
 
 INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
@@ -279,21 +279,28 @@ INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
 
 INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
 {
+   INT32 rc = SDB_OK;
+   if ((rc = _checkExitCondition()))
+   {
+      return rc;
+   }
    if (_continue)
    {
       // Set the cursor to the previous contiguous record
       _cursor = record.head()._preLsn;
-      return SDB_OK;
+      return rc;
    }
    // End of the rollback
    _cursor = DPS_INVALID_LSN_OFFSET;
-   return SDB_OK;
+   return rc;
 }
 
-INT32 rtnPITRollbackManager::_exitConditionCheck()
+INT32 rtnPITRollbackManager::_checkExitCondition()
 {
    INT32 rc = SDB_OK;
-   if (_undoTransSet.empty() && _isTargetTimeReached(&rc))
+   if (_undoTransSet.empty() &&
+       _isLogFileDone() &&
+       _isTargetTimeReached(&rc))
    {
       // Transaction map is empty and there are no outstanding commits before
       // the target time
@@ -351,6 +358,11 @@ BOOLEAN rtnPITRollbackManager::_isTransInUndoTransSet()
 BOOLEAN rtnPITRollbackManager::_isRecordTransactional()
 {
    return _recordTransID.isValid();
+}
+
+BOOLEAN rtnPITRollbackManager::_isLogFileDone()
+{
+   return (_dpsCB->getStartLsn(FALSE).offset == _cursor);
 }
 
 BOOLEAN rtnPITRollbackManager::_isTargetTimeReached(INT32 *pRc)
