@@ -7,104 +7,59 @@
 *               2015-01-29  xiaojun Hu  Change
 *******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
-   try
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+
+   var recordNum = 1;
+   var addRecord1 = [{ name: "ZhangSan", age: 18 },
+   { name: "WangErmazi", age: 19 },
+   { name: "lucy", age: 20 },
+   { name: "alex", age: 18 },
+   { name: "shanven", age: 18 }];
+   //var addRecord2 = {"nest1":{"nest2":{"nest3":{"nest4":"element match query"}}}} ;
+   var addRecord2 = { "nestObj": "element match query" };
+   var addRecord3 = [{ "nestArr1": [{ "nestArr2": [{ "nestArr3": ["abc", 158, "elementMatch", "中文"] }] }] }];
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
+   // auto generate data
+   selAutoGenData( cl, recordNum, addRecord1, addRecord2, addRecord3 );
+
+   /*【Test Point 1】 $elemMatch: query field is object[normal]*/
+   var condObj = {};
+   var selObj = { "ExtraField2": { "$elemMatch": { "nestObj": "element match query" } } };
+   var ret = selMainQuery( cl, condObj, selObj );
+   // verify
+   var retObj = JSON.parse( ret );
+   var cnt = retObj["ExtraField2"]["nestObj"];
+   var exp = "element match query";
+   assert.equal( exp, cnt );
+
+   /*【Test Point 2】 $elemMatchOne: query field is object[normal]*/
+   var condObj = {};
+   var selObj = { "ExtraField2": { "$elemMatchOne": { "nestObj": "element match query" } } };
+   var ret = selMainQuery( cl, condObj, selObj );
+   // verify
+   var retObj = JSON.parse( ret );
+   var cnt = retObj["ExtraField2"]["nestObj"];
+   assert.equal( exp, cnt );
+
+   /*【Test Point 3】 $elemMatch: nest array, array element isn't object*/
+   var condObj = {};
+   var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
+   assert.tryThrow( -6, function()
    {
-      var recordNum = 1;
-      var addRecord1 = [{ name: "ZhangSan", age: 18 },
-      { name: "WangErmazi", age: 19 },
-      { name: "lucy", age: 20 },
-      { name: "alex", age: 18 },
-      { name: "shanven", age: 18 }];
-      //var addRecord2 = {"nest1":{"nest2":{"nest3":{"nest4":"element match query"}}}} ;
-      var addRecord2 = { "nestObj": "element match query" };
-      var addRecord3 = [{ "nestArr1": [{ "nestArr2": [{ "nestArr3": ["abc", 158, "elementMatch", "中文"] }] }] }];
-      var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false,
-         "create colleciton in the begnning" );
-      // auto generate data
-      selAutoGenData( cl, recordNum, addRecord1, addRecord2, addRecord3 );
-      println( "success to insert record: " + recordNum );
-
-      /*【Test Point 1】 $elemMatch: query field is object[normal]*/
-      var condObj = {};
-      var selObj = { "ExtraField2": { "$elemMatch": { "nestObj": "element match query" } } };
       var ret = selMainQuery( cl, condObj, selObj );
-      // verify
-      var retObj = JSON.parse( ret );
-      var cnt = retObj["ExtraField2"];
-      if( '{"nestObj":"element match query"}' != JSON.stringify( cnt ) )
-      {
-         println( 'expect {"nestObj":"element match query"} , actual count: ' + JSON.stringify( cnt ) );
-         throw "ErrCountRecord";
-      }
-      println( "==>success to test use: " + JSON.stringify( selObj ) );
+   } );
 
-      /*【Test Point 2】 $elemMatchOne: query field is object[normal]*/
-      var condObj = {};
-      var selObj = { "ExtraField2": { "$elemMatchOne": { "nestObj": "element match query" } } };
-      var ret = selMainQuery( cl, condObj, selObj );
-      // verify
-      var retObj = JSON.parse( ret );
-      var cnt = retObj["ExtraField2"];
-      if( '{"nestObj":"element match query"}' != JSON.stringify( cnt ) )
-      {
-         println( 'expect {"nestObj":"element match query"} , actual count: ' + JSON.stringify( cnt ) );
-         throw "ErrCountRecord";
-      }
-      println( "==>success to test use: " + JSON.stringify( selObj ) );
-
-      /*【Test Point 3】 $elemMatch: nest array, array element isn't object*/
-      var condObj = {};
-      var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
-      try
-      {
-         var ret = selMainQuery( cl, condObj, selObj );
-         throw "Should'n Throw Exception";
-      }
-      catch( e )
-      {
-         if( -6 != e )
-         {
-            throw e;
-         }
-      }
-
-      /*【Test Point 4】 $elemMatchOne: nest array, array element isn't object*/
-      var condObj = {};
-      var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
-      try
-      {
-         var ret = selMainQuery( cl, condObj, selObj );
-         throw "Should'n Throw Exception";
-      }
-      catch( e )
-      {
-         if( -6 != e )
-         {
-            throw e;
-         }
-      }
-   }
-   catch( e )
+   /*【Test Point 4】 $elemMatchOne: nest array, array element isn't object*/
+   var condObj = {};
+   var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
+   assert.tryThrow( -6, function()
    {
-      println( "==>failed to test use: " + JSON.stringify( selObj ) );
-      throw e;
-   }
+      var ret = selMainQuery( cl, condObj, selObj );
+   } );
 }
 
-// Run Main
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "drop collection in the begining" );
-   main( db );
-   //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-   //            "drop collection in the end") ;
-}
-catch( e )
-{
-   //commDropCL( db, COMMCSNAME, COMMCLNAME, false, false,
-   //            "drop collection in the end") ;
-   throw e;
-}
+

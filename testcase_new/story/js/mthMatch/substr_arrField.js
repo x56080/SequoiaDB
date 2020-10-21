@@ -5,7 +5,8 @@
 *@createdate:  2016.10.14
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -20,7 +21,7 @@ function main ()
    { No: 4, a: [{ 0: "abceefgih" }], b: "", c: 123, e: [{ 0: "uvxxya" }] },
    { No: 5, a: { 0: "abcdefgh" }, b: "", c: 123, e: { 0: "uvwxyz" } },
    { No: 6, a: { 0: "abceefgih" }, b: "", c: 123, e: { 0: "uvxxya" } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var condition1 = { a: { $substr: 4, $et: "abcd" } };
    var expRecs1 = [{ No: 1, a: ["abcdefgh"], b: "", c: 123, e: ["uvwxyz"] }];
@@ -42,4 +43,3 @@ function main ()
    { No: 5, a: { 0: "abcdefgh" }, b: "", c: 123, e: { 0: "uvwxyz" } }];
    checkResult( dbcl, condition4, null, expRecs4, { No: 1 } );
 }
-main();

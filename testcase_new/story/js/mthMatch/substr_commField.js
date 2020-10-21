@@ -5,7 +5,8 @@
 *@createdate:  2016.10.14
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -16,7 +17,7 @@ function main ()
    //insert data 
    var doc = [{ No: 1, a: "abcdefgh", b: "", c: 123, e: "uvwxyz" },
    { No: 2, a: "abceefgih", b: "", c: 123, e: "uvxxya" }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //seqDB-10277
    //value1>0,value1<str.length;
@@ -159,4 +160,3 @@ function main ()
    checkResult( dbcl, condition29, null, expRecs29, { No: 1 } );
 
 }
-main();

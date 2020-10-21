@@ -4,8 +4,22 @@
 *@createdate:  2016.10.17
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+function test ()
 {
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
+   {
+      return;
+   }
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
+   {
+      return;
+   }
+
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
 
@@ -20,27 +34,9 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-   //check test environment before split
-   try
-   {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "--least two groups" );
-         return;
-      }
-   }
-   catch( e )
-   {
-      throw e;
-   }
+
+
+
 
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "No": 1 }, ShardingType: "range", IsMainCL: true };
@@ -63,16 +59,9 @@ function main ()
    splitGrInfo = ClSplitOneTimes( COMMCSNAME, subCL_Name2, startCondition2, null );
 
    //attach subcl
-   try
-   {
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { No: 1 }, UpBound: { No: 2 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { No: 2 }, UpBound: { No: 4 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { No: 4 }, UpBound: { No: 7 } } );
-   } catch( e )
-   {
-      println( "failed to attch sub cl, rc = " + e );
-      throw e;
-   }
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { No: 1 }, UpBound: { No: 2 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { No: 2 }, UpBound: { No: 4 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { No: 4 }, UpBound: { No: 7 } } );
 
    //insert data 
    var doc = [{ No: 1, b: 1 },
@@ -81,7 +70,7 @@ function main ()
    { No: 4, b: [1, 2, 3, 4, 5] },
    { No: 5, b: [1, [[1, 2, 3], 3, 4], 3, 5, 2, 6, 1, 5, 7] },
    { No: 6, b: [] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //seqDB-10331
    var findCondition1 = { b: { $returnMatch: 0, $in: [1, 2, 3] } };
@@ -224,4 +213,3 @@ function main ()
    var expRecs21 = [];
    checkResult( dbcl, findCondition21, null, expRecs21, { _id: 1 } );
 }
-main()

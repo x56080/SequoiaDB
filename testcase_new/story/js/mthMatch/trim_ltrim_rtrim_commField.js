@@ -6,7 +6,8 @@
 *              seqDB-10301/seqDB-10302/seqDB-10303/seqDB-10304
 *              seqDB-10305/seqDB-10306/seqDB-10307/seqDB-10308
 ***************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -17,7 +18,7 @@ function main ()
    //insert data 
    var doc = [{ No: 1, name: " \t\r\nZha Ng\ts\ra\nn \t\r\n", major: " \t\r\nCh \t\n\rinese \t\n\r", weight: 51 },
    { No: 2, name: " \t\r\nZha Ng\ts\ra\nn1 \t\r\n", major: " \t\r\nCh \t\n\rinese1 \t\n\r", weight: 51 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var condition1 = { name: { $trim: 1, $et: "Zha Ng\ts\ra\nn" }, major: { $trim: 1, $et: "Ch \t\n\rinese" } };
    var expRecs1 = [{ No: 1, name: " \t\r\nZha Ng\ts\ra\nn \t\r\n", major: " \t\r\nCh \t\n\rinese \t\n\r", weight: 51 }];
@@ -74,5 +75,3 @@ function main ()
    var expRecs15 = [{ No: 1, name: " \t\r\nZha Ng\ts\ra\nn \t\r\n", major: " \t\r\nCh \t\n\rinese \t\n\r", weight: 51 }];
    checkResult( dbcl, condition15, null, expRecs15, { No: 1 } );
 }
-
-main();

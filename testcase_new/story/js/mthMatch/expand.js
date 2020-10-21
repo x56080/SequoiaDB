@@ -4,8 +4,22 @@
 *@createdate:  2016.10.17
 *@testlinkCase: 
 **************************************/
-function main ()
+main( test );
+function test ()
 {
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
+   {
+      return;
+   }
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
+   {
+      return;
+   }
+
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
 
@@ -20,27 +34,9 @@ function main ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-   //check test environment before split
-   try
-   {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "--least two groups" );
-         return;
-      }
-   }
-   catch( e )
-   {
-      throw e;
-   }
+
+
+
 
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "No": 1 }, ShardingType: "range", IsMainCL: true };
@@ -63,23 +59,16 @@ function main ()
    splitGrInfo = ClSplitOneTimes( COMMCSNAME, subCL_Name2, startCondition2, null );
 
    //attach subcl
-   try
-   {
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { No: 1 }, UpBound: { No: 2 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { No: 2 }, UpBound: { No: 4 } } );
-      dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { No: 4 }, UpBound: { No: 6 } } );
-   } catch( e )
-   {
-      println( "failed to attch sub cl, rc = " + e );
-      throw e;
-   }
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name1, { LowBound: { No: 1 }, UpBound: { No: 2 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name2, { LowBound: { No: 2 }, UpBound: { No: 4 } } );
+   dbcl.attachCL( COMMCSNAME + "." + subCL_Name3, { LowBound: { No: 4 }, UpBound: { No: 6 } } );
 
    //insert data 
    var doc = [{ No: 1, b: 1, c: 1 },
    { No: 2, b: [2, 3, 4], c: [2, 3, 4] },
    { No: 3, b: [5, 6, [7, 8]], c: [5, 6, [7, 8]] },
    { No: 4, b: [] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //seqDB-10325
    var findCondition1 = { b: { $expand: 1 } };
@@ -183,7 +172,7 @@ function main ()
    { No: 3, b: [7, 8], c: [5, 6, [7, 8]] }];
    checkResult( dbcl, findCondition17, null, expRecs17, { _id: 1 } );
 }
-main();
+
 
 /************************************
 *@Description: get actual result and check it 
@@ -193,9 +182,7 @@ main();
 function checkLimitFindResult ( dbcl, findCondition, findCondition2, expRecs, sortCondition, num )
 {
    var rc = limitFindData( dbcl, findCondition, findCondition2, sortCondition, num );
-   println( "--begin to check the data" );
    checkRec( rc, expRecs );
-   println( "--end check the data" );
 }
 
 /************************************
@@ -205,14 +192,7 @@ function checkLimitFindResult ( dbcl, findCondition, findCondition2, expRecs, so
 **************************************/
 function limitFindData ( dbcl, findCondition1, findCondition2, sortCondition, num )
 {
-   try
-   {
-      var limitResult = dbcl.find( findCondition1, findCondition2 ).sort( sortCondition ).limit( num );
-   }
-   catch( e )
-   {
-      throw buildException( "limitFindData()", e, "find and limit data", "find and limit data success", "find and limit data fail" );
-   }
+   var limitResult = dbcl.find( findCondition1, findCondition2 ).sort( sortCondition ).limit( num );
    return limitResult;
 }
 
@@ -224,9 +204,7 @@ function limitFindData ( dbcl, findCondition1, findCondition2, sortCondition, nu
 function checkSkipFindResult ( dbcl, findCondition, findCondition2, expRecs, sortCondition, num )
 {
    var rc = skipFindData( dbcl, findCondition, findCondition2, sortCondition, num );
-   println( "--begin to check the data" );
    checkRec( rc, expRecs );
-   println( "--end check the data" );
 }
 
 /************************************
@@ -236,13 +214,6 @@ function checkSkipFindResult ( dbcl, findCondition, findCondition2, expRecs, sor
 **************************************/
 function skipFindData ( dbcl, findCondition1, findCondition2, sortCondition, num )
 {
-   try
-   {
-      var skipResult = dbcl.find( findCondition1, findCondition2 ).sort( sortCondition ).skip( num );
-   }
-   catch( e )
-   {
-      throw buildException( "skipFindData()", e, "find and skip data", "find and skip data success", "find and skip data fail" );
-   }
+   var skipResult = dbcl.find( findCondition1, findCondition2 ).sort( sortCondition ).skip( num );
    return skipResult;
 }

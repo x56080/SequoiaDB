@@ -4,7 +4,8 @@
 *@createdate:  2016.10.14
 *@testlinkCase:seqDB-10285/seqDB-10286/seqDB-10287/seqDB-10288
 **************************************/
-function main ()
+main( test );
+function test ()
 {
    //clean environment before test
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop CL in the beginning" );
@@ -15,7 +16,7 @@ function main ()
    //insert data 
    var doc = [{ No: 1, name: "zhangsan", major: "math", weight: 18 },
    { No: 2, name: "zhangsan1", major: "math1", weight: 18 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //seqDB-10285/seqDB-10286
    var condition1 = { name: { $strlen: 1, $et: 8 }, major: { $strlen: 1, $et: 4 } };
@@ -39,5 +40,3 @@ function main ()
    var expRecs5 = [{ No: 1, name: "zhangsan", major: "math", weight: 18 }];
    checkResult( dbcl, condition5, null, expRecs5, { No: 1 } );
 }
-
-main();
