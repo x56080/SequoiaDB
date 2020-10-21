@@ -44,6 +44,7 @@
 #include "rtn.hpp"
 #include "msgAuth.hpp"
 #include "pmdTrace.hpp"
+#include "omCommandTool.hpp"
 #include "../bson/bson.h"
 #include "../bson/lib/md5.hpp"
 
@@ -272,49 +273,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omRestSession::_getBusinessAuth( const CHAR *pClusterName,
-                                           const CHAR *pBusinessName,
-                                           string &user, string &passwd )
-   {
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj order ;
-      BSONObj hint ;
-      list<BSONObj> records ;
-      BSONObj result ;
-      INT32 rc = SDB_OK ;
-
-      matcher = BSON( OM_AUTH_FIELD_BUSINESS_NAME << pBusinessName ) ;
-      rc = _queryTable( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, matcher, order, 
-                        hint, 0, 0, -1, records ) ;
-      if ( rc )
-      {
-         PD_LOG_MSG( PDERROR, "fail to query table:%s,rc=%d",
-                     OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
-         goto error ;
-      }
-
-      if ( records.size() > 1 )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "get business authority info failed:cluster=%s,"
-                     "business=%s,expect_num=1,actual_num=%u", pClusterName, 
-                     pBusinessName, records.size() ) ;
-         goto error ;
-      }
-      else if ( records.size() == 1 )
-      {
-         result = *( records.begin() ) ;
-         user   = result.getStringField( OM_AUTH_FIELD_USER ) ;
-         passwd = result.getStringField( OM_AUTH_FIELD_PASSWD ) ;
-      }
-      //if do not have any record. just leave it empty
-   done:
-      return rc ;
-   error:
-      goto done ;
-   } 
-
    INT32 _omRestSession::_getBusinessAccessNode( restRequest &request,
                                                  const CHAR *pClusterName,
                                                  const CHAR *pBusinessName,
@@ -353,9 +311,10 @@ namespace engine
       {
          md5::md5digest digest ;
          string tmpPasswd ;
+         omDatabaseTool dbTool( _pEDUCB ) ;
 
-         rc = _getBusinessAuth( pClusterName, pBusinessName, user, tmpPasswd ) ;
-         if ( SDB_OK != rc )
+         rc = dbTool.getAuth( pBusinessName, user, tmpPasswd ) ;
+         if ( rc )
          {
             PD_LOG( PDERROR, "get business auth failed:rc=%d", rc ) ;
             goto error ;
@@ -375,7 +334,17 @@ namespace engine
          list<BSONObj> records ;
          BSONObj result ;
 
-         matcher = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << pBusinessName ) ;
+         try
+         {
+            matcher = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << pBusinessName ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+
          rc = _queryTable( OM_CS_DEPLOY_CL_CONFIGURE, selector, matcher, order, 
                            hint, 0, 0, -1, records ) ;
          if ( rc )

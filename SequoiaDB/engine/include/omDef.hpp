@@ -151,6 +151,7 @@ namespace engine
    #define OM_PUBLIC_FIELD_GRANT_TYPE           "GrantType"
    #define OM_PUBLIC_FIELD_SVCNAME              "svcname"
    #define OM_PUBLIC_FIELD_DBPATH               "dbpath"
+   #define OM_PUBLIC_FIELD_ENCRYPTION           "Encryption"
 
    /******* SYSCLUSTER *******/
    #define OM_CS_DEPLOY_CL_CLUSTER              OM_CS_DEPLOY".SYSCLUSTER"
@@ -301,6 +302,7 @@ OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
    #define OM_AUTH_FIELD_BUSINESS_NAME          OM_PUBLIC_FIELD_BUSINESS_NAME
    #define OM_AUTH_FIELD_USER                   OM_PUBLIC_FIELD_USER
    #define OM_AUTH_FIELD_PASSWD                 OM_PUBLIC_FIELD_PASSWD
+   #define OM_AUTH_FIELD_ENCRYPTION             OM_PUBLIC_FIELD_ENCRYPTION
    #define OM_CS_DEPLOY_CL_BUSINESSAUTHIDX1     "{name:\"SYSDEPLOY_BUSINESSAUTH\
 _IDX1\",key: {"OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true }"
 

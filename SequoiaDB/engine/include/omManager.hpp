@@ -181,6 +181,7 @@ namespace engine
          INT32             _updateClusterTable() ;
          INT32             _updateHostTable() ;
          INT32             _updatePluginIndex() ;
+         INT32             _updateAuthTable() ;
          INT32             _updateTable() ;
 
          INT32             _createJobs() ;

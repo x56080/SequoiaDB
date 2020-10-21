@@ -39,6 +39,7 @@
 #include "rtn.hpp"
 #include "omSdbConnector.hpp"
 #include "pd.hpp"
+#include "utilCipher.hpp"
 
 using namespace bson ;
 
@@ -381,6 +382,20 @@ namespace engine
             goto error ;
          }
          password = beField.str() ;
+         if ( password.size() > 0 )
+         {
+            CHAR clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
+
+            rc = utilCipherEncrypt( password.c_str(), NULL,
+                                    clearText, SDB_MAX_PASSWORD_LENGTH + 1 ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "failed to encrypt password, rc:%d", rc ) ;
+               goto error ;
+            }
+
+            password = string( clearText ) ;
+         }
       }
       catch( std::exception &e )
       {

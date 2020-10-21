@@ -37,6 +37,7 @@
 #include "msgMessage.hpp"
 #include "../bson/lib/md5.hpp"
 #include "ossPath.hpp"
+#include "utilCipher.hpp"
 
 using namespace bson ;
 
@@ -2209,10 +2210,21 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SINT64 contextID = -1 ;
+      BSONObj condition ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj hint ;
-      BSONObj condition = BSON( OM_BUSINESS_FIELD_NAME << businessName )  ;
+
+      try
+      {
+         condition = BSON( OM_BUSINESS_FIELD_NAME << businessName )  ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
 
       // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, condition, order,
@@ -2243,13 +2255,55 @@ namespace engine
             goto error ;
          }
 
+         try
          {
             BSONObj result( buffObj.data() ) ;
-            BSONObj filter = BSON( "_id" << "" ) ;
+            BSONObj filter = BSON( "_id" << "" <<
+                                   OM_AUTH_FIELD_USER << "" <<
+                                   OM_AUTH_FIELD_PASSWD << "" <<
+                                   OM_AUTH_FIELD_ENCRYPTION << "" ) ;
             BSONObj newResult = result.filterFieldsUndotted( filter, FALSE ) ;
+            BSONObjBuilder infoBuilder ;
+            string authUser ;
+            string authPasswd ;
 
-            authInfo = newResult.copy() ;
+            authUser = result.getStringField( OM_AUTH_FIELD_USER ) ;
+            authPasswd = result.getStringField( OM_AUTH_FIELD_PASSWD ) ;
+
+            if( authPasswd.size() > 0 )
+            {
+               BSONElement encryptionEle ;
+
+               encryptionEle = result.getField( OM_AUTH_FIELD_ENCRYPTION ) ;
+               if ( encryptionEle.isNumber() && encryptionEle.Int() == TRUE )
+               {
+                  CHAR clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
+                  
+                  rc = utilCipherDecrypt( authPasswd.c_str(), NULL, clearText ) ;
+                  if ( rc )
+                  {
+                     PD_LOG ( PDERROR, "Failed to decrypt user[%s]'s password",
+                              authUser.c_str() ) ;
+                     goto error ;
+                  }
+
+                  authPasswd = string( clearText ) ;
+               }
+            }
+
+            infoBuilder.appendElements( newResult ) ;
+            infoBuilder.append( OM_AUTH_FIELD_USER, authUser ) ;
+            infoBuilder.append( OM_AUTH_FIELD_PASSWD, authPasswd ) ;
+
+            authInfo = infoBuilder.obj() ;
          }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+
       }
 
    done:
@@ -2285,7 +2339,29 @@ namespace engine
       if ( !authUser.empty() )
       {
          updatorBuilder.append( OM_AUTH_FIELD_USER, authUser ) ;
-         updatorBuilder.append( OM_AUTH_FIELD_PASSWD, authPasswd ) ;
+
+         if( authPasswd.size() > 0 )
+         {
+            string ciphertext ;
+            CHAR clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
+
+            rc = utilCipherEncrypt( authPasswd.c_str(), NULL,
+                                    clearText, SDB_MAX_PASSWORD_LENGTH + 1 ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "failed to encrypt password, rc:%d", rc ) ;
+               goto error ;
+            }
+
+            ciphertext = clearText ;
+
+            updatorBuilder.append( OM_AUTH_FIELD_PASSWD, ciphertext ) ;
+            updatorBuilder.append( OM_AUTH_FIELD_ENCRYPTION, TRUE ) ;
+         }
+         else
+         {
+            updatorBuilder.append( OM_AUTH_FIELD_PASSWD, authPasswd ) ;
+         }
       }
 
       if ( !options.isEmpty() )

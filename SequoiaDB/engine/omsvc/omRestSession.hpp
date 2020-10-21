@@ -75,9 +75,6 @@ namespace engine
                                        const CHAR *pBusinessName,
                                        list<omNodeInfo> &nodeList ) ;
 
-         INT32             _getBusinessAuth( const CHAR *pClusterName,
-                                             const CHAR *pBusinessName,
-                                             string &user, string &passwd ) ;
          INT32             _getBusinessInfo( const CHAR *pClusterName,
                                              const CHAR *pBusinessName,
                                              string &businessType, 

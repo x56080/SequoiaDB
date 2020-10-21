@@ -1096,6 +1096,93 @@ namespace engine
       goto done ;
    }
 
+   INT32 _omManager::_updateAuthTable()
+   {
+      INT32 rc = SDB_OK ;
+      SINT64 contextID   = -1 ;
+      pmdEDUCB *cb       = pmdGetThreadEDUCB() ;
+      pmdKRCB *pKRCB     = pmdGetKRCB() ;
+      _SDB_DMSCB *pDMSCB = pKRCB->getDMSCB() ;
+      _SDB_RTNCB *pRTNCB = pKRCB->getRTNCB() ;
+      BSONObj selector ;
+      BSONObj condition ;
+      BSONObj order ;
+      BSONObj hint ;
+      omDatabaseTool dbTool( cb ) ;
+
+      try
+      {
+         condition = BSON( OM_AUTH_FIELD_ENCRYPTION <<
+                                 BSON( "$exists" << 0 ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, condition, order,
+                     hint, 0, cb, 0, -1, pDMSCB, pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "query table failed:table=%s,rc=%d",
+                 OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+         goto error ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buffObj ;
+
+         rc = rtnGetMore( contextID, 1, buffObj, cb, pRTNCB ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+
+            PD_LOG( PDERROR, "get record failed:table=%s,rc=%d",
+                    OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObj authInfo( buffObj.data() ) ;
+            string businessName = authInfo.getStringField(
+                                          OM_AUTH_FIELD_BUSINESS_NAME ) ;
+            string user = authInfo.getStringField( OM_AUTH_FIELD_USER ) ;
+            string passwd = authInfo.getStringField( OM_AUTH_FIELD_PASSWD ) ;
+
+            rc = dbTool.upsertAuth( businessName, user, passwd ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "failed to update table:table=%s,rc=%d",
+                       OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+               goto error ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         pRTNCB->contextDelete ( contextID, cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _omManager::_updatePluginIndex()
    {
       INT32 rc = SDB_OK ;
@@ -1166,6 +1253,14 @@ namespace engine
       {
          PD_LOG( PDERROR, "update table index failed:table=%s,rc=%d",
                  OM_CS_DEPLOY_CL_PLUGINS, rc ) ;
+         goto error ;
+      }
+
+      rc = _updateAuthTable() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "update table failed:table=%s,rc=%d",
+                 OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
          goto error ;
       }
 
