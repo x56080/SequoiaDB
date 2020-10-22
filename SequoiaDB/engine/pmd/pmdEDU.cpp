@@ -93,6 +93,7 @@ namespace engine
       _eduMgr           = mgr ;
       _eduID            = PMD_INVALID_EDUID ;
       _tid              = 0 ;
+      _hasSetTid        = FALSE ;
       _status           = PMD_EDU_UNKNOW ;
       _eduType          = type ;
       _isLocked         = FALSE ;

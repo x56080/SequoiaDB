@@ -264,15 +264,25 @@ namespace engine
          for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
          {
             cb = it->second ;
-            cb->dumpInfo( simple ) ;
-            info.insert(simple) ;
+            // If tid hasn't been set, maybe the thread hasn't started yet,
+            // just igore it
+            if ( cb->_hasSetTid )
+            {
+               cb->dumpInfo( simple ) ;
+               info.insert(simple) ;
+            }
          }
 
          for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
          {
             cb = it->second ;
-            cb->dumpInfo ( simple ) ;
-            info.insert( simple ) ;
+            // If tid hasn't been set, maybe the thread hasn't started yet,
+            // just igore it
+            if ( cb->_hasSetTid )
+            {
+               cb->dumpInfo ( simple ) ;
+               info.insert( simple ) ;
+            }
          }
       }
       catch( std::exception &e )
@@ -306,15 +316,25 @@ namespace engine
          for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
          {
             cb = it->second ;
-            cb->dumpInfo( full ) ;
-            info.insert(full) ;
+            // If tid hasn't been set, maybe the thread hasn't started yet,
+            // just igore it
+            if ( cb->_hasSetTid )
+            {
+               cb->dumpInfo( full ) ;
+               info.insert(full) ;
+            }
          }
 
          for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
          {
             cb = it->second ;
-            cb->dumpInfo( full ) ;
-            info.insert( full ) ;
+            // If tid hasn't been set, maybe the thread hasn't started yet,
+            // just igore it
+            if ( cb->_hasSetTid )
+            {
+               cb->dumpInfo( full ) ;
+               info.insert( full ) ;
+            }
          }
       }
       catch( std::exception &e )

@@ -585,7 +585,13 @@ SINT32 ossGetCPUUsage
    }
 #endif
    if ( ossErr )
-      PD_LOG ( PDERROR, "ossErr = %d", ossErr ) ;
+   {
+#if defined (_WINDOWS)
+      PD_LOG ( PDWARNING, "ossErr = %d, thread id = %u", ossErr, tHandle ) ;
+#elif defined (_LINUX) || defined (_AIX)
+      PD_LOG ( PDWARNING, "ossErr = %d, thread id = %u", ossErr, tid ) ;
+#endif
+   }
    PD_TRACE_EXITRC ( SDB_OSSGETCPUUSG2, rc );
    return rc ;
 }

@@ -437,7 +437,7 @@ namespace engine
 
    private:
       void        setType( INT32 type ) ;
-      void        setTID ( UINT32 tid ) { _tid = tid ; }
+      void        setTID ( UINT32 tid ) { _tid = tid ; _hasSetTid = TRUE ; }
 
    #if defined ( _LINUX )
       void        setThreadID ( pthread_t id ) { _threadID = id ; }
@@ -521,6 +521,7 @@ namespace engine
       */
       EDUID                   _eduID ;
       UINT32                  _tid ;
+      BOOLEAN                 _hasSetTid ;
       ISession                *_pSession ;
       IRemoteSite             *_pRemoteSite ;
 

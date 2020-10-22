@@ -2627,7 +2627,21 @@ namespace engine
 
          ossTime userTime, sysTime ;
          ossTickConversionFactor factor ;
-         ossGetCPUUsage( full._threadHdl, userTime, sysTime ) ;
+         rc = ossGetCPUUsage( full._threadHdl, userTime, sysTime ) ;
+         if ( rc )
+         {
+            pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+            pmdEDUCB *cb = eduMgr->getEDUByID( full._eduID ) ;
+            if ( NULL == cb )
+            {
+               // The thread doesn't exist, so just ignore error
+               rc = SDB_OK ;
+            }
+            else
+            {
+               goto error ;
+            }
+         }
          /// add app cb info
          monSessionMonEDUFull( ob, full, factor, userTime, sysTime ) ;
          obj = ob.done () ;
