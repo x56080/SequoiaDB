@@ -1,27 +1,20 @@
 /******************************************************************************
 *@Description : test SdbQueryOption
 *               TestLink :  seqDB-15733:指定cond查询记录
-                            seqDB-15734:指定sel查询记录
-*@auhor       : CSQ 
+*                           seqDB-15734:指定sel查询记录
+*@auhor       : CSQ   2018-09-20 
+*               liuli 2020-10-14 
 ******************************************************************************/
+testConf.clName = COMMCLNAME + "_15733";
 
-function main ()
+main( test );
+
+function test ( args )
 {
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15733", true, "drop CS " + COMMCSNAME + "15733" );
-   } catch( e ) { }
-   var varCS = commCreateCS( db, COMMCSNAME + "15733", true, "create CS" );
-   var varCL = varCS.createCL( COMMCLNAME + "15733" );
-   insertRecord( varCL );
-
-   testcond15733( varCL );
-   testsel15734( varCL );
-
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15733", true, "drop CS " + COMMCSNAME + "15733" );
-   } catch( e ) { }
+   var cl = args.testCL;
+   insertRecord( cl );
+   testcond15733( cl );
+   testsel15734( cl );
 }
 
 function testcond15733 ( varCL )
@@ -68,10 +61,10 @@ function testcond15733 ( varCL )
       typeobj2: { "boj1": { "obj2": "value2" } },
       typearr3: { "name": [0] }
    }];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    cur = varCL.find( new SdbQueryOption().cond( { "typeregex": { $et: { "$regex": "^csq", "$options": "i" } } } ) );
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    cur = varCL.find( new SdbQueryOption().cond( { $and: [{ "typeint": { $et: 123 } }, { "typefloat": { $gt: 123.456 } }] } ) );
    size = 0;
@@ -80,22 +73,18 @@ function testcond15733 ( varCL )
       var ret = cur.current();
       size++;
    }
-   if( size != 0 )
-   {
-      throw buildException( "seqDB-15733:指定多个匹配符查询 fail", "", "check count", 0, size );
-   }
-
+   assert.equal( size, 0 );
 }
 
 function testsel15734 ( varCL )
 {
    var cur = varCL.find( new SdbQueryOption().sel( { "typeint": { "$include": 1 } } ) );
    var expFindResult = [{ typeint: 123 }];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
    //返回多个字段名
    var cur = varCL.find( new SdbQueryOption().sel( { "typeint": { "$include": 1 }, "typefloat": { $include: 1 } } ) );
    var expFindResult = [{ typeint: 123, typefloat: 123.456 }];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    //所有类型的字段
    var cur = varCL.find( new SdbQueryOption().sel( {
@@ -125,12 +114,12 @@ function testsel15734 ( varCL )
       typeobj2: { "boj1": { "obj2": "value2" } },
       typearr3: { "name": [0] }
    }];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    //指定字段名不存在
    var cur = varCL.find( new SdbQueryOption().sel( { "csq": { "$include": 1 } } ) );
    var expFindResult = [{}];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 }
 
 
@@ -159,5 +148,3 @@ function insertRecord ( varCL )
       typearr3: { "name": [0] }
    } );
 }
-
-main( db );

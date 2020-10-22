@@ -1,31 +1,22 @@
 /******************************************************************************
 *@Description : test SdbQueryOption
-*               TestLink :   seqDB-15749:ָ��sdbQueryOption������β�ѯ��¼
-*@auhor       : CSQ 
+*               TestLink :   seqDB-15749:指定sdbQueryOption参数多次查询记录
+*@auhor       : CSQ   2018-09-20 
+*               liuli 2020-10-15
 ******************************************************************************/
+testConf.clName = COMMCLNAME + "_15749";
 
-function main ()
+main( test );
+
+function test ( args )
 {
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15749", true, "drop CS " + COMMCSNAME + "15749" );
-   } catch( e ) { }
-
-   var varCS = commCreateCS( db, COMMCSNAME + "15749", true, "create CS" );
-   var varCL = varCS.createCL( COMMCLNAME + "15749" );
-   insertRecord( varCL );
-   test15749( varCL );
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15749", true, "drop CS " + COMMCSNAME + "15749" );
-   } catch( e ) { }
-
+   var cl = args.testCL;
+   insertRecord( cl );
+   test15749( cl );
 }
-
 
 function test15749 ( varCL )
 {
-   //��ͬ��ѯ������ƥ���ѯ��¼�и��£��ٴβ�ѯ 
    var cur = varCL.find( new SdbQueryOption().sort( { _id: 1 } ).cond( { $and: [{ a: { $gte: 45 } }, { b: { $lte: 54 } }] } ).update( { $inc: { c: 1 } }, true, { KeepShardingKey: true } ) );
    while( cur.next() )
    {
@@ -43,7 +34,7 @@ function test15749 ( varCL )
    { "_id": 54, "a": 54, "b": 54, "c": -53 }
    ];
    var cur = varCL.find( new SdbQueryOption().sort( { a: 1 } ).cond( { $and: [{ a: { $gte: 45 } }, { b: { $lte: 54 } }] } ) );
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { _id: 1 } ).cond( { $and: [{ a: { $gt: 90 } }, { b: { $lte: 100 } }] } ) );
    var expFindResult = [{ "_id": 91, "a": 91, "b": 91, "c": -91 },
@@ -57,7 +48,7 @@ function test15749 ( varCL )
    { "_id": 99, "a": 99, "b": 99, "c": -99 },
    { "_id": 100, "a": 100, "b": 100, "c": -100 }
    ];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { b: 1 } ).cond( { b: { $lt: 5 } } ) );
    var expFindResult = [{ "_id": 0, "a": 0, "b": 0, "c": 0 },
@@ -65,7 +56,7 @@ function test15749 ( varCL )
    { "_id": 2, "a": 2, "b": 2, "c": -2 },
    { "_id": 3, "a": 3, "b": 3, "c": -3 },
    { "_id": 4, "a": 4, "b": 4, "c": -4 }];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 }
 
 function insertRecord ( varCL )
@@ -75,5 +66,3 @@ function insertRecord ( varCL )
       varCL.insert( { _id: i, a: i, b: i, c: -i } );
    }
 }
-
-main();

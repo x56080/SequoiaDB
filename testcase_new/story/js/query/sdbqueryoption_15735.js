@@ -1,37 +1,30 @@
 /******************************************************************************
 *@Description : test SdbQueryOption
-*               TestLink :  seqDB-15735:ָ��sort��ѯ��¼
-                            seqDB-15736:ָ��hint��ѯ��¼
-                            seqDB-15737:ָ��skip��ѯ��¼
-                            seqDB-15738:ָ��limit��ѯ��¼
-                            seqDB-15739:ָ��remove��ѯ��¼
-*@auhor       : CSQ 
+*               TestLink :  seqDB-15735:指定sort查询记录
+*                           seqDB-15736:指定hint查询记录
+*                           seqDB-15737:指定skip查询记录
+*                           seqDB-15738:指定limit查询记录
+*                           seqDB-15739:指定remove查询记录
+*@auhor       : CSQ   2018-09-20 
+*               liuli 2020-10-16
 ******************************************************************************/
+testConf.clName = COMMCLNAME + "_15749";
 
-function main ()
+main( test );
+
+function test ( args )
 {
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15735", true, "drop CS " + COMMCSNAME + "15735" );
-   } catch( e ) { }
-   var varCS = commCreateCS( db, COMMCSNAME + "15735", true, "create CS" );
-   var varCL = varCS.createCL( COMMCLNAME + "15735" );
-   insertRecord( varCL );
-   testsort15735( varCL );
-   testhint15736( varCL );
-   testskip15737( varCL );
-   testlimit15738( varCL );
-   testremove15739( varCL );
-
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15735", true, "drop CS " + COMMCSNAME + "15735" );
-   } catch( e ) { }
+   var cl = args.testCL;
+   insertRecord( cl );
+   testsort15735( cl );
+   testhint15736( cl );
+   testskip15737( cl );
+   testlimit15738( cl );
+   testremove15739( cl );
 }
 
 function testsort15735 ( varCL )
 {
-   //ָ������
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: 1 } ) );
    var expFindResult1 = [
       {
@@ -145,9 +138,8 @@ function testsort15735 ( varCL )
          typearr3: ["name", [5]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
-   //����
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: -1 } ) );
    var expFindResult2 = [
       {
@@ -261,10 +253,10 @@ function testsort15735 ( varCL )
          typearr3: ["name", [1]]
       }
    ];
-   checkRec( cur, expFindResult2 );
+   commCompareResults( cur, expFindResult2, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { "typeobj.subobj": -1, "typeobj2.boj1": 1, "typearr3": -1, "typefloat": 1 } ) );
-   checkRec( cur, expFindResult2 );
+   commCompareResults( cur, expFindResult2, false );
 }
 
 function testhint15736 ( varCL )
@@ -383,7 +375,7 @@ function testhint15736 ( varCL )
          typearr3: ["name", [5]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
 }
 
@@ -502,7 +494,7 @@ function testskip15737 ( varCL )
          typearr3: ["name", [5]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: 1 } ).skip( 2 ) );
    var expFindResult1 = [
@@ -573,7 +565,7 @@ function testskip15737 ( varCL )
          typearr3: ["name", [5]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: 1 } ).skip( 10 ) );
    var size = 0;
@@ -582,10 +574,7 @@ function testskip15737 ( varCL )
       var ret = cur.current();
       size++;
    }
-   if( size != 0 )
-   {
-      throw buildException( "compare testskip15737 skip(10) fail", "", "compare", 0, size );
-   }
+   assert.equal( size, 0 );
 }
 
 function testlimit15738 ( varCL )
@@ -615,7 +604,7 @@ function testlimit15738 ( varCL )
          typearr3: ["name", [1]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: 1 } ).limit( 2 ) );
    var expFindResult1 = [
@@ -664,7 +653,7 @@ function testlimit15738 ( varCL )
          typearr3: ["name", [2]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 
    var cur = varCL.find( new SdbQueryOption().sort( { typeint: 1 } ).limit( 10 ) );
    var expFindResult1 = [
@@ -779,17 +768,14 @@ function testlimit15738 ( varCL )
          typearr3: ["name", [5]]
       }
    ];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 }
 
 function testremove15739 ( varCL )
 {
    var rc = varCL.find( new SdbQueryOption().cond( { "typeint": { "$gt": 0 } } ).remove() ).toArray();
    var act = varCL.find().count();
-   if( act != 0 )
-   {
-      throw buildException( "compare testremove15739 fail", "", "compare", 0, act );
-   }
+   assert.equal( act, 0 );
 }
 
 function insertRecord ( varCL )
@@ -821,5 +807,3 @@ function insertRecord ( varCL )
    }
 }
 
-
-main( db );

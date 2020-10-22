@@ -1,42 +1,36 @@
 /******************************************************************************
 *@Description : test SdbQueryOption
-*               TestLink :   seqDB-15741:��������ִ��sort/limit/skip������ϲ�ѯ
-                             seqDB-15742:��������ִ��cond/update������ϲ�ѯ
-                             seqDB-15743:��������ִ��cond/sel/sort/hint������ϲ�ѯ
-                             seqDB-15744:��������ִ��cond/remove������ϲ�ѯ
-*@auhor       : CSQ 
+*               TestLink :   seqDB-15741:分区表上执行sort/limit/skip参数混合查询
+*                            seqDB-15742:分区表上执行cond/update参数混合查询
+*                            seqDB-15743:分区表上执行cond/sel/sort/hint参数混合查询
+*                            seqDB-15744:分区表上执行cond/remove参数混合查询
+*@auhor       : CSQ   2018-09-20 
+*               liuli 2020-10-14
 ******************************************************************************/
+testConf.clName = COMMCLNAME + "_11201";
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
+testConf.clOpt = { "ShardingKey": { "a": 1 }, "ShardingType": "hash" };
+testConf.useSrcGroup = true
+testConf.useDstGroup = true
 
-function main ()
+main( test );
+
+function test ( args )
 {
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      return;
-   }
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15741", true, "drop CS " + COMMCSNAME + "15741" );
-   } catch( e ) { }
-   var groups = commGetGroups( db );
-   var srcGroupName = groups[0][0].GroupName;
-   var destGroupName = groups[1][0].GroupName;
-   var varCS = commCreateCS( db, COMMCSNAME + "15741", true, "create CS" );
-   var varCL = varCS.createCL( COMMCLNAME + "15741", { ShardingKey: { a: 1 }, ShardingType: "hash", Group: srcGroupName } );
-   varCL.createIndex( "bindex", { b: 1 }, false );
-   insertRecord( varCL );
-   varCL.split( srcGroupName, destGroupName, 50 );
-   testcombination15741( varCL );
-   testcombination15742( varCL );
-   testcombination15743( varCL );
-   testcombination15744( varCL );
-
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15741", true, "drop CS " + COMMCSNAME + "15741" );
-   } catch( e ) { }
+   var cl = args.testCL;
+   var srcGroupName = args.srcGroupName;
+   var destGroupName = args.dstGroupNames[0];
+   cl.createIndex( "bindex", { b: 1 }, false );
+   insertRecord( cl );
+   cl.split( srcGroupName, destGroupName, 50 );
+   testcombination15741( cl );
+   testcombination15742( cl );
+   testcombination15743( cl );
+   testcombination15744( cl );
 }
 
-//sort/limit/skip��ѯ���Ƕ����
+// sort/limit/skip参数混合查询
 function testcombination15741 ( varCL )
 {
    var cur = varCL.find( new SdbQueryOption().sort( { a: 1 } ).skip( 5 ).limit( 20 ) );
@@ -61,10 +55,10 @@ function testcombination15741 ( varCL )
    { "_id": 23, "a": 23, "b": 23, "c": -23 },
    { "_id": 24, "a": 24, "b": 24, "c": -24 }
    ];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 }
 
-//find(new SdbQueryOption().cond().update()������ƥ���ֶΰ����������ͷǷ������ֶ� 
+// cond/update参数混合查询
 function testcombination15742 ( varCL )
 {
    var cur = varCL.find( new SdbQueryOption().cond( { $and: [{ a: { $gte: 15 } }, { b: { $lte: 20 } }] } ).update( { $set: { c: 1 } } ).sort( { a: 1 } ) );
@@ -74,7 +68,7 @@ function testcombination15742 ( varCL )
    { "_id": 18, "a": 18, "b": 18, "c": -18 },
    { "_id": 19, "a": 19, "b": 19, "c": -19 },
    { "_id": 20, "a": 20, "b": 20, "c": -20 }];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
    var cur = varCL.find( new SdbQueryOption().cond( { c: 1 } ).sort( { a: 1 } ) );
    var expFindResult1 = [{ "_id": 15, "a": 15, "b": 15, "c": 1 },
    { "_id": 16, "a": 16, "b": 16, "c": 1 },
@@ -82,12 +76,10 @@ function testcombination15742 ( varCL )
    { "_id": 18, "a": 18, "b": 18, "c": 1 },
    { "_id": 19, "a": 19, "b": 19, "c": 1 },
    { "_id": 20, "a": 20, "b": 20, "c": 1 }];
-   checkRec( cur, expFindResult1 );
+   commCompareResults( cur, expFindResult1, false );
 }
 
-//ָ��cond/sel/sort/hint��ѯ��������ѯ���ݸ��Ƕ���飬
-//��db.foo.bar.find(new SdbQueryOption().cond().sel().sort().hint()��
-//����ƥ���ֶΰ����������ͷǷ������ֶ� 
+// cond/sel/sort/hint参数混合查询
 function testcombination15743 ( varCL )
 {
    var cur = varCL.find( new SdbQueryOption().cond( { $and: [{ a: { $gte: 5 } }, { b: { $lte: 40 } }] } ).sel( { _id: { $include: 1 }, a: { $include: 1 }, b: { $include: 1 } } ).sort( { b: 1 } ).hint( { "": "bindex" } ) );
@@ -128,11 +120,10 @@ function testcombination15743 ( varCL )
    { "_id": 39, "a": 39, "b": 39 },
    { "_id": 40, "a": 40, "b": 40 }
    ];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 }
 
-//ָ��cond/remove��ѯ������
-//��ѯ���ݸ��Ƕ���飬��db.foo.bar.find(new SdbQueryOption().cond().remove()
+// cond/remove参数混合查询
 function testcombination15744 ( varCL )
 {
    var cur = varCL.find( new SdbQueryOption().cond( { $and: [{ a: { $gte: 5 } }, { b: { $lte: 95 } }] } ).remove() );
@@ -152,7 +143,7 @@ function testcombination15744 ( varCL )
    { "_id": 99, "a": 99, "b": 99, "c": -99 },
    { "_id": 100, "a": 100, "b": 100, "c": -100 }
    ];
-   checkRec( cur, expFindResult );
+   commCompareResults( cur, expFindResult, false );
 }
 
 function insertRecord ( varCL )
@@ -162,5 +153,3 @@ function insertRecord ( varCL )
       varCL.insert( { _id: i, a: i, b: i, c: -i } );
    }
 }
-
-main();
