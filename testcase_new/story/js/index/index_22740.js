@@ -13,20 +13,20 @@ function test ( testPara )
    cl.createIndex( indexName, { a: 1, b: 1, c: 1 } );
 
    // findCondition, sortCondition, expectResult("tableScan"/"indexScan")
-   var condList = [ [ { a: 1, b: 1, c: 1},         { a: 1, c: 1, d: 1},  [true, true]   ],
-                    [ { a: 1, b: 1, c: 1 },        { a: 1, b: 1, d: 1},  [true, true]   ],
-                    [ { a: 1, b: 1, d: {$gt :1} }, { a: 1, b: 1, d: 1},  [true, true]   ],
-                    [ { a: 1, b: 1, d: {$et :1} }, { a: 1, b: 1, d: 1},  [false, false] ],
-                    [ { a: 1, b: 1, c: 1 },        { a: 1, b: 1 },       [false, false] ]];
+   var condList = [[{ a: 1, b: 1, c: 1 }, { a: 1, c: 1, d: 1 }, [true, true]],
+   [{ a: 1, b: 1, c: 1 }, { a: 1, b: 1, d: 1 }, [true, true]],
+   [{ a: 1, b: 1, d: { $gt: 1 } }, { a: 1, b: 1, d: 1 }, [true, true]],
+   [{ a: 1, b: 1, d: { $et: 1 } }, { a: 1, b: 1, d: 1 }, [false, false]],
+   [{ a: 1, b: 1, c: 1 }, { a: 1, b: 1 }, [false, false]]];
 
    var scanTypeList = ["tableScan", "indexScan"];
 
-   for (var i in condList)
+   for( var i in condList )
    {
-      var findCond   = condList[i][0];
-      var sortCond   = condList[i][1];
+      var findCond = condList[i][0];
+      var sortCond = condList[i][1];
       var expectList = condList[i][2];
-      for (var index in scanTypeList)
+      for( var index in scanTypeList )
       {
          var scanType = scanTypeList[index];
          var expectResult = expectList[index];
@@ -38,19 +38,15 @@ function test ( testPara )
 
 function checkResult ( cl, findCond, sortCond, scanType, expectResult )
 {
-   if (scanType == "tableScan")
+   if( scanType == "tableScan" )
    {
-      scanType = { "" : null };
+      scanType = { "": null };
    }
    else
    {
-      scanType = { "" : indexName };
+      scanType = { "": indexName };
    }
 
    var actuallyResult = cl.find( findCond ).sort( sortCond ).hint( scanType ).explain().current().toObj()["UseExtSort"];
-   if ( actuallyResult != expectResult )
-   {
-      throw new Error( "\nFind Condition: " + JSON.stringify( findCond ) + "   Sort Condition: " + JSON.stringify( sortCond )
-      + "\nResult doesn't match the expectation." + "   Expect Result: " + expectResult + "   Actually Result: " + actuallyResult );
-   }
+   assert.equal( actuallyResult, expectResult );
 }

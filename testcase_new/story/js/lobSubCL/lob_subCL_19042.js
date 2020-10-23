@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var csName = COMMCSNAME;
@@ -44,22 +32,13 @@ function main ()
 
    for( i in lobOids )
    {
-      try
+      assert.tryThrow( -4, function()
       {
          mainCL.getLob( lobOids[i], WORKDIR + "/checkLob19042_" + i );
-         throw 0;
-      }
-      catch( e )
-      {
-         if( e !== -4 )
-         {
-            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids[i], -4, e );
-         }
-      }
+      } );
    }
 
    commDropCL( db, csName, mainCLName );
    commDropCL( db, csName, subCLName );
    deleteTmpFile( filePath );
 }
-

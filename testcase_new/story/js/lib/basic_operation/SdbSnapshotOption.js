@@ -11,9 +11,9 @@ var tmpSdbSnapshotOption = {
    toString: SdbSnapshotOption.prototype.toString
 };
 var funcSdbSnapshotOption = SdbSnapshotOption;
-var funchelp = SdbSnapshotOption.help;
+var funcSdbSnapshotOptionhelp = SdbSnapshotOption.help;
 SdbSnapshotOption=function(){try{return funcSdbSnapshotOption.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbSnapshotOption.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbSnapshotOption.help = function(){try{ return funcSdbSnapshotOptionhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbSnapshotOption.prototype.cond=function(){try{return tmpSdbSnapshotOption.cond.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbSnapshotOption.prototype.flags=function(){try{return tmpSdbSnapshotOption.flags.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbSnapshotOption.prototype.help=function(){try{return tmpSdbSnapshotOption.help.apply(this,arguments);}catch(e){commThrowError(e);}};

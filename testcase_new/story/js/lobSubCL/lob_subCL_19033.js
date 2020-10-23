@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -44,18 +32,10 @@ function main ()
    mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190831" } } );
 
    checkLobMD5( mainCL, lobOids1, fileMD5 );
-   try
+   assert.tryThrow( -135, function()
    {
       checkLobMD5( mainCL, lobOids2, fileMD5 );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -135 )
-      {
-         throw buildException( "get lob", e, "reads lobs that are not in the partition range: " + lobOids2, -135, e );
-      }
-   }
+   } );
 
    deleteTmpFile( filePath );
    commDropCL( db, csName, mainCLName );

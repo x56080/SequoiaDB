@@ -4,7 +4,9 @@
                2016-3-16  yan Wu  init
 *******************************************************************************/
 var clName = CHANGEDPREFIX + "_duplicateIndex7399";
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
@@ -29,7 +31,7 @@ function main ( db )
    }
    catch( e )
    {
-      if( "ErrIdxName" != e )
+      if( "ErrIdxName" != e.message )
       {
          throw e;
       }
@@ -42,17 +44,7 @@ function main ( db )
    checkRec( rc, expRecs );
 
    // drop collection in clean
-   commDropCL( db, csName, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, csName, clName, false, false );
 }
 
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}
 

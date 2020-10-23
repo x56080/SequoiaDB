@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.9.5
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -44,33 +32,15 @@ function main ()
    }
 
    //listlobs with error cond
-   try
+   assert.tryThrow( -6, function()
    {
-      println( "---Begin to listLobs with error cond.eg:cond( {} ).cond( {'Size':{'$include':0}} )" );
       mainCL.listLobs( SdbQueryOption().cond( {} ).cond( { "Size": { "$include": 0 } } ) );
-      throw "listLobs should be fail!";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
-   try
+   assert.tryThrow( -6, function()
    {
-      println( "---Begin to listLobs with error cond.eg:cond( {'Size':{$kk:0}} )" );
       mainCL.listLobs( SdbQueryOption().cond( { "Size": { $kk: 0 } } ) );
-      throw "listLobs should be fail!";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //listLobs with correct condition
    var expSize = 1024;
@@ -85,7 +55,6 @@ function main ()
 
 function listLobsWithCondAndCheckResult ( mainCL, expSize )
 {
-   println( "---begin to listLob with cond." );
    var listResult = mainCL.listLobs( SdbQueryOption().cond( { Size: expSize } ) );
    var actListResult = [];
    while( listResult.next() )
@@ -109,7 +78,6 @@ function listLobsWithCondAndCheckResult ( mainCL, expSize )
 
 function listLobsWithSelAndCheckResult ( mainCL, lobSizes )
 {
-   println( "---begin to listLob with sel. " );
    var listResult = mainCL.listLobs( SdbQueryOption().sel( { Size: { "$include": 1 } } ).sort( { "Size": 1 } ) );
    var actListResult = [];
    while( listResult.next() )
@@ -132,5 +100,3 @@ function listLobsWithSelAndCheckResult ( mainCL, lobSizes )
       throw new Error( "/nexpectResult: " + JSON.stringify( expListResult ) + "/nactualResult: " + JSON.stringify( actListResult ) );
    }
 }
-
-

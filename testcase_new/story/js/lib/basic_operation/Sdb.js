@@ -74,9 +74,9 @@ var tmpSdb = {
    waitTasks: Sdb.prototype.waitTasks
 };
 var funcSdb = Sdb;
-var funchelp = Sdb.help;
+var funcSdbhelp = Sdb.help;
 Sdb=function(){try{return funcSdb.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-Sdb.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Sdb.help = function(){try{ return funcSdbhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 Sdb.prototype._resolveCS=function(){try{return tmpSdb._resolveCS.apply(this,arguments);}catch(e){commThrowError(e);}};
 Sdb.prototype.analyze=function(){try{return tmpSdb.analyze.apply(this,arguments);}catch(e){commThrowError(e);}};
 Sdb.prototype.backup=function(){try{return tmpSdb.backup.apply(this,arguments);}catch(e){commThrowError(e);}};

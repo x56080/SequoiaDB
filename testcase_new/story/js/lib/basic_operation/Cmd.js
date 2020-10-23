@@ -16,9 +16,9 @@ var tmpCmd = {
    _getInfo: Cmd.prototype._getInfo
 };
 var funcCmd = Cmd;
-var funchelp = Cmd.help;
+var funcCmdhelp = Cmd.help;
 Cmd=function(){try{return funcCmd.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-Cmd.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Cmd.help = function(){try{ return funcCmdhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 Cmd.prototype.getCommand=function(){try{return tmpCmd.getCommand.apply(this,arguments);}catch(e){commThrowError(e);}};
 Cmd.prototype.getInfo=function(){try{return tmpCmd.getInfo.apply(this,arguments);}catch(e){commThrowError(e);}};
 Cmd.prototype.getLastOut=function(){try{return tmpCmd.getLastOut.apply(this,arguments);}catch(e){commThrowError(e);}};

@@ -3,27 +3,25 @@
 *@Author      : 2019-4-29  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18275";
    var indexName = "idx";
 
    // ready cl
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
    /**************************** test1, cover: all param ***************************/
-   println( "\n---Begin to create index." );
    var unique = false;
    var enforced = false
    var NotNull = false;
    var options = { Unique: unique, Enforced: enforced, NotNull: NotNull, SortBufferSize: 32 };
    cl.createIndex( indexName, { a: 1 }, options );
 
-   println( "---Begin to check results." );
    checkIndex( cl, indexName, unique, enforced, NotNull );
 
    // clean index
@@ -31,14 +29,12 @@ function main ()
 
 
    /**************************** test2, SortBufferSize:0 ***************************/
-   println( "\n---Begin to create index[SortBufferSize:0]." );
    var unique = true;
    var enforced = true;
    var NotNull = true;
    var options = { Unique: unique, Enforced: enforced, NotNull: NotNull, SortBufferSize: 32 };
    cl.createIndex( indexName, { a: 1 }, options );
 
-   println( "---Begin to check results." );
    checkIndex( cl, indexName, unique, enforced, NotNull );
 
    // clean index
@@ -46,23 +42,13 @@ function main ()
 
 
    /**************************** test3, SortBufferSize < 0 ***************************/
-   println( "\n---Begin to create index[SortBufferSize:-1]." );
-   try 
+   assert.tryThrow( -6, function()
    {
-      var options = { SortBufferSize: -1 };
-      cl.createIndex( indexName, { a: 1 }, options );
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "checkResult", null, "", -6, "  " + e );
-      }
-   }
+      cl.createIndex( indexName, { a: 1 }, { SortBufferSize: -1 } );
+   } );
 
    // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkIndex ( cl, indexName, expUni, expEnf, expNot ) 
@@ -75,6 +61,6 @@ function checkIndex ( cl, indexName, expUni, expEnf, expNot )
    {
       var expResults = JSON.stringify( { unique: expUni, enforced: expEnf, NotNull: expNot } );
       var actResults = JSON.stringify( { unique: actUni, enforced: actEnf, NotNull: actNot } );
-      throw buildException( "checkResult", null, "", expResults, "  " + actResults );
+      throw new Error( "checkResult fail," + expResults + "  " + actResults );
    }
 }

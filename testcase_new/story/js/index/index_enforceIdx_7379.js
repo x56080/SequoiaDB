@@ -5,7 +5,9 @@
               2014-5-15  xiaojun Hu  Create
               2016-3-4   yan wu Modify(增加结果检测（查看访问计划是否走索引、走索引查询数据是否正确,选择其中一条记录检查）)
 ****************************************************************************/
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
@@ -26,36 +28,23 @@ function main ( db )
       inspecIndex( idxCL, "nameIndex", "name", -1, true, true );
       inspecIndex( idxCL, "姓名索引", "姓名", 1, true, true );
       inspecIndex( idxCL, "ageIndex", "age", 1, true, true );
-      println( "Can go end of program." );
    }
    catch( e )
    {
-      if( "ErrIdxName" != e )
+      if( "ErrIdxName" != e.message )
       {
          throw e;
       }
    }
 
    //insert data after create index
-   try
-   {
-      idxCL.insert( { no: 001, name: "A", "姓名": "李", age: 1 } );
-      idxCL.insert( { no: 002, name: "B", "姓名": "王", age: 2 } );
-      idxCL.insert( { no: 003, name: "C", "姓名": "张", age: 3 } );
-      idxCL.insert( { no: 004, name: "D", "姓名": "庄", age: 5 } );
-      idxCL.insert( { no: 005, name: "E", "姓名": "汉", age: 8 } );
-      var count = idxCL.count();
-      if( 5 != count )
-      {
-         println( "Wrong number of record :" + count );
-         throw "ErrNumRecord";
-      }
-   }
-   catch( e )
-   {
-      println( "Failed to insert date after create index : " + e );
-      throw e;
-   }
+   idxCL.insert( { no: 001, name: "A", "姓名": "李", age: 1 } );
+   idxCL.insert( { no: 002, name: "B", "姓名": "王", age: 2 } );
+   idxCL.insert( { no: 003, name: "C", "姓名": "张", age: 3 } );
+   idxCL.insert( { no: 004, name: "D", "姓名": "庄", age: 5 } );
+   idxCL.insert( { no: 005, name: "E", "姓名": "汉", age: 8 } );
+   var count = idxCL.count();
+   assert.equal( 5, count );
 
    //test find by index 
    checkExplain( idxCL, { "姓名": "李" } );
@@ -64,17 +53,7 @@ function main ( db )
    checkResult( idxCL, { "姓名": "李" } );
 
    // drop collection in clean
-   commDropCL( db, csName, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, csName, clName, false, false );
 }
 
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}
 

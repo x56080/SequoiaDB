@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -48,36 +36,19 @@ function main ()
 
    db.getCS( csName ).dropCL( subCLName2 );
 
-   try
+   assert.tryThrow( -135, function()
    {
       insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190901" );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -135 )
-      {
-         throw buildException( "put lob", e, "put lobs that are not in the partition range", -135, e );
-      }
-   }
+   } );
 
    checkLobMD5( mainCL, lobOids1, fileMD5 );
-   try
+   assert.tryThrow( -135, function()
    {
       checkLobMD5( mainCL, lobOids2, fileMD5 );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -135 )
-      {
-         throw buildException( "get lob", e, "reads lobs that are not in the partition range: " + lobOids2, -135, e );
-      }
-   }
+   } );
 
    deleteTmpFile( filePath );
    commDropCL( db, csName, mainCLName );
    commDropCL( db, csName, subCLName1 );
    commDropCL( db, csName, subCLName2 );
 }
-

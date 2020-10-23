@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.8.26
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -47,7 +35,6 @@ function main ()
 
 function putLobs ( mainCL, filePath )
 {
-   println( "---begin to putLob" );
    var maxLobSize = 1024 * 1024;
    var lobSize = Math.round( Math.random() * maxLobSize );
    var fileName = "lob_" + lobSize;
@@ -63,7 +50,6 @@ function putLobs ( mainCL, filePath )
 
 function listLobsWithHintAndCheckResult ( mainCL, lobSize, lobPageSize )
 {
-   println( "---begin to listLob with hint." );
 
    var listResult = mainCL.listLobPieces();
    var expListResult = [];
@@ -87,7 +73,6 @@ function listLobsWithHintAndCheckResult ( mainCL, lobSize, lobPageSize )
       actRecs.push( listObj );
    }
 
-   println( "---begin to check result." );
    var piecesNum = 0;
    if( lobSize % lobPageSize == 0 )
    {
@@ -105,17 +90,13 @@ function listLobsWithHintAndCheckResult ( mainCL, lobSize, lobPageSize )
 
    if( piecesNum !== actRecs.length )
    {
-      throw buildException( "CheckLobPiecesNums error", "\n expPieces =" + piecesNum + "\n actPieces=" + actRecs.length
+      throw new Error( "CheckLobPiecesNums error", "\n expPieces =" + piecesNum + "\n actPieces=" + actRecs.length
          + "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( expListResult ) + "\n lobSize=" + lobSize );
    }
 
    if( JSON.stringify( actRecs ) !== JSON.stringify( expListResult ) )
    {
-      throw buildException( "listLobsWithQueryAndCheckResult()", "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= "
+      throw new Error( "listLobsWithQueryAndCheckResult()", "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= "
          + JSON.stringify( expListResult ) );
    }
 }
-
-
-
-

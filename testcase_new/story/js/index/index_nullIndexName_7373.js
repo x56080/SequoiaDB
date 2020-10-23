@@ -3,8 +3,10 @@
 @Modify list :
                2014-5-20  xiaojun Hu  Modify
 ********************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl7373";
    // drop collection in the beginning
@@ -31,17 +33,9 @@ function main ()
 
 function createIndex ( cl, idxName )
 {
-   try
+   assert.tryThrow( -6, function()
    {
       cl.createIndex( idxName, { a: 1 } );
-      throw "expected failure but found succeed. index name = " + idxName;
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw buildException( "createIndex", e, "create index has failed", -6, e );
-      }
-   }
+   } );
 }
 

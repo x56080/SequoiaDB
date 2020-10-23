@@ -3,30 +3,17 @@
 *@author:       luweikang
 *@createDate:   2019.9.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
       return;
    }
    var clName = "cl19129";
@@ -110,7 +97,6 @@ function splitSubCL ( csName, subCLName )
 
 function putLobs ( cl, filePath )
 {
-   println( "---begin to putLob" );
    //lob num for each subcl
    var lobNum = 500;
    var maxLobSize = 1024 * 100;
@@ -144,5 +130,3 @@ function putLobs ( cl, filePath )
       }
    }
 }
-
-

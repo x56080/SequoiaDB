@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var csName = COMMCSNAME;
@@ -48,22 +36,14 @@ function main ()
    var lobID3 = mainCL.putLob( filePath + fileName3 );
 
    //truncate length = 0
-   println( "---truncate lob length to 0---" );
    mainCL.truncateLob( lobID1, 0 );
    var lobInfo = mainCL.getLob( lobID1, filePath + "check19043_1" );
    var actFileSize = File.getSize( filePath + "check19043_1" );
    var actLobSize = lobInfo.toObj().LobSize;
-   if( actLobSize !== 0 )
-   {
-      throw buildException( "check truncateLob1", null, "check read lob file size, lobId: " + lobID1, 0, actLobSize );
-   }
-   if( actFileSize !== 0 )
-   {
-      throw buildException( "check truncateLob1", null, "check read lob file size, lobId: " + lobID1, 0, actFileSize );
-   }
+   assert.equal( actLobSize, 0 );
+   assert.equal( actFileSize, 0 );
 
    //truncate length = fileSize /2
-   println( "---truncate lob length to fileSize / 2---" );
    var length = fileSize / 2;
    var cmd = new Cmd();
    mainCL.truncateLob( lobID2, length );
@@ -72,31 +52,18 @@ function main ()
    var actLobSize = lobInfo.toObj().LobSize;
    var expMD5 = File.md5( filePath + fileName2 );
    var actMD5 = File.md5( filePath + "check19043_2" );
-   if( actLobSize !== length )
-   {
-      throw buildException( "check truncateLob2", null, "check read lob file size, lobId: " + lobID2, length, actLobSize );
-   }
-   if( expMD5 !== actMD5 )
-   {
-      throw buildException( "check truncateLob2", null, "check read lob file md5, lobId: " + lobID2, expMD5, actMD5 );
-   }
+   assert.equal( actLobSize, length );
+   assert.equal( expMD5, actMD5 );
+
 
    //truncate length = fileSize
-   println( "---truncate lob length to fileSize---" );
    mainCL.truncateLob( lobID3, fileSize );
    var lobInfo = mainCL.getLob( lobID3, filePath + "check19043_3" );
    var actLobSize = lobInfo.toObj().LobSize;
    var actMD5 = File.md5( filePath + "check19043_3" );
-   if( actLobSize !== fileSize )
-   {
-      throw buildException( "check truncateLob3", null, "check read lob file size, lobId: " + lobID3, fileSize, actLobSize );
-   }
-   if( file3MD5 !== actMD5 )
-   {
-      throw buildException( "check truncateLob3", null, "check read lob file md5, lobId: " + lobID3, file3MD5, actMD5 );
-   }
+   assert.equal( actLobSize, fileSize );
+   assert.equal( file3MD5, actMD5 );
 
    cleanMainCL( db, csName, mainCLName );
    deleteTmpFile( filePath );
 }
-

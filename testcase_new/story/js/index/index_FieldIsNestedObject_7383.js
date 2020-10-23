@@ -6,70 +6,31 @@
                                         更新为调用公共函数inspecIndex；
                                         增加结果检测（查看访问计划是否走索引、走索引查询数据是否正确）
 *************************************************************************/
-try
+
+main( test );
+
+function test ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in the beginning" );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
-}
-
    var varCL = commCreateCL( db, csName, clName );
 
-try
-{
    varCL.createIndex( "testindex", { "use.id": 1 }, true );
    inspecIndex( varCL, "testindex", "use.id", 1, true, false );
-}
-catch( e )
-{
-   println( "failed to create index, rc=" + e );
-   throw e;
-}
 
-try
-{
    varCL.insert( { use: { id: 1, name: "chen" } } );
    varCL.insert( { use: { id: 2, name: "chen" } } );
-}
-catch( e )
-{
-   println( "failed to insert record, rc=" + e );
-   throw e;
-}
 
-//test find by index
-checkExplain( varCL, { "use.id": 1 } );
+   checkExplain( varCL, { "use.id": 1 } );
 
-//check the result of find  
-var rc = varCL.find( { "use.id": 1 } );
-var expRecs = [];
-expRecs.push( { use: { id: 1, name: "chen" } } );
-checkRec( rc, expRecs );
+   var rc = varCL.find( { "use.id": 1 } );
+   var expRecs = [];
+   expRecs.push( { use: { id: 1, name: "chen" } } );
+   checkRec( rc, expRecs );
 
-try
-{
-   varCL.insert( { use: { id: 1, name: "chensdf" } } );
-}
-catch( e )
-{
-   if( -38 != e )
+   assert.tryThrow( -38, function()
    {
-      println( "Failed to insert data to database, rc=" + e );
-      throw e;
-   }
-}
-
-try
-{
-   commDropCL( db, csName, clName, false, false,
-      "drop colleciton in the end" );
-}
-catch( e )
-{
-   println( "unexpected err happened when clear cs:" + e );
-   throw e;
+      varCL.insert( { use: { id: 1, name: "chensdf" } } );
+   } );
+   commDropCL( db, csName, clName, false, false );
 }
 

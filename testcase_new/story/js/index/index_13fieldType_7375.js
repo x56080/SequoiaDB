@@ -4,44 +4,32 @@
               2014-5-21  xiaojun Hu  Init
               2016-3-4   yan wu Modify(增加结果检测（查看访问计划是否走索引、走索引查询数据是否正确）)
 ****************************************************************************/
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
-   commDropCL( db, csName, clName, true, true,
-      "drop collection in the beginning" );
+   commDropCL( db, csName, clName, true, true );
 
    // create collection
-   var idxCL = commCreateCL( db, csName, clName, {}, true, false,
-      "create collection" );
+   var idxCL = commCreateCL( db, csName, clName, {}, true, false );
 
    // insert data to SDB
-   try
+   idxCL.insert( { number: 24523453, longint: 2147483647000, floatNum: 12345.456 } );
+   idxCL.insert( { string: "field_value", objectOID: { "$oid": "123abcd00ef12358902300ef" } } );
+   idxCL.insert( { floatNum: 123e+50, bool: true, date: { "$date": "2014-5-21" } } );
+   idxCL.insert( { timestamp: { "$timestamp": "2014-5-21-9.17.30.111111" } } );
+   idxCL.insert( { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
+   idxCL.insert( { regex: { "$regex": "^张" }, regex: "张" } );
+   idxCL.insert( { object: { "subobj": "can't" } } );
+   idxCL.insert( { array: ["abc", 123, "def", "噆"], NULL: null } );
+   var i = 0;
+   do
    {
-      idxCL.insert( { number: 24523453, longint: 2147483647000, floatNum: 12345.456 } );
-      idxCL.insert( { string: "field_value", objectOID: { "$oid": "123abcd00ef12358902300ef" } } );
-      idxCL.insert( { floatNum: 123e+50, bool: true, date: { "$date": "2014-5-21" } } );
-      idxCL.insert( { timestamp: { "$timestamp": "2014-5-21-9.17.30.111111" } } );
-      idxCL.insert( { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
-      idxCL.insert( { regex: { "$regex": "^张" }, regex: "张" } );
-      idxCL.insert( { object: { "subobj": "can't" } } );
-      idxCL.insert( { array: ["abc", 123, "def", "噆"], NULL: null } );
-      var i = 0;
-      do
-      {
-         var count = idxCL.count();
-         ++i;
-      } while( i < 15 )
-      if( 8 != count )
-      {
-         println( "Wrong number of the insert record." );
-         throw "ErrNumRecord";
-      }
-   }
-   catch( e )
-   {
-      println( "Failed to insert data to SDB, rc=" + e );
-      throw e;
-   }
+      var count = idxCL.count();
+      ++i;
+   } while( i < 15 )
+   assert.equal( 8, count );
 
    //createIndex
    createIndex( idxCL, "numberIdx", { number: 1 } );
@@ -77,7 +65,7 @@ function main ( db )
    }
    catch( e )
    {
-      if( "ErrIdxName" != e )
+      if( "ErrIdxName" != e.message )
       {
          throw e;
       }
@@ -122,17 +110,7 @@ function main ( db )
 
 
    // drop collectionspace in clean
-   commDropCL( db, csName, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, csName, clName, false, false );
 }
 
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}
 

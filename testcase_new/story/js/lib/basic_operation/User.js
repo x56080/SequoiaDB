@@ -6,9 +6,9 @@ var tmpUser = {
    toString: User.prototype.toString
 };
 var funcUser = User;
-var funchelp = User.help;
+var funcUserhelp = User.help;
 User=function(){try{return funcUser.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-User.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+User.help = function(){try{ return funcUserhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 User.prototype._promptPassword=function(){try{return tmpUser._promptPassword.apply(this,arguments);}catch(e){commThrowError(e);}};
 User.prototype.getUsername=function(){try{return tmpUser.getUsername.apply(this,arguments);}catch(e){commThrowError(e);}};
 User.prototype.help=function(){try{return tmpUser.help.apply(this,arguments);}catch(e){commThrowError(e);}};

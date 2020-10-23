@@ -11,9 +11,9 @@ var tmpRemote = {
    __runCommand: Remote.prototype.__runCommand
 };
 var funcRemote = Remote;
-var funchelp = Remote.help;
+var funcRemotehelp = Remote.help;
 Remote=function(){try{return funcRemote.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-Remote.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Remote.help = function(){try{ return funcRemotehelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 Remote.prototype._runCommand=function(){try{return tmpRemote._runCommand.apply(this,arguments);}catch(e){commThrowError(e);}};
 Remote.prototype.close=function(){try{return tmpRemote.close.apply(this,arguments);}catch(e){commThrowError(e);}};
 Remote.prototype.getCmd=function(){try{return tmpRemote.getCmd.apply(this,arguments);}catch(e){commThrowError(e);}};

@@ -3,20 +3,9 @@
 *@author:       luweikang
 *@createDate:   2019.9.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = "cl19121";
    var filePath = WORKDIR + "/CLLob19121/";

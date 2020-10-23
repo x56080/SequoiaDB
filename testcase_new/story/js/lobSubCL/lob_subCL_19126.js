@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.8.21
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -99,7 +87,6 @@ function main ()
 
 function putLobs ( mainCL, filePath )
 {
-   println( "---begin to putLob" );
    //lob num for each subcl
    var lobNum = 500;
    var maxLobSize = 1024 * 100;
@@ -133,7 +120,3 @@ function putLobs ( mainCL, filePath )
       }
    }
 }
-
-
-
-

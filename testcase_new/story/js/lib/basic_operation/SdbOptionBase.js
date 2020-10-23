@@ -10,9 +10,9 @@ var tmpSdbOptionBase = {
    toString: SdbOptionBase.prototype.toString
 };
 var funcSdbOptionBase = SdbOptionBase;
-var funchelp = SdbOptionBase.help;
+var funcSdbOptionBasehelp = SdbOptionBase.help;
 SdbOptionBase=function(){try{return funcSdbOptionBase.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbOptionBase.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbOptionBase.help = function(){try{ return funcSdbOptionBasehelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbOptionBase.prototype.cond=function(){try{return tmpSdbOptionBase.cond.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbOptionBase.prototype.flags=function(){try{return tmpSdbOptionBase.flags.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbOptionBase.prototype.help=function(){try{return tmpSdbOptionBase.help.apply(this,arguments);}catch(e){commThrowError(e);}};

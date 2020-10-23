@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.8.21
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -81,16 +69,13 @@ function listLobsWithCondition ( mainCL )
 
       if( actRecs.length !== 1 )
       {
-         throw buildException( "check lob num", "\nactual value= " + JSON.stringify( actRecs ) + "\ncondition= " + JSON.stringify( condition ) );
+         throw new Error( "check lob num", "\nactual value= " + JSON.stringify( actRecs ) + "\ncondition= " + JSON.stringify( condition ) );
       }
 
       if( JSON.stringify( actRecs[0] ) !== JSON.stringify( condition ) )
       {
-         println( "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( condition ) );
-         throw buildException( "checkRec()", "rec ERROR, the list condition=" + JSON.stringify( condition ) );
+         throw new Error( "checkRec()", "rec ERROR, the list condition=" + JSON.stringify( condition ) );
       }
 
    }
 }
-
-

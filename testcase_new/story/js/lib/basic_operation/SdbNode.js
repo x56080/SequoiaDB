@@ -9,9 +9,9 @@ var tmpSdbNode = {
    toString: SdbNode.prototype.toString
 };
 var funcSdbNode = SdbNode;
-var funchelp = SdbNode.help;
+var funcSdbNodehelp = SdbNode.help;
 SdbNode=function(){try{return funcSdbNode.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbNode.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbNode.help = function(){try{ return funcSdbNodehelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbNode.prototype.connect=function(){try{return tmpSdbNode.connect.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbNode.prototype.getHostName=function(){try{return tmpSdbNode.getHostName.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbNode.prototype.getNodeDetail=function(){try{return tmpSdbNode.getNodeDetail.apply(this,arguments);}catch(e){commThrowError(e);}};

@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.8.21
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -40,7 +28,6 @@ function main ()
    makeTmpFile( filePath, fileName, lobSize );
    insertLob( mainCL, filePath + fileName, "YYYYMM", scope, lobNum, subCLNum, beginDate );
 
-   println( "---insert the same records, then listLobs with size." );
    listLobsWithCondition( mainCL, lobSize, beginDate );
 
    commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the ending" );
@@ -72,9 +59,7 @@ function listLobsWithCondition ( mainCL, lobSize, beginDate )
 
    if( JSON.stringify( actRecs ) !== JSON.stringify( expListResult ) )
    {
-      throw buildException( "checkRec()", "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( expListResult ) );
+      throw new Error( "checkRec()", "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( expListResult ) );
    }
 
 }
-
-

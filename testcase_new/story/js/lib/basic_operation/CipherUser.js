@@ -10,9 +10,9 @@ var tmpCipherUser = {
    token: CipherUser.prototype.token
 };
 var funcCipherUser = CipherUser;
-var funchelp = CipherUser.help;
+var funcCipherUserhelp = CipherUser.help;
 CipherUser=function(){try{return funcCipherUser.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-CipherUser.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+CipherUser.help = function(){try{ return funcCipherUserhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 CipherUser.prototype._setToken=function(){try{return tmpCipherUser._setToken.apply(this,arguments);}catch(e){commThrowError(e);}};
 CipherUser.prototype.cipherFile=function(){try{return tmpCipherUser.cipherFile.apply(this,arguments);}catch(e){commThrowError(e);}};
 CipherUser.prototype.clusterName=function(){try{return tmpCipherUser.clusterName.apply(this,arguments);}catch(e){commThrowError(e);}};

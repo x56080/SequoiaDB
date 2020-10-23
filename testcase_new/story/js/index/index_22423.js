@@ -5,76 +5,72 @@
 @Author : 20120-08-10   Zixian Yan
 ****************************************************************************/
 testConf.clName = COMMCLNAME + "_22423";
-main(test);
+main( test );
 
-function test (testPara)
+function test ( testPara )
 {
    var dbCL = testPara.testCL;
 
    var tableScan = "tableScan";
    var indexScan = "indexScan";
 
-   commCreateIndex( dbCL, "abc", { a: 1, b: 1, c: 1} );
+   commCreateIndex( dbCL, "abc", { a: 1, b: 1, c: 1 } );
 
    //Task 1: sortConditon field included in findCondition field
    /***Table Scan***/
-   checkResult( dbCL, { a:1, c:1 }, { a:1, c:1 }, tableScan, false );
-   checkResult( dbCL, { a:1, b:1, d:1 }, { a:1, b:1, d:1 }, tableScan, false );
+   checkResult( dbCL, { a: 1, c: 1 }, { a: 1, c: 1 }, tableScan, false );
+   checkResult( dbCL, { a: 1, b: 1, d: 1 }, { a: 1, b: 1, d: 1 }, tableScan, false );
 
    /***Index Scan***/
-   checkResult( dbCL, { a:1, c:1 }, { a:1, c:1 }, indexScan, false );
-   checkResult( dbCL, { a:1, b:1, d:1 }, { a:1, b:1, d:1 }, indexScan, false );
+   checkResult( dbCL, { a: 1, c: 1 }, { a: 1, c: 1 }, indexScan, false );
+   checkResult( dbCL, { a: 1, b: 1, d: 1 }, { a: 1, b: 1, d: 1 }, indexScan, false );
 
 
    //Task 2: findCondition field included in sortConditon field
    /***Table Scan***/
-   checkResult( dbCL, { a:1 }, { a:1, c:1 }, tableScan, true );
-   checkResult( dbCL, { b:1 }, { b:1, c:1 }, tableScan, true );
+   checkResult( dbCL, { a: 1 }, { a: 1, c: 1 }, tableScan, true );
+   checkResult( dbCL, { b: 1 }, { b: 1, c: 1 }, tableScan, true );
 
    /***Index Scan***/
-   checkResult( dbCL, { a:1 }, { a:1, c:1 }, indexScan, true );
-   checkResult( dbCL, { b:1 }, { b:1, c:1 }, indexScan, true );
+   checkResult( dbCL, { a: 1 }, { a: 1, c: 1 }, indexScan, true );
+   checkResult( dbCL, { b: 1 }, { b: 1, c: 1 }, indexScan, true );
 
 
    //Task 3: Field of findCondition and sortConditon are part of same, And both are index field;
    /***Table Scan***/
-   checkResult( dbCL, { a:1, b:1 }, { a:1, c:1 }, tableScan, true );
+   checkResult( dbCL, { a: 1, b: 1 }, { a: 1, c: 1 }, tableScan, true );
    /***Index Scan***/
-   checkResult( dbCL, { a:1, b:1 }, { a:1, c:1 }, indexScan, false);
+   checkResult( dbCL, { a: 1, b: 1 }, { a: 1, c: 1 }, indexScan, false );
 
    //Task 4: Field of findCondition and sortConditon are part of same;
    //Also findCondition contains non-indexed field, sortConditon is not contain non-indexed field.
    /***Table Scan***/
-   checkResult( dbCL, { a:1, d:1 }, { a:1, b:1 }, tableScan, true );
-   checkResult( dbCL, { a:1, d:1 }, { a:1, c:1 }, tableScan, true );
+   checkResult( dbCL, { a: 1, d: 1 }, { a: 1, b: 1 }, tableScan, true );
+   checkResult( dbCL, { a: 1, d: 1 }, { a: 1, c: 1 }, tableScan, true );
    /***Index Scan***/
-   checkResult( dbCL, { a:1, d:1 }, { a:1, b:1 }, indexScan, false);
-   checkResult( dbCL, { a:1, d:1 }, { a:1, c:1 }, indexScan, true );
+   checkResult( dbCL, { a: 1, d: 1 }, { a: 1, b: 1 }, indexScan, false );
+   checkResult( dbCL, { a: 1, d: 1 }, { a: 1, c: 1 }, indexScan, true );
 
    //Task 5: Field of findCondition and sortConditon are part of same;
    //Also sortConditon contains non-indexed field, findCondition is not contain non-indexed field.
    /***Table Scan***/
-   checkResult( dbCL, { a:1, c:1 }, { a:1, d:1 }, tableScan, true );
+   checkResult( dbCL, { a: 1, c: 1 }, { a: 1, d: 1 }, tableScan, true );
    /***Index Scan***/
-   checkResult( dbCL, { a:1, c:1 }, { a:1, d:1 }, indexScan, true );
+   checkResult( dbCL, { a: 1, c: 1 }, { a: 1, d: 1 }, indexScan, true );
 }
 
 function checkResult ( dbCL, findCond, sortCond, scanType, expectResult )
 {
-   if (scanType == "tableScan")
+   if( scanType == "tableScan" )
    {
-      scanType = { "" : null };
+      scanType = { "": null };
    }
    else
    {
-      scanType = { "" : "abc"};
+      scanType = { "": "abc" };
    }
 
    var actuallyResult = dbCL.find( findCond ).sort( sortCond ).hint( scanType ).explain().current().toObj()["UseExtSort"];
 
-   if ( actuallyResult != expectResult )
-   {
-      throw new Error( "\nFind Condition: " + JSON.stringify( findCond ) + "   Sort Condition: " + JSON.stringify( sortCond )
-                      + "\nResult doesn't match the expectation." + "   Expect Result: " + expectResult + "   Actually Result: " + actuallyResult );
-   }
+   assert.equal( actuallyResult, expectResult );
 }

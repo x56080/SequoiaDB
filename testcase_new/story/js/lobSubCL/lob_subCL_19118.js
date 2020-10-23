@@ -3,24 +3,12 @@
 *@author:      wuyan
 *@createDate:  2019.8.23
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
@@ -66,7 +54,3 @@ function main ()
    commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the ending" );
    deleteTmpFile( filePath );
 }
-
-
-
-

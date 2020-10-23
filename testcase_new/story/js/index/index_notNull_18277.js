@@ -3,8 +3,10 @@
 *@Author      : 2019-4-29  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18277";
    var indexName = "idx";
@@ -13,31 +15,21 @@ function main ()
    var invRecs = [{ b: 2 }, { a: null, b: 3 }];
 
    // ready cl
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
    /**************************** test1, create index[ NotNull:true ] -> insert ***************************/
    var NotNull = true;
-   println( "\n---Test1, create index[ NotNull:" + NotNull + " ] -> insert." );
    cl.createIndex( indexName, { a: 1 }, { NotNull: NotNull } );
 
    var valRecs = validRecs1;
    cl.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      try
+      assert.tryThrow( -339, function()
       {
          cl.insert( invRecs[i] );
-      }
-      catch( e ) 
-      {
-         if( e !== -339 )
-         {
-            throw buildException( "checkResult", null, "", -339, "  " + e );
-         }
-      }
+      } );
    }
 
    checkIndex( cl, indexName, NotNull );
@@ -50,7 +42,6 @@ function main ()
 
    /**************************** test2, create index[ NotNull:false ] -> insert ***************************/
    var NotNull = false;
-   println( "\n---Test2, create index[ NotNull:" + NotNull + " ] -> insert." );
    cl.createIndex( indexName, { a: 1 }, { NotNull: NotNull } );
 
    var valRecs = validRecs2;
@@ -66,23 +57,15 @@ function main ()
 
    /**************************** test3, insert -> create index[ NotNull:true ]  ***************************/
    var NotNull = true;
-   println( "\n---Test3, insert -> create index[ NotNull:" + NotNull + " ]." );
 
    var valRecs = validRecs2;
    cl.insert( valRecs );
 
    // create index
-   try
+   assert.tryThrow( -339, function()
    {
       cl.createIndex( indexName, { a: 1 }, { NotNull: NotNull } );
-   }
-   catch( e ) 
-   {
-      if( e !== -339 )
-      {
-         throw buildException( "checkResult", null, "", -339, "  " + e );
-      }
-   }
+   } );
 
    // check results
    checkRecords( cl, valRecs );
@@ -93,7 +76,6 @@ function main ()
 
    /**************************** test4, insert -> create index[ NotNull:false ]  ***************************/
    var NotNull = false;
-   println( "\n---Test4, insert -> create index[ NotNull:" + NotNull + " ]." );
 
    var valRecs = validRecs2;
    cl.insert( valRecs );
@@ -105,23 +87,18 @@ function main ()
    cl.remove();
 
    // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkIndex ( cl, indexName, expNot ) 
 {
    var indexDef = cl.getIndex( indexName ).toObj().IndexDef;
    var actNot = indexDef.NotNull;
-   if( actNot !== expNot )
-   {
-      throw buildException( "checkResult", null, "", expNot, "  " + actNot );
-   }
+   assert.equal( actNot, expNot );
 }
 
 function checkRecords ( cl, expRecs ) 
 {
-   println( "---Check results." );
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { b: 1 } );
    var actRecs = new Array();
    while( tmpRecs = rc.next() )
@@ -129,8 +106,5 @@ function checkRecords ( cl, expRecs )
       actRecs.push( tmpRecs.toObj() );
    }
 
-   if( JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
-   {
-      throw buildException( "checkResult", null, "", JSON.stringify( expRecs ), "  " + JSON.stringify( actRecs ) );
-   }
+   assert.equal( expRecs, actRecs );
 }

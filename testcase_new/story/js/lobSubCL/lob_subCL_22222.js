@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2020.5.26
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var csName = COMMCSNAME;
@@ -47,27 +35,27 @@ function main ()
    for( i in lobOids )
    {
       var actLobs = [];
-      var lobsCur = mainCL.listLobs( SdbQueryOption().cond({Oid:{$oid:lobOids[i]}}) );
-      while(lobsCur.next())
+      var lobsCur = mainCL.listLobs( SdbQueryOption().cond( { Oid: { $oid: lobOids[i] } } ) );
+      while( lobsCur.next() )
       {
-         actLobs.push(lobsCur.current());
+         actLobs.push( lobsCur.current() );
       }
-      if(actLobs.length != 1)
+      if( actLobs.length != 1 )
       {
-         throw new Error("exp list 1 lob, but found: " + actLobs.length + " lob, list: " + actLobs.toString());
+         throw new Error( "exp list 1 lob, but found: " + actLobs.length + " lob, list: " + actLobs.toString() );
       }
       lobsCur.close();
    }
-   
+
    var actLobs1 = [];
-   var lobsCur1 = mainCL.listLobs( );
-   while(lobsCur1.next())
+   var lobsCur1 = mainCL.listLobs();
+   while( lobsCur1.next() )
    {
-      actLobs1.push(lobsCur1.current());
+      actLobs1.push( lobsCur1.current() );
    }
-   if(actLobs1.length != 20)
+   if( actLobs1.length != 20 )
    {
-      throw new Error("exp list 20 lob, but found: " + actLobs1.length + " lob, list: " + actLobs1.toString());
+      throw new Error( "exp list 20 lob, but found: " + actLobs1.length + " lob, list: " + actLobs1.toString() );
    }
    lobsCur1.close();
 
@@ -75,4 +63,3 @@ function main ()
    commDropCL( db, csName, subCLName );
    deleteTmpFile( filePath );
 }
-

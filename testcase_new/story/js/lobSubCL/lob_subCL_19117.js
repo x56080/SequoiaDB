@@ -3,29 +3,16 @@
 *@author:      luweikang
 *@createDate:  2019.9.11
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
       return;
    }
    var clName = "cl19117";
@@ -84,5 +71,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the ending" );
    deleteTmpFile( filePath );
 }
-
-

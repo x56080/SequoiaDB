@@ -12,9 +12,9 @@ var tmpSdbQueryOption = {
    update: SdbQueryOption.prototype.update
 };
 var funcSdbQueryOption = SdbQueryOption;
-var funchelp = SdbQueryOption.help;
+var funcSdbQueryOptionhelp = SdbQueryOption.help;
 SdbQueryOption=function(){try{return funcSdbQueryOption.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbQueryOption.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbQueryOption.help = function(){try{ return funcSdbQueryOptionhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbQueryOption.prototype.cond=function(){try{return tmpSdbQueryOption.cond.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbQueryOption.prototype.flags=function(){try{return tmpSdbQueryOption.flags.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbQueryOption.prototype.help=function(){try{return tmpSdbQueryOption.help.apply(this,arguments);}catch(e){commThrowError(e);}};

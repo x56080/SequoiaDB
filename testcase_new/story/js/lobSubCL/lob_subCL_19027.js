@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var mainCSName = "mainCS_19027";
@@ -42,21 +30,12 @@ function main ()
    mainCL.attachCL( subCSName + "." + subCLName, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190831" } } );
    var lobOids = insertLob( mainCL, fileFullPath, "YYYYMMDD", 0, 10, 1, "20190808" );
 
-
    db.dropCS( mainCSName );
 
-   try
+   assert.tryThrow( -34, function()
    {
       db.getCS( mainCSName );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -34 )
-      {
-         throw buildException( "check mainCL cs", e, "drop mainCL cs: " + mainCSName, -34, e );
-      }
-   }
+   } );
 
    var subCL = db.getCS( subCSName ).getCL( subCLName );
    checkLobMD5( subCL, lobOids, fileMD5 );
@@ -65,4 +44,3 @@ function main ()
    commDropCS( db, mainCSName );
    commDropCS( db, subCSName );
 }
-

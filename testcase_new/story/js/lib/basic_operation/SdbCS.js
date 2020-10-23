@@ -14,9 +14,9 @@ var tmpSdbCS = {
    toString: SdbCS.prototype.toString
 };
 var funcSdbCS = SdbCS;
-var funchelp = SdbCS.help;
+var funcSdbCShelp = SdbCS.help;
 SdbCS=function(){try{return funcSdbCS.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbCS.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbCS.help = function(){try{ return funcSdbCShelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbCS.prototype._resolveCL=function(){try{return tmpSdbCS._resolveCL.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCS.prototype.alter=function(){try{return tmpSdbCS.alter.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCS.prototype.createCL=function(){try{return tmpSdbCS.createCL.apply(this,arguments);}catch(e){commThrowError(e);}};

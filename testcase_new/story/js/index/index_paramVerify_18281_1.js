@@ -3,63 +3,44 @@
 *@Author      : 2019-5-6  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18281_1";
    var indexName = "idx";
 
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
    /**************************** test1, field name lowercase ***************************/
-   println( "\n---Test1, create index, field name lowercase." );
    cl.createIndex( indexName, { a: 1 }, { unique: true, enforced: true } );
 
-   println( "---Check results." );
    checkIndex( cl, indexName, true, true, false );
 
    cl.dropIndex( indexName );
 
 
    /**************************** test2, field name invalid ***************************/
-   println( "\n---Test2, create index, field name invalid." );
    var keyArr = [{ isUnique: true }, { enforced: true }, { sortBufferSize: true }, { notNull: true }, { aa: true }];
    for( i = 0; i < keyArr.length; i++ ) 
    {
-      try
+      assert.tryThrow( -6, function()
       {
          cl.createIndex( indexName, { a: 1 }, keyArr[i] );
-      }
-      catch( e ) 
-      {
-         if( e !== -6 )
-         {
-            throw buildException( "checkResult", null, "", -6, "  " + e );
-         }
-      }
+      } );
    }
 
-   try 
+   assert.tryThrow( -47, function()
    {
       cl.getIndex( indexName );
-   }
-   catch( e ) 
-   {
-      if( e !== -47 )
-      {
-         throw buildException( "checkResult", null, "", -47, "  " + e );
-      }
-   }
+   } );
 
 
    /**************************** test3, default value ***************************/
-   println( "\n---Test3, create index, default value." );
    cl.createIndex( indexName, { a: 1 } );
 
-   println( "---Check results." );
    checkIndex( cl, indexName, false, false, false );
 
    // clean index
@@ -67,25 +48,15 @@ function main ()
 
 
    /**************************** test4, 2 diff name for same field ***************************/
-   println( "\n---Test3, create index, 2 diff name for same field." );
    var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }];
-   try
+   assert.tryThrow( -6, function()
    {
       cl.createIndex( indexName, { a: 1 }, keyArr[i] );
-   }
-   catch( e ) 
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "checkResult", null, "", -6, "  " + e );
-      }
-   }
+   } );
 
 
    /**************************** test5, boolean:0 ***************************/
-   println( "\n---Test5, create index, boolean:0." );
    cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0 } );
-   println( "---Check results." );
    checkIndex( cl, indexName, false, false, false );
 
    var recs = [{ a: 1, b: 1 }, { b: 2 }, { a: null, b: 3 }, { a: 1, b: 4 }];
@@ -98,9 +69,7 @@ function main ()
 
 
    /**************************** test6, unique:1, enforced:1,NotNull:1 ***************************/
-   println( "\n---Test6, create index, unique:1, enforced:1,NotNull:1." );
    cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1, NotNull: 1 } );
-   println( "---Check results." );
    checkIndex( cl, indexName, true, true, true );
 
    var valRecs = [{ a: 1, b: 1 }];
@@ -108,60 +77,35 @@ function main ()
    cl.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      try
+      assert.tryThrow( -339, function()
       {
          cl.insert( invRecs[i] );
-         throw "insert error!";
-      }
-      catch( e ) 
-      {
-         if( e !== -339 )
-         {
-            throw e;
-         }
-      }
+      } );
    }
    checkRecords( cl, valRecs );
 
-   try
+   assert.tryThrow( -38, function()
    {
       cl.insert( { a: 1, b: 4 } );
-   }
-   catch( e ) 
-   {
-      if( e !== -38 )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.dropIndex( indexName );
    cl.remove();
 
    /**************************** test7, unique:1, enforced:1 ***************************/
-   println( "\n---Test7, create index, unique:1, enforced:1." );
    cl.createIndex( indexName, { a: 1 }, { unique: 1, enforced: 1 } );
-   println( "---Check results." );
    checkIndex( cl, indexName, true, true );
    var insertR1 = [{ b: 1 }];
    cl.insert( insertR1 );
-   try
+   assert.tryThrow( -38, function()
    {
       cl.insert( [{ b: 2 }] );
-   } catch( e )
-   {
-      if( e != -38 )
-      {
-         throw e;
-      }
-   }
+   } );
    checkRecords( cl, insertR1 );
    cl.dropIndex( indexName );
    cl.remove();
 
    /**************************** test8, unique:0, enforced:0,NotNull:0 ***************************/
-   println( "\n---Test8, create index, unique:0, enforced:0,NotNull:0." );
    cl.createIndex( indexName, { a: 1 }, { unique: 0, enforced: 0, NotNull: 0 } );
-   println( "---Check results." );
    checkIndex( cl, indexName, false, false, false );
 
    var insertR1s = [{ a: 1, b: 1 }, { a: 1, b: 2 }, { b: 3 }, { b: 4 }, { a: null, b: 5 }];
@@ -174,19 +118,12 @@ function main ()
    cl.remove();
 
    /**************************** test9, NotNull:string/otherNum ***************************/
-   println( "\n---Test9, create index, NotNull:string/otherNum." );
    var keyArr = [{ NotNull: "true" }, { NotNull: "false" }, { NotNull: 2 }];
-   try
+
+   assert.tryThrow( -6, function()
    {
       cl.createIndex( indexName, { a: 1 }, keyArr[i] );
-   }
-   catch( e ) 
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "checkResult", null, "", -6, "  " + e );
-      }
-   }
+   } );
 
    // clean env
    commDropCL( db, COMMCSNAME, clName, false, false, "Failed to drop CL in the end-condition" );
@@ -206,13 +143,12 @@ function checkIndex ( cl, indexName, expUni, expEnf, expNot )
    {
       var expResults = JSON.stringify( { unique: expUni, enforced: expEnf, NotNull: expNot } );
       var actResults = JSON.stringify( { unique: actUni, enforced: actEnf, NotNull: actNot } );
-      throw buildException( "checkResult", null, "", expResults, "  " + actResults );
+      throw new Error( "checkResult fail,", expResults, "  " + actResults );
    }
 }
 
 function checkRecords ( cl, expRecs ) 
 {
-   println( "   Check records." );
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { b: 1 } );
    var actRecs = new Array();
    while( tmpRecs = rc.next() )
@@ -220,8 +156,5 @@ function checkRecords ( cl, expRecs )
       actRecs.push( tmpRecs.toObj() );
    }
 
-   if( JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
-   {
-      throw buildException( "checkResult", null, "", JSON.stringify( expRecs ), "  " + JSON.stringify( actRecs ) );
-   }
+   assert.equal( expRecs, actRecs );
 }

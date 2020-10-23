@@ -3,31 +3,28 @@
 *@Author      : 2019-4-29  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18270";
    var indexName = "idx";
 
    // ready cl
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
-   println( "\n---Begin to create index." );
    var unique = true;
    var enforced = true;
    var sortBufferSize = 32;
    cl.createIndex( indexName, { a: 1 }, true, true, sortBufferSize );
 
-   println( "\n---Begin to check results." );
    var NotNull = false;
    checkIndex( cl, indexName, unique, enforced, NotNull );
 
    // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkIndex ( cl, indexName, expUni, expEnf, expNot ) 
@@ -40,6 +37,6 @@ function checkIndex ( cl, indexName, expUni, expEnf, expNot )
    {
       var expResults = JSON.stringify( { unique: expUni, enforced: expEnf, NotNull: expNot } );
       var actResults = JSON.stringify( { unique: actUni, enforced: actEnf, NotNull: actNot } );
-      throw buildException( "checkResult", null, "", expResults, "  " + actResults );
+      throw new Error( "checkResult fail," + expResults + "  " + actResults );
    }
 }

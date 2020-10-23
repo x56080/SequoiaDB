@@ -40,9 +40,9 @@ var tmpIniFile = {
    _comment2String: IniFile.prototype._comment2String
 };
 var funcIniFile = IniFile;
-var funchelp = IniFile.help;
+var funcIniFilehelp = IniFile.help;
 IniFile=function(){try{return funcIniFile.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-IniFile.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+IniFile.help = function(){try{ return funcIniFilehelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 IniFile.prototype.addComment=function(){try{return tmpIniFile.addComment.apply(this,arguments);}catch(e){commThrowError(e);}};
 IniFile.prototype.addLastComment=function(){try{return tmpIniFile.addLastComment.apply(this,arguments);}catch(e){commThrowError(e);}};
 IniFile.prototype.addSectionComment=function(){try{return tmpIniFile.addSectionComment.apply(this,arguments);}catch(e){commThrowError(e);}};

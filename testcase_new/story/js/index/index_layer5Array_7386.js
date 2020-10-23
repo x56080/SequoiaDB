@@ -5,7 +5,9 @@
 @Modify list :
                2014-5-21  xiaojun Hu  Init
 ****************************************************************************/
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
    commDropCL( db, csName, clName, true, true, "drop collection in the beginning" );
@@ -14,9 +16,20 @@ function main ( db )
    var idxCL = commCreateCL( db, csName, clName, {}, true, false, "create collection" );
 
    // insert data to SDB
-   try
+   idxCL.insert( {
+      no: 001, name: "A", age: 2, array1: [{
+         "array2": [{
+            "array3": [{
+               "array4": ["array5",
+                  "temp4"]
+            }, "temp3"]
+         }, "temp2"]
+      }, "temp1"]
+   } );
+   var i = 0;
+   do
    {
-      idxCL.insert( {
+      var count = idxCL.count( {
          no: 001, name: "A", age: 2, array1: [{
             "array2": [{
                "array3": [{
@@ -26,32 +39,9 @@ function main ( db )
             }, "temp2"]
          }, "temp1"]
       } );
-      var i = 0;
-      do
-      {
-         var count = idxCL.count( {
-            no: 001, name: "A", age: 2, array1: [{
-               "array2": [{
-                  "array3": [{
-                     "array4": ["array5",
-                        "temp4"]
-                  }, "temp3"]
-               }, "temp2"]
-            }, "temp1"]
-         } );
-         ++i;
-      } while( i < 10 )
-      if( 1 != count )
-      {
-         println( "Wrong number of record :" + count );
-         throw "ErrNumRecord";
-      }
-   }
-   catch( e )
-   {
-      println( "Failed to insert date after create index : " + e );
-      throw e;
-   }
+      ++i;
+   } while( i < 10 )
+   assert.equal( 1, count );
 
    // create index
    createIndex( idxCL, "arrLay5Index", { "array1.array2.array3.array4": 1 }, true, true );
@@ -63,7 +53,7 @@ function main ( db )
    }
    catch( e )
    {
-      if( "ErrIdxName" != e )
+      if( "ErrIdxName" != e.message )
       {
          throw e;
       }
@@ -80,12 +70,3 @@ function main ( db )
    // "drop colleciton in the end" );
 }
 
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}

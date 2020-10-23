@@ -5,24 +5,12 @@ seqDB-19041 主子表创建、读取、删除lob
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var csName = COMMCSNAME;
@@ -68,22 +56,12 @@ function main ()
 
 function checkDeleteLob ( mainCL, lobOids )
 {
-   println( "---check delete lob---" );
    for( i in lobOids )
    {
       mainCL.deleteLob( lobOids[i] );
-      try
+      assert.tryThrow( -4, function()
       {
          mainCL.getLob( lobOids[i], WORKDIR + "/checkLob19038_" + i );
-         throw 0;
-      }
-      catch( e )
-      {
-         if( e !== -4 )
-         {
-            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids[i], -4, e );
-         }
-      }
+      } );
    }
 }
-

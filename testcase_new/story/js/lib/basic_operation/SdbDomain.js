@@ -11,9 +11,9 @@ var tmpSdbDomain = {
    toString: SdbDomain.prototype.toString
 };
 var funcSdbDomain = SdbDomain;
-var funchelp = SdbDomain.help;
+var funcSdbDomainhelp = SdbDomain.help;
 SdbDomain=function(){try{return funcSdbDomain.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbDomain.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbDomain.help = function(){try{ return funcSdbDomainhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbDomain.prototype.addGroups=function(){try{return tmpSdbDomain.addGroups.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbDomain.prototype.alter=function(){try{return tmpSdbDomain.alter.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbDomain.prototype.help=function(){try{return tmpSdbDomain.help.apply(this,arguments);}catch(e){commThrowError(e);}};

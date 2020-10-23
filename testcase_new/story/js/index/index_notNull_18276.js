@@ -3,22 +3,20 @@
 *@Author      : 2019-4-29  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18276";
    var indexName1 = "idx1";
    var indexName2 = "idx2";
 
    // ready cl
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
    /**************************** test1, different index ***************************/
-   println( "\n---Begin to create different index." );
-   println( "---Begin to create idx1, and check results." );
    // old function
    var unique = false;
    var enforced = false;
@@ -27,7 +25,6 @@ function main ()
    checkIndex( cl, indexName1, unique, enforced, NotNull );
 
    // new function
-   println( "---Begin to create idx2, and check results." );
    var unique = true;
    var enforced = true;
    var NotNull = true;
@@ -42,64 +39,39 @@ function main ()
 
    /**************************** test2, -247 ***************************/
 
-   println( "\n---Begin to create index, e: -247." );
    cl.createIndex( indexName1, { a: 1 }, true );
-   try 
+   assert.tryThrow( -247, function()
    {
       cl.createIndex( indexName1, { a: 1 }, { Unique: true } );
-   }
-   catch( e )
-   {
-      if( e !== -247 )
-      {
-         throw buildException( "checkResult", null, "", -6, "  " + e );
-      }
-   }
+   } );
 
    // clean index
    cl.dropIndex( indexName1 );
 
 
    /**************************** test3, -46 ***************************/
-   println( "\n---Begin to create index, e: -46." );
    cl.createIndex( indexName1, { a: 1 }, true );
-   try 
+   assert.tryThrow( -46, function()
    {
       cl.createIndex( indexName1, { b: 1 }, { Unique: true } );
-   }
-   catch( e )
-   {
-      if( e !== -46 )
-      {
-         throw buildException( "checkResult", null, "", -46, "  " + e );
-      }
-   }
+   } );
 
    // clean index
    cl.dropIndex( indexName1 );
 
 
    /**************************** test4, -291 ***************************/
-   println( "\n---Begin to create index, e: -291." );
    cl.createIndex( indexName1, { a: 1 }, true );
-   try 
+   assert.tryThrow( -291, function()
    {
       cl.createIndex( indexName2, { a: 1 }, { Unique: true } );
-   }
-   catch( e )
-   {
-      if( e !== -291 )
-      {
-         throw buildException( "checkResult", null, "", -291, "  " + e );
-      }
-   }
+   } );
 
    // clean index
    cl.dropIndex( indexName1 );
 
    // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkIndex ( cl, indexName, expUni, expEnf, expNot ) 
@@ -113,6 +85,6 @@ function checkIndex ( cl, indexName, expUni, expEnf, expNot )
    {
       var expResults = JSON.stringify( { unique: expUni, enforced: expEnf, NotNull: expNot } );
       var actResults = JSON.stringify( { unique: actUni, enforced: actEnf, NotNull: actNot } );
-      throw buildException( "checkResult", null, "", expResults, "  " + actResults );
+      throw new Error( "checkResult fail,", expResults, "  " + actResults );
    }
 }

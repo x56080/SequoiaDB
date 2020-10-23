@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.10.28
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var groups = commGetGroups( db, "", "", true, false, true );
@@ -34,7 +22,6 @@ function main ()
    }
    if( coordGroup.length < 3 )
    {
-      println( "--least two coord---" );
       return;
    }
    var coordA = coordGroup[1].HostName + ":" + coordGroup[1].svcname;
@@ -63,31 +50,15 @@ function main ()
    dbB.getCS( csName ).getCL( mainCLName ).attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
    dbB.getCS( csName ).getCL( mainCLName ).attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
 
-   try
+   assert.tryThrow( -235, function()
    {
       mainCL.attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
-      throw "ERR_RELINK_CL";
-   }
-   catch( e )
-   {
-      if( e != -235 )
-      {
-         throw new Error( "attach error, exp: -235, act: " + e );
-      }
-   }
+   } );
 
-   try
+   assert.tryThrow( -235, function()
    {
       mainCL.attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
-      throw "ERR_RELINK_CL";
-   }
-   catch( e )
-   {
-      if( e != -235 )
-      {
-         throw new Error( "attach error, exp: -235, act: " + e );
-      }
-   }
+   } );
 
    var lobOids = insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 2, "20190801" );
    checkLobMD5( mainCL, lobOids, fileMD5 );
@@ -95,4 +66,3 @@ function main ()
    deleteTmpFile( filePath );
    commDropCL( db, csName, mainCLName );
 }
-

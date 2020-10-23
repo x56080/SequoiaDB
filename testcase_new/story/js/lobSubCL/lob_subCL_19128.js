@@ -3,20 +3,9 @@
 *@author:       luweikang
 *@createDate:   2019.9.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = "cl19128";
    var filePath = WORKDIR + "/CLLob19128/";
@@ -89,7 +78,6 @@ function main ()
 
 function putLobs ( cl, filePath )
 {
-   println( "---begin to putLob" );
    //lob num for each subcl
    var lobNum = 500;
    var maxLobSize = 1024 * 100;
@@ -123,5 +111,3 @@ function putLobs ( cl, filePath )
       }
    }
 }
-
-

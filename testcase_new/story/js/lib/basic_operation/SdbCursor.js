@@ -9,9 +9,9 @@ var tmpSdbCursor = {
    toString: SdbCursor.prototype.toString
 };
 var funcSdbCursor = SdbCursor;
-var funchelp = SdbCursor.help;
+var funcSdbCursorhelp = SdbCursor.help;
 SdbCursor=function(){try{return funcSdbCursor.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbCursor.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbCursor.help = function(){try{ return funcSdbCursorhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbCursor.prototype.arrayAccess=function(){try{return tmpSdbCursor.arrayAccess.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCursor.prototype.close=function(){try{return tmpSdbCursor.close.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCursor.prototype.current=function(){try{return tmpSdbCursor.current.apply(this,arguments);}catch(e){commThrowError(e);}};

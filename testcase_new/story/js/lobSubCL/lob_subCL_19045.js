@@ -3,29 +3,17 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "--least two groups" );
       return;
    }
 
@@ -61,4 +49,3 @@ function main ()
    commDropCL( db, csName, mainCLName );
    commDropCL( db, csName, subCLName );
 }
-

@@ -46,10 +46,10 @@ function generateFiles ()
       var varStr = "var func" + classes[i] + " = " + classes[i] + ";";
       file.write( varStr + "\n" );
 
-      // e.g: var funcFile = File.chgrp
+      // e.g: var funcFilechgrp = File.chgrp
       for( var j = 0; j < staicFunc.length; j++ )
       {
-         var varStr = "var func" + staicFunc[j] + " = " + classes[i] + "." + staicFunc[j] + ";";
+         var varStr = "var func" + classes[i] + staicFunc[j] + " = " + classes[i] + "." + staicFunc[j] + ";";
          file.write( varStr + "\n" );
       }
 
@@ -59,14 +59,14 @@ function generateFiles ()
 
       /* e.g:
          File.chgrp = function(){
-            try{ return   funcFile.apply(this,arguments);  }
+            try{ return   funcFilechgrp.apply(this,arguments);  }
             catch(e) { commThrowError(e);  }
          }
       */
       for( var j = 0; j < staicFunc.length; j++ )
       {
          var evalStr = classes[i] + "." + staicFunc[j] + " = function(){" +
-            "try{ return func" + staicFunc[j] + ".apply( this, arguments ); } catch( e ) { commThrowError(e) } };";
+            "try{ return func" + classes[i] + staicFunc[j] + ".apply( this, arguments ); } catch( e ) { commThrowError(e) } };";
          file.write( evalStr + "\n" );
       }
 

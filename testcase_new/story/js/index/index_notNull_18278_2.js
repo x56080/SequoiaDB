@@ -5,8 +5,10 @@
 *@Author      : 2019-5-6  XiaoNi Huang
 ******************************************************************************/
 
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18278_2";
    var indexName = "idx";
@@ -20,30 +22,20 @@ function main ()
    var nesObj = [{ a: { a2: { a3: { a4: { a5: { a6: { a7: { a8: { a9: { a10: { a11: { a12: { a13: { a14: { a15: { a16: { a17: { a18: { a19: { a20: "nestedObj" } } } } } } } } } } } } } } } } } } }, b: 1 }];
 
    // ready cl
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
 
    /************************* test1, create composite index[ NotNull:true ] -> insert[ string ] *******************/
    var NotNull = true;
-   println( "\n---Test1, create composite index[ NotNull:" + NotNull + " ] -> insert[ string ]." );
    cl.createIndex( indexName, indexKey, { NotNull: NotNull } );
 
    cl.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      try
+      assert.tryThrow( -339, function()
       {
          cl.insert( invRecs[i] );
-      }
-      catch( e ) 
-      {
-         if( e !== -339 )
-         {
-            throw buildException( "checkResult", null, "", -339, "  " + e );
-         }
-      }
+      } );
    }
 
    checkIndex( cl, indexName, NotNull );
@@ -56,17 +48,14 @@ function main ()
 
    /************************* test2, create composite index[ NotNull:false ] -> insert[ string ] *******************/
    var NotNull = false;
-   println( "\n---Test2, create composite index[ NotNull:" + NotNull + " ] -> insert[ string ]." );
    cl.createIndex( indexName, indexKey, { NotNull: NotNull } );
    checkIndex( cl, indexName, NotNull );
 
-   println( "---insert recs1." );
    cl.insert( valRecs );
    checkRecords( cl, valRecs );
 
    cl.remove();
 
-   println( "---insert invRecs." );
    cl.insert( invRecs );
    checkRecords( cl, invRecs );
 
@@ -77,7 +66,6 @@ function main ()
 
    /****************** test3, create composite index[ NotNull:true ] -> insert[ a:timestamp ] ******************/
    var NotNull = true;
-   println( "\n---Test3, create composite index[ NotNull:" + NotNull + " ] -> insert[ a:timestamp ]." );
    cl.createIndex( indexName, indexKey, { NotNull: NotNull } );
    checkIndex( cl, indexName, NotNull );
 
@@ -98,7 +86,6 @@ function main ()
 
    /****************** test4, create composite index[ NotNull:true ] -> insert[ a:nested array ] ******************/
    var NotNull = true;
-   println( "\n---Test4, create composite index[ NotNull:" + NotNull + " ] -> insert[ a:nested array ]." );
    cl.insert( nesArr );
    checkRecords( cl, nesArr );
 
@@ -107,39 +94,29 @@ function main ()
 
    /****************** test5, create composite index[ NotNull:true ] -> insert[ a:nested obj ] ******************/
    var NotNull = true;
-   println( "\n---Test5, create composite index[ NotNull:" + NotNull + " ] -> insert[ a:nested obj ]." );
    cl.insert( nesObj );
    checkRecords( cl, nesObj );
 
    // clean env
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function checkIndex ( cl, indexName, expNot ) 
 {
    var indexDef = cl.getIndex( indexName ).toObj().IndexDef;
    var actNot = indexDef.NotNull;
-   if( actNot !== expNot )
-   {
-      throw buildException( "checkResult", null, "", expNot, "  " + actNot );
-   }
+   assert.equal( actNot, expNot );
 }
 
 function checkRecords ( cl, expRecs ) 
 {
-   println( "---Check results." );
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { b: 1 } );
    var actRecs = new Array();
    while( tmpRecs = rc.next() )
    {
       actRecs.push( tmpRecs.toObj() );
    }
-
-   if( JSON.stringify( expRecs ) !== JSON.stringify( actRecs ) )
-   {
-      throw buildException( "checkResult", null, "", JSON.stringify( expRecs ), "  " + JSON.stringify( actRecs ) );
-   }
+   assert.equal( expRecs, actRecs );
 }
 
 function getRandomString ( strLen ) 
@@ -159,4 +136,29 @@ function getRandomInt ( min, max ) // [min, max)
    var range = max - min;
    var value = min + parseInt( Math.random() * range );
    return value;
+}
+
+/* ****************************************************
+@description: turn to local time
+@parameter:
+   time: Timestamp with time zone to millisecond,eg:'1901-12-31T15:54:03.000Z'
+   format: eg:%Y-%m-%d-%H.%M.%S.000000
+@return: 
+   localtime, eg: '1901-12-31-15.54.03.000000'
+**************************************************** */
+function turnLocaltime ( time, format )
+{
+   if( typeof ( format ) == "undefined" ) { format = "%Y-%m-%d"; };
+   var msecond = new Date( time ).getTime();
+   var second = parseInt( msecond / 1000 );  //millisecond to second
+   var localtime = cmdRun( 'date -d@"' + second + '" "+' + format + '"' );
+
+   return localtime;
+}
+
+function cmdRun ( str )
+{
+   var cmd = new Cmd();
+   var rc = cmd.run( str ).split( "\n" )[0];
+   return rc;
 }

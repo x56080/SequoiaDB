@@ -3,30 +3,17 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "--least two groups" );
       return;
    }
 
@@ -54,18 +41,10 @@ function main ()
    subcl2.insert( { a: 2 } );
    subcl2.split( targetGroup, sourceGroup, 50 );
    mainCL.attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
-   try
+   assert.tryThrow( -6, function()
    {
       mainCL.attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "attach cl", e, "to attach range subCL should be fail: " + subCLName2, -6, e );
-      }
-   }
+   } );
    var lobOids = insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190801" );
    checkLobMD5( mainCL, lobOids, fileMD5 );
 

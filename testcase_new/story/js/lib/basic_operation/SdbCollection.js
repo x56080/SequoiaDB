@@ -46,9 +46,9 @@ var tmpSdbCollection = {
    upsert: SdbCollection.prototype.upsert
 };
 var funcSdbCollection = SdbCollection;
-var funchelp = SdbCollection.help;
+var funcSdbCollectionhelp = SdbCollection.help;
 SdbCollection=function(){try{return funcSdbCollection.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbCollection.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbCollection.help = function(){try{ return funcSdbCollectionhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbCollection.prototype._bulkInsert=function(){try{return tmpSdbCollection._bulkInsert.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCollection.prototype._count=function(){try{return tmpSdbCollection._count.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbCollection.prototype._getIndexes=function(){try{return tmpSdbCollection._getIndexes.apply(this,arguments);}catch(e){commThrowError(e);}};

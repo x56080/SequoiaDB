@@ -48,8 +48,5 @@ function checkResult ( expValue, actValue )
 {
    expValue.sort();
    actValue.sort();
-   if( !commCompareObject( expValue, actValue ) )
-   {
-      throw new Error( "compare result error\n" + "expect result:" + JSON.stringify( expValue ) + "\nactual result:" + JSON.stringify( actValue ) );
-   }
+   assert.equal( expValue, actValue );
 }

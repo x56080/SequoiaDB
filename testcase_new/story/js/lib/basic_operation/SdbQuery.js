@@ -21,9 +21,9 @@ var tmpSdbQuery = {
    update: SdbQuery.prototype.update
 };
 var funcSdbQuery = SdbQuery;
-var funchelp = SdbQuery.help;
+var funcSdbQueryhelp = SdbQuery.help;
 SdbQuery=function(){try{return funcSdbQuery.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbQuery.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbQuery.help = function(){try{ return funcSdbQueryhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbQuery.prototype._checkExecuted=function(){try{return tmpSdbQuery._checkExecuted.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbQuery.prototype._exec=function(){try{return tmpSdbQuery._exec.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbQuery.prototype.arrayAccess=function(){try{return tmpSdbQuery.arrayAccess.apply(this,arguments);}catch(e){commThrowError(e);}};

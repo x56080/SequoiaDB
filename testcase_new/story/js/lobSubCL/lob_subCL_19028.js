@@ -3,24 +3,12 @@
 *@author:      luweikang
 *@createDate:  2019.8.12
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
    var mainCSName = COMMCSNAME;
@@ -28,19 +16,9 @@ function main ()
 
    var cs = commCreateCS( db, mainCSName, true );
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1, "a": 1, "b": 2 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   try
+   assert.tryThrow( -6, function()
    {
-      println( "---create mainCL use more shardingKey---" );
       cs.createCL( mainCLName, options );
-      throw 0;
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "create mainCL", e, "create mainCL use more shardingKey: " + mainCLName, -6, e );
-      }
-   }
+   } );
 
 }
-

@@ -74,9 +74,9 @@ var tmpSecureSdb = {
    waitTasks: SecureSdb.prototype.waitTasks
 };
 var funcSecureSdb = SecureSdb;
-var funchelp = SecureSdb.help;
+var funcSecureSdbhelp = SecureSdb.help;
 SecureSdb=function(){try{return funcSecureSdb.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SecureSdb.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SecureSdb.help = function(){try{ return funcSecureSdbhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SecureSdb.prototype._resolveCS=function(){try{return tmpSecureSdb._resolveCS.apply(this,arguments);}catch(e){commThrowError(e);}};
 SecureSdb.prototype.analyze=function(){try{return tmpSecureSdb.analyze.apply(this,arguments);}catch(e){commThrowError(e);}};
 SecureSdb.prototype.backup=function(){try{return tmpSecureSdb.backup.apply(this,arguments);}catch(e){commThrowError(e);}};

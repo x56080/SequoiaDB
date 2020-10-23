@@ -5,9 +5,9 @@ var tmpBSONObj = {
    toString: BSONObj.prototype.toString
 };
 var funcBSONObj = BSONObj;
-var funchelp = BSONObj.help;
+var funcBSONObjhelp = BSONObj.help;
 BSONObj=function(){try{return funcBSONObj.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-BSONObj.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+BSONObj.help = function(){try{ return funcBSONObjhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 BSONObj.prototype.help=function(){try{return tmpBSONObj.help.apply(this,arguments);}catch(e){commThrowError(e);}};
 BSONObj.prototype.toJson=function(){try{return tmpBSONObj.toJson.apply(this,arguments);}catch(e){commThrowError(e);}};
 BSONObj.prototype.toObj=function(){try{return tmpBSONObj.toObj.apply(this,arguments);}catch(e){commThrowError(e);}};

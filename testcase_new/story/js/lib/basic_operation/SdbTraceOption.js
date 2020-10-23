@@ -8,9 +8,9 @@ var tmpSdbTraceOption = {
    toString: SdbTraceOption.prototype.toString
 };
 var funcSdbTraceOption = SdbTraceOption;
-var funchelp = SdbTraceOption.help;
+var funcSdbTraceOptionhelp = SdbTraceOption.help;
 SdbTraceOption=function(){try{return funcSdbTraceOption.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbTraceOption.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbTraceOption.help = function(){try{ return funcSdbTraceOptionhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbTraceOption.prototype.breakPoints=function(){try{return tmpSdbTraceOption.breakPoints.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbTraceOption.prototype.components=function(){try{return tmpSdbTraceOption.components.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbTraceOption.prototype.functionNames=function(){try{return tmpSdbTraceOption.functionNames.apply(this,arguments);}catch(e){commThrowError(e);}};

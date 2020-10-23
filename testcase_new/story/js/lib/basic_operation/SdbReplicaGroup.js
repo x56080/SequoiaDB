@@ -14,9 +14,9 @@ var tmpSdbReplicaGroup = {
    toString: SdbReplicaGroup.prototype.toString
 };
 var funcSdbReplicaGroup = SdbReplicaGroup;
-var funchelp = SdbReplicaGroup.help;
+var funcSdbReplicaGrouphelp = SdbReplicaGroup.help;
 SdbReplicaGroup=function(){try{return funcSdbReplicaGroup.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbReplicaGroup.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbReplicaGroup.help = function(){try{ return funcSdbReplicaGrouphelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbReplicaGroup.prototype.attachNode=function(){try{return tmpSdbReplicaGroup.attachNode.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbReplicaGroup.prototype.createNode=function(){try{return tmpSdbReplicaGroup.createNode.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbReplicaGroup.prototype.detachNode=function(){try{return tmpSdbReplicaGroup.detachNode.apply(this,arguments);}catch(e){commThrowError(e);}};

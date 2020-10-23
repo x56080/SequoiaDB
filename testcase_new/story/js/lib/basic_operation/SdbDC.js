@@ -14,9 +14,9 @@ var tmpSdbDC = {
    toString: SdbDC.prototype.toString
 };
 var funcSdbDC = SdbDC;
-var funchelp = SdbDC.help;
+var funcSdbDChelp = SdbDC.help;
 SdbDC=function(){try{return funcSdbDC.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-SdbDC.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+SdbDC.help = function(){try{ return funcSdbDChelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 SdbDC.prototype.activate=function(){try{return tmpSdbDC.activate.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbDC.prototype.attachGroups=function(){try{return tmpSdbDC.attachGroups.apply(this,arguments);}catch(e){commThrowError(e);}};
 SdbDC.prototype.createImage=function(){try{return tmpSdbDC.createImage.apply(this,arguments);}catch(e){commThrowError(e);}};

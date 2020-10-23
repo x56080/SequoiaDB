@@ -3,20 +3,9 @@
 *@author:      luweikang
 *@createDate:  2019.9.11
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = "cl19116";
    var filePath = WORKDIR + "/CLLob19116/";
@@ -73,5 +62,3 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the ending" );
    deleteTmpFile( filePath );
 }
-
-

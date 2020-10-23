@@ -1,3 +1,6 @@
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
+
 /************************************
 *@Description: 创建主表，默认创建两个字表
 *@author:      luweikang
@@ -67,7 +70,6 @@ function createMainCLAndAttachCL ( db, csName, mainCLName, clName, shardingForma
 **************************************/
 function makeTmpFile ( filePath, fileName, fileSize )
 {
-   if( fileName == undefined ) { println( "---error msg: fileName is null." ); }
    if( fileSize == undefined ) { fileSize = 1024 * 100; }
    var fileFullPath = filePath + "/" + fileName;
    File.mkdir( filePath );
@@ -89,10 +91,9 @@ function deleteTmpFile ( filePath )
    try
    {
       File.remove( filePath );
-   }
-   catch( e )
+   } catch( e )
    {
-      if( e != -4 )
+      if( e.message != -4 )
       {
          throw e;
       }
@@ -106,7 +107,6 @@ function deleteTmpFile ( filePath )
 **************************************/
 function insertLob ( mainCL, filePath, format, scope, lobNum, subCLNum, beginDate )
 {
-   println( "---put lob---" );
    if( lobNum == undefined ) { lobNum = 10; }
    if( subCLNum == undefined ) { subCLNum = 2; }
    if( scope == undefined ) { scope = 5; }
@@ -147,16 +147,7 @@ function insertLob ( mainCL, filePath, format, scope, lobNum, subCLNum, beginDat
                timestamp = year + "-" + month + "-" + ( day + i * scope ) + "-00.00.00.000000";
          }
          var lobOid = mainCL.createLobID( timestamp );
-         try
-         {
-            lobOids[i * lobNum + j] = mainCL.putLob( filePath, lobOid );
-         }
-         catch( e )
-         {
-            println( "---error msg: filePath: " + filePath + ", timestamp: " + timestamp );
-            throw e;
-         }
-
+         lobOids[i * lobNum + j] = mainCL.putLob( filePath, lobOid );
       }
    }
    return lobOids;
@@ -196,14 +187,10 @@ function readLobs ( mainCL, lobOids )
 **************************************/
 function checkLobMD5 ( mainCL, lobOids, fileMD5 )
 {
-   println( "---check lob md5---" );
    var lobFileMd5s = readLobs( mainCL, lobOids );
    for( var i = 0; i < lobOids.length; i++ )
    {
-      if( lobFileMd5s[i] != fileMD5 )
-      {
-         throw buildException( "checkLobMD5", null, "compare the lob to MD5 of the file, LobOID: " + lobOids[i], fileMD5, lobFileMd5s[i] );
-      }
+      assert.equal( lobFileMd5s[i], fileMD5 );
    }
 }
 
@@ -239,18 +226,11 @@ function deleteLob ( cl, lobOids )
    for( i in lobOids )
    {
       cl.deleteLob( lobOids[i] );
-      try
+      assert.tryThrow( -4, function()
       {
          cl.getLob( lobOids[i], WORKDIR + "/" + clName + "_" + i );
-         throw 0;
-      }
-      catch( e )
-      {
-         if( e !== -4 )
-         {
-            throw buildException( "check delete lob", e, "gets the deleted lob: " + lobOids[i], -4, e );
-         }
-      }
+
+      } );
    }
 }
 
@@ -262,7 +242,6 @@ function deleteLob ( cl, lobOids )
 //TODO:建议优化该检测方法，从对应子表读取所有落入该子表的lob，同时需要检验lob内容正确性
 function checkSubCLLob ( db, mainCLFullName, lobOids )
 {
-   println( "---check sub cl lob---" );
    var subCLNames = getSubCLNames( db, mainCLFullName );
    var clName = mainCLFullName.split( "." )[1];
    var lobNum = lobOids.length / subCLNames.length;
@@ -278,10 +257,7 @@ function checkSubCLLob ( db, mainCLFullName, lobOids )
          actlobNum++;
          tmpLobIds.push( cur.current() );
       }
-      if( actlobNum != lobNum )
-      {
-         throw buildException( "checkSubCLLob()", null, "check subCL lob num: " + subCLNames[i] + ", lobOid: " + tmpLobIds, lobNum, actlobNum );
-      }
+      assert.equal( actlobNum, lobNum );
       for( var j = 0; j < lobNum; j++ )
       {
          var lobReadPath = WORKDIR + "/sublob_" + clName + "_" + ( i * lobNum + j );
@@ -291,7 +267,7 @@ function checkSubCLLob ( db, mainCLFullName, lobOids )
          }
          catch( e )
          {
-            if( e != -4 )
+            if( e.message != -4 )
             {
                throw e;
             }
@@ -309,7 +285,6 @@ function checkSubCLLob ( db, mainCLFullName, lobOids )
 **************************************/
 function cleanMainCL ( db, mainCSName, mainCLName )
 {
-   println( "---clean main cl---" );
    var subCLNames = getSubCLNames( db, mainCSName + "." + mainCLName );
    commDropCL( db, mainCSName, mainCLName );
    for( i in subCLNames )
@@ -317,18 +292,10 @@ function cleanMainCL ( db, mainCSName, mainCLName )
       var name = subCLNames[i].split( "." );
       var csName = name[0];
       var clName = name[1];
-      try
+      assert.tryThrow( -23, function()
       {
          db.getCS( csName ).getCL( clName );
-         throw buildException( "cleanMainCL()", null, "get not exist cl: " + subCLNames[i], "not exist", "exist" );
-      }
-      catch( e )
-      {
-         if( e !== -23 )
-         {
-            throw e;
-         }
-      }
+      } );
    }
 }
 
@@ -339,7 +306,6 @@ function cleanMainCL ( db, mainCSName, mainCLName )
 **************************************/
 function listLobsAndCheckResult ( mainCL, condition, attrName, attrValue, matchSymbol )
 {
-   println( "---begin to listLob use " + matchSymbol );
    var listResult = mainCL.listLobs( SdbQueryOption().sort( { "Oid": 1 } ) );
    var expListResult = [];
    while( listResult.next() )
@@ -396,12 +362,7 @@ function listLobsAndCheckResult ( mainCL, condition, attrName, attrValue, matchS
       actRecs.push( rc.current().toObj() );
    }
 
-   println( "---begin to check result." );
-   if( JSON.stringify( actRecs ) !== JSON.stringify( expListResult ) )
-   {
-      println( "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( expListResult ) );
-      throw buildException( "checkRec()", "rec ERROR, the list condition=" + JSON.stringify( condition ) );
-   }
+   assert.equal( actRecs, expListResult );
 }
 
 /************************************
@@ -413,7 +374,6 @@ function listLobsWithSelCondAndCheckResult ( mainCL, selSymbol, selCondition, co
 {
    if( condition == undefined ) { condition = {}; }
    if( modifyValue == undefined ) { modifyValue = 0; }
-   println( "---begin to listLob use " + selSymbol );
    var listResult = mainCL.listLobs( SdbQueryOption().cond( condition ).sort( { "Oid": 1 } ) );
    var expListResult = [];
    while( listResult.next() )
@@ -453,13 +413,8 @@ function listLobsWithSelCondAndCheckResult ( mainCL, selSymbol, selCondition, co
    {
       actRecs.push( rc.current().toObj() );
    }
+   assert.equal( actRecs, expListResult );
 
-   println( "---begin to check result." );
-   if( JSON.stringify( actRecs ) !== JSON.stringify( expListResult ) )
-   {
-      println( "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= " + JSON.stringify( expListResult ) );
-      throw buildException( "checkRec()", "rec ERROR, the list condition=" + JSON.stringify( condition ) );
-   }
 }
 
 /************************************
@@ -485,7 +440,6 @@ function saveResultToFile ( expResult, actResult, filePath )
 **************************************/
 function listLobsWithQueryAndCheckResult ( mainCL, queryIndex )
 {
-   println( "---begin to listLob with query[]. queryIndex = " + queryIndex );
    var listResult = mainCL.listLobs( SdbQueryOption().sort( { "Oid": 1 } ) );
    var expListResult = [];
    var count = 0;
@@ -504,12 +458,8 @@ function listLobsWithQueryAndCheckResult ( mainCL, queryIndex )
    var query = mainCL.listLobs( SdbQueryOption().sort( { "Oid": 1 } ) );
    actRecs.push( JSON.parse( query[queryIndex] ) );
 
-   println( "---begin to check result." );
-   if( JSON.stringify( actRecs ) !== JSON.stringify( expListResult ) )
-   {
-      throw buildException( "listLobsWithQueryAndCheckResult()", "\nactual value= " + JSON.stringify( actRecs ) + "\nexpect value= "
-         + JSON.stringify( expListResult ) + "\n query index = " + queryIndex );
-   }
+   assert.equal( actRecs, expListResult );
+
 }
 
 /************************************
@@ -519,7 +469,6 @@ function listLobsWithQueryAndCheckResult ( mainCL, queryIndex )
 **************************************/
 function listLobsWithLimitAndCheckResult ( mainCL, filePath, limitNum )
 {
-   println( "---begin to listLob with limit().limitNum = " + limitNum );
    var listResult = mainCL.listLobs( SdbQueryOption().sort( { "Oid": 1 } ) );
    var expListResult = [];
    var count = 0;
@@ -541,7 +490,6 @@ function listLobsWithLimitAndCheckResult ( mainCL, filePath, limitNum )
       actRecs.push( rc.current().toObj() );
    }
 
-   println( "---begin to check result." );
    for( var i in expListResult )
    {
       var actRec = actRecs[i];
@@ -551,9 +499,8 @@ function listLobsWithLimitAndCheckResult ( mainCL, filePath, limitNum )
       {
          if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
             saveResultToFile( expListResult, actRecs, filePath );
-            throw buildException( "listLobsWithLimitAndCheckResult()", "rec ERROR, the limitNum=" + limitNum );
+            throw new Error( "rec ERROR, the limitNum=" + limitNum );
          }
       }
    }
@@ -566,7 +513,6 @@ function listLobsWithLimitAndCheckResult ( mainCL, filePath, limitNum )
 **************************************/
 function listLobsWithSkipAndCheckResult ( mainCL, filePath, skipNum )
 {
-   println( "---begin to listLob with skip().skipNum = " + skipNum );
    var listResult = mainCL.listLobs( SdbQueryOption().sort( { "Oid": 1 } ) );
    var expListResult = [];
    var count = 0;
@@ -587,7 +533,6 @@ function listLobsWithSkipAndCheckResult ( mainCL, filePath, skipNum )
       actRecs.push( rc.current().toObj() );
    }
 
-   println( "---begin to check result." );
    for( var i in expListResult )
    {
       var actRec = actRecs[i];
@@ -597,9 +542,8 @@ function listLobsWithSkipAndCheckResult ( mainCL, filePath, skipNum )
       {
          if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
             saveResultToFile( expListResult, actRecs, filePath );
-            throw buildException( "listLobsWithLimitAndCheckResult()", "rec ERROR, the limitNum=" + limitNum );
+            throw new Error( "rec ERROR, the limitNum=" + limitNum );
          }
       }
    }
@@ -614,7 +558,6 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
 {
    if( sortOrder == undefined ) { sortOrder = 1; }
 
-   println( "---begin to listLob with sort(). sortCond=" + JSON.stringify( sortCond ) );
    var listResult = mainCL.listLobs();
    var expListResult = [];
    while( listResult.next() )
@@ -630,7 +573,6 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
       actRecs.push( rc.current().toObj() );
    }
 
-   println( "---begin to check result." );
    var compare = function( keyName, sort )
    {
       if( keyName == "Size" && sort == 1 )
@@ -744,9 +686,8 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
       {
          if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
             saveResultToFile( expListResult, actRecs, filePath );
-            throw buildException( "listLobsWithSortAndCheckResult()", "the cond=" + JSON.stringify( sortCond ) );
+            throw new Error( "the cond=" + JSON.stringify( sortCond ) );
          }
       }
    }
@@ -759,7 +700,6 @@ function listLobsWithSortAndCheckResult ( mainCL, filePath, sortCond, sortKey, s
 **************************************/
 function listLobsWithQueryOptionAndCheckResult ( mainCL, filePath, skipNum, limitNum )
 {
-   println( "---begin to listLob with skip/limit/sort." );
    var listResult = mainCL.listLobs();
    var listResults = [];
    while( listResult.next() )
@@ -801,7 +741,6 @@ function listLobsWithQueryOptionAndCheckResult ( mainCL, filePath, skipNum, limi
       actRecs.push( rc.current().toObj() );
    }
 
-   println( "---begin to check result." );
    for( var i in expListResult )
    {
       var actRec = actRecs[i];
@@ -811,10 +750,8 @@ function listLobsWithQueryOptionAndCheckResult ( mainCL, filePath, skipNum, limi
       {
          if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
          {
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
             saveResultToFile( expListResult, actRecs, filePath );
-            throw buildException( "listLobsWithQueryOptionAndCheckResult", "the limitNum=" + limitNum
-               + "\nthe skipNum=" + skipNum );
+            throw new Error( "the limitNum=" + limitNum + "\nthe skipNum=" + skipNum );
          }
       }
    }
@@ -829,8 +766,7 @@ function getTargetGroup ( csName, clName, srcGroupName )
 {
    if( undefined == csName || undefined == clName )
    {
-      println( "cs name: " + csName + ", clName: " + clName );
-      throw "cs or cl name is undefined";
+      throw new Error( "cs or cl name is undefined" );
    }
    var tableName = csName + "." + clName;
    var allGroupInfo = commGetGroups( db );

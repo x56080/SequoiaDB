@@ -3,30 +3,17 @@
 *@author:      wuyan
 *@createDate:  2019.8.21
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone mode" );
       return;
    }
 
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "--least two groups" );
       return;
    }
    var mainCLName = "mainCL19124";
@@ -36,8 +23,8 @@ function main ()
    var scope = 5;
    var beginBound = 20190101;
    commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the beginning" );
-   var mainCL = this.createMainCLAndAttachCL( COMMCSNAME, mainCLName, subCLName, subCLNum, beginBound, scope );
-   this.splitSubCL( COMMCSNAME, subCLName + "_1" );
+   var mainCL = createMainCLAndAttachCL( COMMCSNAME, mainCLName, subCLName, subCLNum, beginBound, scope );
+   splitSubCL( COMMCSNAME, subCLName + "_1" );
 
    //put lob
    var lobSizes = [1024, 10, 36, 1024 * 10, 1024 * 95, 1024 * 20, 3, 1, 10, 0];
@@ -49,16 +36,15 @@ function main ()
       insertLob( mainCL, filePath + fileName, "YYYYMMDD", scope, 1, 1, beginDate );
    }
 
-
    var condition = { "Size": 2 };
    //test a: 主表上执行listLobs查询
-   this.listLobs( COMMCSNAME, mainCLName, condition );
+   listLobs( COMMCSNAME, mainCLName, condition );
 
    //test b: 普通表subcl1上执行listLobs查询
-   this.listLobs( COMMCSNAME, subCLName + "_0", condition );
+   listLobs( COMMCSNAME, subCLName + "_0", condition );
 
    //test c: 切分表subcl2上执行listLobs查询
-   this.listLobs( COMMCSNAME, subCLName + "_1", condition );
+   listLobs( COMMCSNAME, subCLName + "_1", condition );
 
    commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the ending" );
    deleteTmpFile( filePath );
@@ -109,7 +95,6 @@ function listLobs ( csName, clName, condition )
    }
    if( actResult.length !== 0 )
    {
-      throw buildException( "checkRec()", "\nactual value= " + JSON.stringify( actRecs ) + "\ncondition= " + JSON.stringify( condition ) );
+      throw new Error( "checkRec()", "\nactual value= " + JSON.stringify( actRecs ) + "\ncondition= " + JSON.stringify( condition ) );
    }
 }
-

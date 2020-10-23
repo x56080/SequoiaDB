@@ -11,9 +11,9 @@ var tmpBSONArray = {
    toString: BSONArray.prototype.toString
 };
 var funcBSONArray = BSONArray;
-var funchelp = BSONArray.help;
+var funcBSONArrayhelp = BSONArray.help;
 BSONArray=function(){try{return funcBSONArray.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-BSONArray.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+BSONArray.help = function(){try{ return funcBSONArrayhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 BSONArray.prototype._formatStr=function(){try{return tmpBSONArray._formatStr.apply(this,arguments);}catch(e){commThrowError(e);}};
 BSONArray.prototype.arrayAccess=function(){try{return tmpBSONArray.arrayAccess.apply(this,arguments);}catch(e){commThrowError(e);}};
 BSONArray.prototype.help=function(){try{return tmpBSONArray.help.apply(this,arguments);}catch(e){commThrowError(e);}};

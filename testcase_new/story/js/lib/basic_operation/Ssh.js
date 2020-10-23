@@ -11,9 +11,9 @@ var tmpSsh = {
    toString: Ssh.prototype.toString
 };
 var funcSsh = Ssh;
-var funchelp = Ssh.help;
+var funcSshhelp = Ssh.help;
 Ssh=function(){try{return funcSsh.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
-Ssh.help = function(){try{ return funchelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
+Ssh.help = function(){try{ return funcSshhelp.apply( this, arguments ); } catch( e ) { commThrowError(e) } };
 Ssh.prototype.close=function(){try{return tmpSsh.close.apply(this,arguments);}catch(e){commThrowError(e);}};
 Ssh.prototype.exec=function(){try{return tmpSsh.exec.apply(this,arguments);}catch(e){commThrowError(e);}};
 Ssh.prototype.getLastOut=function(){try{return tmpSsh.getLastOut.apply(this,arguments);}catch(e){commThrowError(e);}};
