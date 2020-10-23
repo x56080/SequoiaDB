@@ -387,8 +387,8 @@ class SslCompiler(CompilerBase):
             config_file = './Configure'
             config_args = 'linux-ppc64'
         elif "ppc64le" == self.arch:
-            config_file = './Configure'
-            config_args = 'linux-ppc64le -fPIC'
+            config_file = './config'
+            config_args = '-fPIC'
         elif "aix" == self.platform:
             config_file = './Configure'
             config_args = 'aix64-gcc -fPIC threads'

@@ -369,8 +369,39 @@ PowerleLinux64:
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclelinux64.
         do same operation for build-debug
 
+        Note:
+            autoconf2.13 is required to compile this version of SpiderMonkey. If it's not
+            installed in your system, you can compile and install it from source provided
+            by the sequoiadb repository. The source code path is tools/compile/autoconf-2.13.
+            Compile and install as follows:
+            cd autoconf-2.13
+            ./configure --program-suffix=2.13   # Be sure to use this version number
+            make
+            sudo make install
+            Then check if it's installed successfully:
+            autoconf2.13 --version
+
+
     OpenSSL 1.1.1g:
-        not compiled.
+        # for release build:
+        cd thirdparty/crypto/openssl-1.1.1g/
+        make clean
+        chmod +x ./config
+        ./config -fPIC
+        make -j 4
+        mkdir -p ./lib/ppclelinux64/release
+        cp libcrypto.a ./lib/ppclelinux64/release
+        cp libssl.a ./lib/ppclelinux64/release
+
+        # for debug build:
+        cd thirdparty/crypto/openssl-1.1.1g/
+        make clean
+        chmod +x ./config
+        ./config -fPIC -d
+        make -j 4
+        mkdir -p ./lib/ppclelinux64/debug
+        cp libcrypto.a ./lib/ppclelinux64/debug
+        cp libssl.a ./lib/ppclelinux64/debug
 
     snappy 1.1.0:
         cd snappy
