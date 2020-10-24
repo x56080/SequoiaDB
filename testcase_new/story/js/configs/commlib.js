@@ -40,16 +40,12 @@ var Configs = ( function()
       this.runConfigs.push( new ConfDesp( "auditnum", "int", 20, 10, "abc" ) );
       this.runConfigs.push( new ConfDesp( "maxpool", "int", 50, 100, "123" ) );
       this.runConfigs.push( new ConfDesp( "diaglevel", "short", 3, 5, "abc" ) );
-      this.runConfigs.push( new ConfDesp( "auditmask", "string", "SYSTEM|DDL|DCL", "SYSTEM", 122 ) );
       this.runConfigs.push( new ConfDesp( "maxreplsync", "int", 10, 12, "abc" ) );
       this.runConfigs.push( new ConfDesp( "sortbuf", "int", 256, 128, null ) );
       this.runConfigs.push( new ConfDesp( "hjbuf", "int", 128, 256, "abc" ) );
-      this.runConfigs.push( new ConfDesp( "syncstrategy", "string", "KeepNormal", "KeepAll", 1111 ) );
       this.runConfigs.push( new ConfDesp( "sharingbreak", "int", 7000, 10000, "xxxx" ) );
       this.runConfigs.push( new ConfDesp( "indexscanstep", "int", 100, 200, "what" ) );
       this.runConfigs.push( new ConfDesp( "startshifttime", "int", 600, 1200, "some" ) );
-      this.runConfigs.push( new ConfDesp( "preferedinstance", "string", "M", "S", 123 ) );
-      this.runConfigs.push( new ConfDesp( "preferedinstancemode", "string", "random", "ordered", 123 ) );
       this.runConfigs.push( new ConfDesp( "preferedstrict", "bool", "FALSE", "TRUE", 123 ) );
       //this.runConfigs.push( new ConfDesp( "directioinlob", "bool", "FALSE", "TRUE", "1234" ) ) ;新建集合空间在线生效
       this.runConfigs.push( new ConfDesp( "sparsefile", "bool", "FALSE", "TRUE", null ) ) ;
@@ -91,13 +87,18 @@ var Configs = ( function()
       //this.runConfigs.push( new ConfDesp( "transautorollback", "bool", "TRUE", "FALSE", "1234" ) );当开启事务时才生效
       this.runConfigs.push( new ConfDesp( "transuserbs", "bool", "TRUE", "FALSE", "1234" ) );
       this.runConfigs.push( new ConfDesp( "transrccount", "bool", "TRUE", "FALSE", "1234" ) );
-      this.runConfigs.push( new ConfDesp( "logwritemod", "string", "increment", "full", 1234 ) );
       this.runConfigs.push( new ConfDesp( "logtimeon", "bool", "FALSE", "TRUE", "1234" ) );
       this.runConfigs.push( new ConfDesp( "maxsocketpernode", "int", 5, 6, "1234" ) );
       this.runConfigs.push( new ConfDesp( "maxsocketperthread", "int", 1, 5, "1234" ) );
       this.runConfigs.push( new ConfDesp( "maxsocketthread", "int", 10, 12, "1234" ) );
       //this.runConfigs.push( new ConfDesp( "monslowquerythreshold", "int", 200, 300, "1234" ) );单号：
       //this.runConfigs.push( new ConfDesp( "mongroupmask", "string", "", "", 1234 ) );
+      //SEQUOIADBMAINSTREAM-4809 修改为非法值时，取默认值，以下项无法测试非法值，故注释
+      //this.runConfigs.push( new ConfDesp( "preferedinstance", "string", "M", "S", 123 ) );
+      //this.runConfigs.push( new ConfDesp( "preferedinstancemode", "string", "random", "ordered", 123 ) );
+      //this.runConfigs.push( new ConfDesp( "syncstrategy", "string", "KeepNormal", "KeepAll", 1111 ) );
+      //this.runConfigs.push( new ConfDesp( "auditmask", "string", "SYSTEM|DDL|DCL", "SYSTEM", 122 ) );
+      //this.runConfigs.push( new ConfDesp( "logwritemod", "string", "increment", "full", 1234 ) );
 
       // register reboot configs
       this.rebootConfigs.push( new ConfDesp( "transactionon", "bool", "TRUE", "FALSE", "1234" ) );
