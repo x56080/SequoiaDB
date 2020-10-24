@@ -11,9 +11,9 @@ var csnames = [];
 var doc = { a: 1 };
 var csvContent = "a\n1\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    for( var i = 0; i < csnum; i++ )
    {
@@ -60,7 +60,6 @@ function testExcludeCsCl ()
       for( var j = 0; j < clnum; j++ )
       {
          var filename = csvDir + csnames[i] + "." + clnames[j] + ".csv";
-         // println( filename ) ;
          if( ( i == 0 || i == 1 ) && ( j == 0 || j == 1 ) )
             checkFileExist( filename, false );
          else

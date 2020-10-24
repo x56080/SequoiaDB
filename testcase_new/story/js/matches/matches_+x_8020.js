@@ -2,35 +2,29 @@
 *@Description:   seqDB-8020:使用$+标识符查询，目标字段为数组且数组元素为嵌套对象，不走索引查询 
 *@Author:  2016/5/23  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8020";
-      var cl = readyCL( clName );
 
-      var rawData = [{ a: 0, b: [1, 2, { c: [3, 4, 5] }] },
-      { a: 1, b: [1, 3, { c: [4, 5] }] },
-      { a: 2, b: [4, 2, { c: [2, 1] }] }];
-      insertRecs( cl, rawData );
+   var clName = COMMCLNAME + "_matches8020";
+   var cl = readyCL( clName );
 
-      var cond = { "b.2.c.$1": 5 };
-      var findRecsArray = findRecs( cl, cond );
-      checkResult( findRecsArray, rawData );
+   var rawData = [{ a: 0, b: [1, 2, { c: [3, 4, 5] }] },
+   { a: 1, b: [1, 3, { c: [4, 5] }] },
+   { a: 2, b: [4, 2, { c: [2, 1] }] }];
+   insertRecs( cl, rawData );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var cond = { "b.2.c.$1": 5 };
+   var findRecsArray = findRecs( cl, cond );
+   checkResult( findRecsArray, rawData );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
    for( i = 0; i < rawData.length; i++ )
    {
       cl.insert( rawData[i] )
@@ -39,7 +33,6 @@ function insertRecs ( cl, rawData )
 
 function findRecs ( cl, cond )
 {
-   println( "\n---Begin to find records." );
 
    var rc = cl.find( cond ).sort( { a: 1 } );
    var findRecsArray = [];
@@ -47,34 +40,22 @@ function findRecs ( cl, cond )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
-   //println(JSON.stringify(findRecsArray));
    return findRecsArray;
 }
 
 function checkResult ( findRecsArray, rawData )
 {
-   println( "\n---Begin to check result." );
 
    for( i = 0; i < rawData.length - 1; i++ )
    {
       //compare records number after find
       var expLen = 2;
       var actLen = findRecsArray.length;
-      if( actLen !== expLen )
-      {
-         throw buildException( "checkResult", null, "[compare number]",
-            "[recsNum:" + expLen + "]",
-            "[recsNum:" + actLen + "]" );
-      }
+      assert.equal( actLen, expLen )
 
       //compare records
       var actB = findRecsArray[i]["b"].toString();
       var expB = rawData[i]["b"].toString();
-      if( actB !== expB )
-      {
-         throw buildException( "checkResult", null, "[compare records]",
-            '["b": ' + expB + ']',
-            '["b": ' + actB + ']' );
-      }
+      assert.equal( actB, expB );
    }
 }

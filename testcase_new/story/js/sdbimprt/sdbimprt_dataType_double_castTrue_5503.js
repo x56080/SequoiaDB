@@ -2,32 +2,27 @@
 *@Description:    seqDB-5503:自定义允许精度丢失/数值溢出（如cast取值为true）
 *@Author:           2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5503";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "5503.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5503";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "5503.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
    var file = fileInit( imprtFile );
    file.write( "1,-2147483649\n"
       + "2,2147483648\n"
@@ -36,21 +31,17 @@ function readyData ( imprtFile )
       + "5,-1.8E+308\n"
       + "6, 1.8E+308\n" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "a int,v1 double" --cast true'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
    var rcObj = rc.split( "\n" );
 
    var expParseRecords = "parsed records: 6";
@@ -62,15 +53,14 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( { v1: { $type: 1, $et: 1 } }, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];
@@ -85,10 +75,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

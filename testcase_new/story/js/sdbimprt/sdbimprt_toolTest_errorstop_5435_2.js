@@ -2,9 +2,10 @@
 *@Description:   seqDB-5435:指定errorstop为true，即导入失败时中断导入（多线程解析和导入）
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME;
    var clName = COMMCLNAME + "_5435_2";
@@ -25,7 +26,6 @@ function main ()
 
 function readyData ( imprtFile, recsNum, tmpSplice )
 {
-   println( "\n---Begin to ready data." );
    var str = "a int, b date";
    for( var i = 0; i < recsNum; i++ )
    {
@@ -43,7 +43,6 @@ function readyData ( imprtFile, recsNum, tmpSplice )
 
 function importData ( csName, clName, imprtFile, recsNum )
 {
-   println( "\n---Begin to import data and check exec result." );
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
@@ -58,7 +57,6 @@ function importData ( csName, clName, imprtFile, recsNum )
    var actImportedRecords = Number( rcObj[4].split( ":" )[1] );
    if( actParseRecords >= recsNum || actImportedRecords >= recsNum )
    {
-      println( imprtOption + "\n" + rc );
       throw new Error( "\n" + rc + "\nimport recsNum: " + recsNum + ", import not stop when error" );
    }
    cmd.run( "rm -rf " + tmpRec );
@@ -67,7 +65,6 @@ function importData ( csName, clName, imprtFile, recsNum )
 
 function checkCLData ( cl, recsNum )
 {
-   println( "\n---Begin to check cl data." );
    var cnt = cl.count();
    if( Number( cnt ) >= recsNum )
    {

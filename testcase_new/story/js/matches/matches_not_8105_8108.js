@@ -11,23 +11,23 @@ main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
-   var data = [ { a: 0 },
-                { a: 2, b: 5 },
-                { a: 2, b: null },
-                { a: 4, b: 3 },
-                { a: 2, b: 4 } ];
+   var data = [{ a: 0 },
+   { a: 2, b: 5 },
+   { a: 2, b: null },
+   { a: 4, b: 3 },
+   { a: 2, b: 4 }];
    cl.insert( data );
 
-   var rc1 = cl.find( { $not: [ { a: 2 } ] } );
+   var rc1 = cl.find( { $not: [{ a: 2 }] } );
    var rc2 = cl.find( { $not: [] } );
-   var rc3 = cl.find ( { $not: [ { a: { $lt: 3 } }, { b: { $gt: 4 } } ] } );
+   var rc3 = cl.find( { $not: [{ a: { $lt: 3 } }, { b: { $gt: 4 } }] } );
 
-   var rc1Expect = [ { a: 0}, { a: 4, b: 3 }];
+   var rc1Expect = [{ a: 0 }, { a: 4, b: 3 }];
    var rc2Expect = data;
    var rc3Expect = [{ a: 0 },
-                    { a: 2, b: null },
-                    { a: 4, b: 3 },
-                    { a: 2, b: 4 }];
+   { a: 2, b: null },
+   { a: 4, b: 3 },
+   { a: 2, b: 4 }];
 
    checkRec( rc1, rc1Expect );
    checkRec( rc2, rc2Expect );

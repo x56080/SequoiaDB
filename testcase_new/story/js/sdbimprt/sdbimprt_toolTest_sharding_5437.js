@@ -2,20 +2,19 @@
 *@Description:   seqDB-5437:指定--sharding导入csv格式数据
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "The mode is standalone. Skip!!!" );
       return;
    }
 
    var dataGroupNames = commGetDataGroupNames( db );
    if( dataGroupNames.length < 2 )
    {
-      println( "Least 2 groups. Skip!!!" );
       return;
    }
 
@@ -39,7 +38,6 @@ function main ()
    importData( csName, clName1, recsNum, imprtFile, true );
    checkCLData( cl1, recsNum, expRecs );
 
-
    // hash cl, --sharding true
    var clName2 = COMMCLNAME + "_5437_hash";
    var opt2 = { "ShardingKey": { "a": 1 }, "ShardingType": "hash", "Group": srcRG };
@@ -49,12 +47,10 @@ function main ()
    importData( csName, clName2, recsNum, imprtFile, true );
    checkCLData( cl2, recsNum, expRecs );
 
-
    // --sharding false
    cl1.remove();
    importData( csName, clName1, recsNum, imprtFile, false );
    checkCLData( cl1, recsNum, expRecs );
-
 
    // clean
    cleanCL( csName, clName1 );
@@ -64,7 +60,6 @@ function main ()
 
 function readyData ( imprtFile, recsNum, expRecs )
 {
-   println( "\n---Begin to ready data for import." );
    // sharding value array, value random sort
    // ready sharding value array
    var tmpArray = new Array();
@@ -95,7 +90,6 @@ function readyData ( imprtFile, recsNum, expRecs )
 
 function importData ( csName, clName, recsNum, imprtFile, isSharding )
 {
-   println( "\n---Begin to import data and check exec result." );
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
@@ -114,7 +108,6 @@ function importData ( csName, clName, recsNum, imprtFile, isSharding )
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords
       || expImportFailure !== actImportFailure )
    {
-      println( imprtOption );
       throw new Error( expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "\n"
          + actParseRecords + ", " + actImportedRecords + ", " + actImportFailure );
    }
@@ -122,7 +115,6 @@ function importData ( csName, clName, recsNum, imprtFile, isSharding )
 
 function checkCLData ( cl, recsNum, expRecs )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];

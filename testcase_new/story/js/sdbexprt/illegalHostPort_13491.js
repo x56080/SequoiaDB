@@ -8,9 +8,9 @@ var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13491";
 var doc = { a: 1 };
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    cl.insert( doc );

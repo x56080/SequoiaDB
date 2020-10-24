@@ -19,7 +19,6 @@ function test ( testPara )
    for( var i = begVal.charCodeAt( 0 ); i <= endVal.charCodeAt( 0 ); ++i )
    {
       var urlVal = String.fromCharCode( i );
-      //println( "char :" + urlVal ) ;
       if( i < midVal.charCodeAt( 0 ) )
       {
          cl.insert( { "url": "http://test." + urlVal + ".com" } );
@@ -28,11 +27,7 @@ function test ( testPara )
       else
          cl.insert( { "url": "http://test." + urlVal + ".cn" } );
    }
-
-   if( 26 != cl.count() )
-   {
-      throw new Error("\nError of Insert, query record numbers = " + cl.count());
-   }
+   assert.equal( 26, cl.count() );
 
    // query by use regex
    var regCount1 = cl.count( {
@@ -47,15 +42,7 @@ function test ( testPara )
          "$options": ""
       }
    } );
-   if( parseInt( regCount1 ) != parseInt( regCount2 ) )
-   {
-      throw new Error("\nErrRegexQuery, regex query1 = " + regCount1 + " not equal regex query2 = "
-      + regCount2);
-   }
-   if( queryNum != regCount1 )
-   {
-      throw new Error("\nErrQueryNumber, regex query 1 = " + regCount1 + ", and regex query 2 = "
-      + regCount2 + " not equal " + queryNum);
-   }
+   assert.equal( regCount1, regCount2 );
+   assert.equal( queryNum, regCount1 );
 
 }

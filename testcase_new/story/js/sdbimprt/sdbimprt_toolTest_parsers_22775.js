@@ -2,9 +2,10 @@
 *@Description:   seqDB-22775:--parsers并发解析任务数
 *@Author:        2020-9-25  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME;
    var clName = COMMCLNAME + "_22775";
@@ -16,14 +17,12 @@ function main ()
    readyData( imprtFile, recsNum, expRecs );
    importData( csName, clName, imprtFile, recsNum );
 
-
    checkCLData( cl, expRecs );
    cleanCL( csName, clName );
 }
 
 function readyData ( imprtFile, recsNum, expRecs )
 {
-   println( "\n---Begin to ready data." );
    var str = "a int";
    for( var i = 0; i < recsNum; i++ )
    {
@@ -38,7 +37,6 @@ function readyData ( imprtFile, recsNum, expRecs )
 
 function importData ( csName, clName, imprtFile, recsNum )
 {
-   println( "\n---Begin to import data and check exec result." );
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
 
@@ -57,7 +55,6 @@ function importData ( csName, clName, imprtFile, recsNum )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      println( imprtOption + "\n" + rc );
       throw new Error( "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" + "\n"
          + "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
@@ -66,7 +63,6 @@ function importData ( csName, clName, imprtFile, recsNum )
 
 function checkCLData ( cl, expRecs )
 {
-   println( "\n---Begin to check cl data." );
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { "a": 1 } );
    var recsArray = new Array();
    while( tmpRecs = rc.next() )

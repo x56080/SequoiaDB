@@ -9,7 +9,7 @@
 *******************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    testWithIdCsv();
    testWithIdJson();
@@ -55,9 +55,9 @@ function testWithIdCsv ()
       " --parsers 1 -j 1";
    testRunCommand( command );
 
-   var expRecords = [ { "_id": 1, "a": 1 }, { "_id": 2, "a": 2 }, { "_id": 3, "a": 3 } ];
+   var expRecords = [{ "_id": 1, "a": 1 }, { "_id": 2, "a": 2 }, { "_id": 3, "a": 3 }];
    var cursor = cl2.find();
-   commCompareResults ( cursor, expRecords, false );   
+   commCompareResults( cursor, expRecords, false );
 
    cmd.run( "rm -rf " + csvFile );
    commDropCL( db, COMMCSNAME, clName1 );
@@ -103,9 +103,9 @@ function testWithIdJson ()
       " --parsers 1 -j 1";
    testRunCommand( command );
 
-   var expRecords = [ { "_id": 1, "a": 1 }, { "_id": 2, "a": 2, "b": 1 }, { "_id": 3, "a": 3, "b": 2, "c": 1 } ];
+   var expRecords = [{ "_id": 1, "a": 1 }, { "_id": 2, "a": 2, "b": 1 }, { "_id": 3, "a": 3, "b": 2, "c": 1 }];
    var cursor = cl2.find();
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cmd.run( "rm -rf " + jsonFile );
    commDropCL( db, COMMCSNAME, clName1 );

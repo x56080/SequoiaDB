@@ -10,41 +10,33 @@
 *@Author:   2019-4-18  chensiqin
 ************************************************************************/
 
+main( test );
 
-main();
-
-function main ()
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_18261";
-      var doc = [{ c: 1, d: "exprtTest" }, { c: 2, d: "exprtTest2" }];
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "18261.csv";
-      var exprtFile = tmpFileDir + "18261.csv";
-      exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, doc );
-      exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, doc );
-      exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, doc );
-      exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, doc );
-      exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, doc );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_18261";
+   var doc = [{ c: 1, d: "exprtTest" }, { c: 2, d: "exprtTest2" }];
+   var cl = readyCL( csName, clName );
+
+   var imprtFile = tmpFileDir + "18261.csv";
+   var exprtFile = tmpFileDir + "18261.csv";
+   exportImportDataRContainA( csName, clName, imprtFile, exprtFile, cl, doc );
+   exportImportDataRContainE( csName, clName, imprtFile, exprtFile, cl, doc );
+   exportImportDataAContainE( csName, clName, imprtFile, exprtFile, cl, doc );
+   exportImportDataAContainA( csName, clName, imprtFile, exprtFile, cl, doc );
+   exportImportDataEContainR( csName, clName, imprtFile, exprtFile, cl, doc );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile, content )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( content );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
@@ -57,21 +49,16 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -r ',Y' -a 'Y' -e 'D' --fields='c ,d'"
       + " --file " + exprtFile;
-   println( exportOption );
    try
    {
       cmd.run( exportOption );
-      throw buildException( "exprtData", null, "[exprt results]",
-         "expected thow exception",
-         "actual success" );
+      throw new Error( "expected thow exception  actual success" );
    }
    catch( e )
    {
-      if( e.message != 127)
+      if( e.message != 127 )
       {
-         throw buildException( "exprtData", null, "[exprt results]",
-            "expected thow exception",
-            "actual success" );
+         throw e;
       }
    }
    finally
@@ -86,10 +73,9 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
                      +" -c "+ csName +" -l "+ clName 
                      +" --type csv -r ',Y' -a 'Y' -e 'D' --headerline true --fields='c int,d string' --linepriority true"
                      +" --file "+ imprtFile;
-   println( imprtOption );
    try{
      cmd.run( imprtOption );
-     throw buildException( "importData", null, "[sdbimprt results]", 
+     throw new Error( "importData fail,[sdbimprt results]" + 
                         "expected thow exception", 
                         "actual success" );
    }
@@ -97,7 +83,7 @@ function exportImportDataRContainA ( csName, clName, imprtFile, exprtFile, cl, d
    {
       if( e.message != 127)
       {
-        throw buildException( "importData", null, "[sdbimprt results]", 
+        throw new Error( "importData fail,[sdbimprt results]" + 
                            "expected thow exception", 
                            "actual success" );
       }
@@ -113,7 +99,6 @@ function exportImportDataRContainE ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -r ',Y' -e 'Y' --fields='c ,d'"
       + " --file " + exprtFile;
-   println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入
@@ -121,7 +106,6 @@ function exportImportDataRContainE ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -r ',Y' -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
       + " --file " + exprtFile;
-   println( imprtOption );
    testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
@@ -137,7 +121,6 @@ function exportImportDataAContainE ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -a ',Y'  -e 'Y' --fields='c ,d'"
       + " --file " + exprtFile;
-   println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入
@@ -145,7 +128,6 @@ function exportImportDataAContainE ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -a ',Y'  -e 'Y' --headerline true --fields='c int,d string' --linepriority true"
       + " --file " + exprtFile;
-   println( imprtOption );
    testRunCommand( imprtOption );
    checkCLData( cl );
    cl.truncate();
@@ -161,7 +143,6 @@ function exportImportDataAContainA ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -a ',Y' -r 'Y' --fields='c ,d'"
       + " --file " + exprtFile;
-   println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入 SEQUOIADBMAINSTREAM-4552
@@ -170,7 +151,6 @@ function exportImportDataAContainA ( csName, clName, imprtFile, exprtFile, cl, d
                      +" -c "+ csName +" -l "+ clName 
                      +" --type csv -a ',Y'  -r 'Y' --headerline true --fields='c int,d string' --linepriority true"
                      +" --file "+ exprtFile;
-   println( imprtOption );
    testRunCommand(imprtOption);
    checkCLData( cl );
    cl.truncate();*/
@@ -186,7 +166,6 @@ function exportImportDataEContainR ( csName, clName, imprtFile, exprtFile, cl, d
       + " -c " + csName + " -l " + clName
       + " --checkdelimeter false --type csv -e ',Y' -r 'Y' --fields='c ,d'"
       + " --file " + exprtFile;
-   println( exportOption );
    cmd.run( exportOption );
    cl.truncate();
    //导入 SEQUOIADBMAINSTREAM-4548
@@ -195,19 +174,15 @@ function exportImportDataEContainR ( csName, clName, imprtFile, exprtFile, cl, d
                      +" -c "+ csName +" -l "+ clName 
                      +" --type csv -e ',Y'  -r 'Y' --headerline true --fields='c int,d string' --linepriority true"
                      +" --file "+ exprtFile;
-   println( imprtOption );
    testRunCommand(imprtOption);
    checkCLData( cl );
    cl.truncate();*/
    cmd.run( "rm -rf " + exprtFile );
 }
 
-
 function testRunCommand ( command )
 {
-   println( command );
    var rc = cmd.run( command );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -217,8 +192,8 @@ function testRunCommand ( command )
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actImportedRecords + "]" );
    }
 }
@@ -226,7 +201,6 @@ function testRunCommand ( command )
 //比较cl具体内容
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find();
    var recsArray = [];
@@ -239,8 +213,8 @@ function checkCLData ( cl )
    var actCnt = recsArray.length;
    if( actCnt !== expCnt )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + "]" +
          "[cnt:" + actCnt + "]" );
    }
 

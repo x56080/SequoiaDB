@@ -9,9 +9,9 @@
 var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13598";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var docs = [{ a: 1, b: "a" }, { a: 3, b: "b" }, { a: 2 },
    { a: 4 }, { a: 7, b: "c" }, { a: 4, b: "d" },

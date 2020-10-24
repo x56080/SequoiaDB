@@ -3,42 +3,35 @@
                      dataType: array
 *@Author:  2016/5/20  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8031";
-      var cl = readyCL( clName );
 
-      var rawData = [{ b: 2147483648 }, { c: 1.7E+308 }, { d: "test" }];
-      insertRecs( cl, rawData );
+   var clName = COMMCLNAME + "_matches8031";
+   var cl = readyCL( clName );
 
-      var rc1 = findRecs( cl, { a: { $all: [] } } );
-      var rc2 = findRecs( cl, { a: { $all: [{ b: 2147483648 }, { d: "test" }] } } );
-      var rc3 = findRecs( cl, { a: { $all: [{ b: 2 }] } } );
+   var rawData = [{ b: 2147483648 }, { c: 1.7E+308 }, { d: "test" }];
+   insertRecs( cl, rawData );
 
-      checkResult( rc1, rc2, rc3, rawData );
+   var rc1 = findRecs( cl, { a: { $all: [] } } );
+   var rc2 = findRecs( cl, { a: { $all: [{ b: 2147483648 }, { d: "test" }] } } );
+   var rc3 = findRecs( cl, { a: { $all: [{ b: 2 }] } } );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   checkResult( rc1, rc2, rc3, rawData );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
 
    cl.insert( { a: rawData } );
 }
 
 function findRecs ( cl, cond )
 {
-   println( "\n---Begin to find records by cond[" + JSON.stringify( cond ) + "]." );
 
    var rc = cl.find( cond );
 
@@ -48,7 +41,6 @@ function findRecs ( cl, cond )
 function checkResult ( rc1, rc2, rc3, rawData )
 {
    //-----------------------check result for $all[]---------------------
-   println( "\n---Begin to check result for find by $all[]." );
 
    var findRtn = new Array();
    while( tmpRecs = rc1.next() )  //rc1
@@ -57,18 +49,12 @@ function checkResult ( rc1, rc2, rc3, rawData )
    }
    //compare number
    var expLen = 1;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records
    if( findRtn[0]["a"][0]["b"] !== rawData[0]["b"] ||
       findRtn[0]["a"][1]["c"] !== rawData[1]["c"] )
    {
-      println( "---The real results after the find by matches[$all]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
+      throw new Error( "checkResult fail,[compare records]" +
          "[{b:" + rawData[0]["b"]
          + "}, {c:" + rawData[1]["c"] + "}]",
          "[{b:" + findRtn[0]["a"][0]["b"]
@@ -76,7 +62,6 @@ function checkResult ( rc1, rc2, rc3, rawData )
    }
 
    //-----------------------check result for $all[]---------------------
-   println( "\n---Begin to check result for find by $all[{b:2147483648}, {d:'test'}]." );
 
    var findRtn = new Array();
    while( tmpRecs = rc2.next() )  //rc2
@@ -85,18 +70,12 @@ function checkResult ( rc1, rc2, rc3, rawData )
    }
    //compare number
    var expLen = 1;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records
    if( findRtn[0]["a"][0]["b"] !== rawData[0]["b"] ||
       findRtn[0]["a"][1]["c"] !== rawData[1]["c"] )
    {
-      println( "---The real results after the find by matches[$all]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
+      throw new Error( "checkResult fail,[compare records]" +
          "[{b:" + rawData[0]["b"]
          + "}, {c:" + rawData[1]["c"] + "}]",
          "[{b:" + findRtn[0]["a"][0]["b"]
@@ -104,7 +83,6 @@ function checkResult ( rc1, rc2, rc3, rawData )
    }
 
    //-----------------------check result for $all[]---------------------
-   println( "\n---Begin to check result for find by $all[{b:2}]." );
    var findRtn = new Array();
    while( tmpRecs = rc3.next() )  //rc3
    {
@@ -112,10 +90,5 @@ function checkResult ( rc1, rc2, rc3, rawData )
    }
    //compare number
    var expLen = 0;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
 }

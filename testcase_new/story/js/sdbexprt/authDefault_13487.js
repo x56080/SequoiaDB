@@ -11,14 +11,12 @@ var doc = { a: 1 };
 var csvContent = "a\n1\n";
 var jsonContent = "{ \"a\": 1 }\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( COORDSVCNAME !== "11810" || !isLocal( COORDHOSTNAME ) )
    {
-      println( "Run on " + COORDHOSTNAME + ":" + COORDSVCNAME );
-      println( "Conflict with default sdbexprt spuw option" );
       return;
    }
    var cl = commCreateCL( db, csname, clname );

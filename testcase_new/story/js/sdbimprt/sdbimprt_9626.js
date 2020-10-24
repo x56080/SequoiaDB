@@ -23,17 +23,9 @@ function test ( testPara )
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
-   try
-   {
-      var file = fileInit( imprtFile );
-      file.write( "abc\n" );
-      file.write( "[1, 2, 3]\n" );
-      file.write( "123" );
-      file.close();
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   var file = fileInit( imprtFile );
+   file.write( "abc\n" );
+   file.write( "[1, 2, 3]\n" );
+   file.write( "123" );
+   file.close();
 }

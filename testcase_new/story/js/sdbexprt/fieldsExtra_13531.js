@@ -13,9 +13,9 @@ var doc = { a: 1 };
 var csvContent = "a,b\n1,\n";
 var jsonContent = "{ \"a\": 1 }\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    cl.insert( doc );

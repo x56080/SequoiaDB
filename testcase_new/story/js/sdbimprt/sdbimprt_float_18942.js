@@ -2,8 +2,10 @@
 *@Description:  seqDB-18942: 整数位前n位后m位，小数位前x位后y位，n/m/x/y取值随机      
 *@Author     :  2019-8-7  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18942";
    var csvFile = tmpFileDir + clName + ".csv";
@@ -12,7 +14,6 @@ function main ()
    var cl = commCreateCL( db, COMMCSNAME, clName );
 
    var expResults = prepareDate( csvFile );
-   println( "\n---data type int32、int64、double、decimal to import csv file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 2000 );
@@ -31,7 +32,6 @@ function main ()
    cl.truncate();
 
    expResults = prepareDate( jsonFile );
-   println( "\n---data type int32、int64、double、decimal to import json file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 2000 );

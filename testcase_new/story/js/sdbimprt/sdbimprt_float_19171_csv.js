@@ -2,9 +2,10 @@
 *@Description:  seqDB-19171:科学计数法，底数为整数+小数点，且整数位全为0（000.E+309）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'csv';
    var tmpPrefix = "sdbimprt_19171";
@@ -20,7 +21,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < bValTypeArr.length; i++ )
    {
-      println( "\n---------------------import data, b value type is " + bValTypeArr[i] + ", test point " + ( i + 1 ) + "---------------------" );
       // import
       var importFields = 'a int, b ' + bValTypeArr[i];
       var rc = importData( csName, clName, importFile, type, importFields, true );
@@ -39,7 +39,6 @@ function main ()
 
 function initImportFile_testPoint ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var tmpNum = 400;
    var recordsNum = tmpNum * 2;
@@ -66,7 +65,6 @@ function initImportFile_testPoint ( importFile )
 
 function initExpectData_testPoint ( expRecsNum, bValType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var bVal = "0.0";
    for( var i = 0; i < expRecsNum; i++ )

@@ -11,14 +11,13 @@ var filelimits = ["0K", "-3K"];
 var filelimit;
 var kb = 1024;
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    for( var i = 0; i < filelimits.length; i++ )
    {
       filelimit = filelimits[i];
-      println( "test filelimit: " + filelimit );
       testFileLimit();
    }
 }

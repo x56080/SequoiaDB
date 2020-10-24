@@ -13,7 +13,7 @@ var jsonContent = "{ \"_id\": 1, \"a\": 1 }\n"
 
 main( test );
 
-function test()
+function test ()
 {
    for( var i = 0; i < clNum; i++ )
    {
@@ -43,7 +43,7 @@ function testExprtCsv ()
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +
       " --dir " + csvDir +
-      " --force true" + 
+      " --force true" +
       " --type csv";
    command += " --cscl ";
    for( var i = 0; i < clNum; i++ )

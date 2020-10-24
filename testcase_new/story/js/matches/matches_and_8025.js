@@ -3,40 +3,33 @@
                     cover all data type
 *@Author:  2016/5/24  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8025";
-      var indexName = CHANGEDPREFIX + "_index";
-      var cl = readyCL( clName );
-      createIndex( cl, indexName );
 
-      var rawData = insertRecs( cl );
+   var clName = COMMCLNAME + "_matches8025";
+   var indexName = CHANGEDPREFIX + "_index";
+   var cl = readyCL( clName );
+   createIndex( cl, indexName );
 
-      var rc = findRecs( cl );
-      checkResult( rc, rawData, indexName );
+   var rawData = insertRecs( cl );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var rc = findRecs( cl );
+   checkResult( rc, rawData, indexName );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function createIndex ( cl, indexName )
 {
-   println( "\n---Begin to create index." );
 
    cl.createIndex( indexName, { a: 1 } );
 }
 
 function insertRecs ( cl )
 {
-   println( "\n---Begin to insert records." );
 
    var rawData = [{
       a: 0, int: -2147483648,
@@ -117,7 +110,6 @@ function insertRecs ( cl )
 
 function findRecs ( cl )
 {
-   println( "\n---Begin to find records." );
 
    var cond = {
       $and: [{ a: { $ne: 1 } },
@@ -144,41 +136,27 @@ function findRecs ( cl )
 function checkResult ( rc, rawData, indexName )
 {
    //-------------------check index----------------------------
-   println( "\n---Begin to check index." );
 
    //compare scanType
    var idx = rc.explain().current().toObj();
    if( idx["ScanType"] !== "ixscan" || idx["IndexName"] !== indexName )
    {
-      throw buildException( "checkResult", null, "[compare index]",
-         "[ScanType:ixscan,IndexName:" + indexName + "]",
+      throw new Error( "checkResult fail,[compare index]" +
+         "[ScanType:ixscan,IndexName:" + indexName + "]" +
          "[ScanType:" + idx["ScanType"] + ",IndexName:" + idx["IndexName"] + "]" );
    }
 
    //-------------------check records----------------------------
-   println( "\n---Begin to check result." );
 
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
-   //println(JSON.stringify(findRecsArray));
 
    var expLen = 1;
-   if( findRecsArray.length !== expLen )   //return size after find by type
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRecsArray.length + "]" );
-   }
-   //println(JSON.stringify(findRecsArray));
+   assert.equal( findRecsArray.length, expLen );
    var actRecs = JSON.stringify( findRecsArray[0] );
    var extRecs = JSON.stringify( rawData[0] );
-   if( actRecs !== extRecs )
-   {
-      throw buildException( "checkResult", null, "[compare records]",
-         '["extRecs": ' + extRecs + ']',
-         '["actRecs": ' + actRecs + ']' );
-   }
+   assert.equal( actRecs, extRecs );
 }

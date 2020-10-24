@@ -16,9 +16,9 @@ var docs = [{ "key": Regex( "^W", "i" ) },
 { "key": Regex( "^W", "x" ) },
 { "key": Regex( "^W", "s" ) }];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

@@ -4,47 +4,38 @@
                
 ******************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      println( "---drop collection space and collection in the beginning" );
-      //create cs cl
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME;
-      // Drop CS
-      commDropCS( db, csName, true,
-         "clear collection space in the beginning" );
 
-      println( "---create collection space and collection in the beginning" );
-      //create cs and cl      
-      commCreateCL( db, csName, clName, {}, true, false, "create cs and cl" );
+   //create cs cl
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME;
+   // Drop CS
+   commDropCS( db, csName, true );
 
-      println( "---begin to insert long/int/ records" );
-      var cl = db.getCS( csName ).getCL( clName );
-      cl.remove();
-      var recs = [];
+   //create cs and cl      
+   commCreateCL( db, csName, clName, {}, true, false, "create cs and cl" );
 
-      recs.push( { a: -1E+40 } );
-      recs.push( { a: { $numberLong: "-9223372036854775808" } } );
-      recs.push( { a: -2147483648 } );
+   var cl = db.getCS( csName ).getCL( clName );
+   cl.remove();
+   var recs = [];
 
-      cl.insert( recs );
-      checkResult( cl, recs );
-      //clean environment
-      commDropCS( db, csName, true,
-         "clear collection space in the end" );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   recs.push( { a: -1E+40 } );
+   recs.push( { a: { $numberLong: "-9223372036854775808" } } );
+   recs.push( { a: -2147483648 } );
+
+   cl.insert( recs );
+   checkResult( cl, recs );
+   //clean environment
+   commDropCS( db, csName, true );
+
 
 }
 //check the result;
 function checkResult ( cl, recs )
 {
-   println( "---begin to check result" );
    var findParame = { a: { $mod: [{ $numberLong: "-2147483648" }, 0] } };
    var cursor = cl.find( findParame ).sort( { a: 1 } );
    var i = 0;
@@ -53,29 +44,15 @@ function checkResult ( cl, recs )
    {
       if( cursor.current().toObj()["a"]["$numberLong"] == undefined )
       {
-
-         if( cursor.current().toObj()["a"] != recs[i]["a"] )
-            throw buildException( "check return code", "",
-               'compare  value',
-               recs[i]["a"], cursor.current().toObj()["a"] );
+         assert.equal( cursor.current().toObj()["a"], recs[i]["a"] );
 
       } else
       {
-
-         if( cursor.current().toObj()["a"]["$numberLong"] != recs[i]["a"] )
-            throw buildException( "check return code", "",
-               'compare numberLong value',
-               recs[i]["a"], cursor.current().toObj()["a"]["$numberLong"] );
+         assert.equal( cursor.current().toObj()["a"]["$numberLong"], recs[i]["a"] );
 
       }
       i++;
    }
 
-   if( i != 3 )
-      throw "expected result set number is not correct! i =" + i;
-
+   assert.equal( i, 3 );
 }
-
-main();
-db.close();
-

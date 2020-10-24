@@ -2,9 +2,10 @@
 *@Description:  seqDB-19168:科学计数法，底数为整数（如 1E+308）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'csv';
    var tmpPrefix = "sdbimprt_double_19168";
@@ -16,7 +17,6 @@ function main ()
    var importFields = 'a int, b double';
 
    // test point1, b value e.g: 1E+0, 1E+1 ...... 1E+309
-   println( "\n---------------------import data, type is int, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    var expRecs = initExpectData_testPoint1( recsNum );
@@ -30,7 +30,6 @@ function main ()
    cl.truncate();
 
    // test poin2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
-   println( "\n---------------------import data, type is int, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    var expRecs = initExpectData_testPoint2( recsNum );
@@ -48,7 +47,6 @@ function main ()
 
 function initImportFile_testPoint1 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    // test point1, b value e.g: 1E+0, 1E+1 ...... 1E+309
    var recordsNum;
    var str = "";
@@ -71,7 +69,6 @@ function initImportFile_testPoint1 ( importFile )
 
 function initImportFile_testPoint2 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    // test point2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
    var recordsNum;
    var str = "";
@@ -95,7 +92,6 @@ function initImportFile_testPoint2 ( importFile )
 
 function initExpectData_testPoint1 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record = {};
    var tmpBVal = 1;
@@ -145,7 +141,6 @@ function initExpectData_testPoint1 ( expRecsNum )
 
 function initExpectData_testPoint2 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record = {};
    var tmpBVal = "1.1";

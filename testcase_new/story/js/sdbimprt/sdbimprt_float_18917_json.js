@@ -2,8 +2,10 @@
 *@Description:  seqDB-18917:整数位和小数位全为0（如00.00） 
 *@Author     :  2019-7-30  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18917_json";
    var jsonFile = tmpFileDir + clName + ".json";
@@ -11,7 +13,6 @@ function main ()
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
 
-   println( "\n---data type int32, int64, double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 840 );
    var expResult = getExpResult( "int32" );

@@ -3,38 +3,37 @@
 *@Author: 2019-11-26 Zhao xiaoni Init
 ************************************************************************/
 testConf.csName = COMMCSNAME;
-testConf.clName = COMMCLNAME+"_20300";
+testConf.clName = COMMCLNAME + "_20300";
 
 main( test );
 
-function test( testPara )
-{  
-   var imprtFile = tmpFileDir +"20300.json";
+function test ( testPara )
+{
+   var imprtFile = tmpFileDir + "20300.json";
    readyData( imprtFile );
    var rcResults = importData( testConf.csName, testConf.clName, imprtFile, "json" );
    checkImportRC( rcResults, 4, 4, 0 );
    //由于不可见字符导入到集合后的记录不一定以“?”的形式显示，因此不校验最后一条记录
-   var expResult =  [ { "a": "&" }, { "b": "$" }, { "c": "^" } ];
+   var expResult = [{ "a": "&" }, { "b": "$" }, { "c": "^" }];
    checkCLData( testPara.testCL, expResult );
 }
 
-function readyData( imprtFile )
+function readyData ( imprtFile )
 {
-   println("\n---Begin to ready data.");
-   
+
    var file = fileInit( imprtFile );
    file.write( "{_id: 1, a: \"&\"}" );
    file.write( "{_id: 2, b: \"$\"}" );
    file.write( "{_id: 3, c: \"^\"}" );
-   var str = String.fromCharCode(0x1B);
+   var str = String.fromCharCode( 0x1B );
    file.write( "{_id: 4, d: \"" + str + "\"}" );
    file.close();
 }
 
-function checkCLData( cl, expResult )
+function checkCLData ( cl, expResult )
 {
    var actResult = [];
-   var cursor = cl.find({}, { "_id": { "$include": 0 } }).sort( { "_id": 1 } );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { "_id": 1 } );
    while( cursor.next() )
    {
       actResult.push( cursor.current().toObj() );

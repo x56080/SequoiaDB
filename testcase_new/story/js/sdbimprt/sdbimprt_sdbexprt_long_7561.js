@@ -2,57 +2,48 @@
 *@Description:  seqDB-7561:导入导出numberLong
 *@Author:           2016-8-3  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_7561";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "7561.csv";
-      var exprtFile = tmpFileDir + "sdbexprt_7561.csv";
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_7561";
+   var cl = readyCL( csName, clName );
 
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
-      checkCLData( cl );
+   var imprtFile = tmpFileDir + "7561.csv";
+   var exprtFile = tmpFileDir + "sdbexprt_7561.csv";
 
-      exprtData( csName, clName, exprtFile );
-      checkExprtFile( exprtFile );
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+   checkCLData( cl );
 
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   exprtData( csName, clName, exprtFile );
+   checkExprtFile( exprtFile );
+
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( "1,long,-2147483649,2147483648\n"
       + "2,long,-9223372036854775808,9223372036854775807" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num int,type string, v1 long, v2 long"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
    var rcObj = rc.split( "\n" );
 
    //check import results
@@ -65,15 +56,14 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 18 } }, { v2: { $type: 1, $et: 18 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -88,17 +78,15 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }
 
 function exprtData ( csName, clName, exprtFile )
 {
-   println( "\n---Begin to export data." );
 
    //remove export file
    cmd.run( "rm -rf " + exprtFile );
@@ -108,18 +96,14 @@ function exprtData ( csName, clName, exprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num,type,v1,v2"'
       + ' --sort "{num:1}" --file ' + exprtFile;
-   println( exportOption );
    var rc = cmd.run( exportOption );
-   println( rc );
 
    //cat exprt file
    var fileInfo = cmd.run( "cat " + exprtFile );
-   println( exprtFile + "\n" + fileInfo );
 }
 
 function checkExprtFile ( exprtFile )
 {
-   println( "\n---Begin to check export file data." );
 
    var rcObj = cmd.run( "cat " + exprtFile ).split( "\n" );
    var actRC = JSON.stringify( rcObj );
@@ -127,8 +111,8 @@ function checkExprtFile ( exprtFile )
 
    if( actRC !== expRC )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[exprtFile data:" + expRC + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[exprtFile data:" + expRC + "]" +
          "[exprtFile data:" + actRC + "]" );
    }
 

@@ -11,9 +11,9 @@ var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13578";
 var clname1 = COMMCLNAME + "_sdbimprt13578";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    testExprtSelect1();  // no use select symbol
    testExprtSelect2();  // use $include

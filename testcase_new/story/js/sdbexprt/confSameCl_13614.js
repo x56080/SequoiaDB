@@ -10,9 +10,9 @@
 var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13614";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var docs = [{ a: 1, b: 1 }];
    var cl = commCreateCL( db, csname, clname );

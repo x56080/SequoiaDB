@@ -2,39 +2,34 @@
 *@Description:   seqDB-13621 : 使用空格或制表符作为字段分隔符导入数据
 *@Author:        2017-11-23  linsuqiang
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_13621";
-      var cl = readyCL( csName, clName );
 
-      var file4Tab = tmpFileDir + "13621_tab.csv";
-      readyData( file4Tab, "\t" );
-      importData( csName, clName, file4Tab, "\t" );
-      checkCLData( cl, "\t" );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_13621";
+   var cl = readyCL( csName, clName );
 
-      cl.truncate();
+   var file4Tab = tmpFileDir + "13621_tab.csv";
+   readyData( file4Tab, "\t" );
+   importData( csName, clName, file4Tab, "\t" );
+   checkCLData( cl, "\t" );
 
-      var file4Space = tmpFileDir + "13621_space.csv";
-      readyData( file4Space, " " );
-      importData( csName, clName, file4Space, " " );
-      checkCLData( cl, " " );
+   cl.truncate();
 
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var file4Space = tmpFileDir + "13621_space.csv";
+   readyData( file4Space, " " );
+   importData( csName, clName, file4Space, " " );
+   checkCLData( cl, " " );
+
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile, separator )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    var sep = separator;
@@ -44,13 +39,11 @@ function readyData ( imprtFile, separator )
    file.write( "3" + sep + "1" + sep + "2" + sep + sep + sep + "\n" );
    file.write( "4" + sep + "1" + sep + sep + "3" + sep + sep + "\n" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile, separator )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
@@ -58,9 +51,7 @@ function importData ( csName, clName, imprtFile, separator )
       + ' --headerline true '
       + ' -e "' + separator + '"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    var rcObj = rc.split( "\n" );
    var expParseRecords = "parsed records: 4";
@@ -70,15 +61,14 @@ function importData ( csName, clName, imprtFile, separator )
    if( expParseRecords !== actParseRecords
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { _id: 1 } );
    var recsArray = [];
@@ -96,10 +86,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

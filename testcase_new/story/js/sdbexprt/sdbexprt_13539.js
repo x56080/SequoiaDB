@@ -41,9 +41,9 @@ function test ()
       " --fields='a int'";
    testRunCommand( command );
 
-   var expRecords = [ { "a": 1 } ];
-   var cursor = cl2.find(  {}, { _id: { $include: 0 } } );
-   commCompareResults ( cursor, expRecords, false );
+   var expRecords = [{ "a": 1 }];
+   var cursor = cl2.find( {}, { _id: { $include: 0 } } );
+   commCompareResults( cursor, expRecords, false );
 
    cl2.remove();
    cmd.run( "rm -rf " + csvFile );
@@ -70,13 +70,13 @@ function test ()
       " --headerline true" +
       " --fields='a int'";
    testRunCommand( command );
-   expRecords = [ { "a": 1 } ];
+   expRecords = [{ "a": 1 }];
    cursor = cl2.find( {}, { _id: { $include: 0 } } );
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cl2.remove();
    cmd.run( "rm -rf " + csvFile );
-   
+
    var jsonFile = tmpFileDir + "sdbexprt13539.json";
    cmd.run( "rm -rf " + jsonFile );
 
@@ -104,12 +104,11 @@ function test ()
       " --type json";
    testRunCommand( command );
 
-   expRecords = [ { "a": 1 } ];
+   expRecords = [{ "a": 1 }];
    cursor = cl2.find();
-   commCompareResults ( cursor, expRecords );
+   commCompareResults( cursor, expRecords );
 
    cmd.run( "rm -rf " + jsonFile );
    commDropCL( db, COMMCSNAME, clName1 );
    commDropCL( db, COMMCSNAME, clName2 );
 }
-

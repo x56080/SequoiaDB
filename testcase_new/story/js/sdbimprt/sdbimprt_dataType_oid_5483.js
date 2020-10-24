@@ -3,31 +3,26 @@
 				 seqDB-5484/seqDB-5485/seqDB-5486
 *@Author:           2016-8-1  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5483";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "5483.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5483";
+   var cl = readyCL( csName, clName );
 
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "5483.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( '1,null,null' + "\n"
@@ -36,13 +31,11 @@ function readyData ( imprtFile )
       + '4,invalid,5791b54%*$_-a1171000016' + "\n"
       + '5,invalid,5791b54      1171000016' );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
@@ -53,9 +46,7 @@ function importData ( csName, clName, imprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num int,type string,v1 oid"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -68,20 +59,19 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 
    //check failed records
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
    var actFailedNum = cmd.run( "cat " + rec ).split( "\n" ).length - 1;
-   println( rec + "\nrecords number: " + actFailedNum );
    var expFailedNum = 5;
    if( expFailedNum !== actFailedNum )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[failedRecs:" + expFailedNum + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[failedRecs:" + expFailedNum + "]" +
          "[failedRecs:" + actFailedNum + "]" );
    }
 

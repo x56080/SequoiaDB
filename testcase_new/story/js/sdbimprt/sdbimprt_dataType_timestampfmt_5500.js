@@ -3,45 +3,38 @@
                         其中包含通配符（*）和特殊字符（任意UTF-8字符）
 *@Author:   2016-7-29  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5500";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "5500.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5500";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "5500.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( '1,YYYY-MM-DD-HH.mm.ss.ffffff,1902-01-01-00.00.00.000000' + "\n"
       + '2,YYYY/MM/DD HH:mm:ss:ffffff,2037/12/31 23:59:59:999999' + "\n"
       + '3,HH.mm.ss.ffffff YYYY-MM-DD,00.00.00.000000 1996-02-29' );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    var tmpRec = csName + "_" + clName + "*.rec";
    var timestampfmt = ["--timestampfmt 'YYYY-MM-DD-HH.mm.ss.ffffff'",
@@ -58,9 +51,7 @@ function importData ( csName, clName, imprtFile )
          + ' --type csv --fields "num int,desc string,v1 timestamp" '
          + timestampfmt[i]
          + ' --file ' + imprtFile;
-      println( imprtOption );
       var rc = cmd.run( imprtOption );
-      println( rc );
 
       //check import results
       var rcObj = rc.split( "\n" );
@@ -73,20 +64,19 @@ function importData ( csName, clName, imprtFile )
       if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
          || expImportedRecords !== actImportedRecords )
       {
-         throw buildException( "importData", null, "[sdbimprt results]",
-            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+         throw new Error( "importData fail,[sdbimprt results]" +
+            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
             "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
       }
 
       //check failed records
       var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
       var actFailedNum = cmd.run( "cat -v " + rec ).split( "\n" ).length - 1;
-      println( rec + "\nrecords number: " + actFailedNum );
       var expFailedNum = 2;
       if( expFailedNum !== actFailedNum )
       {
-         throw buildException( "checkCLdata", null, "[find]",
-            "[failedRecs:" + expFailedNum + "]",
+         throw new Error( "checkCLdata fail,[find]" +
+            "[failedRecs:" + expFailedNum + "]" +
             "[failedRecs:" + actFailedNum + "]" );
       }
    }
@@ -97,7 +87,6 @@ function importData ( csName, clName, imprtFile )
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( { v1: { $type: 1, $et: 17 } }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -112,10 +101,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

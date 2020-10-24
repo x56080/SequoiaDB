@@ -3,6 +3,7 @@
 *@Modify list :
 *               2018-1-10  wenjing Wang Init
 *******************************************************************************/
+
 function backupTestCase11736 ()
 {
 
@@ -49,7 +50,6 @@ backupTestCase11736.prototype.init =
    function()
    {
       this.createShardingCL();
-      println( JSON.stringify( this.group ) );
       for( var i = 0; i < this.group.Group.length; ++i )
       {
          if( this.group.PrimaryNode === this.group.Group[i].NodeID || i === this.group.Group.length - 1 )
@@ -57,7 +57,6 @@ backupTestCase11736.prototype.init =
             var hostName = this.group.Group[i].HostName;
             var svcName = this.group.Group[i].Service[0].Name;
             var dbPath = this.group.Group[i].dbpath;
-            println( "init " + hostName + svcName + dbPath );
             this.nodeinfo = new nodeInfo( this.group.GroupName, hostName, svcName, dbPath );
             this.cmd = getCmdByHostName( this.localCmd, hostName );
             break;
@@ -73,33 +72,26 @@ backupTestCase11736.prototype.execTest =
       var bakInfo = new backUpInfo( backupName, this.nodeinfo.dbPath + "bakfile" );
       this.groupNames.push( "SYSCatalogGroup" );
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       // ȫ������
       bakBackup( this.db, { "Name": backupName } );
       this.checkBackupRes( bakInfo, 1, this.groupNames );
 
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       for( var i = 0; i < 1000; ++i )
       {
-         commCreateCL( this.db, this.csName, this.clName + "_" + i, {ReplSize: -1}, true, false,
-            "Create collection for backup" );
+         commCreateCL( this.db, this.csName, this.clName + "_" + i, { ReplSize: -1 }, true, false );
       }
 
       bakBackup( this.db, { "Name": backupName, EnsureInc: true } );
       this.checkBackupRes( bakInfo, 2, this.groupNames );
       if( this.group !== undefined )
       {
-         println( "backup on " + this.group.GroupName );
          this.removeNodeExceptPrimary();
       }
-      println( "start restore..." );
       sdbRestore( this.sdb, this.cmd, bakInfo, this.nodeinfo );
       this.checkResult( 2 );
    }
@@ -114,7 +106,9 @@ backupTestCase11736.prototype.tearDown =
       db.removeRG( backupandrestoreGroup );
    }
 
-function main ( db )
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -132,8 +126,7 @@ function main ( db )
    }
    catch( e )
    {
-      var tmp = new Error( "tmp" )
-      if( e.constructor === tmp.constructor )
+      if( e instanceof Error )
       {
          println( e.fileName + ":" + e.lineNumber + " throw " + e.message );
          println( e.stack );
@@ -148,5 +141,3 @@ function main ( db )
       throw e;
    }
 }
-
-main( db )

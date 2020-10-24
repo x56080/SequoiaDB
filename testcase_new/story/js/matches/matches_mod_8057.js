@@ -4,34 +4,28 @@
                   除数(b) %  被除数(div)  = 余数(rem)
 *@Author:  2016/5/20  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8057";
-      var cl = readyCL( clName );
 
-      var rawData = [-3, -3, -3, -1, -4, 2, 5, 4, 4, -6];
-      var div = [-5, 4, 2, 6, -3, 4, 3, -7, -3, -5];
-      var rem = [-3, -3, -1, -1, -1, 2, 2, 4, 1, -1];
-      insertRecs( cl, rawData );
+   var clName = COMMCLNAME + "_matches8057";
+   var cl = readyCL( clName );
 
-      var findRecsArray = findRecs( cl, div, rem );
-      checkResult( findRecsArray, rawData, div, rem );
+   var rawData = [-3, -3, -3, -1, -4, 2, 5, 4, 4, -6];
+   var div = [-5, 4, 2, 6, -3, 4, 3, -7, -3, -5];
+   var rem = [-3, -3, -1, -1, -1, 2, 2, 4, 1, -1];
+   insertRecs( cl, rawData );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var findRecsArray = findRecs( cl, div, rem );
+   checkResult( findRecsArray, rawData, div, rem );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
 
    for( i = 0; i < rawData.length; i++ )
    {
@@ -41,7 +35,6 @@ function insertRecs ( cl, rawData )
 
 function findRecs ( cl, div, rem )
 {
-   println( "\n---Begin to find records by matches[$mod]." );
    var findRecsArray = [];
    for( i = 0; i < div.length; i++ )
    {
@@ -62,23 +55,15 @@ function checkResult ( findRecsArray, rawData, div, rem )
 {
    for( i = 0; i < findRecsArray.length; i++ )
    {
-      println( "\n---Begin to check result for [" + rawData[i] + " % " + div[i] + " = " + rem[i] + "]." );
 
       //compare number
       var expLen = 1;
-      if( findRecsArray[i].length !== expLen )
-      {
-         println( "---The real results after the find by matches[$mod]: \n" + JSON.stringify( findRecsArray[i] ) );
-         throw buildException( "checkResult", null, "[compare number]",
-            "[recsNum:" + expLen + "]",
-            "[recsNum:" + findRecsArray[i].length + "]" );
-      }
+      assert.equal( findRecsArray[i].length, expLen );
       //compare records
       if( findRecsArray[i][0]["b"] !== rawData[i] )
       {
-         println( "---The real results after the find by matches[$mod]: \n" + JSON.stringify( findRecsArray[i] ) );
-         throw buildException( "checkResult", null, "[compare records]",
-            "[b:" + rawData[i] + "]",
+         throw new Error( "checkResult fail,[compare records]" +
+            "[b:" + rawData[i] + "]" +
             "[b:" + findRecsArray[i][0]["b"] + "]" );
       }
    }

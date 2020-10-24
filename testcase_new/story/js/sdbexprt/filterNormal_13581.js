@@ -21,9 +21,9 @@ var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13581";
 var clname1 = COMMCLNAME + "_sdbimprt13581";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );
@@ -46,7 +46,6 @@ function main ()
 
 function testExprtFilter1 ( cl, cl1 )
 {
-   println( "test filter with $gte" );
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
@@ -93,7 +92,6 @@ function testExprtFilter1 ( cl, cl1 )
 
 function testExprtFilter2 ( cl, cl1 )
 {
-   println( "test filter with $mod" );
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
@@ -140,7 +138,6 @@ function testExprtFilter2 ( cl, cl1 )
 
 function testExprtFilter3 ( cl, cl1 )
 {
-   println( "test filter with $in" );
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
@@ -187,7 +184,6 @@ function testExprtFilter3 ( cl, cl1 )
 
 function testExprtFilter4 ( cl, cl1 )
 {
-   println( "test filter with $isnull" );
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
@@ -234,7 +230,6 @@ function testExprtFilter4 ( cl, cl1 )
 
 function testExprtFilter5 ( cl, cl1 )
 {
-   println( "test filter with $all" );
    var docs = [{ name: ["Tom", "Mike", "Jack"] },
    { name: ["Tom", "John"] }];
    cl.insert( docs );
@@ -282,7 +277,6 @@ function testExprtFilter5 ( cl, cl1 )
 
 function testExprtFilter6 ( cl, cl1 )
 {
-   println( "test filter with $and" );
    var docs = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
    cl.insert( docs );
 
@@ -329,7 +323,6 @@ function testExprtFilter6 ( cl, cl1 )
 
 function testExprtFilter7 ( cl, cl1 )
 {
-   println( "test filter with $exists" );
    var docs = [{ a: 1 }, { a: 2, b: 2 }, { a: 3 }, { a: 4, b: 4 }];
    cl.insert( docs );
 
@@ -376,7 +369,6 @@ function testExprtFilter7 ( cl, cl1 )
 
 function testExprtFilter8 ( cl, cl1 )
 {
-   println( "test filter with $elemMatch" );
    var docs = [{ info: { name: "Jack", phone: "1234" } },
    { info: [{ name: "Jack", phone: "5678" }] }];
    cl.insert( docs );
@@ -429,7 +421,6 @@ function testExprtFilter8 ( cl, cl1 )
 
 function testExprtFilter9 ( cl, cl1 )
 {
-   println( "test filter with $1" );
    var docs = [{ a: [1, 2, 3, 4, 5] },
    { a: [1, 4, 5] }, { a: [1, 2, 4] }];
    cl.insert( docs );
@@ -482,7 +473,6 @@ function testExprtFilter9 ( cl, cl1 )
 
 function testExprtFilter10 ( cl, cl1 )
 {
-   println( "test filter with $regex" );
    var docs = [{ a: "abandon" }, { a: "Alice" }, { a: "beyond" }];
    cl.insert( docs );
 
@@ -529,7 +519,6 @@ function testExprtFilter10 ( cl, cl1 )
 
 function testExprtFilter11 ( cl, cl1 )
 {
-   println( "test filter with $field" );
    var docs = [{ a: 1, b: 1 }, { a: 2, b: 1 }, { a: 3, b: 3 },
    { a: 4, b: 3 }];
    cl.insert( docs );
@@ -577,7 +566,6 @@ function testExprtFilter11 ( cl, cl1 )
 
 function testExprtFilter12 ( cl, cl1 )
 {
-   println( "test filter with $expand" );
    var docs = [{ a: [1, 2, 3] }];
    cl.insert( docs );
 
@@ -623,7 +611,6 @@ function testExprtFilter12 ( cl, cl1 )
 
 function testExprtFilter13 ( cl, cl1 )
 {
-   println( "test filter with $returnMatch" );
    var docs = [{ a: [1, 2, 4, 7, 9] }];
    cl.insert( docs );
 

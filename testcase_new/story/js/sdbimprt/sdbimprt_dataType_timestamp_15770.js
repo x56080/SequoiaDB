@@ -2,43 +2,36 @@
 *@Description:   seqDB-15770:导入timestamp数据只写年份、年月
 *@Author:        2018-9-10  wangkexin
 ********************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_15770";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "15770.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_15770";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "15770.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( 'a,b,c,d\n"2014-01-01-12.30.20","2012-01-03","2018-07","2018"' );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
@@ -51,9 +44,7 @@ function importData ( csName, clName, imprtFile )
       + ' --fields "a timestamp, b timestamp, c timestamp, d timestamp" '
       + ' --headerline true '
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -66,8 +57,8 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 
@@ -77,7 +68,6 @@ function importData ( csName, clName, imprtFile )
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } );
    var recsArray = [];
@@ -92,9 +82,8 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 }

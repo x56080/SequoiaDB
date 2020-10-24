@@ -2,38 +2,31 @@
 *@Description:   seqDB-8022:使用$+标识符查询，目标字段为非数组，不走索引查询 
 *@Author:  2016/5/23  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8022";
-      var cl = readyCL( clName );
 
-      insertRecs( cl );
+   var clName = COMMCLNAME + "_matches8022";
+   var cl = readyCL( clName );
 
-      var rc = findRecs( cl );
-      checkResult( rc );
+   insertRecs( cl );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var rc = findRecs( cl );
+   checkResult( rc );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl )
 {
-   println( "\n---Begin to insert records." );
 
    cl.insert( { a: "test" } )
 }
 
 function findRecs ( cl )
 {
-   println( "\n---Begin to find records." );
 
    var rc = cl.find( { "a.$1": "test" } ).sort( { a: 1 } );
    return rc;
@@ -41,7 +34,6 @@ function findRecs ( cl )
 
 function checkResult ( rc )
 {
-   println( "\n---Begin to check result." );
 
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
@@ -51,10 +43,6 @@ function checkResult ( rc )
 
    var expLen = 0;
    var actLen = findRecsArray.length;
-   if( actLen !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + actLen + "]" );
-   }
+   assert.equal( actLen, expLen );
+
 }

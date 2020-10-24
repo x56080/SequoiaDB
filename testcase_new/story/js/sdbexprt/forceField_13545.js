@@ -8,9 +8,9 @@
 *******************************************************************/
 var csname = COMMCSNAME;
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    testForceCsv1();   // test force csv with fields out of order
    testForceCsv2();   // test no force with fields out of order

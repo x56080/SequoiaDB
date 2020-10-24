@@ -2,8 +2,10 @@
 *@Description:  seqDB-18919: 整数位全为0，小数位后n位为0（如00.10） 
 *@Author     :  2019-7-31  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18919_json";
    var jsonFile = tmpFileDir + clName + ".json";
@@ -11,7 +13,6 @@ function main ()
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
 
-   println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 800 );
    var expResult = getExpResult( "double" );

@@ -6,9 +6,9 @@
 *******************************************************************/
 var csname = COMMCSNAME;
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    testWithIdCsv1();  // test withid true, fields no id
    testWithIdCsv2();  // test withid true, fields with id

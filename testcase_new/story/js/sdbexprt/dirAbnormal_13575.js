@@ -12,9 +12,9 @@ var csnames = [];
 var doc = { a: 1 };
 var csvContent = "a\n1\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    for( var i = 0; i < clnum; i++ )
    {
@@ -42,7 +42,6 @@ function testExprtNoPerm ()
    var user = getCurrentUser();
    if( user === "root" )
    {
-      println( "current user is root" );
       return;
    }
 

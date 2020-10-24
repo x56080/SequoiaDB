@@ -3,25 +3,24 @@
 * @author      :  Liang XueWang
 *                
 *******************************************************************************/
-import("../lib/main.js")
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 var cmd = new Cmd();
 var installPath = getInstallDir();
 var tmpFileDir = WORKDIR + "/sdbexprt/";
 readyTmpDir();
 
-
 /* ***************************************************
-@description : 获取bin/sdbexprt所在目录
+@description : 锟斤拷取bin/sdbexprt锟斤拷锟斤拷目录
 @author: XiaoNi Huang 2019-12-19
 **************************************************** */
 function getInstallDir ()
 {
    var localDir = cmd.run( "pwd" ).split( "\n" )[0] + "/";
-   println( "localDir   = " + localDir );
    var installDir = '';
 
-   // 先取当前目录下的 bin/sdbimprt，不存在时，再取安装目录下的 bin/sdbimprt
+   // 锟斤拷取锟斤拷前目录锟铰碉拷 bin/sdbimprt锟斤拷锟斤拷锟斤拷锟斤拷时锟斤拷锟斤拷取锟斤拷装目录锟铰碉拷 bin/sdbimprt
    try
    {
       cmd.run( 'find ./bin/sdbexprt' ).split( '\n' )[0];
@@ -32,7 +31,6 @@ function getInstallDir ()
       installDir = commGetInstallPath() + "/";
    }
 
-   println( "instatllpath = " + installDir );
    return installDir;
 }
 
@@ -42,25 +40,8 @@ function getInstallDir ()
 **************************************************** */
 function readyTmpDir ()
 {
-   try
-   {
-      cmd.run( "rm -rf " + tmpFileDir );
-   }
-   catch( e )
-   {
-      println( "Failed to rm tmpFileDir[" + tmpFileDir + "]" );
-      throw e;
-   }
-
-   try
-   {
-      cmd.run( "mkdir -p " + tmpFileDir );
-   }
-   catch( e )
-   {
-      println( "Failed to mkdir tmpFileDir[" + tmpFileDir + "]" );
-      throw e;
-   }
+   cmd.run( "rm -rf " + tmpFileDir );
+   cmd.run( "mkdir -p " + tmpFileDir );
 }
 
 /*******************************************************************
@@ -88,7 +69,6 @@ function getGroups ()
    var groups = [];
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no groups" );
       return groups;
    }
    var cursor = db.listReplicaGroups();
@@ -102,90 +82,21 @@ function getGroups ()
 }
 
 /*******************************************************************
-* @Description : get group nodes, 
-*                return array like [ "sdbserver1:11830", ... ]
-* @author      : Liang XueWang
-*
-********************************************************************/
-function getGroupNodes ( groupName )
-{
-   var nodes = [];
-   if( commIsStandalone( db ) )
-   {
-      println( "Run mode is standalone, no group " + groupName );
-      return nodes;
-   }
-   var rg = db.getRG( groupName );
-   var obj = rg.getDetail().next().toObj();
-   var groupArr = obj["Group"];
-   for( var i = 0; i < groupArr.length; i++ )
-   {
-      var hostname = groupArr[i]["HostName"];
-      var svcname = groupArr[i]["Service"][0]["Name"];
-      nodes.push( hostname + ":" + svcname );
-   }
-   return nodes;
-}
-
-/*******************************************************************
-* @Description : get a random int [m n)      
-* @author      : Liang XueWang
-*
-********************************************************************/
-function getRandomInt ( m, n )
-{
-   var range = n - m;
-   var ret = m + parseInt( Math.random() * range );
-   return ret;
-}
-
-/*******************************************************************
-* @Description : insert record which use kilobytes space       
-* @author      : Liang XueWang
-*
-********************************************************************/
-function insertKBDocs ( cl, kb )
-{
-   var docs = [];
-
-   for( var i = 0; i < parseInt( kb ); i++ )
-   {
-      var doc = {};
-      doc["key"] = makeString( 1024, 'x' );
-      doc["cnt"] = i + 1;
-      docs.push( doc );
-      if( docs.length % 10000 === 0 || i === parseInt( kb ) - 1 )
-      {
-         cl.insert( docs );
-         docs = [];
-      }
-   }
-}
-
-/*******************************************************************
 * @Description : test run command        
 * @author      : Liang XueWang
 *
 ********************************************************************/
 function testRunCommand ( command, errno )
 {
-   try
+   if( errno == undefined )
    {
       cmd.run( command );
-      if( errno !== undefined ) throw 0;
-   }
-   catch( e )
+   } else
    {
-      if( errno === undefined )
+      assert.tryThrow( errno, function()
       {
-         throw buildException( "testRunCommand", e,
-            "run command:\n" + command, 0, e );
-      }
-      else if( e !== errno )
-      {
-         throw buildException( "testRunCommand", e,
-            "run command:\n" + command, errno, e );
-      }
+         cmd.run( command );
+      } );
    }
 }
 
@@ -196,24 +107,11 @@ function testRunCommand ( command, errno )
 ********************************************************************/
 function checkFileContent ( filename, expContent )
 {
-   try
-   {
-      var size = parseInt( File.stat( filename ).toObj().size );
-      var file = new File( filename );
-      var actContent = file.read( size );
-      file.close();
-   }
-   catch( e )
-   {
-      throw buildException( "checkFileContent", null,
-         "read " + filename, 0, e );
-   }
-   if( actContent !== expContent )
-   {
-      throw buildException( "checkFileContent", null,
-         "check " + filename + " content",
-         expContent.slice( 0, 1024 ), actContent.slice( 0, 1024 ) );
-   }
+   var size = parseInt( File.stat( filename ).toObj().size );
+   var file = new File( filename );
+   var actContent = file.read( size );
+   file.close();
+   assert.equal( actContent, expContent );
 }
 
 /*******************************************************************
@@ -239,19 +137,11 @@ function getRecords ( cursor )
 ********************************************************************/
 function checkRecords ( expRecs, actRecs )
 {
-   if( expRecs.length !== actRecs.length )
-   {
-      throw buildException( "checkRecords", null, "check rec count",
-         expRecs.length, actRecs.length );
-   }
+   assert.equal( expRecs.length, actRecs.length );
+
    for( var i = 0; i < expRecs.length; i++ )
    {
-      if( expRecs[i] !== actRecs[i] )
-      {
-         throw buildException( "checkRecords", null, "check record " + i,
-            JSON.stringify( expRecs[i] ).slice( 0, 1024 ),
-            JSON.stringify( actRecs[i] ).slice( 0, 1024 ) );
-      }
+      assert.equal( expRecs[i], actRecs[i] );
    }
 }
 
@@ -263,11 +153,7 @@ function checkRecords ( expRecs, actRecs )
 function checkFileExist ( filename, exist )
 {
    var res = File.exist( filename );
-   if( res !== exist )
-   {
-      throw buildException( "checkFileExist", null,
-         "check " + filename, exist, res );
-   }
+   assert.equal( res, exist );
 }
 
 /*******************************************************************
@@ -289,15 +175,4 @@ function makeString ( len, ch )
 {
    var arr = new Array( len + 1 );
    return arr.join( ch );
-}
-
-/*******************************************************************
-* @Description : remove rec file if needed
-* @author      : Liang XueWang
-*
-********************************************************************/
-function rmRecFile ( csname, clname )
-{
-   var files = csname + "_" + clname + "_*.rec";
-   cmd.run( "rm -rf ./" + files );
 }

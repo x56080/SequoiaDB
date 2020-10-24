@@ -2,8 +2,10 @@
 *@Description:  seqDB-18928: 整数位后n位为0，小数位前n位为0（如10.01） 
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18928_csv";
    var csvFile = tmpFileDir + clName + ".csv";
@@ -11,7 +13,6 @@ function main ()
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
 
-   println( "\n---specify data type int32 to import csv file." );
    var fields = "_id int, a int";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
@@ -20,7 +21,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---specify data type int64 to import csv file." );
    var fields = "_id int, a long";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
@@ -29,7 +29,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---specify data type double to import csv file." );
    var fields = "_id int, a double";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );
@@ -38,7 +37,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---specify data type decimal to import csv file." );
    var fields = "_id int, a decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 180 );

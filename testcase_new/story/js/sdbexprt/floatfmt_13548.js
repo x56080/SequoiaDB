@@ -63,9 +63,9 @@ var jsonContents = [
    "{ \"a\": +1.70000000000000E+308 }\n" + "{ \"a\": +1.23456789000000E+04 }\n"
 ];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    for( var i = 0; i < floatfmts.length; i++ )
    {
@@ -76,7 +76,6 @@ function main ()
 
 function testFloatFmtCsv ( floatfmt, content )
 {
-   println( floatfmt );
    var clname = COMMCLNAME + "_sdbexprt13548";
    var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );
@@ -104,7 +103,6 @@ function testFloatFmtCsv ( floatfmt, content )
 
 function testFloatFmtJson ( floatfmt, content )
 {
-   println( floatfmt );
    var clname = COMMCLNAME + "_sdbexprt13548";
    var cl = commCreateCL( db, csname, clname );
    cl.insert( docs );

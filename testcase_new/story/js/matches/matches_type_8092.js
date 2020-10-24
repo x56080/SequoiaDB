@@ -7,9 +7,9 @@
  @Modifier: 2020/08/06 Zixian Yan
 ************************************************************************/
 testConf.clName = COMMCLNAME + "_8092";
-main(test);
+main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    var cl = testPara.testCL;
    var indexName = "index_8092";
@@ -17,23 +17,23 @@ function test( testPara )
    var indexObj = { "key": 1 };
    //typeNum: 16
    var dataType = ["int32", "int64", "double", "decimal", "string", "oid", "bool", "date",
-                   "timestamp", "bindata", "regex", "object", "array", "null", "minkey", "maxkey"];
+      "timestamp", "bindata", "regex", "object", "array", "null", "minkey", "maxkey"];
    var rawData = [{ "key": -2147483648 },
-                  { "key": { "$numberLong": "-9223372036854775808" } },
-                  { "key": -1.7E+308 },
-                  { "key": { "$decimal": "111.001" } },
-                  { "key": "test_mathes_type_8092.js" },
-                  { "key": { "$oid": "123abcd00ef12358902300ef" } },
-                  { "key": true },
-                  { "key": { "$date": "9999-12-31" } },
-                  { "key": { "$timestamp": "2037-12-31-23.59.59.999999" } },
-                  { "key": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
-                  { "key": { "$regex": "^rg", "$options": "i" } },
-                  { "key": { "subObj": "value" } },
-                  { "key": [ "a", "b", "c" ] },
-                  { "key": null },
-                  { "key": { "$minKey": 1} },
-                  { "key": { "$maxKey": 1} }];
+   { "key": { "$numberLong": "-9223372036854775808" } },
+   { "key": -1.7E+308 },
+   { "key": { "$decimal": "111.001" } },
+   { "key": "test_mathes_type_8092.js" },
+   { "key": { "$oid": "123abcd00ef12358902300ef" } },
+   { "key": true },
+   { "key": { "$date": "9999-12-31" } },
+   { "key": { "$timestamp": "2037-12-31-23.59.59.999999" } },
+   { "key": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
+   { "key": { "$regex": "^rg", "$options": "i" } },
+   { "key": { "subObj": "value" } },
+   { "key": ["a", "b", "c"] },
+   { "key": null },
+   { "key": { "$minKey": 1 } },
+   { "key": { "$maxKey": 1 } }];
 
    cl.insert( rawData );
    cl.createIndex( indexName, indexObj );
@@ -42,29 +42,29 @@ function test( testPara )
    {
       var expectation = [rawData[i]];
       var findCondition = { "key": { $type: 2, $et: dataType[i] } };
-      var rc = cl.find( findCondition ).sort( indexObj ).hint({ "": indexName });
+      var rc = cl.find( findCondition ).sort( indexObj ).hint( { "": indexName } );
       checkRec( rc, expectation );
    }
 
-   var newData     = [{ "key": { "$date": "2012-12-21" }, "b": 5},
-                      { "key": { "$date": "1997-01-20" }, "b": 7},
-                      { "key": { "$date": "1997-01-20" }, "b": 6},
-                      { "key": { "$date": "2020-03-31" }, "b": 3},
-                      { "key": { "$date": "2008-08-08" }, "b": 9}];
+   var newData = [{ "key": { "$date": "2012-12-21" }, "b": 5 },
+   { "key": { "$date": "1997-01-20" }, "b": 7 },
+   { "key": { "$date": "1997-01-20" }, "b": 6 },
+   { "key": { "$date": "2020-03-31" }, "b": 3 },
+   { "key": { "$date": "2008-08-08" }, "b": 9 }];
 
-   var expectation = [{ "key": { "$date": "1997-01-20" }, "b": 6},
-                      { "key": { "$date": "1997-01-20" }, "b": 7},
-                      { "key": { "$date": "2008-08-08" }, "b": 9},
-                      { "key": { "$date": "2012-12-21" }, "b": 5},
-                      { "key": { "$date": "2020-03-31" }, "b": 3},
-                      { "key": { "$date": "9999-12-31" } }];
+   var expectation = [{ "key": { "$date": "1997-01-20" }, "b": 6 },
+   { "key": { "$date": "1997-01-20" }, "b": 7 },
+   { "key": { "$date": "2008-08-08" }, "b": 9 },
+   { "key": { "$date": "2012-12-21" }, "b": 5 },
+   { "key": { "$date": "2020-03-31" }, "b": 3 },
+   { "key": { "$date": "9999-12-31" } }];
 
    var indexName = "keyIndex";
    var indexObj = { "key": 1, "b": 1 };
-   var findCondition = { "key": { "$type":2, "$et": "date" } };
+   var findCondition = { "key": { "$type": 2, "$et": "date" } };
 
    cl.insert( newData );
    cl.createIndex( indexName, indexObj );
-   var rc = cl.find( findCondition ).sort( indexObj ).hint({ "": indexName });
+   var rc = cl.find( findCondition ).sort( indexObj ).hint( { "": indexName } );
    checkRec( rc, expectation );
 }

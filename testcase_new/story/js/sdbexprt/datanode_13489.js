@@ -10,13 +10,12 @@ var doc = { a: 1 };
 var csvContent = "a\n1\n";
 var jsonContent = "{ \"a\": 1 }\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no data node" );
       return;
    }
 
@@ -77,4 +76,23 @@ function testExprtJson ( hostname, svcname )
    checkFileContent( jsonfile, jsonContent );
 
    cmd.run( "rm -rf " + jsonfile );
+}
+
+function getGroupNodes ( groupName )
+{
+   var nodes = [];
+   if( commIsStandalone( db ) )
+   {
+      return nodes;
+   }
+   var rg = db.getRG( groupName );
+   var obj = rg.getDetail().next().toObj();
+   var groupArr = obj["Group"];
+   for( var i = 0; i < groupArr.length; i++ )
+   {
+      var hostname = groupArr[i]["HostName"];
+      var svcname = groupArr[i]["Service"][0]["Name"];
+      nodes.push( hostname + ":" + svcname );
+   }
+   return nodes;
 }

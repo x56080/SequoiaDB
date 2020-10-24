@@ -35,7 +35,6 @@ function readyData ( imprtFile )
    var file = fileInit( imprtFile );
    file.write( "cYdY1YYexprtTestYY" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
@@ -77,14 +76,14 @@ function importDataEA ( csName, clName, imprtFile, cl )
 
 function testRunCommand ( command )
 {
-   assert.tryThrow(127,function(){
+   assert.tryThrow( 127, function()
+   {
       cmd.run( command );
-   });
+   } );
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find();
    var recsArray = [];

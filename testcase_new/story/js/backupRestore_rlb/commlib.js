@@ -5,6 +5,8 @@
 *               2014-6-20  xiaojun Hu  Change
 *               2018-1-10  wenjing Wang Change
 *******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 var csName = COMMCSNAME;
 var clName = COMMCLNAME;
@@ -63,7 +65,7 @@ function createBackupRestoreGroup ( db, hosts )
       }
       if( alreadyWait > totalLen )
       {
-         throw "wait select primary timeout"
+         throw new Error( "wait select primary timeout" );
       }
    } while( true );
 
@@ -109,38 +111,30 @@ function backUpInfo ( bakName, bakPath, bakBeginIncId, bakEndIncId )
 ***************************************************************************** */
 function bakInsertData ( cl, docs )
 {
-   try
+   if( typeof ( docs ) !== "object" )
    {
-      if( typeof ( docs ) !== "object" )
-      {
-         var docs = [];
+      var docs = [];
 
-         docs.push( { no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } } );
-         docs.push( { no: 1001, score: 82, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } } );
-         docs.push( { no: 1002, score: 85, interest: ["movie", "photo"], major: "计算机软件与理论", dep: "计算机学院", info: { name: "Holiday", age: 22, sex: "女" } } );
-         docs.push( { no: 1003, score: 90, major: "计算机软件与理论", dep: "计算机学院", info: { name: "Sam", age: 30, sex: "男" } } );
-         docs.push( { no: 1004, score: 69, interest: ["basketball", "football", "movie"], major: "计算机工程", dep: "计算机学院", info: { name: "Coll", age: 26, sex: "男" } } );
-         docs.push( { no: 1005, score: 70, major: "计算机工程", dep: "计算机学院", info: { name: "Jim", age: 24, sex: "女" } } );
-         docs.push( { no: 1006, score: 84, interest: ["basketball", "football", "movie", "photo"], major: "物理学", dep: "物电学院", info: { name: "Lily", age: 28, sex: "女" } } );
-         docs.push( { no: 1007, score: 73, interest: ["basketball", "football", "photo"], major: "物理学", dep: "物电学院", info: { name: "Kiki", age: 18, sex: "女" } } );
-         docs.push( { no: 1008, score: 72, interest: ["basketball", "football", "movie"], major: "物理学", dep: "物电学院", info: { name: "Appie", age: 20, sex: "女" } } );
-         docs.push( { no: 1009, score: 80, major: "物理学", dep: "物电学院", info: { name: "Lucy", age: 36, sex: "女" } } );
-         docs.push( { no: 1010, score: 93, major: "光学", dep: "物电学院", info: { name: "Coco", age: 27, sex: "女" } } );
-         docs.push( { no: 1011, score: 75, major: "光学", dep: "物电学院", info: { name: "Jack", age: 30, sex: "男" } } );
-         docs.push( { no: 1012, score: 78, interest: ["basketball", "movie"], major: "光学", dep: "物电学院", info: { name: "Mike", age: 28, sex: "男" } } );
-         docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } } );
-         docs.push( { no: 1014, score: 74, interest: ["football", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Iccra", age: 19, sex: "男" } } );
-         docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
-         docs.push( { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
-      }
+      docs.push( { no: 1000, score: 80, interest: ["basketball", "football"], major: "计算机科学与技术", dep: "计算机学院", info: { name: "Tom", age: 25, sex: "男" } } );
+      docs.push( { no: 1001, score: 82, major: "计算机科学与技术", dep: "计算机学院", info: { name: "Json", age: 20, sex: "男" } } );
+      docs.push( { no: 1002, score: 85, interest: ["movie", "photo"], major: "计算机软件与理论", dep: "计算机学院", info: { name: "Holiday", age: 22, sex: "女" } } );
+      docs.push( { no: 1003, score: 90, major: "计算机软件与理论", dep: "计算机学院", info: { name: "Sam", age: 30, sex: "男" } } );
+      docs.push( { no: 1004, score: 69, interest: ["basketball", "football", "movie"], major: "计算机工程", dep: "计算机学院", info: { name: "Coll", age: 26, sex: "男" } } );
+      docs.push( { no: 1005, score: 70, major: "计算机工程", dep: "计算机学院", info: { name: "Jim", age: 24, sex: "女" } } );
+      docs.push( { no: 1006, score: 84, interest: ["basketball", "football", "movie", "photo"], major: "物理学", dep: "物电学院", info: { name: "Lily", age: 28, sex: "女" } } );
+      docs.push( { no: 1007, score: 73, interest: ["basketball", "football", "photo"], major: "物理学", dep: "物电学院", info: { name: "Kiki", age: 18, sex: "女" } } );
+      docs.push( { no: 1008, score: 72, interest: ["basketball", "football", "movie"], major: "物理学", dep: "物电学院", info: { name: "Appie", age: 20, sex: "女" } } );
+      docs.push( { no: 1009, score: 80, major: "物理学", dep: "物电学院", info: { name: "Lucy", age: 36, sex: "女" } } );
+      docs.push( { no: 1010, score: 93, major: "光学", dep: "物电学院", info: { name: "Coco", age: 27, sex: "女" } } );
+      docs.push( { no: 1011, score: 75, major: "光学", dep: "物电学院", info: { name: "Jack", age: 30, sex: "男" } } );
+      docs.push( { no: 1012, score: 78, interest: ["basketball", "movie"], major: "光学", dep: "物电学院", info: { name: "Mike", age: 28, sex: "男" } } );
+      docs.push( { no: 1013, score: 86, interest: ["basketball", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Jaden", age: 20, sex: "男" } } );
+      docs.push( { no: 1014, score: 74, interest: ["football", "movie", "photo"], major: "电学", dep: "物电学院", info: { name: "Iccra", age: 19, sex: "男" } } );
+      docs.push( { no: 1015, score: 81, major: "电学", dep: "物电学院", info: { name: "Jay", age: 15, sex: "男" } } );
+      docs.push( { no: 1016, score: 92, major: "电学", dep: "物电学院", info: { name: "Kate", age: 20, sex: "男" } } );
+   }
 
-      cl.insert( docs );
-   }
-   catch( e )
-   {
-      println( "bakInsertData: Failed to insert Date, e=" + e );
-      throw e;
-   }
+   cl.insert( docs );
    return docs;
 }
 
@@ -165,7 +159,6 @@ function bakRemoveBackups ( db, filter, ignoreNotExist, path, isSubDir )
    {
       try
       {
-         println( "removeBackup(" + JSON.stringify( { Name: backups[i], Path: path } ) + ")" );
          if( path.length != 0 )
          {
             db.removeBackup( { Name: backups[i], Path: path } );
@@ -178,9 +171,8 @@ function bakRemoveBackups ( db, filter, ignoreNotExist, path, isSubDir )
       catch( e )
       {
          // not exist
-         if( !ignoreNotExist || e != -241 )
+         if( !ignoreNotExist || e.message != -241 )
          {
-            println( "bakRemoveBackups: remove backup[" + backups[i] + "] failed: " + e );
             throw e;
          }
       }
@@ -199,18 +191,9 @@ function bakBackup ( db, backupObj )
 
    if( typeof ( backupObj ) != "object" )
    {
-      throw "bakBackup: backupObj is not object";
+      throw new Error( "bakBackup: backupObj is not object" );
    }
-   try
-   {
-      db.backup( backupObj );
-   }
-   catch( e )
-   {
-      println( "bakBackup: backup failed: " + e );
-      println( JSON.stringify( backupObj, "", 3 ) );
-      throw e;
-   }
+   db.backup( backupObj );
 }
 
 function getDateString ()
@@ -224,27 +207,6 @@ function getDateString ()
       + d.getSeconds();
 }
 
-function bakBackupByCheckError ( db, backUpOpt )
-{
-   try
-   {
-      bakBackup( db, backUpOpt );
-   }
-   catch( e )
-   {
-      if( -240 == e ) 
-      {
-         println( "backup description is already started" );
-         alreadStart = true;
-      }
-      else
-      {
-         println( "failed to backup by specify description, rc = " + e );
-         throw e;
-      }
-   }
-}
-
 function checkBackupInfo ( db, errDesc, bakName, path, alreadStart, opt )
 {
    var backups = commGetBackups( db, bakName, path, alreadStart, opt );
@@ -254,15 +216,16 @@ function checkBackupInfo ( db, errDesc, bakName, path, alreadStart, opt )
       if( 0 === backups.length )
       {
          println( JSON.stringify( backups, "", 3 ) );
-         throw "check backup failed";
+         throw new Error( "check backup failed" );
       }
    } else if( 1 != backups.length )
    {
 
       println( JSON.stringify( backups, "", 3 ) );
-      throw "check backup failed";
+      throw new Error( "check backup failed" );
    }
    return backups[0];
+
 }
 
 function getExecPath ( cmd )
@@ -350,14 +313,8 @@ function calcMD5 ( cmd, path )
 
 function sdbPutLob ( cl, filePath )
 {
-   try
-   {
-      var oid = cl.putLob( filePath );
-      return oid;
-   } catch( e )
-   {
-      throw new Error( getErr( e ) );
-   }
+   var oid = cl.putLob( filePath );
+   return oid;
 }
 
 function isTheSameMachine ( cmd, hostName )
@@ -421,14 +378,10 @@ function sdbRestore ( db, cmd, bakInfo, node )
       var isStandalone = true;
    }
 
-   println( "stop node..." )
    stopNode( db, isStandalone, cmd, node );
    var execProg = getExecPath( cmd ) + "sdbrestore";
-   println( execProg + " --bkname " + bakInfo.bakName + " --bkpath " + bakInfo.bakPath +
-      " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId );
    var output = cmd.run( execProg + " --bkname " + bakInfo.bakName + " --bkpath " + bakInfo.bakPath +
       " -b " + bakInfo.bakBeginIncId + " -i " + bakInfo.bakEndIncId );
-   println( output );
    startNode( db, isStandalone, cmd, node );
 }
 
@@ -517,7 +470,6 @@ function IsBakPathEmpty ( cmd, bakPath )
       }
    } catch( e )
    {
-      println( cmd.getLastOut() + " ,error:" + e );
    }
 }
 
@@ -621,7 +573,6 @@ backupTestCase.prototype.init =
    {
       if( !commIsStandalone( db ) )
       {
-         println( " running in cluster " );
          this.groups = commGetGroups( db );
          var hosts = getAllHosts( this.groups );
          createBackupRestoreGroup( db, hosts );
@@ -641,15 +592,12 @@ backupTestCase.prototype.init =
 
          this.db = new Sdb( hostName, svcName );
          var opt = { Group: this.group.GroupName, ReplSize: -1 }
-         this.cl = commCreateCL( this.sdb, this.csName, this.clName, opt, true, false,
-            "Create collection in the beginning" );
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, opt, true, false );
          this.cmd = getCmdByHostName( this.localCmd, hostName );
       }
       else
       {
-         println( " running in standalone " );
-         this.cl = commCreateCL( this.sdb, this.csName, this.clName, { ReplSize: -1 }, true, false,
-            "Create collection in the beginning" );
+         this.cl = commCreateCL( this.sdb, this.csName, this.clName, { ReplSize: -1 }, true, false );
          this.cmd = getCmdByHostName( this.localCmd, COORDHOSTNAME );
       }
       return true;
@@ -663,7 +611,6 @@ backupTestCase.prototype.setUp =
       var flag = false;
       try
       {
-         println( " drop " + backupandrestoreGroup );
          db.getRG( backupandrestoreGroup );
          flag = true;
          db.removeRG( backupandrestoreGroup );
@@ -672,15 +619,10 @@ backupTestCase.prototype.setUp =
          if( flag ) throw e;
       }
 
-      println( "Clear the backup in the beginning" );
       return this.init();
    }
 
-backupTestCase.prototype.reInit =
-   function()
-   {
-
-   }
+backupTestCase.prototype.reInit = function() { }
 
 backupTestCase.prototype.checkResult =
    function( times )
@@ -713,7 +655,6 @@ backupTestCase.prototype.checkResult =
       try
       {
          var path = "/tmp/getdat" + getDateString();
-         println( "getLob " + path );
          for( var i = 0; i < this.oids.length; ++i )
          {
             this.cl.getLob( this.oids[i], path, true );
@@ -723,9 +664,6 @@ backupTestCase.prototype.checkResult =
                throw new Error( "expect md5:" + this.originMD5 + "real md5:" + curMD5 );
             }
          }
-      } catch( e )
-      {
-         throw e;
       }
       finally
       {
@@ -778,10 +716,7 @@ backupTestCase.prototype.checkBackupRes =
       }
    }
 
-backupTestCase.prototype.execTest =
-   function( backupName, path )
-   {
-   }
+backupTestCase.prototype.execTest = function( backupName, path ) { }
 
 backupTestCase.prototype.test =
    function()
@@ -793,10 +728,6 @@ backupTestCase.prototype.test =
          genFile( path );
          this.originMD5 = calcMD5( this.localCmd, path );
          this.execTest( backupName, path );
-      }
-      catch( e )
-      {
-         throw e;
       }
       finally
       {
@@ -845,7 +776,7 @@ backupTestCase.prototype.addNodeExceptPrimary =
                this.sdb.getRG( this.group.GroupName ).start();
             } catch( e )
             {
-               if( e !== -145 )
+               if( e.message != -145 )
                {
                   println( "createNode(" + hostName + "," + svcName + "," + dbPath + " ),err" + e );
                }

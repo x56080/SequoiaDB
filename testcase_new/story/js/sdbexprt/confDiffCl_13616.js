@@ -11,9 +11,9 @@ var csname = COMMCSNAME + "_sdbexprt13616";
 var clname = COMMCLNAME + "_sdbexprt13616_1";
 var clname1 = COMMCLNAME + "_sdbexprt13616_2";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

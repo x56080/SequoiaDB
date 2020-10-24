@@ -2,8 +2,10 @@
 *@Description:  seqDB-18933: 整数位前n位后m位为0，小数位前x位为0（如010.01）    
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18933_json";
    var jsonFile = tmpFileDir + clName + ".json";
@@ -11,7 +13,6 @@ function main ()
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( jsonFile );
 
-   println( "\n---data type double, decimal to import json file." );
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 4000 );
    var expResult = getExpResult( "double" );

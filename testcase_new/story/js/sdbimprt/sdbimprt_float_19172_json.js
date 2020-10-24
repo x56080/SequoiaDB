@@ -2,9 +2,11 @@
 *@Description:  seqDB-19172:科学计数法，底数为小数点+小数位，小数位包含有效数字（.001E+310）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var type = 'json';
    var tmpPrefix = "sdbimprt_19172";
@@ -13,7 +15,6 @@ function main ()
    var cl = readyCL( csName, clName );
    var importFile = tmpFileDir + tmpPrefix + "." + type;
 
-   println( "\n---------------------import data, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    // import
@@ -31,7 +32,6 @@ function main ()
    cl.truncate();
    cmd.run( "rm -rf " + importFile );
 
-   println( "\n---------------------import data, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    // import
@@ -43,7 +43,6 @@ function main ()
    var limitNum = 30; // expect data changes, other only ensure normal import
    for( var i = 0; i < findTypeArr.length; i++ )
    {
-      println( "\n----------------findType is " + findTypeArr[i] + "----------------" );
       var expRecs = initExpectData_testPoint2( limitNum, findTypeArr[i] );
       var findCond = { "b": { "$type": 2, "$et": findTypeArr[i] } };
       var expRecsNum = JSON.parse( expRecs ).length;
@@ -53,7 +52,6 @@ function main ()
    cl.truncate();
    cmd.run( "rm -rf " + importFile );
 
-   println( "\n---------------------import data, test point 3---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
    var expRecs = initExpectData_testPoint3( recsNum );
@@ -64,7 +62,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < findTypeArr.length; i++ )
    {
-      println( "\n----------------findType is " + findTypeArr[i] + "----------------" );
       var expRecs = initExpectData_testPoint3( recsNum, findTypeArr[i] );
       var findCond = { "b": { "$type": 2, "$et": findTypeArr[i] } };
       var expRecsNum = JSON.parse( expRecs ).length;
@@ -79,7 +76,6 @@ function main ()
 
 function initImportFile_testPoint1 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: ".01E" / ".001E"......
@@ -97,7 +93,6 @@ function initImportFile_testPoint1 ( importFile )
 
 function initImportFile_testPoint2 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: ".000000000000001E++0" / ".000000000000001E+1"......".000000000000001E+400"
@@ -113,7 +108,6 @@ function initImportFile_testPoint2 ( importFile )
 
 function initImportFile_testPoint3 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: ".01E" / ".011E"......
@@ -131,14 +125,12 @@ function initImportFile_testPoint3 ( importFile )
 
 function initExpectData_testPoint1 ()
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = '[{"a":0,"b":0.01},{"a":1,"b":0.001},{"a":2,"b":0.0001},{"a":3,"b":0.00001},{"a":4,"b":0.000001},{"a":5,"b":1e-7},{"a":6,"b":1e-8},{"a":7,"b":1e-9},{"a":8,"b":1e-10},{"a":9,"b":1e-11},{"a":10,"b":1e-12},{"a":11,"b":1e-13},{"a":12,"b":1e-14},{"a":13,"b":1e-15},{"a":14,"b":1e-16},{"a":15,"b":1e-17},{"a":16,"b":1e-18},{"a":17,"b":1e-19},{"a":18,"b":1e-20},{"a":19,"b":1e-21},{"a":20,"b":1e-22},{"a":21,"b":1e-23},{"a":22,"b":1e-24},{"a":23,"b":9.999999999999999e-26},{"a":24,"b":9.999999999999999e-27},{"a":25,"b":1e-27},{"a":26,"b":1e-28},{"a":27,"b":1e-29},{"a":28,"b":9.999999999999999e-31},{"a":29,"b":1e-31}]';
    return expRecs;;
 }
 
 function initExpectData_testPoint2 ( expRecsNum, findType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = '[]';
    if( findType === "double" )
    {
@@ -149,7 +141,6 @@ function initExpectData_testPoint2 ( expRecsNum, findType )
 
 function initExpectData_testPoint3 ( expRecsNum, findType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
    var tmpDoubleBVal = "0.01";
@@ -180,17 +171,12 @@ function initExpectData_testPoint3 ( expRecsNum, findType )
 
 function checkCount ( cl, expRecsNum )
 {
-   println( "\n---Begin to check cl records count." );
    var cnt = cl.count();
-   if( Number( cnt ) !== expRecsNum )
-   {
-      throw buildException( "checkCLdata", null, "[count]", expRecsNum, cnt );
-   }
+   assert.equal( cnt, expRecsNum );
 }
 
 function checkRecords ( cl, expRecsNum, expRecs, cond )
 {
-   println( "\n---Begin to check cl records." );
 
    var rc = cl.find( cond, { _id: { $include: 0 } } ).sort( { a: 1 } ).limit( expRecsNum );
 
@@ -202,15 +188,9 @@ function checkRecords ( cl, expRecsNum, expRecs, cond )
 
    // check count
    var actCnt = recsArray.length;
-   if( actCnt !== expRecsNum )
-   {
-      throw buildException( "checkCLdata", null, "[count]", expRecsNum, actCnt );
-   }
+   assert.equal( actCnt, expRecsNum );
 
    // check records
    var actRecs = JSON.stringify( recsArray );
-   if( actRecs !== expRecs )
-   {
-      throw buildException( "checkCLdata", null, "[records]", expRecs, actRecs );
-   }
+   assert.equal( actRecs, expRecs );
 }

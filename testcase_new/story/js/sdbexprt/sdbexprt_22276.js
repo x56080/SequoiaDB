@@ -8,7 +8,7 @@ var csNames = [];
 
 main( test );
 
-function test()
+function test ()
 {
    for( var i = 0; i < clNum; i++ )
    {
@@ -29,7 +29,7 @@ function test()
    }
 }
 
-function testExprtCsv()
+function testExprtCsv ()
 {
    var csvContent = "a\n1\n";
    var csvDir = tmpFileDir + "22276/";
@@ -60,7 +60,7 @@ function testExprtCsv()
    cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtJson()
+function testExprtJson ()
 {
    var jsonContent = "{ \"a\": 1 }\n"
    var jsonDir = tmpFileDir + "22276/";

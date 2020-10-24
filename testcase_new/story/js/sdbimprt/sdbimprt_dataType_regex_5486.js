@@ -4,44 +4,36 @@
                   seqDB-5487/seqDB-9614
 *@Author:   2016-8-1  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5486";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = testCaseDir + "dataFile/allDataType.csv";
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5486";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = testCaseDir + "dataFile/allDataType.csv";
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //cat import file
    //var fileInfo = cmd.run( "cat "+ imprtFile );
-   //println( imprtFile +"\n" + fileInfo +"\n" );
 
    //import operation
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num int,type string,v1 regex,v2 regex"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -54,15 +46,14 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 11 } }, { v2: { $type: 1, $et: 11 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -77,10 +68,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

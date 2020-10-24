@@ -2,32 +2,27 @@
 *@Description:    seqDB-5487:导入数据时指定的数据类型为regex，实际数据为支持转换的数据类型string，取值为非法的正则表达式
 *@Author:            2016-8-1  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5487";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "5487.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5487";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "5487.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( '1,"^[0-9]"' + "\n"
@@ -38,13 +33,11 @@ function readyData ( imprtFile )
       + '6,"/^[0-9]/test"' + "\n"
       + '7,"/^[0-9]"' );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
@@ -54,9 +47,7 @@ function importData ( csName, clName, imprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num int,v1 regex"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -69,20 +60,19 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 
    //check failed records
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
    var actFailedNum = cmd.run( "cat " + rec ).split( "\n" ).length - 1;
-   println( rec + "\nrecords number: " + actFailedNum );
    var expFailedNum = 1;
    if( expFailedNum !== actFailedNum )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[failedRecs:" + expFailedNum + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[failedRecs:" + expFailedNum + "]" +
          "[failedRecs:" + actFailedNum + "]" );
    }
 
@@ -92,7 +82,6 @@ function importData ( csName, clName, imprtFile )
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( { v1: { $type: 1, $et: 11 } }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -107,10 +96,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

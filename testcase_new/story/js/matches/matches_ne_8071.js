@@ -3,38 +3,32 @@
                      data type: int/long/double
 *@Author:  2016/5/16  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8071";
 
-      var cl = readyCL( clName );
+   var clName = COMMCLNAME + "_matches8071";
 
-      var rawData = [{ int: [-2147483648, 2147483647] },
-      { long: ["-9223372036854775808", "9223372036854775807"] },
-      { double: [-1.7E+308, 1.7E+308] }];
-      insertRecs( cl, rawData );
+   var cl = readyCL( clName );
 
-      var intRc = findRecs( cl, rawData, "int" );
-      var longRc = findRecs( cl, rawData, "long" );
-      var doubleRc = findRecs( cl, rawData, "double" );
+   var rawData = [{ int: [-2147483648, 2147483647] },
+   { long: ["-9223372036854775808", "9223372036854775807"] },
+   { double: [-1.7E+308, 1.7E+308] }];
+   insertRecs( cl, rawData );
 
-      checkResult( intRc, longRc, doubleRc, rawData );
+   var intRc = findRecs( cl, rawData, "int" );
+   var longRc = findRecs( cl, rawData, "long" );
+   var doubleRc = findRecs( cl, rawData, "double" );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   checkResult( intRc, longRc, doubleRc, rawData );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
    cl.insert( {
       a: 0, b: rawData[0]["int"][0],
       c: rawData[0]["int"][1]
@@ -51,7 +45,6 @@ function insertRecs ( cl, rawData )
 
 function findRecs ( cl, rawData, dataType )
 {
-   println( "\n---Begin to find records for dataType[" + dataType + "]." );
 
    if( dataType === "int" )
    {
@@ -81,7 +74,6 @@ function findRecs ( cl, rawData, dataType )
 function checkResult ( intRc, longRc, doubleRc, rawData )
 {
    //-----------------------check result for dataType[int]---------------------
-   println( "\n---Begin to check result for dataType[int]." );
 
    var findRtn = new Array();
    while( tmpRecs = intRc.next() )  //incRc
@@ -90,24 +82,17 @@ function checkResult ( intRc, longRc, doubleRc, rawData )
    }
    //compare number
    var expLen = 2;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records  ---$ne: "int"
    if( findRtn[0]["b"]["$numberLong"].toString() !== rawData[1]["long"][0] ||  //b:{$numberlong:"xxxxxx"}
       findRtn[1]["b"] !== rawData[2]["double"][0] )
    {
-      println( "---The real results after the find by matches[$ne]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
-         "[b:" + rawData[1]["long"][0] + ",b:" + rawData[2]["double"][0] + "]",
+      throw new Error( "checkResult fail,[compare records]" +
+         "[b:" + rawData[1]["long"][0] + ",b:" + rawData[2]["double"][0] + "]" +
          "[b:" + findRtn[0]["b"]["$numberLong"].toString() + ",b:" + findRtn[1]["b"] + "]" );
    }
 
    //-----------------------check result for dataType[long]---------------------
-   println( "\n---Begin to check result for dataType[long]." );
 
    var findRtn = new Array();
    while( tmpRecs = longRc.next() )  //longRc
@@ -116,24 +101,17 @@ function checkResult ( intRc, longRc, doubleRc, rawData )
    }
    //compare number
    var expLen = 2;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records  ---$ne: "long"
    if( findRtn[0]["b"] !== rawData[0]["int"][0] ||
       findRtn[1]["b"] !== rawData[2]["double"][0] )
    {
-      println( "---The real results after the find by matches[$ne]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
-         "[b:" + rawData[0]["int"][0] + ",b:" + rawData[2]["double"][0] + "]",
+      throw new Error( "checkResult fail,[compare records]" +
+         "[b:" + rawData[0]["int"][0] + ",b:" + rawData[2]["double"][0] + "]" +
          "[b:" + findRtn[0]["b"] + ",b:" + findRtn[1]["b"] + "]" );
    }
 
    //-----------------------check result for dataType[double]---------------------
-   println( "\n---Begin to check result for dataType[double]." );
 
    var findRtn = new Array();
    while( tmpRecs = doubleRc.next() )  //doubleRc
@@ -142,19 +120,13 @@ function checkResult ( intRc, longRc, doubleRc, rawData )
    }
    //compare number
    var expLen = 2;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records  ---$ne: "double"
    if( findRtn[0]["b"] !== rawData[0]["int"][0] ||
       findRtn[1]["b"]["$numberLong"].toString() !== rawData[1]["long"][0] )  //b:{$numberlong:"xxxxxx"}
    {
-      println( "---The real results after the find by matches[$ne]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
-         "[b:" + rawData[0]["int"][0] + ",b:" + rawData[1]["long"][0] + "]",
+      throw new Error( "checkResult fail,[compare records]" +
+         "[b:" + rawData[0]["int"][0] + ",b:" + rawData[1]["long"][0] + "]" +
          "[b:" + findRtn[0]["b"]["$numberLong"].toString() + ",b:" + findRtn[1]["b"] + "]" );
    }
 }

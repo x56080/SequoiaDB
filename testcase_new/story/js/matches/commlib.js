@@ -3,26 +3,16 @@
 *@Modify list :
 *              2016-5-16 xiaoni huang
 *******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
 
 function readyCL ( clName )
 {
-   println( "\n---Begin to create CL." );
 
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Failed to drop CL in the pre-condition." );
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false,
-      "Failed to create CL." );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false );
    return cl;
-}
-
-function cleanCL ( clName )
-{
-   println( "\n---Begin to drop CL." );
-
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "Failed to drop CL in the end-condition" );
 }
 
 function checkRec ( rc, expRecs )
@@ -35,10 +25,7 @@ function checkRec ( rc, expRecs )
    }
 
    //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      throw new Error( "\nActual recs in cl= " + JSON.stringify( actRecs ) + "\n\nExpect recs= " + JSON.stringify( expRecs ) );
-   }
+   assert.equal( actRecs.length, expRecs.length );
 
    //check every records every fields
    for( var i in expRecs )
@@ -47,10 +34,7 @@ function checkRec ( rc, expRecs )
       var expRec = expRecs[i];
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            throw new Error ("\nError occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ));
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }
@@ -58,76 +42,40 @@ function checkRec ( rc, expRecs )
 function idxAutoGenData ( cl, insertNum )
 {
    if( undefined == insertNum ) { insertNum = 1000; }
-   try
+   var record = [];
+   for( var i = 0; i < insertNum; ++i )
    {
-      var record = [];
-      for( var i = 0; i < insertNum; ++i )
-      {
-         record.push( {
-            "no": i, "no1": i * 2, "no2": i * 3,
-            "obj_id": { "$oid": "123abcd00ef12358902300ef" },
-            "subobj": { "obj": { "val": "sub" } },
-            "string": "西边个喇嘛，东边个哑巴",
-            "array": [i + "arr" + i, 5 * i, 2 * i + "ARR" + i, "arrayIndex"], "no3": 4 * i
-         } );
-      }
-      cl.insert( record );
-      cnt = 0;
-      while( insertNum != cl.count() && cnt < 1000 )
-      {
-         ++cnt;
-         sleep( 2 );
-      }
-      if( insertNum != cl.count() )
-         throw new Error( "Expect insert number: " + insertNum + ", actual: " + cl.count() );
+      record.push( {
+         "no": i, "no1": i * 2, "no2": i * 3,
+         "obj_id": { "$oid": "123abcd00ef12358902300ef" },
+         "subobj": { "obj": { "val": "sub" } },
+         "string": "西边个喇嘛，东边个哑巴",
+         "array": [i + "arr" + i, 5 * i, 2 * i + "ARR" + i, "arrayIndex"], "no3": 4 * i
+      } );
    }
-   catch( e )
+   cl.insert( record );
+   cnt = 0;
+   while( insertNum != cl.count() && cnt < 1000 )
    {
-      throw new Error ( "failed to insert data to db, rc = " + e );
+      ++cnt;
+      sleep( 2 );
    }
+   assert.equal( insertNum, cl.count() );
 }
 
 function idxQueryCheck ( cl, queryCond, verifyNum, idxName )
 {
-   try
-   {
-      var query = cl.find( queryCond ).explain( { Run: true } ).toArray();
-      var queryObj = eval( "(" + query + ")" );
-      /*
-            if( "tbscan" == queryObj.ScanType )
-            {
-               println( "expect idxscan, actual: " + queryObj.ScanType ) ;
-               throw "ErrorScanType" ;
-            }
-            if( idxName != queryObj.IndexName )
-            {
-               println( "expect index name: " + idxName + ", actual: " + queryObj.IndexName ) ;
-               throw "ErrorIdxName" ;
-            }
-      */
-      if( verifyNum != queryObj.ReturnNum )
-      {
-         throw new Error ("ErrorvReturnNum, expect number: " + verifyNum + ", actual: " + queryObj.ReturnNum);
-      }
-   }
-   catch( e )
-   {
-      throw new Error ( "failed to inspect: " + e );
-   }
-}
-
-function checkExplain ( rc, expIdxName )
-{
-   var plan = rc.explain().current().toObj();
-   var expScanType = "ixscan";
-   if( expIdxName == "" ) { expScanType = "tbscan"; }
-
-   if( plan.ScanType !== expScanType )
-   {
-      throw new Error ("checkExplain() query.explain().ScanType, \nExpScanType: " + expScanType + "  actScanType: " + plan.ScanType );
-   }
-   if( plan.IndexName !== expIdxName )
-   {
-      throw new Error ("checkExplain() query.explain().IndexName, \nExpIdxName: " + expIdxName + "  ActIndexName: " + plan.IndexName );
-   }
+   var query = cl.find( queryCond ).explain( { Run: true } ).toArray();
+   var queryObj = eval( "(" + query + ")" );
+   /*
+         if( "tbscan" == queryObj.ScanType )
+         {
+            throw "ErrorScanType" ;
+         }
+         if( idxName != queryObj.IndexName )
+         {
+            throw "ErrorIdxName" ;
+         }
+   */
+   assert.equal( verifyNum, queryObj.ReturnNum );
 }

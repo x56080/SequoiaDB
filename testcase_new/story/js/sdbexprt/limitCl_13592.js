@@ -11,15 +11,14 @@
 *******************************************************************/
 var csname = COMMCSNAME;
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    testExprtLimit1();    // test limit with normal cl
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
    testExprtLimit2();    // test limit with split cl

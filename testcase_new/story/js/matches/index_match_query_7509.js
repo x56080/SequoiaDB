@@ -45,7 +45,7 @@ function test ( testPara )
       { "no3": { $lte: 40 } }]
    };
    idxQueryCheck( cl, queryCond, 9, idxName );
-   
+
    var queryCond = {
       $or: [{
          $and: [{ "no": { $gt: 6 } },

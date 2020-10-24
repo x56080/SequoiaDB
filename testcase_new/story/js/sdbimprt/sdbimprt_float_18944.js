@@ -2,8 +2,10 @@
 *@Description:  seqDB-18944: 底数的整数位和小数位全不为0，有效整数位+指数=308位（如11.11e+307） 
 *@Author     :  2019-8-8  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18944";
    var csvFile = tmpFileDir + clName + ".csv";
@@ -13,7 +15,6 @@ function main ()
    prepareDate( csvFile );
    prepareDate( jsonFile );
 
-   println( "\n---import csv file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 400 );
@@ -25,7 +26,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---data type double、decimal to import json file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 400 );

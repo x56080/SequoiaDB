@@ -3,6 +3,7 @@
 *@Modify list :
 *               2018-1-10  wenjing Wang Init
 *******************************************************************************/
+testConf.skipStandAlone = true;
 function backupTestCase11701 ()
 {
 
@@ -15,14 +16,11 @@ backupTestCase11701.prototype.execTest =
    function( backupName, path )
    {
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       bakBackup( this.db, { "Name": backupName } );
       if( this.group !== undefined )
       {
-         println( "backup on " + this.group.GroupName );
          this.removeNodeExceptPrimary();
       }
 
@@ -54,15 +52,14 @@ backupTestCase11701.prototype.execTest =
          this.checkBackupRes( bakInfo, 0 );
       }
 
-      println( "check backup dir..." );
       if( !IsBakPathEmpty( this.cmd, bakInfo.bakPath ) )
       {
          throw new Error( "removeBackup expect backPath is empty, but real is not" );
       }
-      println( " finish execTest... " );
    }
+main( test );
 
-function main ( db )
+function test ()
 {
    try
    {
@@ -75,8 +72,7 @@ function main ( db )
    }
    catch( e )
    {
-      var tmp = new Error( "tmp" )
-      if( e.constructor === tmp.constructor )
+      if( e instanceof Error )
       {
          println( e.fileName + ":" + e.lineNumber + " throw " + e.message );
          println( e.stack );
@@ -92,9 +88,7 @@ function main ( db )
    }
    finally
    {
-      commDropCL( db, this.csName, backupTestCase11701.prototype.clName, true, true, "finally ：Drop CL in the end" );
+      commDropCL( db, COMMCSNAME, backupTestCase11701.prototype.clName, true, true, "finally ：Drop CL in the end" );
       db.removeRG( backupandrestoreGroup );
    }
 }
-
-main( db )

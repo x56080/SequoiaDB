@@ -19,9 +19,9 @@ var jsonContent = "{ \"" + key + "\": " + intMin + " }\n" +
 var expRecs = ["{\"" + key + "\":" + intMin + "}",
 "{\"" + key + "\":" + intMax + "}"];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

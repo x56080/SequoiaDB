@@ -21,7 +21,7 @@ function test ( testPara )
    for( var i = 0; i < 100; i++ ) recs.push( { a: i, b: i + 0.95 } );
    cl.insert( recs );
 
-  //  "---begin to query by hint({'':null})" 
+   //  "---begin to query by hint({'':null})" 
    var rc = cl.find( { a: { $gte: 0 } } ).sort( { a: 1 } ).hint( { "": null } );
    checkExplain( rc, "" );
    checkRec( rc, recs );
@@ -41,4 +41,13 @@ function test ( testPara )
    checkExplain( rc, idxName1 );
    checkRec( rc, recs );
 
+}
+
+function checkExplain ( rc, expIdxName )
+{
+   var plan = rc.explain().current().toObj();
+   var expScanType = "ixscan";
+   if( expIdxName == "" ) { expScanType = "tbscan"; }
+   assert.equal( plan.ScanType, expScanType );
+   assert.equal( plan.IndexName, expIdxName );
 }

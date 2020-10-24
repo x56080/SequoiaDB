@@ -2,47 +2,39 @@
 *@Description:  seqDB-6109:导入浮点型数据后再执行sdbexprt导出
 *@Author:   2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_6109";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = testCaseDir + "dataFile/autoToJudge.csv";
-      var exprtFile = tmpFileDir + "sdbexprt_6109.csv";
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_6109";
+   var cl = readyCL( csName, clName );
 
-      importData( csName, clName, imprtFile );
-      exprtData( csName, clName, exprtFile );
+   var imprtFile = testCaseDir + "dataFile/autoToJudge.csv";
+   var exprtFile = tmpFileDir + "sdbexprt_6109.csv";
 
-      checkExprtFile( exprtFile );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   importData( csName, clName, imprtFile );
+   exprtData( csName, clName, exprtFile );
+
+   checkExprtFile( exprtFile );
+   cleanCL( csName, clName );
+
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //cat import file
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo + "\n" );
 
    //import operation
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num int,oriV1,type string,srcV2"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -55,15 +47,14 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
 function exprtData ( csName, clName, exprtFile )
 {
-   println( "\n---Begin to export data." );
 
    //remove export file
    cmd.run( "rm -rf " + exprtFile );
@@ -73,18 +64,14 @@ function exprtData ( csName, clName, exprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num,srcV2"'
       + ' --sort "{num:1}" --file ' + exprtFile;
-   println( exportOption );
    var rc = cmd.run( exportOption );
-   println( rc );
 
    //cat exprt file
    var fileInfo = cmd.run( "cat " + exprtFile );
-   println( exprtFile + "\n" + fileInfo );
 }
 
 function checkExprtFile ( exprtFile )
 {
-   println( "\n---Begin to check export file data." );
 
    var rcObj = cmd.run( "cat " + exprtFile ).split( "\n" );
    var actRC = JSON.stringify( rcObj );
@@ -92,10 +79,9 @@ function checkExprtFile ( exprtFile )
 
    if( actRC !== expRC )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[exprtFile data:" + expRC + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[exprtFile data:" + expRC + "]" +
          "[exprtFile data:" + actRC + "]" );
    }
-
 
 }

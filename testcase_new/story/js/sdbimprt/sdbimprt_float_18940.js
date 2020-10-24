@@ -2,8 +2,10 @@
 *@Description:  seqDB-18940: 整数位不为0，小数位前x位后y位为0（如10.010）   
 *@Author     :  2019-8-7  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18940";
    var csvFile = tmpFileDir + clName + ".csv";
@@ -13,7 +15,6 @@ function main ()
    prepareDate( csvFile );
    prepareDate( jsonFile );
 
-   println( "\n---specify data type double、decimal to import csv file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 400 );
@@ -25,7 +26,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---specify data type double、decimal to import json file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 400 );

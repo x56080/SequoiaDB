@@ -4,7 +4,7 @@
 *******************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    var clName1 = COMMCLNAME + "_sdbexprt_13538";
    var clName2 = COMMCLNAME + "_sdbimprt_13538";
@@ -41,9 +41,9 @@ function test()
       " --fields='_id int,a int'";
    testRunCommand( command );
 
-   var expRecords = [ { "_id": 1, "a": 1 } ];
+   var expRecords = [{ "_id": 1, "a": 1 }];
    var cursor = cl2.find();
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cl2.remove();
    cmd.run( "rm -rf " + csvFile );
@@ -74,10 +74,10 @@ function test()
       " --file " + jsonFile +
       " --type json";
    testRunCommand( command );
- 
-   expRecords = [ { "_id": 1, "a": 1 } ];
+
+   expRecords = [{ "_id": 1, "a": 1 }];
    cursor = cl2.find();
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cl2.remove();
    cmd.run( "rm -rf " + jsonFile );
@@ -105,9 +105,9 @@ function test()
       " --type json";
    testRunCommand( command );
 
-   expRecords = [ { "_id": 1, "a": 1 } ];
+   expRecords = [{ "_id": 1, "a": 1 }];
    cursor = cl2.find();
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cmd.run( "rm -rf " + jsonFile );
    commDropCL( db, COMMCSNAME, clName1 );

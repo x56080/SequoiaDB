@@ -11,9 +11,9 @@ var clnames = [];
 var doc = { a: 1, b: 2, c: 3 };
 var csvContent = "a,b,c,d\n1,2,3,\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    for( var i = 0; i < num; i++ )
    {

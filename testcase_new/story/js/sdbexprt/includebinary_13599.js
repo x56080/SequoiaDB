@@ -18,9 +18,9 @@ var docs = [{ "key": BinData( "aGVsbG8gd29ybGQ=", "0" ) },
 { "key": BinData( "aGVsbG8gd29ybGQ=", "5" ) },
 { "key": BinData( "aGVsbG8gd29ybGQ=", "128" ) }];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

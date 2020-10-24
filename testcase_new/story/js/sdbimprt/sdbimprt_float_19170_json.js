@@ -2,9 +2,11 @@
 *@Description:  seqDB-19170:科学计数法，底数为整数+小数点，整数包含有效数字（如1.E+308） 
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var type = 'json';
    var tmpPrefix = "sdbimprt_19170";
@@ -13,7 +15,6 @@ function main ()
    var cl = readyCL( csName, clName );
    var importFile = tmpFileDir + tmpPrefix + "." + type;
 
-   println( "\n---------------------import data, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    // import
@@ -23,7 +24,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < findTypeArr.length; i++ )
    {
-      println( "\n---------------findType is " + findTypeArr[i] + "-----------------" );
       var expRecs = initExpectData_testPoint1( recsNum, findTypeArr[i] );
       var findCond = { "b": { "$type": 2, "$et": findTypeArr[i] } };
       var expRecsNum = JSON.parse( expRecs ).length;
@@ -33,7 +33,6 @@ function main ()
    cmd.run( "rm -rf " + importFile );
    cl.truncate();
 
-   println( "\n---------------------import data, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    // import
@@ -43,7 +42,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < findTypeArr.length; i++ )
    {
-      println( "\n---------------findType is " + findTypeArr[i] + "-----------------" );
       var findCond = { "b": { "$type": 2, "$et": findTypeArr[i] } };
       var expRecs = initExpectData_testPoint2( recsNum, findTypeArr[i] );
       var expRecsNum = JSON.parse( expRecs ).length;
@@ -58,7 +56,6 @@ function main ()
 
 function initImportFile_testPoint1 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E" / "11.E"......
@@ -76,7 +73,6 @@ function initImportFile_testPoint1 ( importFile )
 
 function initImportFile_testPoint2 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: "1.E+0" / "1.E+1"......"1.E+400"
@@ -92,7 +88,6 @@ function initImportFile_testPoint2 ( importFile )
 
 function initExpectData_testPoint1 ( expRecsNum, findType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
    var bVal = "1";
@@ -122,7 +117,6 @@ function initExpectData_testPoint1 ( expRecsNum, findType )
 
 function initExpectData_testPoint2 ( expRecsNum, findType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
    var tmpBVal = "1";

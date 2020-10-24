@@ -2,8 +2,10 @@
 *@Description:  seqDB-18937: 整数位前n位后m位为0，小数位全不为0（如10.11） 
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18937";
    var csvFile = tmpFileDir + clName + ".csv";
@@ -13,7 +15,6 @@ function main ()
    prepareDate( csvFile );
    prepareDate( jsonFile );
 
-   println( "\n---specify data type int32、int64、double、decimal to import csv file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields );
    checkImportRC( rcResults, 420 );
@@ -31,7 +32,6 @@ function main ()
    checkResult( cl, dataType, expResult );
    cl.truncate();
 
-   println( "\n---specify data type int32、int64、double、decimal to import json file." );
    var fields = "_id int, a";
    var rcResults = importData( COMMCSNAME, clName, jsonFile, "json" );
    checkImportRC( rcResults, 420 );

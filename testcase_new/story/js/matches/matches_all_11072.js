@@ -5,43 +5,41 @@
 *@testlinkCase:seqDB-11072
 **************************************/
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
-    var csName = COMMCSNAME;
-    var clName = "cl11072";
+   var csName = COMMCSNAME;
+   var clName = "cl11072";
 
-    var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
+   var cl = commCreateCL( db, csName, clName, {}, true, false, "create cl in the begin" );
 
-    cl.insert( { _id: 1, a: [1, { "$regex": "^W", "$options": "" }] } );
-    cl.insert( { _id: 2, a: 1 } );
-    cl.insert( { _id: 3, a: { "$regex": "^W", "$options": "" } } );
+   cl.insert( { _id: 1, a: [1, { "$regex": "^W", "$options": "" }] } );
+   cl.insert( { _id: 2, a: 1 } );
+   cl.insert( { _id: 3, a: { "$regex": "^W", "$options": "" } } );
 
-    var cursor = cl.find( { a: { $all: [1, { "$regex": "^W", "$options": "" }] } } );
-    var expRecs = '[{"_id":1,"a":[1,{"$regex":"^W","$options":""}]}]';
-    checkCLData( cursor, expRecs, 1 );
+   var cursor = cl.find( { a: { $all: [1, { "$regex": "^W", "$options": "" }] } } );
+   var expRecs = '[{"_id":1,"a":[1,{"$regex":"^W","$options":""}]}]';
+   checkCLData( cursor, expRecs, 1 );
 
-    commDropCL( db, csName, clName, true, true, "drop CL in the end" );
+   commDropCL( db, csName, clName, true, true, "drop CL in the end" );
 }
 
 function checkCLData ( rc, expRecs, expCnt )
 {
-    println( "\n---Begin to check cl data." );
-    var recsArray = [];
-    while( tmpRecs = rc.next() )
-    {
-        recsArray.push( tmpRecs.toObj() );
-    }
-    rc.close();
+   var recsArray = [];
+   while( tmpRecs = rc.next() )
+   {
+      recsArray.push( tmpRecs.toObj() );
+   }
+   rc.close();
 
-    var actCnt = recsArray.length;
-    var actRecs = JSON.stringify( recsArray );
-    if( actCnt !== expCnt || actRecs !== expRecs )
-    {
-        throw buildException( "checkCLdata", null, "[find]",
-            "[cnt:" + expCnt + ", recs:" + expRecs + "]",
-            "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
-    }
-    println( "cl records: " + actRecs );
+   var actCnt = recsArray.length;
+   var actRecs = JSON.stringify( recsArray );
+   if( actCnt !== expCnt || actRecs !== expRecs )
+   {
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
+         "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
+   }
 }

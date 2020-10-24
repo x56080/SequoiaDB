@@ -36,9 +36,9 @@ var csvRecs = [
 ];
 var jsonRecs = csvRecs;
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

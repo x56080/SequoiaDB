@@ -4,13 +4,13 @@
 *******************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    testWithId();
    testWithoutId();
 }
 
-function testWithId()
+function testWithId ()
 {
    var clName1 = COMMCLNAME + "_sdbexprt13541";
    var clName2 = COMMCLNAME + "_sdbimprt13541";
@@ -53,9 +53,9 @@ function testWithId()
       " --fields='_id int,a int'";
    testRunCommand( command );
 
-   var expRecords = [ { "_id": 1, "a": 1 } ];
+   var expRecords = [{ "_id": 1, "a": 1 }];
    var cursor = cl1.find();
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cmd.run( "rm -rf " + confFile );
    cmd.run( "rm -rf " + csvFile );
@@ -64,7 +64,7 @@ function testWithId()
    commDropCL( db, COMMCSNAME, clName2 );
 }
 
-function testWithoutId()
+function testWithoutId ()
 {
    var clName1 = COMMCLNAME + "_sdbexprt13541";
    var clName2 = COMMCLNAME + "_sdbimprt13541";
@@ -74,11 +74,11 @@ function testWithoutId()
 
    var confFile = tmpFileDir + "sdbexprt13541.conf";
    cmd.run( "rm -rf " + confFile );
-    
+
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +
-      " -c " + COMMCSNAME + 
+      " -c " + COMMCSNAME +
       " -l " + clName1 +
       " --genconf " + confFile +
       " --type json" +
@@ -107,13 +107,13 @@ function testWithoutId()
       " --fields='a int'";;
    testRunCommand( command );
 
-   var expRecords = [ { "a": 1 } ];
+   var expRecords = [{ "a": 1 }];
    var cursor = cl1.find();
-   commCompareResults ( cursor, expRecords );
+   commCompareResults( cursor, expRecords );
 
    cmd.run( "rm -rf " + confFile );
    cmd.run( "rm -rf " + jsonFile );
- 
+
    commDropCL( db, COMMCSNAME, clName1 );
    commDropCL( db, COMMCSNAME, clName2 );
 }

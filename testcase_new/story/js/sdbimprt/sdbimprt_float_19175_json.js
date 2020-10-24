@@ -2,9 +2,10 @@
 *@Description:  seqDB-19175:科学计数法，底数只有整数，且全为0（如000E+308）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'json';
    var tmpPrefix = "sdbimprt_19175";
@@ -13,7 +14,6 @@ function main ()
    var cl = readyCL( csName, clName );
    var importFile = tmpFileDir + tmpPrefix + "." + type;
 
-   println( "\n---------------------import data---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint( importFile );
    // import
@@ -31,7 +31,6 @@ function main ()
 
 function initImportFile_testPoint ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var recordsNum = 2;
    var str = '{"a":0,"b":000E+308}' + '\n' + '{"a":1,"b":000E+400}';
    var file = fileInit( importFile );

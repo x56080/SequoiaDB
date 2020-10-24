@@ -25,9 +25,9 @@ var jsonRecs = [
    "{\"" + key + "\":[{\"a\":1},{\"b\":2}]}"
 ];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );

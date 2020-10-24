@@ -10,9 +10,9 @@ var clname = COMMCLNAME + "_sdbexprt13510";
 var doc = { a: 1, b: "123", c: "456" };
 var csvContent = "a,b,c\n1,\"123\",\"456\"\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    cl.insert( doc );

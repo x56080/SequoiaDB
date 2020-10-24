@@ -24,9 +24,9 @@ var jsonContent = "{ \"" + key + "\": \"\" }\n" +
    "{ \"" + key + "\": \"\\\"abc\\\"def\" }\n" +
    "{ \"" + key + "\": \"" + longStr + "\" }\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );
@@ -119,14 +119,10 @@ function checkDocs ( cursor, docs )
       var actVal = obj[key];
       if( actVal !== expVal )
       {
-         throw buildException( "checkDocs", null, "check doc",
-            expVal.slice( 0, 100 ), actVal.slice( 0, 100 ) );
+         throw new Error( "checkDocs fail,check doc" +
+            expVal.slice( 0, 100 ) + actVal.slice( 0, 100 ) );
       }
       idx++;
    }
-   if( idx !== docs.length )
-   {
-      throw buildException( "checkDocs", null, "check doc num",
-         docs.length, idx );
-   }
+   assert.equal( idx, docs.length );
 }

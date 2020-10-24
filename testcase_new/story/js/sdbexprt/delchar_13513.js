@@ -10,9 +10,9 @@ var clname1 = COMMCLNAME + "_sdbimprt13513";
 var doc = { c: 1, d: "exprtTest" };
 var expRecs = ["{\"c\":1,\"d\":\"exprtTest\"}"];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );
@@ -32,7 +32,6 @@ function testExprtImprt ()
    var csvfile = tmpFileDir + "sdbexprt13513.csv";
    cmd.run( "rm -rf " + csvfile );
    var asc = "0x12";
-   println( "ascii for delchar is: " + asc );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +

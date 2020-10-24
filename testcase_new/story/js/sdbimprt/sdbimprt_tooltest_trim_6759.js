@@ -3,32 +3,27 @@
                  seqDB-5505/seqDB-6203
 *@Author:            2016-8-1  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_6759";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = tmpFileDir + "6759.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_6759";
+   var cl = readyCL( csName, clName );
 
-      checkCLData( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = tmpFileDir + "6759.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( '1," "' + "\n"
@@ -36,13 +31,11 @@ function readyData ( imprtFile )
       + '3,"  atest  "\n'
       + '4,"　　　  全角字符空格　　　  "' );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    var trimType = ["--trim no",
       "--trim right",
@@ -55,9 +48,7 @@ function importData ( csName, clName, imprtFile )
          + ' --type csv --fields "num int,v1 string" --ignorenull true '
          + trimType[i]
          + ' --file ' + imprtFile;
-      println( imprtOption );
       var rc = cmd.run( imprtOption );
-      println( rc );
 
       //check import results
       var rcObj = rc.split( "\n" );
@@ -70,8 +61,8 @@ function importData ( csName, clName, imprtFile )
       if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
          || expImportedRecords !== actImportedRecords )
       {
-         throw buildException( "importData", null, "[sdbimprt results]",
-            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+         throw new Error( "importData fail,[sdbimprt results]" +
+            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
             "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
       }
    }
@@ -79,7 +70,6 @@ function importData ( csName, clName, imprtFile )
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -94,10 +84,9 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }

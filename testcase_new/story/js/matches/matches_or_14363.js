@@ -4,17 +4,17 @@
 *@createdate:  2018.02.02
 *@testlinkCase: seqDB-14363
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
    if( 2 > commGetGroupsNum( db ) )
    {
-      println( "group less than 2" );
       return;
    }
 
@@ -63,20 +63,13 @@ function main ()
 }
 function insertDatas ( dbcl )
 {
-   try
+   var doc = [];
+   for( var i = 0; i <= 10; i++ )
    {
-      var doc = [];
-      for( var i = 0; i <= 10; i++ )
-      {
-         doc.push( { a: i, b: ( i + 100 ), c: ( i + 1000 ) } );
-      }
-      dbcl.insert( doc );
+      doc.push( { a: i, b: ( i + 100 ), c: ( i + 1000 ) } );
+   }
+   dbcl.insert( doc );
 
-   }
-   catch( e )
-   {
-      throw buildException( "insert datas fail", e, "insert", "success", e );
-   }
 }
 function getQueryResult ( dbcl, findConf, hintConf, sortConf )
 {
@@ -85,23 +78,16 @@ function getQueryResult ( dbcl, findConf, hintConf, sortConf )
    if( sortConf == undefined ) var sortConf = null;
 
    var newArray = new Array();
-   try
-   {
-      var rc = dbcl.find( findConf ).hint( hintConf ).sort( sortConf ).toArray();
+   var rc = dbcl.find( findConf ).hint( hintConf ).sort( sortConf ).toArray();
 
-      for( var i = 0; i < rc.length; i++ )
-      {
-         var obj = eval( "(" + rc[i] + ")" );
-         // delete _id
-         delete obj._id;
-         // sort by json key
-         var newObj = sortByKey( obj );
-         newArray.push( newObj );
-      }
-   }
-   catch( e )
+   for( var i = 0; i < rc.length; i++ )
    {
-      throw buildException( "find fail", e, "find", "success", e );
+      var obj = eval( "(" + rc[i] + ")" );
+      // delete _id
+      delete obj._id;
+      // sort by json key
+      var newObj = sortByKey( obj );
+      newArray.push( newObj );
    }
    return newArray;
 }
@@ -112,55 +98,34 @@ function getExplainResult ( dbcl, findConf, hintConf, sortConf )
    if( sortConf == undefined ) var sortConf = null;
 
    var newArray = new Array();
-   try
+   var rc = dbcl.find( findConf ).hint( hintConf ).sort( sortConf ).explain().toArray();
+   for( var i = 0; i < rc.length; i++ )
    {
-      var rc = dbcl.find( findConf ).hint( hintConf ).sort( sortConf ).explain().toArray();
-      for( var i = 0; i < rc.length; i++ )
-      {
-         var obj = eval( "(" + rc[i] + ")" );
-         newArray.push( obj['GroupName'] );
-      }
-   }
-   catch( e )
-   {
-      throw buildException( "explain fail", e, "explain", "success", e );
+      var obj = eval( "(" + rc[i] + ")" );
+      newArray.push( obj['GroupName'] );
    }
    return newArray;
 }
 function checkResult ( expResult, actResult )
 {
-   try
+   //check length
+   assert.equal( expResult.length, actResult.length );
+
+   //check records
+   for( var i = 0; i < expResult.length; i++ )
    {
-      //check length
-      if( expResult.length !== actResult.length )
+      if( JSON.stringify( actResult ).indexOf( JSON.stringify( expResult[i] ) ) === -1 )  
       {
-         println( 'expResult: ' + JSON.stringify( expResult ) + ", actResult: " + JSON.stringify( actResult ) );
-         throw buildException( "check length", "expResult length", "check failed!",
-            expResult.length, actResult.length );
-      }
-
-      //check records
-      for( var i = 0; i < expResult.length; i++ )
-      {
-         if( JSON.stringify( actResult ).indexOf( JSON.stringify( expResult[i] ) ) === -1 )  
-         {
-            throw buildException( "check result", "check", "fail",
-               JSON.stringify( actResult ), JSON.stringify( expResult[i] ) );
-         }
-      }
-
-      for( var i = 0; i < expResult.length; i++ )
-      {
-         if( JSON.stringify( expResult ).indexOf( JSON.stringify( actResult[i] ) ) === -1 )  
-         {
-            throw buildException( "check result", "check", "fail",
-               JSON.stringify( expResult ), JSON.stringify( actResult[i] ) );
-         }
+         throw new Error( "check result fail" + JSON.stringify( actResult ) + JSON.stringify( expResult[i] ) );
       }
    }
-   catch( e )
+
+   for( var i = 0; i < expResult.length; i++ )
    {
-      throw buildException( "check result", e, "check", "success", e );
+      if( JSON.stringify( expResult ).indexOf( JSON.stringify( actResult[i] ) ) === -1 )  
+      {
+         throw new Error( "check result fail" + JSON.stringify( actResult ) + JSON.stringify( expResult[i] ) );
+      }
    }
 }
 function sortByKey ( obj )
@@ -173,4 +138,3 @@ function sortByKey ( obj )
    }
    return newObj;
 }
-main();

@@ -3,8 +3,10 @@
 *@Author:  2019-5-31  wangkexin
 *@testlinkCase: seqDB-5163
 ********************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME;
    var clName = CHANGEDPREFIX + "_cl_5163";

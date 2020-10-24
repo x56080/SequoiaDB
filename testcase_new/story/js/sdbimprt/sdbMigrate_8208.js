@@ -6,20 +6,9 @@
 *               2019-12-02  Siqin Chen  Change
 *******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_import8208";
    var imprtFile = tmpFileDir + "8208.json";
@@ -61,21 +50,9 @@ function testImportData8208_1 ( csName, clName, imprtFile, cl, recordNum )
    var imprtOption = installDir + "bin/sdbimprt " + "--hostname " + COORDHOSTNAME + " --svcname " + COORDSVCNAME +
       " -c " + csName + " -l " + clName + " --file " + imprtFile +
       " --type json ";
-   println( imprtOption );
-   try
-   {
-      cmd.run( imprtOption );
-   }
-   catch( e )
-   {
-      println( "failed to import records" + e );
-      throw e;
-   }
+   cmd.run( imprtOption );
    var actNum = cl.find().count();
-   if( recordNum != actNum )
-   {
-      throw new Error( "expect count: " + recordNum + ", actual count: " + actNum );
-   }
+   assert.equal( recordNum, actNum );
 }
 
 //JSON导入时，一条嵌套对象记录跨多行时，导入的数据--linepriority false
@@ -85,21 +62,9 @@ function testImportData8208_2 ( csName, clName, imprtFile, cl, recordNum, expRec
    var imprtOption = installDir + "bin/sdbimprt " + "--hostname " + COORDHOSTNAME + " --svcname " + COORDSVCNAME +
       " -c " + csName + " -l " + clName + " --file " + imprtFile +
       " --type json --linepriority false";
-   println( imprtOption );
-   try
-   {
-      cmd.run( imprtOption );
-   }
-   catch( e )
-   {
-      println( "failed to import records" + e );
-      throw e;
-   }
+   cmd.run( imprtOption );
    var actNum = cl.count();
-   if( recordNum != actNum )
-   {
-      throw new Error( "expect count: " + recordNum + ", actual count: " + actNum );
-   }
+   assert.equal( recordNum, actNum );
    var cursor = cl.find( {}, { "nestField_0": 1 } );
    commCompareResults( cursor, JSON.parse( expRecs ) );
 }

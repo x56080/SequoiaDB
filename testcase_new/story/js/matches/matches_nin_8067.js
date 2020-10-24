@@ -4,42 +4,31 @@
                      dataType: array
 *@Author:  2016/5/20  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8067";
-      var cl = readyCL( clName );
+   var clName = COMMCLNAME + "_matches8067";
+   var cl = readyCL( clName );
 
-      var rawData = [{ b: 2147483648 }, { c: 1.7E+308 }];
-      insertRecs( cl, rawData );
+   var rawData = [{ b: 2147483648 }, { c: 1.7E+308 }];
+   insertRecs( cl, rawData );
 
-      var rc1 = findRecs( cl, { a: { $nin: [] } } );
-      var rc2 = findRecs( cl, { a: { $nin: [{ b: 2147483648 }] } } );
+   var rc1 = findRecs( cl, { a: { $nin: [] } } );
+   var rc2 = findRecs( cl, { a: { $nin: [{ b: 2147483648 }] } } );
 
-      checkResult( rc1, rc2, rawData );
+   checkResult( rc1, rc2, rawData );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the end" );
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
-
    cl.insert( { a: rawData } );
 }
 
 function findRecs ( cl, cond )
 {
-   println( "\n---Begin to find records by cond[" + JSON.stringify( cond ) + "]." );
-
    var rc = cl.find( cond );
 
    return rc;
@@ -48,8 +37,6 @@ function findRecs ( cl, cond )
 function checkResult ( rc1, rc2, rawData )
 {
    //-----------------------check result for $nin[]---------------------
-   println( "\n---Begin to check result for find by $nin[]." );
-
    var findRtn = new Array();
    while( tmpRecs = rc1.next() )  //rc1
    {
@@ -59,24 +46,22 @@ function checkResult ( rc1, rc2, rawData )
    var expLen = 1;
    if( findRtn.length !== expLen )
    {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
+      throw new Error( "checkResult fail,[compare number]" +
+         "[recsNum:" + expLen + "]" +
          "[recsNum:" + findRtn.length + "]" );
    }
    //compare records
    if( findRtn[0]["a"][0]["b"] !== rawData[0]["b"] ||
       findRtn[0]["a"][1]["c"] !== rawData[1]["c"] )
    {
-      println( "---The real results after the find by matches[$nin]: \n" + JSON.stringify( findRtn ) );
-      throw buildException( "checkResult", null, "[compare records]",
+      throw new Error( "checkResult fail,[compare records]" +
          "[{b:" + rawData[0]["b"]
-         + "}, {c:" + rawData[1]["c"] + "}]",
+         + "}, {c:" + rawData[1]["c"] + "}]" +
          "[{b:" + findRtn[0]["a"][0]["b"]
          + "}, {c:" + findRtn[0]["a"][1]["c"] + "}]" );
    }
 
    //-----------------------check result for $nin[]---------------------
-   println( "\n---Begin to check result for find by $nin[{b:2147483648}]." );
 
    var findRtn = new Array();
    while( tmpRecs = rc2.next() )  //rc2
@@ -85,10 +70,6 @@ function checkResult ( rc1, rc2, rawData )
    }
    //compare number
    var expLen = 0;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
+
 }

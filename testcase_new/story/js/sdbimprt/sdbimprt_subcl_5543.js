@@ -2,59 +2,51 @@
 *@Description:   seqDB-5543:导入的数据不在子表的区间范围内
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
+
+   if( commIsStandalone( db ) )
    {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
-
-      var csName = COMMCSNAME;
-      var mainclName = COMMCLNAME + "_5543_mainCL";
-      var subclName = COMMCLNAME + "_5543_subCL";
-      //create mainCL
-      var opt1 = { ShardingKey: { a: 1 }, IsMainCL: true };
-      var mainCL = readyCL( csName, mainclName, opt1, "[mainCL]" );
-      //create subCL
-      var opt2 = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
-      readyCL( csName, subclName, opt2, "[subCL]" );
-      //attach cl
-      var options = { LowBound: { "a": 1 }, UpBound: { "a": 10 } };
-      mainCL.attachCL( csName + "." + subclName, options );
-
-      var imprtFile = tmpFileDir + "5543.csv";
-      readyData( imprtFile );
-      importData( csName, mainclName, imprtFile );
-
-      checkCLData( mainCL );
-      cleanCL( csName, subclName );
-      cleanCL( csName, mainclName );
+      return;
    }
-   catch( e )
-   {
-      throw e;
-   }
+
+   var csName = COMMCSNAME;
+   var mainclName = COMMCLNAME + "_5543_mainCL";
+   var subclName = COMMCLNAME + "_5543_subCL";
+   //create mainCL
+   var opt1 = { ShardingKey: { a: 1 }, IsMainCL: true };
+   var mainCL = readyCL( csName, mainclName, opt1, "[mainCL]" );
+   //create subCL
+   var opt2 = { ShardingKey: { a: 1 }, ShardingType: "hash", ReplSize: 0 };
+   readyCL( csName, subclName, opt2, "[subCL]" );
+   //attach cl
+   var options = { LowBound: { "a": 1 }, UpBound: { "a": 10 } };
+   mainCL.attachCL( csName + "." + subclName, options );
+
+   var imprtFile = tmpFileDir + "5543.csv";
+   readyData( imprtFile );
+   importData( csName, mainclName, imprtFile );
+
+   checkCLData( mainCL );
+   cleanCL( csName, subclName );
+   cleanCL( csName, mainclName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( "a int\n1\n6\n9\n0\n10" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
    //remove rec file
    var tmpRec = csName + "_" + clName + "*.rec";
    cmd.run( "rm -rf " + tmpRec );
@@ -63,9 +55,7 @@ function importData ( csName, clName, imprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --headerline true --sharding true -n 1 --parsers 1 -j 1'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    var rcObj = rc.split( "\n" );
    var expParseRecords = "parsed records: 5";
@@ -77,21 +67,20 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords
       || expImportFailure !== actImportFailure )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expImportedRecords + ", " + expImportFailure + "]" +
          "[" + actParseRecords + ", " + actImportedRecords + ", " + actImportFailure + "]" );
    }
 
    var rec = cmd.run( "ls " + tmpRec ).split( "\n" )[0];
    var tmpRecs = cmd.run( "cut -c 49-56 " + rec ).split( "\n" );
    var failedRecs = String( [tmpRecs[0], tmpRecs[1]] );
-   println( rec + "\n" + failedRecs );
    var expRecRecs = ' "a": 0 , "a": 10';
    var actRecRecs = failedRecs;
    if( expRecRecs !== actRecRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[failedRecs:" + expRecRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[failedRecs:" + expRecRecs + "]" +
          "[failedRecs:" + actRecRecs + "]" );
    }
 
@@ -102,7 +91,6 @@ function importData ( csName, clName, imprtFile )
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];
@@ -117,8 +105,8 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }

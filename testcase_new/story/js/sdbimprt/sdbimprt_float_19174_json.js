@@ -2,9 +2,10 @@
 *@Description:  seqDB-19174:浮点数特殊值测试（如0. / .0 / . / 00）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'json';
    var tmpPrefix = "sdbimprt_19174";
@@ -22,7 +23,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < findTypeArr.length; i++ )
    {
-      println( "\n---------------------import data, findType is " + findTypeArr[i] + "---------------------" );
       var expRecs = initExpectData_testPoint( recsNum, findTypeArr[i] );
       var findCond = { "b": { "$type": 2, "$et": findTypeArr[i] } };
       var expRecsNum = JSON.parse( expRecs ).length;
@@ -36,10 +36,9 @@ function main ()
 
 function initImportFile_testPoint ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var tmpNum = 400;
-   var recordsNum = tmpNum * 3 ;
+   var recordsNum = tmpNum * 3;
 
    // 0, b value e.g: "0." / "00."......
    var str = "";
@@ -73,7 +72,6 @@ function initImportFile_testPoint ( importFile )
 
 function initExpectData_testPoint ( expRecsNum, findType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    if( findType === "int32" ) 
    {

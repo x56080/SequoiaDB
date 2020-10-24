@@ -2,9 +2,10 @@
 *@Description:  seqDB-19168:科学计数法，底数为整数（如 1E+308）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'csv';
    var tmpPrefix = "sdbimprt_int_19168";
@@ -16,7 +17,6 @@ function main ()
    var importFields = 'a int, b int';
 
    // test point1, b value e.g: 1E+10, 1E+9 ...... 1E+0
-   println( "\n---------------------import data, type is int, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    var expRecs = initExpectData_testPoint1( recsNum );
@@ -30,7 +30,6 @@ function main ()
    cl.truncate();
 
    // test poin2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
-   println( "\n---------------------import data, type is int, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    var expRecs = initExpectData_testPoint2( recsNum );
@@ -44,7 +43,6 @@ function main ()
    cl.truncate();
 
    // test poin3, bValIndexNum > 308, b value e.g: 1E+309
-   println( "\n---------------------import data, type is int, test point 3---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
    var expRecs = initExpectData_testPoint3( recsNum );
@@ -62,7 +60,6 @@ function main ()
 
 function initImportFile_testPoint1 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    // test point1, b value e.g: 1E+20, 1E+9 ...... 1E+0
    var recordsNum;
    var str = "";
@@ -84,7 +81,6 @@ function initImportFile_testPoint1 ( importFile )
 
 function initImportFile_testPoint2 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    // test point2, b value e.g: 1E+308, 11E+307 ...... xxxE+0
    var recordsNum;
    var str = "";
@@ -107,7 +103,6 @@ function initImportFile_testPoint2 ( importFile )
 
 function initImportFile_testPoint3 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    // test point3, b value e.g: bValIndexNum > 308, b value e.g: 1E+309
    var recordsNum = 1;
    var aVal = 0;
@@ -122,7 +117,6 @@ function initImportFile_testPoint3 ( importFile )
 
 function initExpectData_testPoint1 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record = {};
    var tmpBVal = 1E+9;
@@ -144,7 +138,6 @@ function initExpectData_testPoint1 ( expRecsNum )
 
 function initExpectData_testPoint2 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record = {};
    for( var i = 0; i < expRecsNum; i++ ) 
@@ -164,7 +157,6 @@ function initExpectData_testPoint2 ( expRecsNum )
 
 function initExpectData_testPoint3 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record = { a: 0, b: 0 };
    expRecs.push( JSON.stringify( record ) );

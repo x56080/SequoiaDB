@@ -19,7 +19,7 @@ function test ( testPara )
    var clGroupName = testPara.srcGroupName;
 
    var data = [];
-   for (var i = 0; i < 26; i++ )
+   for( var i = 0; i < 26; i++ )
    {
       //alphabet: A-Z
       var character = String.fromCharCode( 65 + i );
@@ -31,13 +31,13 @@ function test ( testPara )
 
    // query by using regex , run db.exec( <sql string> ) ;
    var cs_clName = testConf.csName + "." + testConf.clName;
-   var sqlCondition = [ " select * from " + cs_clName + " where regex like '^abcdefg*h' ",
-                        " select * from " + cs_clName + " where regex like '^abcdefg*Htest' ",
-                        " select * from " + cs_clName + " where regex like '\\AabcdefgZ' " ];
+   var sqlCondition = [" select * from " + cs_clName + " where regex like '^abcdefg*h' ",
+   " select * from " + cs_clName + " where regex like '^abcdefg*Htest' ",
+   " select * from " + cs_clName + " where regex like '\\AabcdefgZ' "];
    var querylenList = [0, 1, 1];
 
    var idxRead1 = queryGetCurrentSessions( db, cs_clName, clGroupName, groups );
-   for (var i in sqlCondition)
+   for( var i in sqlCondition )
    {
       var sql = sqlCondition[i];
       var queryLen = querylenList[i];
@@ -47,11 +47,11 @@ function test ( testPara )
       //Error judgement
       if( queryLen != queryNum.length )
       {
-         throw new Error("ErrQueryNum");
+         throw new Error( "ErrQueryNum" );
       }
       if( idxRead2[1] <= idxRead1[1] && idxRead2[0] == idxRead1[0] )
       {
-         throw new Error ("Can't query from index, Error");
+         throw new Error( "Can't query from index, Error" );
       }
 
       idxRead1 = idxRead2;

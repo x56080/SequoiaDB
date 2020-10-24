@@ -3,49 +3,41 @@
                   seqDB-5445
 *@Author:        2016-7-14  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
+
+   if( commIsStandalone( db ) )
    {
-      if( commIsStandalone( db ) )
-      {
-         println( " Deploy mode is standalone!" );
-         return;
-      }
-
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5440";
-      var cl = readyCL( csName, clName );
-
-      var imprtFile = tmpFileDir + "5440.csv";
-      readyData( imprtFile );
-      importData( csName, clName, imprtFile );
-
-      checkCLData( cl );
-      cleanCL( csName, clName );
+      return;
    }
-   catch( e )
-   {
-      throw e;
-   }
+
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5440";
+   var cl = readyCL( csName, clName );
+
+   var imprtFile = tmpFileDir + "5440.csv";
+   readyData( imprtFile );
+   importData( csName, clName, imprtFile );
+
+   checkCLData( cl );
+   cleanCL( csName, clName );
+
 }
 
 function readyData ( imprtFile )
 {
-   println( "\n---Begin to ready data." );
 
    var file = fileInit( imprtFile );
    file.write( "a int,b int\n1,1\n2,2\n3,3\n4,4" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //get coord address
    var coordAddrs = String( getCoordAdrr() );
@@ -55,28 +47,25 @@ function importData ( csName, clName, imprtFile )
       + ' --type csv --headerline true --hosts "' + coordAddrs
       + '" -n 1 -j 8 -v'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import operation results
    var rcObj = rc.split( "\n" );
-   var rcLen = rcObj.length ;
+   var rcLen = rcObj.length;
    var expParseRecords = "parsed records: 4";
    var expImportedRecords = "imported records: 4";
-   var actParseRecords = rcObj[rcLen-7];
-   var actImportedRecords = rcObj[rcLen-3];
+   var actParseRecords = rcObj[rcLen - 7];
+   var actImportedRecords = rcObj[rcLen - 3];
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLData ( cl )
 {
-   println( "\n---Begin to check cl data." );
 
    var rc = cl.find( {}, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var recsArray = [];
@@ -91,17 +80,15 @@ function checkCLData ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
-   //println( "cl records: "+ actRecs );
 
 }
 
 function getCoordAdrr ()
 {
-   println( "\n---Begin to get coord address." );
    var nodeArray = [];
    var tmpInfo = db.listReplicaGroups().toArray();
    for( var i = 0; i < tmpInfo.length; ++i )
@@ -117,6 +104,5 @@ function getCoordAdrr ()
          }
       }
    }
-   println( "-------nodeArray : " + nodeArray );
    return nodeArray;
 }

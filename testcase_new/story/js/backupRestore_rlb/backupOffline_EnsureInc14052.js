@@ -8,7 +8,9 @@
 var backupName = CHANGEDPREFIX + "_bk";
 
 // main entry
-function main ()
+main( test );
+
+function test ()
 {
    var alreadStart = false;
    var clName = COMMCLNAME + "_cl14052";
@@ -22,40 +24,23 @@ function main ()
    // define backup object array
    var grpArray = commGetCSGroups( db, COMMCSNAME );
    var bkObjArray = [];
-   println( JSON.stringify( grpArray ) );
    bkObjArray.push( { Name: backupName, Description: "default path full backup", MaxDataFileSize: 32, GroupName: grpArray } );
    bkObjArray.push( { Name: backupName, Description: "default path full backup", OverWrite: true, MaxDataFileSize: 32, GroupName: grpArray } );
    bkObjArray.push( { Name: backupName, Description: "default path inc backup", EnsureInc: true, MaxDataFileSize: 32, GroupName: grpArray } );
 
    // Run Mode
    var runMode = commIsStandalone( db );
-   println( "The runmode : [" + runMode + "]" );
    // backup
    for( var i = 0; i < bkObjArray.length; ++i )
    {
-      println( JSON.stringify( bkObjArray[i], "", 3 ) );
       bakBackup( db, bkObjArray[i] );
       varCL.insert( { times: i } );
    }
-
-   if( i != bkObjArray.length )
-   {
-      throw "expected to complete " + bkObjArray.length + " times, real completed " + i + " times";
-   }
+   assert.equal( i, bkObjArray.length );
 
    checkBackupInfo( db, "Check ensure inc backup failed", backupName, "", false, { EnsureInc: true } );
    // remove backup
    bakRemoveBackups( db, backupName, alreadStart );
    // clean - drop cl
    commDropCL( db, COMMCSNAME, clName, false, false, "drop cl in clean" );
-}
-
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
 }

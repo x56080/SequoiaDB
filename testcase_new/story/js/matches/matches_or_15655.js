@@ -4,17 +4,17 @@
  * Date:          2018.08.21
  * Testlink:      seqDB-15655
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "skip standalone environment" );
       return;
    }
 
    if( 2 > commGetGroupsNum( db ) )
    {
-      println( "group less than 2" );
       return;
    }
 
@@ -48,10 +48,8 @@ function main ()
    var actResStr = JSON.stringify( actRes );
    if( expResStr != actResStr )
    {
-      throw buildException( "main", null, "query", expResStr, actResStr );
+      throw new Error( "main", null, "query", expResStr, actResStr );
    }
 
    commDropCL( db, csName, clName, false );
 }
-
-main();

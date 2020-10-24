@@ -6,9 +6,9 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_13564";
    commCreateCL( db, COMMCSNAME, clName, {}, true, true );

@@ -4,55 +4,47 @@
                   seqDB-5498
 *@Author:   2016-7-29  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   try
-   {
-      var csName = COMMCSNAME;
-      var clName = COMMCLNAME + "_5497";
-      var cl = readyCL( csName, clName );
 
-      var imprtFile = testCaseDir + "dataFile/allDataType.csv";
-      importData( csName, clName, imprtFile );
+   var csName = COMMCSNAME;
+   var clName = COMMCLNAME + "_5497";
+   var cl = readyCL( csName, clName );
 
-      checkCLForInt( cl );
-      checkCLForLong( cl );
-      checkCLForDouble( cl );
-      checkCLForDecimal( cl );
-      checkCLForString( cl );
-      checkCLForOid( cl );
-      checkCLForBool( cl );
-      checkCLForDate( cl );
-      checkCLForTimestamp( cl );
-      checkCLForBinary( cl );
-      checkCLForRegex( cl );
-      checkCLForNull( cl );
-      cleanCL( csName, clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var imprtFile = testCaseDir + "dataFile/allDataType.csv";
+   importData( csName, clName, imprtFile );
+
+   checkCLForInt( cl );
+   checkCLForLong( cl );
+   checkCLForDouble( cl );
+   checkCLForDecimal( cl );
+   checkCLForString( cl );
+   checkCLForOid( cl );
+   checkCLForBool( cl );
+   checkCLForDate( cl );
+   checkCLForTimestamp( cl );
+   checkCLForBinary( cl );
+   checkCLForRegex( cl );
+   checkCLForNull( cl );
+   cleanCL( csName, clName );
+
 }
 
 function importData ( csName, clName, imprtFile )
 {
-   println( "\n---Begin to import data and check exec result." );
 
    //cat import file
    //var fileInfo = cmd.run( "cat "+ imprtFile );
-   //println( imprtFile +"\n" + fileInfo +"\n" );
 
    //import operation
    var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "num,type,v1,v2"'
       + ' --file ' + imprtFile;
-   println( imprtOption );
    var rc = cmd.run( imprtOption );
-   println( rc );
 
    //check import results
    var rcObj = rc.split( "\n" );
@@ -65,15 +57,14 @@ function importData ( csName, clName, imprtFile )
    if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
       || expImportedRecords !== actImportedRecords )
    {
-      throw buildException( "importData", null, "[sdbimprt results]",
-         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]",
+      throw new Error( "importData fail,[sdbimprt results]" +
+         "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
          "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
    }
 }
 
 function checkCLForInt ( cl )
 {
-   println( "\n---Begin to check cl data for int." );
    //int
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 16 } }, { v2: { $type: 1, $et: 16 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -88,15 +79,14 @@ function checkCLForInt ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForLong ( cl )
 {
-   println( "\n---Begin to check cl data for long." );
    //long
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 18 } }, { v2: { $type: 1, $et: 18 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -111,15 +101,14 @@ function checkCLForLong ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForDouble ( cl )
 {
-   println( "\n---Begin to check cl data for double." );
    //double
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 1 } }, { v2: { $type: 1, $et: 1 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -134,15 +123,14 @@ function checkCLForDouble ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForDecimal ( cl )
 {
-   println( "\n---Begin to check cl data for decimal." );
    //decimal
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 100 } }, { v2: { $type: 1, $et: 100 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -157,15 +145,14 @@ function checkCLForDecimal ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForString ( cl )
 {
-   println( "\n---Begin to check cl data for string." );
    //string
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 2 } }, { v2: { $type: 1, $et: 2 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -180,15 +167,14 @@ function checkCLForString ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForOid ( cl )
 {
-   println( "\n---Begin to check cl data for oid." );
    //oid
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 7 } }, { v2: { $type: 1, $et: 7 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -203,15 +189,14 @@ function checkCLForOid ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForBool ( cl )
 {
-   println( "\n---Begin to check cl data for bool." );
    //bool
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 8 } }, { v2: { $type: 1, $et: 8 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -226,15 +211,14 @@ function checkCLForBool ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForDate ( cl )
 {
-   println( "\n---Begin to check cl data for date." );
    //date
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 9 } }, { v2: { $type: 1, $et: 9 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -249,15 +233,14 @@ function checkCLForDate ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForTimestamp ( cl )
 {
-   println( "\n---Begin to check cl data for timestamp." );
    //timestamp
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 17 } }, { v2: { $type: 1, $et: 17 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -272,15 +255,14 @@ function checkCLForTimestamp ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForBinary ( cl )
 {
-   println( "\n---Begin to check cl data for binary." );
    //binary
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 5 } }, { v2: { $type: 1, $et: 5 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -295,15 +277,14 @@ function checkCLForBinary ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForRegex ( cl )
 {
-   println( "\n---Begin to check cl data for regex." );
    //regex
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 11 } }, { v2: { $type: 1, $et: 11 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -318,15 +299,14 @@ function checkCLForRegex ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }
 
 function checkCLForNull ( cl )
 {
-   println( "\n---Begin to check cl data for null." );
    //null
    var rc = cl.find( { $and: [{ v1: { $type: 1, $et: 10 } }, { v2: { $type: 1, $et: 10 } }] }, { _id: { $include: 0 } } ).sort( { num: 1 } );
    var recsArray = [];
@@ -341,8 +321,8 @@ function checkCLForNull ( cl )
    var actRecs = JSON.stringify( recsArray );
    if( actCnt !== expCnt || actRecs !== expRecs )
    {
-      throw buildException( "checkCLdata", null, "[find]",
-         "[cnt:" + expCnt + ", recs:" + expRecs + "]",
+      throw new Error( "checkCLdata fail,[find]" +
+         "[cnt:" + expCnt + ", recs:" + expRecs + "]" +
          "[cnt:" + actCnt + ", recs:" + actRecs + "]" );
    }
 }

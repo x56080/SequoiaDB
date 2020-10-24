@@ -3,31 +3,25 @@
                     cover all data type
 *@Author:  2016/5/25  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8079";
-      var cl = readyCL( clName );
 
-      var rawData = insertRecs( cl );
+   var clName = COMMCLNAME + "_matches8079";
+   var cl = readyCL( clName );
 
-      var findRecsArray = findRecs( cl );
-      checkResult( findRecsArray, rawData );
+   var rawData = insertRecs( cl );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var findRecsArray = findRecs( cl );
+   checkResult( findRecsArray, rawData );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl )
 {
-   println( "\n---Begin to insert records." );
 
    var rawData = [{
       a: 0, int: -2147483648,
@@ -76,7 +70,6 @@ function insertRecs ( cl )
 
 function findRecs ( cl )
 {
-   println( "\n---Begin to find records." );
 
    var tmpCond = [{ a: { $ne: 1 } },
    { int: { $et: -2147483648 } },
@@ -97,35 +90,22 @@ function findRecs ( cl )
    var rmNum1 = parseInt( Math.random() * tmpCond.length );
    var rmNum2 = parseInt( Math.random() * tmpCond.length );
    var cond = { $or: [tmpCond[rmNum1], tmpCond[rmNum2]] };
-   println( "---randomCond: " + JSON.stringify( cond ) );
    var rc = cl.find( cond, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
-   //println(JSON.stringify(findRecsArray));
    return findRecsArray;
 }
 
 function checkResult ( findRecsArray, rawData )
 {
-   println( "\n---Begin to check result." );
 
    var expLen = 1;
-   if( findRecsArray.length !== expLen )   //return size after find by type
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRecsArray.length + "]" );
-   }
-   //println(JSON.stringify(findRecsArray));
+   assert.equal( findRecsArray.length, expLen );
    var actB = findRecsArray[0].toString();
    var expB = rawData[0].toString();
-   if( actB !== expB )
-   {
-      throw buildException( "checkResult", null, "[compare records]",
-         '["extRecs": ' + expB + ']',
-         '["actRecs": ' + actB + ']' );
-   }
+   assert.equal( actB, expB );
+
 }

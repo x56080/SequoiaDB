@@ -6,7 +6,7 @@
    2020-08-10 Zixian Yan
 ******************************************************************************/
 testConf.clName = COMMCLNAME + "_22586";
-main(test);
+main( test );
 
 function test ( testPara )
 {
@@ -16,14 +16,14 @@ function test ( testPara )
 
    cl.createIndex( "aa", { a: 1 } );
 
-   cl.update( { $set: { b: 2 } }, { a: { $isnull: 1 } }, {"":"aa"} );
-   cl.update( { $set: { b: 1 } }, { a: { $isnull: 0 } }, {"":"aa"} );
+   cl.update( { $set: { b: 2 } }, { a: { $isnull: 1 } }, { "": "aa" } );
+   cl.update( { $set: { b: 1 } }, { a: { $isnull: 0 } }, { "": "aa" } );
 
-   record1 = cl.find( { a: { $isnull: 1 } } ).sort({a:1});
-   record2 = cl.find( { a: { $isnull: 0 } } ).sort({a:1});
+   record1 = cl.find( { a: { $isnull: 1 } } ).sort( { a: 1 } );
+   record2 = cl.find( { a: { $isnull: 0 } } ).sort( { a: 1 } );
 
    var expectationOne = [{ a: null, b: 2 }];
-   var expectationTwo = [{ a: 1,    b: 1 }];
+   var expectationTwo = [{ a: 1, b: 1 }];
 
    checkRec( record1, expectationOne );
    checkRec( record2, expectationTwo );

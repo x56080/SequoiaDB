@@ -2,15 +2,16 @@
 *@Description:  seqDB-18935: 整数位前n位后m位为0，小数位前x位后y位为0（如10.010）     
 *@Author     :  2019-8-6  zhaoxiaoni
 ************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl_18935_csv_decimal";
    var csvFile = tmpFileDir + clName + ".csv";
 
    var cl = commCreateCL( db, COMMCSNAME, clName );
    prepareDate( csvFile );
-   println( "\n---specify data type decimal to import csv file." );
    var fields = "a int, b decimal";
    var rcResults = importData( COMMCSNAME, clName, csvFile, "csv", fields, true );
    checkImportRC( rcResults, 80 );

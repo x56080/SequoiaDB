@@ -3,23 +3,22 @@
 *@Author:  2019-5-31  wangkexin
 *@testlinkCase: seqDB-5172
 ********************************************************************************/
-main();
-function main ()
+
+main( test );
+
+function test ()
 {
-    var csName = COMMCSNAME;
-    var clName = CHANGEDPREFIX + "_cl_5172";
+   var csName = COMMCSNAME;
+   var clName = CHANGEDPREFIX + "_cl_5172";
 
-    //clean environment before test
-    commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
+   //clean environment before test
+   commDropCL( db, csName, clName, true, true, "drop CL in the beginning." );
 
-    var cl = commCreateCL( db, csName, clName );
-    cl.insert( { "key": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
-    var count = cl.find( { a: { "$gte": 1 } } ).count();
-    if( Number( count ) !== 0 )
-    {
-        throw buildException( "check result", "", "cl.find({a:{'$gte':1}}).count()", 0, Number( count ) );
-    }
+   var cl = commCreateCL( db, csName, clName );
+   cl.insert( { "key": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
+   var count = cl.find( { a: { "$gte": 1 } } ).count();
+   assert.equal( count, 0 );
 
-    //drop cl
-    commDropCL( db, csName, clName, true, true, "drop cl in the end" );
+   //drop cl
+   commDropCL( db, csName, clName, true, true, "drop cl in the end" );
 }

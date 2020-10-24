@@ -3,18 +3,17 @@
 @Modify list :
                2014-6-20  xiaojun Hu Init
 *******************************************************************************/
-function main ( db )
+main( test );
+
+function test ()
 {
    var alreadStart = false;
    var path = "";
    var clName = COMMCLNAME + "_cl14054";
-   commDropCL( db, COMMCSNAME, clName, true, true,
-      "Drop CL in the beginning" );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false,
-      "Create collection in the beginning" );
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: -1 }, true, false );
    bakInsertData( cl );
    bakRemoveBackups( db, CHANGEDPREFIX, true );
-   println( "Clear the backup in the beginning" );
    // Backup Offline specify the [groups]
    if( false == commIsStandalone( db ) )
    {
@@ -25,12 +24,10 @@ function main ( db )
          var backup = { "IsSubDir": true };
          backup["Name"] = bakName;
          backup["Gruop"] = groups[i][0].GroupName;
-         println( JSON.stringify( backup, "", 3 ) );
          bakBackup( db, backup );
          checkBackupInfo( db, "", bakName, path, alreadStart );
          bakRemoveBackups( db, bakName, alreadStart, path );
       }
-      println( "groupID backup success" );
    }
    else
    {
@@ -41,16 +38,5 @@ function main ( db )
       checkBackupInfo( db, "", bakName, path, alreadStart );
       bakRemoveBackups( db, bakName, alreadStart, path );
    }
-   println( "Clear backup Over in the end" );
    commDropCL( db, COMMCSNAME, clName, true, false, "Drop CL in the end" );
-}
-
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
 }

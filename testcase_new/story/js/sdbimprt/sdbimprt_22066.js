@@ -20,7 +20,6 @@ function test ( testPara )
 function testImprtJson ( clName, cl )
 {
 
-
    var filename = tmpFileDir + "22066.json";
    var file = fileInit( filename );
    file.write( "{ \"_id\": 1, \"a\" : 12345.12345678987654321 }\n" );

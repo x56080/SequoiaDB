@@ -3,20 +3,13 @@
 *@Modify list :
 *               2018-1-10  wenjing Wang Init
 *******************************************************************************/
-function backupTestCase11673 ()
-{
-
-}
+function backupTestCase11673 () { }
 
 backupTestCase11673.prototype = new backupTestCase( db );
 backupTestCase11673.prototype.constructor = backupTestCase11673;
 backupTestCase11673.prototype.csName = COMMCSNAME + "_11673";
 backupTestCase11673.prototype.clName = COMMCLNAME + "_11673";
-backupTestCase11673.prototype.reInit =
-   function()
-   {
-
-   }
+backupTestCase11673.prototype.reInit = function() { }
 
 backupTestCase11673.prototype.createShardingCL =
    function()
@@ -45,8 +38,7 @@ backupTestCase11673.prototype.createShardingCL =
       var csOpt = { Domain: this.domainName, LobPageSize: 4096 };
       commCreateCS( this.db, this.csName, false, "create cs in begin", csOpt );
       var clOpt = { ShardingType: 'hash', ShardingKey: { no: 1 }, ReplSize: -1 }
-      this.cl = commCreateCL( this.db, this.csName, this.clName, clOpt, true, false,
-         "Create collection in the beginning" );
+      this.cl = commCreateCL( this.db, this.csName, this.clName, clOpt, true, false );
    }
 
 backupTestCase11673.prototype.init =
@@ -60,7 +52,6 @@ backupTestCase11673.prototype.init =
             var hostName = this.group.Group[i].HostName;
             var svcName = this.group.Group[i].Service[0].Name;
             var dbPath = this.group.Group[i].dbpath;
-            println( "init " + hostName + svcName + dbPath );
             this.nodeinfo = new nodeInfo( this.group.GroupName, hostName, svcName, dbPath );
             this.cmd = getCmdByHostName( this.localCmd, hostName );
             break;
@@ -75,30 +66,24 @@ backupTestCase11673.prototype.execTest =
       var bakInfo = new backUpInfo( backupName, this.nodeinfo.dbPath + "bakfile" );
       this.groupNames.push( "SYSCatalogGroup" );
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       // 全量备份
       bakBackup( this.db, { "Name": backupName, CompressionType: "zlib" } );
       this.checkBackupRes( bakInfo, 1, this.groupNames );
 
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       for( var i = 0; i < 1000; ++i )
       {
-         commCreateCL( this.db, this.csName, this.clName + "_" + i, {ReplSize: -1}, true, false,
-            "Create collection for backup" );
+         commCreateCL( this.db, this.csName, this.clName + "_" + i, { ReplSize: -1 }, true, false );
       }
 
       bakBackup( this.db, { "Name": backupName, EnsureInc: true, CompressionType: "zlib" } );
       this.checkBackupRes( bakInfo, 2, this.groupNames );
       if( this.group !== undefined )
       {
-         println( "backup on " + this.group.GroupName );
          this.removeNodeExceptPrimary();
       }
       sdbRestore( this.sdb, this.cmd, bakInfo, this.nodeinfo );
@@ -114,7 +99,9 @@ backupTestCase11673.prototype.tearDown =
 
    }
 
-function main ( db )
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -132,8 +119,7 @@ function main ( db )
    }
    catch( e )
    {
-      var tmp = new Error( "tmp" )
-      if( e.constructor === tmp.constructor )
+      if( e instanceof Error )
       {
          println( e.fileName + ":" + e.lineNumber + " throw " + e.message );
          println( e.stack );
@@ -149,9 +135,8 @@ function main ( db )
    }
    finally
    {
-      commDropCS( this.db, backupTestCase11673.prototype.csName, true, "finally: dropCS in the end" );
+      println( backupandrestoreGroup )
+      commDropCS( db, backupTestCase11673.prototype.csName, true, "finally: dropCS in the end" );
       db.removeRG( backupandrestoreGroup );
    }
 }
-
-main( db )

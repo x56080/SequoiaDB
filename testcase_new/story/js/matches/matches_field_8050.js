@@ -3,38 +3,31 @@
                     cover all data type
 *@Author:  2016/5/25  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8050";
-      var cl = readyCL( clName );
 
-      var rawData = insertRecs( cl );
+   var clName = COMMCLNAME + "_matches8050";
+   var cl = readyCL( clName );
 
-      var findRecsArray = findRecs( cl );
-      checkResult( findRecsArray );
+   var rawData = insertRecs( cl );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var findRecsArray = findRecs( cl );
+   checkResult( findRecsArray );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl )
 {
-   println( "\n---Begin to insert records." );
 
    cl.insert( { a: 0, b: 0 } );
 }
 
 function findRecs ( cl )
 {
-   println( "\n---Begin to find records." );
 
    var rc = cl.find( { "test": { $field: "world" } }, { _id: { $include: 0 } } ).sort( { a: 1 } );
    var findRecsArray = [];
@@ -47,13 +40,7 @@ function findRecs ( cl )
 
 function checkResult ( findRecsArray )
 {
-   println( "\n---Begin to check result." );
 
    var expLen = 0;
-   if( findRecsArray.length !== expLen )   //return size after find by type
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRecsArray.length + "]" );
-   }
+   assert.equal( findRecsArray.length, expLen );
 }

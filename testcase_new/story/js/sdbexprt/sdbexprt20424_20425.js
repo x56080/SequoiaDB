@@ -10,12 +10,12 @@ testConf.clName = COMMCLNAME + "_20424";
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
 
    cl = testPara.testCL;
    clName = testConf.clName
-   cl.insert({a:1,b:2});
+   cl.insert( { a: 1, b: 2 } );
    var csvDir = tmpFileDir + "20424/";
    cmd.run( "mkdir -p " + csvDir );
    testExprtCsv( csvDir, clName );
@@ -24,7 +24,7 @@ function test( testPara )
    cmd.run( "rm -rf " + csvDir );
 }
 
-function testExprtCsv( csvDir, clName )
+function testExprtCsv ( csvDir, clName )
 {
    var csvContent = "a,b\n1,2\n";
    var filename = csvDir + "/" + COMMCSNAME + "." + "20425.csv";
@@ -32,14 +32,14 @@ function testExprtCsv( csvDir, clName )
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
       " -l " + clName +
-      " --type csv " + 
+      " --type csv " +
       "--fields a,b " +
       "--file " + filename;
    testRunCommand( command );
    checkFileContent( filename, csvContent );
 }
 
-function testExprtCsv20425( csvDir, clName )
+function testExprtCsv20425 ( csvDir, clName )
 {
    var csvContent = "a,b\n1,2\n";
    var filename = csvDir + "/" + COMMCSNAME + "." + clName + ".csv";
@@ -47,14 +47,14 @@ function testExprtCsv20425( csvDir, clName )
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
       " -l " + clName +
-      " --type csv " + 
+      " --type csv " +
       "--fields='a,\nb' " +
       "--file " + filename;
    testRunCommand( command );
    checkFileContent( filename, csvContent );
 }
 
-function testExprtJson( csvDir, clName )
+function testExprtJson ( csvDir, clName )
 {
    var jsonContent = "{ \"a\": 1, \"b\": 2 }\n";
    var filename = csvDir + "/" + COMMCSNAME + "." + clName + ".json";
@@ -62,7 +62,7 @@ function testExprtJson( csvDir, clName )
       " --hosts " + COORDHOSTNAME + ":" + COORDSVCNAME +
       " -c " + COMMCSNAME +
       " -l " + clName +
-      " --type json " + 
+      " --type json " +
       "--fields a,b " +
       "--file " + filename;
    testRunCommand( command );

@@ -2,34 +2,28 @@
 *@Description:   seqDB-8096:使用$size查询，目标字段为非数组 
 *@Author:  2016/5/23  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8097";
-      var cl = readyCL( clName );
 
-      var rawData = [{ a: "string", b: "test" },
-      { a: "subobj", b: { c: { d: "test" } } }];
-      insertRecs( cl, rawData );
+   var clName = COMMCLNAME + "_matches8097";
+   var cl = readyCL( clName );
 
-      var sizeNum = [0, 1];
-      var findRecsArray = findRecs( cl, sizeNum );
-      checkResult( findRecsArray, rawData );
+   var rawData = [{ a: "string", b: "test" },
+   { a: "subobj", b: { c: { d: "test" } } }];
+   insertRecs( cl, rawData );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   var sizeNum = [0, 1];
+   var findRecsArray = findRecs( cl, sizeNum );
+   checkResult( findRecsArray, rawData );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl, rawData )
 {
-   println( "\n---Begin to insert records." );
    for( i = 0; i < rawData.length; i++ )
    {
       cl.insert( rawData[i] )
@@ -38,12 +32,10 @@ function insertRecs ( cl, rawData )
 
 function findRecs ( cl, sizeNum )
 {
-   println( "\n---Begin to find records." );
 
    var findRecsArray = [];
    for( i = 0; i < sizeNum.length; i++ )
    {
-      println( "---Find by matches[$size:" + sizeNum[i] + "]." );
 
       var rc = cl.find( { b: { $size: 1, $et: sizeNum[i] } }, { _id: { $include: 0 } } ).sort( { a: 1 } );
       var tmpArray = [];
@@ -51,7 +43,6 @@ function findRecs ( cl, sizeNum )
       {
          tmpArray.push( tmpRecs.toObj() );
       }
-      //println(JSON.stringify(tmpArray));
       findRecsArray.push( tmpArray );
    }
    return findRecsArray;
@@ -59,14 +50,13 @@ function findRecs ( cl, sizeNum )
 
 function checkResult ( findRecsArray, rawData )
 {
-   println( "\n---Begin to check result." );
 
    var expLen1 = 0;
    var actLen1 = findRecsArray[0].length;
    if( actLen1 !== expLen1 )
    {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen1 + "]",
+      throw new Error( "checkResult fail, [compare number]" +
+         "[recsNum:" + expLen1 + "]" +
          "[recsNum:" + actLen1 + "]" );
    }
 
@@ -76,8 +66,8 @@ function checkResult ( findRecsArray, rawData )
    var actA2 = '[{"a":"subobj","b":{"c":{"d":"test"}}}]';
    if( actLen2 !== expLen2 || expA2 !== actA2 )
    {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen2 + ", a: " + expA2 + "]",
+      throw new Error( "checkResult fail, [compare number]" +
+         "[recsNum:" + expLen2 + ", a: " + expA2 + "]" +
          "[recsNum:" + actLen2 + ", a: " + actA2 + "]" );
    }
 }

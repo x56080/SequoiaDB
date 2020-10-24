@@ -9,9 +9,9 @@
 var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13524";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    commDropCL( db, csname, clname );
    var cl = commCreateCL( db, csname, clname );
@@ -98,7 +98,6 @@ function testExprtWithLimit ( filelimit, fileType, exportDir )
       " --type " + fileType +
       " --fields a";
 
-   //println(command);
    testRunCommand( command );
 
 }
@@ -122,8 +121,7 @@ function checkCl ( cl, kb )
 {
    if( parseInt( cl.find( { a: 1 } ).count() ) !== 2 * ( kb * 1024 - 1 ) )
    {
-      throw buildException( "testFileLimit", null, "check import cl count",
-         2 * ( kb * 1024 - 1 ), cl.find( { a: 1 } ).count() );
+      throw new Error( "testFileLimit fail check import cl count" + 2 * ( kb * 1024 - 1 ) + cl.find( { a: 1 } ).count() );
    }
 }
 
@@ -133,7 +131,6 @@ function checkExprtfileSize ( exportDir, fileType, expSize )
    var actSize = parseInt( File.stat( file ).toObj()["size"] );
    if( actSize > expSize )
    {
-      throw buildException( "testExprtImprtJson", null, "check file size",
-         expSize, actSize );
+      throw new Error( "testExprtImprtJson fail,check file size" + expSize + actSize );
    }
 }

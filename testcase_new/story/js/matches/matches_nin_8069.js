@@ -3,46 +3,38 @@
                     cover all data type
 *@Author:  2016/5/20  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8067";
+   var clName = COMMCLNAME + "_matches8067";
 
-      var cl = readyCL( clName );
+   var cl = readyCL( clName );
 
-      var dataType = ["int", "double", "null", "string", "bool",
-         "long", "oid", "regex", "binary", "date", "timestamp"];
-      var rawData = [{ int: -2147483648 },
-      { double: -1.7E+308 },
-      { null: null },
-      { string: "test" },
-      { bool: true },
-      { long: { "$numberLong": "-9223372036854775808" } },
-      { oid: { "$oid": "123abcd00ef12358902300ef" } },
-      { regex: { "$regex": "^rg", "$options": "i" } },
-      { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
-      { date: { "$date": "2038-01-18" } },
-      { timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" } }];
-      insertRecs( cl, rawData, dataType );
+   var dataType = ["int", "double", "null", "string", "bool",
+      "long", "oid", "regex", "binary", "date", "timestamp"];
+   var rawData = [{ int: -2147483648 },
+   { double: -1.7E+308 },
+   { null: null },
+   { string: "test" },
+   { bool: true },
+   { long: { "$numberLong": "-9223372036854775808" } },
+   { oid: { "$oid": "123abcd00ef12358902300ef" } },
+   { regex: { "$regex": "^rg", "$options": "i" } },
+   { binary: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } },
+   { date: { "$date": "2038-01-18" } },
+   { timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" } }];
+   insertRecs( cl, rawData, dataType );
 
-      var rc = findRecs( cl, rawData, dataType );
+   var rc = findRecs( cl, rawData, dataType );
 
-      checkResult( rc, rawData, dataType );
+   checkResult( rc, rawData, dataType );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 
 function insertRecs ( cl, rawData, dataType )
 {
-   println( "\n---Begin to insert records." );
 
    for( i = 0; i < rawData.length; i++ )
    {
@@ -52,7 +44,6 @@ function insertRecs ( cl, rawData, dataType )
 
 function findRecs ( cl, rawData, dataType )
 {
-   println( "\n---Begin to find records." );
 
    var tmpValue = [];
    for( i = 0; i < dataType.length; i++ )
@@ -66,22 +57,15 @@ function findRecs ( cl, rawData, dataType )
 
 function checkResult ( rc, rawData, dataType )
 {
-   println( "\n---Begin to check result." );
 
    var findRecsArray = [];
    while( tmpRecs = rc.next() )
    {
       findRecsArray.push( tmpRecs.toObj() );
    }
-   //println(JSON.stringify(findRecsArray));
 
    //compare number
    var expLen = 0;
-   if( findRecsArray.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRecsArray.length + "]" );
-   }
+   assert.equal( findRecsArray.length, expLen );
 
 }

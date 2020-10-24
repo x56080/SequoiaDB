@@ -12,9 +12,9 @@ var docs = [{ a: "1", b: "1" }, { a: "2", b: "2" }];
 var expRecs = ["{\"a\":\"1\",\"b\":\"1\"}",
    "{\"a\":\"2\",\"b\":\"2\"}"];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );
@@ -35,7 +35,6 @@ function testExprtImprt ()
    var csvfile = tmpFileDir + "sdbexprt13514.csv";
    cmd.run( "rm -rf " + csvfile );
    var asc = "0x23";
-   println( "ascii for delfield is: " + asc );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +

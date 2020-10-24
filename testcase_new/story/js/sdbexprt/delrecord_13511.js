@@ -13,9 +13,9 @@ var clname1 = COMMCLNAME + "_sdbimprt13511";
 var docs = [{ a: "testa" }, { a: "testb" }];
 var expRecs = ["{\"a\":\"testa\"}", "{\"a\":\"testb\"}"];
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, csname, clname );
    var cl1 = commCreateCL( db, csname, clname1 );
@@ -45,7 +45,6 @@ function testExprtImprtJson ()
    // avoid '"' and ','
    if( randNum == 34 || randNum == 44 ) randNum++;
    var asc = "\\" + randNum;
-   println( "ascii for delrecord is: " + asc );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +
@@ -77,7 +76,6 @@ function testExprtImprtCsv ()
    var csvfile = tmpFileDir + "sdbexprt13512.csv";
    cmd.run( "rm -rf " + csvfile );
    var asc = "0xab";
-   println( "ascii for delrecord is: " + asc );
    var command = installPath + "bin/sdbexprt" +
       " -s " + COORDHOSTNAME +
       " -p " + COORDSVCNAME +
@@ -103,4 +101,11 @@ function testExprtImprtCsv ()
    testRunCommand( command );
 
    cmd.run( "rm -rf " + csvfile );
+}
+
+function getRandomInt ( m, n )
+{
+   var range = n - m;
+   var ret = m + parseInt( Math.random() * range );
+   return ret;
 }

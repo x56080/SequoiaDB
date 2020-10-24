@@ -2,30 +2,24 @@
 *@Description:   seqDB-8046:使用$exists:1查询
 *@Author:  2016/5/20  xiaoni huang
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
-   try
-   {
-      var clName = COMMCLNAME + "_matches8046";
-      var cl = readyCL( clName );
 
-      insertRecs( cl );
-      var rc = findRecs( cl );
-      checkResult( rc );
+   var clName = COMMCLNAME + "_matches8046";
+   var cl = readyCL( clName );
 
-      cleanCL( clName );
-   }
-   catch( e )
-   {
-      throw e;
-   }
+   insertRecs( cl );
+   var rc = findRecs( cl );
+   checkResult( rc );
+
+   commDropCL( db, COMMCSNAME, clName, false, false );
+
 }
 
 function insertRecs ( cl )
 {
-   println( "\n---Begin to insert records." );
 
    cl.insert( [{ a: 0 },
    { a: 1, b: null },
@@ -34,7 +28,6 @@ function insertRecs ( cl )
 
 function findRecs ( cl )
 {
-   println( "\n---Begin to find records." );
 
    var rc = cl.find( { b: { $exists: 1 } } ).sort( { a: 1 } );
 
@@ -43,7 +36,6 @@ function findRecs ( cl )
 
 function checkResult ( rc )
 {
-   println( "\n---Begin to check result." );
 
    var findRtn = new Array();
    while( tmpRecs = rc.next() ) 
@@ -52,17 +44,12 @@ function checkResult ( rc )
    }
    //compare number
    var expLen = 2;
-   if( findRtn.length !== expLen )
-   {
-      throw buildException( "checkResult", null, "[compare number]",
-         "[recsNum:" + expLen + "]",
-         "[recsNum:" + findRtn.length + "]" );
-   }
+   assert.equal( findRtn.length, expLen );
    //compare records
    if( findRtn[0]["b"] !== null || findRtn[1]["b"] !== "" )
    {
-      throw buildException( "checkResult", null, "[compare records]",
-         "[b:" + null + ", b:" + "" + "]",
+      throw new Error( "checkResult fail,[compare records]" +
+         "[b:" + null + ", b:" + "" + "]" +
          "[b:" + findRtn[0]["b"] + ", b:" + findRtn[1]["b"] + "]" );
    }
 }

@@ -3,6 +3,7 @@
 *@Modify list :
 *               2018-1-10  wenjing Wang Init
 *******************************************************************************/
+testConf.skipStandAlone = true;
 function backupTestCase11668 ()
 {
 
@@ -29,14 +30,11 @@ backupTestCase11668.prototype.execTest =
    function( backupName, path )
    {
       this.docs = bakInsertData( this.cl );
-      println( "write docs: " + this.docs.length );
       this.oids.push( sdbPutLob( this.cl, path ) );
-      println( "putLob: " + this.oids[0] );
 
       bakBackup( this.db, { "Name": backupName } );
       if( this.group !== undefined )
       {
-         println( "backup on " + this.group.GroupName );
          this.removeNodeExceptPrimary();
       }
 
@@ -54,7 +52,9 @@ backupTestCase11668.prototype.execTest =
       this.checkResult();
    }
 
-function main ( db )
+main( test );
+
+function test ()
 {
    try
    {
@@ -67,8 +67,7 @@ function main ( db )
    }
    catch( e )
    {
-      var tmp = new Error( "tmp" )
-      if( e.constructor === tmp.constructor )
+      if( e instanceof Error )
       {
          println( e.fileName + ":" + e.lineNumber + " throw " + e.message );
          println( e.stack );
@@ -84,11 +83,8 @@ function main ( db )
    }
    finally
    {
-      commDropCL( db, this.csName, backupTestCase11668.prototype.clName, true, true, "finally ：Drop CL in the end" );
+      commDropCL( db, COMMCSNAME, backupTestCase11668.prototype.clName, true, true, "finally ：Drop CL in the end" );
       db.removeRG( backupandrestoreGroup );
    }
 
 }
-
-main( db )
-

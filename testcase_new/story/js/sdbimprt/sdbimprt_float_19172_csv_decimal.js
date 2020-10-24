@@ -3,9 +3,11 @@
          import type: decimal
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var type = 'csv';
    var tmpPrefix = "sdbimprt_decimal_19172";
@@ -16,7 +18,6 @@ function main ()
    var importFields = 'a int, b decimal';
    var findCond = { "b": { "$type": 2, "$et": "decimal" } };
 
-   println( "\n---------------------import data, test point 1---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint1( importFile );
    var expRecs = initExpectData_testPoint1( recsNum );
@@ -29,7 +30,6 @@ function main ()
    cl.truncate();
    cmd.run( "rm -rf " + importFile );
 
-   println( "\n---------------------import data, test point 2---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint2( importFile );
    var expRecs = initExpectData_testPoint2( recsNum );
@@ -42,7 +42,6 @@ function main ()
    cl.truncate();
    cmd.run( "rm -rf " + importFile );
 
-   println( "\n---------------------import data, test point 3---------------------" );
    // init import file and expect records
    var recsNum = initImportFile_testPoint3( importFile );
    var expRecs = initExpectData_testPoint3( recsNum );
@@ -60,7 +59,6 @@ function main ()
 
 function initImportFile_testPoint1 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 307;
    // 0, b value e.g: ".01E" / ".001E"......
@@ -78,7 +76,6 @@ function initImportFile_testPoint1 ( importFile )
 
 function initImportFile_testPoint2 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: ".000000000000001E++0" / ".000000000000001E+1"......".000000000000001E+400"
@@ -94,7 +91,6 @@ function initImportFile_testPoint2 ( importFile )
 
 function initImportFile_testPoint3 ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var recordsNum = 400;
    // 0, b value e.g: ".01E" / ".011E"......
@@ -112,7 +108,6 @@ function initImportFile_testPoint3 ( importFile )
 
 function initExpectData_testPoint1 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var bVal = "0.0";
    for( var i = 0; i < expRecsNum; i++ )
@@ -126,7 +121,6 @@ function initExpectData_testPoint1 ( expRecsNum )
 
 function initExpectData_testPoint2 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var record;
    var tmpBVal1 = "000000000000001";
@@ -150,7 +144,6 @@ function initExpectData_testPoint2 ( expRecsNum )
 
 function initExpectData_testPoint3 ( expRecsNum )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var bVal = "0.01";
    for( var i = 0; i < expRecsNum; i++ )

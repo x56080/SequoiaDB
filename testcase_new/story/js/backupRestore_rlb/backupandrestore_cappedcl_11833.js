@@ -4,9 +4,9 @@
 *@createdate:  2019.7.17
 *@testlinkCase:seqDB-11833
 **************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
@@ -24,7 +24,7 @@ function main ()
    bakInsertData( dbcl );
    bakRemoveBackups( db, backupName, true );
    // back up
-   bakBackup( this.db, { "Name": backupName, GroupName: groupNames } );
+   bakBackup( db, { "Name": backupName, GroupName: groupNames } );
 
    var nodeinfo;
    var cmd = new Cmd();
@@ -39,7 +39,6 @@ function main ()
             var hostName = rg.Group[i].HostName;
             var svcName = rg.Group[i].Service[0].Name;
             var dbPath = rg.Group[i].dbpath;
-            println( "hostName: " + hostName + "svcName: " + svcName + "dbPath: " + dbPath );
             nodeinfo = new nodeInfo( groupNames[0], hostName, svcName, dbPath );
             cmd = getCmdByHostName( cmd, hostName );
             break;

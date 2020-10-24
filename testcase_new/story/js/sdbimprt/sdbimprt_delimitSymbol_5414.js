@@ -23,7 +23,6 @@ function readyData ( imprtFile )
    var file = fileInit( imprtFile );
    file.write( "atest,btest\n1,1\n2,2" );
    var fileInfo = cmd.run( "cat " + imprtFile );
-   println( imprtFile + "\n" + fileInfo );
    file.close();
 }
 

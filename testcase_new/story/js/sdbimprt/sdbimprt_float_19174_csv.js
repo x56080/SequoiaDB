@@ -2,9 +2,10 @@
 *@Description:  seqDB-19174:浮点数特殊值测试（如0. / .0 / . / .E / 00）
 *@Author     :  2019-8-21  huangxiaoni
 ************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    var type = 'csv';
    var tmpPrefix = "sdbimprt_19174";
@@ -21,7 +22,6 @@ function main ()
    var findTypeArr = ["int32", "int64", "double", "decimal"];
    for( var i = 0; i < bValTypeArr.length; i++ )
    {
-      println( "\n---------------------import data, b value type is " + bValTypeArr[i] + ", test point " + ( i + 1 ) + "---------------------" );
       var expRecs = initExpectData_testPoint( expRecsNum, bValTypeArr[i] );
       // import
       var importFields = 'a int, b ' + bValTypeArr[i];
@@ -42,7 +42,6 @@ function main ()
 
 function initImportFile_testPoint ( importFile )
 {
-   println( "\n---Begin to ready import file." );
    var file = fileInit( importFile );
    var tmpNum = 400;
    var recordsNum = tmpNum * 3 + 2;
@@ -83,7 +82,6 @@ function initImportFile_testPoint ( importFile )
 
 function initExpectData_testPoint ( expRecsNum, bValType )
 {
-   println( "\n---Begin to ready expect data." );
    var expRecs = [];
    var bVal = "0.0";
    for( var i = 0; i < expRecsNum; i++ )

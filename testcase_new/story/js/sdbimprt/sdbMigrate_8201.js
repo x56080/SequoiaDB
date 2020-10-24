@@ -8,20 +8,9 @@
 *               2019-12-02  Siqin Chen  Change
 *******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-function main ()
+function test ()
 {
 
    var clName = COMMCLNAME + "_import8201";
@@ -83,24 +72,15 @@ function testImportData8201 ( csName, clName, imprtFile, cl )
    var imprtOption = installDir + "bin/sdbimprt " + "--hostname " + COORDHOSTNAME + " --svcname " + COORDSVCNAME +
       " -c " + csName + " -l " + clName + " --file " + imprtFile +
       " --type json ";
-   println( imprtOption );
-   try
+   cmd.run( imprtOption );
+   var cnt = 0;
+   while( 5462 != cl.count() && 1000 > cnt )
    {
-      cmd.run( imprtOption );
-      var cnt = 0;
-      while( 5462 != cl.count() && 1000 > cnt )
-      {
-         cnt++;
-         sleep( 3 );
-      }
-      if( 5462 != cl.count() )
-      {
-         throw new Error( "expect count: 5462, actual count: " + cl.count() );
-      }
+      cnt++;
+      sleep( 3 );
    }
-   catch( e )
+   if( 5462 != cl.count() )
    {
-      println( "failed to import records" + e );
-      throw e;
+      throw new Error( "expect count: 5462, actual count: " + cl.count() );
    }
 }

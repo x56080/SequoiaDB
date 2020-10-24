@@ -4,7 +4,7 @@
 *******************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    var clName1 = COMMCLNAME + "_sdbexprt_13540";
    var clName2 = COMMCLNAME + "_sdbimprt_13540";
@@ -40,12 +40,11 @@ function test()
       " --fields='a int'";
    testRunCommand( command );
 
-   var expRecords = [ { "a": 1 } ];
+   var expRecords = [{ "a": 1 }];
    var cursor = cl2.find( {}, { _id: { $include: 0 } } );
-   commCompareResults ( cursor, expRecords, false );
+   commCompareResults( cursor, expRecords, false );
 
    cmd.run( "rm -rf " + csvFile );
    commDropCL( db, COMMCSNAME, clName1 );
    commDropCL( db, COMMCSNAME, clName2 );
 }
-
