@@ -4,7 +4,9 @@
 *               2016-07-11   XueWang Liang  Init
 ******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
 
@@ -26,24 +28,4 @@ function main ( db )
    expRecs = { bin: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" } };
    checkRec( rc, [expRecs] );
 
-   println( ">success to test CRUD with BinData function.\n\n" );
-}
-
-
-// Test
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the beginning" );
-   main( db );
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the end, wrong" );
-   db.close();
 }

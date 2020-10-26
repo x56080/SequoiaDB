@@ -4,8 +4,11 @@
 *               2016-07-11   XueWang Liang  Init
 ******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true);
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
 
    // 以MinKey, MaxKey函数的方式插入数据
@@ -17,28 +20,7 @@ function main ( db )
    var expRecs = [{ _id: 1, key: { $minKey: 1 } }, { _id: 2, key: { $maxKey: 1 } }];
    checkRec( rc, expRecs );
 
-   println( ">success to test CRUD with MinKey MaxKey function.\n\n" );
-
-
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true);
    // 不能以find( {key:Minkey()} ) find( {key:MaxKey()} )的方式查询数据 不支持  报错-6
    // 不能以find( {key:{$type: }} )的方式查询数据 MinKey MaxKey没有type值
-}
-
-
-// Test
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the beginning" );
-   main( db );
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the end, wrong" );
-   db.close();
 }

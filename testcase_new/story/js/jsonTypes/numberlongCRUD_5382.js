@@ -4,10 +4,11 @@
 *               2016-07-11   XueWang Liang  Init
 ******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
-
 
    // 以NumberLong函数的方式插入数据
    cl.insert( { number: NumberLong( 100 ) } );
@@ -33,25 +34,4 @@ function main ( db )
    expRecs = [{ number: 100 }, { number: 202 }];
    checkRec( rc, expRecs );
 
-
-   println( ">success to test CRUD with NumberLong function.\n\n" );
-}
-
-
-// Test
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the beginning" );
-   main( db );
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the end, wrong" );
-   db.close();
 }

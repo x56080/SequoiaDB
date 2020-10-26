@@ -4,7 +4,9 @@
               2016-8-10  wuyan  Init
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_5571";
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );
@@ -13,26 +15,18 @@ function main ( db )
    var idxCL = commCreateCL( db, COMMCSNAME, clName, { AutoIndexId: false, Compressed: true }, true, true );
 
    // create Idindex
-   createIdIndex( idxCL );
+   idxCL.createIdIndex();
 
    // inspect the index
    inspecIndex( idxCL, "$id", "_id", 1 );
 
    //after create index, insert data
-   try
+   var doc = [];
+   for( var i = 0; i < 1000; ++i )
    {
-      var doc = [];
-      for( var i = 0; i < 1000; ++i )
-      {
-         doc.push( { _id: i, a: "test" + i } );
-      }
-      idxCL.insert( doc );
+      doc.push( { _id: i, a: "test" + i } );
    }
-   catch( e )
-   {
-      println( "Failed to insert date after create index : " + e );
-      throw e;
-   }
+   idxCL.insert( doc );
 
    //test find by index 
    checkExplain( idxCL, { _id: 8 } );
@@ -47,19 +41,6 @@ function main ( db )
    // inspect the index
    commCheckIndexConsistency( idxCL, "$id", false );
 
-
    // drop collection in clean
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
-
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}
-

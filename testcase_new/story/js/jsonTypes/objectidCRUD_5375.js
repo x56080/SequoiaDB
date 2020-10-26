@@ -4,7 +4,9 @@
 *               2016-07-12   XueWang Liang  Init
 ******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
    var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true, "create CL in the begining..." );
 
@@ -26,24 +28,4 @@ function main ( db )
    expRecs = { id: { $oid: "55713f7953e6769804000001" } };
    checkRec( rc, [expRecs] );
 
-   println( ">success to test CRUD with ObjectId function.\n\n" );
-}
-
-
-// Test
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the beginning" );
-   main( db );
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clean collection in the end, wrong" );
-   db.close();
 }

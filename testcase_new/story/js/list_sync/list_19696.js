@@ -8,7 +8,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groupName = commGetGroups( db )[0][0].GroupName;
    var backupName = "backup_19696";

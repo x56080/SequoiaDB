@@ -4,7 +4,9 @@
               2016-8-10  wuyan  Init
 ****************************************************************************/
 var clName = CHANGEDPREFIX + "_5583";
-function main ( db )
+main( test );
+
+function test ()
 {
    // drop collection in the beginning
    commDropCL( db, COMMCSNAME, clName, true, true, "drop collection in the beginning" );
@@ -16,62 +18,28 @@ function main ( db )
    idxCL.dropIdIndex();
 
    //insert data
-   try
+   var doc = [];
+   for( var i = 0; i < 100; ++i )
    {
-      var doc = [];
-      for( var i = 0; i < 100; ++i )
-      {
-         doc.push( { _id: i, a: "test" + i } );
-      }
-      idxCL.insert( doc );
+      doc.push( { _id: i, a: "test" + i } );
    }
-   catch( e )
-   {
-      println( "Failed to insert date after create index : " + e );
-      throw e;
-   }
+   idxCL.insert( doc );
 
    //update data
-   try
-   {
-      idxCL.find( { _id: 3 } ).update( { $set: { a: "testa" } } );
-   }
-   catch( e )
-   {
-      if( -279 != e )
-      {
-         println( "update failed , rc = " + e );
-         throw e;
-      }
-   }
+   idxCL.find( { _id: 3 } ).update( { $set: { a: "testa" } } );
 
    //remove data
-   try
+   assert.tryThrow( -279, function()
    {
       idxCL.remove( { _id: 3 } );
-   }
-   catch( e )
-   {
-      if( -279 != e )
-      {
-         println( "remove failed , rc = " + e );
-         throw e;
-      }
-   }
+   } );
 
    // create Idindex
-   createIdIndex( idxCL, { SortBufferSize: 256 } );
+   idxCL.createIdIndex( { SortBufferSize: 256 } );
+
    //update data and remove data
-   try
-   {
-      idxCL.find( { _id: 3 } ).update( { $set: { a: "testa" } } );
-      idxCL.remove( { _id: 2 } );
-   }
-   catch( e )
-   {
-      println( "update or remove failed , rc = " + e );
-      throw e;
-   }
+   idxCL.find( { _id: 3 } ).update( { $set: { a: "testa" } } );
+   idxCL.remove( { _id: 2 } );
 
    // inspect the index
    inspecIndex( idxCL, "$id", "_id", 1 );
@@ -81,21 +49,6 @@ function main ( db )
    var rc = idxCL.find( { _id: { $lt: 4 } } ).sort( { _id: 1 } );
    checkCLData( expRecs, rc );
 
-
-
-
    // drop collection in clean
-   commDropCL( db, COMMCSNAME, clName, false, false,
-      "drop colleciton in the end" );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
-
-try
-{
-   main( db );
-   db.close();
-}
-catch( e )
-{
-   throw e;
-}
-

@@ -8,7 +8,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var group = commGetGroups( db )[0];
    var groupName = group[0].GroupName;
@@ -18,37 +18,27 @@ function test()
 
    var options = { "GroupName": groupName };
    forceSession( hostName, svcName, options );
- 
+
    options = { "GroupID": groupID };
    forceSession( hostName, svcName, options );
 }
 
-function forceSession( hostName, svcName, options )
+function forceSession ( hostName, svcName, options )
 {
+   var dataDB = new Sdb( hostName, svcName );
+   var sessionID = dataDB.list( 3 ).next().toObj().SessionID;
    try
    {
-      var dataDB = new Sdb( hostName, svcName );
-      var sessionID = dataDB.list(3).next().toObj().SessionID;
-      try
-      {
-         db.forceSession( sessionID, options );
-      }
-      catch( e )
-      {
-         if( e !== -264 )
-         {
-            throw e;
-         }
-      }
-
-      var res = db.list( 3, { SessionId: sessionID } ).toArray();
-      if( res.length !== 0 )
-      {
-         throw "res = " + res.length;
-      }
+      db.forceSession( sessionID, options );
    }
    catch( e )
    {
-      throw new Error( e );
+      if( e.message != -264 )
+      {
+         throw e;
+      }
    }
+
+   var res = db.list( 3, { SessionId: sessionID } ).toArray();
+   assert.equal( res.length, 0 );
 }

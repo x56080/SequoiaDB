@@ -7,21 +7,9 @@
 *******************************************************************/
 var clName = COMMCLNAME + "_dbClasses14670";
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    var cl = commCreateCL( db, COMMCSNAME, clName );
 
@@ -40,19 +28,11 @@ function main ()
       throw new Error( "expect: 2, actual: " + cnt );
    }
 
-   try
+   assert.tryThrow( -6, function()
    {
       var error = cl.count().hint( 1 );
       println( error );
-      throw "need error";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    commDropCL( db, COMMCSNAME, clName );
 }

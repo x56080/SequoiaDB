@@ -7,7 +7,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var cata = commGetGroups( db, true, "SYSCatalogGroup", false );
    for( var i = 1; i < cata[0].length; i++ )
@@ -33,32 +33,17 @@ function test()
    forceSession( dataHostName, dataSvcName, false );
 }
 
-function forceSession( hostName, svcName, flag )
+function forceSession ( hostName, svcName, flag )
 {
-   try
-   {
-      var db1 = new Sdb( hostName, svcName );
-      var db2 = new Sdb( hostName, svcName );
+   var db1 = new Sdb( hostName, svcName );
+   var db2 = new Sdb( hostName, svcName );
 
-      var oldSessionID = db1.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj().SessionID;
-      var options = flag === true ? { "NodeName": hostName + ":" + svcName } : { "NodeID": 4321 }   
-      db2.forceSession( oldSessionID, options );
+   var oldSessionID = db1.list( SDB_LIST_SESSIONS_CURRENT ).next().toObj().SessionID;
+   var options = flag === true ? { "NodeName": hostName + ":" + svcName } : { "NodeID": 4321 }
+   db2.forceSession( oldSessionID, options );
 
-      try
-      {
-         var sessionList = db1.list( SDB_LIST_SESSIONS );
-         throw "NEED_ERROR";
-      }
-      catch( e )
-      {
-         if( e !== -15 && e !== -16 )
-         {
-            throw e;
-         }
-      }
-   }
-   catch( e )
+   assert.tryThrow( [-15, -16], function()
    {
-      throw new Error( e );
-   }
+      db1.list( SDB_LIST_SESSIONS );
+   } );
 }

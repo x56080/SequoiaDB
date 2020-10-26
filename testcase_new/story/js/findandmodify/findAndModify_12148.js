@@ -4,6 +4,26 @@
 *   2014-4-6 wenjing wang  Init
 *******************************************************************************/
 
+main( test );
+
+function test ()
+{
+   if( true != commIsStandalone( db ) && commGetGroupsNum( db ) > 1 )
+   {
+      var clName = COMMCLNAME + "_12148";
+      commDropCL( db, COMMCSNAME, clName );
+      var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: 'range', ShardingKey: { '_id': 1 } } );
+      splittable( db, cl, clName );
+      test_UsedSkipOfFailed( cl );
+      test_UsedLimitOfFailed( cl );
+      test_UsedSkipAndLimitOfFailed( cl );
+      test_UsedSkipOfSuccess( cl );
+      test_UsedLimitOfSuccess( cl );
+      test_UsedSkipAndLimitOfSuccess( cl );
+      commDropCL( db, COMMCSNAME, clName );
+   }
+}
+
 /*******************************************************************************
 *@Description：测试op为update时, 结合使用skip，结果不落在单个分区上
 *@Input：find().skip( 5 ).update( {$set:{b:1}} )
@@ -11,20 +31,12 @@
 ********************************************************************************/
 function test_UsedSkipOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );
       var arrdoc = cl.find().skip( 5 ).update( { $set: { b: 1 } } ).toArray();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -35,20 +47,12 @@ function test_UsedSkipOfFailed ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );
       var arrdoc = cl.find().limit( 5 ).update( { $set: { b: 1 } } ).toArray();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -59,21 +63,12 @@ function test_UsedLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );
       var arrdoc = cl.find().skip( 2 ).limit( 5 ).update( { $set: { b: 1 } } ).toArray();
-
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -129,35 +124,4 @@ function test_UsedSkipAndLimitOfSuccess ( cl )
       throw new Error( "arrdoc: " + arrdoc );
    }
    cl.truncate();
-}
-
-function main ()
-{
-   if( true != commIsStandalone( db ) && commGetGroupsNum( db ) > 1 )
-   {
-      var clName = COMMCLNAME + "_12148";
-      commDropCL( db, COMMCSNAME, clName );
-      var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingType: 'range', ShardingKey: { '_id': 1 } } );
-      splittable( db, cl, clName );
-      test_UsedSkipOfFailed( cl );
-      test_UsedLimitOfFailed( cl );
-      test_UsedSkipAndLimitOfFailed( cl );
-      test_UsedSkipOfSuccess( cl );
-      test_UsedLimitOfSuccess( cl );
-      test_UsedSkipAndLimitOfSuccess( cl );
-      commDropCL( db, COMMCSNAME, clName );
-   }
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

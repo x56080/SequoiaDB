@@ -4,32 +4,18 @@
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
    //var groups = getDataGroups( db );
    var groups = commGetDataGroupNames( db );
    if( groups.length <= 1 )
    {
-      println( "Groups num too few" );
       return;
    }
    var group1 = groups[0];
@@ -62,12 +48,12 @@ function checkGroupStatus ( db, groupname, status )
       try
       {
          var dataDb = new Sdb( nodes[i].HostName + ":" + nodes[i].svcname );
-         if( status === "stop" ) throw 0;
+         if( status === "stop" ) throw new Error( "should error" );
       }
       catch( e )
       {
-         if( status === "stop" && ( e === -15 || e === -79 ) )
-            ; // when group stopped, connect throw -15 or -79, do nothing
+         if( status === "stop" && ( e.message == -15 || e.message == -79 ) )
+         { } // when group stopped, connect throw -15 or -79, do nothing
          else
          {
             var expectErr = ( status === "stop" ) ? -15 : 0;
@@ -102,7 +88,7 @@ function waitPrimary ( db, groupname )
          }
          else
          {
-            throw new Error( e );
+            throw e;
          }
 
       }

@@ -8,17 +8,17 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var nodeNum = 1;
    var groupName = "rg_14818_14821";
-   var hostName = commGetGroups ( db )[0][1].HostName;
+   var hostName = commGetGroups( db )[0][1].HostName;
    var nodeOption = { diaglevel: 3 };
    var nodes = commCreateRG( db, groupName, nodeNum, hostName, nodeOption );
 
    //指定diaglevel创建节点会将此参数写入节点conf文件，由于后面会校验节点conf文件里的配置参数，将此参数从conf文件里删除，以便后面校验
    var config = { "diaglevel": 1 };
-   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() }; 
+   var options = { "HostName": nodes[0].hostname, "ServiceName": nodes[0].svcname.toString() };
    deleteConf( db, config, options );
 
    //当前值为默认值，修改参数值为默认值
@@ -51,10 +51,10 @@ function test()
    deleteConf( db, config, options );
 
    //补充问题单SEQUOIADBMAINSTREAM-4809中关于非法值的测试点
-   testInvalidValue(nodes,groupName);
+   testInvalidValue( nodes, groupName );
 
    var key = Object.getOwnPropertyNames( config )[0];
-   config[ key ] = getConfigs( "defaultVal" )[ "runConfigs" ][ key ];
+   config[key] = getConfigs( "defaultVal" )["runConfigs"][key];
    snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
    checkResult( config, snapshotInfo );
    fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
@@ -67,26 +67,28 @@ function test()
  @Description : 补充问题单SEQUOIADBMAINSTREAM-4809中的测试点的测试点
  @Modify list : 2020.9.5 yipan
  *******************************************************************************/
-function  testInvalidValue(nodes,groupName) {
+function testInvalidValue ( nodes, groupName )
+{
    var data = [];
-   data.push(new configuration("preferedinstance","runConfigs","1,N,2,M,Y","M,1,2"));
-   data.push(new configuration("preferedinstance","runConfigs","3,4,A","3,4,A"));
-   data.push(new configuration("preferedinstance","runConfigs","aaa","M"));
-   data.push(new configuration("preferedinstancemode","runConfigs","ordered","ordered"));
-   data.push(new configuration("preferedinstancemode","runConfigs","aaa","random"));
-   data.push(new configuration("diagnum","runConfigs",-10,-1));
-   data.push(new configuration("auditnum","runConfigs",-100,-1));
-   data.push(new configuration("transisolation","runConfigs",-10,0));
-   data.push(new configuration("transisolation","runConfigs",100,2));
-   data.push(new configuration("maxreplsync","runConfigs",300,200));
-   data.push(new configuration("maxreplsync","expFail",-1,10));
-   data.push(new configuration("numpreload","expFail",-1,0));
-   data.push(new configuration("numpreload","rebootConfigs",2000,100));
-   data.push(new configuration("maxprefpool","expFail",-1,0));
-   data.push(new configuration("maxprefpool","rebootConfigs",2000,1000));
+   data.push( new configuration( "preferedinstance", "runConfigs", "1,N,2,M,Y", "M,1,2" ) );
+   data.push( new configuration( "preferedinstance", "runConfigs", "3,4,A", "3,4,A" ) );
+   data.push( new configuration( "preferedinstance", "runConfigs", "aaa", "M" ) );
+   data.push( new configuration( "preferedinstancemode", "runConfigs", "ordered", "ordered" ) );
+   data.push( new configuration( "preferedinstancemode", "runConfigs", "aaa", "random" ) );
+   data.push( new configuration( "diagnum", "runConfigs", -10, -1 ) );
+   data.push( new configuration( "auditnum", "runConfigs", -100, -1 ) );
+   data.push( new configuration( "transisolation", "runConfigs", -10, 0 ) );
+   data.push( new configuration( "transisolation", "runConfigs", 100, 2 ) );
+   data.push( new configuration( "maxreplsync", "runConfigs", 300, 200 ) );
+   data.push( new configuration( "maxreplsync", "expFail", -1, 10 ) );
+   data.push( new configuration( "numpreload", "expFail", -1, 0 ) );
+   data.push( new configuration( "numpreload", "rebootConfigs", 2000, 100 ) );
+   data.push( new configuration( "maxprefpool", "expFail", -1, 0 ) );
+   data.push( new configuration( "maxprefpool", "rebootConfigs", 2000, 1000 ) );
 
-   for(var i = 0;i<data.length;i++){
-      var key =  data[i]["name"];
+   for( var i = 0; i < data.length; i++ )
+   {
+      var key = data[i]["name"];
       //updateConf对象
       var config = {};
       config[key] = data[i]["invalidVal"];
@@ -94,43 +96,45 @@ function  testInvalidValue(nodes,groupName) {
       var expResult = {};
       expResult[key] = data[i]["expResult"]
       //修改配置
-      if(data[i]["type"]=="expFail"){
+      if( data[i]["type"] == "expFail" )
+      {
          //期望失败
-         try{
-            db.updateConf(config);
-            throw new Error("updateConf{"+data[i]["name"]+data[i]["invalidVal"]+"} exec success");
-         }catch (e) {
-            if(e != -6 ) {
-               throw e;
-            }
-         }
-      }else if(data[i]["type"]=="rebootConfigs"){
+         assert.tryThrow( -6, function()
+         {
+            db.updateConf( config );
+         } );
+      } else if( data[i]["type"] == "rebootConfigs" )
+      {
          //重启生效
-         try{
-            db.updateConf(config);
-            throw new Error("updateConf{"+data[i]["name"]+data[i]["invalidVal"]+"} exec success");
-         }catch (e) {
-            if(e != -322 ){
+         try
+         {
+            db.updateConf( config );
+            throw new Error( "updateConf{" + data[i]["name"] + data[i]["invalidVal"] + "} exec success" );
+         } catch( e )
+         {
+            if( e.message != -322 )
+            {
                throw e;
             }
             db.getRG( groupName ).stop();
             db.getRG( groupName ).start();
             var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
-            checkResult(expResult,snapshotInfo);
+            checkResult( expResult, snapshotInfo );
             var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
-            checkResult(expResult,fileInfo);
+            checkResult( expResult, fileInfo );
          }
-      } else if(data[i]["type"]=="runConfigs"){
+      } else if( data[i]["type"] == "runConfigs" )
+      {
          //在线生效
-         db.updateConf(config);
+         db.updateConf( config );
          var actResult = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
-         checkResult(expResult,actResult);
+         checkResult( expResult, actResult );
          var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
-         checkResult(expResult,fileInfo);
+         checkResult( expResult, fileInfo );
       }
    }
 };
-function configuration ( name, type, invalidVal, expResult)
+function configuration ( name, type, invalidVal, expResult )
 {
    this.name = name;//属性名
    this.type = type;//类型

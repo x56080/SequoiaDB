@@ -7,7 +7,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var userName1 = "user_19695_1";
    var userName2 = "user_19695_2";
@@ -29,35 +29,19 @@ function test()
    }
 }
 
-function checkListUsers( user, options )
+function checkListUsers ( user, options )
 {
-   try
+   var cursor = db.list( SDB_LIST_USERS, { "User": user } );
+   var count = 0;
+   while( cursor.next() )
    {
-      var cursor = db.list( SDB_LIST_USERS, { "User": user } );
-      var count = 0;
-      while( cursor.next() )
-      {
-         var obj = cursor.current().toObj();
-         if( obj.User !== user )
-         {
-            throw "The expUser is " + user + ", actUser " + obj.User;
-         }
+      var obj = cursor.current().toObj();
+      assert.equal( obj.User, user );
 
-         if( JSON.stringify( obj.Options ) !== JSON.stringify( options ) )
-         {
-            throw "The expOptions is " + JSON.stringify( options ) + ", actual options is " + JSON.stringify( obj.Options );
-         }
-         count++;
-      }
+      assert.equal( obj.Options, options );
 
-      if( count !== 1 )
-      {
-         throw "The expected count is 1, but the actual count is " + count;
-      }
+      count++;
    }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+
+   assert.equal( count, 1 );
 }
-

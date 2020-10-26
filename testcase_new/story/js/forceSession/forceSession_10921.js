@@ -6,38 +6,36 @@
 testConf.skipStandAlone = true;
 main( test );
 
-function test()
+function test ()
 {
    // 获取所有系统EDU类型的session，并随机从中取得一个用于force(Name为DATASYNC-JOB-D的系统会话可以被强杀)
-   var sessions = db.list( 2, { Global: true, Status: { $ne: "Waiting" },
-                                Name: { $nin: [ "DATASYNC-JOB-D"] },
-                                Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } );
+   var sessions = db.list( 2, {
+      Global: true, Status: { $ne: "Waiting" },
+      Name: { $nin: ["DATASYNC-JOB-D"] },
+      Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+   } );
    var obj = sessions.next().toObj();
    var sessionID = obj.SessionID;
 
    //list加条件是因为通过sessionid有可能也能查到非系统EDU类型的session
-   var expResult = db.list( 2, { Global: true, SessionID: sessionID, Status: { $ne: "Waiting" }, 
-                                 Name: { $nin: [ "DATASYNC-JOB-D"] },
-                                 Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } ).toArray();
+   var expResult = db.list( 2, {
+      Global: true, SessionID: sessionID, Status: { $ne: "Waiting" },
+      Name: { $nin: ["DATASYNC-JOB-D"] },
+      Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+   } ).toArray();
 
-   try 
+   assert.tryThrow( -63, function()
    {
       db.forceSession( sessionID, { Global: true } );
-      throw "force session: " + JSON.stringify( obj ) + " should be failed";
-   }
-   catch( e ) 
-   {
-      if( e != -63 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
-   var actResult = db.list( 2, { Global: true, SessionID: sessionID, Status: { $ne: "Waiting" }, 
-                                 Name: { $nin: [ "DATASYNC-JOB-D"] },
-                                 Type: { $nin: [ "Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent" ] } } ).toArray();
+   var actResult = db.list( 2, {
+      Global: true, SessionID: sessionID, Status: { $ne: "Waiting" },
+      Name: { $nin: ["DATASYNC-JOB-D"] },
+      Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
+   } ).toArray();
    if( expResult.length !== actResult.length )
    {
-      throw new Error( "expResult: " + JSON.stringify(expResult) + "\nactResult: " + JSON.stringify(actResult) + "\nsession info: " + JSON.stringify( obj ) );
+      throw new Error( "expResult: " + JSON.stringify( expResult ) + "\nactResult: " + JSON.stringify( actResult ) + "\nsession info: " + JSON.stringify( obj ) );
    }
 }

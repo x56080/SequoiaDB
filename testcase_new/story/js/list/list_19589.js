@@ -8,10 +8,10 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = commGetGroups( db );
-   var nodeName =  groups[0][1].HostName + ":" +  groups[0][1].svcname;
+   var nodeName = groups[0][1].HostName + ":" + groups[0][1].svcname;
    var array = db.list( SDB_LIST_SVCTASKS, { "NodeName": nodeName, "TaskID": 0, "TaskName": "Default" } ).toArray();
    if( array.length !== 1 )
    {

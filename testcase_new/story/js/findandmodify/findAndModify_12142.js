@@ -4,6 +4,23 @@
 *   2014-4-3 wenjing wang  Init
 *******************************************************************************/
 
+main( test );
+
+function test ()
+{
+   var clName = COMMCLNAME + "_12142";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCLNAME, clName );
+   testNormal( cl );
+   testSortNotExistIndex( cl );
+   testSortExistIndex( cl );
+   testWithCount( cl )
+   testUsedSkipNonSplit( cl );
+   testUsedLimitNonSplit( cl );
+   testUsedSkipAndLimitNonSplit( cl );
+   commDropCL( db, COMMCSNAME, clName );
+}
+
 /***********************************************************************
 *@Description：op为remove时, 正常操作
 *@Input：find( {a:1} ).remove()
@@ -156,32 +173,4 @@ function testUsedSkipAndLimitNonSplit ( cl )
       throw new Error( "arrdoc: " + arrdoc );
    }
    cl.truncate();
-}
-
-function main ()
-{
-   var clName = COMMCLNAME + "_12142";
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCLNAME, clName );
-   testNormal( cl );
-   testSortNotExistIndex( cl );
-   testSortExistIndex( cl );
-   testWithCount( cl )
-   testUsedSkipNonSplit( cl );
-   testUsedLimitNonSplit( cl );
-   testUsedSkipAndLimitNonSplit( cl );
-   commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -4,21 +4,9 @@
 * @author      : Liang XueWang
 *                2018-03-12
 *******************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    var number = 2147483648;
    var numberLong = NumberLong( number );

@@ -3,6 +3,22 @@
 *@Modify list:
 *   2014-4-7 wenjing wang  Init
 *******************************************************************************/
+
+main( test );
+
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   var clName = COMMCLNAME + "_12141_12145";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
+   test_SetSessionAttrIsSlaveWithUpdate( db, cl );
+   test_SetSessionAttrIsSlaveWithRemove( db, cl );
+   commDropCL( db, COMMCSNAME, clName );
+}
 /*******************************************************************************
 *@Description：测试op为update时, 设置setSessionAttr( {PreferedInstance:"S"} )
 *@Input：find().update( {$inc:{a:1}} )
@@ -41,32 +57,4 @@ function test_SetSessionAttrIsSlaveWithRemove ( db, cl )
       throw new Error( "recordnum: " + recordnum );
    }
    cl.truncate();
-}
-
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      println( "standalone mode" );
-      return;
-   }
-   var clName = COMMCLNAME + "_12141_12145";
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName );
-   test_SetSessionAttrIsSlaveWithUpdate( db, cl );
-   test_SetSessionAttrIsSlaveWithRemove( db, cl );
-   commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

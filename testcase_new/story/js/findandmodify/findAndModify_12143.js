@@ -3,7 +3,22 @@
 *@Modify list:
 *   2014-4-8 wenjing wang  Init
 *******************************************************************************/
+main( test );
 
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   var clName = COMMCLNAME + "_12143";
+   commDropCL( db, COMMCSNAME, clName );
+   var maincl = commCreateCL( db, COMMCSNAME, clName, { IsMainCL: true, ShardingType: 'range', ShardingKey: { 'date': 1 } } );
+   test_subclnonsplit( db, maincl, clName );
+   test_subclsplit( db, maincl, clName );
+   test_subclonsamegroup( db, maincl, clName );
+   commDropCL( db, COMMCSNAME, clName );
+}
 /*******************************************************************************
 *@Description：测试op为remove时, 主子表情况下结合skip, 结果不落在单张子表上
 *@Input：find( {date:{$gte:20150101}} ).skip( 2 ).remove()
@@ -76,7 +91,6 @@ function test_UsedSkipAndLimitOfFailed ( cl )
    }
    cl.truncate();
 }
-
 
 /*******************************************************************************
 *@Description：测试op为remove时, 主子表情况下结合skip, 结果不落在单张子表上
@@ -221,7 +235,6 @@ function test_UsedSkipAndLimitOfSuccessNonSplit ( cl )
    cl.truncate();
 }
 
-
 /*******************************************************************************
 *@Description：测试op为remove时, 主子表情况下，子表切分的情况下使用skip( 结果落在单分区上 )
 *@Input：find( {$and:[{date:{$gte:20150101}}, 
@@ -340,32 +353,3 @@ function test_subclonsamegroup ( db, maincl, clName )
    }
    fini( db, clName );
 }
-
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-   var clName = COMMCLNAME + "_12143";
-   commDropCL( db, COMMCSNAME, clName );
-   var maincl = commCreateCL( db, COMMCSNAME, clName, { IsMainCL: true, ShardingType: 'range', ShardingKey: { 'date': 1 } } );
-   test_subclnonsplit( db, maincl, clName );
-   test_subclsplit( db, maincl, clName );
-   test_subclonsamegroup( db, maincl, clName );
-   commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

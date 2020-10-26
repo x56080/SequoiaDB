@@ -1911,7 +1911,7 @@ function commCompareErrorCode ( e, code )
 ******************************************************************************/
 function commThrowError ( e, msg )
 {
-   if( e.constructor === Error )
+   if( e instanceof Error )
    {
       throw e;
    } else

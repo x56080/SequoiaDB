@@ -3,7 +3,22 @@
 *@Modify list:
 *   2014-4-8 wenjing wang  Init
 *******************************************************************************/
+main( test );
 
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   var clName = COMMCLNAME + "_12147";
+   commDropCL( db, COMMCSNAME, clName );
+   var maincl = commCreateCL( db, COMMCSNAME, clName, { IsMainCL: true, ShardingType: 'range', ShardingKey: { 'date': 1 } } );
+   test_subclnonsplit( db, maincl, clName );
+   test_subclsplit( db, maincl, clName );
+   test_subclonsamegroup( db, maincl, clName );
+   commDropCL( db, COMMCSNAME, clName );
+}
 /*******************************************************************************
 *@Description：测试op为update时, 主子表情况下结合skip, 结果不落在单张子表上
 *@Input：find( {date:{$gte:20150101}} ).skip( 5 ).update( {$set:{b:1}} )
@@ -11,19 +26,11 @@
 ********************************************************************************/
 function test_UsedSkipOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).skip( 2 ).update( { $set: { b: 1 } } ).toArray();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -34,19 +41,11 @@ function test_UsedSkipOfFailed ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).limit( 2 ).update( { $set: { b: 1 } } ).toArray();
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -57,23 +56,13 @@ function test_UsedLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailed ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).skip( 2 ).limit( 5 ).update( { $set: { b: 1 } } ).toArray();
-
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
-
 
 /*******************************************************************************
 *@Description：测试op为update时, 主子表情况下结合skip, 子表切分，结果不落在单分区上
@@ -82,22 +71,13 @@ function test_UsedSkipAndLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipOfFailedSplit ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;
       loadMultipleDoc( cl, 5 * 4 * groupNum );
       var arrdoc = cl.find( { $and: [{ date: { $gte: 20150101 } }, { date: { $lt: 20150201 } }] } ).skip( 2 ).update( { $set: { b: 1 } } ).toArray();
-
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -108,21 +88,13 @@ function test_UsedSkipOfFailedSplit ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailedSplit ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;
       loadMultipleDoc( cl, 5 * 4 * groupNum );
       var arrdoc = cl.find( { $and: [{ date: { $gte: 20150101 } }, { date: { $lt: 20150201 } }] } ).limit( 2 ).update( { $set: { b: 1 } } ).toArray();
-      throw new Error( "throw new error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -133,22 +105,13 @@ function test_UsedLimitOfFailedSplit ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailedSplit ( cl )
 {
-   try
+   assert.tryThrow( -289, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;
       loadMultipleDoc( cl, 5 * 4 * commGetGroupsNum( db ) );
       var arrdoc = cl.find( { $and: [{ date: { $gte: 20150101 } }, { date: { $lt: 20150201 } }] } ).skip( 2 ).limit( 5 ).update( { $set: { b: 1 } } ).toArray();
-
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( -289 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
    cl.truncate();
 }
 
@@ -214,7 +177,6 @@ function test_UsedSkipAndLimitOfSuccessNonSplit ( cl )
    checkResult( cl, 2 );
    cl.truncate();
 }
-
 
 /*******************************************************************************
 *@Description：测试op为update时, 主子表情况下，子表切分的情况下使用skip( 结果落在单分区上 )
@@ -292,7 +254,6 @@ function test_UsedSkipAndLimitOfSuccessSplit ( cl )
    cl.truncate();
 }
 
-
 function test_subclnonsplit ( db, maincl, clName )
 {
    init( db, maincl, clName )
@@ -335,32 +296,3 @@ function test_subclonsamegroup ( db, maincl, clName )
    test_UsedSkipAndLimitOfSuccessNonSplit( maincl );
    fini( db, clName );
 }
-
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-   var clName = COMMCLNAME + "_12147";
-   commDropCL( db, COMMCSNAME, clName );
-   var maincl = commCreateCL( db, COMMCSNAME, clName, { IsMainCL: true, ShardingType: 'range', ShardingKey: { 'date': 1 } } );
-   test_subclnonsplit( db, maincl, clName );
-   test_subclsplit( db, maincl, clName );
-   test_subclonsamegroup( db, maincl, clName );
-   commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

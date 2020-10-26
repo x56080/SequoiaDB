@@ -120,7 +120,6 @@ function checkRemoveResult ( cl, arr )
       recordnumber = cl.find( { _id: doc["_id"], b: 1 } ).count();
       if( 0 != parseInt( recordnumber ) )
       {
-         println( "find( {_id:" + doc["_id"] + ", b:1} ).count() expect 0 real " + recordnumber );
          return false;
       }
    }
@@ -137,7 +136,6 @@ function checkUpdateResult ( cl, arr )
       recordnumber = cl.find( { _id: doc["_id"], b: 1 } ).count();
       if( 1 != parseInt( recordnumber ) )
       {
-         println( "find( {_id:" + doc["_id"] + ", b:1} ).count() expect 1 real " + recordnumber );
          return false;
       }
    }

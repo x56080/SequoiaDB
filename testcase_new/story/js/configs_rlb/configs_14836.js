@@ -7,9 +7,9 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
-   var group = commGetGroups ( db )[0];
+   var group = commGetGroups( db )[0];
    var hostName = group[1].HostName;
    var svcName = group[1].svcname;
 
@@ -26,7 +26,7 @@ function test()
    //当前值为非默认值，删除配置
    var config = getRandomRunConfig( "validVal" );
    var options = { HostName: hostName, svcname: svcName };
-   updateConf ( db, config, options ); 
+   updateConf( db, config, options );
 
    var snapshotInfo = getConfFromSnapshot( db, hostName, svcName );
    checkResult( config, snapshotInfo );
@@ -36,7 +36,7 @@ function test()
    deleteConf( db, config, options );
 
    var key = Object.getOwnPropertyNames( config )[0];
-   config[ key ] = getConfigs( "defaultVal" )[ "runConfigs" ][ key ];
+   config[key] = getConfigs( "defaultVal" )["runConfigs"][key];
    var snapshotInfo = getConfFromSnapshot( db, hostName, svcName );
    checkResult( config, snapshotInfo );
    var fileInfo = getConfFromFile( hostName, svcName );

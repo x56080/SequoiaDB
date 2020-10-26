@@ -7,7 +7,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var cata = commGetGroups( db, true, "SYSCatalogGroup", false );
    for( var i = 1; i < cata[0].length; i++ )
@@ -28,23 +28,13 @@ function test()
    forceSession( dataHostName, dataSvcName );
 }
 
-function forceSession( hostName, svcName )
+function forceSession ( hostName, svcName )
 {
-   try
-   {
-      var db = new Sdb( hostName, svcName );
-      var oldSessionId = db.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj().SessionID;
+   var db = new Sdb( hostName, svcName );
+   var oldSessionId = db.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj().SessionID;
 
-      db.forceSession( oldSessionId );
+   db.forceSession( oldSessionId );
 
-      var sessionList = db.list( SDB_LIST_SESSIONS_CURRENT, { Global: false, SessionID: oldSessionId } ).toArray();
-      if( sessionList.length === 0 )
-      {
-        throw "the current session has been forced!";
-      }
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   var sessionList = db.list( SDB_LIST_SESSIONS_CURRENT, { Global: false, SessionID: oldSessionId } ).toArray();
+   assert.notEqual( sessionList.length, 0 );
 }

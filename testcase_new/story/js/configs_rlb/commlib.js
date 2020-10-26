@@ -1,1 +1,1 @@
-import( "../configs/commlib.js" );
+import( "../lib/configs_commlib.js" );

@@ -3,7 +3,26 @@
 *@Modify list:
 *   2014-4-3 wenjing wang  Init
 *******************************************************************************/
+main( test );
 
+function test ()
+{
+   var clName = COMMCLNAME + "_12146";
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCLNAME, clName );
+   testRuleEmpty( cl );
+   testReturnNewNonBoolean( cl );
+   testNormal( cl );
+   testNormal( cl, true );
+   testReturnNewIsTrue( cl );
+   testSortNotExistIndex( cl );
+   testSortExistIndex( cl );
+   testWithCount( cl )
+   testUsedSkipNonSplit( cl );
+   testUsedLimitNonSplit( cl );
+   testUsedSkipAndLimitNonSplit( cl );
+   commDropCL( db, COMMCSNAME, clName );
+}
 /*******************************************************************************
 *@Description：测试op为update时, 更新规则字段为空
 *@Input：find( {a:1} ).update( {} )
@@ -241,36 +260,4 @@ function testUsedSkipAndLimitNonSplit ( cl )
       throw new Error( "arrdoc: " + arrdoc );
    }
    cl.truncate();
-}
-
-function main ()
-{
-   var clName = COMMCLNAME + "_12146";
-   commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCLNAME, clName );
-   testRuleEmpty( cl );
-   testReturnNewNonBoolean( cl );
-   testNormal( cl );
-   testNormal( cl, true );
-   testReturnNewIsTrue( cl );
-   testSortNotExistIndex( cl );
-   testSortExistIndex( cl );
-   testWithCount( cl )
-   testUsedSkipNonSplit( cl );
-   testUsedLimitNonSplit( cl );
-   testUsedSkipAndLimitNonSplit( cl );
-   commDropCL( db, COMMCSNAME, clName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

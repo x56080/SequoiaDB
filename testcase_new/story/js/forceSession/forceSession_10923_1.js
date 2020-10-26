@@ -7,12 +7,12 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var sessionID = db.list( 3, { Global: false } ).next().toObj().SessionID;
-   var errKeys = [ "GroupID", "GroupName", "NodeID", "HostName", "svcname", "NodeSelect", "Role" ];
-   var errVals = [ "", "abcd", 123 ];
-   var errno = [[-6, -6, -154], [-154, -154, -6], [-6, -6, -155],[-155, -155, -6], [-155, -155, -6], [-6, -6, -6], [-6, -6, -6]];
+   var errKeys = ["GroupID", "GroupName", "NodeID", "HostName", "svcname", "NodeSelect", "Role"];
+   var errVals = ["", "abcd", 123];
+   var errno = [[-6, -6, -154], [-154, -154, -6], [-6, -6, -155], [-155, -155, -6], [-155, -155, -6], [-6, -6, -6], [-6, -6, -6]];
 
    var options = {};
    for( var i = 0; i < errKeys.length; i++ )
@@ -22,21 +22,12 @@ function test()
          var key = errKeys[i];
          var val = errVals[j];
          var err = errno[i][j];
-         options[ key ] = val;
-         try
+         options[key] = val;
+         assert.tryThrow( errno[i], function()
          {
             db.forceSession( sessionID, options );
-            throw "NEED_ERROR";
-         }
-         catch( e )
-         {
-             if( e !== err )
-             {
-                throw new Error( e );
-             }
-             options = {};
-          }
-       }      
-    }     
-}  
+         } );
+      }
+   }
 
+}
