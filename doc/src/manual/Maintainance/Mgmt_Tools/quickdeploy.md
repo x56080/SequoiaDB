@@ -59,7 +59,7 @@ quickDeploy.sh [ options ] ...
 
 - **SequoiaDB** 
 
-   SequoiaDB 默认部署一个协调节点、一个编目节点和三个数据组到本机上，数据组都为单副本。
+   SequoiaDB 默认部署一个协调节点、一个编目节点和三个数据组到本机上，数据组都为单副本，还有 1 个时间序列协议节点。
 
    ```lang-bash
    $ cd /opt/sequoiadb
@@ -72,29 +72,33 @@ quickDeploy.sh [ options ] ...
    Execute command: /opt/sequoiadb/./tools/deploy/../../bin/sdb -f /opt/sequoiadb/./tools/deploy/quickDeploy.js -e 'var sdb=true;'
    
    ************ Deploy SequoiaDB ************************
-   Create catalog: ubuntu-200-091:11800
-   Create coord:   ubuntu-200-091:11810
-   Create data:    ubuntu-200-091:11820
-   Create data:    ubuntu-200-091:11830
-   Create data:    ubuntu-200-091:11840
+   Create catalog:    ubuntu-200-091:11800
+   Create coord:      ubuntu-200-091:11810
+   Create data:       ubuntu-200-091:11820
+   Create data:       ubuntu-200-091:11830
+   Create data:       ubuntu-200-091:11840
+   Create stp server: ubuntu-200-091:9622
    ```
 
    可以使用如下语句查看当前集群部署情况：
 
    ```lang-bash
-   $ ./bin/sdblist -l
+   $ ./bin/sdblist -l -t all
    ```
 
    输出结果如下：
 
    ```lang-text
    Name       SvcName       Role        PID       GID    NID    PRY  GroupName            StartTime            DBPath
-   sequoiadb  11800         catalog     9180      1      1      Y    SYSCatalogGroup      2019-05-13-10.43.43  /opt/sequoiadb/database/catalog/11800/
-   sequoiadb  11810         coord       9571      2      2      Y    SYSCoord             2019-05-13-10.43.52  /opt/sequoiadb/database/coord/11810/
-   sequoiadb  11820         data        9646      1000   1000   Y    group1               2019-05-13-10.43.53  /opt/sequoiadb/database/data/11820/
-   sequoiadb  11830         data        9833      1001   1001   Y    group2               2019-05-13-10.43.57  /opt/sequoiadb/database/data/11830/
-   sequoiadb  11840         data        10061     1002   1002   Y    group3               2019-05-13-10.44.03  /opt/sequoiadb/database/data/11840/
-   Total: 5
+   sdbcm      11790         cm          24402     -      -      Y    -                    2020-10-28-14.13.42  -
+   sequoiadb  11800         catalog     26329     1      1      Y    SYSCatalogGroup      2020-10-28-14.14.56  /opt/sequoiadb/database/catalog/11800/
+   sequoiadb  11810         coord       26416     2      2      Y    SYSCoord             2020-10-28-14.14.58  /opt/sequoiadb/database/coord/11810/
+   sequoiadb  11820         data        26480     1000   1000   Y    group1               2020-10-28-14.14.59  /opt/sequoiadb/database/data/11820/
+   sequoiadb  11830         data        26597     1001   1001   Y    group2               2020-10-28-14.15.02  /opt/sequoiadb/database/data/11830/
+   sequoiadb  11840         data        26703     1002   1002   Y    group3               2020-10-28-14.15.05  /opt/sequoiadb/database/data/11840/
+   stp        9622          stp         26822     -      -      Y    -                    2020-10-28-14.15.08  -
+   sdbcmd     -             -           24400     -      -      -    -                    -                    -
+   Total: 8
    ```
 
 - **SequoiaSQL-MySQL**
@@ -108,7 +112,7 @@ quickDeploy.sh [ options ] ...
    输出信息如下：
 
    ```lang-text
-   Execute command: /opt/sequoiadb_yt/tools/deploy/./../../bin/sdb -f /opt/sequoiadb_yt/tools/deploy/./quickDeploy.js -e 'var mysql=true;'
+   Execute command: /opt/sequoiadb/tools/deploy/./../../bin/sdb -f /opt/sequoiadb/tools/deploy/./quickDeploy.js -e 'var mysql=true;'
    
    ************ Deploy SequoiaSQL-MySQL *****************
    Create instance: [name: myinst, port: 3306]
@@ -125,7 +129,7 @@ quickDeploy.sh [ options ] ...
    输出信息如下：
 
    ```lang-text
-   Execute command: /opt/sequoiadb_yt/tools/deploy/./../../bin/sdb -f /opt/sequoiadb_yt/tools/deploy/./quickDeploy.js -e 'var pg=true;'
+   Execute command: /opt/sequoiadb/tools/deploy/./../../bin/sdb -f /opt/sequoiadb/tools/deploy/./quickDeploy.js -e 'var pg=true;'
    
    ************ Deploy SequoiaSQL-PostgreSQL ************
    Create instance: [name: myinst, port: 5432]
@@ -141,6 +145,7 @@ quickDeploy.sh [ options ] ...
 + 一个编目节点组，每台机器上有一个编目节点
 + 三个数据节点组，组名分别为 group1/group2/group3，每个数据组有三个数据节点
 + 节点数据目录为安装路径下的 `database` 目录
++ 每个机器分别部署 1 个时间序列协议节点
 
 > **Note:**
 > 
@@ -171,6 +176,10 @@ quickDeploy.sh [ options ] ...
   data,group3,sdbserver1,11840,[installPath]/database/data/11840
   data,group3,sdbserver2,11840,[installPath]/database/data/11840
   data,group3,sdbserver3,11840,[installPath]/database/data/11840
+
+  server,stp,sdbserver1,9622,-
+  server,stp,sdbserver2,9622,-
+  server,stp,sdbserver3,9622,-
   ```
 
 2.  部署 SequoiaDB
