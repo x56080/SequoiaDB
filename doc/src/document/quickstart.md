@@ -304,7 +304,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   # netstat -anp | grep 11800
   ```
 
-- SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840、18800，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
+- SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840、18800、9622，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
 
 - 使用 sdbadmin 用户登录主机
 
@@ -316,11 +316,12 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   $ ./tools/deploy/quickDeploy.sh
   
   ************ Deploy SequoiaDB ************************
-  Create catalog: sdbserver1:11800
-  Create coord:   sdbserver1:11810
-  Create data:    sdbserver1:11820
-  Create data:    sdbserver1:11830
-  Create data:    sdbserver1:11840
+  Create catalog:    sdbserver1:11800
+  Create coord:      sdbserver1:11810
+  Create data:       sdbserver1:11820
+  Create data:       sdbserver1:11830
+  Create data:       sdbserver1:11840
+  Create stp server: sdbserver1:9622
   
   ************ Deploy SequoiaSQL-MySQL *****************
   Create instance: [name: myinst, port: 3306]
@@ -330,7 +331,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   >
   > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 ### 集群部署
 
@@ -348,7 +349,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   # netstat -anp | grep 11800
   ```
 
-  SequoiaDB 需要的端口号为 11800、11810、11820、11830、11840、18800，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
+  SequoiaDB 需要的端口号为 11800、11810、11820、11830、11840、18800、9622，MySQL 实例默认需要的端口号为 3306。请确保这些端口没有被占用。
 
 - 使用 sdbadmin 用户登录主机
 
@@ -378,6 +379,10 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   data,group3,sdbserver1,11840,[installPath]/database/data/11840
   data,group3,sdbserver2,11840,[installPath]/database/data/11840
   data,group3,sdbserver3,11840,[installPath]/database/data/11840
+  
+  server,stp,sdbserver1,9622,-
+  server,stp,sdbserver2,9622,-
+  server,stp,sdbserver3,9622,-
   ```
 
   用户机器的主机名不是 sdbserver1 / sdbserver2 / sdbserver3 的，只需要替换上面的 sdbserver1 / sdbserver2 / sdbserver3 即可。
@@ -392,21 +397,24 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   $ ./tools/deploy/quickDeploy.sh
   
   ************ Deploy SequoiaDB ************************
-  Create catalog: sdbserver1:11800
-  Create catalog: sdbserver2:11800
-  Create catalog: sdbserver3:11800
-  Create coord:   sdbserver1:11810
-  Create coord:   sdbserver2:11810
-  Create coord:   sdbserver3:11810
-  Create data:    sdbserver1:11820
-  Create data:    sdbserver2:11820
-  Create data:    sdbserver3:11820
-  Create data:    sdbserver1:11830
-  Create data:    sdbserver2:11830
-  Create data:    sdbserver3:11830
-  Create data:    sdbserver1:11840
-  Create data:    sdbserver2:11840
-  Create data:    sdbserver3:11840
+  Create catalog:    sdbserver1:11800
+  Create catalog:    sdbserver2:11800
+  Create catalog:    sdbserver3:11800
+  Create coord:      sdbserver1:11810
+  Create coord:      sdbserver2:11810
+  Create coord:      sdbserver3:11810
+  Create data:       sdbserver1:11820
+  Create data:       sdbserver2:11820
+  Create data:       sdbserver3:11820
+  Create data:       sdbserver1:11830
+  Create data:       sdbserver2:11830
+  Create data:       sdbserver3:11830
+  Create data:       sdbserver1:11840
+  Create data:       sdbserver2:11840
+  Create data:       sdbserver3:11840
+  Create stp server: sdbserver1:9622
+  Create stp server: sdbserver2:9622
+  Create stp server: sdbserver3:9622
   
   ************ Deploy SequoiaSQL-MySQL *****************
   Create instance: [name: myinst, port: 3306]
@@ -416,7 +424,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
   >
   > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](database_management/tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 
 ## 使用 MySQL shell 进行操作
