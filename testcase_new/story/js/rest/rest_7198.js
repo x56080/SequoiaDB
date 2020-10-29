@@ -14,6 +14,18 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7198";
 
+
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+   insertAndCheck( varCL );
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
+
 function insertAndCheck ( varCL )
 {
    var num = 1;
@@ -52,24 +64,4 @@ function insertAndCheck ( varCL )
    }
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
-   insertAndCheck( varCL );
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

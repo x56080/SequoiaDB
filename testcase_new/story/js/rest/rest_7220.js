@@ -12,6 +12,25 @@ var clName = COMMCLNAME + "_7220";
 var sourceGroup;
 var targetGroup;
 
+main( test );
+
+function test ()
+{
+   var groupInfos = commGetGroups( db );
+   if( commIsStandalone( db ) || groupInfos.length < 2 )
+   {
+      return;
+   }
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   sourceGroup = groupInfos[0][0].GroupName;
+   targetGroup = groupInfos[1][0].GroupName;
+   var opt = { ShardingKey: { age: 1 }, ShardingType: "range", Group: sourceGroup };
+   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
+   varCL.insert( { age: 1 } );
+   splitAndCheck();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean" );
+}
+
 function splitAndCheck ()
 {
    var word = "split";
@@ -42,33 +61,6 @@ function splitAndCheck ()
    }
 }
 
-function main ()
-{
-   var groupInfos = commGetGroups( db );
-   if( commIsStandalone( db ) || groupInfos.length < 2 )
-   {
-      println( "Mode is standalone or one group mode" );
-      return;
-   }
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   sourceGroup = groupInfos[0][0].GroupName;
-   targetGroup = groupInfos[1][0].GroupName;
-   var opt = { ShardingKey: { age: 1 }, ShardingType: "range", Group: sourceGroup };
-   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
-   varCL.insert( { age: 1 } );
-   splitAndCheck();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
+

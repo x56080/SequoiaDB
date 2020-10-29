@@ -12,6 +12,22 @@ var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7199_7202_7205_7214";
 var cl = "name=" + csName + '.' + clName;
 
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var opt = { ReplSize: 0 };
+   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
+
+   lackInInsert();
+   lackInUpdate();
+   lackInQuery();
+   lackInDelete();
+
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" )
+}
+
 function lackInInsert ()
 {
    var word = 'insert';
@@ -48,29 +64,6 @@ function lackInDelete ()
    tryCatch( ["cmd=" + word, 'deletor={"age":100}'], [-6], "Error occurs in lackInDelete function; lack of name" );
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var opt = { ReplSize: 0 };
-   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
 
-   lackInInsert();
-   lackInUpdate();
-   lackInQuery();
-   lackInDelete();
 
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" )
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

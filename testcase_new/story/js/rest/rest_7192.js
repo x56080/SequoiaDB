@@ -9,28 +9,23 @@ var csName = COMMCSNAME;
 var clBaseName = COMMCLNAME + "_7192";
 var clBase = "name=" + csName + '.' + clBaseName;
 
-var arr = [
-   ['+', '%2B'],
-   [' ', '%20'],
-   ['/', '%2F'],
-   ['?', '%3F'],
-   ['%', '%25'],
-   ['#', '%23'],
-   ['&', '%26'],
-   ['=', '%3D'],
-   ['!', '%21'],
-   ['^', '%5E'],
-   ['`', '%60'],
-   ['{', '%7B'],
-   ['}', '%7D'],
-   ['|', '%7C'],
-   ['[', '%5B'],
-   [']', '%5D'],
-   ['"', '%22'],
-   ['<', '%3C'],
-   ['>', '%3E'],
-   ['\\', '%5C']
-];
+var arr = [['+', '%2B'], [' ', '%20'], ['/', '%2F'], ['?', '%3F'], ['%', '%25'],
+['#', '%23'], ['&', '%26'], ['=', '%3D'], ['!', '%21'], ['^', '%5E'],
+['`', '%60'], ['{', '%7B'], ['}', '%7D'], ['|', '%7C'], ['[', '%5B'],
+[']', '%5D'], ['"', '%22'], ['<', '%3C'], ['>', '%3E'], ['\\', '%5C']];
+
+
+main( test );
+
+function test ()
+{
+   var varCS = db.getCS( csName );
+   for( var i = 0; i < arr.length; i++ )
+   {
+      createclBySpeciChar( arr[i][0], arr[i][1], varCS );
+   }
+}
+
 
 function createclBySpeciChar ( p1, p2, varCS )
 {
@@ -53,24 +48,4 @@ function createclBySpeciChar ( p1, p2, varCS )
    varCS.dropCL( clName );
 }
 
-function main ()
-{
-   var varCS = db.getCS( csName );
-   for( var i = 0; i < arr.length; i++ )
-   {
-      createclBySpeciChar( arr[i][0], arr[i][1], varCS );
-   }
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

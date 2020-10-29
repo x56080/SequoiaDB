@@ -2,12 +2,13 @@
 *@Description: seqDB-18537: tables.fields.defaultValue配置默认值，fieldType配置为MAPPING_STRING 
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;
@@ -64,17 +65,8 @@ function configOutputConfFile ( rtCmd, csName, clName )
 function getRemote ( groupName )
 {
    var hostName = getMasterHostName( groupName );
-   try
-   {
-      var remote = new Remote( hostName, CMSVCNAME );
-      println( "remote: " + remote.getInfo() );
-      return remote;
-   }
-   catch( e )
-   {
-      println( "Failed to new remote." );
-      throw e;
-   }
+   var remote = new Remote( hostName, CMSVCNAME );
+   return remote;
 }
 function checkCsvFileLocal ( rtCmd, clName, expDataArr, groupName )
 {

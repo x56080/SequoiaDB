@@ -4,6 +4,36 @@
 @modify list:
 2018-07-30        linsuqiang init
 ****************************************************/
+main( test );
+
+function test ()
+{
+   var csName = COMMCSNAME + "_14231";
+   commDropCS( db, csName, true );
+   var options = { PageSize: 4096 };
+   var cs = commCreateCS( db, csName, false, "fail to create cl", options )
+   var clName = COMMCLNAME + "_14231";
+   var cl = cs.createCL( clName );
+
+   var indexNum = 5;
+   insertData( cl, indexNum );
+   var idxArray = createIndexes( cl, indexNum );
+   var analyzeIdx = idxArray.pop();
+   var nonAnalyzeIdxArray = idxArray;
+
+   checkScanTypeByExplain( cl, analyzeIdx, "ixscan" );
+   for( var i = 0; i < nonAnalyzeIdxArray.length; i++ )
+      checkScanTypeByExplain( cl, nonAnalyzeIdxArray[i], "ixscan" );
+   var clFullName = csName + "." + clName;
+   var optStr = "options={Collection:\"" + clFullName + "\", Index:\"" + analyzeIdx + "\"}";
+   tryCatch( ["cmd=analyze", optStr], [0], "fail to analyze." );
+   checkScanTypeByExplain( cl, analyzeIdx, "tbscan" );
+   for( var i = 0; i < nonAnalyzeIdxArray.length; i++ )
+      checkScanTypeByExplain( cl, nonAnalyzeIdxArray[i], "ixscan" );
+
+   commDropCS( db, csName, false );
+}
+
 function insertData ( cl, fieldNum )
 {
    var rec = {};
@@ -49,45 +79,3 @@ function checkScanTypeByExplain ( cl, indexName, expScanType )
       throw new Error( "expect: " + expScanType + ", actual: " + actScanType );
    }
 }
-
-function main ()
-{
-   var csName = COMMCSNAME + "_14231";
-   commDropCS( db, csName, true );
-   var options = { PageSize: 4096 };
-   var cs = commCreateCS( db, csName, false, "fail to create cl", options )
-   var clName = COMMCLNAME + "_14231";
-   var cl = cs.createCL( clName );
-
-   var indexNum = 5;
-   insertData( cl, indexNum );
-   var idxArray = createIndexes( cl, indexNum );
-   var analyzeIdx = idxArray.pop();
-   var nonAnalyzeIdxArray = idxArray;
-
-   checkScanTypeByExplain( cl, analyzeIdx, "ixscan" );
-   for( var i = 0; i < nonAnalyzeIdxArray.length; i++ )
-      checkScanTypeByExplain( cl, nonAnalyzeIdxArray[i], "ixscan" );
-   var clFullName = csName + "." + clName;
-   var optStr = "options={Collection:\"" + clFullName + "\", Index:\"" + analyzeIdx + "\"}";
-   tryCatch( ["cmd=analyze", optStr], [0], "fail to analyze." );
-   checkScanTypeByExplain( cl, analyzeIdx, "tbscan" );
-   for( var i = 0; i < nonAnalyzeIdxArray.length; i++ )
-      checkScanTypeByExplain( cl, nonAnalyzeIdxArray[i], "ixscan" );
-
-   commDropCS( db, csName, false );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

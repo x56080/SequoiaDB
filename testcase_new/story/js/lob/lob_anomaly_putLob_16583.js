@@ -5,8 +5,10 @@
 *@testlinkCase: seqDB-16583:putLob, oid参数取值格式校验
 ******************************************************************************/
 
-main( db );
-function main ( db )
+
+main( test );
+
+function test ()
 {
    var clName = CHANGEDPREFIX + "_putlob16583";
    commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
@@ -16,20 +18,18 @@ function main ( db )
 
    var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true, "create collection" );
 
-   println( "begin to put lob with incorrect oid" )
    // put lob with incorrect oid
    try
    {
       var incorrectOid = "123456";
-      cl.putLob( testFile, incorrectOid );
-      throw "ErrExecuteLob";
+      assert.tryThrow( -6, function()
+      {
+         cl.putLob( testFile, incorrectOid );
+      } );
    }
    catch( e )
    {
-      if( -6 != e )
-      {
-         throw buildException( "check put lob with incorrect oid ", e );
-      }
+      throw e;
    }
    finally
    {

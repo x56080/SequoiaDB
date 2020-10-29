@@ -12,6 +12,24 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7204";
 
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+   varCL.insert( [
+      { age: 12, name: "Tom", male: true },
+      { age: 13, name: "Anna", male: false },
+      { age: 15, name: "Jack", male: true },
+      { age: 11, name: "Harry", male: true },
+      { age: 19, name: "Bob", male: true },
+      { age: 9, name: "Jobs", male: true }
+   ] );
+   queryAndCheck( varCL );
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
 function queryAndCheck ( varCL )
 {
    var word = "query";
@@ -30,31 +48,6 @@ function queryAndCheck ( varCL )
    }
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
-   varCL.insert( [
-      { age: 12, name: "Tom", male: true },
-      { age: 13, name: "Anna", male: false },
-      { age: 15, name: "Jack", male: true },
-      { age: 11, name: "Harry", male: true },
-      { age: 19, name: "Bob", male: true },
-      { age: 9, name: "Jobs", male: true }
-   ] );
-   queryAndCheck( varCL );
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
+

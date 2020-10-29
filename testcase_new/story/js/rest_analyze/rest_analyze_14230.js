@@ -5,7 +5,9 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    var analyzeClName = COMMCLNAME + "_14230";
    var nonAnalyzeClName = COMMCLNAME + "_14230_2";
@@ -25,17 +27,4 @@ function main ()
    checkScanTypeByExplain( analyzeCl, "tbscan" );
    checkScanTypeByExplain( nonAnalyzeCl, "ixscan" );
    db.dropCS( csName )
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

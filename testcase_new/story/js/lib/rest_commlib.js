@@ -7,22 +7,12 @@
 import( "../lib/main.js" );
 import( "../lib/basic_operation/commlib.js" );
 
-try
-{
-   var com = new Cmd();              //com.run("command");
-   var info;                             //returned information after curl command
-   var errno;                            //errno in returned information
-   var infoSplit = new Array();          //split info to array 
-   var str;
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+var com = new Cmd();              //com.run("command");
+var info;                             //returned information after curl command
+var errno;                            //errno in returned information
+var infoSplit = new Array();          //split info to array 
+var str;
+
 /*****************************************************************
 @description:   run CURL command, to get return errno by rest	
 @input:         eg:curlPara=["cmd=query","name=foo.bar"]

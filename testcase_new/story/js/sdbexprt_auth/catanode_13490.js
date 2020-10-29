@@ -4,21 +4,17 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csname = COMMCSNAME;
-var csvContent = "Name\n\"" + csname + "\"\n";
-var jsonContent = "{ \"Name\": \"" + csname + "\" }\n";
+var csvContent = "Name\n\"" + COMMCSNAME + "\"\n";
+var jsonContent = "{ \"Name\": \"" + COMMCSNAME + "\" }\n";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, no cata node" );
       return;
    }
-   clearAllCs( db );
-   commCreateCS( db, csname );
 
    var groupName = "SYSCatalogGroup";
    var master = db.getRG( groupName ).getMaster().toString();
@@ -43,6 +39,7 @@ function testExprtCsv ( hostname, svcname )
       " --fields Name";
    testRunCommand( command );
 
+   // 多了哪个 CS，哪个CS就没删干净
    checkFileContent( csvfile, csvContent );
 
    cmd.run( "rm -rf " + csvfile );
@@ -65,15 +62,4 @@ function testExprtJson ( hostname, svcname )
    checkFileContent( jsonfile, jsonContent );
 
    cmd.run( "rm -rf " + jsonfile );
-}
-
-function clearAllCs ( db )
-{
-   var cursor = db.listCollectionSpaces();
-   var obj;
-   while( obj = cursor.next() )
-   {
-      var name = obj.toObj()["Name"];
-      db.dropCS( name );
-   }
 }

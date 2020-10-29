@@ -10,6 +10,16 @@ var clName = COMMCLNAME + "_7219";
 var cl = "name=" + csName + '.' + clName;
 var varCL;
 
+main( test );
+
+function test ()
+{
+   ready();
+   lackName();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
+
 function ready ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -23,22 +33,5 @@ function lackName ()
    tryCatch( ["cmd=get count"], [-6], "Error occurs in " + getFuncName() + "lack of name." );
 }
 
-function main ()
-{
-   ready();
-   lackName();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+

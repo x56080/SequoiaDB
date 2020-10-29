@@ -4,9 +4,9 @@
 *
 * 出版本之前跑，已配置到trunk/testcase_new/CI未运行测试用例.xlsx
 ************************************************************************/
-//main();
+//main ( test );
 
-function main ()
+function test ()
 {
    var sclName1;
    var rtCmd;
@@ -15,7 +15,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -31,7 +30,6 @@ function main ()
       var cl = readyCL( csName, clName, { Group: groupName } );
 
       var recordsNum = 600000;
-      println( "\n---Begin to insert records, recordsNum = " + recordsNum + "." );
       for( k = 0; k < recordsNum; k += 50000 ) 
       {
          var doc = [];
@@ -53,18 +51,10 @@ function main ()
 
       // check results
       // Ensure successful execution, and total count is correct
-      println( "\n---Begin to check csv file content." );
       var csvFileName = rtCmd.run( "ls " + tmpFileDir + " | grep " + clName + " | grep csv" ).split( "\n" )[0];
       var csvFilePath = tmpFileDir + csvFileName;
-      var command = "awk 'END{print NR}' " + csvFilePath;
-      println( command );
       var rcNum = rtCmd.run( command ).split( "\n" )[0];
-      if( recordsNum !== Number( rcNum ) )
-      {
-         throw buildException( "main", null, "[check csv file data number]",
-            "[" + recordsNum + "]",
-            "[" + rcNum + "]" );
-      }
+      assert.equal( recordsNum, rcNum );
 
       // clean env
       cleanCL( csName, clName );
@@ -79,7 +69,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 

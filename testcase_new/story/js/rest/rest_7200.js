@@ -11,6 +11,27 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7200_7201";
 
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var opt = { ReplSize: 0 };
+   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
+   varCL.insert( [
+      { age: 11, name: "Tom", male: true },
+      { age: 12, name: "Anna", male: false },
+      { age: 15, name: "Jack", male: true },
+      { age: 11, name: "Harry", male: true },
+      { age: 19, name: "Bob", male: true },
+      { age: 9, name: "Jobs", male: true }
+   ] );
+   deleteAndCheck( varCL );
+   lackDeletor( varCL );
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
+
 function deleteAndCheck ( varCL )
 {
    var word = "delete";
@@ -22,7 +43,7 @@ function deleteAndCheck ( varCL )
    while( rc.next() )
    {
       size++;
-      if( size != num ) { throw "rest cmd=" + word + " has been done, expect: cl.find()=1, actual: >1"; }
+      assert.equal( size, num );
       if( rc.current().toObj()["name"] != "Anna" )
       {
          throw new Error( "rest cmd=" + word + " has been done, expect: cl.find()[Name]='Anna', actual: " + rc.current().toObj()["name"] );
@@ -43,33 +64,5 @@ function lackDeletor ( varCL )
    }
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var opt = { ReplSize: 0 };
-   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
-   varCL.insert( [
-      { age: 11, name: "Tom", male: true },
-      { age: 12, name: "Anna", male: false },
-      { age: 15, name: "Jack", male: true },
-      { age: 11, name: "Harry", male: true },
-      { age: 19, name: "Bob", male: true },
-      { age: 9, name: "Jobs", male: true }
-   ] );
-   deleteAndCheck( varCL );
-   lackDeletor( varCL );
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+

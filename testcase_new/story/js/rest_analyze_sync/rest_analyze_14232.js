@@ -5,22 +5,12 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 
-function insertData ( cl, rec )
-{
-   var recs = [];
-   var recNum = 2000;
-   for( var i = 0; i < recNum; i++ )
-   {
-      recs.push( rec );
-   }
-   cl.insert( recs );
-}
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) || commGetGroupsNum( db ) < 2 )
    {
-      println( "no groups enough. skip test" );
       return;
    }
 
@@ -55,16 +45,13 @@ function main ()
    db.dropCS( csName );
 }
 
-try
+function insertData ( cl, rec )
 {
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
+   var recs = [];
+   var recNum = 2000;
+   for( var i = 0; i < recNum; i++ )
    {
-      println( e.stack );
+      recs.push( rec );
    }
-   throw e;
+   cl.insert( recs );
 }
-

@@ -9,6 +9,19 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7218";
 
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+   varCL.insert( [
+      { age: 11, name: "Tom", male: true }
+   ] );
+   getcountAndCheck( varCL );
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
 function getcountAndCheck ( varCL )
 {
    var word = "get count";
@@ -21,26 +34,6 @@ function getcountAndCheck ( varCL )
    }
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
-   varCL.insert( [
-      { age: 11, name: "Tom", male: true }
-   ] );
-   getcountAndCheck( varCL );
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
+

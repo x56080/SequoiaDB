@@ -2,12 +2,13 @@
 *@Description: seqDB-18498: tables.fields配置多个字段，部分字段不存在 
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;

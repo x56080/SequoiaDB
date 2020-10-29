@@ -11,6 +11,15 @@ var clName = COMMCLNAME + "_7215";
 var cl = "name=" + csName + '.' + clName;
 var varCL;
 
+main( test );
+
+function test ()
+{
+   ready();
+   upsert();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
 function ready ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -37,22 +46,5 @@ function upsert ()
    }
 }
 
-function main ()
-{
-   ready();
-   upsert();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+

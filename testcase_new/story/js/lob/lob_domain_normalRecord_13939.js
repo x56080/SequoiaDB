@@ -4,8 +4,10 @@
 *@Modify list :
 *               2014-12-18  xiaojun Hu  Init
 ******************************************************************************/
+testConf.skipStandAlone = true;
+main( test );
 
-function main ( db )
+function test ()
 {
    var putNum = 50;
 
@@ -16,6 +18,7 @@ function main ( db )
    var domName = CHANGEDPREFIX + "_domName";
    var cmd = new Cmd();
 
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
    lobGenerateFile( testFile ); // auto file
    var originMd5 = getMd5ForFile( testFile );
    // create domain
@@ -24,45 +27,30 @@ function main ( db )
       var names = lobGetAllGroupNames( db );
       commDropDomain( db, domName );
       var domain = commCreateDomain( db, domName, names, { "AutoSplit": true } );
-      println( "success to create domain" );
       var cs = lobCreateCS( db, DOMCSNAME, domName );
-      println( "success to create collection space attach domain" );
 
       // create collection
       var optionObj = {
          "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
          "Partition": partitionNum, "Compressed": true
       };
-      var cl = commCreateCL( db, DOMCSNAME, COMMCLNAME, optionObj, true,
-         true, "create collection for hash split" );
+      var cl = commCreateCL( db, DOMCSNAME, COMMCLNAME, optionObj, true, true );
       lobInsertDoc( cl, putNum );
-      println( "success to put normal record data" );
       var oids = lobPutLob( cl, testFile, putNum );
-      println( "success to put lob data" );
       for( var i = 0; i < oids.length; ++i )
       {
          cl.getLob( oids[i], getTestFile, true );
          var curMd5 = getMd5ForFile( testFile );
-         if( originMd5 !== curMd5 )
-         {
-            throw "origin file's md5=" + originMd5 + "getLob's md5=" + curMd5;
-         }
+         assert.equal( originMd5, curMd5 );
       }
-      println( "success to get lob" );
       for( var i = 0; i < cl.count(); ++i )
       {
          var count = cl.find( { "no": i } ).count();
-         if( 1 != count )
-         {
-            println( "failed to query data, rc = " + cl.find( { "no": i } ) );
-            throw "ErrNumberQuery";
-         }
+         assert.equal( 1, count );
       }
-      println( "success to query" );
    }
    catch( e )
    {
-      println( "failed to create domain and CS, rc = " + e );
       throw e;
    }
    finally
@@ -82,21 +70,3 @@ function main ( db )
    }
 }
 
-// Run Main
-try
-{
-   if( !commIsStandalone( db ) )
-   {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-         "clear collection in the beginning" );
-      main( db );
-   }
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   db.close();
-}

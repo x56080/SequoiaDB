@@ -5,7 +5,10 @@
 *               2014-12-18  xiaojun Hu  Init
 ******************************************************************************/
 
-function main ( db )
+testConf.skipStandAlone = true;
+main( test );
+
+function test ()
 {
    var testFile = CHANGEDPREFIX + "lobTest.file";
    var getTestFile = CHANGEDPREFIX + "lobTestGet.file";
@@ -25,8 +28,8 @@ function main ( db )
       "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
       "Partition": partitionNum, "Compressed": true
    };
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true,
-      true, "create collection for hash split" );
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true, true );
    // collection do hash percent split before put data
    try
    {
@@ -43,36 +46,23 @@ function main ( db )
             firstCond += cond;
          }
       }
-      println( "success to hash percent split befor input data" );
 
       lobInsertDoc( cl, putNum );
-      println( "sucess to put lob data" );
       oids = lobPutLob( cl, testFile, putNum );
-      println( "sucess to put normal record data" );
       for( var i = 0; i < cl.count(); ++i )
       {
          var count = cl.find( { "no": i } ).count();
-         if( 1 != count )
-         {
-            println( "failed to query data, rc = " + cl.find( { "no": i } ) );
-            throw "ErrNumberQuery";
-         }
+         assert.equal( count, 1 );
       }
-      println( "success to query records" );
       for( var i = 0; i < oids.length; ++i )// will split error
       {
          cl.getLob( oids[i], getTestFile, true );
          var curMd5 = getMd5ForFile( getTestFile );
-         if( originMd5 !== curMd5 )
-         {
-            throw "origin file's md5=" + originMd5 + "getLob's md5=" + curMd5;
-         }
+         assert.equal( originMd5, curMd5 );
       }
-      println( "success to get lob" );
    }
    catch( e )
    {
-      println( "failed to get lob and query nomral data, rc = " + e );
       throw e;
    }
    finally
@@ -84,26 +74,6 @@ function main ( db )
       {
          cmd.run( "rm -rf " + getTestFile );
       }
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
    }
-}
-
-// Run Main
-try
-{
-   if( !commIsStandalone( db ) )
-   {
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-         "clear collection in the beginning" );
-      main( db );
-   }
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "drop collection in the end, error" );
-   db.close();
 }

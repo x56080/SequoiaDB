@@ -4,21 +4,9 @@
 *@Author:  2017/2/28  huangxiaoni
 *          2019/11/20  zhaoyu modify
 ************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_11108_1";
    commDropCL( db, COMMCSNAME, clName );

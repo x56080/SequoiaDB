@@ -10,13 +10,12 @@ var csname = COMMCSNAME;
 var clname = COMMCLNAME + "_sdbexprt13493";
 var doc = { a: 1 };
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone, can't create user" );
       return;
    }
    try
@@ -27,10 +26,6 @@ function main ()
       testExprtWrongUser();
       testExprtWrongPass();
       commDropCL( db, csname, clname, false, false );
-   }
-   catch( e )
-   {
-      throw e;
    }
    finally
    {

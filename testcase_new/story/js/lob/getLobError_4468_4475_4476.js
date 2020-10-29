@@ -3,8 +3,10 @@
 *@Modify list :
 *               2019-05-29  wuyan  Init
 ******************************************************************************/
-main( db );
-function main ( db )
+
+main( test );
+
+function test ()
 {
    try
    {
@@ -37,60 +39,31 @@ function main ( db )
 
 function getLobWithOidNotExist ( cl )
 {
-   println( "---begin to test testcase-4468" );
-   try
+   var getFilePath = WORKDIR + "/getlob4468";
+   var lobOid = "5ce6016a97216ce21b5c982a";
+   assert.tryThrow( -4, function()
    {
-      var getFilePath = WORKDIR + "/getlob4468";
-      var lobOid = "5ce6016a97216ce21b5c982a";
       cl.getLob( lobOid, getFilePath );
-      throw "get Lob with oid not exist must be fail!";
-   }
-   catch( e )
-   {
-      //error:Forced must be bool -4
-      if( -4 !== e )
-      {
-         throw buildException( "getLobWithOidNotExist", e );
-      }
-   }
+   } );
 }
 
 function getLobWithIllegalForced ( cl, lobOid )
 {
-   println( "---begin to test testcase-4475" );
-   try
+   var getFilePath = WORKDIR + "/getlob4475";
+   var illegalForced = "test";
+   assert.tryThrow( -6, function()
    {
-      var getFilePath = WORKDIR + "/getlob4475";
-      var illegalForced = "test";
       cl.getLob( lobOid, getFilePath, illegalForced );
-      throw "get Lob with illegal forced must be fail!";
-   }
-   catch( e )
-   {
-      //error:Forced must be bool -6
-      if( -6 !== e )
-      {
-         throw buildException( "deleteLobWithEmpty", e );
-      }
-   }
+   } );
 }
 
 function getLobWithEmptyForced ( cl, lobOid )
 {
-   println( "---begin to test testcase-4476" );
-   try
+   var getFilePath = WORKDIR + "/getlob4476";
+   var forced = null;
+   assert.tryThrow( -6, function()
    {
-      var getFilePath = WORKDIR + "/getlob4476";
-      var forced = null;
       cl.getLob( lobOid, getFilePath, null );
-      throw "get Lob with empty forced must be fail!";
-   }
-   catch( e )
-   {
-      if( -6 !== e )
-      {
-         throw buildException( "getLobWithEmptyForced", e );
-      }
-   }
+   } );
 }
 

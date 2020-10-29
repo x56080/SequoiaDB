@@ -2,12 +2,13 @@
 *@Description: seqDB-10152:重放时指定LSN  
 *@Author: 2019-7-2  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;

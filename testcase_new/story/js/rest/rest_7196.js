@@ -9,6 +9,21 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7196";
 
+main( test );
+
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+   alterAndCheck();
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
+
 function alterAndCheck ()
 {
    var word = "alter collection";
@@ -22,28 +37,4 @@ function alterAndCheck ()
    }
 }
 
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      println( "Mode is standalone!" );
-      return;
-   }
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
-   alterAndCheck();
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

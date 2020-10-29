@@ -8,6 +8,19 @@ var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_12649";
 var cl = "name=" + csName + '.' + clName;
 
+// 目前版本不支持分区键字段修改，因此屏蔽
+//main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var opt = { ReplSize: 0, ShardingKey: { a: 1 } };
+   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
+   varCL.insert( { a: 1, b: 1 } );
+   queryandupdate();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
 function queryandupdate ()
 {
    tryCatch(
@@ -28,28 +41,3 @@ function queryandupdate ()
    }
 
 }
-
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var opt = { ReplSize: 0, ShardingKey: { a: 1 } };
-   var varCL = commCreateCL( db, csName, clName, opt, true, false, "create cl in begin" );
-   varCL.insert( { a: 1, b: 1 } );
-   queryandupdate();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}
-
-try
-{
-   // 目前版本不支持分区键字段修改，因此屏蔽
-   // main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

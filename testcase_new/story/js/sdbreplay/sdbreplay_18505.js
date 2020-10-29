@@ -2,9 +2,9 @@
 *@Description: seqDB-18505:delimiter配置字段间分隔符为任意可见字符
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -36,7 +35,6 @@ function main ()
       var delimiter = getRandomString( getRandomInt( 1, 10 ) )
          .replace( /\\/g, "_newR1_" ).replace( /\"/g, "_newR2_" ).replace( / /g, "_newR3_" );
       readyOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter );
-      println( '   delimiter = ' + delimiter );
       // replay
       var clNameArr = [csName + "." + clName];
       execSdbReplay( rtCmd, groupName, clNameArr, "replica" );

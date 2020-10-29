@@ -28,10 +28,7 @@ function test ()
 
    testExprtCsv();
 
-   for( var i = 0; i < clnames.length; i++ )
-   {
-      commDropCL( db, csname, clnames[i] );
-   }
+   commDropCS( db, csname );
 }
 
 function testExprtCsv ()
@@ -58,6 +55,4 @@ function testExprtCsv ()
    }
 
    cmd.run( "rm -rf " + csvDir );
-
-   commDropCS( db, COMMCSNAME, false );
 }

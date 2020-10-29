@@ -9,6 +9,20 @@ var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7197";
 var cl = "name=" + csName + '.' + clName;
 
+main( test );
+
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+
+   lackInAltercl();
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
 function lackInAltercl ()
 {
    var word = 'alter collection';
@@ -18,29 +32,5 @@ function lackInAltercl ()
    tryCatch( ["cmd=" + word, cl], [-6], "Error occurs in " + getFuncName() + "; lack of options" );
 }
 
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      println( "Mode is standalone!" );
-      return;
-   }
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
 
-   lackInAltercl();
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

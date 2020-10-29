@@ -4,21 +4,9 @@
 *@Author:  2017/2/28  huangxiaoni
 *          2019/11/20  zhaoyu modify
 ************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_11118_2";
    commDropCL( db, COMMCSNAME, clName );
@@ -40,11 +28,10 @@ function main ()
 
 function testSdbDate ( rawData )
 {
-   println( "\n---Begin to test SdbDate." );
 
    for( i = 0; i < rawData.length; i++ )
    {
-      try
+      assert.tryThrow( -6, function()
       {
          if( i < rawData.length - 2 )
          {
@@ -54,14 +41,6 @@ function testSdbDate ( rawData )
          {
             Timestamp( rawData[i], 0 );
          }
-         throw "Expected failure, but the record:" + JSON.stringify( rawData[i] ) + " success.";
-      }
-      catch( e )
-      {
-         if( e !== -6 )
-         {
-            throw new Error( "the record:" + JSON.stringify( rawData[i] ) + " failed, actual e:" + e )
-         }
-      }
+      } );
    }
 }

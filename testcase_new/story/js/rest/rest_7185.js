@@ -12,6 +12,19 @@
 var csName = CHANGEDPREFIX + "_7185_7188";
 var cs = "name=" + csName;
 
+
+main( test );
+
+function test ()
+{
+   commDropCS( db, csName, true, "drop cs in begin" );
+   commDropCS( db, csName + 'FOO', true, "drop cs in begin" );
+   createcsAndCheck();
+   createcsByCapital();
+   dropcsAndCheck();
+
+}
+
 function createcsAndCheck ()
 {
    tryCatch( ["cmd=create collectionspace", cs], [0], "Failed to create cs by rest cmd!" );
@@ -42,25 +55,5 @@ function dropcsAndCheck ()
    }
 }
 
-function main ()
-{
-   commDropCS( db, csName, true, "drop cs in begin" );
-   commDropCS( db, csName + 'FOO', true, "drop cs in begin" );
-   createcsAndCheck();
-   createcsByCapital();
-   dropcsAndCheck();
 
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

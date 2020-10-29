@@ -9,6 +9,17 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7226";
 
+main( test );
+
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   listgroupsAndCheck();
+}
+
 function listgroupsAndCheck ()
 {
    var word = "list groups";
@@ -30,25 +41,4 @@ function listgroupsAndCheck ()
 
 }
 
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      println( "Mode is standalone!" );
-      return;
-   }
-   listgroupsAndCheck();
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

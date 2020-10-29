@@ -2,12 +2,13 @@
 *@Description: seqDB-10149: 重放时过滤/指定cs  
 *@Author: 2019-7-2  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName1 = "csName_10149_1_" + getRandomInt( 0, 100 );

@@ -8,26 +8,13 @@ var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_12652";
 var varCL;
 
-try
-{
-   // 目前版本不支持分区键字段修改，因此屏蔽
-   // main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+// 目前版本不支持分区键字段修改，因此屏蔽
+//main( test );
 
-
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 

@@ -5,24 +5,14 @@
  * @date        ：2018.10.23
  ******************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
    //get a group in cluster

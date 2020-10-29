@@ -2,12 +2,13 @@
 *@Description: seqDB-18502: 配置filePrefix和fileSuffix，值不为空  
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;
@@ -84,7 +85,6 @@ function configOutputFile ( rtCmd, csName, clName, filePrefix, fileSuffix, field
 
 function checkCsvFile ( rtCmd, parameter, expDataArr )
 {
-   println( "\n---Begin to check csv file content." );
 
    var csvFileName = rtCmd.run( "ls " + tmpFileDir + " | grep " + parameter + " | grep csv" ).split( "\n" )[0];
 
@@ -93,10 +93,8 @@ function checkCsvFile ( rtCmd, parameter, expDataArr )
    {
       if( actDataArr[i] !== expDataArr[i] ) 
       {
-         println( "expDataArr:\n" + expDataArr );
-         println( "actDataArr:\n" + actDataArr + "\n" );
-         throw buildException( "checkCsvFile", null, "[check csv file data, line: " + i + "]",
-            "[" + expDataArr[i] + "]",
+         throw buildException( "checkCsvFile fail,[check csv file data, line: " + i + "]" +
+            "[" + expDataArr[i] + "]" +
             "[" + actDataArr[i] + "]" );
       }
    }

@@ -4,7 +4,9 @@
 *               2014-12-18  xiaojun Hu  Init
 ******************************************************************************/
 
-function main ( db )
+main( test );
+
+function test ()
 {
    var testFile = CHANGEDPREFIX + "lobTest.file";
    var getTestFile = CHANGEDPREFIX + "lobTestGet.file";
@@ -13,42 +15,30 @@ function main ( db )
    lobGenerateFile( testFile ); // auto file
    var originMd5 = getMd5ForFile( testFile );
 
+   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true,
-      "create collection" );
+   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
    // put normal data and put lob
    try
    {
       oid = lobPutLob( cl, testFile, putNum );
-      println( "success to put lob" );
       lobInsertDoc( cl, putNum );
-      println( "success to insert normal record" );
 
       for( var i = 0; i < oid.length; ++i )
       {
          cl.getLob( oid[i], getTestFile, true );
          var curMd5 = getMd5ForFile( getTestFile );
-         if( originMd5 !== curMd5 )
-         {
-            throw "origin file's md5=" + originMd5 + "getLob's md5=" + curMd5;
-         }
+         assert.equal( originMd5, curMd5 );
       }
-      println( "success to get lob data" );
       for( var i = 0; i < cl.count(); ++i )
       {
          var count = cl.find( { "no": i } ).count();
-         if( 1 != count )
-         {
-            println( "failed to query data, rc = " + cl.find( { "no": i } ) );
-            throw "ErrNumberQuery";
-         }
+         assert.equal( 1, count );
       }
-      println( "success to query data" );
-
+      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
    }
    catch( e )
    {
-      println( "failed to put lob and normal record in collection, rc = " + e );
       throw e;
    }
    finally
@@ -60,22 +50,4 @@ function main ( db )
          cmd.run( "rm -rf " + getTestFile );
       }
    }
-}
-
-// Run Main
-try
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "clear collection in the beginning" );
-   main( db );
-}
-catch( e )
-{
-   throw e;
-}
-finally
-{
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true,
-      "drop collection in the end, error" );
-   db.close();
 }

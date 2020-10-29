@@ -4,20 +4,11 @@
 *@Author:      FanYu  2018/04/03
 ************************************************************************/
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_14512";
    var clName = COMMCLNAME + "_14512";

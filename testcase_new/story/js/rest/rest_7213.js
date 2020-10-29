@@ -12,6 +12,21 @@
 var csName = COMMCSNAME;
 var clName = COMMCLNAME + "_7213";
 
+
+main( test );
+
+function test ()
+{
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
+   varCL.insert( [
+      { _id: 229095, name: "Jack", male: true },
+      { _id: 229096, name: "Harry", male: true },
+   ] );
+   updateAndCheck( varCL );
+   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
+}
+
 function updateAndCheck ( varCL )
 {  //The filter is an optional parameter.
 
@@ -35,28 +50,6 @@ function updateAndCheck ( varCL )
    }
 }
 
-function main ()
-{
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   var varCL = commCreateCL( db, csName, clName, {}, true, false, "create cl in begin" );
-   varCL.insert( [
-      { _id: 229095, name: "Jack", male: true },
-      { _id: 229096, name: "Harry", male: true },
-   ] );
-   updateAndCheck( varCL );
-   commDropCL( db, csName, clName, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
 

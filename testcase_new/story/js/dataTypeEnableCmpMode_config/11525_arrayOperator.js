@@ -5,7 +5,9 @@
 *@createdate:  2017.5.19
 *@testlinkCase: seqDB-11525
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var clName = COMMCLNAME + "_11525";
    //clean environment before test
@@ -40,7 +42,7 @@ function main ()
    { a: { $minKey: 1 } },
    { a: { $maxKey: 1 } },
    { b: 1 }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //expand
    var findConf1 = { a: { $expand: 1 } };
@@ -74,14 +76,14 @@ function main ()
    { a: [20, 1] }];
    checkResult( dbcl, findConf2, hintConf, sortConf, expRecs2 );
 
-   removeData( dbcl );
+   dbcl.remove();
 
    //insert data test expand
    var doc = [{ No: 1, b: 1, c: 1 },
    { No: 2, b: [2, 3, 4], c: [2, 3, 4] },
    { No: 3, b: [5, 6, [7, 8]], c: [5, 6, [7, 8]] },
    { No: 4, b: [] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    var findCondition1 = { b: { $expand: 1 } };
    var expRecs1 = [{ No: 1, b: 1, c: 1 },
@@ -117,7 +119,7 @@ function main ()
    { No: 3, b: [7, 8], c: [5, 6, [7, 8]] }];
    checkResult( dbcl, findCondition17, hintConf, sortConf, expRecs17 );
 
-   removeData( dbcl );
+   dbcl.remove();
 
    //insert data for test returnMatch
    var doc = [{ No: 1, b: 1 },
@@ -126,7 +128,7 @@ function main ()
    { No: 4, b: [1, 2, 3, 4, 5] },
    { No: 5, b: [1, [[1, 2, 3], 3, 4], 3, 5, 2, 6, 1, 5, 7] },
    { No: 6, b: [] }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //seqDB-10331
    var findCondition1 = { b: { $returnMatch: 0, $in: [1, 2, 3] } };
@@ -251,4 +253,3 @@ function main ()
    checkResult( dbcl, findCondition21, hintConf, sortConf, expRecs21 );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();

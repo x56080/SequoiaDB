@@ -2,9 +2,9 @@
 *@Description: seqDB-18619:重放日志到文件，覆盖支持的filedType类型相关的所有更新符
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -27,7 +26,6 @@ function main ()
 
       // ready cl data
       var cl = readyCL( csName, clName, { Group: groupName } );
-      println( "\n   Begin to insert and update records." );
       cl.insert( { "int": 1, "long": { "$numberLong": "1" }, "decimal": { "$decimal": "1.0" }, "time": { "$timestamp": "1969-12-31-23.59.59.999999" }, "str": "test" } );
 
       cl.update( { "$inc": { "int": 1, "long": 2, "decimal": 0.2 } } );
@@ -70,7 +68,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 

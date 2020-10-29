@@ -8,6 +8,15 @@
 ****************************************************/
 var csName = COMMCSNAME;
 
+main( test );
+
+function test ()
+{
+   lackNameCreateCL();
+   lackNameDropCL();
+}
+
+
 function lackNameCreateCL ()
 {
    tryCatch( ["cmd=create collection"], [-6], "Error occurs in " + getFuncName() );
@@ -18,21 +27,5 @@ function lackNameDropCL ()
    tryCatch( ["cmd=drop collection"], [-6], "Error occurs in " + getFuncName() );
 }
 
-function main ()
-{
-   lackNameCreateCL();
-   lackNameDropCL();
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+

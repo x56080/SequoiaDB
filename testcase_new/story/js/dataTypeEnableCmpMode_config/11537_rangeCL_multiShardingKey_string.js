@@ -5,7 +5,9 @@
 *@createdate:  2017.5.24
 *@testlinkCase:seqDB-11537 
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    //set find data from master
    db.setSessionAttr( { PreferedInstance: "M" } );
@@ -16,26 +18,17 @@ function main ()
    //clean environment before test
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
 
-   //check test environment before split
-   try
+
+   //standalone can not split
+   if( true == commIsStandalone( db ) )
    {
-      //standalone can not split
-      if( true == commIsStandalone( db ) )
-      {
-         println( "run mode is standalone" );
-         return;
-      }
-      //less two groups,can not split
-      var allGroupName = getGroupName( db );
-      if( 1 === allGroupName.length )
-      {
-         println( "only one group" );
-         return;
-      }
+      return;
    }
-   catch( e )
+   //less two groups,can not split
+   var allGroupName = getGroupName( db );
+   if( 1 === allGroupName.length )
    {
-      throw e;
+      return;
    }
 
    var ClOption = { ShardingKey: { "a": 1, "b": 1, "c": 1 }, ShardingType: "range" };
@@ -65,7 +58,7 @@ function main ()
    { a: { $timestamp: "2013-06-05-16.10.33.000000" }, b: { $timestamp: "2013-06-05-16.10.33.000000" }, c: { $timestamp: "2013-06-05-16.10.33.000000" } },
    { a: { $regex: "^a", $options: "i" }, b: { $regex: "^a", $options: "i" }, c: { $regex: "^a", $options: "i" } },
    { a: { $maxKey: 1 }, b: { $maxKey: 1 }, c: { $maxKey: 1 } }];
-   insertData( dbcl, doc );
+   dbcl.insert( doc );
 
    //gte
    var findCondition2 = { $and: [{ a: { $gte: "a" } }, { b: { $gte: "a" } }, { c: { $gte: "a" } }] };
@@ -135,4 +128,4 @@ function main ()
    checkResult( dbcl, findCondition2, hintConf, sortConf, expRecs2 );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }
-main();
+

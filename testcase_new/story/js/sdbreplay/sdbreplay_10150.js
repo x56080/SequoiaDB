@@ -2,12 +2,13 @@
 *@Description: seqDB-10150: 重放时过滤/指定cl  
 *@Author: 2019-7-1  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;

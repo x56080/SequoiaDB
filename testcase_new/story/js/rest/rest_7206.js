@@ -13,6 +13,22 @@ var clName = COMMCLNAME + "_7206";
 var cl = "name=" + csName + '.' + clName;
 var varCL;
 
+main( test );
+
+function test ()
+{
+   ready();
+   varCL.insert( [
+      { myid: 229095, age: 10 },
+      { myid: 229098, age: 13 },
+      { myid: 229096, age: 11, male: true },
+      { age: 12 },
+      { myid: 229099, age: 14 }
+   ] );
+   queryandupdate();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
 function ready ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -68,32 +84,4 @@ function queryandupdate ()
 
 }
 
-function main ()
-{
-   ready();
-   varCL.insert( [
-      { myid: 229095, age: 10 },
-      { myid: 229098, age: 13 },
-      { myid: 229096, age: 11, male: true },
-      { age: 12 },
-      { myid: 229099, age: 14 }
-   ] );
-   queryandupdate();
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-finally
-{
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}

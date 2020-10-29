@@ -16,6 +16,22 @@ var cs = "name=" + csName;
 var cl = "name=" + csName + '.' + clName;
 var cl2 = "name=" + csName + '.' + clName2;
 
+main( test );
+
+function test ()
+{
+   if( commIsStandalone( db ) )
+   {
+      return;
+   }
+   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
+   commDropCL( db, csName, clName2, true, true, "drop cl in begin" );
+   createclAndCheck();
+   createclLackOptions();
+   dropclAndCheck();
+   commDropCL( db, csName, clName2, false, false, "drop cl in clean" );
+}
+
 function createclAndCheck ()
 {
    var word = "create collection";
@@ -57,30 +73,6 @@ function dropclAndCheck ()
    }
 }
 
-function main ()
-{
-   if( commIsStandalone( db ) )
-   {
-      println( "standalone mode" );
-      return;
-   }
-   commDropCL( db, csName, clName, true, true, "drop cl in begin" );
-   commDropCL( db, csName, clName2, true, true, "drop cl in begin" );
-   createclAndCheck();
-   createclLackOptions();
-   dropclAndCheck();
-   commDropCL( db, csName, clName2, false, false, "drop cl in clean" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
+

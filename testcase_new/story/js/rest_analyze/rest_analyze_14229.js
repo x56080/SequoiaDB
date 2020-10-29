@@ -5,7 +5,9 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    var analyzeCsName = COMMCSNAME + "_14229";
    var options = { PageSize: 4096 };
@@ -43,17 +45,4 @@ function main ()
 
    commDropCS( db, analyzeCsName, false );
    commDropCS( db, nonAnalyzeCsName, false );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

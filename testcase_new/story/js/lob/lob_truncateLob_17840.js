@@ -3,7 +3,9 @@
 @Modify list :
 2019-2-15  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    var clName = COMMCLNAME + "_17840";
@@ -13,31 +15,15 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //truncateLob oid string checked
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.truncateLob( "", 1 );
-      throw "TRUNCATE LOB ERROR";
-   }
-   catch( e )
-   {
-      if( -6 != e )
-      {
-         throw buildException( "truncateLob()", "truncateLob", "truncate lob with wrong oid", -6, e );
-      }
-   }
-   try
+   } );
+   assert.tryThrow( -6, function()
    {
       dbcl.truncateLob( "sas", 12 );
-      throw "TRUNCATE LOB ERROR";
-   }
-   catch( e )
-   {
-      if( -6 != e )
-      {
-         throw buildException( "truncateLob()", "truncateLob", "truncate lob with wrong oid", -6, e );
-      }
-   }
+   } );
    commDropCL( db, COMMCSNAME, clName, true, true );
 }
 
-main(); 
+

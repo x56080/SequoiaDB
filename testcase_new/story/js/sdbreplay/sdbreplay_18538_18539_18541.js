@@ -4,9 +4,9 @@
                seqDB-18541:tables.fields.defaultValue配置默认值，fieldType配置为MAPPING_TIMESTAMP
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -15,7 +15,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -63,7 +62,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 

@@ -13,6 +13,19 @@ var clName = COMMCLNAME + "_7208";
 var cl = "name=" + csName + '.' + clName;
 var varCL;
 
+
+main( test );
+
+function test ()
+{
+   ready();
+   varCL.insert( { myid: 229095, age: 10 } );
+   lackName();
+   lackUpdator();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
+
 function ready ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -59,25 +72,5 @@ function lackUpdator ()
    }
 }
 
-function main ()
-{
-   ready();
-   varCL.insert( { myid: 229095, age: 10 } );
-   lackName();
-   lackUpdator();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 

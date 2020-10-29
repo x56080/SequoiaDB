@@ -12,18 +12,13 @@ var clName = COMMCLNAME + "_7225";
 var sourceGroup;
 var targetGroup;
 
-function lackSplitquery ()
-{
-   var word = "split";
-   tryCatch( ["cmd=" + word, "name=" + csName + '.' + clName, 'source=' + sourceGroup, 'target=' + targetGroup, 'splitendquery={Partition:128}'], [-6], "Error occurs in " + getFuncName() );
-}
+main( test );
 
-function main()
+function test ()
 {
    var groupInfos = commGetGroups( db );
    if( commIsStandalone( db ) || groupInfos.length < 2 )
    {
-      println( "Mode is standalone or one group mode" );
       return;
    }
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -35,15 +30,11 @@ function main()
    commDropCL( db, csName, clName, false, false, "drop cl in clean" );
 }
 
-try
+function lackSplitquery ()
 {
-   main();
+   var word = "split";
+   tryCatch( ["cmd=" + word, "name=" + csName + '.' + clName, 'source=' + sourceGroup, 'target=' + targetGroup, 'splitendquery={Partition:128}'], [-6], "Error occurs in " + getFuncName() );
 }
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+
+
+

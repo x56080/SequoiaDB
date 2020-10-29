@@ -2,9 +2,9 @@
 *@Description: seqDB-18447:主子表，多张子表其中包括普通表和分区表，重放归档日志到文件
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var sclName1;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -29,16 +28,13 @@ function main ()
       initTmpDir( rtCmd );
 
       // ready cl data
-      println( "\n---Begin to create main-sub CL." );
       var cs = db.getCS( csName );
       var mcl = readyCL( csName, mclName, { IsMainCL: true, ShardingKey: { a: 1 } } );
       cs.createCL( sclName1, { Group: groupName } );
       cs.createCL( sclName2, { Group: groupName, ShardingKey: { a: 1 } } );
-      println( "\n---Begin to attach CL." );
       mcl.attachCL( csName + "." + sclName1, { LowBound: { a: 0 }, UpBound: { a: 1 } } );
       mcl.attachCL( csName + "." + sclName2, { LowBound: { a: 1 }, UpBound: { a: 2 } } );
 
-      println( "\n---Begin to ready records." );
       var rc1 = mcl.insert( { a: 0, b: "test0" }, SDB_INSERT_RETURN_ID );
       var oid1 = rc1.toObj()._id.$oid;
       mcl.update( { $set: { b: "test_0" } }, { a: 0 } );
@@ -83,7 +79,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, sclName1, sclName2 )
 {
-   println( "\n---Begin to config outputconf." );
    var fullSclName1 = csName + "." + sclName1;
    var fullSclName2 = csName + "." + sclName2;
    var targetConfPath = tmpFileDir + fullSclName1 + ".conf";

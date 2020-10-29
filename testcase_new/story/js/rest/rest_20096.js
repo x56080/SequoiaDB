@@ -2,20 +2,11 @@
 @Description : seqDB-20096:rest支持response标准json格式的应答
 @Modify list : 2019-10-25  luweikang 
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var clName = "cl20096";
    commDropCL( db, COMMCSNAME, clName );
@@ -83,7 +74,6 @@ function sendRequest ( cmd, content )
    var rcObj = JSON.parse( rc );
    if( rcObj[0]["errno"] != 0 )
    {
-      println( curl );
    }
    return rcObj;
 }

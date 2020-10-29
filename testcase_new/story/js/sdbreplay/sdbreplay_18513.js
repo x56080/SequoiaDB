@@ -2,9 +2,9 @@
 *@Description: seqDB-18513:tables.fields.doubleQuote配置true/false
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -54,7 +53,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 
@@ -65,7 +63,6 @@ function configOutputConfFile ( rtCmd, groupName, csName, clName )
 
 function readyData ( cl )
 {
-   println( "   insert records." );
    cl.insert( {
       "str1": "", "str2": " ",
       "int1": -2147483648, "int2": 2147483647,
@@ -75,7 +72,6 @@ function readyData ( cl )
       "time2": Timestamp( "2037-12-31-23.59.59.999999" )
    }, SDB_INSERT_RETURN_ID );
 
-   println( "   update records." );
    cl.update( {
       $set: {
          "str1": '_\_', "str2": ' " ',
@@ -87,7 +83,6 @@ function readyData ( cl )
       }
    } );
 
-   println( "   remove records." );
    cl.remove();
 }
 

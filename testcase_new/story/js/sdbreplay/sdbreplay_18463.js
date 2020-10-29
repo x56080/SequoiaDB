@@ -2,12 +2,13 @@
 *@Description: seqDB-18463: tables配置一个集合包含多个相同和不同字段 
 *@Author: 2019-7-3  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;

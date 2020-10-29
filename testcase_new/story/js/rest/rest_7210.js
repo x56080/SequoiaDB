@@ -13,6 +13,16 @@ var clName = COMMCLNAME + "_7210";
 var cl = "name=" + csName + '.' + clName;
 var varCL;
 
+main( test );
+
+function test ()
+{
+   ready();
+   varCL.insert( { _id: 229095, age: 10 } );
+   queryandremove();
+   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
+}
+
 function ready ()
 {
    commDropCL( db, csName, clName, true, true, "drop cl in begin" );
@@ -40,24 +50,5 @@ function queryandremove ()
    }
 }
 
-function main ()
-{
-   ready();
-   varCL.insert( { _id: 229095, age: 10 } );
-   queryandremove();
-   commDropCL( db, csName, clName, false, true, "drop cl in clean in finally" );
-}
 
-try
-{
-   main();
-}
-catch( e )
-{
 
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

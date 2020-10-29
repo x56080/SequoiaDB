@@ -2,9 +2,9 @@
 *@Description: seqDB-18507:delimiter配置字段间分隔符包含转义字符
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -43,7 +42,6 @@ function main ()
       // check results
       var delimiter = '_a""b_';
       var actDelim = '_a"b_';
-      println( "\n   delimiter = " + delimiter + ", actDelim = " + actDelim );
       var expDataArr = ['"I"' + actDelim + '"test"',
       '"B"' + actDelim + '"test"',
       '"A"' + actDelim + '"test2"',
@@ -63,7 +61,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 

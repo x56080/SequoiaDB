@@ -2,9 +2,9 @@
 *@Description: seqDB-18506:delimiter配置字段间分隔符为任意不可见字符
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -42,7 +41,6 @@ function main ()
 
       // check results
       var delimiter = ' ?-a_';
-      println( "\n   delimiter = " + delimiter );
       var expDataArr = ['"I"' + delimiter + '"test"',
       '"B"' + delimiter + '"test"',
       '"A"' + delimiter + '"test2"',
@@ -62,7 +60,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 

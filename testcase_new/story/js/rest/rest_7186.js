@@ -19,6 +19,33 @@
 var csName = CHANGEDPREFIX + "_7186";
 var cs = "name=" + csName;
 
+main( test );
+
+function test ()
+{
+   commDropCS( db, csName, true, "drop cs in begin" );
+   commDropCS( db, csName + '1', true, "drop cs1 in begin" );
+   commDropCS( db, csName + '=' + cs, true, "drop cs in begin" );
+   commDropCS( db, "name==" + cs, true, "drop cs1 in begin" );
+
+   twoName();
+   lackCmd();
+   lackName();
+   lackCmdAndName();
+   misspell();
+   formatError1();
+   formatError2();
+   formatError3();
+   formatError4();
+   lackNameDropCS();
+
+   commDropCS( db, csName );
+   commDropCS( db, csName + '1' );
+   commDropCS( db, csName + '=' + cs );
+   commDropCS( db, "name==" + cs );
+}
+
+
 function twoName ()
 {
    //"XXXX&nam=foo&name=foo1" 
@@ -109,39 +136,5 @@ function lackNameDropCS ()
    tryCatch( ["cmd=drop collectionspace"], [-6], "Error occurs in lackNameDropCL function" );
 }
 
-function main ()
-{
-   commDropCS( db, csName, true, "drop cs in begin" );
-   commDropCS( db, csName + '1', true, "drop cs1 in begin" );
-   commDropCS( db, csName + '=' + cs, true, "drop cs in begin" );
-   commDropCS( db, "name==" + cs, true, "drop cs1 in begin" );
 
-   twoName();
-   lackCmd();
-   lackName();
-   lackCmdAndName();
-   misspell();
-   formatError1();
-   formatError2();
-   formatError3();
-   formatError4();
-   lackNameDropCS();
 
-   commDropCS( db, csName );
-   commDropCS( db, csName + '1' );
-   commDropCS( db, csName + '=' + cs );
-   commDropCS( db, "name==" + cs );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}

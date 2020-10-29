@@ -5,7 +5,9 @@
 2018-07-30        linsuqiang init
 ****************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    var csBaseName = COMMCSNAME + "_14228";
    var csNum = 2;
@@ -38,17 +40,3 @@ function main ()
       db.dropCS( csName );
    }
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

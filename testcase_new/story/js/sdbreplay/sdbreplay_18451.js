@@ -2,12 +2,13 @@
 *@Description: seqDB-18451:主子表，多张子表其中包括普通表和分区表，重放复制日志到文件   
 *@Author: 2019-7-2  xiaoni zhao init
 ************************************************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "\nThe mode is standalone." );
+      return;
    }
 
    var csName = COMMCSNAME;

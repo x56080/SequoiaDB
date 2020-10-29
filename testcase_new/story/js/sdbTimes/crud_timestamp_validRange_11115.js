@@ -4,21 +4,9 @@
 *@Author:  2017/2/28  huangxiaoni init
 *          2019/11/20  zhaoyu modify
 ************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_11115_1";
 
@@ -66,24 +54,16 @@ function main ()
 function cusorToArray ( cl, array )
 {
    var i = 0;
-   try
+   //get actual records to array
+   var rcData = [];
+   for( i = 0; i < array.length; i++ )
    {
-      //get actual records to array
-      var rcData = [];
-      for( i = 0; i < array.length; i++ )
+      //{ a: 5, b: { $timestamp: "1902-01-01T00:00:00.000+0800" } }由于带时区信息，不同的时区展示不同，不对该记录进行比较
+      var cursor = cl.find( { $and: [array[i], { a: { $ne: 5 } }] }, { _id: { $include: 0 } } ).sort( { a: 1 } );
+      while( tmpRec = cursor.next() )
       {
-         //{ a: 5, b: { $timestamp: "1902-01-01T00:00:00.000+0800" } }由于带时区信息，不同的时区展示不同，不对该记录进行比较
-         var cursor = cl.find( { $and: [array[i], { a: { $ne: 5 } }] }, { _id: { $include: 0 } } ).sort( { a: 1 } );
-         while( tmpRec = cursor.next() )
-         {
-            rcData.push( tmpRec.toObj() );
-         }
+         rcData.push( tmpRec.toObj() );
       }
-   }
-   catch( e )
-   {
-      throw new Error( e );
    }
    return rcData
 }
-

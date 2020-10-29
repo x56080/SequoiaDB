@@ -2,9 +2,9 @@
 *@Description: seqDB-18465:tables.fields配置多个字段，部分字段fieldType不同
 *@Author: 2019-6-28  xiaoni huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName;
    var rtCmd;
@@ -13,7 +13,6 @@ function main ()
    {
       if( commIsStandalone( db ) )
       {
-         println( "\nThe mode is standalone." );
          return;
       }
 
@@ -56,7 +55,6 @@ function main ()
 
 function configOutputConfFile ( rtCmd, groupName, csName, clName )
 {
-   println( "\n---Begin to config outputconf." );
    var fullCLName = csName + "." + clName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
 
@@ -67,7 +65,6 @@ function configOutputConfFile ( rtCmd, groupName, csName, clName )
 
 function readyData ( cl, preStr, aftStr )
 {
-   println( "   insert records." );
    var rc = cl.insert( {
       "str1": "", "str2": preStr,
       "int1": -2147483648, "int2": 2147483647,
@@ -78,7 +75,6 @@ function readyData ( cl, preStr, aftStr )
    }, SDB_INSERT_RETURN_ID );
    var oid = rc.toObj()._id.$oid;
 
-   println( "   update records." );
    cl.update( {
       $set: {
          "str1": " ", "str2": aftStr,
@@ -90,7 +86,6 @@ function readyData ( cl, preStr, aftStr )
       }
    } );
 
-   println( "   remove records." );
    cl.remove();
 
    return oid;
