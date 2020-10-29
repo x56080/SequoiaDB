@@ -5121,11 +5121,6 @@ error:
       return CMD_RESTORE_ABORT ;
    }
 
-   BOOLEAN _rtnRestoreAbort::writable()
-   {
-      return TRUE ;
-   }
-
    INT32 _rtnRestoreAbort::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR * pMatcherBuff,
@@ -5140,7 +5135,7 @@ error:
                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                   INT16 w , INT64 *pContextID )
    {
-      pmdGetKRCB()->setIsRestore(false);
+      pmdGetKRCB()->setDBRestoring(false);
       return SDB_OK ;
    }
 }

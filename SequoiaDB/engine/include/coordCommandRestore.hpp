@@ -50,6 +50,8 @@ class _coordCMDRestore : public _coordCommandBase
    INT32 _queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
                           const std::string &clName, const bson::BSONObj &query,
                           OBJ_VEC *results);
+   INT32 _cmdCoords(pmdEDUCB *cb, MSG_TYPE opCode, const string &clName,
+                    const BSONObj &query);
 };
 
 /*

@@ -2325,7 +2325,15 @@ namespace engine
                 ((0 ==
                   ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_TO_PIT)) ||
                  (0 ==
-                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_ABORT))))
+                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_ABORT)) ||
+                 (0 ==
+                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_START)) ||
+                 (0 ==
+                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_RESUME)) ||
+                 (0 ==
+                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_STOP)) ||
+                 (0 ==
+                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_STATUS))))
             {
                return TRUE ;
             }

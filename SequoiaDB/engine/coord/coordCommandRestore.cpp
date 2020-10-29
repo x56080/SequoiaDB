@@ -307,13 +307,17 @@ INT32 _coordCMDRestore::_resetState(pmdEDUCB *cb)
       PD_LOG(PDERROR, "Failed to create query");
       return SDB_OOM;
    }
-   if ((rc = _alterDC(cb, query)))
+   if ((rc = _alterDC(cb, query))) // this will update cata and data
    {
       PD_LOG(PDERROR, "Failed to update DC state across nodes");
       return rc;
    }
-   // Update the local cache
-   pmdGetKRCB()->setDBRestoring(FALSE);
+   if ((rc = _cmdCoords(cb, MSG_BS_QUERY_REQ,
+                        CMD_ADMIN_PREFIX CMD_NAME_RESTORE_ABORT, BSONObj())))
+   {
+      PD_LOG(PDERROR, "Failed to update coord nodes");
+      return rc;
+   }
    return rc;
 }
 
@@ -418,6 +422,33 @@ INT32 _coordCMDRestore::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
       PD_LOG(PDERROR, "The number of results [%u] does not match the number of "
                       "groups [%u]");
       return SDB_SYS;
+   }
+   return rc;
+}
+
+// Run the given command on the coord nodes
+INT32 _coordCMDRestore::_cmdCoords(pmdEDUCB *cb, MSG_TYPE opCode,
+                                   const string &clName, const BSONObj &query)
+{
+   INT32 rc = SDB_OK;
+   CoordGroupList groups;
+   _QueryMsg msg(&rc, cb, clName, opCode, query); // Auto-cleaning
+   if (rc)
+   {
+      return rc;
+   }
+
+   // Run on all nodes in the coordinator group only
+   INT32 tmpRole[ SDB_ROLE_MAX ] = { 0 } ;
+   tmpRole[SDB_ROLE_COORD] = 1;
+   coordCtrlParam ctrlParam;
+   ctrlParam.resetRole();
+   ctrlParam.setParseRole(tmpRole);
+   ROUTE_RC_MAP failedNodes;
+   if ((rc = executeOnNodes(msg.header, cb, ctrlParam, 0, failedNodes)))
+   {
+      PD_LOG(PDERROR, "Execute on coord group failed");
+      return rc;
    }
    return rc;
 }
