@@ -1162,6 +1162,7 @@ namespace engine
                             "Failed to parse service name, should be string "
                             "or number" ) ;
                }
+               ss << STP_OPTION_PORT << "=" << serviceName << endl ;
             }
             /// ignore STP_OPTION_CONFPATH
             else if ( 0 != ossStrcmp( element.fieldName(),
