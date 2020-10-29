@@ -31,8 +31,8 @@ namespace CSharp.Cluster
      *                   7、删除其中一个节点，通过节点名获取节点信息，检查节点是否存在 
      *                   8、再次创建已删除节点 
      * testcase:         14573
-     * author:           chensiqin
-     * date:             2019/04/18
+     * author:           chensiqin 2019/04/18
+     *                   liuli     2020/10/29
      */
 
     [TestClass]
@@ -97,8 +97,8 @@ namespace CSharp.Cluster
                 }
 
             }
-            
-            
+
+
             Node slave = rg.GetSlave();
             //6、停止其中一个节点，检查节点状态 
             slave.Stop();
@@ -109,17 +109,20 @@ namespace CSharp.Cluster
             }
             catch (BaseException e)
             {
-                Assert.AreEqual(-79, e.ErrorCode);
+                if (e.ErrorCode != -79 && e.ErrorCode != -13)
+                {
+                    throw e;
+                }
                 //SEQUOIADBMAINSTREAM-4394
-               // Assert.AreEqual(SDBConst.NodeStatus.SDB_NODE_INACTIVE, slave.GetStatus());//SDB_NODE_INACTIVE
+                // Assert.AreEqual(SDBConst.NodeStatus.SDB_NODE_INACTIVE, slave.GetStatus());//SDB_NODE_INACTIVE
             }
-            
+
             //7、删除其中一个节点，通过节点名获取节点信息，检查节点是否存在 
             rg.RemoveNode(slave.HostName, slave.Port, new BsonDocument());
             Assert.AreEqual(false, rg.IsNodeExist(slave.HostName, slave.Port));
             //8、再次创建已删除节点 
             rg.CreateNode(slave.HostName, slave.Port, SdbTestBase.reservedDir + "/" + slave.Port, map);
-            
+
         }
 
         [TestCleanup()]
@@ -134,6 +137,6 @@ namespace CSharp.Cluster
                 sdb.Disconnect();
             }
             Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss:fff") + " end  : " + this.GetType().ToString());
-        } 
+        }
     }
 }
