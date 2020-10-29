@@ -3,7 +3,8 @@
 *@Modify list :
 *               2018-12-12  Wangkexin  Init
 ******************************************************************************/
-
+import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 // Get group from Sdb
 function getGroup ( db )
 {
