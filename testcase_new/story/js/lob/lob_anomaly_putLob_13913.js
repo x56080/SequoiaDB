@@ -11,8 +11,9 @@ function test ()
    var testFile = CHANGEDPREFIX + "lobTest.file";
    //lobGenerateFile( testFile ); // auto file
    // create collection
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
+   var clName = COMMCLNAME + "_13913";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    // put lob with no lob file[Test_Point_1]
    assert.tryThrow( -6, function()
    {
@@ -29,6 +30,6 @@ function test ()
    {
       cl.deleteLob();
    } );
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
 }

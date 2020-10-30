@@ -11,14 +11,14 @@ function test ()
    var clName = "testLob4462";
    commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the beginning" );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, false, "create collection" );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, false, "create collection" );
 
    //test case:4462
    putLobWithFileNotExist( cl );
    //test case:4464
    putLobWithEmpty( cl );
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "clear collection in the ending" );
+   commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the ending" );
 
 }
 

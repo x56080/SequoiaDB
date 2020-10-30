@@ -11,11 +11,11 @@ function test ()
    var testFile = CHANGEDPREFIX + "lobTest.file";
    var getTestFile = CHANGEDPREFIX + "lobTestGet.file";
    var putNum = 1;
-
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   var clName = COMMCLNAME + "_13902_13903";
+   commDropCL( db, COMMCSNAME, clName, true, true );
    lobGenerateFile( testFile );
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    // put Lob
    var oid = lobPutLob( cl, testFile, putNum ); //Array
    // get lob with no parmameter : getLob()[Test_Point_1]
@@ -39,7 +39,7 @@ function test ()
       {
          cl.deleteLob( oid[i] );
       }
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
    catch( e )
    {

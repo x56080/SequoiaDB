@@ -21,9 +21,10 @@ function test ()
    lobGenerateFile( testFile ); // auto file
    // cmd.run( "cat " + testFile ); 
    // create collection
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   var clName = COMMCLNAME + "_13938";
+   commDropCL( db, COMMCSNAME, clName, true, true );
 
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    var md5Arr = cmd.run( "md5sum " + testFile ).split( " " );
    var md5 = md5Arr[0];
    // put Lob
@@ -63,6 +64,6 @@ function test ()
    {
       cmd.run( "rm -rf " + testFile );
       cmd.run( "rm -rf " + getTestFile );
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
 }

@@ -25,10 +25,11 @@ function test ()
       "ShardingKey": { "no": 1 }, "ShardingType": "range", "ReplSize": 0,
       "Compressed": true
    };
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true, true );
+   var clName = COMMCLNAME + "_13941";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, optionObj, true, true );
    // do range split collection before put data
-   var FULLCLNAME = COMMCSNAME + "." + COMMCLNAME;
+   var FULLCLNAME = COMMCSNAME + "." + clName;
    var clRg = commGetCLGroups( db, FULLCLNAME );
    var cond = Math.floor( putNum / names.length );
    var loopCond = cond;
@@ -76,5 +77,6 @@ function test ()
       {
          cmd.run( "rm -rf " + getTestFile );
       }
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
 }

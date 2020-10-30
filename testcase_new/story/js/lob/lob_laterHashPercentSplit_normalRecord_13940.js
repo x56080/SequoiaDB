@@ -27,14 +27,15 @@ function test ()
       "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
       "Partition": partitionNum, "Compressed": true
    };
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true, true );
+   var clName = COMMCLNAME + "_13940";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, optionObj, true, true );
    // put normal data and lob data
    try
    {
       lobInsertDoc( cl, putNum );
       var oids = lobPutLob( cl, testFile, putNum );
-      var FULLCLNAME = COMMCSNAME + "." + COMMCLNAME;
+      var FULLCLNAME = COMMCSNAME + "." + clName;
       var clRg = commGetCLGroups( db, FULLCLNAME );
       var cond = Math.floor( 100 / names.length );
       for( var i = 0; i < names.length; ++i )
@@ -57,7 +58,7 @@ function test ()
          var curMd5 = getMd5ForFile( getTestFile );
          assert.equal( originMd5, curMd5 );
       }
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
    catch( e )
    {

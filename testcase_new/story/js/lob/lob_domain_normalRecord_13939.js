@@ -17,8 +17,8 @@ function test ()
    var DOMCSNAME = CHANGEDPREFIX + "_domainCS";
    var domName = CHANGEDPREFIX + "_domName";
    var cmd = new Cmd();
-
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   var clName = COMMCLNAME + "_13939";
+   commDropCL( db, COMMCSNAME, clName, true, true );
    lobGenerateFile( testFile ); // auto file
    var originMd5 = getMd5ForFile( testFile );
    // create domain
@@ -34,7 +34,7 @@ function test ()
          "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
          "Partition": partitionNum, "Compressed": true
       };
-      var cl = commCreateCL( db, DOMCSNAME, COMMCLNAME, optionObj, true, true );
+      var cl = commCreateCL( db, DOMCSNAME, clName, optionObj, true, true );
       lobInsertDoc( cl, putNum );
       var oids = lobPutLob( cl, testFile, putNum );
       for( var i = 0; i < oids.length; ++i )
@@ -55,11 +55,7 @@ function test ()
    }
    finally
    {
-      if( typeof ( cs ) !== "undefined" )
-      {
-         commDropCS( db, DOMCSNAME, true, "drop collection in the end, correct" );
-      }
-
+      commDropCL( db, COMMCSNAME, clName, true, true );
       commDropDomain( db, domName );
 
       cmd.run( "rm -rf " + testFile );

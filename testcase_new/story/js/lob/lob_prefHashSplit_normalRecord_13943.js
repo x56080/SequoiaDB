@@ -27,12 +27,13 @@ function test ()
       "ShardingKey": { "no": 1 }, "ShardingType": "hash", "ReplSize": 0,
       "Partition": partitionNum, "Compressed": true
    };
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, optionObj, true, true );
+   var clName = COMMCLNAME + "_13943";
+   commDropCL( db, COMMCSNAME, clName, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, optionObj, true, true );
    // collection do hash split before put data
    try
    {
-      var FULLCLNAME = COMMCSNAME + "." + COMMCLNAME;
+      var FULLCLNAME = COMMCSNAME + "." + clName;
       var clRg = commGetCLGroups( db, FULLCLNAME );
 
       var cond = Math.floor( partitionNum / names.length );
@@ -62,7 +63,7 @@ function test ()
          var count = cl.find( { "no": i } ).count();
          assert.equal( 1, count );
       }
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
    catch( e )
    {

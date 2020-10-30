@@ -18,7 +18,7 @@ function test ()
    //test case:4467
    deleteLobWithEmpty( cl );
 
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "clear collection in the ending" );
+   commDropCL( db, COMMCSNAME, clName, true, true, "clear collection in the ending" );
 
 }
 

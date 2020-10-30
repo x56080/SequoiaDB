@@ -14,10 +14,10 @@ function test ()
 
    lobGenerateFile( testFile ); // auto file
    var originMd5 = getMd5ForFile( testFile );
-
-   commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+   var clName = COMMCLNAME + "_13945";
+   commDropCL( db, COMMCSNAME, clName, true, true );
    // create collection
-   var cl = commCreateCL( db, COMMCSNAME, COMMCLNAME, {}, true, true );
+   var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    // put normal data and put lob
    try
    {
@@ -35,7 +35,7 @@ function test ()
          var count = cl.find( { "no": i } ).count();
          assert.equal( 1, count );
       }
-      commDropCL( db, COMMCSNAME, COMMCLNAME, true, true );
+      commDropCL( db, COMMCSNAME, clName, true, true );
    }
    catch( e )
    {
