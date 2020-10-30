@@ -1,36 +1,27 @@
 /************************************
-*@Description: setSessionAttr，字段值超过边界值_ST.basicOperate.setSessionAttr.002
-*@author:      wangkexin
-*@createDate:  2019.6.5
-*@testlinkCase: seqDB-5298
+*@Description : seqDB-5298:setSessionAttr，字段值超过边界值
+*@author      : wangkexin 2019.6.5  huangxiaoni 2020.10.12
 **************************************/
-main();
-function main ()
-{
-   if( true == commIsStandalone( db ) )
-   {
-      println( "run mode is standalone" );
-      return;
-   }
+testConf.skipStandAlone = true;
 
-   //PreferedInstance字段值分别取0、256、y
-   checkInvalidArg( 0 );
-   checkInvalidArg( 256 );
-   checkInvalidArg( "y" );
-}
-
-function checkInvalidArg ( argument )
+main( test );
+function test ( arg )
 {
-   try
+   // PreferedInstance字段值为0
+   assert.tryThrow( -6, function()
    {
-      db.setSessionAttr( { "PreferedInstance": argument } );
-      throw "expect failure but succeed.";
-   }
-   catch( e )
+      db.setSessionAttr( { "PreferedInstance": 0 } );
+   } );
+
+   // PreferedInstance字段值为256
+   assert.tryThrow( -6, function()
    {
-      if( e !== -6 )
-      {
-         throw buildException( "checkInvalidArg()", e, "argument is :" + argument, -6, e );
-      }
-   }
+      db.setSessionAttr( { "PreferedInstance": 256 } );
+   } );
+
+   // PreferedInstance字段值为字符串
+   assert.tryThrow( -6, function()
+   {
+      db.setSessionAttr( { "PreferedInstance": "y" } );
+   } );
 }

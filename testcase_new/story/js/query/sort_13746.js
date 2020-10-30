@@ -1,6 +1,5 @@
 /******************************************************************************
-@Description : 1. Query timestamp type sort without index
-               2. Query timestamp type forced sort through index
+@Description : seqDB-13746:查询指定时间戳类型字段排序（包含不带索引、带索引）
 @Modify list :
                2015-01-16 pusheng Ding  Init
                2020-08-14 Zixian Yan    Modify
@@ -11,26 +10,25 @@ main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
-   var indexName = "index_13746";
-   var data = [ { a: { "$timestamp": "2000-01-01-01.01.01.100000" }, b: 2, c: "abcd" },
-	             { a: { "$timestamp": "2000-01-01-01.01.01.000001" }, b: 1, c: "efghi" },
-	             { a: { "$timestamp": "2011-11-30-17.04.01.123456" }, b: 4, c: "xyz" },
-	             { a: { "$timestamp": "2010-12-31-17.04.01.123456" }, b: 3, c: "jklmn" } ];
+   var recs = [
+      { a: { "$timestamp": "2000-01-01-01.01.01.100000" }, b: 2 },
+      { a: { "$timestamp": "2000-01-01-01.01.01.000001" }, b: 1 },
+      { a: { "$timestamp": "2011-11-30-17.04.01.123456" }, b: 4 },
+      { a: { "$timestamp": "2010-12-31-17.04.01.123456" }, b: 3 }];
+   cl.insert( recs );
 
-   var expectation = [ { a: { "$timestamp": "2000-01-01-01.01.01.000001" }, b: 1, c: "efghi" },
-                       { a: { "$timestamp": "2000-01-01-01.01.01.100000" }, b: 2, c: "abcd" },
-             	        { a: { "$timestamp": "2010-12-31-17.04.01.123456" }, b: 3, c: "jklmn" },
-                       { a: { "$timestamp": "2011-11-30-17.04.01.123456" }, b: 4, c: "xyz" } ];
+   // 不走索引
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { a: 1 } );
+   var expRecs = [
+      { a: { "$timestamp": "2000-01-01-01.01.01.000001" }, b: 1 },
+      { a: { "$timestamp": "2000-01-01-01.01.01.100000" }, b: 2 },
+      { a: { "$timestamp": "2010-12-31-17.04.01.123456" }, b: 3 },
+      { a: { "$timestamp": "2011-11-30-17.04.01.123456" }, b: 4 }];
+   commCompareResults( cursor, expRecs );
 
-   cl.insert( data );
-
-   //Query without index
-   var query1 = cl.find().sort( {a: 1} );
-   checkRec( query1, expectation);
-
-   cl.createIndex( indexName, {a: 1} );
-
-   // Query forced through index
-   var query2 = cl.find().hint( { "": indexName } );
-   checkRec( query2, expectation );
+   // 索引扫描
+   var indexName = "idx";
+   cl.createIndex( indexName, { a: -1 } );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": indexName } ).sort( { a: 1 } );
+   commCompareResults( cursor, expRecs );
 }

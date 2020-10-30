@@ -1,43 +1,23 @@
 /************************************
-*@Description: 查询regex类型数据，参数错误 
-*@author:      wangkexin
-*@createDate:  2019.6.6
-*@testlinkCase: seqDB-11080
+*@Description : seqDB-11080：查询regex类型数据，参数错误 
+*@author      : wangkexin 2019.6.6  huangxiaoni 2020.10.12
 **************************************/
-main();
-function main ()
+testConf.clName = COMMCLNAME + "_11080";
+
+main( test );
+function test ( arg )
 {
-   var clName = "cl11080";
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning." );
-   var cl = commCreateCL( db, COMMCSNAME, clName );
+   var cl = arg.testCL;
 
    //查询regex类型数据，$options值错误
-   try
+   assert.tryThrow( -6, function()
    {
-      var rc = cl.find( { regex: { $regex: "aaa", $options: 1 } } ).toArray();
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "main()", e, "$options value is wrong", -6, e );
-      }
-   }
+      cl.find( { regex: { $regex: "aaa", $options: 1 } } ).toArray();
+   } );
 
    //查询regex类型数据，带非 $options 的其他参数
-   try
+   assert.tryThrow( -6, function()
    {
-      var rc = cl.find( { regex: { $regex: "aaa", a: "1" } } ).toArray();
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "main()", e, "query without $options", -6, e );
-      }
-   }
-
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the end." );
+      cl.find( { regex: { $regex: "aaa", a: "1" } } ).toArray();
+   } );
 }

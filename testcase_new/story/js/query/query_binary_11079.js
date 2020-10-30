@@ -1,44 +1,24 @@
 /************************************
-*@Description:  查询binary类型数据，参数错误
-*@author:      wangkexin
-*@createDate:  2019.6.6
-*@testlinkCase: seqDB-11079
+*@Description :  seqDB-11079：查询binary类型数据，参数错误
+*@author      :  wangkexin 2019.6.6  huangxiaoni 2020.10.12
 **************************************/
-main();
-function main ()
-{
-   var clName = "cl11079";
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the beginning." );
-   var cl = commCreateCL( db, COMMCSNAME, clName );
+testConf.clName = COMMCLNAME + "_11079";
 
+main( test );
+function test ( arg )
+{
+   var cl = arg.testCL;
    cl.insert( { "a": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
-   //查询binary类型数据，$type值错误 
-   try
+
+   //查询binary类型数据，$type值错误
+   assert.tryThrow( -6, function()
    {
-      var rc = cl.find( { a: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1000" } } ).toArray();
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "main()", e, "$type value is wrong", -6, e );
-      }
-   }
+      cl.find( { a: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1000" } } ).toArray();
+   } );
 
    //查询binary类型数据，缺少$type 
-   try
+   assert.tryThrow( -6, function()
    {
-      var rc = cl.find( { bindata: { "$binary": "aGVsbG8gd29ybGQ=" } } ).toArray();
-      throw "expect failure but succeed.";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "main()", e, "query without $type", -6, e );
-      }
-   }
-
-   commDropCL( db, COMMCSNAME, clName, true, true, "drop cl in the end." );
+      cl.find( { bindata: { "$binary": "aGVsbG8gd29ybGQ=" } } ).toArray();
+   } );
 }

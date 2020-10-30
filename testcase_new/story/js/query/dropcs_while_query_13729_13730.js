@@ -3,18 +3,18 @@
                  seqDB-13730:游标未关闭时，在不同个session中删除cs
 *@Modify List : 2014-9-26   xiaojunHu  Init
                 2016-3-17   Ting YU    modify
+                2020-10-12 XiaoNi Huang  modify
 *******************************************************************************/
+testConf.csName = COMMCSNAME + "_13729";
+testConf.clName = COMMCLNAME + "_13729";
 
-testConf.csName = COMMCSNAME + "_query_cs_13729";
-testConf.clName = COMMCLNAME + "_query_cl_13729";
 main( test );
-
-function test (testPara)
+function test ( testPara )
 {
    var rd = new commDataGenerator();
-   var recs = rd.getRecords( 1000, "string", ['a', 'b', 'c']);
+   var recs = rd.getRecords( 1000, "string", ['a', 'b', 'c'] );
    testPara.testCL.insert( recs );
-   
+
    //cursor not close
    var rc = testPara.testCL.find();
    rc.next();
@@ -30,7 +30,6 @@ function test (testPara)
 
 function checkContext ()
 {
-   println( "---begin to check context is exits or not" );
    var sp = db.snapshot( SDB_SNAP_CONTEXTS_CURRENT );
    var hasDataContext = false;
    while( sp.next() && hasDataContext === false )
@@ -46,47 +45,35 @@ function checkContext ()
          }
       }
    }
-   println( "---'DATA' Context = " + hasDataContext );
    return hasDataContext;
 }
 
 function dropcsSameSession ( csName )
 {
-   println( "---begin to drop cs in the same session" );
    db.dropCS( csName );
-
-   println( "---begin to get cs" );
-   try
+   assert.tryThrow( -34, function()
    {
       db.getCS( csName );
-      throw "did not throw error, expect throw -34";
-   }
-   catch( e )
-   {
-      if( e !== -34 )
-      {
-         throw e;
-      }
-   }
+   } );
 }
 
 function dropcsDiffSession ( csName )
 {
-   println( "---begin to drop cs in another session" );
+   var dbAnother = null;
    try
    {
       dbAnother = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      dbAnother.dropCS( csName );
-      throw "did not throw error, expect throw -147";
-   }
-   catch( e )
-   {
-      if( e !== -147 )
+      assert.tryThrow( -147, function()
       {
-         throw e;
+         dbAnother.dropCS( csName );
+      } );
+      assert.equal( dbAnother.getCS( csName )._name, csName );
+   }
+   finally
+   {
+      if( dbAnother != null )
+      {
+         dbAnother.close();
       }
    }
-
-   println( "---begin to get cs" );
-   db.getCS( csName );
 }

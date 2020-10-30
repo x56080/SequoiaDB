@@ -1,6 +1,5 @@
 /******************************************************************************
-@Description : 1. Query date type sort without index
-               2. Query date type forced sort through index
+@Description : seqDB-13747:查询指定日期类型字段排序（包含不带索引、带索引）
 @Modify list :
                2015-01-16 pusheng Ding  Init
 ******************************************************************************/
@@ -10,26 +9,25 @@ main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
-   var indexName = "index_13747";
-   var data = [ { a: { "$date": "2000-04-03" }, b: 2, c: "abcd" },
-             	 { a: { "$date": "2000-04-01" }, b: 1, c: "efghi" },
-             	 { a: { "$date": "2011-01-01" }, b: 4, c: "xyz" },
-             	 { a: { "$date": "2000-05-01" }, b: 3, c: "jklmn" } ];
+   var recs = [
+      { a: { "$date": "2000-04-03" }, b: 2 },
+      { a: { "$date": "2000-04-01" }, b: 1 },
+      { a: { "$date": "2011-01-01" }, b: 4 },
+      { a: { "$date": "2000-05-01" }, b: 3 }];
+   cl.insert( recs );
 
-   var expectation = [ { a: { "$date": "2000-04-01" }, b: 1, c: "efghi" },
-                       { a: { "$date": "2000-04-03" }, b: 2, c: "abcd" },
-             	        { a: { "$date": "2000-05-01" }, b: 3, c: "jklmn" },
-                       { a: { "$date": "2011-01-01" }, b: 4, c: "xyz" } ];
+   // 不走索引
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { a: 1 } );
+   var expRecs = [
+      { a: { "$date": "2000-04-01" }, b: 1 },
+      { a: { "$date": "2000-04-03" }, b: 2 },
+      { a: { "$date": "2000-05-01" }, b: 3 },
+      { a: { "$date": "2011-01-01" }, b: 4 }];
+   commCompareResults( cursor, expRecs );
 
-   cl.insert( data );
-
-   //Query without index
-   var query1 = cl.find().sort( {a: 1} );
-   checkRec( query1, expectation);
-
-   cl.createIndex( indexName, {a: 1} );
-
-   // Query forced through index
-   var query2 = cl.find().hint( { "": indexName } );
-   checkRec( query2, expectation)
+   // 索引扫描
+   var indexName = "idx";
+   cl.createIndex( indexName, { a: -1 } );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": indexName } ).sort( { a: 1 } );
+   commCompareResults( cursor, expRecs )
 }

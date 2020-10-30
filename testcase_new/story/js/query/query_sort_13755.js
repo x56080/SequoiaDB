@@ -1,31 +1,38 @@
 /*******************************************************************************
-*@Description : [seqDB-13755] when run 'db.default.tt.find().sort({"":"a"});' command,
-*               sequoiadb process(data node) while core dump.
+*@Description : seqDB-13755:sort指定字段名为空
 *@Modify list :
-*               2015-2-10  xiaojun Hu  Init
-                2020-08-20 Zixian Yan  Modify
+*               2015-2-10  xiaojun Hu  Init  
+*               2020-10-12 huangxiaoni  Modify
 *******************************************************************************/
 testConf.clName = COMMCLNAME + "_13755";
+testConf.useSrcGroup = true;
+
 main( test );
-
-
-function test ( testPara )
+function test ( arg )
 {
+   var cl = arg.testCL;
    var insertNum = 100;
-   var cl = testPara.testCL;
-   // insert data
    idxAutoGenData( cl, insertNum );
 
-   // Test Point
-   try
+   // 排序字段名为空字符串
+   assert.tryThrow( -6, function()
    {
-      println(cl.find().sort( { "": "a" } ));
-   }
-   catch( error )
+      cl.find().sort( { "": 1 } ).toArray();
+   } );
+
+   assert.tryThrow( -6, function()
    {
-      if( error != -6 )
-      {
-         throw new Error( "failed to test command: 'cl.find().sort( {\"\":\"a\"} )'. " + error );
-      }
-   }
+      cl.find().sort( { "": "a" } ).toArray();
+   } );
+
+   // 排序字段名有效，值无效
+   assert.tryThrow( -6, function()
+   {
+      cl.find().sort( { "a": 0 } ).toArray();
+   } );
+
+   assert.tryThrow( -6, function()
+   {
+      cl.find().sort( { "a": "1" } ).toArray();
+   } );
 }

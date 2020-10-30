@@ -1,82 +1,40 @@
 /******************************************************************************
-*@Description : test SdbQueryOption
-*               TestLink :  seqDB-15740:ָ��update��ѯ��¼
-*@auhor       : CSQ 
+*@Description : seqDB-15740:指定update查询记录
+*@author      : chensiqin 2018-09-11  huangxiaoni 2020-10-12
 ******************************************************************************/
-function main ()
+testConf.skipStandAlone = true;
+testConf.clName = COMMCLNAME + "_15740";
+testConf.clOpt = { "ShardingKey": { "typeint": 1 }, "ShardingType": "hash" };
+
+main( test );
+function test ( arg )
 {
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      return;
-   }
-   try
-   {
-      commDropCS( db, COMMCSNAME + "15740", true, "drop CS " + COMMCSNAME + "15740" );
-   } catch( e ) { }
-   var groups = commGetGroups( db );
-   var srcGroupName = groups[0][0].GroupName;
-   var destGroupName = groups[1][0].GroupName;
-   var varCS = commCreateCS( db, COMMCSNAME + "15740", true, "create CS" );
-   var varCL = varCS.createCL( COMMCLNAME + "15740", { ShardingKey: { typeint: 1 }, ShardingType: "hash", Group: srcGroupName } );
-   insertRecord( varCL );
-   testupdate15740( varCL );
+   var cl = arg.testCL;
+   cl.insert( { "typeint": 123, "typefloat": 123.456 } );
 
-   try
+   // a、查询更新分区键字段，指定更新规则rule，设置返回更新后的记录，设置KeepShardingKey为true
+   assert.tryThrow( -178, function()
    {
-      commDropCS( db, COMMCSNAME + "15740", true, "drop CS " + COMMCSNAME + "15740" );
-   } catch( e ) { }
-}
+      cl.find( new SdbQueryOption().update( { "$inc": { "typeint": 1 }, "$set": { "typefloat": 1.3 } }, true, { "KeepShardingKey": true } ) );
+   } );
 
-function testupdate15740 ( varCL )
-{
-
-   try
-   {
-      var cur = varCL.find( new SdbQueryOption().update( { $inc: { typeint: 1 }, $set: { typefloat: 1.3 } }, true, { KeepShardingKey: true } ) );
-   }
-   catch( e )//
-   {
-      if( e != "-178" )
-      {
-         throw buildException( "compare testupdate15740 fail", e, "check", "-178", e );
-      }
-   }
-   var cur = varCL.find( new SdbQueryOption().update( { $set: { typefloat: 1.4 } }, true, { KeepShardingKey: false } ) );
+   // b、查询更新非分区键字段，指定更新规则rule，设置返回更新后的记录，设置KeepShardingKey为false
+   var cursor = cl.find( new SdbQueryOption().update( { "$set": { "typefloat": 1.4 } }, true, { "KeepShardingKey": false } ) );
    var size = 0;
-   while( cur.next() )
+   while( cursor.next() )
    {
-      var ret = cur.current();
+      assert.equal( cursor.current().toObj().typefloat, 1.4 );
       size++;
-      if( ret.toObj().typefloat != 1.4 )
-      {
-         throw buildException( "compare testupdate15740 update({$set:{typefloat:1.4}} fail", "expected result", "check", 1.4, ret.toObj().typefloat );
-      }
    }
-   if( size != 1 )
-   {
-      throw buildException( "compare testupdate15740 update({$set:{typefloat:1.4}} fail", "expected result", "check", 1, size );
-   }
+   assert.equal( size, 1 );
 
-   var cur = varCL.find( new SdbQueryOption().update( { $inc: { typefloat: 1 } }, false, { KeepShardingKey: false } ) );
+   // c、查询更新非分区键字段，指定更新规则rule，设置不返回更新后的记录，设置KeepShardingKey为false
+   var cursor = cl.find( new SdbQueryOption().update( { "$inc": { "typefloat": 1 } }, false, { "KeepShardingKey": false } ) );
    var size = 0;
-   while( cur.next() )
+   while( cursor.next() )
    {
-      var ret = cur.current();
+      assert.equal( cursor.current().toObj().typefloat, 1.4 );
       size++;
-      if( ret.toObj().typefloat != 1.4 )
-      {
-         throw buildException( "compare testupdate15740 update({$inc:{typefloat:1}}, false, {KeepShardingKey:false} ) fail", "expected result", "check", 1.4, ret.toObj().typefloat );
-      }
    }
-   if( size != 1 )
-   {
-      throw buildException( "compare testupdate15740 update({$inc:{typefloat:1}}, false, {KeepShardingKey:false} ) fail", "expected result", "check", 1, size );
-   }
+   assert.equal( size, 1 );
 }
-
-function insertRecord ( varCL )
-{
-   varCL.insert( { typeint: 123, typefloat: 123.456 } );
-}
-
-main( db );

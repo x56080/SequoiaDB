@@ -1,40 +1,113 @@
 /******************************************************************************
-@Description : 1. sort: a[1,2,3] sort
+@Description : seqDB-13739:数组的排序（包括不带索引、带索引、升序）
 @Modify list :
                2015-01-15 pusheng Ding  Init
                2020-08-14 Zixian YAn    Modify
+               2020-10-12 Xiaoni Huang  Modify
 ******************************************************************************/
 testConf.clName = COMMCLNAME + "_13739";
+
 main( test );
 function test ( testPara )
 {
-   var indexName = "index_13739";
-   var rownums = 1000;
-
    var cl = testPara.testCL;
+   insertRecs( cl );
+   sort_notIndex( cl );
+   sort_index( cl );
+}
 
-   //insert data
-   var data = []
-   var reverseData = [];
-   for( var i = 0; i < rownums; i++ )
-   {
-      data.push( { a: i, b: [ i + 1, i + 2, i + 3 ] } );
-      var j = rownums - i;
-      reverseData.push( { a: j - 1 , b: [ j, j + 1, j + 2 ] } );
-   }
-   cl.insert( reverseData );
+function sort_notIndex ( cl )
+{
+   // order by
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { b: 1 } );
+   var expRecs = [
+      { "b": [null] },
+      { "b": [1, 2] },
+      { "b": [2, 1] },
+      { "b": [2, 1] },
+      { "b": [1] },
+      { "b": [3, 2] },
+      { "b": [2] },
+      { "b": [3] },
+      { "b": ["t"] },
+      { "b": [{ "b1": 1 }, { "b1": 2 }] },
+      { "b": [{ "b1": { "b2": 1 } }, { "b1": { "b2": 2 } }] },
+      { "b": [] }];
+   commCompareResults( cursor, expRecs );
 
-   //query1 - select a,b from cl order by b without index
-   var sel = cl.find( ).sort( { b: 1 } );
-   checkRec( sel, data );
-   println( "'select a,b from foo.bar order by b' finished!" );
+   // order by desc
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { b: -1 } );
+   var expRecs = [
+      { "b": [] },
+      { "b": [{ "b1": { "b2": 1 } }, { "b1": { "b2": 2 } }] },
+      { "b": [{ "b1": 1 }, { "b1": 2 }] },
+      { "b": ["t"] },
+      { "b": [3, 2] },
+      { "b": [3] },
+      { "b": [1, 2] },
+      { "b": [2, 1] },
+      { "b": [2, 1] },
+      { "b": [2] },
+      { "b": [1] },
+      { "b": [null] }];
+   commCompareResults( cursor, expRecs );
+}
 
-   //create index
-   cl.createIndex( indexName, { b: 1 } );
-   println( "create indexes finished!" );
+function sort_index ( cl )
+{
+   var idxName = "idx";
+   cl.createIndex( idxName, { "b": -1 } );
 
-   //query2 - select a,b from cl order by b with index
-   var sel = cl.find( ).sort( { b: 1 } ).hint( { "": indexName } );
-   checkRec( sel, data );
-   println( "'select a,b from foo.bar order by b' with index finished!" );
+   // order by
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": idxName } ).sort( { b: 1 } );
+   var expRecs = [
+      { "b": [null] },
+      { "b": [2, 1] },
+      { "b": [2, 1] },
+      { "b": [1, 2] },
+      { "b": [1] },
+      { "b": [3, 2] },
+      { "b": [2] },
+      { "b": [3] },
+      { "b": ["t"] },
+      { "b": [{ "b1": 1 }, { "b1": 2 }] },
+      { "b": [{ "b1": { "b2": 1 } }, { "b1": { "b2": 2 } }] },
+      { "b": [] }];
+   commCompareResults( cursor, expRecs );
+
+   // order by, not sort
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": idxName } );
+   var expRecs = [
+      { "b": [] },
+      { "b": [{ "b1": { "b2": 1 } }, { "b1": { "b2": 2 } }] },
+      { "b": [{ "b1": 1 }, { "b1": 2 }] },
+      { "b": ["t"] },
+      { "b": [3] },
+      { "b": [3, 2] },
+      { "b": [2] },
+      { "b": [1, 2] },
+      { "b": [2, 1] },
+      { "b": [2, 1] },
+      { "b": [1] },
+      { "b": [null] }];
+   commCompareResults( cursor, expRecs );
+}
+
+function insertRecs ( cl )
+{
+   var recs = [
+      { "b": [1] },
+      { "b": [3] },
+      { "b": [2] },
+      { "b": [1, 2] },
+      { "b": [3, 2] },
+      { "b": [2, 1] },
+      { "b": [2, 1] },
+      { "b": [{ "b1": 1 }, { "b1": 2 }] },
+      { "b": [{ "b1": { "b2": 1 } }, { "b1": { "b2": 2 } }] },
+      { "b": ["t"] },
+      { "b": [null] },
+      { "b": [] }
+   ]
+   cl.insert( recs );
 }

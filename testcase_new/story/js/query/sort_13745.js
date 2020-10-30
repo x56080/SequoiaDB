@@ -1,9 +1,9 @@
 /******************************************************************************
-@Description : 1. Query1 string type fields sort wihtout index
-               2. Query2 string type fields forced sort by index
+@Description : seqDB-13745:查询指定string类型字段排序（包含不带索引、带索引）
 @Modify list :
                2015-01-16 pusheng Ding  Init
                2020-08-12 Zixian Yan    Modify
+               2020-10-12 Xiaoni Huang  Modify
 ******************************************************************************/
 testConf.clName = COMMCLNAME + "_13745";
 main( test );
@@ -11,19 +11,56 @@ main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
-   var indexName = "index_13745";
-   var data = [ { a: "book", b: 2, c: "abcd" },
-                { a: "agree", b: 1, c: "efghi" },
-                { a: "dog", b: 4, c: "xyz" },
-                { a: "cat", b: 3, c: "jklmn" } ];
+   var recordsNum = 1000;
+   var recordsArr = new Array();
+   var sortStringArr = new Array();
+   readyRdmRecs( recordsNum, recordsArr, sortStringArr );
+   cl.insert( recordsArr );
 
-   var expectation = [ {a:"agree",b:1}, {a:"book",b:2}, {a:"cat",b:3}, {a:"dog",b:4} ];
-   cl.insert( data );
+   // 不带索引
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { "b": 1 } );
+   var expRecsArr = getExpRecs( sortStringArr.sort() );
+   commCompareResults( cursor, expRecsArr );
 
-   var query1 = cl.find( null, { a: "default", b: 0 } ).sort( { a: 1 } );
-   checkRec( query1, expectation );
+   // 带索引
+   cl.createIndex( "idx", { "b": -1 } );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": "idx" } ).sort( { "b": 1 } );
+   var expRecsArr = getExpRecs( sortStringArr.sort() );
+   commCompareResults( cursor, expRecsArr );
+}
 
-   cl.createIndex( indexName, {a: 1} );
-   var query2 = cl.find( null, { a: "default", b: 0, c: "default" } ).hint( { "": indexName } );
-   checkRec( query2, expectation );
+function getExpRecs ( expStringArr )
+{
+   var expRecsArr = [];
+   for( var i = 0; i < expStringArr.length; i++ )
+   {
+      expRecsArr.push( { "b": expStringArr[i] } );
+   }
+   return expRecsArr;
+}
+
+function readyRdmRecs ( recordsNum, recordsArr, sortStringArr ) 
+{
+   var baseStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+   for( var i = 0; i < recordsNum; i++ )
+   {
+      // get random string
+      var str = "";
+      var strLen = getRandomInt( 0, 10 );
+      for( var j = 0; j < strLen; j++ )
+      {
+         var startLoc = getRandomInt( 0, baseStr.length );
+         var subStr = baseStr.substring( startLoc, startLoc + 1 );
+         str = str + subStr;
+      }
+      recordsArr.push( { "b": str } );
+
+      sortStringArr.push( str );
+   }
+}
+
+function getRandomInt ( min, max )
+{
+   var rdmVal = min + Math.round( Math.random() * ( max - min ), max );
+   return rdmVal;
 }

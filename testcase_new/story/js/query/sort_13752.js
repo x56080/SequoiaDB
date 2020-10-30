@@ -1,7 +1,5 @@
 /******************************************************************************
-@Description : Precondition - Query sort by index whose field may not included in data
-               1. Query sort without index
-               2. Query sort forced through index
+@Description : seqDB-13752:查询指定字段排序，且存在记录不包含排序字段（包含不带索引、带索引）
 @Modify list :
                2015-01-17 pusheng Ding  Init
                2020-08-14 Zixian Yan    Modify
@@ -12,26 +10,30 @@ main( test );
 function test ( testPara )
 {
    var cl = testPara.testCL;
-   var indexName = "index_13752";
-   var data = [ { a: 1, b: "string" },
-                { b: "max" },
-                { a: { "$binary": "aGVsbG8gd29ybGQ=" }, b: "min" },
-                { b: "empty" } ];
+   var recs = [
+      { a: 1, b: "string" },
+      { b: "max" },
+      { a: { "$binary": "aGVsbG8gd29ybGQ=" }, b: "min" },
+      { b: "empty" }];
+   cl.insert( recs );
 
-   var expectation = [ { b: "max" },
-                       { b: "empty" },
-                       { a: 1, b: "string" },
-                       { a: { "$binary": "aGVsbG8gd29ybGQ=" }, b: "min" } ];
+   // 不走索引
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { a: 1 } );
+   var expRecs = [
+      { b: "max" },
+      { b: "empty" },
+      { a: 1, b: "string" },
+      { a: { "$binary": "aGVsbG8gd29ybGQ=" }, b: "min" }];
+   commCompareResults( cursor, expRecs );
 
-   cl.insert( data );
-
-   //Query without index
-   var query1 = cl.find().sort( {a: 1} );
-   checkRec( query1, expectation);
-
-   cl.createIndex( indexName, {a: 1} );
-
-   // Query forced through index
-   var query2 = cl.find().hint( { "": indexName } );
-   checkRec( query2, expectation );
+   // 走索引
+   var indexName = "idx";
+   cl.createIndex( indexName, { a: -1 } );
+   var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).hint( { "": indexName } ).sort( { a: 1 } );
+   var expRecs = [
+      { b: "empty" },
+      { b: "max" },
+      { a: 1, b: "string" },
+      { a: { "$binary": "aGVsbG8gd29ybGQ=" }, b: "min" }];
+   commCompareResults( cursor, expRecs );
 }
