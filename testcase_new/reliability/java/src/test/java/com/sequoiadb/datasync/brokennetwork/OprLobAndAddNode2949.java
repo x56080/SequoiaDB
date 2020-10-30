@@ -5,7 +5,9 @@ import com.sequoiadb.commlib.CommLib;
 import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.datasync.OprLobTask;
 import com.sequoiadb.datasync.Utils;
+import com.sequoiadb.datasync.AddNodeTask;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.BrokenNetwork;
@@ -47,6 +49,7 @@ public class OprLobAndAddNode2949 extends SdbTestBase {
     private int randomPort;
     private GroupWrapper dataGroup = null;
     private String dataSlvHost = null;
+    private AddNodeTask aTask = null ;
 
     @BeforeClass
     public void setUp() {
@@ -100,8 +103,8 @@ public class OprLobAndAddNode2949 extends SdbTestBase {
                     .getFaultMakeTask( dataSlvHost, 0, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
             String safeUrl = CommLib.getSafeCoordUrl( dataSlvHost );
-            OprLobTask oTask = new OprLobTask( safeUrl );
-            AddNodeTask aTask = new AddNodeTask( clGroupName, randomHost,
+            OprLobTask oTask = new OprLobTask(safeUrl, clName);
+            aTask = new AddNodeTask( clGroupName, randomHost,
                     randomPort );
             mgr.addTask( oTask );
             mgr.addTask( aTask );
@@ -137,54 +140,13 @@ public class OprLobAndAddNode2949 extends SdbTestBase {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             CollectionSpace cs = db.getCollectionSpace( csName );
             cs.dropCollection( clName );
-            removeNewNode( db );
+            aTask.removeNode();
         } catch ( BaseException e ) {
             Assert.fail(
                     e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
         } finally {
             if ( db != null ) {
                 db.close();
-            }
-        }
-    }
-
-    private class OprLobTask extends OperateTask {
-        private String safeUrl = null;
-
-        public OprLobTask( String safeUrl ) {
-            this.safeUrl = safeUrl;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( safeUrl, "", "" );
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int lobSize = 1 * 1024 * 1024;
-                byte[] lobBytes = new byte[ lobSize ];
-                new Random().nextBytes( lobBytes );
-
-                int repeatTimes = 100;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    DBLob wLob = cl.createLob();
-                    wLob.write( lobBytes );
-                    ObjectId oid = wLob.getID();
-                    wLob.close();
-
-                    DBLob rLob = cl.openLob( oid );
-                    byte[] rLobBytes = new byte[ lobSize ];
-                    rLob.read( rLobBytes );
-                    rLob.close();
-
-                    cl.removeLob( oid );
-                }
-            } catch ( BaseException e ) {
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
             }
         }
     }
@@ -209,47 +171,4 @@ public class OprLobAndAddNode2949 extends SdbTestBase {
         }
     }
 
-    private void removeNewNode( Sequoiadb db ) {
-        try {
-            GroupWrapper clGroupWrapper = groupMgr
-                    .getGroupByName( clGroupName );
-            if ( clGroupWrapper.getMaster().svcName()
-                    .equals( "" + randomPort ) ) {
-                clGroupWrapper.changePrimary();
-            }
-        } catch ( ReliabilityException e ) {
-            e.printStackTrace();
-        }
-        ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
-        clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
-    }
-
-    private class AddNodeTask extends OperateTask {
-        private String groupName = null;
-        private String host = null;
-        private int port;
-
-        public AddNodeTask( String groupName, String host, int port ) {
-            this.groupName = groupName;
-            this.host = host;
-            this.port = port;
-        }
-
-        @Override
-        public void init() {
-            // 为了避免节点启动前就已经断网，在启动任务前启动节点
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            ReplicaGroup randomGroup = db.getReplicaGroup( groupName );
-            String nodePath = SdbTestBase.reservedDir + "/data/" + port;
-            Node newNode = randomGroup.createNode( host, port, nodePath,
-                    ( BSONObject ) null );
-            newNode.start();
-            db.close();
-        }
-
-        @Override
-        public void exec() throws Exception {
-            // 同步正在后台进行...
-        }
-    }
 }

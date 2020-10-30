@@ -6,6 +6,8 @@ import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.datasync.Utils;
+import com.sequoiadb.datasync.CRUDTask;
+import com.sequoiadb.datasync.AddNodeTask;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
@@ -44,6 +46,7 @@ public class CRUDAndAddNode3227 extends SdbTestBase {
     private String clGroupName = null;
     private String randomHost = null;
     private int randomPort = 0;
+    private AddNodeTask aTask = null ;
 
     @BeforeClass
     public void setUp() {
@@ -89,8 +92,8 @@ public class CRUDAndAddNode3227 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     slvNode.hostName(), slvNode.svcName(), 1 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CRUDTask cTask = new CRUDTask();
-            AddNodeTask aTask = new AddNodeTask();
+            CRUDTask cTask = new CRUDTask(clName);
+            aTask = new AddNodeTask(clGroupName, randomHost, randomPort);
             mgr.addTask( cTask );
             mgr.addTask( aTask );
             mgr.execute();
@@ -127,7 +130,7 @@ public class CRUDAndAddNode3227 extends SdbTestBase {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             CollectionSpace commCS = db.getCollectionSpace( csName );
             commCS.dropCollection( clName );
-            removeNewNode( db );
+            aTask.removeNode();
         } catch ( BaseException e ) {
             Assert.fail(
                     e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
@@ -174,67 +177,6 @@ public class CRUDAndAddNode3227 extends SdbTestBase {
 
         if ( !Arrays.equals( rLobBytes, lobBytes ) ) {
             Assert.fail( "lob is different" );
-        }
-    }
-
-    private void removeNewNode( Sequoiadb db ) {
-        try {
-            GroupWrapper clGroupWrapper = groupMgr
-                    .getGroupByName( clGroupName );
-            if ( clGroupWrapper.getMaster().svcName()
-                    .equals( "" + randomPort ) ) {
-                clGroupWrapper.changePrimary();
-            }
-        } catch ( ReliabilityException e ) {
-            e.printStackTrace();
-        }
-        ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
-        clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
-    }
-
-    private class CRUDTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( coordUrl, "", "" );
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int repeatTimes = 5000;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    BSONObject rec = ( BSONObject ) JSON
-                            .parse( "{ a: " + i + " }" );
-                    cl.insert( rec );
-                    BSONObject modifier = ( BSONObject ) JSON
-                            .parse( "{ $set: { b: 1 } }" );
-                    cl.update( rec, modifier, null );
-                    cl.delete( rec );
-                }
-            } catch ( BaseException e ) {
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
-        }
-    }
-
-    private class AddNodeTask extends OperateTask {
-        @Override
-        public void init() {
-            // 为了避免节点启动前就已经断网，在启动任务前启动节点
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            ReplicaGroup randomGroup = db.getReplicaGroup( clGroupName );
-            String nodePath = SdbTestBase.reservedDir + "/data/" + randomPort;
-            Node newNode = randomGroup.createNode( randomHost, randomPort,
-                    nodePath, ( BSONObject ) null );
-            newNode.start();
-            db.close();
-        }
-
-        @Override
-        public void exec() throws Exception {
-            // 同步正在后台进行...
         }
     }
 }

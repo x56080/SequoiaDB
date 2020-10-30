@@ -24,6 +24,7 @@ import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.datasync.Utils;
+import com.sequoiadb.datasync.AddNodeTask;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.DiskFull;
@@ -49,6 +50,9 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
     private String clGroupName = null;
     private TaskMgr mgr = null;
     private GroupWrapper dataGroup = null;
+    private String randomHost ;
+    private int randomPort ;
+    private AddNodeTask aTask = null ;
 
     @BeforeClass
     public void setUp() {
@@ -62,6 +66,13 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
             db = new Sequoiadb( coordUrl, "", "" );
             clGroupName = groupMgr.getAllDataGroupName().get( 0 );
 
+            List< String > hosts = groupMgr.getAllHosts();
+            Random ran = new Random();
+            randomHost = hosts.get( ran.nextInt( hosts.size() ) );
+            randomPort = ran.nextInt( reservedPortEnd - reservedPortBegin )
+                    + reservedPortBegin;
+            Utils.makeReplicaLogFull( clGroupName );
+
             // 设置任务
             dataGroup = groupMgr.getGroupByName( clGroupName );
             NodeWrapper slaveNode = dataGroup.getSlave();
@@ -69,7 +80,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
                     slaveNode.hostName(), slaveNode.dbPath(), 0, 10, null, 80 );
             mgr = new TaskMgr( faultTask );
             CRUDTask cTask = new CRUDTask();
-            AddNodeTask aTask = new AddNodeTask();
+            aTask = new AddNodeTask(clGroupName, randomHost, randomPort);
             mgr.addTask( cTask );
             mgr.addTask( aTask );
             // 各个任务各自初始化
@@ -119,6 +130,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             CollectionSpace commCS = db.getCollectionSpace( csName );
             commCS.dropCollection( clName );
+            aTask.removeNode();
         } catch ( BaseException | ReliabilityException e ) {
             Assert.fail(
                     e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
@@ -166,10 +178,12 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
                     BSONObject rec = ( BSONObject ) JSON
                             .parse( "{ a" + j + " : " + i + " }" );
                     cl.insert( rec );
+
                     BSONObject modifier = ( BSONObject ) JSON.parse( "{ $set:"
                             + "{ a" + j + " : " + repeatTimes + i + " }}" );
                     cl.update( rec, modifier, null );
                     cl.delete( rec );
+
                     if ( j == idxNum - 1 ) {
                         j = 0;
                     }
@@ -216,7 +230,7 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
                 db.close();
             }
         }
-
+     
         private DBCollection createCL( Sequoiadb db ) {
             CollectionSpace commCS = db.getCollectionSpace( csName );
             BSONObject option = ( BSONObject ) JSON
@@ -250,60 +264,6 @@ public class CRUDAndAddNodeWithIndex3182 extends SdbTestBase {
                 cl.createIndex( idxName, key, true, false, 8 );
             }
         }
-    }
-
-    private class AddNodeTask extends OperateTask {
-        Sequoiadb db = null;
-        String randomHost = null;
-        int randomPort = 0;
-
-        @Override
-        public void init() {
-            db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            List< String > hosts = groupMgr.getAllHosts();
-            Random ran = new Random();
-            randomHost = hosts.get( ran.nextInt( hosts.size() ) );
-            randomPort = ran.nextInt( reservedPortEnd - reservedPortBegin )
-                    + reservedPortBegin;
-            Utils.makeReplicaLogFull( clGroupName );
-            ReplicaGroup randomGroup = db.getReplicaGroup( clGroupName );
-            String nodePath = SdbTestBase.reservedDir + "/data/" + randomPort;
-            Node newNode = randomGroup.createNode( randomHost, randomPort,
-                    nodePath, ( BSONObject ) null );
-            newNode.start();
-        }
-
-        @Override
-        public void exec() throws Exception {
-            // TODO: 正在同步
-        }
-
-        @Override
-        public void fini() {
-            try {
-                removeNewNode( db );
-            } catch ( BaseException e ) {
-                throw e;
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
-        }
-
-        private void removeNewNode( Sequoiadb db ) {
-            try {
-                GroupWrapper clGroupWrapper = groupMgr
-                        .getGroupByName( clGroupName );
-                if ( clGroupWrapper.getMaster().svcName()
-                        .equals( "" + randomPort ) ) {
-                    clGroupWrapper.changePrimary();
-                }
-            } catch ( ReliabilityException e ) {
-                e.printStackTrace();
-            }
-            ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
-            clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
-        }
-    }
+        
+   } 
 }

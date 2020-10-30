@@ -22,7 +22,7 @@ import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-
+import com.sequoiadb.datasync.CreateCLTask ;
 /**
  * FileName: CreateCLAndRestartPrimaryCatalog2294.java test content:when create
  * cl , restart the catalog group master node testlink case:seqDB-2294
@@ -69,7 +69,7 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
             FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( priNode, 1,
                     10, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask();
+            CreateCLTask cTask = new CreateCLTask( preCLName, CL_NUM);
             mgr.addTask( cTask );
             mgr.execute();
 
@@ -80,6 +80,7 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
                     "check LSN consistency fail" );
 
             // check result
+            count = cTask.getCreateNum() ;
             checkCreateCLResult();
             Utils.checkConsistency( groupMgr );
 
@@ -107,25 +108,6 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
         }
     }
 
-    private class CreateCLTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
-                    "" )) {
-                CollectionSpace commCS = db
-                        .getCollectionSpace( SdbTestBase.csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = preCLName + "_" + i;
-                    commCS.createCollection( clName );
-                    count++;
-                    System.out.println( "clName=" + clName );
-                }
-            } catch ( BaseException e ) {
-                int successCLnums = count;
-                System.out.println( "the create cl num is =" + successCLnums );
-            }
-        }
-    }
 
     /**
      * check the result of create cl the result: 1. to create cl success,create

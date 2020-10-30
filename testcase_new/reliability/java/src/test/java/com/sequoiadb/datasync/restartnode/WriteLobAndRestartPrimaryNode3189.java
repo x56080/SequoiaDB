@@ -5,6 +5,8 @@ import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.datasync.OprLobTask;
+import com.sequoiadb.datasync.OprLobTask;
 import com.sequoiadb.datasync.Utils;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
@@ -21,6 +23,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.sequoiadb.datasync.OprLobTask;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -46,7 +49,6 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
     private String clGroupName = null;
     private Random random = new Random();
     private Stack< ObjectId > oids = new Stack< ObjectId >();
-    private int opreateLobNum = 0;
 
     @BeforeClass
     public void setUp() {
@@ -80,11 +82,11 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
             FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( priNode, 1,
                     10, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            OprLobTask oTask = new OprLobTask();
+            OprLobTask oTask = new OprLobTask(clName);
             mgr.addTask( oTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
-
+            
             // check whether the cluster is normal and lsn consistency ,the
             // longest waiting time is 600S
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
@@ -125,37 +127,6 @@ public class WriteLobAndRestartPrimaryNode3189 extends SdbTestBase {
                 sdb.close();
             }
 
-        }
-    }
-
-    private class OprLobTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
-                    "" )) {
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int lobSize = random.nextInt( 1048576 );
-                byte[] lobBytes = new byte[ lobSize ];
-
-                int repeatTimes = 100;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    DBLob wLob = cl.createLob();
-                    wLob.write( lobBytes );
-                    ObjectId oid = wLob.getID();
-                    wLob.close();
-                    DBLob rLob = cl.openLob( oid );
-                    byte[] rLobBytes = new byte[ lobSize ];
-                    rLob.read( rLobBytes );
-                    rLob.close();
-
-                    cl.removeLob( oid );
-                    opreateLobNum++;
-                }
-            } catch ( BaseException e ) {
-                System.out.println(
-                        "write/remove lob nums is =" + opreateLobNum );
-            }
         }
     }
 

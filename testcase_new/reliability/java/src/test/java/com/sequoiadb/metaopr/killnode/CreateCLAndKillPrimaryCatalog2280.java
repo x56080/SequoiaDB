@@ -31,6 +31,7 @@ import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
+import com.sequoiadb.datasync.CreateCLTask;
 
 /**
  * FileName: CreateCLAndKillPrimaryCatalog2280.java test content:when create
@@ -84,7 +85,9 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     priNode.hostName(), priNode.svcName(), 5 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask();
+            CreateCLTask cTask = new CreateCLTask(preCLName, CL_NUM, csName);
+            cTask.setOption( ( BSONObject ) JSON.parse(
+                        "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096}" ) );
             mgr.addTask( cTask );
             mgr.execute();
 
@@ -95,6 +98,7 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
                     "check LSN consistency fail" );
 
             // check result
+            count = cTask.getCreateNum() ;
             checkCreateCLResult();
             Utils.checkConsistency( groupMgr );
 
@@ -119,26 +123,6 @@ public class CreateCLAndKillPrimaryCatalog2280 extends SdbTestBase {
         } finally {
             if ( sdb != null ) {
                 sdb.close();
-            }
-        }
-    }
-
-    private class CreateCLTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
-                    "" )) {
-                CollectionSpace commCS = db.getCollectionSpace( csName );
-                BSONObject options = ( BSONObject ) JSON.parse(
-                        "{ShardingKey:{no:1},ShardingType:'hash',Partition:4096}" );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = preCLName + "_" + i;
-                    commCS.createCollection( clName, options );
-                    count++;
-                }
-            } catch ( BaseException e ) {
-                int successCLnums = count;
-                System.out.println( "the create cl num is =" + successCLnums );
             }
         }
     }

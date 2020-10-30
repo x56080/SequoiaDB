@@ -112,7 +112,7 @@ public class NodeRestart extends Fault {
             int maxDelay, int duration ) {
         FaultMakeTask task = null;
         NodeRestart nr = new NodeRestart( node );
-        task = new FaultMakeTask( nr, maxDelay, duration, 10 );
+        task = new FaultMakeTask( nr, maxDelay, duration, 300 );
         return task;
     }
 }

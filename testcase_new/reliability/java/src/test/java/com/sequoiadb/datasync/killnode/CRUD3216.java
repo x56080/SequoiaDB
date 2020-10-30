@@ -8,6 +8,7 @@ import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.datasync.Utils;
+import com.sequoiadb.datasync.CRUDTask;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.KillNode;
@@ -76,7 +77,7 @@ public class CRUD3216 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     priNode.hostName(), priNode.svcName(), 1 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CRUDTask cTask = new CRUDTask();
+            CRUDTask cTask = new CRUDTask(clName);
             mgr.addTask( cTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -129,30 +130,4 @@ public class CRUD3216 extends SdbTestBase {
         return commCS.createCollection( clName, option );
     }
 
-    private class CRUDTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( coordUrl, "", "" );
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int repeatTimes = 5000;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    BSONObject rec = ( BSONObject ) JSON
-                            .parse( "{ a: " + i + " }" );
-                    cl.insert( rec );
-                    BSONObject modifier = ( BSONObject ) JSON
-                            .parse( "{ $set: { b: 1 } }" );
-                    cl.update( rec, modifier, null );
-                    cl.delete( rec );
-                }
-            } catch ( BaseException e ) {
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
-        }
-    }
 }

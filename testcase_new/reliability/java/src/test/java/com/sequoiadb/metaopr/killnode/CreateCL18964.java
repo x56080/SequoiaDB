@@ -24,6 +24,7 @@ import com.sequoiadb.metaopr.diskfull.Utils;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
+import com.sequoiadb.datasync.CreateCLTask;
 
 /**
  * @FileName seqDB-18964:创建CL时coord节点异常重启
@@ -65,17 +66,16 @@ public class CreateCL18964 extends SdbTestBase {
     @Test
     public void test() {
         Sequoiadb db = null;
-        Sequoiadb db2 = null;
         try {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             String hostname2 = CommLib.getSafeHost( db.getHost() );
-            db2 = new Sequoiadb( hostname2 + ":" + SdbTestBase.serviceName, "",
-                    "" );
-
+     
             FaultMakeTask faultTask = KillNode.getFaultMakeTask( hostname2,
                     SdbTestBase.serviceName, 5 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask( db2 );
+            CreateCLTask cTask = new CreateCLTask( clNameBase, CL_NUM );
+            cTask.setUrl( hostname2 + ":" + SdbTestBase.serviceName );
+            cTask.setOption( new BasicBSONObject( "Group", groupName ) );
             mgr.addTask( cTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -102,9 +102,6 @@ public class CreateCL18964 extends SdbTestBase {
             if ( db != null ) {
                 db.close();
             }
-            if ( db2 != null && !db2.isClosed() ) {
-                db2.close();
-            }
         }
     }
 
@@ -123,27 +120,6 @@ public class CreateCL18964 extends SdbTestBase {
         } finally {
             if ( db != null ) {
                 db.close();
-            }
-        }
-    }
-
-    private class CreateCLTask extends OperateTask {
-        private Sequoiadb db = null;
-
-        public CreateCLTask( Sequoiadb sdb ) {
-            this.db = sdb;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            try {
-                CollectionSpace commCS = this.db.getCollectionSpace( csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = clNameBase + "_" + i;
-                    commCS.createCollection( clName,
-                            new BasicBSONObject( "Group", groupName ) );
-                }
-            } catch ( BaseException e ) {
             }
         }
     }

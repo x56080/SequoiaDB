@@ -22,6 +22,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import com.sequoiadb.datasync.CreateCLTask ;
 
 import java.util.*;
 
@@ -87,7 +88,8 @@ public class CreateCL2942 extends SdbTestBase {
                     .getFaultMakeTask( dataSlvHost, 1, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
             String safeUrl = CommLib.getSafeCoordUrl( dataSlvHost );
-            CreateCLTask cTask = new CreateCLTask( safeUrl );
+            CreateCLTask cTask = new CreateCLTask( clNameBase, clGroupName, CL_NUM  );
+            cTask.setUrl( safeUrl );
             mgr.addTask( cTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -97,7 +99,7 @@ public class CreateCL2942 extends SdbTestBase {
             }
 
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            checkConsistency( dataGroup );
+            Utils.checkConsistencyCL(dataGroup, csName, clNameBase);
             checkUsable( db );
             runSuccess = true;
         } catch ( ReliabilityException e ) {
@@ -127,83 +129,6 @@ public class CreateCL2942 extends SdbTestBase {
                 db.close();
             }
         }
-    }
-
-    private class CreateCLTask extends OperateTask {
-        private String safeUrl = null;
-
-        public CreateCLTask( String safeUrl ) {
-            this.safeUrl = safeUrl;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( safeUrl, "", "" );
-                CollectionSpace commCS = db.getCollectionSpace( csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = clNameBase + "_" + i;
-                    BSONObject option = ( BSONObject ) JSON
-                            .parse( "{ ShardingKey: { a: 1 },"
-                                    + "ShardingType: 'hash', "
-                                    + "Partition: 2048, " + "ReplSize: 2, "
-                                    + "Compressed: true, "
-                                    + "CompressionType: 'lzw',"
-                                    + "IsMainCL: false, " + "AutoSplit: false, "
-                                    + "Group: '" + clGroupName + "', "
-                                    + "AutoIndexId: true, "
-                                    + "EnsureShardingIndex: true }" );
-                    commCS.createCollection( clName, option );
-                }
-            } catch ( BaseException e ) {
-                throw e;
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
-        }
-    }
-
-    private void checkConsistency( GroupWrapper dataGroup ) {
-        List< String > dataUrls = dataGroup.getAllUrls();
-        List< List< BSONObject > > results = new ArrayList< List< BSONObject > >();
-        for ( String dataUrl : dataUrls ) {
-            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" );
-            DBCursor cursor = dataDB.listCollections();
-            List< BSONObject > result = new ArrayList< BSONObject >();
-            while ( cursor.hasNext() ) {
-                result.add( cursor.getNext() );
-            }
-            results.add( result );
-            cursor.close();
-            dataDB.close();
-        }
-
-        List< BSONObject > compareA = results.get( 0 );
-        sortByName( compareA );
-        for ( int i = 1; i < results.size(); i++ ) {
-            List< BSONObject > compareB = results.get( i );
-            sortByName( compareB );
-            if ( !compareA.equals( compareB ) ) {
-                System.out.println( dataUrls.get( 0 ) );
-                System.out.println( compareA );
-                System.out.println( dataUrls.get( i ) );
-                System.out.println( compareB );
-                Assert.fail( "data is different. see the detail in console" );
-            }
-        }
-    }
-
-    private void sortByName( List< BSONObject > list ) {
-        Collections.sort( list, new Comparator< BSONObject >() {
-            public int compare( BSONObject a, BSONObject b ) {
-                String aName = ( String ) a.get( "Name" );
-                String bName = ( String ) b.get( "Name" );
-                return aName.compareTo( bName );
-            }
-        } );
     }
 
     private void checkUsable( Sequoiadb db ) {

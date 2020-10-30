@@ -87,21 +87,32 @@ public class FaultWrapper extends Fault {
 
         Date date = Calendar.getInstance().getTime();
         log.info( "restore " + instance.getName() );
-        try {
-            instance.restore();
-            if ( status != OperateTask.FaultStatus.EXCEPTION ) {
-                if ( checkRestoreResult() ) {
-                    date = Calendar.getInstance().getTime();
-                    log.info( "restore " + instance.getName() + " success." );
-                } else {
-                    log.info( "restore " + instance.getName() + " failure." );
-                    status = OperateTask.FaultStatus.RESTOREFAILURE;
+        int times = 0 ;
+        do {
+            try {
+                instance.restore();
+                if ( status != OperateTask.FaultStatus.EXCEPTION ) {
+                    if ( checkRestoreResult() ) {
+                        date = Calendar.getInstance().getTime();
+                        log.info( "restore " + instance.getName() + " success." );
+                        break ;
+                    } else {
+                        log.info( "restore " + instance.getName() + " failure." );
+                        status = OperateTask.FaultStatus.RESTOREFAILURE;
+                        try {
+                            Thread.sleep( 1000 );
+                        } catch ( InterruptedException e ) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
                 }
+            } catch ( FaultException e ) {
+                handleException( e );
+                throw e;
             }
-        } catch ( FaultException e ) {
-            handleException( e );
-            throw e;
-        }
+        } while(times++ < checkTimes) ;
     }
 
     public boolean checkRestoreResult() throws FaultException {

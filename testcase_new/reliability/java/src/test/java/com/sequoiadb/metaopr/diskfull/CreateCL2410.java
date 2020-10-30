@@ -22,6 +22,7 @@ import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
+import com.sequoiadb.datasync.CreateCLTask;
 
 /**
  * @FileName seqDB-2410: 创建CL时catalog主节点所在服务器磁盘满（不指定Domain）
@@ -77,7 +78,7 @@ public class CreateCL2410 extends SdbTestBase {
                     priNode.hostName(), SdbTestBase.reservedDir, 0, 10,
                     sysCataCL );
             TaskMgr mgr = new TaskMgr( faultTask );
-            mgr.addTask( new CreateCLTask() );
+            mgr.addTask( new CreateCLTask(clNameBase, CL_NUM) );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
@@ -120,26 +121,6 @@ public class CreateCL2410 extends SdbTestBase {
         } finally {
             if ( db != null ) {
                 db.close();
-            }
-        }
-    }
-
-    private class CreateCLTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( coordUrl, "", "" );
-                CollectionSpace commCS = db.getCollectionSpace( csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = clNameBase + "_" + i;
-                    commCS.createCollection( clName );
-                }
-            } catch ( BaseException e ) {
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
             }
         }
     }

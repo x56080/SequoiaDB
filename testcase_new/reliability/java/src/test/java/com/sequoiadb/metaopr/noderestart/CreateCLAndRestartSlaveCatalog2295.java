@@ -22,7 +22,7 @@ import com.sequoiadb.metaopr.commons.MyUtil;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-
+import com.sequoiadb.datasync.CreateCLTask;
 /**
  * FileName: CreateCLAndRestartSlaveCatalog2295.java test content:when create cl
  * , restart the catalog group slave node testlink case:seqDB-2295
@@ -68,7 +68,7 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
             FaultMakeTask faultTask = NodeRestart.getFaultMakeTask( priNode, 1,
                     10, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask cTask = new CreateCLTask();
+            CreateCLTask cTask = new CreateCLTask( preCLName, CL_NUM);
             mgr.addTask( cTask );
             mgr.execute();
 
@@ -106,22 +106,6 @@ public class CreateCLAndRestartSlaveCatalog2295 extends SdbTestBase {
         }
     }
 
-    private class CreateCLTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "",
-                    "" )) {
-                CollectionSpace commCS = db
-                        .getCollectionSpace( SdbTestBase.csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = preCLName + "_" + i;
-                    commCS.createCollection( clName );
-                }
-            } catch ( BaseException e ) {
-                throw e;
-            }
-        }
-    }
 
     /**
      * check the result of create cl the result: to create cl success,create the

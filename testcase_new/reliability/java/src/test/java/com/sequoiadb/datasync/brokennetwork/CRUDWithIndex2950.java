@@ -6,6 +6,8 @@ import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.datasync.Utils;
+import com.sequoiadb.datasync.CRUDTask;
+import com.sequoiadb.datasync.AddNodeTask;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.BrokenNetwork;
@@ -48,7 +50,8 @@ public class CRUDWithIndex2950 extends SdbTestBase {
     private int randomPort;
     private GroupWrapper dataGroup = null;
     private String dataSlvHost = null;
-
+    private AddNodeTask aTask = null ;
+    
     @BeforeClass
     public void setUp() {
         Sequoiadb db = null;
@@ -102,7 +105,7 @@ public class CRUDWithIndex2950 extends SdbTestBase {
             TaskMgr mgr = new TaskMgr( faultTask );
             String safeUrl = CommLib.getSafeCoordUrl( dataSlvHost );
             CRUDTask cTask = new CRUDTask( safeUrl, clName );
-            AddNodeTask aTask = new AddNodeTask( clGroupName, randomHost,
+            aTask = new AddNodeTask( clGroupName, randomHost,
                     randomPort );
             mgr.addTask( cTask );
             mgr.addTask( aTask );
@@ -140,7 +143,7 @@ public class CRUDWithIndex2950 extends SdbTestBase {
             db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
             CollectionSpace commCS = db.getCollectionSpace( csName );
             commCS.dropCollection( clName );
-            removeNewNode( db );
+            aTask.removeNode();
         } catch ( BaseException e ) {
             Assert.fail(
                     e.getMessage() + "\r\n" + Utils.getKeyStack( e, this ) );
@@ -166,82 +169,5 @@ public class CRUDWithIndex2950 extends SdbTestBase {
         }
     }
 
-    private void removeNewNode( Sequoiadb db ) {
-        try {
-            GroupWrapper clGroupWrapper = groupMgr
-                    .getGroupByName( clGroupName );
-            if ( clGroupWrapper.getMaster().svcName()
-                    .equals( "" + randomPort ) ) {
-                clGroupWrapper.changePrimary();
-            }
-        } catch ( ReliabilityException e ) {
-            e.printStackTrace();
-        }
-        ReplicaGroup clGroup = db.getReplicaGroup( clGroupName );
-        clGroup.removeNode( randomHost, randomPort, ( BSONObject ) null );
-    }
 
-    private class AddNodeTask extends OperateTask {
-        private String groupName = null;
-        private String host = null;
-        private int port;
-
-        public AddNodeTask( String groupName, String host, int port ) {
-            this.groupName = groupName;
-            this.host = host;
-            this.port = port;
-        }
-
-        @Override
-        public void init() {
-            // 为了避免节点启动前就已经断网，在启动任务前启动节点
-            Sequoiadb db = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            ReplicaGroup randomGroup = db.getReplicaGroup( groupName );
-            String nodePath = SdbTestBase.reservedDir + "/data/" + port;
-            Node newNode = randomGroup.createNode( host, port, nodePath,
-                    ( BSONObject ) null );
-            newNode.start();
-            db.close();
-        }
-
-        @Override
-        public void exec() throws Exception {
-            // 同步正在后台进行...
-        }
-    }
-
-    private class CRUDTask extends OperateTask {
-        private String safeUrl = null;
-        private String clName = null;
-
-        public CRUDTask( String safeUrl, String clName ) {
-            this.safeUrl = safeUrl;
-            this.clName = clName;
-        }
-
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( safeUrl, "", "" );
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int repeatTimes = 5000;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    BSONObject rec = ( BSONObject ) JSON
-                            .parse( "{ a: " + i + " }" );
-                    cl.insert( rec );
-                    BSONObject modifier = ( BSONObject ) JSON
-                            .parse( "{ $set: { b: 1 } }" );
-                    cl.update( rec, modifier, null );
-                    cl.delete( rec );
-                }
-            } catch ( BaseException e ) {
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
-            }
-        }
-    }
 }

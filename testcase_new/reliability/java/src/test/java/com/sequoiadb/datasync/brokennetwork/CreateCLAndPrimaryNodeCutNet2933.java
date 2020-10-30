@@ -22,6 +22,7 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import com.sequoiadb.datasync.CreateCLTask;
 
 import java.util.*;
 
@@ -82,7 +83,7 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             FaultMakeTask faultTask = BrokenNetwork
                     .getFaultMakeTask( brokenNetHost, 3, 10 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            CreateCLTask dTask = new CreateCLTask();
+            CreateCLTask dTask = new CreateCLTask(preCLName, clGroupName, CL_NUM);
             mgr.addTask( dTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -91,19 +92,20 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             // longest waiting time is 600S
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
                     "check LSN consistency fail" );
-
-             // clear context
+            
+            // clear context
             String match = preCLName;
             CommLib.waitContextClose( sdb, match, 300, false );
-
             // check result
+            count = dTask.getCreateNum();
             checkCreateCLResult();
 
             // check whether the cluster is normal and lsn consistency ,the
             // longest waiting time is 600S
             Assert.assertEquals( groupMgr.checkBusinessWithLSN( 600 ), true,
                     "check LSN consistency fail" );
-            checkConsistency();
+            GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
+            Utils.checkConsistencyCL(dataGroup, csName, preCLName);
             // Normal operating environment
             clearFlag = true;
         } catch ( ReliabilityException e ) {
@@ -124,33 +126,6 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
         } finally {
             if ( sdb != null ) {
                 sdb.close();
-            }
-        }
-    }
-
-    private class CreateCLTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            try ( Sequoiadb db = new Sequoiadb( connectUrl, "", "" )) {
-                CollectionSpace commCS = db
-                        .getCollectionSpace( SdbTestBase.csName );
-                for ( int i = 0; i < CL_NUM; i++ ) {
-                    String clName = preCLName + "_" + i;
-                    BSONObject option = ( BSONObject ) JSON
-                            .parse( "{ ShardingKey: { a: 1 },"
-                                    + "ShardingType: 'hash', "
-                                    + "Partition: 2048, " + "ReplSize: 2, "
-                                    + "Compressed: true, "
-                                    + "CompressionType: 'lzw',"
-                                    + "IsMainCL: false, " + "AutoSplit: false, "
-                                    + "Group: '" + clGroupName + "', "
-                                    + "AutoIndexId: true, "
-                                    + "EnsureShardingIndex: true }" );
-                    commCS.createCollection( clName, option );
-                    count++;
-                }
-            } catch ( BaseException e ) {
-                System.out.println( "the create cl error i is =" + count );
             }
         }
     }
@@ -204,47 +179,6 @@ public class CreateCLAndPrimaryNodeCutNet2933 extends SdbTestBase {
             Assert.fail( clName + " insert fail: " + e.getErrorCode()
                     + e.getErrorType() );
         }
-    }
-
-    private void checkConsistency() {
-        GroupWrapper dataGroup = groupMgr.getGroupByName( clGroupName );
-        List< String > dataUrls = dataGroup.getAllUrls();
-        List< List< BSONObject > > results = new ArrayList< List< BSONObject > >();
-        for ( String dataUrl : dataUrls ) {
-            Sequoiadb dataDB = new Sequoiadb( dataUrl, "", "" );
-            DBCursor cursor = dataDB.listCollections();
-            List< BSONObject > result = new ArrayList< BSONObject >();
-            while ( cursor.hasNext() ) {
-                result.add( cursor.getNext() );
-            }
-            results.add( result );
-            cursor.close();
-            dataDB.close();
-        }
-
-        List< BSONObject > compareA = results.get( 0 );
-        sortByName( compareA );
-        for ( int i = 1; i < results.size(); i++ ) {
-            List< BSONObject > compareB = results.get( i );
-            sortByName( compareB );
-            if ( !compareA.equals( compareB ) ) {
-                System.out.println( dataUrls.get( 0 ) );
-                System.out.println( compareA );
-                System.out.println( dataUrls.get( i ) );
-                System.out.println( compareB );
-                Assert.fail( "data is different. see the detail in console" );
-            }
-        }
-    }
-
-    private void sortByName( List< BSONObject > list ) {
-        Collections.sort( list, new Comparator< BSONObject >() {
-            public int compare( BSONObject a, BSONObject b ) {
-                String aName = ( String ) a.get( "Name" );
-                String bName = ( String ) b.get( "Name" );
-                return aName.compareTo( bName );
-            }
-        } );
     }
 
     private void dropCL() {

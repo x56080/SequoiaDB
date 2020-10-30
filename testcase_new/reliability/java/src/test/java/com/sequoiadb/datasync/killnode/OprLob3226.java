@@ -8,6 +8,8 @@ import com.sequoiadb.commlib.GroupMgr;
 import com.sequoiadb.commlib.GroupWrapper;
 import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
+import com.sequoiadb.datasync.OprLobTask;
+import com.sequoiadb.datasync.OprLobTask;
 import com.sequoiadb.datasync.Utils;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.ReliabilityException;
@@ -81,7 +83,7 @@ public class OprLob3226 extends SdbTestBase {
             FaultMakeTask faultTask = KillNode.getFaultMakeTask(
                     slvNode.hostName(), slvNode.svcName(), 1 );
             TaskMgr mgr = new TaskMgr( faultTask );
-            OprLobTask oTask = new OprLobTask();
+            OprLobTask oTask = new OprLobTask(clName);
             mgr.addTask( oTask );
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
@@ -121,42 +123,6 @@ public class OprLob3226 extends SdbTestBase {
         } finally {
             if ( db != null ) {
                 db.close();
-            }
-        }
-    }
-
-    private class OprLobTask extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb db = null;
-            try {
-                db = new Sequoiadb( coordUrl, "", "" );
-                DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
-                        .getCollection( clName );
-                int lobSize = 1 * 1024 * 1024;
-                byte[] lobBytes = new byte[ lobSize ];
-                new Random().nextBytes( lobBytes );
-
-                int repeatTimes = 100;
-                for ( int i = 0; i < repeatTimes; i++ ) {
-                    DBLob wLob = cl.createLob();
-                    wLob.write( lobBytes );
-                    ObjectId oid = wLob.getID();
-                    wLob.close();
-
-                    DBLob rLob = cl.openLob( oid );
-                    byte[] rLobBytes = new byte[ lobSize ];
-                    rLob.read( rLobBytes );
-                    rLob.close();
-
-                    cl.removeLob( oid );
-                }
-            } catch ( BaseException e ) {
-                throw e;
-            } finally {
-                if ( db != null ) {
-                    db.close();
-                }
             }
         }
     }
