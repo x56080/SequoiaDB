@@ -126,31 +126,31 @@ command.prototype.addOption =
 **************************************/
 function checkData ( csName, clName )
 {
+   var groupNames = commGetCLGroups(db, csName + "." + clName);
+   // check lsn firstly within group
+   commCheckLSN(db, groupNames, 120);
+
+   // check inspect result secondly
    var inspectBinFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin";
    var inspectReportFile = WORKDIR + "/" + "inspect_" + csName + "_" + clName + ".bin.report";
    var installPath = commGetInstallPath();
    var cmd = new command( installPath + "/bin/sdbinspect" );
-   var rc = db.snapshot( SDB_SNAP_COLLECTIONS, { 'Name': csName + "." + clName } );
-   var groupName = rc.next().toObj().Details[0].GroupName;
-   cmd.addOption( "-g " + groupName );
+   cmd.addOption( "-g " + groupNames[0] );
    cmd.addOption( "-d " + this.db.toString() );
    cmd.addOption( "-c " + csName );
    cmd.addOption( "-l " + clName );
    cmd.addOption( "-o " + inspectBinFile );
-   rc.close();
-
    var result = cmd.exec();
-
-   // remove report files
-   var cmd = new Cmd();
-   cmd.run( "rm -f " + inspectBinFile );
-   cmd.run( "rm -f " + inspectReportFile );
-
    if( result.lastIndexOf( "inspect done" ) !== 0 ||
       result.lastIndexOf( "exit with no records different" ) === -1 )
    {
-      throw new Error( "result error" );
+      throw new Error( "inspect error, actual result: " + result );
    }
+
+   // remove inspect reports
+   cmd = new Cmd();
+   cmd.run( "rm -f " + inspectBinFile );
+   cmd.run( "rm -f " + inspectReportFile );
 }
 
 /*************************************
