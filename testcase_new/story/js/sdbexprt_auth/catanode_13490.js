@@ -4,9 +4,7 @@
 * @author      : Liang XueWang 
 *
 *******************************************************************/
-var csvContent = "Name\n\"" + COMMCSNAME + "\"\n";
-var jsonContent = "{ \"Name\": \"" + COMMCSNAME + "\" }\n";
-
+testConf.csName = COMMCSNAME + "_13490";
 main( test );
 
 function test ()
@@ -39,8 +37,7 @@ function testExprtCsv ( hostname, svcname )
       " --fields Name";
    testRunCommand( command );
 
-   // 多了哪个 CS，哪个CS就没删干净
-   checkFileContent( csvfile, csvContent );
+   containCSName( csvfile, testConf.csName );
 
    cmd.run( "rm -rf " + csvfile );
 }
@@ -59,7 +56,19 @@ function testExprtJson ( hostname, svcname )
       " --fields Name";
    testRunCommand( command );
 
-   checkFileContent( jsonfile, jsonContent );
+   containCSName( jsonfile, testConf.csName );
 
    cmd.run( "rm -rf " + jsonfile );
+}
+
+function containCSName ( filename, expCSName )
+{
+   var size = parseInt( File.stat( filename ).toObj().size );
+   var file = new File( filename );
+   var actContent = file.read( size );
+   file.close();
+   if( actContent.indexOf( expCSName ) === -1 )
+   {
+      throw new Error( "expectCSName:" + expCSName + "\nbut act:" + actContent );
+   }
 }
