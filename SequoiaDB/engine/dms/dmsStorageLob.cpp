@@ -876,7 +876,7 @@ namespace engine
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
-      UINT32 pageSize = _data.pageSize() ;
+      UINT32 pageSize = 0 ;
       BOOLEAN locked = FALSE ;
 
       if ( _needDelayOpen )
@@ -884,6 +884,9 @@ namespace engine
          rc = _delayOpen() ;
          PD_RC_CHECK( rc, PDERROR, "Delay open failed, rc: %d", rc ) ;
       }
+      // get page size
+      pageSize = _data.pageSize() ;
+
       /// make full name
       _clFullName( mbContext->mb()->_collectionName, fullName,
                    sizeof( fullName ) ) ;
@@ -1249,7 +1252,7 @@ namespace engine
       UINT32 dirtyLen = 0 ;
       UINT64 beginLSN = 0 ;
       UINT64 endLSN = 0 ;
-      UINT32 pageSize = _data.pageSize() ;
+      UINT32 pageSize = 0 ;
       ossSpinSLatch *pLatch = NULL ;
 
       if ( _needDelayOpen )
@@ -1257,6 +1260,9 @@ namespace engine
          rc = _delayOpen() ;
          PD_RC_CHECK( rc, PDERROR, "Delay open failed in remove, rc: %d", rc ) ;
       }
+
+      // get page size
+      pageSize = _data.pageSize() ;
 
       /// make full name
       _clFullName( mbContext->mb()->_collectionName, fullName,
