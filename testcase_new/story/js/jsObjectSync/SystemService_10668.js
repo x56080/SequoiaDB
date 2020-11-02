@@ -1,5 +1,5 @@
 /******************************************************************************
-*@Description : test js object System function: runService
+*@Description : test js object System function: runService 
 *               TestLink : 10668 System对象启动、停止服务如ssh服务
 *                          10669 System对象启动服务，启动已启动的服务
 *                          10670 System对象停止服务，停止sdbcm服务
@@ -43,7 +43,7 @@ SystemTest.prototype.testRunServiceSSH = function()
       }
       catch( e )
       {
-         if( e != 3 )
+         if( e !== 3 )
          {
             throw new Error( "ssh service stop fail" + e );
          }
@@ -68,7 +68,6 @@ SystemTest.prototype.testRunServiceSSH = function()
    this.release();
 }
 
-
 // 测试重复启动或停止服务，（SSH服务）
 SystemTest.prototype.testRunServiceDuplicate = function()
 {
@@ -83,7 +82,6 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    }
    if( !isSSHExist( this.hostname, this.svcname ) )
       return;
-
    // 获取服务状态
    var info = this.system.runService( "ssh", "status" );
    var command;
@@ -98,7 +96,7 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    }
    catch( e )
    {
-      if( e != 0 )
+      if( e !== 0 )
       {
          throw new Error( "testRunServiceDuplicate run service duplicate" + e );
       }
@@ -111,7 +109,7 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    }
    catch( e )
    {
-      if( e != 0 )
+      if( e !== 0 )
       {
          throw new Error( "testRunServiceDuplicate test start service in the end" + e );
       }
@@ -128,7 +126,7 @@ SystemTest.prototype.testStopSdbcm = function()
    var user = this.system.getCurrentUser().toObj().user;
    if( user === "root" )
    {
-      // println( "Cannot stop sdbcm service owned by root." ) ;
+      println( "Cannot stop sdbcm service owned by root." );
       return;
    }
 
@@ -143,7 +141,7 @@ SystemTest.prototype.testStopSdbcm = function()
    }
    catch( e )
    {
-      if( e != -16 )
+      if( e !== -16 )
       {
          throw new Error( "testStopSdbcm stop sdbcm" + e );
       }
@@ -179,7 +177,12 @@ function isSSHExist ( hostname, svcname )
    }
    catch( e )
    {
-      throw new Error( " service is not exist !" );
+      if( e === 3 )
+         exist = true;
+      else if( e === 1 )
+         exist = false;
+      else
+         throw new Error( "isSSHExist" + e );
    }
    remote.close();
    return exist;
