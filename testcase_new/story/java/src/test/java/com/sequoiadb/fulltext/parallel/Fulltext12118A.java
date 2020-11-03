@@ -139,12 +139,14 @@ public class Fulltext12118A extends FullTestBase {
                 .getCollectionSpace( csNames.get( csNum - 1 ) );
         for ( int i = 0; i < clNum / 2; i++ ) {
             DBCollection cl = cs1.getCollection( clNames.get( i ) );
-            String cappedCLName = FullTextDBUtils.getCappedName( cl,
-                    indexName );
-            cappedCLNames.add( cappedCLName );
-            List< String > esIndexName = FullTextDBUtils.getESIndexNames( cl,
-                    indexName );
-            esIndexNames.addAll( esIndexName );
+            if(cl.isIndexExist( indexName )) {
+                String cappedCLName = FullTextDBUtils.getCappedName( cl,
+                        indexName );
+                cappedCLNames.add( cappedCLName );
+                List< String > esIndexName = FullTextDBUtils.getESIndexNames( cl,
+                        indexName );
+                esIndexNames.addAll( esIndexName );
+            }
         }
         // 由于线程同时创建/删除了多个全文索引，无法通过返回值来判断预期结果；
         // 如果集合存在，则原始集合与ES端数据一致，主备节点数据一致
