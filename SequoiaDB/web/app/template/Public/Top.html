@@ -8,11 +8,20 @@
    <div ng-dropdown="config in Top.UserOperateDropdown.config" dropdown-event="Top.UserOperateDropdown.event" dropdown-callback="Top.UserOperateDropdown.callback">
       <span class="Ellipsis" style="padding:8px 10px;display:block;" ng-click="Top.UserOperateDropdown.OnClick($index)">&nbsp;{{config.key}}</span>
    </div>
+   <div ng-dropdown="config in Top.SettingDropdown.config" dropdown-event="Top.SettingDropdown.event" dropdown-callback="Top.SettingDropdown.callback">
+      <span class="Ellipsis" style="padding:8px 10px;display:block;" ng-click="Top.SettingDropdown.OnClick($index)">&nbsp;{{config.key}}</span>
+   </div>
+   <div ng-windows="form as Top.SetConfigWindow.config" windows-callback="Top.SetConfigWindow.callback">
+      <div form-create para="form"></div>
+   </div>
 
    <div id="PublicNav1" class="pull-right">
       <ul>
          <li ng-click="Top.OpenUserOperate($event)">
             <i class="fa fa-user"></i>&nbsp;<span>admin</span>&nbsp;<i class="fa fa-caret-down"></i>
+         </li>
+         <li ng-click="Top.OpenSetting($event)">
+            <i class="fa fa-cog"></i>&nbsp;<span>{{autoLanguage("设置")}}</span>
          </li>
          <!--<li>
             <i class="fa fa-bell"></i> <span class="badge badge-warning" ng-if="Top.Notice.list.length > 0">{{Top.Notice.list.length}}</span>

@@ -225,9 +225,120 @@
          'callback': {}
       }
 
+      $scope.Top.SetConfigWindow = {
+         'config': {},
+         'callback': {}
+      }
+      var openSetConfigWindow = function( scope, SdbRest ){
+         $scope.Top.SetConfigWindow['config'] = {
+            'keyWidth':'200px',
+            'inputList': [
+               {
+                  "name": 'max',
+                  "webName": 'max_execution_time',
+                  "desc": $scope.autoLanguage( '最大执行时间，目前仅执行 SQL 时有效，默认 30 秒，最小值 0 表示不超时，最大值 1800 秒' ),
+                  "type": "int",
+                  "required": true,
+                  "value": 30,
+                  "valid": {
+                     "min": 0,
+                     "max": 1800
+                  }
+               }
+            ]
+         } ;
+
+         queryConfig() ;
+      }
+
+      function queryConfig()
+      {
+         var data = { 'cmd': 'list settings' } ;
+         SdbRest.OmOperation( data, {
+            'success': function( result ){
+               $.each( result, function( index, info ){
+                  if( info['Key'] == 'max_execution_time' )
+                  {
+                     info['Value'] = info['Value'] / 1000 ;
+                     $scope.Top.SetConfigWindow['config']['inputList'][0]['value'] = info['Value'] ;
+                  }
+               } ) ;
+               $scope.Top.SetConfigWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function () {
+                  var isAllClear = $scope.Top.SetConfigWindow['config'].check();
+                  if( isAllClear )
+                  {
+                     var formVal = $scope.Top.SetConfigWindow['config'].getValue() ;
+                     formVal['max'] = formVal['max'] * 1000 ;
+                     setConfig( formVal['max'] ) ;
+                  }
+                  return isAllClear ;
+               } );
+
+               $scope.Top.SetConfigWindow['callback']['SetTitle']( $scope.autoLanguage( '系统配置' ) ) ;
+               $scope.Top.SetConfigWindow['callback']['SetIcon']( '' ) ;
+               $scope.Top.SetConfigWindow['callback']['Open']() ;
+               $scope.$digest() ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  queryConfig() ;
+                  return true ;
+               } ) ;
+            }
+         } ) ;
+      }
+
+      function setConfig( max )
+      {
+         var settings = { 'max_execution_time': max } ;
+         var data = { 'cmd': 'set settings', 'settings': JSON.stringify( settings ) };
+         SdbRest.OmOperation( data, {
+            'success': function(){
+               $scope.Components.Confirm.type = 4 ;
+               $scope.Components.Confirm.context = $scope.autoLanguage( '修改配置成功' ) ;
+               $scope.Components.Confirm.isShow = true ;
+               $scope.Components.Confirm.noClose = true ;
+               $scope.Components.Confirm.normalOK = true ;
+               $scope.Components.Confirm.okText = $scope.autoLanguage( '确定' ) ;
+               $scope.Components.Confirm.ok = function(){
+                  $scope.Components.Confirm.isShow = false ;
+                  $scope.Components.Confirm.noClose = false ;
+                  $scope.Components.Confirm.normalOK = false ;
+               }
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  setConfig( max ) ;
+                  return true ;
+               } ) ;
+            }
+         }, {
+            'showLoading': true
+         } ) ;
+      }
+
       //打开用户操作下拉菜单
       $scope.Top.OpenUserOperate = function( event ){
          $scope.Top.UserOperateDropdown['callback']['Open']( event.currentTarget ) ;
+      }
+
+      //设置操作下拉菜单
+      $scope.Top.SettingDropdown = {
+         'config': [
+            { 'key': $scope.autoLanguage( '系统配置' ) }
+         ],
+         'OnClick': function( index ){
+            if( index == 0 )
+            {
+               openSetConfigWindow() ;
+            }
+            $scope.Top.SettingDropdown['callback']['Close']() ;
+         },
+         'callback': {}
+      }
+
+      $scope.Top.OpenSetting = function( event ){
+          $scope.Top.SettingDropdown['callback']['Open']( event.currentTarget ) ;
       }
 
       var NoticeFrench = {
