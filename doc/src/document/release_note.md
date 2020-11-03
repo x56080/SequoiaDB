@@ -1,7 +1,53 @@
-﻿SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100%兼容 MySQL 语法和协议，支持完整的 ACID 和分布式事务。同时 SequoiaDB 还提供多模（multi-model）数据库存储引擎，原生支持多数据中心容灾机制，是新一代分布式数据库的首选。  
+﻿SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，产品引擎采用原生分布式架构，100%兼容 MySQL 语法和协议，支持完整的 ACID 和分布式事务。同时 SequoiaDB 还提供多模（multi-model）数据库存储引擎，原生支持多数据中心容灾机制，是新一代分布式数据库的首选。
 本文档中心旨在介绍 SequoiaDB 巨杉数据库的基本概念、数据增删改查的基本语法、数据库运维管理的基本策略，以及性能调优和问题诊断的相关思路。
 
 [快速使用SequoiaDB](quickstart.md)
+
+##SequoiaDB version 3.2.6 版本说明##
+
+**接口变更：**
+
+- MySQL 引擎
+  - 配置项 *sequoiadb_use_transaction* 新增在 session 级别设置的能力
+  - 新增配置项 *sequoiadb_use_rollback_segments*、*sequoiadb_optimizer_options*
+- SequoiaDB
+  - 新增配置项：*servicemask*
+  - Java/Python/PHP/C# 驱动增加快照类型：SDB_SNAP_QUERIES、SDB_SNAP_LATCHWAITS、SDB_SNAP_LOCKWAITS
+  - REST 中 insert 接口支持 flag 参数
+  - SequoiaFS 增加区域的创建、查询、删除等接口
+
+**主要特性：**
+
+- MySQL/MariaDB 支持通过密码文件与 SequoiaDB 建立连接
+- 通过配置项 servicemask 关闭 SequoiaDB 节点指定服务端口
+- 集合增加 getDetail() 接口，用于获取集合快照信息
+- 支持在更新操作符中，使用一个字段的值去更新其它字段
+- 节点健康快照中增加 StackSize 字段
+- 提供 SequoiaFS 的启动、停止及查询脚本
+
+**性能优化：**
+
+- 优化 BSON 中 int 与 long 类型数据的比较性能
+- 优化事务下索引查询时的锁获取机制，提升 count() 性能
+
+**工具优化：**
+
+- sdb shell 支持通过加密文件方式输入密码
+- sdb shell 历史命令中不记录与密码相关的命令
+- 导入工具支持对索引键重复的记录进行替换
+- 导入、导出工具支持字符分隔符为空
+- 导入工具内存分配机制优化，提升包含多层嵌套 json 的记录的性能
+- sdbpasswd 工具完善和优化
+- SAC 支持新增、查看、删除自增字段
+
+**解决重要Bug：**
+
+- OpenSSL 库升级到 OpenSSL-1.1.1g 版本，解决老版本安全漏洞问题
+- 修改 ListLobs 指定 OID 查询无效的问题
+- 修改 SequoiaFS 挂载目录的权限设置问题
+- 修改集合上 truncate 与 dropIndex 并发重放时的报错问题
+- 解决特定场景下集合压缩器扫描数据导致 CPU 占用高的问题
+
 
 ##SequoiaDB version 3.2.4 版本说明##
 
