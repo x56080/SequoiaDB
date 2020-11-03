@@ -758,8 +758,9 @@ namespace engine
             if ( transIsolation < TRANS_ISOLATION_RU ||
                  transIsolation >= TRANS_ISOLATION_MAX )
             {
-               PD_LOG( PDERROR, "Field[%s]'s value is invalid",
-                       field.toString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Field[%s]'s value is invalid, rc: %d",
+                       field.toString().c_str(), rc ) ;
                goto error ;
             }
             transConf.setTransIsolation( transIsolation, TRUE ) ;
