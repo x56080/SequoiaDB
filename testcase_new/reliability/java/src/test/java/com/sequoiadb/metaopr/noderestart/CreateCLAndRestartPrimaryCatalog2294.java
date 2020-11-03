@@ -127,6 +127,14 @@ public class CreateCLAndRestartPrimaryCatalog2294 extends SdbTestBase {
                     Assert.fail( "the error not -22: " + e.getErrorType() );
                 }
             }
+            try {
+                String newclName = preCLName + "_" + count;
+                cs.createCollection( newclName );
+            } catch ( BaseException e ) {
+                Assert.fail( "create new cl fail: " + e.getErrorCode()
+                        + e.getMessage() );
+
+            }
         } else {
             // create cl fail,the count is not equals CL_NUM
             try {
