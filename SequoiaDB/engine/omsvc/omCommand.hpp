@@ -2172,6 +2172,33 @@ namespace engine
       const CHAR* name() { return OM_DELETE_BUSINESS_CONFIG_REQ ; }
    } ;
 
+   class omGetNodeLogCommand : public omAuthCommand
+   {
+      REST_CONSTRUCTOR_PARA_INHERIT( omGetNodeLogCommand, omAuthCommand )
+      {
+      }
+
+      ~omGetNodeLogCommand()
+      {
+      }
+
+      DECLARE_OMREST_CMD_AUTO_REGISTER() ;
+
+      virtual const CHAR* name() { return OM_GET_NODE_LOG_REQ ; }
+
+      virtual INT32 doCommand() ;
+
+   private:
+      INT32 _check() ;
+      INT32 _getNodeLog( BSONObj &result ) ;
+
+   private:
+      string _businessName ;
+      string _businessType ;
+      string _hostName ;
+      string _svcname ;
+   } ;
+
    class omSetSettingsCommand : public omAuthCommand
    {
    public:

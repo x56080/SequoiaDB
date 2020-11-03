@@ -59,6 +59,7 @@ namespace engine
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCreateRelationship )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveRelationship )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaModifyBusinessConfig )
+   IMPLEMENT_OACMD_AUTO_REGISTER( _omaGetNodeLog )
 
    /******************************* scan host *********************************/
    /*
@@ -820,6 +821,53 @@ namespace engine
          PD_LOG ( PDDEBUG, "Modify business config passes argument: %s",
                   _jsFileArgs.c_str() ) ;
          rc = addJsFile( FILE_MODIFY_BUSINESS_CONFIG, _jsFileArgs.c_str() ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
+                     FILE_SCAN_HOST, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Failed to build bson, exception is: %s",
+                  e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+     goto done ;
+   }
+
+   /************************** get node log ************************/
+   /*
+      _omaGetNodeLog
+   */
+   _omaGetNodeLog::_omaGetNodeLog()
+   {
+   }
+
+   _omaGetNodeLog::~_omaGetNodeLog()
+   {
+   }
+
+   INT32 _omaGetNodeLog::init( const CHAR *pInfo )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         stringstream ss ;
+         BSONObj bus( pInfo ) ;
+
+         // build js file arguments
+         ss << "var " << JS_ARG_BUS << " = " 
+            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+         _jsFileArgs = ss.str() ;
+         PD_LOG ( PDDEBUG, "Get node log passes argument: %s",
+                  _jsFileArgs.c_str() ) ;
+         rc = addJsFile( FILE_GET_NODE_LOG, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",

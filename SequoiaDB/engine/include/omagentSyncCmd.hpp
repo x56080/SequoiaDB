@@ -280,6 +280,23 @@ namespace engine
 
    } ;
 
+   /************************** get node log ************************/
+   /*
+      _omaGetNodeLog
+   */
+   class _omaGetNodeLog : public _omaCommand
+   {
+   DECLARE_OACMD_AUTO_REGISTER()
+
+   public:
+      _omaGetNodeLog() ;
+      ~_omaGetNodeLog() ;
+
+      virtual const CHAR* name () { return OMA_CMD_GET_NODE_LOG ; }
+      virtual INT32 init ( const CHAR *pInfo ) ;
+
+   } ;
+
 } // namespace engine
 
 

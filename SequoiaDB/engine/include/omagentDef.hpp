@@ -133,6 +133,8 @@ namespace engine
 
    #define OMA_CMD_MODIFY_BUSINESS_CONFIG             OM_MODIFY_BUSINESS_CONFIG_REQ
 
+   #define OMA_CMD_GET_NODE_LOG                       OM_GET_NODE_LOG_REQ
+
    #define OMA_CMD_START_PLUGIN                       "start plugins"
    #define OMA_CMD_STOP_PLUGIN                        "stop plugins"
 
@@ -240,6 +242,8 @@ namespace engine
    #define FILE_REMOVE_RELATIONSHIP         "removeRelationship.js"
 
    #define FILE_MODIFY_BUSINESS_CONFIG      "modifyBusinessConfig.js"
+
+   #define FILE_GET_NODE_LOG                "getNodeLog.js"
 
    #define FILE_INIT_ENV                    "initEnv.js"
    #define FILE_INSTALL_ZOOKEEPER           "installZNode.js"

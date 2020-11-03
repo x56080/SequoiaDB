@@ -1468,14 +1468,27 @@ namespace engine
             BSONObj configInfo( buffObj.data() ) ;
             BSONObj configs = configInfo.getObjectField(
                                                    OM_CONFIGURE_FIELD_CONFIG ) ;
+            string businessType = configInfo.getStringField(
+                                             OM_CONFIGURE_FIELD_BUSINESSTYPE ) ;
             BSONObjIterator iter( configs ) ;
 
             while ( iter.more() )
             {
                BSONElement ele = iter.next() ;
                BSONObj tmpConfig = ele.embeddedObject() ;
-               string tmpSvcname = tmpConfig.getStringField(
+               string tmpSvcname ;
+
+               if ( OM_BUSINESS_SEQUOIADB == businessType )
+               {
+                  tmpSvcname = tmpConfig.getStringField(
                                                 OM_CONFIGURE_FIELD_SVCNAME ) ;
+               }
+               else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == businessType ||
+                         OM_BUSINESS_SEQUOIASQL_POSTGRESQL == businessType )
+               {
+                  tmpSvcname = tmpConfig.getStringField(
+                                                OM_CONFIGURE_FIELD_PORT2 ) ;
+               }
 
                if ( tmpSvcname == svcname )
                {

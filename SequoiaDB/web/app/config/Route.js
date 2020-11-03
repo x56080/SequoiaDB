@@ -149,6 +149,12 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/Node/Charts.js' ] )
          }
       },
+      { path: '/Monitor/SDB-Nodes/Node/Log',
+        options: {
+           templateUrl: './app/template/Monitor/Sdb/Node/Node/Log.html',
+           resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/Node/Log.js' ] )
+         }
+      },
       //SDB×ÊÔ´Àà
       { path: '/Monitor/SDB-Resources/Domain',
         options: {

@@ -1911,4 +1911,143 @@ namespace engine
    error:
       goto done ;
    }
+
+   // ***************** get node log *****************************
+   IMPLEMENT_OMREST_CMD_AUTO_REGISTER( omGetNodeLogCommand ) ;
+
+   INT32 omGetNodeLogCommand::doCommand()
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj result ;
+      omRestTool restTool( _restSession->socket(), _restAdaptor, _response ) ;
+      omArgOptions option( _request ) ;
+
+      _setFileLanguageSep() ;
+
+      pmdGetThreadEDUCB()->resetInfo( EDU_INFO_ERROR ) ;
+
+      rc = option.parseRestArg( "sss",
+                                OM_REST_FIELD_BUSINESS_NAME, &_businessName,
+                                OM_REST_FIELD_HOST_NAME,     &_hostName,
+                                OM_REST_FIELD_SERVICE_NAME,  &_svcname ) ;
+      if ( rc )
+      {
+         _errorMsg.setError( TRUE, option.getErrorMsg() ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+      rc = _check() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to check: rc=%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _getNodeLog( result ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "failed to get node log: rc=%d", rc ) ;
+         goto error ;
+      }
+
+      restTool.appendResponeContent( result ) ;
+
+      restTool.sendOkRespone() ;
+
+   done:
+      return rc ;
+   error:
+      restTool.sendResponse( rc, _errorMsg.getError() ) ;
+      goto done ;
+   }
+
+   INT32 omGetNodeLogCommand::_check()
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj config ;
+      BSONObj businessInfo ;
+      omDatabaseTool dbTool( _cb ) ;
+
+      rc = dbTool.getOneBusinessInfo( _businessName, businessInfo ) ;
+      if ( rc )
+      {
+         rc = SDB_INVALIDARG ;
+         _errorMsg.setError( TRUE, "business does not exist: name=%s",
+                             _businessName.c_str() ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+      _businessType = businessInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
+
+      rc = dbTool.getOneNodeConfig( _businessName, _hostName, _svcname,
+                                    config ) ;
+      if ( rc )
+      {
+         _errorMsg.setError( TRUE, "failed to get node configuration: "
+                                   "business=%s, node=%s:%s",
+                             _businessName.c_str(),_hostName.c_str(),
+                             _svcname.c_str() ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+      if ( config.isEmpty() )
+      {
+         rc = SDB_INVALIDARG ;
+         _errorMsg.setError( TRUE, "node does not exist: name=%s:%s",
+                             _hostName.c_str(), _svcname.c_str() ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+      if ( OM_BUSINESS_SEQUOIADB == _businessType )
+      {
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         _errorMsg.setError( TRUE, "Unsupported business type: type=%s",
+                             _businessType.c_str() ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omGetNodeLogCommand::_getNodeLog( BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+      string errDetail ;
+      BSONObj request ;
+      BSONObjBuilder requestBuilder ;
+      omTaskTool taskTool( _cb, _localAgentHost, _localAgentService ) ;
+
+      requestBuilder.append( OM_BSON_BUSINESS_NAME, _businessName ) ;
+      requestBuilder.append( OM_BSON_BUSINESS_TYPE, _businessType ) ;
+      requestBuilder.append( OM_BSON_HOSTNAME, _hostName ) ;
+      requestBuilder.append( OM_BSON_PORT, _svcname ) ;
+
+      request = requestBuilder.obj() ;
+
+      rc = taskTool.notifyAgentMsg( CMD_ADMIN_PREFIX OM_GET_NODE_LOG_REQ,
+                                    request, errDetail, result ) ;
+      if ( rc )
+      {
+         _errorMsg.setError( TRUE, "%s", errDetail.c_str() ) ;
+         PD_LOG( PDERROR, "failed to notify agent: detail=%s, rc=%d",
+                 errDetail.c_str(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }

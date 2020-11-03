@@ -386,6 +386,11 @@ var FIELD_SQLDATA                          = "SQLDATA" ;
 var FIELD_PGDATA                           = "PGDATA" ;
 var FIELD_USER2                            = "USER" ;
 var FIELD_SDBADMIN_USER                    = SDBADMIN_USER ;
+var FIELD_LOG_PATH                         = "LogPath" ;
+var FIELD_LOG                              = "Log" ;
+var FIELD_DIAGPATH                         = "diagpath" ;
+var FIELD_DBPATH                           = "dbpath" ;
+var FIELD_DIAGLOG                          = "diaglog" ;
 
 // Async task step
 var STEP_GENERATE_PLAN                     = "Generate plan" ;
@@ -393,6 +398,7 @@ var STEP_DOIT                              = "Doit" ;
 var STEP_CHECK_RESULT                      = "Check result" ;
 var STEP_ROLLBACK                          = "Rollback" ;
 
+var SDB_DIAGLOG_NAME                       = "sdbdiag.log" ;
 
 // port
 var OMA_PORT_DEFAULT_SDBCM_PORT            = "" ;

@@ -699,6 +699,8 @@ enforced: true }"
    #define  OM_SET_SETTINGS_REQ              "set settings"
    #define  OM_LIST_SETTINGS_REQ             "list settings"
 
+   #define  OM_GET_NODE_LOG_REQ              "get node log"
+
    //**************************************************************************
 
    //*********************param between rest and om****************************
