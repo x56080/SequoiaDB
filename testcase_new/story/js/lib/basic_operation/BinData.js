@@ -4,7 +4,7 @@ var tmpBinData = {
 };
 var funcBinData = BinData;
 var funcBinDatahelp = BinData.help;
-BinData=function(){try{return funcBinData.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(e) } };
-BinData.help = function(){try{ return funcBinDatahelp.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(e) } };
-BinData.prototype.help=function(){try{return tmpBinData.help.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(e);}};
-BinData.prototype.toString=function(){try{return tmpBinData.toString.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(e);}};
+BinData=function(){try{return funcBinData.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };
+BinData.help = function(){try{ return funcBinDatahelp.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };
+BinData.prototype.help=function(){try{return tmpBinData.help.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
+BinData.prototype.toString=function(){try{return tmpBinData.toString.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};

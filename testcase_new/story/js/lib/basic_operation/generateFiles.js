@@ -54,7 +54,7 @@ function generateFiles ()
       }
 
       // e.g:  Sdb = function() { try { return funcSdb.apply( this, arguments ); } catch( e ) { commThrowError(e); } }
-      var evalStr = classes[i] + "=function(){try{return func" + classes[i] + ".apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(e) } };";
+      var evalStr = classes[i] + "=function(){try{return func" + classes[i] + ".apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };";
       file.write( evalStr + "\n" );
 
       /* e.g:
@@ -66,7 +66,7 @@ function generateFiles ()
       for( var j = 0; j < staicFunc.length; j++ )
       {
          var evalStr = classes[i] + "." + staicFunc[j] + " = function(){" +
-            "try{ return func" + classes[i] + staicFunc[j] + ".apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(e) } };";
+            "try{ return func" + classes[i] + staicFunc[j] + ".apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };";
          file.write( evalStr + "\n" );
       }
 
@@ -81,7 +81,7 @@ function generateFiles ()
       for( var j = 0; j < memFunc.length; j++ )
       {
          var evalStr = classes[i] + ".prototype." + memFunc[j] + "=function(){try{return tmp" + classes[i] + "." + memFunc[j]
-            + ".apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(e);}};";
+            + ".apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};";
          file.write( evalStr + "\n" );
       }
 
@@ -113,7 +113,7 @@ function generateFiles ()
    for( var i = 0; i < funcs.length; i++ )
    {
       var evalStr = funcs[i] + "=function(){try{return tmpGlobal." + funcs[i] + ".apply(this,arguments);}"
-         + "catch(e){var msg = e.message || e; throw new Error(e)}};";
+         + "catch(e){var msg = e.message || e; throw new Error(msg)}};";
       file.write( evalStr + "\n" );
    }
 
