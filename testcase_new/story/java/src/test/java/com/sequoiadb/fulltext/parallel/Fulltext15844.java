@@ -25,6 +25,10 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  * @FileName seqDB-15844:删除全文索引与全文检索并发
  * @Author
  * @Date liuxiaoxuan 2019.5.10
+ *
+ * 
+ *
+ * SEQUOIADBMAINSTREAM-5121
  */
 public class Fulltext15844 extends FullTestBase {
     private String clName = "ES_15844";
