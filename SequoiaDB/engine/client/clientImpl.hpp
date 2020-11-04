@@ -1768,6 +1768,7 @@ namespace sdbclient
 
       INT32 restoreToPIT( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject ) ;
+      INT32 restorePrepareFlashback( const bson::BSONObj &options = _sdbStaticObject ) ;
 
    } ;
    typedef class _sdbImpl sdbImpl ;

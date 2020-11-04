@@ -757,6 +757,7 @@
 #define CMD_NAME_RESTORE_TO_PIT              "restore to pit"
 #define CMD_NAME_GET_PIT_WINDOW              "get pit window"
 #define CMD_NAME_RESTORE_ABORT               "abort restore"
+#define CMD_NAME_PREPARE_FLASHBACK           "prepare flashback"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"
@@ -810,6 +811,7 @@
 #define CMD_VALUE_NAME_DEACTIVATE            "deactivate"
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
+#define CMD_VALUE_NAME_ENABLE_RESTORING      "enable restoring"
 #define CMD_VALUE_NAME_DISABLE_RESTORING     "disable restoring"
 
 /*

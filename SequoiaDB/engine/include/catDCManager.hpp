@@ -146,6 +146,10 @@ namespace engine
                                        _clsDCMgr *pDCMgr,
                                        const BSONObj &objQuery,
                                        BSONObjBuilder &retObjBuilder ) ;
+      INT32 processCmdEnableRestoring(const NET_HANDLE &handle,
+                                      _clsDCMgr *pDCMgr,
+                                      const BSONObj &objQuery,
+                                      BSONObjBuilder &retObjBuilder);
       INT32 processCmdDisableRestoring(const NET_HANDLE &handle,
                                        _clsDCMgr *pDCMgr,
                                        const BSONObj &objQuery,

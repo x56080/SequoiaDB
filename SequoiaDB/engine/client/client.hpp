@@ -4842,6 +4842,8 @@ namespace sdbclient
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
       virtual INT32 restoreAbort(
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
+      virtual INT32 restorePrepareFlashback(
+                        const bson::BSONObj &options = _sdbStaticObject) = 0;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7102,6 +7104,22 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->restoreAbort( options ) ;
+      }
+
+      /** \fn INT32 restorePrepareFlashback()
+          \brief Prepare for restore flashback by setting restore in progress.
+          \param [in] options Optional parameters object.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32
+      restorePrepareFlashback(const bson::BSONObj &options = _sdbStaticObject)
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->restorePrepareFlashback ( options ) ;
       }
    } ;
    /** \typedef class sdb sdb

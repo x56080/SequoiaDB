@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2020 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -42,9 +42,9 @@ class _coordCMDRestore : public _coordCommandBase
  protected:
    typedef std::vector<bson::BSONObj> OBJ_VEC;
 
-   INT32 _checkClusterState(pmdEDUCB *cb);
-   INT32 _checkDCForState(pmdEDUCB *cb);
-   INT32 _resetState(pmdEDUCB *cb);
+   INT32 _checkRestoreInProgress(pmdEDUCB *cb, BOOLEAN *inProgress);
+   INT32 _setRestoreInProgress(pmdEDUCB *cb, BOOLEAN enable);
+   INT32 _setRestoreInProgressCoords(pmdEDUCB *cb, BOOLEAN enable);
    INT32 _queryCataDCBase(pmdEDUCB *cb, bson::BSONObj *result);
    INT32 _alterDC(pmdEDUCB *cb, const bson::BSONObj &query);
    INT32 _queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
@@ -84,6 +84,7 @@ class coordCMDRestoreToPIT : public _coordCMDRestore
                              UINT64 *targetTime);
    INT32 _restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime, BOOLEAN test);
 
+ protected:
    BOOLEAN _optTestOnly;
    BOOLEAN _optSkipTest;
 };
@@ -101,6 +102,24 @@ class coordCMDRestoreAbort : public _coordCMDRestore
  public:
    coordCMDRestoreAbort(){};
    virtual ~coordCMDRestoreAbort(){};
+   // execute is the entrypoint
+   virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
+                         rtnContextBuf *buf);
+};
+
+/*
+   coordCMDRestorePrepareFlashback
+   Coordinator handler for restorePrepareFlashback();
+   The cluser must not be in RestooreInProgress state.
+   The cluster will enter the RestoreInProgress state.
+*/
+class coordCMDRestorePrepareFlashback : public _coordCMDRestore
+{
+   COORD_DECLARE_CMD_AUTO_REGISTER();
+
+ public:
+   coordCMDRestorePrepareFlashback(){};
+   virtual ~coordCMDRestorePrepareFlashback(){};
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);

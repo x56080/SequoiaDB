@@ -11031,6 +11031,12 @@ do                                                            \
                            &options ) ;
    }
 
+   INT32 _sdbImpl::restorePrepareFlashback( const BSONObj &options )
+   {
+      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_PREPARE_FLASHBACK,
+                           &options ) ;
+   }
+
    _sdb *_sdb::getObj ( BOOLEAN useSSL )
    {
       return (_sdb*)(new(std::nothrow) sdbImpl ( useSSL )) ;

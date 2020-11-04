@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2020 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -152,7 +152,7 @@ INT32 gatherQueryResults(engine::pmdEDUCB *cb,
       catch (exception &e)
       {
          PD_LOG(PDERROR, "Copying results failed");
-         return SDB_OOM;
+         return (rc = SDB_OOM);
       }
    }
    return rc;
@@ -255,21 +255,13 @@ namespace engine
 */
 
 // Check the status of the cluster
-INT32 _coordCMDRestore::_checkClusterState(pmdEDUCB *cb)
-{
-   // Check the local cache
-   if (!pmdGetKRCB()->isDBRestoring())
-   {
-      PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
-      return SDB_RESTORE_NOT_IN_PROGRESS;
-   }
-   return _checkDCForState(cb);
-}
-
-// Query the catalog to confirm - check RestoreInProgress in SYSINFO.SYSDCBASE
-INT32 _coordCMDRestore::_checkDCForState(pmdEDUCB *cb)
+INT32 _coordCMDRestore::_checkRestoreInProgress(pmdEDUCB *cb,
+                                                BOOLEAN *inProgress)
 {
    INT32 rc = SDB_OK;
+   // Check the local cache
+   *inProgress = pmdGetKRCB()->isDBRestoring();
+   // Check the DC
    BSONObj document;
    if ((rc = _queryCataDCBase(cb, &document)))
    {
@@ -282,40 +274,65 @@ INT32 _coordCMDRestore::_checkDCForState(pmdEDUCB *cb)
    {
       PD_LOG(PDERROR, "Missing field [%s] in document from catalog",
              FIELD_NAME_RESTORING);
-      return SDB_SYS;
+      return (rc = SDB_SYS);
    }
-   if (!field.trueValue())
+   if (*inProgress != field.trueValue())
    {
-      PD_LOG(PDERROR, "Catalog status conflicts with coordinator");
-      return SDB_SYS;
+      PD_LOG(PDERROR, "[%s] status mismatch between DC and cache",
+             FIELD_NAME_RESTORING);
+      return (rc = SDB_SYS);
    }
    return rc;
 }
 
-// Update the catalog with RestoreInProgress: false
-INT32 _coordCMDRestore::_resetState(pmdEDUCB *cb)
+// Update the catalog DC RestoreInProgress value
+// @param   enable   Whether to enable or diable the state
+INT32 _coordCMDRestore::_setRestoreInProgress(pmdEDUCB *cb, BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    BSONObj query;
-   PD_LOG(PDINFO, "Resetting cluster state");
+   PD_LOG(PDINFO, "Setting cluster state [%s] = [%d]", FIELD_NAME_RESTORING,
+          enable);
+   // Update the DC
    try
    {
-      query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_DISABLE_RESTORING);
+      if (enable)
+      {
+         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_ENABLE_RESTORING);
+      }
+      else
+      {
+         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_DISABLE_RESTORING);
+      }
    }
    catch (exception &e)
    {
       PD_LOG(PDERROR, "Failed to create query");
-      return SDB_OOM;
+      return (rc = SDB_OOM);
    }
    if ((rc = _alterDC(cb, query))) // this will update cata and data
    {
       PD_LOG(PDERROR, "Failed to update DC state across nodes");
       return rc;
    }
-   if ((rc = _cmdCoords(cb, MSG_BS_QUERY_REQ,
-                        CMD_ADMIN_PREFIX CMD_NAME_RESTORE_ABORT, BSONObj())))
+   // Update the coords
+   if ((rc = _setRestoreInProgressCoords(cb, enable)))
    {
-      PD_LOG(PDERROR, "Failed to update coord nodes");
+      return rc;
+   }
+   return rc;
+}
+
+INT32 _coordCMDRestore::_setRestoreInProgressCoords(pmdEDUCB *cb,
+                                                    BOOLEAN enable)
+{
+   INT32 rc = SDB_OK;
+   const string command =
+       enable ? CMD_NAME_PREPARE_FLASHBACK : CMD_NAME_RESTORE_ABORT;
+   if ((rc = _cmdCoords(cb, MSG_BS_QUERY_REQ,
+                        CMD_ADMIN_PREFIX + command, BSONObj())))
+   {
+      PD_LOG(PDERROR, "Failed to update status on coord nodes");
       return rc;
    }
    return rc;
@@ -345,7 +362,7 @@ INT32 _coordCMDRestore::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
    catch (exception &e)
    {
       PD_LOG(PDERROR, "Failed to copy BSON object");
-      return SDB_OOM;
+      return (rc = SDB_OOM);
    }
    return rc;
 }
@@ -475,12 +492,12 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    {
       return rc;
    }
-   if (!_optTestOnly && (rc = _resetState(cb)))
+   if (!_optTestOnly && (rc = _setRestoreInProgress(cb, FALSE)))
    {
       return rc;
    }
    PD_LOG(PDEVENT, "restoreToPIT completed successfully");
-   return SDB_OK;
+   return rc;
 }
 
 // Parse the client's request, extracting the targetTime if given
@@ -513,11 +530,17 @@ INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
                                                   UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
-   if ((rc = _checkClusterState(cb)))
+   BOOLEAN inProgress;
+   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
    {
       return rc;
    }
-   return _coordinateRestore(cb, targetTime);
+   if (!inProgress)
+   {
+      PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
+      return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
+   }
+   return (rc = _coordinateRestore(cb, targetTime));
 }
 
 INT32 coordCMDRestoreToPIT::_coordinateRestore(pmdEDUCB *cb, UINT64 targetTime)
@@ -529,7 +552,7 @@ INT32 coordCMDRestoreToPIT::_coordinateRestore(pmdEDUCB *cb, UINT64 targetTime)
    {
       return rc;
    }
-   return _restoreWithWindows(cb, targetTime, minTime, maxTime);
+   return (rc = _restoreWithWindows(cb, targetTime, minTime, maxTime));
 }
 
 // Query the primary of each data group for their restore window and set the
@@ -550,7 +573,7 @@ INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(pmdEDUCB *cb,
       return rc;
    }
 
-   return _getMinMaxWindowFromResponses(results, minTime, maxTime);
+   return (rc = _getMinMaxWindowFromResponses(results, minTime, maxTime));
 }
 
 // Get the greatest min and least max values from the node query results
@@ -570,7 +593,7 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
           !field.isABSONObj())
       {
          // This should never happen
-         return SDB_SYS;
+         return (rc = SDB_SYS);
       }
       BSONObj obj = field.embeddedObject();
       // Get the MinRecoverableTime and MaxTransCommitTime values
@@ -581,7 +604,7 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
                                    &tmpMax)))
       {
          PD_LOG(PDERROR, "Invalid database snapshot result");
-         return SDB_SYS;
+         return (rc = SDB_SYS);
       }
       *minTime = tmpMin > (*minTime) ? tmpMin : *minTime; // new greatest min
       *maxTime = tmpMax < (*maxTime) ? tmpMax : *maxTime; // new least max
@@ -590,7 +613,7 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
    if ((*minTime) > (*maxTime))
    {
       PD_LOG(PDERROR, "No valid global consistency points");
-      return SDB_RESTORE_NO_CONSISTENT_PIT;
+      return (rc = SDB_RESTORE_NO_CONSISTENT_PIT);
    }
    return rc;
 }
@@ -623,6 +646,7 @@ INT32 coordCMDRestoreToPIT::_restoreWithWindows(pmdEDUCB *cb, UINT64 targetTime,
 INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
                                                 UINT64 *targetTime)
 {
+   INT32 rc = SDB_OK;
    if (DPS_INVALID_TRANS_TIME == *targetTime)
    {
       // No user input so use the latest consistency point
@@ -631,9 +655,9 @@ INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
    else if ((*targetTime) < minTime || (*targetTime) > maxTime)
    {
       PD_LOG(PDERROR, "Target time is outside of the valid consistency window");
-      return SDB_INVALIDARG;
+      return (rc = SDB_INVALIDARG);
    }
-   return SDB_OK;
+   return rc;
 }
 
 // Execute restoreToPIT() on all of the data groups
@@ -666,7 +690,7 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
    catch (exception &e)
    {
       PD_LOG(PDERROR, "Failed to create query");
-      return SDB_OOM;
+      return (rc = SDB_OOM);
    }
    if ((rc = _queryDataGroups(cb, MSG_BS_QUERY_REQ,
                               CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT, query,
@@ -675,7 +699,7 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
       PD_LOG(PDERROR, "One or more nodes failed restoreToPIT");
       return rc;
    }
-   return SDB_OK;
+   return rc;
 }
 
 /*
@@ -684,21 +708,59 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
 COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreAbort, CMD_NAME_RESTORE_ABORT,
                                   FALSE);
 
-// Entrypoint for restoreToPIT() on the coordinator
+// Entrypoint for restoreAbort() on the coordinator
 INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
                                     INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
-   if ((rc = _checkClusterState(cb)))
+   BOOLEAN inProgress; // whether RestoreInProgress is already set
+   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
    {
       return rc;
    }
-   if ((rc = _resetState(cb)))
+   if (!inProgress)
+   {
+      // Treat as a warning only, not an error
+      PD_LOG(PDWARNING, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
+      return rc;
+   }
+   if ((rc = _setRestoreInProgress(cb, FALSE)))
    {
       return rc;
    }
    PD_LOG(PDEVENT, "restoreAbort completed successfully");
-   return SDB_OK;
+   return rc;
+}
+
+/*
+   coordCMDRestorePrepareFlashback definitions
+*/
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestorePrepareFlashback,
+                                  CMD_NAME_PREPARE_FLASHBACK, FALSE);
+
+// Entrypoint for restorePrepareFlashback() on the coordinator
+INT32 coordCMDRestorePrepareFlashback::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                               INT64 &contextID,
+                                               rtnContextBuf *buf)
+{
+   INT32 rc = SDB_OK;
+   BOOLEAN inProgress; // whether RestoreInProgress is already set
+   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
+   {
+      return rc;
+   }
+   if (inProgress)
+   {
+      // Treat as a warning only, not an error
+      PD_LOG(PDWARNING, "Cluster already in [%s] state", FIELD_NAME_RESTORING);
+      return rc;
+   }
+   if ((rc = _setRestoreInProgress(cb, TRUE)))
+   {
+      return rc;
+   }
+   PD_LOG(PDEVENT, "restorePrepareFlashback completed successfully");
+   return rc;
 }
 
 } // namespace engine

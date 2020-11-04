@@ -5138,5 +5138,42 @@ error:
       pmdGetKRCB()->setDBRestoring(false);
       return SDB_OK ;
    }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestorePrepareFlashback)
+   _rtnRestorePrepareFlashback::_rtnRestorePrepareFlashback ()
+   {
+   }
+
+   _rtnRestorePrepareFlashback::~_rtnRestorePrepareFlashback ()
+   {
+   }
+
+   const CHAR *_rtnRestorePrepareFlashback::name()
+   {
+      return NAME_PREPARE_FLASHBACK ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestorePrepareFlashback::type()
+   {
+      return CMD_PREPARE_FLASHBACK ;
+   }
+
+   INT32 _rtnRestorePrepareFlashback::init(INT32 flags, INT64 numToSkip,
+                                           INT64 numToReturn,
+                                           const CHAR *pMatcherBuff,
+                                           const CHAR *pSelectBuff,
+                                           const CHAR *pOrderByBuff,
+                                           const CHAR *pHintBuff)
+   {
+      return SDB_OK;
+   }
+
+   INT32 _rtnRestorePrepareFlashback::doit(_pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                           SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                           INT16 w, INT64 *pContextID)
+   {
+      pmdGetKRCB()->setDBRestoring(true);
+      return SDB_OK ;
+   }
 }
 

@@ -504,6 +504,12 @@ namespace engine
                                              objQuery, retObjBuilder ) ;
          }
          else if ( 0 == ossStrcasecmp( pAction,
+                                       CMD_VALUE_NAME_ENABLE_RESTORING ) )
+         {
+            rc = processCmdEnableRestoring(handle, &dcMgr, objQuery,
+                                           retObjBuilder);
+         }
+         else if ( 0 == ossStrcasecmp( pAction,
                                        CMD_VALUE_NAME_DISABLE_RESTORING ) )
          {
             rc = processCmdDisableRestoring(handle, &dcMgr, objQuery,
@@ -1206,6 +1212,45 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // Sets the RestoreInProgress state to true
+   INT32 _catDCManager::processCmdEnableRestoring( const NET_HANDLE &handle,
+                                                   _clsDCMgr *pDCMgr,
+                                                   const BSONObj &objQuery,
+                                                   BSONObjBuilder &retObjBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
+      vector< string > vecGroups ;
+
+      _pCatCB->getGroupsName( vecGroups ) ;
+      vecGroups.push_back( CATALOG_GROUPNAME ) ;
+
+      // make return obj
+      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
+      {
+         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
+         return rc;
+      }
+
+      // If prepare has already been run and this is to be set a second time,
+      // nothing should happen. We want to set the value in the DC to true but
+      // it is already true.
+      if ( !pBaseInfo->isRestoring() )
+      {
+         // update to collection
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE,
+                                      _pEduCB, _majoritySize(), _pDmsCB,
+                                      _pDpsCB )))
+         {
+            // update failed, undo the change
+            catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE, _pEduCB, 1,
+                               _pDmsCB, _pDpsCB ) ;
+            return rc;
+         }
+      }
+      return rc ;
    }
 
    // Sets the RestoreInProgress state to false
