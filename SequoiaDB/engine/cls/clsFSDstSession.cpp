@@ -1359,7 +1359,8 @@ namespace engine
                PD_LOG( PDEVENT, "Session[%s] new collection [%s] is already "
                        "in collection list", sessionName(), itrName.value() ) ;
             }
-            goto done ;
+            // continue to next log
+            continue ;
          }
 
          // should not ignore duplicated keys on user indexes
