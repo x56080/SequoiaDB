@@ -2573,11 +2573,11 @@ namespace engine
       }
       else if ( SQL_GRAMMAR::DIGITAL == type )
       {
-         CHAR *tail = (CHAR *)(QGM_VALUEPTR(root) + QGM_VALUESIZE(root));
-         CHAR tmp = *tail ;
-         *tail = '\0' ;
-         node->_limit = ossAtoll( QGM_VALUEPTR(root) ) ;
-         *tail = tmp ;
+         _utilString< UTIL_STRING_INT64_LEN > valueString ;
+         rc = valueString.append( QGM_VALUEPTR(root), QGM_VALUESIZE(root) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to construct string to parse "
+                      "limit number, rc: %d", rc ) ;
+         node->_limit = ossAtoll( valueString.str() ) ;
       }
       else
       {
@@ -2614,11 +2614,11 @@ namespace engine
       }
       else if ( SQL_GRAMMAR::DIGITAL == type )
       {
-         CHAR *tail = (CHAR *)(QGM_VALUEPTR(root) + QGM_VALUESIZE(root));
-         CHAR tmp = *tail ;
-         *tail = '\0' ;
-         node->_skip = ossAtoll( QGM_VALUEPTR(root) ) ;
-         *tail = tmp ;
+         _utilString< UTIL_STRING_INT64_LEN > valueString ;
+         rc = valueString.append( QGM_VALUEPTR(root), QGM_VALUESIZE(root) ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to construct string to parse "
+                      "skip number, rc: %d", rc ) ;
+         node->_skip = ossAtoll( valueString.str() ) ;
       }
       else
       {
