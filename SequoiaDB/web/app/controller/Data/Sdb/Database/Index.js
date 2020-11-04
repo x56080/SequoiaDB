@@ -110,7 +110,9 @@
             'TotalLobs': $scope.autoLanguage( 'Lob数' ),
             'Record': $scope.autoLanguage( '记录数' ),
             'AutoIncrement': $scope.autoLanguage( '自增字段数' ),
-            'Index': $scope.autoLanguage( '索引数' )
+            'Index': $scope.autoLanguage( '索引数' ),
+            'TotalTbScan': $scope.autoLanguage( '表扫描数' ),
+            'TotalIxScan': $scope.autoLanguage( '索引扫描数' )
          },
          'body': [],
          'options': {
@@ -121,7 +123,9 @@
                'TotalLobs': true,
                'Record': true,
                'AutoIncrement': true,
-               'Index': true
+               'Index': true,
+               'TotalTbScan': true,
+               'TotalIxScan': true
             },
             'max': 50,
             'filter': {
@@ -137,7 +141,9 @@
                'TotalLobs': 'number',
                'Record': 'number',
                'AutoIncrement': 'indexof',
-               'Index': 'number'
+               'Index': 'number',
+               'TotalTbScan': 'number',
+               'TotalIxScan': 'number'
             }
          }
       } ;

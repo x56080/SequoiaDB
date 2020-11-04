@@ -54,6 +54,12 @@
             <a ng-if="clInfo.Index > 0" class="linkButton" ng-click="showIndex(clInfo.csId,clInfo.i)">{{clInfo.Index}}</a>
             <span ng-if="clInfo.Index == 0">{{clInfo.Index}}</span>
          </div>
+         <div class="Ellipsis" table-key="TotalTbScan">
+            <span>{{clInfo.TotalTbScan}}</span>
+         </div>
+         <div class="Ellipsis" table-key="TotalIxScan">
+            <span>{{clInfo.TotalIxScan}}</span>
+         </div>
       </div>
 
       <div class="previewLeft" ng-container="{offsetX:-280}" ng-if="browseMode=='magnet' && csList.length > 0 && (find.length == 0 || findNum > 0)" ng-repeats="csInfo in csList" loadfirst="30" loadnext="30">
@@ -76,6 +82,8 @@
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("记录数")}}</th>
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("自增字段数")}}</th>
                         <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("索引数")}}</th>
+                        <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("表扫描数")}}</th>
+                        <th style="background-color:#F1F4F5;font-weight:bold;">{{autoLanguage("索引扫描数")}}</th>
                      </tr>
                      <tr ng-repeat="clInfo in clList track by $index" ng-if="clInfo.csName == csInfo.Name && clInfo.hide == false">
                         <td>
@@ -92,6 +100,12 @@
                         <td>
                            <a class="linkButton" ng-if="clInfo.Index>0" ng-click='showIndex($parent.$parent.$index,$index)'>{{clInfo.Index}}</a>
                            <span ng-if="clInfo.Index==0">{{clInfo.Index}}</span>
+                        </td>
+                        <td>
+                           <span>{{clInfo.TotalTbScan}}</span>
+                        </td>
+                        <td>
+                           <span>{{clInfo.TotalIxScan}}</span>
                         </td>
                      </tr>
                      <tr ng-if="csInfo.clNum > maxShowCLNum && csInfo.show == false && find.length == 0 && moduleMode == 'standalone'">

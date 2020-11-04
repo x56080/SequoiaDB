@@ -116,6 +116,8 @@ _DataDatabaseIndex.buildClList = function( $scope, clList ){
             'MainCLName': clInfo['MainCLName'],
             'ShardingType': clInfo['ShardingType'],
             'AutoIncrement': clInfo['AutoIncrement'],
+            'TotalTbScan': clInfo['TotalTbScan'],
+            'TotalIxScan': clInfo['TotalIxScan'],
             'Info': {
                'Name':                clName,
                'IsMainCL':            clInfo['IsMainCL'],
@@ -133,6 +135,8 @@ _DataDatabaseIndex.buildClList = function( $scope, clList ){
                'TotalDataPages':      clInfo['TotalDataPages'],
                'TotalIndexPages':     clInfo['TotalIndexPages'],
                'TotalLobPages':       clInfo['TotalLobPages'],
+               'TotalTbScan':         clInfo['TotalTbScan'],
+               'TotalIxScan':         clInfo['TotalIxScan'],
                'TotalDataFreeSpace':  clInfo['TotalDataFreeSpace'],
                'TotalIndexFreeSpace': clInfo['TotalIndexFreeSpace'],
                'EnsureShardingIndex': clInfo['EnsureShardingIndex'],
@@ -416,7 +420,7 @@ _DataDatabaseIndex.getCLInfo = function( $scope, SdbRest )
    }
    else
    {
-      sql = 'SELECT t1.Name, t1.Details.ID, t1.Details.LogicalID, t1.Details.Sequence, t1.Details.GroupName, t1.Details.Status, t1.Details.Indexes, t1.Details.TotalRecords, t1.Details.TotalLobs, t1.Details.TotalDataPages, t1.Details.HasDict, t1.Details.TotalIndexPages, t1.Details.TotalLobPages, t1.Details.TotalDataFreeSpace/1048576, t1.Details.TotalIndexFreeSpace/1048576, t1.IsMainCL, t1.MainCLName, t1.ShardingKey, t1.ShardingType, t1.ErrNodes FROM (SELECT * FROM $SNAPSHOT_CL WHERE NodeSelect="master" split BY Details) AS t1 ORDER BY t1.Name' ;
+      sql = 'SELECT t1.Name, t1.Details.ID, t1.Details.LogicalID, t1.Details.Sequence, t1.Details.GroupName, t1.Details.Status, t1.Details.Indexes, t1.Details.TotalRecords, t1.Details.TotalLobs, t1.Details.TotalDataPages, t1.Details.HasDict, t1.Details.TotalIndexPages, t1.Details.TotalLobPages, t1.Details.TotalTbScan, t1.Details.TotalIxScan, t1.Details.TotalDataFreeSpace/1048576, t1.Details.TotalIndexFreeSpace/1048576, t1.IsMainCL, t1.MainCLName, t1.ShardingKey, t1.ShardingType, t1.ErrNodes FROM (SELECT * FROM $SNAPSHOT_CL WHERE NodeSelect="master" split BY Details) AS t1 ORDER BY t1.Name' ;
    }
 
    //合并cl数据
