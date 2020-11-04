@@ -107,7 +107,9 @@
             'MainCLName': $scope.isHideSubCl == true || moduleMode == 'standalone' ? false : $scope.autoLanguage( '归属集合' ),
             'TotalLobs': $scope.autoLanguage( 'Lob数' ),
             'Record': $scope.autoLanguage( '记录数' ),
-            'Index': $scope.autoLanguage( '索引数' )
+            'Index': $scope.autoLanguage( '索引数' ),
+            'TotalTbScan': $scope.autoLanguage( '表扫描数' ),
+            'TotalIxScan': $scope.autoLanguage( '索引扫描数' )
          },
          'body': [],
          'options': {
@@ -117,7 +119,9 @@
                'MainCLName': true,
                'TotalLobs': true,
                'Record': true,
-               'Index': true
+               'Index': true,
+               'TotalTbScan': true,
+               'TotalIxScan': true
             },
             'max': 50,
             'filter': {
@@ -132,7 +136,9 @@
                'MainCLName': 'indexof',
                'TotalLobs': 'number',
                'Record': 'number',
-               'Index': 'number'
+               'Index': 'number',
+               'TotalTbScan': 'number',
+               'TotalIxScan': 'number'
             }
          }
       } ;
