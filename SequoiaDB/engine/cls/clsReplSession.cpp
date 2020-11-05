@@ -1250,7 +1250,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSRCREPSN__CLSREPSN, "_clsReplSrcSession::_clsReplSrcSession" )
    _clsReplSrcSession::_clsReplSrcSession ( UINT64 sessionID )
       :_pmdAsyncSession ( sessionID ),
-       _mb( CLS_SYNC_DEF_LEN ),
+       _mb( CLS_SYNC_MAX_LEN ),
        _quit( FALSE ),
        _timeout( 0 )
    {

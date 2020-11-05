@@ -660,6 +660,7 @@ namespace engine
          OSS_INLINE UINT32 maxSockThread() const { return _maxSockThread ; }
          OSS_INLINE UINT32 maxTCSize() const { return _maxTCSize ; }
          OSS_INLINE UINT32 memPoolSize() const { return _memPoolSize ; }
+         OSS_INLINE UINT32 memPoolThreshold() const { return _memPoolThreshold ; }
          OSS_INLINE INT32  transReplSize() const { return _transReplSize ; }
          OSS_INLINE BOOLEAN transRCCount() const { return _transRCCount ; }
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
@@ -791,6 +792,7 @@ namespace engine
          UINT32      _maxSockThread ;
          UINT32      _maxTCSize ;
          UINT32      _memPoolSize ;
+         UINT32      _memPoolThreshold ;
          INT32       _transReplSize ;
          BOOLEAN     _transRCCount ;
          UINT32      _slowQueryThreshold ;

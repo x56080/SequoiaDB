@@ -648,24 +648,26 @@ namespace engine
          goto done ;
       }
 
-      // reverse loop LSN until meets expected LSN
-      while ( currentLSN.compareOffset( expectLSN ) >= 0 &&
-              !isNeedSyncTrans() )
       {
-         dpsMessageBlock mb ;
-         dpsLogRecord record ;
-
-         rc = dpsCB->search( currentLSN, &mb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to search LSN [ offset: %llu ], "
-                      "rc: %d", expectLSN.offset, rc ) ;
-         record.load( mb.startPtr() ) ;
-
-         if ( !rollbackTransInfoFromLog( record ) )
+         dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN ) ;
+         // reverse loop LSN until meets expected LSN
+         while ( currentLSN.compareOffset( expectLSN ) >= 0 &&
+                 !isNeedSyncTrans() )
          {
-            setIsNeedSyncTrans( TRUE ) ;
-         }
+            dpsLogRecord record ;
+            mb.clear() ;
+            rc = dpsCB->search( currentLSN, &mb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to search LSN [ offset: %llu ], "
+                         "rc: %d", expectLSN.offset, rc ) ;
+            record.load( mb.startPtr() ) ;
 
-         currentLSN.offset = record.head()._preLsn ;
+            if ( !rollbackTransInfoFromLog( record ) )
+            {
+               setIsNeedSyncTrans( TRUE ) ;
+            }
+
+            currentLSN.offset = record.head()._preLsn ;
+         }
       }
 
       PD_LOG( PDEVENT, "Finished rollback trans info, current LSN [%llu], "

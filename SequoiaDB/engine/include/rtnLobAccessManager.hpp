@@ -47,7 +47,7 @@ namespace engine
    #define RTN_LOB_ACCESS_PRIVILEGE_RETRY_TIMES     (3)
    #define RTN_LOB_ACCESS_PRIVILEGE_RETRY_INTERVAL  (50) /* ms */
 
-   class _rtnLobAccessInfo: public SDBObject
+   class _rtnLobAccessInfo: public utilPooledObject
    {
    public:
       _rtnLobAccessInfo( const bson::OID& oid, UINT32 mode, INT64 accessId = -1 ) ;
@@ -98,7 +98,7 @@ namespace engine
    } ;
    typedef _rtnLobAccessInfo rtnLobAccessInfo ;
 
-   struct _rtnLobAccessKey: public SDBObject
+   struct _rtnLobAccessKey: public utilPooledObject
    {
       std::string clName ;
       bson::OID   oid ;

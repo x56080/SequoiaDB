@@ -43,6 +43,7 @@
 #include "sdbInterface.hpp"
 #include <vector>
 #include "ossMemPool.hpp"
+#include "utilPooledObject.hpp"
 
 using namespace std ;
 
@@ -565,7 +566,7 @@ namespace engine
    /*
       _utilCacheBucket
    */
-   class _utilCacheBucket : public SDBObject
+   class _utilCacheBucket : public utilPooledObject
    {
       public:
          typedef ossPoolMap< INT32, utilCachePage >      MAP_BLK_PAGE ;

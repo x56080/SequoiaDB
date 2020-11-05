@@ -1960,6 +1960,7 @@ done:
 
       _maxTCSize = 0 ;
       _memPoolSize = 0 ;
+      _memPoolThreshold = 0 ;
 
       _transReplSize = -1 ;
       _transRCCount = DPS_TRANS_RCCOUNT_DFT ;
@@ -2428,6 +2429,10 @@ done:
       // --mempoolsize
       rdxUInt( pEX, PMD_OPTION_MEMPOOL_SIZE, _memPoolSize, FALSE,
                PMD_CFG_CHANGE_RUN, 8192, TRUE ) ;
+
+      // --mempoolthreshold
+      rdxUInt( pEX, PMD_OPTION_MEMPOOL_THRESHOLD, _memPoolThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, 0, TRUE ) ;
 
       // --transreplsize
       rdxInt( pEX, PMD_OPTION_TRANS_REPLSIZE, _transReplSize, FALSE,

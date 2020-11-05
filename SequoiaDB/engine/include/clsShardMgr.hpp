@@ -57,7 +57,7 @@ namespace engine
    /*
       _clsEventItem define
    */
-   class _clsEventItem : public SDBObject
+   class _clsEventItem : public utilPooledObject
    {
    public :
       BOOLEAN        send ;

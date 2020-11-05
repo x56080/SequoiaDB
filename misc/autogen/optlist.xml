@@ -2257,6 +2257,26 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_MEMPOOL_THRESHOLD</name>
+      <long>mempoolthreshold</long>
+      <description>
+        <en>The threshold size(Byte) that more than the value allocation can't from mempool. 0 form unlimited. Default is 0.</en>
+        <cn>内存池分配域值，单位：字节。大于该值的内存不从内存池分配，0表示不限制。默认为0</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold size(Byte) that more than the value allocation can't from mempool. 0 form unlimited. Default is 0.</en>
+        <cn>内存池分配域值，单位：字节。大于该值的内存不从内存池分配，0表示不限制。默认为0。</cn>
+      </detail>
+      <type>int</type>
+      <default>0</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_MON_SLOWQUERY_THRESHOLD</name>
       <long>monslowquerythreshold</long>
       <description>

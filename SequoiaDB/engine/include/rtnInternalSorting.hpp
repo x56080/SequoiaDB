@@ -56,7 +56,7 @@ namespace engine
     * This is to avoid allocating large fixed size memory from the beginning,
     * which will results in memory waste.
     */
-   class _rtnInternalSorting : public SDBObject
+   class _rtnInternalSorting : public utilPooledObject
    {
    public:
       _rtnInternalSorting( const BSONObj &orderby,

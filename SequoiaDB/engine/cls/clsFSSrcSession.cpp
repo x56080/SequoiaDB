@@ -82,7 +82,7 @@ namespace engine
 
    _clsDataSrcBaseSession::_clsDataSrcBaseSession ( UINT64 sessionID,
                                                     _netRouteAgent *agent )
-   :_pmdAsyncSession( sessionID ), _mb( 1024 )
+   :_pmdAsyncSession( sessionID ), _mb( CLS_SYNC_MAX_LEN )
    {
       _agent = agent ;
       _contextID = -1 ;

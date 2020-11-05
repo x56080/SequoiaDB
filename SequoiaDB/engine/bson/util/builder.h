@@ -29,6 +29,8 @@
    #include "utilMemListPool.hpp"
 #endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 
+#define BSON_INFO_STR        "#*BSON$@"
+
 namespace bson {
     /* Accessing unaligned doubles on ARM generates an alignment trap and aborts
  * with SIGBUS on Linux.
@@ -67,17 +69,30 @@ accesses) is the same as if
 
    class HeapAllocator {
    public:
+       HeapAllocator() { _pInfo = NULL ; }
+
        void* Malloc(size_t sz) { return malloc(sz); }
        void* Realloc(void *p, size_t sz) { return realloc(p, sz); }
        void Free(void *p) { free(p); }
+
+       void setInfo( const char *pInfo ) { _pInfo = pInfo ; }
+
+    private:
+       const char *_pInfo ;
    } ;
 
 #if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
    class TrivialAllocator {
    public:
-       void* Malloc(size_t sz) { return SDB_THREAD_ALLOC( sz ) ; }
-       void* Realloc(void *p, size_t sz) { return SDB_THREAD_REALLOC( p, sz ) ; }
+       TrivialAllocator() { _pInfo = NULL ; }
+
+       void* Malloc(size_t sz) { return engine::utilThreadAlloc(sz,__FILE__,__LINE__,NULL,_pInfo) ; }
+       void* Realloc(void *p, size_t sz) { return engine::utilThreadRealloc(p,sz,__FILE__,__LINE__,NULL,_pInfo) ; }
        void Free(void *p) { SDB_THREAD_FREE( p ) ; }
+
+       void setInfo( const char *pInfo ) { _pInfo = pInfo ; }
+       private:
+          const char *_pInfo ;
    } ;
 #else
    typedef HeapAllocator TrivialAllocator ;
@@ -86,6 +101,9 @@ accesses) is the same as if
     class StackAllocator {
     public:
         enum { SZ = 512 };
+
+        StackAllocator() {}
+
         void* Malloc(size_t sz) {
             if( sz <= SZ ) return buf;
             return al.Malloc(sz);
@@ -104,6 +122,8 @@ accesses) is the same as if
             if( p != buf )
                 al.Free(p);
         }
+
+        void setInfo( const char *pInfo ) { al.setInfo( pInfo ) ; }
     private:
         char buf[SZ];
         TrivialAllocator al ;
@@ -119,7 +139,9 @@ accesses) is the same as if
         _BufBuilder& operator=( const _BufBuilder& );
         myAllocator al;
     public:
-        _BufBuilder(int initsize = 512, int maxBuffSize = BufferMaxSize)
+        _BufBuilder( int initsize = 512,
+                     int maxBuffSize = BufferMaxSize,
+                     const char *pInfo = NULL )
         : _initsize(initsize), _maxBuffSize(maxBuffSize), size(0) {
             if ( _initsize <= 0 ) {
                _initsize = 256 ;
@@ -131,6 +153,7 @@ accesses) is the same as if
             reservedBytes = 0;
             _isdelay = false;
             l = 0;
+            al.setInfo( pInfo ) ;
         }
         ~_BufBuilder() { kill(); }
 

@@ -225,6 +225,14 @@ namespace engine
       }
    }
 
+   void _pmdEDUCB::shrink()
+   {
+      if ( _pMemPool )
+      {
+         _pMemPool->shrink() ;
+      }
+   }
+
    string _pmdEDUCB::toString() const
    {
       stringstream ss ;

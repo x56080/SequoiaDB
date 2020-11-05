@@ -74,7 +74,7 @@ namespace engine
    /*
       _dmsScanner define
    */
-   class _dmsScanner : public SDBObject
+   class _dmsScanner : public utilPooledObject
    {
       public:
          _dmsScanner ( _dmsStorageDataCommon *su, _dmsMBContext *context,

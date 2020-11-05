@@ -103,11 +103,13 @@ namespace engine
          ~_utilMemListItem() ;
 
          void*    alloc( UINT32 size, const CHAR *pFile, UINT32 line,
-                         UINT32 *pRealSize = NULL ) ;
+                         UINT32 *pRealSize = NULL,
+                         const CHAR *pInfo = NULL ) ;
          void     dealloc( void *p ) ;
 
          void     clear() ;
          UINT64   shrink( UINT64 expectSize ) ;
+         BOOLEAN  canShrink( UINT64 *pExpectSize = NULL ) const ;
 
          UINT64   getCacheSize() const { return _cachedSize ; }
          UINT32   getBlockSize() const { return _blockSize ; }
@@ -137,6 +139,9 @@ namespace engine
          UINT64                  _deallocCount ;
          UINT64                  _hitCount ;
          UINT64                  _pushCount ;
+         UINT64                  _shrinkSize ;
+
+         UINT64                  _lastAllocTick ;
    } ;
    typedef _utilMemListItem utilMemListItem ;
 
@@ -174,11 +179,13 @@ namespace engine
          void*       alloc( UINT32 size,
                             const CHAR *pFile,
                             UINT32 line,
-                            UINT32 *pRealSize = NULL ) ;
+                            UINT32 *pRealSize = NULL,
+                            const CHAR *pInfo = NULL ) ;
          void*       realloc( void* ptr, UINT32 size,
                               const CHAR *pFile,
                               UINT32 line,
-                              UINT32 *pRealSize = NULL ) ;
+                              UINT32 *pRealSize = NULL,
+                              const CHAR *pInfo = NULL ) ;
          void        release( void*& ptr ) ;
 
          void        clear() ;
@@ -192,18 +199,26 @@ namespace engine
          void*       allocFromEBB( UINT32 size,
                                    const CHAR *pFile,
                                    UINT32 line,
-                                   UINT32 *pRealSize = NULL ) ;
+                                   UINT32 *pRealSize = NULL,
+                                   const CHAR *pInfo = NULL ) ;
          void        release2EBB( void *&p, UINT32 size ) ;
 
       private:
          UINT64            _cachedSize ;
          BOOLEAN           _hasInit ;
+         INT32             _minType ;
+         INT32             _maxType ;
          CHAR              _name[ UTIL_MEM_THREAD_NAME_LEN + 1 ] ;
          utilMemListItem*  _arrayList[ UTIL_MEM_POOL_LIST_NUM + 1 ] ;
 
          CHAR              *_pEBB ;
          UINT32            _EBBSize ;
          UINT64            _allocEBBCount ;
+
+#ifdef SDB_ENGINE
+         UINT64            _lastEBBTick ;
+         UINT64            _lastShrinkTick ;
+#endif // SDB_ENGINE
 
          /// stat info
          UINT64            _allocCount ;
@@ -212,6 +227,7 @@ namespace engine
          UINT64            _hitCount ;
          UINT64            _pushCount ;
          UINT64            _copyCount ;
+         UINT64            _shrinkSize ;
 
          UINT64            _outrangeAlloc ;
          UINT64            _outrangeDealloc ;
@@ -234,10 +250,12 @@ namespace engine
    void*       utilThreadAlloc( UINT32 size,
                                 const CHAR *pFile,
                                 UINT32 line,
-                                UINT32 *pRealSize = NULL ) ;
+                                UINT32 *pRealSize = NULL,
+                                const CHAR *pInfo = NULL ) ;
    void*       utilThreadRealloc( void* ptr, UINT32 size,
                                   const CHAR *pFile, UINT32 line,
-                                  UINT32 *pRealSize = NULL ) ;
+                                  UINT32 *pRealSize = NULL,
+                                  const CHAR *pInfo = NULL ) ;
    void        utilThreadRelease( void*& ptr ) ;
 
    extern "C"

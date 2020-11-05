@@ -41,6 +41,10 @@
 #include "utilMemListPool.hpp"
 #include "ossUtil.hpp"
 
+#ifdef SDB_ENGINE
+   #include "pmdEnv.hpp"
+#endif // SDB_ENGINE
+
 #if UTIL_MEM_LIST_BASE_EXPONENT < 2
    #error "Invalid UTIL_MEM_LIST_BASE_EXPONENT define"
 #endif
@@ -61,6 +65,9 @@ namespace engine
    #define UTIL_DUMP_BUFFSIZE             ( 2800 )
    #define UTIL_MIN_EBB_SIZE              ( 2048 )    /// 2K
    #define UTIL_MAX_EBB_SIZE              ( 131072 )  /// 128K
+
+   #define UTIL_MEMLIST_FREE_TIMEOUT      ( 300 * OSS_ONE_SEC )
+   #define UTIL_TC_SHRINK_INTERVAL        ( 60 * OSS_ONE_SEC )
 
    void utilSetMaxTCSize( UINT32 maxCacheSize )
    {
@@ -91,6 +98,9 @@ namespace engine
       _deallocCount = 0 ;
       _hitCount = 0 ;
       _pushCount = 0 ;
+      _shrinkSize = 0 ;
+
+      _lastAllocTick = 0 ;
    }
 
    _utilMemListItem::~_utilMemListItem()
@@ -121,7 +131,7 @@ namespace engine
    }
 
    void* _utilMemListItem::alloc( UINT32 size, const CHAR *pFile, UINT32 line,
-                                  UINT32 *pRealSize )
+                                  UINT32 *pRealSize, const CHAR *pInfo )
    {
       if ( 0 == size )
       {
@@ -139,6 +149,10 @@ namespace engine
       void *ptr = NULL ;
 
       ++_allocCount ;
+
+#ifdef SDB_ENGINE
+      _lastAllocTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
 
       if ( _header )
       {
@@ -161,9 +175,13 @@ namespace engine
             *pRealSize = _blockSize - UTIL_MEM_TOTAL_FILL_LEN ;
          }
 
+         /// set tc inuse flag
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(ptr) ) =
+            UTIL_MEM_FLAG_TC_INUSE ;
+
          if ( ossMemDebugEnabled )
          {
-            ossThreadMemTrack( ptr, size, ossHashFileName( pFile ), line ) ;
+            ossThreadMemTrack( ptr, size, ossHashFileName( pFile ), line, pInfo ) ;
          }
       }
       else
@@ -178,7 +196,8 @@ namespace engine
                               ( _blockSize - UTIL_MEM_TOTAL_FILL_LEN ) :
                               size,
                               pFile, line,
-                              pRealSize ) ;
+                              pRealSize,
+                              pInfo ) ;
 
          if ( ptr )
          {
@@ -211,6 +230,10 @@ namespace engine
 
       if ( _canCacheBlock() )
       {
+         /// set tc nouse flag
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
+            UTIL_MEM_FLAG_TC_NOUSE ;
+
          utilMemListNode *pNode = (utilMemListNode*)p ;
          pNode->_next = _header ;
          _header = pNode ;
@@ -248,6 +271,9 @@ namespace engine
       _deallocCount = 0 ;
       _hitCount = 0 ;
       _pushCount = 0 ;
+      _shrinkSize = 0 ;
+
+      _lastAllocTick = 0 ;
    }
 
    UINT32 _utilMemListItem::dump( CHAR * pBuff, UINT32 buffSize )
@@ -275,10 +301,11 @@ namespace engine
                             "   CacheSize : %llu"OSS_NEWLINE
                             "  AllocCount : %llu"OSS_NEWLINE
                             "DeallocCount : %llu"OSS_NEWLINE
+                            "  ShrinkSize : %llu"OSS_NEWLINE
                             "    HitCount : %llu (%.2f%%)"OSS_NEWLINE
                             "   PushCount : %llu (%.2f%%)"OSS_NEWLINE,
                             _blockSize, _cachedSize,
-                            _allocCount, _deallocCount,
+                            _allocCount, _deallocCount, _shrinkSize,
                             _hitCount, hitRatio,
                             _pushCount, pushRatio ) ;
       }
@@ -308,8 +335,37 @@ namespace engine
       {
          _pEvent->onReleaseCache( freedSize ) ;
       }
+      _shrinkSize += freedSize ;
 
       return freedSize ;
+   }
+
+   BOOLEAN _utilMemListItem::canShrink( UINT64 *pExpectSize ) const
+   {
+      if ( 0 == _cachedSize )
+      {
+         return FALSE ;
+      }
+      else if ( 0 == g_maxTCCacheSize )
+      {
+         if ( pExpectSize )
+         {
+            *pExpectSize = _cachedSize ;
+         }
+         return TRUE ;
+      }
+#ifdef SDB_ENGINE
+      else if ( pmdGetTickSpanTime( _lastAllocTick ) >= UTIL_MEMLIST_FREE_TIMEOUT )
+      {
+         if ( pExpectSize )
+         {
+            *pExpectSize = _cachedSize >> 1 ;
+         }
+         return TRUE ;
+      }
+#endif // SDB_ENGINE
+
+      return FALSE ;
    }
 
    /*
@@ -319,6 +375,8 @@ namespace engine
    :_cachedSize( 0 )
    {
       _hasInit = FALSE ;
+      _minType = _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX ;
+      _maxType = _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX ;
 
       ossMemset( _name, 0, sizeof( _name ) ) ;
       SDB_ASSERT( sizeof( _arrayList ) / sizeof( utilMemListItem* ) ==
@@ -330,12 +388,18 @@ namespace engine
       _EBBSize = 0 ;
       _allocEBBCount = 0 ;
 
+#ifdef SDB_ENGINE
+      _lastEBBTick = 0 ;
+      _lastShrinkTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
+
       _allocCount = 0 ;
       _reallocCount = 0 ;
       _deallocCount = 0 ;
       _hitCount = 0 ;
       _pushCount = 0 ;
       _copyCount = 0 ;
+      _shrinkSize = 0 ;
 
       _outrangeAlloc = 0 ;
       _outrangeDealloc = 0 ;
@@ -358,13 +422,19 @@ namespace engine
          }
       }
       _hasInit = FALSE ;
+      _minType = _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX ;
+      _maxType = _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX ;
       _cachedSize = 0 ;
    }
 
    INT32 _utilMemListPool::init()
    {
       INT32 rc = SDB_OK ;
+      UINT32 lastBlockSize = 0 ;
       UINT32 blockSize = 0 ;
+
+      _utilMemBlockPool::MEMBLOCKPOOL_TYPE type =
+         _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX ;
 
       if ( _hasInit )
       {
@@ -374,6 +444,25 @@ namespace engine
       for ( UINT32 i = 0 ; i < UTIL_MEM_POOL_LIST_NUM ; ++i )
       {
          blockSize = 1 << ( UTIL_MEM_LIST_BASE_EXPONENT + i ) ;
+         type = _utilMemBlockPool::size2MemType( blockSize ) ;
+         blockSize = _utilMemBlockPool::type2Size( type ) ;
+
+         SDB_ASSERT( _utilMemBlockPool::MEMBLOCKPOOL_TYPE_DYN != type &&
+                     _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX != type,
+                     "Type Invalid" ) ;
+
+         if ( _utilMemBlockPool::MEMBLOCKPOOL_TYPE_MAX == _minType )
+         {
+            _minType = type ;
+         }
+         _maxType = type ;
+
+         SDB_ASSERT( (INT32)type - _minType == (INT32)i,
+                     "Type must increase by 1 step" ) ;
+         SDB_ASSERT( lastBlockSize != blockSize,
+                     "Last block size should not the same with current" ) ;
+
+         lastBlockSize = blockSize ;
 
          _arrayList[ i ] = new ( std::nothrow ) utilMemListItem( blockSize,
                                                                  this ) ;
@@ -425,12 +514,18 @@ namespace engine
       clearEBB() ;
       _allocEBBCount = 0 ;
 
+#ifdef SDB_ENGINE
+      _lastEBBTick = 0 ;
+      _lastShrinkTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
+
       _allocCount = 0 ;
       _reallocCount = 0 ;
       _deallocCount = 0 ;
       _hitCount = 0 ;
       _pushCount = 0 ;
       _copyCount = 0 ;
+      _shrinkSize = 0 ;
 
       _outrangeAlloc = 0 ;
       _outrangeDealloc = 0 ;
@@ -438,34 +533,48 @@ namespace engine
 
    void _utilMemListPool::shrink()
    {
+      if ( 0 == _cachedSize )
+      {
+         return ;
+      }
+#ifdef SDB_ENGINE
+      else if ( pmdGetTickSpanTime( _lastShrinkTick ) < UTIL_TC_SHRINK_INTERVAL )
+      {
+         return ;
+      }
+      _lastShrinkTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
+
       utilMemListItem *pMemList = NULL ;
+      UINT64 expectSize = 0 ;
+      UINT64 freeSize = 0 ;
 
       for ( UINT32 i = 0 ; i < UTIL_MEM_POOL_LIST_NUM ; ++i )
       {
-         if ( !pMemList )
+         pMemList = _arrayList[ i ] ;
+
+         if ( pMemList->canShrink( &expectSize ) )
          {
-            pMemList = _arrayList[ i ] ;
-         }
-         else if ( pMemList->getCacheSize() < _arrayList[ i ]->getCacheSize() )
-         {
-            pMemList = _arrayList[ i ] ;
+            freeSize += pMemList->shrink( expectSize ) ;
          }
       }
 
-      if ( pMemList && pMemList->getCacheSize() > 0 )
+      /// EBB
+      if ( _pEBB && ( 0 == g_maxTCCacheSize
+#ifdef SDB_ENGINE
+         || pmdGetTickSpanTime( _lastEBBTick ) >=
+            UTIL_MEMLIST_FREE_TIMEOUT
+#endif // SDB_ENGINE
+          ) )
       {
-         UINT64 freeSize = pMemList->shrink( pMemList->getCacheSize() / 2 ) ;
-         PD_LOG( PDINFO, "MemList[BlockSize:%u] freed %llu space",
-                 pMemList->getBlockSize(), freeSize ) ;
-      }
-
-      if ( _allocEBBCount > 0 )
-      {
-         _allocEBBCount = 0 ;
-      }
-      else if ( 0 == _allocEBBCount )
-      {
+         freeSize += _EBBSize ;
          clearEBB() ;
+      }
+
+      if ( freeSize > 0 )
+      {
+         PD_LOG( PDDEBUG, "MemList freed %llu space", freeSize ) ;
+         _shrinkSize += freeSize ;
       }
    }
 
@@ -518,7 +627,8 @@ namespace engine
    void* _utilMemListPool::allocFromEBB( UINT32 size,
                                          const CHAR *pFile,
                                          UINT32 line,
-                                         UINT32 *pRealSize )
+                                         UINT32 *pRealSize,
+                                         const CHAR *pInfo )
    {
       void *p = NULL ;
 
@@ -531,14 +641,21 @@ namespace engine
             *pRealSize = _EBBSize ;
          }
 
+         /// set tc inuse flag
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
+            UTIL_MEM_FLAG_TC_INUSE ;
+
          onAllocCache( _EBBSize ) ;
 
          if ( ossMemDebugEnabled )
          {
-            ossThreadMemTrack( p, size, ossHashFileName( pFile ), line ) ;
+            ossThreadMemTrack( p, size, ossHashFileName( pFile ), line, pInfo ) ;
          }
 
          ++_allocEBBCount ;
+#ifdef SDB_ENGINE
+         _lastEBBTick = pmdGetDBTick() ;
+#endif // SDB_ENGINE
          _EBBSize = 0 ;
          _pEBB = NULL ;
       }
@@ -549,11 +666,12 @@ namespace engine
    void* _utilMemListPool::alloc( UINT32 size,
                                   const CHAR *pFile,
                                   UINT32 line,
-                                  UINT32 *pRealSize )
+                                  UINT32 *pRealSize,
+                                  const CHAR *pInfo )
    {
       void *ptr = NULL ;
-      UINT32 square = 0 ;
       INT32 index = 0 ;
+      INT32 type = 0 ;
 
       if ( 0 == size )
       {
@@ -566,41 +684,52 @@ namespace engine
 
       ++_allocCount ;
 
-      ossNextPowerOf2( size + UTIL_MEM_TOTAL_FILL_LEN, &square ) ;
-      index = (INT32)square - UTIL_MEM_LIST_BASE_EXPONENT ;
-
-      if ( -1 == index )
+      /// calc type
+      type = _utilMemBlockPool::size2MemType( size + UTIL_MEM_TOTAL_FILL_LEN ) ;
+      if ( type < _minType || type > _maxType )
       {
-         index = 0 ;
+         if ( size + UTIL_MEM_TOTAL_FILL_LEN <=
+              _arrayList[0]->getBlockSize() )
+         {
+            index = 0 ;
+         }
+         else
+         {
+            index = UTIL_MEM_POOL_LIST_NUM + 1 ;
+         }
+      }
+      else
+      {
+         index = type - _minType ;
       }
 
       if ( index >= 0 && index < UTIL_MEM_POOL_LIST_NUM )
       {
          if ( _arrayList[ index ]->getCacheSize() >= size )
          {
-            ptr = _arrayList[ index ]->alloc( size, pFile, line, pRealSize ) ;
+            ptr = _arrayList[ index ]->alloc( size, pFile, line, pRealSize, pInfo ) ;
          }
          else if ( _arrayList[ index + 1 ] &&
                    _arrayList[ index + 1 ]->getCacheSize() >= size )
          {
-            ptr = _arrayList[ index + 1 ]->alloc( size, pFile, line, pRealSize ) ;
+            ptr = _arrayList[ index + 1 ]->alloc( size, pFile, line, pRealSize, pInfo ) ;
          }
          else
          {
-            ptr = _arrayList[ index ]->alloc( size, pFile, line, pRealSize ) ;
+            ptr = _arrayList[ index ]->alloc( size, pFile, line, pRealSize, pInfo ) ;
          }
       }
       else if ( size >= UTIL_MIN_EBB_SIZE &&
                 size <= UTIL_MAX_EBB_SIZE &&
                 ( NULL != ( ptr = allocFromEBB( size, pFile,
-                                                line, pRealSize ) ) ) )
+                                                line, pRealSize, pInfo ) ) ) )
       {
          /// do nothing
       }
       else
       {
          ++_outrangeAlloc ;
-         ptr = utilPoolAlloc( size, pFile, line, pRealSize ) ;
+         ptr = utilPoolAlloc( size, pFile, line, pRealSize, pInfo ) ;
       }
 
    done:
@@ -610,7 +739,8 @@ namespace engine
    void* _utilMemListPool::realloc( void *ptr, UINT32 size,
                                     const CHAR *pFile,
                                     UINT32 line,
-                                    UINT32 *pRealSize )
+                                    UINT32 *pRealSize,
+                                    const CHAR *pInfo )
    {
       void *pNewPtr = NULL ;
       UINT32 oldSize = 0 ;
@@ -623,7 +753,7 @@ namespace engine
       }
       else if ( !ptr )
       {
-         pNewPtr = alloc( size, pFile, line, pRealSize ) ;
+         pNewPtr = alloc( size, pFile, line, pRealSize, pInfo ) ;
          goto done ;
       }
 
@@ -643,7 +773,7 @@ namespace engine
 
          if ( _utilMemBlockPool::MEMBLOCKPOOL_TYPE_DYN != type )
          {
-            pNewPtr = alloc( size, pFile, line, pRealSize ) ;
+            pNewPtr = alloc( size, pFile, line, pRealSize, pInfo ) ;
             if ( pNewPtr )
             {
                ++_copyCount ;
@@ -661,7 +791,7 @@ namespace engine
          ossThreadMemUnTrack( ptr ) ;
       }
 
-      pNewPtr = utilPoolRealloc( ptr, size, pFile, line, pRealSize ) ;
+      pNewPtr = utilPoolRealloc( ptr, size, pFile, line, pRealSize, pInfo ) ;
 
    done:
       return pNewPtr ;
@@ -680,6 +810,10 @@ namespace engine
            canCacheBlock( size - _EBBSize ) )
       {
          clearEBB() ;
+
+         /// set tc nouse flag
+         *UTIL_MEM_PTR_FLAG_PTR( UTIL_MEM_USERPTR_2_PTR(p) ) =
+            UTIL_MEM_FLAG_TC_NOUSE ;
 
          _pEBB = (CHAR*)p ;
          _EBBSize = size ;
@@ -700,24 +834,21 @@ namespace engine
       if ( !ptr ) return ;
 
       UINT32 oldSize = 0 ;
+      UINT16 type = 0 ;
 
       ++_deallocCount ;
 
-      if ( utilPoolPtrCheck( ptr, &oldSize ) )
+      if ( utilPoolPtrCheck( ptr, &oldSize, &type ) )
       {
-         UINT32 square = 0 ;
-         oldSize += UTIL_MEM_TOTAL_FILL_LEN ;
-
-         if ( ossIsPowerOf2( oldSize, &square ) &&
-              square >= UTIL_MEM_LIST_BASE_EXPONENT &&
-              square < UTIL_MEM_LIST_BASE_EXPONENT + UTIL_MEM_POOL_LIST_NUM )
+         if ( type >= (UINT16)_minType &&
+              type <= (UINT16)_maxType )
          {
-            _arrayList[ square - UTIL_MEM_LIST_BASE_EXPONENT ]->dealloc( ptr ) ;
+            _arrayList[ type - (UINT16)_minType ]->dealloc( ptr ) ;
             ptr = NULL ;
          }
          else
          {
-            release2EBB( ptr, oldSize - UTIL_MEM_TOTAL_FILL_LEN ) ;
+            release2EBB( ptr, oldSize ) ;
          }
       }
       else
@@ -758,6 +889,7 @@ namespace engine
                          "ReallocCount : %llu"OSS_NEWLINE
                          "DeallocCount : %llu"OSS_NEWLINE
                          " OOR Dealloc : %llu"OSS_NEWLINE
+                         "  ShrinkSize : %llu"OSS_NEWLINE
                          "    HitCount : %llu (%.2f%%)"OSS_NEWLINE
                          "   PushCount : %llu (%.2f%%)"OSS_NEWLINE
                          "   CopyCount : %llu (%.2f%%)"OSS_NEWLINE,
@@ -765,6 +897,7 @@ namespace engine
                          _EBBSize,
                          _allocCount, _outrangeAlloc, _allocEBBCount,
                          _reallocCount, _deallocCount, _outrangeDealloc,
+                         _shrinkSize,
                          _hitCount, hitRatio,
                          _pushCount, pushRatio,
                          _copyCount, copyRatio ) ;
@@ -883,6 +1016,8 @@ namespace engine
          CHAR buff[ UTIL_DUMP_BUFFSIZE ] = { 0 } ;
          UINT32 len = 0 ;
 
+         g_thdMemPool->shrink() ;
+
          len = ossSnprintf( buff, UTIL_DUMP_BUFFSIZE,
                             OSS_NEWLINE
                             "---- Thread( ID: %u, Name: %s ) ----"OSS_NEWLINE,
@@ -906,22 +1041,24 @@ namespace engine
    void* utilThreadAlloc( UINT32 size,
                           const CHAR *pFile,
                           UINT32 line,
-                          UINT32 *pRealSize )
+                          UINT32 *pRealSize,
+                          const CHAR *pInfo )
    {
       if ( g_thdMemPool )
       {
-         return g_thdMemPool->alloc( size, pFile, line, pRealSize ) ;
+         return g_thdMemPool->alloc( size, pFile, line, pRealSize, pInfo ) ;
       }
-      return utilPoolAlloc( size, pFile, line, pRealSize ) ;
+      return utilPoolAlloc( size, pFile, line, pRealSize, pInfo ) ;
    }
 
    void* utilThreadRealloc( void* ptr, UINT32 size,
                             const CHAR *pFile, UINT32 line,
-                            UINT32 *pRealSize )
+                            UINT32 *pRealSize,
+                            const CHAR *pInfo )
    {
       if ( g_thdMemPool )
       {
-         return g_thdMemPool->realloc( ptr, size, pFile, line, pRealSize ) ;
+         return g_thdMemPool->realloc( ptr, size, pFile, line, pRealSize, pInfo ) ;
       }
       else
       {
@@ -929,7 +1066,7 @@ namespace engine
          {
             ossThreadMemUnTrack( ptr ) ;
          }
-         return utilPoolRealloc( ptr, size, pFile, line, pRealSize ) ;
+         return utilPoolRealloc( ptr, size, pFile, line, pRealSize, pInfo ) ;
       }
    }
 

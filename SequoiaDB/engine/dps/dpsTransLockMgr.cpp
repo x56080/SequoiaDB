@@ -1425,22 +1425,6 @@ namespace engine
          bktIdx = _getBucketNo( lockId );
       }
 
-      // acquire and prepare new LRB and LRB Header
-      if ( !testMode )
-      {
-         // no need to allocate LRB Header and LRB for test mode
-         rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
-                                       bktIdx,
-                                       pLRBHdrNew,
-                                       pLRBNew ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-         bFreeLRB       = TRUE ;
-         bFreeLRBHeader = TRUE ;
-      }
-
       // latch bucket
       // for test mode, we could quickly test the header
       // if header is empty, it means no one has lock any records in this
@@ -1462,6 +1446,16 @@ namespace engine
       {
          if ( !testMode )
          {
+            // allocate LRB Header and LRB
+            rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+                                          bktIdx, pLRBHdrNew, pLRBNew ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            bFreeLRB       = TRUE ;
+            bFreeLRBHeader = TRUE ;
+
             // add new LRB header to the link
             _LockHdrBkt[ bktIdx ].lrbHdr = pLRBHdrNew;
 
@@ -1491,6 +1485,16 @@ namespace engine
          // add the new LRB Header in the lrb header list
          if ( !testMode )
          {
+            // allocate LRB Header and LRB
+            rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
+                                          bktIdx, pLRBHdrNew, pLRBNew ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            bFreeLRB       = TRUE ;
+            bFreeLRBHeader = TRUE ;
+
             // at this time, pLRBHdr shall be the tail of LRB header list.
             // add the new LRB header to LRB Header list ;
             pLRBHdr->nextLRBHdr = pLRBHdrNew ;
@@ -1519,12 +1523,6 @@ namespace engine
       SDB_ASSERT( ( NULL != pLRBHdr ), "Invalid LRB Header" ) ;
 #endif
       // found the LRB header with same lockId
-
-      // update the lrbHdrIdx of new LRB to current LRB Header
-      if ( !testMode )
-      {
-         pLRBNew->lrbHdr = pLRBHdr;
-      }
 
       // leaf level lock ( e.g., record lock or index page lock )
       if (  lockId.isLeafLevel() || ( FALSE == _autoUpperLockOp ) )
@@ -1616,6 +1614,15 @@ namespace engine
 
             if ( DPS_TRANSLOCK_OP_MODE_ACQUIRE == opMode )
             {
+               // allocate LRB
+               rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+                                    pLRBHdr, pLRBNew ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               bFreeLRB       = TRUE ;
+
                // save current owining lock mode
                pLRBNew->originMode = pLRBOwner->lockMode ;
 
@@ -1728,9 +1735,19 @@ namespace engine
       }
       else
       {
-         //
          // not in owner list
-         //
+
+         if ( !testMode )
+         {
+            // allocate LRB
+            rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+                                 pLRBHdr, pLRBNew ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            bFreeLRB       = TRUE ;
+         }
 
          // check if lock is compatible with all owners
          if ( NULL != pLRBIncompatible )
@@ -1875,7 +1892,6 @@ namespace engine
                // members in upgrade and waiter list, add it to waiter list
                if ( DPS_TRANSLOCK_OP_MODE_ACQUIRE == opMode )
                {
-
                   // add to the end of waiter list
                   _addToLRBListTail( pLRBHdr->waiterLRB, pLRBNew ) ;
 
@@ -2035,14 +2051,7 @@ namespace engine
 
       pLRBHdrNew->ownerLRB   = pLRBNew;
 
-      if ( DPS_TRANSLOCK_IS == requestLockMode )
-      {
-         pLRBHdrNew->newestISOwner = pLRBNew ;
-      }
-      else if ( DPS_TRANSLOCK_IX == requestLockMode )
-      {
-         pLRBHdrNew->newestIXOwner = pLRBNew ;
-      }
+      _setNewestISIXOwner( pLRBNew ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER, rc ) ;
@@ -2055,6 +2064,60 @@ namespace engine
       if( pLRBHdrNew )
       {
          _releaseLRBHdr( pLRBHdrNew ) ;
+      }
+      goto done;
+   }
+
+   //
+   // Description: acquire and setup a new LRB
+   // Function: acquire a new LRB, and initialize the
+   //           new object with given input parameters.
+   // Input:
+   //    _dpsTransExecutor -- trans executor
+   //    requestLockMode   -- requested lock mode
+   //    pLRBHdr           -- the LRB header object
+   // Output:
+   //    pLRBNew           -- pointer of the new LRB object
+   // Return:  SDB_OK or any error returned from _utilSegmentManager::acquire
+   //
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB, "dpsTransLockManager::_prepareNewLRB" )
+   INT32 dpsTransLockManager::_prepareNewLRB
+   (
+      _dpsTransExecutor *        dpsTxExectr,
+      const DPS_TRANSLOCK_TYPE   requestLockMode,
+      const dpsTransLRBHeader *  pLRBHdr,
+      dpsTransLRB       *      & pLRBNew
+   )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB ) ;
+
+      INT32   rc             = SDB_OK ;
+
+      if ( !pLRBHdr )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      /// acquire a lrb
+      pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
+                                         requestLockMode,
+                                         (dpsTransLRBHeader*)pLRBHdr ) ;
+      if ( !pLRBNew )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB, rc ) ;
+      return rc ;
+   error :
+      if( pLRBNew )
+      {
+         _releaseLRB( pLRBNew ) ;
       }
       goto done;
    }

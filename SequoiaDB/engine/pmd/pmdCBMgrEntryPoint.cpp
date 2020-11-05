@@ -118,6 +118,10 @@ namespace engine
             pmdEduEventRelease( eventData, cb ) ;
             eventData.reset () ;
          }
+         else
+         {
+            cb->shrink() ;
+         }
       }
 
    done:

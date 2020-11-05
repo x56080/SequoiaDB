@@ -46,6 +46,8 @@
 #include <set>
 #include <map>
 
+#include "../bson/bson.h"
+
 /*
    _ossMemInfoAssit define
 */
@@ -74,6 +76,7 @@ typedef _ossMemInfoAssit ossMemInfoAssit ;
 struct _ossMemTrackItem
 {
    const CHAR* _p ;
+   const CHAR* _pInfo ;
    UINT64      _fileline ;
    UINT64      _size ;
    UINT64      _time ;
@@ -82,14 +85,16 @@ struct _ossMemTrackItem
    _ossMemTrackItem( void *p = NULL )
    {
       _p = ( const CHAR* )p ;
+      _pInfo = NULL ;
       _fileline = 0 ;
       _size = 0 ;
       _time = 0 ;
       _tid = 0 ;
    }
-   _ossMemTrackItem( void *p, UINT32 file, UINT32 line, UINT64 size )
+   _ossMemTrackItem( void *p, UINT32 file, UINT32 line, UINT64 size, const CHAR *pInfo )
    {
       _p = ( const CHAR* )p ;
+      _pInfo = pInfo ;
       _fileline = ((UINT64)file << 32) | (UINT64)line ;
       _size = size ;
       _time = 0 ;
@@ -104,6 +109,11 @@ struct _ossMemTrackItem
    UINT32 getLine() const
    {
       return (UINT32)_fileline ;
+   }
+
+   const CHAR* getInfo() const
+   {
+      return _pInfo ;
    }
 
    bool operator< ( const _ossMemTrackItem &rhs ) const
@@ -124,11 +134,17 @@ struct _ossMemStatItem
 {
    UINT64      _times ;
    UINT64      _totalSize ;
+   UINT64      _freeInTC ;
+   UINT64      _freeInTCTimes ;
+   const CHAR* _pInfo ;
 
    _ossMemStatItem()
    {
       _times = 0 ;
       _totalSize = 0 ;
+      _freeInTC = 0 ;
+      _freeInTCTimes = 0 ;
+      _pInfo = NULL ;
    }
 
    bool operator< ( const _ossMemStatItem &rhs ) const
@@ -241,11 +257,17 @@ class _ossMemTrackCB
          return 0 ;
       }
 
+      virtual BOOLEAN   isFreeInTC( const ossMemTrackItem &item ) const
+      {
+         return FALSE ;
+      }
+
    protected:
       void memTraceItem( UINT64 index,
                          const ossMemTrackItem &item,
                          ossPrimitiveFileOp &trapFile,
-                         BOOLEAN &isError )
+                         BOOLEAN &isError,
+                         BOOLEAN &freeInTc )
       {
          UINT32 len = 0 ;
 
@@ -257,6 +279,8 @@ class _ossMemTrackCB
          {
             isError = FALSE ;
          }
+
+         freeInTc = isFreeInTC( item ) ;
 
          if ( isError || ossMemDebugDetail )
          {
@@ -283,6 +307,7 @@ class _ossMemTrackCB
             len += traceItemExpand( item, _linebuff + len,
                                     sizeof( _linebuff ) - len ) ;
 
+            /// add error
             if ( isError )
             {
                len += ossSnprintf( _linebuff + len, sizeof( _linebuff ) - len,
@@ -306,23 +331,49 @@ class _ossMemTrackCB
          UINT32 line = (UINT32)fileline ;
 
          len = ossSnprintf( _linebuff, sizeof( _linebuff ),
-                            OSS_MEM_DUMP_STAT_FORMAT"\n",
+                            OSS_MEM_DUMP_STAT_FORMAT,
                             index,
                             autoGetFileName( file ).c_str(),
                             file, line,
                             item._times, item._totalSize ) ;
+
+         if ( item._freeInTC > 0 )
+         {
+            len += ossSnprintf( _linebuff + len, sizeof( _linebuff ) - len,
+                               " (FreeInTC: %llu)",
+                               item._freeInTC ) ;
+         }
+
+         if ( item._pInfo )
+         {
+            len += ossSnprintf( _linebuff + len, sizeof( _linebuff ) - len,
+                               " (%s)", item._pInfo ) ;
+         }
+
+         len += ossSnprintf( _linebuff + len, sizeof( _linebuff ) - len,
+                             OSS_NEWLINE ) ;
+
          trapFile.Write( _linebuff, len ) ;
       }
 
       void addStat( OSS_MEM_STATMAP &mapStat,
                     UINT64 fileline,
-                    UINT64 size )
+                    UINT64 size,
+                    BOOLEAN isFreeInTc,
+                    const CHAR *pInfo )
       {
          try
          {
             ossMemStatItem &item = mapStat[ fileline ] ;
             ++item._times ;
             item._totalSize += size ;
+            item._pInfo = pInfo ;
+
+            if ( isFreeInTc )
+            {
+               item._freeInTC += size ;
+               ++item._freeInTCTimes ;
+            }            
          }
          catch ( ... )
          {
@@ -357,6 +408,7 @@ class _ossMemTrackCB
          UINT64 index = 0 ;
          UINT64 totalError = 0 ;
          BOOLEAN isError = FALSE ;
+         BOOLEAN isFreeInTc = FALSE ;
 
          totalError = 0 ;
 
@@ -375,13 +427,14 @@ class _ossMemTrackCB
          {
             const ossMemTrackItem &item = *it ;
             totalSize += item._size ;
-            memTraceItem( ++index, item, trapFile, isError ) ;
+            memTraceItem( ++index, item, trapFile, isError, isFreeInTc ) ;
             if ( isError )
             {
                ++totalError ;
             }
             /// insert to map stat
-            addStat( mapStat, item._fileline, item._size ) ;
+            addStat( mapStat, item._fileline, item._size,
+                     isFreeInTc, item._pInfo ) ;
             ++it ;
          }
 
@@ -410,7 +463,10 @@ class _ossMemTrackCB
       {
          OSS_MEM_SORTMAP_CIT cit ;
          UINT64 totalSize = 0 ;
+         UINT64 totalFreeInTC = 0 ;
          UINT64 totalTimes = 0 ;
+         UINT64 freeInTCTimes = 0 ;         
+         
          UINT64 index = 0 ;
 
          if ( !prefix )
@@ -433,7 +489,9 @@ class _ossMemTrackCB
          while ( cit != mapSort.end() )
          {
             totalSize += cit->first._totalSize ;
+            totalFreeInTC += cit->first._freeInTC ;
             totalTimes += cit->first._times ;
+            freeInTCTimes += cit->first._freeInTCTimes ;
             memTraceStatItem( ++index, cit->second, cit->first, trapFile ) ;
             ++cit ;
          }
@@ -442,11 +500,15 @@ class _ossMemTrackCB
          ossSnprintf( _linebuff, sizeof( _linebuff ),
                       "\n\n"
                       "+++++++++++++++++++\n"
-                      "TotalSize : %llu\n"
-                      "TotalNum  : %llu\n"
-                      "StatNum   : %llu\n"
+                      "TotalSize     : %llu\n"
+                      "TotalNum      : %llu\n"
+                      "FreeInTCSize  : %llu\n"
+                      "FreeInTCNum   : %llu\n"
+                      "StatNum       : %llu\n"
                       "+++++++++++++++++++\n",
-                      totalSize, totalTimes, index ) ;
+                      totalSize, totalTimes,
+                      totalFreeInTC, freeInTCTimes,
+                      index ) ;
          trapFile.Write( _linebuff ) ;
 
          if ( pTotalSize )
@@ -501,19 +563,20 @@ class _ossMemTrackCB
 
       const CHAR* getName() const { return _name ; }
 
-      void memTrack ( void *p, UINT32 file, UINT32 line, UINT64 size )
+      void memTrack ( void *p, UINT32 file, UINT32 line, UINT64 size, const CHAR *pInfo = NULL )
       {
          ossSignalShield shield ;
          shield.doNothing() ;
 
-         ossMemTrackItem item( p, file, line, size ) ;
+         ossMemTrackItem item( p, file, line, size, pInfo ) ;
          item._tid = ossGetCurrentThreadID() ;
          item._time = ossGetCurrentMicroseconds() ;
 
          _memTrackMutex.get() ;
 
          /// add stat
-         addStat( _memStatMap, item._fileline, item._size ) ;
+         addStat( _memStatMap, item._fileline, item._size,
+                  FALSE, item._pInfo ) ;
          /// add to item
          try
          {
@@ -663,6 +726,7 @@ void ossMemUnTrack ( void *p )
 
 OSS_POOL_MEMCHECK_FUNC ossPoolMemCheckFunc = NULL ;
 OSS_POOL_MEMINFO_FUNC  ossPoolMemInfoFunc = NULL ;
+OSS_POOL_MEMUSERPTR_FUNC ossPoolMemUserPtrFunc = NULL ;
 
 void ossSetPoolMemcheckFunc( OSS_POOL_MEMCHECK_FUNC pFunc )
 {
@@ -672,6 +736,11 @@ void ossSetPoolMemcheckFunc( OSS_POOL_MEMCHECK_FUNC pFunc )
 void ossSetPoolMemInfoFunc( OSS_POOL_MEMINFO_FUNC pFunc )
 {
    ossPoolMemInfoFunc = pFunc ;
+}
+
+void ossSetPoolMemUserPtrFunc( OSS_POOL_MEMUSERPTR_FUNC pFunc )
+{
+   ossPoolMemUserPtrFunc = pFunc ;
 }
 
 /*
@@ -687,6 +756,14 @@ class _ossPoolMemTrackCB : public _ossMemTrackCB
       virtual void*     getRealPtr( void *p ) const
       {
          return p ;
+      }
+      virtual void*     getUserPtr( void *p ) const
+      {
+         if ( ossPoolMemUserPtrFunc )
+         {
+            return ossPoolMemUserPtrFunc( p ) ;
+         }
+         return NULL ;
       }
 
    protected:
@@ -713,7 +790,7 @@ class _ossPoolMemTrackCB : public _ossMemTrackCB
             INT32 pool = 0 ;
             INT32 index = 0 ;
 
-            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index ) ;
+            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index, NULL ) ;
 
             if ( item._size >= realSize )
             {
@@ -739,18 +816,17 @@ class _ossPoolMemTrackCB : public _ossMemTrackCB
             INT32 pool = 0 ;
             INT32 index = 0 ;
 
-            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index ) ;
+            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index, NULL ) ;
 
             return realSize - item._size ;
          }
          return 0 ;
       }
 
-      virtual UINT32    traceItemExpand( const ossMemTrackItem &item,
-                                         CHAR *pBuff, UINT32 buffSize ) const
+      virtual BOOLEAN   isFreeInTC( const ossMemTrackItem &item ) const
       {
-         UINT32 len = 0 ;
          void *pRealPtr = getRealPtr( (void*)item._p ) ;
+         BOOLEAN freeInTc = FALSE ;
 
          if ( pRealPtr && ossPoolMemInfoFunc )
          {
@@ -758,10 +834,71 @@ class _ossPoolMemTrackCB : public _ossMemTrackCB
             INT32 pool = 0 ;
             INT32 index = 0 ;
 
-            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index ) ;
+            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index, &freeInTc ) ;
+         }
 
-            len = ossSnprintf( pBuff, buffSize, " (Pool:%d, Idx:%d) ",
-                               pool, index ) ;
+         return freeInTc ;
+      }
+
+      virtual UINT32    traceItemExpand( const ossMemTrackItem &item,
+                                         CHAR *pBuff, UINT32 buffSize ) const
+      {
+         UINT32 len = 0 ;
+         BOOLEAN freeInTc = FALSE ;
+         void *pRealPtr = getRealPtr( (void*)item._p ) ;
+         void *pUser = getUserPtr( (void*)item._p ) ;
+
+         if ( pRealPtr && ossPoolMemInfoFunc )
+         {
+            UINT64 realSize = 0 ;
+            INT32 pool = 0 ;
+            INT32 index = 0 ;
+
+            ossPoolMemInfoFunc( pRealPtr, realSize, pool, index, &freeInTc ) ;
+
+            len += ossSnprintf( pBuff, buffSize, " (Pool:%d, Idx:%d)",
+                                pool, index ) ;
+         }
+
+         if ( pUser )
+         {
+            /// check free
+            if ( freeInTc )
+            {
+               len += ossSnprintf( pBuff + len, buffSize - len,
+                                   " (Free in TC)" ) ;
+            }
+            /// For bson
+            else if ( item._pInfo &&
+                      0 == ossStrcmp( item._pInfo, BSON_INFO_STR ) &&
+                      *(UINT32*)pUser != 0 &&
+                      *(UINT32*)((CHAR*)pUser+sizeof(UINT32)) != 0 )
+            {
+               try
+               {
+                  bson::BSONObj obj( (CHAR*)pUser + sizeof( UINT32 ) ) ;
+                  /// print bson info
+                  len += ossSnprintf( pBuff + len, buffSize - len, " (%d) (%s)",
+                                      obj.objsize(),
+                                      obj.toString(false, false, true).c_str() ) ;
+               }
+               catch( std::exception & )
+               {
+               }
+            }
+            /// Pr
+            else if ( item._pInfo )
+            {
+               /// add info
+               len += ossSnprintf( pBuff + len, buffSize - len, " (%s)",
+                                   item._pInfo ) ;
+            }
+         }
+         else if ( item._pInfo )
+         {
+            /// add info
+            len += ossSnprintf( pBuff + len, buffSize - len, " (%s)",
+                                item._pInfo ) ;
          }
 
          return len ;
@@ -772,11 +909,11 @@ typedef _ossPoolMemTrackCB ossPoolMemTrackCB ;
 
 static ossPoolMemTrackCB gPoolMemTrackCB( "POOL_MEMORY" ) ;
 
-void ossPoolMemTrack( void *p, UINT64 userSize, UINT32 file,UINT32 line )
+void ossPoolMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line, const CHAR *pInfo )
 {
    if ( ossMemDebugMask & OSS_MEMDEBUG_MASK_POOLALLOC )
    {
-      gPoolMemTrackCB.memTrack( p, file, line, userSize ) ;
+      gPoolMemTrackCB.memTrack( p, file, line, userSize, pInfo ) ;
    }
 }
 
@@ -813,17 +950,24 @@ class _ossThreadMemTrackCB : public _ossPoolMemTrackCB
          }
          return NULL ;
       }
-
+      virtual void*     getUserPtr( void *p ) const
+      {
+         return p ;
+      }
+      virtual BOOLEAN   isFreeInTC( const ossMemTrackItem &item ) const
+      {
+         return FALSE ;
+      }
 } ;
 typedef _ossThreadMemTrackCB ossThreadMemTrackCB ;
 
 ossThreadMemTrackCB gThreadMemTrackCB( "THREAD_CACHE" ) ;
 
-void ossThreadMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line )
+void ossThreadMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line, const CHAR *pInfo )
 {
    if ( ossMemDebugMask & OSS_MEMDEBUG_MASK_THREADALLOC )
    {
-      gThreadMemTrackCB.memTrack( p, file, line, userSize ) ;
+      gThreadMemTrackCB.memTrack( p, file, line, userSize, pInfo ) ;
    }
 }
 
