@@ -3,12 +3,13 @@
 @Modify list :
               2019-4-26  YinZhen  Create
 ****************************************************************************/
+//SEQUOIADBMAINSTREAM-4575
+//main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -60,18 +61,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-
-// Jira 4575 暂时屏蔽此用例
-try
-{
-   //main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

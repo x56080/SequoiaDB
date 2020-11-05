@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.9.28
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -26,20 +27,12 @@ function main ()
    //check count,but not check record(out of memery)
    var dbOperator = new DBOperator();
    checkFullSyncToES( COMMCSNAME, clName, indexName, 2 );
-   println( "---check insert success---" );
 
    var str = new Array( 1024 * 1024 * 16 ).join( "a" );
-   try
+   assert.tryThrow( -24, function()
    {
       dbcl.insert( { a: str } );
-      throw new Error( "NEED_INSERT_ERR" );
-   } catch( e )
-   {
-      if( e.message != -24 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    checkFullSyncToES( COMMCSNAME, clName, indexName, 2 );
 
@@ -48,16 +41,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983 
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

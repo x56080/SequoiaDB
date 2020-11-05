@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-24  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -19,7 +20,6 @@ function main ()
    //索引名长度为1时，全文索引创建成功
    var indexName = "a_14369";
    dbcl.createIndex( indexName, { content: "text" } );
-   println( "===create index success===" );
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropIndex( dbcl, indexName, true );
@@ -32,7 +32,6 @@ function main ()
       indexName = indexName + "a";
    }
    dbcl.createIndex( indexName, { content: "text" } );
-   println( "===create index success===" );
    dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
 
@@ -52,7 +51,6 @@ function main ()
    var cappedCLName = dbOperater.getCappedCLName( dbcl, indexName );
 
    commCheckIndexConsistency( dbcl, indexName, true );
-   println( "===create index success===" );
    dropIndex( dbcl, indexName, true );
    checkIndexNotExistInES( esIndexNames );
 
@@ -63,21 +61,11 @@ function main ()
    {
       indexName = indexName + "a";
    }
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createIndex( indexName, { content: "text" } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } );
    checkIndexNotExistInES( esIndexNames );
-   println( "===create index fail===" );
-
 
    //固定集合名长度大于127时，全文索引创建失败
    var indexName = "";
@@ -85,32 +73,11 @@ function main ()
    {
       indexName = indexName + "a";
    }
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createIndex( indexName, { content: "text" } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } );
    checkIndexNotExistInES( esIndexNames );
-   println( "===create index fail===" );
 
    dropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

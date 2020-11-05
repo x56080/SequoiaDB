@@ -2,12 +2,13 @@
 @Description :    seqDB-15529:指定_id字段插入记录，并更新
 @Modify list :   2018-9-30  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -143,17 +144,3 @@ function updateToDifferTypeNotSuppot ( dbcl )
    dbcl.update( { $set: { _id: { "$binary": "aHHsbG8gd29ybGQ=", "$type": "1" } } }, { a: "a12" } );
    dbcl.update( { $set: { _id: { "$binary": "aJJsbG8gd29ybGQ=", "$type": "1" } } }, { a: "a13" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

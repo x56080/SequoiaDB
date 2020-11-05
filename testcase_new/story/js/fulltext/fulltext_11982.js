@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -18,18 +19,10 @@ function main ()
 
    //在已存在全文索引定义的集合中，再次创建全文索引
    dbcl.createIndex( "a_11982", { content: "text" } );
-   try
+   assert.tryThrow( -42, function()
    {
       dbcl.createIndex( "b_11982", { about: "text" } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -42 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    var indexes = dbcl.listIndexes();
    var arrayIndexes = new Array();
@@ -56,16 +49,4 @@ function main ()
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

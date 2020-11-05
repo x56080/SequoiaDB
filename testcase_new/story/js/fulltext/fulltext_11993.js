@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -18,32 +19,16 @@ function main ()
 
    //创建索引类型非法的全文索引
    var indexName = "a_11993";
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createIndex( indexName, { content: "int" } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    //创建非法的复合索引
-   try
+   assert.tryThrow( -6, function()
    {
       dbcl.createIndex( indexName, { content: "text", about: 1 } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    //指定isUnique、enforced、sortBufferSize创建全文索引
    dbcl.createIndex( indexName, { content: "text" }, true, true, 128 );
@@ -59,16 +44,4 @@ function main ()
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

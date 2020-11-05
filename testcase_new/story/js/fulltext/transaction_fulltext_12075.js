@@ -4,11 +4,12 @@
               2018-10-29  YinZhen  Create
 ****************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -48,7 +49,6 @@ function main ()
    expResult.sort( compare( "content" ) );
    print( "actResult: " + JSON.stringify( actResult ) + " \nexpResult: " + JSON.stringify( expResult ) );
    checkResult( expResult, actResult );
-   println( "===full index field insert success===" );
 
    db.transBegin();
    var records = new Array();
@@ -68,7 +68,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===common index field insert success===" );
 
    //update
    db.transBegin();
@@ -83,7 +82,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===full index field update success===" );
 
    db.transBegin();
    dbcl.update( { $set: { about: "how are you" } }, { about: "a3" } );
@@ -97,7 +95,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===common index field update success===" );
 
    //delete
    db.transBegin();
@@ -112,7 +109,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===full index field delete success===" );
 
    db.transBegin();
    dbcl.remove( { about: "a4" } );
@@ -126,7 +122,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===common index field delete success===" );
 
    //truncate
    db.transBegin();
@@ -141,20 +136,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===truncate success===" );
 
    dropCS( db, csName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

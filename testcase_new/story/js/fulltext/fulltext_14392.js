@@ -4,7 +4,9 @@
 *@createdate:  2019.11.01
 *@testlinkCase: seqDB-14392
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -45,17 +47,11 @@ function main ()
    var actResult6 = dbOpr.findFromCL( dbcl, findNoneConf6 );
    var expResult = [];
    checkResult( expResult, actResult1 );
-   println( "---match 0 record for $or-$or-$or---" );
    checkResult( expResult, actResult2 );
-   println( "---match 0 record for $or-$or-$and---" );
    checkResult( expResult, actResult3 );
-   println( "---match 0 record for $or-$or-$not---" );
    checkResult( expResult, actResult4 );
-   println( "---match 0 record for $or-$and-$or---" );
    checkResult( expResult, actResult5 );
-   println( "---match 0 record for $or-$and-$not---" );
    checkResult( expResult, actResult6 );
-   println( "---match 0 record for $or-$and-$and---" );
 
    // match some records
    var findSomeConf1 = { "$or": [{ "$or": [{ "$or": [{ "b": { "$lt": 5000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14392_B" } } } } }] }, { b: { "$et": 10000 } }] }, { "a": { "$exists": 0 } }] }; //or-or-or
@@ -65,9 +61,7 @@ function main ()
    var expResult1 = dbOpr.findFromCL( dbcl, { "b": { "$lte": 10000 } }, { 'a': '' }, { _id: 1 } );
    var expResult2 = dbOpr.findFromCL( dbcl, { "b": { "$lt": 15000 } }, { 'a': '' }, { _id: 1 } );
    checkResult( expResult1, actResult1 );
-   println( "---match some records for $or-$or-$or---" );
    checkResult( expResult2, actResult2 );
-   println( "---match some records for $or-$and-$not---" );
 
    // match all records
    var findAllConf1 = { "$or": [{ "$or": [{ "$or": [{ "b": { "$gte": 5000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14392_A" } } } } }] }] }, { "a": { "$exists": 0 } }] }; //or-or-or
@@ -76,9 +70,7 @@ function main ()
    var actResult2 = dbOpr.findFromCL( dbcl, findAllConf2, { 'a': '' }, { _id: 1 } );
    var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult1 );
-   println( "---match all records for $or-$or-$or---" );
    checkResult( expResult, actResult2 );
-   println( "---match all records for $or-$not-$and---" );
 
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
@@ -86,16 +78,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

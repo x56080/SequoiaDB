@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -26,31 +27,11 @@ function main ()
 
    //删除不存在的全文索引，删除失败
    commCheckIndexConsistency( dbcl, indexName, false );
-   try
+   assert.tryThrow( -47, function()
    {
       dbcl.dropIndex( indexName );
-      throw new Error( "DROPINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -47 )
-      {
-         throw e;
-      }
-   }
+   } );
    checkIndexNotExistInES( esIndexNames );
 
    dropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

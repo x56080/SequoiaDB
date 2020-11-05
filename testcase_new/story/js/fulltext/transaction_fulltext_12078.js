@@ -4,11 +4,12 @@
               2018-11-06  YinZhen  Create
 ****************************************************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -54,7 +55,6 @@ function main ()
    expResult.sort( compare( "content" ) );
    print( "actResult: " + JSON.stringify( actResult ) + " \nexpResult: " + JSON.stringify( expResult ) );
    checkResult( expResult, actResult );
-   println( "===insert success===" );
 
    //update
    db.transBegin();
@@ -69,7 +69,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===update success===" );
 
    //delete
    db.transBegin();
@@ -84,7 +83,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===delete success===" );
 
    //truncate
    db.transBegin();
@@ -99,20 +97,6 @@ function main ()
    actResult.sort( compare( "content" ) );
    expResult.sort( compare( "content" ) );
    checkResult( expResult, actResult );
-   println( "===truncate success===" );
 
    dropCS( db, csName );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

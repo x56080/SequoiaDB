@@ -3,9 +3,9 @@
 @author:
               2019-5-30 wuyan init
 ****************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_query5282";
    var cl = readyCL( clName );
@@ -14,13 +14,12 @@ function main ()
    insertRecs( cl, recordNum );
    queryRecsAndCheckResult( cl, recordNum );
 
-   cleanCL( clName );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 
 }
 
 function insertRecs ( cl, recordNum )
 {
-   println( "\n---Begin to insert records." );
 
    var docs = [];
    for( i = 0; i < recordNum; i++ )
@@ -33,7 +32,6 @@ function insertRecs ( cl, recordNum )
 
 function queryRecsAndCheckResult ( cl, recordNum )
 {
-   println( "\n---Begin to exec[query.i]." );
 
    var query = cl.find();
    //访问第一条记录，下标值取0;访问最后一条记录取记录数，下标志为9999
@@ -42,15 +40,14 @@ function queryRecsAndCheckResult ( cl, recordNum )
    var queryFirst = query[serialFirst];
    var queryLast = query[serialLast];
 
-
    //查询第一条记录和最后一条记录
    var expQueryFirst = cl.find( { "no": serialFirst } ).toArray().toString();
    var expQueryLast = cl.find( { "no": serialLast } ).toArray().toString();
 
    if( queryFirst !== expQueryFirst || queryLast !== expQueryLast )
    {
-      throw buildException( "checkResult", null, "[compare the records]",
-         "[expQueryFirst:" + expQueryFirst + ", queryLast:" + expQueryLast + "]",
+      throw new Error( "checkResult fail,[compare the records]" +
+         "[expQueryFirst:" + expQueryFirst + ", queryLast:" + expQueryLast + "]" +
          "[expQueryLast:" + expQueryLast + ", queryLast:" + queryLast + "]" );
    }
 

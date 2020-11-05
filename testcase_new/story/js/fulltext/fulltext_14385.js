@@ -4,7 +4,9 @@
 *@createdate:  2018.10.26
 *@testlinkCase: seqDB-14385
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -32,21 +34,18 @@ function main ()
    var actResult = dbOpr.findFromCL( dbcl, findNoneConf );
    var expResult = [];
    checkResult( expResult, actResult );
-   println( "---match 0 record---" );
 
    // match some records
    var findSomeConf = { "$and": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14385" } } } } }] };
    var actResult = dbOpr.findFromCL( dbcl, findSomeConf, { 'a': '' }, { _id: 1 } );
    var expResult = dbOpr.findFromCL( dbcl, { "b": { "$gte": 10000 } }, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult );
-   println( "---match some records---" );
 
    // match all records
    var findAllConf = { "$and": [{ "b": { "$gte": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14385 2" } } } } }] };
    var actResult = dbOpr.findFromCL( dbcl, findAllConf, { 'a': '' }, { _id: 1 } );
    var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult );
-   println( "---match all records---" );
 
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
@@ -54,16 +53,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

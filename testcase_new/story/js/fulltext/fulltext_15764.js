@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-09  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -66,18 +67,10 @@ function main ()
 
 function createDuplicateIndex ( dbcl )
 {
-   try
+   assert.tryThrow( -38, function()
    {
       dbcl.createIndex( "nameIndex", { name: 1 }, true );
-      throw new Error( 'create unique index on duplicate field should fail!' );
-   }
-   catch( e )
-   {
-      if( e.message != -38 )
-      {
-         throw e;
-      }
-   }
+   } );
 }
 
 function checkRecords ( expRecords, actRecords )
@@ -86,17 +79,3 @@ function checkRecords ( expRecords, actRecords )
    actRecords.sort( compare( "about" ) );
    checkResult( expRecords, actRecords )
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -2,11 +2,12 @@
 @Description :    seqDB-15533:插入ES端_id字段重复的记录
 @Modify list :   2018-10-08  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -44,17 +45,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -2,12 +2,13 @@
 @Description :   seqDB-12025:使用find.update更新全文索引字段
 @Modify list :   2018-10-10  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -51,17 +52,3 @@ function update ( dbcl )
    var cursor = dbcl.find().update( { $set: { _id: "2", a: "a2" } } );
    while( cursor.next() ) { }
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

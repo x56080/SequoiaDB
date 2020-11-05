@@ -2,23 +2,22 @@
 @Description : seqDB-12013 :自动切分的hash分区表中插入/更新/删除包含全文索引字段的记录 
 @Modify list : 2018-11-21  YinZhen  Create
 ****************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
-   
+
    var csName = "cs_12013";
    var clName = "cl_12013";
    var domainName = "domain_12013";
@@ -29,7 +28,7 @@ function main ()
    var cl = commCreateCL( db, csName, clName, { "ShardingType": "hash", "ShardingKey": { "a": 1 }, "AutoSplit": true } );
    commCreateIndex( cl, "fullIndex_12013", { "a": "text", "b": "text" } );
    commCheckIndexConsistency( cl, "fullIndex_12013", true );
-   
+
    //插入包含全文索引字段的记录
    var records = new Array();
    for( var i = 0; i < 10000; i++ )
@@ -47,7 +46,6 @@ function main ()
    checkResult( expResult, actResult );
    checkConsistency( csName, clName );
    checkInspectResult( csName, clName, 5 );
-   println( "================插入包含全文索引记录成功================" );
 
    //更新包含全文索引字段的记录
    cl.update( { $set: { "a": "a", "b": "b" } } );
@@ -59,7 +57,6 @@ function main ()
    checkResult( expResult, actResult );
    checkConsistency( csName, clName );
    checkInspectResult( csName, clName, 5 );
-   println( "================更新包含全文索引记录成功================" );
 
    //删除包含全文索引字段的记录
    cl.remove( { b: "b" } );
@@ -73,9 +70,7 @@ function main ()
 
    dropCS( db, csName );
    commDropDomain( db, domainName );
-   
+
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-
-

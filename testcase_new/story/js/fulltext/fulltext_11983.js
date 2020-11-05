@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-26  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -24,18 +25,10 @@ function main ()
    }
 
    //在已创建64个索引的情况下，创建全文索引
-   try
+   assert.tryThrow( -42, function()
    {
       dbcl.createIndex( "fullIndex_11983", { content: "text" } );
-      throw new Error( "CREATEINDEXERR" );
-   }
-   catch( e )
-   {
-      if( e.message != -42 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    var indexes = dbcl.listIndexes();
    var arrayIndexes = new Array();
@@ -54,16 +47,4 @@ function main ()
       }
    }
    dropCL( db, COMMCSNAME, clName, true, true );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

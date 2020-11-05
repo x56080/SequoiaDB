@@ -2,12 +2,13 @@
 @Description :   seqDB-15526:更新_id字段，类型为支持同步的类型
 @Modify list :   2018-9-28  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -89,17 +90,3 @@ function updateData ( dbcl )
    dbcl.update( { $set: { _id: { "key": "value" } } }, { a: "a8" } );
    dbcl.update( { $set: { _id: { "$oid": "123abcd00ef12358902300ef" } } }, { a: "a9" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

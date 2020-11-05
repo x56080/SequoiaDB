@@ -4,7 +4,9 @@
 *@createdate:  2018.10.26
 *@testlinkCase: seqDB-14393
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -45,17 +47,11 @@ function main ()
    var actResult6 = dbOpr.findFromCL( dbcl, findNoneConf6 );
    var expResult = [];
    checkResult( expResult, actResult1 );
-   println( "---match 0 record for $not-$and-$and---" );
    checkResult( expResult, actResult2 );
-   println( "---match 0 record for $not-$and-$or---" );
    checkResult( expResult, actResult3 );
-   println( "---match 0 record for $not-$and-$not---" );
    checkResult( expResult, actResult4 );
-   println( "---match 0 record for $not-$or-$and---" );
    checkResult( expResult, actResult5 );
-   println( "---match 0 record for $not-$or-$or---" );
    checkResult( expResult, actResult6 );
-   println( "---match 0 record for $not-$or-$not---" );
 
    // match some records
    var findSomeConf1 = { "$not": [{ "$and": [{ "$and": [{ "b": { "$gte": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14393_A" } } } } }] }, { b: { "$lt": 10000 } }] }, { "a": { "$exists": 1 } }] }; //not-and-and
@@ -74,15 +70,10 @@ function main ()
    var expResult4 = dbOpr.findFromCL( dbcl, { "b": { "$gte": 10000 } }, { 'a': '' }, { _id: 1 } );
    var expResult5 = dbOpr.findFromCL( dbcl, { "b": { "$gte": 15000 } }, { 'a': '' }, { _id: 1 } );
    checkResult( expResult1, actResult1 );
-   println( "---match some records for $not-$and-$and---" );
    checkResult( expResult2, actResult2 );
-   println( "---match some records for $not-$and-$or---" );
    checkResult( expResult3, actResult3 );
-   println( "---match some records for $not-$and-$not---" );
    checkResult( expResult4, actResult4 );
-   println( "---match some records for $not-$or-$and---" );
    checkResult( expResult5, actResult5 );
-   println( "---match some records for $not-$or-$not---" );
 
    // match all records
    var findAllConf1 = { "$not": [{ "$and": [{ "$and": [{ "b": { "$gt": 5000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14393_A" } } } } }] }] }, { "a": { "$exists": 1 } }] }; //not-and-and
@@ -99,33 +90,14 @@ function main ()
    var actResult6 = dbOpr.findFromCL( dbcl, findAllConf6, { 'a': '' }, { _id: 1 } );
    var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult1 );
-   println( "---match all records for $not-$and-$and---" );
    checkResult( expResult, actResult2 );
-   println( "---match all records for $not-$and-$or---" );
    checkResult( expResult, actResult3 );
-   println( "---match all records for $not-$and-$not---" );
    checkResult( expResult, actResult4 );
-   println( "---match all records for $not-$or-$and---" );
    checkResult( expResult, actResult5 );
-   println( "---match all records for $not-$or-$or---" );
    checkResult( expResult, actResult6 );
-   println( "---match all records for $not-$or-$not---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

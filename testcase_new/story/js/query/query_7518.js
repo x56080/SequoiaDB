@@ -12,10 +12,10 @@ testConf.clOpt = {};
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    var cl = testPara.testCL;
-   var cs_clName =  testConf.csName + "." + testConf.clName;
+   var cs_clName = testConf.csName + "." + testConf.clName;
    var groups = testPara.groups;
    var clGroupName = testPara.srcGroupName;
 
@@ -39,13 +39,13 @@ function test( testPara )
    // "==>query3. {Index Name : 'idpidnameIndex'}"
    // "==>query4. {Index Name : null}"
    var findCondition = [{ id: 1000 },
-                        { id: { $lt: 5000, $gt: 2000 }, pid: 10 },
-                        { $and: [ { id: 1000 }, { pid: { $lt: 10 } }, { name: "mike1000index3" } ] },
-                        { $and: [ { pid: { $gt: 1 } }, { uid: 50 } ] } ];
+   { id: { $lt: 5000, $gt: 2000 }, pid: 10 },
+   { $and: [{ id: 1000 }, { pid: { $lt: 10 } }, { name: "mike1000index3" }] },
+   { $and: [{ pid: { $gt: 1 } }, { uid: 50 }] }];
 
-   var comparisonValue = [ cl.count() * 5, cl.count() * 2, 20, 0 ]
+   var comparisonValue = [cl.count() * 5, cl.count() * 2, 20, 0]
 
-   for (var i in findCondition)
+   for( var i in findCondition )
    {
       var conditon = findCondition[i];
       var comparison = comparisonValue[i];
@@ -54,7 +54,7 @@ function test( testPara )
       var indexRead1 = snapInfo[1];
 
       cl.find( conditon ).next();
-      var snapInfo2 = getCurrentRead ( db, cs_clName, clGroupName, groups );
+      var snapInfo2 = getCurrentRead( db, cs_clName, clGroupName, groups );
       var dataRead2 = snapInfo2[0];
       var indexRead2 = snapInfo2[1];
 
@@ -63,22 +63,22 @@ function test( testPara )
 
       snapInfo = snapInfo2;
 
-      if ( i == 3)
+      if( i == 3 )
       {
-         if ( indexVal > comparison )
+         if( indexVal > comparison )
          {
-            throw new Error("Error,this operator can't be use the index read");
+            throw new Error( "Error,this operator can't be use the index read" );
          }
       }
       else
       {
-         if ( indexVal == 0)
+         if( indexVal == 0 )
          {
-            throw new Error("Error,this operator can't be use the index read");
+            throw new Error( "Error,this operator can't be use the index read" );
          }
-         if (indexVal > comparison)
+         if( indexVal > comparison )
          {
-            throw new Error("Read index too much times");
+            throw new Error( "Read index too much times" );
          }
       }
    }

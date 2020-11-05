@@ -3,18 +3,18 @@
 @Modify list :
               2018-11-02  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -93,17 +93,4 @@ function main ()
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

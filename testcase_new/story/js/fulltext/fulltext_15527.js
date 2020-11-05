@@ -2,11 +2,12 @@
 @Description :    seqDB-15527:更新_id字段，类型为不支持同步的类型
 @Modify list :   2018-9-28  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -72,17 +73,3 @@ function update ( dbcl )
    dbcl.update( { $set: { _id: { "$minKey": 1 } } }, { a: "a2" } );
    dbcl.update( { $set: { _id: { "$maxKey": 1 } } }, { a: "a3" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

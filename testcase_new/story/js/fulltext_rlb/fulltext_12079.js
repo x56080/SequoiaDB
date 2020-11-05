@@ -4,8 +4,10 @@
 *@createdate:  2019.08.21
 *@testlinkCase: seqDB-12079
 **************************************/
+// SEQUOIADBMAINSTREAM-5420
+// main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -34,7 +36,7 @@ function main ()
    {
       preSlave.stop();
       dbcl.insert( { a: 'aaaaaaaaaaaaaaaa' } );
-      throw "should insert fail";
+      throw new Error( "should insert fail" );
    }
    catch( e )
    {
@@ -65,16 +67,4 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-try
-{
-   //main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

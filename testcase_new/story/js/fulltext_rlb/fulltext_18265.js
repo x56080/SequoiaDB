@@ -5,7 +5,10 @@
 *@testlinkCase: seqDB-18265
 **************************************/
 
-function main ()
+// SEQUOIADBMAINSTREAM-4705
+//main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -46,7 +49,7 @@ function main ()
       // 没有切主，则抛异常
       if( doTimes > 600 )
       {
-         throw buildException( "changePrimary", null, "change primary", curCataMasterNodeName, preCataMasterNodeName );
+         throw new Error( "changePrimary fail,change primary" + curCataMasterNodeName + preCataMasterNodeName );
       }
    }
    finally
@@ -70,11 +73,9 @@ function main ()
    actResult.sort( compare( "a" ) );
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check result success---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-//main();

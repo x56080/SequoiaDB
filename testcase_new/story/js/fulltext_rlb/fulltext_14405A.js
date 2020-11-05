@@ -5,7 +5,9 @@
 *@testlinkCase: seqDB-14405
 **************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -51,7 +53,6 @@ function main ()
             isMasterNodeExist( groups[0] );
             var curMaster = db.getRG( groups[0] ).getMaster();
             var curMasterNodeName = curMaster.getHostName() + ":" + curMaster.getServiceName();
-            println( "reelect times: " + doTimes + "\ncurMasterNodeName: " + curMasterNodeName + "\npreMasterNodeName: " + preMasterNodeName );
             // 当新主和原主为同一个节点，则退出
             if( preMasterNodeName == curMasterNodeName ) 
             {
@@ -61,9 +62,9 @@ function main ()
          }
          catch( e )
          {
-            if( -13 != e )
+            if( -13 != e.message )
             {
-               throw buildException( "reelect", null, "reelect", "-13", e );
+               throw e;
             }
          }
       }
@@ -71,7 +72,7 @@ function main ()
       // 选举后没有切回原主，则抛异常
       if( doTimes > 50 )
       {
-         throw buildException( "changePrimary", null, "reelect and change primary", preMasterNodeName, curMasterNodeName );
+         throw new Error( "changePrimary fail,reelect and change primary" + preMasterNodeName + curMasterNodeName );
       }
 
       // 执行增删改
@@ -90,7 +91,6 @@ function main ()
       actResult.sort( compare( "a" ) );
       expResult.sort( compare( "a" ) );
       checkResult( expResult, actResult );
-      println( "---check result success---" );
 
       var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
       commDropCL( db, COMMCSNAME, clName, true, true );
@@ -105,16 +105,3 @@ function main ()
    }
 
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

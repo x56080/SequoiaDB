@@ -4,18 +4,18 @@
 *@createdate:  2018.11.27
 *@testlinkCase: seqDB-12051
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "less than two groups" );
       return;
    }
 
@@ -57,7 +57,6 @@ function main ()
    expResult.sort( compare( "a" ) );
    actResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check return datas from one subcl success---" );
 
    // return datas from one group
    var actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "testa" } } } } }, { "a": "" }, null, null, null, null );
@@ -65,7 +64,6 @@ function main ()
    expResult.sort( compare( "a" ) );
    actResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check return datas from one group success---" );
 
    // return datas from more subcls and groups
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match_all": {} } } } }, { "a": "" }, null, null, null, null );
@@ -73,7 +71,6 @@ function main ()
    expResult.sort( compare( "a" ) );
    actResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check return datas from more subcls and groups success---" );
 
    var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
    var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
@@ -84,17 +81,3 @@ function main ()
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

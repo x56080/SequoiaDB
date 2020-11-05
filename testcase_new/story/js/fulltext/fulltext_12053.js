@@ -2,18 +2,18 @@
 @Description :seqDB-12053 :range分区表中执行全文检索  
 @Modify list :2018-11-21  Zhaoxiaoni  init
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -41,28 +41,13 @@ function main ()
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match": { "a": "a" } } } } }, null, { "_id": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, { "a": "a" }, null, { "_id": 1 } );
    checkResult( expResult, actResult );
-   println( "===find from one group success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, null, { "_id": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, null, null, { "_id": 1 } );
    checkResult( expResult, actResult );
-   println( "===find from more group success===" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12053" );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

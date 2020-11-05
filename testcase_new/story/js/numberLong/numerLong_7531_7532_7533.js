@@ -4,30 +4,16 @@ seqDB-7533:shell_切分的数据类型为numberLong
 seqDB-7532:shell_挂载子表的attach范围使用numberLong
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "standalone mode" );
       return;
    }
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "need at least 2 groups" );
       return;
    }
 
@@ -86,19 +72,11 @@ function attachByLong ( maincl, csName, subclName )
       UpBound: { mk: { $numberLong: "9223372036854775806" } }
    } );
 
-   try
+   var rec = { mk: { $numberLong: "9223372036854775807" } };
+   assert.tryThrow( -135, function()
    {
-      var rec = { mk: { $numberLong: "9223372036854775807" } };
       maincl.insert( rec );
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( e.message != -135 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    var rec = { mk: { $numberLong: "9223372036854775805" } };
    maincl.insert( rec );

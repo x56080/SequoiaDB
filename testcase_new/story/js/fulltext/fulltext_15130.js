@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -33,43 +34,25 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 1000, 2000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 1000, 2000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip+limit<1w success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 8000, 7000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 8000, 7000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip<1w,limit<1w,skip+limit>1w success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 8000, 15000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 8000, 15000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip>1w,limit<1w success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 11000, 12000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 11000, 12000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip>1w,limit>1wsuccess---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 11000, 8000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 11000, 8000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip<1w,limit>1w success---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

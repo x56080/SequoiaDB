@@ -2,11 +2,12 @@
 @Description :   seqDB-12027:使用update接口更新全文索引字段
 @Modify list :   2018-10-08  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -60,17 +61,3 @@ function updateData ( dbcl )
    dbcl.update( { $pop: { b: 1 } }, { _id: 3 } );
    dbcl.update( { $push: { b: 1 } }, { _id: 4 } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -5,82 +5,51 @@
             2016-9-11   TingYU   modify
 ***************************************************************************** */
 var csName = COMMCSNAME;
-var pcdName1 = COMMCLNAME + '_procedurename';
+var pcdName1 = COMMCLNAME + '_procedurename_8192';
 var pcdName2 = 'sum_procedure_8192';
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( " Deploy mode is standalone!" );
       return;
    }
-   try
-   {
-      ready();
-      createPcd();
-      excutePcd();
-      listPcd();
-      removePcd();
-   }
-   catch( e )
-   {
-      throw e;
-   }
-   finally
-   {
-      clean();
-   }
+   ready();
+   createPcd();
+   excutePcd();
+   listPcd();
+   removePcd();
+   clean();
 }
 
 function ready ()
 {
-   println( "\n---begin to remove procedures and cs in ready" );
    fmpRemoveProcedures( [pcdName1, pcdName2], true );
    commDropCS( db, csName, true, "drop cs[" + csName + "] in ready" );
 }
 
 function createPcd ()
 {
-   println( "\n---begin to create procedures" );
-   var str = "db.createProcedure( function " + pcdName1 + "("
-      + ") {db.createCS('" + csName + "')} )";
+   var str = "db.createProcedure( function " + pcdName1 + "(" + ") {db.createCS('" + csName + "')} )";
    db.eval( str );
    db.createProcedure( function sum_procedure_8192 ( x, y, z ) { return x + y + z; } );
 }
 
 function excutePcd ()
 {
-   println( "\n---begin to excute procedures" );
    db.eval( pcdName1 + "()" );
-   try
-   {
-      db.getCS( csName );
-   }
-   catch( e )
-   {
-      throw buildException( "get cs", "",
-         'db.getCS(' + csName + ')',
-         "not throw error", e );
-   }
+   db.getCS( csName );
 
    var sumRst = db.eval( pcdName2 + "(1,2,3)" );
-   if( sumRst !== 6 )
-   {
-      throw buildException( "check sum", "",
-         'check sum result of 1+2+3',
-         6, sumRst );
-   }
+   assert.equal( sumRst, 6 );
 }
 
 function listPcd ()
 {
-   println( "\n---begin to list procedures" );
    var rc = db.listProcedures();
 
-   println( "\n---begin to list procedures by filter" );
 
    var expPcd1 = {};
    expPcd1["name"] = pcdName1;
@@ -101,7 +70,6 @@ function listPcd ()
 
 function removePcd ()
 {
-   println( "\n---begin to remove procedure" );
    db.removeProcedure( pcdName1 );
 
    var expPcd2 = {};
@@ -119,7 +87,6 @@ function removePcd ()
 
 function clean ()
 {
-   println( "\n---begin to clean environment" );
    fmpRemoveProcedures( [pcdName1, pcdName2], true );
    commDropCS( db, csName, true, "drop cs in clean()" )
 }

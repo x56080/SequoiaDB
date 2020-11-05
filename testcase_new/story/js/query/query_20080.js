@@ -3,20 +3,9 @@
 *@author      : Zhao xiaoni
 *@Date        : 2019-10-24
 ******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw new Error( e );
-}
+main( test );
 
-function main ()
+function test ()
 {
    var clName = "cl_20080";
    commDropCL( db, COMMCSNAME, clName );
@@ -46,16 +35,10 @@ function main ()
    }
 
    //check Result
-   if( actResult.length !== expResult.length )
-   {
-      throw new Error( "actResult.length: " + actResult.length + "is not equals to expResult.length: " + expResult.length );
-   }
+   assert.equal( actResult.length, expResult.length );
    for( var i = 0; i < actResult.length; i++ )
    {
-      if( JSON.stringify( actResult[i] ) !== JSON.stringify( expResult[i] ) )
-      {
-         throw new Error( "actResult[" + i + "]: " + JSON.stringify( actResult[i] ) + "is not equals to expResult[" + i + "]: " + JSON.stringify( expResult[i] ) );
-      }
+      assert.equal( actResult[i], expResult[i] );
    }
    commDropCL( db, COMMCSNAME, clName, false, false );
 }

@@ -11,14 +11,8 @@ function checkExplain ( rc, expIdxName )
    var expScanType = "ixscan";
    if( expIdxName === undefined ) { expScanType = "tbscan"; }
 
-   if( plan.ScanType !== expScanType )
-   {
-      throw new Error( "plan.ScanType: " + plan.ScanType + "\nexpScanType: " + expScanType );
-   }
-   if( plan.IndexName !== expIdxName )
-   {
-      throw new Error( "plan.IndexName: " + plan.IndexName + "\nexpIdxName: " + expIdxName );
-   }
+   assert.equal( plan.ScanType, expScanType );
+   assert.equal( plan.IndexName, expIdxName );
 }
 
 function select2RG ()
@@ -51,12 +45,7 @@ function runCurl ( curlPara, expErrno )
    var curlInfo = resolveRtnInfo( rtnInfo );
    curlInfo["curlCommand"] = curlCommand;
 
-   if( curlInfo.errno !== expErrno )
-   {
-      println( "\nreturn information: " + rtnInfo );
-      throw buildException( "runCurl():check return value", null,
-         curlInfo.curlCommand, expErrno, curlInfo.errno );
-   }
+   assert.equal( curlInfo.errno, expErrno );
 
    return curlInfo;
 }
@@ -114,7 +103,6 @@ function resolveRtnInfo ( rtnInfo )
    //get other
    rtnInfoArr.shift(); //abandon rtnInfoArr[0]
    rtn["rtnJsn"] = rtnInfoArr;
-
 
    return rtn;
 }

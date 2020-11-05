@@ -4,7 +4,9 @@
 *@createdate:  2018.10.08
 *@testlinkCase: seqDB-15139
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -59,19 +61,4 @@ function checkCount ( expectCount, actCount )
    {
       throw new Error( "expect record num: " + expectCount + ",actual record num: " + actCount );
    }
-   println( "check result success!" );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

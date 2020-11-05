@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-26  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -23,7 +24,7 @@ function main ()
 
    if( arrayGroup.length <= 0 )
    {
-      throw buildException( "commGetGroups()", "commGetGroups", "can not get groups ", "success", "fail" );
+      throw new Error( "commGetGroups()", "commGetGroups", "can not get groups ", "success", "fail" );
    }
    //指定集合的replSize、group、AutoIndexId、压缩为非默认值
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 2, Group: arrayGroup[0], AutoIndexId: false, Compressed: true, CompressionType: "lzw" } );
@@ -56,16 +57,4 @@ function main ()
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -28,23 +29,9 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { a: 1 } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { a: 1 } );
    checkResult( expectRecords, actRecords );
-   println( "---check insert success---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

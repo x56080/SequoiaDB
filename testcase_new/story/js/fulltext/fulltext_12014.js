@@ -3,20 +3,18 @@
 @Modify list :
               2018-11-21  YinZhen  Create
 ****************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -24,7 +22,7 @@ function main ()
    dropCL( db, COMMCSNAME, clName );
    var srcGroup = groups[0][0]["GroupName"];
    var desGroup = groups[1][0]["GroupName"];
-   var cl = commCreateCL( db, COMMCSNAME, clName, { "ShardingType": "range", "ShardingKey": { "a": 1, "b": 1 }, "Group": srcGroup });
+   var cl = commCreateCL( db, COMMCSNAME, clName, { "ShardingType": "range", "ShardingKey": { "a": 1, "b": 1 }, "Group": srcGroup } );
    cl.split( srcGroup, desGroup, { "a": "a_1000" }, { "a": "a_6000" } );
    commCreateIndex( cl, "fullIndex_12014", { "a": "text", "b": "text", "c": "text" } );
    commCheckIndexConsistency( cl, "fullIndex_12014", true );
@@ -66,11 +64,10 @@ function main ()
    checkResult( expResult, actResult );
    checkConsistency( COMMCSNAME, clName );
    checkInspectResult( COMMCSNAME, clName, 5 );
-   
-   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );  
+
+   var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12014" );
    dropCL( db, COMMCSNAME, clName, true, true );
 
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-

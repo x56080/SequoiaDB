@@ -4,18 +4,18 @@
 *@createdate:  2018.11.27
 *@testlinkCase: seqDB-12056
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "less than two groups" );
       return;
    }
 
@@ -66,17 +66,3 @@ function main ()
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

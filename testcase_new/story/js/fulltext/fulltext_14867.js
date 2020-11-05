@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.12
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -24,34 +25,14 @@ function main ()
    checkFullSyncToES( COMMCSNAME, clName, indexName, 1 );
 
    //not support full text sort
-   try
+   assert.tryThrow( -6, function()
    {
       var cursor = dbcl.find( { "": { $Text: { query: { match_all: {} }, sort: [{ a: { order: "desc" } }] } } } );
       while( cursor.next() ) { }
-      throw new Error( "NEED_SORT_ERR" );
-   } catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

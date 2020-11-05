@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.12
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -33,38 +34,21 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 15000, 16000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 15000, 16000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip<recordNum,limit<recordNum success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 15000, 40000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 15000, 40000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip>recordNum,limit<recordNum,skip+limit>1w success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 50000, 40000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 50000, 40000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip>recordNum,limit>recordNum success---" );
 
    var expectRecords = dbOperator.findFromCL( dbcl, null, null, { _id: 1 }, null, 40000, 12000 );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 }, null, 40000, 12000 );
    checkResult( expectRecords, actRecords );
-   println( "---check skip<recordNum,limit>recordNum success---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

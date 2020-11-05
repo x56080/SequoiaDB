@@ -8,11 +8,11 @@
 testConf.clName = COMMCLNAME + "_7519";
 main( test );
 
-function test (testPara)
+function test ( testPara )
 {
    var cl = testPara.testCL;
    var indexName = "Index_7519";
-   var data = [ { a: 1, b: 10 }, { a: 2, b: 20 } ];
+   var data = [{ a: 1, b: 10 }, { a: 2, b: 20 }];
    cl.insert( data );
    cl.createIndex( indexName, { a: 1, b: 1 } );
 

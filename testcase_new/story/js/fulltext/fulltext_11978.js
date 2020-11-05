@@ -3,13 +3,14 @@
 @Modify list :
               2018-10-26  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
-   };
+   }
 
    var clName = COMMCLNAME + "_ES_11978";
    var csName = "testCS_ES_11978";
@@ -39,17 +40,4 @@ function main ()
    dropCS( db, csName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

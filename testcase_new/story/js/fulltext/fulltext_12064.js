@@ -3,14 +3,15 @@ Description :seqDB-12064 :带sort进行全文检索
 @Modify list :
               2018-9-28  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
-   };
+   }
 
    var clName = COMMCLNAME + "_ES_12064";
    dropCL( db, COMMCSNAME, clName, true, true );
@@ -39,17 +40,3 @@ function main ()
    dropCL( db, COMMCSNAME, clName, true, true );
    checkIndexNotExistInES( esIndexNames );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

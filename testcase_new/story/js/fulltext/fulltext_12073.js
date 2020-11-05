@@ -3,12 +3,13 @@
 @Modify list :
               2018-10-08  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    };
 
@@ -91,7 +92,7 @@ function lobFileIsExist ( fileName )
    }
    catch( e )
    {
-      if( 2 == e ) { isExist = false; }
+      if( 2 == e.message ) { isExist = false; }
    }
    return isExist;
 }
@@ -135,19 +136,5 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
          throw new Error( e );
       }
    }
-   println( "check result success!" )
-}
 
-try
-{
-   main();
 }
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -2,11 +2,12 @@
 @Description :   seqDB-15523:ES端_id字段长度限制验证
 @Modify list :   2018-9-27  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -52,17 +53,3 @@ function getData ()
    }
    return data;
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

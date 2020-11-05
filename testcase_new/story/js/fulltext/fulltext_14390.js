@@ -4,7 +4,9 @@
 *@createdate:  2018.10.28
 *@testlinkCase: seqDB-14390
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -44,12 +46,9 @@ function main ()
    var expResult = [];
    checkResult( expResult, actResult1 );
    checkResult( expResult, actResult2 );
-   println( "---match 0 record for $not-$and---" );
    checkResult( expResult, actResult3 );
    checkResult( expResult, actResult4 );
-   println( "---match 0 record for $not-$or---" );
    checkResult( expResult, actResult5 );
-   println( "---match 0 record for $not-$not---" );
 
    // match some records
    var findSomeConf1 = { "$not": [{ "$and": [{ "b": { "$gte": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14390_A" } } } } }] }] }; // not-and, fulltext search under "$and"
@@ -66,11 +65,8 @@ function main ()
    var expResult4 = dbOpr.findFromCL( dbcl, { "b": { "$gte": 10000 } }, { 'a': '' }, { _id: 1 } );
    checkResult( expResult1, actResult1 );
    checkResult( expResult2, actResult2 );
-   println( "---match some records for $not-$and---" );
    checkResult( expResult3, actResult3 );
-   println( "---match some records for $not-$or---" );
    checkResult( expResult4, actResult4 );
-   println( "---match some records for $not-$not---" );
 
    // match all records
    var findAllConf1 = { "$not": [{ "$and": [{ "b": { "$gte": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14390_A" } } } } }] }] }; // not-and, fulltext search under "$and" 
@@ -84,27 +80,11 @@ function main ()
    var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult1 );
    checkResult( expResult, actResult2 );
-   println( "---match all records for $not-$and---" );
    checkResult( expResult, actResult3 );
-   println( "---match all records for $not-$or---" );
    checkResult( expResult, actResult4 );
-   println( "---match all records for $not-$not---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -11,7 +11,7 @@ testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'hash', ReplSize: 0 };
 testConf.clName = COMMCLNAME + "_cl13717";
 main( test );
 
-function test (testPara)
+function test ( testPara )
 {
    var rownums = 10000;
    var srcGroupName = testPara.srcGroupName;
@@ -67,7 +67,7 @@ function loadDataAndCreateIndex ( cl, rownums )
    var record = [];
    for( var i = 0; i < rownums; i++ )
    {
-     record.push( { _id: i, a: i, b: i, c: i } );
+      record.push( { _id: i, a: i, b: i, c: i } );
    }
    cl.insert( record );
    cl.createIndex( "aIndex", { a: 1 }, true );
@@ -76,20 +76,16 @@ function loadDataAndCreateIndex ( cl, rownums )
 
 function checkResultNum ( sel, expResultNum )
 {
-    var actResultNum = sel.size();
-    if( actResultNum !== expResultNum )
-    {
-       throw new Error( "expResultNum is  " + expResultNum + "\n act query num is 1" );
-        throw buildException( "checkResultNum", null, "check returned number ", expResultNum, actResultNum );
-    }
+   var actResultNum = sel.size();
+   assert.equal( actResultNum, expResultNum );
 }
 
 function getExpRec ( record, start, end )
 {
-    var expRec = [];
-    for( var i = start; i <= end; i++ )
-    {
-        expRec.push( record[i] );
-    }
-    return expRec;
+   var expRec = [];
+   for( var i = start; i <= end; i++ )
+   {
+      expRec.push( record[i] );
+   }
+   return expRec;
 }

@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -38,44 +39,25 @@ function main ()
    var expectCount = 0;
    if( parseInt( actCount ) !== expectCount )
    {
-      println( "actCount:" + actCount + ",expectCount:" + expectCount );
       throw new Error( "COUNT_ERR" );
    }
-   println( "---check not match any record---" );
 
    var actCount = dbcl.count( { $and: [{ a: { $gt: 5000 } }, { "": { $Text: { query: { range: { b: { gt: "test1" } } } } } }] } );
    var expectCount = 20000;
    if( parseInt( actCount ) !== expectCount )
    {
-      println( "actCount:" + actCount + ",expectCount:" + expectCount );
       throw new Error( "COUNT_ERR" );
    }
-   println( "---check match part of records---" );
 
    var actCount = dbcl.count( { $and: [{}, { "": { $Text: { query: { match_all: {} } } } }] } );
    var expectCount = 30000;
    if( parseInt( actCount ) !== expectCount )
    {
-      println( "actCount:" + actCount + ",expectCount:" + expectCount );
       throw new Error( "COUNT_ERR" );
    }
-   println( "---check match all records---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

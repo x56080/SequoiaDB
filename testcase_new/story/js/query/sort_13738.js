@@ -50,7 +50,6 @@ function sort_index ( cl )
    cl.createIndex( "idx1", { "a": 1 } );
    cl.createIndex( "idx2", { "a.a1": 1 } );
 
-
    // sortKey: a.a1, indexKey: a
    var cursor = cl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a.a1": 1 } ).hint( { "": "idx1" } );
    var expRecs = [

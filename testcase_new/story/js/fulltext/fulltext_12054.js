@@ -2,18 +2,18 @@
 @Description :seqDB-12054 :range分区表中带limit/skip进行全文检索 
 @Modify list :2018-11-22  Zhaoxiaoni  init
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -37,38 +37,21 @@ function main ()
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { "a": "" } );
    var expResult = dbOperator.findFromCL( dbcl, null, { "a": "" } );
    checkResult( expResult.sort( compare( "a" ) ), actResult.sort( compare( "a" ) ) );
-   println( "===selector is fullIndex_12054 field success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { "b": "" } );
    var expResult = dbOperator.findFromCL( dbcl, null, { "b": "" } );
    checkResult( expResult.sort( compare( "b" ) ), actResult.sort( compare( "b" ) ) );
-   println( "===selector is other field success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { "a": "" }, { "a": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, null, { "a": "" }, { "a": 1 } );
    checkResult( expResult, actResult );
-   println( "===selector contain sort field success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, { "b": "" }, { "_id": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, null, { "b": "" }, { "_id": 1 } );
    checkResult( expResult, actResult );
-   println( "===selector not contain sort field success===" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_12054" );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

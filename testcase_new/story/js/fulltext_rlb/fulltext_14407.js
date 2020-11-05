@@ -5,7 +5,9 @@
 *@testlinkCase: seqDB-14407
 **************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -54,7 +56,6 @@ function main ()
       var actResult = dbOpr.findFromCL( masterCL, findConf, { 'a': '' }, { a: 1 } );
       var expResult = dbOpr.findFromCL( masterCL, { "b": { "$lt": 10000 } }, { 'a': '' }, { a: 1 } );
       checkResult( expResult, actResult );
-      println( "---check result success from master---" );
       dbMaster.close();
 
       // 走原备节点执行全文检索
@@ -63,7 +64,6 @@ function main ()
       var actResult = dbOpr.findFromCL( slaveCL, findConf, { 'a': '' }, { a: 1 } );
       var expResult = dbOpr.findFromCL( slaveCL, { "b": { "$lt": 10000 } }, { 'a': '' }, { a: 1 } );
       checkResult( expResult, actResult );
-      println( "---check result success from Slave---" );
       dbSlave.close();
 
       var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
@@ -77,16 +77,3 @@ function main ()
    }
 
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

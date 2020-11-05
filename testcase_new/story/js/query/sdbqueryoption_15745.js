@@ -24,8 +24,8 @@ function test ()
    var subcl1 = commCreateCL( db, COMMCSNAME, subclName1, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
    var subcl2 = commCreateCL( db, COMMCSNAME, subclName2, { ShardingKey: { a: 1 }, ShardingType: "hash", Partition: 1024 } );
 
-   attachCL( cl, COMMCSNAME + "." + subclName1, { LowBound: { a: 0 }, UpBound: { a: 50 } } );
-   attachCL( cl, COMMCSNAME + "." + subclName2, { LowBound: { a: 50 }, UpBound: { a: 100 } } );
+   cl.attachCL( COMMCSNAME + "." + subclName1, { LowBound: { a: 0 }, UpBound: { a: 50 } } );
+   cl.attachCL( COMMCSNAME + "." + subclName2, { LowBound: { a: 50 }, UpBound: { a: 100 } } );
 
    cl.createIndex( "bindex", { b: 1 }, false );
    insertRecord( cl );

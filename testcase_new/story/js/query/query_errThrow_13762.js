@@ -6,7 +6,8 @@
                 2020-08-13 Zixian Yan  Modify
 *******************************************************************************/
 testConf.clName = COMMCLNAME + "_13762";
-main( test );
+//SEQUOIADBMAINSTREAM-1200
+//main( test );
 
 function test ( testPara )
 {
@@ -16,17 +17,9 @@ function test ( testPara )
    cl.insert( { a: 1 } );
    cl.insert( { b: "testcase" } );
    // query by use db.cs.cl.find({$a:1}).getLastErrMsg() will get the message
-   try
+   assert.tryThrow( -6, function()
    {
-      println( cl.find( { $a: 1 } ) );  //Cause Sdb find()- Invalid Argument Error
-   }
-   catch( errExcuteTest )
-   {
-      var lastOut = getLastErrMsg();
-      if( getErr( -6 ) != lastOut )
-      {
-         throw new Error( "\nFailed to print correct errorMsg. \nCurrently ErrMsg: " + errExcuteTest );
-      }
-   }
+      cl.find( { $a: 1 } )
+   } );
 
 }

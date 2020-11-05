@@ -4,7 +4,9 @@
 *@createdate:  2018.10.09
 *@testlinkCase: seqDB-14812
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -58,16 +60,3 @@ function getStringsByLength ( strLen )
    strings = stringArray.join( "" );
    return strings;
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -9,17 +9,17 @@ testConf.skipOneGroup = true;
 
 testConf.useSrcGroup = true;
 testConf.useDstGroup = true;
-testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'range'};
+testConf.clOpt = { ShardingKey: { a: 1 }, ShardingType: 'range' };
 testConf.clName = COMMCLNAME + "_cl13716";
 main( test );
 
-function test(testPara)
+function test ( testPara )
 {
-   var rownums = 100000;   
+   var rownums = 100000;
    var insetRecs = loadDataAndCreateIndex( testPara.testCL, rownums );
 
    var srcGroupName = testPara.srcGroupName;
-   var dstGroupName = testPara.dstGroupNames[0];   
+   var dstGroupName = testPara.dstGroupNames[0];
    testPara.testCL.split( srcGroupName, dstGroupName, 50 );
 
    //query 1 使用sort执行查询
@@ -67,31 +67,28 @@ function test(testPara)
 
 function loadDataAndCreateIndex ( cl, rownums )
 {
-    var record = [];
-    for( var i = 0; i < rownums; i++ )
-    {
-        record.push( { _id: i, a: i, b: i, c: i } );
-    }
-    cl.insert( record );
-    cl.createIndex( "aIndex", { a: 1 }, true );
-    return record;
+   var record = [];
+   for( var i = 0; i < rownums; i++ )
+   {
+      record.push( { _id: i, a: i, b: i, c: i } );
+   }
+   cl.insert( record );
+   cl.createIndex( "aIndex", { a: 1 }, true );
+   return record;
 }
 
 function checkResultNum ( sel, expResultNum )
 {
-    var actResultNum = sel.size();
-    if( actResultNum !== expResultNum )
-    {
-        throw new Error( "checkResultNum fail! act Num is " + actResultNum );
-    }
+   var actResultNum = sel.size();
+   assert.equal( actResultNum, expResultNum );
 }
 
 function getExpRec ( record, start, end )
 {
-    var expRec = [];
-    for( var i = start; i <= end; i++ )
-    {
-        expRec.push( record[i] );
-    }
-    return expRec;
+   var expRec = [];
+   for( var i = start; i <= end; i++ )
+   {
+      expRec.push( record[i] );
+   }
+   return expRec;
 }

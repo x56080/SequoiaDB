@@ -4,7 +4,9 @@
 *@createdate:  2018.10.10
 *@testlinkCase: seqDB-15538
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -39,7 +41,7 @@ function main ()
    { a: "opt", b: { "$regex": "^abc", "$options": "i" }, c: { "$minKey": 1 }, d: { "$maxKey": 1 } },
    { a: ["crr1"], b: ["crr1", "crr2", "crr2"], c: "ko", d: 6 },
    { a: ["crr1", { "$oid": "123abcd00ef1235890238901" }], b: "kp", c: 6.006, d: { $decimal: "-555.666" } },
-   { a: [5, 5.555, -5000000000], b: ["crr2", null, "crr3"], c: "kq", d: -5000000000 },
+   { a: [5, 5.555, -5000000000], b: ["crr2 fail,crr3"], c: "kq", d: -5000000000 },
    { a: [{ "$binary": "qe91", "$type": "1" }, { "$regex": "^zzz", "$options": "i" }, { "a": "b" }, "abc"], b: "kx", c: { "a": "b" }, d: null }
    ];
 
@@ -70,18 +72,10 @@ function main ()
    checkResult( expectResult, actResult );
 
    // 创建索引后，插入记录多于1个数组元素，插入报错
-   try
+   assert.tryThrow( -37, function()
    {
       dbcl.insert( doc );
-      throw new Error( "insert many arrays of keys" );
-   }
-   catch( e )
-   {
-      if( -37 != e.message )
-      {
-         throw e;
-      }
-   }
+   } );
 
    // 创建全文索引后正常插入数据
    doc = [{ a: [2, 2.222, -3000000000] },
@@ -154,16 +148,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

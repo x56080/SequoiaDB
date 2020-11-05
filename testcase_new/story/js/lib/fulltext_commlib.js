@@ -7,24 +7,13 @@
 import( "../lib/main.js" );
 import( "../lib/basic_operation/commlib.js" );
 
-try
-{
-   var cmd = new Cmd();
-   var HEADER = "'Content-Type: application/json'";
-   var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
-   var esOpr = new ESOperator();
-   var dbOpr = new DBOperator();
-   // create WORKDIR in local host
-   commMakeDir( "localhost", WORKDIR );
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+var cmd = new Cmd();
+var HEADER = "'Content-Type: application/json'";
+var HTTP = "'http://" + ESHOSTNAME + ":" + ESSVCNAME;
+var esOpr = new ESOperator();
+var dbOpr = new DBOperator();
+// create WORKDIR in local host
+commMakeDir( "localhost", WORKDIR );
 
 /******************************************************************************
 *@Description : do some operations related to ES, such as:
@@ -109,7 +98,6 @@ function ESOperator ()
 
       // to refresh shards from ES
       cmd.run( str );
-      println( esIndexName + " refresh success!" );
    }
 
    /*****************************************************************
@@ -424,7 +412,6 @@ function checkCountInES ( esIndexNames, expectCount )
 ******************************************************************/
 function checkLidInES ( esIndexNames, cappedCLs )
 {
-   println( "begin to check commitID in ES" );
 
    // if esIndexNames not mapping to cappedCLs, fail
    if( esIndexNames.length !== cappedCLs.length )
@@ -477,7 +464,6 @@ function checkLidInES ( esIndexNames, cappedCLs )
       throw new Error( "checkLidInES() expect lid: " + commitIDs + ",actual lid: " + lastLogicalIDs );
 
    }
-   println( "check lid sync to ES success!" );
 }
 
 /*****************************************************************
@@ -539,7 +525,6 @@ function checkResult ( expectResult, actResult )
       }
    }
 
-   println( "check results success!" );
 }
 
 /*****************************************************************
@@ -613,7 +598,6 @@ function checkConsistency ( csName, clName )
       throw new Error( "checkConsistency() check lsn failed on groups: " + groups );
    }
 
-   println( "check consistency success!" );
 }
 
 /*****************************************************************
@@ -831,7 +815,6 @@ function checkGroupBusiness ( timeoutSecond, csName, clName )
       }
       else 
       {
-         println( "check group bussiness success!" );
          break;
       }
    }
@@ -905,7 +888,6 @@ function checkCatalogBusiness ( timeoutSecond )
       }
       else 
       {
-         println( "check catalog bussiness success!" );
          break;
       }
    }
@@ -939,7 +921,7 @@ function isNodesNormal ( groupName )
    {
       if( -104 != e.message && -79 != e.message && -134 != e.message )
       {
-         throw new Error( e );
+         throw e;
       }
       return false;
    }
@@ -965,7 +947,7 @@ function isMasterNodeExist ( groupName )
       {
          if( -71 != e.message && -104 != e.message )
          {
-            throw new Error( e );
+            throw e;
          }
          doTimes++;
          sleep( 1000 );
@@ -1009,7 +991,7 @@ function dropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, messag
          {
             break;
          }
-         else if( e == -147 )
+         else if( e.message == -147 )
          {
             sleep( 1000 );
          }
@@ -1052,7 +1034,7 @@ function dropCS ( db, csName, ignoreNotExist, message )
          {
             break;
          }
-         else if( e == -147 )
+         else if( e.message == -147 )
          {
             sleep( 1000 );
          }
@@ -1093,7 +1075,7 @@ function dropIndex ( cl, name, ignoreNotExist )
          {
             break;
          }
-         else if( e == -147 )
+         else if( e.message == -147 )
          {
             sleep( 1000 );
          }

@@ -2,11 +2,12 @@
 @Description :   seqDB-15528:更新_id及全文索引字段
 @Modify list :   2018-9-28  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -112,17 +113,3 @@ function update ( dbcl )
    dbcl.update( { $set: { _id: null, a: "text1515" } }, { b: 3 } );
    dbcl.update( { $set: { _id: { "$maxKey": 1 } } }, { b: 4 } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

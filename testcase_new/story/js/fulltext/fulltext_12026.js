@@ -2,11 +2,12 @@
 @Description :   seqDB-12026:AutoIndexId为false时更新全文索引字段值
 @Modify list :   2018-10-10  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -47,30 +48,8 @@ function main ()
 
 function update ( dbcl )
 {
-   try
+   assert.tryThrow( -279, function()
    {
       dbcl.update( { $set: { a: "text2", b: "text2" } } );
-      throw new Error( "should update fail!" );
-   }
-   catch( e )
-   {
-      if( e.message != -279 )
-      {
-         throw e;
-      }
-   }
+   } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

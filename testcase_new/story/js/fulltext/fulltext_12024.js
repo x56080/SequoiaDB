@@ -2,11 +2,12 @@
 @Description :   seqDB-12024:使用upsert更新全文索引字段
 @Modify list :   2018-10-10  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -55,17 +56,3 @@ function upsert ( dbcl )
    dbcl.upsert( { $set: { a: "a" } }, { _id: 1 } );
    dbcl.upsert( { $set: { _id: 3, a: "a3" } }, { _id: 3 } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

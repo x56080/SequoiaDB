@@ -3,6 +3,8 @@
 *@Modify list :
 *              2019-5-30 wangkexin
 *******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 /* ****************************************************
 @description: insert data into collection
@@ -13,13 +15,13 @@
 **************************************************** */
 function insertData ( cl, insertNum )
 {
-    var dataArray = new Array();
-    for( var i = 0; i < insertNum; i++ )
-    {
-        var data = { a: i };
-        dataArray.push( data );
-    }
-    cl.insert( dataArray );
+   var dataArray = new Array();
+   for( var i = 0; i < insertNum; i++ )
+   {
+      var data = { a: i };
+      dataArray.push( data );
+   }
+   cl.insert( dataArray );
 }
 
 /* ****************************************************
@@ -31,47 +33,47 @@ function insertData ( cl, insertNum )
 **************************************************** */
 function createDataGroups ( rgName, hostName, instanceidArr, logSourcePaths )
 {
-    var tmpArray = [];
-    var dataRG = db.createRG( rgName );
+   var tmpArray = [];
+   var dataRG = db.createRG( rgName );
 
-    for( var i = 0; i < instanceidArr.length; i++ )
-    {
-        var port = parseInt( RSRVPORTBEGIN ) + ( i * 10 );
-        var dataPath = RSRVNODEDIR + "data/" + port;
-        var checkSucc = false;
-        var times = 0;
-        var maxRetryTimes = 10;
-        do
-        {
-            try
+   for( var i = 0; i < instanceidArr.length; i++ )
+   {
+      var port = parseInt( RSRVPORTBEGIN ) + ( i * 10 );
+      var dataPath = RSRVNODEDIR + "data/" + port;
+      var checkSucc = false;
+      var times = 0;
+      var maxRetryTimes = 10;
+      do
+      {
+         try
+         {
+            dataRG.createNode( hostName, port, dataPath, { diaglevel: 5, instanceid: instanceidArr[i] } );
+            checkSucc = true;
+            var obj = new Object();
+            obj.NodeName = hostName + ":" + port;
+            obj.instanceid = instanceidArr[i];
+            tmpArray.push( obj );
+            logSourcePaths.push( hostName + ":" + CMSVCNAME + "@" + dataPath + "/diaglog/sdbdiag.log" );
+         }
+         catch( e )
+         {
+            //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
+            if( e.message == -145 || e.message == -290 )
             {
-                dataRG.createNode( hostName, port, dataPath, { diaglevel: 5, instanceid: instanceidArr[i] } );
-                checkSucc = true;
-                var obj = new Object();
-                obj.NodeName = hostName + ":" + port;
-                obj.instanceid = instanceidArr[i];
-                tmpArray.push( obj );
-                logSourcePaths.push( hostName + ":" + CMSVCNAME + "@" + dataPath + "/diaglog/sdbdiag.log" );
+               port = port + 10;
+               dataPath = RSRVNODEDIR + "data/" + port;
             }
-            catch( e )
+            else
             {
-                //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-                if( e == -145 || e == -290 )
-                {
-                    port = port + 10;
-                    dataPath = RSRVNODEDIR + "data/" + port;
-                }
-                else
-                {
-                    throw "create node failed!  port = " + port + " dataPath = " + dataPath + " errorCode: " + e;
-                }
-                times++;
+               throw e;
             }
-        }
-        while( !checkSucc && times < maxRetryTimes );
-    }
-    dataRG.start();
-    return tmpArray;
+            times++;
+         }
+      }
+      while( !checkSucc && times < maxRetryTimes );
+   }
+   dataRG.start();
+   return tmpArray;
 }
 
 /* ****************************************************
@@ -82,18 +84,18 @@ function createDataGroups ( rgName, hostName, instanceidArr, logSourcePaths )
 **************************************************** */
 function removeDataRG ( rgName )
 {
-    try
-    {
-        db.removeRG( rgName );
-    }
-    catch( e )
-    {
-        //-154 : SDB_CLS_GRP_NOT_EXIST
-        if( e !== -154 )
-        {
-            throw buildException( "removeDataRG()", e, "remove dataRG failed.", '-154', e );
-        }
-    }
+   try
+   {
+      db.removeRG( rgName );
+   }
+   catch( e )
+   {
+      //-154 : SDB_CLS_GRP_NOT_EXIST
+      if( e.message != -154 )
+      {
+         throw e;
+      }
+   }
 }
 
 /* ****************************************************
@@ -106,23 +108,10 @@ function removeDataRG ( rgName )
 **************************************************** */
 function checkRole ( node, groupName, expMaster )
 {
-    println( "---begin to check query node[" + node + "] is master or not" );
-    try
-    {
-        db.getRG( groupName ).getNode( node );
-    }
-    catch( e )
-    {
-        throw buildException( "checkRole()", null, "db.getRG(" + groupName + ").getNode(" + node + ")",
-            "success", e );
-    }
+   db.getRG( groupName ).getNode( node );
 
-    var isMaster = new Sdb( node ).snapshot( 7 ).current().toObj().IsPrimary;
-    if( isMaster !== expMaster )
-    {
-        throw buildException( "checkRole()", null, node + " is master node",
-            expMaster, isMaster );
-    }
+   var isMaster = new Sdb( node ).snapshot( 7 ).current().toObj().IsPrimary;
+   assert.equal( isMaster, expMaster );
 }
 
 /* ****************************************************
@@ -139,17 +128,14 @@ function checkRole ( node, groupName, expMaster )
 **************************************************** */
 function checkNodeByInstanceId ( actQueryNode, nodeInfo, instanceid )
 {
-    var expNodeName = "";
-    for( var i = 0; i < nodeInfo.length; i++ )
-    {
-        if( nodeInfo[i].instanceid == instanceid )
-        {
-            expNodeName = nodeInfo[i].NodeName;
-            break;
-        }
-    }
-    if( actQueryNode !== expNodeName )
-    {
-        throw buildException( "checkNode()", null, "check the act query node name", expNodeName, actQueryNode );
-    }
+   var expNodeName = "";
+   for( var i = 0; i < nodeInfo.length; i++ )
+   {
+      if( nodeInfo[i].instanceid == instanceid )
+      {
+         expNodeName = nodeInfo[i].NodeName;
+         break;
+      }
+   }
+   assert.equal( actQueryNode, expNodeName );
 }

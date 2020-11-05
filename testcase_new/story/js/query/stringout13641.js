@@ -7,7 +7,7 @@
 testConf.clName = COMMCLNAME + "_cl_13641";
 main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    readyData( testPara.testCL );
 

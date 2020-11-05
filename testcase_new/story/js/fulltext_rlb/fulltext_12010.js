@@ -5,7 +5,9 @@
 *@testlinkCase: seqDB-12010
 **************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -29,44 +31,20 @@ function main ()
    {
       preSlave.stop();
 
-      try
+      assert.tryThrow( [-105, -252], function()
       {
          dbcl.insert( { a: 'insertAfterNodeStop' } );
-         throw new Error( "need throw error" );
-      }
-      catch( e )
-      {
-         if( e.message != -105 && e.message != -252 )
-         {
-            throw e;
-         }
-      }
+      } );
 
-      try
+      assert.tryThrow( [-105, -252], function()
       {
          dbcl.update( { $set: { a: 'updateAfterNodeStop' } } );
-         throw new Error( "need throw error" );
-      }
-      catch( e )
-      {
-         if( e.message != -105 && e.message != -252 )
-         {
-            throw e;
-         }
-      }
+      } );
 
-      try
+      assert.tryThrow( [-105, -252], function()
       {
          dbcl.remove();
-         throw new Error( "need throw error" );
-      }
-      catch( e )
-      {
-         if( e.message != -105 && e.message != -252 )
-         {
-            throw e;
-         }
-      }
+      } );
    }
    finally
    {
@@ -93,17 +71,4 @@ function main ()
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

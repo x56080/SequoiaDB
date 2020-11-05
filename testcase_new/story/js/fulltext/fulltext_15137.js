@@ -4,18 +4,18 @@
 *@createdate:  2018.11.26
 *@testlinkCase: seqDB-15137
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "less than two groups" );
       return;
    }
 
@@ -57,7 +57,6 @@ function main ()
    var skip = 2000;
    var actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_15137" } } } } }, null, null, null, limit, skip );
    checkCount( limit, actResult.length );
-   println( "---check skip+limit <= 1w success when return datas from one group---" );
 
    // skip + limit > 1w
    limit = 6000; // limit < 1w
@@ -79,7 +78,6 @@ function main ()
    skip = 10000; // skip >= 1w
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_15137" } } } } }, null, null, null, limit, skip );
    checkCount( limit, actResult.length );
-   println( "---check skip+limit > 1w success when return datas from one group---" );
 
    // return datas from one group
    // sort and skip + limit <= 1w
@@ -88,7 +86,6 @@ function main ()
    var actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_15137" } } } } }, null, { _id: 1 }, null, limit, skip );
    var expResult = dbOpr.findFromCL( mainCL, { "a": { "$lt": "z" } }, null, { _id: 1 }, null, limit, skip );
    checkResult( expResult, actResult );
-   println( "---check skip+limit <= 1w with sort success when return datas from one group---" );
 
    // sort and skip + limit > 1w
    limit = 6000; // limit < 1w
@@ -108,7 +105,6 @@ function main ()
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "test_15137" } } } } }, null, { _id: 1 }, null, limit, skip );
    expResult = dbOpr.findFromCL( mainCL, { "a": { "$lt": "z" } }, null, { _id: 1 }, null, limit, skip );
    checkResult( expResult, actResult );
-   println( "---check skip+limit > 1w with sort success when return datas from one group---" );
 
    // return datas from more groups
    // skip + limit <= 1w without sort
@@ -116,7 +112,6 @@ function main ()
    skip = 1000;
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match_all": {} } } } }, null, null, null, limit, skip );
    checkCount( limit, actResult.length );
-   println( "---check skip+limit <= 1w success when return datas from more groups---" );
 
    // skip + limit > 1w
    limit = 6000; // limit < 1w
@@ -138,7 +133,6 @@ function main ()
    skip = 10000; // skip >= 1w
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match_all": {} } } } }, null, null, null, limit, skip );
    checkCount( limit, actResult.length );
-   println( "---check skip+limit > 1w success when return datas from more groups---" );
 
    // return datas from more groups
    // sort and skip + limit <= 1w
@@ -147,7 +141,6 @@ function main ()
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match_all": {} } } } }, null, { _id: 1 }, null, limit, skip );
    expResult = dbOpr.findFromCL( mainCL, null, null, { _id: 1 }, null, limit, skip );
    checkResult( expResult, actResult );
-   println( "---check skip+limit <= 1w with sort success when return datas from more groups---" );
 
    // sort and skip + limit > 1w
    limit = 6000; // limit < 1w
@@ -173,7 +166,6 @@ function main ()
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match_all": {} } } } }, null, { _id: 1 }, null, limit, skip );
    expResult = dbOpr.findFromCL( mainCL, null, null, { _id: 1 }, null, limit, skip );
    checkResult( expResult, actResult );
-   println( "---check skip+limit > 1w with sort success when return datas from more groups---" );
 
    var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
    var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
@@ -190,18 +182,4 @@ function checkCount ( expectCount, actCount )
    {
       throw new Error( "expect record num: " + expectCount + ",actual record num: " + actCount );
    }
-   println( "check result success!" );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

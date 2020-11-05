@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -46,7 +47,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, { $or: [{ a: { $type: 2, $et: "string" } }, { a: { $type: 2, $et: "array" } }] }, null, { _id: 1 } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } }, null, { _id: 1 } );
    checkResult( expectRecords, actRecords );
-   println( "---check insert success---" );
 
    //string update to int,sync ES
    dbcl.update( { $set: { a: 1 } }, { a: { $type: 2, $et: "string" } } );
@@ -54,7 +54,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, { $or: [{ a: { $type: 2, $et: "string" } }, { a: { $type: 2, $et: "array" } }] } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check string update to int success---" );
 
    //arr update to int,sync ES
    dbcl.update( { $set: { a: 2 } }, { a: { $type: 2, $et: "array" } } );
@@ -62,7 +61,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, { $or: [{ a: { $type: 2, $et: "string" } }, { a: { $type: 2, $et: "array" } }] } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check array update to int success---" );
 
    //int update to string,sync ES
    dbcl.update( { $set: { a: "update" } }, { a: 1 } );
@@ -70,7 +68,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, { $or: [{ a: { $type: 2, $et: "string" } }, { a: { $type: 2, $et: "array" } }] } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check int update to string success---" );
 
    //int update to array,sync ES
    /*dbcl.update({$set:{a:["arr1", "arr2"]}},{a:2});
@@ -78,7 +75,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL(dbcl, {$or:[{a:{$type:2,$et:"string"}},{a:{$type:2,$et:"array"}}]});
    var actRecords = dbOperator.findFromCL(dbcl, {"":{"$Text":{query:{match_all:{}}}}});
    checkResult(expectRecords, actRecords);
-   println("---check int update to array success---");
    */
 
    //all datatype to string,sync ES
@@ -87,23 +83,9 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl, { $or: [{ a: { $type: 2, $et: "string" } }, { a: { $type: 2, $et: "array" } }] } );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check int update to array success---" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    //SEQUOIADBMAINSTREAM-3983 
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-

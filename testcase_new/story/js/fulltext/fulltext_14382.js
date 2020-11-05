@@ -2,18 +2,18 @@
 @Description :seqDB-14382 :shardingKey字段为全文索引字段，更新全文索引字段
 @Modify list :2018-11-22  Zhaoxiaoni  init
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -34,16 +34,10 @@ function main ()
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex_14382", 10000 );
 
    dbcl.update( { $set: { a: "a", b: "b" } } );
-   try
+   assert.tryThrow( -178, function()
    {
       dbcl.update( { $set: { a: "a", b: "bb" } }, null, null, { KeepShardingKey: true } );
-   } catch( e )
-   {
-      if( e.message != -178 )
-      {
-         throw e;
-      }
-   }
+   } );
    dbcl.insert( { a: "new" } );
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex_14382", 10001 );
 
@@ -57,16 +51,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

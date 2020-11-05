@@ -6,21 +6,9 @@ seqDB-7537:shell_使用更新符更新numberLong类型
 seqDB-7538:shell_索引值为numberLong类型
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_7534";
    var indexName = "idx1";

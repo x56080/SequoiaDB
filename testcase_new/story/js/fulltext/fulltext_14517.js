@@ -3,18 +3,18 @@
 @Modify list :
               2018-11-01  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 
@@ -60,38 +60,21 @@ function main ()
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "bool": { "should": [{ "match": { "a": result[0]["a"] } }, { "match": { "a": result[1]["a"] } }] } } } } }, null, { "_id": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, { $or: [{ a: result[0]["a"] }, { a: result[1]["a"] }] }, null, { "_id": 1 } );
    checkResult( expResult, actResult );
-   println( "===sort not full index field success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "bool": { "should": [{ "match": { "a": result[0]["a"] } }, { "match": { "a": result[1]["a"] } }] } } } } }, null, { "a": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, { $or: [{ a: result[0]["a"] }, { a: result[1]["a"] }] }, null, { "a": 1 } );
    checkResult( expResult, actResult );
-   println( "===sort full index field success===" );
    //查询发送到多组
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, null, { "_id": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, null, null, { "_id": 1 } );
    checkResult( expResult, actResult );
-   println( "===sort not full index field success===" );
 
    var actResult = dbOperator.findFromCL( dbcl, { "": { $Text: { "query": { "match_all": {} } } } }, null, { "a": 1 } );
    var expResult = dbOperator.findFromCL( dbcl, null, null, { "a": 1 } );
    checkResult( expResult, actResult );
-   println( "===sort full index field success===" );
 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, "fullIndex_14517" );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

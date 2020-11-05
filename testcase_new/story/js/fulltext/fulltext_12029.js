@@ -2,12 +2,13 @@
 @Description :   seqDB-12029:更新记录，使记录中的索引字段存在/不存在
 @Modify list :   2018-10-08  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -66,17 +67,3 @@ function updateData ( dbcl )
    dbcl.update( { $set: { a: "a", b: "b" } }, { _id: 3 } );
    dbcl.update( { $replace: { a: "a" } }, { _id: 4 } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

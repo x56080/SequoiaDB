@@ -3,6 +3,8 @@
 @modify list:
    2014-3-14 Jianhui Xu  Init
 ******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 /******************************************************************************
 @Description: clean procedure
@@ -23,8 +25,7 @@ function fmpCleanProcedures ( db, filter )
       }
       catch( e )
       {
-         println( "fmpCleanProcedures remove procedure " + procedures[i] + " failed: " + e );
-         if( e != -233 )
+         if( e.message != -233 )
          {
             throw e;
          }
@@ -51,9 +52,8 @@ function fmpRemoveProcedures ( nameArray, ignoreNotExist )
       }
       catch( e )
       {
-         if( !ignoreNotExist || e != -233 )
+         if( !ignoreNotExist || e.message != -233 )
          {
-            println( "Failed to remove function[" + nameArray[i] + "],e=" + e );
             throw e;
          }
       }
@@ -71,12 +71,7 @@ function checkResult ( rc, expRsts )
    }
 
    //check count
-   if( actRsts.length !== expRsts.length )
-   {
-      println( "\nactual procedures= " + JSON.stringify( actRsts ) + "\n\nexpect procedures= " + JSON.stringify( expRsts ) );
-      throw buildException( "check procedures number", null, "",
-         expRsts.length, actRsts.length );
-   }
+   assert.equal( actRsts.length, expRsts.length );
 
    //check every records every fields
    for( var i in expRsts )
@@ -85,12 +80,7 @@ function checkResult ( rc, expRsts )
       var expRec = expRsts[i];
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th procedures, in field '" + f + "'" );
-            println( "\nactual procedure= " + JSON.stringify( actRsts ) + "\n\nexpect procedures= " + JSON.stringify( expRsts ) );
-            throw buildException( "checkResult()", "procedure ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }

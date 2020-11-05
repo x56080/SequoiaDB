@@ -5,7 +5,9 @@
 *@testlinkCase: seqDB-14405
 **************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -29,8 +31,7 @@ function main ()
    var preMaster = db.getRG( groups[0] ).getMaster();
    var preMasterNodeName = preMaster.getHostName() + ":" + preMaster.getServiceName();
 
-   var doTimes = 1;
-   for( ; doTimes <= 50; doTimes++ )
+   for( var doTimes = 1; doTimes <= 50; doTimes++ )
    {
       try
       {
@@ -41,7 +42,6 @@ function main ()
          checkGroupBusiness( 120, COMMCSNAME, clName );
          var curMaster = db.getRG( groups[0] ).getMaster();
          var curMasterNodeName = curMaster.getHostName() + ":" + curMaster.getServiceName();
-         println( "restart times: " + doTimes + "\ncurMasterNodeName: " + curMasterNodeName + "\npreMasterNodeName " + preMasterNodeName );
          // 当新主非原主节点，则退出
          if( preMasterNodeName != curMasterNodeName ) 
          {
@@ -58,7 +58,7 @@ function main ()
    // 重新选主后没有切回原主，则抛异常
    if( doTimes > 50 )
    {
-      throw buildException( "changePrimary", null, "change primary", preMasterNodeName, curMasterNodeName );
+      throw new Error( "changePrimary fail,change primary" + preMasterNodeName + curMasterNodeName );
    }
 
    // 执行增删改
@@ -77,23 +77,9 @@ function main ()
    actResult.sort( compare( "a" ) );
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check result success---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

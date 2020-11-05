@@ -3,21 +3,9 @@
 seqDB-7530:shell_strict格式的边界值校验
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_7529";
 
@@ -76,19 +64,11 @@ function testErrFormat1 ( cl )
 {
    cl.remove();
 
-   try
+   var rec = { a: { $numberLong: -1 } };
+   assert.tryThrow( -6, function()
    {
-      var rec = { a: { $numberLong: -1 } };
       cl.insert( rec );
-      throw new Error( "need throw error" );
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } )
 
    var rc = cl.find();
    commCompareResults( rc, [] );
@@ -98,21 +78,12 @@ function testErrFormat2 ( cl )
 {
    cl.remove();
 
-   try
+   var rec = { a: { $numberLong: "1.1" } };
+   assert.tryThrow( -6, function()
    {
-      var rec = { a: { $numberLong: "1.1" } };
       cl.insert( rec );
-      throw new "need throw error";
-   }
-   catch( e )
-   {
-      if( e.message != -6 )
-      {
-         throw e;
-      }
-   }
+   } )
 
    var rc = cl.find();
    commCompareResults( rc, [] );
 }
-

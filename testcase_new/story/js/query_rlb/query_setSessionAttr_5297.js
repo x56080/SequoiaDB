@@ -4,12 +4,12 @@
 *@createDate:  2019.6.5
 *@testlinkCase: seqDB-5297
 **************************************/
-main();
-function main ()
+main( test );
+
+function test ()
 {
    if( true == commIsStandalone( db ) )
    {
-      println( "run mode is standalone" );
       return;
    }
 
@@ -29,7 +29,6 @@ function main ()
 
    try
    {
-      println( "begin to create data group" );
       var nodes = createDataGroups( rgName, hostName, instanceidArr, logSourcePaths );
       var optionObj = { Group: rgName, ReplSize: 0 };
       var cl = commCreateCL( db, csName, clName, optionObj, true, false );
@@ -50,7 +49,6 @@ function main ()
    }
    catch( e )
    {
-      println( "catch e : " + e );
       //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
       var backupDir = "/tmp/ci/rsrvnodelog/5297";
       File.mkdir( backupDir );

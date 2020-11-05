@@ -4,7 +4,9 @@
 *@createdate:  2018.10.28
 *@testlinkCase: seqDB-14394
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -36,11 +38,8 @@ function main ()
    var actResult3 = dbOpr.findFromCL( dbcl, findNoneConf3 );
    var expResult = [];
    checkResult( expResult, actResult1 );
-   println( "---match 0 record for $and-$and-$and-$and---" );
    checkResult( expResult, actResult2 );
-   println( "---match 0 record for $and-$not-$and-$not---" );
    checkResult( expResult, actResult3 );
-   println( "---match 0 record for $and-$or-$and-$or---" );
 
    // match some records
    var findSomeConf1 = { "$and": [{ "$and": [{ "$and": [{ "$and": [{ "b": { "$lt": 10000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14394" } } } } }] }] }, { "a": { "$isnull": 0 } }] }, { "a": { "$exists": 1 } }] };//and-and-and-and
@@ -52,9 +51,7 @@ function main ()
    actResult2.sort( compare( "a" ) );
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult1 );
-   println( "---match some record for $and-$and-$and-$and---" );
    checkResult( expResult, actResult2 );
-   println( "---match some record for $not-$and-$not-$and---" );
 
    // match all records
    var findAllConf1 = { "$and": [{ "$not": [{ "$and": [{ "$or": [{ "b": { "$lt": 0 } }, { "a": { "$isnull": 1 } }] }, { "": { "$Text": { "query": { "match": { "a": "test_14394" } } } } }] }, { "a": { "$isnull": 0 } }] }, { "b": { "$exists": 1 } }] }; //and-not-and-or
@@ -66,25 +63,10 @@ function main ()
    actResult2.sort( compare( "a" ) );
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult1 );
-   println( "---match all record for $and-$not-$and-$or---" );
    checkResult( expResult, actResult2 );
-   println( "---match all record for $and-$and-$not-$not---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    dropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

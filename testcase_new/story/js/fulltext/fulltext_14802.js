@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -18,30 +19,11 @@ function main ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    dbcl.insert( { a: "text" } );
 
-   try
+   assert.tryThrow( -52, function()
    {
       var cursor = dbcl.find( { "": { $Text: { query: { match_all: {} } } } } );
       while( cursor.next() ) { }
-      throw new Error( "NEED_FIND_ERR" );
-   } catch( e )
-   {
-      if( e.message != -52 )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    dropCL( db, COMMCSNAME, clName );
-}
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

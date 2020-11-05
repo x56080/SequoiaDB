@@ -3,14 +3,15 @@
 @Modify list :
               2018-9-30  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
-   };
+   }
 
    var clName = COMMCLNAME + "_ES_14395";
    dropCL( db, COMMCSNAME, clName, true, true );
@@ -50,22 +51,4 @@ function checkAllResult ( actCount, expCount )
    {
       throw new Error( "expect record num: " + expCount + ",actual record num: " + actCount );
    }
-   else
-   {
-      println( "check records success!" )
-   }
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

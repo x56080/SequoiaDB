@@ -2,12 +2,13 @@
 @Description :   seqDB-15525:指定_id字段类型为不支持同步到ES端的类型插入记录
 @Modify list :   2018-9-28  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -60,17 +61,3 @@ function insertDate ( dbcl )
    dbcl.insert( { _id: { "$maxKey": 1 }, a: "maxKey" } );
    dbcl.insert( { _id: 1, a: "a1" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

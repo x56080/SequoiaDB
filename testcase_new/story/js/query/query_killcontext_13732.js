@@ -27,10 +27,7 @@ function test ( testPara )
    cursor.close();
 
    var closeCursorSize = getSessionContextsSize();
-   if( closeCursorSize.toString() !== preSize.toString() )
-   {
-      throw new Error( "\nAfter cursor close, System has not kill context" );
-   }
+   assert.equal( closeCursorSize, preSize );
 }
 
 function getSessionContextsSize ()

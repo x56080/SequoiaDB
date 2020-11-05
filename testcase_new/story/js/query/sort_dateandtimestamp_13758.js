@@ -56,6 +56,3 @@ function test ( testPara )
       { "a": { "$timestamp": "2002-04-03-10.12.12.123456" } }];
    commCompareResults( cursor, expRecs );
 }
-
-
-

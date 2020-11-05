@@ -3,11 +3,12 @@
 @Modify list :
               2018-10-25  YinZhen  Create
 ****************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
@@ -108,17 +109,4 @@ function checkExtDataName ( dbcl, indexName, cappedCLName )
    {
       throw new Error( "index's property ExtDataName is not equal to cappedCLName, cappedName: " + cappedCLName + ",extDataName: " + extDataName );
    }
-}
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
 }

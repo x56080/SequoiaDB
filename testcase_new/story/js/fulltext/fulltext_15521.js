@@ -11,11 +11,12 @@
                  seqDB-15460:指定_id插入记录，_id字段类型为date，ES从原始集合/固定集合中同步索引数据
 @Modify list :   2018-9-26  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -90,17 +91,3 @@ function insertData ( dbcl )
    dbcl.insert( { _id: { "$date": "2012-01-01" }, a: "date2" } );
    dbcl.insert( { _id: { "$date": "9999-12-31" }, a: "date3" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

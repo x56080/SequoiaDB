@@ -2,21 +2,9 @@
 *@Description : 7528:shell_使用strict格式运算
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_7528";
 
@@ -79,4 +67,3 @@ function testArithmetic ( cl )
    if( actVal !== expVal )
       throw new Error( "actVal: " + actVal + "\nexpVal: " + expVal );
 }
-

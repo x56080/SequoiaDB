@@ -9,11 +9,11 @@ testConf.skipOneGroup = true;
 
 testConf.useSrcGroup = true;
 testConf.useDstGroup = true;
-testConf.clOpt = { ShardingKey: { b: 1 }, ShardingType: 'range' } ;
+testConf.clOpt = { ShardingKey: { b: 1 }, ShardingType: 'range' };
 testConf.clName = COMMCLNAME + "_cl_7466";
 main( test );
 
-function test(testPara)
+function test ( testPara )
 {
    var docs = [];
    for( var i = 0; i < 10000; i++ )
@@ -23,16 +23,16 @@ function test(testPara)
    testPara.testCL.insert( docs );
 
    testPara.testCL.createIndex( "idx_7466", { a: 1 }, false, false );
-   
+
    var srcGroupName = testPara.srcGroupName;
-   var dstGroupName = testPara.dstGroupNames[0];   
+   var dstGroupName = testPara.dstGroupNames[0];
    testPara.testCL.split( srcGroupName, dstGroupName, 50 );
-   
+
    var cursor = testPara.testCL.find( { $or: [{ a: { $lte: -9000 } }, { a: { $gte: -1000 } }, { b: 2000 }] } ).sort( { a: 1 } );
    checkResult( cursor );
 }
 
-function checkResult( cursor )
+function checkResult ( cursor )
 {
    var actRecs = [];
    while( cursor.next() )
@@ -41,14 +41,11 @@ function checkResult( cursor )
       actRecs.push( obj );
       if( !( obj['a'] <= -9000 || obj['a'] >= -1000 || obj['b'] == 2000 ) )
       {
-         throw new Error( "\nreturn incorrect record: " + JSON.stringify(obj) );
+         throw new Error( "\nreturn incorrect record: " + JSON.stringify( obj ) );
       }
    }
    cursor.close();
-   
+
    var expCount = 2002;
-   if( actRecs.length !== expCount )
-   {
-      throw new Error("query data fail! the query num is " + actRecs.length + "\nquery data is :\n" + JSON.stringify(actRecs));
-   }
+   assert.equal( actRecs.length, expCount );
 }

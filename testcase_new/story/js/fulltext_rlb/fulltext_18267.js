@@ -5,7 +5,9 @@
 *@testlinkCase: seqDB-18267
 **************************************/
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -54,23 +56,9 @@ function main ()
    actResult.sort( compare( "a" ) );
    expResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check result success---" );
 
    var esIndexNames = dbOpr.getESIndexNames( COMMCSNAME, clName, textIndexName );
    commDropCL( db, COMMCSNAME, clName, true, true );
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

@@ -2,11 +2,12 @@
 @Description :   seqDB-15530:指定_id字段插入记录，并删除
 @Modify list :   2018-9-30  xiaoni Zhao  Init
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -72,17 +73,3 @@ function insertData ( dbcl )
    dbcl.insert( { _id: null, a: "a12" } );
    dbcl.insert( { _id: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" }, a: "a13" } );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

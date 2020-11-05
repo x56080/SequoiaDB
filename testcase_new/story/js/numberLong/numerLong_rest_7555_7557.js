@@ -3,21 +3,9 @@
 seqDB-7557:rest_strict格式的边界值校验
 *@Modify List : 2016-3-28  Ting YU  Init
 *******************************************************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
+main( test );
 
-
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_7555";
    commDropCL( db, COMMCSNAME, clName );

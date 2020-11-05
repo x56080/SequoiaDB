@@ -3,11 +3,12 @@
 *@author:      zhaoyu
 *@createdate:  2018.10.11
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy mode is standalone!" );
       return;
    }
 
@@ -29,7 +30,6 @@ function main ()
    var expectRecords = dbOperator.findFromCL( dbcl );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check insert success---" );
 
    dbcl.update( { $set: { a1: "update" } }, { a1: { $exists: 1 } } );
    dbcl.insert( { a1: "update", a2: "update", a3: "update", a4: "update" } );
@@ -37,30 +37,15 @@ function main ()
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match: { a1: "update" } } } } } );
    var expectRecords = dbOperator.findFromCL( dbcl, { a1: "update" } );
    checkResult( expectRecords, actRecords );
-   println( "---check update success---" );
 
    dbcl.remove();
    checkFullSyncToES( COMMCSNAME, clName, indexName, 0 );
    var expectRecords = dbOperator.findFromCL( dbcl );
    var actRecords = dbOperator.findFromCL( dbcl, { "": { "$Text": { query: { match_all: {} } } } } );
    checkResult( expectRecords, actRecords );
-   println( "---check remove success---" );
 
    //SEQUOIADBMAINSTREAM-3983 
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, indexName );
    dropCL( db, COMMCSNAME, clName );
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

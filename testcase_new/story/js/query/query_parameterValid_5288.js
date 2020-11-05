@@ -3,9 +3,9 @@
 @author:
               2019-6-3 wuyan init
 ****************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var clName = COMMCLNAME + "_query5288";
    var cl = readyCL( clName );
@@ -13,21 +13,18 @@ function main ()
    var recordNum = 100;
    var expRecords = insertRecs( cl, recordNum );
 
-   println( "---Begin to test skip < 0(skip = -1). " );
    var skipNum = -1;
    queryRecsAndCheckResult( cl, expRecords, skipNum );
 
-   println( "---Begin to test skip > maxInt(skip = 2147483648). " );
    var skipNum = 2147483648;
    queryRecsAndCheckResult( cl, expRecords, skipNum );
 
-   cleanCL( clName );
+   commDropCL( db, COMMCSNAME, clName, false, false );
 
 }
 
 function insertRecs ( cl, recordNum )
 {
-   println( "\n---Begin to insert records." );
 
    var docs = [];
    for( i = 0; i < recordNum; i++ )

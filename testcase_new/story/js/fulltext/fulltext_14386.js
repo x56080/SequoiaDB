@@ -4,7 +4,9 @@
 *@createdate:  2019.11.01
 *@testlinkCase: seqDB-14386
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) ) { return; }
 
@@ -35,7 +37,6 @@ function main ()
    var actResult = dbOpr.findFromCL( dbcl, findNoneConf );
    var expResult = [];
    checkResult( expResult, actResult );
-   println( "---match 0 record---" );
 
    // match some records
    var findSomeConf1 = { "$or": [{ "b": { "$gte": 7000 } }, { "": { "$Text": { "query": { "match": { "a": "test_14386_B" } } } } }] }; // with intersection
@@ -46,7 +47,6 @@ function main ()
    var expResult2 = dbOpr.findFromCL( dbcl, { $or: [{ "b": { "$lte": 5000 } }, { "b": { "$gte": 15000 } }] }, { 'a': '' }, { _id: 1 } );
    checkResult( expResult1, actResult1 );
    checkResult( expResult2, actResult2 );
-   println( "---match some records---" );
 
    // match all records
    var findAllConf1 = { "$or": [{ "b": { "$gt": 0 } }, { "": { "$Text": { "query": { "match": { "a": "test_14386_A" } } } } }] };  // with intersection
@@ -56,7 +56,6 @@ function main ()
    var expResult = dbOpr.findFromCL( dbcl, null, { 'a': '' }, { _id: 1 } );
    checkResult( expResult, actResult1 );
    checkResult( expResult, actResult2 );
-   println( "---match all records---" );
 
    var dbOperator = new DBOperator();
    var esIndexNames = dbOperator.getESIndexNames( COMMCSNAME, clName, textIndexName );
@@ -64,16 +63,3 @@ function main ()
    //SEQUOIADBMAINSTREAM-3983
    checkIndexNotExistInES( esIndexNames );
 }
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-;

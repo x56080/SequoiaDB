@@ -2,20 +2,19 @@
 @Description : seqDB-11988 :hash切分表加入域使用自动切分，创建/删除全文索引 
 @Modify list : 2018-11-02  YinZhen  Create
 ****************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "Deploy one group" );
       return;
    }
 

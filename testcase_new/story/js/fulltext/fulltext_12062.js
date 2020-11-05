@@ -4,18 +4,18 @@
 *@createdate:  2018.11.26
 *@testlinkCase: seqDB-12062
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Deploy is standalone" );
       return;
    }
 
    var groups = commGetGroups( db );
    if( groups.length < 2 )
    {
-      println( "less than two groups" );
       return;
    }
 
@@ -58,7 +58,6 @@ function main ()
    expResult.sort( compare( "a" ) );
    actResult.sort( compare( "a" ) );
    checkResult( expResult, actResult );
-   println( "---check selector field is fulltext success---" );
 
    // selector field is non-fulltext
    selector = { "b": { "$include": 1 } };
@@ -67,7 +66,6 @@ function main ()
    expResult.sort( compare( "b" ) );
    actResult.sort( compare( "b" ) );
    checkResult( expResult, actResult );
-   println( "---check selector field is non-fulltext success---" );
 
    // selector field is sort field
    var sort = { "a": 1 };
@@ -75,7 +73,6 @@ function main ()
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "zzz_12062" } } } } }, selector, sort, null, null, null );
    expResult = dbOpr.findFromCL( mainCL, { "a": { "$gte": "z" } }, selector, sort, null, null, null );
    checkResult( expResult, actResult );
-   println( "---check selector field is sort field success---" );
 
    // selector field is non-sort field
    sort = { "_id": 1 };
@@ -83,7 +80,6 @@ function main ()
    actResult = dbOpr.findFromCL( mainCL, { "": { $Text: { "query": { "match": { "a": "zzz_12062" } } } } }, selector, sort, null, null, null );
    expResult = dbOpr.findFromCL( mainCL, { "a": { "$gte": "z" } }, selector, sort, null, null, null );
    checkResult( expResult, actResult );
-   println( "---check selector field is non-sort field success---" );
 
    var esIndexNames1 = dbOpr.getESIndexNames( COMMCSNAME, subCLName1, textIndexName );
    var esIndexNames2 = dbOpr.getESIndexNames( COMMCSNAME, subCLName2, textIndexName );
@@ -94,17 +90,3 @@ function main ()
    checkIndexNotExistInES( esIndexNames1 );
    checkIndexNotExistInES( esIndexNames2 );
 }
-
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
-
