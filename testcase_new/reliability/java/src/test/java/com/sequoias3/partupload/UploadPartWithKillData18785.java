@@ -115,7 +115,9 @@ public class UploadPartWithKillData18785 extends S3TestBase {
                 // Status Code: 0; Error Code: CompleteMultipartUploadFailed;
                 // Request ID: null; S3 Extended Request ID: null
                 // 完成上传时合入lob失败，清理失败，可能报Status Code: 0
-                if ( e.getStatusCode() != 500 && e.getStatusCode() != 0 ) {
+                // 完成分段上传后data节点被杀，可能导致coord返回失败，s3尝试再次完成分段上传报NoSuchUpload
+                if ( e.getStatusCode() != 500 && e.getStatusCode() != 0
+                        && e.getStatusCode() != 404 ) {
                     throw e;
                 }
             } finally {
