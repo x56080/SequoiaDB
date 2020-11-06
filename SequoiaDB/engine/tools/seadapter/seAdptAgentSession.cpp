@@ -102,7 +102,6 @@ namespace seadapter
       INT32 rc = SDB_OK ;
 
       MsgOpReply reply ;
-      BSONObj resultObj;
       const CHAR *msgBody = NULL ;
       INT32 bodySize = 0 ;
       utilCommObjBuff objBuff ;
@@ -456,6 +455,10 @@ namespace seadapter
 
          newHint = builder.obj() ;
          indexID = imID ;
+
+         PD_LOG( PDDEBUG, "Original hint[ %s ], new hint[ %s ]",
+                 hint.toString( FALSE, TRUE ).c_str(),
+                 newHint.toString( FALSE, TRUE ).c_str() ) ;
       }
       catch ( std::exception &e )
       {
@@ -464,9 +467,6 @@ namespace seadapter
          goto error ;
       }
 
-      PD_LOG( PDDEBUG, "Original hint[ %s ], new hint[ %s ]",
-              hint.toString( FALSE, TRUE ).c_str(),
-              newHint.toString( FALSE, TRUE ).c_str() ) ;
    done:
       return rc ;
    error:

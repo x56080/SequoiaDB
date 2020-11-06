@@ -1006,11 +1006,6 @@ namespace seadapter
       return SDB_OK ;
    }
 
-   INT32 _utilHttp::_extendRecvBuff()
-   {
-      return SDB_OK ;
-   }
-
    const CHAR* _utilHttp::_getHeaderItemVal( const CHAR *key )
    {
       COLNAME_MAP_IT it ;

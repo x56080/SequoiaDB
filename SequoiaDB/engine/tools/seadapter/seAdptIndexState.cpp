@@ -1362,8 +1362,6 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       MsgOpQuery *msg = NULL ;
       INT32 bufSize = 0 ;
-      BSONObj query ;
-      BSONObj selector ;
       seIdxMetaContext *imContext = _session->idxMetaContext() ;
       const seIndexMeta *meta = imContext->meta() ;
 
@@ -1385,16 +1383,28 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _genQueryOptions( query, selector ) ;
-      PD_RC_CHECK( rc, PDERROR, "Generate query and selector for the original "
-                                "colleciton failed[%d]", rc ) ;
-      PD_LOG( PDDEBUG, "Full indexing query condition: %s",
-              query.toString(false, true).c_str() ) ;
-      rc = msgBuildQueryMsg( (CHAR **)&msg, &bufSize,
-                             meta->getOrigCLName(),
-                             0, _session->nextRequestID(), 0, -1, &query,
-                             &selector, NULL, NULL, _session->eduCB() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]", rc ) ;
+      try
+      {
+         BSONObj query ;
+         BSONObj selector ;
+         rc = _genQueryOptions( query, selector ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate query and selector for the original "
+                                   "colleciton failed[%d]", rc ) ;
+         PD_LOG( PDDEBUG, "Full indexing query condition: %s",
+                 query.toString(false, true).c_str() ) ;
+         rc = msgBuildQueryMsg( (CHAR **)&msg, &bufSize,
+                                meta->getOrigCLName(),
+                                0, _session->nextRequestID(), 0, -1, &query,
+                                &selector, NULL, NULL, _session->eduCB() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       imContext->metaUnlock() ;
 
       msg->version = _clVersion ;
@@ -1907,41 +1917,50 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       CHAR *msg = NULL ;
       INT32 bufSize = 0 ;
-      BSONObj query ;
-      BSONObj selector ;
       seIdxMetaContext *imContext = _session->idxMetaContext() ;
 
-      rc = _genQueryOptions( query, selector ) ;
-      PD_RC_CHECK( rc, PDERROR, "Generate query and selector for the capped"
-                                "colleciton failed[%d]", rc ) ;
-      PD_LOG( PDDEBUG, "Incremental indexing query condition: %s",
-              query.toString(false, true).c_str() ) ;
-
-      // Need to get the capped collection name from the metadata item. So need
-      // to latch it.
-      rc = imContext->metaLock( SHARED ) ;
-      if ( rc )
+      try
       {
-         if ( SDB_RTN_INDEX_NOTEXIST == rc )
+         BSONObj query ;
+         BSONObj selector ;
+         rc = _genQueryOptions( query, selector ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate query and selector for the capped"
+                                   "colleciton failed[%d]", rc ) ;
+         PD_LOG( PDDEBUG, "Incremental indexing query condition: %s",
+                 query.toString(false, true).c_str() ) ;
+
+         // Need to get the capped collection name from the metadata item. So need
+         // to latch it.
+         rc = imContext->metaLock( SHARED ) ;
+         if ( rc )
          {
-            PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
-                             "unique ID[%llu], logical ID[%u], index logical "
-                             "ID[%u]", imContext->getCLUID(),
-                             imContext->getCLLID(), imContext->getIdxLID() ) ;
+            if ( SDB_RTN_INDEX_NOTEXIST == rc )
+            {
+               PD_LOG( PDEVENT, "Index metadata not found any more. Collection "
+                                "unique ID[%llu], logical ID[%u], index logical "
+                                "ID[%u]", imContext->getCLUID(),
+                       imContext->getCLLID(), imContext->getIdxLID() ) ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
+                       rc ) ;
+            }
+            goto error ;
          }
-         else
-         {
-            PD_LOG( PDERROR, "Lock index metadata in SHARED mode failed[%d]",
-                    rc ) ;
-         }
+
+         rc = msgBuildQueryMsg( &msg, &bufSize,
+                                imContext->meta()->getCappedCLName(),
+                                0, _session->nextRequestID(), 0, -1, &query,
+                                &selector, NULL, NULL, _session->eduCB() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
-
-      rc = msgBuildQueryMsg( &msg, &bufSize,
-                             imContext->meta()->getCappedCLName(),
-                             0, _session->nextRequestID(), 0, -1, &query,
-                             &selector, NULL, NULL, _session->eduCB() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]", rc ) ;
 
       imContext->metaUnlock() ;
 
@@ -2136,7 +2155,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      BSONObj newNameObj ;
       string idStr ;
       BSONObj sourceObj ;
       string finalID ;
@@ -2144,83 +2162,92 @@ namespace seadapter
       _rtnExtOprType oprType = RTN_EXT_INVALID ;
       seAdptSEAssist *seAssist = _session->seAssist() ;
 
-      rc = _parseRecord( document, oprType, finalID, logicalID,
-                         sourceObj, &finalIdNew ) ;
-      if ( SDB_INVALIDARG == rc )
+      try
       {
-         // Unsupport type, just ignore.
-         seAssist->oprMonitor()->monIgnoreCountInc() ;
-         rc = SDB_OK ;
-         goto done ;
-      }
-      else if ( rc )
-      {
-         PD_LOG( PDERROR, "Get id string and source object failed[%d]", rc ) ;
-         goto error ;
-      }
+         rc = _parseRecord( document, oprType, finalID, logicalID,
+                            sourceObj, &finalIdNew ) ;
+         if ( SDB_INVALIDARG == rc )
+         {
+            // Unsupport type, just ignore.
+            seAssist->oprMonitor()->monIgnoreCountInc() ;
+            rc = SDB_OK ;
+            goto done ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get id string and source object failed[%d]", rc ) ;
+            goto error ;
+         }
 
-      if ( RTN_EXT_DUMMY == oprType )
-      {
-         isRebuildRecord = TRUE ;
-         goto done ;
-      }
+         if ( RTN_EXT_DUMMY == oprType )
+         {
+            isRebuildRecord = TRUE ;
+            goto done ;
+         }
 
-      if ( finalID.size() > SEADPT_MAX_ID_SZ )
-      {
-         PD_LOG( PDDEBUG, "Ignore document as actual id length[%d] "
-                          "exceeds limit[%d]. id value: %s",
-                 finalID.size(), SEADPT_MAX_ID_SZ, finalID.c_str() ) ;
-         seAssist->oprMonitor()->monIgnoreCountInc() ;
-         goto done ;
-      }
+         if ( finalID.size() > SEADPT_MAX_ID_SZ )
+         {
+            PD_LOG( PDDEBUG, "Ignore document as actual id length[%d] "
+                             "exceeds limit[%d]. id value: %s",
+                    finalID.size(), SEADPT_MAX_ID_SZ, finalID.c_str() ) ;
+            seAssist->oprMonitor()->monIgnoreCountInc() ;
+            goto done ;
+         }
 
-      if ( sourceObj.isEmpty() && ( RTN_EXT_INSERT == oprType ) )
-      {
-         // Nothing should be inserted.
-         seAssist->oprMonitor()->monIgnoreCountInc() ;
-         goto done ;
-      }
+         if ( sourceObj.isEmpty() && ( RTN_EXT_INSERT == oprType ) )
+         {
+            // Nothing should be inserted.
+            seAssist->oprMonitor()->monIgnoreCountInc() ;
+            goto done ;
+         }
 
-      seAssist->oprMonitor()->monOprCountInc( oprType ) ;
+         seAssist->oprMonitor()->monOprCountInc( oprType ) ;
 
-      if ( sourceObj.isEmpty() && RTN_EXT_UPDATE == oprType )
-      {
-         oprType = RTN_EXT_DELETE ;
-      }
+         if ( sourceObj.isEmpty() && RTN_EXT_UPDATE == oprType )
+         {
+            oprType = RTN_EXT_DELETE ;
+         }
 
-      switch ( oprType )
-      {
-         // In case of update, we are going to update the whole document,
-         // not part of it. So indexing should be done instead of updating.
-      case RTN_EXT_INSERT:
-      case RTN_EXT_UPDATE:
-      {
-         rc = seAssist->bulkAppendIndex( finalID.length() > 0 ?
-                                         finalID.c_str() : NULL, sourceObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Index document failed[%d]", rc ) ;
-         break ;
+         switch ( oprType )
+         {
+            // In case of update, we are going to update the whole document,
+            // not part of it. So indexing should be done instead of updating.
+            case RTN_EXT_INSERT:
+            case RTN_EXT_UPDATE:
+            {
+               rc = seAssist->bulkAppendIndex( finalID.length() > 0 ?
+                                               finalID.c_str() : NULL, sourceObj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Index document failed[%d]", rc ) ;
+               break ;
+            }
+            case RTN_EXT_DELETE:
+            {
+               rc = seAssist->bulkAppendDel( finalID.length() > 0 ?
+                                             finalID.c_str() : NULL ) ;
+               PD_RC_CHECK( rc, PDERROR, "Delete document failed[%d]", rc ) ;
+               break ;
+            }
+            case RTN_EXT_UPDATE_WITH_ID:
+            {
+               rc = seAssist->bulkAppendReplace( finalID.length() > 0 ?
+                                                 finalID.c_str() : NULL,
+                                                 finalIdNew.length() > 0 ?
+                                                 finalIdNew.c_str() : NULL,
+                                                 sourceObj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Update record failed[%d]", rc ) ;
+               break ;
+            }
+            default:
+               PD_LOG( PDERROR, "Invalid operation type[%d] in source data",
+                       oprType ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+         }
       }
-      case RTN_EXT_DELETE:
+      catch ( std::exception &e )
       {
-         rc = seAssist->bulkAppendDel( finalID.length() > 0 ?
-                                       finalID.c_str() : NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Delete document failed[%d]", rc ) ;
-         break ;
-      }
-      case RTN_EXT_UPDATE_WITH_ID:
-      {
-         rc = seAssist->bulkAppendReplace( finalID.length() > 0 ?
-                                           finalID.c_str() : NULL,
-                                           finalIdNew.length() > 0 ?
-                                           finalIdNew.c_str() : NULL,
-                                           sourceObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Update record failed[%d]", rc ) ;
-         break ;
-      }
-      default:
-         PD_LOG( PDERROR, "Invalid operation type[%d] in source data",
-                 oprType ) ;
-         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 

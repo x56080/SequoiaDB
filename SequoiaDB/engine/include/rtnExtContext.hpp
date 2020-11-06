@@ -253,7 +253,7 @@ namespace engine
    {
    public:
       _rtnExtDropIdxCtx()
-            : _rtnExtContextBase( DMS_EXTOPR_TYPE_DROPIDX )
+      : _rtnExtContextBase( DMS_EXTOPR_TYPE_DROPIDX )
       {
       }
       ~_rtnExtDropIdxCtx() {}

@@ -107,26 +107,37 @@ namespace seadapter
    BOOLEAN _seAdptGetCount::_isMatchAll()
    {
       BOOLEAN result = FALSE ;
-      BSONObjIterator itr( _condition ) ;
-      BSONElement queryEle = itr.next() ;
-      if ( queryEle.eoo() ||
-          ( 0 != ossStrcmp( queryEle.fieldName(), KEYWORD_QUERY ) ) ||
-          itr.more() )
-      {
-         goto done ;
-      }
 
+      try
       {
-         BSONObj matchObj = queryEle.Obj() ;
-         if ( 0 == ossStrcmp( matchObj.firstElementFieldName(),
-                              KEYWORD_MATCH_ALL ) )
+         BSONObjIterator itr( _condition ) ;
+         BSONElement queryEle = itr.next() ;
+         if ( queryEle.eoo() ||
+              ( 0 != ossStrcmp( queryEle.fieldName(), KEYWORD_QUERY ) ) ||
+              itr.more() )
          {
-            result = TRUE ;
+            goto done ;
          }
+
+         {
+            BSONObj matchObj = queryEle.Obj() ;
+            if ( 0 == ossStrcmp( matchObj.firstElementFieldName(),
+                                 KEYWORD_MATCH_ALL ) )
+            {
+               result = TRUE ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
       }
 
    done:
       return result ;
+   error:
+      goto done ;
    }
 
    BOOLEAN seAdptIsCommand( const CHAR *name )

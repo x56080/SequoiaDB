@@ -179,18 +179,15 @@ namespace engine
 
       {
          indexCB.setFlag( IXM_INDEX_FLAG_CREATING );
-         // Do not activate the processor here. Do that in done.
          rc = _processorMgr->createProcessor( csName,
                                               mbContext->mb()->_collectionName,
                                               indexCB.getName(),
                                               indexCB.getExtDataName(),
                                               indexCB.keyPattern(),
-                                              processor, TRUE );
+                                              TRUE, cb, dpscb, processor );
          PD_RC_CHECK( rc, PDERROR, "Create external processor failed[%d]",
                       rc ) ;
 
-         rc = processor->doRebuild( cb, dpscb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Rebuild of index failed[%d]", rc ) ;
          _rebuildDone = TRUE ;
 
          indexCB.setFlag( IXM_INDEX_FLAG_NORMAL ) ;
@@ -228,7 +225,8 @@ namespace engine
 
       if ( _processors.size() > 0 )
       {
-         _processorMgr->destroyProcessors( _processors, -1 ) ;
+         _processors.front()->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
+         _processorMgr->destroyProcessors( _processors ) ;
       }
 
    done:
@@ -298,17 +296,11 @@ namespace engine
             // The processor can only be used after the rebuild is done. So do
             // not activate the processor when create it.
             rc = processorMgr->createProcessor( csName, clName, idxName,
-                                                extName, idxKeyDef,
-                                                processor, FALSE ) ;
+                                                extName, idxKeyDef, TRUE,
+                                                cb, dpscb, processor ) ;
             PD_RC_CHECK( rc, PDERROR, "Create external processor failed[ %d ]",
                          rc ) ;
             newProcessor = TRUE ;
-            rc = processor->doRebuild( cb, dpscb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Rebuild of index failed[ %d ]", rc ) ;
-
-            rc = processorMgr->activateProcessor( processor->getID(), FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add processor for index failed[ %d ]",
-                         rc ) ;
          }
          else
          {
@@ -331,9 +323,8 @@ namespace engine
    error:
       if ( newProcessor )
       {
-         vector<rtnExtDataProcessor *> processors ;
-         processors.push_back( processor ) ;
-         _processorMgr->destroyProcessors( processors, _lockType ) ;
+         processor->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
+         _processorMgr->destroyProcessor( processor ) ;
          _lockType = -1 ;
       }
       goto done ;
@@ -379,6 +370,7 @@ namespace engine
 
       _appendProcessor( processor ) ;
 
+      try
       {
          BSONObj record = getOprRecord( (void *)processor ) ;
          if ( record.isEmpty() )
@@ -389,6 +381,12 @@ namespace engine
          }
          rc = processor->processDML( record, cb, cb->isDoRollback(), dpscb ) ;
          PD_RC_CHECK( rc, PDERROR, "Process data operation failed[%d]", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
    done:
@@ -437,20 +435,48 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDROPCSCTX_OPEN ) ;
+      BOOLEAN metaLocked = FALSE ;
       SDB_DB_STATUS dbStatus = pmdGetKRCB()->getDBStatus() ;
-
       vector<rtnExtDataProcessor *> processors ;
 
       _processorMgr = processorMgr ;
+
+   retry:
+      // First try to lock the processor in EXCLUSIVE mode, to make sure that no
+      // one else is currently using the processor. Then take the meta data lock
+      // in exclusive mode, to block further request for any processor. Then
+      // release the processor lock. In this way, we can be sure no one can use
+      // the processor before we release the metadata lock.
       rc = processorMgr->getProcessorsByCS( csName, EXCLUSIVE, processors ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare processors failed[ %d ]", rc ) ;
-
       // May be there is no text indices in this cs any more.
       if ( 0 == processors.size() )
       {
          goto done ;
       }
       _lockType = EXCLUSIVE ;
+
+      if ( !processorMgr->tryAquireMetaLock( EXCLUSIVE ) )
+      {
+         processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
+         processors.clear() ;
+         _lockType = -1 ;
+         ossSleep( 50 ) ;
+         goto retry ;
+      }
+      metaLocked = TRUE ;
+
+      processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
+      _lockType = -1 ;
+
+      // Set the status of the processor to dropping to make it invisible to
+      // other threads.
+      for ( vector<rtnExtDataProcessor *>::iterator itr = processors.begin();
+            itr != processors.end(); ++itr )
+      {
+         (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
+      }
+
       _removeFiles = removeFiles ;
       _eduCB = cb ;
       _dpsCB = dpscb ;
@@ -484,6 +510,11 @@ namespace engine
       }
 
    done:
+      if ( metaLocked )
+      {
+         processorMgr->releaseMetaLock( EXCLUSIVE ) ;
+      }
+
       if ( processors.size() > 0 )
       {
          _appendProcessors( processors ) ;
@@ -516,7 +547,7 @@ namespace engine
       }
 
       // Take the meta lock and delete the processors.
-      _processorMgr->destroyProcessors( _processors, EXCLUSIVE ) ;
+      _processorMgr->destroyProcessors( _processors ) ;
       // _processors and _processorP1 are the same.
       _processorP1.clear() ;
       _processors.clear() ;
@@ -533,6 +564,7 @@ namespace engine
       for ( EDP_VEC_ITR itr = _processorP1.begin(); itr != _processorP1.end(); )
       {
          (*itr)->doDropP1Cancel( cb, dpscb ) ;
+         (*itr)->setStat( RTN_EXT_PROCESSOR_NORMAL ) ;
          itr = _processorP1.erase( itr ) ;
       }
 
@@ -560,10 +592,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDROPCLCTX_OPEN ) ;
+      BOOLEAN metaLocked = FALSE ;
       SDB_DB_STATUS dbStatus = pmdGetKRCB()->getDBStatus() ;
       vector<rtnExtDataProcessor *> processors ;
 
       _processorMgr = processorMgr ;
+
+   retry:
+      // First try to lock the processor in EXCLUSIVE mode, to make sure that no
+      // one else is currently using the processor. Then take the meta data lock
+      // in exclusive mode, to block further request for any processor. Then
+      // release the processor lock. In this way, we can be sure no one can use
+      // the processor before we release the metadata lock.
       rc = processorMgr->getProcessorsByCL( csName, clName,
                                             EXCLUSIVE, processors ) ;
       PD_RC_CHECK( rc, PDERROR, "Get processors failed[ %d ]", rc ) ;
@@ -571,8 +611,29 @@ namespace engine
       {
          goto done ;
       }
-
       _lockType = EXCLUSIVE ;
+
+      if ( !processorMgr->tryAquireMetaLock( EXCLUSIVE ) )
+      {
+         processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
+         processors.clear() ;
+         _lockType = -1 ;
+         ossSleep( 50 ) ;
+         goto retry ;
+      }
+      metaLocked = TRUE ;
+
+      processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
+      _lockType = -1 ;
+
+      // Set the status of the processor to dropping to make it invisible to
+      // other threads.
+      for ( vector<rtnExtDataProcessor *>::iterator itr = processors.begin();
+            itr != processors.end(); ++itr )
+      {
+         (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
+      }
+
       _eduCB = cb ;
       _dpsCB = dpscb ;
 
@@ -589,6 +650,11 @@ namespace engine
       }
 
    done:
+      if ( metaLocked )
+      {
+         processorMgr->releaseMetaLock( EXCLUSIVE ) ;
+      }
+
       if ( processors.size() > 0 )
       {
          _appendProcessors( processors ) ;
@@ -615,7 +681,7 @@ namespace engine
             PD_LOG( PDERROR, "Do drop phase 2 failed[ %d ]", rc ) ;
          }
       }
-      _processorMgr->destroyProcessors( _processors, EXCLUSIVE ) ;
+      _processorMgr->destroyProcessors( _processors ) ;
       _processorP1.clear() ;
       _processors.clear() ;
       _lockType = -1 ;
@@ -631,6 +697,7 @@ namespace engine
       for ( EDP_VEC_ITR itr = _processorP1.begin(); itr != _processorP1.end(); )
       {
          (*itr)->doDropP1Cancel( cb, dpscb ) ;
+         (*itr)->setStat( RTN_EXT_PROCESSOR_NORMAL ) ;
          itr = _processorP1.erase( itr ) ;
       }
       PD_TRACE_EXIT( SDB__RTNEXTDROPCLCTX__ONABORT ) ;
@@ -644,10 +711,19 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDROPIDXCTX_OPEN ) ;
+      BOOLEAN metaLocked = FALSE ;
+      BOOLEAN dropP1Done = FALSE ;
       rtnExtDataProcessor *processor = NULL ;
       SDB_DB_STATUS dbStatus = pmdGetKRCB()->getDBStatus() ;
 
       _processorMgr = processorMgr ;
+
+   retry:
+      // First try to lock the processor in EXCLUSIVE mode, to make sure that no
+      // one else is currently using the processor. Then take the meta data lock
+      // in exclusive mode, to block further request for any processor. Then
+      // release the processor lock. In this way, we can be sure no one can use
+      // the processor before we release the metadata lock.
       rc = processorMgr->getProcessorByExtName( extName, EXCLUSIVE,
                                                 processor ) ;
       PD_RC_CHECK( rc, PDERROR, "Get processors failed[ %d ]", rc ) ;
@@ -656,6 +732,23 @@ namespace engine
          goto done ;
       }
       _lockType = EXCLUSIVE ;
+
+      if ( !processorMgr->tryAquireMetaLock( EXCLUSIVE ) )
+      {
+         processorMgr->unlockProcessor( processor, EXCLUSIVE ) ;
+         processor = NULL ;
+         _lockType = -1 ;
+         ossSleep( 50 ) ;
+         goto retry ;
+      }
+      metaLocked = TRUE ;
+
+      processorMgr->unlockProcessor( processor, EXCLUSIVE ) ;
+      _lockType = -1 ;
+
+      // Set the status of the processor to dropping to make it invisible to
+      // other threads.
+      processor->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
 
       // If it's full sync, just remove the processors, but not remove the
       // capped CS.
@@ -666,21 +759,28 @@ namespace engine
 
       rc = processor->doDropP1( cb, dpscb ) ;
       PD_RC_CHECK( rc, PDERROR, "Processor drop operation failed[ %d ]", rc ) ;
+      dropP1Done = TRUE ;
 
    done:
-      if ( _processorLocked() )
+      if ( metaLocked )
+      {
+         processorMgr->releaseMetaLock( EXCLUSIVE ) ;
+      }
+
+      if ( processor )
       {
          _appendProcessor( processor ) ;
       }
       PD_TRACE_EXITRC( SDB__RTNEXTDROPIDXCTX_OPEN, rc ) ;
       return rc ;
    error:
-      for ( vector<rtnExtDataProcessor *>::iterator itr = _processors.begin();
-            itr != _processors.end(); ++itr )
+      // In case of error, recover the index.
+      if ( dropP1Done )
       {
-         (*itr)->doDropP1Cancel( cb, dpscb ) ;
+         processor->doDropP1Cancel( cb, dpscb ) ;
       }
-
+      processor->setStat( RTN_EXT_PROCESSOR_NORMAL ) ;
+      processor = NULL ;
       goto done ;
    }
 
@@ -711,7 +811,7 @@ namespace engine
       }
 
       // Unlock and delete all processors.
-      _processorMgr->destroyProcessors( _processors, _lockType ) ;
+      _processorMgr->destroyProcessors( _processors ) ;
       _processors.clear() ;
       _lockType = -1 ;
       if ( rc )

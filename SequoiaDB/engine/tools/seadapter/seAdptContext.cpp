@@ -60,12 +60,24 @@ namespace seadapter
                                       const BSONObj &orderBy,
                                       const BSONObj &hint )
    {
-      _query = matcher.copy() ;
-      _selector = selector.copy() ;
-      _orderBy = orderBy.copy() ;
-      _hint = hint.copy() ;
-
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+      try
+      {
+         _query = matcher.copy() ;
+         _selector = selector.copy() ;
+         _orderBy = orderBy.copy() ;
+         _hint = hint.copy() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    // Rebuild the query message. The vectors of the second and third arguments
@@ -74,53 +86,63 @@ namespace seadapter
                                          utilCommObjBuff &objBuff )
    {
       INT32 rc = SDB_OK ;
-      const BSONObj *object ;
-      REBUILD_ITEM_MAP_ITR itr ;
 
-      if ( rebuildItems.find( SE_QUERY_REBLD_QUERY ) != rebuildItems.end() )
+      try
       {
-         object = rebuildItems[SE_QUERY_REBLD_QUERY] ;
-      }
-      else
-      {
-         object = &_query ;
-      }
-      rc = objBuff.appendObj( object ) ;
-      PD_RC_CHECK( rc, PDERROR, "Append query to object buffer failed[ %d ]",
-                   rc ) ;
+         const BSONObj *object ;
+         REBUILD_ITEM_MAP_ITR itr ;
 
-      if ( rebuildItems.find( SE_QUERY_REBLD_SEL ) != rebuildItems.end() )
-      {
-         object = rebuildItems[SE_QUERY_REBLD_SEL] ;
-      }
-      else
-      {
-         object = &_selector ;
-      }
-      rc = objBuff.appendObj( object ) ;
-      PD_RC_CHECK( rc, PDERROR, "Append selector to object buffer failed[ %d ]",
-                   rc ) ;
-
-      if ( rebuildItems.find( SE_QUERY_REBLD_ORD ) != rebuildItems.end() )
-      {
-         object = rebuildItems[SE_QUERY_REBLD_ORD] ;
-      }
-      else
-      {
-         object = &_orderBy ;
-      }
-      rc = objBuff.appendObj( object ) ;
-      PD_RC_CHECK( rc, PDERROR, "Append orderby to object buffer failed[ %d ]",
-                   rc ) ;
-
-      {
-         // The original hint is used to pass the text index name. In the
-         // replay, we give an empty hint.
-         // Any problem ?
-         BSONObj object ;
+         if ( rebuildItems.find( SE_QUERY_REBLD_QUERY ) != rebuildItems.end() )
+         {
+            object = rebuildItems[SE_QUERY_REBLD_QUERY] ;
+         }
+         else
+         {
+            object = &_query ;
+         }
          rc = objBuff.appendObj( object ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append hint to object buffer failed[ %d ]",
+         PD_RC_CHECK( rc, PDERROR, "Append query to object buffer failed[ %d ]",
                       rc ) ;
+
+         if ( rebuildItems.find( SE_QUERY_REBLD_SEL ) != rebuildItems.end() )
+         {
+            object = rebuildItems[SE_QUERY_REBLD_SEL] ;
+         }
+         else
+         {
+            object = &_selector ;
+         }
+         rc = objBuff.appendObj( object ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Append selector to object buffer failed[ %d ]", rc ) ;
+
+         if ( rebuildItems.find( SE_QUERY_REBLD_ORD ) != rebuildItems.end() )
+         {
+            object = rebuildItems[SE_QUERY_REBLD_ORD] ;
+         }
+         else
+         {
+            object = &_orderBy ;
+         }
+         rc = objBuff.appendObj( object ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Append orderby to object buffer failed[ %d ]", rc ) ;
+
+         {
+            // The original hint is used to pass the text index name. In the
+            // replay, we give an empty hint.
+            // Any problem ?
+            BSONObj object ;
+            rc = objBuff.appendObj( object ) ;
+            PD_RC_CHECK( rc, PDERROR, "Append hint to object buffer failed[ %d ]",
+                         rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
    done:
@@ -200,94 +222,105 @@ namespace seadapter
          goto error ;
       }
 
-      // { "" : { "$Text" : { condition } } }
-      textRootObj = textNode->toBson() ;
-      PD_LOG( PDDEBUG, "Text query object: %s", textRootObj.toString().c_str() ) ;
+      try
       {
-         BSONElement eleTmp = textRootObj.firstElement() ;
-         if ( Object != eleTmp.type() )
+         // { "" : { "$Text" : { condition } } }
+         textRootObj = textNode->toBson() ;
+         PD_LOG( PDDEBUG, "Text query object: %s", textRootObj.toString().c_str() ) ;
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Text search condition is invalid: %s",
-                    textRootObj.toString().c_str() ) ;
+            BSONElement eleTmp = textRootObj.firstElement() ;
+            if ( Object != eleTmp.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Text search condition is invalid: %s",
+                       textRootObj.toString().c_str() ) ;
+               goto error ;
+            }
+
+            // { "$Text" : { condition } }
+            textObj = eleTmp.Obj() ;
+            eleTmp = textObj.firstElement() ;
+            if ( Object != eleTmp.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Text search condition is invalid: %s",
+                       textRootObj.toString().c_str() ) ;
+               goto error ;
+            }
+
+            // { condition }
+            queryObj = eleTmp.Obj() ;
+         }
+
+         rc = _queryRebuilder.init(  matcher, selector, orderBy, hint ) ;
+         PD_RC_CHECK( rc, PDERROR, "Initialize query rebuilder failed[ %d ]",
+                      rc ) ;
+
+         rc = searchResult.init() ;
+         PD_RC_CHECK( rc, PDERROR, "Result buffer init failed[ %d ]", rc ) ;
+
+         // If the text index query is inside a $not clause, try to fetch all
+         // the documents which match the condition. Because if that is done in
+         // more than one round, the result on SDB node will be wrong.
+         // Otherwise, fetch one batch of records.
+         if ( _condTree.textNodeInNot() )
+         {
+            rc = _fetchAll( queryObj, searchResult, SEADPT_FETCH_MAX_SIZE ) ;
+         }
+         else
+         {
+            rc = _prepareSearch( queryObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Prepare search failed[ %d ]", rc ) ;
+            rc = _getMore( searchResult ) ;
+         }
+
+         if ( SDB_DMS_EOC == rc &&
+              ( _condTree.textNodeInNot() || _condTree.textNodeInOr() ) )
+         {
+            validEmptyResult = TRUE ;
+         }
+         else if ( rc )
+         {
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Get more result failed[ %d ]", rc ) ;
+            }
+            // If text condition is descendant of '$or' or '$not' clause, the
+            // query should not end.
             goto error ;
          }
 
-         // { "$Text" : { condition } }
-         textObj = eleTmp.Obj() ;
-         eleTmp = textObj.firstElement() ;
-         if ( Object != eleTmp.type() )
+         if ( !validEmptyResult && ( 0 == searchResult.getObjNum() ) )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Text search condition is invalid: %s",
-                    textRootObj.toString().c_str() ) ;
+            rc = SDB_DMS_EOC ;
             goto error ;
          }
 
-         // { condition }
-         queryObj = eleTmp.Obj() ;
-      }
+         rc = _buildInCond( searchResult, inCond ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Build the $in condition failed[ %d ]", rc ) ;
 
-      rc = _queryRebuilder.init(  matcher, selector, orderBy, hint ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize query rebuilder failed[ %d ]",
-                   rc ) ;
+         PD_LOG( PDDEBUG, "The new in condition is: %s",
+                 inCond.toString().c_str() ) ;
 
-      rc = searchResult.init() ;
-      PD_RC_CHECK( rc, PDERROR, "Result buffer init failed[ %d ]", rc ) ;
+         rc = _condTree.updateNode( textNode, inCond.firstElement() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update condition node failed[ %d ]", rc ) ;
 
-      // If the text index query is inside a $not clause, try to fetch all
-      // the documents which match the condition. Because if that is done in
-      // more than one round, the result on SDB node will be wrong.
-      // Otherwise, fetch one batch of records.
-      if ( _condTree.textNodeInNot() )
-      {
-         rc = _fetchAll( queryObj, searchResult, SEADPT_FETCH_MAX_SIZE ) ;
-      }
-      else
-      {
-         rc = _prepareSearch( queryObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Prepare search failed[ %d ]", rc ) ;
-         rc = _getMore( searchResult ) ;
-      }
+         newQuery = _condTree.toBson() ;
+         PD_LOG( PDDEBUG, "After transformation, the query is: %s",
+                 newQuery.toString().c_str() ) ;
 
-      if ( SDB_DMS_EOC == rc &&
-           ( _condTree.textNodeInNot() || _condTree.textNodeInOr() ) )
-      {
-         validEmptyResult = TRUE ;
+         rebuildItems[ SE_QUERY_REBLD_QUERY ] = &newQuery ;
+         rc = _queryRebuilder.rebuild( rebuildItems, objBuff ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Rebuild the query message failed[ %d ]", rc ) ;
       }
-      else if ( rc )
+      catch ( std::exception &e )
       {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Get more result failed[ %d ]", rc ) ;
-         }
-         // If text condition is descendant of '$or' or '$not' clause, the query
-         // should not end.
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
-
-      if ( !validEmptyResult && ( 0 == searchResult.getObjNum() ) )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      rc = _buildInCond( searchResult, inCond ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build the $in condition failed[ %d ]", rc ) ;
-
-      PD_LOG( PDDEBUG, "The new in condition is: %s",
-            inCond.toString().c_str() ) ;
-
-      rc = _condTree.updateNode( textNode, inCond.firstElement() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update condition node failed[ %d ]", rc ) ;
-
-      newQuery = _condTree.toBson() ;
-      PD_LOG( PDDEBUG, "After transformation, the query is: %s",
-              newQuery.toString().c_str() ) ;
-
-      rebuildItems[ SE_QUERY_REBLD_QUERY ] = &newQuery ;
-      rc = _queryRebuilder.rebuild( rebuildItems, objBuff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Rebuild the query message failed[ %d ]", rc ) ;
 
    done:
       return rc ;
@@ -325,21 +358,30 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _buildInCond( searchResult, inCond ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build the $in condition failed[ %d ]", rc ) ;
+      try
+      {
+         rc = _buildInCond( searchResult, inCond ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build the $in condition failed[ %d ]", rc ) ;
 
-      textNode = _condTree.getTextNode() ;
-      SDB_ASSERT( textNode, "Text node pointer should not be NULL" ) ;
-      rc = _condTree.updateNode( textNode, inCond.firstElement() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update condition node failed[ %d ]", rc ) ;
+         textNode = _condTree.getTextNode() ;
+         SDB_ASSERT( textNode, "Text node pointer should not be NULL" ) ;
+         rc = _condTree.updateNode( textNode, inCond.firstElement() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update condition node failed[ %d ]", rc ) ;
 
-      newQuery = _condTree.toBson() ;
-      PD_LOG( PDDEBUG, "After transformation, the query is: %s",
-              newQuery.toString().c_str() ) ;
+         newQuery = _condTree.toBson() ;
+         PD_LOG( PDDEBUG, "After transformation, the query is: %s",
+                 newQuery.toString().c_str() ) ;
 
-      rebuildItems[ SE_QUERY_REBLD_QUERY ] = &newQuery ;
-      rc = _queryRebuilder.rebuild( rebuildItems, objBuff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Rebuild the query message failed[ %d ]", rc ) ;
+         rebuildItems[ SE_QUERY_REBLD_QUERY ] = &newQuery ;
+         rc = _queryRebuilder.rebuild( rebuildItems, objBuff ) ;
+         PD_RC_CHECK( rc, PDERROR, "Rebuild the query message failed[ %d ]", rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
 
    done:
       return rc ;

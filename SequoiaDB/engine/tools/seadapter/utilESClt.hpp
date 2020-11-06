@@ -144,12 +144,6 @@ namespace seadapter
          INT32 _getResultObjs( const BSONObj &replyObj,
                                utilCommObjBuff &resultObjs ) ;
 
-         INT32 _searchByUri( const CHAR *index, const CHAR *type,
-                             const string &query,
-                             string &result, UINT64 *totalNum ) ;
-         INT32 _searchByDSL( const CHAR *index, const CHAR *type,
-                             const string &query,
-                             const CHAR **ppReply, INT32 *replyLen ) ;
          void _getHitNum( const BSONObj &fullResult, INT64 &hitNum ) ;
          INT32 _removeDocMeta( const BSONObj &fullObj, BSONObj &newObj ) ;
 
@@ -157,6 +151,7 @@ namespace seadapter
          utilHttp    _http;
          const CHAR *_errMsg ;
          utilESCltStat _stat ;
+         string      _scrollID ;
    };
    typedef _utilESClt utilESClt ;
 

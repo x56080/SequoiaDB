@@ -180,7 +180,8 @@ namespace engine
 
       rc = _edpMgr->createProcessor( csName, clName, indexCB.getName(),
                                      indexCB.getExtDataName(),
-                                     indexCB.keyPattern(), processor, TRUE ) ;
+                                     indexCB.keyPattern(), FALSE, NULL, NULL,
+                                     processor ) ;
       PD_RC_CHECK( rc, PDERROR, "Create external processor failed[ %d ]", rc ) ;
 
    done:

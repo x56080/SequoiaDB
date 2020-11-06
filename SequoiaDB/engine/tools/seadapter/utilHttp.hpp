@@ -161,8 +161,10 @@ namespace seadapter
          static INT32 _onMessageBegin( void *data ) ;
          static INT32 _onUrl( void *data, const CHAR* at, size_t length ) ;
          static INT32 _onStatus( void *data, const CHAR* at, size_t length ) ;
-         static INT32 _onHeaderField( void *data, const CHAR* at, size_t length ) ;
-         static INT32 _onHeaderValue( void *data, const CHAR* at, size_t length ) ;
+         static INT32 _onHeaderField( void *data, const CHAR* at,
+                                      size_t length ) ;
+         static INT32 _onHeaderValue( void *data, const CHAR* at,
+                                      size_t length ) ;
          static INT32 _onHeaderComplete( void *data ) ;
          static INT32 _onBody( void *data, const CHAR* at, size_t length ) ;
          static INT32 _onMessageComplete( void *data ) ;
@@ -171,15 +173,6 @@ namespace seadapter
          /// Append the chunk message to the stream.
          size_t appendChunk(string& output, CHAR* msg, size_t msgSize);
 
-         /// Determine if we must reconnect.
-         /*
-         inline bool mustReconnect() const
-         {
-            return (_keepAliveTimeout <= time(NULL) - _lastRequest);
-         }
-         */
-
-         INT32 _extendRecvBuff() ;
          const CHAR* _getHeaderItemVal( const CHAR *key ) ;
          void _cleanup() ;
 

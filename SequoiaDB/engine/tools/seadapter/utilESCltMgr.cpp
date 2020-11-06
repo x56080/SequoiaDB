@@ -103,7 +103,6 @@ namespace seadapter
       {
          client = _cltList.back() ;
          _cltList.pop_back() ;
-         client->reset() ;
       }
       else if ( _number < _limit )
       {
@@ -166,6 +165,9 @@ namespace seadapter
 
       stat = client->getStat() ;
       ossGetCurrentTime( stat->idleTime ) ;
+
+      // Releset the client before putting it back to cache.
+      client->reset() ;
 
       _latch.get() ;
       // Push may fail because of running out of memory. In that case, free the

@@ -118,6 +118,11 @@ namespace engine
       return _id ;
    }
 
+   void _rtnExtDataProcessor::setStat( rtnExtProcessorStat stat )
+   {
+      _stat = stat ;
+   }
+
    rtnExtProcessorStat _rtnExtDataProcessor::stat() const
    {
       return _stat ;
@@ -380,7 +385,6 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       SDB_DB_STATUS dbStatus = krcb->getDBStatus() ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
 
       // In case of rebuilding, we don't know whether the capped collections are
       // valid or not. So we directly drop and re-create the capped collection
@@ -410,10 +414,6 @@ namespace engine
                    "failed[ %d ]", _cappedCLName, rc ) ;
 
    done:
-      if ( DMS_INVALID_SUID != suID )
-      {
-         dmsCB->suUnlock( suID, SHARED ) ;
-      }
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DOREBUILD, rc ) ;
       return rc ;
    error:
@@ -592,31 +592,34 @@ namespace engine
 
          // Append operation type.
          builder.append( FIELD_NAME_TYPE, oprType ) ;
-         SDB_ASSERT( !idEle.eoo(), "OID is invalid" ) ;
-         // Append the original oid.
-         builder.appendAs( idEle, RTN_FIELD_NAME_RID ) ;
-
-         // Add source data for the operation. Only these operation need the
-         // source data.
-         if ( RTN_EXT_INSERT == oprType || RTN_EXT_UPDATE == oprType ||
-              RTN_EXT_UPDATE_WITH_ID == oprType )
+         if ( RTN_EXT_DUMMY != oprType )
          {
-            BSONObj record ;
-            if ( !keySet )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Index key set is empty" ) ;
-               goto error ;
-            }
+            SDB_ASSERT( !idEle.eoo(), "OID is invalid" ) ;
+            // Append the original oid.
+            builder.appendAs( idEle, RTN_FIELD_NAME_RID ) ;
 
-            rc = _genRecordByKeySet( *keySet, record ) ;
-            PD_RC_CHECK( rc, PDERROR, "Generate record by key set failed[%d]",
-                         rc ) ;
-            builder.append( RTN_FIELD_NAME_SOURCE, record ) ;
-
-            if ( RTN_EXT_UPDATE_WITH_ID == oprType )
+            // Add source data for the operation. Only these operation need the
+            // source data.
+            if ( RTN_EXT_INSERT == oprType || RTN_EXT_UPDATE == oprType ||
+                 RTN_EXT_UPDATE_WITH_ID == oprType )
             {
-               builder.appendAs( *newIdEle, RTN_FIELD_NAME_RID_NEW ) ;
+               BSONObj record ;
+               if ( !keySet )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Index key set is empty" ) ;
+                  goto error ;
+               }
+
+               rc = _genRecordByKeySet( *keySet, record ) ;
+               PD_RC_CHECK( rc, PDERROR, "Generate record by key set failed[%d]",
+                            rc ) ;
+               builder.append( RTN_FIELD_NAME_SOURCE, record ) ;
+
+               if ( RTN_EXT_UPDATE_WITH_ID == oprType )
+               {
+                  builder.appendAs( *newIdEle, RTN_FIELD_NAME_RID_NEW ) ;
+               }
             }
          }
          recordObj = builder.obj() ;
@@ -1069,10 +1072,12 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__ADDREBUILDRECORD, "_rtnExtDataProcessor::_addRebuildRecord" )
    INT32 _rtnExtDataProcessor::_addRebuildRecord( pmdEDUCB *cb,
                                                   SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__ADDREBUILDRECORD ) ;
       BSONObj record ;
       BSONElement dummyEle = BSONElement() ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -1085,14 +1090,14 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Insert rebuild record into collection[%s] "
                    "failed[%d]", _cappedCLName, rc ) ;
    done:
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR__ADDREBUILDRECORD, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
    _rtnExtDataProcessorMgr::_rtnExtDataProcessorMgr()
-   : _number( 0 ),
-     _pendingProcessor( NULL )
+   : _number( 0 )
    {
    }
 
@@ -1100,86 +1105,71 @@ namespace engine
    {
    }
 
-   // activate - To make the processor visible to others.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR, "_rtnExtDataProcessorMgr::createProcessor" )
    INT32 _rtnExtDataProcessorMgr::createProcessor( const CHAR *csName,
                                                    const CHAR *clName,
                                                    const CHAR *idxName,
                                                    const CHAR *extName,
                                                    const BSONObj &idxKeyDef,
-                                                   rtnExtDataProcessor *&processor,
-                                                   BOOLEAN activate )
+                                                   BOOLEAN newIndex,
+                                                   pmdEDUCB *cb,
+                                                   SDB_DPSCB *dpsCB,
+                                                   rtnExtDataProcessor *&processor )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR ) ;
+      INT32 id = RTN_EXT_PROCESSOR_INVALID_ID ;
       rtnExtDataProcessor *processorLocal = NULL ;
-      INT32 foundID = RTN_EXT_PROCESSOR_INVALID_ID ;
-      ossRWMutex *mutex = NULL ;
-      BOOLEAN locked = FALSE ;
+      BOOLEAN metaLocked = FALSE ;
 
-      ossScopedLock lock( &_mutex, EXCLUSIVE ) ;
-
-      // Loop and find a free processor. Check for the same external data at the
-      // same time.
-      for ( INT32 id = 0 ; id < RTN_EXT_PROCESSOR_MAX_NUM; ++id )
+      // Check if the processor exists by try locking the processor.
+      rc = _nameToProcessorAndLock( extName, &processorLocal ) ;
+      if ( SDB_IXM_NOTEXIST != rc )
       {
-         if ( _processors[id].isOwnedByExt( extName ) )
+         if ( processorLocal )
          {
-            rc = SDB_IXM_EXIST ;
-            PD_LOG( PDERROR, "External data with the same name exists. Maybe "
-                             "same text index has been created" ) ;
-            goto error ;
+            unlockProcessor( processorLocal ) ;
          }
-
-         if ( !processorLocal &&
-              ( RTN_EXT_PROCESSOR_INVALID == _processors[id].stat() ) )
-         {
-            // Lock and check again
-            mutex = &_processorLocks[id] ;
-            rc = mutex->lock_w( OSS_ONE_SEC * 5 ) ;
-            PD_RC_CHECK( rc, PDERROR, "Lock processor failed[%d]", rc ) ;
-            if ( RTN_EXT_PROCESSOR_INVALID != _processors[id].stat() )
-            {
-               mutex->release_w() ;
-               continue ;
-            }
-            locked = TRUE ;
-
-            foundID = id ;
-            processorLocal = &_processors[foundID] ;
-            break ;
-         }
-      }
-
-      if ( !processorLocal )
-      {
-         PD_LOG( PDERROR, "No slot for processor found" ) ;
-         rc = SDB_DMS_MAX_INDEX ;
+         rc = SDB_IXM_EXIST ;
+         PD_LOG( PDERROR, "Processor for index %s on collection %s.%s already"
+                          " exists", idxName, csName, clName ) ;
          goto error ;
       }
 
-      rc = processorLocal->init( foundID, csName, clName,
-                                 idxName, extName, idxKeyDef ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init external data processor failed[ %d ]",
-                   rc ) ;
-      _pendingProcessor = processorLocal ;
+      // Get the metadata lock, to avoid concurrent problem with other creating/
+      // dropping text index operation.
+      // _mutex.get() ;
+      aquireMetaLock( EXCLUSIVE ) ;
+      metaLocked = TRUE ;
 
-      if ( activate )
+      processorLocal = _getFirstFreeProcessor( &id ) ;
+      if ( !processorLocal )
       {
-         rc = activateProcessor( processorLocal->getID(), TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Activate processor failed[ %d ]", rc ) ;
-         _pendingProcessor = NULL ;
+         rc = SDB_DMS_MAX_INDEX ;
+         PD_LOG( PDERROR, "Text index number has hit the limit" ) ;
+         goto error ;
       }
 
+      rc = processorLocal->init( id, csName, clName, idxName,
+                                 extName, idxKeyDef ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init external data processor failed[ %d ]",
+                   rc ) ;
+
+      if ( newIndex )
+      {
+         rc = processorLocal->doRebuild( cb, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Rebuild of index failed[%d]", rc ) ;
+      }
+
+      processorLocal->active() ;
       processor = processorLocal ;
       _number++ ;
 
    done:
-      if ( locked )
+      if ( metaLocked )
       {
-         mutex->release_w() ;
+         releaseMetaLock( EXCLUSIVE ) ;
       }
-
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR, rc ) ;
       return rc ;
    error:
@@ -1187,42 +1177,6 @@ namespace engine
       {
          processorLocal->reset() ;
       }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR, "_rtnExtDataProcessorMgr::activateProcessor" )
-   INT32 _rtnExtDataProcessorMgr::activateProcessor( INT32 id,
-                                                     BOOLEAN inProtection )
-   {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY(SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR);
-
-      if ( !inProtection )
-      {
-         _mutex.get() ;
-      }
-      if ( !_pendingProcessor || (id != _pendingProcessor->getID()) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid processor id to activate: %lld", id ) ;
-         goto error ;
-      }
-
-      if ( RTN_EXT_PROCESSOR_NORMAL != _pendingProcessor->stat() )
-      {
-         rc = _pendingProcessor->active() ;
-         PD_RC_CHECK( rc, PDERROR, "Active processor failed[ %d ]", rc ) ;
-         _pendingProcessor = NULL ;
-      }
-
-   done:
-      if ( !inProtection )
-      {
-         _mutex.release() ;
-      }
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR, rc ) ;
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -1546,6 +1500,24 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSOR, "_rtnExtDataProcessorMgr::unlockProcessor" )
+   void _rtnExtDataProcessorMgr::unlockProcessor( rtnExtDataProcessor *processor,
+                                                  INT32 lockType )
+   {
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSOR ) ;
+      ossRWMutex *mutex = &_processorLocks[ processor->getID() ] ;
+
+      if ( SHARED == lockType )
+      {
+         mutex->release_r() ;
+      }
+      else if ( EXCLUSIVE == lockType )
+      {
+         mutex->release_w() ;
+      }
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSOR ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSORS, "_rtnExtDataProcessorMgr::unlockProcessors" )
    void _rtnExtDataProcessorMgr::unlockProcessors( std::vector<rtnExtDataProcessor *> &processors,
                                                    INT32 lockType )
@@ -1556,7 +1528,6 @@ namespace engine
          return ;
       }
 
-      _aquireMetaLock( SHARED ) ;
       for ( std::vector<rtnExtDataProcessor *>::iterator itr = processors.begin() ;
             itr != processors.end(); ++itr )
       {
@@ -1570,14 +1541,12 @@ namespace engine
             mutex->release_w() ;
          }
       }
-      _releaseMetaLock( SHARED ) ;
       PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSORS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSOR, "_rtnExtDataProcessorMgr::destroyProcessor" )
    void
-   _rtnExtDataProcessorMgr::destroyProcessor( rtnExtDataProcessor *processor,
-                                              INT32 lockType )
+   _rtnExtDataProcessorMgr::destroyProcessor( rtnExtDataProcessor *processor )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSOR ) ;
       if ( processor )
@@ -1589,18 +1558,10 @@ namespace engine
             goto done ;
          }
 
-         _aquireMetaLock( EXCLUSIVE ) ;
+         aquireMetaLock( EXCLUSIVE );
          processor->reset() ;
          --_number ;
-         if ( SHARED == lockType )
-         {
-            _processorLocks[id].release_r() ;
-         }
-         else if ( EXCLUSIVE == lockType )
-         {
-            _processorLocks[id].release_w() ;
-         }
-         _releaseMetaLock( EXCLUSIVE ) ;
+         releaseMetaLock( EXCLUSIVE ) ;
       }
    done:
       PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSOR ) ;
@@ -1608,11 +1569,19 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS, "_rtnExtDataProcessorMgr::destroyProcessors" )
-   void _rtnExtDataProcessorMgr::destroyProcessors( vector<rtnExtDataProcessor*> &processors,
-                                                    INT32 lockType )
+   void _rtnExtDataProcessorMgr::destroyProcessors( vector<rtnExtDataProcessor*> &processors )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS ) ;
-      _aquireMetaLock( EXCLUSIVE ) ;
+#ifdef _DEBUG
+      for ( vector<rtnExtDataProcessor*>::iterator itr = processors.begin();
+            itr != processors.end(); ++itr )
+      {
+         SDB_ASSERT( RTN_EXT_PROCESSOR_DROPPING == _processors[(*itr)->getID()].stat(),
+                     "Processor status should be dropping" ) ;
+      }
+#endif /* _DEBUG */
+
+      aquireMetaLock( EXCLUSIVE ) ;
 
       for ( vector<rtnExtDataProcessor*>::iterator itr = processors.begin();
             itr != processors.end(); ++itr )
@@ -1625,16 +1594,8 @@ namespace engine
          }
          _processors[id].reset() ;
          --_number ;
-         if ( SHARED == lockType )
-         {
-            _processorLocks[id].release_r() ;
-         }
-         else if ( EXCLUSIVE == lockType )
-         {
-            _processorLocks[id].release_w() ;
-         }
       }
-      _releaseMetaLock( EXCLUSIVE ) ;
+      releaseMetaLock( EXCLUSIVE ) ;
       PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS ) ;
    }
 
@@ -1643,7 +1604,7 @@ namespace engine
                                             const CHAR *newName )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_RENAMECS ) ;
-      _aquireMetaLock( EXCLUSIVE ) ;
+      aquireMetaLock( EXCLUSIVE );
 
       for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
       {
@@ -1653,7 +1614,7 @@ namespace engine
          }
       }
 
-      _releaseMetaLock( EXCLUSIVE ) ;
+      releaseMetaLock( EXCLUSIVE ) ;
       PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_RENAMECS ) ;
       return SDB_OK ;
    }
@@ -1664,7 +1625,7 @@ namespace engine
                                             const CHAR *newCLName )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_RENAMECL ) ;
-      _aquireMetaLock( EXCLUSIVE ) ;
+      aquireMetaLock( EXCLUSIVE );
 
       for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
       {
@@ -1674,13 +1635,32 @@ namespace engine
          }
       }
 
-      _releaseMetaLock( EXCLUSIVE ) ;
+      releaseMetaLock( EXCLUSIVE ) ;
       PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_RENAMECL ) ;
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__AQUIREMETALOCK, "_rtnExtDataProcessorMgr::_aquireMetaLock" )
-   void _rtnExtDataProcessorMgr::_aquireMetaLock( OSS_LATCH_MODE lockType )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_TRYAQUIREMETALOCK, "_rtnExtDataProcessorMgr::tryAquireMetaLock" )
+   BOOLEAN _rtnExtDataProcessorMgr::tryAquireMetaLock( OSS_LATCH_MODE lockType )
+   {
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_TRYAQUIREMETALOCK ) ;
+      BOOLEAN locked = FALSE;
+
+      if ( EXCLUSIVE == lockType )
+      {
+         locked = _mutex.try_get() ;
+      }
+      else if ( SHARED == lockType )
+      {
+         locked = _mutex.try_get_shared() ;
+      }
+
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_TRYAQUIREMETALOCK ) ;
+      return locked ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__AQUIREMETALOCK, "_rtnExtDataProcessorMgr::aquireMetaLock" )
+   void _rtnExtDataProcessorMgr::aquireMetaLock( OSS_LATCH_MODE lockType )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR__AQUIREMETALOCK ) ;
       BOOLEAN locked = FALSE ;
@@ -1709,10 +1689,10 @@ namespace engine
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__RELEASEMETALOCK, "_rtnExtDataProcessorMgr::_releaseMetaLock" )
-   void _rtnExtDataProcessorMgr::_releaseMetaLock( OSS_LATCH_MODE lockType )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_RELEASEMETALOCK, "_rtnExtDataProcessorMgr::releaseMetaLock" )
+   void _rtnExtDataProcessorMgr::releaseMetaLock( OSS_LATCH_MODE lockType )
    {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR__RELEASEMETALOCK ) ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_RELEASEMETALOCK ) ;
       if ( EXCLUSIVE == lockType )
       {
          _mutex.release() ;
@@ -1721,7 +1701,114 @@ namespace engine
       {
          _mutex.release_shared() ;
       }
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR__RELEASEMETALOCK ) ;
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_RELEASEMETALOCK ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__PROCESSORLOOKUP,"_rtnExtDataProcessorMgr::_processorLookup" )
+   INT32 _rtnExtDataProcessorMgr::_processorLookup( const CHAR *extName,
+                                                    rtnExtDataProcessor **processor )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR__PROCESSORLOOKUP ) ;
+      rtnExtDataProcessor *processorLocal = NULL ;
+
+      for ( INT32 id = 0 ; id < RTN_EXT_PROCESSOR_MAX_NUM; ++id )
+      {
+         if ( RTN_EXT_PROCESSOR_NORMAL == _processors[ id ].stat() &&
+              _processors[ id ].isOwnedByExt( extName ) )
+         {
+            processorLocal = &_processors[ id ];
+            break;
+         }
+      }
+
+      if ( !processorLocal )
+      {
+         rc = SDB_IXM_NOTEXIST ;
+         goto error ;
+      }
+
+      if ( processor )
+      {
+         *processor = processorLocal ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR__PROCESSORLOOKUP, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__NAMETOPROCESSORANDLOCK,"_rtnExtDataProcessorMgr::_nameToProcessorAndLock" )
+   INT32 _rtnExtDataProcessorMgr::_nameToProcessorAndLock( const CHAR *extName,
+                                                           rtnExtDataProcessor **processor,
+                                                           OSS_LATCH_MODE lockType,
+                                                           INT32 millisec )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR__NAMETOPROCESSORANDLOCK ) ;
+      rtnExtDataProcessor *processorLocal = NULL ;
+
+      SDB_ASSERT( processor, "Processor pointer is NULL" ) ;
+      SDB_ASSERT( extName, "External name is not null" ) ;
+
+      ossScopedLock lock( &_mutex, SHARED ) ;
+
+      rc = _processorLookup( extName, &processorLocal ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      SDB_ASSERT( processorLocal, "Processor is NULL" ) ;
+
+      if ( EXCLUSIVE == lockType )
+      {
+         rc = _processorLocks[ processorLocal->getID() ].lock_w( millisec ) ;
+      }
+      else
+      {
+         rc = _processorLocks[ processorLocal->getID() ].lock_r( millisec ) ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      *processor = processorLocal ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR__NAMETOPROCESSORANDLOCK,
+                       rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR__GETFIRSTFREEPROCESSOR,"_rtnExtDataProcessorMgr::_getFirstFreeProcessor" )
+   rtnExtDataProcessor* _rtnExtDataProcessorMgr::_getFirstFreeProcessor( INT32 *id )
+   {
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR__GETFIRSTFREEPROCESSOR ) ;
+      rtnExtDataProcessor *processor = NULL ;
+      if ( _number < RTN_EXT_PROCESSOR_MAX_NUM )
+      {
+         for ( INT32 index = 0 ; index < RTN_EXT_PROCESSOR_MAX_NUM; ++index )
+         {
+            if ( RTN_EXT_PROCESSOR_INVALID == _processors[ index ].stat() )
+            {
+               if ( id )
+               {
+                  *id = index ;
+               }
+               processor = &_processors[ index ] ;
+               break ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR__GETFIRSTFREEPROCESSOR ) ;
+      return processor ;
    }
 
    rtnExtDataProcessorMgr* rtnGetExtDataProcessorMgr()

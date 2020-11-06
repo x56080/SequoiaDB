@@ -100,6 +100,7 @@ namespace engine
    {
       RTN_EXT_PROCESSOR_NORMAL = 0,
       RTN_EXT_PROCESSOR_CREATING,
+      RTN_EXT_PROCESSOR_DROPPING,
       RTN_EXT_PROCESSOR_INVALID
    };
    typedef _rtnExtProcessorStat rtnExtProcessorStat ;
@@ -123,6 +124,8 @@ namespace engine
       void  reset() ;
 
       INT32 getID() const;
+
+      void setStat( rtnExtProcessorStat stat ) ;
 
       rtnExtProcessorStat stat() const ;
 
@@ -214,17 +217,13 @@ namespace engine
       // activate: Once activated, the processor can be used by other threads.
       INT32 createProcessor( const CHAR *csName, const CHAR *clName,
                              const CHAR *idxName, const CHAR *extName,
-                             const BSONObj &idxKeyDef,
-                             rtnExtDataProcessor *&processor,
-                             BOOLEAN activate = TRUE ) ;
+                             const BSONObj &idxKeyDef, BOOLEAN newIndex,
+                             pmdEDUCB *cb, SDB_DPSCB *dpsCB,
+                             rtnExtDataProcessor *&processor ) ;
 
-      INT32 activateProcessor( INT32 id, BOOLEAN inProtection ) ;
+      void destroyProcessor( rtnExtDataProcessor *processor ) ;
 
-      void destroyProcessor( rtnExtDataProcessor *processor,
-                             INT32 lockType = -1 ) ;
-
-      void destroyProcessors( vector<rtnExtDataProcessor*> &processors,
-                              INT32 lockType = -1 ) ;
+      void destroyProcessors( vector<rtnExtDataProcessor*> &processors ) ;
 
       UINT32 number()  ;
 
@@ -242,6 +241,9 @@ namespace engine
       INT32 getProcessorByExtName( const CHAR *extName, INT32 lockType,
                                    rtnExtDataProcessor *&processor ) ;
 
+      void unlockProcessor( rtnExtDataProcessor * processor,
+                            INT32 lockType = SHARED ) ;
+
       void unlockProcessors( std::vector<rtnExtDataProcessor *> &processors,
                              INT32 lockType ) ;
 
@@ -250,17 +252,37 @@ namespace engine
       INT32 renameCL( const CHAR *csName, const CHAR *clName,
                       const CHAR *newCLName ) ;
 
-   private:
-      void _aquireMetaLock( OSS_LATCH_MODE lockType ) ;
-      void _releaseMetaLock( OSS_LATCH_MODE lockType ) ;
+      BOOLEAN tryAquireMetaLock( OSS_LATCH_MODE lockType ) ;
+
+      void aquireMetaLock( OSS_LATCH_MODE lockType ) ;
+
+      void releaseMetaLock( OSS_LATCH_MODE lockType ) ;
 
    private:
-      // Mutex to protect meta data change.
+      INT32 _processorLookup( const CHAR *extName,
+                              rtnExtDataProcessor **processor ) ;
+
+      /**
+       * Get the processor by external name, and lock the processor.
+       */
+      INT32 _nameToProcessorAndLock( const CHAR *extName,
+                                     rtnExtDataProcessor **processor,
+                                     OSS_LATCH_MODE lockType = SHARED,
+                                     INT32 millisec = -1 ) ;
+
+
+      /**
+       * Get the first processor slot which is free.
+       * @return
+       */
+      rtnExtDataProcessor* _getFirstFreeProcessor( INT32 *id ) ;
+
+   private:
+      // Mutex for adding/removing processor.
       ossSpinSLatch        _mutex ;
       UINT16               _number ;
       rtnExtDataProcessor  _processors[ RTN_EXT_PROCESSOR_MAX_NUM ] ;
       ossRWMutex           _processorLocks[ RTN_EXT_PROCESSOR_MAX_NUM ] ;
-      rtnExtDataProcessor  *_pendingProcessor ;
    } ;
    typedef _rtnExtDataProcessorMgr rtnExtDataProcessorMgr ;
 

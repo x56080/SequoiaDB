@@ -649,6 +649,7 @@ namespace seadapter
       BSONObj replyObj ;
       HTTP_STATUS_CODE status = 0 ;
       std::ostringstream oss;
+      const CHAR *scroll = NULL ;
 
       ES_CLT_ARG_CHK2( index, type ) ;
 
@@ -669,25 +670,30 @@ namespace seadapter
       PD_LOG( PDDEBUG, "Reply for init scroll: %s",
               replyObj.toString().c_str() ) ;
 
+      scroll = replyObj.getStringField( ES_SCROLL_ID_KEY ) ;
+      if ( 0 == ossStrlen( scroll ) )
+      {
+         PD_LOG( PDERROR, "Scroll id is not found in the result: %s",
+                 replyObj.toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
       rc = _getResultObjs( replyObj, result ) ;
       PD_RC_CHECK( rc, PDERROR, "Get result objects from reply failed[ %d ]",
                    rc ) ;
-      {
-         const CHAR *scroll = replyObj.getStringField( ES_SCROLL_ID_KEY ) ;
-         if ( 0 == ossStrlen( scroll ) )
-         {
-            PD_LOG( PDERROR, "Scroll id is not found in the result: %s",
-                    replyObj.toString().c_str() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         scrollId = string( scroll ) ;
-         PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
-      }
+
+      scrollId = string( scroll ) ;
+      PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
 
    done:
       return rc ;
    error:
+      if ( scroll && ossStrlen( scroll ) > 0 )
+      {
+         clearScroll( scroll ) ;
+         PD_LOG( PDDEBUG, "Clear scroll %s", scroll ) ;
+      }
       goto done ;
    }
 
@@ -699,6 +705,7 @@ namespace seadapter
       INT32 replyLen = 0 ;
       BSONObj replyObj ;
       HTTP_STATUS_CODE status = 0 ;
+      const CHAR *scroll = NULL ;
       string endUrl = "_search/scroll?scroll=60m" ;
       string scrollIdStr = "{ \"scroll_id\" : \"" + scrollId + "\" }" ;
 
@@ -712,27 +719,44 @@ namespace seadapter
       rc = _processReply( rc, reply, replyLen, replyObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
 
-      rc = _getResultObjs( replyObj, result ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get objects from reply failed[ %d ]", rc ) ;
+      // The initial search request and each ssubsequent scroll request
+      // returns a new _scroll_id. Only the most recent _scroll_id should be
+      // used.
+      scroll = replyObj.getStringField( ES_SCROLL_ID_KEY ) ;
+      if ( 0 == ossStrlen( scroll ) )
       {
-         // The initial search request and each ssubsequent scroll request
-         // returns a new _scroll_id. Only the most recent _scroll_id should be
-         // used.
-         const CHAR *scroll = replyObj.getStringField( ES_SCROLL_ID_KEY ) ;
-         if ( 0 == ossStrlen( scroll ) )
-         {
-            PD_LOG( PDERROR, "Scroll id is not found in the result: %s",
-                    replyObj.toString().c_str() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         scrollId = string( scroll ) ;
-         PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
+         PD_LOG( PDERROR, "Scroll id is not found in the result: %s",
+                 replyObj.toString().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
+
+      rc = _getResultObjs( replyObj, result ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Get objects from reply failed[ %d ]", rc ) ;
+         }
+         goto error ;
+      }
+
+      scrollId = string( scroll ) ;
+      PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
 
    done:
       return rc ;
    error:
+      if ( scroll && ( ossStrlen( scroll ) > 0 ) )
+      {
+         clearScroll( scroll ) ;
+         PD_LOG( PDDEBUG, "Clear scroll %s", scroll ) ;
+      }
+
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
       goto done ;
    }
 
@@ -824,8 +848,9 @@ namespace seadapter
             BSONElement hitsObj = replyObj.getField( "hits" ) ;
             if ( hitsObj.eoo() )
             {
-               PD_LOG( PDERROR, "Expected field 'hits' not found in the result:"
+               PD_LOG( PDDEBUG, "Field 'hits' not found in the result:"
                        " %s", replyObj.toString( false, true ).c_str() ) ;
+               rc = SDB_DMS_EOC ;
                goto error ;
             }
             else if ( Object == hitsObj.type() )

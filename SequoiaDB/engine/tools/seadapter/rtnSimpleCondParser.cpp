@@ -112,27 +112,36 @@ namespace seadapter
    INT32 _rtnSimpleCondParseTree::parse( const BSONObj &object )
    {
       INT32 rc = SDB_OK ;
-      _condition = object.copy() ;
-      _root = rtnGetCondNodeFactory()->createNode( &_allocator,
-                                                   RTN_COND_NODE_LOGIC_AND ) ;
-      if ( !_root )
+      try
       {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Create condition node failed, type[ %d ]",
-                 RTN_COND_NODE_LOGIC_AND ) ;
-         goto error ;
-      }
-
-      // Traverse all the elements in this bson.
-      {
-         BSONObjIterator itr( _condition ) ;
-         while ( itr.more() )
+         _condition = object.copy() ;
+         _root = rtnGetCondNodeFactory()->createNode( &_allocator,
+                                                      RTN_COND_NODE_LOGIC_AND ) ;
+         if ( !_root )
          {
-            BSONElement eleTmp = itr.next() ;
-            rc = _parseElement( eleTmp, _root ) ;
-            PD_RC_CHECK( rc, PDERROR, "Parse element[ %s ] failed[ %d ]",
-                         eleTmp.toString().c_str(), rc ) ;
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Create condition node failed, type[ %d ]",
+                    RTN_COND_NODE_LOGIC_AND ) ;
+            goto error ;
          }
+
+         // Traverse all the elements in this bson.
+         {
+            BSONObjIterator itr( _condition ) ;
+            while ( itr.more() )
+            {
+               BSONElement eleTmp = itr.next() ;
+               rc = _parseElement( eleTmp, _root ) ;
+               PD_RC_CHECK( rc, PDERROR, "Parse element[ %s ] failed[ %d ]",
+                            eleTmp.toString().c_str(), rc ) ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
    done:
@@ -442,14 +451,23 @@ namespace seadapter
       SDB_ASSERT( Object == ele.type(), "Element of text operation should be "
                   "object type" ) ;
 
-      BSONObj innerObj = ele.embeddedObject() ;
-      if ( 1 != innerObj.nFields() ||
-           0 != ossStrcmp( FIELD_NAME_TEXT,
-                           innerObj.firstElement().fieldName() ) )
+      try
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid element in condition: %s",
-                 ele.toString().c_str() ) ;
+         BSONObj innerObj = ele.embeddedObject() ;
+         if ( 1 != innerObj.nFields() ||
+              0 != ossStrcmp( FIELD_NAME_TEXT,
+                              innerObj.firstElement().fieldName() ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid element in condition: %s",
+                    ele.toString().c_str() ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
