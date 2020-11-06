@@ -488,10 +488,12 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    {
       return rc;
    }
+
    if ((rc = _checkStateAndRestore(cb, targetTime)))
    {
       return rc;
    }
+
    if (!_optTestOnly && (rc = _setRestoreInProgress(cb, FALSE)))
    {
       return rc;
@@ -531,16 +533,32 @@ INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    BOOLEAN inProgress;
+   // acquire restore lock to make sure there is only one running,
+   // we do it before checking inprogress state so that we are not seeing
+   // another almost finishing restore with following timing hole:
+   //    Running PIT restore, with both inprogress = true and locked = true
+   //    New restore does state check and found inprogress = true
+   //    Running PIT finished, set inprogress = false and locked = false
+   //    New restore gets in. But we shouldn't perform PIT restore. 
+   if ( ( rc = _updateRestoreLock( cb, TRUE ) ) )
+   {
+      PD_LOG( PDERROR, "There is already a restore running." );
+      return ( rc = SDB_RESTORE_RUNNING );
+   }
+
    if ((rc = _checkRestoreInProgress(cb, &inProgress)))
    {
+      _updateRestoreLock( cb, FALSE ) ;
       return rc;
    }
    if (!inProgress)
    {
+      _updateRestoreLock( cb, FALSE ) ;
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
-      return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
+      return ( rc = SDB_RESTORE_NOT_IN_PROGRESS );
    }
-   return (rc = _coordinateRestore(cb, targetTime));
+
+   return ( rc = _coordinateRestore(cb, targetTime) );
 }
 
 INT32 coordCMDRestoreToPIT::_coordinateRestore(pmdEDUCB *cb, UINT64 targetTime)
@@ -702,6 +720,42 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
    return rc;
 }
 
+// Update the catalog DC RestoreLocked value. 
+// We use this value to guarantee that there should only be one restoreToPIT
+// running at a time.
+// @param   enable   Whether to enable or diable the state
+INT32 coordCMDRestoreToPIT::_updateRestoreLock( pmdEDUCB *cb, BOOLEAN enable )
+{
+   INT32   rc    = SDB_OK;
+   BSONObj query;
+   PD_LOG( PDINFO, "Setting cluster restore locked [%s] = [%d]",
+           FIELD_NAME_RESTORE_LOCKED, enable );
+
+   try
+   {
+      if (enable)
+      {
+         query = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_LOCK );
+      }
+      else
+      {
+         query = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_UNLOCK );
+      }
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to create query");
+      return (rc = SDB_OOM);
+   }
+
+   // Update the DC: this will update cata and data
+   if ((rc = _alterDC(cb, query)))
+   {
+      PD_LOG(PDERROR, "Failed to update DC state across nodes");
+      return rc;
+   }
+   return rc;
+}
 /*
    coordCMDRestoreAbort definitions
 */

@@ -154,6 +154,15 @@ namespace engine
                                        _clsDCMgr *pDCMgr,
                                        const BSONObj &objQuery,
                                        BSONObjBuilder &retObjBuilder);
+      INT32 processCmdRestoreLock(const NET_HANDLE &handle,
+                                  _clsDCMgr *pDCMgr,
+                                  const BSONObj &objQuery,
+                                  BSONObjBuilder &retObjBuilder);
+      INT32 processCmdRestoreUnlock(const NET_HANDLE &handle,
+                                    _clsDCMgr *pDCMgr,
+                                    const BSONObj &objQuery,
+                                    BSONObjBuilder &retObjBuilder);
+
 
      protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;

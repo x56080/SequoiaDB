@@ -83,6 +83,7 @@ class coordCMDRestoreToPIT : public _coordCMDRestore
    INT32 _setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
                              UINT64 *targetTime);
    INT32 _restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime, BOOLEAN test);
+   INT32 _updateRestoreLock( pmdEDUCB *cb, BOOLEAN enable );
 
  protected:
    BOOLEAN _optTestOnly;

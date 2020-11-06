@@ -93,11 +93,13 @@ namespace engine
          void           setAcitvated( BOOLEAN activated ) ;
          void           setReadonly( BOOLEAN readonly ) ;
          void           setRestoring( BOOLEAN restoring ) ;
+         void           setRestoreLocked( BOOLEAN locked ) ;
 
       public:
          BOOLEAN        isActivated() const { return _activated ; }
          BOOLEAN        isReadonly() const { return _readonly ; }
          BOOLEAN        isRestoring() const { return _restoring ; }
+         BOOLEAN        isRestoreLocked() const { return _restoreLocked ; }
 
          BOOLEAN        hasCSUniqueHWM() const { return _hasCsUniqueHWM ; }
          utilCSUniqueID getCSUniqueHWM() const { return _csUniqueHWM ; }
@@ -138,6 +140,7 @@ namespace engine
          BOOLEAN        _activated ;
          BOOLEAN        _readonly ;
          BOOLEAN        _restoring ;
+         BOOLEAN        _restoreLocked ;
          BOOLEAN        _hasCsUniqueHWM ;
          utilCSUniqueID _csUniqueHWM ;
 

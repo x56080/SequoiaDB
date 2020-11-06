@@ -2890,5 +2890,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_RESTORE_RUNNING</name>
+         <description>
+            <en>Database restore is already running</en>
+            <cn>数据库恢复正在运行中</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
