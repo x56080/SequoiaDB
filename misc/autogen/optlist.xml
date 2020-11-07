@@ -2512,7 +2512,7 @@
       <name>PMD_OPTION_SERVICE_MASK</name>
       <long>servicemask</long>
       <description>
-         <en>Block the mask of service port. The values include LOCAL、REPL、SHARD、CATALOG and HTTP. Users can use ‘|’ to connect multiple values. The default value is NONE.</en>
+         <en>Block the mask of service port. The values include LOCAL,REPL,SHARD,CATALOG and HTTP. Users can use '|' to connect multiple values. The default value is NONE.</en>
          <cn>屏蔽服务端口的掩码，取值为 LOCAL、REPL、SHARD、CATALOG 和 HTTP，可以使用'|'连接多个值，默认值为 NONE。</cn>
       </description>
       <detail>
