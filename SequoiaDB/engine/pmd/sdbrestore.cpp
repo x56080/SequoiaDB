@@ -68,11 +68,6 @@ namespace fs = boost::filesystem ;
 namespace engine
 {
 
-   /*
-      restore logger define
-   */
-   barRSOfflineLogger   g_restoreLogger ;
-
    #define PMD_SDBRESTORE_DIAGLOG_NAME          "sdbrestore.txt"
 
    /*
@@ -538,6 +533,8 @@ namespace engine
       pmdKRCB   *krcb     = pmdGetKRCB () ;
       EDUID      agentEDU = PMD_INVALID_EDUID ;
       CHAR diaglog[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
+
+      barRSOfflineLogger restoreLogger ;
       rsOptionMgr optMgr ;
 
       // 1. read command line first
@@ -584,7 +581,7 @@ namespace engine
                SDB_ENGINE_VERISON_CURRENT, SDB_ENGINE_SUBVERSION_CURRENT,
                SDB_ENGINE_RELEASE_CURRENT, SDB_ENGINE_BUILD_TIME ) ;
 
-      rc = g_restoreLogger.init( optMgr._bkPath, optMgr._bkName, NULL,
+      rc = restoreLogger.init( optMgr._bkPath, optMgr._bkName, NULL,
                                  optMgr._incID, optMgr._beginIncID,
                                  optMgr._skipConf ) ;
       if ( rc )
@@ -596,12 +593,12 @@ namespace engine
       if ( optMgr._isSelf )
       {
          // restore configs
-         rc = krcb->getOptionCB()->restore ( g_restoreLogger.getConf(),
+         rc = krcb->getOptionCB()->restore ( restoreLogger.getConf(),
                                              &(optMgr._vm) ) ;
       }
       else
       {
-         BSONObj newCfgObj = rsMakeNoneSelfCfg( g_restoreLogger.getConf() ) ;
+         BSONObj newCfgObj = rsMakeNoneSelfCfg( restoreLogger.getConf() ) ;
          rc = krcb->getOptionCB()->restore ( newCfgObj, &(optMgr._vm) ) ;
       }
       if ( rc )
@@ -625,7 +622,7 @@ namespace engine
 
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
-      rc = startRestoreJob( &agentEDU, &g_restoreLogger ) ;
+      rc = startRestoreJob( &agentEDU, &restoreLogger ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to start restore task, rc: %d", rc ) ;

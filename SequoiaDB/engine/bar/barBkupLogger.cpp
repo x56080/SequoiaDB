@@ -2919,46 +2919,6 @@ namespace engine
       /// wait all log complete
       if ( _replBucket.maxReplSync() > 0 )
       {
-         // wait all repl-sync log processed
-         PD_LOG( PDEVENT, "Begin to wait repl bucket empty[%s]",
-                 _replBucket.toBson().toString().c_str() ) ;
-         std::cout << "Begin to wait repl bucket empty..." << std::endl ;
-
-         DPS_LSN expectLSN ;
-         INT32 rcTmp = _replBucket.waitEmptyAndRollback( NULL, &expectLSN ) ;
-         if ( SDB_OK == rc && rcTmp )
-         {
-            rc = rcTmp ;
-            PD_LOG( PDERROR, "Reply log failed, rc: %d", rc ) ;
-            std::cout << "Reply log failed: " << rc << std::endl ;
-         }
-
-         if ( rcTmp )
-         {
-            if ( NULL != _pTransCB )
-            {
-               rcTmp = _pTransCB->rollbackTransInfoFromLog( _pDPSCB, expectLSN ) ;
-               if ( SDB_OK != rcTmp )
-               {
-                  PD_LOG( PDERROR, "Failed to rollback trans info to "
-                          "LSN [%u, %llu], rc: %d", expectLSN.version,
-                          expectLSN.offset, rcTmp ) ;
-               }
-            }
-
-            rcTmp = _pDPSCB->move( expectLSN.offset, expectLSN.version ) ;
-            if ( rcTmp )
-            {
-               PD_LOG( PDERROR, "Failed to move lsn to [%u, %llu], rc: %d",
-                       expectLSN.version, expectLSN.offset, rcTmp ) ;
-            }
-            else
-            {
-               PD_LOG( PDEVENT, "Move lsn to [%u, %llu]",
-                       expectLSN.version, expectLSN.offset ) ;
-            }
-         }
-
          PD_LOG( PDEVENT, "Wait repl bucket empty completed" ) ;
          _replBucket.close() ;
       }
@@ -3003,20 +2963,36 @@ namespace engine
                                                _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      const CHAR *pLogIndex = pData ;
-      DPS_LSN lsn ;
+      INT32 replayRC = SDB_OK ;
+      const CHAR *pLogIndex = NULL ;
+      DPS_LSN expectLSN ;
+      DPS_LSN completeLSN ;
+      DPS_LSN_OFFSET firstOffset = DPS_INVALID_LSN_OFFSET ;
+      BOOLEAN inRetry = FALSE ;
       _clsReplayer replayer ;
 
+   retry:
+      pLogIndex = pData ;
       while ( pLogIndex < pData + pExtHeader->_dataSize )
       {
+         BOOLEAN canSkip = FALSE ;
          dpsLogRecordHeader *pHeader = (dpsLogRecordHeader *)pLogIndex ;
-         lsn = _pDPSCB->expectLsn() ;
+         expectLSN = _pDPSCB->expectLsn() ;
+
+         canSkip = ( expectLSN.compareOffset( pHeader->_lsn ) > 0 ) ;
+
+         if ( isIncData && canSkip && inRetry )
+         {
+            // in retry, just skip
+            pLogIndex += pHeader->_length ;
+            continue ;
+         }
 
          // judge lsn valid
-         if ( 0 != lsn.compareOffset( pHeader->_lsn ) )
+         if ( 0 != expectLSN.compareOffset( pHeader->_lsn ) )
          {
             PD_LOG( PDERROR, "Expect lsn[%lld] is not the same with cur "
-                    "lsn[%lld]", lsn.offset, pHeader->_lsn ) ;
+                    "lsn[%lld]", expectLSN.offset, pHeader->_lsn ) ;
             rc = SDB_BAR_DAMAGED_BK_FILE ;
             goto error ;
          }
@@ -3024,6 +3000,11 @@ namespace engine
          // if in inc backup data file
          if ( isIncData )
          {
+            if ( DPS_INVALID_LSN_OFFSET == firstOffset )
+            {
+               firstOffset = pHeader->_lsn ;
+            }
+
             if ( _replBucket.maxReplSync() > 0 )
             {
                rc = replayer.replayByBucket( pHeader, cb, &_replBucket ) ;
@@ -3040,7 +3021,7 @@ namespace engine
                PD_LOG( PDERROR, "Failed to reply log[ lsn: %lld, type: "
                        "%d, len: %d ], rc: %d", pHeader->_lsn, pHeader->_type,
                        pHeader->_length, rc ) ;
-               std::cout << "Reply log failed: " << rc << std::endl ;
+               replayRC = rc ;
                goto error ;
             }
          }
@@ -3064,7 +3045,69 @@ namespace engine
       }
 
    done:
+      if ( isIncData && _replBucket.maxReplSync() > 0 )
+      {
+         // wait for bucket empty
+         rc = _replBucket.waitEmptyAndRollback( NULL, &completeLSN ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to wait for bucket empty, rc: %d", rc ) ;
+
+            // error happenned
+            // - rollback trans info
+            // - move log back
+            // - check if pending on duplicated key issue
+            INT32 rcTmp = _pTransCB->rollbackTransInfoFromLog( _pDPSCB,
+                                                               completeLSN ) ;
+            if ( SDB_OK != rcTmp )
+            {
+               PD_LOG( PDERROR, "Failed to rollback trans info to "
+                       "LSN [%u, %llu], rc: %d", completeLSN.version,
+                       completeLSN.offset, rcTmp ) ;
+            }
+
+            rcTmp = _pDPSCB->move( completeLSN.offset, completeLSN.version ) ;
+            if ( SDB_OK != rcTmp )
+            {
+               PD_LOG( PDERROR, "Failed to move lsn to [%u, %llu], rc: %d",
+                       completeLSN.version, completeLSN.offset, rcTmp ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Move lsn to[%u, %llu]",
+                       completeLSN.version, completeLSN.offset ) ;
+
+               if ( _replBucket.hasPending() )
+               {
+                  // if pending and some records have been replayed, retry again
+                  if ( DPS_INVALID_LSN_OFFSET != firstOffset &&
+                       DPS_INVALID_LSN_OFFSET != completeLSN.offset &&
+                       completeLSN.offset > firstOffset )
+                  {
+                     PD_LOG( PDEVENT, "Retry resolve pending lsn "
+                             "[%u, %llu]", completeLSN.version,
+                             completeLSN.offset ) ;
+                     // retry again
+                     inRetry = TRUE ;
+                     firstOffset = DPS_INVALID_LSN_OFFSET ;
+                     replayRC = SDB_OK ;
+                     goto retry ;
+                  }
+               }
+            }
+            if ( SDB_OK == replayRC )
+            {
+               replayRC = rc ;
+            }
+         }
+      }
+
+      if ( SDB_OK != replayRC )
+      {
+         std::cout << "Reply log failed: " << replayRC << std::endl ;
+      }
       return rc ;
+
    error:
       goto done ;
    }
