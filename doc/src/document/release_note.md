@@ -9,45 +9,85 @@
 
 - MySQL 引擎
   - 配置项 *sequoiadb_use_transaction* 新增在 session 级别设置的能力
-  - 新增配置项 *sequoiadb_use_rollback_segments*、*sequoiadb_optimizer_options*
+  - 新增配置项 *sequoiadb_use_rollback_segments、sequoiadb_optimizer_options、sequoiadb_lock_wait_timeout*
 - SequoiaDB
-  - 新增配置项：*servicemask*
+  - 新增配置项 *servicemask*
   - Java/Python/PHP/C# 驱动增加快照类型：SDB_SNAP_QUERIES、SDB_SNAP_LATCHWAITS、SDB_SNAP_LOCKWAITS
   - REST 中 insert 接口支持 flag 参数
   - SequoiaFS 增加区域的创建、查询、删除等接口
 
 **主要特性：**
 
-- MySQL/MariaDB 支持通过密码文件与 SequoiaDB 建立连接
-- 通过配置项 servicemask 关闭 SequoiaDB 节点指定服务端口
-- 集合增加 getDetail() 接口，用于获取集合快照信息
-- 支持在更新操作符中，使用一个字段的值去更新其它字段
-- 节点健康快照中增加 StackSize 字段
-- 提供 SequoiaFS 的启动、停止及查询脚本
+- MySQL 引擎
+  - 新增对 MySQL 5.7.31 的支持
+  - 支持修改自动生成列
+  - 支持通过密码文件与 SequoiaDB 建立连接
+
+- SequoiaDB
+  - 通过配置项 servicemask 关闭 SequoiaDB 节点指定服务端口
+  - 集合增加 getDetail() 接口，用于获取集合快照信息
 
 **性能优化：**
 
+- MySQL 支持部分条件、order by、group by 及 limit 下压，提升查询性能
+- MySQL 元数据同步工具改为多线程同步，提升同步性能
 - 优化 BSON 中 int 与 long 类型数据的比较性能
-- 优化事务下索引查询时的锁获取机制，提升 count() 性能
+- 优化事务中索引查询的锁获取机制，提升 count() 性能
 
 **工具优化：**
 
+- MySQL 元数据同步工具完善对存储过程的同步及对注释的处理
 - sdb shell 支持通过加密文件方式输入密码
 - sdb shell 历史命令中不记录与密码相关的命令
 - 导入工具支持对索引键重复的记录进行替换
 - 导入、导出工具支持字符分隔符为空
 - 导入工具内存分配机制优化，提升包含多层嵌套 json 的记录的性能
-- sdbpasswd 工具完善和优化
 - SAC 支持新增、查看、删除自增字段
 
 **解决重要Bug：**
 
 - OpenSSL 库升级到 OpenSSL-1.1.1g 版本，解决老版本安全漏洞问题
 - 修改 ListLobs 指定 OID 查询无效的问题
-- 修改 SequoiaFS 挂载目录的权限设置问题
-- 修改集合上 truncate 与 dropIndex 并发重放时的报错问题
 - 解决特定场景下集合压缩器扫描数据导致 CPU 占用高的问题
 
+##SequoiaDB version 3.2.5 版本说明##
+
+**接口变更：**
+
+- MySQL 引擎
+  - 支持在 MySQL 中指定表的压缩类型
+
+- SequoiaDB
+  - REST 接口增加自增字段操作命令 create autoIncrement 和 drop autoIncrement
+  - 节点健康快照中增加 StackSize 字段
+
+**主要特性：**
+
+- 新增对 MySQL 5.7.28 的支持
+- MySQL 完善对 alter table 命令的支持
+- 提供分区组容错熔断机制，通过配置开启错误和风险智能检测，并提供“熔断”、“半容错”和“全容错”三种容错级别，实现高可用
+- 支持在更新操作符中，使用一个字段的值去更新其它字段
+- 新增交互式和加密文件两种密码输入方式
+- 提供 SequoiaFS 的启动、停止及查询脚本
+- 全文检索适配 ElasticSearch 6.8.5 版本
+
+**性能优化：**
+
+- MySQL 支持下压使用一个字段更新其它字段的操作，提升更新性能
+- MySQL 实现索引逆序读，提升排序性能
+- SequoiaDB 节点启动性能优化，提升启动速度
+- 事务老版本清理性能优化，提升清理性能
+- 优化分区命中算法，提升查询性能
+
+
+**工具优化：**
+
+- sdbpasswd 工具完善和优化
+
+**解决重要Bug：**
+
+- 修改升级时 DataCommitLSN 在某些场景下为 -1 的问题
+- 修改 SequoiaFS 挂载目录的权限设置问题
 
 ##SequoiaDB version 3.2.4 版本说明##
 
