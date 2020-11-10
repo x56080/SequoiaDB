@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    var groups = getGroupsWithNodeNum( 2 );
    if( groups.length === 0 )
@@ -19,24 +19,24 @@ function test( testPara )
    var primaryPos = group[0].PrimaryPos;
    var clName = CHANGEDPREFIX + "_14091";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 } );
    insertData( cl );
 
    //PreferedInstance为["A","M","S"]，PreferedInstanceMode为random
-   var options = { PreferedInstance: ["A","M","S"], PreferedInstanceMode: "random" };
+   var options = { PreferedInstance: ["A", "M", "S"], PreferedInstanceMode: "random" };
    var expAccessNodes = getGroupNodes( groupName );
    checkAccessNodes( cl, expAccessNodes, options );
 
    //PreferedInstance为["M","S","A"]，PreferedInstanceMode为ordered
-   options = { PreferedInstance: ["M","S","A"], PreferedInstanceMode: "ordered" };
-   var expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   options = { PreferedInstance: ["M", "S", "A"], PreferedInstanceMode: "ordered" };
+   var expAccessNodes = [group[primaryPos].HostName + ":" + group[primaryPos].svcname];
    checkAccessNodes( cl, expAccessNodes, options );
 
    //PreferedInstance为["A","M","S"]，不设置PreferedInstanceMode
-   options = { PreferedInstance: ["A","M","S"] };
+   options = { PreferedInstance: ["A", "M", "S"] };
    var expAccessNodes = getGroupNodes( groupName );
    checkAccessNodes( cl, expAccessNodes, options );
 
-   commDropCL( db, COMMCSNAME, clName, true, true ) ;
+   commDropCL( db, COMMCSNAME, clName, true, true );
 }
 

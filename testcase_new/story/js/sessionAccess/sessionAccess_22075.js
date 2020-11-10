@@ -6,14 +6,14 @@ testConf.skipStandAlone = true;
 
 var group = commGetGroups( db )[0];
 var primaryPos = group[0].PrimaryPos;
-var groupName = group[0]["GroupName"] ;
+var groupName = group[0]["GroupName"];
 testConf.clName = CHANGEDPREFIX + "_22075";
-testConf.clOpt = { Group: groupName };
-var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname
+testConf.clOpt = { Group: groupName, ReplSize: 0 };
+var primaryNode = group[primaryPos].HostName + ":" + group[primaryPos].svcname
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    //preferedPeriod为0
    db.setSessionAttr( { PreferedInstance: "s", PreferedPeriod: 0 } );
@@ -24,11 +24,11 @@ function test( testPara )
    {
       if( i !== primaryPos )
       {
-         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
+         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"] );
       }
-   }  
+   }
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
-   if( expAccessNodes.indexOf( actAccessNode ) === -1)
+   if( expAccessNodes.indexOf( actAccessNode ) === -1 )
    {
       throw new Error( "The expAccessNodes do not include the node: " + actAccessNode );
    }
@@ -47,8 +47,8 @@ function test( testPara )
    sleep( 2000 );
 
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
-   if( expAccessNodes.indexOf( actAccessNode ) === -1)
-   {  
+   if( expAccessNodes.indexOf( actAccessNode ) === -1 )
+   {
       throw new Error( "The expAccessNodes do not include the node: " + actAccessNode );
    }
 
@@ -67,7 +67,7 @@ function test( testPara )
 
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( actAccessNode !== primaryNode )
-   {  
+   {
       throw new Error( "The expected result is " + expAccessNode + ", but the actual result is " + primaryNode );
    }
 }

@@ -39,7 +39,7 @@ function test ()
    try
    {
       cl.find().explain();
-      throw "FIND_SHOULD_FAIL";
+      throw new Error( "FIND_SHOULD_FAIL" );
    }
    catch( e )
    {

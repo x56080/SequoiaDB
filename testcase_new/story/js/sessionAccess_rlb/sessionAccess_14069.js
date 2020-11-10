@@ -79,7 +79,7 @@ function checkResult ( groupName, instanceidList )
    {
       if( instanceidList[i] != 0 && instanceidList[i] != groupInfo.Group[i].instanceid )
       {
-         throw "instanceidList[" + i + "] = " + instanceidList[i] + ", groupInfo.Group[" + i + "].instanceid = " + groupInfo.Group[i].instanceid;
+         throw new Error( "instanceidList[" + i + "] = " + instanceidList[i] + ", groupInfo.Group[" + i + "].instanceid = " + groupInfo.Group[i].instanceid );
       }
    }
 }

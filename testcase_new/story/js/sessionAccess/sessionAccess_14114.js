@@ -5,21 +5,22 @@
 testConf.skipStandAlone = true;
 
 testConf.clName = CHANGEDPREFIX + "_14114";
+testConf.clOpt = { ReplSize: 0 };
 //SEQUOIADBMAINSTREAM-5245
 //main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    bulkInsert( testPara.testCL, 80000 );
- 
+
    var timeoutValues = [1, 1000, 2000];
    for( var i = 0; i < timeoutValues.length; i++ )
    {
-      db.setSessionAttr({ PreferedInstance: "M", Timeout: timeoutValues[i] });
+      db.setSessionAttr( { PreferedInstance: "M", Timeout: timeoutValues[i] } );
       try
       {
-         testPara.testCL.update({ $set: {a: "aaaaaa" }});
-         throw "NEED_TIMEOUT_ERROR";
+         testPara.testCL.update( { $set: { a: "aaaaaa" } } );
+         throw new Error( "NEED_TIMEOUT_ERROR" );
       }
       catch( e )
       {
@@ -32,39 +33,32 @@ function test( testPara )
       finally
       {
          checkTimeoutValue( timeoutValues[i] );
-         db.setSessionAttr({ Timeout: -1});
+         db.setSessionAttr( { Timeout: -1 } );
       }
    }
 }
 
-function checkTimeoutValue( timeoutValue )
+function checkTimeoutValue ( timeoutValue )
 {
-   try
+   var timeout = db.getSessionAttr().current().toObj().Timeout;
+   if( timeout !== timeoutValue )
    {
-      var timeout = db.getSessionAttr().current().toObj().Timeout;
-      if ( timeout !== timeoutValue)
-      {
-         throw "The expected timeout value is " + timeoutValue + ", but the actual timeout value is " + timeout;
-      }
-   }
-   catch( e )
-   {
-      throw new Error( e );
+      throw new Error( "The expected timeout value is " + timeoutValue + ", but the actual timeout value is " + timeout );
    }
 }
 
-function bulkInsert( cl, insertNums )
+function bulkInsert ( cl, insertNums )
 {
    var batchNums = 10000;
    var recs = [];
-   var times = insertNums/batchNums;
+   var times = insertNums / batchNums;
 
-   for(var k = 0; k < times; k++)
+   for( var k = 0; k < times; k++ )
    {
       var doc = [];
       for( var i = 0; i < batchNums; ++i )
       {
-         doc.push({ a: "string"});
+         doc.push( { a: "string" } );
       }
       cl.insert( doc );
    }

@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var clName = CHANGEDPREFIX + "_14081";
    var groups = commGetGroups( db );
@@ -27,25 +27,25 @@ function test()
       commCheckBusinessStatus( db );
       db.invalidateCache();
       var options = { PreferedInstance: instanceid };
-      var expAccessNodes = [ hostName + ":" + svcName ];
+      var expAccessNodes = [hostName + ":" + svcName];
       checkAccessNodes( cl, expAccessNodes, options );
-      
+
       updateConf( db, { instanceid: 11 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );
       db.invalidateCache();
 
-      options = { PreferedInstance:  [11] };
+      options = { PreferedInstance: [11] };
       checkAccessNodes( cl, expAccessNodes, options );
    }
    finally
    {
-      deleteConf ( db, { instanceid: 1 }, {NodeName: hostName + ":" + svcName }, -322 );
+      deleteConf( db, { instanceid: 1 }, { NodeName: hostName + ":" + svcName }, -322 );
       db.getRG( groupName ).getNode( hostName, svcName ).stop();
       db.getRG( groupName ).getNode( hostName, svcName ).start();
       commCheckBusinessStatus( db );
    }
-   commDropCL( db, COMMCSNAME, clName, false, false ) ;
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
 

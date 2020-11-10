@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -16,11 +16,11 @@ function test()
    var group = groups[0];
    var groupName = group[0].GroupName;
    var primaryPos = group[0].PrimaryPos;
-   var primaryNode = group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname;
+   var primaryNode = group[primaryPos].HostName + ":" + group[primaryPos].svcname;
    var clName = CHANGEDPREFIX + "_14094";
 
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName });
+   var cl = commCreateCL( db, COMMCSNAME, clName, { Group: groupName, ReplSize: 0 } );
    insertData( cl );
 
    var expAccessNodes = [];
@@ -33,7 +33,7 @@ function test()
 
    options = { PreferedInstance: [11, 224, 38, "m"] };
    checkAccessNodes( cl, expAccessNodes, options );
-   
+
    options = { PreferedInstance: [11, 224, 38, "-m"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
@@ -42,7 +42,7 @@ function test()
    {
       if( i !== primaryPos )
       {
-         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
+         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"] );
       }
    }
    options = { PreferedInstance: [11, 224, 38, "S"] };
@@ -53,7 +53,7 @@ function test()
 
    options = { PreferedInstance: [11, 224, 38, "s"] };
    checkAccessNodes( cl, expAccessNodes, options );
-  
+
    options = { PreferedInstance: [11, 224, 38, "-s"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
@@ -61,7 +61,7 @@ function test()
    options = { PreferedInstance: [11, 224, 38, "A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
-   options = { PreferedInstance: [11, 224, 38, "-A"] }; 
+   options = { PreferedInstance: [11, 224, 38, "-A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "a"] };
@@ -69,20 +69,20 @@ function test()
 
    options = { PreferedInstance: [11, 224, 38, "-a"] };
    checkAccessNodes( cl, expAccessNodes, options );
-   
+
    options = { PreferedInstance: [11, 224, 30, "A", "M", "S"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 30, "-A", "-M", "-S"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
-   expAccessNodes = [ group[ primaryPos ].HostName + ":" + group[ primaryPos ].svcname ];
+   expAccessNodes = [group[primaryPos].HostName + ":" + group[primaryPos].svcname];
    options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
    checkAccessNodes( cl, expAccessNodes, options );
-  
+
    options = { PreferedInstance: [11, 224, 38, "-M", "-S", "-A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
-   commDropCL( db, COMMCSNAME, clName, false, false ) ;
+   commDropCL( db, COMMCSNAME, clName, false, false );
 }
-                                                                            
+

@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var groups = getGroupsWithNodeNum( 3 );
    if( groups.length === 0 )
@@ -21,14 +21,14 @@ function test()
    var primaryPos2 = group2[0].PrimaryPos;
    var clName = CHANGEDPREFIX + "_14100";
 
-   commDropCL( db, COMMCSNAME, clName ) ;
-   var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, Group: groupName1 });
+   commDropCL( db, COMMCSNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName, { ShardingKey: { no: 1 }, Group: groupName1, ReplSize: 0 } );
    insertData( cl );
    cl.split( groupName1, groupName2, 50 );
 
-   var options = { PreferedInstance: [ "M", "S", "A" ] };
-   var expAccessNodes = [ group1[ primaryPos1 ].HostName + ":" + group1[ primaryPos1 ].svcname,
-                          group2[ primaryPos2 ].HostName + ":" +  group2[ primaryPos2 ].svcname ];
+   var options = { PreferedInstance: ["M", "S", "A"] };
+   var expAccessNodes = [group1[primaryPos1].HostName + ":" + group1[primaryPos1].svcname,
+   group2[primaryPos2].HostName + ":" + group2[primaryPos2].svcname];
    checkAccessNodes( cl, expAccessNodes, options );
 
    commDropCL( db, COMMCSNAME, clName, false, false );

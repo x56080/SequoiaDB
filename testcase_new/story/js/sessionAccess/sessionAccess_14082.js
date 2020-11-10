@@ -10,16 +10,16 @@ var groupName = group[0].GroupName;
 var primaryPos = group[0].PrimaryPos;
 var primaryNode = group[primaryPos]["HostName"] + ":" + group[primaryPos]["svcname"];
 testConf.clName = CHANGEDPREFIX + "_14082";
-testConf.clOpt = { Group: groupName };
+testConf.clOpt = { Group: groupName, ReplSize: 0 };
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    insertData( testPara.testCL );
 
    var options = { PreferedInstance: "M" };
-   var expAccessNodes = [ primaryNode ];
+   var expAccessNodes = [primaryNode];
    checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
    options = { PreferedInstance: "-M" };
@@ -30,11 +30,11 @@ function test( testPara )
    {
       if( i !== primaryPos )
       {
-         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"]);
+         expAccessNodes.push( group[i]["HostName"] + ":" + group[i]["svcname"] );
       }
    }
-   options = { PreferedInstance: "S" };  
-   checkAccessNodes( testPara.testCL, expAccessNodes, options );   
+   options = { PreferedInstance: "S" };
+   checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
    options = { PreferedInstance: "-S" };
    checkAccessNodes( testPara.testCL, expAccessNodes, options );

@@ -5,21 +5,21 @@
 testConf.skipStandAlone = true;
 
 var group = commGetGroups( db )[0];
-var groupName = group[0]["GroupName"] ;
+var groupName = group[0]["GroupName"];
 testConf.clName = CHANGEDPREFIX + "_14083";
-testConf.clOpt = { Group: groupName };
+testConf.clOpt = { Group: groupName, ReplSize: 0 };
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    insertData( testPara.testCL );
 
    var instanceid = 40;
    var options = { PreferedInstance: instanceid };
-   var nodes = group.slice(1).sort( sortBy( "NodeID" ) );
-   var index = ( instanceid - 1 )%( nodes.length );
-   var expAccessNodes = [ nodes[ index ].HostName + ":" + nodes[ index ].svcname ];
+   var nodes = group.slice( 1 ).sort( sortBy( "NodeID" ) );
+   var index = ( instanceid - 1 ) % ( nodes.length );
+   var expAccessNodes = [nodes[index].HostName + ":" + nodes[index].svcname];
    checkAccessNodes( testPara.testCL, expAccessNodes, options );
 
    options = { PreferedInstance: [39, 12] };

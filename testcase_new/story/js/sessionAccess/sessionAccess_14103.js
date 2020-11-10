@@ -5,12 +5,12 @@
 testConf.skipStandAlone = true;
 
 testConf.clName = CHANGEDPREFIX + "_14103";
-var groupName = commGetGroups( db )[0][0]["GroupName"] ;
-testConf.clOpt = { Group: groupName };
+var groupName = commGetGroups( db )[0][0]["GroupName"];
+testConf.clOpt = { Group: groupName, ReplSize: 0 };
 
 main( test );
 
-function test( testPara )
+function test ( testPara )
 {
    db.setSessionAttr( { PreferedInstance: "S" } )
    insertData( testPara.testCL );
