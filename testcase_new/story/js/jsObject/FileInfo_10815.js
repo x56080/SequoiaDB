@@ -13,7 +13,6 @@ FileTest.prototype.testGetInfo = function()
 
    if( this.file === File )   // 检查文件是否为本地File类类型
    {
-      // println( "File has no function getInfo." ) ;
       this.release();
       return;
    }
@@ -24,8 +23,7 @@ FileTest.prototype.testGetInfo = function()
       if( info.type !== "File" || info.isRemote !== false ||
          info.filename !== this.filename )
       {
-         throw buildException( "testGetInfo", null, "check local file info",
-            this, JSON.stringify( info ) );
+         throw new Error( "testGetInfo fail,check local file info" + this + JSON.stringify( info ) );
       }
    }
    else                      // 验证远程文件对象信息
@@ -47,11 +45,7 @@ FileTest.prototype.testMd5 = function()
    var tmp = this.cmd.run( "md5sum " + fileName ).split( "\n" );
    var tmpInfo = tmp[tmp.length - 2];
    var expect = tmpInfo.split( " " )[0];
-   if( md5 !== expect )
-   {
-      throw buildException( "testMd5", null, "test " + fileName + " " + this,
-         expect, md5 );
-   }
+   assert.equal( md5, expect );
 
    this.release();
 }
@@ -86,13 +80,11 @@ FileTest.prototype.testStat = function()
       }
       catch( e )
       {
-         if( e === 1 )
+         if( e.message == 1 )
          {
-            println( files[i] + " not exist " + this );
             continue;
          }
-         println( "run command " + command + " " + this );
-         throw buildException( "testStat", e );
+         throw e;
       }
       var stat2 = tmp.split( "|" );
       checkStat( stat1, stat2 );
@@ -122,11 +114,7 @@ function checkStat ( stat1, stat2 )
 
    for( var k in stat1 )
    {
-      if( statObj[k] !== stat1[k] )
-      {
-         throw buildException( "checkStat", 0, "check file stat",
-            JSON.stringify( statObj ), JSON.stringify( stat1 ) );
-      }
+      assert.equal( statObj[k], stat1[k] );
    }
 }
 
@@ -139,24 +127,15 @@ function checkRemoteFileInfo ( info, ft )  // ft: FileTest对象
    if( info.type !== "File" || info.hostname !== ft.hostname ||
       info.svcname !== ft.svcname || info.isRemote !== true )
    {
-      throw buildException( "checkRemoteFileInfo", 0, "check file info",
-         ft, JSON.stringify( info ) );
+      throw new Error( "checkRemoteFileInfo check file info" + ft + JSON.stringify( info ) );
    }
    if( ft.filename === undefined )
    {
-      if( info.filename !== undefined )
-      {
-         throw buildException( "checkRemoteFileInfo", null,
-            "check file name undefined", ft, JSON.stringify( info ) );
-      }
+      assert.equal( info.filename, undefined );
    }
    else
    {
-      if( info.filename !== ft.filename )
-      {
-         throw buildException( "checkRemoteInfo", null, "check file name",
-            ft, JSON.stringify( info ) );
-      }
+      assert.equal( info.filename, ft.filename );
    }
 }
 
@@ -187,7 +166,9 @@ function getFileTypeWithMode ( mode )
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -214,4 +195,3 @@ function main ()
    }
 }
 
-main()

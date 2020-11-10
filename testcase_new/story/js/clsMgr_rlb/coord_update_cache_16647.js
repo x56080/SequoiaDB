@@ -26,22 +26,22 @@ function test ()
          var coordNodeNum = eval( groupsArray[i].length - 1 );
          if( coordNodeNum < 2 )
          {
-            println( "at least two coord nodes." );
             return;
          }
          //获得coord节点的hostname和svcname
-         hostname1 = groupsArray[0][1].HostName;
-         svcname1 = groupsArray[0][1].svcname;
+         hostname1 = groupsArray[i][1].HostName;
+         svcname1 = groupsArray[i][1].svcname;
 
-         hostname2 = groupsArray[0][2].HostName;
-         svcname2 = groupsArray[0][2].svcname;
+         hostname2 = groupsArray[i][2].HostName;
+         svcname2 = groupsArray[i][2].svcname;
       }
    }
+   var dataRGName = null;
    try
    {
       //coord1创建集合（新建组），coord2插入记录
       db1 = new Sdb( hostname1, svcname1 );
-      var dataRGName = createDataGroups( db1, hostname1 );
+      dataRGName = createDataGroups( db1, hostname1 );
       var options = { Group: dataRGName };
       var cl1 = commCreateCL( db, COMMCSNAME, clName, options, true, true );
 
@@ -90,6 +90,7 @@ function createDataGroups ( db, hostName )
 {
    var port = parseInt( RSRVPORTBEGIN ) + 100;
    var rgName = "group16647";
+   println( db );
    var dataRG = db.createRG( rgName );
    dataRG.createNode( hostName, port, RSRVNODEDIR + "data/" + port );
    dataRG.start();
@@ -102,12 +103,8 @@ function checkResult ( cl, expObj )
    var cursor = cl.find();
    while( cursor.next() )
    {
-      if( cursor.current().toObj()["a"] !== expObj["a"] )
-      {
-         throw new Error( "checkResult()", null, "query data from coord2", expObj["a"], cursor.current().toObj()["a"] );
-      }
+      assert.equal( cursor.current().toObj()["a"], expObj["a"] );
       actCount++;
    }
-   if( actCount !== 1 )
-      throw new Error( "number error, actCount is : " + actCount );
+   assert.equal( actCount, 1 );
 }

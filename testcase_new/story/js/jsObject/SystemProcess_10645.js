@@ -19,7 +19,7 @@ SystemTest.prototype.testListProcess = function()
       { cmd: "sdbcm(" + CMSVCNAME + ")" } ).toArray();
    if( cmProcs.length !== 1 )
    {
-      throw buildException( "testListProcess", null,
+      throw new Error( "testListProcess", null,
          "list sdbcm process " + this, 1, cmProcs.length );
    }
    var command = "ps aux 2>/dev/null | grep 'sdbcm(" + CMSVCNAME + ")' | grep -v grep | " +
@@ -33,8 +33,7 @@ SystemTest.prototype.testListProcess = function()
    if( user !== obj.user || pid !== obj.pid ||
       stat !== obj.status || order !== obj.cmd )
    {
-      throw buildException( "testListProcess", null,
-         "list sdbcm process detail true " + this, result, cmProcs[0] );
+      throw new Error( "testListProcess fail,list sdbcm process detail true " + this + result + cmProcs[0] );
    }
 
    // 测试detail为false时枚举sdbcm进程
@@ -44,8 +43,7 @@ SystemTest.prototype.testListProcess = function()
    if( undefined !== obj.user || pid !== obj.pid ||
       undefined !== obj.stat || order !== obj.cmd )
    {
-      throw buildException( "testListProcess", null,
-         "list sdbcm process detail false " + this, result, cmProcs[0] );
+      throw new Error( "testListProcess fail,list sdbcm process detail false " + this + result + cmProcs[0] );
    }
 
    this.release();
@@ -61,22 +59,19 @@ SystemTest.prototype.testIsProcExist = function()
    result = this.system.isProcExist( { value: "sdbcm(" + CMSVCNAME + ")", type: "name" } );
    if( result !== true )
    {
-      throw buildException( "testIsProcExist", null,
-         "test sdbcm exist " + this, true, result );
+      throw new Error( "testIsProcExist fail, test sdbcm exist " + this + true + result );
    }
    // 测试判断sdbcm进程，type与value不匹配
    result = this.system.isProcExist( { value: "sdbcm(" + CMSVCNAME + ")", type: "pid" } );
    if( result !== false )
    {
-      throw buildException( "testIsProcExist", null,
-         "test sdbcm mismatch " + this, false, result );
+      throw new Error( "testIsProcExist fail,test sdbcm mismatch " + this + false + result );
    }
    // 测试判断不存在的进程
    result = this.system.isProcExist( { value: "sdbcm", type: "name" } );
    if( result !== false )
    {
-      throw buildException( "testIsProcExist", null,
-         "test sdbcm notexist " + this, false, result );
+      throw new Error( "testIsProcExist fail,test sdbcm notexist " + this + false + result );
    }
 
    this.release();
@@ -99,26 +94,18 @@ SystemTest.prototype.testKillProcessWithSigKill = function()
    option["sig"] = "kill";
    this.system.killProcess( option );
    process = this.system.listProcess( {}, { "pid": "" + pid } ).toArray();
-   if( process.length !== 1 )
-   {
-      throw buildException( "testKillProcessWithSigKill", null,
-         "test kill process " + pid + " " + this, 1, process.length );
-   }
-   if( JSON.parse( process[0] ).cmd.indexOf( "defunct" ) === -1 )
-   {
-      throw buildException( "testKillProcessWithSigKill", null,
-         "test zombie after kill " + process + " " + this, "!=-1", -1 );
-   }
+   assert.equal( process.length, 1 );
+   assert.notEqual( JSON.parse( process[0] ).cmd.indexOf( "defunct" ), -1 );
    try
    {
       this.cmd.run( "ls /tmp/term.txt" );
-      throw "list /tmp/term.txt should be failed when kill process";
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== 2 )
-         throw buildException( "testKillProcessWithSigKill", e,
-            "list term file after kill " + this, 2, e );
+      if( e.message != 2 )
+      {
+         throw e;
+      }
    }
 
    this.release();
@@ -150,27 +137,18 @@ SystemTest.prototype.testKillProcessWithSigTerm = function()
       if( end - start > 10000 )
          break;
    }
-   if( process.length !== 0 )
-   {
-      throw buildException( "testKillProcessWithSigTerm", null,
-         "test term process " + this, 0, process.length );
-   }
-   try
-   {
-      this.cmd.run( "ls /tmp/term.txt" );
-   }
-   catch( e )
-   {
-      throw buildException( "testKillProcessWithSigTerm", e,
-         "list term file after term " + this, 0, e );
-   }
+   assert.equal( process.length, 0 );
+
+   this.cmd.run( "ls /tmp/term.txt" );
    this.cmd.run( "rm -rf /tmp/term.txt" );
 
    this.release();
 }
 
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -196,4 +174,3 @@ function main ()
    }
 }
 
-main()

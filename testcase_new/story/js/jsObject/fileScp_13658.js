@@ -3,11 +3,11 @@
 *               预期执行成功，执行失败可能报"~bash: ./sdblist: Text file busy"
 *@Author      : 2019-3-19  XiaoNi Huang
 ******************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-   println( "\n---Begin to run test" );
    var installDir = toolGetSequoiadbDir( COORDHOSTNAME, CMSVCNAME );
    var tmpPath = WORKDIR + '/jsObject/13658/';
    var dstFile = tmpPath + '/sdb';
@@ -20,17 +20,13 @@ function main ()
    var scrFiles = [localFile, remoteFile];
    for( var i = 0; i < scrFiles.length; i++ )
    {
-      println( "\n---Begin to exec File.scp " + i );
       var srcFile = scrFiles[i];
       File.scp( srcFile, dstFile );
 
       // check results
       var rc = cmd.run( dstFile + " -v" );
       var actRcCode = rc.indexOf( "SequoiaDB" );
-      if( actRcCode !== 0 )
-      {
-         throw new Error( "expRcCode = 0, actRcCode = " + actRcCode );
-      }
+      assert.equal( actRcCode, 0 );
       cmd.run( "rm " + dstFile );
    }
 }

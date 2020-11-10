@@ -16,24 +16,19 @@ FileTest.prototype.testIsFile = function()
    var notExist = sdbDir[0] + "/conf/notexist";
 
    var result = this.file.isFile( sdbDir[0] );   // 判断非文件
-   if( result !== false )
-   {
-      throw buildException( "testIsFile", null, "test " + sdbDir + this, false, result );
-   }
+   assert.equal( result, false );
    result = this.file.isFile( fileName );       // 判断文件 
-   if( result !== true )
-   {
-      throw buildException( "testIsFile", null, "test " + fileName + this, true, result );
-   }
+   assert.equal( result, true );
    try
    {
-      this.file.isFile( notExist );             // 判断不存在的文件 
-      throw "judge file with not exist file should be failed";
-   }
-   catch( e )
+      this.file.isFile( notExist );      // 判断不存在的文件 
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -6 )
-         throw buildException( "testIsFile", e, "test not exist file " + this, -6, e );
+      if( e.message != -6 )
+      {
+         throw e;
+      }
    }
 
    this.release();
@@ -47,15 +42,9 @@ FileTest.prototype.testIsDir = function()
    var sdbDir = toolGetSequoiadbDir( this.hostname, this.svcname );
    var fileName = sdbDir[0] + "/conf/sdbcm.conf";
    var result = this.file.isDir( sdbDir[0] );    // 判断目录
-   if( result !== true )
-   {
-      throw buildException( "testIsDir", null, "test " + sdbDir + this, true, result );
-   }
+   assert.equal( result, true );
    result = this.file.isDir( fileName );        // 判断非目录
-   if( result !== false )
-   {
-      throw buildException( "testIsDir", 0, "test " + fileName + this, false, result );
-   }
+   assert.equal( result, false );
 
    this.release();
 }
@@ -71,27 +60,20 @@ FileTest.prototype.testIsEmptyDir = function()
    var fileName = sdbDir[0] + "/conf/sdbcm.conf";
 
    var result = this.file.isEmptyDir( sdbDir[0] );  // 判断非空目录
-   if( result !== false )
-   {
-      throw buildException( "testIsEmptyDir", null,
-         "test " + pathName + " " + this, false, result );
-   }
+   assert.equal( result, false );
    result = this.file.isEmptyDir( emptyDir );      // 判断空目录
    this.cmd.run( "rm -rf " + emptyDir );
-   if( result !== true )
-   {
-      throw buildException( "testIsEmptyDir", null,
-         "test " + emptyDir + " " + this, true, result );
-   }
+   assert.equal( result, true );
    try
    {
-      this.file.isEmptyDir( fileName );            // 判断非目录
-      throw "judge empty dir with file should be failed";
-   }
-   catch( e )
+      this.file.isEmptyDir( fileName );            // 判断非目录 
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -6 )
-         throw buildException( "testIsEmptyDir", e, "test " + fileName + this, -6, e );
+      if( e.message != -6 )
+      {
+         throw e;
+      }
    }
 
    this.release();
@@ -107,19 +89,18 @@ FileTest.prototype.testExist = function()
    var notexist = sdbDir[0] + "/conf/sdb.conf";
 
    var result = this.file.exist( sdbDir[0] );   // 判断存在的目录
-   if( result !== true )
-      throw buildException( "testExist", null, "test " + sdbDir[0] + " " + this, true, result );
+   assert.equal( result, true );
    result = this.file.exist( existfile );  // 判断存在的文件
-   if( result !== true )
-      throw buildException( "testExist", null, "test " + existfile + " " + this, true, result );
+   assert.equal( result, true );
    result = this.file.exist( notexist );   // 判断不存在的文件
-   if( result !== false )
-      throw buildException( "testExist", null, "test " + notexist + " " + this, false, result );
+   assert.equal( result, false );
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -149,4 +130,3 @@ function main ()
    }
 }
 
-main()

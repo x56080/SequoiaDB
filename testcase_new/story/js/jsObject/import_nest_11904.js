@@ -11,71 +11,55 @@ var nestImportFileB = WORKDIR + "/nestImportB_11904.js";
 var nestImportOnceFileA = WORKDIR + "/nestImportOnceA_11904.js";
 // js file nest importOnce, B importOnce A
 var nestImportOnceFileB = WORKDIR + "/nestImportOnceB_11904.js";
+var a = 0;
+var b = 0;
+
+
+main( test );
+
+function test ()
+{
+
+
+   // create file
+   createNestImportFile();
+   createNestImportOnceFile();
+
+   // test nest import
+   import( nestImportFileA );
+   assert.equal( a, 2 );
+
+   // test nest importOnce
+   importOnce( nestImportOnceFileA );
+   assert.equal( b, 2 );
+
+   // remove file
+   removeFile( nestImportFileA );
+   removeFile( nestImportFileB );
+
+   removeFile( nestImportOnceFileA );
+   removeFile( nestImportOnceFileB );
+
+}
+
 
 function createNestImportFile ()
 {
-    try
-    {
-        var file = new File( nestImportFileA );
-        file.write( "a++; import( \"" + nestImportFileB + "\" )" );
-        file.close();
-        file = new File( nestImportFileB );
-        file.write( "a++; import( \"" + nestImportFileA + "\" )" );
-        file.close();
-    }
-    catch( e )
-    {
-        throw buildException( "createNestImportFile", null, "create nest import file " +
-            nestImportFileA + " " + nestImportFileB, 0, e );
-    }
+   var file = new File( nestImportFileA );
+   file.write( "a++; import( \"" + nestImportFileB + "\" )" );
+   file.close();
+   file = new File( nestImportFileB );
+   file.write( "a++; import( \"" + nestImportFileA + "\" )" );
+   file.close();
 
 }
 
 function createNestImportOnceFile ()
 {
-    try
-    {
-        var file = new File( nestImportOnceFileA );
-        file.write( "b++; importOnce( \"" + nestImportOnceFileB + "\" )" );
-        file.close();
-        file = new File( nestImportOnceFileB );
-        file.write( "b++; importOnce( \"" + nestImportOnceFileA + "\" )" );
-        file.close();
-    }
-    catch( e )
-    {
-        throw buildException( "createNestImportOnceFile", null, "create nest importOnce file " +
-            nestImportOnceFileA + " " + nestImportOnceFileB, 0, e );
-    }
+   var file = new File( nestImportOnceFileA );
+   file.write( "b++; importOnce( \"" + nestImportOnceFileB + "\" )" );
+   file.close();
+   file = new File( nestImportOnceFileB );
+   file.write( "b++; importOnce( \"" + nestImportOnceFileA + "\" )" );
+   file.close();
 }
-
-// create file
-createNestImportFile();
-createNestImportOnceFile();
-
-// test nest import
-var a = 0;
-import( nestImportFileA );
-if( a !== 2 )
-{
-    throw buildException( null, null,
-        "test after import nest file: " + nestImportFileA + ", a value",
-        2, a );
-}
-
-// test nest importOnce
-var b = 0;
-importOnce( nestImportOnceFileA );
-if( b !== 2 )
-{
-    throw buildException( null, null,
-        "test after importOnce nest file: " + nestImportOnceFileA + ", b value",
-        2, b );
-}
-
-// remove file
-removeFile( nestImportFileA );
-removeFile( nestImportFileB );
-
-removeFile( nestImportOnceFileA );
-removeFile( nestImportOnceFileB );

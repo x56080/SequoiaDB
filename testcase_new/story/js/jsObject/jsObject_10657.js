@@ -2,7 +2,7 @@
 *@Description: seqDB-10657:System对象枚举所有用户
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {

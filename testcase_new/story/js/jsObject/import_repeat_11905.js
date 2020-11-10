@@ -4,65 +4,47 @@
 *               seqDB-11906:使用importOnce重复导入文件
 *@author      : Liang XueWang 
 *******************************************************************/
+
+
 // js file to repeat import
 var repeatImportFile = WORKDIR + "/repeatImport_11905.js";
 // js file to repeat importOnce    
 var repeatImportOnceFile = WORKDIR + "/repearImportOnce_11906.js";
+var a = 0;
+var b = 0;
+main( test );
+function test ()
+{
+   // creat repeat import importOnce file
+   createRepeatImportFile();
+   createRepeatImportOnceFile();
 
+   // test repeat import
+   import( repeatImportFile );
+   import( repeatImportFile );
+   assert.equal( a, 2 );
+
+   // test repeat importOnce
+
+   importOnce( repeatImportOnceFile );
+   importOnce( repeatImportOnceFile );
+   assert.equal( b, 1 );
+
+   // remove repeat repeatOnce file   
+   removeFile( repeatImportFile );
+   removeFile( repeatImportOnceFile );
+}
 function createRepeatImportFile ()
 {
-    try
-    {
-        var file = new File( repeatImportFile );
-        file.write( "a++; function sub( x, y) { return x - y ; }" );
-        file.close();
-    }
-    catch( e )
-    {
-        throw buildException( "createRepeatImportFile", null,
-            "create repeat import file " + repeatImportFile, 0, e );
-    }
+
+   var file = new File( repeatImportFile );
+   file.write( "a++; function sub( x, y) { return x - y ; }" );
+   file.close();
 }
 
 function createRepeatImportOnceFile ()
 {
-    try
-    {
-        var file = new File( repeatImportOnceFile );
-        file.write( "b++; function divide( x, y ) { return x / y ; }" );
-        file.close();
-    }
-    catch( e )
-    {
-        throw buildException( "createRepeatImportOnceFile", null,
-            "create repeat importOnce file " + repeatImportOnceFile, 0, e );
-    }
+   var file = new File( repeatImportOnceFile );
+   file.write( "b++; function divide( x, y ) { return x / y ; }" );
+   file.close();
 }
-
-// creat repeat import importOnce file
-createRepeatImportFile();
-createRepeatImportOnceFile();
-
-// test repeat import
-var a = 0;
-import( repeatImportFile );
-import( repeatImportFile );
-if( a !== 2 )
-{
-    throw buildException( null, null,
-        "test after repeat import, a value", 2, a );
-}
-
-// test repeat importOnce
-var b = 0;
-importOnce( repeatImportOnceFile );
-importOnce( repeatImportOnceFile );
-if( b !== 1 )
-{
-    throw buildException( null, null,
-        "test after repeat importOnce, b value", 1, b );
-}
-
-// remove repeat repeatOnce file   
-removeFile( repeatImportFile );
-removeFile( repeatImportOnceFile );    

@@ -32,8 +32,7 @@ SystemTest.prototype.testGetHostsMap = function()
       }
       if( found === false )
       {
-         throw buildException( "testGetHostsMap", null, "check hostmap " + this,
-            ip + ":" + hostname, hostmap2 );
+         throw new Error( "testGetHostsMap fail,check hostmap " + this + ip + ":" + hostname + hostmap2 );
       }
    }
 
@@ -52,21 +51,20 @@ SystemTest.prototype.testGetAHostMap = function()
    var res = this.system.getAHostMap( hostname );
    if( res !== ip )
    {
-      throw buildException( "testGetAHostMap", null, "get a hostmap", ip, res );
+      throw new Error( "testGetAHostMap fail,get a hostmap" + ip + res );
    }
 
    // 测试getAHostMap，主机不存在
    try
    {
       this.system.getAHostMap( "NotExistHost" );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testGetAHostMap", e,
-            "get a not exist hostmap " + this, -6, e );
+         throw e;
       }
    }
 
@@ -82,7 +80,6 @@ SystemTest.prototype.testAddDelAHostMap = function()
    var user = this.system.getCurrentUser().toObj().user;
    if( user !== "root" )
    {
-      println( user + " have no permission to add del hostmap." );
       return;
    }
 
@@ -110,19 +107,11 @@ SystemTest.prototype.testAddDelAHostMap = function()
 ******************************************************************************/
 function testAddAHostMapNormal ( system, host, ip )
 {
-   try
-   {
-      system.addAHostMap( host, ip );
-   }
-   catch( e )
-   {
-      throw buildException( "testAddAHostMapNormal", e, "add a hostmap", 0, e );
-   }
+   system.addAHostMap( host, ip );
    var result = system.getAHostMap( host );
    if( result !== ip )
    {
-      throw buildException( "testAddAHostMapNormal", null,
-         "check add a hostmap", ip, result );
+      throw new Error( "testAddAHostMapNormal fail,check add a hostmap" + ip + result );
    }
 }
 
@@ -135,14 +124,13 @@ function testAddAExistHostMapFalse ( system, host, ip )
    try
    {
       system.addAHostMap( host, ip, false );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testAddAExistHostMapFalse", e,
-            "add a existed hostmap when isReplace false", -6, e );
+         throw e;
       }
    }
 }
@@ -153,20 +141,11 @@ function testAddAExistHostMapFalse ( system, host, ip )
 ******************************************************************************/
 function testAddAExistHostMapTrue ( system, host, ip )
 {
-   try
-   {
-      system.addAHostMap( host, ip, true );
-   }
-   catch( e )
-   {
-      throw buildException( "testAddAExistHostMapTrue", e,
-         "add a existed hostmap when isReplace true", -6, e );
-   }
+   system.addAHostMap( host, ip, true );
    var result = system.getAHostMap( host );
    if( result !== ip )
    {
-      throw buildException( "testAddAExistHostMapTrue", null,
-         "check added hostmap", ip, result );
+      throw new Error( "testAddAExistHostMapTrue fail,check added hostmap" + ip + result );
    }
 }
 
@@ -179,14 +158,13 @@ function testAddAHostMapIllegalIp ( system, host, ip )
    try
    {
       system.addAHostMap( host, ip );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testAddAHostMapIllegalIp", e,
-            "add a hostmap with illegal ip " + ip, -6, e );
+         throw e;
       }
    }
 }
@@ -197,29 +175,24 @@ function testAddAHostMapIllegalIp ( system, host, ip )
 ******************************************************************************/
 function testDelAHostMap ( system, host )
 {
-   try
-   {
-      system.delAHostMap( host );
-   }
-   catch( e )
-   {
-      throw buildException( "testDelAHostMap", e, "del a hostmap", 0, e );
-   }
+   system.delAHostMap( host );
    try
    {
       system.getAHostMap( "testhost" );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testDelAHostMap", e, "check del a hostmap", -6, e );
+         throw e;
       }
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    var localhost = toolGetLocalhost();
    var remotehost = toolGetRemotehost();
@@ -241,4 +214,4 @@ function main ()
    }
 }
 
-main()
+

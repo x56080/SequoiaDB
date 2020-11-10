@@ -14,11 +14,7 @@ OmaTest.prototype.testOmaInstall = function()
 
    // 测试getOmaInstallFile
    var file = this.oma.getOmaInstallFile();
-   if( file !== "/etc/default/sequoiadb" )
-   {
-      throw buildException( "testOmaInstall", null, "get oma install file " + this,
-         "/etc/default/sequoiadb", file );
-   }
+   assert.equal( file, "/etc/default/sequoiadb" );
 
    // 测试getOmaInstallInfo
    try
@@ -26,13 +22,11 @@ OmaTest.prototype.testOmaInstall = function()
       var InstallInfo = this.oma.getOmaInstallInfo().toObj();
       var InstallFileContent = cmd.run( "cat /etc/default/sequoiadb" ).split( "\n" );
       checkOmaInstallInfo( InstallInfo, InstallFileContent );
-   }
-   catch( e )
+   } catch( e )
    {
-      if( e !== -4 )
+      if( e.message != -4 )
       {
-         throw buildException( "testOmaInstall", e,
-            "get oma install info " + this, 0, e );
+         throw e;
       }
    }
 
@@ -60,21 +54,18 @@ function checkOmaInstallInfo ( info, content )
          found = true;
          var value1 = content[j].slice( ind + keys[i].length + 1 ).toLowerCase();
          var value2 = info[keys[i]].toString().toLowerCase();
-         if( value1 !== value2 )
-         {
-            throw buildException( "checkOmaInstallInfo", null,
-               "check key " + keys[i], value1, value2 );
-         }
+         assert.equal( value1, value2 );
       }
       if( found === false && info[keys[i]] !== "" )
       {
-         throw buildException( "checkOmaInstallInfo", null,
-            "check key " + keys[i], "", info.keys[i] );
+         throw new Error( "checkOmaInstallInfo check key " + keys[i] + info.keys[i] );
       }
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -92,4 +83,3 @@ function main ()
    }
 }
 
-main()

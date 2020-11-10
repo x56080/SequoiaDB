@@ -30,15 +30,7 @@ FileTest.prototype.testFind = function()
 
    for( var i = 0; i < options.length; i++ )
    {
-      try
-      {
-         var result = this.file.find( options[i] ).toArray();  // 查找文件
-      }
-      catch( e )
-      {
-         throw buildException( "testFind", e, JSON.stringify( options[i] ) +
-            " " + this, 0, e );
-      }
+      var result = this.file.find( options[i] ).toArray();  // 查找文件
       checkFindResult( result, this.cmd, commands[i] );
    }
 
@@ -57,15 +49,7 @@ FileTest.prototype.testFindWithoutValue = function()
    option.pathname = path;
    var commands = "find " + path;  // 查找命令
 
-   try
-   {
-      var result = this.file.find( option ).toArray();  // 查找文件
-   }
-   catch( e )
-   {
-      throw buildException( "testFindWithoutValue", e, JSON.stringify( option ) +
-         " " + this, 0, e );
-   }
+   var result = this.file.find( option ).toArray();  // 查找文件
    checkFindResult( result, this.cmd, commands );
 
    this.release();
@@ -82,14 +66,12 @@ function checkFindResult ( result, cmd, commands )
       try
       {
          cmd.run( commands );
-         throw 0;
-      }
-      catch( e )
+         throw new Error( "should error" );
+      } catch( e )
       {
-         if( e !== 1 )
+         if( e.message != -5 )
          {
-            throw buildException( "checkFindResult", e,
-               "find no file " + commands, 1, e );
+            throw e;
          }
       }
    }
@@ -99,16 +81,14 @@ function checkFindResult ( result, cmd, commands )
       for( var i = result.length - 1, j = findfiles.length - 2; i >= 0; i-- , j-- )
       {
          var fileObj = JSON.parse( result[i] );
-         if( fileObj.pathname !== findfiles[j] )
-         {
-            throw buildException( "checkFindResult", null,
-               "find files " + commands, findfiles, result[i] );
-         }
+         assert.equal( fileObj.pathname, findfiles[j] );
       }
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -131,4 +111,3 @@ function main ()
    }
 }
 
-main()

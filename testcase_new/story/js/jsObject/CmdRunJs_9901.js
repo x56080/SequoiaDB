@@ -15,22 +15,23 @@ CmdTest.prototype.testRunJS = function()
    }
    catch( e )
    {
-      if( e === -10 && this.isLocal )
+      if( e.message == -10 && this.isLocal )
          ;
       else
-         throw buildException( "testRunJS", e, "run js " + this, 0, e );
+         throw e;
    }
    if( ( this.isLocal && result !== undefined ) ||
       ( !this.isLocal && result !== "7" ) )
    {
-      throw buildException( "testRunJS", null, "check result " + this,
-         "7", result );
+      throw e;
    }
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -47,4 +48,3 @@ function main ()
    }
 }
 
-main()

@@ -13,11 +13,7 @@ FileTest.prototype.testGetUmask = function()
    var umask1 = this.file.getUmask( '8' );    // 获取掩码
    var tmpInfo = this.cmd.run( "umask" ).split( "\n" );
    var umask2 = tmpInfo[tmpInfo.length - 2];
-   if( umask1 !== umask2 )
-   {
-      throw buildException( "testGetUmask", null,
-         "check umask " + this, umask2, umask1 );
-   }
+   assert.equal( umask1, umask2 );
 
    this.release();
 }
@@ -32,11 +28,7 @@ FileTest.prototype.testSetUmask = function()
 
    this.file.setUmask( 0222 );   // 设置掩码
    var umask = this.file.getUmask( '8' );
-   if( umask !== "0222" )
-   {
-      throw buildException( "testSetUmask", null,
-         "check setted umask " + this, "0222", umask );
-   }
+   assert.equal( umask, "0222" );
 
    var tmpFilename = "/tmp/testUmask.txt";   // 新建文件，检查掩码生效
    var tmpFile;
@@ -48,11 +40,7 @@ FileTest.prototype.testSetUmask = function()
    var tmpInfo = this.cmd.run( command ).split( "\n" );
    var mode = tmpInfo[tmpInfo.length - 2].slice( 0, 10 );
    this.cmd.run( "rm -rf " + tmpFilename );
-   if( mode !== "-r-x------" ) // (默认权限)700 - (掩码)222 = 500
-   {
-      throw buildException( "testSetUmask", null,
-         "check umask valid " + this, "-r-xr--r--", mode );
-   }
+   assert.equal( mode, "-r-x------" );
 
    this.file.setUmask( parseInt( oldUmask, 8 ) );
    this.release();
@@ -69,8 +57,7 @@ FileTest.prototype.testGetUmaskWithBase = function()
    var umask = this.file.getUmask();
    if( umask !== 146 || typeof ( umask ) !== "number" )
    {
-      throw buildException( "getUmaskWithBase", null,
-         "get umask with no parameter " + this, 146, umask );
+      throw new Error( "getUmaskWithBase get umask with no parameter " + this + 146 + umask );
    }
 
    var base = ['8', '10', '16', 8, 10, 16];
@@ -80,8 +67,7 @@ FileTest.prototype.testGetUmaskWithBase = function()
       umask = this.file.getUmask( base[i] );
       if( umask !== result[i] || typeof ( umask ) !== "string" )
       {
-         throw buildException( "getUmaskWithBase", null,
-            "get umask with base " + base[i] + " " + this, result[i], umask );
+         throw new Error( "getUmaskWithBase get umask with base " + base[i] + " " + this + result[i] + umask );
       }
    }
 
@@ -89,7 +75,9 @@ FileTest.prototype.testGetUmaskWithBase = function()
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -116,4 +104,3 @@ function main ()
    }
 }
 
-main()

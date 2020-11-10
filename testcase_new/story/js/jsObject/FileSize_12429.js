@@ -19,14 +19,12 @@ FileTest.prototype.testGetSize = function()
    try
    {
       this.file.getSize( notExistFile );
-      throw 0;
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -4 )
+      if( e.message != -4 )
       {
-         throw buildException( "testGetSize", e, "get size of not exist file " + this,
-            -4, e );
+         throw e;
       }
    }
 
@@ -44,11 +42,7 @@ FileTest.prototype.testGetSize = function()
    this.file.chmod( noPermFile, 0000 );
    size1 = parseInt( this.file.stat( noPermFile ).toObj().size );
    size2 = this.file.getSize( noPermFile );
-   if( size2 !== size1 )
-   {
-      throw buildException( "testGetSize", null, "check get size " + this,
-         size1, size2 );
-   }
+   assert.equal( size1, size2 );
    this.file.remove( noPermFile );
 
    // 测试获取正常文件大小
@@ -64,22 +58,14 @@ FileTest.prototype.testGetSize = function()
    file.close();
    size1 = parseInt( this.file.stat( normalFile ).toObj().size );
    size2 = this.file.getSize( normalFile );
-   if( size2 !== size1 )
-   {
-      throw buildException( "testGetSize", null, "check get size " + this,
-         size1, size2 );
-   }
+   assert.equal( size1, size2 );
    this.file.remove( normalFile );
 
    // 测试获取非文本文件的大小 如/usr/bin/who
    var binaryFile = "/usr/bin/who";
    size1 = parseInt( this.file.stat( binaryFile ).toObj().size );
    size2 = this.file.getSize( binaryFile );
-   if( size2 !== size1 )
-   {
-      throw buildException( "testGetSize", null, "check get binary file size " + this,
-         size1, size2 );
-   }
+   assert.equal( size1, size2 );
 
    // 测试获取大小超过int边界的文件大小
    try
@@ -88,7 +74,6 @@ FileTest.prototype.testGetSize = function()
    }
    catch( e )
    {
-      println( "disk have no space to create big file of 2G" );
       this.cmd.run( "rm -rf " + bigFile );
       return;
    }
@@ -96,15 +81,16 @@ FileTest.prototype.testGetSize = function()
    size2 = this.file.getSize( bigFile );
    if( size2 !== size1 || size1 !== 2147483648 )
    {
-      throw buildException( "testGetSize", null, "check get big file size " + this,
-         size1 + " " + 2147483648, size2 );
+      throw new Error( "testGetSize fail,check get big file size " + this + size1 + " " + 2147483648 + size2 );
    }
    this.file.remove( bigFile );
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -122,4 +108,3 @@ function main ()
    }
 }
 
-main()

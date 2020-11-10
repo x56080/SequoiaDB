@@ -41,8 +41,7 @@ FileTest.prototype.testList = function()
       if( perm !== fileObj.mode || user !== fileObj.user ||
          filename !== fileObj.name )
       {
-         throw buildException( "testList", null,
-            "test list files in " + dirName + " " + this, tmp, files1[i] );
+         throw new Error( "testList test list files in " + dirName + " " + this + tmp + files1[i] );
       }
    }
 
@@ -53,7 +52,9 @@ FileTest.prototype.testList = function()
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -74,4 +75,3 @@ function main ()
    }
 }
 
-main()

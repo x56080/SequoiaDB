@@ -2,7 +2,7 @@
 *@Description: seqDB-10660:System对象判断用户是否存在
 @author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -23,7 +23,7 @@ SystemTest.prototype.isUserExist = function()
    result = this.system.isUserExist( "!@#$%" );
    if( result )
    {
-      throw new Error( "!@#$% is exist!" ); 
+      throw new Error( "!@#$% is exist!" );
    }
 
    this.release();

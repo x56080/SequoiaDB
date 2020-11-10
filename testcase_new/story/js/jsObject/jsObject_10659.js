@@ -2,7 +2,7 @@
 *@Description: seqDB-10659:System对象获取当前用户信息
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {

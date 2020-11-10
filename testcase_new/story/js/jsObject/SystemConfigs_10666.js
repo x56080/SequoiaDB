@@ -16,15 +16,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
       "fs.file-nr", "kernel.ns_last_pid"];
    for( var i = 0; i < type.length; i++ )
    {
-      try 
-      {
-         var configObj = this.system.getSystemConfigs( type[i] ).toObj();
-      }
-      catch( e )
-      {
-         throw buildException( "testGetSystemConfigs", e,
-            "get " + type[i] + " " + this, 0, e );
-      }
+      var configObj = this.system.getSystemConfigs( type[i] ).toObj();
       var dir;
       if( type[i] === "all" )
          dir = "/proc/sys";
@@ -41,9 +33,7 @@ SystemTest.prototype.testGetSystemConfigs = function()
             continue;
          else if( typeof ( configObj[k] ) !== "undefined" && configObj[k] !== result[k] )
          {
-            throw buildException( "testGetSystemConfigs", null,
-               "test key: " + k + " " + this, "res: " + result[k],
-               "config: " + configObj[k] );
+            throw new Error( "testGetSystemConfigs test key: " + k + " " + this + "res: " + result[k] + "config: " + configObj[k] );
          }
       }
    }
@@ -62,12 +52,11 @@ function toolGetConfigs ( cmd, dir )
    }
    catch( e )
    {
-      if( e === 1 )
+      if( e.message == 1 )
          return configObj;
       else
       {
-         println( "run command " + command );
-         throw buildException( "toolGetConfigs", e, "get " + dir, 0, e );
+         throw e;
       }
    }
    for( var i = 0; i < files.length - 1; i++ )
@@ -90,10 +79,10 @@ function toolGetConfigs ( cmd, dir )
       }
       catch( e )
       {
-         if( e === 1 )
+         if( e.message == 1 )
             continue;
          else
-            throw buildException( "toolGetConfigs", e, "cat " + filename, 0, e );
+            throw e;
       }
       var value = "";
       for( var k = 0; k < fileContent.length - 1; k++ )
@@ -125,7 +114,9 @@ function getIndexInArray ( a, arr )
    return index;
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -141,5 +132,3 @@ function main ()
       systems[i].testGetSystemConfigs();
    }
 }
-
-main();

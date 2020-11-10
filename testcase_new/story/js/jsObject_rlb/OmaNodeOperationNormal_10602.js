@@ -4,7 +4,6 @@
 *               TestLink: 10602 Oma创建、删除、启动、停止协调节点和数据节点
 *@author      : Liang XueWang
 ******************************************************************************/
-import( "../jsObjectSync/commlib.js" );
 // 测试正常创建启动停止删除协调节点
 OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
 {
@@ -22,9 +21,7 @@ OmaTest.prototype.testCoordNodeOperationNormal = function( svcname )
    }
    catch( e )
    {
-      println( "coord " + svcname + " dbpath " + dbpath );
-      throw buildException( "testCoordNodeOperationNormal", e,
-         "coord node operation " + this, 0, e );
+      throw e;
    }
    finally
    {
@@ -54,13 +51,11 @@ OmaTest.prototype.testDataNodeOperationNormal = function( svcname )
    }
    catch( e )
    {
-      println( "data " + svcname + " dbpath " + dbpath + "  e :" + e );
       var backupDir = "/tmp/ci/rsrvnodelog/10602";
       var srcLogPath = this.hostname + ":" + CMSVCNAME + "@" + dbpath + "/diaglog/sdbdiag.log";
       File.mkdir( backupDir );
       File.scp( srcLogPath, backupDir + "/sdbdiag.log" );
-      throw buildException( "testDataNodeOperationNormal", e,
-         "data node operation " + this, 0, e );
+      throw e;
    }
    finally
    {
@@ -78,24 +73,16 @@ OmaTest.prototype.testDataNodeOperationNormal = function( svcname )
 ******************************************************************************/
 function checkDataNodeValid ( hostname, svcname )
 {
-   try
-   {
-      var db = new Sdb( hostname, svcname );
-      var CsName = "testDataNodeValidCs";
-      var cs = db.createCS( CsName );
-      cs.createCL( "bar" );
-      db.dropCS( CsName );
-      db.close();
-   }
-   catch( e )
-   {
-      println( "node " + hostname + ":" + svcname );
-      throw buildException( "checkDataNodeValid", e,
-         "check node " + hostname + ":" + svcname, 0, e );
-   }
+   var db = new Sdb( hostname, svcname );
+   var CsName = "testDataNodeValidCs";
+   var cs = db.createCS( CsName );
+   cs.createCL( "bar" );
+   db.dropCS( CsName );
+   db.close();
 }
+main( test );
 
-function main ()
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -105,13 +92,11 @@ function main ()
    var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME );
    if( svcname1 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" );
       return;
    }
    var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME );
    if( svcname2 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" );
       return;
    }
 
@@ -131,4 +116,3 @@ function main ()
    }
 }
 
-main()

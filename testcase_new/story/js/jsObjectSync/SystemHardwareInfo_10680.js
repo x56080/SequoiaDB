@@ -45,8 +45,7 @@ SystemTest.prototype.testSnapshotCpuInfo = function()
    {
       if( !isApproEqual( cpuInfo1[k], cpuInfo2[k] ) )
       {
-         throw buildException( "testSnapshotCpuInfo", null,
-            "check key: " + k + " " + this, cpuInfo1[k], cpuInfo2[k] );
+         throw new Error( "testSnapshotCpuInfo fail,check key: " + k + " " + this + cpuInfo1[k] + cpuInfo2[k] );
       }
    }
 
@@ -71,8 +70,7 @@ SystemTest.prototype.testGetMemInfo = function()
       !isApproEqual( free, memInfo1.Free ) ||
       unit !== memInfo1.Unit )
    {
-      throw buildException( "testGetMemInfo", null,
-         "check mem info " + this, memInfo2, JSON.stringify( memInfo1 ) );
+      throw new Error( "testGetMemInfo fail,check mem info " + this + memInfo2 + JSON.stringify( memInfo1 ) );
    }
 
    this.release();
@@ -90,8 +88,7 @@ SystemTest.prototype.testSnapshotMemInfo = function()
       if( memInfo2[k] !== memInfo1[k] &&
          !isApproEqual( memInfo2[k], memInfo1[k] ) )
       {
-         throw buildException( "testSnapshotMemInfo", null,
-            "check key: " + k + " " + this, memInfo1[k], memInfo2[k] );
+         throw new Error( "testSnapshotMemInfo fail,check key: " + k + " " + this + memInfo1[k] + memInfo2[k] );
       }
    }
 
@@ -130,8 +127,7 @@ SystemTest.prototype.testSnapshotDiskInfo = function()
    var disks2 = this.system.snapshotDiskInfo().toObj().disks;
    if( disks1 != disks2 )   // 对象比较，不使用全等
    {
-      throw buildException( "testSnapshotDiskInfo", null,
-         "test disks " + this, JSON.stringify( disks1 ), JSON.stringify( disks2 ) );
+      throw new Error( "testSnapshotDiskInfo fail,test disks " + this + JSON.stringify( disks1 ) + JSON.stringify( disks2 ) );
    }
 
    this.release();
@@ -163,8 +159,7 @@ SystemTest.prototype.testSnapshotNetcardInfo = function()
    // 测试时间戳
    if( !isApproEqual( info1.CalendarTime, timestamp ) )
    {
-      throw buildException( "testSnapshotNetcardInfo", null,
-         "test timestamp " + this, timestamp, info1.CalendarTime );
+      throw new Error( "testSnapshotNetcardInfo fail,test timestamp " + this + timestamp + info1.CalendarTime );
    }
    // 测试网卡收发消息
    for( var i = 0; i < info2.length - 1; i++ )
@@ -191,8 +186,7 @@ SystemTest.prototype.testSnapshotNetcardInfo = function()
          !isApproEqual( TXErrors, netcard.TXErrors ) ||
          !isApproEqual( TXDrops, netcard.TXDrops ) )
       {
-         throw buildException( "testSnapshotNetcardInfo", null,
-            "test netcard " + this, tmp, JSON.stringify( netcard ) );
+         throw new Error( "testSnapshotNetcardInfo fail,test netcard " + this + tmp + JSON.stringify( netcard ) );
       }
    }
 
@@ -206,27 +200,16 @@ SystemTest.prototype.testSnapshotNetcardInfo = function()
 function checkCpuNum ( cmd, info, isppc )
 {
    var cpuNum;    // 物理cpu个数
-   try
+   if( isppc )
+      cpuNum = cmd.run( "cat /proc/cpuinfo | grep machine | uniq |" +
+         " wc -l" ).split( "\n" )[0] * 1;
+   else
    {
-      if( isppc )
-         cpuNum = cmd.run( "cat /proc/cpuinfo | grep machine | uniq |" +
-            " wc -l" ).split( "\n" )[0] * 1;
-      else
-      {
-         cpuNum = cmd.run( "cat /proc/cpuinfo | grep 'physical id' | uniq |" +
-            " wc -l" ).split( "\n" )[0] * 1;
-         if( cpuNum === 0 ) cpuNum = 1;
-      }
+      cpuNum = cmd.run( "cat /proc/cpuinfo | grep 'physical id' | uniq |" +
+         " wc -l" ).split( "\n" )[0] * 1;
+      if( cpuNum === 0 ) cpuNum = 1;
    }
-   catch( e )
-   {
-      throw buildException( "checkCpuNum", e, "get cpu num", 0, e );
-   }
-   if( cpuNum !== info.Cpus.length )
-   {
-      throw buildException( "checkCpuNum", null, "test cpu num",
-         cpuNum, info.Cpus.length );
-   }
+   assert.equal( cpuNum, info.Cpus.length );
 }
 
 /******************************************************************************
@@ -236,26 +219,18 @@ function checkCpuNum ( cmd, info, isppc )
 function checkCpuName ( cmd, info, isppc )
 {
    var cpuNames;
-   try
-   {
-      if( isppc )
-         cpuNames = cmd.run( "cat /proc/cpuinfo | grep cpu | uniq |" +
-            " cut -d ':' -f 2 | sed 's/^ *//g'" ).split( "\n" );
-      else
-         cpuNames = cmd.run( "cat /proc/cpuinfo | grep 'model name' | uniq |" +
-            " cut -d ':' -f 2 | sed 's/^ *//g'" ).split( "\n" );
-   }
-   catch( e )
-   {
-      throw buildException( "checkCpuName", e, "get cpu name", 0, e );
-   }
+   if( isppc )
+      cpuNames = cmd.run( "cat /proc/cpuinfo | grep cpu | uniq |" +
+         " cut -d ':' -f 2 | sed 's/^ *//g'" ).split( "\n" );
+   else
+      cpuNames = cmd.run( "cat /proc/cpuinfo | grep 'model name' | uniq |" +
+         " cut -d ':' -f 2 | sed 's/^ *//g'" ).split( "\n" );
    for( var i = 0; i < info.Cpus.length; i++ )
    {
       var cpuName = info.Cpus[i].Info;
       if( cpuNames.indexOf( cpuName ) === -1 )
       {
-         throw buildException( "checkCpuName", null, "test cpu name",
-            cpuName, cpuNames );
+         throw new Error( "checkCpuName fail,test cpu name" + cpuName + cpuNames );
       }
    }
 }
@@ -280,23 +255,19 @@ function checkCpuTime ( cmd, info )
    // 转为秒数后比较，微秒有误差（去除小数部分）
    if( !isApproEqual( ( userTime + niceTime ) / 100, info.User / 1000 ) )
    {
-      throw buildException( "checkCpuTime", 0, "check user time",
-         userTime + niceTime, info.User );
+      throw new Error( "checkCpuTime fail,check user time" + userTime + niceTime + info.User );
    }
    if( !isApproEqual( systemTime / 100, info.Sys / 1000 ) )
    {
-      throw buildException( "checkCpuTime", 0, "check sys time",
-         systemTime, info.Sys );
+      throw new Error( "checkCpuTime fail,check sys time" + systemTime + info.Sys );
    }
    if( !isApproEqual( idleTime / 100, info.Idle / 1000 ) )
    {
-      throw buildException( "checkCpuTime", 0, "check idle time",
-         idleTime, info.Idle );
+      throw new Error( "checkCpuTime fail,check idle time" + idleTime + info.Idle );
    }
    if( !isApproEqual( ( iowaitTime + irqTime + softirqTime ) / 100, info.Other / 1000 ) )
    {
-      throw buildException( "checkCpuTime", 0, "check other time",
-         iowaitTime + irqTime + softirqTime, info.Other );
+      throw new Error( "checkCpuTime fail,check other time" + iowaitTime + irqTime + softirqTime + info.Other );
    }
 }
 
@@ -322,20 +293,17 @@ function checkDiskInfo ( info, content )
       }
       if( found === false )
       {
-         throw buildException( "checkDiskInfo", null, "check disk info",
-            disks[i], content );
+         throw new Error( "checkDiskInfo fail,check disk info" + disks[i] + content );
       }
       if( disks[i].Filesystem.indexOf( "/dev" ) !== -1 &&
          disks[i].IsLocal !== true )
       {
-         throw buildException( "checkDiskInfo", null, "check IsLocal",
-            disks[i].Filesystem, disks[i].IsLocal );
+         throw new Error( "checkDiskInfo fail,check IsLocal" + disks[i].Filesystem + disks[i].IsLocal );
       }
       if( disks[i].Filesystem.indexOf( "/dev" ) === -1 &&
          disks[i].IsLocal !== false )
       {
-         throw buildException( "checkDiskInfo", null, "check IsLocal",
-            disks[i].Filesystem, disks[i].IsLocal );
+         throw new Error( "checkDiskInfo fail,check IsLocal" + disks[i].Filesystem + disks[i].IsLocal );
       }
    }
 }
@@ -369,8 +337,7 @@ function checkDiskSize ( info, res )
       }
       if( found === false )
       {
-         throw buildException( "checkDiskSize", null, "check disk size",
-            res[i], JSON.stringify( disks ) );
+         throw new Error( "checkDiskSize fail,check disk size" + res[i] + JSON.stringify( disks ) );
       }
    }
 }
@@ -393,8 +360,7 @@ function getDiskIO ( cmd )
    }
    else
    {
-      throw buildException( "getDiskIO", null, "get columns in /proc/diskstats",
-         "7 14", columns );
+      throw new Error( "getDiskIO fail,get columns in /proc/diskstats" + "7 14" + columns );
    }
    var result = [];
    var tmpInfo = cmd.run( command ).split( "\n" );
@@ -422,9 +388,7 @@ function checkDiskIO ( info, result, cmd )
       {
          if( disks[i].ReadSec !== 0 || disks[i].WriteSec !== 0 )
          {
-            throw buildException( "checkDiskIO", null,
-               "check ReadSec WriteSec local false",
-               "0,0", JSON.stringify( disks[i] ) );
+            throw new Error( "checkDiskIO fail,check ReadSec WriteSec local false" + "0,0" + JSON.stringify( disks[i] ) );
          }
       }
       else
@@ -440,17 +404,13 @@ function checkDiskIO ( info, result, cmd )
                if( !isApproEqual( disks[i].ReadSec, result[j].readSec ) ||
                   !isApproEqual( disks[i].WriteSec, result[j].writeSec ) )
                {
-                  throw buildException( "checkDiskIO", null,
-                     "check ReadSec WriteSec",
-                     JSON.stringify( result[j] ), JSON.stringify( disks[i] ) );
+                  throw new Error( "checkDiskIO fail,check ReadSec WriteSec" + JSON.stringify( result[j] ) + JSON.stringify( disks[i] ) );
                }
             }
          }
          if( found === false )
          {
-            throw buildException( "checkDiskIO", null,
-               "check ReadSec WriteSec local true",
-               JSON.stringify( disks[i] ), JSON.stringify( result ) );
+            throw new Error( "checkDiskIO fail,check ReadSec WriteSec local true" + JSON.stringify( disks[i] ) + JSON.stringify( result ) );
          }
       }
    }
@@ -469,8 +429,8 @@ function readlink ( cmd, fs )
    }
    catch( e )
    {
-      if( e === 1 ) return fs;
-      else throw buildException( "readlink", e, command, "0 1", e );
+      if( e.message == 1 ) return fs;
+      else throw e;
    }
    var ind = info.lastIndexOf( "/" );
    return info.slice( ind + 1 );
@@ -491,24 +451,17 @@ function getNetcards ( cmd )
    for( var i = 0; i < names.length - 1; i++ )
    {
       names[i] = names[i].replace( /[\t ]/g, '' );
-      try
+      var command = "ip addr show " + names[i] + " | grep inet | grep -v inet6"
+         + " | awk '{print $2}'";
+      var tmpInfo = cmd.run( command ).split( "\n" );
+      for( var j = 0; j < tmpInfo.length - 1; j++ )
       {
-         var command = "ip addr show " + names[i] + " | grep inet | grep -v inet6"
-            + " | awk '{print $2}'";
-         var tmpInfo = cmd.run( command ).split( "\n" );
-         for( var j = 0; j < tmpInfo.length - 1; j++ )
-         {
-            var ind = tmpInfo[j].indexOf( "/" );
-            var ip = tmpInfo[j].slice( 0, ind );
-            obj.Netcards[k] = {};
-            obj.Netcards[k].Name = names[i];
-            obj.Netcards[k].Ip = ip;
-            k++;
-         }
-      }
-      catch( e )
-      {
-         throw buildException( "getNetcards", e, "get ip of " + names[i], 0, e );
+         var ind = tmpInfo[j].indexOf( "/" );
+         var ip = tmpInfo[j].slice( 0, ind );
+         obj.Netcards[k] = {};
+         obj.Netcards[k].Name = names[i];
+         obj.Netcards[k].Ip = ip;
+         k++;
       }
    }
    return obj;
@@ -520,11 +473,7 @@ function getNetcards ( cmd )
 ******************************************************************************/
 function checkNetcards ( netcards1, netcards2 )
 {
-   if( netcards1.length !== netcards2.length )
-   {
-      throw buildException( "checkNetcards", null, "check netcards num",
-         JSON.stringify( netcards1 ), JSON.stringify( netcards2 ) );
-   }
+   assert.equal( netcards1.length, netcards2.length );
    for( var i = 0; i < netcards1.length; i++ )
    {
       var found = false;
@@ -538,13 +487,14 @@ function checkNetcards ( netcards1, netcards2 )
       }
       if( found === false )
       {
-         throw buildException( "checkNetcards", 0, "check netcard info",
-            JSON.stringify( netcards1[i] ), JSON.stringify( netcards2 ) );
+         throw new Error( "checkNetcards fail,check netcard info" + JSON.stringify( netcards1[i] ) + JSON.stringify( netcards2 ) );
       }
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    var localhost = toolGetLocalhost();
    var remotehost = toolGetRemotehost();
@@ -573,4 +523,3 @@ function main ()
    }
 }
 
-main()

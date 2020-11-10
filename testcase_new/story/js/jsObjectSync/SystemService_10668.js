@@ -15,7 +15,6 @@ SystemTest.prototype.testRunServiceSSH = function()
    var user = this.system.getCurrentUser().toObj().user;
    if( user !== "root" )
    {
-      println( user + " have no permission to run ssh service." );
       return;
    }
    if( !isSSHExist( this.hostname, this.svcname ) )
@@ -39,13 +38,13 @@ SystemTest.prototype.testRunServiceSSH = function()
       {
          this.system.runService( "ssh", "stop", "" );
          status = this.system.runService( "ssh", "status" );
-         throw status;
+         throw new Error( status );
       }
       catch( e )
       {
-         if( e !== 3 )
+         if( e.message != 3 )
          {
-            throw new Error( "ssh service stop fail" + e );
+            throw e;
          }
       }
       finally
@@ -77,7 +76,6 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    var user = this.system.getCurrentUser().toObj().user;
    if( user !== "root" )
    {
-      println( user + " have no permission to run ssh service." );
       return;
    }
    if( !isSSHExist( this.hostname, this.svcname ) )
@@ -92,26 +90,26 @@ SystemTest.prototype.testRunServiceDuplicate = function()
    try
    {
       this.system.runService( "ssh", command );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== 0 )
+      if( e.message != 0 )
       {
-         throw new Error( "testRunServiceDuplicate run service duplicate" + e );
+         throw e;
       }
    }
    // 测试完成后，启动服务
    try
    {
       this.system.runService( "ssh", "start" );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== 0 )
+      if( e.message != 0 )
       {
-         throw new Error( "testRunServiceDuplicate test start service in the end" + e );
+         throw e;
       }
    }
    this.release();
@@ -126,13 +124,11 @@ SystemTest.prototype.testStopSdbcm = function()
    var user = this.system.getCurrentUser().toObj().user;
    if( user === "root" )
    {
-      println( "Cannot stop sdbcm service owned by root." );
       return;
    }
 
    if( this.system == System )
    {
-      println( "Stop using sdbcm will be stucked." );
       return;
    }
    try
@@ -141,9 +137,9 @@ SystemTest.prototype.testStopSdbcm = function()
    }
    catch( e )
    {
-      if( e !== -16 )
+      if( e.message != -16 )
       {
-         throw new Error( "testStopSdbcm stop sdbcm" + e );
+         throw e;
       }
    }
    this.release();
@@ -177,18 +173,20 @@ function isSSHExist ( hostname, svcname )
    }
    catch( e )
    {
-      if( e === 3 )
+      if( e.message == 3 )
          exist = true;
-      else if( e === 1 )
+      else if( e.message == 1 )
          exist = false;
       else
-         throw new Error( "isSSHExist" + e );
+         throw e;
    }
    remote.close();
    return exist;
 }
 
-function main ()
+main( test );
+
+function test ()
 {
 
    // 获取本地主机和远程主机
@@ -198,7 +196,6 @@ function main ()
    var localSystem = new SystemTest( localhost, CMSVCNAME );
    var remoteSystem = new SystemTest( remotehost, CMSVCNAME );
    var systems = [localSystem, remoteSystem];
-   println( systems );
    for( var i = 0; i < systems.length; i++ )
    {
       // 测试启动停止ssh服务
@@ -211,4 +208,3 @@ function main ()
       // systems[i].testStopSdbcm();
    }
 }
-main();

@@ -18,15 +18,7 @@ OmaTest.prototype.testNodeConfigs = function()
    var configs = this.oma.getNodeConfigs( COORDSVCNAME ).toObj();
    var sdbDir = toolGetSequoiadbDir( this.hostname, this.svcname );
    var command = "cat " + sdbDir[0] + "/conf/local/" + COORDSVCNAME + "/sdb.conf";
-   try
-   {
-      var contents = cmd.run( command ).split( "\n" );
-   }
-   catch( e )
-   {
-      println( "run command " + command );
-      throw buildException( "testNodeConfigs", e, "get node configs " + this, 0, e );
-   }
+   var contents = cmd.run( command ).split( "\n" );
    checkResult( configs, contents, "getNodeConfigs" );
 
    // 测试setNodeConfigs
@@ -35,21 +27,14 @@ OmaTest.prototype.testNodeConfigs = function()
       configs["tmpConf"] = "foo";
       this.oma.setNodeConfigs( COORDSVCNAME, configs );
       var tmpConf = this.oma.getNodeConfigs( COORDSVCNAME ).toObj().tmpConf;
-      if( tmpConf !== "foo" )
-      {
-         throw buildException( "testNodeConfigs", null, "set node configs " + this,
-            "foo", tmpConf );
-      }
+      assert.equal( tmpConf, "foo" );
 
       // 测试updateNodeConfigs
       configs["tmpConf"] = "bar";
       this.oma.updateNodeConfigs( COORDSVCNAME, configs );
       tmpConf = this.oma.getNodeConfigs( COORDSVCNAME ).toObj().tmpConf;
-      if( tmpConf !== "bar" )
-      {
-         throw buildException( "testNodeConfigs", null, "update node configs " + this,
-            "bar", tmpConf );
-      }
+      assert.equal( tmpConf, "bar" );
+
    }
    catch( e )
    {
@@ -67,7 +52,9 @@ OmaTest.prototype.testNodeConfigs = function()
 }
 
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -84,4 +71,3 @@ function main ()
    }
 }
 
-main()

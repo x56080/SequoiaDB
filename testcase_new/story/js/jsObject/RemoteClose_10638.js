@@ -11,22 +11,15 @@ RemoteTest.prototype.testClose = function()
    var system = this.remote.getSystem();
    this.remote.close();
 
-   try
+   assert.tryThrow( -15, function()
    {
       system.type();
-      throw "system call type after remote close should be failed";
-   }
-   catch( e )
-   {
-      if( e !== -15 )
-      {
-         throw buildException( "testClose", e,
-            "system call type after remote close " + this, -15, e );
-      }
-   }
+   } );
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取远程主机
    var remotehost = toolGetRemotehost();
@@ -36,4 +29,3 @@ function main ()
    rt.testClose();
 }
 
-main()

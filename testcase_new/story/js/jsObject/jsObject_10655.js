@@ -2,7 +2,7 @@
 *@Description: seqDB-10655:System对象设置用户信息
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -18,7 +18,6 @@ SystemTest.prototype.setUserConfigs = function()
    var user = this.system.getCurrentUser().toObj()["user"];
    if( user !== "root" )
    {
-      println( "user is not root, can't add del user" );
       this.release();
       return;
    }
@@ -26,8 +25,8 @@ SystemTest.prototype.setUserConfigs = function()
    deleteUser( this.hostname, this.svcname, "modifyUser", this.system );
    deleteGroup( this.hostname, this.svcname, "tmpGroup", this.system );
    deleteGroup( this.hostname, this.svcname, "testGroup", this.system );
-   deleteGroup( this.hostname, this.svcname, "modifyUser", this.system );  
- 
+   deleteGroup( this.hostname, this.svcname, "modifyUser", this.system );
+
    try
    {
       //创建用户
@@ -73,4 +72,5 @@ SystemTest.prototype.setUserConfigs = function()
    this.release();
 }
 
-//main( test );SEQUOIADBMAINSTREAM-5792
+// SEQUOIADBMAINSTREAM-5792
+//main( test );

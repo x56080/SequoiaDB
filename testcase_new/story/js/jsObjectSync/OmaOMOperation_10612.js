@@ -15,36 +15,27 @@ OmaTest.prototype.testOMOperation = function( svcname, isOmExist )
       try
       {
          this.oma.createOM( svcname, dbpath );
-         throw 0;
+         throw new Error( "should error" );
       }
       catch( e )
       {
-         if( e !== -145 )
+         if( e.message != -145 )
          {
-            println( "svcname = " + svcname + " dbpath = " + dbpath );
-            throw buildException( "testOMOperation", e,
-               "createOm when om exist " + this, -145, e );
+            throw e;
          }
       }
    }
    else
    {
-      try
-      {
-         this.oma.createOM( svcname, dbpath );
-      }
-      catch( e )
-      {
-         println( "svcname = " + svcname + " dbpath = " + dbpath );
-         throw buildException( "testOMOperation", e,
-            "createOm when om not exist " + this, 0, e );
-      }
+      this.oma.createOM( svcname, dbpath );
       this.oma.removeOM( svcname );
    }
    this.oma.close();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -54,13 +45,11 @@ function main ()
    var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME );
    if( svcname1 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" );
       return;
    }
    var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME );
    if( svcname2 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" );
       return;
    }
 
@@ -82,4 +71,4 @@ function main ()
    }
 }
 
-main()
+

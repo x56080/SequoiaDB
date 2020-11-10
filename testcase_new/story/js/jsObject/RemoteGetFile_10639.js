@@ -21,14 +21,12 @@ RemoteTest.prototype.testGetNoPermitFile = function()
    try
    {
       this.remote.getFile( dirName + "/test" );
-      throw "get no permission file should be failed";
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -3 )
+      if( e.message != -3 )
       {
-         throw buildException( "testGetNoPermitFile", e,
-            "get no permit file " + dirName + "/test " + this, -3, e );
+         throw e;
       }
    }
 
@@ -48,32 +46,26 @@ RemoteTest.prototype.testGetSdbFile = function( hostname )
       try
       {
          this.remote.getFile( sdbDir[0] + "/bin/sdb" );
-         throw "get using sdb file should be failed";
-      }
-      catch( e )
+         throw new Error( "should error" );
+      } catch( e )
       {
-         if( e !== -1 )
+         if( e.message != -1 )
          {
-            throw buildException( "testGetSdbFile", e, "get sdb file " + this, -1, e );
+            throw e;
          }
       }
    }
    else
    {
-      try
-      {
-         this.remote.getFile( sdbDir[0] + "/bin/sdb" );
-      }
-      catch( e )
-      {
-         throw buildException( "testGetSdbFile", e, "get sdb file " + this, 0, e );
-      }
+      this.remote.getFile( sdbDir[0] + "/bin/sdb" );
    }
 
    this.remote.close();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取远程主机
    var localhost = toolGetLocalhost();
@@ -90,4 +82,3 @@ function main ()
    // rt2.testGetSdbFile( localhost ) ;
 }
 
-main()

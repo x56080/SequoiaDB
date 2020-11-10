@@ -18,38 +18,29 @@ OmaTest.prototype.testSvcnameBoundary = function()
          var svcname = ErrorSvcname[i];
          var dbpath = RSRVNODEDIR + svcname;
          this.oma.createData( svcname, dbpath );
-         throw 0;
+         throw new Error( "should error" );
       }
       catch( e )
       {
-         if( e !== -6 )
+         if( e.message != -6 )
          {
-            println( "svcname " + svcname + " dbpath " + dbpath );
-            throw buildException( "testSvcnameBoundary", -6,
-               "create data " + this, -6, e );
+            throw e;
          }
       }
    }
    for( var i = 0; i < CorrSvcname.length; i++ )
    {
-      try
-      {
-         var svcname = CorrSvcname[i];
-         var dbpath = RSRVNODEDIR + svcname;
-         this.oma.createData( svcname, dbpath );
-         this.oma.removeData( svcname );
-      }
-      catch( e )
-      {
-         println( "svcname " + svcname + " dbpath " + dbpath );
-         throw buildException( "testSvcnameBoundary", 0,
-            "create data " + svcname + " " + this, 0, e );
-      }
+      var svcname = CorrSvcname[i];
+      var dbpath = RSRVNODEDIR + svcname;
+      this.oma.createData( svcname, dbpath );
+      this.oma.removeData( svcname );
    }
    this.oma.close();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -66,4 +57,3 @@ function main ()
    }
 }
 
-main()

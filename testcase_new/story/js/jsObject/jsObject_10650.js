@@ -2,7 +2,7 @@
 *@Description: seqDB-10650:System对象添加、删除用户
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -20,7 +20,6 @@ SystemTest.prototype.addDelUser = function( createDir )
    var user = this.system.getCurrentUser().toObj()["user"];
    if( user !== "root" )
    {
-      println( "user is not root, can't add del user" );
       this.release();
       return;
    }

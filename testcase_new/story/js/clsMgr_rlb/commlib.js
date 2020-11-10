@@ -1,1 +1,1 @@
-import( "../clsMgr/commlib.js" );
+import( "../lib/clsMgr_commlib.js" );

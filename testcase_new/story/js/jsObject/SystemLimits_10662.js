@@ -26,11 +26,7 @@ SystemTest.prototype.testGetProcUlimitConfigs = function()
          limit = 1024 * limit;
       else if( info.indexOf( "blocks" ) !== -1 )
          limit = 1024 * limit;
-      if( limits[k] !== limit * 1 )
-      {
-         throw buildException( "testGetProcUlimits", null,
-            "get limits of " + k + this, limit, limits[k] );
-      }
+      assert.equal( limits[k], limit * 1 );
    }
 
    this.release();
@@ -55,11 +51,8 @@ SystemTest.prototype.testSetProcUlimitConfigs = function()
       oldLimits.max_memory_size = maxMemSize[i];
       this.system.setProcUlimitConfigs( oldLimits );
       var newLimits = this.system.getProcUlimitConfigs().toObj();
-      if( newLimits.max_memory_size !== results[i] )
-      {
-         throw buildException( "testSetProcUlimitConfigs", null, "set maxMemSize "
-            + maxMemSize[i] + " " + this, results[i], newLimits.max_memory_size );
-      }
+      assert.equal( newLimits.max_memory_size, results[i] );
+
    }
    for( var i = 0; i < errMemSize; i++ )
    {
@@ -67,14 +60,12 @@ SystemTest.prototype.testSetProcUlimitConfigs = function()
       {
          oldLimits.max_memory_size = errMemSize[i];
          this.system.setProcUlimitConfigs( oldLimits );
-         throw "set max_memory_size " + errMemSize[i] + " should be failed";
-      }
-      catch( e )
+         throw new Error( "should error" );
+      } catch( e )
       {
-         if( e !== -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "testSetProcUlimitConfigs", e,
-               "set maxMemSize " + errMemSize[i] + " " + this, -6, e );
+            throw e;
          }
       }
    }
@@ -85,7 +76,9 @@ SystemTest.prototype.testSetProcUlimitConfigs = function()
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -106,4 +99,4 @@ function main ()
 
 }
 
-main()
+

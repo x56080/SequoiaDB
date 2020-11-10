@@ -2,7 +2,7 @@
 *@Description: seqDB-10649:System对象获取当前用户环境信息
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -24,7 +24,7 @@ SystemTest.prototype.getUserEnv = function()
       var index = tmpInfo[i].indexOf( "=" );
       keys[i] = tmpInfo[i].slice( 0, index );
       values[i] = tmpInfo[i].slice( index + 1 );
-      tmpObj[ keys[i] ] = values[i];
+      tmpObj[keys[i]] = values[i];
    }
 
    for( var j in tmpObj )

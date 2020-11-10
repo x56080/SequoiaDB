@@ -23,10 +23,7 @@ FileTest.prototype.testChmod = function()
    var mode = tmp[tmp.length - 2];
    mode = mode.slice( 0, 10 );
    this.cmd.run( "rm -rf " + tmpFilename );
-   if( mode !== "-rwxr-xr-x" )
-   {
-      throw buildException( "testChmod", null, "check mode " + this, "-rwxr-xr-x", mode );
-   }
+   assert.equal( mode, "-rwxr-xr-x" );
 
    this.release();
 }
@@ -39,21 +36,18 @@ FileTest.prototype.testChmodNoPermission = function()
    var user = this.cmd.run( "whoami" ).split( "\n" )[0];
    if( user === "root" )
    {
-      println( "user is root, cann't testChmodNoPermission" );
       this.release();
       return;
    }
    try
    {
       this.file.chmod( "/etc/passwd", 0755 );
-      throw 0;
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== 1 )
+      if( e.message != 1 )
       {
-         throw buildException( "testChmodNoPermission", e,
-            "test chmod /etc/passwd", 1, e );
+         throw e;
       }
    }
 
@@ -82,20 +76,13 @@ FileTest.prototype.testChmodRecursive = function()
    this.file.chmod( tmpDir, 0755, true );
 
    var mode = this.file.stat( tmpDir ).toObj()["mode"].slice( 0, 10 );
-   if( mode !== "rwxr-xr-x" )
-   {
-      throw buildException( "testChmodRecursive", null,
-         "check mode " + this, "rwxr-xr-x", mode );
-   }
+   assert.equal( mode, "rwxr-xr-x" );
    for( var i = 0; i < 5; i++ )
    {
       var tmpFileName = tmpDir + "/testChmodFile" + i;
       var mode = this.file.stat( tmpFileName ).toObj()["mode"].slice( 0, 10 );
-      if( mode !== "rwxr-xr-x" )
-      {
-         throw buildException( "testChmodRecursive", null,
-            "check mode " + this, "rwxr-xr-x", mode );
-      }
+      assert.equal( mode, "rwxr-xr-x" );
+
    }
 
    this.cmd.run( "rm -rf " + tmpDir );
@@ -122,11 +109,7 @@ FileTest.prototype.testChown = function()
    var tmp = this.cmd.run( command ).split( "\n" );
    var owner = tmp[tmp.length - 2];
    this.cmd.run( "rm -rf " + tmpFilename );
-   if( owner !== user + " " + group )
-   {
-      throw buildException( "testChown", null, "check owner " + this,
-         user + " " + group, owner );
-   }
+   assert.equal( owner, user + " " + group );
 
    this.release();
 }
@@ -139,7 +122,6 @@ FileTest.prototype.testChownRecursive = function()
    var user = this.system.getCurrentUser().toObj()["user"];
    if( user !== "root" )
    {
-      println( user + " is not root,cann't testChownRecursive" );
       this.release();
       return;
    }
@@ -164,20 +146,12 @@ FileTest.prototype.testChownRecursive = function()
    this.file.chown( tmpDir, { username: tmpUser }, true );
 
    var user = this.file.stat( tmpDir ).toObj()["user"];
-   if( user !== tmpUser )
-   {
-      throw buildException( "testChownRecursive", null,
-         "check owner " + this, tmpUser, user );
-   }
+   assert.equal( user, tmpUser );
    for( var i = 0; i < 5; i++ )
    {
       var tmpFileName = tmpDir + "/testChownFile" + i;
       var user = this.file.stat( tmpFileName ).toObj()["user"];
-      if( user !== tmpUser )
-      {
-         throw buildException( "testChownRecursive", null,
-            "check owner " + this, tmpUser, user );
-      }
+      assert.equal( user, tmpUser );
    }
 
    deleteUserAndGroup( this, tmpUser, tmpGroup );
@@ -206,10 +180,7 @@ FileTest.prototype.testChgrp = function()
    var tmp = this.cmd.run( command ).split( "\n" );
    var grp = tmp[tmp.length - 2];
    this.cmd.run( "rm -rf " + tmpFilename );
-   if( grp !== group )
-   {
-      throw buildException( "testChgrp", null, "check group " + this, group, grp );
-   }
+   assert.equal( grp, group );
 
    this.release();
 }
@@ -222,7 +193,6 @@ FileTest.prototype.testChgrpRecursive = function()
    var user = this.system.getCurrentUser().toObj()["user"];
    if( user !== "root" )
    {
-      println( user + " is not root,cann't testChgrpRecursive" );
       this.release();
       return;
    }
@@ -247,20 +217,12 @@ FileTest.prototype.testChgrpRecursive = function()
    this.file.chgrp( tmpDir, tmpGroup, true );
 
    var group = this.file.stat( tmpDir ).toObj()["group"];
-   if( group !== tmpGroup )
-   {
-      throw buildException( "testChgrpRecursive", null,
-         "check group " + this, tmpGroup, group );
-   }
+   assert.equal( group, tmpGroup );
    for( var i = 0; i < 5; i++ )
    {
       var tmpFileName = tmpDir + "/testChgrpFile" + i;
       var group = this.file.stat( tmpFileName ).toObj()["group"];
-      if( group !== tmpGroup )
-      {
-         throw buildException( "testChgrpRecursive", null,
-            "check group " + this, tmpGroup, group );
-      }
+      assert.equal( group, tmpGroup );
    }
 
    deleteUserAndGroup( this, tmpUser, tmpGroup );
@@ -271,7 +233,7 @@ FileTest.prototype.testChgrpRecursive = function()
 
 function createUserAndGroup ( ft, user, group )
 {
-   deleteGroup( ft.hostname, ft.svcname, group, ft.system );     
+   deleteGroup( ft.hostname, ft.svcname, group, ft.system );
    deleteUser( ft.hostname, ft.svcname, user, ft.system );
    ft.system.addGroup( { "name": group } );
    ft.system.addUser( { "name": user, "group": group } );
@@ -288,23 +250,15 @@ function deleteUserAndGroup ( ft, user, group )
       var msg = ft.cmd.getLastOut();
       if( msg.indexOf( "logged in" ) === -1 )
       {
-         throw buildException( "deleteUserAndGroup", e,
-            "delete user " + user + " " + msg + " " + ft, 0, e );
+         throw new Error( "deleteUserAndGroup delete user " + user + " " + msg + " " + ft + e );
       }
    }
-   try
-   {
-      ft.system.delGroup( group );
-   }
-   catch( e )
-   {
-      throw buildException( "deleteUserAndGroup", e,
-         "delete group " + group + " " + ft,
-         0, e );
-   }
+   ft.system.delGroup( group );
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -343,4 +297,4 @@ function main ()
    }
 }
 
-main()
+

@@ -4,74 +4,43 @@
 *@Author      : 2019-3-7  XiaoNi Huang
 *@Info		  : invalid type[null/array/......]
 ******************************************************************************/
-main();
 
-function main ()
+main( test );
+
+function test ()
 {
-	println( "\n---Begin to run test" );
-	var filePath = WORKDIR + "/" + "config17973_sdbcm.conf";
+   var filePath = WORKDIR + "/" + "config17973_sdbcm.conf";
 
-	// sdb test
-	// invalid type[null]
-	try
-	{
-		Oma.setIniConfigs( { "inv.null": null }, filePath );
-		throw "expect fail but actual succ.";
-	}
-	catch( e )
-	{
-		if( -6 != e ) 
-		{
-			throw e;
-		}
-	}
+   // sdb test
+   // invalid type[null]
+   assert.tryThrow( -6, function()
+   {
+      Oma.setIniConfigs( { "inv.null": null }, filePath );
+   } );
 
-	// invalid type[array]
-	try
-	{
-		Oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
-		throw "expect fail but actual succ.";
-	}
-	catch( e )
-	{
-		if( -6 != e ) 
-		{
-			throw e;
-		}
-	}
+   // invalid type[array]
+   assert.tryThrow( -6, function()
+   {
+      Oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
+   } );
 
 
-	// sdbcm test
-	var oma = new Oma( COORDHOSTNAME, CMSVCNAME );
+   // sdbcm test
+   var oma = new Oma( COORDHOSTNAME, CMSVCNAME );
 
-	// invalid type[null]
-	try
-	{
-		oma.setIniConfigs( { "inv.null": null }, filePath );
-		throw "expect fail but actual succ.";
-	}
-	catch( e )
-	{
-		if( -6 != e ) 
-		{
-			throw e;
-		}
-	}
+   // invalid type[null]
+   assert.tryThrow( -6, function()
+   {
+      oma.setIniConfigs( { "inv.null": null }, filePath );
+   } );
 
-	// invalid type[array]
-	try
-	{
-		oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
-		throw "expect fail but actual succ.";
-	}
-	catch( e )
-	{
-		if( -6 != e ) 
-		{
-			throw e;
-		}
-	}
 
-	oma.close();
+   // invalid type[array]
+   assert.tryThrow( -6, function()
+   {
+      oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
+   } );
+
+   oma.close();
 
 }

@@ -1,4 +1,5 @@
 import( "../lib/main.js" );
+import( "../lib/basic_operation/commlib.js" );
 
 // 获取本地主机和远程主机
 var localhost = toolGetLocalhost();
@@ -50,9 +51,9 @@ function checkDir ( cmd, dir, createDir )
    }
    catch( e )
    {
-      if( createDir || ( !createDir && e !== 2 ) )
+      if( createDir || ( !createDir && e.message != 2 ) )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }
@@ -106,11 +107,11 @@ OmaTest.prototype.testInit = function()
    }
    catch( e )
    {
-      if( !this.islegalhost && e === -15 )
+      if( ( !this.islegalhost || !this.islegalsvc ) && ( e.message == -15 || e.message == -6 ) )
          ;
       else
       {
-         throw buildException( "testInit", e, "init oma " + this, "0 -15", e );
+         throw e;
       }
    }
 }
@@ -148,11 +149,11 @@ RemoteTest.prototype.testInit = function()
    }
    catch( e )
    {
-      if( ( !this.islegalhost || !this.islegalsvc ) && e === -15 )
+      if( ( !this.islegalhost || !this.islegalsvc ) && e.message == -15 )
          ;
       else
       {
-         throw buildException( "testInit", e, "init remote " + this, "0 -15", e );
+         throw e;
       }
    }
 }
@@ -230,8 +231,7 @@ FileTest.prototype.init = function()
          catch( e )
          {
             var dirmode = toolGetDirMode( File, this.filename );
-            throw buildException( "init", e, "new file " + this.filename + " " + this +
-               " dir mode: " + dirmode, 0, e );
+            throw new Error( e.message + dirmode );
          }
       }
    }
@@ -251,8 +251,7 @@ FileTest.prototype.init = function()
          catch( e )
          {
             var dirmode = toolGetDirMode( this.remote.getFile(), this.filename );
-            throw buildException( "init", e, "new file " + this.filename + " " + this +
-               " dir mode: " + dirmode, 0, e );
+            throw new Error( e.message + dirmode );
          }
       }
    }
@@ -270,8 +269,7 @@ FileTest.prototype.release = function()
 
 FileTest.prototype.toString = function()
 {
-   return ( "FileTest: hostname=" + this.hostname + " svcname=" + this.svcname +
-      " filename=" + this.filename );
+   return ( "FileTest: hostname=" + this.hostname + " svcname=" + this.svcname + " filename=" + this.filename );
 }
 
 function CmdTest ( hostName, cmSvcName )
@@ -334,7 +332,6 @@ function toolGetHosts ()
    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone." );
       db.close();
       return hosts;
    }
@@ -435,14 +432,14 @@ function checkResult ( info, content, func )
          var ind = content[j].indexOf( i );
          if( ind === -1 )
             continue;
+         if( content[j][ind + i.length] !== "=" )
+            continue;
          found = true;
          var value1 = content[j].slice( ind + i.length + 1 ).toLowerCase();
          var value2 = info[i].toString().toLowerCase();
-         if( value1 !== value2 )
-            throw buildException( "checkResult", null, func + " i=" + i, value1, value2 );
+         assert.equal( value1, value2 );
       }
-      if( found === false )
-         throw buildException( "checkResult", func + ", i=" + i );
+      assert.notEqual( found, false );
    }
 }
 
@@ -480,12 +477,12 @@ function toolGetIdleSvcName ( hostName, cmSvcName )
       }
       catch( e )
       {
-         if( e === 1 )
+         if( e.message == 1 )
          {
             remote.close();
             return svcname;
          }
-         throw buildException( "toolGetIdleSvcName", e );
+         throw e;
       }
    }
    remote.close();
@@ -580,9 +577,9 @@ function toolGetSequoiadbDir ( hostname, svcname )
 *@Description : delete user 
 *@author      : Liang XueWang              
 ******************************************************************************/
-function deleteUser( hostname, svcname, username, system, ignoreNotExist )
+function deleteUser ( hostname, svcname, username, system, ignoreNotExist )
 {
-   if( ignoreNotExist == undefined ){ ignoreNotExist = true; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    var remote = new Remote( hostname, svcname );
    var cmd = remote.getCmd();
    try
@@ -593,9 +590,9 @@ function deleteUser( hostname, svcname, username, system, ignoreNotExist )
    }
    catch( e )
    {
-      if( !ignoreNotExist || e !== 1 )
+      if( !ignoreNotExist || e.message != 1 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    remote.close();
@@ -605,21 +602,21 @@ function deleteUser( hostname, svcname, username, system, ignoreNotExist )
 *@Description : delete group
 *@author      : Liang XueWang              
 ******************************************************************************/
-function deleteGroup( hostname, svcname, groupname, system, ignoreNotExist )
+function deleteGroup ( hostname, svcname, groupname, system, ignoreNotExist )
 {
-   if( ignoreNotExist == undefined ){ ignoreNotExist = true; }
+   if( ignoreNotExist == undefined ) { ignoreNotExist = true; }
    var remote = new Remote( hostname, svcname );
    var cmd = remote.getCmd();
    try
    {
       cmd.run( "grep '^" + groupname + ":' /etc/group" );
-      system.delGroup( groupname ); 
+      system.delGroup( groupname );
    }
    catch( e )
    {
-      if( !ignoreNotExist || e !== 1 )
+      if( !ignoreNotExist || e.message != 1 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    remote.close();
@@ -676,44 +673,21 @@ var withRetFile = WORKDIR + "/withRet_11903.js";
 
 function createWithoutRetFile ()
 {
-   try
-   {
-      var file = new File( withoutRetFile );
-      file.write( "function add( a, b ) { return a + b ; }" );
-      file.close();
-   }
-   catch( e )
-   {
-      throw buildException( "createFile", null, "create file " + withoutRetFile,
-         0, e );
-   }
+   var file = new File( withoutRetFile );
+   file.write( "function add( a, b ) { return a + b ; }" );
+   file.close();
 }
 function createWithRetFile ()
 {
-   try
-   {
-      file = new File( withRetFile );
-      file.write( "function mul( a, b ) { return a * b ; } var tmp = 100 ; mul( 1, 2 ) ;"
-         + " mul( 2, 3 ) ;" );
-      file.close();
-   }
-   catch( e )
-   {
-      throw buildException( "createFile", null, "create file " + withRetFile,
-         0, e );
-   }
+   file = new File( withRetFile );
+   file.write( "function mul( a, b ) { return a * b ; } var tmp = 100 ; mul( 1, 2 ) ;"
+      + " mul( 2, 3 ) ;" );
+   file.close();
 }
 
 function removeFile ( filename )
 {
-   try
-   {
-      File.remove( filename );
-   }
-   catch( e )
-   {
-      throw buildException( "removeFile", null, "remove file " + filename, 0, e );
-   }
+   File.remove( filename );
 }
 function currUser ()
 {
@@ -725,21 +699,13 @@ function currUser ()
 
 function getCoordUser ()
 {
-   try
-   {
-      var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
-      var system = remote.getSystem();
-      var cursor = system.listProcess( { detail: true },
-         { cmd: "sequoiadb(" + COORDSVCNAME + ") S" } );
-      var user = cursor.next().toObj()["user"];
-      remote.close();
-      return user;
-   }
-   catch( e )
-   {
-      throw buildException( "getCoordUser", e,
-         "get user of " + COORDHOSTNAME + ":" + COORDSVCNAME, 0, e );
-   }
+   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+   var system = remote.getSystem();
+   var cursor = system.listProcess( { detail: true },
+      { cmd: "sequoiadb(" + COORDSVCNAME + ") S" } );
+   var user = cursor.next().toObj()["user"];
+   remote.close();
+   return user;
 }
 
 function initWorkDir ( cmd, remote )
@@ -751,7 +717,7 @@ function initWorkDir ( cmd, remote )
    }
    catch( e )
    {
-      if( 2 === e )   // 2: No such file or directory
+      if( 2 == e.message )   // 2: No such file or directory
       {
          cmd.run( "mkdir -p " + WORKDIR );
       }
@@ -769,4 +735,15 @@ function initWorkDir ( cmd, remote )
       commMakeDir( COORDHOSTNAME, WORKDIR );
    }
 }
-
+/******************************************************************************
+*@Description : used to get sdbcm.conf user and group
+*@author      : Liang XueWang              
+******************************************************************************/
+function getFileUsrGrp ( file )
+{
+   var tmpObj = File.stat( file ).toObj();
+   var obj = {};
+   obj["user"] = tmpObj.user;
+   obj["group"] = tmpObj.group;
+   return obj;
+}

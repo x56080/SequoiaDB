@@ -4,7 +4,9 @@
 *                         10601  使用非cm端口初始化Oma对象
 *@author      : Liang XueWang
 ********************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var illegalOma;
 
@@ -19,4 +21,4 @@ function main ()
    illegalOma.testInit();
 }
 
-main()
+

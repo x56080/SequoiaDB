@@ -29,15 +29,7 @@ OmaTest.prototype.testListNodes1 = function()
    var sdbDir = toolGetSequoiadbDir( this.hostname, this.svcname );
    var command = sdbDir[0] + "/bin/sdblist -t db -r coord -p " + COORDSVCNAME +
       " -m run --expand";
-   try
-   {
-      var tmpInfo = cmd.run( command );
-   }
-   catch( e )
-   {
-      println( "run command " + command );
-      throw buildException( "testListNodes1", e, this, 0, e );
-   }
+   var tmpInfo = cmd.run( command );
 
    checkListNodes( nodes, tmpInfo );
 
@@ -71,14 +63,12 @@ OmaTest.prototype.testListNodes2 = function()
    }
    catch( e )
    {
-      if( e === 1 && !isOmExist( this.hostname, this.svcname ) )
+      if( e.message == 1 && !isOmExist( this.hostname, this.svcname ) )
       {
          tmpInfo = "Total: 0";
-      }
-      else
+      } else
       {
-         println( "run command " + command );
-         throw buildException( "testListNodes2", e, this, 0, e );
+         throw e;
       }
    }
 
@@ -109,15 +99,7 @@ OmaTest.prototype.testListNodes3 = function()
 
    var sdbDir = toolGetSequoiadbDir( this.hostname, this.svcname );
    var command = sdbDir[0] + "/bin/sdblist -t db";
-   try
-   {
-      var tmpInfo = cmd.run( command );
-   }
-   catch( e )
-   {
-      println( "run command " + coammand );
-      throw buildException( "testListNodes3", e, this, 0, e );
-   }
+   var tmpInfo = cmd.run( command );
 
    checkListNodes( nodes, tmpInfo );
 
@@ -137,14 +119,13 @@ OmaTest.prototype.testListNodesAbnormal = function()
       try
       {
          this.oma.listNodes( option[i] );
-         throw 0;
+         throw new Error( "should error" );
       }
       catch( e )
       {
-         if( e !== -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "testListNodesAbnormal", e,
-               "list nodes with " + JSON.stringify( option[i] ) + " " + this, -6, e );
+            throw e;
          }
       }
    }
@@ -162,17 +143,13 @@ function checkListNodes ( nodes, info )
    var tmpStr = "Total: ";
    var ind = info.indexOf( tmpStr );
    var num2 = info.slice( ind + tmpStr.length ).split( "\n" )[0] * 1;
-   if( num1 !== num2 )
-   {
-      println( "listnodes: " + JSON.stringify( nodes.toArray() ) );
-      println();
-      println( "sdblist: " + info );
-      throw buildException( "checkListNodes", null, "check nodes num", num1, num2 );
-   }
+   assert.equal( num1, num2 );
 }
 
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -194,4 +171,3 @@ function main ()
    }
 }
 
-main()

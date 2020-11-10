@@ -2,7 +2,7 @@
 *@Description: seqDB-10656:System对象枚举已登录用户
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -13,7 +13,7 @@ function test()
 SystemTest.prototype.listLoginUsers = function()
 {
    this.init();
-   
+
    var users = this.system.listLoginUsers( { detail: true } ).toArray();
    var info = this.cmd.run( "who | sed 's/  */ /g'" ).split( "\n" );
    for( var i = 0; i < users.length; i++ )

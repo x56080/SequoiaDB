@@ -45,7 +45,7 @@ SystemTest.prototype.testAddDelGroup = function( isUnique )
       this.system.addGroup( groupObj );
       if( isUnique )
       {
-         throw "create unique group with used gid should be failed";
+         throw new Error( "create unique group with used gid should be fail,ed" );
       }
       // 检查用户组
       checkGroup( this.cmd, groupObj );
@@ -56,11 +56,10 @@ SystemTest.prototype.testAddDelGroup = function( isUnique )
    }
    catch( e )
    {
-      if( ( e === 4 || e === 16 ) && isUnique )
+      if( ( e.message == 4 || e.message == 16 ) && isUnique )
          ;
       else
-         throw buildException( "testAddDelGroup", null,
-            "add del group " + this, "0 4 16", e );
+         throw e;
    }
 
    this.release();
@@ -84,8 +83,7 @@ SystemTest.prototype.testListGroups = function()
       if( name !== groupObj.name || gid !== groupObj.gid ||
          members !== groupObj.members )
       {
-         throw buildException( "testListGroups", null,
-            "test group info " + this, tmp, groups[i] );
+         throw new Error( "testListGroups test group info " + this + tmp + groups[i] );
       }
    }
 
@@ -98,17 +96,9 @@ SystemTest.prototype.testIsGroupExist = function()
    this.init();
 
    var result = this.system.isGroupExist( "root" );
-   if( result !== true )
-   {
-      throw buildException( "testIsGroupExist", null,
-         "test root " + this, true, result );
-   }
+   assert.equal( result, true );
    result = this.system.isGroupExist( "!@#$%" );
-   if( result !== false )
-   {
-      throw buildException( "testIsGroupExist", null,
-         "test !@#$% group " + this, false, result );
-   }
+   assert.equal( result, false );
 
    this.release();
 }
@@ -126,8 +116,7 @@ function checkGroup ( cmd, groupObj )
    var gid = tmp[2];
    if( groupName !== groupObj.name || gid !== groupObj.id )
    {
-      throw buildException( "checkGroup", null, "check group info",
-         tmp, JSON.stringify( groupObj ) );
+      throw new Error( "checkGroup fail,check group info" + tmp + JSON.stringify( groupObj ) );
    }
 }
 
@@ -151,7 +140,9 @@ function getIdleGID ( cmd )
 }
 
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -177,4 +168,4 @@ function main ()
    }
 }
 
-main()
+

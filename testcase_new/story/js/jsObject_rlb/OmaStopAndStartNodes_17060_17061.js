@@ -6,15 +6,13 @@
 *@Info        ：用例执行机可能没有装sequoiadb，本地测试时new Oma()会失败,所以仅测试远程Oma
 *               集群仅有1个catalog时，如catalog被停止，则其他节点会无法连接，因为连接节点时需要向catalog获取鉴权
 **************************************/
-import( "../jsObjectSync/commlib.js" );
-main();
+main( test );
 
-function main ()
+function test ()
 {
 
    if( commIsStandalone( db ) )
    {
-      println( "--is standalone--" );
       return;
    }
 
@@ -27,7 +25,6 @@ function main ()
    try
    {
       //停止一个节点，启动一个节点
-      println( "---stop one node--" );
       var testNode1 = [nodeList[0]];
       oma.stopNodes( testNode1 );
       checkNodeStatus( hostName, testNode1, false );
@@ -35,7 +32,6 @@ function main ()
       checkNodeStatus( hostName, nodeList, true );
 
       //停止多个节点，启动多个节点
-      println( "---stop multiple nodes--" );
       var testNode2 = [nodeList[1], nodeList[2]];
       oma.stopNodes( testNode2 );
       checkNodeStatus( hostName, testNode2, false );
@@ -43,7 +39,6 @@ function main ()
       checkNodeStatus( hostName, nodeList, true );
 
       //停止所有节点，启动所有节点
-      println( "---stop all nodes--" );
       var testNode3 = nodeList;
       oma.stopNodes( testNode3 );
       checkNodeStatus( hostName, testNode3, false );
@@ -51,22 +46,20 @@ function main ()
       checkNodeStatus( hostName, nodeList, true );
 
       //停止已停止或不存在的节点，启动多个节点包括不存在的节点
-      println( "---stop node before test--" );
       var testNode4 = [nodeList[0]];
       oma.stopNodes( testNode4 );
       checkNodeStatus( hostName, [nodeList[0]], false );
-      println( "---stop stopped or not exist nodes--" );
       testNode4.push( RSRVPORTBEGIN );
       oma.stopNodes( testNode4 );
       checkNodeStatus( hostName, [nodeList[0]], false );
       try
       {
          oma.startNodes( testNode4 );
-         throw "NODE_NOT_EXIST";
+         throw new Error( "NODE_NOT_EXIST" );
       }
       catch( e )
       {
-         if( e != -264 )
+         if( e.message != -264 )
          {
             throw e;
          }
@@ -104,20 +97,20 @@ function checkNodeStatus ( hostname, nodeList, isNormal )
          conn.close();
          if( !isNormal )
          {
-            throw "NODE_SHOULD_DOWN";
+            throw new Error( "NODE_SHOULD_DOWN" );
          }
       }
       catch( e )
       {
          if( isNormal )
          {
-            throw buildException( "checkNodeStatus()", e, "check node status: '" + hostname + ":" + nodeList[i] + "'", "node normal", "node error" );
+            throw new Error( "checkNodeStatus() fail,check node status: '" + hostname + ":" + nodeList[i] + "'" + "node normal" + "node error" );
          }
          else
          {
-            if( e != -79 )
+            if( e.message != -79 )
             {
-               throw buildException( "checkNodeStatus()", e, "check node error: '" + hostname + ":" + nodeList[i] + "'", -79, e );
+               throw new Error( "checkNodeStatus() fail,check node error: '" + hostname + ":" + nodeList[i] + "'" + -79 + e );
             }
          }
       }

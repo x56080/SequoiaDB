@@ -4,7 +4,9 @@
 *                          10637 初始化Remote对象，端口不是cm端口
 *@author      : Liang XueWang
 ******************************************************************************/
-function main ()
+main( test );
+
+function test ()
 {
    // 获取远程主机
    var remotehost = toolGetRemotehost();
@@ -18,7 +20,6 @@ function main ()
    var svcname = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME );
    if( svcname === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND" );
       return;
    }
 
@@ -27,18 +28,10 @@ function main ()
    rt.testInit();
 
    // 测试使用非cm端口初始化
-   try
+   assert.tryThrow( -6, function()
    {
-      var remote = new Remote( remotehost, COORDSVCNAME );
-      throw "init remote with coord svcname should be failed";
-   }
-   catch( e )
-   {
-      if( e !== -6 )
-      {
-         throw buildException( "main", e, "init remote with coord svcname", -6, e );
-      }
-   }
+      new Remote( remotehost, COORDSVCNAME );
+   } );
 }
 
-main()
+

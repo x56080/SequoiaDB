@@ -18,26 +18,14 @@ FileTest.prototype.testReadWrite = function()
 
    this.file.seek( 0, 'b' );
    var readPart = this.file.read( 4 );   // 偏移读部分字符
-   if( readPart !== "aaaa" )
-   {
-      throw buildException( "testReadWrite", null,
-         "test read part " + this, "aaaa", readPart );
-   }
+   assert.equal( readPart, "aaaa" );
 
    this.file.seek( 0, 'b' );
    var readMax = this.file.read();       // 偏移读1024个字符
-   if( readMax !== generateContent( 'a', 1024 ) )
-   {
-      throw buildException( "testReadWrite", null,
-         "test read 1024 " + this, generateContent( 'a', 1024 ), readMax );
-   }
+   assert.equal( readMax, generateContent( 'a', 1024 ) );
 
    var readRest = this.file.read();      // 读取剩余字符
-   if( readRest !== 'a' )
-   {
-      throw buildException( "testReadWrite", null,
-         "test read rest " + this, 'a', readRest );
-   }
+   assert.equal( readRest, 'a' );
 
    this.file.close();      // 关闭文件
    checkClose( this.file );
@@ -53,14 +41,12 @@ FileTest.prototype.testSeekBoundary = function()
    try
    {
       this.file.seek( -1, 'b' );  // 测试偏移超出文件头边界
-      throw 0;
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testSeekBoundary", e,
-            "test exceed head boundary " + this, -6, e );
+         throw e;
       }
    }
 
@@ -70,14 +56,12 @@ FileTest.prototype.testSeekBoundary = function()
       this.file.write( "abcdefg" );   // 测试偏移到文件尾部读取
       this.file.seek( 0, 'e' );
       this.file.read();
-      throw 0;
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -9 )
+      if( e.message != -9 )
       {
-         throw buildException( "testSeekBoundary", e,
-            "test seek end and read " + this, -9, e );
+         throw e;
       }
    }
 
@@ -102,22 +86,16 @@ function generateContent ( ch, size )
 ******************************************************************************/
 function checkClose ( file )
 {
-   try
+   assert.tryThrow( -1, function()
    {
       file.write( 'abcd' );
-      throw "write after file close should be failed";
-   }
-   catch( e )
-   {
-      if( e !== -1 )
-      {
-         throw buildException( "checkClose", e, "write after close", -1, e );
-      }
-   }
+   } );
 }
 
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -139,4 +117,3 @@ function main ()
    }
 }
 
-main()

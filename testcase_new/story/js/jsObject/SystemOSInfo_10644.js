@@ -69,7 +69,6 @@ SystemTest.prototype.testGetInfo = function()
    this.init();
    if( this.system == System )
    {
-      // println( "System has no function getInfo" ) ;
       return;
    }
 
@@ -79,8 +78,7 @@ SystemTest.prototype.testGetInfo = function()
       info.svcname !== this.svcname ||
       info.isRemote !== true )
    {
-      throw buildException( "testGetInfo", 0, "test system object info",
-         this.hostname + ":" + this.svcname, JSON.stringify( info ) );
+      throw new Error( "testGetInfo test system object info" + this.hostname + ":" + this.svcname + JSON.stringify( info ) );
    }
 
    this.release();
@@ -93,11 +91,7 @@ SystemTest.prototype.testGetHostName = function()
 
    var hostname1 = this.system.getHostName();
    var hostname2 = this.cmd.run( "hostname" ).split( "\n" )[0];
-   if( hostname1 !== hostname2 )
-   {
-      throw buildException( "testGetHostName", null,
-         "get hostname " + this, hostname2, hostname1 );
-   }
+   assert.equal( hostname1, hostname2 );
 
    this.release();
 }
@@ -111,16 +105,14 @@ SystemTest.prototype.testPing = function()
    var obj = this.system.ping( COORDHOSTNAME ).toObj();
    if( obj.Target !== COORDHOSTNAME || obj.Reachable !== true )
    {
-      throw buildException( "testPing", null, "ping localhost " + this,
-         true, obj.Reachable );
+      throw new Error( "testPing fail,ping localhost " + this + true + obj.Reachable );
    }
 
    // 测试连通不存在的主机
    obj = this.system.ping( "NotExistHost" ).toObj();
    if( obj.Target !== "NotExistHost" || obj.Reachable !== false )
    {
-      throw buildException( "testPing", null, "ping not exist host " + this,
-         false, obj.Reachable );
+      throw new Error( "testPing fail,ping not exist host " + this + false + obj.Reachable );
    }
 
    this.release();
@@ -132,10 +124,7 @@ SystemTest.prototype.testType = function()
    this.init();
 
    var t = this.system.type();
-   if( t !== "LINUX" )
-   {
-      throw buildException( "testType", null, "test type " + this, "LINUX", t );
-   }
+   assert.equal( t, "LINUX" );
 
    this.release();
 }
@@ -149,29 +138,18 @@ SystemTest.prototype.testGetReleaseInfo = function()
    var descript1 = this.system.getReleaseInfo().toObj().Description;
    descript1 = descript1.replace( /[\t ]/g, '' );
    var descript2 = toolGetReleaseInfo( this.hostname, this.svcname );
-   if( descript1 !== descript2 )
-   {
-      throw buildException( "testGetReleaseInfo", null, "test description " + this,
-         descript2, descript1 );
-   }
+   assert.equal( descript1, descript2 );
 
    // 测试获取的系统位数
    var bit1 = this.system.getReleaseInfo().toObj().Bit;
    tmpInfo = this.cmd.run( "getconf LONG_BIT" ).split( "\n" );
    var bit2 = tmpInfo[tmpInfo.length - 2] * 1;
-   if( bit1 !== bit2 )
-   {
-      throw buildException( "testGetReleaseInfo", null, "test bit " + this, bit2, bit1 );
-   }
+   assert.equal( bit1, bit2 );
 
    // 测试获取系统内核版本
    var kernel_release1 = this.system.getReleaseInfo().toObj().KernelRelease;
    var kernel_release2 = this.cmd.run( "uname -r" ).split( "\n" )[0];
-   if( kernel_release1 !== kernel_release2 )
-   {
-      throw buildException( "testGetReleaseInfo", null, "test kernel release " + this,
-         kernel_release2, kernel_release1 );
-   }
+   assert.equal( kernel_release1, kernel_release2 );
 
    this.release();
 }
@@ -182,16 +160,14 @@ SystemTest.prototype.testGetIpTablesInfo = function()
    this.init();
 
    var iptables = this.system.getIpTablesInfo().toObj();
-   if( iptables.FireWall !== "unknown" )
-   {
-      throw buildException( "testGetIpTablesInfo", 0, "get iptables info " + this,
-         "unknown", iptables.FireWall );
-   }
+   assert.equal( iptables.FireWall, "unknown" );
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    var localhost = toolGetLocalhost();
    var remotehost = toolGetRemotehost();
@@ -222,4 +198,3 @@ function main ()
    }
 }
 
-main()

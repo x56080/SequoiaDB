@@ -5,6 +5,28 @@
 *@auhor       : Liang XueWang
 ******************************************************************************/
 
+main( test );
+
+function test ()
+{
+   var cmd = new Cmd();
+   var umask = cmd.run( "umask" ).split( "\n" )[0];
+   if( umask !== "0022" )
+   {
+      return;
+   }
+   // 测试本地文件初始化指定权限
+   testInitLocal();
+   // 测试远程文件初始化指定权限
+   testInitRemote();
+   // 测试远程文件初始化时文件名参数非法
+   testInitRemoteAbnormal();
+   // 测试本地文件初始化无权限
+   testInitLocalNoPermission();
+   // 测试远程文件初始化无权限
+   testInitRemoteNoPermission();
+}
+
 // 测试本地文件对象初始化时指定权限
 function testInitLocal ()
 {
@@ -20,11 +42,7 @@ function testInitLocal ()
       var localfile = new File( filename, modeNumber[i] );
       var tmp = cmd.run( command ).split( "\n" );
       var filemode = tmp[tmp.length - 2].slice( 0, 10 );
-      if( filemode !== modeString )
-      {
-         throw buildException( "testInitLocal", null, "file " + filename,
-            modeString, filemode );
-      }
+      assert.equal( filemode, modeString );
       cmd.run( "rm -rf " + filename );
    }
 }
@@ -46,11 +64,7 @@ function testInitRemote ()
       var remotefile = remote.getFile( filename, modeNumber[i] );
       var tmp = cmd.run( command ).split( "\n" );
       var filemode = tmp[tmp.length - 2].slice( 0, 10 );
-      if( filemode !== modeString )
-      {
-         throw buildException( "testInitRemote", null,
-            "file " + filename + " hostname: " + remotehost, modeString, filemode );
-      }
+      assert.equal( filemode, modeString );
       cmd.run( "rm -rf " + filename );
    }
    remote.close();
@@ -69,14 +83,12 @@ function testInitRemoteAbnormal ()
       try
       {
          remote.getFile( errFilename[i] );
-         throw "get remote file " + errFilename[i] + " should be failed";
-      }
-      catch( e )
+         throw new Error( "should error" );
+      } catch( e )
       {
-         if( e !== errno[i] )
+         if( e.message != errno[i] )
          {
-            throw buildException( "testInitRemoteAbnormal", e,
-               "file " + errFilename[i] + " host " + remotehost, errno[i], e );
+            throw e;
          }
       }
    }
@@ -90,20 +102,17 @@ function testInitLocalNoPermission ()
    var user = cmd.run( "whoami" ).split( "\n" )[0];
    if( user === "root" )
    {
-      println( "local user is root" );
       return;
    }
    try
    {
-      var file = new File( "/etc/passwd" );
-      throw 0;
-   }
-   catch( e )
+      new File( "/etc/passwd" );
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -3 )
+      if( e.message != -3 )
       {
-         throw buildException( "testInitLocalNoPermission", e,
-            "test init local file /etc/passwd", -3, e );
+         throw e;
       }
    }
 }
@@ -117,43 +126,20 @@ function testInitRemoteNoPermission ()
    var user = cmd.run( "whoami" ).split( "\n" )[0];
    if( user === "root" )
    {
-      println( "remote user is root" );
       return;
    }
    try
    {
-      var file = remote.getFile( "/etc/passwd" );
-      throw 0;
-   }
-   catch( e )
+      remote.getFile( "/etc/passwd" );
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -3 )
+      if( e.message != -3 )
       {
-         throw buildException( "testInitRemoteNoPermission", e,
-            "test init remote file /etc/passwd", -3, e );
+         throw e;
       }
    }
 }
 
-function main ()
-{
-   var cmd = new Cmd();
-   var umask = cmd.run( "umask" ).split( "\n" )[0];
-   if( umask !== "0022" )
-   {
-      println( "umask is not 0022" );
-      return;
-   }
-   // 测试本地文件初始化指定权限
-   testInitLocal();
-   // 测试远程文件初始化指定权限
-   testInitRemote();
-   // 测试远程文件初始化时文件名参数非法
-   testInitRemoteAbnormal();
-   // 测试本地文件初始化无权限
-   testInitLocalNoPermission();
-   // 测试远程文件初始化无权限
-   testInitRemoteNoPermission();
-}
 
-main()
+

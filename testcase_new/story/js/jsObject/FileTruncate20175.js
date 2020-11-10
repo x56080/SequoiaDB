@@ -3,20 +3,11 @@
 *@author:      luweikang
 *@createDate:  2019.11.04
 **************************************/
-try
-{
-   main();
-}
-catch( e )
-{
-   if( e.constructor === Error )
-   {
-      println( e.stack );
-   }
-   throw e;
-}
 
-function main ()
+
+main( test );
+
+function test ()
 {
    var loaclFilePath = WORKDIR + "/localFile20175/";
    var remoteFilePath = WORKDIR + "/remoteFile20175/";
@@ -117,29 +108,14 @@ function checkTruncateResult ( filePath, fileName, expContent, isLocal )
    {
       var actStr = file.read();
       file.close();
-      if( actStr != expContent )
-      {
-         throw new Error( "check file content error, \nexp: " + expContent + ", \nact: " + actStr );
-      }
+      assert.equal( actStr, expContent );
    }
    else
    {
-      try
+      assert.tryThrow( -9, function()
       {
          file.read();
-         throw "ERROR_READ_FILE";
-      }
-      catch( e )
-      {
-         if( e != -9 )
-         {
-            throw new Error( "read null file, exp: -9, act: " + e );
-         }
-      }
-      finally
-      {
-         file.close();
-      }
+      } );
    }
 
 }

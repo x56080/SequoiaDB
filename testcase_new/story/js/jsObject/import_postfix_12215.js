@@ -7,40 +7,35 @@
 var importPostfixFile = WORKDIR + "/importPostfix_12215.txt";
 var importOncePostfixFile = WORKDIR + "/importOncePostfix_12215.csv";
 
-function createPostfixFile ()
-{
-    try
-    {
-        var file = new File( importPostfixFile );
-        file.write( "a++" );
-        file.close();
-        file = new File( importOncePostfixFile );
-        file.write( "b++" );
-        file.close();
-    }
-    catch( e )
-    {
-        throw buildException( "createPostfixFile", e,
-            "create postfix file " + importPostfixFile + " " + importOncePostfixFile,
-            0, e );
-    }
-}
-
-// create file
-createPostfixFile();
-
-// import importOnce file
 var a = 0;
 var b = 0;
-import( importPostfixFile );
-importOnce( importOncePostfixFile );
+main( test );
 
-if( a !== 1 || b !== 1 )
+function test ()
 {
-    throw buildException( null, null, "check variable after import importOnce",
-        "1 1", a + " " + b );
-}
+   // create file
+   createPostfixFile();
 
-// remove file
-removeFile( importPostfixFile );
-removeFile( importOncePostfixFile );
+   // import importOnce file
+
+   import( importPostfixFile );
+   importOnce( importOncePostfixFile );
+
+   if( a !== 1 || b !== 1 )
+   {
+      throw new Error( "check variable after import importOnce 1 1" + a + " " + b );
+   }
+
+   // remove file
+   removeFile( importPostfixFile );
+   removeFile( importOncePostfixFile );
+}
+function createPostfixFile ()
+{
+   var file = new File( importPostfixFile );
+   file.write( "a++" );
+   file.close();
+   file = new File( importOncePostfixFile );
+   file.write( "b++" );
+   file.close();
+}

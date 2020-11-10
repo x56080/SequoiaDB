@@ -18,7 +18,6 @@ OmaTest.prototype.testOmaSvcName = function()
       var obj = getFileUsrGrp( file );
       if( user !== obj["user"] && user !== "root" )
       {
-         println( "static Oma with current user " + user + " is not fit" );
          return;
       }
    }
@@ -26,20 +25,12 @@ OmaTest.prototype.testOmaSvcName = function()
    // 测试addAOmaSvcName getAOmaSvcName   
    this.oma.addAOmaSvcName( "test", "19000" );
    var result = this.oma.getAOmaSvcName( "test" );
-   if( result !== "19000" )
-   {
-      throw buildException( "testOmaSvcName", null, "add a oma svcname " + this,
-         "19000", result );
-   }
+   assert.equal( result, "19000" );
 
    // 测试delAOmaSvcName  
    this.oma.delAOmaSvcName( "test" );
    result = this.oma.getAOmaSvcName( "test" );
-   if( result !== "11790" )
-   {
-      throw buildException( "testOmaSvcName", null, "del a oma svcname " + this,
-         "11790", result );
-   }
+   assert.equal( result, "11790" );
 
    if( this.oma === Oma )
    {
@@ -66,7 +57,6 @@ OmaTest.prototype.testOmaSvcNameReplace = function()
       var obj = getFileUsrGrp( file );
       if( user !== obj["user"] && user !== "root" )
       {
-         println( "static Oma with current user " + user + " is not fit" );
          return;
       }
    }
@@ -75,24 +65,19 @@ OmaTest.prototype.testOmaSvcNameReplace = function()
    this.oma.addAOmaSvcName( "test", "19000" );
    this.oma.addAOmaSvcName( "test", "18900", true );
    var result = this.oma.getAOmaSvcName( "test" );
-   if( result !== "18900" )
-   {
-      throw buildException( "testOmaSvcNameReplace", null,
-         "get a oma svcname after replace " + this, "18900", result );
-   }
+   assert.equal( result, "18900" );
 
    // 测试addAOmaSvcName,isReplace为false
    try
    {
       this.oma.addAOmaSvcName( "test", "19000", false );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testOmaSvcNameReplace", e,
-            "add a exist oma svcname when isReplace is false " + this, -6, e );
+         throw e;
       }
    }
 
@@ -111,7 +96,9 @@ OmaTest.prototype.testOmaSvcNameReplace = function()
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -132,4 +119,4 @@ function main ()
    }
 }
 
-main()
+

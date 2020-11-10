@@ -13,7 +13,6 @@
 *                         10616 关闭Oma对象
 *@author      : Liang XueWang               
 ******************************************************************************/
-import( "../jsObjectSync/commlib.js" );
 // 测试创建已存在的节点
 OmaTest.prototype.testCreateExistCoord = function()
 {
@@ -24,15 +23,13 @@ OmaTest.prototype.testCreateExistCoord = function()
       var svcname = COORDSVCNAME;
       var dbpath = RSRVNODEDIR + svcname;
       this.oma.createCoord( svcname, dbpath );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -145 )
+      if( e.message != -145 )
       {
-         println( "create coord " + svcname + " dbpath " + dbpath );
-         throw buildException( "testCreateExistCoord", e,
-            "create exist coord " + this, -145, e );
+         throw e;
       }
    }
 
@@ -46,15 +43,13 @@ OmaTest.prototype.testRemoveNotExistCoord = function( svcname )
    try
    {
       this.oma.removeCoord( svcname );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -146 )
+      if( e.message != -146 )
       {
-         println( "remove coord " + svcname );
-         throw buildException( "testRemoveNotExistCoord", e,
-            "remove not exist coord " + this, -146, e );
+         throw e;
       }
    }
    this.oma.close();
@@ -67,15 +62,13 @@ OmaTest.prototype.testRemoveCoordWithWrongSvc = function()
    try
    {
       this.oma.removeCoord( CMSVCNAME );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -146 )
+      if( e.message != -146 )
       {
-         println( "remove coord " + CMSVCNAME );
-         throw buildException( "testRemoveCoordWithWrongSvc", e,
-            "remove coord with cmsvcname " + this, -146, e );
+         throw e;
       }
    }
    this.oma.close();
@@ -88,22 +81,19 @@ OmaTest.prototype.testRemoveCoordWithWrongConf = function()
 
    if( this.isStandalone )
    {
-      // println( "Run mode is standalone" ) ;
       return;
    }
 
    try
    {
       this.oma.removeCoord( COORDSVCNAME, { clustername: "!@#$%^&*" } );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -146 )
+      if( e.message != -146 )
       {
-         println( "remove coord " + COORDSVCNAME );
-         throw buildException( "testRemoveCoordWithWrongConf", e,
-            "remove coord with wrong config " + this, -146, e );
+         throw e;
       }
    }
    this.oma.close();
@@ -116,15 +106,13 @@ OmaTest.prototype.testStartNotExistNode = function( svcname )
    try
    {
       this.oma.startNode( svcname );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -146 )
+      if( e.message != -146 )
       {
-         println( "start node " + svcname );
-         throw buildException( "testStartNotExistNode", e,
-            "start not exist node " + this, -146, e );
+         throw e;
       }
    }
    this.oma.close();
@@ -134,16 +122,7 @@ OmaTest.prototype.testStartNotExistNode = function( svcname )
 OmaTest.prototype.testStopNotExistNode = function( svcname )
 {
    this.testInit();
-   try
-   {
-      this.oma.stopNode( svcname );
-   }
-   catch( e )
-   {
-      println( "stop node " + svcname );
-      throw buildException( "testStopNotExistNode", e,
-         "stop not exist node " + this, 0, e );
-   }
+   this.oma.stopNode( svcname );
    this.oma.close();
 }
 
@@ -172,9 +151,7 @@ OmaTest.prototype.testCreateCoordWithWrongConf = function( svcname )
    }
    catch( e )
    {
-      println( "coord " + svcname + " dbpath " + dbpath );
-      throw buildException( "testCreateCoordWithWrongConf", e,
-         "create coord with wrong config " + this, 0, e );
+      throw e;
    }
    finally
    {
@@ -201,20 +178,17 @@ OmaTest.prototype.testCreateCoordWithNoPermit = function( svcname )
    var dirName = "/tmp/noPerDir/";
    file.mkdir( dirName );
    file.chmod( dirName, 0000 );
-   println( "user :" + user + " created directory " + dirName + " successfully." )
 
    try
    {
       this.oma.createCoord( svcname, dirName + svcname );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -3 )
+      if( e.message != -3 )
       {
-         println( "create coord " + svcname + " dbpath " + dirName + svcname );
-         throw buildException( "testCreateCoordWithNoPermit", e,
-            "create coord with no permit " + this, -3, e );
+         throw e;
       }
    }
 
@@ -232,20 +206,19 @@ OmaTest.prototype.testOmaClose = function()
    try
    {
       this.oma.stopNode( COORDSVCNAME );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         println( "stop node " + COORDSVCNAME );
-         throw buildException( "testOmaClose", e,
-            "stop coord node after close " + this, -6, e );
+         throw e;
       }
    }
 }
+main( test );
 
-function main ()
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -255,13 +228,11 @@ function main ()
    var svcname1 = toolGetIdleSvcName( localhost["hostname"], CMSVCNAME );
    if( svcname1 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND local" );
       return;
    }
    var svcname2 = toolGetIdleSvcName( remotehost["hostname"], CMSVCNAME );
    if( svcname2 === undefined )
    {
-      println( "No idle svcname between RSRVPORTBEGIN and RSRVPORTEND remote" );
       return;
    }
 
@@ -273,42 +244,30 @@ function main ()
    for( i = 0; i < omas.length; i++ )
    {
       // 测试创建已存在的节点
-      println( "omas[" + i + "]:" + omas[i] + " svcnames[" + i + "]:" + svcnames[i] );
-      println( "testCreateExistCoord begin..." );
       omas[i].testCreateExistCoord();
 
       // 测试删除不存在的节点
-      println( "testRemoveNotExistCoord begin..." );
       omas[i].testRemoveNotExistCoord( svcnames[i] );
 
       // 测试删除节点时端口号不匹配
-      println( "testRemoveCoordWithWrongSvc begin..." );
       omas[i].testRemoveCoordWithWrongSvc();
 
       // 测试删除节点时配置项非法
-      println( "testRemoveCoordWithWrongConf begin..." );
       omas[i].testRemoveCoordWithWrongConf();
 
       // 测试启动不存在的节点
-      println( "testStartNotExistNode begin..." );
       omas[i].testStartNotExistNode( svcnames[i] );
 
       // 测试停止不存在的节点
-      println( "testStopNotExistNode begin..." );
       omas[i].testStopNotExistNode( svcnames[i] );
 
       // 测试创建节点时配置项非法
-      println( "testCreateCoordWithWrongConf begin..." );
       omas[i].testCreateCoordWithWrongConf( svcnames[i] );
 
       // 测试创建节点时路径无权限
-      println( "testCreateCoordWithNoPermit begin..." );
       omas[i].testCreateCoordWithNoPermit( svcnames[i] );
 
       // 测试oma关闭后执行操作
-      println( "testOmaClose begin..." );
       omas[i].testOmaClose();
    }
 }
-
-main()

@@ -2,7 +2,7 @@
 *@Description: seqDB-10651:System对象添加用户，已存在用户
 *@author: Zhao Xiaoni
 ******************************************************************************/
-function test()
+function test ()
 {
    for( var i = 0; i < systems.length; i++ )
    {
@@ -18,21 +18,18 @@ SystemTest.prototype.addExistUser = function()
    var user = this.system.getCurrentUser().toObj()["user"];
    if( user !== "root" )
    {
-      println( "user is not root, can't add del user" );
       this.release();
       return;
    }
-
    try
    {
       this.system.addUser( { name: "root" } );
-      throw "create user root should be failed";
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== 9 )
+      if( e.message != 9 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 

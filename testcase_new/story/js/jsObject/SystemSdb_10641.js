@@ -20,7 +20,7 @@ SystemTest.prototype.testGetPID = function()
    var pids = this.cmd.run( command );
    if( pids.indexOf( pid ) === -1 )
    {
-      throw buildException( "testGetPID", null, "get PID " + this, pids, pid );
+      throw new Error( "testGetPID fail,get PID " + this + pids + pid );
    }
 
    this.release();
@@ -37,7 +37,7 @@ SystemTest.prototype.testGetTID = function()
    var tids = this.cmd.run( command ).split( "\n" );
    if( tids.indexOf( "" + tid ) === -1 )
    {
-      throw buildException( "testGetTID", null, "get TID " + this, tid, tids );
+      throw new Error( "testGetTID fail,get TID " + this + tid + tids );
    }
 
    this.release();
@@ -61,14 +61,15 @@ SystemTest.prototype.testGetEWD = function()
    }
    if( found === false )
    {
-      throw buildException( "testGetEWD", null, "get EWD " + this,
-         sdbDir, WorkDir );
+      throw new Error( "testGetEWD fail,get EWD " + this + sdbDir + WorkDir );
    }
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    var localhost = toolGetLocalhost();
    var remotehost = toolGetRemotehost();
@@ -90,4 +91,3 @@ function main ()
    }
 }
 
-main()

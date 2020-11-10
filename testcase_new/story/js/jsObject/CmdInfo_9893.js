@@ -14,8 +14,7 @@ CmdTest.prototype.testGetInfo = function()
    {
       if( info.type !== "Cmd" || info.isRemote !== false )
       {
-         throw buildException( "testGetInfo", null, "get local cmd info",
-            this, JSON.stringify( info ) );
+         throw new Error( "testGetInfo fail,get local cmd info" + this + JSON.stringify( info ) );
       }
    }
    else                // 测试远程cmd对象信息
@@ -23,15 +22,16 @@ CmdTest.prototype.testGetInfo = function()
       if( info.type !== "Cmd" || info.hostname !== this.hostname ||
          info.svcname !== this.svcname || info.isRemote !== true )
       {
-         throw buildException( "testGetInfo", 0, "get remote cmd info",
-            this, JSON.stringify( info ) );
+         throw new Error( "testGetInfo get remote cmd info" + this + JSON.stringify( info ) );
       }
    }
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -48,4 +48,3 @@ function main ()
    }
 }
 
-main()

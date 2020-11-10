@@ -30,21 +30,13 @@ OmaTest.prototype.testGetOmaConfigsNormal = function()
    }
    if( found === false )
    {
-      throw buildException( "testGetOmaConfigsNormal", null,
-         "get oma config file " + this, sdbDir, configFile );
+      throw new Error( "testGetOmaConfigsNormal fail,get oma config file " + this + sdbDir + configFile );
    }
 
    // 测试getOmaConfigs
-   try
-   {
-      var configs = this.oma.getOmaConfigs().toObj();
-      var command = "cat " + configFile + " | tr -s '\r\n' '\n'";
-      var configFileContent = cmd.run( command ).split( "\n" );
-   }
-   catch( e )
-   {
-      throw buildException( "testGetOmaConfigsNormal", e, "get oma configs " + this, 0, e );
-   }
+   var configs = this.oma.getOmaConfigs().toObj();
+   var command = "cat " + configFile + " | tr -s '\r\n' '\n'";
+   var configFileContent = cmd.run( command ).split( "\n" );
    checkResult( configs, configFileContent, "getOmaConfigs" );
 
    if( this.oma.close !== undefined )
@@ -61,14 +53,13 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    try
    {
       this.oma.getOmaConfigs( "/opt/notexist" );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -4 )
+      if( e.message != -4 )
       {
-         throw buildException( "testGetOmaConfigsAbnormal", e,
-            "get oma configs with not exist file " + this, -4, e );
+         throw e;
       }
    }
 
@@ -76,14 +67,13 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    try
    {
       this.oma.getOmaConfigs( sdbDir[0] + "/bin/sdb" );
-      throw 0;
+      throw new Error( "should error" );
    }
    catch( e )
    {
-      if( e !== -6 )
+      if( e.message != -6 )
       {
-         throw buildException( "testGetOmaConfigsAbnormal", e,
-            "get oma configs with sdb file " + this, -6, e );
+         throw e;
       }
    }
 
@@ -103,7 +93,6 @@ OmaTest.prototype.testSetOmaConfigs = function()
       var obj = getFileUsrGrp( file );
       if( user !== obj["user"] && user !== "root" )
       {
-         println( "static Oma with current user " + user + " is not fit" );
          return;
       }
    }
@@ -117,8 +106,7 @@ OmaTest.prototype.testSetOmaConfigs = function()
       var name = this.oma.getOmaConfigs().toObj().name;
       if( name !== "lxw" )
       {
-         throw buildException( "testSetOmaConfigs", null,
-            "check set oma configs " + this, "lxw", name );
+         throw new Error( "testSetOmaConfigs fail,check set oma configs " + this + "lxw" + name );
       }
    }
    catch( e )
@@ -145,7 +133,9 @@ OmaTest.prototype.testSetOmaConfigs = function()
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地和远程主机
    var localhost = toolGetLocalhost();
@@ -169,4 +159,3 @@ function main ()
    }
 }
 
-main()

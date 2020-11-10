@@ -35,10 +35,6 @@ FileTest.prototype.testFileOperation = function()
       checkRemove( this.cmd, tmpFileName );
       this.file.remove( tmpFileName + ".copy" );
    }
-   catch( e )
-   {
-      throw e;
-   }
    finally
    {
       this.file.remove( tmpDirName );
@@ -58,14 +54,12 @@ FileTest.prototype.testCopyWithMode = function()
    var mode = this.file.stat( srcFile ).toObj().mode.slice( 0, 10 );
    if( mode !== "rwxr-xr-x" )
    {
-      println( srcFile + " mode: " + mode + " " + this );
       this.release();
       return;
    }
    var umask = this.file.getUmask( '8' );
    if( umask !== "0022" )
    {
-      println( "umask: " + umask + " " + this );
       this.release();
       return;
    }
@@ -74,33 +68,25 @@ FileTest.prototype.testCopyWithMode = function()
    // 测试目标文件不存在时指定权限需要与umask运算
    this.file.copy( srcFile, dstFile, false, 0733 );   // 0733 - 0022 = 0711
    var dstFileMode = this.file.stat( dstFile ).toObj().mode.slice( 0, 10 );
-   if( dstFileMode !== "rwx--x--x" )
-   {
-      throw buildException( "testCopyWithMode", null, "copy file when " +
-         srcfile + " not exist " + this, "rwx--x--x", dstFileMode );
-   }
+   assert.equal( dstFileMode, "rwx--x--x" )
 
    // 测试目标文件存在时设置权限无效，保留原文件权限
    this.file.copy( srcFile, dstFile, true, 0777 );
    var dstFileMode = this.file.stat( dstFile ).toObj().mode.slice( 0, 10 );
-   if( dstFileMode !== "rwx--x--x" )
-   {
-      throw buildException( "testCopyWithMode", null, "copy file when " +
-         srcfile + " exist " + this, "rwx--x--x", dstFileMode );
-   }
+   assert.equal( dstFileMode, "rwx--x--x" );
+
 
    // 测试目标文件存在且isReplace为false时，拷贝失败
+
    try
    {
       this.file.copy( srcFile, dstFile, false );
-      throw 0;
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== -5 )
+      if( e.message != -5 )
       {
-         throw buildException( "testCopyWithMode", e, "copy file when " +
-            dstFile + " exist and isReplace false " + this, -5, e );
+         throw e;
       }
    }
 
@@ -115,14 +101,7 @@ FileTest.prototype.testCopyWithMode = function()
 ******************************************************************************/
 function checkMkdir ( cmd, dirName )
 {
-   try
-   {
-      cmd.run( "ls -al " + dirName );
-   }
-   catch( e )
-   {
-      throw buildException( "checkMkdir", e );
-   }
+   cmd.run( "ls -al " + dirName );
 }
 
 /******************************************************************************
@@ -134,21 +113,15 @@ function checkMove ( cmd, oldFile, newFile )
    try
    {
       cmd.run( "ls -al " + oldFile );
-      throw "list moved file should be failed";
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== 2 )
-         throw buildException( "checkMove", e, "list " + oldFile, 2, e );
+      if( e.message != 2 )
+      {
+         throw e;
+      }
    }
-   try
-   {
-      cmd.run( "ls -al " + newFile );
-   }
-   catch( e )
-   {
-      throw buildException( "checkMove", e, "list " + newFile, 0, e );
-   }
+   cmd.run( "ls -al " + newFile );
 }
 
 /******************************************************************************
@@ -157,23 +130,12 @@ function checkMove ( cmd, oldFile, newFile )
 ******************************************************************************/
 function checkCopy ( cmd, srcFile, dstFile )
 {
-   try
-   {
-      var tmp;
-      tmp = cmd.run( "ls -al " + srcFile + " | awk '{print $1}'" ).split( "\n" );
-      var mode1 = tmp[tmp.length - 2];
-      tmp = cmd.run( "ls -al " + dstFile + " | awk '{print $1}'" ).split( "\n" );
-      var mode2 = tmp[tmp.length - 2]
-   }
-   catch( e )
-   {
-      throw buildException( "checkCopy", e, "check " + srcFile + " " + dstFile, 0, e );
-   }
-   if( mode1 !== mode2 )
-   {
-      throw buildException( "checkCopy", null, "check mode " + srcFile + " " + dstFile,
-         mode1, mode2 );
-   }
+   var tmp;
+   tmp = cmd.run( "ls -al " + srcFile + " | awk '{print $1}'" ).split( "\n" );
+   var mode1 = tmp[tmp.length - 2];
+   tmp = cmd.run( "ls -al " + dstFile + " | awk '{print $1}'" ).split( "\n" );
+   var mode2 = tmp[tmp.length - 2]
+   assert.equal( mode1, mode2 );
 }
 
 /******************************************************************************
@@ -185,16 +147,19 @@ function checkRemove ( cmd, fileName )
    try
    {
       cmd.run( "ls -al " + fileName );
-      throw "list removed file should be failed";
-   }
-   catch( e )
+      throw new Error( "should error" );
+   } catch( e )
    {
-      if( e !== 2 )
-         throw buildException( "checkRemove", e );
+      if( e.message != 2 )
+      {
+         throw e;
+      }
    }
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -217,4 +182,3 @@ function main ()
    }
 }
 
-main()

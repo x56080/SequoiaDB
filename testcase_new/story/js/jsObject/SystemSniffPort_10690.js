@@ -10,19 +10,11 @@ SystemTest.prototype.testSniffPort = function( svcname )
 
    // 测试已使用端口的状态
    var useable = this.system.sniffPort( COORDSVCNAME * 1 ).toObj().Usable;
-   if( useable !== false )
-   {
-      throw buildException( "testSniffPort", null,
-         "test sniff port " + COORDSVCNAME + " " + this, false, useable );
-   }
+   assert.equal( useable, false );
 
    // 测试未使用端口的状态
    useable = this.system.sniffPort( svcname * 1 ).toObj().Usable;
-   if( useable !== true )
-   {
-      throw buildException( "testSniffPort", null,
-         "test sniff port " + svcname + " " + this, true, useable );
-   }
+   assert.equal( useable, true );
 
    this.release();
 }
@@ -45,31 +37,27 @@ SystemTest.prototype.testSniffPortBoundary = function()
       try
       {
          this.system.sniffPort( ErrorPort[i] );
-         throw "sniff port " + ErrorPort[i] + " should be failed";
-      }
-      catch( e )
+         throw new Error( "should error" );
+      } catch( e )
       {
-         if( e !== -6 )
+         if( e.message != -6 )
          {
-            throw buildException( "testSniffPortBoundary", e,
-               "test sniff port " + ErrorPort[i] + " " + this, e, -6 );
+            throw e;
          }
       }
    }
    for( var i = 0; i < CorrePort.length; i++ )
    {
       var useable = this.system.sniffPort( CorrePort[i] ).toObj().Usable;
-      if( useable !== result[i] )  
-      {
-         throw buildException( "testSniffPortBoundary", null,
-            "test sniff port " + CorrePort[i] + " " + this, result[i], useable );
-      }
+      assert.equal( useable, result[i] );
    }
 
    this.release();
 }
 
-function main ()
+main( test );
+
+function test ()
 {
    // 获取本地主机和远程主机
    var localhost = toolGetLocalhost();
@@ -93,4 +81,4 @@ function main ()
    }
 }
 
-main()
+
