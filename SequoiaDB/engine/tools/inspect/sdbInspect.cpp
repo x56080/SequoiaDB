@@ -1946,7 +1946,7 @@ INT32 initialize( ciHeader *header )
       goto error ;
    }
 
-   if ( SDB_OK != rc )
+   if ( fileSize < CI_HEADER_SIZE )
    {
       std::cout << "Error: file size is less than " << CI_HEADER_SIZE
                 << std::endl ;
@@ -2901,9 +2901,10 @@ INT32 inspectWithFile( ciHeader *header, const CHAR *inFile,
       goto error ;
    }
 
-   if ( SDB_OK != rc )
+   if ( fileSize < CI_HEADER_SIZE )
    {
-      std::cout << "Error: filesize is lt " << CI_HEADER_SIZE << std::endl ;
+      std::cout << "Error: filesize is less than " << CI_HEADER_SIZE
+                << std::endl ;
       goto error ;
    }
 
@@ -3504,9 +3505,10 @@ INT32 _sdbCi::report ( const CHAR *inFile, const CHAR *reportFile,
       goto error ;
    }
 
-   if ( SDB_OK != rc )
+   if ( fileSize < CI_HEADER_SIZE )
    {
-      std::cout << "Error: filesize is lt " << CI_HEADER_SIZE << std::endl ;
+      std::cout << "Error: filesize is less than " << CI_HEADER_SIZE
+                << std::endl ;
       goto error ;
    }
 
@@ -3669,9 +3671,10 @@ INT32 _sdbCi::report2( const CHAR *inFile, const CHAR *reportFile,
       goto error ;
    }
 
-   if ( SDB_OK != rc )
+   if ( fileSize < CI_HEADER_SIZE )
    {
-      std::cout << "Error: filesize is lt " << CI_HEADER_SIZE << std::endl ;
+      std::cout << "Error: filesize is less than " << CI_HEADER_SIZE
+                << std::endl ;
       goto error ;
    }
 
