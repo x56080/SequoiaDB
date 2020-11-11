@@ -2761,7 +2761,15 @@
             <cn>非备节点</cn>
          </description>
       </code>
-      
+
+      <code>
+         <name>SDB_ERROR_RESERVED_3</name> <!-- SDB_AUTH_INCOMPATIBLE -->
+         <description>
+            <en>Reserved</en> <!-- Incompatible authentication mode -->
+            <cn>保留</cn> <!-- 鉴权模式不兼容 -->
+         </description>
+      </code>
+
       <code>
          <name>SDB_DMS_UNQIUEID_UPGRADE</name>
          <description>
