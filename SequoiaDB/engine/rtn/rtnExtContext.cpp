@@ -469,14 +469,6 @@ namespace engine
       processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
       _lockType = -1 ;
 
-      // Set the status of the processor to dropping to make it invisible to
-      // other threads.
-      for ( vector<rtnExtDataProcessor *>::iterator itr = processors.begin();
-            itr != processors.end(); ++itr )
-      {
-         (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
-      }
-
       _removeFiles = removeFiles ;
       _eduCB = cb ;
       _dpsCB = dpscb ;
@@ -504,6 +496,9 @@ namespace engine
             }
             else
             {
+               // Set the tatus of the processor to dropping to make it invisible to
+               // other threads.
+               (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
                _processorP1.push_back( *itr ) ;
             }
          }
@@ -522,6 +517,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNEXTDROPCSCTX_OPEN, rc ) ;
       return rc ;
    error:
+      _onAbort( cb, dpscb ) ;
       goto done ;
    }
 
@@ -626,14 +622,6 @@ namespace engine
       processorMgr->unlockProcessors( processors, EXCLUSIVE ) ;
       _lockType = -1 ;
 
-      // Set the status of the processor to dropping to make it invisible to
-      // other threads.
-      for ( vector<rtnExtDataProcessor *>::iterator itr = processors.begin();
-            itr != processors.end(); ++itr )
-      {
-         (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
-      }
-
       _eduCB = cb ;
       _dpsCB = dpscb ;
 
@@ -645,6 +633,9 @@ namespace engine
             rc = (*itr)->doDropP1( cb, NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Processor drop operation failed[ %d ]",
                          rc ) ;
+            // Set the status of the processor to dropping to make it invisible
+            // to other threads.
+            (*itr)->setStat( RTN_EXT_PROCESSOR_DROPPING ) ;
             _processorP1.push_back( *itr ) ;
          }
       }
@@ -662,6 +653,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNEXTDROPCLCTX_OPEN, rc ) ;
       return rc ;
    error:
+      _onAbort( cb, dpscb ) ;
       goto done ;
    }
 
