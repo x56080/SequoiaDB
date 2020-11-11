@@ -45,24 +45,32 @@ rtnRollbackManager::rtnRollbackManager(pmdEDUCB *cb)
 {
 }
 
+// Entrypoint to running the rollback.
 INT32 rtnRollbackManager::execute()
 {
    INT32 rc = SDB_OK;
+   // Do setup work.
    if ((rc = _init()))
    {
       return rc;
    }
+   // Call the main loop
    if ((rc = _readLogAndRollback()))
    {
       PD_LOG(PDERROR, "Error during rollback loop");
+      // Encountered an error. Do cleanup work.
+      _abort();
       return rc;
    }
-   return (rc = _finalize());
+   // Do closure work.
+   return (rc = _finish());
 }
 
+// Entrypoint to test whether the rollback would succeed.
 INT32 rtnRollbackManager::test()
 {
    INT32 rc = SDB_OK;
+   // Turn on the test mode and call execute
    _testOnly = TRUE;
    if ((rc = execute()))
    {
@@ -72,6 +80,8 @@ INT32 rtnRollbackManager::test()
    return rc;
 }
 
+// The main rollback loop. Reads the record at the lsn, rolls back (if needed),
+// moves the lsn to the next record.
 INT32 rtnRollbackManager::_readLogAndRollback()
 {
    INT32 rc = SDB_OK;
@@ -80,45 +90,48 @@ INT32 rtnRollbackManager::_readLogAndRollback()
    {
       dpsLogRecord record;
       BOOLEAN undone = FALSE;
-      if ((rc = _getRecord(&record)) || (rc = _preProcess(record)) ||
+      // If any step fails (rc != SDB_OK) then error out
+      // Steps are: read record at the LSN cursor, process it, rollback (if
+      // needed), post-process it, and move the LSN cursor
+      if ((rc = _getRecord(&record)) ||
+          (rc = _preProcess(record)) ||
           (rc = _rollback(record, &undone)) ||
-          (rc = _postProcess(record, undone)) || (rc = _nextRecord(record)))
+          (rc = _postProcess(record, undone)) ||
+          (rc = _nextRecord(record)))
       {
          // Error case
          PD_LOG(PDERROR, "Rollback failed at LSN [%llu]", _cursor);
-         break;
+         return rc;
       }
-   }
-   if (SDB_OK != rc)
-   {
-      _abort();
    }
    return rc;
 }
 
+// Load the record at the LSN cursor.
 INT32 rtnRollbackManager::_getRecord(dpsLogRecord *record)
 {
    INT32 rc = SDB_OK;
    DPS_LSN dpsLsn;
    dpsLsn.offset = _cursor;
    _mb.clear(); // clean up the tmp storage
-   if ((rc = _dpsCB->search(dpsLsn, &_mb)))
+   // Search for the record given the LSN and load it
+   if ((rc = _dpsCB->search(dpsLsn, &_mb)) ||
+       (rc = record->load(_mb.offset(0))))
    {
-      PD_LOG(PDERROR, "LSN search failed (LSN %llu)", _cursor);
-      return rc;
-   }
-   if ((rc = record->load(_mb.offset(0))))
-   {
-      PD_LOG(PDERROR, "Loading record failed (LSN %llu)", _cursor);
+      PD_LOG(PDERROR, "Get record failed (LSN %llu)", _cursor);
       return rc;
    }
    return rc;
 }
 
+// Determines if the record is to be undone and performs the undo
 INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
 {
    INT32 rc = SDB_OK;
-   if (!_shouldUndo(record) || (rc = _checkUndo(record)))
+   // Determine if the record should and can be undone
+   // It is an error if it should be undone but it cannot be undone
+   if (!_shouldUndo(record) ||
+       (rc = _canUndo(record)))
    {
       return rc;
    }
@@ -131,6 +144,7 @@ INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
    return rc;
 }
 
+// Does the inverse operation of the current record and logs it
 INT32 rtnRollbackManager::_undo()
 {
    INT32 rc = SDB_OK;
@@ -150,13 +164,19 @@ INT32 rtnRollbackManager::_undo()
 // rtnPITRollbackManager
 //
 
-rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime)
-    : rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0)
+rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
+                                             const DPS_TRANS_ID &transID)
+    : rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
+      _transID(transID)
 {
+   // Set the target time from the input message
    _targetTime = stpLogicalTimeUS();
    _targetTime.setTime(targetTime);
 }
 
+// PIT rollback starts the end of the log and reads every record. It is also
+// wrapped in a transaction - either from the coord (handled externally) or
+// begin the local transaction here
 INT32 rtnPITRollbackManager::_init()
 {
    INT32 rc = SDB_OK;
@@ -169,35 +189,71 @@ INT32 rtnPITRollbackManager::_init()
    // Get the total log space
    _remainingLogSpace = _dpsCB->getLogFileNum() * _dpsCB->getLogFileSz();
 
-   // Start a new transaction for the rollback
-   if (!_testOnly && (rc = rtnTransBegin(_cb, FALSE, TRUE)))
+   if (!_testOnly)
    {
-      PD_LOG(PDERROR, "Failed in transaction begin");
-      return rc;
+      // Need to be wrapped in a transaction. The coord would have passed in a
+      // transID if this is a global transaction. Otherwise, assume this is a
+      // local restoreToPIT operation (not recommended!!!).
+      if (_transID.isValid())
+      {
+         // Global transaction
+         stpLogicalTimeUS beginTime;
+         beginTime.setTime(_transID.getLogicalTime());
+         // Use the global transaction ID from the coordinator. Note that there
+         // are no corresponding rtnTransCommit/rtnTransRollback calls for
+         // global transactions in this class. This is because while all three
+         // are driven from the coord, the transBegin message is normally
+         // packaged with the first real operation of the transaction.
+         // restoreToPIT is a special case - the transID in the message body is
+         // the only indication that a global transaction has begun - so call
+         // rtnTransBegin now. rtnTransCommit and rtnTransRollback will be
+         // driven by messages from the coord.
+         if ((rc = rtnTransBegin(_cb, FALSE, TRUE, _transID, beginTime)))
+         {
+            PD_LOG(PDERROR,
+                   "Failed to begin global transaction for restoreToPIT [%s]",
+                   dpsTransIDToString(_transID).c_str());
+            return rc;
+         }
+      }
+      else
+      {
+         // Local transaction
+         if ((rc = rtnTransBegin(_cb, FALSE, FALSE)))
+         {
+            PD_LOG(PDERROR, "Failed to begin transaction for restoreToPIT");
+            return rc;
+         }
+      }
    }
+
    return rc;
 }
 
-INT32 rtnPITRollbackManager::_finalize()
-{
-   INT32 rc = SDB_OK;
-   // Commit the transaction
-   if (!_testOnly && (rc = rtnTransCommit(_cb, _dpsCB, _rollbackTime)))
-   {
-      PD_LOG(PDERROR, "Failed in transaction commit");
-      return rc;
-   }
-   return rc;
-}
-
+// Perform error case cleanup
 void rtnPITRollbackManager::_abort()
 {
-   // Rollback the rollback transaction
-   if (!_testOnly && rtnTransRollback(_cb, _dpsCB))
+   // A global tranasaction abort would be driven from the coordinator.
+   if (!_testOnly && !_cb->getTransID().isGlobTrans())
    {
-      // The rc here is just temporary - abort if only called during failure
-      PD_LOG(PDERROR, "Failed in transaction abort");
+      // Local transaction. Perform rollback.
+      rtnTransRollback(_cb, _dpsCB);
    }
+}
+
+// Perform success case cleanup
+INT32 rtnPITRollbackManager::_finish()
+{
+   INT32 rc = SDB_OK;
+   // A global tranasaction commit would be driven from the coordinator.
+   if (!_testOnly && !_cb->getTransID().isGlobTrans() &&
+       // Local transaction. Perform commit.
+       (rc = rtnTransCommit(_cb, _dpsCB)))
+   {
+      PD_LOG(PDERROR, "Failed to commit transaction commit for restoreToPIT");
+      return rc;
+   }
+   return rc;
 }
 
 INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
@@ -243,6 +299,7 @@ INT32 rtnPITRollbackManager::_processBeginRecord()
    return rc;
 }
 
+// Processing of record before rollback
 INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
@@ -258,12 +315,14 @@ INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
    return rc;
 }
 
+// Processing of record after rollback
 INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
                                           BOOLEAN undone)
 {
    INT32 rc = SDB_OK;
    if (!undone)
    {
+      // The record was not undone
       return SDB_OK;
    }
    if (_recordTransID.isFirstOp())
@@ -277,6 +336,7 @@ INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
    return rc;
 }
 
+// Move the cursor
 INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
@@ -330,7 +390,7 @@ BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
    return TRUE;
 }
 
-INT32 rtnPITRollbackManager::_checkUndo(const dpsLogRecord &record)
+INT32 rtnPITRollbackManager::_canUndo(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
    // Log space required is double the record being undone: the undo record

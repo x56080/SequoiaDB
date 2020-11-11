@@ -25,6 +25,7 @@
 
 #include "coordCommandBase.hpp"
 #include "coordFactory.hpp"
+#include "coordTransOperator.hpp"
 #include "msg.h"
 #include "ossTypes.hpp"
 
@@ -42,16 +43,19 @@ class _coordCMDRestore : public _coordCommandBase
  protected:
    typedef std::vector<bson::BSONObj> OBJ_VEC;
 
-   INT32 _checkRestoreInProgress(pmdEDUCB *cb, BOOLEAN *inProgress);
-   INT32 _setRestoreInProgress(pmdEDUCB *cb, BOOLEAN enable);
-   INT32 _setRestoreInProgressCoords(pmdEDUCB *cb, BOOLEAN enable);
-   INT32 _queryCataDCBase(pmdEDUCB *cb, bson::BSONObj *result);
-   INT32 _alterDC(pmdEDUCB *cb, const bson::BSONObj &query);
-   INT32 _queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
-                          const std::string &clName, const bson::BSONObj &query,
-                          OBJ_VEC *results);
-   INT32 _cmdCoords(pmdEDUCB *cb, MSG_TYPE opCode, const string &clName,
+   INT32 _checkRestoreInProgress(BOOLEAN *inProgress);
+   INT32 _setRestoreInProgress(BOOLEAN enable);
+   INT32 _setRestoreInProgressCoords(BOOLEAN enable);
+   INT32 _queryCataDCBase(bson::BSONObj *result);
+   INT32 _alterDC(const bson::BSONObj &query);
+   INT32 _queryDataGroups(MSG_TYPE opCode, const std::string &clName,
+                          const bson::BSONObj &query, OBJ_VEC *results);
+   INT32 _cmdCoords(MSG_TYPE opCode, const string &clName,
                     const BSONObj &query);
+
+ protected:
+   MsgHeader *_pMsg;
+   pmdEDUCB *_cb;
 };
 
 /*
@@ -70,20 +74,20 @@ class coordCMDRestoreToPIT : public _coordCMDRestore
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
+
  protected:
-   INT32 _parseRequest(MsgHeader *pMsg, UINT64 *targetTime);
-   INT32 _checkStateAndRestore(pmdEDUCB *cb, UINT64 targetTime);
-   INT32 _coordinateRestore(pmdEDUCB *cb, UINT64 targetTime);
-   INT32 _getGlobalRestoreWindow(pmdEDUCB *cb, UINT64 *minTime,
-                                 UINT64 *maxTime);
+   INT32 _parseRequest(UINT64 *targetTime);
+   INT32 _checkStateAndRestore(UINT64 targetTime);
+   INT32 _coordinateRestore(UINT64 targetTime);
+   INT32 _getGlobalRestoreWindow(UINT64 *minTime, UINT64 *maxTime);
    INT32 _getMinMaxWindowFromResponses(const OBJ_VEC &responses,
                                        UINT64 *minTime, UINT64 *maxTime);
-   INT32 _restoreWithWindows(pmdEDUCB *cb, UINT64 targetTime, UINT64 minTime,
-                             UINT64 maxTime);
+   INT32 _restoreWithWindows(UINT64 targetTime, UINT64 minTime, UINT64 maxTime);
    INT32 _setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
                              UINT64 *targetTime);
-   INT32 _restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime, BOOLEAN test);
-   INT32 _updateRestoreLock( pmdEDUCB *cb, BOOLEAN enable );
+   INT32 _generateQueryAndRestore(UINT64 targetTime, BOOLEAN test);
+   INT32 _buildRestoreQuery(UINT64 targetTime, BOOLEAN test, BSONObj *query);
+   INT32 _updateRestoreLock(BOOLEAN enable);
 
  protected:
    BOOLEAN _optTestOnly;

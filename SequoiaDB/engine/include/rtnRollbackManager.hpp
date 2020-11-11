@@ -79,12 +79,8 @@ class rtnRollbackManager
    //
 
    virtual INT32 _init() = 0;
-
-   // End a successful rollback
-   virtual INT32 _finalize() = 0;
-
-   // Abort due to an error during rollback
    virtual void _abort() = 0;
+   virtual INT32 _finish() = 0;
 
    // Do any processing of the record before/after it is rolled back
    virtual INT32 _preProcess(const dpsLogRecord &record) = 0;
@@ -97,8 +93,8 @@ class rtnRollbackManager
    // Check if this record should be undone
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record) = 0;
 
-   // Check the record before performing undo
-   virtual INT32 _checkUndo(const dpsLogRecord &record) = 0;
+   // Check if this record can be undone before performing undo
+   virtual INT32 _canUndo(const dpsLogRecord &record) = 0;
 };
 
 /// Performs the rollback for the restore to point-in-time feature. Unlike the
@@ -107,7 +103,8 @@ class rtnRollbackManager
 class rtnPITRollbackManager : public rtnRollbackManager
 {
  public:
-   rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime);
+   rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime,
+                         const DPS_TRANS_ID &transID);
    virtual ~rtnPITRollbackManager(){};
 
  protected:
@@ -126,10 +123,12 @@ class rtnPITRollbackManager : public rtnRollbackManager
    DPS_TRANS_ID _recordTransID;
    BOOLEAN _continue;
    UINT64 _remainingLogSpace;
+   // The global transaction ID from the coordinator
+   DPS_TRANS_ID _transID;
 
    virtual INT32 _init();
-   virtual INT32 _finalize();
    virtual void _abort();
+   virtual INT32 _finish();
 
    // Reads the preceding record in the log
    virtual INT32 _nextRecord(const dpsLogRecord &record);
@@ -143,7 +142,7 @@ class rtnPITRollbackManager : public rtnRollbackManager
    INT32 _exitConditionCheck();
 
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record);
-   virtual INT32 _checkUndo(const dpsLogRecord &record);
+   virtual INT32 _canUndo(const dpsLogRecord &record);
 
    BOOLEAN _isTransInUndoTransSet();
    BOOLEAN _isRecordTransactional();

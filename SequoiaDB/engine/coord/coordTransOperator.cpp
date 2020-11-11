@@ -418,6 +418,29 @@ namespace engine
       goto done ;
    }
 
+   // Add all groups to the transaction map. Normal transaction operations only
+   // add nodes/groups when their data is touched. This function is for the
+   // special case where all nodes are included by default.
+   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      CoordGroupList groups;
+      // Get the list of groups
+      if ((rc = _pResource->updateGroupList(groups, cb, NULL, TRUE, TRUE,
+                                            FALSE)))
+      {
+         return rc;
+      }
+      // Add the primary node from each group to the trans map
+      for (CoordGroupList::iterator it = groups.begin(); it != groups.end(); ++it)
+      {
+         CoordGroupInfoPtr groupPtr;
+         _pResource->getGroupInfo(it->first, groupPtr);
+         _groupSession.getPropSite()->addTransNode(groupPtr->primary());
+      }
+      return rc;
+   }
+
    INT32 _coordTransBegin::execute( MsgHeader *pMsg,
                                     pmdEDUCB *cb,
                                     INT64 &contextID,
@@ -1287,5 +1310,60 @@ namespace engine
       return FALSE ;
    }
 
+   // coordTransHandler constructor begins a global transaction
+   coordTransHandler::coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
+                                        BOOLEAN allGroups)
+       : _cb(cb), _pResource(pResource), _rc(SDB_OK), _committed(FALSE)
+   {
+      INT64 contextID;
+      engine::rtnContextBuf buf;
+      MsgHeader msg;
+      coordTransBegin opr;
+      // Perform coordTransBegin()
+      if ((_rc = opr.init(_pResource, _cb)) ||
+          (_rc = opr.execute(&msg, _cb, contextID, &buf)))
+      {
+         return;
+      }
+      // Add all groups to the trans map so they get included in subsequent
+      // commit/rollback operations
+      if (allGroups && (_rc = opr.addAllGroups(_cb)))
+      {
+         return;
+      }
+   }
+
+   // coordTransHandler destructor rolls back a global transaction if
+   // uncommitted
+   coordTransHandler::~coordTransHandler()
+   {
+      if (!_committed)
+      {
+         INT64 contextID;
+         engine::rtnContextBuf buf;
+         MsgHeader msg;
+         coordTransRollback opr;
+         // Perform coordTransRollback()
+         opr.init(_pResource, _cb);
+         opr.execute(&msg, _cb, contextID, &buf);
+      }
+   }
+
+   // Commit a global transactions
+   INT32 coordTransHandler::commit()
+   {
+      INT64 contextID;
+      engine::rtnContextBuf buf;
+      MsgHeader msg;
+      coordTransCommit opr;
+      // Perform coordTransCommit()
+      if ((_rc = opr.init(_pResource, _cb)) ||
+          (_rc = opr.execute(&msg, _cb, contextID, &buf)))
+      {
+         return _rc;
+      }
+      _committed = TRUE;
+      return _rc;
+   }
 }
 

@@ -1663,9 +1663,10 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       private:
-         INT64 _timestamp ;
+         INT64 _timestamp;
          BOOLEAN _testOnly;
          BOOLEAN _skipTest;
+         DPS_TRANS_ID _transID;
    };
 
    /*

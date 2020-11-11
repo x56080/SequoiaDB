@@ -5078,6 +5078,16 @@ error:
          PD_LOG(PDERROR, "Cannot perform a test only and skip test");
          return (rc = SDB_INVALIDARG);
       }
+      INT64 transID;
+      INT32 transNodeID;
+      // If we get the transID, everything else must succeed
+      if (!rtnGetNumberLongElement(matcher, FIELD_NAME_TRANSACTION_ID_SN,
+                                   transID))
+      {
+         rtnGetIntElement(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
+                          transNodeID);
+         _transID = DPS_TRANS_ID(transID, transNodeID);
+      }
       return rc;
    }
 
@@ -5087,17 +5097,27 @@ error:
    {
       INT32 rc = SDB_OK;
       // restoreToPIT on a data node is a type of rollback
-      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp);
-      if (!_skipTest && (rc = rollbackManager.test()))
+      if (!_skipTest)
       {
-         PD_LOG(PDERROR,
+         rtnPITRollbackManager rollbackTester(cb, (UINT64)_timestamp, _transID);
+         if ((rc = rollbackTester.test()))
+         {
+            PD_LOG(
+                PDERROR,
                 "Failed checks for rollback during restore to point-in-time");
-         return rc;
+            return rc;
+         }
       }
-      if (!_testOnly && (rc = rollbackManager.execute()))
+      if (!_testOnly)
       {
-         PD_LOG(PDERROR, "Failed to rollback during restore to point-in-time");
-         return rc;
+         rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp,
+                                               _transID);
+         if ((rc = rollbackManager.execute()))
+         {
+            PD_LOG(PDERROR,
+                   "Failed to rollback during restore to point-in-time");
+            return rc;
+         }
       }
       return rc;
    }

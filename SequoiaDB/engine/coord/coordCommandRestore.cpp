@@ -25,6 +25,7 @@
 #include "coordCommandBase.hpp"
 #include "coordContext.hpp"
 #include "coordFactory.hpp"
+#include "coordTransOperator.hpp"
 #include "msg.h"
 #include "msgDef.h"
 #include "ossMemPool.hpp"
@@ -208,7 +209,7 @@ class _Context
 
  public:
    engine::rtnContextCoord *ptr;
-   _Context(engine::pmdEDUCB *cb) : _cb(cb), ptr(NULL){};
+   explicit _Context(engine::pmdEDUCB *cb) : _cb(cb), ptr(NULL){};
    ~_Context()
    {
       if (ptr)
@@ -255,15 +256,14 @@ namespace engine
 */
 
 // Check the status of the cluster
-INT32 _coordCMDRestore::_checkRestoreInProgress(pmdEDUCB *cb,
-                                                BOOLEAN *inProgress)
+INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
 {
    INT32 rc = SDB_OK;
    // Check the local cache
    *inProgress = pmdGetKRCB()->isDBRestoring();
    // Check the DC
    BSONObj document;
-   if ((rc = _queryCataDCBase(cb, &document)))
+   if ((rc = _queryCataDCBase(&document)))
    {
       PD_LOG(PDERROR, "Failed to get [%s] status from catalog",
              FIELD_NAME_RESTORING);
@@ -287,7 +287,7 @@ INT32 _coordCMDRestore::_checkRestoreInProgress(pmdEDUCB *cb,
 
 // Update the catalog DC RestoreInProgress value
 // @param   enable   Whether to enable or diable the state
-INT32 _coordCMDRestore::_setRestoreInProgress(pmdEDUCB *cb, BOOLEAN enable)
+INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    BSONObj query;
@@ -310,27 +310,26 @@ INT32 _coordCMDRestore::_setRestoreInProgress(pmdEDUCB *cb, BOOLEAN enable)
       PD_LOG(PDERROR, "Failed to create query");
       return (rc = SDB_OOM);
    }
-   if ((rc = _alterDC(cb, query))) // this will update cata and data
+   if ((rc = _alterDC(query))) // this will update cata and data
    {
       PD_LOG(PDERROR, "Failed to update DC state across nodes");
       return rc;
    }
    // Update the coords
-   if ((rc = _setRestoreInProgressCoords(cb, enable)))
+   if ((rc = _setRestoreInProgressCoords(enable)))
    {
       return rc;
    }
    return rc;
 }
 
-INT32 _coordCMDRestore::_setRestoreInProgressCoords(pmdEDUCB *cb,
-                                                    BOOLEAN enable)
+INT32 _coordCMDRestore::_setRestoreInProgressCoords(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    const string command =
        enable ? CMD_NAME_PREPARE_FLASHBACK : CMD_NAME_RESTORE_ABORT;
-   if ((rc = _cmdCoords(cb, MSG_BS_QUERY_REQ,
-                        CMD_ADMIN_PREFIX + command, BSONObj())))
+   if ((rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
+                        BSONObj())))
    {
       PD_LOG(PDERROR, "Failed to update status on coord nodes");
       return rc;
@@ -339,7 +338,7 @@ INT32 _coordCMDRestore::_setRestoreInProgressCoords(pmdEDUCB *cb,
 }
 
 // Get the latest version of SYSINFO.SYSDCBASE
-INT32 _coordCMDRestore::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
+INT32 _coordCMDRestore::_queryCataDCBase(BSONObj *result)
 {
    INT32 rc = SDB_OK;
    rtnContextBuf buf; // cleans up when it goes out of scope
@@ -349,7 +348,7 @@ INT32 _coordCMDRestore::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
    queryOpt.setCLFullName(CAT_SYSDCBASE_COLLECTION_NAME);
    queryOpt.setQuery(BSON(FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR));
    // Perform the query
-   if ((rc = queryOnCataAndPushToVec(queryOpt, cb, results, &buf)))
+   if ((rc = queryOnCataAndPushToVec(queryOpt, _cb, results, &buf)))
    {
       PD_LOG(PDERROR, "Failed during catalog query");
       return rc;
@@ -368,7 +367,7 @@ INT32 _coordCMDRestore::_queryCataDCBase(pmdEDUCB *cb, BSONObj *result)
 }
 
 // Run an ALTERDC command
-INT32 _coordCMDRestore::_alterDC(pmdEDUCB *cb, const BSONObj &query)
+INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
 {
    INT32 rc = SDB_OK;
    _Operator op(&rc, CMD_NAME_ALTER_DC); // Auto-cleaning
@@ -376,19 +375,19 @@ INT32 _coordCMDRestore::_alterDC(pmdEDUCB *cb, const BSONObj &query)
    {
       return rc;
    }
-   _QueryMsg msg(&rc, cb, CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC,
+   _QueryMsg msg(&rc, _cb, CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC,
                  MSG_CAT_ALTER_IMAGE_REQ, query);
    if (rc)
    {
       return rc;
    }
-   if ((rc = op.ptr->init(_pResource, cb, getTimeout())))
+   if ((rc = op.ptr->init(_pResource, _cb, getTimeout())))
    {
       PD_LOG(PDERROR, "Failed to init operator");
       return rc;
    }
    INT64 contextID;
-   if ((rc = op.ptr->execute(msg.header, cb, contextID, NULL)))
+   if ((rc = op.ptr->execute(msg.header, _cb, contextID, NULL)))
    {
       PD_LOG(PDWARNING, "Failed to execute operator");
       return rc;
@@ -397,26 +396,25 @@ INT32 _coordCMDRestore::_alterDC(pmdEDUCB *cb, const BSONObj &query)
 }
 
 // Run the given query against the data groups
-INT32 _coordCMDRestore::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
-                                         const string &clName,
+INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode, const string &clName,
                                          const BSONObj &query, OBJ_VEC *results)
 {
    INT32 rc = SDB_OK;
    CoordGroupList groups;
-   _Context context(cb);                          // Auto-cleaning
-   _QueryMsg msg(&rc, cb, clName, opCode, query); // Auto-cleaning
+   _Context context(_cb);                          // Auto-cleaning
+   _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
    if (rc)
    {
       return rc;
    }
    // Get the groups list
-   if ((rc = _pResource->updateGroupList(groups, cb, NULL, TRUE, TRUE, FALSE)))
+   if ((rc = _pResource->updateGroupList(groups, _cb, NULL, TRUE, TRUE, FALSE)))
    {
       PD_LOG(PDERROR, "Get data groups failed");
       return rc;
    }
    // Run the query
-   if ((rc = executeOnDataGroup(msg.header, cb, groups, TRUE, NULL, NULL,
+   if ((rc = executeOnDataGroup(msg.header, _cb, groups, TRUE, NULL, NULL,
                                 &(context.ptr), NULL)))
    {
       PD_LOG(PDERROR, "Execute on data groups failed");
@@ -428,7 +426,7 @@ INT32 _coordCMDRestore::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
       return rc;
    }
    // Get the results
-   if ((rc = gatherQueryResults(cb, context.ptr, results)))
+   if ((rc = gatherQueryResults(_cb, context.ptr, results)))
    {
       PD_LOG(PDERROR, "Failed to gather query results");
       return rc;
@@ -444,25 +442,25 @@ INT32 _coordCMDRestore::_queryDataGroups(pmdEDUCB *cb, MSG_TYPE opCode,
 }
 
 // Run the given command on the coord nodes
-INT32 _coordCMDRestore::_cmdCoords(pmdEDUCB *cb, MSG_TYPE opCode,
-                                   const string &clName, const BSONObj &query)
+INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const string &clName,
+                                   const BSONObj &query)
 {
    INT32 rc = SDB_OK;
    CoordGroupList groups;
-   _QueryMsg msg(&rc, cb, clName, opCode, query); // Auto-cleaning
+   _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
    if (rc)
    {
       return rc;
    }
 
    // Run on all nodes in the coordinator group only
-   INT32 tmpRole[ SDB_ROLE_MAX ] = { 0 } ;
+   INT32 tmpRole[SDB_ROLE_MAX] = {0};
    tmpRole[SDB_ROLE_COORD] = 1;
    coordCtrlParam ctrlParam;
    ctrlParam.resetRole();
    ctrlParam.setParseRole(tmpRole);
    ROUTE_RC_MAP failedNodes;
-   if ((rc = executeOnNodes(msg.header, cb, ctrlParam, 0, failedNodes)))
+   if ((rc = executeOnNodes(msg.header, _cb, ctrlParam, 0, failedNodes)))
    {
       PD_LOG(PDERROR, "Execute on coord group failed");
       return rc;
@@ -482,19 +480,21 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    UINT64 targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
+   _pMsg = pMsg;
+   _cb = cb;
    _optTestOnly = FALSE;
    _optSkipTest = FALSE;
-   if ((rc = _parseRequest(pMsg, &targetTime)))
+   if ((rc = _parseRequest(&targetTime)))
    {
       return rc;
    }
 
-   if ((rc = _checkStateAndRestore(cb, targetTime)))
+   if ((rc = _checkStateAndRestore(targetTime)))
    {
       return rc;
    }
 
-   if (!_optTestOnly && (rc = _setRestoreInProgress(cb, FALSE)))
+   if (!_optTestOnly && (rc = _setRestoreInProgress(FALSE)))
    {
       return rc;
    }
@@ -503,12 +503,12 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 }
 
 // Parse the client's request, extracting the targetTime if given
-INT32 coordCMDRestoreToPIT::_parseRequest(MsgHeader *pMsg, UINT64 *targetTime)
+INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    // Parse the request message
    BSONObj query;
-   if ((rc = extractQuery(pMsg, &query)))
+   if ((rc = extractQuery(_pMsg, &query)))
    {
       PD_LOG(PDERROR, "Extract user query failed");
       return rc;
@@ -528,8 +528,7 @@ INT32 coordCMDRestoreToPIT::_parseRequest(MsgHeader *pMsg, UINT64 *targetTime)
 }
 
 // Check that the cluster is awaiting restore and coordinate the operation
-INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
-                                                  UINT64 targetTime)
+INT32 coordCMDRestoreToPIT::_checkStateAndRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
    BOOLEAN inProgress;
@@ -539,51 +538,50 @@ INT32 coordCMDRestoreToPIT::_checkStateAndRestore(pmdEDUCB *cb,
    //    Running PIT restore, with both inprogress = true and locked = true
    //    New restore does state check and found inprogress = true
    //    Running PIT finished, set inprogress = false and locked = false
-   //    New restore gets in. But we shouldn't perform PIT restore. 
-   if ( ( rc = _updateRestoreLock( cb, TRUE ) ) )
+   //    New restore gets in. But we shouldn't perform PIT restore.
+   if ((rc = _updateRestoreLock(TRUE)))
    {
-      PD_LOG( PDERROR, "There is already a restore running." );
-      return ( rc = SDB_RESTORE_RUNNING );
+      PD_LOG(PDERROR, "There is already a restore running.");
+      return (rc = SDB_RESTORE_RUNNING);
    }
 
-   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
+   if ((rc = _checkRestoreInProgress(&inProgress)))
    {
-      _updateRestoreLock( cb, FALSE ) ;
+      _updateRestoreLock(FALSE);
       return rc;
    }
    if (!inProgress)
    {
-      _updateRestoreLock( cb, FALSE ) ;
+      _updateRestoreLock(FALSE);
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
-      return ( rc = SDB_RESTORE_NOT_IN_PROGRESS );
+      return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
    }
 
-   return ( rc = _coordinateRestore(cb, targetTime) );
+   return (rc = _coordinateRestore(targetTime));
 }
 
-INT32 coordCMDRestoreToPIT::_coordinateRestore(pmdEDUCB *cb, UINT64 targetTime)
+INT32 coordCMDRestoreToPIT::_coordinateRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
    UINT64 minTime = DPS_INVALID_TRANS_TIME;
    UINT64 maxTime = DPS_INVALID_TRANS_TIME;
-   if ((rc = _getGlobalRestoreWindow(cb, &minTime, &maxTime)))
+   if ((rc = _getGlobalRestoreWindow(&minTime, &maxTime)))
    {
       return rc;
    }
-   return (rc = _restoreWithWindows(cb, targetTime, minTime, maxTime));
+   return (rc = _restoreWithWindows(targetTime, minTime, maxTime));
 }
 
 // Query the primary of each data group for their restore window and set the
 // min/max times
-INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(pmdEDUCB *cb,
-                                                    UINT64 *minTime,
+INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(UINT64 *minTime,
                                                     UINT64 *maxTime)
 {
    INT32 rc = SDB_OK;
    OBJ_VEC results;
    PD_LOG(PDINFO, "Gathering restore windows");
    // Query the nodes for the database snapshot
-   if ((rc = _queryDataGroups(cb, MSG_BS_QUERY_REQ,
+   if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ,
                               CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE,
                               BSONObj(), &results)))
    {
@@ -636,7 +634,7 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
    return rc;
 }
 
-INT32 coordCMDRestoreToPIT::_restoreWithWindows(pmdEDUCB *cb, UINT64 targetTime,
+INT32 coordCMDRestoreToPIT::_restoreWithWindows(UINT64 targetTime,
                                                 UINT64 minTime, UINT64 maxTime)
 {
    INT32 rc = SDB_OK;
@@ -645,13 +643,13 @@ INT32 coordCMDRestoreToPIT::_restoreWithWindows(pmdEDUCB *cb, UINT64 targetTime,
       return rc;
    }
    // Perform the test run (unless SkipTest)
-   if (!_optSkipTest && (rc = _restoreDataGroups(cb, targetTime, TRUE)))
+   if (!_optSkipTest && (rc = _generateQueryAndRestore(targetTime, TRUE)))
    {
       PD_LOG(PDERROR, "Failed the restore test run. Aborting.");
       return rc;
    }
    // Perform the real run (unless TestOnly)
-   if (!_optTestOnly && (rc = _restoreDataGroups(cb, targetTime, FALSE)))
+   if (!_optTestOnly && (rc = _generateQueryAndRestore(targetTime, FALSE)))
    {
       PD_LOG(PDERROR, "Failed during restore to point-in-time on nodes.");
       return rc;
@@ -678,15 +676,57 @@ INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
    return rc;
 }
 
-// Execute restoreToPIT() on all of the data groups
-INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
-                                               BOOLEAN test)
+// Build the query and perform restoreToPIT() on all of the data groups
+INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
+                                                     BOOLEAN test)
 {
    INT32 rc = SDB_OK;
+   BSONObj query;
    PD_LOG(PDINFO, "Restoring cluster to %llu", targetTime);
+   if (test)
+   {
+      if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
+          (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
+                                 CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT,
+                                 query, NULL)))
+      {
+         PD_LOG(PDERROR, "One or more nodes failed restoreToPIT test");
+         return rc;
+      }
+      return rc;
+   }
+   // Start the transaction
+   coordTransHandler trans(_cb, _pResource);
+   if ((rc = trans.getRc()))
+   {
+      PD_LOG(PDERROR, "Failed to begin transaction for restoreToPIT");
+      return rc;
+   }
+   if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
+       (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
+                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT, query,
+                              NULL)))
+   {
+      PD_LOG(PDERROR, "One or more nodes failed restoreToPIT");
+      // trans will perform rollback (in its destructor) because commit wasn't
+      // called
+      return rc;
+   }
+   if ((rc = trans.commit()))
+   {
+      PD_LOG(PDERROR, "Failed to commit restoreToPIT");
+      return rc;
+   }
+   return rc;
+}
+
+// Build the message query for the restoreToPIT command
+INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
+                                               BSONObj *query)
+{
+   INT32 rc = SDB_OK;
    // The command is a query-type message on the "$restore to pit" collection.
    // The query body is a {"GlobalTime": "123"} where 123 is the time.
-   BSONObj query;
    try
    {
       BSONObjBuilder builder;
@@ -700,46 +740,43 @@ INT32 coordCMDRestoreToPIT::_restoreDataGroups(pmdEDUCB *cb, UINT64 targetTime,
       else
       {
          // The real run that performs the restore.
-         // Adds the field "SkipTest: true"
+         // Adds the field "SkipTest: true" and the transaction info
          builder.appendBool(FIELD_NAME_SKIP_TEST, TRUE);
+         builder.append(FIELD_NAME_TRANSACTION_ID_SN,
+                        (INT64)(_cb->getTransID().getGlobSN()));
+         builder.append(FIELD_NAME_TRANSACTION_ID_NODEID,
+                        (INT32)(_cb->getTransID().getNodeID()));
       }
-      query = builder.obj();
+      *query = builder.obj();
    }
    catch (exception &e)
    {
       PD_LOG(PDERROR, "Failed to create query");
       return (rc = SDB_OOM);
    }
-   if ((rc = _queryDataGroups(cb, MSG_BS_QUERY_REQ,
-                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT, query,
-                              NULL)))
-   {
-      PD_LOG(PDERROR, "One or more nodes failed restoreToPIT");
-      return rc;
-   }
    return rc;
 }
 
-// Update the catalog DC RestoreLocked value. 
+// Update the catalog DC RestoreLocked value.
 // We use this value to guarantee that there should only be one restoreToPIT
 // running at a time.
 // @param   enable   Whether to enable or diable the state
-INT32 coordCMDRestoreToPIT::_updateRestoreLock( pmdEDUCB *cb, BOOLEAN enable )
+INT32 coordCMDRestoreToPIT::_updateRestoreLock(BOOLEAN enable)
 {
-   INT32   rc    = SDB_OK;
+   INT32 rc = SDB_OK;
    BSONObj query;
-   PD_LOG( PDINFO, "Setting cluster restore locked [%s] = [%d]",
-           FIELD_NAME_RESTORE_LOCKED, enable );
+   PD_LOG(PDINFO, "Setting cluster restore locked [%s] = [%d]",
+          FIELD_NAME_RESTORE_LOCKED, enable);
 
    try
    {
       if (enable)
       {
-         query = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_LOCK );
+         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_LOCK);
       }
       else
       {
-         query = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_UNLOCK );
+         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_UNLOCK);
       }
    }
    catch (exception &e)
@@ -749,13 +786,14 @@ INT32 coordCMDRestoreToPIT::_updateRestoreLock( pmdEDUCB *cb, BOOLEAN enable )
    }
 
    // Update the DC: this will update cata and data
-   if ((rc = _alterDC(cb, query)))
+   if ((rc = _alterDC(query)))
    {
       PD_LOG(PDERROR, "Failed to update DC state across nodes");
       return rc;
    }
    return rc;
 }
+
 /*
    coordCMDRestoreAbort definitions
 */
@@ -768,7 +806,9 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    BOOLEAN inProgress; // whether RestoreInProgress is already set
-   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
+   _pMsg = pMsg;
+   _cb = cb;
+   if ((rc = _checkRestoreInProgress(&inProgress)))
    {
       return rc;
    }
@@ -778,7 +818,7 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
       PD_LOG(PDWARNING, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
       return rc;
    }
-   if ((rc = _setRestoreInProgress(cb, FALSE)))
+   if ((rc = _setRestoreInProgress(FALSE)))
    {
       return rc;
    }
@@ -799,7 +839,9 @@ INT32 coordCMDRestorePrepareFlashback::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    BOOLEAN inProgress; // whether RestoreInProgress is already set
-   if ((rc = _checkRestoreInProgress(cb, &inProgress)))
+   _pMsg = pMsg;
+   _cb = cb;
+   if ((rc = _checkRestoreInProgress(&inProgress)))
    {
       return rc;
    }
@@ -809,7 +851,7 @@ INT32 coordCMDRestorePrepareFlashback::execute(MsgHeader *pMsg, pmdEDUCB *cb,
       PD_LOG(PDWARNING, "Cluster already in [%s] state", FIELD_NAME_RESTORING);
       return rc;
    }
-   if ((rc = _setRestoreInProgress(cb, TRUE)))
+   if ((rc = _setRestoreInProgress(TRUE)))
    {
       return rc;
    }

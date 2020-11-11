@@ -110,6 +110,8 @@ namespace engine
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
+         INT32         addAllGroups( pmdEDUCB *cb ) ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -274,6 +276,37 @@ namespace engine
 
    } ;
    typedef _coordTransRollback coordTransRollback ;
+
+   /*
+      A transaction guard class.
+      The constructor begins a global transaction.
+      The destructor calls rollback.
+      If commit is called, it disables the rollback.
+      Caller should check the rc via getRc() after contruction.
+
+      Example usage:
+         coordTransHandler trans();           // begins the transaction
+         if ((rc = trans.getRc())) return rc; // error case
+         ...                                  // do work, if early return trans
+         ...                                  // is rolled back
+         rc = trans.commit();                 // commits the transaction
+   */
+   class coordTransHandler : public SDBObject
+   {
+    public:
+      // If allGroups = TRUE, adds the primary of each group the trans map
+      coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
+                        BOOLEAN allGroups = TRUE);
+      ~coordTransHandler();
+      INT32 commit();
+      INT32 getRc() { return _rc; };
+
+    private:
+      pmdEDUCB *_cb;
+      coordResource *_pResource;
+      INT32 _rc;
+      BOOLEAN _committed;
+   };
 
 }
 
