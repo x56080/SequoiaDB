@@ -16,8 +16,8 @@ namespace CSharp.Cluster
      *                      4.使用attach_node指定KeepData参数将步骤2中detach的节点新增到第二个数据组组，检查结果
      *                      5.连接第二个数据组中的节点，查询cs.cl中数据，检查结果
      * testcase:         12437
-     * author:           chensiqin
-     * date:             2019/04/18
+     * author:           chensiqin 2019/04/18
+     *                   liuli     2020/11/12
      */
 
     [TestClass]
@@ -60,6 +60,19 @@ namespace CSharp.Cluster
             Node node2 = rg.CreateNode(hostName, port2, SdbTestBase.reservedDir + "/" + port2, map);
             rg.Start();
             //向新组上插入记录
+            Node master = null;
+            while (true)
+            {
+                try
+                {
+                    master = rg.GetMaster();
+                    break;
+                }
+                catch (BaseException e)
+                {
+                    Assert.AreEqual(-71, e.ErrorCode);
+                }
+            }
             cs = sdb.GetCollectionSpace(SdbTestBase.csName);
             cl = cs.CreateCollection(clName, new BsonDocument("Group", rgName1).Add("ReplSize", 0));
             List<BsonDocument> datas = new List<BsonDocument>();
@@ -82,7 +95,6 @@ namespace CSharp.Cluster
             rg = sdb.CreateReplicaGroup(rgName2);
             rg.Start();
             rg.AttachNode(hostName, port1, new BsonDocument("KeepData", true));
-            Node master = null;
             while (true)
             {
                 try
@@ -94,7 +106,6 @@ namespace CSharp.Cluster
                 {
                     Assert.AreEqual(-71, e.ErrorCode);
                 }
-
             }
             Sequoiadb localdb = master.Connect("", "");
             cs = localdb.GetCollectionSpace(SdbTestBase.csName);
