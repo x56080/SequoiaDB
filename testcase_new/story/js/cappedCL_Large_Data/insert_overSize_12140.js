@@ -4,7 +4,9 @@
 *@createdate:  2017.7.15
 *@testlinkCase: seqDB-12140
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_12140";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -65,7 +67,6 @@ function main ()
       //随机指定LogicalID
       var range = max - min;
       var skipNum = Math.ceil( min + Math.random() * range );
-      println( "skipNum: " + skipNum );
       var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
 
       //随机设置pop方向
@@ -78,7 +79,8 @@ function main ()
       }
 
       //执行pop
-      pop( dbcl, logicalID[0], direction );
+      dbcl.pop( { LogicalID: logicalID[0], Direction: direction } );
+
 
       //检查主备节点一致
       checkConsistency( db, csName, clName );
@@ -100,7 +102,6 @@ function main ()
 
          //再次插入填满本块的记录
          insertNum = max - expectNum;
-         println( "insertNum: " + insertNum );
          insertFixedLengthDatas( dbcl, insertNum, stringLength, "a" );
 
          //计算预期的_id值
@@ -134,10 +135,8 @@ function main ()
          checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
          checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
       }
-      println( "repeat do " + j + " times success!" );
       overturn++;
    }
 
    commDropCS( db, csName, true, "drop CS in the end" );
 }
-main();

@@ -4,7 +4,9 @@
 *@createdate:  2017.7.15
 *@testlinkCase: seqDB-12139
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_12139";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -30,8 +32,7 @@ function main ()
       var rd = new commDataGenerator();
       var recs = rd.getRecords( insertNum, ["int", "string", "bool", "date",
          "binary", "regex", "null"], ['a'] );
-      insertDatas( dbcl, recs );
-      println( "--insert data success! insertNum: " + insertNum );
+      dbcl.insert( recs );
       expectNum = expectNum + insertNum;
 
       //获取第1条及最后一条记录的_id值
@@ -41,31 +42,23 @@ function main ()
       //获取数据占用块数
       var dataSize = lastLogicalID[0] - firstLogicalID[0];
       var blockNum = Math.ceil( ( dataSize ) / 33554395 );
-      println( "--data occupy blockNums: " + blockNum + ",firstLogicalID: " + firstLogicalID + ",lastLogicalID: " + lastLogicalID );
 
       //再次插入1条记录并获取_id值
       var rd = new commDataGenerator();
       var recs = rd.getRecords( 1, ["int", "string", "bool", "date",
          "binary", "regex", "null"], ['a'] );
-      insertDatas( dbcl, recs );
-      println( "--insert data up to limit!" );
+      dbcl.insert( recs );
       lastLogicalID = getLogicalID( dbcl, null, null, { _id: -1 }, 1, null );
 
       //校验_id值是否正确
       var expectLogicalID = expectLogicalID + blockNum * 33554396;
-      if( expectLogicalID !== lastLogicalID[0] )
-      {
-         println( "expectLogicalID: " + expectLogicalID + " ,actualID: " + lastLogicalID[0] );
-         throw "LOGICAL_ID_ERROR";
-      }
-      println( "--check logical id success! logicalID: " + lastLogicalID[0] );
+      assert.equal( expectLogicalID, lastLogicalID[0] );
 
       //再次插入Max-1条记录
       var rd = new commDataGenerator();
       var recs = rd.getRecords( max, ["int", "string", "bool", "date",
          "binary", "regex", "null"], ['a'] );
-      insertDatas( dbcl, recs );
-      println( "--insert data success!" );
+      dbcl.insert( recs );
 
       //随机指定LogicalID
       var range = max - min;
@@ -82,7 +75,8 @@ function main ()
       }
 
       //执行pop
-      pop( dbcl, logicalID[0], direction );
+      dbcl.pop( { LogicalID: logicalID[0], Direction: direction } );
+
 
       //比较count结果
       if( direction == -1 )
@@ -93,21 +87,12 @@ function main ()
          expectNum = expectNum - skipNum - 1;
       }
       checkCount( dbcl, null, expectNum );
-      println( "--count success!expectCount: " + expectNum );
 
       //比较find结果
-      try
-      {
-         dbcl.find().sort( { _id: 1 } ).limit( 1 );
-         dbcl.find().sort( { _id: 1 } ).limit( 1 ).skip( expectNum - 1 );
-      } catch( e )
-      {
-         throw buildException( "find data 1", e, null, null, e );
-      }
-      println( "--find data success!" );
+      dbcl.find().sort( { _id: 1 } ).limit( 1 );
+      dbcl.find().sort( { _id: 1 } ).limit( 1 ).skip( expectNum - 1 );
 
       insertNum = max + 1 - expectNum;
-      println( "repeat do " + j + " times success!" );
    }
 
    //校验主备数据一致
@@ -120,23 +105,11 @@ function main ()
 
    //比较count结果
    actualNum = dbcl.count();
-   if( parseInt( actualNum ) !== expectNum )
-   {
-      println( "--slave node count failed!actualNum:" + actualNum + ",expectNum: " + expectNum );
-      throw "SECOND_COUNT_ERR";
-   }
+   assert.equal( actualNum, expectNum );
 
    //比较find结果
-   try
-   {
-      dbcl.find().sort( { _id: 1 } ).limit( 1 );
-      dbcl.find().sort( { _id: 1 } ).limit( 1 ).skip( expectNum - 1 );
-   } catch( e )
-   {
-      throw buildException( "find data", e, null, null, e );
-   }
-   println( "--second node find data success!" );
+   dbcl.find().sort( { _id: 1 } ).limit( 1 );
+   dbcl.find().sort( { _id: 1 } ).limit( 1 ).skip( expectNum - 1 );
 
    commDropCS( db, csName, true, "drop CS in the end" );
 }
-main();

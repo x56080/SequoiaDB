@@ -13,18 +13,16 @@
            2016/3/23   XiaoNi Huang init
 @remarks:  alter cl, Failed to check attribute, jira: 1628
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( " Deploy mode is standalone!" );
       return;
    }
    if( commGetGroupsNum( db ) < 2 )
    {
-      println( "This testcase needs at least 2 groups to split!" );
       return;
    }
 
@@ -39,11 +37,9 @@ function main ()
    var insertRecsNum = 800000;
    var checkRecsNum = 3; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
@@ -62,21 +58,18 @@ function main ()
    checkRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum, checkRecsNum, rgName, rgName2 );
    checkCompressedRate( noCSName, lzwCSName );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, noCSName );
    clearCS( db, lzwCSName );
 }
 
 function alterCL ( cl, csName, clName )
 {
-   println( '\n---Begin to alter CL[{ShardingKey:{INNER_NO:1},ShardingType:"range"}], CL[' + csName + '.' + clName + ']' );
 
    cl.alter( { ShardingKey: { INNER_NO: 1 }, ShardingType: "range" } );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
@@ -91,30 +84,22 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
 
 function splitRecs ( cl, csName, clName, rgName, rgName2 )
 {
-   println( '\n---Begin to split["' + rgName + '", "' + rgName2 + '", 50], CL[' + csName + '.' + clName + ']' );
 
    cl.split( rgName, rgName2, 50 );
 }
 
 function checkRecs ( cl, csName, clName, insertRecsNum, checkRecsNum, rgName, rgName2 )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
-   println( '   recs: {INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,IVC_NAME: "电子银行业务回单(付款)",OPEN_BRANCH_NAME:"中国民生银行福州闽江支行"}' );
 
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
 
       var recsCnt = cl.find( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } ).count();
       var expctCnt = 1;
-      if( parseInt( recsCnt ) !== expctCnt )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
-      }
+      assert.equal( recsCnt, expctCnt );
    }
 
    //check count of records in the groups
@@ -133,11 +118,6 @@ function checkRecs ( cl, csName, clName, insertRecsNum, checkRecsNum, rgName, rg
       nodeDB.close();
    }
 
-   if( totalCnt !== insertRecsNum )
-   {
-      throw buildException( "Failed to check Records in each group.", null, "[checkRecords]",
-         "totalCnt: " + insertRecsNum,
-         "totalCnt: " + totalCnt + ", remarks: [rg1Cnt: " + tmpCnt[0] + ", rg2Cnt: " + tmpCnt[1] + "]" );
-   }
+   assert.equal( totalCnt, insertRecsNum );
 
 }

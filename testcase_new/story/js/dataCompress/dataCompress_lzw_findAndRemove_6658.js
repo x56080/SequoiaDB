@@ -11,9 +11,9 @@
 @Author:   
            2016/3/23   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var lzwCSName = COMMCSNAME + "_lzw";
    var lzwCLName = COMMCLNAME + "_lzw";
@@ -22,10 +22,8 @@ function main ()
    var remainNum = 200000; //remaining records after removed
    var checkRecsNum = 3; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
    var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
@@ -37,13 +35,11 @@ function main ()
    checkRecs( lzwCL, insertRecsNum, checkRecsNum );
    checkNodeCnt( lzwCSName, lzwCLName, rgName, remainNum );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, lzwCSName );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
@@ -58,7 +54,6 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
 
 function findAndRemoveRecs ( cl, csName, clName )
 {
-   println( "\n---Begin to findAndRemove records, CL[" + csName + "." + clName + "]" );
 
    var rc = cl.find( { $and: [{ INNER_NO: { $gte: 200000 } }, { IVC_NAME: { $et: "电子银行业务回单(付款)" } }] } ).remove();
    while( rc.next() );
@@ -66,16 +61,12 @@ function findAndRemoveRecs ( cl, csName, clName )
 
 function checkRecs ( cl, insertRecsNum, checkRecsNum )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
-   println( '   not removed recs  : {INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,IVC_NAME:"电子银行业务回单(付款)",OPEN_BRANCH_NAME:"中国民生银行福州闽江支行"}' );
-   println( '   removed recs      : {INNER_NO:i,SA_ACCT_NO:i+1,EVT_ID:"lwy20120702"+i,IVC_NAME:"<DRW_NME>徐凤明</DRW_NME>"}' );
 
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
 
       var recsCnt = cl.find( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } ).count();
       if( i < 200000 )
@@ -87,10 +78,6 @@ function checkRecs ( cl, insertRecsNum, checkRecsNum )
          var expctCnt = 0;
       }
 
-      if( parseInt( recsCnt ) !== expctCnt )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
-      }
+      assert.equal( recsCnt, expctCnt );
    }
 }

@@ -1,3 +1,6 @@
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
+
 /************************************
 *@Description: check count
 *@author:      zhaoyu
@@ -5,19 +8,8 @@
 **************************************/
 function checkCount ( dbcl, findConf, expectCount )
 {
-   try
-   {
-      var actualCount = countRecords( dbcl, findConf );
-      if( actualCount !== expectCount )
-      {
-         println( "actualCount: " + actualCount + ",expectCount: " + expectCount );
-         throw "RECORD_COUNT_ERROR";
-      }
-   } catch( e )
-   {
-      throw buildException( "checkCount", e, null, null, e );
-   }
-   println( "check count success!" );
+   var actualCount = dbcl.count( findConf );
+   assert.equal( actualCount, expectCount );
 }
 
 /************************************
@@ -27,63 +19,11 @@ function checkCount ( dbcl, findConf, expectCount )
 **************************************/
 function checkLogicalID ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf, expectIDs )
 {
-   try
+   var logicalIDs = getLogicalID( dbcl, findConf, selectConf, sortConf, limitConf, skipConf );
+   assert.equal( logicalIDs.length, expectIDs.length );
+   for( var i = 0; i < expectIDs.length; i++ )
    {
-      var logicalIDs = getLogicalID( dbcl, findConf, selectConf, sortConf, limitConf, skipConf );
-      if( logicalIDs.length !== expectIDs.length )
-      {
-         println( "actualIDsLength: " + logicalIDs.length + ",expectIDsLength: " + expectIDs.length );
-         throw "LOGICAL_ID_COUNT_ERROR";
-      }
-      for( var i = 0; i < expectIDs.length; i++ )
-      {
-         if( logicalIDs[i] !== expectIDs[i] )
-         {
-            println( "prev " + logicalIDs[i - 1] + " prev " + expectIDs[i - 1] );
-            println( "error occurs in the " + i + "th record," + "actualID:" + logicalIDs[i] + ",expectID: " + expectIDs[i] );
-            throw "LOGICAL_ID_NOT_EQUAL";
-         }
-      }
-
-   } catch( e )
-   {
-      throw buildException( "checkLogicalID", e, null, null, e );
-   }
-
-   println( "check logical id success!" );
-}
-
-/************************************
-*@Description: return count record
-*@author:      zhaoyu
-*@createDate:  2017.7.11
-**************************************/
-function countRecords ( dbcl, conf )
-{
-   try
-   {
-      var count = dbcl.count( conf );
-      return parseInt( count );
-   } catch( e )
-   {
-      throw buildException( "count", e, null, null, e );
-   }
-}
-
-/************************************
-*@Description: insert data
-*@author:      zhaoyu
-*@createDate:  2017.7.12
-**************************************/
-function insertDatas ( dbcl, datas )
-{
-   try
-   {
-      dbcl.insert( datas );
-   }
-   catch( e )
-   {
-      throw buildException( "insertDatas()", e, null, null, e );
+      assert.equal( logicalIDs[i], expectIDs[i] );
    }
 }
 
@@ -95,37 +35,15 @@ function insertDatas ( dbcl, datas )
 function getLogicalID ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf )
 {
    var logicalIDs = [];
-   try
+   var cursor = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
+   while( cursor.next() )
    {
-      var cursor = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
-      while( cursor.next() )
-      {
-         var logicalID = cursor.current().toObj()._id;
-         logicalIDs.push( logicalID );
-      }
-      return logicalIDs;
-   } catch( e )
-   {
-      throw buildException( "get logical IDs", e, null, null, e );
+      var logicalID = cursor.current().toObj()._id;
+      logicalIDs.push( logicalID );
    }
+   return logicalIDs;
 }
 
-/************************************
-*@Description: pop datas
-*@author:      zhaoyu
-*@createDate:  2017.7.11
-**************************************/
-function pop ( dbcl, logicalID, direction )
-{
-   try
-   {
-      println( "--pop logicalID: " + logicalID + ", Direction: " + direction )
-      dbcl.pop( { LogicalID: logicalID, Direction: direction } );
-   } catch( e )
-   {
-      throw buildException( "pop", e, null, null, e );
-   }
-}
 /************************************
 *@Description: insert datas
 *@author:      zhaoyu
@@ -133,23 +51,17 @@ function pop ( dbcl, logicalID, direction )
 **************************************/
 function insertFixedLengthDatas ( dbcl, recordNum, stringLength, string )
 {
-   try
-   {
-      var doc = new StringBuffer();
-      doc.append( stringLength, string );
-      var strings = doc.toString();
+   var doc = new StringBuffer();
+   doc.append( stringLength, string );
+   var strings = doc.toString();
 
-      var records = [];
-      for( var i = 0; i < recordNum; i++ )
-      {
-         records.push( { a: strings } );
-      }
-      dbcl.insert( records );
-      doc.clear();
-   } catch( e )
+   var records = [];
+   for( var i = 0; i < recordNum; i++ )
    {
-      throw buildException( "insertFixedLengthDatas", e, null, null, e );
+      records.push( { a: strings } );
    }
+   dbcl.insert( records );
+   doc.clear();
 
    return records;
 
@@ -184,25 +96,6 @@ StringBuffer.prototype.size = function()
    return this._strings.length;
 }
 
-
-/************************************
-*@Description: get actual result and check it 
-*@author:      zhaoyu
-*@createDate:  2017.7.11
-**************************************/
-function checkRecords ( dbcl, findConf, selectConf, sortConf, limitConf, skipConf, expRecs )
-{
-   if( typeof ( findConf ) == "undefined" ) { findConf = null; }
-   if( typeof ( selectConf ) == "undefined" ) { selectConf = null; }
-   if( typeof ( sortConf ) == "undefined" ) { sortConf = null; }
-   if( typeof ( limitConf ) == "undefined" ) { limitConf = null; }
-   if( typeof ( skipConf ) == "undefined" ) { skipConf = null; }
-   var rc = dbcl.find( findConf, selectConf ).sort( sortConf ).limit( limitConf ).skip( skipConf );
-   //println("--begin to check the data");
-   checkRec( rc, expRecs );
-   //println("--end check the data");
-}
-
 /************************************
 *@Description: compare actual and expect result,
                they is not the same ,return error ,
@@ -219,12 +112,7 @@ function checkRec ( rc, expRecs )
       actRecs.push( rc.current().toObj() );
    }
    //check count
-   if( actRecs.length !== expRecs.length )
-   {
-      println( "\nactual recs in cl= " + JSON.stringify( actRecs ) + "\n\nexpect recs= " + JSON.stringify( expRecs ) );
-      throw buildException( "check count", null, "",
-         expRecs.length, actRecs.length );
-   }
+   assert.equal( actRecs.length, expRecs.length );
 
    //check every records every fields,expRecs as compare source
    for( var i in expRecs )
@@ -234,13 +122,7 @@ function checkRec ( rc, expRecs )
 
       for( var f in expRec )
       {
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( i ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            //println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));   		
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
    //check every records every fields,actRecs as compare source
@@ -255,17 +137,10 @@ function checkRec ( rc, expRecs )
          {
             continue;
          }
-         if( JSON.stringify( actRec[f] ) !== JSON.stringify( expRec[f] ) )
-         {
-            println( "\nerror occurs in " + ( parseInt( j ) + 1 ) + "th record, in field '" + f + "'" );
-            println( "\nactual record= " + JSON.stringify( actRec ) + "\n\nexpect record= " + JSON.stringify( expRec ) );
-            //println("\nactual recs in cl= "+JSON.stringify(actRecs)+"\n\nexpect recs= "+JSON.stringify(expRecs));   		
-            throw buildException( "checkRec()", "rec ERROR" );
-         }
+         assert.equal( actRec[f], expRec[f] );
       }
    }
 }
-
 
 /************************************
 *@Description: 获取所有组的数据节点
@@ -395,7 +270,7 @@ function checkConsistency ( db, csName, clName, groups )
          }
          else
          {
-            throw "check lsn time out";
+            throw new Error( "check lsn time out" );
          }
       }
       else 
@@ -403,7 +278,6 @@ function checkConsistency ( db, csName, clName, groups )
          break;
       }
    }
-   println( "check lsn ok!" );
 
 }
 

@@ -13,9 +13,9 @@
 @Author:   
            2016/3/23   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var noCSName = COMMCSNAME + "_no";
    var lzwCSName = COMMCSNAME + "_lzw";
@@ -26,11 +26,9 @@ function main ()
    var insertRecsNum = 800000;  //total number
    var checkRecsNum = 3; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
@@ -44,14 +42,12 @@ function main ()
    checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
    checkCompressedRate( noCSName, lzwCSName );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, noCSName );
    clearCS( db, lzwCSName );
 }
 
 function insertRecs ( cl, csName, clName, number1, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < number1; k += 50000 )
    {
@@ -76,18 +72,12 @@ function insertRecs ( cl, csName, clName, number1, insertRecsNum )
 
 function checkRecs ( cl, number1, insertRecsNum, checkRecsNum )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
-   println( '   i < ' + number1
-      + ', recs:           {total_account:i,account_id:i,tx_number:"test"+i,tx_info:"xzposs/565bf18944f4f14fea84341b/image/2016_1.png"}' );
-   println( '   ' + number1 + ' <= i < ' + insertRecsNum
-      + ', recs: {INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,IVC_NAME: "电子银行业务回单(付款)",OPEN_BRANCH_NAME:"中国民生银行福州闽江支行"}' );
 
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
 
       if( i < number1 )
       {
@@ -101,11 +91,7 @@ function checkRecs ( cl, number1, insertRecsNum, checkRecsNum )
       }
 
       var expctCnt = 1;
-      if( parseInt( recsCnt ) !== expctCnt )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
-      }
+      assert.equal( recsCnt, expctCnt );
 
    }
 }

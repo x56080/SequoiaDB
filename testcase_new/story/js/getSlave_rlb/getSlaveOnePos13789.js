@@ -5,13 +5,12 @@
 ******************************************************************************/
 var rgName = "testGetSlaveRg13789";
 var logSourcePaths = [];
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -23,7 +22,6 @@ function main ()
    }
    catch( e )
    {
-      println( "catch e : " + e );
       //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
       var backupDir = "/tmp/ci/rsrvnodelog/13789";
       File.mkdir( backupDir );
@@ -50,10 +48,7 @@ function testOneNode ()
    for( var i = 1; i <= 7; i++ )
    {
       var slave = rg.getSlave( i );
-      if( slave.toString() !== master.toString() )
-      {
-         throw buildException( "testOneNode", null, "check getSlave", master, slave );
-      }
+      assert.equal( slave.toString(), master.toString() );
    }
 }
 
@@ -70,10 +65,7 @@ function testTwoNode ()
    {
       var slave = rg.getSlave( i );
       var idx = ( i - 1 ) % 2;
-      if( slave.toString() !== nodes[idx] )
-      {
-         throw buildException( "testTwoNode", null, "check getSlave", nodes[idx], slave );
-      }
+      assert.equal( slave, nodes[idx] );
    }
 }
 
@@ -85,19 +77,13 @@ function testTwoNodeNoMaster ()
    var master = getMaster( rg );
    master.stop();
    var hasMaster = isMasterExist( db, rgName );
-   if( hasMaster !== false )
-   {
-      throw buildException( "testTwoNodeNoMaster", null, "check no master", false, hasMaster );
-   }
+   assert.equal( hasMaster, false );
 
    var nodes = getGroupNodes( db, rgName );
    for( var i = 1; i <= 7; i++ )
    {
       var slave = rg.getSlave( i );
       var idx = ( i - 1 ) % 2;
-      if( slave.toString() !== nodes[idx] )
-      {
-         throw buildException( "testTwoNodeNoMaster", null, "check getSlave", nodes[idx], slave );
-      }
+      assert.equal( slave, nodes[idx] );
    }
 }

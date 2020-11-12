@@ -22,7 +22,9 @@ var maxSize = 32;
 
 var flag = true;
 
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_11777_1";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -50,7 +52,6 @@ function main ()
    //比较count结果
    checkCount( dbclPrimary, null, expectNum );
    checkCount( dbclSlave, null, expectNum );
-   println( "--count success! expectNum: " + expectNum );
 
    //校验多个块内的_id值
    checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
@@ -61,7 +62,6 @@ function main ()
    {
       //随机获取某条记录的logicalID
       var skipNum = Math.ceil( 1 + Math.random() * ( expectNum - 2 ) );
-      println( "--skipNum:" + skipNum );
       var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
 
       //随机设置pop方向
@@ -74,7 +74,8 @@ function main ()
       }
 
       //执行pop
-      pop( dbcl, logicalID[0], direction );
+      dbcl.pop( { LogicalID: logicalID[0], Direction: direction } );
+
 
       //比较count结果
       if( direction == -1 )
@@ -91,7 +92,6 @@ function main ()
          //比较count结果
          checkCount( dbclPrimary, null, expectNum );
          checkCount( dbclSlave, null, expectNum );
-         println( "--count success! expectNum: " + expectNum );
 
          //校验多个块内的_id值
          checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
@@ -109,14 +109,12 @@ function main ()
          //比较count结果
          checkCount( dbclPrimary, null, expectNum );
          checkCount( dbclSlave, null, expectNum );
-         println( "--count success! expectNum: " + expectNum );
 
          //校验多个块内的_id值
          checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
          checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
 
          dbcl.truncate();
-         println( "--truncate cl success!" );
 
          flag = true;
          expIDs = [];
@@ -131,7 +129,7 @@ function main ()
    db1.close();
    db2.close();
 }
-main();
+
 
 function insertDataOverSize ( dbcl )
 {
@@ -163,16 +161,14 @@ function insertDataOverSize ( dbcl )
       {
          try
          {
-            println( "--recordLength:" + recordLength );
             dbcl.insert( { a: strings } );
-            throw "NEED_ERROR";
+            throw new Error( "NEED_ERROR" );
          } catch( e )
          {
             flag = false;
-            println( "--insert data up to limit!" );
-            if( e !== -307 )
+            if( e.message != -307 )
             {
-               throw buildException( "insert data up to limit)", e, null, null, e );
+               throw e;
             }
          }
       }

@@ -13,9 +13,9 @@
 @Author:   
            2016/3/23   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var noCSName = COMMCSNAME + "_no";
    var lzwCSName = COMMCSNAME + "_lzw";
@@ -26,11 +26,9 @@ function main ()
    var insertRecsNum = 800000;
    var checkRecsNum = 3; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
@@ -50,21 +48,18 @@ function main ()
    checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
    checkCompressedRate( noCSName, lzwCSName );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, noCSName );
    clearCS( db, lzwCSName );
 }
 
 function createIdx ( cl, idxName )
 {
-   println( "\n---Begin to create index[{INNER_NO:1,SA_ACCT_NO:-1}, true, true]" );
 
    cl.createIndex( idxName, { INNER_NO: 1, SA_ACCT_NO: -1 }, true, true );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
@@ -79,7 +74,6 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
 
 function findAndUpdateRecs ( cl, csName, clName )
 {
-   println( "\n---Begin to findAndUpdate records, CL[" + csName + "." + clName + "]" );
 
    var rcFU = cl.find( { $and: [{ INNER_NO: { $gte: 300000 } }, { SA_ACCT_NO: { $lt: 700000 } }] } ).update( { $set: { QRCODE_STRING: "need update by index" } } );
    while( rcFU.next() );
@@ -87,16 +81,12 @@ function findAndUpdateRecs ( cl, csName, clName )
 
 function checkRecs ( cl, insertRecsNum, checkRecsNum, idxName )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
-   println( '   recs befor update: {INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,QRCODE_STRING: "need update",         SA_OP_ACCT_NO: "6217001820000548390"}' );
-   println( '   recs befor update: {INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,QRCODE_STRING: "need update by index",SA_OP_ACCT_NO: "6217001820000548390"}' );
 
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
 
       if( i < 300000 || i >= 700000 )
       {  //before update
@@ -109,11 +99,7 @@ function checkRecs ( cl, insertRecsNum, checkRecsNum, idxName )
             { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, QRCODE_STRING: "need update by index", SA_OP_ACCT_NO: "6217001820000548390" } ).count();
       }
       var expctCnt = 1;
-      if( parseInt( recsCnt ) !== expctCnt )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
-      }
+      assert.equal( recsCnt, expctCnt );
    }
 
    var tmpInfo = cl.find( { INNER_NO: 0, SA_ACCT_NO: 0 } ).explain().current().toObj();
@@ -121,8 +107,8 @@ function checkRecs ( cl, insertRecsNum, checkRecsNum, idxName )
    var indexName = tmpInfo["IndexName"];
    if( scanType !== "ixscan" || indexName !== idxName )
    {
-      throw buildException( "Failed to check explain by index key.", null, "[checkRecords]",
-         "scanType: 'ixscan', indexName: " + idxName, "scanType: " + scanType + ", indexName: " + indexName );
+      throw new Error( "Failed to check explain by index key. fail,[checkRecords]" +
+         "scanType: 'ixscan', indexName: " + idxName + "scanType: " + scanType + ", indexName: " + indexName );
    }
 
 }

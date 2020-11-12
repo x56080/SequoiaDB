@@ -12,9 +12,9 @@
 @Author:   
            2016/8/16   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var noCSName = COMMCSNAME + "_no";
    var lzwCSName = COMMCSNAME + "_lzw";
@@ -25,11 +25,9 @@ function main ()
    var insertRecsNum = 300000;  //total number
    var checkRecsNum = 3;
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
    var noCL = createCL( noCSName, noCLName, rgName, false );
@@ -46,14 +44,12 @@ function main ()
    checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
    checkCompressedRate( noCSName, lzwCSName );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, noCSName );
    clearCS( db, lzwCSName );
 }
 
 function getRandomStr1 () 
 {
-   println( "\n---Begin to get random string[substr is int]." );
    //str e.g: "000000000000.1111111111....."
 
    var data = ["0", "1", "2", "3", "4", "0", "5", "6", "7", "8", "9", "0"];
@@ -74,13 +70,11 @@ function getRandomStr1 ()
    }
 
    var str = str1 + "." + str2;
-   println( "str: \n" + str );
    return str;
 }
 
 function getRandomStr2 () 
 {
-   println( "\n---Begin to get random string[substr is int&&letter]." );
    //str e.g: "12345555adbccccc......."
 
    var data = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c"];
@@ -92,13 +86,11 @@ function getRandomStr2 ()
       str += data[c];
    }
 
-   println( "str: \n" + str );
    return str;
 }
 
 function getRandomStr3 () 
 {
-   println( "\n---Begin to get random string[substr is int&&ascii]." );
    //str e.g: "123455$%$%455adbccccc....."
 
    var strLen = getRandomInt( 254, 300 );
@@ -111,7 +103,6 @@ function getRandomStr3 ()
       str += c;
    }
 
-   println( "str: \n" + str );
    return str;
 }
 
@@ -124,7 +115,6 @@ function getRandomInt ( min, max )
 
 function insertRecs ( cl, clName, insertRecsNum, str1, str2, str3 )
 {
-   println( "\n---Begin to insert records for cl[" + clName + "]." );
 
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
@@ -139,27 +129,18 @@ function insertRecs ( cl, clName, insertRecsNum, str1, str2, str3 )
 
 function checkRecs ( noCL, lzwCL, insertRecsNum, checkRecsNum )
 {
-   println( "\n---Begin to check Records." );
 
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
 
       var noFindRc = noCL.find( { "num": i }, { _id: { $include: 0 } } ).current().toObj();
       var noRecs = JSON.stringify( noFindRc );
-      //println("   noRecs: \n"+ noRecs +"\n" );
 
       var lzwFindRc = lzwCL.find( { "num": i }, { _id: { $include: 0 } } ).current().toObj();
       var lzwRecs = JSON.stringify( lzwFindRc );
-      //println("   lzwRecs: \n"+ lzwRecs +"\n" );
 
-      if( noRecs !== lzwRecs )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "noRecs === lzwRecs",
-            "\nnoRecs: " + noRecs + "\nlzwRecs: " + lzwRecs );
-      }
+      assert.equal( noRecs, lzwRecs );
 
    }
 }

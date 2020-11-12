@@ -5,13 +5,12 @@
  ******************************************************************************/
 var rgName = "testGetSlaveRg13790";
 var logSourcePaths = [];
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -25,7 +24,6 @@ function main ()
    }
    catch( e )
    {
-      println( "catch e : " + e );
       //将新建组日志备份到/tmp/ci/rsrvnodelog目录下
       var backupDir = "/tmp/ci/rsrvnodelog/13790";
       File.mkdir( backupDir );
@@ -49,10 +47,8 @@ function testOneNode ()
 
    var master = getMaster( rg );
    var slave = rg.getSlave( 1, 2, 3, 4, 5, 6, 7 );
-   if( slave.toString() !== master.toString() )
-   {
-      throw buildException( "testOneNode", null, "check getSlave", master, slave );
-   }
+   assert.equal( slave.toString(), master.toString() );
+
 }
 
 // two nodes in rg, test getSlave with 1-7
@@ -63,10 +59,7 @@ function testTwoNode ()
 
    var master = getMaster( rg );
    var slave = rg.getSlave( 1, 2, 3, 4, 5, 6, 7 );
-   if( slave.toString() === master.toString() )
-   {
-      throw buildException( "testTwoNode", null, "check getSlave", slave, master );
-   }
+   assert.notEqual( slave.toString(), master.toString() );
 }
 
 // two nodes in rg, getSlave with all master pos
@@ -77,17 +70,11 @@ function testTwoNodeMasterPos ()
 
    var nodes = getGroupNodes( db, rgName );
    var masterIdx = nodes.indexOf( master.toString() );
-   if( masterIdx === -1 )
-   {
-      throw buildException( "testTwoNodeMasterPos", null, "get master pos", "!= -1", masterPos );
-   }
+   assert.notEqual( masterIdx, -1 );
    var masterPos = masterIdx + 1;
 
    var slave = rg.getSlave( masterPos, masterPos, masterPos );
-   if( slave.toString() !== master.toString() )
-   {
-      throw buildException( "testTwoNodeMasterPos", null, "check getSlave", master, slave );
-   }
+   assert.equal( slave.toString(), master.toString() );
 }
 
 // three nodes in rg( master change ), getSlave with 1-7
@@ -101,8 +88,5 @@ function testThreeNode ()
    var newMaster = getMaster( rg );
 
    var slave = rg.getSlave( 1, 2, 3, 4, 5, 6, 7 );
-   if( slave.toString() === newMaster.toString() )
-   {
-      throw buildException( "testThreeNode", null, "check the returned slave node", newMaster.toString(), slave.toString() );
-   }
+   assert.notEqual( slave.toString(), newMaster.toString() );
 }

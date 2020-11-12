@@ -4,7 +4,9 @@
 *@createdate:  2017.7.14
 *@testlinkCase: seqDB-11779
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_11779";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -41,10 +43,8 @@ function main ()
    var repeatNum = 2;
    for( var j = 0; j < repeatNum; j++ )
    {
-      println( "--blockID:" + blockID );
 
       var insertNum = ( parseInt( 1 + Math.random() * ( maxInsertNum - 1 ) ) );
-      println( "--insertNum:" + insertNum );
 
       for( var i = 0; i < insertNum; i++ )
       {
@@ -89,7 +89,6 @@ function main ()
          dbcl.insert( docs );
          docs = [];
       }
-      println( "--insert data success!" );
 
       //检查主备节点一致
       checkConsistency( db, csName, clName );
@@ -101,16 +100,13 @@ function main ()
 
       //校验多个块内的_id值
       checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
-      println( "--check logical id on primary success!" );
 
       checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
-      println( "--check logical id on slave success!" );
 
       //随机获取某条记录的logicalID
       var minRecordNum = 1;
       var maxRecordNum = expectNum;
       var skipNum = Math.floor( minRecordNum + Math.random() * ( maxRecordNum - minRecordNum ) );
-      println( "--skipNum:" + skipNum );
       var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
 
       //随机设置pop方向
@@ -123,7 +119,7 @@ function main ()
       }
 
       //执行pop
-      pop( dbcl, logicalID[0], direction );
+      dbcl.pop( { LogicalID: logicalID[0], Direction: direction } );
 
       //比较count结果
       if( direction == -1 )
@@ -144,20 +140,14 @@ function main ()
       //比较count结果
       checkCount( dbclPrimary, null, expectNum );
       checkCount( dbclSlave, null, expectNum );
-      println( "--count success! expectNum: " + expectNum );
 
       //校验多个块内的_id值
-      //println("expIDs:" + expIDs);
       checkLogicalID( dbclPrimary, null, null, { _id: 1 }, -1, 0, expIDs );
-      println( "--check logical id on primary success!" );
 
       checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
-      println( "--check logical id on slave success!" );
    }
 
    commDropCS( db, csName, true, "drop CS in the end" );
    db1.close();
    db2.close();
 }
-
-main();

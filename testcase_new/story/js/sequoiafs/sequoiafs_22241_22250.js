@@ -4,8 +4,8 @@
 *@Author:      2020/07/21  liuli
 **************************************/
 
-// main();
-function main ()
+// main( test );
+function test ()
 {
    // aliasArr为挂载alias
    var aliasArr = ['asequoiafs_22241_01', 'bsequoiafs_22241_01', 'csequoiafs_22241_01',
@@ -131,7 +131,7 @@ function checkResults ( alias, mountPoint, isMount )
       {
          if( e.message !== '1' ) // linux rc: "Error: 1"
          {
-            throw new Error( e );
+            throw e;
          }
       }
       */
@@ -147,9 +147,9 @@ function checkResults ( alias, mountPoint, isMount )
       }
       catch( e )
       {
-         if( e !== 1 ) // linux rc: 1
+         if( e.message != 1 ) // linux rc: 1
          {
-            throw new Error( e );
+            throw e;
          }
       }
    }

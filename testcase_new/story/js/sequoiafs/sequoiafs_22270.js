@@ -3,8 +3,8 @@
  * @Author : 2020/07/15  xiaoni huang init
 ************************************************************************/
 
-//main(); //CI主机需要先安装fuse，待安装后放开
-function main ()
+//main( test ); //CI主机需要先安装fuse，待安装后放开
+function test ()
 {
    var alias = 'sequoiafs_22270';
    var mountpoint = tmpFileDir + alias;
@@ -36,10 +36,10 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -13 )
+      if( e.message != -13 )
       {
          println( command );
-         throw new Error( e );
+         throw e;
       }
    }
 
@@ -61,10 +61,10 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -13 )
+      if( e.message != -13 )
       {
          println( command );
-         throw new Error( e );
+         throw e;
       }
    }
 

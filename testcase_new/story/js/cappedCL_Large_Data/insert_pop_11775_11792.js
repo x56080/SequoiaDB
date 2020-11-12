@@ -4,7 +4,9 @@
 *@createdate:  2017.7.17
 *@testlinkCase: seqDB-11775/seqDB-11792
 **************************************/
-function main ()
+main( test );
+
+function test ()
 {
    var csName = COMMCSNAME + "_11775";
    commDropCS( db, csName, true, "drop CS in the beginning" );
@@ -34,7 +36,6 @@ function main ()
       var recordHead = 55;
       var expectRecords = insertFixedLengthDatas( dbcl, insertNum, stringLength, "a" );
    }
-   println( "--insert data success!" );
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -61,12 +62,12 @@ function main ()
    //插入记录使扩展文件后，检查记录数
    var expectCount = repeatNum * insertNum;
    checkCount( dbcl, null, expectCount );
-   println( "--check count success!" );
 
    //逆向pop单个块
    var skipNum = ( repeatNum - 1 ) * insertNum;
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
-   pop( dbcl, logicalID[0], -1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: -1 } );
+
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -93,12 +94,12 @@ function main ()
    //检查记录数
    expectCount = skipNum;
    checkCount( dbcl, null, expectCount );
-   println( "--check count success!" );
 
    //逆向pop 2个块
    var skipNum = insertNum * ( repeatNum - 3 );
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
-   pop( dbcl, logicalID[0], -1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: -1 } );
+
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -125,12 +126,12 @@ function main ()
    //检查记录数
    expectCount = skipNum;
    checkCount( dbcl, null, expectCount );
-   println( "--check count success!" );
 
    //正向pop单个块
    var skipNum = insertNum - 1;
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
-   pop( dbcl, logicalID[0], 1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: 1 } );
+
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -157,12 +158,11 @@ function main ()
    //检查记录数
    expectCount = expectCount - 32767;
    checkCount( dbcl, null, expectCount );
-   println( "--check count success!" );
 
    //正向pop 3个块
    var skipNum = insertNum * 3 - 1;
    var logicalID = getLogicalID( dbcl, null, null, { _id: 1 }, 1, skipNum );
-   pop( dbcl, logicalID[0], 1 );
+   dbcl.pop( { LogicalID: logicalID[0], Direction: 1 } );
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -189,10 +189,8 @@ function main ()
    //检查记录数
    expectCount = expectCount - skipNum - 1;
    checkCount( dbcl, null, expectCount );
-   println( "--check count success!" );
 
    commDropCS( db, csName, true, "drop CS in the end" );
    db1.close();
    db2.close();
 }
-main();

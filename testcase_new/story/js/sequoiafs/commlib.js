@@ -81,37 +81,23 @@ function fsstart ( param, timeout )
    }
    catch( e )
    {
-      if( e !== -13 )
+      if( e.message != -13 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
 }
 
 function fsstop ( param )
 {
-   try
-   {
-      cmd.run( toolsDir + 'bin/fsstop.sh ' + param );
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   cmd.run( toolsDir + 'bin/fsstop.sh ' + param );
 }
 
 function fslist ( param )
 {
-   try
-   {
-      if( typeof ( param ) == "undefined" ) { param = '-m run'; }
-      var rc = cmd.run( toolsDir + 'bin/fslist.sh ' + param );
-      return rc;
-   }
-   catch( e )
-   {
-      throw new Error( e );
-   }
+   if( typeof ( param ) == "undefined" ) { param = '-m run'; }
+   var rc = cmd.run( toolsDir + 'bin/fslist.sh ' + param );
+   return rc;
 }
 
 /********************************************************
@@ -179,7 +165,7 @@ function checkResults ( alias, isMount )
          {
             if( e.message !== '1' ) // linux rc: "Error: 1"
             {
-               throw new Error( e );
+               throw e;
             }
          }
          */
@@ -195,9 +181,9 @@ function checkResults ( alias, isMount )
          }
          catch( e )
          {
-            if( e !== 1 ) // linux rc: 1
+            if( e.message !== '1' ) // linux rc: 1
             {
-               throw new Error( e );
+               throw e;
             }
          }
       }

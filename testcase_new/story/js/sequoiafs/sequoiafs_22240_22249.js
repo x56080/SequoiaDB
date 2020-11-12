@@ -4,8 +4,8 @@
 *@Author:      2020/07/17  liuli
 **************************************/
 
-// main();
-function main ()
+// main( test );
+function test ()
 {
    var alias = 'sequoiafs_22240_01';
 
@@ -23,9 +23,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== 4 )
+      if( e.message != 4 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    checkResults( alias, false );
@@ -55,9 +55,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== 4 )
+      if( e.message != 4 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    checkResults( alias, false );

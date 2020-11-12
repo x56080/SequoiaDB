@@ -9,9 +9,9 @@
 @Author:   
            2016/3/23   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var csName = COMMCSNAME + "_snappy";
    var clName = COMMCLNAME + "_snappy";
@@ -19,10 +19,8 @@ function main ()
    var insertRecsNum = 20000;
    var checkRecsNum = 1; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, csName, true, "Failed to drop CS[" + csName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, csName, false, "Failed to create CS[" + csName + "]." );
 
    var cl = createCL( csName, clName, rgName, true, "snappy" );
@@ -37,13 +35,11 @@ function main ()
    findAndRemoveRecs( cl, csName, clName );
    checkRecs( cl, insertRecsNum, checkRecsNum, "findAndRemove" );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    clearCS( db, csName );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < insertRecsNum; k += 10000 )
    {
@@ -58,14 +54,12 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
 
 function updateRecs ( cl, csName, clName )
 {
-   println( "\n---Begin to update records, CL[" + csName + "." + clName + "]" );
 
    cl.update( { $set: { dtest: "电子银行业务回单(付款)" } } );
 }
 
 function findAndRemoveRecs ( cl, csName, clName )
 {
-   println( "\n---Begin to findAndRemove records, CL[" + csName + "." + clName + "]" );
 
    var rc = cl.find( { $and: [{ atest: { $lt: 10000 } }, { dtest: { $et: "电子银行业务回单(付款)" } }] } ).remove();
    while( rc.next() );
@@ -73,13 +67,11 @@ function findAndRemoveRecs ( cl, csName, clName )
 
 function checkRecs ( cl, insertRecsNum, checkRecsNum, oper )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( '   random i: ' + i );
 
       if( oper == "insert" )
       {
@@ -104,16 +96,11 @@ function checkRecs ( cl, insertRecsNum, checkRecsNum, oper )
          }
       }
 
-      if( parseInt( recsCnt ) !== expctCnt )
-      {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt: " + expctCnt, "recsCnt: " + parseInt( recsCnt ) );
-      }
+      assert.equal( recsCnt, expctCnt );
    }
 
    //check total count
    var totalCnt = cl.count();
-   println( '   totalCnt: ' + totalCnt );
    if( oper == "insert" || oper == "update" )
    {
       var expctCnt = insertRecsNum;
@@ -123,9 +110,6 @@ function checkRecs ( cl, insertRecsNum, checkRecsNum, oper )
       var expctCnt = insertRecsNum - 10000;
    }
 
-   if( parseInt( totalCnt ) !== expctCnt )
-   {
-      throw buildException( "Failed to check Records.", null, "[checkRecords]",
-         "totalCnt: " + expctCnt, "totalCnt: " + parseInt( totalCnt ) );
-   }
+   assert.equal( totalCnt, expctCnt );
+
 }

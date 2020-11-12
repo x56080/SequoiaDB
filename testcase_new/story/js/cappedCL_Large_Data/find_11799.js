@@ -7,13 +7,14 @@
 
 var currentLastLogicalID = 0;
 var blockCounts = 1;
-function main ()
+main( test );
+
+function test ()
 {
    var csName = CHANGEDPREFIX + "_11799_large_CS";
    var clName = CHANGEDPREFIX + "_11799_large_CL";
 
    //clean and createCS CL before test
-   println( "---begin test---" );
    commDropCS( db, csName, true, "drop CS at begin" );
 
    var csOption = { Capped: true };
@@ -30,7 +31,7 @@ function main ()
    {
       doc.push( { a: i } );
    }
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //insert 10w records at middle, each record lengths 968 
    var insertNum = 100000;
@@ -44,7 +45,7 @@ function main ()
    {
       doc.push( { a: i } );
    }
-   insertDatas( dbcl, doc );
+   dbcl.insert( doc );
 
    //check count
    checkCount( dbcl, {}, 100200 );
@@ -94,21 +95,13 @@ function main ()
    checkQueryResult( dbcl, etObj, typeObj, { _id: 1 }, [{ "a": 16 }] );
    checkLogicalID( dbcl, etObj, typeObj, { _id: 1 }, null, null, expLogicalIDs.slice( 100100, 100101 ) );
 
-   println( "---end the test---" );
    commDropCS( db, csName, true, "drop CS in the end" );
 }
 
 function checkQueryResult ( dbcl, FindOptions, selectorOptions, sortOptions, results )
 {
-   try
-   {
-      var rc = dbcl.find( FindOptions, selectorOptions ).sort( sortOptions );
-      checkRec( rc, results );
-   }
-   catch( e )
-   {
-      throw buildException( "checkQueryResult()", e, "find record", "find success", "find fail:" + e );
-   }
+   var rc = dbcl.find( FindOptions, selectorOptions ).sort( sortOptions );
+   checkRec( rc, results );
 }
 
 function getExpectLogicalIDs ( stringLength, recordNums )
@@ -137,4 +130,3 @@ function getExpectLogicalIDs ( stringLength, recordNums )
    return expLogicalIDs;
 }
 
-main();

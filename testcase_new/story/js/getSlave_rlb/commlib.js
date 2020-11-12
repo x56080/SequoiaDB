@@ -1,14 +1,10 @@
-/******************************************************************************
-*@Description : common function for test getSlave
-*               
-*@auhor       : Liang XueWang
-******************************************************************************/
+import( "../lib/basic_operation/commlib.js" );
+import( "../lib/main.js" );
 
 /*******************************************************************
 * @Description : check path has / in the end or not
 *                add / if not
 * @author      : Liang XueWang
-*
 ********************************************************************/
 function adaptPath ( path )
 {
@@ -41,26 +37,24 @@ function createNodes ( rg, nodeNum )
          try
          {
             rg.createNode( host, svc, dbpath, { diaglevel: 5 } );
-            println( "create node " + host + ":" + svc + " " + dbpath );
             checkSucc = true;
             logSourcePaths.push( host + ":" + CMSVCNAME + "@" + dbpath + "/diaglog/sdbdiag.log" );
          }
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e == -145 || e == -290 )
+            if( e.message == -145 || e.message == -290 )
             {
                svc = svc + 10;
                dbpath = adaptPath( RSRVNODEDIR ) + "data/" + svc;
             }
             else
             {
-               throw "create node failed!  port = " + svc + " dataPath = " + dataPath + " errorCode: " + e;
+               throw e;
             }
             times++;
          }
-      }
-      while( !checkSucc && times < maxRetryTimes );
+      } while( !checkSucc && times < maxRetryTimes );
    }
    rg.start();
    return logSourcePaths;
@@ -115,9 +109,9 @@ function isMasterExist ( db, rgName )
    }
    catch( e )
    {
-      if( e !== -104 )
+      if( e.message != -104 )
       {
-         throw buildException( "isMasterExist", e, "create cl", "-104", e );
+         throw e;
       }
    }
    return hasMaster;
@@ -142,13 +136,13 @@ function getMaster ( rg )
       }
       catch( e )
       {
-         if( e == -71 )
+         if( e.message == -71 )
          {
             continue;
          }
          else
          {
-            throw buildException( "getMaster()", e, "get master", "0 -71", e );
+            throw e;
          }
       }
    }

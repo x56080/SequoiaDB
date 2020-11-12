@@ -5,13 +5,12 @@
  ******************************************************************************/
 var rgName = "testGetSlaveRg13792";
 
-main();
+main( test );
 
-function main ()
+function test ()
 {
    if( commIsStandalone( db ) )
    {
-      println( "Run mode is standalone" );
       return;
    }
 
@@ -27,45 +26,22 @@ function testIllegalPos ()
    {
       for( var i = 0; i < errorPos.length; i++ )
       {
-         try
+         assert.tryThrow( -6, function()
          {
             rg.getSlave( errorPos[i] );
-            throw 0;
-         }
-         catch( e )
-         {
-            if( e !== -6 )
-            {
-               throw buildException( "testIllegalPos", e, "test getSlave with " + errorPos[i], -6, e );
-            }
-         }
+         } );
       }
 
-      try
+      assert.tryThrow( -6, function()
       {
          rg.getSlave( 1, 2, 0, 5, 8 );
-         throw 0;
-      }
-      catch( e )
-      {
-         if( e !== -6 )
-         {
-            throw buildException( "testIllegalPos", e, "test getSlave with (1, 2, 0, 5, 8)", -6, e );
-         }
-      }
+      } );
 
-      try
+      assert.tryThrow( -158, function()
       {
          rg.getSlave( 1 );
-         throw 0;
-      }
-      catch( e )
-      {
-         if( e !== -158 )
-         {
-            throw buildException( "testIllegalPos", e, "test getSlave with empty group", -158, e );
-         }
-      }
+      } );
+
    }
    finally
    {

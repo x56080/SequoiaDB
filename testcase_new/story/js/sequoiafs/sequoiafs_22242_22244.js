@@ -4,8 +4,8 @@
 *@Author:      2020/07/22  liuli
 **************************************/
 
-// main();
-function main ()
+// main( test );
+function test ()
 {
    var aliasArr = ['sequoiafs_22242_01', 'sequoiafs_22242_02']
 
@@ -41,9 +41,9 @@ function main ()
    }
    catch( e )
    {
-      if( e !== -13 )
+      if( e.message != -13 )
       {
-         throw new Error( e );
+         throw e;
       }
    }
    checkResults( aliasArr[0] );
@@ -57,8 +57,6 @@ function main ()
    cleanFsPid( aliasArr );
    cleanFsDir( 'sequoiafs_22242' );
 }
-
-
 
 function readyMountpointAndConf ( alias, confDir )
 {
@@ -80,5 +78,3 @@ function readyMountpointAndConf ( alias, confDir )
    cmd.run( 'sed -i "s%^alias=%alias=' + alias + '%g" ' + confDir );
    cmd.run( 'sed -i "s%^collection=%collection=' + collection + '%g" ' + confDir );
 }
-
-

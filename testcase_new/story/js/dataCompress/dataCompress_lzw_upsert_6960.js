@@ -12,9 +12,9 @@
 @Author:   
            2016/3/23   XiaoNi Huang init
 ************************************************************************/
-main();
+main( test );
 
-function main ()
+function test ()
 {
    var noCSName = COMMCSNAME + "_no";
    var lzwCSName = COMMCSNAME + "_lzw";
@@ -24,11 +24,9 @@ function main ()
    var insertRecsNum = 800000;
    var checkRecsNum = 3; //get random 3 records
 
-   println( "\n---Begin to drop CS in the pre-condition." );
    commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
    commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
 
-   println( "\n---Begin to create CS." );
    commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
    commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
 
@@ -45,14 +43,12 @@ function main ()
    checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
    checkCompressedRate( noCSName, lzwCSName );
 
-   println( "\n---Begin to drop cs in the end-condition." );
    commDropCS( db, noCSName );
    commDropCS( db, lzwCSName );
 }
 
 function insertRecs ( cl, csName, clName, insertRecsNum )
 {
-   println( "\n---Begin to insert records, CL[" + csName + "." + clName + "], " + "insertRecsNum: " + insertRecsNum );
 
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
@@ -67,30 +63,25 @@ function insertRecs ( cl, csName, clName, insertRecsNum )
 
 function upsertRecs ( cl, csName, clName )
 {
-   println( "\n---Begin to upsert records, CL[" + csName + "." + clName + "]" );
 
    cl.upsert( { $unset: { dtest: "abcdefg890abcdefg890abcdefg890" } } );
 }
 
 function checkRecs ( cl, insertRecsNum, checkRecsNum )
 {
-   println( "\n---Begin to check Records. checkRecsNum: " + checkRecsNum );
 
    //get random records, compare the records
-   println( '   recs before upsert: {atest:i,btest:i,ctest:"test"+i,dtest:"abcdefg890abcdefg890abcdefg890"}' );
-   println( '   recs after  upsert: {atest:i,btest:i,ctest:"test"+i}' );
    for( j = 0; j < checkRecsNum; j++ )
    {
       var i = parseInt( Math.random() * insertRecsNum );
-      println( "   random i: " + i );
       var recsCnt1 = cl.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
       var recsCnt2 = cl.find( { atest: i, btest: i, ctest: "test" + i } ).count();
       var expctCnt1 = 0;
       var expctCnt2 = 1;
       if( parseInt( recsCnt1 ) !== expctCnt1 || parseInt( recsCnt2 ) !== expctCnt2 )
       {
-         throw buildException( "Failed to check Records.", null, "[checkRecords]",
-            "recsCnt1: " + expctCnt1 + ", recsCnt2: " + expctCnt2,
+         throw new Error( "Failed to check Records. fail,[checkRecords]" +
+            "recsCnt1: " + expctCnt1 + ", recsCnt2: " + expctCnt2 +
             "recsCnt1: " + parseInt( recsCnt1 ) + ", recsCnt2: " + parseInt( recsCnt2 ) );
       }
    }

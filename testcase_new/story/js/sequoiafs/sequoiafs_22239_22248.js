@@ -5,15 +5,14 @@
  * @Author : 2020/07/15  xiaoni huang init
 ************************************************************************/
 
-//main(); //CI主机需要先安装fuse，待安装后放开
-function main ()
+//main( test ); //CI主机需要先安装fuse，待安装后放开
+function test ()
 {
    var aliasArr = ['sequoiafs_22239_01', 'sequoiafs_22239_02', 'sequoiafs_22239_03'];
 
    // 清理
    cleanFsPid( aliasArr );
    cleanFsDir( 'sequoiafs_22239' );
-
 
    // seqDB-22239:指定-a/--all挂载所有目录
    // 准备多个挂载目录和配置文件
@@ -31,13 +30,12 @@ function main ()
    catch( e )
    {
       // 可能会有其他目录挂载失败，不捕获异常，只校验最终结果
-      if( e !== -13 )
+      if( e.message != -13 )
       {
          sleep( 2 );
       }
    }
    checkResults( aliasArr.slice( 0, 2 ) );
-
 
    // seqDB-22239:指定-a/--all挂载所有目录
    // 停掉一个挂载目录
@@ -52,7 +50,6 @@ function main ()
       // 可能会有其他目录去挂载失败，不捕获异常，只校验最终结果
    }
    checkResults( aliasArr, false );
-
 
    // 清理   
    cleanFsPid( aliasArr );
