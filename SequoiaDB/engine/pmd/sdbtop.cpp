@@ -130,6 +130,9 @@ namespace po = boost::program_options;
 #define SORTINGWAY_ASC "1"
 #define SORTINGWAY_DESC "-1"
 
+#define SORTINGWAY_ASC_STR  "ASC"
+#define SORTINGWAY_DESC_STR "DESC"
+
 //bodyPanelType
 #define BODYTYPE_MAIN "BODYTYPE_MAIN"
 #define BODYTYPE_NORMAL "BODYTYPE_NORMAL"
@@ -394,6 +397,30 @@ CHAR* SDB_TOP_DESC =
 OSS_NEWLINE
 "SDB Interactive Snapshot Monitor V2.0"OSS_NEWLINE
 "Use these keys to ENTER:";
+
+#define SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_STR_MAX_LEN   2048
+
+CHAR* SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_BASE =
+   "select s.Name, s.GroupName, s.NodeName, s.TotalTbScan, s.TotalIxScan, "
+   "s.TotalDataRead, s.TotalIndexRead, s.TotalDataWrite, "
+   "s.TotalIndexWrite, s.TotalUpdate, s.TotalDelete, s.TotalInsert, "
+   "s.TotalSelect, s.TotalRead, s.TotalWrite from ( "
+   "select t.Name as Name, "
+   "addtoset( t.Details.$[0].GroupName ) as GroupName, "
+   "addtoset( t.Details.$[0].NodeName ) as NodeName, "
+   "sum(t.Details.$[0].TotalTbScan) as TotalTbScan, "
+   "sum(t.Details.$[0].TotalIxScan) as TotalIxScan, "
+   "sum(t.Details.$[0].TotalDataRead) as TotalDataRead, "
+   "sum(t.Details.$[0].TotalIndexRead) as TotalIndexRead, "
+   "sum(t.Details.$[0].TotalDataWrite) as TotalDataWrite, "
+   "sum(t.Details.$[0].TotalIndexWrite) as TotalIndexWrite, "
+   "sum(t.Details.$[0].TotalUpdate) as TotalUpdate, "
+   "sum(t.Details.$[0].TotalDelete) as TotalDelete, "
+   "sum(t.Details.$[0].TotalInsert) as TotalInsert, "
+   "sum(t.Details.$[0].TotalSelect) as TotalSelect, "
+   "sum(t.Details.$[0].TotalRead) as TotalRead, "
+   "sum(t.Details.$[0].TotalWrite) as TotalWrite "
+   "from $SNAPSHOT_CL as t" ;
 
 #define BUFFERSIZE         256
 CHAR sdbtopBuffer[BUFFERSIZE] = {0} ;
@@ -814,6 +841,10 @@ public: // operation
    INT32 getExpression( string& expression, string& result ) ;
 
    INT32 getCurSnapshot() ;
+
+   INT32 getCurSnapshotBySnapshotCommand() ;
+
+   INT32 getCurSnapshotCLByBuildInSQL() ;
 
    INT32 fixedOutputLocation( INT32 start_row, INT32 start_col,
                               INT32 &fixed_row, INT32 &fixed_col,
@@ -3305,13 +3336,322 @@ error :
    goto done ;
 }
 
+INT32 Event::getCurSnapshot()
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if( root.input.activatedPanel[0].sourceSnapShot ==
+          SDB_SNAP_COLLECTIONS_TOP )
+      {
+         rc = getCurSnapshotCLByBuildInSQL() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = getCurSnapshotBySnapshotCommand() ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+   }
+   catch( std::bad_alloc &e )
+   {
+      rc = SDB_OOM ;
+      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+      ossSnprintf( errStr, errStrLength,
+                   "%s get current snapshot exception: %s"
+                   "rc: %d"OSS_NEWLINE,
+                   errStrBuf, e.what(), rc ) ;
+      goto error ;
+   }
+   catch ( std::exception &e )
+   {
+      rc = SDB_SYS ;
+      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+      ossSnprintf( errStr, errStrLength,
+                   "%s get current snapshot exception: %s"
+                   "rc: %d"OSS_NEWLINE,
+                   errStrBuf, e.what(), rc ) ;
+      goto error ;
+   }
+
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
+INT32 Event::getCurSnapshotCLByBuildInSQL()
+{
+   INT32  rc        = SDB_OK ;
+   INT32  filterNum = 0 ;
+   string conditionPre ;
+   string conditionCon ;
+   sdbCursor cursor ;
+   string::size_type pos ;
+   BSONObj bsonobj ;
+   INT32 sqlBufSize = SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_STR_MAX_LEN ;
+   CHAR sqlBuf[ sqlBufSize + 1 ] = { 0 } ;
+   INT32 sqlBufHasWrite = 0 ;
+   BOOLEAN isHasFilterCond = FALSE ;
+   BOOLEAN isNeedToExecCursorNext = TRUE ;
+
+   sqlBufHasWrite = ossSnprintf( sqlBuf,
+                                 sqlBufSize,
+                                 "%s ",
+                                 SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_BASE ) ;
+
+   if( NULLSTRING != root.input.filterCondition )
+   {
+      pos = root.input.filterCondition.find( ":" ) ;
+      if( string::npos != pos )
+      {
+         conditionPre = root.input.filterCondition.substr( 0, pos ) ;
+         conditionCon = root.input.filterCondition.substr( pos + 1 ) ;
+      }
+      else
+      {
+         root.input.filterCondition = NULLSTRING;
+      }
+   }
+
+   if( GLOBAL == root.input.snapshotModeChooser )
+   {
+      if( NULLSTRING != root.input.filterCondition )
+      {
+         isHasFilterCond = TRUE ;
+         sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                        sqlBufSize - sqlBufHasWrite,
+                                        "where t.%s = '%s' ",
+                                        conditionPre.c_str(),
+                                        conditionCon.c_str() ) ;
+      }
+   }
+   else if( GROUP == root.input.snapshotModeChooser )
+   {
+      if( NULLSTRING != root.input.groupName )
+      {
+         isHasFilterCond = TRUE ;
+         if( NULLSTRING != root.input.filterCondition )
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "where t.%s = '%s' and "
+                                           "t.GroupName = '%s' ",
+                                           conditionPre.c_str(),
+                                           conditionCon.c_str(),
+                                           root.input.groupName.c_str() ) ;
+         }
+         else
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "where t.GroupName = '%s' ",
+                                           root.input.groupName.c_str() ) ;
+         }
+      }
+   }
+   else if( NODE == root.input.snapshotModeChooser )
+   {
+      if( NULLSTRING != root.input.nodeName )
+      {
+         isHasFilterCond = TRUE ;
+         if( NULLSTRING != root.input.filterCondition )
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "where t.%s = '%s' and "
+                                           "t.NodeName = '%s' ",
+                                           conditionPre.c_str(),
+                                           conditionCon.c_str(),
+                                           root.input.nodeName.c_str() ) ;
+         }
+         else
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "where t.NodeName = '%s' ",
+                                           root.input.nodeName.c_str() ) ;
+         }
+      }
+   }
+   else
+   {
+      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+      ossSnprintf( errStr, errStrLength,
+                   "%s get snapshot by build-in sql failed,"
+                   "wrong snapshotModeChooser = %s"OSS_NEWLINE,
+                   errStrBuf, root.input.snapshotModeChooser.c_str() ) ;
+      rc = SDB_ERROR ;
+      goto error ;
+   }
+
+   sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                  sqlBufSize - sqlBufHasWrite,
+                                  "group by t.Name ) as s " ) ;
+
+   if( NULLSTRING == root.input.sortingWay )
+   {
+      sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                     sqlBufSize - sqlBufHasWrite,
+                                     "order by s.TotalTbScan DESC" ) ;
+   }
+   else if( SORTINGWAY_ASC == root.input.sortingWay ||
+            SORTINGWAY_DESC == root.input.sortingWay )
+   {
+      if( NULLSTRING != root.input.sortingField )
+      {
+         isHasFilterCond = TRUE ;
+         sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                        sqlBufSize - sqlBufHasWrite,
+                                        "order by s.%s ",
+                                        root.input.sortingField.c_str() ) ;
+
+         if ( SORTINGWAY_ASC == root.input.sortingWay )
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "%s",
+                                           SORTINGWAY_ASC_STR ) ;
+         }
+         else if ( SORTINGWAY_DESC == root.input.sortingWay )
+         {
+            sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                           sqlBufSize - sqlBufHasWrite,
+                                           "%s",
+                                           SORTINGWAY_DESC_STR ) ;
+         }
+      }
+      else
+      {
+         sqlBufHasWrite += ossSnprintf( sqlBuf + sqlBufHasWrite,
+                                        sqlBufSize - sqlBufHasWrite,
+                                        "order by s.TotalTbScan DESC" ) ;
+      }
+   }
+   else
+   {
+      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+      ossSnprintf( errStr, errStrLength,
+                   "%s get snapshot by build-in sql failed,"
+                   "wrong sortingWay: %s"OSS_NEWLINE,
+                   errStrBuf, root.input.sortingWay.c_str() ) ;
+      rc = SDB_ERROR ;
+      goto error ;
+   }
+
+   rc = coord->exec( sqlBuf, cursor ) ;
+   if ( rc )
+   {
+      // if the user specifes the invalid condition,
+      // coord->exec() will report an error.
+      // eg: we specify a node that does not exist,
+      // coord->exec() will report -155.
+      // However, we should display the empty infomation instead of
+      // reporting an error.
+      if ( isHasFilterCond &&
+           ( SDB_CLS_GRP_NOT_EXIST == rc || SDB_CLS_NODE_NOT_EXIST == rc ) )
+      {
+         rc = SDB_OK ;
+         isNeedToExecCursorNext = FALSE ;
+      }
+
+      if ( rc )
+      {
+         ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+         ossSnprintf( errStr, errStrLength,
+                      "%s get snapshot by build-in sql failed, can't get "
+                      "snapshot, rc = %d"OSS_NEWLINE,
+                      errStrBuf, rc ) ;
+         goto error ;
+      }
+   }
+
+   // deal with history date(), clean all the vector which used to
+   // store all current DELTA value, ABSOLUTE value or AVERAGE value
+   root.input.last_absoluteMap.clear() ;
+   root.input.last_absoluteMap = root.input.cur_absoluteMap ;
+   root.input.cur_absoluteMap.clear() ;
+
+   root.input.last_deltaMap.clear() ;
+   root.input.last_deltaMap = root.input.cur_deltaMap ;
+   root.input.cur_deltaMap.clear() ;
+
+   root.input.last_averageMap.clear() ;
+   root.input.last_averageMap = root.input.cur_averageMap ;
+   root.input.cur_averageMap.clear() ;
+
+   // deal with history date, clean all the vector which used to
+   // store all current BSONobj from snaoshot
+   root.input.last_Snapshot.clear() ;
+   root.input.last_Snapshot = root.input.cur_Snapshot ;
+   root.input.cur_Snapshot.clear() ;
+   filterNum = root.input.filterNumber ;
+
+   if ( isNeedToExecCursorNext )
+   {
+      // filter data before filterNum change to zero
+      while( !( rc = cursor.next( bsonobj ) ) )
+      {
+         if( 0 < filterNum )
+         {
+            --filterNum ;
+            continue ;
+         }
+
+         // the bsonobj.firstElement.fieldName is the cl name.
+         // if the cl name is null, other fields is also null.
+         // we don't show fields whose value is null.
+         if ( bsonobj.firstElement().type() != jstNULL )
+         {
+            root.input.cur_Snapshot.push_back( bsonobj ) ;
+         }
+      }
+
+      if( SDB_DMS_EOC != rc && SDB_OK != rc )
+      {
+         ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+         ossSnprintf( errStr, errStrLength,
+                      "%s refreshDisplayContent failed, "
+                      "cursor.next( bsonobj ) failed,"
+                      "rc = %d"OSS_NEWLINE,
+                      errStrBuf, rc ) ;
+         goto error ;
+      }
+
+      // if rc == SDB_DMS_EOC,
+      // show that reading is finished, turn rc in SDB_OK
+      if( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
+   }
+
+   if( TRUE == root.input.isFirstGetSnapshot )
+   {
+      root.input.isFirstGetSnapshot = FALSE ;
+      root.input.last_Snapshot.clear() ;
+   }
+
+done :
+   return rc ;
+error :
+   goto done ;
+}
+
 // get result from sequoiadb's snapshot ,
 // and store it on the root.input.cur_Snapshot ,the last snapshot'result will
 // store on the root.input.last_Snapshot
 // root.input.filterCondition, root.input.sortingWay ,
 // root.input.snapshotModeChooser and root.input.filterNumber will impact the
 // way to get the result from sequoiadb's snapshot
-INT32 Event::getCurSnapshot()
+INT32 Event::getCurSnapshotBySnapshotCommand()
 {
    INT32 rc             = SDB_OK ;
    INT32 snapType       = -1 ;
@@ -3329,7 +3669,11 @@ INT32 Event::getCurSnapshot()
    BSONObj selectorObj ;
    BSONObj orderByObj ;
    string::size_type pos ;
+   BOOLEAN isHasFilterCond = FALSE ;
+   BOOLEAN isNeedToExecCursorNext = TRUE ;
+
    fromjson( selector, selectorObj ) ;
+
    // choose the snapshot type
    if( root.input.activatedPanel[0].sourceSnapShot ==
             SDB_SNAP_CONTEXTS_TOP )
@@ -3350,11 +3694,6 @@ INT32 Event::getCurSnapshot()
                   SDB_SNAP_SESSIONS_CURRENT_TOP )
    {
       snapType = SDB_SNAP_SESSIONS_CURRENT ;
-   }
-   else if( root.input.activatedPanel[0].sourceSnapShot ==
-                  SDB_SNAP_COLLECTIONS_TOP )
-   {
-      snapType = SDB_SNAP_COLLECTIONS ;
    }
    else if( root.input.activatedPanel[0].sourceSnapShot ==
                   SDB_SNAP_COLLECTIONSPACES_TOP )
@@ -3386,7 +3725,7 @@ INT32 Event::getCurSnapshot()
 
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr );
       ossSnprintf( errStr, errStrLength,
-                   "%s getCurSnapshot failed,"
+                   "%s get snapshot by snapshot command failed,"
                    "xml gave the wrong sourceSnapShot: %s"
                    OSS_NEWLINE,
                    errStrBuf,
@@ -3394,6 +3733,7 @@ INT32 Event::getCurSnapshot()
       rc = SDB_ERROR ;
       goto error ;
    }
+
    // don't need to sorting
    if( NULLSTRING == root.input.sortingWay )
    {
@@ -3404,17 +3744,22 @@ INT32 Event::getCurSnapshot()
             SORTINGWAY_DESC == root.input.sortingWay )
    {
       if( NULLSTRING != root.input.sortingField )
+      {
+         isHasFilterCond = TRUE ;
          orderBy += "\"" + root.input.sortingField + "\":" +
                     root.input.sortingWay + "}" ;
+      }
       else
+      {
          orderBy += "}" ;
+      }
    }
    // can't distinguish the sorting way, error
    else
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s getCurSnapshot failed,"
+                   "%s get snapshot by snapshot command failed,"
                    "wrong sortingWay: %s"OSS_NEWLINE,
                    errStrBuf, root.input.sortingWay.c_str() ) ;
       rc = SDB_ERROR ;
@@ -3438,6 +3783,7 @@ INT32 Event::getCurSnapshot()
          root.input.filterCondition = NULLSTRING;
       }
    }
+
    // according to snapshotModeChooser ( GLOBAL,GROUP or NODE),
    // get the filterCondition in the form of json , and then
    // transform it to bsonobj and getsnapshot from sequoiadb server
@@ -3445,72 +3791,95 @@ INT32 Event::getCurSnapshot()
    {
       if( NULLSTRING != root.input.filterCondition )
       {
+         isHasFilterCond = TRUE ;
          condition = "{" + conditionPre + ":" + conditionCon + "}" ;
       }
-      else
-         condition = "{}" ;
-      fromjson(condition, conditionObj ) ;
-      rc = coord->getSnapshot( cursor, snapType,
-                              conditionObj, selectorObj, orderByObj) ;
    }
    else if( GROUP == root.input.snapshotModeChooser )
    {
-      condition = "{GroupName:\""  + root.input.groupName ;
-      if( NULLSTRING != root.input.filterCondition )
+      if ( NULLSTRING != root.input.groupName )
       {
-         condition += "\"," + conditionPre + ":" + conditionCon + "}" ;
-      }
-      else
-         condition += "\"}" ;
+         isHasFilterCond = TRUE ;
+         condition = "{GroupName:\""  + root.input.groupName ;
 
-      fromjson(condition, conditionObj ) ;
-      rc = coord->getSnapshot( cursor, snapType,
-                              conditionObj, selectorObj, orderByObj) ;
+         if ( NULLSTRING != root.input.filterCondition )
+         {
+            condition += "\"," + conditionPre + ":" + conditionCon + "}" ;
+         }
+         else
+         {
+            condition += "\"}" ;
+         }
+      }
    }
    else if( NODE == root.input.snapshotModeChooser )
    {
-      condition = "{HostName:\"" ;
-      pos = root.input.nodeName.find( ":" ) ;
-      if( string::npos != pos )
+      if ( NULLSTRING != root.input.nodeName )
       {
-         HostName = root.input.nodeName.substr( 0, pos ) ;
-         svcname = root.input.nodeName.substr( pos + 1 ) ;
-         condition += HostName + "\",svcname:\"" + svcname + "\"" ;
+         isHasFilterCond = TRUE ;
+         condition = "{HostName:\"" ;
+         pos = root.input.nodeName.find( ":" ) ;
+
+         if ( string::npos != pos )
+         {
+            HostName = root.input.nodeName.substr( 0, pos ) ;
+            svcname = root.input.nodeName.substr( pos + 1 ) ;
+            condition += HostName + "\",svcname:\"" + svcname + "\"" ;
+         }
+         else
+         {
+            HostName = root.input.nodeName ;
+            condition += HostName + "\",svcname:\" \"" ;
+         }
+
+         if ( NULLSTRING != root.input.filterCondition )
+         {
+            condition += "," + conditionPre + ":" + conditionCon + "}" ;
+         }
+         else
+         {
+            condition += "}" ;
+         }
       }
-      else
-      {
-         HostName = root.input.nodeName ;
-         condition += HostName + "\",svcname:\" \"" ;
-      }
-      if( NULLSTRING != root.input.filterCondition )
-      {
-         condition += "," + conditionPre + ":" + conditionCon + "}" ;
-      }
-      else
-         condition += "}" ;
-      fromjson(condition, conditionObj ) ;
-      rc = coord->getSnapshot( cursor, snapType,
-                              conditionObj, selectorObj, orderByObj) ;
    }
    else
    {
-
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s getCurSnapshot failed,"
+                   "%s get snapshot by snapshot command failed,"
                    "wrong snapshotModeChooser = %s"OSS_NEWLINE,
                    errStrBuf, root.input.snapshotModeChooser.c_str() ) ;
       rc = SDB_ERROR ;
       goto error ;
    }
-   if( rc )
+
+   fromjson( condition, conditionObj ) ;
+   rc = coord->getSnapshot( cursor, snapType,
+                            conditionObj, selectorObj, orderByObj) ;
+   if ( rc )
    {
-      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
-      ossSnprintf( errStr, errStrLength,
-                   "%s getCurSnapshot failed,can't getSnapshot,"
-                   "rc = %d"OSS_NEWLINE,
-                   errStrBuf, rc ) ;
-      goto error ;
+      // if the user specifes the invalid condition,
+      // coord->getSnapshot() will report an error.
+      // eg: we specify a node that does not exist,
+      // coord->getSnapshot() will report -155.
+      // However, we should display the empty infomation instead of
+      // reporting an error.
+      if ( isHasFilterCond &&
+           ( SDB_CLS_GRP_NOT_EXIST == rc || SDB_CLS_NODE_NOT_EXIST == rc ) )
+      {
+         rc = SDB_OK ;
+         isNeedToExecCursorNext = FALSE ;
+      }
+
+      if ( rc )
+      {
+         ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+         ossSnprintf( errStr, errStrLength,
+                      "%s get snapshot by snapshot command failed, can't "
+                      "get snapshot, rc = %d"OSS_NEWLINE,
+                      errStrBuf, rc ) ;
+         goto error ;
+      }
    }
 
    // deal with history date(), clean all the vector which used to
@@ -3533,38 +3902,45 @@ INT32 Event::getCurSnapshot()
    root.input.last_Snapshot = root.input.cur_Snapshot ;
    root.input.cur_Snapshot.clear() ;
    filterNum = root.input.filterNumber ;
-   // filter data before filterNum change to zero
-   while( !( rc = cursor.next( bsonobj ) ) )
-   {
-      if( 0 < filterNum )
-      {
-         --filterNum ;
-         continue ;
-      }
-      root.input.cur_Snapshot.push_back( bsonobj ) ;
-   }
-   if( SDB_DMS_EOC != rc && SDB_OK != rc )
-   {
 
-      ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
-      ossSnprintf( errStr, errStrLength,
-                   "%s refreshDisplayContent failed, "
-                   "snapShotCursor.next( bsonobj ) failed,"
-                   "rc = %d"OSS_NEWLINE,
-                   errStrBuf, rc ) ;
-      goto error ;
-   }
-   // if rc == SDB_DMS_EOC,
-   // show that reading is finished, turn rc in SDB_OK
-   if( SDB_DMS_EOC == rc )
+   if ( isNeedToExecCursorNext )
    {
-      rc = SDB_OK ;
+      // filter data before filterNum change to zero
+      while( !( rc = cursor.next( bsonobj ) ) )
+      {
+         if( 0 < filterNum )
+         {
+            --filterNum ;
+            continue ;
+         }
+         root.input.cur_Snapshot.push_back( bsonobj ) ;
+      }
+
+      if( SDB_DMS_EOC != rc && SDB_OK != rc )
+      {
+         ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
+         ossSnprintf( errStr, errStrLength,
+                      "%s refreshDisplayContent failed, "
+                      "cursor.next( bsonobj ) failed,"
+                      "rc = %d"OSS_NEWLINE,
+                      errStrBuf, rc ) ;
+         goto error ;
+      }
+
+      // if rc == SDB_DMS_EOC,
+      // show that reading is finished, turn rc in SDB_OK
+      if( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_OK ;
+      }
    }
+
    if( TRUE == root.input.isFirstGetSnapshot )
    {
       root.input.isFirstGetSnapshot = FALSE ;
       root.input.last_Snapshot.clear() ;
    }
+
 done :
    return rc ;
 error :
