@@ -3396,7 +3396,7 @@ INT32 Event::getCurSnapshotCLByBuildInSQL()
    sdbCursor cursor ;
    string::size_type pos ;
    BSONObj bsonobj ;
-   INT32 sqlBufSize = SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_STR_MAX_LEN ;
+   const INT32 sqlBufSize = SDB_TOP_SNAPSHOT_CL_BUILDIN_SQL_STR_MAX_LEN ;
    CHAR sqlBuf[ sqlBufSize + 1 ] = { 0 } ;
    INT32 sqlBufHasWrite = 0 ;
    BOOLEAN isHasFilterCond = FALSE ;
