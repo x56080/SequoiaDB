@@ -93,6 +93,16 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_CREATE_RELATIONSHIP_REQ,
+                         BSON( OM_BSON_NAME << _name <<
+                               OM_BSON_FROM << _fromBuzName <<
+                               OM_BSON_TO << _toBuzName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -473,6 +483,14 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_REMOVE_RELATIONSHIP_REQ,
+                         BSON( OM_BSON_NAME << _name ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;

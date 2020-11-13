@@ -107,6 +107,10 @@ namespace engine
          }
          else if ( ossStrcasecmp( subCommand.c_str(), OM_LOGIN_REQ ) == 0 )
          {
+            INT32 ret = SDB_OK ;
+            omDatabaseTool dbTool( _pEDUCB ) ;
+            string user ;
+
             rc = _processBusinessMsg( pAdaptor, request, response ) ;
             if ( rc )
             {
@@ -114,6 +118,22 @@ namespace engine
                _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
             }
 
+            user = request.getQuery( OM_REST_FIELD_LOGIN_NAME ) ;
+
+            try
+            {
+               ret = dbTool.addHistory( SDB_OK == response.getResultCode(),
+                                     getLoginUserName(),
+                                     OM_LOGIN_REQ,
+                                     BSON( OM_REST_FIELD_LOGIN_NAME << user ) );
+               if ( ret )
+               {
+                  PD_LOG( PDERROR, "Failed to add history, rc=%d", ret ) ;
+               }
+            }
+            catch( std::exception &e )
+            {
+            }
             goto done ;
          }
       }

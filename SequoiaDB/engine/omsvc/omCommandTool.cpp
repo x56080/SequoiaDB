@@ -4071,6 +4071,170 @@ namespace engine
       goto done ;
    }
 
+   INT32 omDatabaseTool::addHistory( BOOLEAN success, const string& user,
+                                     const CHAR* execType,
+                                     const BSONObj& detail )
+   {
+      INT32 rc = SDB_OK ;
+      time_t now = time( NULL ) ;
+      BSONObj record ;
+      BSONObjBuilder builder ;
+
+      try
+      {
+         builder.appendTimestamp( OM_HISTORY_FIELD_TIME, (UINT64)now * 1000, 0 ) ;
+         builder.append( OM_HISTORY_FIELD_USER,       user ) ;
+         builder.append( OM_HISTORY_FIELD_EXEC_TYPE,  execType ) ;
+         builder.append( OM_HISTORY_FIELD_DETAIL,     detail ) ;
+         builder.appendBool( OM_HISTORY_FIELD_SUCCESS, success ) ;
+
+         record = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      rc = rtnInsert( OM_CS_DEPLOY_CL_HISTORY, record, 1, 0, _cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Insert record failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::queryHistory( const BSONObj& condition,
+                                       const BSONObj &selector,
+                                       const BSONObj& order,
+                                       SINT64 skip, SINT64 returnNum,
+                                       list<BSONObj>& historyList )
+   {
+      INT32 rc = SDB_OK ;
+      SINT64 contextID = -1 ;
+      BSONObj hint ;
+
+      //query table
+      rc = rtnQuery( OM_CS_DEPLOY_CL_HISTORY, selector, condition, order, hint,
+                     0, _cb, skip, returnNum, _pDMSCB, _pRTNCB, contextID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to query table:%s,rc=%d",
+                 OM_CS_DEPLOY_CL_HISTORY, rc ) ;
+         goto error ;
+      }
+
+      while( TRUE )
+      {
+         rtnContextBuf buffObj ;
+
+         rc = rtnGetMore( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+         if( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+
+            contextID = -1 ;
+            PD_LOG( PDERROR, "Failed to get record from table:%s,rc=%d",
+                    OM_CS_DEPLOY_CL_HISTORY, rc ) ;
+            goto error ;
+         }
+
+         try
+         {
+            BSONObj record( buffObj.data() ) ;
+
+            historyList.push_back( record.getOwned() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      if( -1 != contextID )
+      {
+         _pRTNCB->contextDelete ( contextID, _cb ) ;
+         contextID = -1 ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omDatabaseTool::countHistory( const BSONObj& condition, INT64& count )
+   {
+      INT32 rc = SDB_OK ;
+      SINT64 contextID = -1 ;
+      rtnContextBase *pContextBase = NULL ;
+      BSONObj selector ;
+      BSONObj order ;
+      BSONObj hint ;
+      rtnContextBuf buffObj ;
+
+      count = 0 ;
+
+      //query table
+      rc = rtnQuery( OM_CS_DEPLOY_CL_HISTORY, selector, condition, order, hint,
+                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID,
+                     &pContextBase ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to query table:%s,rc=%d",
+                 OM_CS_DEPLOY_CL_HISTORY, rc ) ;
+         goto error ;
+      }
+
+      pContextBase->enableCountMode() ;
+
+      while ( TRUE )
+      {
+         rc = rtnGetMore( contextID, -1, buffObj, _cb, _pRTNCB ) ;
+         if ( rc )
+         {
+            // any error will clean up query context
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to fetch for count for "
+                                "collecion %s, rc: %d",
+                       OM_CS_DEPLOY_CL_HISTORY, rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            count += buffObj.recordNum() ;
+         }
+      }
+
+   done:
+      if( -1 != contextID )
+      {
+         _pRTNCB->contextDelete ( contextID, _cb ) ;
+         contextID = -1 ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omDatabaseTool::createCollection( const CHAR *pCollection )
    {
       INT32 rc = SDB_OK ;

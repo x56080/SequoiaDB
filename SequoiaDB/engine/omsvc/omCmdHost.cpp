@@ -115,6 +115,16 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_DEPLOY_PACKAGE_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_REST_FIELD_PACKAGENAME << _packageName <<
+                               OM_REST_FIELD_ENFORCED << _enforced ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;

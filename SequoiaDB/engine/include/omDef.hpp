@@ -152,6 +152,7 @@ namespace engine
    #define OM_PUBLIC_FIELD_SVCNAME              "svcname"
    #define OM_PUBLIC_FIELD_DBPATH               "dbpath"
    #define OM_PUBLIC_FIELD_ENCRYPTION           "Encryption"
+   #define OM_PUBLIC_FIELD_NUMBER               "Number"
 
    /******* SYSCLUSTER *******/
    #define OM_CS_DEPLOY_CL_CLUSTER              OM_CS_DEPLOY".SYSCLUSTER"
@@ -337,6 +338,16 @@ OM_CS_DEPLOY_CL_SETTINGSIDX\",key: {"OM_SETTINGS_FIELD_KEY":1}, unique: true, \
 enforced: true }"
 
    #define OM_SETTINGS_CONFIG_MAXEXECTIME       "max_execution_time"
+
+   /******* SYSHISTORY *******/
+   #define OM_CS_DEPLOY_CL_HISTORY              OM_CS_DEPLOY".SYSHISTORY"
+   #define OM_HISTORY_FIELD_TIME                "Time"
+   #define OM_HISTORY_FIELD_USER                "User"
+   #define OM_HISTORY_FIELD_EXEC_TYPE           "ExecType"
+   #define OM_HISTORY_FIELD_DETAIL              "Detail"
+   #define OM_HISTORY_FIELD_SUCCESS             "Success"
+   #define OM_CS_DEPLOY_CL_HISTORYIDX1          "{name:\"\
+OM_CS_DEPLOY_CL_HISTORYIDX\",key: {"OM_HISTORY_FIELD_TIME":1} }"
 
    /********** SYSSTRATEGY **********/
    #define OM_CS_STRATEGY                       "SYSSTRATEGY"
@@ -700,6 +711,9 @@ enforced: true }"
    #define  OM_LIST_SETTINGS_REQ             "list settings"
 
    #define  OM_GET_NODE_LOG_REQ              "get node log"
+
+   #define  OM_GET_HISTORY_NUMBER_REQ        "get history number"
+   #define  OM_QUERY_HISTORY_REQ             "query history"
 
    //**************************************************************************
 

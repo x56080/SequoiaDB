@@ -300,6 +300,16 @@ namespace engine
       INT32 getSettingList( list<BSONObj>& settings ) ;
       INT32 getSetting( const string& key, BSONObj& setting ) ;
 
+      //history
+      INT32 addHistory( BOOLEAN success, const string& user,
+                        const CHAR* execType, const BSONObj& detail ) ;
+
+      INT32 queryHistory( const BSONObj& condition, const BSONObj &selector,
+                          const BSONObj& order, SINT64 skip, SINT64 returnNum,
+                          list<BSONObj>& historyList ) ;
+
+      INT32 countHistory( const BSONObj& condition, INT64& count ) ;
+
       //collection
       INT32 createCollection( const CHAR *pCollection ) ;
       INT32 createCollectionIndex( const CHAR *pCollection,

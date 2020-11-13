@@ -342,6 +342,8 @@ namespace engine
       /* read */
       BOOLEAN isChunkModal(){ return _isChunk ; }
 
+      INT32 getResultCode() { return _resultCode ; }
+
       /* write */
       void setDataType( HTTP_DATA_TYPE type = HTTP_FILE_HTML ) ;
 
@@ -364,6 +366,7 @@ namespace engine
       virtual string _generateHeader() ;
 
    private:
+      INT32 _resultCode ;
       BOOLEAN _isChunk ;
       HTTP_RESPONSE_CODE _rspCode ;
    } ;

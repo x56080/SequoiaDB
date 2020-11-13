@@ -262,6 +262,19 @@ namespace engine
       _languageFileSep = "_" + language ;
    }
 
+   void omAuthCommand::_recordHistory( INT32 rc, const CHAR* execType,
+                                       const BSONObj& detail )
+   {
+      omDatabaseTool dbTool( _cb ) ;
+      INT32 ret = dbTool.addHistory( SDB_OK == rc,
+                                     _restSession->getLoginUserName(),
+                                     execType, detail ) ;
+      if ( ret )
+      {
+         PD_LOG( PDERROR, "Failed to add history, rc=%d", ret ) ;
+      }
+   }
+
    INT32 omAuthCommand::_getQueryPara( BSONObj &selector,  BSONObj &matcher,
                                        BSONObj &order, BSONObj &hint,
                                        SINT64 &numSkip, SINT64 &numReturn )
@@ -492,6 +505,41 @@ namespace engine
       }
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         BSONElement configEle = extendConfig.getField( OM_BSON_FIELD_CONFIG ) ;
+
+         if ( Array == configEle.type() )
+         {
+            BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME      << "" <<
+                                   OM_CONF_DETAIL_DATAGROUPNAME << "" <<
+                                   OM_CONF_DETAIL_SVCNAME       << "" <<
+                                   OM_CONF_DETAIL_ROLE          << "" <<
+                                   OM_BSON_PORT << "" ) ;
+            BSONObjIterator i( configEle.embeddedObject() ) ;
+
+            while ( i.more() )
+            {
+               BSONElement ele = i.next() ;
+               if ( Object == ele.type() )
+               {
+                  BSONObj node = ele.embeddedObject() ;
+                  BSONObj newNode = node.filterFieldsUndotted( filter, TRUE ) ;
+
+                  builder.append( newNode ) ;
+               }
+            }
+         }
+         _recordHistory( rc, OM_EXTEND_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName <<
+                               OM_BSON_NODES << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       _sendErrorRes2Web( rc, _errorMsg.getError() ) ;
@@ -1102,6 +1150,39 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         BSONElement configEle = shrinkConfig.getField( OM_BSON_FIELD_CONFIG ) ;
+
+         if ( Array == configEle.type() )
+         {
+            BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME << "" <<
+                                   OM_CONF_DETAIL_SVCNAME  << "" <<
+                                   OM_BSON_PORT << "" ) ;
+            BSONObjIterator i( configEle.embeddedObject() ) ;
+
+            while ( i.more() )
+            {
+               BSONElement ele = i.next() ;
+               if ( Object == ele.type() )
+               {
+                  BSONObj node = ele.embeddedObject() ;
+                  BSONObj newNode = node.filterFieldsUndotted( filter, TRUE ) ;
+
+                  builder.append( newNode ) ;
+               }
+            }
+         }
+         _recordHistory( rc, OM_SHRINK_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName <<
+                               OM_BSON_NODES << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -1652,6 +1733,14 @@ namespace engine
 
       _sendOKRes2Web() ;
    done:
+      try
+      {
+         _recordHistory( rc, OM_CHANGE_PASSWD_REQ,
+                         BSON( OM_BSON_USER << user ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       goto done ;
@@ -1690,6 +1779,7 @@ namespace engine
       string sdbPasswd ;
       string sdbUsrGroup ;
       BSONElement grantConfEle ;
+      omDatabaseTool dbTool( _cb ) ;
 
       clusterInfoStr = _request->getQuery( OM_REST_CLUSTER_INFO ) ;
       if ( clusterInfoStr.empty() )
@@ -1849,6 +1939,14 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_CREATE_CLUSTER_REQ,
+                         BSON( OM_CLUSTER_FIELD_NAME << clusterName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -2085,6 +2183,19 @@ namespace engine
 
       _sendOKRes2Web() ;
    done:
+      {
+         BSONArrayBuilder builder ;
+         map<string,string>::iterator iter = mapHost.begin() ;
+
+         for( ; iter != mapHost.end(); ++iter )
+         {
+            builder.append( BSON( OM_BSON_HOSTNAME << iter->first <<
+                                  OM_BSON_IP << iter->second ) ) ;
+         }
+
+         _recordHistory( rc, OM_UPDATE_HOST_INFO_REQ,
+                         BSON( OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
       return rc ;
    error:
       _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
@@ -2795,6 +2906,32 @@ namespace engine
 
    done:
       _clearSession( om, remoteSession ) ;
+      try
+      {
+         BSONArrayBuilder builder ;
+         list<omScanHostInfo>::iterator iter = hostInfoList.begin() ;
+
+         while ( iter != hostInfoList.end() )
+         {
+            if ( FALSE == iter->hostName.empty() )
+            {
+               builder.append( BSON( OM_BSON_FIELD_HOST_NAME <<
+                                     iter->hostName ) ) ;
+            }
+            else if ( FALSE == iter->ip.empty() )
+            {
+               builder.append( BSON( OM_BSON_FIELD_HOST_IP << iter->ip ) ) ;
+            }
+            iter++ ;
+         }
+
+         _recordHistory( rc, OM_SCAN_HOST_REQ,
+                         BSON( OM_CLUSTER_FIELD_NAME << clusterName <<
+                               OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc;
    error:
       goto done ;
@@ -3705,6 +3842,25 @@ checking system firewall for blocked ports" ) ;
       _sendResult2Web( hostResult ) ;
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         list<BSONObj>::iterator iter = hostResult.begin() ;
+
+         for( ; iter != hostResult.end(); ++iter )
+         {
+            builder.append( BSON(
+               OM_BSON_HOSTNAME << iter->getStringField( OM_BSON_HOSTNAME ) <<
+               OM_BSON_IP << iter->getStringField( OM_BSON_IP ) ) ) ;
+         }
+
+         _recordHistory( rc, OM_CHECK_HOST_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << clusterName <<
+                               OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc;
    error:
       goto done ;
@@ -4255,6 +4411,31 @@ checking system firewall for blocked ports" ) ;
       }
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         list<BSONObj>::iterator iter = hostInfoList.begin() ;
+
+         while ( iter != hostInfoList.end() )
+         {
+            string host  = iter->getStringField( OM_BSON_FIELD_HOST_NAME ) ;
+            string ip    = iter->getStringField( OM_BSON_FIELD_HOST_IP ) ;
+            BSONObj disk = iter->getObjectField( OM_HOST_FIELD_DISK ) ;
+
+            builder.append( BSON( OM_BSON_FIELD_HOST_NAME << host <<
+                                  OM_BSON_FIELD_HOST_IP << ip <<
+                                  OM_HOST_FIELD_DISK << disk ) ) ;
+
+            iter++ ;
+         }
+
+         _recordHistory( rc, OM_ADD_HOST_REQ,
+                         BSON( OM_CLUSTER_FIELD_NAME << clusterName <<
+                               OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       goto done ;
@@ -4798,6 +4979,42 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         BSONElement configEle = configInfo.getField( OM_BSON_FIELD_CONFIG ) ;
+
+         if ( Array == configEle.type() )
+         {
+            BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME      << "" <<
+                                   OM_CONF_DETAIL_DATAGROUPNAME << "" <<
+                                   OM_CONF_DETAIL_SVCNAME       << "" <<
+                                   OM_CONF_DETAIL_ROLE          << "" <<
+                                   OM_BSON_PORT << "" ) ;
+            BSONObjIterator i( configEle.embeddedObject() ) ;
+
+            while ( i.more() )
+            {
+               BSONElement ele = i.next() ;
+               if ( Object == ele.type() )
+               {
+                  BSONObj node = ele.embeddedObject() ;
+                  BSONObj newNode = node.filterFieldsUndotted( filter, TRUE ) ;
+
+                  builder.append( newNode ) ;
+               }
+            }
+         }
+         _recordHistory( rc, OM_INSTALL_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName <<
+                               OM_BSON_DEPLOY_MOD << _deployMod <<
+                               OM_BSON_NODES << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -6785,6 +7002,14 @@ checking system firewall for blocked ports" ) ;
       _sendOKRes2Web() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_REMOVE_CLUSTER_REQ,
+                         BSON( OM_CLUSTER_FIELD_NAME << clusterName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       goto done ;
@@ -6855,6 +7080,32 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         BSONObj hostList = restHostInfo.getObjectField( OM_BSON_HOST_INFO ) ;
+         BSONObjIterator iter( hostList ) ;
+
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+
+            if ( Object == ele.type() )
+            {
+               BSONObj hostInfo = ele.embeddedObject() ;
+               string hostName = hostInfo.getStringField( OM_BSON_HOSTNAME ) ;
+
+               builder.append( BSON( OM_BSON_FIELD_HOST_NAME << hostName ) ) ;
+            }
+         }
+
+         _recordHistory( rc, OM_REMOVE_HOST_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -8218,6 +8469,14 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_SET_BUSINESS_AUTH_REQ,
+                         BSON( OM_BSON_BUSINESS_NAME << businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -8255,6 +8514,14 @@ checking system firewall for blocked ports" ) ;
       _sendOKRes2Web() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_REMOVE_BUSINESS_AUTH_REQ,
+                         BSON( OM_BSON_BUSINESS_NAME << businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       _sendErrorRes2Web( rc, omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ) ;
@@ -9260,6 +9527,16 @@ checking system firewall for blocked ports" ) ;
 
       restTool.sendOkRespone() ;
    done:
+      try
+      {
+         _recordHistory( rc, OM_DISCOVER_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -9349,6 +9626,15 @@ checking system firewall for blocked ports" ) ;
       _sendOKRes2Web() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_UNDISCOVER_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << clusterName <<
+                               OM_BSON_BUSINESS_NAME << businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       _sendErrorRes2Web( rc, omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ) ;
@@ -11264,6 +11550,16 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_SYNC_BUSINESS_CONF_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -11660,6 +11956,15 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_GRANT_SYSCONF_REQ,
+                         BSON( OM_CLUSTER_FIELD_NAME << _clusterName <<
+                               OM_CLUSTER_FIELD_GRANTNAME << _grantName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -11718,6 +12023,25 @@ checking system firewall for blocked ports" ) ;
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         BSONArrayBuilder builder ;
+         list<string>::iterator iter ;
+
+         for ( iter = hostList.begin(); iter != hostList.end(); ++iter )
+         {
+            string hostName = *iter ;
+
+            builder.append( BSON( OM_BSON_HOSTNAME << hostName ) ) ;
+         }
+
+         _recordHistory( rc, OM_UNBIND_HOST_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_FIELD_HOSTS << builder.arr() ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;

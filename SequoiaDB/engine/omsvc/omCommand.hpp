@@ -128,6 +128,9 @@ namespace engine
          string          _getLanguage() ;
          void            _setFileLanguageSep() ;
 
+         void            _recordHistory( INT32 rc, const CHAR* execType,
+                                         const BSONObj& detail ) ;
+
       protected:
          string          _languageFileSep ;
    };
@@ -1867,7 +1870,7 @@ namespace engine
    private:
       string _clusterName ;
       string _businessName ;
-
+      string _businessType ;
    } ;
 
    class omUnbindHostCommand : public omAuthCommand
@@ -2231,6 +2234,42 @@ namespace engine
       DECLARE_OMREST_CMD_AUTO_REGISTER() ;
 
       const CHAR* name() { return OM_LIST_SETTINGS_REQ ; }
+
+      virtual INT32  doCommand() ;
+   } ;
+
+   class omGetHistoryNumberCommand : public omAuthCommand
+   {
+   public:
+      REST_CONSTRUCTOR_PARA_INHERIT( omGetHistoryNumberCommand, omAuthCommand )
+      {
+      }
+
+      ~omGetHistoryNumberCommand()
+      {
+      }
+
+      DECLARE_OMREST_CMD_AUTO_REGISTER() ;
+
+      const CHAR* name() { return OM_GET_HISTORY_NUMBER_REQ ; }
+
+      virtual INT32  doCommand() ;
+   } ;
+
+   class omQueryHistoryCommand : public omAuthCommand
+   {
+   public:
+      REST_CONSTRUCTOR_PARA_INHERIT( omQueryHistoryCommand, omAuthCommand )
+      {
+      }
+
+      ~omQueryHistoryCommand()
+      {
+      }
+
+      DECLARE_OMREST_CMD_AUTO_REGISTER() ;
+
+      const CHAR* name() { return OM_QUERY_HISTORY_REQ ; }
 
       virtual INT32  doCommand() ;
    } ;

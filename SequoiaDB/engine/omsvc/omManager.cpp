@@ -509,6 +509,20 @@ namespace engine
          goto error ;
       }
 
+      // SYSDEPLOY.SYSHISTORY
+      rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HISTORY ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = dbTool.createCollectionIndex( OM_CS_DEPLOY_CL_HISTORY,
+                                         OM_CS_DEPLOY_CL_HISTORYIDX1 ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
    done:
       return rc ;
    error:

@@ -1771,6 +1771,7 @@ namespace engine
    restResponse
    */
    restResponse::restResponse( IExecutor *cb ) : restBase( cb ),
+                                                 _resultCode( SDB_OK ),
                                                  _isChunk( FALSE ),
                                                  _rspCode( HTTP_OK )
    {
@@ -1898,6 +1899,8 @@ namespace engine
    {
       SDB_ASSERT( _write, "rest is read only" ) ;
       string json = info.toString( FALSE, TRUE ) ;
+
+      _resultCode = result ;
 
       if( _bodyContent.size() == 0 )
       {

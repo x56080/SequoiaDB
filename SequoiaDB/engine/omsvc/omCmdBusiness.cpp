@@ -728,6 +728,15 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_UNBIND_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_NAME << _businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -739,6 +748,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 taskID = -1 ;
       omDatabaseTool dbTool( _cb ) ;
+      BSONObj buzInfo ;
 
       if ( FALSE == dbTool.isClusterExist( _clusterName ) )
       {
@@ -757,6 +767,16 @@ namespace engine
          PD_LOG( PDERROR, _errorMsg.getError() ) ;
          goto error ;
       }
+
+      rc = dbTool.getOneBusinessInfo( _businessName, buzInfo ) ;
+      if ( rc )
+      {
+         _errorMsg.setError( TRUE, "failed to get business info: rc=%d", rc ) ;
+         PD_LOG( PDERROR, _errorMsg.getError() ) ;
+         goto error ;
+      }
+
+      _businessType = buzInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
 
       if ( TRUE == dbTool.isRelationshipExistByBusiness( _businessName ) )
       {
@@ -848,6 +868,16 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_REMOVE_BUSINESS_REQ,
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType <<
+                               OM_BSON_BUSINESS_NAME << _businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -1314,6 +1344,14 @@ namespace engine
       restTool.sendOkRespone() ;
 
    done:
+      try
+      {
+         _recordHistory( rc, OM_RESTART_BUSINESS_REQ,
+                         BSON( OM_BSON_BUSINESS_NAME << _businessName ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
@@ -1680,6 +1718,16 @@ namespace engine
       restTool.sendResponse( result ) ;
 
    done:
+      try
+      {
+         _recordHistory( rc, name(),
+                         BSON( OM_BSON_CLUSTER_NAME << _clusterName <<
+                               OM_BSON_BUSINESS_NAME << _businessName <<
+                               OM_BSON_BUSINESS_TYPE << _businessType ) ) ;
+      }
+      catch( std::exception &e )
+      {
+      }
       return rc ;
    error:
       restTool.sendResponse( rc, _errorMsg.getError() ) ;
