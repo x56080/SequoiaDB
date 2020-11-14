@@ -207,24 +207,25 @@ namespace engine
       {
          stpClient client ;
          stpLogicalTimeNS currentTime ;
-         stpLogicalTimeNS logicalTime ;
-         stpHPTime realTime ;
+         ossTimestamp realTime ;
+         UINT64 logicalTime = 0LL ;
+         CHAR realTimeBuff[ OSS_TIMESTAMP_STRING_LEN ] = { 0 } ;
 
          // if global transaction feature is required, check available of STP
          // just test available, no need to report error
          if ( ( SDB_OK == _stpAgent.checkAvailable() ) &&
               ( SDB_OK == _stpAgent.getClient( client ) ) &&
               ( SDB_OK == client.getTime( currentTime ) ) &&
-              ( SDB_OK == client.convTimeLogicalToReal( currentTime,
-                                                        realTime ) ) &&
-              ( SDB_OK == client.convTimeRealToLogical( realTime,
-                                                        logicalTime ) ) )
+              ( SDB_OK ==
+                    client.convLogicalTimeToRealTime(
+                          currentTime.getTime().toMicroSecond(), realTime ) ) &&
+              ( SDB_OK == client.convRealTimeToLogicalTime( realTime,
+                                                            logicalTime ) ) )
          {
-            PD_LOG( PDDEBUG, "Got time from STP [%llu], real time [%llu], "
-                    "local time [%llu]",
-                    currentTime.getTime().getSecond(),
-                    realTime.getSecond(),
-                    logicalTime.getTime().getSecond() ) ;
+            ossTimestampToString( realTime, realTimeBuff ) ;
+            PD_LOG( PDDEBUG, "Got time from STP [%llu], real time [%llu, %s], "
+                    "local time [%llu]", currentTime.getTime().toMicroSecond(),
+                    realTime.time, realTimeBuff, logicalTime ) ;
          }
       }
 

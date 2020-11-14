@@ -184,6 +184,28 @@ namespace engine
       INT32 reelect( UINT32 timeout = STP_REELECT_DFT_TIMEOUT,
                      const CHAR *targetHost = NULL ) ;
 
+      // convert real time to logical time in simple mode
+      // input:
+      // - realTime: real time in local time zone
+      // output:
+      // - logicalTime: logical time in microseconds
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convRealTimeToLogicalTime( const ossTimestamp &realTime,
+                                       UINT64 &logicalTime ) ;
+
+      // convert logical time to real time in simple mode
+      // input:
+      // - logicalTime: logical time in microseconds
+      // output:
+      // - realTime: real time in local time zone
+      // return:
+      // - SDB_OK: succeed to run command
+      // - other error code: failed to run command
+      INT32 convLogicalTimeToRealTime( UINT64 logicalTime,
+                                       ossTimestamp &realTime ) ;
+
       // convert real time to logical time in nanoseconds
       // input:
       // - realTime: real time in nanoseconds
@@ -192,19 +214,8 @@ namespace engine
       // return:
       // - SDB_OK: succeed to run command
       // - other error code: failed to run command
-      INT32 convTimeRealToLogical( const stpHPTime &realTime,
-                                   stpLogicalTimeNS &logicalTime ) ;
-
-      // convert real time to logical time in microseconds
-      // input:
-      // - realTime: real time in nanoseconds
-      // output:
-      // - logicalTime: logical time in microseconds
-      // return:
-      // - SDB_OK: succeed to run command
-      // - other error code: failed to run command
-      INT32 convTimeRealToLogical( const stpHPTime &realTime,
-                                   stpLogicalTimeUS &logicalTime ) ;
+      INT32 convRealTimeToLogicalTime( const stpHPTime &realTime,
+                                       stpHPTime &logicalTime ) ;
 
       // convert logical time in nanoseconds to real time
       // input:
@@ -214,26 +225,21 @@ namespace engine
       // return:
       // - SDB_OK: succeed to run command
       // - other error code: failed to run command
-      INT32 convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
-                                   stpHPTime &realTime ) ;
-
-      // convert logical time in microseconds to real time
-      // input:
-      // - logicalTime: logical time in microseconds
-      // output:
-      // - realTime: real time in nanoseconds
-      // return:
-      // - SDB_OK: succeed to run command
-      // - other error code: failed to run command
-      INT32 convTimeLogicalToReal( const stpLogicalTimeUS &logicalTime,
-                                   stpHPTime &realTime ) ;
+      INT32 convLogicalTimeToRealTime( const stpHPTime &logicalTime,
+                                       stpHPTime &realTime ) ;
 
    protected:
       // helper to convert times
-      template <typename FROMTIME, typename TOTIME>
-      INT32 _convTime( const FROMTIME &fromTime,
-                       TOTIME &toTime,
-                       BOOLEAN isRealToLogical ) ;
+      // convert times between logical time and real time
+      // input:
+      // - fromTime: time to convert from ( in nanoseconds )
+      // - isRTimeToLTime: convert direction from real time to logical time
+      //                   or reverse
+      // output:
+      // - toTime: time to convert to ( in nanoseconds )
+      INT32 _convTime( const stpHPTime &fromTime,
+                       stpHPTime &toTime,
+                       BOOLEAN isRTimeToLTime ) ;
    } ;
 
    typedef class _stpClient stpClient ;

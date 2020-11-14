@@ -748,84 +748,95 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS, "_stpClient::convTimeRealToLogical" )
-   INT32 _stpClient::convTimeRealToLogical( const stpHPTime &realTime,
-                                            stpLogicalTimeNS &logicalTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVREALTOLOGICAL_SIM, "_stpClient::convRealTimeToLogicalTime" )
+   INT32 _stpClient::convRealTimeToLogicalTime( const ossTimestamp &realTime,
+                                                UINT64 &logicalTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS ) ;
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVREALTOLOGICAL_SIM ) ;
+
+      stpHPTime realHPTime, logicalHPTime ;
+
+      realHPTime.fromMicroSecond( STP_SEC_TO_MICROSEC( realTime.time ) +
+                                  realTime.microtm ) ;
+
+      rc = convRealTimeToLogicalTime( realHPTime, logicalHPTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to logical time, "
+                   "rc: %d", rc ) ;
+
+      logicalTime = logicalHPTime.toMicroSecond() ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVREALTOLOGICAL_SIM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVLOGICALTOREAL_SIM, "_stpClient::convLogicalTimeToRealTime" )
+   INT32 _stpClient::convLogicalTimeToRealTime( UINT64 logicalTime,
+                                                ossTimestamp &realTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVLOGICALTOREAL_SIM ) ;
+
+      stpHPTime realHPTime, logicalHPTime ;
+
+      logicalHPTime.fromMicroSecond( logicalTime ) ;
+
+      rc = convLogicalTimeToRealTime( logicalHPTime, realHPTime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to real time, "
+                   "rc: %d", rc ) ;
+
+      realTime.time = realHPTime.getSecond() ;
+      realTime.microtm =
+            STP_NANOSEC_TO_MICROSEC( realHPTime.getNanoSecond() ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVLOGICALTOREAL_SIM, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVREALTOLOGICAL, "_stpClient::convRealTimeToLogicalTime" )
+   INT32 _stpClient::convRealTimeToLogicalTime( const stpHPTime &realTime,
+                                                stpHPTime &logicalTime )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVREALTOLOGICAL ) ;
 
       rc = _convTime( realTime, logicalTime, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
                    "real time, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_NS, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVREALTOLOGICAL, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US, "_stpClient::convTimeRealToLogical" )
-   INT32 _stpClient::convTimeRealToLogical( const stpHPTime &realTime,
-                                            stpLogicalTimeUS &logicalTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVLOGICALTOREAL, "_stpClient::convLogicalTimeToRealTime" )
+   INT32 _stpClient::convLogicalTimeToRealTime( const stpHPTime &logicalTime,
+                                                stpHPTime &realTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US ) ;
-
-      stpLogicalTimeNS tempTime ;
-      rc = convTimeRealToLogical( realTime, tempTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
-                   "logical time, rc: %d", rc ) ;
-
-      logicalTime = tempTime ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMEREALTOLOGICAL_US, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, "_stpClient::convTimeLogicalToReal" )
-   INT32 _stpClient::convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
-                                            stpHPTime &realTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS ) ;
+      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVLOGICALTOREAL ) ;
 
       rc = _convTime( logicalTime, realTime, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
                    "real time, rc: %d", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US, "_stpClient::convTimeLogicalToReal" )
-   INT32 _stpClient::convTimeLogicalToReal( const stpLogicalTimeUS &logicalTime,
-                                            stpHPTime &realTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US ) ;
-
-      stpLogicalTimeNS tempTime = logicalTime ;
-      rc = convTimeLogicalToReal( tempTime, realTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to convert logical time to "
-                   "real time, rc: %d", rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_US, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVLOGICALTOREAL, rc ) ;
       return rc ;
 
    error:
@@ -833,21 +844,21 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCLIENT__CONVTIME, "_stpClient::_convTime" )
-   template <typename FROMTIME, typename TOTIME>
-   INT32 _stpClient::_convTime( const FROMTIME &fromTime,
-                                TOTIME &toTime,
-                                BOOLEAN isRealToLogical )
+   INT32 _stpClient::_convTime( const stpHPTime &fromTime,
+                                stpHPTime &toTime,
+                                BOOLEAN isRTimeToLTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS ) ;
+      PD_TRACE_ENTRY( SDB__STPCLIENT__CONVTIME ) ;
 
       BSONObj argument, result ;
 
-      const CHAR *fromField = isRealToLogical ?
+      // assign fields by convert direction
+      const CHAR *fromField = isRTimeToLTime ?
                               STP_FIELD_NAME_REAL_TIME :
                               STP_FIELD_NAME_LOGICAL_TIME ;
-      const CHAR *toField = isRealToLogical ?
+      const CHAR *toField = isRTimeToLTime ?
                             STP_FIELD_NAME_LOGICAL_TIME :
                             STP_FIELD_NAME_REAL_TIME ;
 
@@ -877,6 +888,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to run command [%s], rc: %d",
                    CMD_NAME_STP_CONV_TIME, rc ) ;
 
+      // parse result
       try
       {
          BSONElement element = result.getField( toField ) ;
@@ -897,7 +909,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__STPCLIENT_CONVTIMELOGICALTOREAL_NS, rc ) ;
+      PD_TRACE_EXITRC( SDB__STPCLIENT__CONVTIME, rc ) ;
       return rc ;
 
    error:

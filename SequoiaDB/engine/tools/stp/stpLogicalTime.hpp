@@ -337,11 +337,15 @@ namespace engine
 
          try
          {
-            UINT64 milliSecond = STP_SEC_TO_MILLISEC( _second ) +
-                                 STP_NANOSEC_TO_MILLISEC( _nanoSecond ) ;
-            UINT32 microSecond = STP_NANOSEC_TO_MICROSEC(
-                                             _nanoSecond % OSS_ONE_MILLION ) ;
-            builder.appendTimestamp( fieldName, milliSecond, microSecond ) ;
+            // BSON timestamp is for local time, need convert from UTC
+            stpHPTime tempTime( *this ) ;
+            UINT64 milliSec =
+                  STP_SEC_TO_MILLISEC( tempTime._second ) +
+                  STP_NANOSEC_TO_MILLISEC( tempTime._nanoSecond ) ;
+            UINT32 microSecInc =
+                  STP_NANOSEC_TO_MICROSEC(
+                        tempTime._nanoSecond % OSS_ONE_MILLION ) ;
+            builder.appendTimestamp( fieldName, milliSec, microSecInc ) ;
          }
          catch ( std::exception &e )
          {

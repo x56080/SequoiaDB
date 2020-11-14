@@ -44,6 +44,7 @@
 #include "utilSHMBuffer.hpp"
 #include "stpMetaStore.hpp"
 #include "stpMsg.hpp"
+#include "stpTimeMapManager.hpp"
 
 namespace engine
 {
@@ -93,6 +94,11 @@ namespace engine
          return _buffer.getKeyString() ;
       }
 
+      OSS_INLINE stpTimeMapManager *getTimeMapManager()
+      {
+         return &_timeMapMgr ;
+      }
+
    protected:
       // handle meta notify ( need update meta LSN )
       INT32 _handleMetaNotify( NET_HANDLE handle,
@@ -130,11 +136,11 @@ namespace engine
       INT32 updateMetaLSN() ;
 
       // convert real time to logical time
-      INT32 convTimeRealToLogical( const stpHPTime &realTime,
-                                   stpLogicalTimeNS &logicalTime ) ;
+      INT32 convRTimeToLTime( const stpHPTime &realTime,
+                              stpHPTime &logicalTime ) ;
       // convert logical time to real time
-      INT32 convTimeLogicalToReal( const stpLogicalTimeNS &logicalTime,
-                                   stpHPTime &realTime ) ;
+      INT32 convLTimeToRTime( const stpHPTime &logicalTime,
+                              stpHPTime &realTime ) ;
 
    protected:
       // set meta LSN
@@ -149,16 +155,6 @@ namespace engine
       // get synchronize interval of meta data
       UINT64 _getMetaSyncInterval() ;
 
-      // save time mapping between real time and logical time
-      INT32 _saveTimeMapping() ;
-
-      // get last time mapping
-      INT32 _getLastTimeMapping( stpHPTime &lastRealTime,
-                                 stpLogicalTimeNS &lastLogicalTime ) ;
-
-      INT32 _getCurTimeMapping( stpHPTime &curRealTime,
-                                stpLogicalTimeNS &curLogicalTime ) ;
-
    protected:
       // lock to protect meta
       ossRWMutex     _mutex ;
@@ -172,6 +168,8 @@ namespace engine
       ossRWMutex        _timeMapMutex ;
       stpHPTime         _lastRealTime ;
       stpLogicalTimeNS  _lastLogicalTime ;
+
+      stpTimeMapManager _timeMapMgr ;
    } ;
 
 }

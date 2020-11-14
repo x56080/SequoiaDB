@@ -1202,7 +1202,8 @@ namespace engine
 
    _stpConvTimeCMD::_stpConvTimeCMD( STPCB *stpCB )
    : stpCommand( stpCB ),
-     _fromRealToLogical( FALSE ),
+     _fromRTimeToLTime( FALSE ),
+     _simpleMode( FALSE ),
      _logicalTime(),
      _realTime()
    {
@@ -1219,66 +1220,36 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__STPCONVTIMECMD_INITIALIZE ) ;
 
+      BOOLEAN hasRealTime = FALSE, hasLogicalTime = FALSE ;
+
       try
       {
          BSONObj temp = BSONObj( option ) ;
          BSONObj timestampObject ;
          BSONElement element ;
 
-         BOOLEAN hasRealTime = FALSE, hasLogicalTime = FALSE ;
-
          _options = temp.getOwned() ;
 
-         element = _options.getField( STP_FIELD_NAME_REAL_TIME ) ;
-         if ( EOO != element.type() )
-         {
-            PD_CHECK( Object == element.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to get field [%s] from option, "
-                      "it is not an object", STP_FIELD_NAME_REAL_TIME ) ;
-
-            rc = _realTime.fromBSON( element.embeddedObject() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
-                         rc ) ;
-
-            hasRealTime = TRUE ;
-         }
-
+         // parse logical time
          element = _options.getField( STP_FIELD_NAME_LOGICAL_TIME ) ;
          if ( EOO != element.type() )
          {
-            PD_CHECK( Object == element.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to get field [%s] from option, "
-                      "it is not an object", STP_FIELD_NAME_LOGICAL_TIME ) ;
-
-            rc = _logicalTime.fromBSON( element.embeddedObject() ) ;
+            rc = _parseLTime( element ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
                          rc ) ;
 
             hasLogicalTime = TRUE ;
          }
 
-         if ( hasRealTime && !hasLogicalTime )
+         // parse real time
+         element = _options.getField( STP_FIELD_NAME_REAL_TIME ) ;
+         if ( EOO != element.type() )
          {
-            _fromRealToLogical = TRUE ;
-         }
-         else if ( !hasRealTime && hasLogicalTime )
-         {
-            _fromRealToLogical = FALSE ;
-         }
-         else if ( hasRealTime && hasLogicalTime )
-         {
-            PD_LOG( PDERROR, "Failed to parse options for command [%s], "
-                    "can not have both real time and logical time",
-                    getName() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to parse options for command [%s], "
-                    "no real time or logical time is found", getName() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            rc = _parseRTime( element ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
+                         rc ) ;
+
+            hasRealTime = TRUE ;
          }
       }
       catch ( exception &e )
@@ -1289,8 +1260,134 @@ namespace engine
          goto error ;
       }
 
+      // check conflicts
+      if ( hasRealTime && !hasLogicalTime )
+      {
+         _fromRTimeToLTime = TRUE ;
+      }
+      else if ( !hasRealTime && hasLogicalTime )
+      {
+         _fromRTimeToLTime = FALSE ;
+      }
+      else if ( hasRealTime && hasLogicalTime )
+      {
+         PD_LOG( PDERROR, "Failed to parse options for command [%s], "
+                 "can not have both real time and logical time",
+                 getName() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to parse options for command [%s], "
+                 "no real time or logical time is found", getName() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__STPCONVTIMECMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__PARSELTIME, "_stpConvTimeCMD::_parseLTime" )
+   INT32 _stpConvTimeCMD::_parseLTime( const BSONElement &element )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__PARSELTIME ) ;
+
+      try
+      {
+         PD_CHECK( Object == element.type() ||
+                   element.isNumber(),
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s] from option, "
+                   "it is not an object or number",
+                   STP_FIELD_NAME_LOGICAL_TIME ) ;
+
+         if ( Object == element.type() )
+         {
+            rc = _logicalTime.fromBSON( element.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
+                         rc ) ;
+         }
+         else
+         {
+            _logicalTime.fromMicroSecond(
+                  (UINT64)( element.numberLong() ) ) ;
+            _simpleMode = TRUE ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse logical time, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__PARSELTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__PARSERTIME, "_stpConvTimeCMD::_parseRTime" )
+   INT32 _stpConvTimeCMD::_parseRTime( const BSONElement &element )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__PARSERTIME ) ;
+
+      try
+      {
+         PD_CHECK( Object == element.type() ||
+                   Timestamp == element.type() ||
+                   Date == element.type() ||
+                   element.isNumber(),
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s] from option, "
+                   "it is not an object, timestamp or number",
+                   STP_FIELD_NAME_REAL_TIME ) ;
+
+         if ( Object == element.type() )
+         {
+            rc = _realTime.fromBSON( element.embeddedObject() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
+                         rc ) ;
+         }
+         else if ( Timestamp == element.type() ||
+                   Date == element.type() )
+         {
+            rc = _realTime.fromBSONTimestamp( element ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time , rc: %d",
+                         rc ) ;
+
+            _simpleMode = TRUE ;
+         }
+         else
+         {
+            _realTime.fromMicroSecond(
+                  (UINT64)( element.numberLong() ) ) ;
+            _simpleMode = TRUE ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse real time, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__PARSERTIME, rc ) ;
       return rc ;
 
    error:
@@ -1313,37 +1410,25 @@ namespace engine
       {
          BSONObjBuilder builder ;
 
-         if ( _fromRealToLogical )
+         if ( _fromRTimeToLTime )
          {
-            rc = metaManager->convTimeRealToLogical( _realTime,
-                                                     _logicalTime ) ;
+            rc = metaManager->convRTimeToLTime( _realTime, _logicalTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
                          "logical time, rc: %d", rc ) ;
 
-            {
-               BSONObjBuilder subBuilder(
-                     builder.subobjStart( STP_FIELD_NAME_LOGICAL_TIME ) ) ;
-               rc = _logicalTime.toBSON( subBuilder ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
-                            "logical time, rc: %d", rc ) ;
-               subBuilder.doneFast() ;
-            }
+            rc = _buildLTime( builder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build result for logical "
+                         "time, rc: %d", rc ) ;
          }
          else
          {
-            rc = metaManager->convTimeLogicalToReal( _logicalTime,
-                                                     _realTime ) ;
+            rc = metaManager->convLTimeToRTime( _logicalTime, _realTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to convert real time to "
                          "logical time, rc: %d", rc ) ;
 
-            {
-               BSONObjBuilder subBuilder(
-                     builder.subobjStart( STP_FIELD_NAME_REAL_TIME ) ) ;
-               rc = _realTime.toBSON( subBuilder ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
-                            "real time, rc: %d", rc ) ;
-               subBuilder.doneFast() ;
-            }
+            rc = _buildRTime( builder ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build result for real "
+                         "time, rc: %d", rc ) ;
          }
 
          result = builder.obj() ;
@@ -1359,6 +1444,71 @@ namespace engine
    done:
       finished = TRUE ;
       PD_TRACE_EXITRC( SDB__STPCONVTIMECMD_DOIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__BUILDLTIME, "_stpConvTimeCMD::_buildLTime" )
+   INT32 _stpConvTimeCMD::_buildLTime( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__BUILDLTIME ) ;
+
+      if ( _simpleMode )
+      {
+         // simple mode, build as number long
+         builder.append( STP_FIELD_NAME_LOGICAL_TIME,
+                         (INT64)( _logicalTime.toMicroSecond() ) ) ;
+      }
+      else
+      {
+         // otherwise, build as HP time
+         BSONObjBuilder subBuilder(
+               builder.subobjStart( STP_FIELD_NAME_LOGICAL_TIME ) ) ;
+         rc = _logicalTime.toBSON( subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                      "logical time, rc: %d", rc ) ;
+         subBuilder.doneFast() ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__BUILDLTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__BUILDRTIME, "_stpConvTimeCMD::_buildRTime" )
+   INT32 _stpConvTimeCMD::_buildRTime( BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__BUILDRTIME ) ;
+
+      if ( _simpleMode )
+      {
+         // simple mode, build as $timestamp
+         rc = _realTime.toBSONTimestamp( builder,
+                                         STP_FIELD_NAME_REAL_TIME ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                      "real time, rc: %d", rc ) ;
+      }
+      else
+      {
+         // otherwise, build as HP time
+         BSONObjBuilder subBuilder(
+               builder.subobjStart( STP_FIELD_NAME_REAL_TIME ) ) ;
+         rc = _realTime.toBSON( subBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                      "real time, rc: %d", rc ) ;
+         subBuilder.doneFast() ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__BUILDRTIME, rc ) ;
       return rc ;
 
    error:

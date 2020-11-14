@@ -561,13 +561,32 @@ namespace engine
                           BOOLEAN &finished ) ;
 
    protected:
+      // parse logical time from element
+      INT32 _parseLTime( const bson::BSONElement &element ) ;
+      // parse real time from element
+      INT32 _parseRTime( const bson::BSONElement &element ) ;
+
+      // convert logical time to BSON object
+      INT32 _buildLTime( bson::BSONObjBuilder &builder ) ;
+      // convert real time to BSON object
+      INT32 _buildRTime( bson::BSONObjBuilder &builder ) ;
+
+   protected:
+      // options of convert time command
       BSONObj           _options ;
-      BOOLEAN           _fromRealToLogical ;
-      stpLogicalTimeNS  _logicalTime ;
+      // convert direction ( from real time to logical time or reverse )
+      BOOLEAN           _fromRTimeToLTime ;
+      // indicates whether simple mode
+      // simple mode is converting between real time in $timestamp and logical
+      // time in $numberLong in BSON types
+      BOOLEAN           _simpleMode ;
+      // logical time in convert time
+      stpHPTime         _logicalTime ;
+      // real time in convert time
       stpHPTime         _realTime ;
    } ;
 
-   typedef class _stpReelectCMD stpReelectCMD ;
+   typedef class _stpConvTimeCMD stpConvTimeCMD ;
 
 }
 

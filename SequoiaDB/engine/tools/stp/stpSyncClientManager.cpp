@@ -141,6 +141,12 @@ namespace engine
             _clearExpiredSources() ;
             _sourceClearTimeout = 0LL ;
          }
+
+         if ( !_stpCB->isPrimary() &&
+              _metaManager->getTimeMapManager()->isNeedSaveTimeMapping() )
+         {
+            _metaManager->getTimeMapManager() ;
+         }
       }
 
       PD_TRACE_EXIT( SDB__TPSYNCCLIENTMGR_ONTIMER ) ;
@@ -168,7 +174,7 @@ namespace engine
          }
          case MSG_STP_TIME_SYNC_RSP :
          {
-            // handle synchronzie time response
+            // handle synchronize time response
             rc = _handleTimeSyncRsp( handle,
                                      (const stpTimeSyncRsp *)message ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to handle synchronize time "
@@ -407,6 +413,10 @@ namespace engine
                               STP_SYNC_CHECKERROR,
                               OSS_MIN( record.getDelay(),
                                        local.getMaxTimeError() ) ) ;
+         }
+         else if ( STP_SYNC_INTERVALCHECK == _status )
+         {
+            _metaManager->getTimeMapManager()->saveTimeMapping() ;
          }
       }
       else

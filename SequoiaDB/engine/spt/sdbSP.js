@@ -936,6 +936,30 @@ Stp.prototype.reelect = function( option ) {
    this._runCommand( "stp reelect", option ) ;
 }
 
+// example
+// stp.convRealTimeToLogicalTime( Timestamp("2020-11-06-17.53.14.000969") )
+Stp.prototype.convRealTimeToLogicalTime = function( realTime ) {
+   if ( undefined === realTime )
+   {
+      setLastErrMsg( "real time is not given" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   var option = { "RealTime" : realTime } ;
+   return this._runCommand( "stp conv time", option ) ;
+}
+
+// example
+// stp.convLogicalTimeToRealTime( 1604716394334961 )
+Stp.prototype.convLogicalTimeToRealTime = function( logicalTime ) {
+   if ( undefined === logicalTime )
+   {
+      setLastErrMsg( "logical time is not given" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   var option = { "LogicalTime" : logicalTime } ;
+   return this._runCommand(  "stp conv time", option ) ;
+}
+
 // end Stp
 
 // _Filter member function

@@ -249,7 +249,8 @@ stpFiles = [
       "tools/stp/stpSyncClientManager.cpp",
       "tools/stp/stpReplManager.cpp",
       "tools/stp/stpSession.cpp",
-      "tools/stp/stpCommand.cpp"
+      "tools/stp/stpCommand.cpp",
+      "tools/stp/stpTimeMapManager.cpp"
       ]
 
 stpToolFiles = [
@@ -299,7 +300,7 @@ stpEnv.StaticLibrary('net', netFiles)
 stpEnv.StaticLibrary('ssh2', ssh2Files)
 # cls replication
 stpEnv.StaticLibrary('clsRepl', clsReplFiles)
-#Client Driver
+# Client Driver
 stpEnv.StaticLibrary('clientc', clientCFiles)
 # Serial Time Protocol
 stpEnv.StaticLibrary('stp', stpFiles)
