@@ -467,7 +467,7 @@ namespace engine
          {
             BSONObj tmpResult ;
             buff.nextObj( tmpResult ) ;
-            _wrResult.setResultObj( tmpResult ) ;
+            _wrResult.setResultObj( tmpResult, FALSE ) ;
          }
 
          if ( rc )

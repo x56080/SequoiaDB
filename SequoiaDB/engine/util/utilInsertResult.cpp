@@ -254,6 +254,11 @@ namespace engine
 
    void utilDeleteResult::_toBSON( BSONObjBuilder &builder ) const
    {
+      if ( !_resultObj.isEmpty() )
+      {
+         return ;
+      }
+
       try
       {
          utilWriteResult::_toBSON( builder ) ;

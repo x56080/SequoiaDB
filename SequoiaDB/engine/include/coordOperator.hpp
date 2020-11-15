@@ -308,7 +308,8 @@ namespace engine
          virtual void               _onNodeReply( INT32 processType,
                                                   MsgOpReply *pReply,
                                                   pmdEDUCB *cb,
-                                                  coordSendMsgIn &inMsg ) ;
+                                                  coordSendMsgIn &inMsg,
+                                                  BOOLEAN oneGroup ) ;
 
          virtual INT32              _prepareCLOp( coordCataSel &cataSel,
                                                   coordSendMsgIn &inMsg,
