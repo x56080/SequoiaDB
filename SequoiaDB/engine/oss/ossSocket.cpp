@@ -386,40 +386,40 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
    }
 
    // wait loop until the socket is ready
-   while ( TRUE )
-   {
-      FD_ZERO ( &fds ) ;
-      FD_SET ( _fd, &fds ) ;
-      rc = select ( maxFD + 1, NULL, &fds, NULL,
-                    timeout>=0?&maxSelectTime:NULL ) ;
-
-      // 0 means timeout
-      if ( 0 == rc )
-      {
-         rc = SDB_TIMEOUT ;
-         goto done ;
-      }
-      // if < 0, means something wrong
-      if ( 0 > rc )
-      {
-         rc = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
-         if ( SOCKET_EINTR == rc )
-         {
-            continue ;
-         }
-         PD_LOG ( PDERROR, "Failed to select from socket, errno: %d( %s )",
-                  rc, ossGetLastErrorMsg( rc ) ) ;
-         rc = SDB_NETWORK ;
-         goto error ;
-      }
-
-      // if the socket we interested is not receiving anything, let's continue
-      if ( FD_ISSET ( _fd, &fds ) )
-      {
-         break ;
-      }
-   }
+//   while ( TRUE )
+//   {
+//      FD_ZERO ( &fds ) ;
+//      FD_SET ( _fd, &fds ) ;
+//      rc = select ( maxFD + 1, NULL, &fds, NULL,
+//                    timeout>=0?&maxSelectTime:NULL ) ;
+//
+//      // 0 means timeout
+//      if ( 0 == rc )
+//      {
+//         rc = SDB_TIMEOUT ;
+//         goto done ;
+//      }
+//      // if < 0, means something wrong
+//      if ( 0 > rc )
+//      {
+//         rc = SOCKET_GETLASTERROR ;
+//         // if we failed due to interrupt, let's continue
+//         if ( SOCKET_EINTR == rc )
+//         {
+//            continue ;
+//         }
+//         PD_LOG ( PDERROR, "Failed to select from socket, errno: %d( %s )",
+//                  rc, ossGetLastErrorMsg( rc ) ) ;
+//         rc = SDB_NETWORK ;
+//         goto error ;
+//      }
+//
+//      // if the socket we interested is not receiving anything, let's continue
+//      if ( FD_ISSET ( _fd, &fds ) )
+//      {
+//         break ;
+//      }
+//   }
    while ( len > 0 )
    {
 #ifdef SDB_SSL
