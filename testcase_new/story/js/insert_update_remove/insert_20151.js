@@ -6,8 +6,8 @@
                 seqDB-20155: 批量插入，指定FLG_INSERT_REPLACEONDUP，插入重复数据  
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20151";
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20151";
 
 main( test );
 
@@ -22,18 +22,10 @@ function test ()
    cl.insert( doc );
 
    //单条插入唯一索引重复的数据，flag为不指定 
-   try
+   assert.tryThrow( -38, function()
    {
       cl.insert( { "_id": 0, "a": 0 } );
-      throw "Insert duplicate data should fail!";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -38" )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //单条插入唯一索引重复的数据，flag为SDB_INSERT_CONTONDUP
    var expRecs = { "InsertedNum": 0, "DuplicatedNum": 1 };
@@ -42,9 +34,9 @@ function test ()
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
- 
+
    var cursor = cl.find();
-   commCompareResults ( cursor, doc, false );
+   commCompareResults( cursor, doc, false );
 
    //单条插入唯一索引重复的数据，flag为SDB_INSERT_REPLACEONDUP
    var duplicateRecord = { "_id": 0, "a": 1 };
@@ -58,51 +50,43 @@ function test ()
    doc.shift();
    doc.unshift( duplicateRecord );
    var cursor = cl.find();
-   commCompareResults ( cursor, doc, false );
+   commCompareResults( cursor, doc, false );
 
    //批量插入唯一索引重复的数据，flag为不指定
-   try
+   assert.tryThrow( -38, function()
    {
       cl.insert( doc );
-      throw "Insert duplicate data should fail!";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -38" )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //批量插入唯一索引重复的数据，flag为SDB_INSERT_CONTONDUP
    dataNum = 20;
    idStartData = 0;
    aStartData = 10;
    var insertRecords = getBulkData( dataNum, idStartData, aStartData );
-   expRecs = { "InsertedNum": dataNum/2, "DuplicatedNum": dataNum/2 };
-   actRecs =  cl.insert( insertRecords, SDB_INSERT_CONTONDUP ).toObj();
+   expRecs = { "InsertedNum": dataNum / 2, "DuplicatedNum": dataNum / 2 };
+   actRecs = cl.insert( insertRecords, SDB_INSERT_CONTONDUP ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
 
-   insertRecords.splice( 0, dataNum/2 );
+   insertRecords.splice( 0, dataNum / 2 );
    doc = doc.concat( insertRecords );
    var cursor = cl.find();
-   commCompareResults ( cursor, doc, false );
+   commCompareResults( cursor, doc, false );
 
    //批量插入唯一索引重复的数据，flag为SDB_INSERT_REPLACEONDUP
    idStartData = 10;
    aStartData = 30;
    insertRecords = getBulkData( dataNum, idStartData, aStartData );
-   actRecs =  cl.insert( insertRecords, SDB_INSERT_REPLACEONDUP ).toObj();
+   actRecs = cl.insert( insertRecords, SDB_INSERT_REPLACEONDUP ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
-  
-   doc.splice( dataNum/2, dataNum );
+
+   doc.splice( dataNum / 2, dataNum );
    doc = doc.concat( insertRecords );
    var cursor = cl.find();
-   commCompareResults ( cursor, doc, false );   
+   commCompareResults( cursor, doc, false );
 }

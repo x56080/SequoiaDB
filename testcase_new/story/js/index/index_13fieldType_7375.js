@@ -106,11 +106,6 @@ function test ()
    expRecs.push( { regex: "张" } );
    checkRec( rc, expRecs );
 
-
-
-
    // drop collectionspace in clean
    commDropCL( db, csName, clName, false, false );
 }
-
-

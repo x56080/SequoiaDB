@@ -2,8 +2,8 @@
 *@Description : seqDB-20150 插入数据不冲突 
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20150";
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20150";
 
 main( test );
 
@@ -47,7 +47,7 @@ function test ()
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
-  
+
    //批量插入唯一索引不重复的数据、flag为不指定
    idStartData = 10;
    aStartData = 10
@@ -56,7 +56,7 @@ function test ()
    expRecs = { "InsertedNum": dataNum, "DuplicatedNum": 0 };
    actRecs = cl.insert( doc ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
-   {  
+   {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
 
@@ -71,7 +71,7 @@ function test ()
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
-  
+
    //批量插入唯一索引不重复的数据、flag为SDB_INSERT_CONTONDUP
    idStartData = 30;
    aStartData = 30;
@@ -101,7 +101,7 @@ function test ()
    aStartData = 50;
    dataNum = 10;
    doc = getBulkData( dataNum, idStartData, aStartData );
-   expRecs = { "_id": [ 50, 51, 52, 53, 54, 55, 56, 57, 58, 59 ], "InsertedNum": dataNum, "DuplicatedNum": 0 };
+   expRecs = { "_id": [50, 51, 52, 53, 54, 55, 56, 57, 58, 59], "InsertedNum": dataNum, "DuplicatedNum": 0 };
    actRecs = cl.insert( doc, SDB_INSERT_RETURN_ID ).toObj();
    if( !commCompareObject( expRecs, actRecs ) )
    {

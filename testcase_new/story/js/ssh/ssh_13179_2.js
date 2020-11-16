@@ -6,14 +6,14 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
    {
       return;
    }
- 
+
    var remoteFile = "/tmp/pullsrc_13179_2.txt";
    var localFile = "/tmp/pulldst_13179_2.txt";
    var mode = "rw-r-----";
@@ -32,7 +32,7 @@ function test()
    ssh.pull( remoteFile, localFile );
    ssh.close();
 
-   checkLocalFile ( localFile, mode, content )
+   checkLocalFile( localFile, mode, content )
 
    cleanLocalFile( localFile );
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );

@@ -2,8 +2,8 @@
 *@Description : seqDB-20173: 更新记录与原记录冲突 
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20173";
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20173";
 
 main( test );
 
@@ -19,30 +19,14 @@ function test ()
 
    //更新一条记录，与原记录冲突
    var updatedRecord = { "_id": 9, "a": 9 };
-   try
+   assert.tryThrow( -38, function()
    {
       cl.update( { "$set": updatedRecord }, doc[8] );
-      throw "Duplicate key exist";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -38" )
-      {
-         throw new Error( e );
-      }
-   }
+   } )
 
    //批量更新记录，与原记录冲突
-   try
+   assert.tryThrow( -38, function()
    {
       cl.update( { "$set": updatedRecord } );
-      throw "Duplicate key exist";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -38" )
-      { 
-         throw new Error( e );
-      }
-   }
+   } )
 }

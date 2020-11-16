@@ -68,7 +68,7 @@ function alterShardingKey ( dbcl )
    {
       if( e.message != -32 )
       {
-         throw buildException( "cannot be alter, fail:", e );
+         throw e;
       }
    }
 }

@@ -11,7 +11,6 @@
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
 
-
 main( test );
 
 function test ()
@@ -125,5 +124,3 @@ function testSplitClIndex ( db )
    commDropCL( db, COMMCSNAME, clName, false, false );
    commDropDomain( db, domainName );
 }
-
-

@@ -4,8 +4,8 @@
                 seqDB-20169: upsert插入重复数据
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20164_20166_20169";
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20164_20166_20169";
 
 main( test );
 
@@ -47,17 +47,9 @@ function test ()
    }
 
    //upsert插入唯一索引重复的数据
-   try
+   assert.tryThrow( -38, function()
    {
       var updatedRecord = { "_id": 9 }
-      cl.upsert( { "$set": updatedRecord }, { "a": 500 });
-      throw "Duplicate key exist";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -38" )
-      {
-         throw new Error( e );
-      }
-   }
+      cl.upsert( { "$set": updatedRecord }, { "a": 500 } );
+   } );
 }

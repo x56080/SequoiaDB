@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -21,7 +21,7 @@ function test()
    var dstModes = [0333, 0555, 0666];
    var modes = ["-wx-wx-wx", "r-xr-xr-x", "rw-rw-rw-"];
    var isRoot = System.getCurrentUser().toObj().user === "root" ? true : false;
-   
+
    cleanLocalFile( localFile );
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );
 
@@ -43,9 +43,9 @@ function test()
          ssh.pull( remoteFile, localFile );
          if( !isRoot && dstModes[i] === 0555 )
          {
-            throw "NEED_ERROR";
+            throw new Error( "NEED_ERROR" );
          }
-         checkLocalFile ( localFile, modes[i], srcContent );
+         checkLocalFile( localFile, modes[i], srcContent );
       }
       catch( e )
       {

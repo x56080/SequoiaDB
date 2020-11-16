@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -28,7 +28,7 @@ function test()
    var file = remote.getFile( remoteFile );
    file.write( srcContent );
    file.close();
-   
+
    file = new File( localFile, dstMode );
    file.write( dstContent );
    file.close();
@@ -37,7 +37,7 @@ function test()
    ssh.pull( remoteFile, localFile );
    ssh.close();
 
-   checkLocalFile ( localFile, mode, srcContent );
+   checkLocalFile( localFile, mode, srcContent );
 
    cleanLocalFile( localFile );
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );

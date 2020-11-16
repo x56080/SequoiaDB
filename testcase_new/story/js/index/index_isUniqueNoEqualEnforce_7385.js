@@ -12,7 +12,6 @@
 *@Expectation: 创建索引失败，报-6错误【Invalid Argument】
 ********************************************************************************/
 
-
 main( test );
 
 function test ()
@@ -32,8 +31,6 @@ function test ()
 }
 function testIsUniqueFalse ( cl, indexName )
 {
-   if( undefined == cl ) { throw "no collection handle"; }
-   if( undefined == indexName ) { throw "no index name"; }
    // verify ("indexName", {a:1}, false, true)
    assert.tryThrow( -6, function()
    {
@@ -48,8 +45,6 @@ function testIsUniqueFalse ( cl, indexName )
 ********************************************************************************/
 function testIsUniqueEnforced ( cl, indexName )
 {
-   if( undefined == cl ) { throw "no collection handle"; }
-   if( undefined == indexName ) { throw "no index name"; }
    cl.createIndex( indexName, { a: 1 }, true, true );
    var query = cl.find( { a: { $lt: 10 } } ).hint( { '': '' } ).explain( { Run: true } ).toArray();
    var queryObj = eval( "(" + query[0] + ")" );
@@ -64,5 +59,3 @@ function testIsUniqueEnforced ( cl, indexName )
    } );
 
 }
-
-

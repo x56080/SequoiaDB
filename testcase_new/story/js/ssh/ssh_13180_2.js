@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -33,7 +33,7 @@ function test()
    for( var i = 0; i < modes.length; i++ )
    {
       ssh.pull( remoteFile, localFile, modes[i] );
-      checkLocalFile ( localFile, permissions[i], content );
+      checkLocalFile( localFile, permissions[i], content );
       cleanLocalFile( localFile );
    }
    ssh.close();

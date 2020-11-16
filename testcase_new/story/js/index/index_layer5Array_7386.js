@@ -69,4 +69,3 @@ function test ()
    //commDropCL( db, csName, clName, false, false,
    // "drop colleciton in the end" );
 }
-

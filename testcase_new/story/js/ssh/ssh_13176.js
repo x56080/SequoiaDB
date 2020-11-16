@@ -4,13 +4,13 @@
 ******************************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    if( !isUserExist( COORDHOSTNAME, user ) )
    {
       return;
    }
- 
+
    var ssh = new Ssh( COORDHOSTNAME, user, password, port );
    try
    {
@@ -29,7 +29,7 @@ function test()
       {
          throw new Error( "peerIp = " + peerIp + ", expect = " + expect );
       }
- 
+
    }
    finally
    {

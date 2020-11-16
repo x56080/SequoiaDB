@@ -6,14 +6,14 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
    {
       return;
    }
- 
+
    var srcFile = "/tmp/pushsrc_13190_1.txt";
    var dstFile = "/tmp/pushdst_13190_1.txt";
    var srcContent = "testPushDstExisted_src";
@@ -33,13 +33,13 @@ function test()
    file.write( dstContent );
    file.close();
    remote.close();
-   
+
    var ssh = new Ssh( hostName, user, password, port );
    ssh.push( srcFile, dstFile );
    ssh.close();
 
-   checkRemoteFile ( hostName, dstFile, mode, srcContent );
+   checkRemoteFile( hostName, dstFile, mode, srcContent );
 
    cleanLocalFile( srcFile );
-   cleanRemoteFile( hostName, CMSVCNAME, dstFile ); 
+   cleanRemoteFile( hostName, CMSVCNAME, dstFile );
 }

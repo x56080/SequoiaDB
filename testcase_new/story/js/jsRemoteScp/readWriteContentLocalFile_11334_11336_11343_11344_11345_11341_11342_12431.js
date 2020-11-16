@@ -98,7 +98,7 @@ function test ()
    var writeLength = parseInt( writeFile.stat( writeFileName ).toObj().size );
    if( writeLength !== 1024 )
    {
-      throw "WRITE_LENGTH_ERROR";
+      throw new Error("WRITE_LENGTH_ERROR");
    }
    writeFile.remove( writeFileName );
 

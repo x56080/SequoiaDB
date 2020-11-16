@@ -45,7 +45,6 @@ function test ()
       idxCL.createIndex( "desIndex", { Des: -5 } );
    } );
 
-
    // create index. specify the sort key:0
    assert.tryThrow( -6, function()
    {
@@ -69,4 +68,3 @@ function test ()
    // drop collection in clean
    commDropCL( db, csName, clName, false, false );
 }
-

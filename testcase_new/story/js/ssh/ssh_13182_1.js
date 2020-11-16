@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -21,8 +21,8 @@ function test()
    var isRoot = isRoot = System.getCurrentUser().toObj().user === "root" ? true : false;
 
    cleanLocalFile( srcFile );
-   cleanRemoteFile( hostName, CMSVCNAME, dstFile );   
-   
+   cleanRemoteFile( hostName, CMSVCNAME, dstFile );
+
    var ssh = new Ssh( hostName, user, password, port );
    for( var i = 0; i < modes.length; i++ )
    {
@@ -36,7 +36,7 @@ function test()
          ssh.push( srcFile, dstFile );
          if( !isRoot && modes[i] === 0333 )
          {
-            throw "NEED_ERROR";
+            throw new Error( "NEED_ERROR" );
          }
       }
       catch( e )
@@ -46,7 +46,7 @@ function test()
             commThrowError( e );
          }
       }
-     
+
       cleanLocalFile( srcFile );
       cleanRemoteFile( hostName, CMSVCNAME, dstFile );
    }

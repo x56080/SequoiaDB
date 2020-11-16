@@ -93,7 +93,7 @@ function checkCsvFile ( rtCmd, parameter, expDataArr )
    {
       if( actDataArr[i] !== expDataArr[i] ) 
       {
-         throw buildException( "checkCsvFile fail,[check csv file data, line: " + i + "]" +
+         throw new Error( "checkCsvFile fail,[check csv file data, line: " + i + "]" +
             "[" + expDataArr[i] + "]" +
             "[" + actDataArr[i] + "]" );
       }

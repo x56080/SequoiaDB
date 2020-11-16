@@ -52,5 +52,3 @@ function test ()
    // drop collection in clean
    commDropCL( db, csName, clName, false, false );
 }
-
-

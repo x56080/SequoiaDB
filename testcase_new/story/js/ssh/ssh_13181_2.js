@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -21,17 +21,9 @@ function test()
    cleanRemoteFile( hostName, CMSVCNAME, remoteFile );
 
    var ssh = new Ssh( hostName, user, password, port );
-   try
+   assert.tryThrow( -10, function()
    {
       ssh.pull( remoteFile, localFile );
-      throw "NEED_ERROR";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -10 ) )
-      {
-         commThrowError( e );
-      }
-   }
+   } );
    ssh.close();
 }

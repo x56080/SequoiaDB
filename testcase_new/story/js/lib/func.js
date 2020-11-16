@@ -1462,8 +1462,8 @@ function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
             continue;
          }
          catch( e )
-         {   
-            if( !commCompareErrorCode( e, 1) )
+         {
+            if( !commCompareErrorCode( e, 1 ) )
             {
                throw new Error( "lsof check port error: " + e );
             }

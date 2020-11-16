@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -18,9 +18,9 @@ function test()
    var dstFile = "/tmp/pushdst_13179_1.txt";
    var mode = "rwxr-xr-x";
    var content = "testPush";
-  
+
    cleanLocalFile( srcFile );
-   cleanRemoteFile( hostName, CMSVCNAME, dstFile ); 
+   cleanRemoteFile( hostName, CMSVCNAME, dstFile );
 
    var file = new File( srcFile );
    file.write( content );
@@ -29,7 +29,7 @@ function test()
    //使用ssh推送文件
    var ssh = new Ssh( hostName, user, password, port );
    ssh.push( srcFile, dstFile );
-   checkRemoteFile( hostName, dstFile, mode, content ) 
+   checkRemoteFile( hostName, dstFile, mode, content )
 
    cleanLocalFile( srcFile );
    cleanRemoteFile( hostName, CMSVCNAME, dstFile );

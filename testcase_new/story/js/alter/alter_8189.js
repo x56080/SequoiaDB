@@ -50,7 +50,7 @@ function test ()
    try
    {
       cl.alter( { ShardingType: "range" } );
-      throw "ERR_ALTER_CL";
+      throw new Error( "ERR_ALTER_CL" );
    }
    catch( e )
    {

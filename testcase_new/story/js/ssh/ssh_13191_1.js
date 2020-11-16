@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -29,7 +29,7 @@ function test()
    file.close();
 
    var remote = getRemote( hostName, CMSVCNAME );
-   var ssh = new Ssh( hostName, user, password, port ); 
+   var ssh = new Ssh( hostName, user, password, port );
    for( var i = 0; i < dstModes.length; i++ )
    {
       var file = remote.getFile( dstFile );
@@ -41,15 +41,15 @@ function test()
          ssh.push( srcFile, dstFile );
          if( dstModes[i] === 0555 )
          {
-            throw "NEED_ERROR";
+            throw new Error( "NEED_ERROR" );
          }
-         checkRemoteFile ( hostName, dstFile, modes[i], srcContent );
+         checkRemoteFile( hostName, dstFile, modes[i], srcContent );
       }
       catch( e )
       {
          if( dstModes[i] === 0555 && !commCompareErrorCode( e, -10 ) )
          {
-            commThrowError( e );            
+            commThrowError( e );
          }
       }
       cleanRemoteFile( hostName, CMSVCNAME, dstFile );

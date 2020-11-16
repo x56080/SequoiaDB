@@ -28,7 +28,7 @@ function test ()
 function testTruncateCompareRemveDelete ( db )
 {
 
-   if( undefined == db ) { throw "no sdb connect handle"; }
+   if( undefined == db ) { throw new Error("no sdb connect handle"); }
    var lobSize = 2049;
    var lobNumber = 5;
    var clName1 = CHANGEDPREFIX + "_truncate_tbl1_155";

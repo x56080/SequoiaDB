@@ -2,9 +2,9 @@
 *@Description : seqDB-20162: 更新字段部分为分区键部分为普通字段
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.skipStandAlone=true;
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20162";
+testConf.skipStandAlone = true;
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20162";
 testConf.clOpt = { "ShardingType": "hash", "ShardingKey": { "_id": 1 } };
 
 main( test );
@@ -38,16 +38,8 @@ function test ()
    }
 
    //更新多条记录，部分分区键，部分非分区键，KeepShardingKey为true
-   try
+   assert.tryThrow( -178, function()
    {
       cl.update( { "$set": updatedRecord }, {}, {}, { "KeepShardingKey": true } );
-      throw "Sharding key cannot be updated";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -178" )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 }

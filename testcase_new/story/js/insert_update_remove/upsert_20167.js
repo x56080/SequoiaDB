@@ -2,9 +2,9 @@
 *@Description : seqDB-20167: upsert字段全为分区键   
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.skipStandAlone=true;
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20167";
+testConf.skipStandAlone = true;
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20167";
 testConf.clOpt = { "ShardingType": "hash", "ShardingKey": { "_id": 1, "a": 1 } };
 
 main( test );
@@ -35,32 +35,16 @@ function test ()
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
-  
+
    //更新一条记录，KeepShardingKey为true
-   try
+   assert.tryThrow( -178, function()
    {
       cl.upsert( { "$set": updatedRecord }, doc[9], {}, {}, { "KeepShardingKey": true } );
-      throw "Sharding key cannot be updated";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -178" )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 
    //更新多条记录，KeepShardingKey为true
-   try
+   assert.tryThrow( -178, function()
    {
       cl.upsert( { "$set": updatedRecord }, {}, {}, {}, { "KeepShardingKey": true } );
-      throw "Sharding key cannot be updated";
-   }
-   catch( e )
-   {
-      if( e.toString() !== "Error: -178" )
-      {
-         throw new Error( e );
-      }
-   }
+   } );
 }

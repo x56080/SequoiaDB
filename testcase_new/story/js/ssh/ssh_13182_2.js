@@ -6,7 +6,7 @@ testConf.skipStandAlone = true;
 
 main( test );
 
-function test()
+function test ()
 {
    var hostName = getRemoteHostName();
    if( !checkCmUser( hostName, user ) )
@@ -21,7 +21,7 @@ function test()
    var mode = "rw-r-----";
 
    cleanLocalFile( localFile );
-   cleanRemoteFile( hostName, CMSVCNAME, remoteFile );   
+   cleanRemoteFile( hostName, CMSVCNAME, remoteFile );
 
    var remote = getRemote( hostName, CMSVCNAME );
    var ssh = new Ssh( hostName, user, password, port );
@@ -36,9 +36,9 @@ function test()
          ssh.pull( remoteFile, localFile );
          if( srcModes[i] === 0333 )
          {
-            throw "NEED_ERROR";
+            throw new Error( "NEED_ERROR" );
          }
-         checkLocalFile ( localFile, mode, content )
+         checkLocalFile( localFile, mode, content )
       }
       catch( e )
       {

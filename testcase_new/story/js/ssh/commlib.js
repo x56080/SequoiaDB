@@ -13,8 +13,8 @@ var port = 22;
 *@Description : get remote 
 *@author      : Zhao xiaoni
 ******************************************************************************/
-function getRemote( hostName)
-{  
+function getRemote ( hostName )
+{
    var remote = new Remote( hostName, CMSVCNAME );
    return remote;
 }
@@ -23,8 +23,8 @@ function getRemote( hostName)
 *@Description : get remote cmd
 *@author      : Zhao xiaoni
 ******************************************************************************/
-function getRemoteCmd( hostName )
-{  
+function getRemoteCmd ( hostName )
+{
    var remote = getRemote( hostName );
    var cmd = remote.getCmd();
    return cmd;
@@ -34,7 +34,7 @@ function getRemoteCmd( hostName )
 *@Description : get hosts in cluster
 *@author      : Liang XueWang
 ******************************************************************************/
-function getHostNames()
+function getHostNames ()
 {
    var hostNames = [];
    var cursor = db.listReplicaGroups();
@@ -45,9 +45,9 @@ function getHostNames()
       {
          var hostName = group[i].HostName;
          if( hostNames.indexOf( hostName ) == -1 )
-         {   
+         {
             hostNames.push( hostName );
-         }      
+         }
       }
    }
    return hostNames;
@@ -58,7 +58,7 @@ function getHostNames()
 *               localhost means cluster local host, host of COORDHOSTNAME
 *@author      : Liang XueWang
 ******************************************************************************/
-function getLocalHostName( )
+function getLocalHostName ()
 {
    var cmd = getRemoteCmd( COORDHOSTNAME );
    var hostName = cmd.run( "hostname" ).split( "\n" )[0];
@@ -69,7 +69,7 @@ function getLocalHostName( )
 *@Description : get remote hostname
 *@author      : Liang XueWang
 ******************************************************************************/
-function getRemoteHostName()
+function getRemoteHostName ()
 {
    var hostNames = getHostNames();
    var localHostName = getLocalHostName();
@@ -106,7 +106,7 @@ function checkCmUser ( hostName, user )
 *@Description : check system has user
 *@author      : Liang XueWang
 ******************************************************************************/
-function isUserExist( hostName, user )
+function isUserExist ( hostName, user )
 {
    var remote = new Remote( hostName, CMSVCNAME );
    var cmd = remote.getCmd();
@@ -133,7 +133,7 @@ function isUserExist( hostName, user )
 *@Description : clean up local file
 *@author      : Zhao xiaoni
 ******************************************************************************/
-function cleanLocalFile( fileName )
+function cleanLocalFile ( fileName )
 {
    var cmd = new Cmd();
    cmd.run( "rm -rf " + fileName );
@@ -143,7 +143,7 @@ function cleanLocalFile( fileName )
 *@Description : clean up remote file
 *@author      : Zhao xiaoni
 ******************************************************************************/
-function cleanRemoteFile( remoteHostName, remoteSvcName, fileName )
+function cleanRemoteFile ( remoteHostName, remoteSvcName, fileName )
 {
    cmd = getRemoteCmd( remoteHostName, remoteSvcName );
    cmd.run( "rm -rf " + fileName );
@@ -153,8 +153,8 @@ function cleanRemoteFile( remoteHostName, remoteSvcName, fileName )
 *@Description : get ip address of hostname
 *@author      : Liang XueWang
 ******************************************************************************/
-function getIPAddr( hostName )
-{  
+function getIPAddr ( hostName )
+{
    var cmd = getRemoteCmd( hostName );
    var command = "cat /etc/hosts | grep " + hostName + " | awk '{print $1}'";
    var ip = cmd.run( command ).split( "\n" )[0];
@@ -167,7 +167,7 @@ function getIPAddr( hostName )
 ******************************************************************************/
 function checkRemoteFile ( hostName, fileName, mode, content )
 {
-   var remote = getRemote( hostName, CMSVCNAME ); 
+   var remote = getRemote( hostName, CMSVCNAME );
    var file = remote.getFile( fileName );
 
    var actual = file.stat( fileName ).toObj().mode;
@@ -197,7 +197,7 @@ function checkLocalFile ( fileName, mode, content )
    {
       throw new Error( "mode: " + mode + ", actual: " + actual );
    }
-  
+
    actual = file.read().split( "\n" )[0];
    if( actual !== content )
    {

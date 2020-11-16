@@ -8,7 +8,7 @@
 ******************************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    if( !isUserExist( COORDHOSTNAME, user ) )
    {
@@ -16,49 +16,25 @@ function test()
    }
 
    //使用未建立信赖关系的用户名建立ssh连接
-   try
+   assert.tryThrow( -6, function()
    {
       var ssh = new Ssh( COORDHOSTNAME, "user" );
-      throw "Connect to " + COORDHOSTNAME + " should be failed!";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -6 ) )
-      {
-         commThrowError( e );         
-      }
-   }
-  
+   } );
+
    //使用错误的密码建立ssh连接
-   try
+   assert.tryThrow( -6, function()
    {
       ssh = new Ssh( COORDHOSTNAME, user, "password" );
-      throw "Connect to " + COORDHOSTNAME + " should be failed!";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -6 ) )
-      {
-         commThrowError( e );
-      }
-   }
+   } );
 
    //使用错误的端口号建立ssh连接
-   try
+   assert.tryThrow( -79, function()
    {
       ssh = new Ssh( COORDHOSTNAME, user, password, 8 );
-      throw "Connect to " + COORDHOSTNAME + " should be failed!";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -79 ) )
-      {
-         commThrowError( e );
-      }
-   }
-  
+   } );
+
    //password和port使用默认值建立ssh连接
-   
+
    //指定用户名、密码、端口号建立ssh连接
    ssh = new Ssh( COORDHOSTNAME, user, password, port );
    ssh.close()

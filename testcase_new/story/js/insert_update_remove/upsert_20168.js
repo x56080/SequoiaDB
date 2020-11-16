@@ -2,9 +2,9 @@
 *@Description : seqDB-20168: upsert字段部分为分区键部分为普通字段   
 *@Author      : 2020-01-09  Zhao xiaoni Init
 ******************************************************************************/
-testConf.skipStandAlone=true;
-testConf.csName=COMMCSNAME;
-testConf.clName=COMMCLNAME + "_20168";
+testConf.skipStandAlone = true;
+testConf.csName = COMMCSNAME;
+testConf.clName = COMMCLNAME + "_20168";
 testConf.clOpt = { "ShardingType": "hash", "ShardingKey": { "_id": 1 } };
 
 main( test );
@@ -36,7 +36,7 @@ function test ()
    {
       throw new Error( "\nactRecs: " + JSON.stringify( actRecs ) + "\nexpRecs: " + JSON.stringify( expRecs ) );
    }
- 
+
    //更新一条记录，更新条件匹配的记录不能在集合中找到
    var updatedRecord = { "_id": 12, "a": 12 };
    var actRecs = cl.upsert( { "$set": updatedRecord }, updatedRecord ).toObj();

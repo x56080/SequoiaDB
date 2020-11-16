@@ -5,7 +5,7 @@
 ******************************************************************************/
 main( test );
 
-function test()
+function test ()
 {
    if( !checkCmUser( COORDHOSTNAME, user ) )
    {
@@ -15,50 +15,27 @@ function test()
    var ssh = new Ssh( COORDHOSTNAME, user, password, port );
    ssh.close();
    ssh.close();
-  
+
    ssh.getLocalIP();
-   ssh.getPeerIP();   
+   ssh.getPeerIP();
    ssh.getLastRet();
    ssh.getLastOut();
-   
-   try
+
+   assert.tryThrow( -15, function()
    {
       ssh.exec( "hostname" );
-      throw "NEED_ERROR";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -15 ) )
-      {
-         commThrowError( e );
-      }      
-   }
- 
-   try
+   } );
+
+   assert.tryThrow( -15, function()
    {
       ssh.push( "/tmp/src.txt", "/tmp/dst.txt" );
-      throw "NEED_ERROR";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -15 ) )
-      {
-         commThrowError( e );
-      }
-   }
-   
-   try
+   } );
+
+   assert.tryThrow( -15, function()
    {
       ssh.pull( "/tmp/src.txt", "/tmp/dst.txt" );
-      throw "NEED_ERROR";
-   }
-   catch( e )
-   {
-      if( !commCompareErrorCode( e, -15 ) )
-      {
-         commThrowError( e );
-      }
-   }
+   } );
+
 }
 
 

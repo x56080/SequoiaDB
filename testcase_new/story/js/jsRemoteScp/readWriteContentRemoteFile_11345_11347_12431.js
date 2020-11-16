@@ -62,7 +62,7 @@ function test ()
       }
       var emptyFile = remote.getFile( emptyFileName );
       var content = emptyFile.readContent();
-      throw "EXPECT GET AN ERROR";
+      throw new Error("EXPECT GET AN ERROR");
    }
    catch( e )
    {

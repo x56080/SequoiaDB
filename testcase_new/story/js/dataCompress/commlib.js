@@ -86,7 +86,7 @@ function checkAttributeOfCL ( csName, clName, compressed, compreType )
       if( Attribute !== 1 || AttributeDesc !== "Compressed"
          || CompressionType !== tmpCmprt || CompressionTypeDesc !== compreType )
       {
-         throw buildException( "Failed to check attribute of cl fail,[checkResult]" +
+         throw new Error( "Failed to check attribute of cl fail,[checkResult]" +
             '[Attribute: 1, AttributeDesc: "Compressed", CompressionType: ' + tmpCmprt
             + ', CompressionTypeDesc: "' + compreType + '"]' +
             '[Attribute: ' + Attribute + ', AttributeDesc: "' + AttributeDesc
