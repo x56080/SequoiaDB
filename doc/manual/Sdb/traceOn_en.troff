@@ -5,19 +5,19 @@
 .hy
 .SH NAME
 .PP
-traceOn \- Turn on the database engine program tracking.
+traceOn \- turn on the trace program of database engine
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.traceOn( <bufferSize>, [strComp], [strBreakPoint], [tids],
-[SdbTraceOption] )\f[]\f[]
+\f[B]db.traceOn( <bufferSize>, [strComp], [strBreakPoint], [tids] )\f[]
 .PP
-\f[B]\f[I]db.traceOn( <bufferSize>, [SdbTraceOption] )\f[]\f[]
+\f[B]db.traceOn( <bufferSize>, [SdbTraceOption] )\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-Turn on the database engine program tracking.
+This function is used to record each function call in the memory buffer during
+the execution of each command.
 .SH PARAMETERS
 .PP
 .TS
@@ -42,21 +42,20 @@ T{
 T}@T{
 bufferSize
 T}@T{
-int
+number
 T}@T{
 \-\-\-
 T}@T{
-The size of the tracked
+The size of the file
 T}@T{
-requiresd
+Required
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-file we turn on.
-Uint:
+with trace program
 T}@T{
 T}
 T{
@@ -64,8 +63,24 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-MB.
-Ranges: [1,1024]
+started.
+The uint is MB
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+and the range is [1,
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+1024]
 T}@T{
 T}
 T{
@@ -77,9 +92,9 @@ string
 T}@T{
 All modules
 T}@T{
-The module we specified.
+The specify modules
 T}@T{
-not
+Not
 T}
 T{
 3
@@ -90,9 +105,33 @@ string
 T}@T{
 \-\-\-
 T}@T{
-Breake point
+Tracing at breakpoints
 T}@T{
-not
+Not
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+of specified functions
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+( Up to 10 breakpoints
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+can be specified )
+T}@T{
 T}
 T{
 4
@@ -105,14 +144,30 @@ All tids
 T}@T{
 Specify one or multiple
 T}@T{
-not
+Not
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-threads
+threads ( Up to 10
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+tids can be specified
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+)
 T}@T{
 T}
 T{
@@ -120,20 +175,20 @@ T{
 T}@T{
 SdbTraceOption
 T}@T{
-JSON Object
+SdbTraceOption
 T}@T{
 \-\-\-
 T}@T{
 Use an object to
 T}@T{
-not
+Not
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-specify monitoring
+specify the monitoring
 T}@T{
 T}
 T{
@@ -150,15 +205,7 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
-detial, please
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-reference to
+details, refer to
 T}@T{
 T}
 T{
@@ -172,79 +219,217 @@ T}
 .TE
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+The common exceptions of \f[C]traceOn()\f[] function are as follows:
+.PP
+.TS
+tab(@);
+l l l l l.
+T{
+0
+T}@T{
+Error Code
+T}@T{
+Error Type
+T}@T{
+Description
+T}@T{
+Solution
+T}
+_
+T{
+1
+T}@T{
+\-187
+T}@T{
+SDB_PD_TRACE_IS_STARTED
+T}@T{
+Trace program is
+T}@T{
+The trace program of
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+already started
+T}@T{
+database engine is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+currently activated and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+can\[aq]t be restart
+T}
+T{
+2
+T}@T{
+\-212
+T}@T{
+SDB_TOO_MANY_TRACE_BP
+T}@T{
+Too many trace
+T}@T{
+The number of specified
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+breakpoints are
+T}@T{
+breakpoints can\[aq]t
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+specified
+T}@T{
+exceed 10
+T}
+T{
+3
+T}@T{
+\-307
+T}@T{
+SDB_OSS_UP_TO_LIMIT
+T}@T{
+Reach the maximum or
+T}@T{
+The number of specified
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+minimum limit
+T}@T{
+tids / functions /
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+threadTypes can\[aq]t
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+T}@T{
+exceed 10
+T}
+.TE
+.PP
+When the exception happens，use getLastError() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v1.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
-Turn on the database engine program tracking.
-.RS
-.PP
-\f[B]Note:\f[] Track only the node that db connected.
-.RE
+Turn on the trace program of database engine.
 .IP
 .nf
 \f[C]
 >\ db.traceOn(\ 256\ )
 \f[]
 .fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+db.traceOn() only traces the nodes to which db is connected.
+.RE
 .IP \[bu] 2
-Turn on the database engine program tracking and specify a tracked module and
-break point.
-.IP
-.nf
-\f[C]
->\ db.traceOn(\ 256,\ "cls,\ dms,\ mth",\ "_dmsTempSUMgr::init",\ 12712\ )
-or
->\ db.traceOn(\ 256,\ new\ SdbTraceOption().components(\ "cls",\ dms",\ "mth"\ ).breakPoints(\ "_dmsTempSUMgr::init"\ ).tids(\ 12712\ )\ )
-\f[]
-.fi
-.IP \[bu] 2
-Or turn on the database engine program tracking and specify multiple threads.
+Turn on the trace program of database engine, and specify the module name,
+breakpoints and multiple tids for tracing.
 .IP
 .nf
 \f[C]
 >\ db.traceOn(\ 256,\ "cls,\ dms,\ mth",\ "_dmsTempSUMgr::init",\ [12712,\ 12713,\ 12714]\ )
-or
+\f[]
+.fi
+.IP \[bu] 2
+Users can also specify monitoring parameters through SdbTraceOption.
+.IP
+.nf
+\f[C]
 >\ db.traceOn(\ 256,\ new\ SdbTraceOption().components(\ "cls",\ dms",\ "mth"\ ).breakPoints(\ "_dmsTempSUMgr::init"\ ).tids(\ [12712,\ 12713,\ 12714]\ )\ )
 \f[]
 .fi
 .IP \[bu] 2
-When the tracked module was blocked because of the breakpoint, you can use
-traceResume() to wake up the module which was tracked and blocked.
-.IP
-.nf
-\f[C]
->\ db.traceResume()
-\f[]
-.fi
-.IP \[bu] 2
-Using traceStatus() to view the tracking status of the current program.
+Check the trace status of the current program.
 .IP
 .nf
 \f[C]
 >\ db.traceStatus()
 \f[]
 .fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Refer to traceStatus().
+.RE
 .IP \[bu] 2
-Using traceOff() to turn off the database engine program tracking and export
-tracking results to binary files.
+When the traced module was blocked because of the breakpoint, users can execute
+the statement of [traceResume()][traceResume] to wake up the traced module.
+.IP
+.nf
+\f[C]
+>\ db.traceResume()
+\f[]
+.fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Refer totraceResume().
+.RE
+.IP \[bu] 2
+Shut down the trace program of database engine, and export the trace status to
+the binary file \f[C]/opt/sequoiadb/trace.dump\f[].
 .IP
 .nf
 \f[C]
 >\ db.traceOff("/opt/sequoiadb/trace.dump")
 \f[]
 .fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Refer to traceOff().
+.RE
 .IP \[bu] 2
-Using traceFmt() to analysis the binary file.
+Parse binary files.
 .IP
 .nf
 \f[C]
->\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace_output"\ )
+>\ traceFmt(\ 0,\ "/opt/sequoiadb/trace.dump",\ "/opt/sequoiadb/trace.flw"\ )
 \f[]
 .fi
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+Refer to traceFmt().
+.RE

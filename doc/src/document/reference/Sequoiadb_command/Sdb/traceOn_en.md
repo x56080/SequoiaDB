@@ -1,12 +1,12 @@
 ##NAME##
 
-traceOn -  Turn on the database engine program tracking.
+traceOn -  turn on the trace program of database engine
 
 ##SYNOPSIS##
 
-***db.traceOn( \<bufferSize\>, [strComp], [strBreakPoint], [tids], [SdbTraceOption] )***
+**db.traceOn( \<bufferSize\>, [strComp], [strBreakPoint], [tids] )**
 
-***db.traceOn( \<bufferSize\>, [SdbTraceOption] )***
+**db.traceOn( \<bufferSize\>, [SdbTraceOption] )**
 
 ##CATEGORY##
 
@@ -14,74 +14,101 @@ Sdb
 
 ##DESCRIPTION##
 
-Turn on the database engine program tracking.
+This function is used to record each function call in the memory buffer during the execution of each command.
 
 ##PARAMETERS##
 
 | Name | Type | Default | Description | Required or not |
 | ---- | ---- | ------- | ----------- | --------------- |
-| bufferSize     | int    | ---         | The size of the tracked file we turn on. Uint: MB. Ranges: [1,1024] | requiresd |
-| strComp        | string | All modules | The module we specified.        | not |
-| strBreakPoint  | string | ---         | Breake point                    | not |
-| tids           | array  | All tids    | Specify one or multiple threads | not |
-| SdbTraceOption | JSON Object | ---    | Use an object to specify monitoring parameters. For more detial, please reference to [SdbTraceOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbTraceOption.md) | not |
+| bufferSize     | number | ---         | The size of the file with trace program started. The uint is MB and the range is [1,1024] | Required |
+| strComp        | string | All modules | The specify modules      | Not |
+| strBreakPoint  | string | ---         | Tracing at breakpoints of specified functions ( Up to 10 breakpoints can be specified ) | Not |
+| tids           | array  | All tids    | Specify one or multiple threads ( Up to 10 tids can be specified  ) | Not |
+| SdbTraceOption | SdbTraceOption | ---    | Use an object to specify the monitoring parameters. For more details, refer to [SdbTraceOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbTraceOption.md) | Not |
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please reference to [Troubleshooting](troubleshooting/general/general_guide.md).
+The common exceptions of `traceOn()` function are as follows:
+
+| Error Code | Error Type | Description | Solution |
+| ---------- | ---------- | ----------- | -------- |
+| -187       | SDB_PD_TRACE_IS_STARTED | Trace program is already started | The trace program of database engine is currently activated and can't be restart |
+| -212       | SDB_TOO_MANY_TRACE_BP | Too many trace breakpoints are specified | The number of specified breakpoints can't exceed 10 |
+| -307       | SDB_OSS_UP_TO_LIMIT | Reach the maximum or minimum limit | The number of specified tids / functions / threadTypes can't exceed 10 |
+
+When the exception happens，use [getLastError()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+
+##VERSION##
+
+v1.0 and above
 
 ##EXAMPLES##
 
-* Turn on the database engine program tracking.
-
-  > **Note:** Track only the node that db connected. 
+* Turn on the trace program of database engine. 
 
 ```lang-javascript
 > db.traceOn( 256 )
 ```
 
-* Turn on the database engine program tracking and specify a tracked module and break point. 
+> **Note:** 
+>
+> db.traceOn() only traces the nodes to which db is connected.
 
-```lang-javascript
-> db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", 12712 )
-or
-> db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( 12712 ) )
-```
-
-* Or turn on the database engine program tracking and specify multiple threads.
+* Turn on the trace program of database engine, and specify the module name, breakpoints and multiple tids for tracing.
 
 ```lang-javascript
 > db.traceOn( 256, "cls, dms, mth", "_dmsTempSUMgr::init", [12712, 12713, 12714] )
-or
+```
+
+* Users can also specify monitoring parameters through SdbTraceOption.
+
+```lang-javascript
 > db.traceOn( 256, new SdbTraceOption().components( "cls", dms", "mth" ).breakPoints( "_dmsTempSUMgr::init" ).tids( [12712, 12713, 12714] ) )
 ```
 
-* When the tracked module was blocked because of the breakpoint, you can use [traceResume()](reference/Sequoiadb_command/Sdb/traceResume.md) to wake up the module which was tracked and blocked. 
-
-```lang-javascript
-> db.traceResume()
-```
-
-* Using [traceStatus()](reference/Sequoiadb_command/Sdb/traceStatus.md) to view the tracking status of the current program. 
+* Check the trace status of the current program.
 
 ```lang-javascript
 > db.traceStatus()
 ```
 
-* Using [traceOff()](reference/Sequoiadb_command/Sdb/traceOff.md) to turn off the database engine program tracking and export tracking results to binary files.
+> **Note:**
+> 
+> Refer to [traceStatus()](reference/Sequoiadb_command/Sdb/traceStatus.md).
+
+* When the traced module was blocked because of the breakpoint, users can execute the statement of [traceResume()][traceResume] to wake up the traced module.
+
+```lang-javascript
+> db.traceResume()
+```
+
+> **Note:**
+>
+> Refer to[traceResume()](reference/Sequoiadb_command/Sdb/traceResume.md).
+
+* Shut down the trace program of database engine, and export the trace status to the binary file `/opt/sequoiadb/trace.dump`.
 
 ```lang-javascript
 > db.traceOff("/opt/sequoiadb/trace.dump")
 ```
 
-* Using [traceFmt()](reference/Sequoiadb_command/Global/traceFmt.md) to analysis the binary file.
+> **Note:**
+>
+> Refer to [traceOff()](reference/Sequoiadb_command/Sdb/traceOff.md).
+
+* Parse binary files.
 
 ```lang-javascript
-> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace_output" )
+> traceFmt( 0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw" )
 ```
+
+> **Note:**
+>
+> Refer to [traceFmt()](reference/Sequoiadb_command/Global/traceFmt.md).
+

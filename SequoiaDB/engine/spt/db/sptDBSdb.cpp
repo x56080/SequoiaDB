@@ -1531,6 +1531,7 @@ namespace engine
             detail = BSON( SPT_ERR << "Component must be string" ) ;
             goto error ;
          }
+
          rc = arg.getString( 2, breakpoint ) ;
          if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
          {
@@ -1560,26 +1561,37 @@ namespace engine
                   detail = BSON( SPT_ERR << "Failed to get invalid tid" ) ;
                   goto error ;
                }
+
                try
                {
-                  INT32 tmpTid = 0 ;
                   BSONObj::iterator itr( tidObj ) ;
                   while( itr.more() )
                   {
-                     itr.next().Val( tmpTid ) ;
-                     tidVec.push_back( static_cast< UINT32 >( tmpTid ) ) ;
+                     BSONElement ele = itr.next() ;
+
+                     if ( ele.type() != NumberInt )
+                     {
+                        rc = SDB_INVALIDARG ;
+                        detail = BSON( SPT_ERR << "The type of tid must be"
+                                       " int or int array" ) ;
+                        goto error ;
+                     }
+
+                     tidVec.push_back( ( UINT32 )ele.numberInt() ) ;
                   }
                }
                catch( std::exception e )
                {
                   rc = SDB_INVALIDARG ;
-                  detail = BSON( SPT_ERR << "Failed to get tid array element" ) ;
+                  detail = BSON( SPT_ERR <<
+                                 "Failed to get tid array element" ) ;
                   goto error ;
                }
             }
             else
             {
-               detail = BSON( SPT_ERR << "Tid must be int or array type" ) ;
+               rc = SDB_INVALIDARG ;
+               detail = BSON( SPT_ERR << "Tid must be int or int array" ) ;
                goto error ;
             }
          }

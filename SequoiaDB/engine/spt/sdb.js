@@ -1293,43 +1293,87 @@ SdbTraceOption.prototype.components = function()
    if( argumentsSize > 0 )
    {
       // the format that user specifies component parameter is like
-      // .components(["dms", "rtn"])
+      // .components( [ "dms", "rtn" ] )
       if( arguments[0] instanceof Array )
       {
+         // if the type of the first parameter is array,
+         // the method only needs one parameter
          if( argumentsSize > 1 )
          {
             throw "Invalid components' parameters" ;
          }
+
+         // the format that user specifies component parameter is like
+         // .components( [] )
+         if ( 0 == arguments[0].length )
+         {
+            throw "Components can't be empty" ;
+         }
+
+         for ( var i = 0; i < arguments[0].length; i++ )
+         {
+            // the format that user specifies component parameter is like
+            // .components( [ "", "" ] )
+            if ( "" == arguments[0][i] )
+            {
+               throw "Component can't be empty" ;
+            }
+
+            // the format that user specifies component parameter is like
+            // .components( [ 123, 456 ] )
+            if ( typeof( arguments[0][i] ) != "string" )
+            {
+               throw "Component must be string or string array" ;
+            }
+         }
+
          if( typeof( this._components ) == "undefined" )
          {
             this._components = arguments[0] ;
          }
+         // After we call the component method,
+         // we can call the component method again
+         // eg:
+         // > var option = new SdbTraceOption().component( [ "rtn", "dms" ] )
+         // now the component is [ "rtn", "dms" ]
+         // > option.component( [ "oss", "mth" ] )
+         // now the component is [ "rtn", "dms", "oss", "mth" ]
          else
          {
             this._components = this._components.concat( arguments[0] ) ;
          }
       }
+
       // the format that user specifies component parameter is like
-      // .components("dms", "rtn")
+      // .components( "dms", "rtn" )
       else
       {
          if( typeof( this._components ) == "undefined" )
          {
             this._components = [] ;
          }
+
          for ( var i = 0; i < argumentsSize; i++ )
          {
-            if( arguments[i] instanceof Array )
+            // the format that user specifies component parameter is like
+            // .components( "", "" )
+            if ( "" == arguments[i] )
             {
-               throw "Invalid components' parameters" ;
+               throw "Component can't be empty" ;
             }
-            else
+
+            // the format that user specifies component parameter is like
+            // .components( 123, 456 )
+            if ( typeof( arguments[i] ) != "string" )
             {
-               this._components.push( arguments[i] );
+               throw "Component must be string or string array" ;
             }
+
+            this._components.push( arguments[i] );
          }
       }
    }
+
    return this ;
 }
 
@@ -1344,6 +1388,25 @@ SdbTraceOption.prototype.breakPoints = function( breakPoints )
          {
             throw "Invalid breakPoints' parameters" ;
          }
+
+         if ( 0 == arguments[0].length )
+         {
+            throw "Breakpoints can't be empty" ;
+         }
+
+         for ( var i = 0; i < arguments[0].length; i++ )
+         {
+            if ( "" == arguments[0][i] )
+            {
+               throw "Breakpoint can't be empty" ;
+            }
+
+            if ( typeof( arguments[0][i] ) != "string" )
+            {
+               throw "Breakpoint must be string or string array" ;
+            }
+         }
+
          if( typeof( this._breakPoints ) == "undefined" )
          {
             this._breakPoints = arguments[0] ;
@@ -1359,19 +1422,24 @@ SdbTraceOption.prototype.breakPoints = function( breakPoints )
          {
             this._breakPoints = [] ;
          }
+
          for ( var i = 0; i < argumentsSize; i++ )
          {
-            if( arguments[i] instanceof Array )
+            if ( "" == arguments[i] )
             {
-               throw "Invalid breakPoints' parameters" ;
+               throw "Breakpoint can't be empty" ;
             }
-            else
+
+            if ( typeof( arguments[i] ) != "string" )
             {
-               this._breakPoints.push( arguments[i] );
+               throw "Breakpoint must be string or string array" ;
             }
+
+            this._breakPoints.push( arguments[i] );
          }
       }
    }
+
    return this ;
 }
 
@@ -1386,6 +1454,20 @@ SdbTraceOption.prototype.tids = function()
          {
             throw "Invalid tids' parameters" ;
          }
+
+         if ( 0 == arguments[0].length )
+         {
+            throw "Tids can't be empty" ;
+         }
+
+         for ( var i = 0; i < arguments[0].length; i++ )
+         {
+            if ( typeof( arguments[0][i] ) != "number" )
+            {
+               throw "Tid must be int or int array" ;
+            }
+         }
+
          if( typeof( this._tids ) == "undefined" )
          {
             this._tids = arguments[0] ;
@@ -1401,26 +1483,19 @@ SdbTraceOption.prototype.tids = function()
          {
             this._tids = [] ;
          }
+
          for ( var i = 0; i < argumentsSize; i++ )
          {
-            if( arguments[i] instanceof Array )
+            if ( typeof( arguments[i] ) != "number" )
             {
-               throw "Invalid tids' parameters" ;
+               throw "Tid must be int or int array" ;
             }
-            else
-            {
-               if( !isNaN( arguments[i] ) )
-               {
-                  this._tids.push( arguments[i] );
-               }
-               else
-               {
-                  throw "Tid field must be number or array";
-               }
-            }
+
+            this._tids.push( arguments[i] );
          }
       }
    }
+
    return this ;
 }
 
@@ -1435,6 +1510,25 @@ SdbTraceOption.prototype.functionNames = function()
          {
             throw "Invalid functionNames' parameters" ;
          }
+
+         if ( 0 == arguments[0].length )
+         {
+            throw "FunctionNames can't be empty" ;
+         }
+
+         for ( var i = 0; i < arguments[0].length; i++ )
+         {
+            if ( "" == arguments[0][i] )
+            {
+               throw "FunctionName can't be empty" ;
+            }
+
+            if ( typeof( arguments[0][i] ) != "string" )
+            {
+               throw "FunctionName must be string or string array" ;
+            }
+         }
+
          if( typeof( this._functionNames ) == "undefined" )
          {
             this._functionNames = arguments[0] ;
@@ -1450,6 +1544,7 @@ SdbTraceOption.prototype.functionNames = function()
          {
             this._functionNames = [] ;
          }
+
          for ( var i = 0; i < argumentsSize; i++ )
          {
             if( arguments[i] instanceof Array )
@@ -1458,11 +1553,22 @@ SdbTraceOption.prototype.functionNames = function()
             }
             else
             {
+               if ( "" == arguments[i] )
+               {
+                  throw "FunctionName can't be empty" ;
+               }
+
+               if ( typeof( arguments[i] ) != "string" )
+               {
+                  throw "FunctionName must be string or string array" ;
+               }
+
                this._functionNames.push( arguments[i] );
             }
          }
       }
    }
+
    return this ;
 }
 
@@ -1477,6 +1583,25 @@ SdbTraceOption.prototype.threadTypes = function()
          {
             throw "Invalid threadTypes' parameters" ;
          }
+
+         if ( 0 == arguments[0].length )
+         {
+            throw "ThreadTypes can't be empty" ;
+         }
+
+         for ( var i = 0; i < arguments[0].length; i++ )
+         {
+            if ( "" == arguments[0][i] )
+            {
+               throw "ThreadType can't be empty" ;
+            }
+
+            if ( typeof( arguments[0][i] ) != "string" )
+            {
+               throw "ThreadType must be string or string array" ;
+            }
+         }
+
          if( typeof( this._threadTypes ) == "undefined" )
          {
             this._threadTypes = arguments[0] ;
@@ -1492,6 +1617,7 @@ SdbTraceOption.prototype.threadTypes = function()
          {
             this._threadTypes = [] ;
          }
+
          for ( var i = 0; i < argumentsSize; i++ )
          {
             if( arguments[i] instanceof Array )
@@ -1500,11 +1626,22 @@ SdbTraceOption.prototype.threadTypes = function()
             }
             else
             {
+               if ( "" == arguments[i] )
+               {
+                  throw "ThreadType can't be empty" ;
+               }
+
+               if ( typeof( arguments[i] ) != "string" )
+               {
+                  throw "ThreadType must be string or string array" ;
+               }
+
                this._threadTypes.push( arguments[i] );
             }
          }
       }
    }
+
    return this ;
 }
 
@@ -1604,13 +1741,13 @@ SdbTraceOption.prototype.toString = function()
    }
 
    return this.__className__ +
-          "(" +
+          "( " +
           "\"components\": " + componentsStr +
           ", \"breakPoints\": " + breakPointsStr +
           ", \"tids\": " + tidsStr +
           ", \"functionNames\": " + funcNamesStr +
           ", \"threadTypes\": " + threadTypesStr +
-          ")" ;
+          " )" ;
 }
 
 // end SdbTraceOption

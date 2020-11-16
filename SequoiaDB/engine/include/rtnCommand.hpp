@@ -1091,12 +1091,19 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
+
       private:
          BOOLEAN _isFunctionNameValid( const CHAR* verifiedFuncName ) ;
+         INT32   _initComponents( const BSONElement &componentsEle ) ;
+         INT32   _initBreakpoints( const BSONElement &breakpointsEle ) ;
+         INT32   _initTids( const BSONElement &tidsEle ) ;
+         INT32   _initFunctionNames( const BSONElement &functionNamesEle ) ;
+         INT32   _initThreadTypes( const BSONElement &threadTypesEle ) ;
+
       protected :
          UINT32 _mask ;
          std::vector<UINT32>  _tid ;
-         std::vector<UINT64>  _breakPoint ;
+         std::vector<UINT64>  _breakpoint ;
          std::vector<UINT64>  _functionNameId ;
          std::vector<INT32>   _threadType ;
          UINT32 _size ;

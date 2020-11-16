@@ -809,7 +809,7 @@ INT32 _pdTraceCB::_addTidFilter( UINT32 tid )
    // first we have to make sure we still have enough room
    if ( _threadMonitoredNum >= PD_TRACE_MAX_MONITORED_THREAD_NUM )
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_OSS_UP_TO_LIMIT ;
       goto error ;
    }
    _monitoredThreads[_threadMonitoredNum] = tid ;
@@ -836,7 +836,7 @@ INT32 _pdTraceCB::_addFunctionNameFilter( UINT64 functionId )
    // first we have to make sure we still have enough room
    if ( _functionMonitoredNum >= PD_TRACE_MAX_MONITORED_THREAD_NUM )
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_OSS_UP_TO_LIMIT ;
       goto error ;
    }
    _monitoredFunctionNamesId[_functionMonitoredNum] = functionId ;
@@ -863,7 +863,7 @@ INT32 _pdTraceCB::_addThreadTypeFilter( INT32 threadTypeId )
    // first we have to make sure we still have enough room
    if ( _threadTypeMonitoredNum >= PD_TRACE_MAX_MONITORED_THREAD_NUM )
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_OSS_UP_TO_LIMIT ;
       goto error ;
    }
    _monitoredThreadTypes[_threadTypeMonitoredNum] = threadTypeId ;

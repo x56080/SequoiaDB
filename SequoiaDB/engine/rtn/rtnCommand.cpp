@@ -62,6 +62,9 @@ using namespace std ;
 // Default size of capped collection for text index. The unit is MB. So its 30G.
 #define TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE  ( 30 * 1024 )
 
+#define RTN_MIN_TRACE_BUFFER_SIZE 1
+#define RTN_MAX_TRACE_BUFFER_SIZE 1024
+
 namespace engine
 {
    _rtnCommand::_rtnCommand ()
@@ -2702,38 +2705,23 @@ error:
       return isValid ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INIT, "_rtnTraceStart::init" )
-   INT32 _rtnTraceStart::init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                                const CHAR * pMatcherBuff, const CHAR * pSelectBuff,
-                                const CHAR * pOrderByBuff, const CHAR * pHintBuff )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INITCOMPONENTS, "_rtnTraceStart::_initComponents" )
+   INT32 _rtnTraceStart::_initComponents( const BSONElement &componentsEle )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INIT ) ;
+      INT32  rc  = SDB_OK ;
+      UINT32 one = 1 ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INITCOMPONENTS ) ;
+
       try
       {
-         UINT32 one = 1 ;
-         BSONObj arg ( pMatcherBuff );
-         BSONElement eleSize = arg.getField ( FIELD_NAME_SIZE ) ;
-         BSONElement eleComp = arg.getField( FIELD_NAME_COMPONENTS );
-         BSONElement eleBreakPoint = arg.getField( FIELD_NAME_BREAKPOINTS );
-         BSONElement eleTID = arg.getField ( FIELD_NAME_THREADS ) ;
-         BSONElement eleFunctionNames = arg.getField ( FIELD_NAME_FUNCTIONNAMES ) ;
-         BSONElement eleThreadTypes = arg.getField ( FIELD_NAME_THREADTYPES ) ;
-
-         // init buffsize
-         if ( eleSize.isNumber() )
-         {
-            _size = (UINT32)eleSize.numberLong() ;
-         }
-
-         // init components
-         if ( eleComp.type() == Array )
+         if ( componentsEle.type() == Array )
          {
             _mask = 0 ;
-            BSONObjIterator it ( eleComp.embeddedObject() ) ;
+            BSONObjIterator it ( componentsEle.embeddedObject() ) ;
             if ( !it.more () )
             {
-               // if there's no element, that means we need mask everything
+               // if there's no element, that means we need to
+               // trace all components
                for( UINT32 i = 0; i < pdGetTraceComponentSize() ; ++i )
                {
                   _mask |= ( one << i ) ;
@@ -2743,119 +2731,429 @@ error:
             {
                while ( it.more() )
                {
-                  BSONElement ele = it.next() ;
-                  if ( ele.type() == String )
-                  {
-                     for ( UINT32 i = 0; i < pdGetTraceComponentSize() ; ++i )
-                     {
-                        if ( 0 == ossStrcmp ( pdGetTraceComponent(i),
-                                              ele.valuestr() ) )
-                        {
-                           _mask |= ( one << i ) ;
-                        }
-                     } // for
-                  } // if ( ele.type() == String )
-               } // while ( it.more() )
-            }
-         } // if ( eleComp.type() == Array )
+                  BSONElement ele              = it.next() ;
+                  const CHAR* component        = NULL ;
+                  BOOLEAN     isComponentValid = FALSE ;
 
-#if defined (SDB_ENGINE)
-         // init breakPoints
-         if( eleBreakPoint.type() == Array )
+                  if ( ele.type() != String )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "The type of component must be "
+                                 "string, rc: %d", rc ) ;
+                     goto error ;
+                  }
+
+                  component = ele.valuestr() ;
+
+                  if ( 0 == ossStrlen( component ) )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "The component can't be empty, "
+                                 "rc: %d", rc ) ;
+                     goto error ;
+                  }
+
+                  for ( UINT32 i = 0; i < pdGetTraceComponentSize() ; ++i )
+                  {
+                     if ( 0 == ossStrcmp ( pdGetTraceComponent(i),
+                                           component ) )
+                     {
+                        // If the component name is invalid, we won't enter
+                        // this branch
+                        isComponentValid = TRUE ;
+                        _mask |= ( one << i ) ;
+                        break ;
+                     }
+                  }
+
+                  if ( !isComponentValid )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "Invalid component: %s, rc: %d",
+                                 component, rc ) ;
+                     goto error ;
+                  }
+               }
+            }
+         }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Init component exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Init component exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INITCOMPONENTS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INITBREAKPOINTS, "_rtnTraceStart::_initBreakpoints" )
+   INT32 _rtnTraceStart::_initBreakpoints( const BSONElement &breakpointsEle )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INITBREAKPOINTS ) ;
+
+      try
+      {
+         if ( breakpointsEle.type() == Array )
          {
-            BSONObjIterator it( eleBreakPoint.embeddedObject() );
+            BSONObjIterator it( breakpointsEle.embeddedObject() );
             while( it.more() )
             {
-               BSONElement ele = it.next();
-               if( ele.type() == String )
+               BSONElement ele               = it.next();
+               const CHAR* breakpoint        = NULL ;
+               BOOLEAN     isBreakpointValid = FALSE ;
+
+               if ( ele.type() != String )
                {
-                  const char * eleStr = ele.valuestr();
-                  for( UINT64 i = 0; i < pdGetTraceFunctionListNum(); i++ )
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The type of breakpoint must be "
+                              "string, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               breakpoint = ele.valuestr();
+
+               if ( 0 == ossStrlen( breakpoint ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The breakpoint can't be empty, "
+                              "rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               for( UINT64 i = 0; i < pdGetTraceFunctionListNum(); i++ )
+               {
+                  if( 0 == ossStrcmp( pdGetTraceFunction( i ), breakpoint ) )
                   {
-                     const CHAR *  funcName = pdGetTraceFunction( i );
-                     if( 0 == ossStrcmp( funcName, eleStr ) )
-                     {
-                        _breakPoint.push_back ( i ) ;
-                        // do NOT break since we may have functions with
-                        // duplicate names
-                     } // if( 0 == ossStrcmp( funcName, eleStr ) )
-                  } // for( UINT64 i = 0; i < pdGetTraceFunctionListNum(); i++ )
-               } // if( ele.type() == String )
-            } // while( it.more() )
+                     // If the breakPoint name is invalid, we won't enter
+                     // this branch
+                     isBreakpointValid = TRUE ;
+                     _breakpoint.push_back ( i ) ;
+                     // do NOT break since we may have functions with
+                     // duplicate names
+                  }
+               }
+
+               if ( !isBreakpointValid )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Invalid breakpoint: %s, rc: %d",
+                              breakpoint, rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Init breakpoints exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Init breakpoints exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INITBREAKPOINTS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INITTIDS, "_rtnTraceStart::_initTids" )
+   INT32 _rtnTraceStart::_initTids( const BSONElement &tidsEle )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INITTIDS ) ;
+
+      try
+      {
+         if ( tidsEle.type() == Array )
+         {
+            BSONObjIterator it ( tidsEle.embeddedObject() ) ;
+            while ( it.more () )
+            {
+               BSONElement ele = it.next() ;
+
+               if ( ele.type() != NumberInt )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The type of tid must be int or int"
+                              " array, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               _tid.push_back ( ( UINT32 )ele.numberInt() ) ;
+            }
+         }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Init tids exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Init tids exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INITTIDS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INITFUNCTIONNAMES, "_rtnTraceStart::_initFunctionNames" )
+   INT32 _rtnTraceStart::_initFunctionNames( const BSONElement &functionNamesEle )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INITFUNCTIONNAMES ) ;
+
+      try
+      {
+         if ( functionNamesEle.type() == Array )
+         {
+            BSONObjIterator it ( functionNamesEle.embeddedObject() ) ;
+            while ( it.more () )
+            {
+               BSONElement ele          = it.next() ;
+               const CHAR* functionName = NULL ;
+               BOOLEAN     isValid      = FALSE ;
+
+               if ( ele.type() != String )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The type of functionName must be "
+                              "string, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               functionName = ele.valuestr();
+
+               if ( 0 == ossStrlen( functionName ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The functionName can't be empty, "
+                              "rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               isValid = _isFunctionNameValid( functionName ) ;
+               if( !isValid )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Invalid functionName: %s, rc: %d",
+                              functionName ,rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Init functionNames exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Init functionNames exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INITFUNCTIONNAMES, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INITTHREADTYPES, "_rtnTraceStart::_initThreadTypes" )
+   INT32 _rtnTraceStart::_initThreadTypes( const BSONElement &threadTypesEle )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INITTHREADTYPES ) ;
+
+      try
+      {
+         if ( threadTypesEle.type() == Array )
+         {
+            pmdEPFactory &factory = pmdGetEPFactory() ;
+            BSONObjIterator it ( threadTypesEle.embeddedObject() ) ;
+            while ( it.more () )
+            {
+               BSONElement ele           = it.next() ;
+               const CHAR* threadTypeStr = NULL ;
+               INT32       threadTypeNum = 0 ;
+
+               if ( ele.type() != String )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The type of threadType must be "
+                              "string, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               threadTypeStr = ele.valuestr() ;
+
+               if ( 0 == ossStrlen( threadTypeStr ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "The threadType can't be empty, ",
+                              "rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               threadTypeNum = factory.name2Type( threadTypeStr ) ;
+
+               if( threadTypeNum >= 0 )
+               {
+                  _threadType.push_back( threadTypeNum ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Invalid threadType: %s, rc: %d",
+                              threadTypeStr ,rc ) ;
+                  goto error ;
+               }
+
+            }
+         }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Init threadTypes exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Init threadTypes exception: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INITTHREADTYPES, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNTRACESTART_INIT, "_rtnTraceStart::init" )
+   INT32 _rtnTraceStart::init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                                const CHAR * pMatcherBuff, const CHAR * pSelectBuff,
+                                const CHAR * pOrderByBuff, const CHAR * pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNTRACESTART_INIT ) ;
+
+      try
+      {
+         BSONObj arg ( pMatcherBuff );
+         BSONElement eleSize = arg.getField ( FIELD_NAME_SIZE ) ;
+         BSONElement eleComps = arg.getField( FIELD_NAME_COMPONENTS );
+         BSONElement eleBreakpoints = arg.getField( FIELD_NAME_BREAKPOINTS );
+         BSONElement eleTids = arg.getField ( FIELD_NAME_THREADS ) ;
+         BSONElement eleFunctionNames = arg.getField ( FIELD_NAME_FUNCTIONNAMES ) ;
+         BSONElement eleThreadTypes = arg.getField ( FIELD_NAME_THREADTYPES ) ;
+
+         // init buffsize
+         if ( eleSize.isNumber() )
+         {
+            _size = ( UINT32 )eleSize.numberLong() ;
+
+            if ( _size < RTN_MIN_TRACE_BUFFER_SIZE ||
+                 _size > RTN_MAX_TRACE_BUFFER_SIZE )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "The range of trace bufferSize is "
+                           "[ 1, 1024 ], rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+
+         rc = _initComponents( eleComps ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to init components, rc: %d", rc ) ;
+            goto error ;
+         }
+
+#if defined (SDB_ENGINE)
+         rc = _initBreakpoints( eleBreakpoints ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to init breakpoints, rc: %d", rc ) ;
+            goto error ;
          }
 #endif
 
-         // init tids
-         if ( eleTID.type() == Array )
+         rc = _initTids( eleTids ) ;
+         if ( rc )
          {
-            BSONObjIterator it ( eleTID.embeddedObject() ) ;
-            while ( it.more () )
-            {
-               BSONElement ele = it.next() ;
-               if ( ele.isNumber() )
-               {
-                  UINT32 tid = (UINT32)ele.numberInt() ;
-                  _tid.push_back ( tid ) ;
-               }
-            }
+            PD_LOG( PDERROR, "Failed to init tids, rc: %d", rc ) ;
+            goto error ;
          }
 
-         // init functionNames
-         if ( eleFunctionNames.type() == Array )
+         rc = _initFunctionNames( eleFunctionNames ) ;
+         if ( rc )
          {
-            BSONObjIterator it ( eleFunctionNames.embeddedObject() ) ;
-            while ( it.more () )
-            {
-               BSONElement ele = it.next() ;
-               if ( ele.type() == String )
-               {
-                  const CHAR* eleStr = ele.valuestr();
-                  BOOLEAN isValid = FALSE ;
-                  isValid = _isFunctionNameValid( eleStr ) ;
-                  if( !isValid )
-                  {
-                     rc = SDB_INVALIDARG ;
-                     PD_LOG_MSG( PDERROR,
-                                 "The function name: %s is invalid", eleStr ) ;
-                     goto error ;
-                  }
-               }
-            }
+            PD_LOG( PDERROR, "Failed to init functionNames, rc: %d", rc ) ;
+            goto error ;
          }
 
-         // init threadTypes
-         if ( eleThreadTypes.type() == Array )
+         rc = _initThreadTypes( eleThreadTypes ) ;
+         if ( rc )
          {
-            pmdEPFactory &factory = pmdGetEPFactory() ;
-            BSONObjIterator it ( eleThreadTypes.embeddedObject() ) ;
-            while ( it.more () )
-            {
-               BSONElement ele = it.next() ;
-               if ( ele.type() == String )
-               {
-                  const CHAR* eleStr = ele.valuestr() ;
-                  INT32 threadType = factory.name2Type( eleStr ) ;
-                  if( threadType >= 0 )
-                  {
-                     _threadType.push_back( threadType ) ;
-                  }
-                  else
-                  {
-                     rc = SDB_INVALIDARG ;
-                     PD_LOG_MSG( PDERROR,
-                                 "The thread type: %s is invalid", eleStr ) ;
-                     goto error ;
-                  }
-               }
-            }
+            PD_LOG( PDERROR, "Failed to init threadTypes, rc: %d", rc ) ;
+            goto error ;
          }
+      }
+      catch( std::bad_alloc &e )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Initialize trace start command exception: %s, "
+                 "rc: %d", e.what(), rc ) ;
+         goto error ;
       }
       catch ( std::exception &e )
       {
-         PD_RC_CHECK ( SDB_SYS, PDERROR,
-                       "Exception when initialize trace start command: %s",
-                       e.what() ) ;
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Initialize trace start command exception: %s, "
+                 "rc: %d", e.what(), rc ) ;
+         goto error ;
       }
+
    done :
       PD_TRACE_EXITRC ( SDB__RTNTRACESTART_INIT, rc ) ;
       return rc ;
@@ -2870,7 +3168,7 @@ error:
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTART_DOIT ) ;
-      rc = sdbGetPDTraceCB()->start ( (UINT64)_size, _mask, &_breakPoint, &_tid,
+      rc = sdbGetPDTraceCB()->start ( (UINT64)_size, _mask, &_breakpoint, &_tid,
                                       &_functionNameId, &_threadType ) ;
       PD_TRACE_EXITRC ( SDB__RTNTRACESTART_DOIT, rc ) ;
       return rc ;
