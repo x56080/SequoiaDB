@@ -11,7 +11,7 @@ function test ()
       csName += "a";
    }
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createCS( csName );
    } );

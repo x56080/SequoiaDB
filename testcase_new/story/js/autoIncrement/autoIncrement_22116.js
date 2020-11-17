@@ -43,7 +43,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: 1 } } );
 
    //再次不指定自增字段值单插时，与id:1002索引键冲突
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.insert( { a: 4 } );
    } );
@@ -56,7 +56,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "id", CurrentValue: 1001 } } );
 
    //不指定自增字段值批插时，与id:1002索引键冲突
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.insert( [{ a: 5 }, { a: 6 }, { a: 7 }] );
    } );

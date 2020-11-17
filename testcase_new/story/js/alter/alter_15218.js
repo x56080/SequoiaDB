@@ -39,7 +39,7 @@ function test ()
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AutoSplit", false );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "AttributeDesc", "StrictDataMode" );
 
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       cl.alter( {
          Alter: [{ Name: "enable sharding", Args: { ShardingKey: { b: 1 }, ShardingType: 'range' } },

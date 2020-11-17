@@ -14,19 +14,19 @@ function test ()
    var cs = commCreateCS( db, csName, false, "create cs in begine" );
 
    // rename cs new name is begin with $
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, "$csName16552" );
    } );
 
    // rename cs new name is contains .
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, "csName.16552" );
    } );
 
    // rename cs new name is ""
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, "" );
    } );
@@ -37,7 +37,7 @@ function test ()
    {
       longStr += "a";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, longStr );
    } );
@@ -48,7 +48,7 @@ function test ()
    {
       boundStr += "s";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, boundStr );
    } );
@@ -68,7 +68,7 @@ function test ()
    db.renameCS( nameStr, csName );
 
    // rename cs new name is begin with SYS
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.renameCS( csName, "SYScsName16552" );
    } );

@@ -37,7 +37,7 @@ function dropCappedCLAndCheckResult ( cappedCSName, cappedCLName )
 {
    var dbcs = db.getCS( cappedCSName );
    dbcs.dropCL( cappedCLName );
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       dbcs.getCL( cappedCLName );
    } );

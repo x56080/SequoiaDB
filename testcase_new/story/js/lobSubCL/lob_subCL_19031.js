@@ -22,17 +22,17 @@ function test ()
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1 }, "LobShardingKeyFormat": "YYYYMM", "ShardingType": "range" };
    var mainCL = commCreateCL( db, csName, mainCLName, options, true, false, "create main cl" );
    commCreateCL( db, csName, subCLName );
-   assert.tryThrow( -238, function()
+   assert.tryThrow( SDB_BOUND_INVALID, function()
    {
       mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": 201901 }, "UpBound": { "date": 201907 } } );
    } );
 
-   assert.tryThrow( -238, function()
+   assert.tryThrow( SDB_BOUND_INVALID, function()
    {
       mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "201901" }, "UpBound": { "date": 201907 } } );
    } );
 
-   assert.tryThrow( -238, function()
+   assert.tryThrow( SDB_BOUND_INVALID, function()
    {
       mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "20190101" }, "UpBound": { "date": "20190701" } } );
    } );

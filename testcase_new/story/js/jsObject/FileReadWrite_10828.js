@@ -44,7 +44,7 @@ FileTest.prototype.testSeekBoundary = function()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -59,7 +59,7 @@ FileTest.prototype.testSeekBoundary = function()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e.message != -9 )
+      if( e.message != SDB_EOF )
       {
          throw e;
       }
@@ -86,7 +86,7 @@ function generateContent ( ch, size )
 ******************************************************************************/
 function checkClose ( file )
 {
-   assert.tryThrow( -1, function()
+   assert.tryThrow( SDB_IO, function()
    {
       file.write( 'abcd' );
    } );

@@ -11,13 +11,13 @@ function test ( arg )
    cl.insert( { "a": { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1" } } );
 
    //查询binary类型数据，$type值错误
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { a: { "$binary": "aGVsbG8gd29ybGQ=", "$type": "1000" } } ).toArray();
    } );
 
    //查询binary类型数据，缺少$type 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { bindata: { "$binary": "aGVsbG8gd29ybGQ=" } } ).toArray();
    } );

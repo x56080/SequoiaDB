@@ -50,7 +50,7 @@ function test ()
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e.message == -145 || e.message == -290 )
+            if( e.message == SDBCM_NODE_EXISTED || e.message == SDB_DIR_NOT_EMPTY )
             {
                svc = svc + 10;
                dbpath = RSRVNODEDIR + "data/" + svc;
@@ -81,7 +81,7 @@ function test ()
       catch( e )
       {
          // -155:Node does not exist
-         if( e.message != -155 )
+         if( e.message != SDB_CLS_NODE_NOT_EXIST )
          {
             throw e;
          }

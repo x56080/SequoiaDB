@@ -32,12 +32,12 @@ function test ()
    }
 
    //listlobs with error cond
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.listLobs( SdbQueryOption().cond( {} ).cond( { "Size": { "$include": 0 } } ) );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.listLobs( SdbQueryOption().cond( { "Size": { $kk: 0 } } ) );
    } );

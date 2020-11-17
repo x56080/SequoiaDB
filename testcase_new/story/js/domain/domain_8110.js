@@ -20,7 +20,7 @@ function test ()
    // Create domain only have domainName [Testing Point]
    db.createDomain( domainName );
 
-   assert.tryThrow( -262, function()
+   assert.tryThrow( SDB_CAT_NO_GROUP_IN_DOMAIN, function()
    {
       db.createCS( csName, { "Domain": domainName } );
    } );

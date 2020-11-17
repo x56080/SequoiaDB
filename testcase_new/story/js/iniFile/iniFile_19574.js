@@ -33,7 +33,7 @@ function test ()
    iniFile.enableItem( section2, key2 );
    iniFile.save();
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.disableItem( "notsection", key1 );
       iniFile.save();

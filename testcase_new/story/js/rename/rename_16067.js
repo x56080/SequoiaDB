@@ -24,7 +24,7 @@ function test ()
    var targetGroupNums = 2;
    var groupsInfo = getSplitGroups( COMMCSNAME, clName, targetGroupNums );
    var taskId = splitCL( COMMCSNAME, clName );
-   assert.tryThrow( -334, function()
+   assert.tryThrow( SDB_OPERATION_CONFLICT, function()
    {
       db.getCS( COMMCSNAME ).renameCL( clName, newCLName );
    } );

@@ -47,7 +47,7 @@ function addNode ( groupName, nodeAttr )
       }
       catch( e )
       {
-         if( e.message == -145 || e.message == -290 )
+         if( e.message == SDBCM_NODE_EXISTED || e.message == SDB_DIR_NOT_EMPTY )
          {
             doTimes++;
          }

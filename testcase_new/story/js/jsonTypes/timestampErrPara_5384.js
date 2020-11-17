@@ -17,7 +17,7 @@ function test ()
    var ErrCode = -6;
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          Timestamp( ErrPara[i] );
       } );

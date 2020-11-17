@@ -107,7 +107,7 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
    }
    catch( e )
    {
-      if( e.message != -23 )
+      if( e.message != SDB_DMS_NOTEXIST )
       {
          throw e;
       }
@@ -118,7 +118,7 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
    }
    catch( e )
    {
-      if( e.message != -23 )
+      if( e.message != SDB_DMS_NOTEXIST )
       {
          throw e;
       }

@@ -14,7 +14,7 @@ function test ()
    clearDomain( db, domName );
 
    db.createDomain( domName );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createDomain( "SYSDOMAIN" );
    } );

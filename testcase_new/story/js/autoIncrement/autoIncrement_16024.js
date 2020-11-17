@@ -76,7 +76,7 @@ function test ()
    var actR = dbcl.find().sort( { _id: 1 } );
    checkRec( actR, expR );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.insert( { id: "a" } );
    } );

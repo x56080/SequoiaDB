@@ -49,7 +49,7 @@ function test ()
    checkAlterCSResult( csName, "Domain", domainName2 );
 
    //testcase15045:alter domain, new domain contains the group of cl
-   assert.tryThrow( -216, function()
+   assert.tryThrow( SDB_CAT_GROUP_NOT_IN_DOMAIN, function()
    {
       dbcs.setDomain( { Domain: domainName3 } );
    } );

@@ -95,7 +95,7 @@ function testSortNotExistIndex ( cl )
    }
    catch( e )
    {
-      if( -288 != e.message )
+      if( SDB_RTN_QUERYMODIFY_SORT_NO_IDX != e.message )
       {
          throw e;
       }

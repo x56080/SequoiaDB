@@ -15,18 +15,18 @@ function test ()
    commDropCL( db, COMMCSNAME, clName, true, true );
    var cl = commCreateCL( db, COMMCSNAME, clName, {}, true, true );
    // put lob with no lob file[Test_Point_1]
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.listLobs( testFile );
    } );
 
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.putLob();
    } );
 
    // delete lob with no oid[Test_Point_2]
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.deleteLob();
    } );

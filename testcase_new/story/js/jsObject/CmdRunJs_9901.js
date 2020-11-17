@@ -15,7 +15,7 @@ CmdTest.prototype.testRunJS = function()
    }
    catch( e )
    {
-      if( e.message == -10 && this.isLocal )
+      if( e.message == SDB_SYS && this.isLocal )
          ;
       else
          throw e;

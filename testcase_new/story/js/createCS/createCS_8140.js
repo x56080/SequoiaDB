@@ -6,7 +6,7 @@ function test ()
 {
    var csName = COMMCSNAME + "_._8140";
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createCS( csName );
    } );

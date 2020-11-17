@@ -32,7 +32,7 @@ function test ()
 function testIsUniqueFalse ( cl, indexName )
 {
    // verify ("indexName", {a:1}, false, true)
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, { a: 1 }, false, true );
    } );
@@ -53,7 +53,7 @@ function testIsUniqueEnforced ( cl, indexName )
       throw new Error( "wrong query" );
    }
    // verify ("indexName", {a:1}, true, true)
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.insert( { a: -5 } );
    } );

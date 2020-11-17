@@ -19,7 +19,7 @@ function test ()
    var cl = commCreateCL( db, csName, clName, {}, true, false, "create CL in the begin" );
 
    //only alter ShardingType
-   assert.tryThrow( -245, function()
+   assert.tryThrow( SDB_NO_SHARDINGKEY, function()
    {
       cl.setAttributes( { ShardingType: 'range' } );
    } );

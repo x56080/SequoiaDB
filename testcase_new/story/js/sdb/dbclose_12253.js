@@ -10,7 +10,7 @@ function test ()
    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
    db.close();
 
-   assert.tryThrow( [-64, -6], function()
+   assert.tryThrow( [SDB_NOT_CONNECTED, SDB_INVALIDARG], function()
    {
       db.traceResume();
    } );

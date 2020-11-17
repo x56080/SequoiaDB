@@ -26,7 +26,7 @@ function test ()
 ********************************************************************************/
 function test_UsedSkipOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).skip( 2 ).update( { $set: { b: 1 } } ).toArray();
@@ -41,7 +41,7 @@ function test_UsedSkipOfFailed ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).limit( 2 ).update( { $set: { b: 1 } } ).toArray();
@@ -56,7 +56,7 @@ function test_UsedLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       loadMultipleDoc( cl, 5 * 4 );
       var arrdoc = cl.find( { date: { $gte: 20150101 } } ).skip( 2 ).limit( 5 ).update( { $set: { b: 1 } } ).toArray();
@@ -71,7 +71,7 @@ function test_UsedSkipAndLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipOfFailedSplit ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;
@@ -88,7 +88,7 @@ function test_UsedSkipOfFailedSplit ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailedSplit ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;
@@ -105,7 +105,7 @@ function test_UsedLimitOfFailedSplit ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailedSplit ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var groupNum = commGetGroupsNum( db );
       if( groupNum == 1 ) return;

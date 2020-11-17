@@ -29,7 +29,7 @@ function test ()
    cl.disableSharding();
 
    var splitGroup = getSplitGroup( db, csName, clName );
-   assert.tryThrow( -169, function()
+   assert.tryThrow( SDB_COLLECTION_NOTSHARD, function()
    {
       cl.split( splitGroup.srcGroup, splitGroup.tarGroup, 50 );
    } );

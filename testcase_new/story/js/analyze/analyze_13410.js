@@ -338,7 +338,7 @@ function test ()
    }
    catch( e )
    {
-      if( -47 != e.message )
+      if( SDB_IXM_NOTEXIST != e.message )
       {
          throw e;
       }

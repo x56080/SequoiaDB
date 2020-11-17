@@ -59,7 +59,7 @@ function test ()
       }
       catch( e )
       {
-         if( e.message != -264 )
+         if( e.message != SDB_COORD_NOT_ALL_DONE )
          {
             throw e;
          }
@@ -108,7 +108,7 @@ function checkNodeStatus ( hostname, nodeList, isNormal )
          }
          else
          {
-            if( e.message != -79 )
+            if( e.message != SDB_NET_CANNOT_CONNECT )
             {
                throw new Error( "checkNodeStatus() fail,check node error: '" + hostname + ":" + nodeList[i] + "'" + -79 + e );
             }

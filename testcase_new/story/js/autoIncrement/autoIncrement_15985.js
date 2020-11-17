@@ -38,7 +38,7 @@ function test ()
    {
       checkSequence( db, sequenceNames[i], {} );
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.insert( { a: 1 } );
    } );
@@ -56,7 +56,7 @@ function test ()
 
 function createAutoIncrement ( dbcl, field )
 {
-   assert.tryThrow( -332, function()
+   assert.tryThrow( SDB_AUTOINCREMENT_FIELD_CONFLICT, function()
    {
       dbcl.createAutoIncrement( { Field: field } );
    } );

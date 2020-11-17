@@ -11,7 +11,7 @@ RemoteTest.prototype.testClose = function()
    var system = this.remote.getSystem();
    this.remote.close();
 
-   assert.tryThrow( -15, function()
+   assert.tryThrow( SDB_NETWORK, function()
    {
       system.type();
    } );

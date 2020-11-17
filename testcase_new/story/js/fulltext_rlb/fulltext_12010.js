@@ -31,17 +31,17 @@ function test ()
    {
       preSlave.stop();
 
-      assert.tryThrow( [-105, -252], function()
+      assert.tryThrow( [SDB_CLS_NODE_NOT_ENOUGH, SDB_CLS_WAIT_SYNC_FAILED], function()
       {
          dbcl.insert( { a: 'insertAfterNodeStop' } );
       } );
 
-      assert.tryThrow( [-105, -252], function()
+      assert.tryThrow( [SDB_CLS_NODE_NOT_ENOUGH, SDB_CLS_WAIT_SYNC_FAILED], function()
       {
          dbcl.update( { $set: { a: 'updateAfterNodeStop' } } );
       } );
 
-      assert.tryThrow( [-105, -252], function()
+      assert.tryThrow( [SDB_CLS_NODE_NOT_ENOUGH, SDB_CLS_WAIT_SYNC_FAILED], function()
       {
          dbcl.remove();
       } );

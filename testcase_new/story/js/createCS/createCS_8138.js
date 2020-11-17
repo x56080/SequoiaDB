@@ -8,7 +8,7 @@ function test ()
    commDropCS( db, csName );
    db.createCS( csName );
 
-   assert.tryThrow( -33, function()
+   assert.tryThrow( SDB_DMS_CS_EXIST, function()
    {
       db.createCS( csName );
    } );

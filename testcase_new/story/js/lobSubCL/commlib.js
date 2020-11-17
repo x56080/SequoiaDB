@@ -93,7 +93,7 @@ function deleteTmpFile ( filePath )
       File.remove( filePath );
    } catch( e )
    {
-      if( e.message != -4 )
+      if( e.message != SDB_FNE )
       {
          throw e;
       }
@@ -226,7 +226,7 @@ function deleteLob ( cl, lobOids )
    for( i in lobOids )
    {
       cl.deleteLob( lobOids[i] );
-      assert.tryThrow( -4, function()
+      assert.tryThrow( SDB_FNE, function()
       {
          cl.getLob( lobOids[i], WORKDIR + "/" + clName + "_" + i );
 
@@ -267,7 +267,7 @@ function checkSubCLLob ( db, mainCLFullName, lobOids )
          }
          catch( e )
          {
-            if( e.message != -4 )
+            if( e.message != SDB_FNE )
             {
                throw e;
             }
@@ -292,7 +292,7 @@ function cleanMainCL ( db, mainCSName, mainCLName )
       var name = subCLNames[i].split( "." );
       var csName = name[0];
       var clName = name[1];
-      assert.tryThrow( -23, function()
+      assert.tryThrow( SDB_DMS_NOTEXIST, function()
       {
          db.getCS( csName ).getCL( clName );
       } );

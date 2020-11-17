@@ -51,7 +51,7 @@ function test ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      assert.tryThrow( -325, function()
+      assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
       {
          cl.insert( { "a": i, "b": i } );
       } );
@@ -97,7 +97,7 @@ function test ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      assert.tryThrow( -325, function()
+      assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
       {
          cl.insert( { "a": i, "b": i } );
       } );

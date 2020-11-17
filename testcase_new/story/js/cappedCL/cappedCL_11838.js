@@ -16,7 +16,7 @@ function test ()
    normalCLinsertData( dbcl );
 
    //normalCL pop data
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       dbcl.pop( { LogicalID: 0, Direction: -1 } );
    } );

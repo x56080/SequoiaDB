@@ -57,7 +57,7 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    }
    catch( e )
    {
-      if( e.message != -4 )
+      if( e.message != SDB_FNE )
       {
          throw e;
       }
@@ -71,7 +71,7 @@ OmaTest.prototype.testGetOmaConfigsAbnormal = function()
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

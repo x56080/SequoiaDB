@@ -34,7 +34,7 @@ function insertNotSetFlag ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }
@@ -76,7 +76,7 @@ function insertSetFlag_ReturnOid ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }
@@ -107,7 +107,7 @@ function insertSetFlag_ContOnDup ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }
@@ -129,7 +129,7 @@ function insertSetFlag_ContOnDup ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }

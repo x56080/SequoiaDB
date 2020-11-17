@@ -34,7 +34,7 @@ function forceSession ( db, hostName, svcName, options )
    var sessionID = dataDB.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj().SessionID;
    db.forceSession( sessionID, options );
 
-   assert.tryThrow( [-16, -15], function()
+   assert.tryThrow( [SDB_NETWORK_CLOSE, SDB_NETWORK], function()
    {
       dataDB.list( SDB_LIST_SESSIONS_CURRENT );
    } );

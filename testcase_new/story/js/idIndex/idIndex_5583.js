@@ -29,7 +29,7 @@ function test ()
    idxCL.find( { _id: 3 } ).update( { $set: { a: "testa" } } );
 
    //remove data
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       idxCL.remove( { _id: 3 } );
    } );

@@ -81,7 +81,7 @@ function fsstart ( param, timeout )
    }
    catch( e )
    {
-      if( e.message != -13 )
+      if( e.message != SDB_TIMEOUT )
       {
          throw e;
       }

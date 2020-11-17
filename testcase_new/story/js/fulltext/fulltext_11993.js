@@ -19,13 +19,13 @@ function test ()
 
    //创建索引类型非法的全文索引
    var indexName = "a_11993";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( indexName, { content: "int" } );
    } );
 
    //创建非法的复合索引
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( indexName, { content: "text", about: 1 } );
    } );

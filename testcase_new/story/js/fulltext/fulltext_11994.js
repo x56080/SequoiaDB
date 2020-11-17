@@ -27,7 +27,7 @@ function test ()
 
    //删除不存在的全文索引，删除失败
    commCheckIndexConsistency( dbcl, indexName, false );
-   assert.tryThrow( -47, function()
+   assert.tryThrow( SDB_IXM_NOTEXIST, function()
    {
       dbcl.dropIndex( indexName );
    } );

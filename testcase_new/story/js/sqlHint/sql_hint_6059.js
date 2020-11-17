@@ -23,7 +23,7 @@ function test ()
 function verifyParam1 ( csName )
 {
 
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.exec( "select * from 123.atest /*+use_index(idx)*/" );
    } )
@@ -32,7 +32,7 @@ function verifyParam1 ( csName )
 function verifyParam2 ( csName, clName )
 {
 
-   assert.tryThrow( -195, function()
+   assert.tryThrow( SDB_SQL_SYNTAX_ERROR, function()
    {
       db.exec( "select * from " + csName + "." + clName + " /+use_index(idx)*/" );
    } )

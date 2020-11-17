@@ -27,7 +27,7 @@ function excuteWrongPcd ()
    db.eval( cmd );
 
    var cmd = pcdName + '("' + csName + '")';
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.eval( cmd );
    } );
@@ -39,7 +39,7 @@ function excuteNotExistPcd ()
    fmpRemoveProcedures( [pcdName], true );
 
    var cmd = pcdName + "()";
-   assert.tryThrow( -152, function()
+   assert.tryThrow( SDB_SPT_EVAL_FAIL, function()
    {
       db.eval( cmd );
    } );

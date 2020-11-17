@@ -63,7 +63,7 @@ function test ()
    {
       var coord = new Sdb( coordNodes[i] );
       var cl = coord.getCS( COMMCSNAME ).getCL( clName );
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          cl.insert( { "id1": "a" + i } );
       } );

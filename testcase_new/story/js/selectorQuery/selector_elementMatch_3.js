@@ -75,14 +75,14 @@ function test ()
    /*【Test Point 3】 $elemMatch: select query from {a:{b:{c:{d:["1","2","3"]}}}}*/
    var condObj = {};
    var selObj = { "ExtraField4.nest1.nest2.nest3": { "$elemMatch": "nest4" } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );
    /*【Test Point 4】 $elemMatchOne: select query from {a:{b:["1","2","3"]}}*/
    var condObj = {};
    var selObj = { "ExtraField4.nest1.nest2.nest3": { "$elemMatchOne": "nest4" } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

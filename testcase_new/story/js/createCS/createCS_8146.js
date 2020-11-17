@@ -5,7 +5,7 @@ function test ()
 {
    var csName = "SYS" + "_8146";
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createCS( csName );
    } );

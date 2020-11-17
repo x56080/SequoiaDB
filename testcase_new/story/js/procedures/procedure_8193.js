@@ -25,14 +25,14 @@ function createExistPcd ()
    var cmd = "db.createProcedure( function " + pcdName + "(x, y){return x-y;} )";
    db.eval( cmd );
 
-   assert.tryThrow( -342, function()
+   assert.tryThrow( SDB_FMP_FUNC_EXIST, function()
    {
       db.eval( cmd );
    } );
 
    var cmd = "db.createProcedure( function " + pcdName + "(x){return x;} )";
 
-   assert.tryThrow( -342, function()
+   assert.tryThrow( SDB_FMP_FUNC_EXIST, function()
    {
       db.eval( cmd );
    } );
@@ -43,7 +43,7 @@ function lackName ()
    db.eval( cmd );
    var cmd = "db.createProcedure( function " + "(x, y){return x-y;} )";
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.eval( cmd );
    } );
@@ -54,7 +54,7 @@ function wrongParameterType ()
    db.eval( cmd );
    var cmd = "db.createProcedure( function " + pcdName + "{return x-y;} )";
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createProcedure( "" );
    } );

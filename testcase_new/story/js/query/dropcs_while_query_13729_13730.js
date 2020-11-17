@@ -51,7 +51,7 @@ function checkContext ()
 function dropcsSameSession ( csName )
 {
    db.dropCS( csName );
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.getCS( csName );
    } );
@@ -63,7 +63,7 @@ function dropcsDiffSession ( csName )
    try
    {
       dbAnother = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-      assert.tryThrow( -147, function()
+      assert.tryThrow( SDB_LOCK_FAILED, function()
       {
          dbAnother.dropCS( csName );
       } );

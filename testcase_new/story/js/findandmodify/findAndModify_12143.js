@@ -36,7 +36,7 @@ function test_UsedSkipOfFailed ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }
@@ -60,7 +60,7 @@ function test_UsedLimitOfFailed ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }
@@ -84,7 +84,7 @@ function test_UsedSkipAndLimitOfFailed ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }
@@ -110,7 +110,7 @@ function test_UsedSkipOfFailedSplit ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }
@@ -136,7 +136,7 @@ function test_UsedLimitOfFailedSplit ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }
@@ -162,7 +162,7 @@ function test_UsedSkipAndLimitOfFailedSplit ( cl )
    }
    catch( e )
    {
-      if( -289 != e.message )
+      if( SDB_RTN_QUERYMODIFY_MULTI_NODES != e.message )
       {
          throw e;
       }

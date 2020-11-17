@@ -15,7 +15,7 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //alter clName
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       dbcl.setAttributes( { "Name": COMMCSNAME + "." + clName } );
    } );

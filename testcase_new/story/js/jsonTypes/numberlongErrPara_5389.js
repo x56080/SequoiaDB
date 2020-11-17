@@ -14,7 +14,7 @@ function test ()
    [true], ["abc"]];
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          NumberLong( ErrPara[i] );
       } );

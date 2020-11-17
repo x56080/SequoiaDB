@@ -79,7 +79,7 @@ function crudAndCheckDetached ( maincl, subcl )
 {
    var obj = { a: 5 };
    //CRUD operation
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       maincl.insert( obj );
    } )

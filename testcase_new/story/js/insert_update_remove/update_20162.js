@@ -38,7 +38,7 @@ function test ()
    }
 
    //更新多条记录，部分分区键，部分非分区键，KeepShardingKey为true
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.update( { "$set": updatedRecord }, {}, {}, { "KeepShardingKey": true } );
    } );

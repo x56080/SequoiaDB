@@ -26,18 +26,18 @@ function testIllegalPos ()
    {
       for( var i = 0; i < errorPos.length; i++ )
       {
-         assert.tryThrow( -6, function()
+         assert.tryThrow( SDB_INVALIDARG, function()
          {
             rg.getSlave( errorPos[i] );
          } );
       }
 
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          rg.getSlave( 1, 2, 0, 5, 8 );
       } );
 
-      assert.tryThrow( -158, function()
+      assert.tryThrow( SDB_CLS_EMPTY_GROUP, function()
       {
          rg.getSlave( 1 );
       } );

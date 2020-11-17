@@ -140,7 +140,7 @@ function checkRenameCLResult ( csName, oldCLName, newCLName )
    var clFullName = csName + "." + newCLName;
    var getNewCLName = db.snapshot( SDB_SNAP_COLLECTIONS, { "Name": clFullName } ).current().toObj().Name;
    assert.equal( getNewCLName, clFullName );
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.getCS( csName ).getCL( oldCLName );
    } );
@@ -160,7 +160,7 @@ function checkRenameMainCLResult ( maincs, subcs, newMainCLName, oldMainCLName, 
    assert.equal( getMainCLName, newMainCLFullName );
 
    //check the old maincl is not exist
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    { db.getCS( maincs ).getCL( oldMainCLName ); } );
 }
 
@@ -329,7 +329,7 @@ function checkRenameCSResult ( oldCSName, newCSName, clNum )
    }
 
    //check the old cl is not exist
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.getCS( oldCSName );
    } );
@@ -356,7 +356,7 @@ function checkRenameSubCLResult ( maincs, mainCLName, subcs, oldSubCLName, newSu
    assert.equal( getSubCLName, newSubCLFullName );
 
    //check the old subcl is not exist
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.getCS( subcs ).getCL( oldSubCLName );
    } );

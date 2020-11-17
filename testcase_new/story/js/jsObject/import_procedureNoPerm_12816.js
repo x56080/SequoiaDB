@@ -23,7 +23,7 @@ function test ()
    createNoPermFile();
 
    // create procedure to import file and test
-   assert.tryThrow( -3, function()
+   assert.tryThrow( SDB_PERM, function()
    {
       checkProcedure( "testImportNoPermFile12816" );
       db.createProcedure( function testImportNoPermFile12816 ( file ) { return import( file ) } );
@@ -32,7 +32,7 @@ function test ()
    db.removeProcedure( "testImportNoPermFile12816" );
 
    // create procedure to importOnce file and test
-   assert.tryThrow( -3, function()
+   assert.tryThrow( SDB_PERM, function()
    {
       checkProcedure( "testImportOnceNoPermFile12816" );
       db.createProcedure( function testImportOnceNoPermFile12816 ( file ) { return importOnce( file ) } );

@@ -96,7 +96,7 @@ function attachCL ( csName, mainCL, subCLName, lowBound, upBound )
 function bulkinsertRandomRecs ( mainCL, recs )
 {
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       mainCL.insert( recs );
    } );

@@ -65,7 +65,7 @@ function testErrFormat1 ( cl )
    cl.remove();
 
    var rec = { a: { $numberLong: -1 } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.insert( rec );
    } )
@@ -79,7 +79,7 @@ function testErrFormat2 ( cl )
    cl.remove();
 
    var rec = { a: { $numberLong: "1.1" } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.insert( rec );
    } )

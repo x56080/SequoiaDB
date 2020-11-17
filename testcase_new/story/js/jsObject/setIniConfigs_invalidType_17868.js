@@ -13,13 +13,13 @@ function test ()
 
    // sdb test
    // invalid type[null]
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       Oma.setIniConfigs( { "inv.null": null }, filePath );
    } );
 
    // invalid type[array]
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       Oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
    } );
@@ -29,14 +29,14 @@ function test ()
    var oma = new Oma( COORDHOSTNAME, CMSVCNAME );
 
    // invalid type[null]
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       oma.setIniConfigs( { "inv.null": null }, filePath );
    } );
 
 
    // invalid type[array]
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       oma.setIniConfigs( { "inv.null": [1, 2] }, filePath );
    } );

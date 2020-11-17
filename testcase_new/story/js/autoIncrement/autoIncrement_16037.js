@@ -76,7 +76,7 @@ function test ()
 
    //insert records
    dbcl.insert( { "q": 1 } );
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );

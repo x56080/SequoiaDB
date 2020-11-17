@@ -50,12 +50,12 @@ function test ()
    dbB.getCS( csName ).getCL( mainCLName ).attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
    dbB.getCS( csName ).getCL( mainCLName ).attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
 
-   assert.tryThrow( -235, function()
+   assert.tryThrow( SDB_RELINK_SUB_CL, function()
    {
       mainCL.attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
    } );
 
-   assert.tryThrow( -235, function()
+   assert.tryThrow( SDB_RELINK_SUB_CL, function()
    {
       mainCL.attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
    } );

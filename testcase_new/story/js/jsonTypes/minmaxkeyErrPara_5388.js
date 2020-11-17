@@ -15,12 +15,12 @@ function test ()
 
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          temp = MinKey( ErrPara[i] );
       } );
 
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          temp = MaxKey( ErrPara[i] );
       } );

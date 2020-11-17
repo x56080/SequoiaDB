@@ -66,7 +66,7 @@ function dropclAndCheck ()
    }
    catch( e )
    {
-      if( e.message != -23 )
+      if( e.message != SDB_DMS_NOTEXIST )
       {
          throw e;
       }

@@ -31,7 +31,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
       }
@@ -44,7 +44,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }
@@ -66,7 +66,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }
@@ -79,7 +79,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }

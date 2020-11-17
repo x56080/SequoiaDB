@@ -28,7 +28,7 @@ function test ()
    rt.testInit();
 
    // 测试使用非cm端口初始化
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       new Remote( remotehost, COORDSVCNAME );
    } );

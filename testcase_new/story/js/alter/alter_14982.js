@@ -58,7 +58,7 @@ function checkAlterResult ( cl, onlyCatch307 )
       }
       catch( e )
       {
-         if( e.message != -307 || !onlyCatch307 )
+         if( e.message != SDB_OSS_UP_TO_LIMIT || !onlyCatch307 )
          {
             throw e;
          }

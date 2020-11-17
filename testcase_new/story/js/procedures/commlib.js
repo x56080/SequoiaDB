@@ -25,7 +25,7 @@ function fmpCleanProcedures ( db, filter )
       }
       catch( e )
       {
-         if( e.message != -233 )
+         if( e.message != SDB_FMP_FUNC_NOT_EXIST )
          {
             throw e;
          }
@@ -52,7 +52,7 @@ function fmpRemoveProcedures ( nameArray, ignoreNotExist )
       }
       catch( e )
       {
-         if( !ignoreNotExist || e.message != -233 )
+         if( !ignoreNotExist || e.message != SDB_FMP_FUNC_NOT_EXIST )
          {
             throw e;
          }

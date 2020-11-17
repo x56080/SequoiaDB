@@ -58,7 +58,7 @@ function insertRecs ( cl, rawData )
    var i = 0;
    for( i = 0; i < rawData.length; i++ )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          cl.insert( rawData[i] );
       } );

@@ -112,7 +112,7 @@ function checkTruncateResult ( filePath, fileName, expContent, isLocal )
    }
    else
    {
-      assert.tryThrow( -9, function()
+      assert.tryThrow( SDB_EOF, function()
       {
          file.read();
       } );

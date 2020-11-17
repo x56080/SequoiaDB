@@ -17,11 +17,11 @@ function test ()
    commDropCS( db, csName2, true, "ignoreNotExist is true" );
    var varCS1 = commCreateCS( db, csName1, true, "create CS" );
    var varCS2 = commCreateCS( db, csName2, true, "create CS" );
-   assert.tryThrow( -33, function()
+   assert.tryThrow( SDB_DMS_CS_EXIST, function()
    {
       db.renameCS( csName1, csName1 );
    } );
-   assert.tryThrow( -33, function()
+   assert.tryThrow( SDB_DMS_CS_EXIST, function()
    {
       db.renameCS( csName1, csName2 );
    } );

@@ -69,7 +69,7 @@ function checkFindResult ( result, cmd, commands )
          throw new Error( "should error" );
       } catch( e )
       {
-         if( e.message != -5 )
+         if( e.message != SDB_FE )
          {
             throw e;
          }

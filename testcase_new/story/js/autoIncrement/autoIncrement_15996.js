@@ -37,7 +37,7 @@ function test ()
 
 function createCL ( clName, field )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName, { AutoIncrement: [{ Field: "a.aa" }, { Field: field }] } );
    } );

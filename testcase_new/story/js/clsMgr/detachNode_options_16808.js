@@ -10,7 +10,7 @@ function test ()
    var groupList = getGroup( db );
    var groupName = groupList[0];
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getRG( groupName ).detachNode( COORDHOSTNAME, RSRVPORTBEGIN, "test" );
    } );

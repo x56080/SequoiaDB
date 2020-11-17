@@ -42,7 +42,7 @@ function alterEnsureShardingNoShardingKey ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -245 )
+      if( e.message != SDB_NO_SHARDINGKEY )
       {
          throw e;
       }

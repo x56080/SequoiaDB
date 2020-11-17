@@ -19,7 +19,7 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
    dbcl.insert( { a: "text" } );
 
-   assert.tryThrow( -52, function()
+   assert.tryThrow( SDB_RTN_INDEX_NOTEXIST, function()
    {
       var cursor = dbcl.find( { "": { $Text: { query: { match_all: {} } } } } );
       while( cursor.next() ) { }

@@ -13,7 +13,7 @@ function test ()
       return;
    }
    ready();
-   assert.tryThrow( -233, function()
+   assert.tryThrow( SDB_FMP_FUNC_NOT_EXIST, function()
    {
       db.removeProcedure( pcdName );
    } );
@@ -24,12 +24,12 @@ function test ()
 
 function parameterCheck ()
 {
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       db.removeProcedure();
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.removeProcedure( 123 );
    } );

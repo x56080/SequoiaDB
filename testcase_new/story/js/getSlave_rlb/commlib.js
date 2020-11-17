@@ -43,7 +43,7 @@ function createNodes ( rg, nodeNum )
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e.message == -145 || e.message == -290 )
+            if( e.message == SDBCM_NODE_EXISTED || e.message == SDB_DIR_NOT_EMPTY )
             {
                svc = svc + 10;
                dbpath = adaptPath( RSRVNODEDIR ) + "data/" + svc;
@@ -109,7 +109,7 @@ function isMasterExist ( db, rgName )
    }
    catch( e )
    {
-      if( e.message != -104 )
+      if( e.message != SDB_CLS_NOT_PRIMARY )
       {
          throw e;
       }
@@ -136,7 +136,7 @@ function getMaster ( rg )
       }
       catch( e )
       {
-         if( e.message == -71 )
+         if( e.message == SDB_RTN_NO_PRIMARY_FOUND )
          {
             continue;
          }

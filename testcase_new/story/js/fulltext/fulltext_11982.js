@@ -19,7 +19,7 @@ function test ()
 
    //在已存在全文索引定义的集合中，再次创建全文索引
    dbcl.createIndex( "a_11982", { content: "text" } );
-   assert.tryThrow( -42, function()
+   assert.tryThrow( SDB_DMS_MAX_INDEX, function()
    {
       dbcl.createIndex( "b_11982", { about: "text" } );
    } );

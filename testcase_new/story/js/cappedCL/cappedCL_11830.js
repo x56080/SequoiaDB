@@ -14,7 +14,7 @@ function test ()
    var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //createIndex
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       dbcl.createIndex( "ageIndex", { age: 1 }, true );
    } );

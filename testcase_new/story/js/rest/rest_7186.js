@@ -62,7 +62,7 @@ function twoName ()
    }
    catch( e )
    {
-      if( e.message != -34 )
+      if( e.message != SDB_DMS_CS_NOTEXIST )
       {
          throw e;
       }

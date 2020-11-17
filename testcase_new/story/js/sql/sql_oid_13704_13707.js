@@ -64,7 +64,7 @@ function insertSQL ( db, cl, csName, clName, insertValue, checkValue, result )
    }
    else
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          db.execUpdate( sql );
       } );
@@ -86,7 +86,7 @@ function updateSQL ( db, cl, csName, clName, oldValue, newValue, checkValue, res
    }
    else
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          db.execUpdate( sql );
       } );
@@ -106,7 +106,7 @@ function selectSQL ( db, csName, clName, value, result )
    }
    else
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          db.execUpdate( sql );
       } );
@@ -127,7 +127,7 @@ function deleteSQL ( db, cl, csName, clName, deleteValue, checkValue, result )
    }
    else
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          db.execUpdate( sql );
       } );

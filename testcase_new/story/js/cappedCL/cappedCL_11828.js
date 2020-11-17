@@ -48,7 +48,7 @@ function checkCreateCLOptions ( csName, clName, options, isValid )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -57,7 +57,7 @@ function checkCreateCLOptions ( csName, clName, options, isValid )
 
 function checkCappedAlter ( dbcl, options )
 {
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       dbcl.alter( options );
    } );

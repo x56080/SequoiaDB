@@ -54,7 +54,7 @@ function test ()
    var minValue = -2147483647;
    var maxValue = 2147483647;
    var startValue = 0;
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, MinValue: minValue, MaxValue: maxValue, StartValue: startValue } );
    } );

@@ -36,7 +36,7 @@ function test ()
 
 function checkPercentOutOfBound ( cl, srcGroupName, dstGroupName, percent )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.split( srcGroupName, dstGroupName, percent );
    } );

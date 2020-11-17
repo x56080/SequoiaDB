@@ -20,12 +20,12 @@ function test ()
 
    // 指定不存在的item设置注释：指定section进行设置 不指定section进行设置
    var iniFile = new IniFile( fileFullPath );
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setComment( section1, key1, comment1 );
    } );
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setComment( key1, comment1 );
    } );
@@ -39,12 +39,12 @@ function test ()
    initFile( fileFullPath, fileContent );
 
    var iniFile = new IniFile( fileFullPath );
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setComment( section1, key1, comment1 );
    } );
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setComment( key1, comment1 );
    } );

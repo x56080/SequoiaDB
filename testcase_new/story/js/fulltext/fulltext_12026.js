@@ -48,7 +48,7 @@ function test ()
 
 function update ( dbcl )
 {
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       dbcl.update( { $set: { a: "text2", b: "text2" } } );
    } );

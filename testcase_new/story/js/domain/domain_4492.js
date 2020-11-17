@@ -18,7 +18,7 @@ function test ()
 
 function checkInvalidAutoSplit ( domainName, groupName, autosplit )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createDomain( domainName, groupName, { AutoSplit: autosplit } );
    } );

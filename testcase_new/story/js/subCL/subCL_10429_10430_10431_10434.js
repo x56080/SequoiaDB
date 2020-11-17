@@ -138,7 +138,7 @@ function checkResult ( mainCL, validRecs )
    }
    catch( e ) 
    {
-      if( e.message == -34 || e.message == -23 )
+      if( e.message == SDB_DMS_CS_NOTEXIST || e.message == SDB_DMS_NOTEXIST )
       {
          // to prevent slave nodes are not ready!
          sleep( 5000 );

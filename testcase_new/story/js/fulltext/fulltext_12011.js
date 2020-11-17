@@ -28,7 +28,7 @@ function test ()
 
 function createIndexOnId ( dbcl, textIndexName )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( textIndexName, { _id: "text" } );
    } );
@@ -36,7 +36,7 @@ function createIndexOnId ( dbcl, textIndexName )
 
 function createIndexContainId ( dbcl, textIndexName )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( textIndexName, { _id: "text", a: "text" } );
    } );

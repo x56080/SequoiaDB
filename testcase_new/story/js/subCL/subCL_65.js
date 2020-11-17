@@ -52,7 +52,7 @@ function insertDataAndCheck ( cl )
    var insertObj = { a: 10 };
    cl.insert( insertObj );
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       cl.insert( { a: 200 } );
    } );

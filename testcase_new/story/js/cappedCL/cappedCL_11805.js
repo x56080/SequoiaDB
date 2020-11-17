@@ -11,12 +11,12 @@ function test ()
    var clOption = { Capped: true, Size: 1024, AutoIndexId: false };
    var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, clOption, false, true );
 
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       dbcl.find().update( { $set: { a: 1 } } ).toArray();
    } );
 
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       dbcl.find().remove().toArray();
    } );

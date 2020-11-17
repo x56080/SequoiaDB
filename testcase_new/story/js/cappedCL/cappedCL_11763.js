@@ -50,7 +50,7 @@ function standaloneCheckCreateCL ( COMMCAPPEDCSNAME, clName )
 
 function standaloneCheckDropCL ( COMMCAPPEDCSNAME, clName )
 {
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.getCS( COMMCAPPEDCSNAME ).getCL( clName );
    } );

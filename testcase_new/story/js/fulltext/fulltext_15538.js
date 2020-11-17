@@ -72,7 +72,7 @@ function test ()
    checkResult( expectResult, actResult );
 
    // 创建索引后，插入记录多于1个数组元素，插入报错
-   assert.tryThrow( -37, function()
+   assert.tryThrow( SDB_IXM_MULTIPLE_ARRAY, function()
    {
       dbcl.insert( doc );
    } );

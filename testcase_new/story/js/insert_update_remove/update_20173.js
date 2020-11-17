@@ -19,13 +19,13 @@ function test ()
 
    //更新一条记录，与原记录冲突
    var updatedRecord = { "_id": 9, "a": 9 };
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.update( { "$set": updatedRecord }, doc[8] );
    } )
 
    //批量更新记录，与原记录冲突
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.update( { "$set": updatedRecord } );
    } )

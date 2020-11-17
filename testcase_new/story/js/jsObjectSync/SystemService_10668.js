@@ -137,7 +137,7 @@ SystemTest.prototype.testStopSdbcm = function()
    }
    catch( e )
    {
-      if( e.message != -16 )
+      if( e.message != SDB_NETWORK_CLOSE )
       {
          throw e;
       }

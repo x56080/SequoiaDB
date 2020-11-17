@@ -100,7 +100,7 @@ function readWriteContentManyTimes ( readFile, writeFile, length )
       }
       catch( e )
       {
-         if( -9 == e.message )
+         if( SDB_EOF == e.message )
          {
             break;
          }
@@ -129,7 +129,7 @@ function checkArgumentRead ( readFile, length, errCode )
 
 function checkArgumentWrite ( readFile, writeFile, content, length )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       writeFile.writeContent( content );
    } )
@@ -156,7 +156,7 @@ function toBase64CodeTest ( readFile, actualFile, expectFile, length, cmd )
       }
       catch( e )
       {
-         if( -9 == e.message ) { break; }
+         if( SDB_EOF == e.message ) { break; }
       }
    }
 

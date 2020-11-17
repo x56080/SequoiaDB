@@ -41,7 +41,7 @@ function test ()
       catch( e )
       {
          // -145:SDBCM_NODE_EXISTED  -155:SDB_CLS_NODE_NOT_EXIST
-         if( e.message != -145 && e.message != -155 )
+         if( e.message != SDBCM_NODE_EXISTED && e.message != SDB_CLS_NODE_NOT_EXIST )
          {
             throw e;
          }
@@ -53,7 +53,7 @@ function test ()
       }
       catch( e )
       {
-         if( e.message == -155 )
+         if( e.message == SDB_CLS_NODE_NOT_EXIST )
          {
             db.getRG( groupName1 ).removeNode( hostname1, port );
          }
@@ -71,7 +71,7 @@ function test ()
 
 function attachNodeLawfulness ( groupName, hostname, port, KeepDataMsg )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getRG( groupName ).attachNode( hostname, port, { KeepData: KeepDataMsg } );
    } );

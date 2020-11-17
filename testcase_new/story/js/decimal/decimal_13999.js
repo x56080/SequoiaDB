@@ -42,7 +42,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -135 )
+      if( e.message != SDB_CAT_NO_MATCH_CATALOG )
       {
          throw e;
       }

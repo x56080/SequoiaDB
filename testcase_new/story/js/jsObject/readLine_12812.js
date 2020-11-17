@@ -47,7 +47,7 @@ function test ()
 function readAndCheckEmptyFile ( remote, emptyFileName )
 {
    var remoteFile = null;
-   assert.tryThrow( -9, function()
+   assert.tryThrow( SDB_EOF, function()
    {
       remoteFile = remote.getFile();
       if( remoteFile.exist( emptyFileName ) )

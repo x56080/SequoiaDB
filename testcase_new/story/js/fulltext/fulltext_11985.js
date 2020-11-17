@@ -20,14 +20,14 @@ function test ()
    //创建索引名已存在的全文索引
    var indexName = "a_11985";
    dbcl.createIndex( indexName, { about: 1 } );
-   assert.tryThrow( -46, function()
+   assert.tryThrow( SDB_IXM_EXIST, function()
    {
       dbcl.createIndex( indexName, { content: "text" } );
    } );
 
    //在已存在全文索引定义的集合中，再次创建全文索引
    dbcl.createIndex( "b_11985", { content: "text" } );
-   assert.tryThrow( -42, function()
+   assert.tryThrow( SDB_DMS_MAX_INDEX, function()
    {
       dbcl.createIndex( "c_11985", { content: "text" } );
    } );

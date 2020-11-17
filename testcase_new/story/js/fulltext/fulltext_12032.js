@@ -59,7 +59,7 @@ function test ()
 
 function removeRecords ( dbcl )
 {
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       dbcl.remove( { content: "this is my college" } );
    } );

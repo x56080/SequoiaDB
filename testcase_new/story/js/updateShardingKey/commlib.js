@@ -65,7 +65,7 @@ function updateDataError ( dbcl, operation, updateCondition, findCondition, hint
    }
    catch( e )
    {
-      if( -178 != e.message )
+      if( SDB_UPDATE_SHARD_KEY != e.message )
       {
          throw e;
       }

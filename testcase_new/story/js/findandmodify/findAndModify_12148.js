@@ -31,7 +31,7 @@ function test ()
 ********************************************************************************/
 function test_UsedSkipOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );
@@ -47,7 +47,7 @@ function test_UsedSkipOfFailed ( cl )
 ********************************************************************************/
 function test_UsedLimitOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );
@@ -63,7 +63,7 @@ function test_UsedLimitOfFailed ( cl )
 ********************************************************************************/
 function test_UsedSkipAndLimitOfFailed ( cl )
 {
-   assert.tryThrow( -289, function()
+   assert.tryThrow( SDB_RTN_QUERYMODIFY_MULTI_NODES, function()
    {
       var loadnumber = 5 * commGetGroupsNum( db );
       loadMultipleDoc( cl, loadnumber );

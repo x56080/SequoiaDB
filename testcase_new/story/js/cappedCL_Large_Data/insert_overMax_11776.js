@@ -85,7 +85,7 @@ function test ()
          docs = [];
       }
 
-      assert.tryThrow( -307, function()
+      assert.tryThrow( SDB_OSS_UP_TO_LIMIT, function()
       {
          dbcl.insert( { b: "a" } );
       } );

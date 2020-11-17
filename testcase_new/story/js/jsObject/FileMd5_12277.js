@@ -58,7 +58,7 @@ FileTest.prototype.testMd5Mode = function()
       }
       else
       {
-         if( e.message != -3 )
+         if( e.message != SDB_PERM )
          {
             throw e;
          }

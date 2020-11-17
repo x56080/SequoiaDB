@@ -13,7 +13,7 @@ function test ()
    var clName = COMMCLNAME + "_15997";
 
    commDropCL( db, COMMCSNAME, clName );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName, { AutoIncrement: { Field: ["a", "b"] } } );
    } );

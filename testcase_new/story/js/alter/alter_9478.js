@@ -26,7 +26,7 @@ function test ()
       { "Domain": domainName } );
    db.getCS( newCS ).createCL( newCL, { Group: group[0] } );
 
-   assert.tryThrow( -256, function()
+   assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
       db.getDomain( domainName ).alter( { Groups: [group[1]] } );
    } );
@@ -36,7 +36,7 @@ function test ()
    db.getCS( newCS ).getCL( newCL ).alter( { ShardingKey: { key: 1 }, ShardingType: "hash" } );
    db.getCS( newCS ).getCL( newCL ).split( group[0], group[1], 50 );
 
-   assert.tryThrow( -256, function()
+   assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
       db.getDomain( domainName ).alter( { Groups: [group[0]] } );
    } );

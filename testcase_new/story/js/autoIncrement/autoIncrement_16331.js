@@ -14,14 +14,14 @@ function test ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName, { AutoIncrement: [{ Field: "a1", Increment: 2 }, { Field: "a1", Increment: 3 }, { Field: "a1", Increment: 4 }] } );
    } );
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1", Increment: 2 } } );
 
-   assert.tryThrow( -332, function()
+   assert.tryThrow( SDB_AUTOINCREMENT_FIELD_CONFLICT, function()
    {
       dbcl.createAutoIncrement( { Field: "a1" } );
    } );

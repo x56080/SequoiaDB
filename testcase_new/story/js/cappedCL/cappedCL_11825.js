@@ -42,7 +42,7 @@ function test ()
 
 function checkCreateCLInvalid ( csName, clName, options )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).createCL( clName, options );
    } );

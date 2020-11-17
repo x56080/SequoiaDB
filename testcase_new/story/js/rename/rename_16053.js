@@ -11,7 +11,7 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { ReplSize: 0 }, true, true );
 
    //rename cl
-   assert.tryThrow( -22, function()
+   assert.tryThrow( SDB_DMS_EXIST, function()
    {
       db.getCS( COMMCSNAME ).renameCL( clName, clName );
    } );

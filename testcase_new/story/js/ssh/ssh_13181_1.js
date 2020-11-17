@@ -21,7 +21,7 @@ function test ()
    cleanRemoteFile( hostName, CMSVCNAME, dstFile );
 
    var ssh = new Ssh( hostName, user, password, port );
-   assert.tryThrow( -4, function()
+   assert.tryThrow( SDB_FNE, function()
    {
       ssh.push( srcFile, dstFile );
    } );

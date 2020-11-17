@@ -39,21 +39,21 @@ function testNormalClIndex ( db )
 
    // { "a.$0.b": 1 }
    commDropIndex( cl, indexName, true );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, indexDef1 );
    } )
 
    // { "a$b": 1 }
    commDropIndex( cl, indexName, true );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, indexDef2 );
    } )
 
    // { "f.d":-1, "a.$0.b": 1 }
    commDropIndex( cl, indexName, true );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, indexDef3 );
    } )
@@ -77,7 +77,7 @@ function testMainSubClIndex ( db )
    var cl = commCreateCL( db, COMMCSNAME, mainClName, optionObj, true, false );
    commCreateCL( db, COMMCSNAME, subClName, {}, true, false );
    commDropIndex( cl, indexName, true );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.attachCL( COMMCSNAME + "." + subClName, { LowBound: { a: 1 }, UpBound: { a: 10 } } );
       cl.insert( { a: 1 } );
@@ -115,7 +115,7 @@ function testSplitClIndex ( db )
    }
    commCreateDomain( db, domainName, domainGroups, { "AutoSplit": true } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.insert( { a: 9 } );
       cl.createIndex( indexName, indexDef, false, true );

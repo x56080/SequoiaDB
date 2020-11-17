@@ -27,14 +27,14 @@ function test ()
 
    //update ShardingKey,set KeepShardingKey=true
    var updateCondition = { $set: { no: "testupdate", a: "testa" } };
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       dbcl.update( updateCondition, {}, {}, { KeepShardingKey: true } );
    } );
 
    var findCondition = { b: { $gte: 2 } };
    var upsertCondition = { $set: { no: "testupdate12807", a: "testa12807" } };
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       dbcl.upsert( upsertCondition, findCondition, {}, {}, { KeepShardingKey: true } );
    } );

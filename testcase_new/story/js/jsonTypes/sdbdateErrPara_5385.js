@@ -15,7 +15,7 @@ function test ()
    ["2016-07"]];
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          SdbDate( ErrPara[i] );
       } );

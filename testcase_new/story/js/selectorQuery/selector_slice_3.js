@@ -62,7 +62,7 @@ function test ()
    /*【Test Point 4】 abnormal: {"$slice": {"HostName": "Host_1"}]}*/
    var condObj = {};
    var selObj = { "ExtraField1": { "$slice": { "HostName": "Host_1" } } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

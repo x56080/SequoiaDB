@@ -47,7 +47,7 @@ function test ()
    }
 
    //upsert插入唯一索引重复的数据
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       var updatedRecord = { "_id": 9 }
       cl.upsert( { "$set": updatedRecord }, { "a": 500 } );

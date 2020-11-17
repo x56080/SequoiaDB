@@ -24,7 +24,7 @@ OmaTest.prototype.testOmaInstall = function()
       checkOmaInstallInfo( InstallInfo, InstallFileContent );
    } catch( e )
    {
-      if( e.message != -4 )
+      if( e.message != SDB_FNE )
       {
          throw e;
       }

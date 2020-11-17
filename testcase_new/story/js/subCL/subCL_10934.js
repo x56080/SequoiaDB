@@ -34,7 +34,7 @@ function test ()
 
    //连接2再次删除子表，并通过主表查询
    var db2 = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db2.getCS( COMMCSNAME ).dropCL( subCL_Name );
    } );

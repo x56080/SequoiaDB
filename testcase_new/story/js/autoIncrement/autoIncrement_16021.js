@@ -87,7 +87,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CurrentValue: { "$numberLong": "9223372036854775807" } } } );
 
    //insert records and check
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );

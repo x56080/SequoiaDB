@@ -75,7 +75,7 @@ function updateRecords ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -38 )
+      if( e.message != SDB_IXM_DUP_KEY )
       {
          throw e;
       }

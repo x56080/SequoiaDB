@@ -94,7 +94,7 @@ function test ()
    var cacheSize = 111;
    var acquireSize = 112;
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } );
    } );

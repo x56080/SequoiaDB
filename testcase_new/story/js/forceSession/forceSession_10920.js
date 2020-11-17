@@ -42,7 +42,7 @@ function forceSession ( hostName, svcName, flag )
    var options = flag === true ? { "NodeName": hostName + ":" + svcName } : { "NodeID": 4321 }
    db2.forceSession( oldSessionID, options );
 
-   assert.tryThrow( [-15, -16], function()
+   assert.tryThrow( [SDB_NETWORK, SDB_NETWORK_CLOSE], function()
    {
       db1.list( SDB_LIST_SESSIONS );
    } );

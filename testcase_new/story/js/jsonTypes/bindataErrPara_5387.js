@@ -13,7 +13,7 @@ function test ()
    var ErrPara = [["aGVsbG8gd29ybGQ=", "1", "1"], ["aGVsbG8gd29ybGQ="]];
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          BinData( ErrPara[i] );
       } );

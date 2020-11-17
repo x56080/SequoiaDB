@@ -26,7 +26,7 @@ function test ()
       "Group.Service.Name": { "$include": 1 },
       "ExtraField2.nest1.nest2.nest3": { "$include": 0 }
    };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

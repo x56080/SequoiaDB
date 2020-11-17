@@ -29,7 +29,7 @@ function test ()
    assert.equal( 5, count );
 
    // create index
-   assert.tryThrow( -37, function()
+   assert.tryThrow( SDB_IXM_MULTIPLE_ARRAY, function()
    {
       idxCL.createIndex( "comIndex1", { "score": 1, "coutry.china.guangdong": 1, age: 1 }, true, true );
       //create index for SDB, have two more array,failed

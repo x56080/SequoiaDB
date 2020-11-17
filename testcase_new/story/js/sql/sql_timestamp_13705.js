@@ -87,7 +87,7 @@ function insertSQL ( db, cl, csName, clName, insertValue, checkValue, result )
       }
       catch( e )
       {
-         if( e.message != -6 && e.message != -195 )
+         if( e.message != SDB_INVALIDARG && e.message != SDB_SQL_SYNTAX_ERROR )
          {
             throw new Error( e );
          }
@@ -132,7 +132,7 @@ function updateSQL ( db, cl, csName, clName, oldValue, newValue, checkValue, res
       }
       catch( e )
       {
-         if( e.message != -6 && e.message != -195 )
+         if( e.message != SDB_INVALIDARG && e.message != SDB_SQL_SYNTAX_ERROR )
          {
             throw new Error( e );
          }
@@ -161,7 +161,7 @@ function selectSQL ( db, csName, clName, value, checkValue, result )
       }
       catch( e )
       {
-         if( e.message != -6 && e.message != -195 )
+         if( e.message != SDB_INVALIDARG && e.message != SDB_SQL_SYNTAX_ERROR )
          {
             throw new Error( e );
          }
@@ -189,7 +189,7 @@ function deleteSQL ( db, cl, csName, clName, deleteValue, checkValue, result )
       }
       catch( e )
       {
-         if( e.message != -6 && e.message != -195 )
+         if( e.message != SDB_INVALIDARG && e.message != SDB_SQL_SYNTAX_ERROR )
          {
             throw new Error( e );
          }

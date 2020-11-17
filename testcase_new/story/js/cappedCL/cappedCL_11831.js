@@ -75,7 +75,7 @@ function checkResult ( cl, expRec )
 {
    if( expRec === null )
    {
-      assert.tryThrow( [-29, -31], function()
+      assert.tryThrow( [SDB_DMS_EOC, SDB_DMS_CONTEXT_IS_CLOSE], function()
       {
          cl.find().current();
       } );
@@ -89,7 +89,7 @@ function checkResult ( cl, expRec )
 
 function updateData ( cl, options )
 {
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       cl.update( options );
    } );
@@ -97,7 +97,7 @@ function updateData ( cl, options )
 
 function removeData ( cl )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.insert( { a: 'test_delete_last_record' } );
       var id = cl.findOne().sort( { _id: -1 } ).current().toObj()._id;

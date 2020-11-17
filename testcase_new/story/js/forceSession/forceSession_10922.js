@@ -10,7 +10,7 @@ main( test );
 function test ()
 {
    var sessionId = 1000000000;
-   assert.tryThrow( -62, function()
+   assert.tryThrow( SDB_PMD_SESSION_NOT_EXIST, function()
    {
       db.forceSession( sessionId );
    } );
@@ -21,7 +21,7 @@ function test ()
       Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
    } );
    var sessionId = sessions.next().toObj().SessionID;
-   assert.tryThrow( -155, function()
+   assert.tryThrow( SDB_CLS_NODE_NOT_EXIST, function()
    {
       db.forceSession( sessionId, { HostName: "sdbserver01", svcname: "21810" } );
    } );

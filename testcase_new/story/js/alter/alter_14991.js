@@ -25,7 +25,7 @@ function test ()
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingKey", { a: 1 } );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "EnsureShardingIndex", false );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.setAttributes( { ShardingKey: { b: 1 }, ShardingType: "range", Compressed: false, lobPageSize: 8192 } );
    } );

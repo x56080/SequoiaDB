@@ -24,7 +24,7 @@ function test ()
    dbcl.createAutoIncrement( { Field: "id3", Generated: "strict" } );
 
    //create autoIncrement Generated "a"
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createAutoIncrement( { Field: "id3", Generated: "a" } );
    } );
@@ -49,7 +49,7 @@ function test ()
    //insert records and check
    dbcl.insert( { "q": 1, "id2": 5, "id3": 5 } );
    dbcl.insert( { "q": 2, "id1": 5 } );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.insert( { "q": 2, "id1": 2, "id2": 5, "id3": "f" } );
    } );

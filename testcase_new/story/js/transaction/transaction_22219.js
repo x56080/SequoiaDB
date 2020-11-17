@@ -50,7 +50,7 @@ function alterSharding ( dbcl, dataNums )
 {
    db.transBegin();
    insertData( dbcl, dataNums );
-   assert.tryThrow( -315, function()
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.enableSharding( { ShardingKey: { a: 1 }, AutoSplit: true } );
    } );
@@ -63,7 +63,7 @@ function alterAutoSpilt ( dbcl, dataNums )
 {
    db.transBegin();
    insertData( dbcl, dataNums );
-   assert.tryThrow( -315, function()
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.alter( { AutoSplit: true } );
    } );
@@ -76,7 +76,7 @@ function enableSharding ( dbcl, dataNums )
 {
    db.transBegin();
    insertData( dbcl, dataNums );
-   assert.tryThrow( -315, function()
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       dbcl.enableSharding( { ShardingKey: { a: 1 } } );
    } );

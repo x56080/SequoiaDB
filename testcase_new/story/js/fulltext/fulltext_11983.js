@@ -25,7 +25,7 @@ function test ()
    }
 
    //在已创建64个索引的情况下，创建全文索引
-   assert.tryThrow( -42, function()
+   assert.tryThrow( SDB_DMS_MAX_INDEX, function()
    {
       dbcl.createIndex( "fullIndex_11983", { content: "text" } );
    } );

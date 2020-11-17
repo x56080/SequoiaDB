@@ -41,7 +41,7 @@ function test ()
    //alter Cycled false
    dbcl.setAttributes( { AutoIncrement: { Field: "a0", Cycled: false, MaxValue: 1001, Increment: 1000, CacheSize: 1, AcquireSize: 1 } } );
 
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "a": i } );
    } );
@@ -50,7 +50,7 @@ function test ()
    checkRec( rc, expRecs );
 
    //alter Cycled string
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.setAttributes( { Field: "a0", Cycled: "cycled" } );
    } );

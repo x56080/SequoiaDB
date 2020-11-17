@@ -34,7 +34,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, "fullIndex_14382", 10000 );
 
    dbcl.update( { $set: { a: "a", b: "b" } } );
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       dbcl.update( { $set: { a: "a", b: "bb" } }, null, null, { KeepShardingKey: true } );
    } );

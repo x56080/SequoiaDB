@@ -8,7 +8,7 @@ main( test );
 function test ( testPara )
 {
    var dbcl = testPara.testCL;
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.insert( { a: { $date: null } } )
    } );

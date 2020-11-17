@@ -19,7 +19,7 @@ function test ()
    var value1 = "value1";
    var fileContent = "[" + section1 + "]\n" + key1 + "=" + value1 + "\n[" + section1 + "]\n" + key1 + "=";
    initFile( fileFullPath, fileContent );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       new IniFile( fileFullPath, SDB_INIFILE_STRICTMODE );
    } );
@@ -29,7 +29,7 @@ function test ()
    makeIniFile( filePath, fileName );
    var fileContent = "[" + section1 + "]\n" + key1 + "=" + value1 + "\n" + key1 + "=" + value1;
    initFile( fileFullPath, fileContent );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       new IniFile( fileFullPath, SDB_INIFILE_STRICTMODE );
    } );

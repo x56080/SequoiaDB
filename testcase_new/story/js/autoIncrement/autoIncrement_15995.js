@@ -14,7 +14,7 @@ function test ()
 
    commDropCL( db, COMMCSNAME, clName );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName, { AutoIncrement: { Field: "a.1" } } );
    } );

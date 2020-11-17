@@ -27,7 +27,7 @@ function test ()
    expRecs.push( { use: { id: 1, name: "chen" } } );
    checkRec( rc, expRecs );
 
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       varCL.insert( { use: { id: 1, name: "chensdf" } } );
    } );

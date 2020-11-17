@@ -19,7 +19,7 @@ OmaTest.prototype.testOMOperation = function( svcname, isOmExist )
       }
       catch( e )
       {
-         if( e.message != -145 )
+         if( e.message != SDBCM_NODE_EXISTED )
          {
             throw e;
          }

@@ -83,7 +83,7 @@ function checkCreateCLOptions ( csName, clName, options, result, expectSize )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

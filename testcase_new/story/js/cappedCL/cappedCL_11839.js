@@ -18,7 +18,7 @@ function test ()
 
    //create capped CS
    var optionObj = { Capped: true };
-   assert.tryThrow( -33, function()
+   assert.tryThrow( SDB_DMS_CS_EXIST, function()
    {
       db.createCS( csName, optionObj );
    } );

@@ -212,11 +212,11 @@ function upsertandmergerWithHint ( cl, rule, cond, hint, setoninsert, res, errre
    }
    catch( e )
    {
-      if( -1 == e.message )
+      if( SDB_IO == e.message )
       {
          throw new Error( e );
       }
-      else if( -2 == e.message && undefined != errres )
+      else if( SDB_OOM == e.message && undefined != errres )
       {
          throw new Error( e );
       }
@@ -263,11 +263,11 @@ function upsertandmerger ( cl, rule, cond, res, errres )
    }
    catch( e )
    {
-      if( -1 == e.message )
+      if( SDB_IO == e.message )
       {
          throw new Error( e );
       }
-      else if( -2 == e.message && undefined != errres )
+      else if( SDB_OOM == e.message && undefined != errres )
       {
          throw new Error( e );
       }

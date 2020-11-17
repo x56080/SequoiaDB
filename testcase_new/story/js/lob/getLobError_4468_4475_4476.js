@@ -41,7 +41,7 @@ function getLobWithOidNotExist ( cl )
 {
    var getFilePath = WORKDIR + "/getlob4468";
    var lobOid = "5ce6016a97216ce21b5c982a";
-   assert.tryThrow( -4, function()
+   assert.tryThrow( SDB_FNE, function()
    {
       cl.getLob( lobOid, getFilePath );
    } );
@@ -51,7 +51,7 @@ function getLobWithIllegalForced ( cl, lobOid )
 {
    var getFilePath = WORKDIR + "/getlob4475";
    var illegalForced = "test";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.getLob( lobOid, getFilePath, illegalForced );
    } );
@@ -61,7 +61,7 @@ function getLobWithEmptyForced ( cl, lobOid )
 {
    var getFilePath = WORKDIR + "/getlob4476";
    var forced = null;
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.getLob( lobOid, getFilePath, null );
    } );

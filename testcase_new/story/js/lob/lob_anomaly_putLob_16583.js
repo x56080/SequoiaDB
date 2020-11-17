@@ -22,7 +22,7 @@ function test ()
    try
    {
       var incorrectOid = "123456";
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          cl.putLob( testFile, incorrectOid );
       } );

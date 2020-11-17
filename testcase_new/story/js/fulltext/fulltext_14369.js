@@ -61,7 +61,7 @@ function test ()
    {
       indexName = indexName + "a";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( indexName, { content: "text" } );
    } );
@@ -73,7 +73,7 @@ function test ()
    {
       indexName = indexName + "a";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.createIndex( indexName, { content: "text" } );
    } );

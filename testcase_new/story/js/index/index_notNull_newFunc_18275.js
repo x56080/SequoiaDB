@@ -42,7 +42,7 @@ function test ()
 
 
    /**************************** test3, SortBufferSize < 0 ***************************/
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, { a: 1 }, { SortBufferSize: -1 } );
    } );

@@ -15,7 +15,7 @@ function test ()
    var group = getGroup( db );
    db.createDomain( domName, group );
 
-   assert.tryThrow( -278, function()
+   assert.tryThrow( SDB_CAT_IS_NOT_DATAGROUP, function()
    {
       db.createDomain( domNameSYS, ["SYSCatalogGroup"] );
    } );

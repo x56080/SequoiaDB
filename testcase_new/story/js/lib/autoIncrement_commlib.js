@@ -256,7 +256,7 @@ function insertOtherTypeDatas ( dbcl, arr )
 {
    for( var i = 0; i < arr.length; i++ )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          dbcl.insert( arr[i] );
       } );
@@ -282,7 +282,7 @@ function create ( dbcl, options, isLegal )
    {
       if( !isLegal )
       {
-         if( e.message != -6 )
+         if( e.message != SDB_INVALIDARG )
          {
             throw e;
          }

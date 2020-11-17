@@ -18,7 +18,7 @@ function test ()
    for( var i = 0; i < invChars.length; i++ )
    {
       var age = invChars[i] + "age";
-      assert.tryThrow( -195, function()
+      assert.tryThrow( SDB_SQL_SYNTAX_ERROR, function()
       {
          var sql = "insert into " + csName + "." + clName + "(" + age + ")" + " values(25)";
          db.execUpdate( sql );

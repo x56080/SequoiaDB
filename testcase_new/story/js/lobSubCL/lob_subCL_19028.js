@@ -16,7 +16,7 @@ function test ()
 
    var cs = commCreateCS( db, mainCSName, true );
    var options = { "IsMainCL": true, "ShardingKey": { "date": 1, "a": 1, "b": 2 }, "LobShardingKeyFormat": "YYYYMMDD", "ShardingType": "range" };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.createCL( mainCLName, options );
    } );

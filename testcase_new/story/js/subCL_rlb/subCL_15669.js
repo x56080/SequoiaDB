@@ -51,7 +51,7 @@ function test ()
       var dbcl = commCreateCL( db, csName, mainCL_Name, mainCLOption, true, true );
 
       var subClOption = { ShardingKey: { "b": 1 }, ShardingType: "hash", AutoSplit: true, Partition: 8, ReplSize: 0 };
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          db.getCS( csName ).createCL( subCL_Name, subClOption );
       } )

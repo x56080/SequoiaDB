@@ -27,13 +27,13 @@ function test ()
    insertData( cl, 100 );
 
    var condition = { "Partition": 1024 };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
    } );
 
    var condition = { "Partition": -1 };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
    } );

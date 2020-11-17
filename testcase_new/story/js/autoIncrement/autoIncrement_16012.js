@@ -34,7 +34,7 @@ function test ()
    var rc = dbcl.find().sort( { "id1": 1 } );
    checkRec( rc, expRecs.sort( compare( "id1" ) ) );
 
-   assert.tryThrow( -333, function()
+   assert.tryThrow( SDB_AUTOINCREMENT_FIELD_NOT_EXIST, function()
    {
       dbcl.setAttributes( { AutoIncrement: { Field: "id2" } } );
    } );

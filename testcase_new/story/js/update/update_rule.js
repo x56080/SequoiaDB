@@ -11,7 +11,7 @@ function test ()
 
    varCL.insert( { a: [1, 2], salary: 100 } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       varCL.update( { $addtoset: { b: 2 } } );
    } );
@@ -20,17 +20,17 @@ function test ()
 
    varCL.update( { $push: { salary: 1 } } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       varCL.update( { $pull_all: { a: 3 } } );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       varCL.update( { $push_all: { a: 2 } } );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       varCL.update( { $pop: { a: [2] } } );
    } );

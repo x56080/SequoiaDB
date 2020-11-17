@@ -31,7 +31,7 @@ function test ()
    var cl = commCreateCL( db, csName, clName, options );
    insertData( cl, 100 );
 
-   assert.tryThrow( -216, function()
+   assert.tryThrow( SDB_CAT_GROUP_NOT_IN_DOMAIN, function()
    {
       cl.split( srcGroupName, dstGroupName, { Partition: 10 }, { Partition: 20 } );
    } );

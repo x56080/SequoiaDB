@@ -38,7 +38,7 @@ function checkIndexResult ( newcl, expIndexName, expDeleteIndexName )
    //check index
    var indexName = newcl.find( { user: "test1" } ).explain().current().toObj().IndexName;
    assert.equal( indexName, expIndexName );
-   assert.tryThrow( -47, function()
+   assert.tryThrow( SDB_IXM_NOTEXIST, function()
    {
       newcl.getIndex( expDeleteIndexName );
    } );

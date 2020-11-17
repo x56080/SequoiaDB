@@ -28,14 +28,14 @@ function test ()
 
    //test a : condition为null
    var condition = null;
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
    } );
 
    //test b : condition为空串
    condition = '';
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.split( srcGroupName, dstGroupName, condition );
    } );

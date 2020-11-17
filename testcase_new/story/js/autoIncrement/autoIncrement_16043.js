@@ -34,7 +34,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "a", CurrentValue: { "$numberLong": "9223372036854775807" } } } );
    var expSequence = { CurrentValue: { "$numberLong": "9223372036854775807" } };
    checkSequence( db, sequenceName, expSequence );
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );
@@ -54,7 +54,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "a", CurrentValue: { "$numberLong": "9223372036854775809" } } } );
    var expSequence = { CurrentValue: { "$numberLong": "9223372036854775807" } };
    checkSequence( db, sequenceName, expSequence );
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );
@@ -67,7 +67,7 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "a", CurrentValue: { "$numberLong": "-9223372036854775808" } } } );
    var expSequence = { CurrentValue: { "$numberLong": "-9223372036854775808" }, Increment: -1, MinValue: { "$numberLong": "-9223372036854775808" }, MaxValue: -1, StartValue: -1 };
    checkSequence( db, sequenceName, expSequence );
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );
@@ -78,19 +78,19 @@ function test ()
    dbcl.setAttributes( { AutoIncrement: { Field: "a", CurrentValue: { "$numberLong": "-9223372036854775809" } } } );
    var expSequence = { CurrentValue: { "$numberLong": "-9223372036854775808" }, Increment: -1, MinValue: { "$numberLong": "-9223372036854775808" }, MaxValue: -1, StartValue: -1 };
    checkSequence( db, sequenceName, expSequence );
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );
    var rc = dbcl.find();
    checkRec( rc, expRecs );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.setAttributes( { AutoIncrement: { Field: "a", CurrentValue: "a" } } );
    } );
 
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       dbcl.insert( { "q": 2 } );
    } );

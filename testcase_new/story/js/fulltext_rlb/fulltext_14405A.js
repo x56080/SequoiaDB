@@ -62,7 +62,7 @@ function test ()
          }
          catch( e )
          {
-            if( -13 != e.message )
+            if( SDB_TIMEOUT != e.message )
             {
                throw e;
             }

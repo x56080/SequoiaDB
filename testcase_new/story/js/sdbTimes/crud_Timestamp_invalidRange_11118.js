@@ -31,7 +31,7 @@ function testSdbDate ( rawData )
 
    for( i = 0; i < rawData.length; i++ )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          if( i < rawData.length - 2 )
          {

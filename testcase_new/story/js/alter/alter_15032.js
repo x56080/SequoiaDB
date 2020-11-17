@@ -33,7 +33,7 @@ function test ()
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "ShardingType", "range" );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "EnsureShardingIndex", false );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.alter( { ShardingKey: { b: 1 }, ShardingType: "hash", IsMainCL: true, "AutoSplit": true, Compressed: false, lobPageSize: 8192 } );
    } );

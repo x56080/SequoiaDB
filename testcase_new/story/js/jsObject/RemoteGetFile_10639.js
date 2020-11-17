@@ -24,7 +24,7 @@ RemoteTest.prototype.testGetNoPermitFile = function()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e.message != -3 )
+      if( e.message != SDB_PERM )
       {
          throw e;
       }
@@ -49,7 +49,7 @@ RemoteTest.prototype.testGetSdbFile = function( hostname )
          throw new Error( "should error" );
       } catch( e )
       {
-         if( e.message != -1 )
+         if( e.message != SDB_IO )
          {
             throw e;
          }

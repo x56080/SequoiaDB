@@ -107,7 +107,7 @@ OmaTest.prototype.testInit = function()
    }
    catch( e )
    {
-      if( ( !this.islegalhost || !this.islegalsvc ) && ( e.message == -15 || e.message == -6 ) )
+      if( ( !this.islegalhost || !this.islegalsvc ) && ( e.message == SDB_NETWORK || e.message == SDB_INVALIDARG ) )
          ;
       else
       {
@@ -149,7 +149,7 @@ RemoteTest.prototype.testInit = function()
    }
    catch( e )
    {
-      if( ( !this.islegalhost || !this.islegalsvc ) && e.message == -15 )
+      if( ( !this.islegalhost || !this.islegalsvc ) && e.message == SDB_NETWORK )
          ;
       else
       {

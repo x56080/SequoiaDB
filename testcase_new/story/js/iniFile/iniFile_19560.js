@@ -38,7 +38,7 @@ function test ()
    iniFile.setSectionComment( section2, comment2 );
    iniFile.save();
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setSectionComment( "notsection", comment1 );
       iniFile.save();

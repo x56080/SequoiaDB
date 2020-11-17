@@ -16,19 +16,19 @@ function test ()
    }
 
    //使用未建立信赖关系的用户名建立ssh连接
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ssh = new Ssh( COORDHOSTNAME, "user" );
    } );
 
    //使用错误的密码建立ssh连接
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       ssh = new Ssh( COORDHOSTNAME, user, "password" );
    } );
 
    //使用错误的端口号建立ssh连接
-   assert.tryThrow( -79, function()
+   assert.tryThrow( SDB_NET_CANNOT_CONNECT, function()
    {
       ssh = new Ssh( COORDHOSTNAME, user, password, 8 );
    } );

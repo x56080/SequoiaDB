@@ -38,7 +38,7 @@ function test ()
       key1 + "=" + value1 + "\n" +
       key1 + "=" + value1;
    initFile( fileFullPath, fileContent );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       new IniFile( fileFullPath, SDB_INIFILE_FLAGS_MYSQL );
    } );

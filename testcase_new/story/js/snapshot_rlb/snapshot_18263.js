@@ -26,7 +26,7 @@ function test ()
    var option = new SdbSnapshotOption().cond( { NodeName: nodeName }, { transaction: "" } ).options( { "mode": "run", "expand": false } );
    checkResult( option, expResult );
 
-   assert.tryThrow( -322, function()
+   assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
    {
       db.deleteConf( { transactionon: 1 }, { 'NodeName': nodeName } );
    } );
@@ -48,7 +48,7 @@ function changeConf ( nodeName )
    }
    catch( e )
    {
-      if( e.message != -322 )
+      if( e.message != SDB_RTN_CONF_NOT_TAKE_EFFECT )
       {
          throw new Error( e );
       }

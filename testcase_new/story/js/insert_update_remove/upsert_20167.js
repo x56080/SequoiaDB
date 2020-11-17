@@ -37,13 +37,13 @@ function test ()
    }
 
    //更新一条记录，KeepShardingKey为true
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.upsert( { "$set": updatedRecord }, doc[9], {}, {}, { "KeepShardingKey": true } );
    } );
 
    //更新多条记录，KeepShardingKey为true
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.upsert( { "$set": updatedRecord }, {}, {}, {}, { "KeepShardingKey": true } );
    } );

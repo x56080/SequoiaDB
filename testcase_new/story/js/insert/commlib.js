@@ -34,7 +34,7 @@ function keyConflict ( cl, recsArray )
       }
       catch( e )
       {
-         if( -38 != e.message )
+         if( SDB_IXM_DUP_KEY != e.message )
          {
             throw e;
          }

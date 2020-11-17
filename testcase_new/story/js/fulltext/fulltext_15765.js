@@ -65,7 +65,7 @@ function test ()
 
 function createCLIdIndex ( dbcl )
 {
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.createIdIndex();
    } );

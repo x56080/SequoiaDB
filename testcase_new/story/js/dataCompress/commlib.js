@@ -165,7 +165,7 @@ function clearCS ( db, csName )
       }
       catch( e )
       {
-         if( e.message == -147 && times < 60 )
+         if( e.message == SDB_LOCK_FAILED && times < 60 )
          {
             times++;
             sleep( 1000 );

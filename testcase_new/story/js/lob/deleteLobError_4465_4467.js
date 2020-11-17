@@ -25,7 +25,7 @@ function test ()
 function deleteLobWithOidNotExist ( cl )
 {
    var lobOid = "5ce6016a97216ce21b5c982f";
-   assert.tryThrow( -4, function()
+   assert.tryThrow( SDB_FNE, function()
    {
       cl.deleteLob( lobOid );
    } );
@@ -33,7 +33,7 @@ function deleteLobWithOidNotExist ( cl )
 
 function deleteLobWithEmpty ( cl )
 {
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.deleteLob();
    } );

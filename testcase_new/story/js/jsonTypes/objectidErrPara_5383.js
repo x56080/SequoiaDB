@@ -15,7 +15,7 @@ function test ()
    ["55713f7953e676980400000123"]];
    for( var i = 0; i < ErrPara.length; ++i )
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          ObjectId( ErrPara[i] );
       } );

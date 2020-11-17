@@ -35,14 +35,14 @@ function test ()
 function createCSWithLobPageSize ( csName, lobPageSize, pageSize )
 {
    //create cs; 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var options = { LobPageSize: lobPageSize, PageSize: pageSize };
       db.createCS( csName, options );
    } );
 
    //check cs is not exist; 
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.getCS( csName );
    } );

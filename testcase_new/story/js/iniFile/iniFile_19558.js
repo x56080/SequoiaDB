@@ -40,14 +40,14 @@ function test ()
    iniFile.delComment( section, key1, false );
    iniFile.save();
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.delComment( "notsection", key1, true );
       iniFile.save();
    } );
 
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.delComment( "notsection", key1, false );
       iniFile.save();

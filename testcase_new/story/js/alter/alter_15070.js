@@ -39,7 +39,7 @@ function test ()
    domain.setAttributes( { AutoSplit: true, Groups: [group1, group2, group3], AutoRebalance: true } )
    checkDomain( db, domainName, [group1, group2, group3], true, true );
 
-   assert.tryThrow( [-6, -256], function()
+   assert.tryThrow( [SDB_INVALIDARG, SDB_DOMAIN_IS_OCCUPIED], function()
    {
       domain.setAttributes( { AutoSplit: false, Groups: [group3], AutoRebalance: false, Name: 'test_10570' } );
    } );

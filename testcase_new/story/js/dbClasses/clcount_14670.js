@@ -28,7 +28,7 @@ function test ()
       throw new Error( "expect: 2, actual: " + cnt );
    }
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var error = cl.count().hint( 1 );
       println( error );

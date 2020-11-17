@@ -919,7 +919,7 @@ function isNodesNormal ( groupName )
    }
    catch( e )
    {
-      if( -104 != e.message && -79 != e.message && -134 != e.message )
+      if( SDB_CLS_NOT_PRIMARY != e.message && SDB_NET_CANNOT_CONNECT != e.message && SDB_COORD_REMOTE_DISC != e.message )
       {
          throw e;
       }
@@ -945,7 +945,7 @@ function isMasterNodeExist ( groupName )
       }
       catch( e )
       {
-         if( -71 != e.message && -104 != e.message )
+         if( SDB_RTN_NO_PRIMARY_FOUND != e.message && SDB_CLS_NOT_PRIMARY != e.message )
          {
             throw e;
          }
@@ -991,7 +991,7 @@ function dropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, messag
          {
             break;
          }
-         else if( e.message == -147 )
+         else if( e.message == SDB_LOCK_FAILED )
          {
             sleep( 1000 );
          }
@@ -1034,7 +1034,7 @@ function dropCS ( db, csName, ignoreNotExist, message )
          {
             break;
          }
-         else if( e.message == -147 )
+         else if( e.message == SDB_LOCK_FAILED )
          {
             sleep( 1000 );
          }
@@ -1075,7 +1075,7 @@ function dropIndex ( cl, name, ignoreNotExist )
          {
             break;
          }
-         else if( e.message == -147 )
+         else if( e.message == SDB_LOCK_FAILED )
          {
             sleep( 1000 );
          }

@@ -43,7 +43,7 @@ function test ()
 
 function readAndCheckEmptyFile ( emptyFileName )
 {
-   assert.tryThrow( -9, function()
+   assert.tryThrow( SDB_EOF, function()
    {
       if( File.exist( emptyFileName ) )
       {

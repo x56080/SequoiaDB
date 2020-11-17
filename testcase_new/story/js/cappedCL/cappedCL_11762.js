@@ -52,7 +52,7 @@ function standaloneCheckCreateCS ( csName )
 
 function standaloneCheckDropCS ( csName )
 {
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.getCS( csName );
    } );

@@ -58,7 +58,7 @@ function test ()
    checkRec( actR, expR );
 
    //coordA插入记录，插入失败，超出序列值返回
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[0].insert( { a: sortField } );
    } );
@@ -69,7 +69,7 @@ function test ()
    sortField++;
 
    //coordB插入记录，插入失败，超出序列值范围
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[1].insert( { a: sortField } );
    } );
@@ -83,7 +83,7 @@ function test ()
    }
 
    //coordC插入记录，插入失败，超出序列值范围
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[2].insert( { a: sortField } );
    } );

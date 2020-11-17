@@ -45,7 +45,7 @@ function numoverflowError ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -318 )
+      if( e.message != SDB_VALUE_OVERFLOW )
       {
          throw e;
       }

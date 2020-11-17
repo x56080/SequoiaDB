@@ -14,19 +14,19 @@ function test ()
    commDropCS( db, TESTCSNAME );
    var cs = commCreateCS( db, TESTCSNAME, false );
    // 选项字段为全小写，不被允许
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.createCL( TESTCLNAME, { autoindexid: false } );
    } );
 
    // 选项字段值为数字，不被允许
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.createCL( TESTCLNAME, { AutoIndexId: 0 } );
    } );
 
    // 选项字段在主表上使用，不被允许
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.createCL( TESTCLNAME, { IsMainCL: true, AutoIndexId: false, ShardingKey: { date: 1 } } );
    } );
@@ -57,12 +57,12 @@ function createCLwithOrdinaryTable ( cs, clname )
 
    checkIndexnumber( cl );
 
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       cl.update( { $set: { a: 2 } }, { _id: 1 } );
    } );
 
-   assert.tryThrow( -279, function()
+   assert.tryThrow( SDB_RTN_AUTOINDEXID_IS_FALSE, function()
    {
       cl.remove( { _id: 1 } )
    } );
@@ -88,7 +88,7 @@ function checkupdate ( cl, recordnumber )
       }
       catch( e )
       {
-         if( e.message == -279 )
+         if( e.message == SDB_RTN_AUTOINDEXID_IS_FALSE )
          {
             continue;
          }
@@ -117,7 +117,7 @@ function checkremove ( cl, recordnumber )
       }
       catch( e )
       {
-         if( e.message == -279 )
+         if( e.message == SDB_RTN_AUTOINDEXID_IS_FALSE )
          {
             continue;
          }

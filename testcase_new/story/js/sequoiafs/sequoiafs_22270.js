@@ -36,7 +36,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -13 )
+      if( e.message != SDB_TIMEOUT )
       {
          println( command );
          throw e;
@@ -61,7 +61,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -13 )
+      if( e.message != SDB_TIMEOUT )
       {
          println( command );
          throw e;

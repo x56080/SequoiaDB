@@ -58,7 +58,7 @@ function test ()
    for( i in lobOids1 )
    {
       mainCL.deleteLob( lobOids1[i] );
-      assert.tryThrow( -4, function()
+      assert.tryThrow( SDB_FNE, function()
       {
          mainCL.getLob( lobOids1[i], WORKDIR + "/checkLob19038_" + i );
       } );

@@ -28,14 +28,14 @@ function test ()
 
    //test a : endcondition 为null
    var endcondition = null;
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.split( srcGroupName, dstGroupName, 0, endcondition );
    } );
 
    //test b : endcondition 为空串
    endcondition = '';
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.split( srcGroupName, dstGroupName, endcondition );
    } );

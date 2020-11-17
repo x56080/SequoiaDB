@@ -21,13 +21,13 @@ function test ()
 
    // 取消注释不存在的item 指定section进行设置 
    var iniFile = new IniFile( fileFullPath );
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.enableItem( section1, "key2" );
    } );
 
    // 不指定section进行设置
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.enableItem( "key2" );
    } );

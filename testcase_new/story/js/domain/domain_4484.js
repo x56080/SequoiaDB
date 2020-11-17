@@ -48,7 +48,7 @@ function test ()
    checkByCreateCS( domain3, csNames[2] );
 
    //域名覆盖不为string类型
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createDomain( 1000000000000000, dataRGArr[0] );
    } )

@@ -73,7 +73,7 @@ function attachByLong ( maincl, csName, subclName )
    } );
 
    var rec = { mk: { $numberLong: "9223372036854775807" } };
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       maincl.insert( rec );
    } );

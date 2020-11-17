@@ -324,7 +324,7 @@ function insertInvalidRecs ( mainCL, recs )
 {
    for( var i = 0; i < recs.length; i++ )
    {
-      assert.tryThrow( -135, function()
+      assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
       {
          mainCL.insert( recs[i] );
       } );

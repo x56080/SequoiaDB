@@ -99,7 +99,7 @@ function testInvalidValue ( nodes, groupName )
       if( data[i]["type"] == "expFail" )
       {
          //期望失败
-         assert.tryThrow( -6, function()
+         assert.tryThrow( SDB_INVALIDARG, function()
          {
             db.updateConf( config );
          } );
@@ -112,7 +112,7 @@ function testInvalidValue ( nodes, groupName )
             throw new Error( "updateConf{" + data[i]["name"] + data[i]["invalidVal"] + "} exec success" );
          } catch( e )
          {
-            if( e.message != -322 )
+            if( e.message != SDB_RTN_CONF_NOT_TAKE_EFFECT )
             {
                throw e;
             }

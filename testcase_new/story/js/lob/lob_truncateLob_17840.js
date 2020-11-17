@@ -15,11 +15,11 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName );
 
    //truncateLob oid string checked
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.truncateLob( "", 1 );
    } );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.truncateLob( "sas", 12 );
    } );

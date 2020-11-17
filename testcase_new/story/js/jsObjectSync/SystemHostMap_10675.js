@@ -62,7 +62,7 @@ SystemTest.prototype.testGetAHostMap = function()
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -128,7 +128,7 @@ function testAddAExistHostMapFalse ( system, host, ip )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -162,7 +162,7 @@ function testAddAHostMapIllegalIp ( system, host, ip )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -183,7 +183,7 @@ function testDelAHostMap ( system, host )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

@@ -33,7 +33,7 @@ function test ()
    compareValue( comment1, checkValue1 );
 
    // section不存在
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.setSectionComment( "section3", comment1 );
    } );

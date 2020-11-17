@@ -48,7 +48,7 @@ function evalSdb ( db )
       var sdb = new Sdb( host, svc );
       return sdb;
    } );
-   assert.tryThrow( -10, function()
+   assert.tryThrow( SDB_SYS, function()
    {
       db.eval( "getSdb( \"" + COORDHOSTNAME + "\", \"" + COORDSVCNAME + "\" )" );
    } );

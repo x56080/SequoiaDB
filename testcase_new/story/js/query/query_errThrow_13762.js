@@ -17,7 +17,7 @@ function test ( testPara )
    cl.insert( { a: 1 } );
    cl.insert( { b: "testcase" } );
    // query by use db.cs.cl.find({$a:1}).getLastErrMsg() will get the message
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { $a: 1 } )
    } );

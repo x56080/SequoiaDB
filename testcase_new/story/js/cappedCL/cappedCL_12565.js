@@ -21,7 +21,7 @@ function test ()
 
 function checkPopResult ( dbcl, logicalID, direction )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.pop( { LogicalID: logicalID, Direction: direction } ).toArray();
    } );

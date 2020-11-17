@@ -11,7 +11,7 @@ function test ()
    commDropCL( db, COMMCSNAME, COMMCLNAME, true, true, "drop cl in the beginning" );
    var varCL = commCreateCL( db, COMMCSNAME, COMMCLNAME );
 
-   assert.tryThrow( -56, function()
+   assert.tryThrow( SDB_IXM_DROP_ID, function()
    {
       varCL.dropIndex( "$id" );
    } );

@@ -10,13 +10,13 @@ function test ( arg )
    var cl = arg.testCL;
 
    //查询regex类型数据，$options值错误
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { regex: { $regex: "aaa", $options: 1 } } ).toArray();
    } );
 
    //查询regex类型数据，带非 $options 的其他参数
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find( { regex: { $regex: "aaa", a: "1" } } ).toArray();
    } );

@@ -17,7 +17,7 @@ function test ()
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "id1" } } );
 
    //create same autoIncrement field name
-   assert.tryThrow( -332, function()
+   assert.tryThrow( SDB_AUTOINCREMENT_FIELD_CONFLICT, function()
    {
       dbcl.createAutoIncrement( { Field: "id1" } );
    } );

@@ -28,19 +28,19 @@ function test ()
    var dbcl = commCreateCL( db, COMMCAPPEDCSNAME, clName, optionObj, false, false, "create cappedCL" );
 
    //hash split
-   assert.tryThrow( -169, function()
+   assert.tryThrow( SDB_COLLECTION_NOTSHARD, function()
    {
       dbcl.split( srcGroup, tarGroup, { Partition: 10 }, { Partition: 20 } );
    } );
 
    //range split
-   assert.tryThrow( -169, function()
+   assert.tryThrow( SDB_COLLECTION_NOTSHARD, function()
    {
       dbcl.split( srcGroup, tarGroup, { a: 10 }, { a: 10000 } );
    } );
 
    //percent split
-   assert.tryThrow( -169, function()
+   assert.tryThrow( SDB_COLLECTION_NOTSHARD, function()
    {
       dbcl.split( srcGroup, tarGroup, 50 );
    } );

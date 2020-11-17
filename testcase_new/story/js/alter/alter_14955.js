@@ -41,7 +41,7 @@ function alterParitionNoShardingKey ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

@@ -25,7 +25,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, indexName, 1 );
 
    //not support full text sort
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var cursor = dbcl.find( { "": { $Text: { query: { match_all: {} }, sort: [{ a: { order: "desc" } }] } } } );
       while( cursor.next() ) { }

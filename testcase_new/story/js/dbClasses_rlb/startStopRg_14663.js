@@ -52,7 +52,7 @@ function checkGroupStatus ( db, groupname, status )
       }
       catch( e )
       {
-         if( status === "stop" && ( e.message == -15 || e.message == -79 ) )
+         if( status === "stop" && ( e.message == SDB_NETWORK || e.message == SDB_NET_CANNOT_CONNECT ) )
          { } // when group stopped, connect throw -15 or -79, do nothing
          else
          {

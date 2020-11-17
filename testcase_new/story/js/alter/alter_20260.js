@@ -29,13 +29,13 @@ function test ()
    cl.setAttributes( { AutoSplit: true } );
    checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true );
 
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       cl.alter( { AutoSplit: false } );
    } );
    checkSnapshot( db, SDB_SNAP_CATALOG, COMMCSNAME, clName, "AutoSplit", true );
 
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       cl.setAttributes( { AutoSplit: false } );
    } );

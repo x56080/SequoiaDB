@@ -28,7 +28,7 @@ function test ()
    assert.equal( 1, _index["key"]["a"] );
    assert.equal( true, _index["unique"] );
 
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       varCL.insert( { a: 1, "name": "hihao1232" } );
    } );

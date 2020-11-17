@@ -54,7 +54,7 @@ function test ()
          expRecs.push( { "a": i, "b": i, "id1": -1 - coordNodes.length * acquireSize - i * acquireSize } );
       } catch( e )
       {
-         if( e.message != -325 )
+         if( e.message != SDB_SEQUENCE_EXCEEDED )
          {
             throw new Error( e );
          }

@@ -53,13 +53,13 @@ function test ()
    }
 
    //coordA超范围插入失败
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[0].insert( { a: 0 } );
    } );
 
    //coordB超范围插入失败
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[1].insert( { a: 0 } );
    } );
@@ -72,7 +72,7 @@ function test ()
    }
 
    //coordC不指定自增字段插入，待coordC缓存耗尽后，超范围插入失败
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[2].insert( { a: 0 } );
    } );

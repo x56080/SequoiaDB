@@ -34,7 +34,7 @@ function test ( testPara )
 
 function updateError ( updateCondition, findCondition )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       testPara.testCL.update( updateCondition, findCondition );
    } )

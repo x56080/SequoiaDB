@@ -39,12 +39,12 @@ function test () // Not Error, test mainCL'ShardingType is range and subCL's Sha
       }
    }
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       mainCL.insert( { a: -1 } );
    } );
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       mainCL.insert( { a: 2 } );
    } );

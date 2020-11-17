@@ -34,7 +34,7 @@ function test ()
 function normalCScreateCL ( normal_csName, capped_csName )
 {
    var optionObj = { Capped: true, Size: 1024, Max: 10000000, AutoIndexId: false };
-   assert.tryThrow( -315, function()
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       db.getCS( normal_csName ).createCL( capped_csName, optionObj );
    } );
@@ -42,7 +42,7 @@ function normalCScreateCL ( normal_csName, capped_csName )
 
 function cappedCScreateCL ( capped_csName, normal_clName )
 {
-   assert.tryThrow( -315, function()
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function()
    {
       db.getCS( capped_csName ).createCL( normal_clName );
    } );

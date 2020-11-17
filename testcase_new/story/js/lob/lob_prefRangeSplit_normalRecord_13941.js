@@ -44,7 +44,7 @@ function test ()
       }
    }
    lobInsertDoc( cl, putNum ); // will be OK
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var oids = lobPutLob( cl, testFile, putNum ); // will throw exception
    } )

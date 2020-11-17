@@ -63,7 +63,7 @@ function test ()
 
    var updateCond = { a: 50 };	//更新条件
    //更新的_id值和别的重复，要更新失败
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       mainCl.update( { $set: { _id: 51 } }, updateCond );
       var _id = mainCl.find( updateCond ).next().toObj()._id;

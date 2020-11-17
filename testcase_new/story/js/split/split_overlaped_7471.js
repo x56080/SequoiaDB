@@ -44,14 +44,14 @@ function test ()
 function splitHash ( cl, srcGroupName, dstGroupName )
 {
    cl.split( srcGroupName, dstGroupName, { "Partition": 10 }, { "Partition": 20 } );
-   assert.tryThrow( -176, function()
+   assert.tryThrow( SDB_CLS_BAD_SPLIT_KEY, function()
    {
       cl.split( srcGroupName, dstGroupName, { "Partition": 10 }, { "Partition": 30 } );
    } );
 
    cl.split( srcGroupName, dstGroupName, { "Partition": 40 }, { "Partition": 60 } );
 
-   assert.tryThrow( -176, function()
+   assert.tryThrow( SDB_CLS_BAD_SPLIT_KEY, function()
    {
       cl.split( srcGroupName, dstGroupName, { "Partition": 50 }, { "Partition": 60 } );
    } );
@@ -61,13 +61,13 @@ function splitRange ( cl, srcGroupName, dstGroupName )
 {
    cl.split( srcGroupName, dstGroupName, { "a": 10 }, { "a": 20 } );
 
-   assert.tryThrow( -176, function()
+   assert.tryThrow( SDB_CLS_BAD_SPLIT_KEY, function()
    {
       cl.split( srcGroupName, dstGroupName, { "a": 10 }, { "a": 30 } );
    } );
 
    cl.split( srcGroupName, dstGroupName, { "a": 40 }, { "a": 60 } );
-   assert.tryThrow( -176, function()
+   assert.tryThrow( SDB_CLS_BAD_SPLIT_KEY, function()
    {
       cl.split( srcGroupName, dstGroupName, { "a": 50 }, { "a": 60 } );
    } );

@@ -15,19 +15,19 @@ function test ()
    commCreateCL( db, csName, clName );
 
    // rename cs new name is begin with $
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, "$clName16556" );
    } );
 
    // rename cs new name is contains .
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, "clName.16556" );
    } );
 
    // rename cs new name is ""
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, "" );
    } );
@@ -38,7 +38,7 @@ function test ()
    {
       longStr += "a";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, longStr );
    } );
@@ -49,7 +49,7 @@ function test ()
    {
       boundStr += "s";
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, boundStr );
    } );
@@ -69,7 +69,7 @@ function test ()
    db.getCS( csName ).renameCL( nameStr, clName );
 
    // rename cs new name is begin with SYS
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName ).renameCL( clName, "SYScsName16556" );
    } );

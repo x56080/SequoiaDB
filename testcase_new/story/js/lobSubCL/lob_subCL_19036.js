@@ -36,13 +36,13 @@ function test ()
 
    db.getCS( csName ).dropCL( subCLName2 );
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       insertLob( mainCL, fileFullPath, "YYYYMMDD", 5, 10, 1, "20190901" );
    } );
 
    checkLobMD5( mainCL, lobOids1, fileMD5 );
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       checkLobMD5( mainCL, lobOids2, fileMD5 );
    } );

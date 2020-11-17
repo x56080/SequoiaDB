@@ -20,13 +20,13 @@ function test ()
    commCreateCL( db, csName, clName, {}, false, false );
 
    // Drop not exist domain [Testing Point]
-   assert.tryThrow( -214, function()
+   assert.tryThrow( SDB_CAT_DOMAIN_NOT_EXIST, function()
    {
       db.dropDomain( "SYSDOMAIN" );
    } );
 
    // Drop domain where CS/CL/data record in [Testing Point]
-   assert.tryThrow( -256, function()
+   assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
       db.dropDomain( domName );
    } );

@@ -30,7 +30,7 @@ function test ()
    assert.equal( 5, count );
 
    // create index
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       createIndex( idxCL, "noIndex", { no: 1 }, false, false );
       // create index. specify the sort key:-1
@@ -40,13 +40,13 @@ function test ()
    } );
 
    // create index. specify the sort key:-5
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       idxCL.createIndex( "desIndex", { Des: -5 } );
    } );
 
    // create index. specify the sort key:0
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       idxCL.createIndex( "desIndex", { Des: 0 } );
    } );

@@ -32,7 +32,7 @@ function test ()
    mainCL.attachCL( csName + "." + subCLName, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190831" } } );
 
    checkLobMD5( mainCL, lobOids1, fileMD5 );
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       checkLobMD5( mainCL, lobOids2, fileMD5 );
    } );

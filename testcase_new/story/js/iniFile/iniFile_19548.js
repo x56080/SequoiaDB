@@ -41,13 +41,13 @@ function test ()
    iniFile.addComment( section, key, comment4, false );
    iniFile.save();
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.addComment( "notsection", key, comment1, true );
       iniFile.save();
    } );
 
-   assert.tryThrow( -211, function()
+   assert.tryThrow( SDB_FIELD_NOT_EXIST, function()
    {
       iniFile.addComment( "notsection", key, comment3, false );
       iniFile.save();

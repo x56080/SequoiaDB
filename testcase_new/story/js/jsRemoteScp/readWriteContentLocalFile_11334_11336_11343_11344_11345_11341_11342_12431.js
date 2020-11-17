@@ -54,7 +54,7 @@ function test ()
    readWriteContentAndCheck( readFile, writeFile, overSize, fileSize );
 
    //read empty file
-   assert.tryThrow( -9, function()
+   assert.tryThrow( SDB_EOF, function()
    {
       if( File.exist( emptyFileName ) )
       {
@@ -80,14 +80,14 @@ function test ()
    var readFile = new File( readFileName, 0777, SDB_FILE_READONLY );
    var content = readFile.readContent();
 
-   assert.tryThrow( -3, function()
+   assert.tryThrow( SDB_PERM, function()
    {
       var writeFile = new File( writeFileName, 0777, SDB_FILE_CREATE | SDB_FILE_READONLY );
       writeFile.writeContent( content );
    } );
 
    //SDB_FILE_WRITEONLY
-   assert.tryThrow( -3, function()
+   assert.tryThrow( SDB_PERM, function()
    {
       var readFile = new File( readFileName, 0777, SDB_FILE_WRITEONLY );
       var content = readFile.readContent();
@@ -137,7 +137,7 @@ function test ()
 
    //writeContent argument illegal
    //miss argument
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var readFile = new File( readFileName );
       var content = readFile.readContent();

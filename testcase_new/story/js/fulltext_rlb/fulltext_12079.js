@@ -40,7 +40,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -105 && e.message != -252 )
+      if( e.message != SDB_CLS_NODE_NOT_ENOUGH && e.message != SDB_CLS_WAIT_SYNC_FAILED )
       {
          throw e;
       }

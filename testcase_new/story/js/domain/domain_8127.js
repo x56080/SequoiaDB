@@ -26,7 +26,7 @@ function test ()
    }
 
    // List not exit domain name [Testing Point]
-   assert.tryThrow( -29, function()
+   assert.tryThrow( SDB_DMS_EOC, function()
    {
       var listDom = db.listDomains( { "Name": "NotExistDomName" } );
       var notDomName = listDom.current().toObj()["Name"];

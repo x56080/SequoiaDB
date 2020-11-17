@@ -48,7 +48,7 @@ function alterShardingType ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }
@@ -66,7 +66,7 @@ function alterShardingKey ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }

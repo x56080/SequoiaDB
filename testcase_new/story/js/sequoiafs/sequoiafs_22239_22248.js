@@ -30,7 +30,7 @@ function test ()
    catch( e )
    {
       // 可能会有其他目录挂载失败，不捕获异常，只校验最终结果
-      if( e.message != -13 )
+      if( e.message != SDB_TIMEOUT )
       {
          sleep( 2 );
       }

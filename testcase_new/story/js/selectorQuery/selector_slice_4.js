@@ -44,7 +44,7 @@ function test ()
    /*【Test Point 2】 abnormal: {"$slice": {"HostName": "Host_1"}]}*/
    var condObj = {};
    var selObj = { "ExtraField1": { "$slice": { "HostName": "Host_1" } } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );
@@ -85,7 +85,7 @@ function test ()
    /*【Test Point 5】 Field isn't array.{"Group.HostName":{"$slice": [-20,19,5]}}*/
    var condObj = {};
    var selObj = { "Group.HostName": { "$slice": [-20, 19, 5] } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

@@ -27,7 +27,7 @@ function insertRecs ( csName, clName )
 function selectRecs ( csName, clName )
 {
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.exec( "select a+b from " + csName + "." + clName );
    } );

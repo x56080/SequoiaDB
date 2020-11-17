@@ -22,14 +22,14 @@ function test ()
 
    array = new Array( 1024 * 1024 + 1 );
    array = array.join( "aaaaaaaaaaaaaaa" );
-   assert.tryThrow( -39, function()
+   assert.tryThrow( SDB_IXM_KEY_TOO_LARGE, function()
    {
       subCL.insert( { a: array } );
    } )
 
    array = new Array( 1024 * 1024 + 1 );
    array = array.join( "aaaaaaaaaaaaaaaaa" );
-   assert.tryThrow( -10, function()
+   assert.tryThrow( SDB_SYS, function()
    {
       subCL.insert( { a: array } );
    } )

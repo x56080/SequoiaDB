@@ -39,7 +39,7 @@ function test ()
       "ExtraField4.nest1.nest2.nest3":
          { "$elemMatch": ["nest4", 123, "element match query"] }
    };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );
@@ -49,7 +49,7 @@ function test ()
       "ExtraField4.nest1.nest2.nest3":
          { "$elemMatchOne": ["nest4", 123, "element match query"] }
    };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

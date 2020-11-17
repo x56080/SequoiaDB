@@ -33,7 +33,7 @@ function forceSession ( hostName, svcName, options )
    }
    catch( e )
    {
-      if( e.message != -264 )
+      if( e.message != SDB_COORD_NOT_ALL_DONE )
       {
          throw e;
       }

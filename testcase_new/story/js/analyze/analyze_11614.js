@@ -113,7 +113,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -264 && e.message != -47 )
+      if( e.message != SDB_COORD_NOT_ALL_DONE && e.message != SDB_IXM_NOTEXIST )
       {
          throw e;
       }
@@ -127,7 +127,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

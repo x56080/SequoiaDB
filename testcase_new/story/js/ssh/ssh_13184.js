@@ -21,17 +21,17 @@ function test ()
    ssh.getLastRet();
    ssh.getLastOut();
 
-   assert.tryThrow( -15, function()
+   assert.tryThrow( SDB_NETWORK, function()
    {
       ssh.exec( "hostname" );
    } );
 
-   assert.tryThrow( -15, function()
+   assert.tryThrow( SDB_NETWORK, function()
    {
       ssh.push( "/tmp/src.txt", "/tmp/dst.txt" );
    } );
 
-   assert.tryThrow( -15, function()
+   assert.tryThrow( SDB_NETWORK, function()
    {
       ssh.pull( "/tmp/src.txt", "/tmp/dst.txt" );
    } );

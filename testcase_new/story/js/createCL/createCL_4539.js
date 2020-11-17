@@ -9,17 +9,17 @@ function test ()
 {
    //128B
    var clName = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890test4539";
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       db.getCS( COMMCSNAME ).createCL();
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( "" );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( COMMCSNAME ).createCL( clName );
    } );

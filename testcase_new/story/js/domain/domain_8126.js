@@ -17,7 +17,7 @@ function test ()
    db.createDomain( domName, group );
 
    // Get domain that not exsit [Testing Point]
-   assert.tryThrow( -214, function()
+   assert.tryThrow( SDB_CAT_DOMAIN_NOT_EXIST, function()
    {
       db.getDomain( "SYSDOMAINGetNotExsitDomain" );
    } );

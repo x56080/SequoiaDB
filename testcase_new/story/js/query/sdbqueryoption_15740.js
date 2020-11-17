@@ -13,7 +13,7 @@ function test ( arg )
    cl.insert( { "typeint": 123, "typefloat": 123.456 } );
 
    // a、查询更新分区键字段，指定更新规则rule，设置返回更新后的记录，设置KeepShardingKey为true
-   assert.tryThrow( -178, function()
+   assert.tryThrow( SDB_UPDATE_SHARD_KEY, function()
    {
       cl.find( new SdbQueryOption().update( { "$inc": { "typeint": 1 }, "$set": { "typefloat": 1.3 } }, true, { "KeepShardingKey": true } ) );
    } );

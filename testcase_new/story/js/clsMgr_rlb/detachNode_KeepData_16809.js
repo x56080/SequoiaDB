@@ -26,7 +26,7 @@ function test ()
 }
 function detachNodeLawfulness ( groupName, hostname, port, KeepDataMsg )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getRG( groupName ).detachNode( hostname, port, { KeepData: KeepDataMsg } );
    } );

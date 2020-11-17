@@ -60,7 +60,7 @@ function bakBackupByCheckError ( db, backUpOpt )
    }
    catch( e )
    {
-      if( -240 == e.message ) 
+      if( SDB_BAR_BACKUP_EXIST == e.message ) 
       {
          alreadStart = true;
       }

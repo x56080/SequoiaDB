@@ -32,7 +32,7 @@ function test ()
    cl.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      assert.tryThrow( -339, function()
+      assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
       {
          cl.insert( invRecs[i] );
       } );

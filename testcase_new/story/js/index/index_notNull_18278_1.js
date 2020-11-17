@@ -28,7 +28,7 @@ function test ()
    cl.insert( recs1 );
    for( i = 0; i < recs2.length; i++ ) 
    {
-      assert.tryThrow( -339, function()
+      assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
       {
          cl.insert( recs2[i] );
       } );
@@ -67,7 +67,7 @@ function test ()
    var invRecs = [{ b: 1 }, { a: null, b: 2 }];
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      assert.tryThrow( -339, function()
+      assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
       {
          cl.insert( invRecs[i] );
       } );

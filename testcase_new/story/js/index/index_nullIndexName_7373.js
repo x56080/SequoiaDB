@@ -33,7 +33,7 @@ function test ()
 
 function createIndex ( cl, idxName )
 {
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( idxName, { a: 1 } );
    } );

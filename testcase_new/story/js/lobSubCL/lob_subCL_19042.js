@@ -32,7 +32,7 @@ function test ()
 
    for( i in lobOids )
    {
-      assert.tryThrow( -4, function()
+      assert.tryThrow( SDB_FNE, function()
       {
          mainCL.getLob( lobOids[i], WORKDIR + "/checkLob19042_" + i );
       } );

@@ -41,7 +41,7 @@ function test ()
    subcl2.insert( { a: 2 } );
    subcl2.split( targetGroup, sourceGroup, 50 );
    mainCL.attachCL( csName + "." + subCLName1, { "LowBound": { "date": "20190801" }, "UpBound": { "date": "20190805" } } );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.attachCL( csName + "." + subCLName2, { "LowBound": { "date": "20190805" }, "UpBound": { "date": "20190810" } } );
    } );

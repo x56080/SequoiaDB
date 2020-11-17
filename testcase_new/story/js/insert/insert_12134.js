@@ -96,7 +96,7 @@ function test ()
       throw new Error( "need throw error" );
    } catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -108,7 +108,7 @@ function test ()
       throw new Error( "need throw error" );
    } catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }
@@ -120,7 +120,7 @@ function test ()
       throw new Error( "need throw error" );
    } catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

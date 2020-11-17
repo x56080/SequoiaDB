@@ -24,7 +24,7 @@ function test ()
       Type: { $nin: ["Agent", "ShardAgent", "CoordAgent", "ReplAgent", "HTTPAgent"] }
    } ).toArray();
 
-   assert.tryThrow( -63, function()
+   assert.tryThrow( SDB_PMD_FORCE_SYSTEM_EDU, function()
    {
       db.forceSession( sessionID, { Global: true } );
    } );

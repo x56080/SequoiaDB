@@ -26,7 +26,7 @@ function test ()
    var mCL = commCreateCL( db, COMMCSNAME, mclName, { ShardingKey: { a: 1 }, IsMainCL: true }, true, true );
    mCL.createIndex( mIdxName, { b: 1 }, { NotNull: true } );
    // check index of main cl 
-   assert.tryThrow( -47, function()
+   assert.tryThrow( SDB_IXM_NOTEXIST, function()
    {
       mCL.getIndex( mIdxName );
    } );
@@ -64,7 +64,7 @@ function test ()
    mCL.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      assert.tryThrow( -339, function()
+      assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
       {
          mCL.insert( invRecs[i] );
       } );

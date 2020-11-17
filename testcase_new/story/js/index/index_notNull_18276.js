@@ -40,7 +40,7 @@ function test ()
    /**************************** test2, -247 ***************************/
 
    cl.createIndex( indexName1, { a: 1 }, true );
-   assert.tryThrow( -247, function()
+   assert.tryThrow( SDB_IXM_REDEF, function()
    {
       cl.createIndex( indexName1, { a: 1 }, { Unique: true } );
    } );
@@ -51,7 +51,7 @@ function test ()
 
    /**************************** test3, -46 ***************************/
    cl.createIndex( indexName1, { a: 1 }, true );
-   assert.tryThrow( -46, function()
+   assert.tryThrow( SDB_IXM_EXIST, function()
    {
       cl.createIndex( indexName1, { b: 1 }, { Unique: true } );
    } );
@@ -62,7 +62,7 @@ function test ()
 
    /**************************** test4, -291 ***************************/
    cl.createIndex( indexName1, { a: 1 }, true );
-   assert.tryThrow( -291, function()
+   assert.tryThrow( SDB_IXM_EXIST_COVERD_ONE, function()
    {
       cl.createIndex( indexName2, { a: 1 }, { Unique: true } );
    } );

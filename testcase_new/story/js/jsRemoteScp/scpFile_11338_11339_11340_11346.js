@@ -63,7 +63,7 @@ function test ()
 
    //seqDB-11339
    //remote to remote
-   assert.tryThrow( -5, function()
+   assert.tryThrow( SDB_FE, function()
    {
       replaceFile = remote.getFile( remoteDstFileName );
       File.scp( remotehost + ":" + CMSVCNAME + "@" + remoteSrcFileName,
@@ -73,7 +73,7 @@ function test ()
    replaceFile.remove( remoteDstFileName );
 
    //local to remote
-   assert.tryThrow( -5, function()
+   assert.tryThrow( SDB_FE, function()
    {
       replaceFile = remote.getFile( remoteDstFileName );
       File.scp( localSrcFileName,
@@ -83,7 +83,7 @@ function test ()
    replaceFile.remove( remoteDstFileName );
 
    //remote to local
-   assert.tryThrow( -5, function()
+   assert.tryThrow( SDB_FE, function()
    {
       replaceFile = new File( localDstFileName );
       File.scp( remotehost + ":" + CMSVCNAME + "@" + remoteSrcFileName,
@@ -93,7 +93,7 @@ function test ()
    replaceFile.remove( localDstFileName );
 
    //local to local
-   assert.tryThrow( -5, function()
+   assert.tryThrow( SDB_FE, function()
    {
       replaceFile = new File( localDstFileName );
       File.scp( localSrcFileName,
@@ -247,14 +247,14 @@ function test ()
       }
 
       //local
-      assert.tryThrow( -3, function()
+      assert.tryThrow( SDB_PERM, function()
       {
          File.scp( localSrcFileName, writeOnlyFileName, true, 0222 );
          File.scp( writeOnlyFileName, remotehost + ":" + CMSVCNAME + "@" + remoteDstFileName, true, 0222 );
       } );
 
       //remote
-      assert.tryThrow( -3, function()
+      assert.tryThrow( SDB_PERM, function()
       {
          File.scp( localSrcFileName, remotehost + ":" + CMSVCNAME + "@" + writeOnlyFileName,
             true, 0222 );
@@ -337,7 +337,7 @@ function scpTest ( srcFileName, dstFileName, srcFile, dstFile, mode, isReplace )
 
 function checkArgumentScp ( srcFileName, dstFileName, dstFile, mode, isReplace )
 {
-   assert.tryThrow( [-6, -1, -4, -3], function()
+   assert.tryThrow( [SDB_INVALIDARG, SDB_IO, SDB_FNE, SDB_PERM], function()
    {
       File.scp( srcFileName, dstFileName, isReplace, mode );
    } );

@@ -60,13 +60,13 @@ function test ()
    expRecs.push( { a: 3, id: { $numberLong: "9223372036854775802" } } );
 
    //coordA插入记录，插入失败，超出序列值返回
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[0].insert( { a: 1 } );
    } );
 
    //coordB插入记录，插入失败，超出序列值范围
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[1].insert( { a: 1 } );
    } );
@@ -82,7 +82,7 @@ function test ()
    expRecs.push( { a: 3, id: { $numberLong: "9223372036854775792" } } );
 
    //coordC插入记录，插入失败，超出序列值范围
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       cl[2].insert( { a: 1 } );
    } );

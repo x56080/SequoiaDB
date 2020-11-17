@@ -8,19 +8,19 @@ main( test );
 function test ( arg )
 {
    // PreferedInstance字段值为0
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.setSessionAttr( { "PreferedInstance": 0 } );
    } );
 
    // PreferedInstance字段值为256
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.setSessionAttr( { "PreferedInstance": 256 } );
    } );
 
    // PreferedInstance字段值为字符串
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.setSessionAttr( { "PreferedInstance": "y" } );
    } );

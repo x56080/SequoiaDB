@@ -16,7 +16,7 @@ function test ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1" } } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       dbcl.setAttributes( { Field: "a2", Increment: 3 } );
    } );

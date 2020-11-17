@@ -18,13 +18,13 @@ function test ()
    commCreateCL( db, COMMCSNAME, newCLName );
 
    //test case-16054: the old cl is not exist
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.getCS( COMMCSNAME ).renameCL( clName, newCLName );
    } );
 
    //test case-16055: the new cl is exist
-   assert.tryThrow( -22, function()
+   assert.tryThrow( SDB_DMS_EXIST, function()
    {
       db.getCS( COMMCSNAME ).renameCL( clName1, newCLName );
    } );

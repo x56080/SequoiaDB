@@ -33,7 +33,7 @@ function test ()
 
    //指定其他组的备节点ID，重新选主
    var nodeID = group2SlaveNode.NodeID;
-   assert.tryThrow( -155, function()
+   assert.tryThrow( SDB_CLS_NODE_NOT_EXIST, function()
    {
       db.getRG( groupName1 ).reelect( { Seconds: 60, NodeID: parseInt( nodeID ) } );
    } );
@@ -53,7 +53,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != -13 )
+      if( e.message != SDB_TIMEOUT )
       {
          throw new Error( e );
       }
@@ -65,7 +65,7 @@ function test ()
    //指定主机名和服务名不存在，重新选主
    var hostName = group2SlaveNode.HostName;
    var svcName = group2SlaveNode.svcname;
-   assert.tryThrow( -155, function()
+   assert.tryThrow( SDB_CLS_NODE_NOT_EXIST, function()
    {
       db.getRG( groupName1 ).reelect( { Seconds: 60, HostName: hostName, ServiceName: svcName } );
    } );

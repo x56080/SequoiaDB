@@ -48,7 +48,7 @@ function test ()
    /*【Test Point 3】 $elemMatch: nest array, array element isn't object*/
    var condObj = {};
    var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );
@@ -56,7 +56,7 @@ function test ()
    /*【Test Point 4】 $elemMatchOne: nest array, array element isn't object*/
    var condObj = {};
    var selObj = { "ExtraField3.nestArr1.nestArr2.nestArr3": { "$elemMatch": 158 } };
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       var ret = selMainQuery( cl, condObj, selObj );
    } );

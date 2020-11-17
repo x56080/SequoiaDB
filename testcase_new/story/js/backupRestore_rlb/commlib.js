@@ -171,7 +171,7 @@ function bakRemoveBackups ( db, filter, ignoreNotExist, path, isSubDir )
       catch( e )
       {
          // not exist
-         if( !ignoreNotExist || e.message != -241 )
+         if( !ignoreNotExist || e.message != SDB_BAR_BACKUP_NOTEXIST )
          {
             throw e;
          }
@@ -776,7 +776,7 @@ backupTestCase.prototype.addNodeExceptPrimary =
                this.sdb.getRG( this.group.GroupName ).start();
             } catch( e )
             {
-               if( e.message != -145 )
+               if( e.message != SDBCM_NODE_EXISTED )
                {
                   println( "createNode(" + hostName + "," + svcName + "," + dbPath + " ),err" + e );
                }

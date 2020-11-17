@@ -69,7 +69,7 @@ function test ()
    }
    catch( e )
    {
-      if( -10 != e.message )
+      if( SDB_SYS != e.message )
       {
          throw e;
       }

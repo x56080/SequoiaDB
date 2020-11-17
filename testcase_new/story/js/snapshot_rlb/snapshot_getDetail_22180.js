@@ -142,7 +142,7 @@ function getGroupsWithNodeNum ( nodesNum )
 
 function updateConf ( db, configs, options )
 {
-   assert.tryThrow( -322, function()
+   assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
    {
       db.updateConf( configs, options );
    } );
@@ -150,7 +150,7 @@ function updateConf ( db, configs, options )
 
 function deleteConf ( db, configs, options )
 {
-   assert.tryThrow( -322, function()
+   assert.tryThrow( SDB_RTN_CONF_NOT_TAKE_EFFECT, function()
    {
       db.deleteConf( configs, options );
    } );

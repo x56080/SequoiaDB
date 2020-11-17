@@ -49,7 +49,7 @@ function alterPageSizeInThePresenceCL ( dbcs )
    catch( e )
    {
       //-275:There are some collections in the collection space
-      if( e.message != -275 )
+      if( e.message != SDB_DMS_CS_NOT_EMPTY )
       {
          throw e;
       }
@@ -66,7 +66,7 @@ function alterLobPageSizeExistLob ( dbcs )
    }
    catch( e )
    {
-      if( e.message != -32 )
+      if( e.message != SDB_OPTION_NOT_SUPPORT )
       {
          throw e;
       }

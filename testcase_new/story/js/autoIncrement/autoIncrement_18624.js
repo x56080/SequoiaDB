@@ -48,7 +48,7 @@ function test ()
    checkSequence( db, sequenceName_2, expSequenceObj_2 );
 
    // 通过本coord和其它coord插入记录查询，插入记录报错-325
-   assert.tryThrow( -325, function()
+   assert.tryThrow( SDB_SEQUENCE_EXCEEDED, function()
    {
       for( var i in coordList )
       {

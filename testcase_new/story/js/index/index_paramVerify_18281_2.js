@@ -40,13 +40,13 @@ function test ()
 
    var insertR1 = [{ a: 1, b: 1, c: 1 }];
    mainCl.insert( insertR1 );
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       mainCl.insert( insertR1 );
    } );
 
    var insertR2 = [{ a: 1, c: 1 }];
-   assert.tryThrow( -339, function()
+   assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
    {
       mainCl.insert( insertR2 );
    } );

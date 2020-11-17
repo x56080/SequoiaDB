@@ -30,7 +30,7 @@ function test ( testPara )
 
 function updateError ( updateCondition, findCondition )
 {
-   assert.tryThrow( -318, function()
+   assert.tryThrow( SDB_VALUE_OVERFLOW, function()
    {
       testPara.testCL.update( updateCondition, findCondition );
    } )

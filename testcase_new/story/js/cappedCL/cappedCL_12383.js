@@ -50,7 +50,7 @@ function checkCreateCLOptions ( csName, clName, options, isValid )
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

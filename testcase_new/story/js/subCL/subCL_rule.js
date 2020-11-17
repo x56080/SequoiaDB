@@ -115,7 +115,7 @@ function test_range_attach_hash_update_1 ()// NOT Error, test mainCL'ShardingTyp
    mainCL.insert( { a: 0, b: [1, 2], salary: 100 } );
    mainCL.insert( { a: 1, b: [1, 2], salary: 100 } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.update( { $addtoset: { c: 2 } } );
    } );
@@ -124,17 +124,17 @@ function test_range_attach_hash_update_1 ()// NOT Error, test mainCL'ShardingTyp
 
    mainCL.update( { $push: { salary: 1 } } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.update( { $pull_all: { b: 3 } } );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.update( { $push_all: { b: 2 } } );
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       mainCL.update( { $pop: { b: [2] } } );
    } );

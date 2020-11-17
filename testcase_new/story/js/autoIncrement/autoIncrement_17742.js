@@ -60,7 +60,7 @@ function test ()
 
    //coordB再次插入生成自增字段值大于minValue因此翻转，重新取缓存范围[-200,-1],此时需要生成id值为-1,唯一索引冲突，
    //再次取缓存范围[-400,-201],此时生成id值为-201，再次唯一索引冲突后报错-38
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl[1].insert( { a: sortField } );
    } );

@@ -58,7 +58,7 @@ function test ()
 
 function domainSetAtt ( domain, alterOption )
 {
-   assert.tryThrow( -256, function()
+   assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
       domain.setAttributes( alterOption );
    } );
@@ -66,7 +66,7 @@ function domainSetAtt ( domain, alterOption )
 
 function domainRemoveGroups ( domain, groups )
 {
-   assert.tryThrow( -256, function()
+   assert.tryThrow( SDB_DOMAIN_IS_OCCUPIED, function()
    {
       domain.removeGroups( groups );
    } );

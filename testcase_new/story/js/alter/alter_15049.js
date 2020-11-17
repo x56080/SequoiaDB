@@ -31,7 +31,7 @@ function test ()
    checkAlterCSResult( csName, "LobPageSize", lobpageSize );
 
    //alter cs name
-   assert.tryThrow( -32, function()
+   assert.tryThrow( SDB_OPTION_NOT_SUPPORT, function()
    {
       dbcs.alter( { Name: "testcs" } );
    } );

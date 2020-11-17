@@ -25,7 +25,7 @@ function test ()
    //check the result of find  
    checkResult( varCL, { "中文": 12 } );
 
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       varCL.insert( { "中文": 12 } );
    } );

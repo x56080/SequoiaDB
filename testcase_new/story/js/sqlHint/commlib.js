@@ -27,7 +27,7 @@ function createCL ( csName, clName, autoCreateCS, ignoreExisted, message )
    }
    catch( e )
    {
-      if( e.message != -22 || !ignoreExisted )
+      if( e.message != SDB_DMS_EXIST || !ignoreExisted )
       {
          throw e;
       }
@@ -49,7 +49,7 @@ function dropCL ( csName, clName, ignoreNotExist, message )
    }
    catch( e )
    {
-      if( ( e.message != -34 && ignoreNotExist ) || ( e.message == -23 && ignoreNotExist ) )
+      if( ( e.message != SDB_DMS_CS_NOTEXIST && ignoreNotExist ) || ( e.message == SDB_DMS_NOTEXIST && ignoreNotExist ) )
       {
          //continue
       }

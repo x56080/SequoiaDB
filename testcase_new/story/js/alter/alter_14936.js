@@ -43,7 +43,7 @@ function noParitionCLAlter ( dbcl )
    }
    catch( e )
    {
-      if( e.message != -177 )
+      if( e.message != SDB_SHARD_KEY_NOT_IN_UNIQUE_KEY )
       {
          throw e;
       }

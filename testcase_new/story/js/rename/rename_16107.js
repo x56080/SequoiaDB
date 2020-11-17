@@ -36,7 +36,7 @@ function test ()
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
 
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.eval( procedureName + "()" );
    } );

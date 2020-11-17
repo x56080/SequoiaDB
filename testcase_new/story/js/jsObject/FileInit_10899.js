@@ -110,7 +110,7 @@ function testInitLocalNoPermission ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e.message != -3 )
+      if( e.message != SDB_PERM )
       {
          throw e;
       }
@@ -134,7 +134,7 @@ function testInitRemoteNoPermission ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e.message != -3 )
+      if( e.message != SDB_PERM )
       {
          throw e;
       }

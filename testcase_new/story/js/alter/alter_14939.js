@@ -38,7 +38,7 @@ function checkShardIndex ( dbcl )
    catch( e )
    {
       //-47:Index name does not exist
-      if( e.message != -47 )
+      if( e.message != SDB_IXM_NOTEXIST )
       {
          throw e;
       }

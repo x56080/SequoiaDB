@@ -11,7 +11,7 @@ function test ()
    var fileName = "file19943";
    var fileFullPath = filePath + fileName;
 
-   assert.tryThrow( -4, function()
+   assert.tryThrow( SDB_FNE, function()
    {
       new IniFile( fileFullPath );
    } );

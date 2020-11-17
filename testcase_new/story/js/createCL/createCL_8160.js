@@ -6,7 +6,7 @@ function test ()
 {
    var clName = "";
    var cs = db.getCS( COMMCSNAME );
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.createCL( clName );
    } );

@@ -32,7 +32,7 @@ function insertRecordsWithIllegalFieldName ( cl )
       }
       catch( e )   
       {
-         if( -6 != e.message )
+         if( SDB_INVALIDARG != e.message )
          {
             throw e;
          }

@@ -58,7 +58,7 @@ function createDataGroups ( rgName, hostName, instanceidArr, logSourcePaths )
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e.message == -145 || e.message == -290 )
+            if( e.message == SDBCM_NODE_EXISTED || e.message == SDB_DIR_NOT_EMPTY )
             {
                port = port + 10;
                dataPath = RSRVNODEDIR + "data/" + port;
@@ -91,7 +91,7 @@ function removeDataRG ( rgName )
    catch( e )
    {
       //-154 : SDB_CLS_GRP_NOT_EXIST
-      if( e.message != -154 )
+      if( e.message != SDB_CLS_GRP_NOT_EXIST )
       {
          throw e;
       }

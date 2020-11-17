@@ -15,23 +15,23 @@ function test ( arg )
    idxAutoGenData( cl, insertNum );
 
    // 排序字段名为空字符串
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find().sort( { "": 1 } ).toArray();
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find().sort( { "": "a" } ).toArray();
    } );
 
    // 排序字段名有效，值无效
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find().sort( { "a": 0 } ).toArray();
    } );
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.find().sort( { "a": "1" } ).toArray();
    } );

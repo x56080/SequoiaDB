@@ -137,7 +137,7 @@ function createGroupAndNode ( db, rgName, hostName, nodesNum )
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e.message == -145 || e.message == -290 )
+            if( e.message == SDBCM_NODE_EXISTED || e.message == SDB_DIR_NOT_EMPTY )
             {
                svc = svc + 10;
                dbPath = RSRVNODEDIR + "data/" + svc;

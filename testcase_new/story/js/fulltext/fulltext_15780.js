@@ -38,7 +38,7 @@ function test ()
    }
    catch( e )
    {
-      if( -37 != e.message )
+      if( SDB_IXM_MULTIPLE_ARRAY != e.message )
       {
          throw e;
       }

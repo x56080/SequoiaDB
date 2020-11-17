@@ -25,7 +25,7 @@ function test ()
 function putLobWithFileNotExist ( cl )
 {
    var testLobFile = "/test4462.txt";
-   assert.tryThrow( -4, function()
+   assert.tryThrow( SDB_FNE, function()
    {
       cl.putLob( testLobFile );
    } );
@@ -33,7 +33,7 @@ function putLobWithFileNotExist ( cl )
 
 function putLobWithEmpty ( cl )
 {
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.putLob();
    } );

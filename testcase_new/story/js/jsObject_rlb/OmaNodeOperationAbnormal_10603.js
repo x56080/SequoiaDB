@@ -27,7 +27,7 @@ OmaTest.prototype.testCreateExistCoord = function()
    }
    catch( e )
    {
-      if( e.message != -145 )
+      if( e.message != SDBCM_NODE_EXISTED )
       {
          throw e;
       }
@@ -47,7 +47,7 @@ OmaTest.prototype.testRemoveNotExistCoord = function( svcname )
    }
    catch( e )
    {
-      if( e.message != -146 )
+      if( e.message != SDBCM_NODE_NOTEXISTED )
       {
          throw e;
       }
@@ -66,7 +66,7 @@ OmaTest.prototype.testRemoveCoordWithWrongSvc = function()
    }
    catch( e )
    {
-      if( e.message != -146 )
+      if( e.message != SDBCM_NODE_NOTEXISTED )
       {
          throw e;
       }
@@ -91,7 +91,7 @@ OmaTest.prototype.testRemoveCoordWithWrongConf = function()
    }
    catch( e )
    {
-      if( e.message != -146 )
+      if( e.message != SDBCM_NODE_NOTEXISTED )
       {
          throw e;
       }
@@ -110,7 +110,7 @@ OmaTest.prototype.testStartNotExistNode = function( svcname )
    }
    catch( e )
    {
-      if( e.message != -146 )
+      if( e.message != SDBCM_NODE_NOTEXISTED )
       {
          throw e;
       }
@@ -186,7 +186,7 @@ OmaTest.prototype.testCreateCoordWithNoPermit = function( svcname )
    }
    catch( e )
    {
-      if( e.message != -3 )
+      if( e.message != SDB_PERM )
       {
          throw e;
       }
@@ -210,7 +210,7 @@ OmaTest.prototype.testOmaClose = function()
    }
    catch( e )
    {
-      if( e.message != -6 )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

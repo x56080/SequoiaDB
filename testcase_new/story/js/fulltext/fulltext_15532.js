@@ -56,7 +56,7 @@ function test ()
 
 function insertRecordsAgain ( dbcl, records )
 {
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.insert( records );
    } );

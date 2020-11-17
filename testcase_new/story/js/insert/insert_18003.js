@@ -55,7 +55,7 @@ function setOptions_RC_false ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }
@@ -77,7 +77,7 @@ function setOptions_RR_false ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }
@@ -102,7 +102,7 @@ function setOptions_CR ( cl )
    }
    catch( e )
    {
-      if( -6 != e.message )
+      if( SDB_INVALIDARG != e.message )
       {
          throw e;
       }
@@ -132,7 +132,7 @@ function setOptions_CR ( cl )
    }
    catch( e )
    {
-      if( -38 != e.message )
+      if( SDB_IXM_DUP_KEY != e.message )
       {
          throw e;
       }

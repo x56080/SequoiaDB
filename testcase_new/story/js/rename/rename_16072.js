@@ -17,7 +17,7 @@ function test ()
    var pcdName = "procedure16072"
 
    commDropCS( db, csName, true, "drop CS " + csName );
-   assert.tryThrow( -233, function()
+   assert.tryThrow( SDB_FMP_FUNC_NOT_EXIST, function()
    {
       db.removeProcedure( "test16072" );
    } );
@@ -35,7 +35,7 @@ function test ()
 
    //2.renameCL �ٴ�ִ�д洢���̲�ѯ
    cs.renameCL( clName, newClName );
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       db.eval( 'test16072("' + csName + '", "' + clName + '")' );
    } );

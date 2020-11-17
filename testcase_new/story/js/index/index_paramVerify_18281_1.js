@@ -26,13 +26,13 @@ function test ()
    var keyArr = [{ isUnique: true }, { enforced: true }, { sortBufferSize: true }, { notNull: true }, { aa: true }];
    for( i = 0; i < keyArr.length; i++ ) 
    {
-      assert.tryThrow( -6, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          cl.createIndex( indexName, { a: 1 }, keyArr[i] );
       } );
    }
 
-   assert.tryThrow( -47, function()
+   assert.tryThrow( SDB_IXM_NOTEXIST, function()
    {
       cl.getIndex( indexName );
    } );
@@ -49,7 +49,7 @@ function test ()
 
    /**************************** test4, 2 diff name for same field ***************************/
    var keyArr = [{ enforced: true, Enforced: false }, { unique: false, Unique: false }, { NotNull: true, aa: false }];
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, { a: 1 }, keyArr[i] );
    } );
@@ -77,14 +77,14 @@ function test ()
    cl.insert( valRecs );
    for( i = 0; i < invRecs.length; i++ ) 
    {
-      assert.tryThrow( -339, function()
+      assert.tryThrow( SDB_IXM_KEY_NOTNULL, function()
       {
          cl.insert( invRecs[i] );
       } );
    }
    checkRecords( cl, valRecs );
 
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.insert( { a: 1, b: 4 } );
    } );
@@ -96,7 +96,7 @@ function test ()
    checkIndex( cl, indexName, true, true );
    var insertR1 = [{ b: 1 }];
    cl.insert( insertR1 );
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.insert( [{ b: 2 }] );
    } );
@@ -120,7 +120,7 @@ function test ()
    /**************************** test9, NotNull:string/otherNum ***************************/
    var keyArr = [{ NotNull: "true" }, { NotNull: "false" }, { NotNull: 2 }];
 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cl.createIndex( indexName, { a: 1 }, keyArr[i] );
    } );

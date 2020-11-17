@@ -8,7 +8,7 @@ function test ()
 
    commDropCL( db, COMMCSNAME, clName );
    cs.createCL( clName, { Compressed: true } );
-   assert.tryThrow( -22, function()
+   assert.tryThrow( SDB_DMS_EXIST, function()
    {
       cs.createCL( clName, { Compressed: true } );
    } );

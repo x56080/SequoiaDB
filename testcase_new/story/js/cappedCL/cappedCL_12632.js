@@ -68,7 +68,7 @@ function checkPopResult ( dbcl, logicalID, direction, isSuccess )
       {
          throw new Error( e );
       }
-      else if( e.message != -6 )
+      else if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

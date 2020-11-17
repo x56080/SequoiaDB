@@ -53,7 +53,7 @@ function test ()
 
    //coordA不指定自增字段插入,获取新的缓存[-100，-1]，此时生成id:-1,首次唯一索引冲突不报错，
    //再次取缓存范围[-200，-101]，生成id:-101唯一索引冲突报错-38，插入失败
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl[0].insert( { a: i } );
    } );

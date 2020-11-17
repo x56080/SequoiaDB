@@ -49,7 +49,7 @@ function test ()
 
    // CRUD
    // insert
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       mainCL.insert( { a: 1 } );
    } );

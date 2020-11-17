@@ -19,14 +19,14 @@ function test ()
    // put Lob
    var oid = lobPutLob( cl, testFile, putNum ); //Array
    // get lob with no parmameter : getLob()[Test_Point_1]
-   assert.tryThrow( -259, function()
+   assert.tryThrow( SDB_OUT_OF_BOUND, function()
    {
       cl.getLob();
    } );
 
    // get lob specify same file and don't set forced : true[Test_Point_2]
    cl.getLob( oid[0], getTestFile );
-   assert.tryThrow( -5, function()
+   assert.tryThrow( SDB_FE, function()
    {
       cl.getLob( oid[0], getTestFile );
    } );

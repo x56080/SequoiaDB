@@ -22,7 +22,7 @@ function test ()
    cl.insert( doc );
 
    //单条插入唯一索引重复的数据，flag为不指定 
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.insert( { "_id": 0, "a": 0 } );
    } );
@@ -53,7 +53,7 @@ function test ()
    commCompareResults( cursor, doc, false );
 
    //批量插入唯一索引重复的数据，flag为不指定
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       cl.insert( doc );
    } );

@@ -48,7 +48,7 @@ function checkCL ( cs, clName )
 
 function checkReNameCL ( cs, clName, renameClName )
 {
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       cs.getCL( clName );
    } );

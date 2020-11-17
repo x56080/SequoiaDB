@@ -17,12 +17,12 @@ function test ()
    commCreateCS( db, csname1, false, "create cs in begine" );
    commCreateCS( db, csname2, false, "create cs in begine" );
 
-   assert.tryThrow( -34, function()
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.renameCS( notExitName, csname1 );
    } );
 
-   assert.tryThrow( -33, function()
+   assert.tryThrow( SDB_DMS_CS_EXIST, function()
    {
       db.renameCS( csname1, csname2 );
    } );

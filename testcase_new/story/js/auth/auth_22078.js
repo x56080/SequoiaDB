@@ -50,7 +50,7 @@ function test ()
       // drop user1
       sdb.dropUsr( user1, user1 );
       // use db1
-      assert.tryThrow( -179, function()
+      assert.tryThrow( SDB_AUTH_AUTHORITY_FORBIDDEN, function()
       {
          db1.getRG( groupName ).getMaster().connect();
       } );

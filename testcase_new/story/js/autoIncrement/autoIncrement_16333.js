@@ -16,7 +16,7 @@ function test ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: "a1" } } );
 
-   assert.tryThrow( -333, function()
+   assert.tryThrow( SDB_AUTOINCREMENT_FIELD_NOT_EXIST, function()
    {
       dbcl.dropAutoIncrement( "b1" );
    } );

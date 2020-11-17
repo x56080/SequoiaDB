@@ -62,7 +62,7 @@ function checkCreateCLOptions ( csName, clName, options, result )
    }
    catch( e )
    {
-      if( e.message != -6 && e.message != -315 )
+      if( e.message != SDB_INVALIDARG && e.message != SDB_OPERATION_INCOMPATIBLE )
       {
          throw e;
       }

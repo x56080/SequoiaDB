@@ -29,7 +29,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, indexName, 2 );
 
    var str = new Array( 1024 * 1024 * 16 ).join( "a" );
-   assert.tryThrow( -24, function()
+   assert.tryThrow( SDB_DMS_RECORD_TOO_BIG, function()
    {
       dbcl.insert( { a: str } );
    } );

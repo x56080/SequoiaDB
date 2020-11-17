@@ -53,7 +53,7 @@ function test ()
       // drop user1
       sdb.dropUsr( user1, user1 );
       // use db1
-      assert.tryThrow( -152, function()
+      assert.tryThrow( SDB_SPT_EVAL_FAIL, function()
       {
         db1.eval( procFunc );
       });

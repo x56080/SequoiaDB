@@ -198,7 +198,7 @@ function insertDataOverSize ( dbcl )
          } catch( e )
          {
             flag = false;
-            if( e.message != -307 )
+            if( e.message != SDB_OSS_UP_TO_LIMIT )
             {
                throw e;
             }

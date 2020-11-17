@@ -16,13 +16,13 @@ function test ( testPara )
    var cs = testPara.testCS;
 
    var notExistsClName = COMMCLNAME + "_notExists_22758";
-   assert.tryThrow( -23, function()
+   assert.tryThrow( SDB_DMS_NOTEXIST, function()
    {
       cs.dropCL( notExistsClName );
    } );
 
    var withdotClName = COMMCLNAME + "_._22758";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.dropCL( withdotClName );
    } );
@@ -33,19 +33,19 @@ function test ( testPara )
    {
       tooLong128BClName += 'a';
    }
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.dropCL( tooLong128BClName );
    } );
 
    var emptyClName = "";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.dropCL( emptyClName );
    } );
 
    var with$ClName = "$" + COMMCLNAME + "_22758";
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       cs.dropCL( with$ClName );
    } );

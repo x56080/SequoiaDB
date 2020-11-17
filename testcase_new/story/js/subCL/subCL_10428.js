@@ -22,7 +22,7 @@ function test ()
    commCreateCS( db, csName, false, "Failed to create CS." );
    var mainCL = createMainCL( csName, mainCLName );
 
-   assert.tryThrow( -135, function()
+   assert.tryThrow( SDB_CAT_NO_MATCH_CATALOG, function()
    {
       mainCL.insert( { a: "adfadfadf", b: "ijijkkkijikji" } );
    } )

@@ -18,13 +18,13 @@ function createCSAndCheckResult ( csNameLen )
    var csName = getRandomString( csNameLen );
 
    //create cs; 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.createCS( csName );
    } );
 
    //check cs is not exist; 
-   assert.tryThrow( -6, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       db.getCS( csName );
    } );

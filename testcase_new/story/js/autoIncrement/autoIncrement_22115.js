@@ -24,7 +24,7 @@ function test ()
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    //插入重复键
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.insert( { id: 2, a: 1 } );
    } );
@@ -39,7 +39,7 @@ function test ()
 
 
    //更新后与原有记录冲突
-   assert.tryThrow( -38, function()
+   assert.tryThrow( SDB_IXM_DUP_KEY, function()
    {
       dbcl.update( { $set: { id: 1 } }, { a: 1 } );
    } );

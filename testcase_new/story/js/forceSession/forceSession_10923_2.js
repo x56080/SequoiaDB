@@ -25,7 +25,7 @@ function forceSession ( hostName, svcName, options )
 {
    var dataDB = new Sdb( hostName, svcName );
    var sessionID = dataDB.list( SDB_LIST_SESSIONS_CURRENT, { Global: false } ).next().toObj().SessionID;
-   assert.tryThrow( -62, function()
+   assert.tryThrow( SDB_PMD_SESSION_NOT_EXIST, function()
    {
       db.forceSession( sessionID, options );
    } );

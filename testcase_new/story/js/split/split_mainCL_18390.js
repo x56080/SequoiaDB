@@ -35,7 +35,7 @@ function test ()
    mcl.attachCL( COMMCSNAME + "." + sCLName, { LowBound: { a: 0 }, UpBound: { a: 200 } } );
 
    // split
-   assert.tryThrow( -246, function()
+   assert.tryThrow( SDB_MAIN_CL_OP_ERR, function()
    {
       mcl.split( srcGroupName, dstGroupName, 50 );
    } );
