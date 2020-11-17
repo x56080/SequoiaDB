@@ -95,62 +95,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 omRestCommandBase::_getBusinessAuth( const string &businessName, 
-                                              string &authUser, 
-                                              string &authPasswd )
-   {
-      BSONObjBuilder bsonBuilder ;
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj order ;
-      BSONObj hint ;
-      BSONObj result ;
-      SINT64 contextID = -1 ;
-      INT32 rc         = SDB_OK ;
-
-      matcher = BSON( OM_BUSINESS_FIELD_NAME << businessName ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, matcher, order, 
-                     hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
-                 OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
-         goto error ;
-      }
-
-      while ( TRUE )
-      {
-         BSONObjBuilder innerBuilder ;
-         BSONObj tmp ;
-         rtnContextBuf buffObj ;
-         rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_EOC == rc )
-            {
-               break ;
-            }
-            contextID = -1 ;
-            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d", 
-                    OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
-            goto error ;
-         }
-
-         BSONObj result( buffObj.data() ) ;
-         authUser   = result.getStringField( OM_AUTH_FIELD_USER ) ;
-         authPasswd = result.getStringField( OM_AUTH_FIELD_PASSWD ) ;
-         break ;
-      }
-   done:
-      if ( -1 != contextID )
-      {
-         _pRTNCB->contextDelete ( contextID, _cb ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 omRestCommandBase::_queryTable( const string &tableName, 
                                          const BSONObj &selector, 
                                          const BSONObj &matcher,

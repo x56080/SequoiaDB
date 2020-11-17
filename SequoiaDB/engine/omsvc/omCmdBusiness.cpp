@@ -1770,7 +1770,7 @@ namespace engine
       builder.append( OM_BSON_BUSINESS_NAME, _businessName ) ;
       builder.append( OM_BSON_BUSINESS_TYPE, _businessType ) ;
 
-      _getBusinessAuth( _businessName, authUser, authPwd ) ;
+      dbTool.getAuth( _businessName, authUser, authPwd ) ;
 
       builder.append( OM_BSON_USER, authUser ) ;
       builder.append( OM_BSON_PASSWD, authPwd ) ;

@@ -901,6 +901,7 @@ namespace engine
       string authUser = "" ;
       string authPwd  = "" ;
       BSONObjBuilder valueBuilder ;
+      omDatabaseTool dbTool( _cb ) ;
 
       BSONObj condition = BSON( OM_BSON_FIELD_CONFIG << "" ) ;
       BSONObj configs = extendConfig.filterFieldsUndotted( condition, true ) ;
@@ -963,7 +964,7 @@ namespace engine
          valueBuilder.append( OM_NODE_COORDLIST, coordBuilder.arr() ) ;
       }
 
-      _getBusinessAuth( _businessName, authUser, authPwd ) ;
+      dbTool.getAuth( _businessName, authUser, authPwd ) ;
 
       valueBuilder.append( OM_AUTH_FIELD_USER, authUser ) ;
       valueBuilder.append( OM_AUTH_FIELD_PASSWD, authPwd ) ;
@@ -1453,7 +1454,7 @@ namespace engine
 
       valueBuilder.append( OM_NODE_COORDLIST, coordBuilder.arr() ) ;
 
-      _getBusinessAuth( _businessName, authUser, authPwd ) ;
+      dbTool.getAuth( _businessName, authUser, authPwd ) ;
 
       valueBuilder.append( OM_AUTH_FIELD_USER, authUser ) ;
       valueBuilder.append( OM_AUTH_FIELD_PASSWD, authPwd ) ;
@@ -11502,7 +11503,7 @@ checking system firewall for blocked ports" ) ;
       vector<simpleAddressInfo>::iterator iter ;
       omDatabaseTool dbTool( _cb ) ;
 
-      _getBusinessAuth( _businessName, authUser, authPwd ) ;
+      dbTool.getAuth( _businessName, authUser, authPwd ) ;
 
       builder.append( OM_BUSINESS_FIELD_CLUSTERNAME, _clusterName ) ;
       builder.append( OM_BUSINESS_FIELD_NAME, _businessName ) ;
