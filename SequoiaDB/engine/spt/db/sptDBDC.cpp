@@ -319,6 +319,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Failed to get detail" ) ;
          goto error ;
       }
+      rval.getReturnVal().setValue( retObj ) ;
    done:
       return rc ;
    error:
