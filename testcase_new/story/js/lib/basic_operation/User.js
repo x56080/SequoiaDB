@@ -7,10 +7,10 @@ var tmpUser = {
 };
 var funcUser = User;
 var funcUserhelp = User.help;
-User=function(){try{return funcUser.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };
-User.help = function(){try{ return funcUserhelp.apply( this, arguments ); } catch( e ) { var msg = e.message || e; throw new Error(msg) } };
-User.prototype._promptPassword=function(){try{return tmpUser._promptPassword.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
-User.prototype.getUsername=function(){try{return tmpUser.getUsername.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
-User.prototype.help=function(){try{return tmpUser.help.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
-User.prototype.promptPassword=function(){try{return tmpUser.promptPassword.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
-User.prototype.toString=function(){try{return tmpUser.toString.apply(this,arguments);}catch(e){var msg = e.message || e; throw new Error(msg);}};
+User=function(){try{return funcUser.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
+User.help = function(){try{ return funcUserhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
+User.prototype._promptPassword=function(){try{return tmpUser._promptPassword.apply(this,arguments);}catch(e){throw new Error(e);}};
+User.prototype.getUsername=function(){try{return tmpUser.getUsername.apply(this,arguments);}catch(e){throw new Error(e);}};
+User.prototype.help=function(){try{return tmpUser.help.apply(this,arguments);}catch(e){throw new Error(e);}};
+User.prototype.promptPassword=function(){try{return tmpUser.promptPassword.apply(this,arguments);}catch(e){throw new Error(e);}};
+User.prototype.toString=function(){try{return tmpUser.toString.apply(this,arguments);}catch(e){throw new Error(e);}};

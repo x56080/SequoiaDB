@@ -4,10 +4,30 @@
    2014-3-1 Jianhui Xu  Init
 ***************************************************************************** */
 
+
 var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+
+try
+{
+   main( db );
+}
+catch( e )
+{
+   println( "Before all test-cases environment prepare failed: " + e );
+}
 
 function main ( db )
 {
+   // 0. 生成 basic_operation 目录下的文件
+   var currentUser = System.getCurrentUser().toObj().user;
+   if( currentUser == "jenkins" )
+   {
+      new Cmd().run( "/opt/sequoiadb/bin/sdb -f /tmp/ci/testcase/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='/tmp/ci/testcase/story/js/lib/basic_operation/'\"" )
+   }else
+   {
+      new Cmd().run( "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\"" )
+   }
+
    // 1. 删除名称含 local_test 的 cs
    var cols = commGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES, { "Name": Regex( CHANGEDPREFIX, "i" ) }, { "Name": "" } );
    for( var i = 0; i < cols.length; ++i )
@@ -61,13 +81,8 @@ function main ( db )
          println( "Drop procedure " + procedures[j] + " failed before test-case: " + e );
       }
    }
+
+
 }
 
-try
-{
-   main( db );
-}
-catch( e )
-{
-   println( "Before all test-cases environment prepare failed: " + e );
-}
+
