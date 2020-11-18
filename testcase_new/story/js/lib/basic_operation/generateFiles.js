@@ -18,8 +18,7 @@ function generateFiles ()
    // 内置类：str[0]
    // 全局方法：str[1];
    var str = showClassfull().split( ":\n" ).map( function( classAndFunc ) { return classAndFunc.split( "\n" ).slice( 0, -1 ).map( function( s ) { return s.trim() } ); } ).slice( 1 );
-   var commFile = getFile( "commlib.js" );
-   commFile.write( 'import( "./Error.js" );' + "\n" );
+   var commFileContent = 'import( "./Error.js" );' + "\n";
 
    // 封装内置类
    var classes = str[0];
@@ -29,8 +28,7 @@ function generateFiles ()
       var staicFunc = showClassfull( classes[i] ).split( "static functions:\n" )[1].split( "'s member functions" )[0].split( "\n" ).slice( 0, -1 ).map( function( s ) { return s.trim().slice( 0, -2 ) } );
       var memFunc = showClassfull( classes[i] ).split( "member functions:\n" )[1].split( "\n" ).slice( 0, -1 ).map( function( s ) { return s.trim().slice( 0, -2 ) } );
 
-      var fileName = classes[i] + ".js";
-      var file = getFile( fileName );
+      var fileContent = "";
 
       /* e.g: 
           var tmpSdb = { 
@@ -44,13 +42,13 @@ function generateFiles ()
          varStr += "\n   " + memFunc[j] + ": " + classes[i] + ".prototype." + memFunc[j];
          if( j != memFunc.length - 1 ) { varStr += ","; } else { varStr += "\n};"; }
       }
-      file.write( varStr + "\n" );
+      fileContent += varStr + "\n";
 
       /* e.g: 
           var funcSdb = Sdb
       */
       var varStr = "var func" + classes[i] + " = " + classes[i] + ";";
-      file.write( varStr + "\n" );
+      fileContent += varStr + "\n";
 
       /* e.g: 
           var funcSdbhelp = Sdb.help;
@@ -58,14 +56,14 @@ function generateFiles ()
       for( var j = 0; j < staicFunc.length; j++ )
       {
          var varStr = "var func" + classes[i] + staicFunc[j] + " = " + classes[i] + "." + staicFunc[j] + ";";
-         file.write( varStr + "\n" );
+         fileContent += varStr + "\n";
       }
 
       /* e.g:  
           Sdb=function(){try{return funcSdb.apply( this, arguments ); } catch( e ) {  throw new Error(e) } };
       */
       var evalStr = classes[i] + "=function(){try{return func" + classes[i] + ".apply( this, arguments ); } catch( e ) { throw new Error(e) } };";
-      file.write( evalStr + "\n" );
+      fileContent += evalStr + "\n";
 
       /* e.g:
          Sdb.help = function(){try{ return funcSdbhelp.apply( this, arguments ); } catch( e ) { throw new Error(e) } };
@@ -74,7 +72,7 @@ function generateFiles ()
       {
          var evalStr = classes[i] + "." + staicFunc[j] + " = function(){" +
             "try{ return func" + classes[i] + staicFunc[j] + ".apply( this, arguments ); } catch( e ) { throw new Error(e) } };";
-         file.write( evalStr + "\n" );
+         fileContent += evalStr + "\n";
       }
 
       /* e.g: 
@@ -84,16 +82,19 @@ function generateFiles ()
       {
          var evalStr = classes[i] + ".prototype." + memFunc[j] + "=function(){try{return tmp" + classes[i] + "." + memFunc[j]
             + ".apply(this,arguments);}catch(e){throw new Error(e);}};";
-         file.write( evalStr + "\n" );
+         fileContent += evalStr + "\n";
       }
 
-      commFile.write( 'import( "./' + fileName + '" );' + "\n" );
-      file.close();
+      var fileName = classes[i] + ".js";
+      compareAndSave( fileName, fileContent );
+
+      commFileContent += 'import( "./' + fileName + '" );' + "\n";
    }
 
    // 封装全局方法
-   var file = getFile( "Global.js" );
    var funcs = str[1].filter( function( s ) { if( s.indexOf( "import" ) == -1 ) { return true; } } ).map( function( s ) { return s.trim().slice( 0, -2 ) } );
+
+   var fileContent = "";
 
    /* e.g: 
        var tmpGlobal = {
@@ -107,7 +108,7 @@ function generateFiles ()
       varStr += "\n   " + funcs[i] + ": " + funcs[i];
       if( i != funcs.length - 1 ) { varStr += ","; } else { varStr += "\n};"; }
    }
-   file.write( varStr + "\n" );
+   fileContent += varStr + "\n";
 
    /* e.g:
      sleep=function(){try{return tmpGlobal.sleep.apply(this,arguments);}catch(e){ throw new Error(e)}};
@@ -116,23 +117,31 @@ function generateFiles ()
    {
       var evalStr = funcs[i] + "=function(){try{return tmpGlobal." + funcs[i] + ".apply(this,arguments);}"
          + "catch(e){ throw new Error(e)}};";
-      file.write( evalStr + "\n" );
+      fileContent += evalStr + "\n";
    }
 
-   commFile.write( 'import( "./Global.js" );' + "\n" );
-   commFile.write( 'import( "./assert.js" );' + "\n" );
-   commFile.write( 'var assert = new Assert();' + "\n" );
-   commFile.write( 'var db = new Sdb(db);' + "\n" );
-   file.close();
-   commFile.close();
+   commFileContent += 'import( "./Global.js" );' + "\n";
+   commFileContent += 'import( "./assert.js" );' + "\n";
+   commFileContent += 'var assert = new Assert();' + "\n";
+   commFileContent += 'var db = new Sdb(db);' + "\n";
+
+   compareAndSave( "commlib.js", commFileContent );
+
+   compareAndSave( "Global.js", fileContent );
 }
 
-function getFile ( fileName )
+function compareAndSave ( fileName, fileContent )
 {
    var filePath = DIRPATH + fileName;
-   println( "生成文件" + filePath );
    var file = new File( filePath );
+   // 存在且内容长度相同
+   if( File.exist( filePath ) && File.getSize( filePath ) == fileContent.length )
+   {
+      return;
+   }
+   println( "生成文件" + filePath );
    File.chmod( filePath, 0644, false );
    file.truncate();
-   return file;
+   file.write( fileContent );
+   file.close();
 }
