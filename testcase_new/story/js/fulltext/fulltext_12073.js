@@ -131,7 +131,7 @@ function checkAllResult ( dbcl, esOperator, cappedCL )
    }
    catch( e )
    {
-      if( e != "ReferenceError: esIndexNames is not defined" )
+      if( e != "esIndexNames is not defined" )
       {
          throw new Error( e );
       }
