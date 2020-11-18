@@ -40,6 +40,7 @@
 #include "omSdbConnector.hpp"
 #include "pd.hpp"
 #include "utilCipher.hpp"
+#include "../bson/lib/md5.hpp"
 
 using namespace bson ;
 
@@ -384,17 +385,18 @@ namespace engine
          password = beField.str() ;
          if ( password.size() > 0 )
          {
+            md5::md5digest digest ;
             CHAR clearText[SDB_MAX_PASSWORD_LENGTH + 1] = { '\0' } ;
 
-            rc = utilCipherEncrypt( password.c_str(), NULL,
-                                    clearText, SDB_MAX_PASSWORD_LENGTH + 1 ) ;
+            rc = utilCipherDecrypt( password.c_str(), NULL, clearText ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "failed to encrypt password, rc:%d", rc ) ;
+               PD_LOG( PDERROR, "failed to decrypt password, rc:%d", rc ) ;
                goto error ;
             }
 
-            password = string( clearText ) ;
+            md5::md5( clearText, ossStrlen( clearText ), digest ) ;
+            password = md5::digestToString( digest ) ;
          }
       }
       catch( std::exception &e )
