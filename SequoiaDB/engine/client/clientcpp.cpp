@@ -11031,9 +11031,9 @@ do                                                            \
                            &options ) ;
    }
 
-   INT32 _sdbImpl::restorePrepareFlashback( const BSONObj &options )
+   INT32 _sdbImpl::restorePrepare( const BSONObj &options )
    {
-      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_PREPARE_FLASHBACK,
+      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_RESTORE_PREPARE,
                            &options ) ;
    }
 

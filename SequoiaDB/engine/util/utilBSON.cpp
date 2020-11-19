@@ -1,0 +1,172 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2020 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*******************************************************************************/
+
+#include <utilBSON.hpp>
+
+#include <string>
+
+#include <ossTypes.h>
+
+#include <../bson/bson.h>
+
+using std::string;
+
+namespace
+{
+
+/*
+ * Getters - no exceptions can be thrown. Assume the value type is correct.
+ */
+
+// Generic getter. Use the BSONElement::Val() as the getter.
+template <typename T> void _valGetter(bson::BSONElement &ele, T *pOutput)
+{
+   ele.Val(*pOutput);
+}
+template void _valGetter<INT32>(bson::BSONElement &ele, INT32 *pOutput);
+
+template <> void _valGetter<UINT64>(bson::BSONElement &ele, UINT64 *pOutput)
+{
+   // BSON doesn't differentiate unsigned
+   INT64 tmp;
+   ele.Val(tmp);
+   *pOutput = tmp;
+}
+
+template void _valGetter<INT64>(bson::BSONElement &ele, INT64 *pOutput);
+
+template <> void _valGetter<UINT32>(bson::BSONElement &ele, UINT32 *pOutput)
+{
+   // BSON doesn't differentiate unsigned
+   INT32 tmp;
+   ele.Val(tmp);
+   *pOutput = tmp;
+}
+
+/*
+ * Validators - return non-zero if not the right type.
+ */
+
+BOOLEAN _checkNum(const bson::BSONElement &ele) { return ele.isNumber(); }
+
+BOOLEAN _checkStr(const bson::BSONElement &ele)
+{
+   return ele.type() == bson::String;
+}
+
+BOOLEAN _checkObj(const bson::BSONElement &ele) { return ele.isABSONObj(); }
+
+// Base fromBsonObj. Callers pass the validator and getter functions
+template <typename T, typename V, typename G>
+INT32 _fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+                   BOOLEAN required, V validator, G getter)
+{
+   INT32 rc = SDB_OK;
+   bson::BSONElement ele = input.getField(field);
+   if (ele.eoo())
+   {
+      if (required)
+      {
+         return (rc = SDB_FIELD_NOT_EXIST);
+      }
+      return rc;
+   }
+   if (!validator(ele))
+   {
+      return (rc = SDB_INVALIDARG);
+   }
+   getter(ele, pOutput);
+   return rc;
+}
+
+// Generic getter fromBsonObj. Callers pass a validator. Uses the default
+// getter.
+template <typename T, typename V>
+INT32 _fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+                   BOOLEAN required, V validator)
+{
+   return _fromBsonObj(input, field, pOutput, required, validator,
+                       _valGetter<T>);
+}
+
+} // anonymous namespace
+
+namespace engine
+{
+
+namespace util
+{
+
+/*
+ * Explicit specializations
+ */
+
+// INT32
+template <>
+INT32 fromBsonObj<INT32>(const bson::BSONObj &input, const string &field,
+                         INT32 *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, pOutput, required, _checkNum);
+}
+
+// UINT32
+template <>
+INT32 fromBsonObj<UINT32>(const bson::BSONObj &input, const string &field,
+                          UINT32 *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, (INT32 *)pOutput, required, _checkNum);
+}
+
+// INT64
+template <>
+INT32 fromBsonObj<INT64>(const bson::BSONObj &input, const string &field,
+                         INT64 *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, pOutput, required, _checkNum);
+}
+
+// UINT64
+template <>
+INT32 fromBsonObj<UINT64>(const bson::BSONObj &input, const string &field,
+                          UINT64 *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, (INT64 *)pOutput, required, _checkNum);
+}
+
+// String
+template <>
+INT32 fromBsonObj<string>(const bson::BSONObj &input, const string &field,
+                          string *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, pOutput, required, _checkStr);
+}
+
+// Sub-object
+template <>
+INT32 fromBsonObj<bson::BSONObj>(const bson::BSONObj &input,
+                                 const string &field, bson::BSONObj *pOutput,
+                                 BOOLEAN required)
+{
+   return _fromBsonObj(input, field, pOutput, required, _checkObj);
+}
+
+} // namespace util
+
+} // namespace engine
+

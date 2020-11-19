@@ -910,33 +910,24 @@ extern BOOLEAN g_isTraceStarted ;
                       pack8 ) ;                           \
    } while ( FALSE )
 
-// Single macro replacement for PD_TRACE0-9
-// tracer - pdFuncTracer object
-// numArgs - num of arguments to log, maximum is PD_TRACE_MAX_ARG_NUM
-// ... - numArgs of pdTraceArgTuple objects
-#define PD_TRACE(tracer, numArgs, ...)                       \
-   do {                                                      \
-      if( g_isTraceStarted )                                \
-      {                                                      \
-         tracer.trace( __LINE__, numArgs, ##__VA_ARGS__ ) ;  \
-      }                                                      \
-   } while ( FALSE )
 
 /*
- * RAII style tracer for tracing functions
+ * RAII style tracer for tracing functions.
+ * Do not invoke directly!!!
+ * See the macros below the class.
  */
+
 class pdFuncTracer
 {
    UINT64 _funcCode ;
-   INT32 *_rc ;
+   INT32 *_pRc ;
 public:
-   pdFuncTracer( UINT64 funcCode, INT32 *rc = NULL )
-      : _funcCode(funcCode), _rc(rc)
+   pdFuncTracer( UINT64 funcCode, INT32 *pRc = NULL, UINT32 line = 0 )
+      : _funcCode(funcCode), _pRc(pRc)
    {
       if ( g_isTraceStarted )
       {
-          // LINE is not recorded
-          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_ENTRY, 0, NULL ) ;
+          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_ENTRY, line, NULL ) ;
       }
    }
 
@@ -944,12 +935,12 @@ public:
    {
       if ( g_isTraceStarted )
       {
-         if ( NULL != _rc )
+         if ( NULL != _pRc )
          {
             pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM] ;
             ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;
-            argTuple[0] = PD_PACK_INT(_rc) ;
-            // LINE and FILE are not recorded
+            argTuple[0] = PD_PACK_INT(*_pRc) ;
+            // LINE is not recorded
             pdTraceFunc ( _funcCode, PD_TRACE_RECORD_FLAG_EXIT,
                          0, &argTuple[0] ) ;
          }
@@ -961,7 +952,6 @@ public:
       }
    }
 
-   // DO NOT CALL THIS EXPLICITLY, ALWAYS USE PD_TRACE macro
    void trace(UINT32 line, UINT32 numArgs, ...)
    {
       if ( g_isTraceStarted )
@@ -986,6 +976,27 @@ public:
       }
    }
 } ;
+
+// Macro for creating the local tracer object named pdFuncTracer_
+// funcCode - the constant used in the PD_TRACE_DECLARE_FUNCTION comment above
+//            the function
+// pRc      - pointer to the function's rc variable
+// Example:
+//   PD_TRACER_BEGIN(RTN_FOO, &rc);
+#define PD_TRACER_BEGIN(funcCode, pRc)                                         \
+   pdFuncTracer pdFuncTracer_(funcCode, pRc, __LINE__)
+
+// Single macro replacement for PD_TRACE0-9
+// PD_TRACER_BEGIN must have been called earlier in the function.
+// numArgs - num of arguments to log, maximum is PD_TRACE_MAX_ARG_NUM
+// ... - numArgs of pdTraceArgTuple objects
+#define PD_TRACER(numArgs, ...)                                        \
+   do {                                                                        \
+      if( g_isTraceStarted )                                                   \
+      {                                                                        \
+         pdFuncTracer_.trace( __LINE__, numArgs, ##__VA_ARGS__ ) ;             \
+      }                                                                        \
+   } while ( FALSE )
 
 #endif // SDB_ENGINE
 

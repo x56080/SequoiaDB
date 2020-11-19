@@ -124,7 +124,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToPIT )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreAbort )
-   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepareFlashback )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepare )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -187,7 +187,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
       JS_ADD_MEMBER_FUNC( "restoreToPIT", restoreToPIT )
       JS_ADD_MEMBER_FUNC( "restoreAbort", restoreAbort )
-      JS_ADD_MEMBER_FUNC( "restorePrepareFlashback", restorePrepareFlashback )
+      JS_ADD_MEMBER_FUNC( "restorePrepare", restorePrepare )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -2995,9 +2995,9 @@ namespace engine
       return rc ;
    }
 
-   INT32 _sptDBSdb::restorePrepareFlashback( const _sptArguments &arg,
-                                             _sptReturnVal &rval,
-                                             bson::BSONObj &detail )
+   INT32 _sptDBSdb::restorePrepare( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
       string ts ;
@@ -3009,10 +3009,10 @@ namespace engine
          return rc ;
       }
 
-      rc = _sptSdb.restorePrepareFlashback( options ) ;
+      rc = _sptSdb.restorePrepare( options ) ;
       if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Failed to prepare for flashback" ) ;
+         detail = BSON( SPT_ERR << "Failed to prepare for restore" ) ;
          return rc ;
       }
 

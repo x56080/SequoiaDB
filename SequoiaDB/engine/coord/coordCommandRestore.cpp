@@ -25,14 +25,19 @@
 #include "coordCommandBase.hpp"
 #include "coordContext.hpp"
 #include "coordFactory.hpp"
+#include "coordTrace.hpp"
 #include "coordTransOperator.hpp"
 #include "msg.h"
 #include "msgDef.h"
 #include "ossMemPool.hpp"
 #include "ossTypes.hpp"
+#include "pdTrace.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
 #include "rtnQueryOptions.hpp"
+#include "stpAgent.hpp"
+#include "stpLogicalTime.hpp"
+#include "utilBSON.hpp"
 
 using bson::BSONElement;
 using bson::BSONObj;
@@ -42,71 +47,26 @@ using std::string;
 namespace
 {
 
-INT32 getElementFromBSON(const BSONObj &input, const string &fieldName,
-                         BSONElement *output)
+// Uses STP to convert a high precision timestamp to a global logical time
+INT32 convRealToLogicalTime(const engine::stpHPTime &input, UINT64 *output)
 {
    INT32 rc = SDB_OK;
-   *output = input.getField(fieldName);
-   if (output->eoo())
+   // Convert to logical time
+   engine::stpAgent agent;
+   engine::stpClient client;
+   if ((rc = agent.checkAvailable()) ||
+       (rc = agent.getClient(client)))
    {
-      // Field not found
-      return (rc = SDB_FIELD_NOT_EXIST);
-   }
-   return rc;
-}
-
-// The following two functions share a lot of code. When using c++11 this can be
-// simplified using function pointers for the verification part.
-
-// From a BSONObj input, get the value of the field,
-// it should be a long int, and store it in output as a UINT64
-INT32 globalTimeFromBSON(const BSONObj &input, const string &fieldName,
-                         BOOLEAN required, UINT64 *output)
-{
-   INT32 rc = SDB_OK;
-   BSONElement field;
-   if ((rc = getElementFromBSON(input, fieldName, &field)))
-   {
-      if (!required)
-      {
-         // Field was not found but is not required
-         return (rc = SDB_OK);
-      }
+      PD_LOG(PDERROR, "Error initializing stp client");
       return rc;
    }
-   // Non-number values will return 0
-   INT64 value = field.numberLong();
-   if (0 >= value)
+   engine::stpHPTime logicalTime;
+   if ((rc = client.convRealTimeToLogicalTime(input, logicalTime)))
    {
-      // Field is a negative number or 0 or not a number
-      PD_LOG(PDERROR, "Invalid global time (%i)", value);
-      return (rc = SDB_INVALIDARG);
-   }
-   *output = (UINT64)value;
-   return rc;
-}
-
-// From a BSONObj input, get the value of the field, it should be a boolean
-INT32 boolFromBSON(const BSONObj &input, const string &fieldName,
-                   BOOLEAN required, BOOLEAN *output)
-{
-   INT32 rc = SDB_OK;
-   BSONElement field;
-   if ((rc = getElementFromBSON(input, fieldName, &field)))
-   {
-      if (!required)
-      {
-         // Field was not found but is not required
-         return (rc = SDB_OK);
-      }
+      PD_LOG(PDERROR, "Failed to convert timestamp to logical time");
       return rc;
    }
-   if (!field.isBoolean())
-   {
-      PD_LOG(PDERROR, "Invalid value for %s", fieldName.c_str());
-      return (rc = SDB_INVALIDARG);
-   }
-   *output = field.boolean();
+   *output = logicalTime.toMicroSecond();
    return rc;
 }
 
@@ -251,14 +211,18 @@ class _Operator
 namespace engine
 {
 
+using namespace util;
+
 /*
    _coordCMDRestore definitions
 */
 
 // Check the status of the cluster
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_CHECK, "_coordCMDRestore::_checkRestoreInProgress" )
 INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_CHECK, &rc);
    // Check the local cache
    *inProgress = pmdGetKRCB()->isDBRestoring();
    // Check the DC
@@ -287,9 +251,12 @@ INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
 
 // Update the catalog DC RestoreInProgress value
 // @param   enable   Whether to enable or diable the state
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SET, "_coordCMDRestore::_setRestoreInProgress" )
 INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_SET, &rc);
+   PD_TRACER(1, PD_PACK_INT(enable));
    BSONObj query;
    PD_LOG(PDINFO, "Setting cluster state [%s] = [%d]", FIELD_NAME_RESTORING,
           enable);
@@ -323,11 +290,13 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
    return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SETCOORDS, "_coordCMDRestore::_setRestoreInProgressCoords" )
 INT32 _coordCMDRestore::_setRestoreInProgressCoords(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_SETCOORDS, &rc);
    const string command =
-       enable ? CMD_NAME_PREPARE_FLASHBACK : CMD_NAME_RESTORE_ABORT;
+       enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
    if ((rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
                         BSONObj())))
    {
@@ -338,9 +307,11 @@ INT32 _coordCMDRestore::_setRestoreInProgressCoords(BOOLEAN enable)
 }
 
 // Get the latest version of SYSINFO.SYSDCBASE
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_QUERYCAT, "_coordCMDRestore::_queryCataDCBase" )
 INT32 _coordCMDRestore::_queryCataDCBase(BSONObj *result)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_QUERYCAT, &rc);
    rtnContextBuf buf; // cleans up when it goes out of scope
    OBJ_VEC results;
    rtnQueryOptions queryOpt;
@@ -367,9 +338,11 @@ INT32 _coordCMDRestore::_queryCataDCBase(BSONObj *result)
 }
 
 // Run an ALTERDC command
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_ALTERDC, "_coordCMDRestore::_alterDC" )
 INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_ALTERDC, &rc);
    _Operator op(&rc, CMD_NAME_ALTER_DC); // Auto-cleaning
    if (rc)
    {
@@ -396,10 +369,12 @@ INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
 }
 
 // Run the given query against the data groups
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_QUERYDATA, "_coordCMDRestore::_queryDataGroups" )
 INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode, const string &clName,
                                          const BSONObj &query, OBJ_VEC *results)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_QUERYDATA, &rc);
    CoordGroupList groups;
    _Context context(_cb);                          // Auto-cleaning
    _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
@@ -442,10 +417,12 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode, const string &clName,
 }
 
 // Run the given command on the coord nodes
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_CMDCOORDS, "_coordCMDRestore::_cmdCoords" )
 INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const string &clName,
                                    const BSONObj &query)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORE_CMDCOORDS, &rc);
    CoordGroupList groups;
    _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
    if (rc)
@@ -475,10 +452,12 @@ COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToPIT, CMD_NAME_RESTORE_TO_PIT,
                                   FALSE);
 
 // Entrypoint for restoreToPIT() on the coordinator
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_EXE, "coordCMDRestoreToPIT::execute" )
 INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
                                     INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_EXE, &rc);
    UINT64 targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
    _pMsg = pMsg;
    _cb = cb;
@@ -503,9 +482,11 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 }
 
 // Parse the client's request, extracting the targetTime if given
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSE, "coordCMDRestoreToPIT::_parseRequest" )
 INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSE, &rc);
    // Parse the request message
    BSONObj query;
    if ((rc = extractQuery(_pMsg, &query)))
@@ -515,11 +496,11 @@ INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
    }
    // Get the value of the GlobalTime option. Value is not required, in which
    // case restore will be to the latest consistency point.
+   // Same with option Time.
    // Also get the bools TestOnly and SkipTest (both optional).
-   if ((rc = globalTimeFromBSON(query, FIELD_NAME_GLOBAL_TIME, FALSE,
-                                targetTime)) ||
-       (rc = boolFromBSON(query, FIELD_NAME_TEST_ONLY, FALSE, &_optTestOnly)) ||
-       (rc = boolFromBSON(query, FIELD_NAME_SKIP_TEST, FALSE, &_optSkipTest)))
+   if ((rc = _parseTime(query, targetTime)) ||
+       (rc = fromBsonObj(query, FIELD_NAME_TEST_ONLY, &_optTestOnly, FALSE)) ||
+       (rc = fromBsonObj(query, FIELD_NAME_SKIP_TEST, &_optSkipTest, FALSE)))
    {
       PD_LOG(PDERROR, "User query invalid");
       return rc;
@@ -527,10 +508,71 @@ INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
    return rc;
 }
 
+// Get the target time input (if provided)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSETIME, "coordCMDRestoreToPIT::_parseTime" )
+INT32 coordCMDRestoreToPIT::_parseTime(const BSONObj &query, UINT64 *targetTime)
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSETIME, &rc);
+   if (!query.hasElement(FIELD_NAME_GLOBAL_TIME) &&
+       !query.hasElement(FIELD_NAME_TIME))
+   {
+      // Neither specified
+      return rc;
+   }
+   if (query.hasElement(FIELD_NAME_GLOBAL_TIME))
+   {
+      if (query.hasElement(FIELD_NAME_TIME))
+      {
+         // Both specified, error
+         PD_LOG(PDERROR, "Both %s and %s specified", FIELD_NAME_GLOBAL_TIME,
+                FIELD_NAME_TIME);
+         return (rc = SDB_INVALIDARG);
+      }
+      // Only global time
+      if ((rc = fromBsonObj(query, FIELD_NAME_GLOBAL_TIME, targetTime)))
+      {
+         PD_LOG(PDERROR, "%s must be a valid global time",
+                FIELD_NAME_GLOBAL_TIME);
+         return (rc = SDB_INVALIDARG);
+      }
+      return rc; // success
+   }
+   return (rc = _targetTimeFromTimestamp(query, targetTime));
+}
+
+// Get the target time from the timestamp input, converted to a global time
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TIMESTAMP, "coordCMDRestoreToPIT::_targetTimeFromTimestamp" )
+INT32 coordCMDRestoreToPIT::_targetTimeFromTimestamp(const BSONObj &query,
+                                                     UINT64 *targetTime)
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_TIMESTAMP, &rc);
+   stpHPTime timestamp;
+   // Try and parse as BSON Timestamp
+   if (query.getField(FIELD_NAME_TIME).type() == bson::Timestamp)
+   {
+      if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
+      {
+         PD_LOG(PDERROR, "Error parsing %s as Timestamp", FIELD_NAME_TIME);
+         return rc;
+      }
+   }
+   else
+   {
+      PD_LOG(PDERROR, "Unsupported type for argument %s",
+             query.getField(FIELD_NAME_TIME).type());
+      return (rc = SDB_INVALIDARG);
+   }
+   return (rc = convRealToLogicalTime(timestamp, targetTime));
+}
+
 // Check that the cluster is awaiting restore and coordinate the operation
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_CHECK, "coordCMDRestoreToPIT::_checkStateAndRestore" )
 INT32 coordCMDRestoreToPIT::_checkStateAndRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_CHECK, &rc);
    BOOLEAN inProgress;
    // acquire restore lock to make sure there is only one running,
    // we do it before checking inprogress state so that we are not seeing
@@ -556,13 +598,19 @@ INT32 coordCMDRestoreToPIT::_checkStateAndRestore(UINT64 targetTime)
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
       return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
    }
-
-   return (rc = _coordinateRestore(targetTime));
+   if ((rc = _coordinateRestore(targetTime)))
+   {
+      _updateRestoreLock(FALSE);
+      return rc;
+   }
+   return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_COORDRES, "coordCMDRestoreToPIT::_coordinateRestore" )
 INT32 coordCMDRestoreToPIT::_coordinateRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_COORDRES, &rc);
    UINT64 minTime = DPS_INVALID_TRANS_TIME;
    UINT64 maxTime = DPS_INVALID_TRANS_TIME;
    if ((rc = _getGlobalRestoreWindow(&minTime, &maxTime)))
@@ -574,10 +622,12 @@ INT32 coordCMDRestoreToPIT::_coordinateRestore(UINT64 targetTime)
 
 // Query the primary of each data group for their restore window and set the
 // min/max times
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_GETWINDOWS, "coordCMDRestoreToPIT::_getGlobalRestoreWindow" )
 INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(UINT64 *minTime,
                                                     UINT64 *maxTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_GETWINDOWS, &rc);
    OBJ_VEC results;
    PD_LOG(PDINFO, "Gathering restore windows");
    // Query the nodes for the database snapshot
@@ -593,33 +643,32 @@ INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(UINT64 *minTime,
 }
 
 // Get the greatest min and least max values from the node query results
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSEWINDOWS, "coordCMDRestoreToPIT::_getMinMaxWindowFromResponses" )
 INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
     const OBJ_VEC &responses, UINT64 *minTime, UINT64 *maxTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSEWINDOWS, &rc);
    // Start at the extremes
    *minTime = 0;
    *maxTime = -1;
    for (OBJ_VEC::const_iterator it = responses.begin(); it != responses.end();
         ++it)
    {
-      // Extract {TransInfo:{MinRecoverableTime or MaxTransCommitTime}}
-      BSONElement field; // for the TransInfo field, which is an embedded object
-      if ((rc = getElementFromBSON(*it, FIELD_NAME_TRANS_INFO, &field)) ||
-          !field.isABSONObj())
+      // Extract {TransInfo:{MinRecoverableTime:..., MaxTransCommitTime:...}}
+      BSONObj obj;
+      if ((rc = fromBsonObj(*it, FIELD_NAME_TRANS_INFO, &obj)))
       {
          // This should never happen
+         PD_LOG(PDERROR, "Failed to extract message from node [rc=%d]", rc);
          return (rc = SDB_SYS);
       }
-      BSONObj obj = field.embeddedObject();
       // Get the MinRecoverableTime and MaxTransCommitTime values
       UINT64 tmpMin, tmpMax;
-      if ((rc = globalTimeFromBSON(obj, FIELD_NAME_TRANS_MIN_RECOVER_TIME, TRUE,
-                                   &tmpMin)) ||
-          (rc = globalTimeFromBSON(obj, FIELD_NAME_TRANS_MAX_COMMIT_TIME, TRUE,
-                                   &tmpMax)))
+      if ((rc = fromBsonObj(obj, FIELD_NAME_TRANS_MIN_RECOVER_TIME, &tmpMin)) ||
+          (rc = fromBsonObj(obj, FIELD_NAME_TRANS_MAX_COMMIT_TIME, &tmpMax)))
       {
-         PD_LOG(PDERROR, "Invalid database snapshot result");
+         PD_LOG(PDERROR, "Invalid database snapshot result [rc=%d]", rc);
          return (rc = SDB_SYS);
       }
       *minTime = tmpMin > (*minTime) ? tmpMin : *minTime; // new greatest min
@@ -628,17 +677,20 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
    PD_LOG(PDINFO, "Global consistency window [%llu, %llu]", *minTime, *maxTime);
    if ((*minTime) > (*maxTime))
    {
-      PD_LOG(PDERROR, "No valid global consistency points");
+      PD_LOG(PDERROR, "No valid global consistency points [%llu > %llu]",
+             *minTime, *maxTime);
       return (rc = SDB_RESTORE_NO_CONSISTENT_PIT);
    }
    return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_RESTORE, "coordCMDRestoreToPIT::_restoreWithWindows" )
 INT32 coordCMDRestoreToPIT::_restoreWithWindows(UINT64 targetTime,
                                                 UINT64 minTime, UINT64 maxTime)
 {
    INT32 rc = SDB_OK;
-   if ((rc = _setTargetTimestamp(minTime, maxTime, &targetTime)))
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_RESTORE, &rc);
+   if ((rc = _setTargetTime(minTime, maxTime, &targetTime)))
    {
       return rc;
    }
@@ -659,10 +711,12 @@ INT32 coordCMDRestoreToPIT::_restoreWithWindows(UINT64 targetTime,
 
 // Determine the target consistency point - whether the user provided value fits
 // in the global min/max or the max value as a default
-INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
-                                                UINT64 *targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TARGETTIME, "coordCMDRestoreToPIT::_setTargetTime" )
+INT32 coordCMDRestoreToPIT::_setTargetTime(UINT64 minTime, UINT64 maxTime,
+                                           UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_TARGETTIME, &rc);
    if (DPS_INVALID_TRANS_TIME == *targetTime)
    {
       // No user input so use the latest consistency point
@@ -677,10 +731,13 @@ INT32 coordCMDRestoreToPIT::_setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
 }
 
 // Build the query and perform restoreToPIT() on all of the data groups
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_DO, "coordCMDRestoreToPIT::_generateQueryAndRestore" )
 INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
                                                      BOOLEAN test)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_DO, &rc);
+   PD_TRACER(1, PD_PACK_INT(test));
    BSONObj query;
    PD_LOG(PDINFO, "Restoring cluster to %llu", targetTime);
    if (test)
@@ -721,10 +778,12 @@ INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
 }
 
 // Build the message query for the restoreToPIT command
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_BUILDQUERY, "coordCMDRestoreToPIT::_buildRestoreQuery" )
 INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
                                                BSONObj *query)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_BUILDQUERY, &rc);
    // The command is a query-type message on the "$restore to pit" collection.
    // The query body is a {"GlobalTime": "123"} where 123 is the time.
    try
@@ -734,14 +793,14 @@ INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
       if (test)
       {
          // The test run to check that the operation would succeed.
-         // Adds the field "TestOnly: true"
-         builder.appendBool(FIELD_NAME_TEST_ONLY, TRUE);
+         // Adds the field "TestOnly: 1"
+         builder.append(FIELD_NAME_TEST_ONLY, TRUE);
       }
       else
       {
          // The real run that performs the restore.
-         // Adds the field "SkipTest: true" and the transaction info
-         builder.appendBool(FIELD_NAME_SKIP_TEST, TRUE);
+         // Adds the field "SkipTest: 1" and the transaction info
+         builder.append(FIELD_NAME_SKIP_TEST, TRUE);
          builder.append(FIELD_NAME_TRANSACTION_ID_SN,
                         (INT64)(_cb->getTransID().getGlobSN()));
          builder.append(FIELD_NAME_TRANSACTION_ID_NODEID,
@@ -761,9 +820,12 @@ INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
 // We use this value to guarantee that there should only be one restoreToPIT
 // running at a time.
 // @param   enable   Whether to enable or diable the state
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_LOCK, "coordCMDRestoreToPIT::_updateRestoreLock" )
 INT32 coordCMDRestoreToPIT::_updateRestoreLock(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_LOCK, &rc);
+   PD_TRACER(1, PD_PACK_INT(enable));
    BSONObj query;
    PD_LOG(PDINFO, "Setting cluster restore locked [%s] = [%d]",
           FIELD_NAME_RESTORE_LOCKED, enable);
@@ -801,10 +863,12 @@ COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreAbort, CMD_NAME_RESTORE_ABORT,
                                   FALSE);
 
 // Entrypoint for restoreAbort() on the coordinator
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREABORT_EXE, "coordCMDRestoreAbort::execute" )
 INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
                                     INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREABORT_EXE, &rc);
    BOOLEAN inProgress; // whether RestoreInProgress is already set
    _pMsg = pMsg;
    _cb = cb;
@@ -827,17 +891,18 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 }
 
 /*
-   coordCMDRestorePrepareFlashback definitions
+   coordCMDRestorePrepare definitions
 */
-COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestorePrepareFlashback,
-                                  CMD_NAME_PREPARE_FLASHBACK, FALSE);
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestorePrepare,
+                                  CMD_NAME_RESTORE_PREPARE, FALSE);
 
-// Entrypoint for restorePrepareFlashback() on the coordinator
-INT32 coordCMDRestorePrepareFlashback::execute(MsgHeader *pMsg, pmdEDUCB *cb,
-                                               INT64 &contextID,
-                                               rtnContextBuf *buf)
+// Entrypoint for restorePrepare() on the coordinator
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPREPARE_EXE, "coordCMDRestorePrepare::execute" )
+INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                      INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTOREPREPARE_EXE, &rc);
    BOOLEAN inProgress; // whether RestoreInProgress is already set
    _pMsg = pMsg;
    _cb = cb;
@@ -855,7 +920,7 @@ INT32 coordCMDRestorePrepareFlashback::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    {
       return rc;
    }
-   PD_LOG(PDEVENT, "restorePrepareFlashback completed successfully");
+   PD_LOG(PDEVENT, "restorePrepare completed successfully");
    return rc;
 }
 

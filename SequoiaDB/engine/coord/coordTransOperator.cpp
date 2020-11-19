@@ -1311,10 +1311,12 @@ namespace engine
    }
 
    // coordTransHandler constructor begins a global transaction
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER, "coordTransHandler::coordTransHandler" )
    coordTransHandler::coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
                                         BOOLEAN allGroups)
        : _cb(cb), _pResource(pResource), _rc(SDB_OK), _committed(FALSE)
    {
+      PD_TRACER_BEGIN(COORD_TRANSHANDLER, &_rc);
       INT64 contextID;
       engine::rtnContextBuf buf;
       MsgHeader msg;
@@ -1335,8 +1337,10 @@ namespace engine
 
    // coordTransHandler destructor rolls back a global transaction if
    // uncommitted
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER_DES, "coordTransHandler::~coordTransHandler" )
    coordTransHandler::~coordTransHandler()
    {
+      PD_TRACER_BEGIN(COORD_TRANSHANDLER_DES, &_rc);
       if (!_committed)
       {
          INT64 contextID;
@@ -1350,8 +1354,15 @@ namespace engine
    }
 
    // Commit a global transactions
+   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER_COMMIT, "coordTransHandler::commit" )
    INT32 coordTransHandler::commit()
    {
+      PD_TRACER_BEGIN(COORD_TRANSHANDLER_COMMIT, &_rc);
+      if (_committed)
+      {
+         PD_LOG(PDERROR, "Commit has already been called");
+         return (_rc = SDB_SYS);
+      }
       INT64 contextID;
       engine::rtnContextBuf buf;
       MsgHeader msg;

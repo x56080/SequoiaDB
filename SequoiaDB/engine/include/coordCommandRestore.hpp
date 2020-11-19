@@ -77,14 +77,15 @@ class coordCMDRestoreToPIT : public _coordCMDRestore
 
  protected:
    INT32 _parseRequest(UINT64 *targetTime);
+   INT32 _parseTime(const BSONObj &query, UINT64 *targetTime);
+   INT32 _targetTimeFromTimestamp(const BSONObj &query, UINT64 *targetTime);
    INT32 _checkStateAndRestore(UINT64 targetTime);
    INT32 _coordinateRestore(UINT64 targetTime);
    INT32 _getGlobalRestoreWindow(UINT64 *minTime, UINT64 *maxTime);
    INT32 _getMinMaxWindowFromResponses(const OBJ_VEC &responses,
                                        UINT64 *minTime, UINT64 *maxTime);
    INT32 _restoreWithWindows(UINT64 targetTime, UINT64 minTime, UINT64 maxTime);
-   INT32 _setTargetTimestamp(UINT64 minTime, UINT64 maxTime,
-                             UINT64 *targetTime);
+   INT32 _setTargetTime(UINT64 minTime, UINT64 maxTime, UINT64 *targetTime);
    INT32 _generateQueryAndRestore(UINT64 targetTime, BOOLEAN test);
    INT32 _buildRestoreQuery(UINT64 targetTime, BOOLEAN test, BSONObj *query);
    INT32 _updateRestoreLock(BOOLEAN enable);
@@ -113,18 +114,18 @@ class coordCMDRestoreAbort : public _coordCMDRestore
 };
 
 /*
-   coordCMDRestorePrepareFlashback
-   Coordinator handler for restorePrepareFlashback();
+   coordCMDRestorePrepare
+   Coordinator handler for restorePrepare();
    The cluser must not be in RestooreInProgress state.
    The cluster will enter the RestoreInProgress state.
 */
-class coordCMDRestorePrepareFlashback : public _coordCMDRestore
+class coordCMDRestorePrepare : public _coordCMDRestore
 {
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestorePrepareFlashback(){};
-   virtual ~coordCMDRestorePrepareFlashback(){};
+   coordCMDRestorePrepare(){};
+   virtual ~coordCMDRestorePrepare(){};
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);

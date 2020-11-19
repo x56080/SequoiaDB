@@ -1662,6 +1662,10 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         INT32 _parseOpts(const BSONObj &matcher);
+         INT32 _parseTimestamp(const BSONObj &matcher);
+         INT32 _parseTestOpts(const BSONObj &matcher);
+         INT32 _parseTransID(const BSONObj &matcher);
       private:
          INT64 _timestamp;
          BOOLEAN _testOnly;
@@ -1696,17 +1700,17 @@ namespace engine
    };
 
    /*
-      Local handler for restorePrepareFlashback()
+      Local handler for restorePrepare()
       Sets the node's RestoreInProgress state cache.
-      See coordCMDRestorePrepareFlashback
+      See coordCMDRestorePrepare
    */
-   class _rtnRestorePrepareFlashback : public _rtnCommand
+   class _rtnRestorePrepare : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnRestorePrepareFlashback() ;
-         virtual ~_rtnRestorePrepareFlashback() ;
+         _rtnRestorePrepare() ;
+         virtual ~_rtnRestorePrepare() ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;

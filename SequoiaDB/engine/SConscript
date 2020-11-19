@@ -199,6 +199,7 @@ utilFiles = [
       "util/utilLobID.cpp",
       "util/utilSectionMgr.cpp",
       "util/utilCipher.c",
+      "util/utilBSON.cpp",
       "util/utilAuthSCRAMSHA.cpp"
       ]
 
@@ -858,6 +859,9 @@ constructFiles = [
 selectorTestFiles= [
       "test/selector/test.cpp"
      ]
+utilBSONTestFiles = [
+      "test/utilBSONTest.cpp"
+      ]
 
 #BSON
 env.StaticLibrary('bson', bsonFiles)
@@ -1058,6 +1062,10 @@ if hasTestcase:
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 
    selectorTest =  env.Program("selectorTest", [ selectorTestFiles, selectortest],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+
+   utilBSONTest = env.Program("utilBSONTest", utilBSONTestFiles,
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 

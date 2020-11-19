@@ -1385,12 +1385,12 @@ namespace engine
       if ( pBaseInfo->isRestoreLocked() )
       {
          // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, TRUE,
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, FALSE,
                                       _pEduCB, _majoritySize(), _pDmsCB,
                                       _pDpsCB )))
          {
             // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, FALSE, _pEduCB, 1,
+            catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, TRUE, _pEduCB, 1,
                                _pDmsCB, _pDpsCB ) ;
             return rc;
          }

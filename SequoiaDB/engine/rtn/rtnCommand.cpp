@@ -52,6 +52,7 @@
 #include "utilCompressor.hpp"
 #include "msgMessageFormat.hpp"
 #include "rtnRollbackManager.hpp"
+#include "utilBSON.hpp"
 
 #if defined (_DEBUG)
 // for qgmDebugQuery function
@@ -5051,6 +5052,7 @@ error:
       return TRUE ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_INIT, "_rtnRestoreToPIT::init" )
    INT32 _rtnRestoreToPIT::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR * pMatcherBuff,
@@ -5059,43 +5061,105 @@ error:
                                  const CHAR * pHintBuff)
    {
       INT32 rc = SDB_OK;
-      const BSONObj matcher(pMatcherBuff);
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_INIT, &rc);
+      _testOnly = FALSE;
+      _skipTest = FALSE;
+      _timestamp = -1;
+      if ((rc = _parseOpts(BSONObj(pMatcherBuff))))
+      {
+         return rc;
+      }
+      return rc;
+   }
+
+   INT32 _rtnRestoreToPIT::_parseOpts(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      if ((rc = _parseTimestamp(matcher)) ||
+          (rc = _parseTestOpts(matcher)) ||
+          (rc = _parseTransID(matcher)))
+      {
+         return rc;
+      }
+      return rc;
+   }
+
+   INT32 _rtnRestoreToPIT::_parseTimestamp(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
       // Get the timestamp
-      if ((rc = rtnGetNumberLongElement(matcher, FIELD_NAME_GLOBAL_TIME,
-                                        _timestamp)) ||
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME,
+                                  &_timestamp)) ||
           (_timestamp < 0))
       {
          PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
          return (rc = SDB_INVALIDARG);
       }
-      // Check for the run type modifiers
-      _testOnly = FALSE;
-      _skipTest = FALSE;
-      rtnGetBooleanElement(matcher, FIELD_NAME_TEST_ONLY, _testOnly);
-      rtnGetBooleanElement(matcher, FIELD_NAME_SKIP_TEST, _skipTest);
+      return rc;
+   }
+
+   INT32 _rtnRestoreToPIT::_parseTestOpts(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      // Check for the optional run type modifiers
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TEST_ONLY, &_testOnly,
+                                  FALSE)) ||
+          (rc = util::fromBsonObj(matcher, FIELD_NAME_SKIP_TEST, &_skipTest,
+                                  FALSE)))
+      {
+         PD_LOG(PDERROR, "Invalid args %s/%s", FIELD_NAME_TEST_ONLY,
+                FIELD_NAME_SKIP_TEST);
+         return rc;
+      }
       if (_testOnly && _skipTest)
       {
          PD_LOG(PDERROR, "Cannot perform a test only and skip test");
          return (rc = SDB_INVALIDARG);
       }
+      return rc;
+   }
+
+   INT32 _rtnRestoreToPIT::_parseTransID(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      // User may call this directly on a node and transID would not be set
       INT64 transID;
       INT32 transNodeID;
-      // If we get the transID, everything else must succeed
-      if (!rtnGetNumberLongElement(matcher, FIELD_NAME_TRANSACTION_ID_SN,
-                                   transID))
+      if (SDB_OK == (rc = util::fromBsonObj(
+                         matcher, FIELD_NAME_TRANSACTION_ID_SN, &transID)))
       {
-         rtnGetIntElement(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
-                          transNodeID);
+         // If we get the transID, everything else must succeed
+         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
+                                     &transNodeID)))
+         {
+            // Trans ID is sent internally only so this is a system error
+            PD_LOG(PDERROR, "Missing or invalid %s [rc=%d]",
+                   FIELD_NAME_TRANSACTION_ID_NODEID, rc);
+            return (rc = SDB_SYS);
+         }
          _transID = DPS_TRANS_ID(transID, transNodeID);
+      }
+      else if (SDB_FIELD_NOT_EXIST == rc)
+      {
+         // No transID given, this is a direct call from the client
+         rc = SDB_OK;
+      }
+      else
+      {
+         // A bad transID
+         PD_LOG(PDERROR, "Invalid %s", FIELD_NAME_TRANSACTION_ID_SN);
+         return (rc = SDB_SYS);
       }
       return rc;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_DOIT, "_rtnRestoreToPIT::doit" )
    INT32 _rtnRestoreToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                   INT16 w , INT64 *pContextID )
    {
       INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
       // restoreToPIT on a data node is a type of rollback
       if (!_skipTest)
       {
@@ -5159,38 +5223,38 @@ error:
       return SDB_OK ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestorePrepareFlashback)
-   _rtnRestorePrepareFlashback::_rtnRestorePrepareFlashback ()
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestorePrepare)
+   _rtnRestorePrepare::_rtnRestorePrepare ()
    {
    }
 
-   _rtnRestorePrepareFlashback::~_rtnRestorePrepareFlashback ()
+   _rtnRestorePrepare::~_rtnRestorePrepare ()
    {
    }
 
-   const CHAR *_rtnRestorePrepareFlashback::name()
+   const CHAR *_rtnRestorePrepare::name()
    {
-      return NAME_PREPARE_FLASHBACK ;
+      return NAME_RESTORE_PREPARE ;
    }
 
-   RTN_COMMAND_TYPE _rtnRestorePrepareFlashback::type()
+   RTN_COMMAND_TYPE _rtnRestorePrepare::type()
    {
-      return CMD_PREPARE_FLASHBACK ;
+      return CMD_RESTORE_PREPARE ;
    }
 
-   INT32 _rtnRestorePrepareFlashback::init(INT32 flags, INT64 numToSkip,
-                                           INT64 numToReturn,
-                                           const CHAR *pMatcherBuff,
-                                           const CHAR *pSelectBuff,
-                                           const CHAR *pOrderByBuff,
-                                           const CHAR *pHintBuff)
+   INT32 _rtnRestorePrepare::init( INT32 flags, INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   const CHAR *pMatcherBuff,
+                                   const CHAR *pSelectBuff,
+                                   const CHAR *pOrderByBuff,
+                                   const CHAR *pHintBuff )
    {
       return SDB_OK;
    }
 
-   INT32 _rtnRestorePrepareFlashback::doit(_pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                           SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                                           INT16 w, INT64 *pContextID)
+   INT32 _rtnRestorePrepare::doit( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                   INT16 w, INT64 *pContextID )
    {
       pmdGetKRCB()->setDBRestoring(true);
       return SDB_OK ;

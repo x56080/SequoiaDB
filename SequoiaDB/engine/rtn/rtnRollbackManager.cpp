@@ -27,17 +27,19 @@
 #include "dpsTransCB.hpp"
 #include "dpsTransID.hpp"
 #include "ossUtil.hpp"
+#include "pdTrace.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
+#include "rtnTrace.hpp"
 
 namespace engine
 {
 
 //
-// rtnRollbackManager
+// _rtnRollbackManager
 //
 
-rtnRollbackManager::rtnRollbackManager(pmdEDUCB *cb)
+_rtnRollbackManager::_rtnRollbackManager(pmdEDUCB *cb)
     : _cb(cb), _dpsCB(pmdGetKRCB()->getDPSCB()), _transCB(sdbGetTransCB()),
       _cursor(DPS_INVALID_LSN_OFFSET),
       _mb(dpsMessageBlock(DPS_MSG_BLOCK_DEF_LEN)), _replayer(TRUE),
@@ -46,9 +48,11 @@ rtnRollbackManager::rtnRollbackManager(pmdEDUCB *cb)
 }
 
 // Entrypoint to running the rollback.
-INT32 rtnRollbackManager::execute()
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_EXE, "_rtnRollbackManager::execute" )
+INT32 _rtnRollbackManager::execute()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_EXE, &rc);
    // Do setup work.
    if ((rc = _init()))
    {
@@ -67,9 +71,11 @@ INT32 rtnRollbackManager::execute()
 }
 
 // Entrypoint to test whether the rollback would succeed.
-INT32 rtnRollbackManager::test()
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_TEST, "_rtnRollbackManager::test" )
+INT32 _rtnRollbackManager::test()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_TEST, &rc);
    // Turn on the test mode and call execute
    _testOnly = TRUE;
    if ((rc = execute()))
@@ -82,9 +88,11 @@ INT32 rtnRollbackManager::test()
 
 // The main rollback loop. Reads the record at the lsn, rolls back (if needed),
 // moves the lsn to the next record.
-INT32 rtnRollbackManager::_readLogAndRollback()
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_READLOGANDROLLBACK, "_rtnRollbackManager::_readLogAndRollback" )
+INT32 _rtnRollbackManager::_readLogAndRollback()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_READLOGANDROLLBACK, &rc);
    // Read the log and rollback one by one
    while (_cursor != DPS_INVALID_LSN_OFFSET)
    {
@@ -108,9 +116,12 @@ INT32 rtnRollbackManager::_readLogAndRollback()
 }
 
 // Load the record at the LSN cursor.
-INT32 rtnRollbackManager::_getRecord(dpsLogRecord *record)
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_GETRECORD, "_rtnRollbackManager::_getRecord" )
+INT32 _rtnRollbackManager::_getRecord(dpsLogRecord *record)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_GETRECORD, &rc);
+   PD_TRACER(1, PD_PACK_ULONG(_cursor));
    DPS_LSN dpsLsn;
    dpsLsn.offset = _cursor;
    _mb.clear(); // clean up the tmp storage
@@ -125,9 +136,12 @@ INT32 rtnRollbackManager::_getRecord(dpsLogRecord *record)
 }
 
 // Determines if the record is to be undone and performs the undo
-INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_ROLLBACK, "_rtnRollbackManager::_rollback" )
+INT32 _rtnRollbackManager::_rollback(const dpsLogRecord &record,
+                                     BOOLEAN *undone)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_ROLLBACK, &rc);
    // Determine if the record should and can be undone
    // It is an error if it should be undone but it cannot be undone
    if (!_shouldUndo(record) ||
@@ -145,9 +159,11 @@ INT32 rtnRollbackManager::_rollback(const dpsLogRecord &record, BOOLEAN *undone)
 }
 
 // Does the inverse operation of the current record and logs it
-INT32 rtnRollbackManager::_undo()
+// PD_TRACE_DECLARE_FUNCTION( RTN_ROLLBACKMGR_UNDO, "_rtnRollbackManager::_undo" )
+INT32 _rtnRollbackManager::_undo()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_ROLLBACKMGR_UNDO, &rc);
    // Set the TransRelatedLSN of the undo record to the record being undone
    _cb->setRelatedTransLSN(_cursor);
    // Perform the undo of the record
@@ -166,7 +182,7 @@ INT32 rtnRollbackManager::_undo()
 
 rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
                                              const DPS_TRANS_ID &transID)
-    : rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
+    : _rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
       _transID(transID)
 {
    // Set the target time from the input message
@@ -177,9 +193,11 @@ rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
 // PIT rollback starts the end of the log and reads every record. It is also
 // wrapped in a transaction - either from the coord (handled externally) or
 // begin the local transaction here
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_INIT, "rtnPITRollbackManager::_init" )
 INT32 rtnPITRollbackManager::_init()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_INIT, &rc);
    PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
           _targetTime.getTime(), _testOnly);
 
@@ -231,8 +249,11 @@ INT32 rtnPITRollbackManager::_init()
 }
 
 // Perform error case cleanup
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_ABORT, "rtnPITRollbackManager::_abort" )
 void rtnPITRollbackManager::_abort()
 {
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_ABORT, &rc);
    // A global tranasaction abort would be driven from the coordinator.
    if (!_testOnly && !_cb->getTransID().isGlobTrans())
    {
@@ -242,9 +263,11 @@ void rtnPITRollbackManager::_abort()
 }
 
 // Perform success case cleanup
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_FINISH, "rtnPITRollbackManager::_finish" )
 INT32 rtnPITRollbackManager::_finish()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_FINISH, &rc);
    // A global tranasaction commit would be driven from the coordinator.
    if (!_testOnly && !_cb->getTransID().isGlobTrans() &&
        // Local transaction. Perform commit.
@@ -256,9 +279,11 @@ INT32 rtnPITRollbackManager::_finish()
    return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_COMMITREC, "rtnPITRollbackManager::_processCommitRecord" )
 INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_COMMITREC, &rc);
    // Get the transaction time from the commit record
    stpLogicalTimeUS recordTransTime;
    if ((rc =
@@ -290,9 +315,11 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
    return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_BEGINREC, "rtnPITRollbackManager::_processBeginRecord" )
 INT32 rtnPITRollbackManager::_processBeginRecord()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_BEGINREC, &rc);
    // All records for this transaction have been processed. Remove this
    // transaction from the set of transactions to undo.
    _undoTransSet.erase(_recordTransID);
@@ -300,9 +327,11 @@ INT32 rtnPITRollbackManager::_processBeginRecord()
 }
 
 // Processing of record before rollback
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_PRE, "rtnPITRollbackManager::_preProcess" )
 INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_PRE, &rc);
    _recordTransID.reset();
    // Extract the transaction ID. Don't check the rc because failure just means
    // it is a non-transactional record, in which case the ID will fail its
@@ -316,10 +345,12 @@ INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
 }
 
 // Processing of record after rollback
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_POST, "rtnPITRollbackManager::_postProcess" )
 INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
                                           BOOLEAN undone)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_POST, &rc);
    if (!undone)
    {
       // The record was not undone
@@ -337,9 +368,11 @@ INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
 }
 
 // Move the cursor
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_NEXT, "rtnPITRollbackManager::_nextRecord" )
 INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_NEXT, &rc);
    if ((rc = _checkExitCondition()))
    {
       return rc;
@@ -355,9 +388,11 @@ INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
    return rc;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_CHECKEXIT, "rtnPITRollbackManager::_checkExitCondition" )
 INT32 rtnPITRollbackManager::_checkExitCondition()
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_CHECKEXIT, &rc);
    if (_undoTransSet.empty() &&
        _isLogFileDone() &&
        _isTargetTimeReached(&rc))
@@ -390,9 +425,11 @@ BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
    return TRUE;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_CANUNDO, "rtnPITRollbackManager::_canUndo" )
 INT32 rtnPITRollbackManager::_canUndo(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_CANUNDO, &rc);
    // Log space required is double the record being undone: the undo record
    // itself and enough space for the redo in case the PIT rollback fails and
    // the transaction is rolled back

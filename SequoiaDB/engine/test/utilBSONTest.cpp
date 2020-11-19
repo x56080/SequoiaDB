@@ -1,0 +1,85 @@
+#include "utilBSON.hpp"
+#include <../bson/bson.h>
+#include "gtest/gtest.h"
+#include <string>
+using namespace engine;
+using namespace engine::util;
+using namespace bson;
+
+class utilBSONTest : public ::testing::Test
+{
+ protected:
+   const string _field;
+ public:
+   utilBSONTest() : _field("TestField"){};
+};
+
+// Test case where field does not exist
+TEST_F (utilBSONTest, NotFound)
+{
+   INT32 x;
+   BSONObj obj = BSON("notField" << 123);
+   ASSERT_EQ(SDB_FIELD_NOT_EXIST, fromBsonObj(obj, _field, &x));
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &x, FALSE));
+}
+
+TEST_F (utilBSONTest, INT32Test)
+{
+   INT32 x = 123;
+   INT32 y;
+   BSONObj obj = BSON(_field << x);
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
+   ASSERT_EQ(x, y);
+}
+
+TEST_F (utilBSONTest, UINT32)
+{
+   UINT32 x = 123;
+   UINT32 y;
+   BSONObj obj = BSON(_field << x);
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
+   ASSERT_EQ(x, y);
+}
+
+TEST_F (utilBSONTest, INT64)
+{
+   INT64 x = 123;
+   INT64 y;
+   BSONObj obj = BSON(_field << x);
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
+   ASSERT_EQ(x, y);
+}
+
+TEST_F (utilBSONTest, UINT64)
+{
+   UINT64 x = 123;
+   UINT64 y;
+   BSONObj obj = BSON(_field << (INT64)x);
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
+   ASSERT_EQ(x, y);
+}
+
+TEST_F (utilBSONTest, SubObject)
+{
+   BSONObj subobj = BSON("Subobj" << 123);
+   BSONObj obj = BSON(_field << subobj);
+   BSONObj x;
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, subobj);
+}
+
+
+// Test case where field is incompatible type
+TEST_F (utilBSONTest, BadType)
+{
+   INT32 x;
+   BSONObj obj = BSON(_field << "hello");
+   ASSERT_EQ(SDB_INVALIDARG, fromBsonObj(obj, _field, &x));
+}
+
+int main(int argc, char **argv)
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+

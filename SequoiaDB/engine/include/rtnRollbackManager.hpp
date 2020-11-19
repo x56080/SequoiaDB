@@ -42,11 +42,11 @@ class _pmdEDUCB;
 ///
 /// Starting from the end of the log, work backwards and undo any qualifying
 /// records. This is a base class and cannot be used directly.
-class rtnRollbackManager
+class _rtnRollbackManager : public SDBObject
 {
  public:
-   rtnRollbackManager(_pmdEDUCB *cb);
-   virtual ~rtnRollbackManager(){};
+   _rtnRollbackManager(_pmdEDUCB *cb);
+   virtual ~_rtnRollbackManager(){};
 
    // Perform the rollback
    INT32 execute();
@@ -100,7 +100,7 @@ class rtnRollbackManager
 /// Performs the rollback for the restore to point-in-time feature. Unlike the
 /// transaction rollback, it reads every record. Also unlike the transaction
 /// rollback, it may or may not undo each record it reads.
-class rtnPITRollbackManager : public rtnRollbackManager
+class rtnPITRollbackManager : public _rtnRollbackManager
 {
  public:
    rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime,

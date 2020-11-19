@@ -60,6 +60,8 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "clsResourceContainer.hpp"
+#include "ossMemPool.hpp"
+#include "utilStr.hpp"
 
 using namespace bson ;
 
@@ -2305,6 +2307,7 @@ namespace engine
       case MSG_AUTH_VERIFY1_REQ: /// connect
       case MSG_COM_REMOTE_DISC: /// disconnect
       case MSG_COM_SESSION_INIT_REQ:  /// init session
+      case MSG_BS_GETMORE_REQ:  // get more for list
       case MSG_BS_DISCONNECT:   ////// disconnect session
       case MSG_BS_INTERRUPTE:   ////// interrupt session
       case MSG_BS_KILL_CONTEXT_REQ:  //// kill context in session
@@ -2313,7 +2316,7 @@ namespace engine
          }
       case MSG_BS_QUERY_REQ:
          {
-            // only the rollbackToPIT command is allowed
+            // only the whitelisted commands are allowed
 
             CHAR *pCollectionName = NULL ;
 
@@ -2321,21 +2324,25 @@ namespace engine
             msgExtractQuery ( (CHAR *)_msg, NULL, &pCollectionName,
                               NULL, NULL, NULL, NULL, NULL, NULL ) ;
 
-            if (rtnIsCommand(pCollectionName) &&
-                ((0 ==
-                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_TO_PIT)) ||
-                 (0 ==
-                  ossStrcmp(&(pCollectionName[1]), CMD_NAME_RESTORE_ABORT)) ||
-                 (0 ==
-                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_START)) ||
-                 (0 ==
-                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_RESUME)) ||
-                 (0 ==
-                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_STOP)) ||
-                 (0 ==
-                  ossStrcmp(&(pCollectionName[1]),CMD_NAME_TRACE_STATUS))))
+            if (rtnIsCommand(pCollectionName))
             {
-               return TRUE ;
+               ossPoolVector<std::string> _restorePendingOpWhitelist;
+               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_RESTORE);
+               _restorePendingOpWhitelist.push_back(CMD_NAME_STP_PREFIX);
+               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_GET);
+               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_LIST);
+               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_SNAPSHOT);
+               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_TRACE);
+
+               for (UINT32 i = 0; i < _restorePendingOpWhitelist.size(); ++i)
+               {
+                  // trim the leading $ from the collection name
+                  if (utilStrStartsWith(string(pCollectionName + 1),
+                                        _restorePendingOpWhitelist[i]))
+                  {
+                     return TRUE ;
+                  }
+               }
             }
             break ;
          }
