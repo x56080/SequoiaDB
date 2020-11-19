@@ -344,8 +344,6 @@ namespace engine
 
       pmdGetKRCB()->getMemBlockPool()->setMaxSize(
          (UINT64)( pmdGetOptionCB()->memPoolSize() ) << 20 ) ;
-      pmdGetKRCB()->getMemBlockPool()->setAllocThreshold(
-         pmdGetOptionCB()->memPoolThreshold() ) ;
 
       utilSetMaxTCSize( (UINT64)pmdGetOptionCB()->maxTCSize() << 10 ) ;
       pmdEnablePerfStat( pmdGetOptionCB()->isEnabledPerfStat() ) ;

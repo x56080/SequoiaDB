@@ -79,20 +79,17 @@ void operator delete ( void *p, const CHAR *file, UINT32 line ) ;*/
 
 BOOLEAN ossString2MemDebugMask( const CHAR *pStr, UINT32 &mask ) ;
 
-void ossPoolMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line, const CHAR *pInfo = NULL ) ;
+void ossPoolMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line ) ;
 void ossPoolMemUnTrack( void *p ) ;
 
 typedef BOOLEAN (*OSS_POOL_MEMCHECK_FUNC)( void* p ) ;
 typedef void    (*OSS_POOL_MEMINFO_FUNC)( void* p, UINT64 &size,
-                                          INT32 &pool, INT32 &index,
-                                          BOOLEAN *pFreeInTc ) ;
-typedef void*   (*OSS_POOL_MEMUSERPTR_FUNC)( void* p ) ;
+                                          INT32 &pool, INT32 &index ) ;
 
 void ossSetPoolMemcheckFunc( OSS_POOL_MEMCHECK_FUNC pFunc ) ;
 void ossSetPoolMemInfoFunc( OSS_POOL_MEMINFO_FUNC pFunc ) ;
-void ossSetPoolMemUserPtrFunc( OSS_POOL_MEMUSERPTR_FUNC pFunc ) ;
 
-void ossThreadMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line, const CHAR *pInfo = NULL ) ;
+void ossThreadMemTrack( void *p, UINT64 userSize, UINT32 file, UINT32 line ) ;
 void ossThreadMemUnTrack( void *p ) ;
 
 typedef void*   (*OSS_TC_MEMREALPTR_FUNC)( void* p ) ;

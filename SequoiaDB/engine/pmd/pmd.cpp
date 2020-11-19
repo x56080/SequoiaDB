@@ -334,8 +334,7 @@ namespace engine
       IControlBlock *pCB = NULL ;
 
       rc = utilGetGlobalMemPool()->init( (UINT64)_optioncb.memPoolSize()
-                                         << 20,
-                                         _optioncb.memPoolThreshold() ) ;
+                                         << 20 ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Init mem block pool failed, rc: %d", rc ) ;

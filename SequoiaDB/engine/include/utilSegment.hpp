@@ -45,6 +45,7 @@
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 #include "ossAtomic.hpp"
+#include "utilBitmap.hpp"  // _utilBitmap
 
 typedef UINT32 UTIL_OBJIDX ;
 #define UTIL_INVALID_OBJ_INDEX   (( UTIL_OBJIDX )( -1 ))
@@ -68,8 +69,6 @@ namespace engine
          virtual BOOLEAN   canShrink( UINT32 blockSize,
                                       UINT64 totalSize,
                                       UINT64 usedSize ) = 0 ;
-         virtual UINT64    getDBTick() const = 0 ;
-         virtual UINT64    getTickSpanTime( UINT64 lastTick ) const = 0 ;
    } ;
    typedef _utilSegmentHandler utilSegmentHandler ;
 
@@ -174,22 +173,6 @@ namespace engine
          }
       } ;
 
-      struct _blockX : public SDBObject
-      {
-         _objX          *_pBuff ;
-         UTIL_OBJIDX    _usedNum ;
-
-         _blockX( _objX *pBuf = NULL )
-         {
-            _pBuff = pBuf ;
-            _usedNum = 0 ;
-         }
-
-         UTIL_OBJIDX incUsed() { return _usedNum++ ; }
-         UTIL_OBJIDX decUsed() { return _usedNum-- ; }
-         BOOLEAN     empty() const { return 0 == _usedNum ? TRUE : FALSE ; }
-      } ;
-
    private :
       UTIL_OBJIDX *  _list  ;         // a list/array of obj indices
       UINT32         _begin ;         // the position in list where acquire from
@@ -202,9 +185,8 @@ namespace engine
       UINT32         _highWatermark ; // max object index in use
       BOOLEAN        _isInitialized ;
       ossSpinXLatch  _latch ;
-      std::vector< _blockX > _segList;// a list of segments, each segment is
+      std::vector< _objX * > _segList;// a list of segments, each segment is
                                       // an array of object(T)
-      UINT32         _emptyNum ;      // empty segment number
       utilSegmentHandler   *_pHandler;// callback handler
 
       /// stat info
@@ -213,7 +195,6 @@ namespace engine
       UINT64         _oomTimes ;
       UINT64         _oolTimes ;
       UINT64         _shrinkSize ;
-      UINT64         _lastAcquireTick ;
 
    protected:
       void   clearStat_i()
@@ -223,8 +204,6 @@ namespace engine
          _oomTimes = 0 ;
          _oolTimes = 0 ;
          _shrinkSize = 0 ;
-
-         _lastAcquireTick = 0 ;
       }
 
    public :
@@ -238,7 +217,6 @@ namespace engine
                            _maintaining(0),
                            _highWatermark(0),
                            _isInitialized( FALSE ),
-                           _emptyNum( 0 ),
                            _pHandler( NULL )
       {
          clearStat_i() ;
@@ -254,16 +232,9 @@ namespace engine
          {
             _maxNumOfObjs = _SEGMENT_OBJ_MAX_NUM ;
          }
-         else if ( _maxNumOfObjs > 0 )
+         else if ( _maxNumOfObjs > 0 && _maxNumOfObjs < _delta )
          {
-            if ( _maxNumOfObjs < _delta )
-            {
-               _maxNumOfObjs = _delta ;
-            }
-            else
-            {
-               _maxNumOfObjs = _maxNumOfObjs / _delta * _delta ;
-            }
+            _maxNumOfObjs = _delta ;
          }
       }
 
@@ -352,7 +323,7 @@ namespace engine
       //
       OSS_INLINE BOOLEAN _needExpand() const
       {
-         return _numOfObjs <= _begin ? TRUE : FALSE ;
+         return ( _numOfObjs - 1 ) <= _begin ? TRUE : FALSE ;
       }
 
       //
@@ -379,8 +350,7 @@ namespace engine
       // Dependency : this function is internal/private helper function
       //              called by getObjPtrByIndex(), acquire(), release()
       //
-      OSS_INLINE _objX * _getObjXByIndex( const UTIL_OBJIDX idx,
-                                          _blockX **ppSegBlock )
+      OSS_INLINE _objX * _getObjXByIndex( const UTIL_OBJIDX idx )
       {
          _objX * pObj      = NULL ;
          UTIL_OBJIDX index = ( idx & _SEGMENT_OBJ_INDEX_MASK ) ;
@@ -393,8 +363,7 @@ namespace engine
             // j = idx % _delta ;
             // the _delta is round up to nearest power of 2,
             // so divide and modulo can be optimized
-            *ppSegBlock = &(_segList[ index >> _exponent ]) ;
-            _objX * pSegList = (*ppSegBlock)->_pBuff ;
+            _objX * pSegList = ( _objX * )( _segList[ index >> _exponent ] ) ;
             if ( pSegList )
             {
                pObj  = ( _objX * )&( pSegList[ index & ( _delta - 1 ) ] ) ;
@@ -575,7 +544,7 @@ namespace engine
 
          for ( UTIL_OBJIDX i = 0; i < segs ; i++ )
          {
-            pSegList = _segList[ i ]._pBuff ;
+            pSegList = _segList[ i ] ;
             if (    pSegList
                  && ( pT >= &( pSegList[ 0 ]._obj ) )
                  && ( pT <= &( pSegList[ _delta - 1 ]._obj ) ) )
@@ -604,11 +573,11 @@ namespace engine
          UINT32 len = _segList.size() ;
          for ( UINT32 i = 0; i < len ; i++ )
          {
-            if ( _segList[i]._pBuff )
+            if ( _segList[i] )
             {
-               SDB_OSS_DEL [] ( _segList[i]._pBuff ) ;
+               SDB_OSS_DEL [] ( _segList[i] ) ;
             }
-            _segList[i]._pBuff = NULL ;
+            _segList[i] = NULL ;
 
             if ( _pHandler )
             {
@@ -617,7 +586,6 @@ namespace engine
          }
          _segList.clear() ;
          SAFE_OSS_FREE( _list ) ;
-         _emptyNum = 0 ;
          _list = NULL ;
          _isInitialized = FALSE ;
          _pHandler = NULL ;
@@ -675,28 +643,17 @@ namespace engine
                (((numOfObjects + i) & _SEGMENT_OBJ_INDEX_MASK) | packedPoolID) ;
             }
 
+            // set _numOfObjs to new size
+            _numOfObjs = newSize ;
+
+            // discard old _list
+            SAFE_OSS_FREE( _list ) ;
+
+            // assign _list with new allocation, pListTmp
+            _list = pListTmp ;
+
             // add new segment to segment list
-            try
-            {
-               _segList.push_back( pSegTmp ) ;
-
-               ++_emptyNum ;
-               // set _numOfObjs to new size
-               _numOfObjs = newSize ;
-               // discard old _list
-               SAFE_OSS_FREE( _list ) ;
-               // assign _list with new allocation, pListTmp
-               _list = pListTmp ;
-            }
-            catch( std::exception &e )
-            {
-               PD_LOG( PDERROR, "Push segment to vector occur exception: %s",
-                       e.what() ) ;
-               rc = SDB_OOM ;
-
-               SDB_OSS_DEL [] pSegTmp ;
-               SDB_OSS_FREE( pListTmp ) ;
-            }
+            _segList.push_back( pSegTmp ) ;
          }
          else
          {
@@ -731,8 +688,6 @@ namespace engine
       return rc ;
    }
 
-   #define UTIL_SEGMENT_SEGKEEP_AUTO               ( 0xFFFFFFFF )
-   #define UTIL_SEGMENT_FREE_TIMEOUT               ( 600 * OSS_ONE_SEC )
    #define UTIL_SEGMENT_OBJ_IN_USE_RATIO_THRESHOLD ( 0.85 )
    template < class T >
    INT32 _utilSegmentPool< T >::shrink( UINT32 freeSegToKeep,
@@ -741,10 +696,8 @@ namespace engine
       INT32         rc       = SDB_OK ;
       BOOLEAN       bLatched = FALSE ;
       UTIL_OBJIDX * pListTmp = NULL ;
-      UTIL_OBJIDX   numOfObjects = 0 ;
-      UTIL_OBJIDX   maxObj = 0 ;
-      UTIL_OBJIDX   newSize = 0 ;
-      UINT32        segInUse = 0 ;
+      utilBitmap  * pUsedList= NULL ;
+      UINT32        numOfObjects, maxObj, newSize, segInUse ;
       UINT64        freedSize = 0 ;
       UINT32        freeSegNum = 0 ;
 
@@ -753,34 +706,22 @@ namespace engine
                   "shirk can only be done when segment is initialized" ) ;
 #endif
 
-      // this flag is checked without latching
-      _maintaining.swap( 1 ) ;
-
       _latch.get() ;
       bLatched = TRUE ;
 
-      /// Auto segment to keep
-      if ( freeSegToKeep == (UINT32)UTIL_SEGMENT_SEGKEEP_AUTO )
-      {
-         if ( _pHandler &&
-              _lastAcquireTick > 0 &&
-              _pHandler->getTickSpanTime( _lastAcquireTick ) <
-              UTIL_SEGMENT_FREE_TIMEOUT )
-         {
-            freeSegToKeep = 1 ;
-         }
-         else
-         {
-            freeSegToKeep = 0 ;
-         }
-      }
-
       numOfObjects = _numOfObjs ;
 
-      if ( _emptyNum > freeSegToKeep )
+      // this flag is checked without latching
+      _maintaining.swap( 1 ) ;
+      if ( _isInitialized && ( NULL != _list ) && numOfObjects > 0 )
       {
+         maxObj       = 0 ;
          FLOAT64 ratio= 0.0 ;
-         UINT32 segs = _segList.size() ;
+
+         if ( _begin > 0 && 1 == _segList.size() )
+         {
+            goto done ;
+         }
 
          // if 85% of objects in pool are in use, implies the system might be
          // busy. Likely a new segment might be added in soon.
@@ -803,11 +744,28 @@ namespace engine
          // find the max obj index in use
          if ( _begin > 0 )
          {
-            for ( UINT32 i = segs ; i > 0 ; --i )
+            pUsedList = SDB_OSS_NEW utilBitmap( numOfObjects ) ;
+            if ( NULL == pUsedList )
             {
-               if ( !_segList[ i - 1 ].empty() )
+               rc = SDB_OOM ;
+               goto error ;
+            }
+
+            // for each free object in _list, mark its corresponding position
+            // as 1 in the newly constructed bitmap, pUsedList. Thus, we get
+            // a list of all object are currently in use (the bits remain as 0)
+            for ( UINT32 i= _begin ; i < numOfObjects; i++ )
+            {
+               pUsedList->setBit( _list[i] ) ;
+            }
+            // then, starting from the end of the pUsedList, find the first
+            // bit is equal to 0, and its position is the max object index
+            // in use
+            for ( UINT32 i = numOfObjects - 1 ; i >= 0 ; i-- )
+            {
+               if ( ! pUsedList->testBit( i ) )
                {
-                  maxObj = ( i << _exponent ) - 1 ;
+                  maxObj = i ;
                   break ;
                }
             }
@@ -854,26 +812,27 @@ namespace engine
                //
                // We may simply copy the free obj index in _list starting
                // from _begin and exclude these are greater than newsize.
-               if ( _begin > 0 )
+               // However, following approach has sorting effect on object
+               // index, obj with higher index is put closer to the end of
+               // the list. Thus, next shrink operation may have better
+               // chance to free more segments
+               if ( NULL != pUsedList )
                {
-                  UTIL_OBJIDX i = _begin ;
-                  UTIL_OBJIDX j = _begin ;
-                  for ( ; i < numOfObjects && j < newSize ; i++ )
+                  for ( UINT32 i = 0, j = _begin ; i < newSize; i++ )
                   {
-                     if ( _list[i] < newSize )
+                     if ( pUsedList->testBit( i ) )
                      {
-                        pListTmp[j] = _list[i] ;
-                        ++j ;
+                        pListTmp[j] = i ;
+                        j++ ;
                      }
                   }
-                  SDB_ASSERT( j == newSize, "system error" ) ;
                }
                else
                {
 #ifdef _DEBUG
                   SDB_ASSERT( ( 0 == _begin ), "_begin must be 0" ) ;
 #endif
-                  for ( UTIL_OBJIDX i = 0 ; i < newSize ; i++ )
+                  for ( UINT32 i = 0; i < newSize; i++ )
                   {
                      pListTmp[i] = i ;
                   }
@@ -894,7 +853,7 @@ namespace engine
                   i >= (INT32)segInUse ;
                   --i )
             {
-               SDB_OSS_DEL [] ( _segList[i]._pBuff ) ;
+               SDB_OSS_DEL [] ( _segList[i] ) ;
                _segList.pop_back() ;
                ++freeSegNum ;
             }
@@ -916,6 +875,10 @@ namespace engine
       if ( bLatched )
       {
          _latch.release() ;
+      }
+      if ( NULL != pUsedList )
+      {
+         SDB_OSS_DEL pUsedList ;
       }
       if ( pFreedSize )
       {
@@ -957,16 +920,9 @@ namespace engine
          _maxNumOfObjs = maxNumberOfObjs ;
          _poolId       = poolId ;
 
-         if ( _maxNumOfObjs > 0 )
+         if ( _maxNumOfObjs > 0 && _maxNumOfObjs < _delta )
          {
-            if ( _maxNumOfObjs < _delta )
-            {
-               _maxNumOfObjs = _delta ;
-            }
-            else
-            {
-               _maxNumOfObjs = _maxNumOfObjs / _delta * _delta ;
-            }
+            _maxNumOfObjs = _delta ;
          }
          _highWatermark = ( _delta << 1 ) ;
          _pHandler = pHandler ;
@@ -1006,9 +962,8 @@ namespace engine
       const UTIL_OBJIDX idx
    )
    {
-      _blockX *pSegBlock = NULL ;
       T * pObj     = NULL ;
-      _objX *pObjX = _getObjXByIndex( idx, &pSegBlock ) ;
+      _objX *pObjX = _getObjXByIndex( idx ) ;
       if ( pObjX )
       {
          pObj = ( T * )&( pObjX->_obj ) ;
@@ -1025,7 +980,6 @@ namespace engine
       INT32   rc                = SDB_OK ;
       BOOLEAN bLatched          = FALSE ;
       _objX * pObjX             = NULL ;
-      _blockX *pSegBlock        = NULL ;
       const UINT32 packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
 
       //         *       .
@@ -1081,27 +1035,24 @@ namespace engine
             rc = _expandList() ;
             if ( rc )
             {
-               if ( SDB_OSS_UP_TO_LIMIT != rc )
-               {
-                  ++_oomTimes ;
-                  PD_LOG( PDWARNING,
-                          "Failed to expand : %d"OSS_NEWLINE
-                          "  PoolID         : %u"OSS_NEWLINE
-                          "  Delta          : %u"OSS_NEWLINE
-                          "  MaxNumOfObjs   : %u"OSS_NEWLINE
-                          "  NumOfObjs      : %u"OSS_NEWLINE
-                          "  BeginPos       : %u"OSS_NEWLINE
-                          "  ObjT Size      : %u"OSS_NEWLINE
-                          "  ObjX Size      : %u"OSS_NEWLINE,
-                          rc,
-                          _poolId,
-                          _delta,
-                          _maxNumOfObjs,
-                          _numOfObjs,
-                          _begin,
-                          sizeof( T ),
-                          sizeof( _objX ) ) ;
-               }
+               ++_oomTimes ;
+               PD_LOG( PDWARNING,
+                       "Failed to expand : %d"OSS_NEWLINE
+                       "  PoolID         : %u"OSS_NEWLINE
+                       "  Delta          : %u"OSS_NEWLINE
+                       "  MaxNumOfObjs   : %u"OSS_NEWLINE
+                       "  NumOfObjs      : %u"OSS_NEWLINE
+                       "  BeginPos       : %u"OSS_NEWLINE
+                       "  ObjT Size      : %u"OSS_NEWLINE
+                       "  ObjX Size      : %u"OSS_NEWLINE,
+                       rc,
+                       _poolId,
+                       _delta,
+                       _maxNumOfObjs,
+                       _numOfObjs,
+                       _begin,
+                       sizeof( T ),
+                       sizeof( _objX ) ) ;
                goto error ;
             }
 
@@ -1111,7 +1062,7 @@ namespace engine
             }
          }
 
-         pObjX = _getObjXByIndex( _list[ _begin ], &pSegBlock ) ;
+         pObjX = _getObjXByIndex( _list[ _begin ] ) ;
 
          // sanity check
          if (    ( NULL != pObjX )
@@ -1181,18 +1132,8 @@ namespace engine
          _begin ++ ;
          ++_acquireTimes ;
 
-         if ( _pHandler )
-         {
-            _lastAcquireTick = _pHandler->getDBTick() ;
-         }
-
          // return the object address
          pT = ( T * )&( pObjX->_obj ) ;
-         // inc block meta
-         if ( 0 == pSegBlock->incUsed() )
-         {
-            --_emptyNum ;
-         }
       }
       else
       {
@@ -1249,7 +1190,6 @@ namespace engine
    {
       INT32   rc           = SDB_OK ;
       BOOLEAN bLatched     = FALSE ;
-      _blockX *pSegBlock   = NULL ;
       _objX * pObjX        = NULL ;
       const UTIL_OBJIDX packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
 
@@ -1268,7 +1208,7 @@ namespace engine
              ( idx & _SEGMENT_OBJ_INDEX_MASK ) < _numOfObjs )
          {
             // get the _objX address by the index
-            pObjX = _getObjXByIndex( idx, &pSegBlock ) ;
+            pObjX = _getObjXByIndex( idx ) ;
 
             // sanity check
             if (( NULL != pObjX ) &&
@@ -1328,11 +1268,6 @@ namespace engine
             // fill in current slot with the obj index( to the segment)
             _list[ --_begin ] = ( idx & _SEGMENT_OBJ_INDEX_MASK ) ;
             ++_releaseTimes ;
-            // dec block meta
-            if ( 1 == pSegBlock->decUsed() )
-            {
-               ++_emptyNum ;
-            }
          }
          else
          {

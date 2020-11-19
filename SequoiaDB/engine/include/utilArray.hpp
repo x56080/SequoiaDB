@@ -37,7 +37,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "utilMemListPool.hpp"
+#include "ossMemPool.hpp"
 #include "ossUtil.hpp"
 
 #define UTIL_ARRAY_DEFAULT_SIZE        4

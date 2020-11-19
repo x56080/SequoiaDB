@@ -213,7 +213,6 @@ namespace engine
       ~_pmdEDUCB() ;
 
       void        clear() ;
-      void        shrink() ;
       string      toString() const ;
 
       EDU_STATUS  getStatus () const { return _status ; }

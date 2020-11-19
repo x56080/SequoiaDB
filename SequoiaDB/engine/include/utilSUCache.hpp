@@ -40,7 +40,6 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
-#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -70,7 +69,7 @@ namespace engine
    /*
       _utilSUCacheUnit define
     */
-   class _utilSUCacheUnit : public utilPooledObject
+   class _utilSUCacheUnit : public SDBObject
    {
       public :
          _utilSUCacheUnit ()

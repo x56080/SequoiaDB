@@ -427,15 +427,6 @@ namespace engine
          dpsTransLRB       *      & pLRBNew
       ) ;
 
-      // acquire and setup a new LRB
-      INT32 _prepareNewLRB
-      (
-         _dpsTransExecutor *        dpsTxExectr,
-         const DPS_TRANSLOCK_TYPE   requestLockMode,
-         const dpsTransLRBHeader *  pLRBHdr,
-         dpsTransLRB       *      & pLRBNew
-      ) ;
-
       // calculate the index to LRB Header bucket
       UINT32 _getBucketNo( const dpsTransLockId &lockId )
       {

@@ -35,14 +35,14 @@
 #ifndef UTIL_BUFFBLOCK_HPP__
 #define UTIL_BUFFBLOCK_HPP__
 
-#include "utilPooledObject.hpp"
+#include "oss.hpp"
 
 namespace engine
 {
 /**
  * @brief A continuous block of memory in the sort area.
  */
-   class _utilBuffBlock : public utilPooledObject
+   class _utilBuffBlock : public SDBObject
    {
    public:
       _utilBuffBlock( UINT64 size ) ;

@@ -66,7 +66,7 @@ namespace engine
    class _SDB_DMSCB ;
    class _SDB_RTNCB ;
    class _dpsLogWrapper ;
-   class _rtnCommand : public utilPooledObject
+   class _rtnCommand : public SDBObject
    {
       public:
          _rtnCommand () ;

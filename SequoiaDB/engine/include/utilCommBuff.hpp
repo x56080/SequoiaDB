@@ -36,7 +36,6 @@
 #define UTIL_OBJBUFF_HPP__
 
 #include "utilArray.hpp"
-#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -98,7 +97,7 @@ namespace engine
     * @brief Common memory buffer. User can push their data into the buffer,
     * and retrieve them later.
     */
-   class _utilCommBuff : public utilPooledObject
+   class _utilCommBuff : public SDBObject
    {
       typedef _utilArray<_utilBuffBlock *> BLOCK_ARRAY ;
       typedef _utilArray<_utilBuffBlock *>::iterator BLOCK_ARRAY_ITR ;

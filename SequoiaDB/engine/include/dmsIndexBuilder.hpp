@@ -74,7 +74,7 @@ namespace engine
 
    typedef class _dmsDupKeyProcessor dmsDupKeyProcessor ;
 
-   class _dmsIndexBuilder: public utilPooledObject
+   class _dmsIndexBuilder: public SDBObject
    {
    public:
       _dmsIndexBuilder( _dmsStorageIndex* indexSU,

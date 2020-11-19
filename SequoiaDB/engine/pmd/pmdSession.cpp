@@ -302,7 +302,6 @@ namespace engine
          totalReceivedSize += receivedSize ;
          if ( timeout < 0 && SDB_TIMEOUT == rc )
          {
-            eduCB()->shrink() ;
             continue ;
          }
          break ;

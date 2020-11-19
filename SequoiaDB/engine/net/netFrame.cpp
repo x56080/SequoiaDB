@@ -88,8 +88,7 @@ namespace engine
    {
       netEHSegPtr segPtr ;
 
-      netEHSegPtr tmpPtr = netEHSegPtr::allocRaw( __FILE__, __LINE__,
-                                                  ALLOC_POOL ) ;
+      netEHSegPtr tmpPtr = netEHSegPtr::allocRaw( ALLOC_POOL ) ;
       if ( NULL != tmpPtr.get() &&
            NULL != new( tmpPtr.get() ) netEHSegment( pFrame,
                                                      capacity,

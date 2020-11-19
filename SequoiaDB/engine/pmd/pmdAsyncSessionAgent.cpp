@@ -177,7 +177,6 @@ namespace engine
          else if ( !cb->isDisconnected() )
          {
             pSession->onTimer( 0, OSS_ONE_SEC ) ;
-            cb->shrink() ;
          }
          else
          {

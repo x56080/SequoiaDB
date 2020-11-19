@@ -45,7 +45,7 @@
 
 namespace engine
 {
-   class _mthSAction : public utilPooledObject,
+   class _mthSAction : public SDBObject,
                        public boost::noncopyable,
                        public _mthMatchTreeHolder
    {
