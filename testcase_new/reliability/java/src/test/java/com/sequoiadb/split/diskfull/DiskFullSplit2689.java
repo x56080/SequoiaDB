@@ -113,6 +113,12 @@ public class DiskFullSplit2689 extends SdbTestBase {
             mgr.execute();
             Assert.assertEquals( mgr.isAllSuccess(), true, mgr.getErrorMsg() );
 
+            // 故障恢复后检查集群状态
+            if ( !groupMgr.checkBusiness( 20 ) ) {
+                throw new SkipException( "checkBusiness return false" );
+            }
+
+            // 结果校验
             commSdb.setSessionAttr(
                     ( BSONObject ) JSON.parse( "{PreferedInstance:'M'}" ) );
             DBCollection cl = commSdb.getCollectionSpace( csName )
