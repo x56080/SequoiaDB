@@ -4,8 +4,8 @@
 *@createdate:  2019.07.03
 *@testlinkCase: seqDB-14406
 **************************************/
-
-main( test );
+//SEQUOIADBMAINSTREAM-6439
+//main( test );
 
 function test ()
 {
