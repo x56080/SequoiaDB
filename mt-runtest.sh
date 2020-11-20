@@ -406,6 +406,7 @@ do
    echo "0">$reportDirRoot/.succeed.log
    echo "0">$reportDirRoot/.failed.log
    echo "1">$reportDirRoot/.test.status
+   echo "0">$reportDirRoot/.generateFiles.lock
 
    # run all test-cases
    for tid in `seq $threadNum`

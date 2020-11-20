@@ -19,13 +19,25 @@ catch( e )
 function main ( db )
 {
    // 0. 生成 basic_operation 目录下的文件
+   var cmd = new Cmd();
    var currentUser = System.getCurrentUser().toObj().user;
+   // >2  mt-runtest
+   var isMtRuntest = cmd.run( "ps -ef | grep mt-runtest | wc -l" ) > 2 ? true : false;
    if( currentUser == "jenkins" )
    {
-      new Cmd().run( "/opt/sequoiadb/bin/sdb -f /tmp/ci/testcase/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='/tmp/ci/testcase/story/js/lib/basic_operation/'\"" )
-   }else
+      cmd.run( "/opt/sequoiadb/bin/sdb -f /tmp/ci/testcase/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='/tmp/ci/testcase/story/js/lib/basic_operation/'\"" )
+   } else if( !isMtRuntest )
    {
-      new Cmd().run( "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\"" )
+      cmd.run( "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\"" )
+   } else
+   {
+      try
+      {
+         //flock -w 10 -x ./local_test_report/.generateFiles.lock -c "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\""
+         // -w wait 10s 
+         // -x 排它锁
+         cmd.run( "flock -w 10 -x ./local_test_report/.generateFiles.lock -c ", "\"bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \\\"DIRPATH=\'testcase_new/story/js/lib/basic_operation/'\\\" \" " )
+      } catch( e ) { }
    }
 
    // 1. 删除名称含 local_test 的 cs
