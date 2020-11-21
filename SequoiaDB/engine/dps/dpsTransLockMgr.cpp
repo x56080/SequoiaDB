@@ -1217,6 +1217,7 @@ namespace engine
                         *pLRBHdr    = NULL ;
 
       BOOLEAN bFreeLRB       = FALSE ,
+              bFreeLRBHeader = FALSE ,
               bLatched       = FALSE ;
 
       BOOLEAN bIsLockLeafLevel        =  lockId.isLeafLevel() ;
@@ -1345,20 +1346,6 @@ namespace engine
 
       /// normal lock acquire/try get/test routine
 
-      // allocate new LRB
-      if ( !testMode )
-      {
-         // no need to allocate LRB for test mode
-         pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr, requestLockMode, NULL ) ;
-         if ( ! pLRBNew )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
-            goto error ;
-         }
-         bFreeLRB = TRUE ;
-      }
-
       if ( bktIdx == DPS_LOCK_INVALID_BUCKET_SLOT )
       {
          bktIdx = _getBucketNo( lockId );
@@ -1390,13 +1377,13 @@ namespace engine
             {
                // allocate LRB header prepare new LRB and LRB Header
                rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
-                                             bktIdx,
-                                             pLRBHdrNew,
-                                             pLRBNew ) ;
+                                             bktIdx, pLRBHdrNew, pLRBNew ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
                }
+               bFreeLRB       = TRUE ;
+               bFreeLRBHeader = TRUE ;
 
                // add new LRB header to the link
                _LockHdrBkt[ bktIdx ].lrbHdr = pLRBHdrNew;
@@ -1410,6 +1397,7 @@ namespace engine
 
                // mark the new LRB and LRB Header are used
                bFreeLRB       = FALSE ;
+               bFreeLRBHeader = FALSE ;
                pLRBHdr        = pLRBHdrNew ;
                pLRB           = pLRBNew ;
 
@@ -1431,13 +1419,13 @@ namespace engine
             {
                // allocate LRB header prepare new LRB and LRB Header
                rc = _prepareNewLRBAndHeader( dpsTxExectr, lockId, requestLockMode,
-                                             bktIdx,
-                                             pLRBHdrNew,
-                                             pLRBNew ) ;
+                                             bktIdx, pLRBHdrNew, pLRBNew ) ;
                if ( SDB_OK != rc )
                {
                   goto error ;
                }
+               bFreeLRB       = TRUE ;
+               bFreeLRBHeader = TRUE ;
 
                // at this time, pLRBHdr shall be the tail of LRB header list.
                // add the new LRB header to LRB Header list ;
@@ -1452,6 +1440,7 @@ namespace engine
 
                // mark the new LRB and new LRB Header are used
                bFreeLRB       = FALSE ;
+               bFreeLRBHeader = FALSE ;
                pLRBHdr        = pLRBHdrNew ;
                pLRB           = pLRBNew ;
 
@@ -1471,12 +1460,6 @@ namespace engine
       SDB_ASSERT( ( NULL != pLRBHdr ), "Invalid LRB Header" ) ;
 #endif
       // found the LRB header with same lockId
-
-      // update the lrbHdrIdx of new LRB to current LRB Header
-      if ( !testMode )
-      {
-         pLRBNew->lrbHdr = pLRBHdr;
-      }
 
       // leaf level lock ( e.g., record lock or index page lock )
       if ( bIsLockLeafLevel || ( FALSE == _autoUpperLockOp ) )
@@ -1572,6 +1555,15 @@ namespace engine
 
             if ( DPS_TRANSLOCK_OP_MODE_ACQUIRE == opMode )
             {
+               // allocate LRB
+               rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+                                    pLRBHdr, pLRBNew ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               bFreeLRB       = TRUE ;
+
                // save current owining lock mode
                pLRBNew->originMode = pLRBOwner->lockMode ;
 
@@ -1687,6 +1679,18 @@ namespace engine
          //
          // not in owner list
          //
+
+         if ( !testMode )
+         {
+            // allocate LRB
+            rc = _prepareNewLRB( dpsTxExectr, requestLockMode,
+                                 pLRBHdr, pLRBNew ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            bFreeLRB       = TRUE ;
+         }
 
          // check if lock is compatible with all owners
          if ( NULL != pLRBIncompatible )
@@ -1831,7 +1835,6 @@ namespace engine
                // members in upgrade and waiter list, add it to waiter list
                if ( DPS_TRANSLOCK_OP_MODE_ACQUIRE == opMode )
                {
-
                   // add to the end of waiter list
                   _addToLRBListTail( pLRBHdr->waiterLRB, pLRBNew ) ;
 
@@ -1943,6 +1946,12 @@ namespace engine
          }
       }
 
+      if ( bFreeLRBHeader )
+      {
+         _releaseLRBHdr( pLRBHdrNew ) ;
+         bFreeLRBHeader = FALSE ;
+      }
+
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER__TRYACQUIREORTEST, rc ) ;
       return rc;
    error:
@@ -1979,73 +1988,100 @@ namespace engine
       PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER ) ;
 
       INT32   rc           = SDB_OK ;
-      BOOLEAN bAllocLRBHdr = TRUE ;
-      BOOLEAN bAllocLRB    = TRUE ;
 
       // acquire a free LRB Header
-      if ( NULL == pLRBHdrNew )
+      pLRBHdrNew = SDB_OSS_NEW dpsTransLRBHeader( lockId, bktIdx ) ;
+      if ( ! pLRBHdrNew )
       {
-         pLRBHdrNew = SDB_OSS_NEW dpsTransLRBHeader( lockId, bktIdx ) ;
-         if ( ! pLRBHdrNew )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Failed to alloc a LRBHeader (rc=%d)", rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         bAllocLRBHdr = FALSE ;
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to alloc a LRBHeader (rc=%d)", rc ) ;
+         goto error ;
       }
 
       // acquire a lrb
-      if ( NULL == pLRBNew )
+      pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
+                                         requestLockMode,
+                                         pLRBHdrNew ) ;
+      if ( ! pLRBNew )
       {
-         pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
-                                            requestLockMode,
-                                            pLRBHdrNew ) ;
-         if ( ! pLRBNew )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         bAllocLRB = FALSE ;
-         pLRBNew->lrbHdr = pLRBHdrNew ;
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
+         goto error ;
       }
 
-      if ( bAllocLRBHdr )
-      {
-         pLRBHdrNew->ownerLRB = pLRBNew ;
+      pLRBHdrNew->ownerLRB = pLRBNew ;
 
-         if ( DPS_TRANSLOCK_IS == requestLockMode )
-         {
-            pLRBHdrNew->newestISOwner = pLRBNew ;
-         }
-         else if ( DPS_TRANSLOCK_IX == requestLockMode )
-         {
-            pLRBHdrNew->newestIXOwner = pLRBNew ;
-         }
-      }
+      _setNewestISIXOwner( pLRBNew ) ;
 
    done:
       PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRBANDHEADER, rc ) ;
       return rc ;
    error :
-      if( pLRBNew && bAllocLRB )
+      if( pLRBNew )
       {
          _releaseLRB( pLRBNew ) ;
       }
-      if( pLRBHdrNew && bAllocLRBHdr )
+      if( pLRBHdrNew )
       {
          _releaseLRBHdr( pLRBHdrNew ) ;
       }
       goto done;
    }
 
+
+   //
+   // Description: acquire and setup a new LRB
+   // Function: acquire a new LRB, and initialize the
+   //           new object with given input parameters.
+   // Input:
+   //    _dpsTransExecutor -- trans executor
+   //    requestLockMode   -- requested lock mode
+   //    pLRBHdr           -- the LRB header object
+   // Output:
+   //    pLRBNew           -- pointer of the new LRB object
+   // Return:  SDB_OK or any error returned from _utilSegmentManager::acquire
+   //
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB, "dpsTransLockManager::_prepareNewLRB" )
+   INT32 dpsTransLockManager::_prepareNewLRB
+   (
+      _dpsTransExecutor *        dpsTxExectr,
+      const DPS_TRANSLOCK_TYPE   requestLockMode,
+      const dpsTransLRBHeader *  pLRBHdr,
+      dpsTransLRB       *      & pLRBNew
+   )
+   {
+      PD_TRACE_ENTRY( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB ) ;
+
+      INT32   rc             = SDB_OK ;
+
+      if ( !pLRBHdr )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      /// acquire a lrb
+      pLRBNew = SDB_OSS_NEW dpsTransLRB( dpsTxExectr,
+                                         requestLockMode,
+                                         (dpsTransLRBHeader*)pLRBHdr ) ;
+      if ( !pLRBNew )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to alloc a LRB (rc=%d)", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DPSTRANSLOCKMANAGER_PREPARENEWLRB, rc ) ;
+      return rc ;
+   error :
+      if( pLRBNew )
+      {
+         _releaseLRB( pLRBNew ) ;
+      }
+      goto done;
+   }
 
    //
    // Description: acquire a lock with given mode
