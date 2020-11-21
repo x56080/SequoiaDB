@@ -49,49 +49,10 @@ namespace engine
 
    INT32 _clsLocalValidation::run()
    {
-      INT32 rc = SDB_OK ;
-      const UINT32 pLen = 512 ;
-      //SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      //SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      MON_CS_LIST csList ;
-
-      /// 1. malloc
-      CHAR *p = (CHAR *)SDB_OSS_MALLOC( pLen ) ;
-      if ( NULL == p )
-      {
-         PD_LOG( PDERROR, "failed to allocate mem." ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      *p = '\0' ;
-      *( p + pLen - 1 ) = '\0' ;
-
-      /// 2. create new thread
-      /*try
-      {
-         boost::thread t( func ) ;
-         t.join() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "failed to create new thread:%s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }*/
-
-      /// 3. dump dms
-      //dmsCB->dumpInfo( csList, TRUE ) ;
-
       /// 4. update validation tick
       pmdUpdateValidationTick() ;
 
-   done:
-      SAFE_OSS_FREE( p ) ;
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
 }

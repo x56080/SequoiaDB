@@ -67,7 +67,8 @@ namespace engine
    {
       netEvSuitPtr suitPtr ;
 
-      netEvSuitPtr tmpPtr = netEvSuitPtr::allocRaw( ALLOC_POOL ) ;
+      netEvSuitPtr tmpPtr = netEvSuitPtr::allocRaw( __FILE__, __LINE__,
+                                                    ALLOC_POOL ) ;
       if ( NULL != tmpPtr.get() &&
            NULL != new( tmpPtr.get() ) netEventSuit( frame ) )
       {

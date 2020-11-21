@@ -95,7 +95,7 @@ namespace engine
          {
             NET_TH th ;
 
-            NET_TH tmpTH = NET_TH::allocRaw( ALLOC_POOL ) ;
+            NET_TH tmpTH = NET_TH::allocRaw( __FILE__, __LINE__, ALLOC_POOL ) ;
             if ( NULL != tmpTH.get() &&
                  NULL != new( tmpTH.get() ) netTimer( millisec,
                                                       id,

@@ -83,7 +83,7 @@ namespace engine
    } ;
 
 
-   class _rtnMergeSorting : public SDBObject
+   class _rtnMergeSorting : public utilPooledObject
    {
    public:
       _rtnMergeSorting( _dmsTmpBlkUnit *unit,

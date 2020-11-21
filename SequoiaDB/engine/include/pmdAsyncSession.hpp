@@ -111,7 +111,7 @@ namespace engine
    /*
       _pmdSessionMeta define
    */
-   class _pmdSessionMeta : public SDBObject
+   class _pmdSessionMeta : public utilPooledObject
    {
       public:
          _pmdSessionMeta( const NET_HANDLE handle ) ;

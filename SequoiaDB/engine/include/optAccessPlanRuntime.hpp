@@ -113,7 +113,7 @@ namespace engine
    /*
       _optCLScanInfo define
     */
-   class _optCLScanInfo : public SDBObject,
+   class _optCLScanInfo : public utilPooledObject,
                           public _optCollectionInfo
    {
       public :
@@ -161,7 +161,7 @@ namespace engine
    /*
       _optAccessPlanRuntime define
     */
-   class _optAccessPlanRuntime : public SDBObject,
+   class _optAccessPlanRuntime : public utilPooledObject,
                                  public _mthMatchRuntimeHolder
    {
       public :

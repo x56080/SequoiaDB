@@ -47,22 +47,25 @@ namespace engine
 {
    _dpsMessageBlock::_dpsMessageBlock( UINT32 size )
    {
-      // we allocate extra 1 byte so that the write pointer will not point to
-      // somewhere outside the buffer
-      _start = ( CHAR * )SDB_OSS_MALLOC( size + 1 );
+      UINT32 newSize = ossAlign4( size ) ;
+      _start = ( CHAR * )SDB_OSS_MALLOC( newSize );
       _read = _start;
       _write = _start;
       // if we failed to allocate memory, then let's use _size=0
       if ( _start )
-         _size = size;
+      {
+         _size = newSize ;
+      }
       else
+      {
          _size = 0 ;
+      }
       _length = 0;
    }
 
    _dpsMessageBlock::_dpsMessageBlock( const _dpsMessageBlock &mb )
    {
-      _start =  ( CHAR * )SDB_OSS_MALLOC( mb.size() + 1 ) ;
+      _start =  ( CHAR * )SDB_OSS_MALLOC( mb.size() ) ;
       _read = _start ;
       _write = _start ;
       if ( NULL == _start )
@@ -82,7 +85,7 @@ namespace engine
    _dpsMessageBlock &_dpsMessageBlock::operator=
                                     ( const _dpsMessageBlock &mb )
     {
-       _start =  ( CHAR * )SDB_OSS_MALLOC( mb.size() + 1 ) ;
+       _start =  ( CHAR * )SDB_OSS_MALLOC( mb.size() ) ;
       _read = _start ;
       _write = _start ;
       if ( NULL == _start )
@@ -103,7 +106,9 @@ namespace engine
    _dpsMessageBlock::~_dpsMessageBlock()
    {
       if ( _start )
+      {
          SDB_OSS_FREE( _start );
+      }
       _start = NULL;
       _read = NULL;
       _write = NULL;
@@ -120,12 +125,27 @@ namespace engine
       // get offset of write/read pointer compare to start
       ossValuePtr writeOffset = _write - _start ;
       ossValuePtr readOffset = _read - _start ;
+
+      UINT32 newSize = 0 ;
+      if ( len >= _size )
+      {
+         newSize = ossAlign4( _size + len ) ;
+      }
+      else if ( _size < 1024 * 1024 )
+      {
+         newSize = ( _size << 1 ) ;
+      }
+      else
+      {
+         newSize = ossRoundUpToMultipleX( _size + len, 1024 ) ;
+      }
+
       // memory is freed in destructor
-      CHAR *pNewAddr = ( CHAR * )SDB_OSS_REALLOC( _start, _size + len + 1 ) ;
+      CHAR *pNewAddr = ( CHAR * )SDB_OSS_REALLOC( _start, newSize ) ;
       if ( !pNewAddr )
       {
          PD_LOG ( PDERROR, "Failed to reallocate memory for %d bytes",
-                  _size + len + 1 ) ;
+                  newSize ) ;
          rc = SDB_OOM ;
          goto error;
       }
@@ -137,7 +157,7 @@ namespace engine
          _write = _start + writeOffset ;
          _read = _start + readOffset ;
       }
-      _size += len;
+      _size = newSize ;
 
    done:
       PD_TRACE_EXITRC ( SDB__DPSMSGBLK_EXTEND, rc );

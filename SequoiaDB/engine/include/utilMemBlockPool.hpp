@@ -46,26 +46,34 @@ namespace engine
 {
 
    #define UTIL_MEM_BLOCK_POOL_DFT_MAX_SZ          ( 8589934592LL )  ///8GB
-   #define UTIL_MEM_A_SMALL_BLOCK_SIZE             ( 524288 )        ///512KB
+   #define UTIL_MEM_A_SMALL_BLOCK_SIZE             ( 1048576 )       ///1MB
    #define UTIL_MEM_A_MID_BLOCK_SIZE               ( 2097152 )       ///2MB
    #define UTIL_MEM_A_BIG_BLOCK_SIZE               ( 4194304 )       ///4MB
    #define UTIL_MEM_A_SMALL_BLOCK_SUBPOOL_NUM      ( 8 )
    #define UTIL_MEM_A_MID_BLOCK_SUBPOOL_NUM        ( 4 )
    #define UTIL_MEM_A_BIG_BLOCK_SUBPOOL_NUM        ( 2 )
 
+   #define UTIL_MEM_64K_BLOCK_SUBPOOL_NUM          ( 4 )
+
    /// Memory info:
-   /// | B-Eye(2) | Size(4) | Type(2) | User Data | E-Eye(2) |
+   /// | B-Eye(2) | Size(4) | Type(1) | Flag(1) | User Data | E-Eye(2) |
 
    #define UTIL_MEM_B_EYE_CHAR         0xBE38
    #define UTIL_MEM_E_EYE_CHAR         0xAC52
 
+   #define UTIL_MEM_FLAG_NORMAL        0x0F
+   #define UTIL_MEM_FLAG_NOUSE         0xF0
+   #define UTIL_MEM_FLAG_TC_INUSE      0x0A
+   #define UTIL_MEM_FLAG_TC_NOUSE      0xA0
+
    #define UTIL_MEM_B_EYE_LEN          sizeof(UINT16)
    #define UTIL_MEM_SIZE_LEN           sizeof(UINT32)
-   #define UTIL_MEM_TYPE_LEN           sizeof(UINT16)
+   #define UTIL_MEM_TYPE_LEN           sizeof(UINT8)
+   #define UTIL_MEM_FLAG_LEN           sizeof(UINT8)
    #define UTIL_MEM_E_EYE_LEN          sizeof(UINT16)
 
    #define UTIL_MEM_HEAD_FILL_LEN   \
-      ( UTIL_MEM_B_EYE_LEN + UTIL_MEM_SIZE_LEN + UTIL_MEM_TYPE_LEN )
+      ( UTIL_MEM_B_EYE_LEN + UTIL_MEM_SIZE_LEN + UTIL_MEM_TYPE_LEN + UTIL_MEM_FLAG_LEN )
 
    #define UTIL_MEM_TAIL_FILL_LEN      ( UTIL_MEM_E_EYE_LEN )
 
@@ -88,11 +96,15 @@ namespace engine
       ( (UINT32*)((CHAR*)UTIL_MEM_PTR_B_EYE_PTR(ptr)+UTIL_MEM_B_EYE_LEN) )
 
    #define UTIL_MEM_PTR_TYPE_PTR(ptr)  \
-      ( (UINT16*)((CHAR*)UTIL_MEM_PTR_SIZE_PTR(ptr)+UTIL_MEM_SIZE_LEN) )
+      ( (UINT8*)((CHAR*)UTIL_MEM_PTR_SIZE_PTR(ptr)+UTIL_MEM_SIZE_LEN) )
+
+   #define UTIL_MEM_PTR_FLAG_PTR(ptr)  \
+      ( (UINT8*)((CHAR*)UTIL_MEM_PTR_TYPE_PTR(ptr)+UTIL_MEM_TYPE_LEN) )
 
    #define UTIL_MEM_PTR_E_EYE_PTR(ptr, sz) \
       ( (UINT16*)( (CHAR*)(ptr) + (UINT32)(sz) - UTIL_MEM_E_EYE_LEN ) )
 
+   #define UTIL_MEM_OVERFLOW_SZ                 ( UTIL_MEM_TOTAL_FILL_LEN + 22 )
    /*
       Define element size
    */
@@ -100,11 +112,14 @@ namespace engine
    #define UTIL_MEM_ELEMENT_64                  ( 64 )
    #define UTIL_MEM_ELEMENT_128                 ( 128 )
    #define UTIL_MEM_ELEMENT_256                 ( 256 )
-   #define UTIL_MEM_ELEMENT_512                 ( 512 )
-   #define UTIL_MEM_ELEMENT_1024                ( 1024 )
-   #define UTIL_MEM_ELEMENT_2048                ( 2048 )
-   #define UTIL_MEM_ELEMENT_4096                ( 4096 )
-   #define UTIL_MEM_ELEMENT_8192                ( 8192 )
+   #define UTIL_MEM_ELEMENT_512                 ( 512 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_1024                ( 1024 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_2048                ( 2048 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_4096                ( 4096 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_8192                ( 8192 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_16K                 ( 16384 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_32K                 ( 32768 + UTIL_MEM_OVERFLOW_SZ )
+   #define UTIL_MEM_ELEMENT_64K                 ( 65536 + UTIL_MEM_OVERFLOW_SZ )
 
    /** definition of _utilMemBlockPool
     *  _utilMemBlockPool is a place holder for a set of memory pools based on 
@@ -117,6 +132,7 @@ namespace engine
          Small: 32,   64,   128
          Mid  : 256,  512,  1024
          Big  : 2048, 4096, 8192
+         Huge : 16K,  32K,  64K
       */
       typedef  CHAR    element32B[UTIL_MEM_ELEMENT_32] ;
       typedef  CHAR    element64B[UTIL_MEM_ELEMENT_64] ;
@@ -127,6 +143,9 @@ namespace engine
       typedef  CHAR    element2K[UTIL_MEM_ELEMENT_2048] ;
       typedef  CHAR    element4K[UTIL_MEM_ELEMENT_4096] ;
       typedef  CHAR    element8K[UTIL_MEM_ELEMENT_8192] ;
+      typedef  CHAR    element16K[UTIL_MEM_ELEMENT_16K] ;
+      typedef  CHAR    element32K[UTIL_MEM_ELEMENT_32K] ;
+      typedef  CHAR    element64K[UTIL_MEM_ELEMENT_64K] ;
 
    public:
       enum MEMBLOCKPOOL_TYPE
@@ -141,6 +160,9 @@ namespace engine
          MEMBLOCKPOOL_TYPE_2048,
          MEMBLOCKPOOL_TYPE_4096,
          MEMBLOCKPOOL_TYPE_8192,
+         MEMBLOCKPOOL_TYPE_16K,
+         MEMBLOCKPOOL_TYPE_32K,
+         MEMBLOCKPOOL_TYPE_64K,
          MEMBLOCKPOOL_TYPE_MAX
       } ;
 
@@ -151,23 +173,27 @@ namespace engine
       _utilMemBlockPool( BOOLEAN isGlobal = FALSE ) ;
       ~_utilMemBlockPool() ;
 
-      INT32       init( UINT64 maxSize = UTIL_MEM_BLOCK_POOL_DFT_MAX_SZ ) ;
+      INT32       init( UINT64 maxSize = UTIL_MEM_BLOCK_POOL_DFT_MAX_SZ,
+                        UINT32 allocThreshold = 0 ) ;
       void        fini() ;
       void        shrink() ;
 
       void        setMaxSize( UINT64 maxSize ) ;
+      void        setAllocThreshold( UINT32 allocThreshold ) ;
 
       UINT64      getTotalSize() ;
 
       void*       alloc( UINT32 size,
                          const CHAR *pFile,
                          UINT32 line,
-                         UINT32 *pRealSize = NULL ) ;
+                         UINT32 *pRealSize = NULL,
+                         const CHAR *pInfo = NULL ) ;
       void*       realloc( void* ptr,
                            UINT32 size,
                            const CHAR *pFile,
                            UINT32 line,
-                           UINT32 *pRealSize = NULL ) ;
+                           UINT32 *pRealSize = NULL,
+                           const CHAR *pInfo = NULL ) ;
       void        release( void*& ptr ) ;
 
       UINT32      dump( CHAR *pBuff, UINT32 buffLen ) ;
@@ -179,6 +205,8 @@ namespace engine
       virtual BOOLEAN   canShrink( UINT32 blockSize,
                                    UINT64 totalSize,
                                    UINT64 usedSize ) ;
+      virtual UINT64    getDBTick() const ;
+      virtual UINT64    getTickSpanTime( UINT64 lastTick ) const ;
 
    protected:
       void                    _fillPtr( CHAR *ptr, UINT16 type, UINT32 size ) ;
@@ -202,8 +230,12 @@ namespace engine
       _utilSegmentManager<element2K>   *_2KSeg;  // mem segs with 2 KB element
       _utilSegmentManager<element4K>   *_4KSeg;  // mem segs with 4 KB element
       _utilSegmentManager<element8K>   *_8KSeg;  // mem segs with 8 KB element
+      _utilSegmentManager<element16K>  *_16KSeg; // mem segs with 16KB element
+      _utilSegmentManager<element32K>  *_32KSeg; // mem segs with 32KB element
+      _utilSegmentManager<element64K>  *_64KSeg; // mem segs with 64KB element
 
       UINT64         _maxSize ;
+      UINT32         _allocThreshold ;
       ossAtomic64    _totalSize ;
 
       /// stat info
@@ -236,12 +268,14 @@ namespace engine
    void*       utilPoolAlloc( UINT32 size,
                               const CHAR *pFile,
                               UINT32 line,
-                              UINT32 *pRealSize = NULL ) ;
+                              UINT32 *pRealSize = NULL,
+                              const CHAR *pInfo = NULL ) ;
    void*       utilPoolRealloc( void* ptr,
                                 UINT32 size,
                                 const CHAR *pFile,
                                 UINT32 line,
-                                UINT32 *pRealSize = NULL ) ;
+                                UINT32 *pRealSize = NULL,
+                                const CHAR *pInfo = NULL ) ;
    void        utilPoolRelease( void*& ptr ) ;
    BOOLEAN     utilPoolPtrCheck( void *ptr, UINT32 *pUserSize = NULL,
                                  UINT16 *pType = NULL ) ;

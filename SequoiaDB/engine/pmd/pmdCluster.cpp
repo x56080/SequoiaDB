@@ -63,6 +63,7 @@ namespace engine
       {
          if ( !pNtyQue->timed_wait_and_pop( lsnInfo, OSS_ONE_SEC ) )
          {
+            cb->shrink() ;
             continue ;
          }
          cb->incEventCount() ;
@@ -97,6 +98,10 @@ namespace engine
          if ( cb->waitEvent( data, OSS_ONE_SEC, TRUE ) )
          {
             pmdEduEventRelease( data, cb ) ;
+         }
+         else
+         {
+            cb->shrink() ;
          }
          /// set the edu to active
          pEduMgr->activateEDU( cb ) ;

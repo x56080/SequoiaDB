@@ -19,10 +19,13 @@
  */
 
 #pragma once
-#if defined (SDB_ENGINE) || defined (SDB_CLIENT)
+#if defined (SDB_ENGINE)
+#include "utilPooledObject.hpp"
+#elif defined( SDB_CLIENT )
 #include "core.hpp"
 #include "oss.hpp"
 #endif
+
 #include <limits>
 #include <cmath>
 //#include "bsonobjiterator.h"
@@ -88,7 +91,9 @@ namespace bson {
     /** Utility for creating a BSONObj.
         See also the BSON() and BSON_ARRAY() macros.
     */
-#if defined (SDB_ENGINE) || defined (SDB_CLIENT)
+#if defined (SDB_ENGINE)
+    class BSONObjBuilder : bsonnoncopyable, public engine::utilPooledObject{
+#elif defined( SDB_CLIENT )
     class BSONObjBuilder : bsonnoncopyable, public SDBObject {
 #else
     class BSONObjBuilder : bsonnoncopyable {
@@ -97,7 +102,7 @@ namespace bson {
         /** @param initsize this is just a hint as to the final size of the
             object */
         BSONObjBuilder(int initsize=512) : _b(_buf),
-          _buf(initsize + sizeof(unsigned), BSONObjMaxInternalSize),
+          _buf(initsize + sizeof(unsigned), BSONObjMaxInternalSize, BSON_INFO_STR ),
           _offset( sizeof(unsigned) ), _s( this ) , _tracker(0) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay(4) ; /* reference count */
@@ -112,7 +117,7 @@ namespace bson {
          *  subobjStart for example.
          */
         BSONObjBuilder( BufBuilder &baseBuilder ) : _b( baseBuilder ),
-          _buf( 0, BSONObjMaxInternalSize ),
+          _buf( 0, BSONObjMaxInternalSize, BSON_INFO_STR ),
           _offset( baseBuilder.len() ), _s( this ) , _tracker(0) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay( 4 );
@@ -121,7 +126,8 @@ namespace bson {
         }
 
         BSONObjBuilder( const BSONSizeTracker & tracker ) : _b(_buf) ,
-          _buf(tracker.getSize() + sizeof(unsigned), BSONObjMaxInternalSize ), _offset( sizeof(unsigned) ),
+          _buf(tracker.getSize() + sizeof(unsigned), BSONObjMaxInternalSize, BSON_INFO_STR ),
+          _offset( sizeof(unsigned) ),
           _s( this ) , _tracker( (BSONSizeTracker*)(&tracker) ) , _doneCalled(false) {
             _orgReserve = _b.getReserveBytes() ;
             _b.skipDeplay(4); /* reference count */
@@ -853,7 +859,9 @@ namespace bson {
         static const string numStrs[100]; // cache of 0 to 99 inclusive
     };
 
-#if defined (SDB_ENGINE) || defined (SDB_CLIENT)
+#if defined (SDB_ENGINE)
+    class BSONArrayBuilder : bsonnoncopyable, public engine::utilPooledObject {
+#elif defined( SDB_CLIENT )
     class BSONArrayBuilder : bsonnoncopyable, public SDBObject {
 #else
     class BSONArrayBuilder : bsonnoncopyable {

@@ -62,7 +62,7 @@ namespace engine
    class _clsCatalogAgent ;
    class _clsCatalogSet ;
 
-   class _clsCataItemKey : public SDBObject
+   class _clsCataItemKey : public utilPooledObject
    {
       enum CLS_KEY_TYPE
       {
@@ -98,7 +98,7 @@ namespace engine
    typedef _clsCataItemKey clsCataItemKey ;
 
    // the range is [lowBound, upBound)
-   class _clsCatalogItem : public SDBObject
+   class _clsCatalogItem : public utilPooledObject
    {
       public:
          _clsCatalogItem ( BOOLEAN saveName = TRUE,
@@ -204,7 +204,7 @@ namespace engine
 
    typedef VEC_UINT32                           VEC_GROUP_ID ;
 
-   class _clsCataOrder : public SDBObject
+   class _clsCataOrder : public utilPooledObject
    {
       public:
          _clsCataOrder ( const Ordering &order ) ;
@@ -232,7 +232,7 @@ namespace engine
    /*
       _clsCatalogSet define
    */
-   class _clsCatalogSet : public SDBObject
+   class _clsCatalogSet : public utilPooledObject
    {
       friend class _clsCatalogAgent ;
 
@@ -547,7 +547,7 @@ namespace engine
    typedef VEC_NODE_INFO::iterator             VEC_NODE_INFO_IT ;
    typedef VEC_NODE_INFO::const_iterator       VEC_NODE_INFO_CIT ;
 
-   class _clsGroupItem : public SDBObject
+   class _clsGroupItem : public utilPooledObject
    {
       friend class _clsNodeMgrAgent ;
       friend class _clsShardMgr ;

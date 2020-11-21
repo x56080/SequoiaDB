@@ -39,9 +39,12 @@
 #define UTIL_POOLED_ALLOCATOR_HPP__
 
 #include "utilMemListPool.hpp"
+#include <typeinfo>
 #include "pd.hpp"
 
 #pragma warning( disable: 4200 )
+
+extern BOOLEAN ossMemDebugEnabled ;
 
 namespace engine
 {
@@ -80,13 +83,43 @@ namespace engine
 
          pointer allocate( size_type count, const void* pHint = NULL )
          {
-            pointer p = (pointer)SDB_THREAD_ALLOC( count *
-                                                   sizeof( value_type ) ) ;
-            if ( !p )
+            if ( !ossMemDebugEnabled )
             {
-               throw std::bad_alloc() ;
+               pointer p = (pointer)SDB_THREAD_ALLOC( count *
+                                                      sizeof( value_type ) ) ;
+               if ( !p )
+               {
+                  throw std::bad_alloc() ;
+               }
+               return p ;
             }
-            return p ;
+            else
+            {
+               UINT16 hash = 0 ;
+               static const CHAR *pCharName = typeid( char ).name() ;
+               const CHAR *pIDName = typeid( value_type ).name() ;
+
+               if ( pIDName == pCharName )
+               {
+                  pIDName = NULL ;
+               }
+               else
+               {
+                  hash = (UINT16)ossHashFileName( pIDName ) ;
+               }
+
+               pointer p = (pointer)utilThreadAlloc( count *
+                                                     sizeof( value_type ),
+                                                     __FILE__,
+                                                     pIDName ? hash : __LINE__,
+                                                     NULL,
+                                                     pIDName ) ;
+               if ( !p )
+               {
+                  throw std::bad_alloc() ;
+               }
+               return p ;
+            }
          }
 
          void deallocate( pointer ptr, size_type count )

@@ -3657,7 +3657,7 @@ namespace engine
       SINT32 modifierIndex = -1 ;
       _incModifierIndex( &modifierIndex ) ;
 
-      pBuffer = (CHAR*)SDB_OSS_MALLOC ( SDB_PAGE_SIZE ) ;
+      pBuffer = (CHAR*)SDB_THREAD_ALLOC ( SDB_PAGE_SIZE ) ;
       if ( !pBuffer )
       {
          PD_LOG_MSG ( PDERROR, "Failed to allocate buffer for select" ) ;
@@ -3786,7 +3786,7 @@ namespace engine
    done :
       if ( pBuffer )
       {
-         SDB_OSS_FREE ( pBuffer ) ;
+         SDB_THREAD_FREE ( pBuffer ) ;
       }
       if ( _srcChgBuilder )
       {

@@ -49,7 +49,7 @@ namespace engine
 
    typedef ossPoolSet<INT64> RTN_LOB_CONTEXT_SET ;
 
-   class _rtnLobAccessInfo: public SDBObject
+   class _rtnLobAccessInfo: public utilPooledObject
    {
    public:
       _rtnLobAccessInfo( const bson::OID& oid ) ;
@@ -118,7 +118,7 @@ namespace engine
    } ;
    typedef _rtnLobAccessInfo rtnLobAccessInfo ;
 
-   struct _rtnLobAccessKey: public SDBObject
+   struct _rtnLobAccessKey: public utilPooledObject
    {
       std::string clName ;
       bson::OID   oid ;
