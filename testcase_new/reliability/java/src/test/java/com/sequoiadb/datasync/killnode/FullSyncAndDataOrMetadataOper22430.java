@@ -55,7 +55,7 @@ public class FullSyncAndDataOrMetadataOper22430 extends SdbTestBase {
 
         // ready data
         for ( int i = 0; i < recsNum; i++ ) {
-            insertor.add( new BasicBSONObject( "_id", i ).append( "a", i ) );
+            insertor.add( new BasicBSONObject( "id", i ).append( "a", i ) );
         }
 
         // create CS/CL, and insert records
@@ -139,6 +139,10 @@ public class FullSyncAndDataOrMetadataOper22430 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csNames[ 0 ] )
                         .getCollection( clNameBase + 1 );
+
+                for ( BSONObject obj: insertor ){
+                    obj.removeField("_id") ;
+                }
                 cl.insert( insertor );
             }
         }
