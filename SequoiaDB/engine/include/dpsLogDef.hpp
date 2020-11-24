@@ -198,7 +198,7 @@ namespace engine
       _dpsLogSummary define
     */
    // log summary for previous log files including transaction information
-   // for restore PIT window
+   // for restore PIT (point-in-time) window
    typedef struct _dpsLogSummary
    {
       _dpsLogSummary()

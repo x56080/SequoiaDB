@@ -59,18 +59,18 @@ class _coordCMDRestore : public _coordCommandBase
 };
 
 /*
-   coordCMDRestoreToPIT
-   Coordinator handler for restoreToPIT().
+   coordCMDRestoreToTime
+   Coordinator handler for restoreToTime().
    The cluster must be in RestoreInProgress state.
-   Performs restoreToPIT() on data nodes and resets the cluster state.
+   Performs restoreToTime() on data nodes and resets the cluster state.
 */
-class coordCMDRestoreToPIT : public _coordCMDRestore
+class coordCMDRestoreToTime : public _coordCMDRestore
 {
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestoreToPIT(){};
-   virtual ~coordCMDRestoreToPIT(){};
+   coordCMDRestoreToTime(){};
+   virtual ~coordCMDRestoreToTime(){};
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);

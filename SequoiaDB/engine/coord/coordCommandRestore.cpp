@@ -54,8 +54,7 @@ INT32 convRealToLogicalTime(const engine::stpHPTime &input, UINT64 *output)
    // Convert to logical time
    engine::stpAgent agent;
    engine::stpClient client;
-   if ((rc = agent.checkAvailable()) ||
-       (rc = agent.getClient(client)))
+   if ((rc = agent.checkAvailable()) || (rc = agent.getClient(client)))
    {
       PD_LOG(PDERROR, "Error initializing stp client");
       return rc;
@@ -446,15 +445,15 @@ INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const string &clName,
 }
 
 /*
-   coordCMDRestoreToPIT definitions
+   coordCMDRestoreToTime definitions
 */
-COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToPIT, CMD_NAME_RESTORE_TO_PIT,
-                                  FALSE);
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToTime,
+                                  CMD_NAME_RESTORE_TO_TIME, FALSE);
 
-// Entrypoint for restoreToPIT() on the coordinator
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_EXE, "coordCMDRestoreToPIT::execute" )
-INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
-                                    INT64 &contextID, rtnContextBuf *buf)
+// Entrypoint for restoreToTime() on the coordinator
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_EXE, "coordCMDRestoreToTime::execute" )
+INT32 coordCMDRestoreToTime::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                     INT64 &contextID, rtnContextBuf *buf)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_EXE, &rc);
@@ -477,13 +476,13 @@ INT32 coordCMDRestoreToPIT::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    {
       return rc;
    }
-   PD_LOG(PDEVENT, "restoreToPIT completed successfully");
+   PD_LOG(PDEVENT, "restoreToTime completed successfully");
    return rc;
 }
 
 // Parse the client's request, extracting the targetTime if given
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSE, "coordCMDRestoreToPIT::_parseRequest" )
-INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSE, "coordCMDRestoreToTime::_parseRequest" )
+INT32 coordCMDRestoreToTime::_parseRequest(UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSE, &rc);
@@ -509,42 +508,52 @@ INT32 coordCMDRestoreToPIT::_parseRequest(UINT64 *targetTime)
 }
 
 // Get the target time input (if provided)
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSETIME, "coordCMDRestoreToPIT::_parseTime" )
-INT32 coordCMDRestoreToPIT::_parseTime(const BSONObj &query, UINT64 *targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSETIME, "coordCMDRestoreToTime::_parseTime" )
+INT32 coordCMDRestoreToTime::_parseTime(const BSONObj &query,
+                                        UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSETIME, &rc);
-   if (!query.hasElement(FIELD_NAME_GLOBAL_TIME) &&
-       !query.hasElement(FIELD_NAME_TIME))
+   // Check that exactly one of Latest: TRUE, GlobalTime and Time are provided
+   BOOLEAN latest = FALSE;
+   if ((rc = fromBsonObj(query, FIELD_NAME_LATEST, &latest, FALSE)))
    {
-      // Neither specified
+      PD_LOG_MSG(PDERROR, "%s must be boolean", FIELD_NAME_LATEST);
+      return (rc = SDB_INVALIDARG);
+   }
+   INT32 specifier_count = latest;
+   specifier_count += query.hasElement(FIELD_NAME_GLOBAL_TIME) ? 1 : 0;
+   specifier_count += query.hasElement(FIELD_NAME_TIME) ? 1 : 0;
+   if (specifier_count != 1)
+   {
+      PD_LOG_MSG(PDERROR, "Exactly one of %s, %s, and %s must be provided",
+                 FIELD_NAME_LATEST, FIELD_NAME_GLOBAL_TIME, FIELD_NAME_TIME);
+      return (rc = SDB_INVALIDARG);
+   }
+   if (latest)
+   {
+      // Restore to latest consistency point
       return rc;
    }
    if (query.hasElement(FIELD_NAME_GLOBAL_TIME))
    {
-      if (query.hasElement(FIELD_NAME_TIME))
-      {
-         // Both specified, error
-         PD_LOG(PDERROR, "Both %s and %s specified", FIELD_NAME_GLOBAL_TIME,
-                FIELD_NAME_TIME);
-         return (rc = SDB_INVALIDARG);
-      }
-      // Only global time
+      // Global time specified
       if ((rc = fromBsonObj(query, FIELD_NAME_GLOBAL_TIME, targetTime)))
       {
-         PD_LOG(PDERROR, "%s must be a valid global time",
-                FIELD_NAME_GLOBAL_TIME);
+         PD_LOG_MSG(PDERROR, "%s must be a valid global time",
+                    FIELD_NAME_GLOBAL_TIME);
          return (rc = SDB_INVALIDARG);
       }
       return rc; // success
    }
+   // Timestamp specified, convert it to global logical time
    return (rc = _targetTimeFromTimestamp(query, targetTime));
 }
 
 // Get the target time from the timestamp input, converted to a global time
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TIMESTAMP, "coordCMDRestoreToPIT::_targetTimeFromTimestamp" )
-INT32 coordCMDRestoreToPIT::_targetTimeFromTimestamp(const BSONObj &query,
-                                                     UINT64 *targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TIMESTAMP, "coordCMDRestoreToTime::_targetTimeFromTimestamp" )
+INT32 coordCMDRestoreToTime::_targetTimeFromTimestamp(const BSONObj &query,
+                                                      UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_TIMESTAMP, &rc);
@@ -554,22 +563,21 @@ INT32 coordCMDRestoreToPIT::_targetTimeFromTimestamp(const BSONObj &query,
    {
       if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
       {
-         PD_LOG(PDERROR, "Error parsing %s as Timestamp", FIELD_NAME_TIME);
+         PD_LOG_MSG(PDERROR, "Error parsing %s as Timestamp", FIELD_NAME_TIME);
          return rc;
       }
    }
    else
    {
-      PD_LOG(PDERROR, "Unsupported type for argument %s",
-             query.getField(FIELD_NAME_TIME).type());
+      PD_LOG_MSG(PDERROR, "Unsupported type for argument %s", FIELD_NAME_TIME);
       return (rc = SDB_INVALIDARG);
    }
    return (rc = convRealToLogicalTime(timestamp, targetTime));
 }
 
 // Check that the cluster is awaiting restore and coordinate the operation
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_CHECK, "coordCMDRestoreToPIT::_checkStateAndRestore" )
-INT32 coordCMDRestoreToPIT::_checkStateAndRestore(UINT64 targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_CHECK, "coordCMDRestoreToTime::_checkStateAndRestore" )
+INT32 coordCMDRestoreToTime::_checkStateAndRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_CHECK, &rc);
@@ -606,8 +614,8 @@ INT32 coordCMDRestoreToPIT::_checkStateAndRestore(UINT64 targetTime)
    return rc;
 }
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_COORDRES, "coordCMDRestoreToPIT::_coordinateRestore" )
-INT32 coordCMDRestoreToPIT::_coordinateRestore(UINT64 targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_COORDRES, "coordCMDRestoreToTime::_coordinateRestore" )
+INT32 coordCMDRestoreToTime::_coordinateRestore(UINT64 targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_COORDRES, &rc);
@@ -622,9 +630,9 @@ INT32 coordCMDRestoreToPIT::_coordinateRestore(UINT64 targetTime)
 
 // Query the primary of each data group for their restore window and set the
 // min/max times
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_GETWINDOWS, "coordCMDRestoreToPIT::_getGlobalRestoreWindow" )
-INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(UINT64 *minTime,
-                                                    UINT64 *maxTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_GETWINDOWS, "coordCMDRestoreToTime::_getGlobalRestoreWindow" )
+INT32 coordCMDRestoreToTime::_getGlobalRestoreWindow(UINT64 *minTime,
+                                                     UINT64 *maxTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_GETWINDOWS, &rc);
@@ -643,8 +651,8 @@ INT32 coordCMDRestoreToPIT::_getGlobalRestoreWindow(UINT64 *minTime,
 }
 
 // Get the greatest min and least max values from the node query results
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSEWINDOWS, "coordCMDRestoreToPIT::_getMinMaxWindowFromResponses" )
-INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSEWINDOWS, "coordCMDRestoreToTime::_getMinMaxWindowFromResponses" )
+INT32 coordCMDRestoreToTime::_getMinMaxWindowFromResponses(
     const OBJ_VEC &responses, UINT64 *minTime, UINT64 *maxTime)
 {
    INT32 rc = SDB_OK;
@@ -684,9 +692,9 @@ INT32 coordCMDRestoreToPIT::_getMinMaxWindowFromResponses(
    return rc;
 }
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_RESTORE, "coordCMDRestoreToPIT::_restoreWithWindows" )
-INT32 coordCMDRestoreToPIT::_restoreWithWindows(UINT64 targetTime,
-                                                UINT64 minTime, UINT64 maxTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_RESTORE, "coordCMDRestoreToTime::_restoreWithWindows" )
+INT32 coordCMDRestoreToTime::_restoreWithWindows(UINT64 targetTime,
+                                                 UINT64 minTime, UINT64 maxTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_RESTORE, &rc);
@@ -711,9 +719,9 @@ INT32 coordCMDRestoreToPIT::_restoreWithWindows(UINT64 targetTime,
 
 // Determine the target consistency point - whether the user provided value fits
 // in the global min/max or the max value as a default
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TARGETTIME, "coordCMDRestoreToPIT::_setTargetTime" )
-INT32 coordCMDRestoreToPIT::_setTargetTime(UINT64 minTime, UINT64 maxTime,
-                                           UINT64 *targetTime)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TARGETTIME, "coordCMDRestoreToTime::_setTargetTime" )
+INT32 coordCMDRestoreToTime::_setTargetTime(UINT64 minTime, UINT64 maxTime,
+                                            UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_TARGETTIME, &rc);
@@ -724,16 +732,19 @@ INT32 coordCMDRestoreToPIT::_setTargetTime(UINT64 minTime, UINT64 maxTime,
    }
    else if ((*targetTime) < minTime || (*targetTime) > maxTime)
    {
-      PD_LOG(PDERROR, "Target time is outside of the valid consistency window");
+      PD_LOG_MSG(PDERROR,
+                 "Target time [%llu] is outside of the valid consistency "
+                 "window [%llu:%llu]",
+                 *targetTime, minTime, maxTime);
       return (rc = SDB_INVALIDARG);
    }
    return rc;
 }
 
-// Build the query and perform restoreToPIT() on all of the data groups
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_DO, "coordCMDRestoreToPIT::_generateQueryAndRestore" )
-INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
-                                                     BOOLEAN test)
+// Build the query and perform restoreToTime() on all of the data groups
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_DO, "coordCMDRestoreToTime::_generateQueryAndRestore" )
+INT32 coordCMDRestoreToTime::_generateQueryAndRestore(UINT64 targetTime,
+                                                      BOOLEAN test)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_DO, &rc);
@@ -744,10 +755,10 @@ INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
    {
       if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
           (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
-                                 CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT,
+                                 CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME,
                                  query, NULL)))
       {
-         PD_LOG(PDERROR, "One or more nodes failed restoreToPIT test");
+         PD_LOG(PDERROR, "One or more nodes failed restoreToTime test");
          return rc;
       }
       return rc;
@@ -756,31 +767,31 @@ INT32 coordCMDRestoreToPIT::_generateQueryAndRestore(UINT64 targetTime,
    coordTransHandler trans(_cb, _pResource);
    if ((rc = trans.getRc()))
    {
-      PD_LOG(PDERROR, "Failed to begin transaction for restoreToPIT");
+      PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
       return rc;
    }
    if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
        (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
-                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT, query,
+                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME, query,
                               NULL)))
    {
-      PD_LOG(PDERROR, "One or more nodes failed restoreToPIT");
+      PD_LOG(PDERROR, "One or more nodes failed restoreToTime");
       // trans will perform rollback (in its destructor) because commit wasn't
       // called
       return rc;
    }
    if ((rc = trans.commit()))
    {
-      PD_LOG(PDERROR, "Failed to commit restoreToPIT");
+      PD_LOG(PDERROR, "Failed to commit restoreToTime");
       return rc;
    }
    return rc;
 }
 
-// Build the message query for the restoreToPIT command
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_BUILDQUERY, "coordCMDRestoreToPIT::_buildRestoreQuery" )
-INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
-                                               BSONObj *query)
+// Build the message query for the restoreToTime command
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_BUILDQUERY, "coordCMDRestoreToTime::_buildRestoreQuery" )
+INT32 coordCMDRestoreToTime::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
+                                                BSONObj *query)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_BUILDQUERY, &rc);
@@ -817,11 +828,11 @@ INT32 coordCMDRestoreToPIT::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
 }
 
 // Update the catalog DC RestoreLocked value.
-// We use this value to guarantee that there should only be one restoreToPIT
+// We use this value to guarantee that there should only be one restoreToTime
 // running at a time.
 // @param   enable   Whether to enable or diable the state
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_LOCK, "coordCMDRestoreToPIT::_updateRestoreLock" )
-INT32 coordCMDRestoreToPIT::_updateRestoreLock(BOOLEAN enable)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_LOCK, "coordCMDRestoreToTime::_updateRestoreLock" )
+INT32 coordCMDRestoreToTime::_updateRestoreLock(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_LOCK, &rc);

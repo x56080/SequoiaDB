@@ -4838,7 +4838,7 @@ namespace sdbclient
       virtual INT32 getLastResultObj( bson::BSONObj &result,
                                       BOOLEAN getOwned = FALSE ) const = 0 ;
 
-      virtual INT32 restoreToPIT(
+      virtual INT32 restoreToTime(
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
       virtual INT32 restoreAbort(
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
@@ -7075,20 +7075,20 @@ namespace sdbclient
          return pSDB->getLastResultObj( result, getOwned ) ;
       }
 
-      /** \fn INT32 restoreToPIT()
+      /** \fn INT32 restoreToTime()
           \brief Restore the database to a global consistent point in time
           \param [in] options Optional parameters object. Parameters are:
               GlobalTime(NumberLong) : If specified, the time to restore to. Otherwise restores to the latest consistency point.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
-      INT32 restoreToPIT( const bson::BSONObj &options = _sdbStaticObject )
+      INT32 restoreToTime( const bson::BSONObj &options = _sdbStaticObject )
       {
          if( !pSDB )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pSDB->restoreToPIT( options ) ;
+         return pSDB->restoreToTime( options ) ;
       }
 
       /** \fn INT32 restoreAbort()

@@ -1766,7 +1766,7 @@ namespace sdbclient
       INT32 getLastResultObj( bson::BSONObj &result,
                               BOOLEAN getOwned = FALSE ) const ;
 
-      INT32 restoreToPIT( const bson::BSONObj &options = _sdbStaticObject ) ;
+      INT32 restoreToTime( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restorePrepare( const bson::BSONObj &options = _sdbStaticObject ) ;
 

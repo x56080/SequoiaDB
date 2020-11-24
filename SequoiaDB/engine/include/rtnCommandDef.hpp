@@ -122,7 +122,7 @@ namespace engine
 #define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
 #define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
-#define NAME_RESTORE_TO_PIT                  CMD_NAME_RESTORE_TO_PIT
+#define NAME_RESTORE_TO_TIME                 CMD_NAME_RESTORE_TO_TIME
 #define NAME_RESTORE_ABORT                   CMD_NAME_RESTORE_ABORT
 #define NAME_RESTORE_PREPARE                 CMD_NAME_RESTORE_PREPARE
 
@@ -298,7 +298,7 @@ namespace engine
 
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
       CMD_SNAPSHOT_INDEXSTATS                = 256,
-      CMD_RESTORE_TO_PIT                     = 257,
+      CMD_RESTORE_TO_TIME                    = 257,
       CMD_RESTORE_ABORT                      = 258,
       CMD_RESTORE_PREPARE                    = 259,
       CMD_UNKNOW                             = 65535

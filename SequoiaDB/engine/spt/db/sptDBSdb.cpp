@@ -122,7 +122,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, analyze )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
-   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToPIT )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToTime )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreAbort )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepare )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
@@ -185,7 +185,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "analyze", analyze )
       JS_ADD_MEMBER_FUNC( "updateConf", updateConfig )
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
-      JS_ADD_MEMBER_FUNC( "restoreToPIT", restoreToPIT )
+      JS_ADD_MEMBER_FUNC( "restoreToTime", restoreToTime )
       JS_ADD_MEMBER_FUNC( "restoreAbort", restoreAbort )
       JS_ADD_MEMBER_FUNC( "restorePrepare", restorePrepare )
       JS_ADD_RESOLVE_FUNC( resolve )
@@ -2947,7 +2947,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptDBSdb::restoreToPIT( const _sptArguments &arg,
+   INT32 _sptDBSdb::restoreToTime( const _sptArguments &arg,
                                   _sptReturnVal &rval,
                                   bson::BSONObj &detail )
    {
@@ -2961,7 +2961,7 @@ namespace engine
          return rc ;
       }
 
-      rc = _sptSdb.restoreToPIT( options ) ;
+      rc = _sptSdb.restoreToTime( options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to restore to point in time" ) ;

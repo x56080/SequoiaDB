@@ -5028,32 +5028,32 @@ error:
       goto done ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToPIT)
-   _rtnRestoreToPIT::_rtnRestoreToPIT ()
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToTime)
+   _rtnRestoreToTime::_rtnRestoreToTime ()
    {
    }
 
-   _rtnRestoreToPIT::~_rtnRestoreToPIT ()
+   _rtnRestoreToTime::~_rtnRestoreToTime ()
    {
    }
 
-   const CHAR *_rtnRestoreToPIT::name()
+   const CHAR *_rtnRestoreToTime::name()
    {
-      return NAME_RESTORE_TO_PIT ;
+      return NAME_RESTORE_TO_TIME ;
    }
 
-   RTN_COMMAND_TYPE _rtnRestoreToPIT::type()
+   RTN_COMMAND_TYPE _rtnRestoreToTime::type()
    {
-      return CMD_RESTORE_TO_PIT ;
+      return CMD_RESTORE_TO_TIME ;
    }
 
-   BOOLEAN _rtnRestoreToPIT::writable()
+   BOOLEAN _rtnRestoreToTime::writable()
    {
       return TRUE ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_INIT, "_rtnRestoreToPIT::init" )
-   INT32 _rtnRestoreToPIT::init( INT32 flags, INT64 numToSkip,
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_INIT, "_rtnRestoreToTime::init" )
+   INT32 _rtnRestoreToTime::init( INT32 flags, INT64 numToSkip,
                                  INT64 numToReturn,
                                  const CHAR * pMatcherBuff,
                                  const CHAR * pSelectBuff,
@@ -5072,7 +5072,7 @@ error:
       return rc;
    }
 
-   INT32 _rtnRestoreToPIT::_parseOpts(const BSONObj &matcher)
+   INT32 _rtnRestoreToTime::_parseOpts(const BSONObj &matcher)
    {
       INT32 rc = SDB_OK;
       if ((rc = _parseTimestamp(matcher)) ||
@@ -5084,7 +5084,7 @@ error:
       return rc;
    }
 
-   INT32 _rtnRestoreToPIT::_parseTimestamp(const BSONObj &matcher)
+   INT32 _rtnRestoreToTime::_parseTimestamp(const BSONObj &matcher)
    {
       INT32 rc = SDB_OK;
       // Get the timestamp
@@ -5098,7 +5098,7 @@ error:
       return rc;
    }
 
-   INT32 _rtnRestoreToPIT::_parseTestOpts(const BSONObj &matcher)
+   INT32 _rtnRestoreToTime::_parseTestOpts(const BSONObj &matcher)
    {
       INT32 rc = SDB_OK;
       // Check for the optional run type modifiers
@@ -5119,7 +5119,7 @@ error:
       return rc;
    }
 
-   INT32 _rtnRestoreToPIT::_parseTransID(const BSONObj &matcher)
+   INT32 _rtnRestoreToTime::_parseTransID(const BSONObj &matcher)
    {
       INT32 rc = SDB_OK;
       // User may call this directly on a node and transID would not be set
@@ -5153,14 +5153,14 @@ error:
       return rc;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_DOIT, "_rtnRestoreToPIT::doit" )
-   INT32 _rtnRestoreToPIT::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_DOIT, "_rtnRestoreToTime::doit" )
+   INT32 _rtnRestoreToTime::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                   INT16 w , INT64 *pContextID )
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
-      // restoreToPIT on a data node is a type of rollback
+      // restoreToTime on a data node is a type of rollback
       if (!_skipTest)
       {
          rtnPITRollbackManager rollbackTester(cb, (UINT64)_timestamp, _transID);

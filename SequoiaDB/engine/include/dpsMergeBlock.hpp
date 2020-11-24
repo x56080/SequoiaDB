@@ -176,9 +176,9 @@ namespace engine
          BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
          // indicate this record is irreversible when rolling back during
-         // restore PIT
+         // restoreToTime
          // NOTE: currently, only operators in global transactions are
-         // reversible during restore PIT
+         // reversible during restoreToTime
          BOOLEAN              _irreversible ;
          // transaction time with this record
          UINT64               _transTime ;

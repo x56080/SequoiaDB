@@ -1638,17 +1638,17 @@ namespace engine
    } ;
 
    /*
-      Node handler for restoreToPIT()
+      Node handler for restoreToTime()
       Performs the rollback step of point-in-time restore.
-      See coordCMDRestoreToPIT
+      See coordCMDRestoreToTime
    */
-   class _rtnRestoreToPIT : public _rtnCommand
+   class _rtnRestoreToTime : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
 
       public:
-         _rtnRestoreToPIT () ;
-         virtual ~_rtnRestoreToPIT () ;
+         _rtnRestoreToTime () ;
+         virtual ~_rtnRestoreToTime () ;
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;

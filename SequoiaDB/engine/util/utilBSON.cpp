@@ -39,24 +39,24 @@ template <typename T> void _valGetter(bson::BSONElement &ele, T *pOutput)
 {
    ele.Val(*pOutput);
 }
-template void _valGetter<INT32>(bson::BSONElement &ele, INT32 *pOutput);
 
-template <> void _valGetter<UINT64>(bson::BSONElement &ele, UINT64 *pOutput)
+// Need to convert different number types safely so these are required
+template <> void _valGetter<INT32>(bson::BSONElement &ele, INT32 *pOutput)
 {
-   // BSON doesn't differentiate unsigned
-   INT64 tmp;
-   ele.Val(tmp);
-   *pOutput = tmp;
+   *pOutput = ele.numberInt();
 }
-
-template void _valGetter<INT64>(bson::BSONElement &ele, INT64 *pOutput);
-
+template <> void _valGetter<INT64>(bson::BSONElement &ele, INT64 *pOutput)
+{
+   *pOutput = ele.numberLong();
+}
+// BSON doesn't differentiate unsigned
 template <> void _valGetter<UINT32>(bson::BSONElement &ele, UINT32 *pOutput)
 {
-   // BSON doesn't differentiate unsigned
-   INT32 tmp;
-   ele.Val(tmp);
-   *pOutput = tmp;
+   *pOutput = ele.numberInt();
+}
+template <> void _valGetter<UINT64>(bson::BSONElement &ele, UINT64 *pOutput)
+{
+   *pOutput = ele.numberLong();
 }
 
 /*

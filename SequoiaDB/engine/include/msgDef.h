@@ -370,6 +370,7 @@
 #define FIELD_NAME_READONLY                  "Readonly"
 #define FIELD_NAME_RESTORING                 "RestoreInProgress"
 #define FIELD_NAME_RESTORE_LOCKED            "RestoreLocked"
+#define FIELD_NAME_LATEST                    "Latest"
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
 #define FIELD_NAME_GLOBALID                  "GlobalID"
@@ -761,7 +762,7 @@
 #define CMD_NAME_GET_CL_DETAIL               CMD_NAME_PREFIX_GET "collection detail"
 #define CMD_NAME_GET_INDEX_STAT              CMD_NAME_PREFIX_GET "index statistic"
 #define CMD_NAME_PREFIX_RESTORE              "restore "
-#define CMD_NAME_RESTORE_TO_PIT              CMD_NAME_PREFIX_RESTORE "to pit"
+#define CMD_NAME_RESTORE_TO_TIME             CMD_NAME_PREFIX_RESTORE "to time"
 #define CMD_NAME_RESTORE_ABORT               CMD_NAME_PREFIX_RESTORE "abort"
 #define CMD_NAME_RESTORE_PREPARE             CMD_NAME_PREFIX_RESTORE "prepare"
 

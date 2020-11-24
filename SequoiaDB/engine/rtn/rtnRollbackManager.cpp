@@ -201,6 +201,10 @@ INT32 rtnPITRollbackManager::_init()
    PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
           _targetTime.getTime(), _testOnly);
 
+   // Drain in-flight transactions
+   // TODO test this
+   //_transCB->termAllTrans();
+
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;
 
@@ -211,7 +215,7 @@ INT32 rtnPITRollbackManager::_init()
    {
       // Need to be wrapped in a transaction. The coord would have passed in a
       // transID if this is a global transaction. Otherwise, assume this is a
-      // local restoreToPIT operation (not recommended!!!).
+      // local restoreToTime operation (not recommended!!!).
       if (_transID.isValid())
       {
          // Global transaction
@@ -222,14 +226,14 @@ INT32 rtnPITRollbackManager::_init()
          // global transactions in this class. This is because while all three
          // are driven from the coord, the transBegin message is normally
          // packaged with the first real operation of the transaction.
-         // restoreToPIT is a special case - the transID in the message body is
+         // restoreToTime is a special case - the transID in the message body is
          // the only indication that a global transaction has begun - so call
          // rtnTransBegin now. rtnTransCommit and rtnTransRollback will be
          // driven by messages from the coord.
          if ((rc = rtnTransBegin(_cb, FALSE, TRUE, _transID, beginTime)))
          {
             PD_LOG(PDERROR,
-                   "Failed to begin global transaction for restoreToPIT [%s]",
+                   "Failed to begin global transaction for restoreToTime [%s]",
                    dpsTransIDToString(_transID).c_str());
             return rc;
          }
@@ -239,7 +243,7 @@ INT32 rtnPITRollbackManager::_init()
          // Local transaction
          if ((rc = rtnTransBegin(_cb, FALSE, FALSE)))
          {
-            PD_LOG(PDERROR, "Failed to begin transaction for restoreToPIT");
+            PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
             return rc;
          }
       }
@@ -273,7 +277,7 @@ INT32 rtnPITRollbackManager::_finish()
        // Local transaction. Perform commit.
        (rc = rtnTransCommit(_cb, _dpsCB)))
    {
-      PD_LOG(PDERROR, "Failed to commit transaction commit for restoreToPIT");
+      PD_LOG(PDERROR, "Failed to commit transaction commit for restoreToTime");
       return rc;
    }
    return rc;

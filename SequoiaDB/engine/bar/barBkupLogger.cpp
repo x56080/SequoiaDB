@@ -3231,7 +3231,7 @@ namespace engine
       if ( SDB_ROLE_CATALOG == pmdGetDBRole() &&
            _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
       {
-         // This is a global restore. The cluster is now awaiting restoreToPIT.
+         // This is a global restore. The cluster is now awaiting restoreToTime.
          // Need to set RestoreInProgress: true in SYSINFO.SYSDCBASE
          // This requires a real update operation - need to fully init some CBs
 

@@ -11019,9 +11019,9 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbImpl::restoreToPIT( const BSONObj &options )
+   INT32 _sdbImpl::restoreToTime( const BSONObj &options )
    {
-      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_PIT,
+      return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME,
                            &options ) ;
    }
 

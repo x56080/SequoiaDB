@@ -277,7 +277,7 @@ namespace engine
                      _sptReturnVal &rval,
                      BSONObj &detail ) ;
 
-      INT32 restoreToPIT( const _sptArguments &arg,
+      INT32 restoreToTime( const _sptArguments &arg,
                           _sptReturnVal &rval,
                           bson::BSONObj &detail ) ;
 
