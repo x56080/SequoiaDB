@@ -1572,15 +1572,6 @@ namespace engine
    void _rtnExtDataProcessorMgr::destroyProcessors( vector<rtnExtDataProcessor*> &processors )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS ) ;
-#ifdef _DEBUG
-      for ( vector<rtnExtDataProcessor*>::iterator itr = processors.begin();
-            itr != processors.end(); ++itr )
-      {
-         SDB_ASSERT( RTN_EXT_PROCESSOR_DROPPING == _processors[(*itr)->getID()].stat(),
-                     "Processor status should be dropping" ) ;
-      }
-#endif /* _DEBUG */
-
       aquireMetaLock( EXCLUSIVE ) ;
 
       for ( vector<rtnExtDataProcessor*>::iterator itr = processors.begin();
