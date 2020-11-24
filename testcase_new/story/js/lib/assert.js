@@ -1,7 +1,22 @@
-
+/******************************************************************************
+@description   错误处理类
+@author  lyy
+******************************************************************************/
 function Assert ()
 {
-
+   /******************************************************************************
+   @parameter
+      actual         必填项，实际结果
+      expected       必填项，预期结果
+      message        选填项，出错时期望打印的 msg
+   @usage
+      e.g:
+         if( actual != expected ){
+            throw new Error("erro msg");
+         }
+         等价于
+         assert.equal( actual, expected );
+   ******************************************************************************/
    this.equal =
       function( actual, expected, message )
       {
@@ -31,12 +46,22 @@ function Assert ()
    @author  lyy
    @parameter
       errno         {array|string|number}    :     必填项，错误码
-      func          {function}               :     必填项，执行函数名，不带括号！
-      执行函数参数   {any}                    :     选填项，需要为执行函数传递的参数
+      func          {function}               :     必填项，执行函数
    @usage
       e.g:
-         commTryThrow("-6",db.dropCS,1);
-         commTryThrow( -23, db.getCS( "exist_cs" ).getCL, "not_exist_cl" );
+         try{
+            db.dropCS();
+            throw new Error("should error but success");
+         }catch(e){
+            // SDB_INVALIDARG -6
+            if( SDB_INVALIDARG != e ){
+               throw e;
+            }
+         }
+         等价于
+         assert.tryThrow( SDB_INVALIDARG, function(){
+            db.dropCS();
+         })
    ******************************************************************************/
    this.tryThrow =
       function( errno, func )

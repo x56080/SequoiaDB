@@ -121,9 +121,7 @@ function generateFiles ()
    }
 
    commFileContent += 'import( "./Global.js" );' + "\n";
-   commFileContent += 'import( "./assert.js" );' + "\n";
-   commFileContent += 'var assert = new Assert();' + "\n";
-   commFileContent += 'var db = new Sdb(db);' + "\n";
+   commFileContent += 'var db = new Sdb(db);' + "\n"; 
 
    compareAndSave( "commlib.js", commFileContent );
 

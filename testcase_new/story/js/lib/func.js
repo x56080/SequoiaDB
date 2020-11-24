@@ -50,7 +50,7 @@ func.js 中方法：
       随机生成数据           commDataGenerator()
       封装错误信息           commThrowError(e,msg)
 *****************************************************************************************/
-
+import( "../lib/assert.js" );
 // begin global variable configuration
 //cm端口号
 if( typeof ( CMSVCNAME ) == "undefined" ) { CMSVCNAME = "11790"; }
@@ -1961,6 +1961,7 @@ function commCheckType ( variable, expType )
 try
 {
    var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+   var assert = new Assert();
 }
 catch( e )
 {

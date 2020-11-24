@@ -39,6 +39,4 @@ import( "./Timestamp.js" );
 import( "./User.js" );
 import( "./_Filter.js" );
 import( "./Global.js" );
-import( "./assert.js" );
-var assert = new Assert();
 var db = new Sdb(db);
