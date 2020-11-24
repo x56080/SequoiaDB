@@ -512,10 +512,14 @@ namespace engine
                      rc = SDB_OK ;
                      goto done ;
                   }
-                  else if ( dpsTransLockId( _logicalCSID,
-                                            context->mbID(),
-                                            NULL ) == retInfo._lockID )
+                  else if ( ( dpsTransLockId( _logicalCSID,
+                                              context->mbID(),
+                                              NULL ) == retInfo._lockID ) ||
+                            ( dpsTransLockId( _logicalCSID,
+                                              DMS_INVALID_MBID,
+                                              NULL ) == retInfo._lockID ) )
                   {
+                     // either CS or CL conflict, pause for a while
                      context->pause() ;
                      ossSleep( 10 ) ;
                      rc = context->resume() ;
