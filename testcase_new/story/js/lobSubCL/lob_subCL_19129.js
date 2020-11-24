@@ -18,6 +18,7 @@ function test ()
    }
    var clName = "cl19129";
    var filePath = WORKDIR + "/CLLob19129/";
+   deleteTmpFile( filePath );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
    var cl = commCreateCL( db, COMMCSNAME, clName, { "ShardingKey": { "date": 1 }, "ShardingType": "hash" } );
    splitSubCL( COMMCSNAME, clName );

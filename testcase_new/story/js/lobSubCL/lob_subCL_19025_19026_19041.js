@@ -19,6 +19,7 @@ function test ()
    var filePath = WORKDIR + "/lob19025/";
    var fileName = "file19025";
    var fileFullPath = filePath + fileName;
+   deleteTmpFile( filePath );
    var fileMD5 = makeTmpFile( filePath, fileName );
 
    commDropCL( db, csName, mainCLName );

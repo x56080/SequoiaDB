@@ -18,6 +18,7 @@ function test ()
    var subCLNum = 1;
    var lobPageSize = 4096;
    var filePath = WORKDIR + "/subCLLob19126/";
+   deleteTmpFile( filePath );
    var beginBound = 20190101;
    commDropCS( db, csName, true, "drop CS in the beginning" )
    commCreateCS( db, csName, false, "", { LobPageSize: lobPageSize } );

@@ -16,6 +16,7 @@ function test ()
    var subCLName = "subcl19113";
    var subCLNum = 2;
    var filePath = WORKDIR + "/subCLLob19113/";
+   deleteTmpFile( filePath );
    var scope = 5;
    var beginBound = 20190801;
    commDropCL( db, COMMCSNAME, mainCLName, true, true, "drop CL in the beginning" );

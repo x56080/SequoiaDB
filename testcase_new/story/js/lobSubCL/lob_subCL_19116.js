@@ -9,6 +9,7 @@ function test ()
 {
    var clName = "cl19116";
    var filePath = WORKDIR + "/CLLob19116/";
+   deleteTmpFile( filePath );
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the beginning" );
    var cl = commCreateCL( db, COMMCSNAME, clName );
 

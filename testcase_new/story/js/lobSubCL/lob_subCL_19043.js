@@ -19,6 +19,7 @@ function test ()
    var fileName2 = "file19043_2";
    var fileName3 = "file19043_3";
    var fileSize = 1024 * 1024;
+   deleteTmpFile( filePath );
    var file1MD5 = makeTmpFile( filePath, fileName1, fileSize );
    var file2MD5 = makeTmpFile( filePath, fileName2, fileSize );
    var file3MD5 = makeTmpFile( filePath, fileName3, fileSize );

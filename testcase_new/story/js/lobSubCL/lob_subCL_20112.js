@@ -34,6 +34,7 @@ function test ()
    var subCLName1 = "subCL_20112_1";
    var subCLName2 = "subCL_20112_2";
    var filePath = WORKDIR + "/lob20112/";
+   deleteTmpFile( filePath );
    var fileName = "file20112";
    var fileFullPath = filePath + fileName;
    var fileMD5 = makeTmpFile( filePath, fileName );
