@@ -858,8 +858,13 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case TIMESTAMPOID :
       case TIMESTAMPTZOID :
       {
+         Datum valueDatum_tmp = valueDatum ;
+         if ( TIMESTAMPOID == columnType )
+         {
+            valueDatum_tmp = DirectFunctionCall1( timestamp_timestamptz, valueDatum ) ;
+         }
+
          // Convert local timestamp to timestamp at GMT
-         Datum valueDatum_tmp = DirectFunctionCall1( timestamp_timestamptz, valueDatum ) ;
          Timestamp valueTimestamp = DatumGetTimestamp( valueDatum_tmp ) ;
          INT64 valueUsecs         = valueTimestamp + POSTGRES_TO_UNIX_EPOCH_USECS ;
          sdbbson_timestamp_t bson_time ;
@@ -3236,8 +3241,18 @@ static Datum sdbColumnValue( sdbbson_iterator *sdbbsonIterator, Oid columnTypeId
       INT64 utcUsecs       = sdbbson_iterator_getusecs( sdbbsonIterator ) ;
       INT64 timestamp      = utcUsecs - POSTGRES_TO_UNIX_EPOCH_USECS ;
       Datum timestampDatum = TimestampGetDatum( timestamp ) ;
-      //Convert timestamp at GMT to local timestamp
-      columnValue = DirectFunctionCall1( timestamptz_timestamp, timestampDatum ) ;
+
+      if ( TIMESTAMPTZOID == columnTypeId )
+      {
+         columnValue = timestampDatum ;
+      }
+      else
+      {
+         //Convert timestamp from local timestamp to GMT
+         columnValue = DirectFunctionCall1( timestamptz_timestamp,
+                                            timestampDatum ) ;
+      }
+
       break ;
    }
    case BYTEAOID :
