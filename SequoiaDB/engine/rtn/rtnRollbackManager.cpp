@@ -201,9 +201,10 @@ INT32 rtnPITRollbackManager::_init()
    PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
           _targetTime.getTime(), _testOnly);
 
-   // Drain in-flight transactions
-   // TODO test this
-   //_transCB->termAllTrans();
+   // Drain in-flight transactions on this node. This protects against stale
+   // data after the restore. The node will send a session disconnect msg to
+   // the transaction's coord.
+   _transCB->termAllTrans();
 
    // Start at the end of the log
    _cursor = _dpsCB->getCurrentLsn().offset;

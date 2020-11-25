@@ -516,7 +516,7 @@ INT32 coordCMDRestoreToTime::_parseTime(const BSONObj &query,
    PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSETIME, &rc);
    // Check that exactly one of Latest: TRUE, GlobalTime and Time are provided
    BOOLEAN latest = FALSE;
-   if ((rc = fromBsonObj(query, FIELD_NAME_LATEST, &latest, FALSE)))
+   if ((rc = boolFromBsonObj(query, FIELD_NAME_LATEST, &latest, FALSE)))
    {
       PD_LOG_MSG(PDERROR, "%s must be boolean", FIELD_NAME_LATEST);
       return (rc = SDB_INVALIDARG);

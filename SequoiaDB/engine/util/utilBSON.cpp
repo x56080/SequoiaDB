@@ -166,6 +166,15 @@ INT32 fromBsonObj<bson::BSONObj>(const bson::BSONObj &input,
    return _fromBsonObj(input, field, pOutput, required, _checkObj);
 }
 
+INT32 boolFromBsonObj(const bson::BSONObj &input, const string &field,
+                      BOOLEAN *pOutput, BOOLEAN required)
+{
+   INT32 rc = SDB_OK;
+   bson::BSONElement ele = input.getField(field);
+   *pOutput = ele.trueValue();
+   return rc;
+}
+
 } // namespace util
 
 } // namespace engine

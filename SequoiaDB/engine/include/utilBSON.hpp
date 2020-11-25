@@ -43,6 +43,12 @@ template <typename T>
 INT32 fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
                   BOOLEAN required = TRUE);
 
+// Explicit for boolean values. Sets pOutput to 1 or 0. This is needed because
+// sdb BOOLEAN is a typedef of INT32 so the template would interpret the value
+// as a number.
+INT32 boolFromBsonObj(const bson::BSONObj &input, const string &field,
+                      BOOLEAN *pOutput, BOOLEAN required = TRUE);
+
 } // namespace util
 
 } // namespace engine

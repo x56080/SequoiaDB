@@ -59,6 +59,26 @@ TEST_F (utilBSONTest, UINT64)
    ASSERT_EQ(x, y);
 }
 
+TEST_F (utilBSONTest, BOOLEAN)
+{
+   BOOLEAN x;
+   BSONObj obj = BSON(_field << 1);
+   ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, TRUE);
+   obj = BSON(_field << true);
+   ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, TRUE);
+   obj = BSON(_field << 0);
+   ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, FALSE);
+   obj = BSON(_field << false);
+   ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, FALSE);
+   obj = BSONObj();
+   ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
+   ASSERT_EQ(x, FALSE);
+}
+
 TEST_F (utilBSONTest, SubObject)
 {
    BSONObj subobj = BSON("Subobj" << 123);
