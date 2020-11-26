@@ -4,7 +4,6 @@
    2014-3-1 Jianhui Xu  Init
 ***************************************************************************** */
 
-
 var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
 
 try
@@ -20,24 +19,26 @@ function main ( db )
 {
    // 0. 生成 basic_operation 目录下的文件
    var cmd = new Cmd();
-   var currentUser = System.getCurrentUser().toObj().user;
-   // >2  mt-runtest
-   var isMtRuntest = cmd.run( "ps -ef | grep mt-runtest | wc -l" ) > 2 ? true : false;
-   if( currentUser == "jenkins" )
+   var isMtRuntest = File.exist( "./local_test_report/.generateFiles.lock" );
+   if( isMtRuntest )
    {
-      cmd.run( "/opt/sequoiadb/bin/sdb -f /tmp/ci/testcase/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='/tmp/ci/testcase/story/js/lib/basic_operation/'\"" )
-   } else if( !isMtRuntest )
-   {
-      cmd.run( "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\"" )
-   } else
-   {
+      // mt-runtest.sh
+      // 当拿不到锁，会一直阻塞，拿到锁后，发现已经生成过一次，不再生成文件
+      // grep 1 ./local_test_report/.generateFiles.lock 1>/dev/null 
+      // || ( bin/sdb -f testcase_new/story/js/lib/generateFiles.js && echo 1 > ./local_test_report/.generateFiles.lock )
       try
       {
-         //flock -w 10 -x ./local_test_report/.generateFiles.lock -c "bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \"DIRPATH='testcase_new/story/js/lib/basic_operation/'\""
-         // -w wait 10s 
-         // -x 排它锁
-         cmd.run( "flock -w 10 -x ./local_test_report/.generateFiles.lock -c ", "\"bin/sdb -f testcase_new/story/js/lib/basic_operation/generateFiles.js -e \\\"DIRPATH=\'testcase_new/story/js/lib/basic_operation/'\\\" \" " )
-      } catch( e ) { }
+         cmd.run( "flock -x ./local_test_report/.generateFiles.lock -c ", "  \" grep 1 ./local_test_report/.generateFiles.lock 1>/dev/null || (  bin/sdb -f testcase_new/story/js/lib/generateFiles.js && echo 1 > ./local_test_report/.generateFiles.lock ) \" " );
+      }
+      catch( e )
+      {
+
+      }
+   }
+   else
+   {
+      // runtest.sh and CI 
+      cmd.run( getExePath() + "/sdb -f " + getSelfPath() + "/generateFiles.js" );
    }
 
    // 1. 删除名称含 local_test 的 cs

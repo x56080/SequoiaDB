@@ -69,7 +69,7 @@ if( typeof ( RSRVPORTEND ) == "undefined" ) { RSRVPORTEND = '27000'; }
 //用例创建节点数据目录
 if( typeof ( RSRVNODEDIR ) == "undefined" ) { RSRVNODEDIR = "/opt/sequoiadb/database/"; }
 //用例存放临时文件目录
-if( typeof ( WORKDIR ) == "undefined" ) { WORKDIR = "/tmp/jstest"; }
+if( typeof ( WORKDIR ) == "undefined" ) { WORKDIR = "/tmp/jstest/"; }
 //ES服务端主机名，CI默认传入192.168.28.143
 if( typeof ( ESHOSTNAME ) == "undefined" ) { ESHOSTNAME = 'localhost'; }
 //ES服务端端口号，CI默认传入9200

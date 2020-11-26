@@ -1,15 +1,13 @@
 /*******************************************************************************
-@description 生成该目录下除 assert.js 和 Error.js 文件之外的所有包装类（包括 commlib）
+@description 生成 basic_operation 目录下除 Error.js 文件之外的所有包装类（包括 commlib）
             1. 使用 showClassfull 得到所有内置对象和全局方法
             2. 使用 showClassfull("内置对象") 打印出内置对象所有的静态方法和成员方法
             3. 往文件中写声明和封装方法语句（装饰器模式），当内置类被封装，其内所有方法丢失，所以内置类最早封装
-            4. 生成 commlib.js 并提供 Sdb 实例和 Assert 实例
-            5. 当前方法内嵌进 all_prepare.js，调用 runtest.sh 会执行一次，也可通过在该文件同级目录直接使用 sdb -f generateFiles.js 生成文件
+            4. 生成 commlib.js 并提供 Sdb 实例
+            5. 当前方法内嵌进 all_prepare.js，调用 runtest.sh 会执行一次，也可直接使用 sdb -f generateFiles.js 生成文件
 @author  lyy
 @time  2020-09-25
 *******************************************************************************/
-if( typeof ( DIRPATH ) == "undefined" ) { DIRPATH = "./"; }
-
 generateFiles();
 
 function generateFiles ()
@@ -121,7 +119,7 @@ function generateFiles ()
    }
 
    commFileContent += 'import( "./Global.js" );' + "\n";
-   commFileContent += 'var db = new Sdb(db);' + "\n"; 
+   commFileContent += 'var db = new Sdb(db);' + "\n";
 
    compareAndSave( "commlib.js", commFileContent );
 
@@ -130,13 +128,8 @@ function generateFiles ()
 
 function compareAndSave ( fileName, fileContent )
 {
-   var filePath = DIRPATH + fileName;
+   var filePath = getSelfPath() + "/basic_operation/" + fileName;
    var file = new File( filePath );
-   // 存在且内容长度相同
-   if( File.exist( filePath ) && File.getSize( filePath ) == fileContent.length )
-   {
-      return;
-   }
    println( "生成文件" + filePath );
    File.chmod( filePath, 0644, false );
    file.truncate();

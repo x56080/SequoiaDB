@@ -458,10 +458,9 @@ function generateFindCmd()
 function removeReport()
 {       
    if [ -d $reportDirRoot ] ; then
-      rm -rf $reportDirRoot/*
-   else
-      mkdir ${reportDirRoot}
+      rm -rf $reportDirRoot/
    fi
+   mkdir ${reportDirRoot}
 }
 
 function mainRun()
