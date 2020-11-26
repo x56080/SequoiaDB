@@ -52,9 +52,9 @@ TEST( bsonArray, trace )
 {
 	INT32 rc = SDB_OK ;
 	sdbConnectionHandle db = SDB_INVALID_HANDLE ;
-   CHAR* component = "cls, dms, mth" ;
-   CHAR* breakpoint = "engine::_dmsStorageData::_onAllocExtent" ;
-   UINT32 buffSize = 10000000 ;
+   CHAR* component = "cls, dms, mth" ;  // component must be valid
+   CHAR* breakpoint = "_dmsStorageData::_onAllocExtent" ; // breakpoint must be valid
+   UINT32 buffSize = 1024 ;  // the range of trace bufferSize is [ 1, 1024 ]
 
    rc = sdbConnect( ARGS->hostName(), ARGS->svcName(), ARGS->user(), ARGS->passwd(), &db ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to connect sdb" ;
