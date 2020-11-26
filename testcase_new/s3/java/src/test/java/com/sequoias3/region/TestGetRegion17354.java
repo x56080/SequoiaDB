@@ -66,13 +66,13 @@ public class TestGetRegion17354 extends S3TestBase {
         } catch ( SequoiaS3ServiceException e ) {
             Assert.assertEquals( e.getErrorCode(), "NoSuchRegion" );
         }
-        // http://jira:8080/browse/SEQUOIADBMAINSTREAM-6163
-        // try {
-        // regionClient.getRegion( null );
-        // Assert.fail( "get region with null region name should fail" );
-        // } catch ( SequoiaS3ServiceException e ) {
-        // Assert.assertEquals( e.getErrorCode(), "NoSuchRegion" );
-        // }
+
+        try {
+            regionClient.getRegion( null );
+            Assert.fail( "get region with null region name should fail" );
+        } catch ( IllegalArgumentException e ) {
+            Assert.assertEquals( e.getMessage(), "Region name cannot be null" );
+        }
 
         runSuccess = true;
     }
