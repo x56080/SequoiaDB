@@ -1633,6 +1633,27 @@ namespace engine
          goto error ;
       }
 
+      // check if have oid
+      if ( !insertor.hasElement( DMS_ID_KEY_NAME ) )
+      {
+         PD_LOG( PDDEBUG, "Rest insert object [%s] has no _id",
+                 insertor.toPoolString().c_str() ) ;
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.appendOID( DMS_ID_KEY_NAME, NULL, TRUE ) ;
+            builder.appendElements( insertor ) ;
+            insertor = builder.obj() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build insertor with OID, "
+                    "occur exception: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
       rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &insertor );
       if ( SDB_OK != rc )
