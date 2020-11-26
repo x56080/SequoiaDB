@@ -52,13 +52,13 @@
 
 | 参数名 			| 参数类型 	| 描述 		| 是否必填 |
 | ------ 			| ------ 	| ------ 	| ------   |
-| options   |	Json 对象 | 指定快照参数，因不同快照类型而异，在对应[快照类型](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/snapshot.md)查看选项及示例。  | 是 |
+| options   |	Json 对象 | 指定快照参数，因不同快照类型而异，在对应[快照类型](manual/Maintainance/Monitoring/snapshot/snapshot.md)查看选项及示例。  | 是 |
 
 ####options选项####
 | 参数名  | 参数类型 | 对应快照 | 描述 | 是否必填 |
 | ------  | -------- | -------- | ---- | -------- |
-| Mode    |  String  | [配置快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 指定返回配置的模式。在 run 模式下，显示当前运行时配置信息，在 local 模式下，显示配置文件中配置信息。如 { "Mode": "local" }。默认为 run。 | 否 |
-| Expand  |  Bool/String  | [配置快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 是否扩展显示用户未配置的配置项。如 { "Expand": false }。默认为 true。| 否 |
+| Mode    |  String  | [配置快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 指定返回配置的模式。在 run 模式下，显示当前运行时配置信息，在 local 模式下，显示配置文件中配置信息。如 { "Mode": "local" }。默认为 run。 | 否 |
+| Expand  |  Bool/String  | [配置快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 是否扩展显示用户未配置的配置项。如 { "Expand": false }。默认为 true。| 否 |
 | ShowError | String | ALL | 指定是否返回错误信息。在 show 模式下，显示错误信息，在 only 模式下，只显示错误信息，不显示其他快照信息，在 ignore 模式下，不显示错误信息。如 { "ShowError: "only" }。默认为 show。 | 否 |
 | ShowErrorMode | String | ALL | 指定返回错误信息的格式。在 aggr 模式下，错误信息聚合为一条记录显示，在 flat 模式下，一个错误节点对应一条记录显示。如 { "ShowErrorMode": "flat" }。默认为 aggr。 | 否 |
 
@@ -67,7 +67,7 @@
 > * ShowError 参数和 ShowErrorMode 参数只在协调节点执行快照生效。
 > * ShowError 参数和 ShowErrorMode 参数仅支持会返回错误信息的快照。
 > * 当 ShowError 参数为 ignore 的情况下，ShowErrorMode 参数不起作用。
-> * 特别地，当 ShowErrorMode 参数为 flat 的情况下，对[系统快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md)和[数据库快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md)不起作用  。
+> * 特别地，当 ShowErrorMode 参数为 flat 的情况下，对[系统快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md)和[数据库快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md)不起作用  。
 
 ###skip(\<skipNum\>)###
 

@@ -328,7 +328,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
 
   > **Note:**  
   >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Distributed_Engine/Maintainance/Mgmt_Tools/quickdeploy.md)  
+  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Maintainance/Mgmt_Tools/quickdeploy.md)  
   >
   > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
@@ -414,9 +414,9 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
 
   > **Note:**  
   >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Distributed_Engine/Maintainance/Mgmt_Tools/quickdeploy.md)  
+  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Maintainance/Mgmt_Tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 `setup.sh --clean` 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+  > * 错误处理：如果执行快速部署的过程中发生异常（如端口号被占用），在造成异常的问题解除后，可尝试再次执行 quickDeploy.sh 命令。如果依然失败，请先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 
 ## 使用 MySQL shell 进行操作

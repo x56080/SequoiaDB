@@ -12,7 +12,7 @@ Sdb
 
 >**Note:**
 
->listSequences() 只会列出序列的名称。如果想要查看序列的详细信息，可以使用 [db.snapshot(SDB_SNAP_SEQUENCES)](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SEQUENCES.md)。
+>listSequences() 只会列出序列的名称。如果想要查看序列的详细信息，可以使用 [db.snapshot(SDB_SNAP_SEQUENCES)](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SEQUENCES.md)。
 
 ##参数##
 

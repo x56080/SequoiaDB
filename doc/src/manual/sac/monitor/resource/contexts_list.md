@@ -7,7 +7,7 @@
 - 需要搜索某个字段时，可以在所在字段上方的输入框输入关键字进行搜索。
 
 > **Note：**  
-> 上下文快照对应的字段说明可以通过[上下文快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md)查看。
+> 上下文快照对应的字段说明可以通过[上下文快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md)查看。
 
 ![上下文](sac/monitor/resource/contexts_list_1.png)
 

@@ -432,7 +432,7 @@
              2. If it is not specified, the default value is "SYSTEM|DDL|DCL". ALL enable all mask, NONE disable all mask</en>
          <cn>1. 指定审计日志打印掩码。SequoiaDB中审计日志类型有：ACCESS,CLUSTER,SYSTEM,DML,DDL,DCL,DQL,INSERT,DELETE,UPDATE,OTHER。<fig></fig>
              2. 如果不指定，则默认为"SYSTEM|DDL|DCL", ALL取值表示开启所有,NONE关闭全部。<fig></fig>
-             3. 更详细的内容可参考[审计日志](manual/Distributed_Engine/Maintainance/DiagLog/auditlog.md)</cn>
+             3. 更详细的内容可参考[审计日志](manual/Maintainance/DiagLog/auditlog.md)</cn>
       </detail>
       <typeofweb>str</typeofweb>
    </opt>
@@ -1278,11 +1278,11 @@
          <en>1. The buckets of access plan cache. <fig></fig>
              2. Sdb will not cache any access plan if it is 0. <fig></fig>
              3. Default is 500, maximum is 4096. <fig></fig>
-             4. Please visit [Access Plan Cache](manual/Distributed_Engine/Maintainance/Access_Plan/cache.md) for more details.</en>
+             4. Please visit [Access Plan Cache](manual/Maintainance/Access_Plan/cache.md) for more details.</en>
          <cn>1. 访问计划缓存内桶的个数。<fig></fig>
              2. 当其为0时数据库将不会缓存任何访问计划。<fig></fig>
              3. 默认为500，最大值为4096。<fig></fig>
-             4. 更详细的内容可参考 [访问计划缓存](manual/Distributed_Engine/Maintainance/Access_Plan/cache.md)。</cn>
+             4. 更详细的内容可参考 [访问计划缓存](manual/Maintainance/Access_Plan/cache.md)。</cn>
       </detail>
       <typeofweb>num</typeofweb>
       <reloadable>

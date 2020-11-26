@@ -12,4 +12,4 @@
 ![主机快照实时刷新](sac/monitor/host/host_snapshot_2.png)
 
 > **Note:**  
-> 主机快照对应的字段说明，可通过[操作系统快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md)查看。
+> 主机快照对应的字段说明，可通过[操作系统快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md)查看。

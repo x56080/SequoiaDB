@@ -86,7 +86,6 @@
  | ------------ | -------------- | -------- | ---------- | -------- |
  | threadType   | string / array | ---      | 指定线类型（最多可指定 10 个线程类型）| 否       |
 
-
  threadType 参数的可选值详见[线程类型][edu]
 
 > **Note：**
@@ -178,5 +177,5 @@
 [getLastErrMsg]:reference/Sequoiadb_command/Global/getLastErrMsg.md
 [getLastError]:reference/Sequoiadb_command/Global/getLastError.md
 [general_guide]:troubleshooting/general/general_guide.md
-[edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
+[edu]:infrastructure/Thread_Model/edu.md
 

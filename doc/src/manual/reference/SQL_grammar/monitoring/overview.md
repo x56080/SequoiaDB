@@ -6,26 +6,26 @@
 
 | 快照标示 | 对应 sdbshell 接口标示 | 快照类型 | 描述 |
 | -------- | -------- | -------- | ---- |
-| [$SNAPSHOT_CONTEXT](reference/SQL_grammar/monitoring/SNAPSHOT_CONTEXT.md) | [SDB_SNAP_CONTEXTS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md) | 上下文快照 | 上下文快照列出当前数据库节点中所有的会话所对应的上下文 |
-| [$SNAPSHOT_CONTEXT_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_CONTEXT_CUR.md) | [SDB_SNAP_CONTEXTS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS_CURRENT.md) | 当前会话上下文快照 | 当前上下文快照列出当前数据库节点中当前会话所对应的上下文 |
-| [$SNAPSHOT_SESSION](reference/SQL_grammar/monitoring/SNAPSHOT_SESSION.md) | [SDB_SNAP_SESSIONS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md) | 会话快照 | 会话快照列出当前数据库节点中所有的会话 |
-| [$SNAPSHOT_SESSION_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_SESSION_CUR.md) | [SDB_SNAP_SESSIONS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md) | 当前会话快照 | 当前会话快照列出当前数据库节点中当前的会话 |
-| [$SNAPSHOT_CL](reference/SQL_grammar/monitoring/SNAPSHOT_CL.md) | [SDB_SNAP_COLLECTIONS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | 集合快照 | 集合快照列出当前数据库节点或集群中所有非临时集合 |
-| [$SNAPSHOT_CS](reference/SQL_grammar/monitoring/SNAPSHOT_CS.md) | [SDB_SNAP_COLLECTIONSPACES](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONSPACES.md) | 集合空间快照 | 集合空间快照列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
-| [$SNAPSHOT_DB](reference/SQL_grammar/monitoring/SNAPSHOT_DB.md) | [SDB_SNAP_DATABASE](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md) | 数据库快照 | 数据库快照列出当前数据库节点的数据库监视信息 |
-| [$SNAPSHOT_SYSTEM](reference/SQL_grammar/monitoring/SNAPSHOT_SYSTEM.md) | [SDB_SNAP_SYSTEM](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md) | 系统快照 | 系统快照列出当前数据库节点的系统监视信息 |
-| [$SNAPSHOT_CATA](reference/SQL_grammar/monitoring/SNAPSHOT_CATA.md) | [SDB_SNAP_CATALOG](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md) | 编目信息快照 | 用于查看编目信息 |
-| [$SNAPSHOT_TRANS](reference/SQL_grammar/monitoring/SNAPSHOT_TRANS.md) | [SDB_SNAP_TRANSACTIONS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_TRANSACTIONS.md) | 事务快照 | 事务快照列出数据库中正在进行的事务信息 |
-| [$SNAPSHOT_TRANS_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_TRANS_CUR.md) | [SDB_SNAP_TRANSACTIONS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_TRANSACTIONS_CURRENT.md) | 当前事务快照 | 当前事务快照列出当前会话正在进行的事务信息 |
-| [$SNAPSHOT_ACCESSPLANS](reference/SQL_grammar/monitoring/SNAPSHOT_ACCESSPLANS.md) | [SDB_SNAP_ACCESSPLANS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_ACCESSPLANS.md) | 访问计划缓存快照 | 访问计划缓存快照列出数据库中缓存的访问计划的信息 |
-| [$SNAPSHOT_HEALTH](reference/SQL_grammar/monitoring/SNAPSHOT_HEALTH.md) | [SDB_SNAP_HEALTH](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md) | 节点健康检测快照 | 节点健康检测快照列出数据库中所有节点的健康信息 |
-| [$SNAPSHOT_CONFIGS](reference/SQL_grammar/monitoring/SNAPSHOT_CONFIGS.md) | [SDB_SNAP_CONFIGS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 配置快照 | 配置快照列出数据库中指定节点的配置信息 |
-| [$SNAPSHOT_SEQUENCES](reference/SQL_grammar/monitoring/SNAPSHOT_SEQUENCES.md) | [SDB_SNAP_SEQUENCES](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SEQUENCES.md) | 序列快照 | 序列快照列出当前数据库的全部序列信息 |
-| [$SNAPSHOT_SVCTASKS](reference/SQL_grammar/monitoring/SNAPSHOT_SVCTASKS.md) | [SDB_SNAP_SVCTASKS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SVCTASKS.md) | 服务任务快照 | 服务任务快照列出当前数据库节点中服务任务的统计信息 |
-| [$SNAPSHOT_QUERIES](reference/SQL_grammar/monitoring/SNAPSHOT_QUERIES.md) | [SDB_SNAP_QUERIES](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_QUERIES.md) | 查询快照 | 查询快照列出当前数据库节点中查询信息 |
-| [$SNAPSHOT_LOCKWAITS](reference/SQL_grammar/monitoring/SNAPSHOT_LOCKWAITS.md) | [SDB_SNAP_LOCKWAITS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_LOCKWAITS.md) | 锁等待快照 | 等待锁快照列出当前数据库节点中锁等待信息 |
-| [$SNAPSHOT_LATCHWAITS](reference/SQL_grammar/monitoring/SNAPSHOT_LATCHWAITS.md) | [SDB_SNAP_LATCHWAITS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_LATCHWAITS.md) | 闩锁等待快照 | 闩锁等待快照列出当前数据库节点中闩锁等待信息 |
-| [$SNAPSHOT_INDEXSTATS](reference/SQL_grammar/monitoring/SNAPSHOT_INDEXSTATS.md) | [SDB_SNAP_INDEXSTATS](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_INDEXSTATS.md) | 索引统计信息快照 | 索引统计信息快照列出当前数据库中所有索引统计信息 |
+| [$SNAPSHOT_CONTEXT](reference/SQL_grammar/monitoring/SNAPSHOT_CONTEXT.md) | [SDB_SNAP_CONTEXTS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md) | 上下文快照 | 上下文快照列出当前数据库节点中所有的会话所对应的上下文 |
+| [$SNAPSHOT_CONTEXT_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_CONTEXT_CUR.md) | [SDB_SNAP_CONTEXTS_CURRENT](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS_CURRENT.md) | 当前会话上下文快照 | 当前上下文快照列出当前数据库节点中当前会话所对应的上下文 |
+| [$SNAPSHOT_SESSION](reference/SQL_grammar/monitoring/SNAPSHOT_SESSION.md) | [SDB_SNAP_SESSIONS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md) | 会话快照 | 会话快照列出当前数据库节点中所有的会话 |
+| [$SNAPSHOT_SESSION_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_SESSION_CUR.md) | [SDB_SNAP_SESSIONS_CURRENT](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md) | 当前会话快照 | 当前会话快照列出当前数据库节点中当前的会话 |
+| [$SNAPSHOT_CL](reference/SQL_grammar/monitoring/SNAPSHOT_CL.md) | [SDB_SNAP_COLLECTIONS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | 集合快照 | 集合快照列出当前数据库节点或集群中所有非临时集合 |
+| [$SNAPSHOT_CS](reference/SQL_grammar/monitoring/SNAPSHOT_CS.md) | [SDB_SNAP_COLLECTIONSPACES](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONSPACES.md) | 集合空间快照 | 集合空间快照列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [$SNAPSHOT_DB](reference/SQL_grammar/monitoring/SNAPSHOT_DB.md) | [SDB_SNAP_DATABASE](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md) | 数据库快照 | 数据库快照列出当前数据库节点的数据库监视信息 |
+| [$SNAPSHOT_SYSTEM](reference/SQL_grammar/monitoring/SNAPSHOT_SYSTEM.md) | [SDB_SNAP_SYSTEM](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md) | 系统快照 | 系统快照列出当前数据库节点的系统监视信息 |
+| [$SNAPSHOT_CATA](reference/SQL_grammar/monitoring/SNAPSHOT_CATA.md) | [SDB_SNAP_CATALOG](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md) | 编目信息快照 | 用于查看编目信息 |
+| [$SNAPSHOT_TRANS](reference/SQL_grammar/monitoring/SNAPSHOT_TRANS.md) | [SDB_SNAP_TRANSACTIONS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_TRANSACTIONS.md) | 事务快照 | 事务快照列出数据库中正在进行的事务信息 |
+| [$SNAPSHOT_TRANS_CUR](reference/SQL_grammar/monitoring/SNAPSHOT_TRANS_CUR.md) | [SDB_SNAP_TRANSACTIONS_CURRENT](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_TRANSACTIONS_CURRENT.md) | 当前事务快照 | 当前事务快照列出当前会话正在进行的事务信息 |
+| [$SNAPSHOT_ACCESSPLANS](reference/SQL_grammar/monitoring/SNAPSHOT_ACCESSPLANS.md) | [SDB_SNAP_ACCESSPLANS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_ACCESSPLANS.md) | 访问计划缓存快照 | 访问计划缓存快照列出数据库中缓存的访问计划的信息 |
+| [$SNAPSHOT_HEALTH](reference/SQL_grammar/monitoring/SNAPSHOT_HEALTH.md) | [SDB_SNAP_HEALTH](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md) | 节点健康检测快照 | 节点健康检测快照列出数据库中所有节点的健康信息 |
+| [$SNAPSHOT_CONFIGS](reference/SQL_grammar/monitoring/SNAPSHOT_CONFIGS.md) | [SDB_SNAP_CONFIGS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) | 配置快照 | 配置快照列出数据库中指定节点的配置信息 |
+| [$SNAPSHOT_SEQUENCES](reference/SQL_grammar/monitoring/SNAPSHOT_SEQUENCES.md) | [SDB_SNAP_SEQUENCES](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SEQUENCES.md) | 序列快照 | 序列快照列出当前数据库的全部序列信息 |
+| [$SNAPSHOT_SVCTASKS](reference/SQL_grammar/monitoring/SNAPSHOT_SVCTASKS.md) | [SDB_SNAP_SVCTASKS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SVCTASKS.md) | 服务任务快照 | 服务任务快照列出当前数据库节点中服务任务的统计信息 |
+| [$SNAPSHOT_QUERIES](reference/SQL_grammar/monitoring/SNAPSHOT_QUERIES.md) | [SDB_SNAP_QUERIES](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_QUERIES.md) | 查询快照 | 查询快照列出当前数据库节点中查询信息 |
+| [$SNAPSHOT_LOCKWAITS](reference/SQL_grammar/monitoring/SNAPSHOT_LOCKWAITS.md) | [SDB_SNAP_LOCKWAITS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_LOCKWAITS.md) | 锁等待快照 | 等待锁快照列出当前数据库节点中锁等待信息 |
+| [$SNAPSHOT_LATCHWAITS](reference/SQL_grammar/monitoring/SNAPSHOT_LATCHWAITS.md) | [SDB_SNAP_LATCHWAITS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_LATCHWAITS.md) | 闩锁等待快照 | 闩锁等待快照列出当前数据库节点中闩锁等待信息 |
+| [$SNAPSHOT_INDEXSTATS](reference/SQL_grammar/monitoring/SNAPSHOT_INDEXSTATS.md) | [SDB_SNAP_INDEXSTATS](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_INDEXSTATS.md) | 索引统计信息快照 | 索引统计信息快照列出当前数据库中所有索引统计信息 |
 
 ##列表视图##
 
@@ -33,20 +33,20 @@
 
 | 列表标示 | 对应 sdbshell 接口标示 | 列表类型 | 描述 |
 | -------- | -------- | -------- | ---- |
-| [$LIST_CONTEXT](reference/SQL_grammar/monitoring/LIST_CONTEXT.md) | [SDB_LIST_CONTEXTS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS.md) | 上下文列表 | 上下文列表列出当前数据库节点中所有的会话所对应的上下文 |
-| [$LIST_CONTEXT_CUR](reference/SQL_grammar/monitoring/LIST_CONTEXT_CUR.md) | [SDB_LIST_CONTEXTS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS_CURRENT.md) | 当前会话上下文列表 | 当前上下文列表列出当前数据库节点中当前会话所对应的上下文 |
-| [$LIST_SESSION](reference/SQL_grammar/monitoring/LIST_SESSION.md) | [SDB_LIST_SESSIONS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_SESSIONS.md) | 会话列表 | 会话列表列出当前数据库节点中所有的会话 |
-| [$LIST_SESSION_CUR](reference/SQL_grammar/monitoring/LIST_SESSION_CUR.md) | [SDB_LIST_SESSIONS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_SESSIONS_CURRENT.md) | 当前会话列表 | 当前会话列表列出当前数据库节点中当前的会话 |
-| [$LIST_CL](reference/SQL_grammar/monitoring/LIST_CL.md) | [SDB_LIST_COLLECTIONS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONS.md) | 集合列表 | 集合列表列出当前数据库节点或集群中所有非临时集合 |
-| [$LIST_CS](reference/SQL_grammar/monitoring/LIST_CS.md) | [SDB_LIST_COLLECTIONSPACES](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONSPACES.md) | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
-| [$LIST_SU](reference/SQL_grammar/monitoring/LIST_SU.md) | [SDB_LIST_STORAGEUNITS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_STORAGEUNITS.md) | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
-| [$LIST_GROUP](reference/SQL_grammar/monitoring/LIST_GROUP.md) | [SDB_LIST_GROUPS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md) | 分区组列表 | 分区组列表列出当前集群中的所有分区信息 |
-| [$LIST_TRANS](reference/SQL_grammar/monitoring/LIST_TRANS.md) | [SDB_LIST_TRANSACTIONS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS.md) | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
-| [$LIST_TRANS_CUR](reference/SQL_grammar/monitoring/LIST_TRANS_CUR.md) | [SDB_LIST_TRANSACTIONS_CURRENT](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS_CURRENT.md) | 当前事务列表 | 当前事务列表列出当前会话正在进行的事务信息 |
-| [$LIST_SEQUENCES](reference/SQL_grammar/monitoring/LIST_SEQUENCES.md) | [SDB_LIST_SEQUENCES](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_SEQUENCES.md) | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
-| [$LIST_BACKUP](reference/SQL_grammar/monitoring/LIST_BACKUP.md) | [SDB_LIST_BACKUPS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 备份列表列出当前数据库的备份信息 |
-| [$LIST_SVCTASKS](reference/SQL_grammar/monitoring/LIST_SVCTASKS.md) | [SDB_LIST_SVCTASKS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_SVCTASKS.md) | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
-| [$LIST_USER](reference/SQL_grammar/monitoring/LIST_USER.md) | [SDB_LIST_USERS](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
+| [$LIST_CONTEXT](reference/SQL_grammar/monitoring/LIST_CONTEXT.md) | [SDB_LIST_CONTEXTS](manual/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS.md) | 上下文列表 | 上下文列表列出当前数据库节点中所有的会话所对应的上下文 |
+| [$LIST_CONTEXT_CUR](reference/SQL_grammar/monitoring/LIST_CONTEXT_CUR.md) | [SDB_LIST_CONTEXTS_CURRENT](manual/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS_CURRENT.md) | 当前会话上下文列表 | 当前上下文列表列出当前数据库节点中当前会话所对应的上下文 |
+| [$LIST_SESSION](reference/SQL_grammar/monitoring/LIST_SESSION.md) | [SDB_LIST_SESSIONS](manual/Maintainance/Monitoring/list/SDB_LIST_SESSIONS.md) | 会话列表 | 会话列表列出当前数据库节点中所有的会话 |
+| [$LIST_SESSION_CUR](reference/SQL_grammar/monitoring/LIST_SESSION_CUR.md) | [SDB_LIST_SESSIONS_CURRENT](manual/Maintainance/Monitoring/list/SDB_LIST_SESSIONS_CURRENT.md) | 当前会话列表 | 当前会话列表列出当前数据库节点中当前的会话 |
+| [$LIST_CL](reference/SQL_grammar/monitoring/LIST_CL.md) | [SDB_LIST_COLLECTIONS](manual/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONS.md) | 集合列表 | 集合列表列出当前数据库节点或集群中所有非临时集合 |
+| [$LIST_CS](reference/SQL_grammar/monitoring/LIST_CS.md) | [SDB_LIST_COLLECTIONSPACES](manual/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONSPACES.md) | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
+| [$LIST_SU](reference/SQL_grammar/monitoring/LIST_SU.md) | [SDB_LIST_STORAGEUNITS](manual/Maintainance/Monitoring/list/SDB_LIST_STORAGEUNITS.md) | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
+| [$LIST_GROUP](reference/SQL_grammar/monitoring/LIST_GROUP.md) | [SDB_LIST_GROUPS](manual/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md) | 分区组列表 | 分区组列表列出当前集群中的所有分区信息 |
+| [$LIST_TRANS](reference/SQL_grammar/monitoring/LIST_TRANS.md) | [SDB_LIST_TRANSACTIONS](manual/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS.md) | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
+| [$LIST_TRANS_CUR](reference/SQL_grammar/monitoring/LIST_TRANS_CUR.md) | [SDB_LIST_TRANSACTIONS_CURRENT](manual/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS_CURRENT.md) | 当前事务列表 | 当前事务列表列出当前会话正在进行的事务信息 |
+| [$LIST_SEQUENCES](reference/SQL_grammar/monitoring/LIST_SEQUENCES.md) | [SDB_LIST_SEQUENCES](manual/Maintainance/Monitoring/list/SDB_LIST_SEQUENCES.md) | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
+| [$LIST_BACKUP](reference/SQL_grammar/monitoring/LIST_BACKUP.md) | [SDB_LIST_BACKUPS](manual/Maintainance/Monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 备份列表列出当前数据库的备份信息 |
+| [$LIST_SVCTASKS](reference/SQL_grammar/monitoring/LIST_SVCTASKS.md) | [SDB_LIST_SVCTASKS](manual/Maintainance/Monitoring/list/SDB_LIST_SVCTASKS.md) | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
+| [$LIST_USER](reference/SQL_grammar/monitoring/LIST_USER.md) | [SDB_LIST_USERS](manual/Maintainance/Monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
 
 ##SQL到SequoiaDB映射表##
 

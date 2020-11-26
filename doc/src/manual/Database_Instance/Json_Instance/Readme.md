@@ -28,4 +28,4 @@ SequoiaDB 巨杉数据库为用户提供了 JSON 实例，通过此实例可以�
 [errorcode]:manual/Database_Instance/Json_Instance/Operation/errorcode.md
 [warning]:manual/Database_Instance/Json_Instance/Operation/warning.md
 [JavaScript]:manual/Database_Instance/Json_Instance/Development/JavaScript.md
-[SDK]:manual/Database_Instance/Json_Instance/Development/SDK.md
+[SDK]:manual/Database_Instance/Json_Instance/Development/driver/SDK.md

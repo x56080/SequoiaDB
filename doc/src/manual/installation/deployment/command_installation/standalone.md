@@ -1,6 +1,6 @@
 ##独立模式的配置与启动##
 
-- 独立模式是启动 SequoiaDB 的最精简模式，仅需要启动一个独立模式的[数据节点](manual/Distributed_Engine/Architecture/Node/data_node.md)，即可提供数据服务。
+- 独立模式是启动 SequoiaDB 的最精简模式，仅需要启动一个独立模式的[数据节点](manual/infrastructure/Node/data_node.md)，即可提供数据服务。
 
 - 在独立模式中，SequoiaDB数据库作为一个独立的进程不需要与其他除客户端以外的进程进行通讯。所有的数据均存放在数据节点内。以独立模式启动的数据库不可进行分区，也不可进行数据复制。因此，在对数据安全性要求较高的环境下不建议使用独立模式。  
 

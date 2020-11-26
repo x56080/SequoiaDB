@@ -23,7 +23,7 @@
 
 2. **统计信息**
 
-统计信息的具体描述可以参考[统计信息](manual/Distributed_Engine/Maintainance/Access_Plan/statistics.md)一节。
+统计信息的具体描述可以参考[统计信息](manual/Maintainance/Access_Plan/statistics.md)一节。
 
 ##返回值##
 

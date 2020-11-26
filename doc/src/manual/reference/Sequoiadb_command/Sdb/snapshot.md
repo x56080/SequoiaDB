@@ -5,13 +5,13 @@
 
 
 
-枚举快照，快照是一种得到当前系统状态的命令。查看更多有关[快照信息](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/snapshot.md)
+枚举快照，快照是一种得到当前系统状态的命令。查看更多有关[快照信息](manual/Maintainance/Monitoring/snapshot/snapshot.md)
 
 ##参数描述##
 
 | 参数名 			| 参数类型 	| 描述 		| 是否必填 |
 | ------ 			| ------ 	| ------ 	| ------   |
-| snapType 			| 枚举 		| [快照类型](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/snapshot.md)。 | 是 |
+| snapType 			| 枚举 		| [快照类型](manual/Maintainance/Monitoring/snapshot/snapshot.md)。 | 是 |
 | cond 				| Json 对象 | 设置匹配条件以及[命令位置参数](reference/Sequoiadb_command/location.md)。 	| 否 |
 | sel 				| Json 对象 | 选择返回字段名。为 null 时，返回所有的字段名。 	| 否 |
 | sort 				| Json 对象 | 对返回的记录按选定的字段排序。1为升序；-1为降序。 | 否 |
@@ -19,7 +19,7 @@
 
 > **Note:**
 
->* snapType 字段的值请参考 [快照类型](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/snapshot.md)。
+>* snapType 字段的值请参考 [快照类型](manual/Maintainance/Monitoring/snapshot/snapshot.md)。
 >* sel 参数是一个json结构，如：{字段名:字段值}，字段值一般指定为空串。sel中指定的字段名在记录中存在，设置字段值不生效；不存在则返回sel中指定的字段名和字段值。
 >* 记录中字段值类型为数组，我们可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
 

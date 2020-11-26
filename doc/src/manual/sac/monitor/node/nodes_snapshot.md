@@ -11,4 +11,4 @@
 ![节点快照实时刷新](sac/monitor/node/nodes_snapshot_2.png)
 
 > **Note:**  
-> 节点快照对应的字段说明，可通过[数据库快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md)查看。
+> 节点快照对应的字段说明，可通过[数据库快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md)查看。

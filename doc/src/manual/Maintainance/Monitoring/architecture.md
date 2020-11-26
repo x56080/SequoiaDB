@@ -1,0 +1,51 @@
+[^_^]: 
+
+    整体监控框架概述
+    作者：何嘉文
+    时间：20190524
+    评审意见
+
+    王涛：
+    许建辉：
+    市场部：20190820
+
+
+监控命令
+----
+
+SequoiaDB 巨杉数据库可以通过快照和列表监控数据库系统。
+
+- 快照是获取系统当前详细状态的命令，具体快照类型可以查看[数据库快照][snapshot]。
+
+- 列表是获取系统当前轻量级状态的命令，具体的列表类型可以查看[数据库列表][list]。
+
+监控工具
+----
+
+sdbtop 是 SequoiaDB 的性能监控工具。通过 sdbtop，用户可以监控和查看集群中各个节点的监视信息。sdbtop 操作说明可参考[数据库性能工具][sdbtop_url]。
+
+图形化界面
+----
+
+SAC 是一个图形化界面管理系统，可以监控数据库系统和主机性能。SAC 监控可参考 SAC 的[监控][sac_monitor_url]章节。
+
+[^_^]:
+    本文使用到的所有链接及引用。
+
+[list_contexts_url]: manual/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS.md
+[list_contexts_current_url]: manual/Maintainance/Monitoring/list/SDB_LIST_CONTEXTS_CURRENT.md
+[list_sessions_url]: manual/Maintainance/Monitoring/list/SDB_LIST_SESSIONS.md
+[list_sessions_current_url]: manual/Maintainance/Monitoring/list/SDB_LIST_SESSIONS_CURRENT.md
+[list_collections_url]: manual/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONS.md
+[list_collectionspaces_url]: manual/Maintainance/Monitoring/list/SDB_LIST_COLLECTIONSPACES.md
+[list_storageunits_url]: manual/Maintainance/Monitoring/list/SDB_LIST_STORAGEUNITS.md
+[list_groups_url]: manual/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md
+[list_transactions_url]: manual/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS.md
+[list_transactions_current_url]: manual/Maintainance/Monitoring/list/SDB_LIST_TRANSACTIONS_CURRENT.md
+[list_sequences_url]: manual/Maintainance/Monitoring/list/SDB_LIST_SEQUENCES.md
+
+[snapshot]: manual/Maintainance/Monitoring/snapshot/snapshot.md
+[list]: manual/Maintainance/Monitoring/list/list.md
+[sdbtop_url]: manual/Maintainance/Monitoring/sdbtop.md
+
+[sac_monitor_url]: manual/sac/monitor/overview.md
