@@ -5,9 +5,6 @@ storyTestRoot="testcase_new/story/js"
 sdvTestRoot="testcase_new/sdv/js"
 testRoots=($storyTestRoot)
 
-uuid=$$
-uuname="s$$test"
-
 coordsvcname="50000"
 coordhostname="localhost"
 
@@ -359,8 +356,6 @@ removeReport
 echo ""
 echo "**************************************************************************************"
 echo "CHANGEDPREFIX : $csprefix"
-echo "UUID          : $uuid"
-echo "UUNAME        : $uuname"
 echo "COORDSVCNAME  : $coordsvcname"
 echo "COORDHOSTNAME : $coordhostname"
 

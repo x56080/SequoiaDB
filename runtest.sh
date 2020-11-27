@@ -9,8 +9,6 @@ libRoot="testcase_new/story/js/lib"
 commlibstr="commlib.js"
 
 sdbRoot="bin"
-uuid=$$
-uuname="s$$test"
 
 coordsvcname="50000"
 essvcname="9200"
@@ -78,7 +76,7 @@ function showHelpInfo()
    echo " -en essvcname  : 指定es环境节点服务名，默认为9200"
    echo " -s1            : 指定预留的RSRVPORTBEGIN端口号，默认为26000"
    echo " -s2            : 指定预留的RSRVPORTEND端口号，默认为27000"
-   echo " -sp            : 指定用预留端口创建节点的路径RSRVNODEDIR，默认为/opt/sequoiadb/database/"
+   echo " -sp            : 指定用预留端口创建节点的路径RSRVNODEDIR，默认为 当前路径/database_runtest/"
    echo " -addpid        : 是否在CHANGEDPREFIX上加上当前进行PID"
    echo " -print         : 是否在屏幕上打印用例的输出"
    echo ""
@@ -127,7 +125,7 @@ function runJSFile()
    local file=$1
    
    result=0
-   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var UUID=$uuid; var UUNAME='${uuname}'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
+   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
 #   runresult=0
    if [ $printOut -eq 1 -o $# -gt 1 ] ; then
       echo "CMD: $lastCmdStr"
@@ -535,8 +533,6 @@ removeReport
 echo ""
 echo "**************************************************************************************"
 echo "CHANGEDPREFIX : $csprefix"
-echo "UUID          : $uuid"
-echo "UUNAME        : $uuname"
 echo "COORDSVCNAME  : $coordsvcname"
 echo "COORDHOSTNAME : $coordhostname"
 echo "ESSVCNAME     : $essvcname"
