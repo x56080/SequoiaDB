@@ -5,7 +5,7 @@
 *@testlinkCase: seqDB-14406
 **************************************/
 //SEQUOIADBMAINSTREAM-6439
-//main( test );
+main( test );
 
 function test ()
 {
