@@ -162,20 +162,6 @@ namespace engine
          goto error;
       }
 
-      e = obj.getField( FIELD_NAME_RESTORE_LOCKED ) ;
-      if ( e.eoo() )
-      {
-         _restoreLocked = FALSE ;
-      }
-      else if ( Bool == e.type() )
-      {
-         _restoreLocked = e.Bool() ? TRUE : FALSE ;
-      }
-      else
-      {
-         goto error;
-      }
-
       e = obj.getField( FIELD_NAME_CSUNIQUEHWM ) ;
       if ( e.eoo() )
       {
@@ -495,11 +481,6 @@ namespace engine
    void _clsDCBaseInfo::setRestoring( BOOLEAN restoring )
    {
       _restoring = restoring  ;
-   }
-
-   void _clsDCBaseInfo::setRestoreLocked( BOOLEAN locked )
-   {
-      _restoreLocked = locked  ;
    }
 
    INT32 _clsDCBaseInfo::_addGroup( const BSONObj &obj, BOOLEAN check,

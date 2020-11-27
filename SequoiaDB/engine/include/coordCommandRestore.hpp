@@ -88,7 +88,6 @@ class coordCMDRestoreToTime : public _coordCMDRestore
    INT32 _setTargetTime(UINT64 minTime, UINT64 maxTime, UINT64 *targetTime);
    INT32 _generateQueryAndRestore(UINT64 targetTime, BOOLEAN test);
    INT32 _buildRestoreQuery(UINT64 targetTime, BOOLEAN test, BSONObj *query);
-   INT32 _updateRestoreLock(BOOLEAN enable);
 
  protected:
    BOOLEAN _optTestOnly;

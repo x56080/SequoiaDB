@@ -369,7 +369,6 @@
 #define FIELD_NAME_ACTIVATED                 "Activated"
 #define FIELD_NAME_READONLY                  "Readonly"
 #define FIELD_NAME_RESTORING                 "RestoreInProgress"
-#define FIELD_NAME_RESTORE_LOCKED            "RestoreLocked"
 #define FIELD_NAME_LATEST                    "Latest"
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
@@ -820,8 +819,6 @@
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
 #define CMD_VALUE_NAME_ENABLE_RESTORING      "enable restoring"
 #define CMD_VALUE_NAME_DISABLE_RESTORING     "disable restoring"
-#define CMD_VALUE_NAME_RESTORE_LOCK          "acquire restore lock"
-#define CMD_VALUE_NAME_RESTORE_UNLOCK        "release restore lock"
 
 /*
    alter user

@@ -582,33 +582,17 @@ INT32 coordCMDRestoreToTime::_checkStateAndRestore(UINT64 targetTime)
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_CHECK, &rc);
    BOOLEAN inProgress;
-   // acquire restore lock to make sure there is only one running,
-   // we do it before checking inprogress state so that we are not seeing
-   // another almost finishing restore with following timing hole:
-   //    Running PIT restore, with both inprogress = true and locked = true
-   //    New restore does state check and found inprogress = true
-   //    Running PIT finished, set inprogress = false and locked = false
-   //    New restore gets in. But we shouldn't perform PIT restore.
-   if ((rc = _updateRestoreLock(TRUE)))
-   {
-      PD_LOG(PDERROR, "There is already a restore running.");
-      return (rc = SDB_RESTORE_RUNNING);
-   }
-
    if ((rc = _checkRestoreInProgress(&inProgress)))
    {
-      _updateRestoreLock(FALSE);
       return rc;
    }
    if (!inProgress)
    {
-      _updateRestoreLock(FALSE);
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
       return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
    }
    if ((rc = _coordinateRestore(targetTime)))
    {
-      _updateRestoreLock(FALSE);
       return rc;
    }
    return rc;
@@ -823,46 +807,6 @@ INT32 coordCMDRestoreToTime::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
    {
       PD_LOG(PDERROR, "Failed to create query");
       return (rc = SDB_OOM);
-   }
-   return rc;
-}
-
-// Update the catalog DC RestoreLocked value.
-// We use this value to guarantee that there should only be one restoreToTime
-// running at a time.
-// @param   enable   Whether to enable or diable the state
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_LOCK, "coordCMDRestoreToTime::_updateRestoreLock" )
-INT32 coordCMDRestoreToTime::_updateRestoreLock(BOOLEAN enable)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_LOCK, &rc);
-   PD_TRACER(1, PD_PACK_INT(enable));
-   BSONObj query;
-   PD_LOG(PDINFO, "Setting cluster restore locked [%s] = [%d]",
-          FIELD_NAME_RESTORE_LOCKED, enable);
-
-   try
-   {
-      if (enable)
-      {
-         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_LOCK);
-      }
-      else
-      {
-         query = BSON(FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTORE_UNLOCK);
-      }
-   }
-   catch (exception &e)
-   {
-      PD_LOG(PDERROR, "Failed to create query");
-      return (rc = SDB_OOM);
-   }
-
-   // Update the DC: this will update cata and data
-   if ((rc = _alterDC(query)))
-   {
-      PD_LOG(PDERROR, "Failed to update DC state across nodes");
-      return rc;
    }
    return rc;
 }

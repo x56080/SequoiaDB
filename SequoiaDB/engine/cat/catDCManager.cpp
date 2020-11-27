@@ -515,18 +515,6 @@ namespace engine
             rc = processCmdDisableRestoring(handle, &dcMgr, objQuery,
                                             retObjBuilder);
          }
-         else if ( 0 == ossStrcasecmp( pAction,
-                                       CMD_VALUE_NAME_RESTORE_LOCK ) )
-         {
-            rc = processCmdRestoreLock(handle, &dcMgr, objQuery,
-                                            retObjBuilder);
-         }
-         else if ( 0 == ossStrcasecmp( pAction,
-                                       CMD_VALUE_NAME_RESTORE_UNLOCK ) )
-         {
-            rc = processCmdRestoreUnlock(handle, &dcMgr, objQuery,
-                                            retObjBuilder);
-         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -1266,7 +1254,6 @@ namespace engine
    }
 
    // Sets the RestoreInProgress state to false
-   // Also sets the RestoreLocked state to false
    INT32 _catDCManager::processCmdDisableRestoring( const NET_HANDLE &handle,
                                                     _clsDCMgr *pDCMgr,
                                                     const BSONObj &objQuery,
@@ -1299,103 +1286,6 @@ namespace engine
             return rc;
          }
       }
-
-      // as part of disabling restore, we will release the lock if disabling
-      // succeeded
-      if ( pBaseInfo->isRestoreLocked() )
-      {
-         // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, FALSE,
-                                      _pEduCB, _majoritySize(), _pDmsCB,
-                                      _pDpsCB )))
-         {
-            // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, TRUE, _pEduCB, 1,
-                               _pDmsCB, _pDpsCB ) ;
-            return rc;
-         }
-      }
-      return rc ;
-   }
-
-   // Sets the RestoreLocked state to true
-   INT32 _catDCManager::processCmdRestoreLock( const NET_HANDLE &handle,
-                                                _clsDCMgr *pDCMgr,
-                                                const BSONObj &objQuery,
-                                                BSONObjBuilder &retObjBuilder )
-   {
-      INT32 rc = SDB_OK ;
-      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
-      vector< string > vecGroups ;
-
-      _pCatCB->getGroupsName( vecGroups ) ;
-      vecGroups.push_back( CATALOG_GROUPNAME ) ;
-
-      // make return obj
-      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
-      {
-         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
-         return rc;
-      }
-
-      // There can be only one restore running at a time. Keep in mind that
-      // action in catalog is already serialized, we can safely check and set
-      // here. Note that the in memory baseInfo is refreshed by caller based
-      // on the on disk value
-      if ( !pBaseInfo->isRestoreLocked() )
-      {
-         // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, TRUE,
-                                      _pEduCB, _majoritySize(), _pDmsCB,
-                                      _pDpsCB )))
-         {
-            // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, FALSE, _pEduCB, 1,
-                               _pDmsCB, _pDpsCB ) ;
-            return rc;
-         }
-      }
-      else
-      {
-         rc = SDB_RESTORE_RUNNING ;
-      }
-      return rc ;
-   }
-
-   INT32 _catDCManager::processCmdRestoreUnlock( const NET_HANDLE &handle,
-                                                 _clsDCMgr *pDCMgr,
-                                                 const BSONObj &objQuery,
-                                                 BSONObjBuilder &retObjBuilder )
-   {
-      INT32 rc = SDB_OK ;
-      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
-      vector< string > vecGroups ;
-
-      _pCatCB->getGroupsName( vecGroups ) ;
-      vecGroups.push_back( CATALOG_GROUPNAME ) ;
-
-      // make return obj
-      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
-      {
-         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
-         return rc;
-      }
-
-      // do nothing if it's already unlocked
-      if ( pBaseInfo->isRestoreLocked() )
-      {
-         // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, FALSE,
-                                      _pEduCB, _majoritySize(), _pDmsCB,
-                                      _pDpsCB )))
-         {
-            // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE_LOCKED, TRUE, _pEduCB, 1,
-                               _pDmsCB, _pDpsCB ) ;
-            return rc;
-         }
-      }
-
       return rc ;
    }
 
@@ -1545,8 +1435,7 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_RESTORING << false <<
-                         FIELD_NAME_RESTORE_LOCKED << false ) ;
+                         FIELD_NAME_RESTORING << false ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "
