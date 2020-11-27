@@ -5362,18 +5362,26 @@ namespace engine
             BSONObjBuilder ob( _builder ) ;
 
             rc = monBuildStatResult( stat, _addInfoMask, ob ) ;
+            if ( rc )
+            {
+               scanner.stop() ;
+            }
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to build statistics result, rc: %d", rc ) ;
             obj = ob.done() ;
 
             buffer = (CHAR *) SDB_POOL_ALLOC( obj.objsize() ) ;
+            if ( ! buffer )
+            {
+               scanner.stop() ;
+            }
             PD_CHECK( buffer, SDB_OOM, error, PDERROR,
                       "Failed to allocate buffer to save result" ) ;
-
             ossMemcpy( buffer, obj.objdata(), obj.objsize() ) ;
             result.push_back( buffer ) ;
             buffer = NULL ;
          }
+         scanner.stop() ;
 
          if ( SDB_DMS_EOC == rc )
          {
@@ -5385,7 +5393,6 @@ namespace engine
                _noMoreStat = TRUE ;
             }
          }
-
          PD_RC_CHECK( rc, PDERROR, "Failed to get next record, rc: %d", rc ) ;
       }
       catch ( std::bad_alloc )

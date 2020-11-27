@@ -348,6 +348,9 @@ ixmFiles = [
       "ixm/ixmIndexKey.cpp",
       "ixm/ixmExtent.cpp",
       "ixm/ixm_common.cpp"
+
+     ,"ixm/ixmContext.cpp"
+     ,"ixm/ixmOutsideKeyPageMap.cpp"
       ]
 mthFiles = [
       "mth/mthMatchNode.cpp",

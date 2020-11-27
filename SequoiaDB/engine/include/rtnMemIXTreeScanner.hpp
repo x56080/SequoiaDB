@@ -91,6 +91,8 @@ namespace engine
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) ;
 
+      virtual void            informAdvanceToCurrentPos() ;
+
    protected:
       virtual INT32 relocateRID( BOOLEAN &found )  ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() ;

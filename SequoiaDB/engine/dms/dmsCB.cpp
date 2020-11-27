@@ -55,6 +55,8 @@
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
 
+#include "dmsTransContext.hpp"
+
 #include <list>
 
 using namespace std;
@@ -99,7 +101,9 @@ namespace engine
     _tempSUMgr( this ),
     _statSUMgr( this ),
     _localSUMgr( this ),
-    _ixmKeySorterCreator( NULL )
+    _ixmKeySorterCreator( NULL ),
+    _extentLockMgr( NULL ),
+    _indexLockMgr( NULL )
    {
       for ( UINT32 i = 0 ; i< DMS_MAX_CS_NUM ; ++i )
       {
@@ -114,6 +118,11 @@ namespace engine
       for ( UINT32 i = 0 ; i < DMS_CS_MUTEX_BUCKET_SIZE ; ++i )
       {
          _vecCSMutex.push_back( new( std::nothrow ) ossSpinRecursiveXLatch() ) ;
+      }
+
+      for ( UINT32 i = 0 ; i < DMS_EXTLATCH_SLOTS_MAX; ++i )
+      {
+         _extProtect[i]._pinCount.init(0) ;
       }
 
       _blockEvent.signal() ;
@@ -132,6 +141,39 @@ namespace engine
       if ( pmdGetKRCB()->isRestore() )
       {
          goto done ;
+      }
+
+      // 0. create and initial extent lock manager and index page lock manager
+
+      // create extent lock manager
+      _extentLockMgr = SDB_OSS_NEW dmsExtentLockManager( LOCKMGR_EXTENT_LOCK ) ;
+      if ( !_extentLockMgr )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      //  create index lock manager
+      _indexLockMgr = SDB_OSS_NEW ixmIndexLockManager( LOCKMGR_INDEX_LOCK ) ;
+      if ( !_indexLockMgr )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      // Initialize extent lock manager
+      rc = _extentLockMgr->init( DPS_EXTENT_LOCKBUCKET_SLOTS_MAX, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to initialize extent lock manager, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+      // initialize index lock manager
+      rc = _indexLockMgr->init( DPS_INDEX_LOCKBUCKET_SLOTS_MAX, FALSE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to initialize index lock manager, rc: %d",
+                 rc ) ;
+         goto error ;
       }
 
       // 1. load all
@@ -198,6 +240,16 @@ namespace engine
       return SDB_OK ;
    }
 
+   ixmIndexLockManager * _SDB_DMSCB::getIndexLockMgrHandle()
+   {
+      return ( _indexLockMgr->isInitialized() ? ( _indexLockMgr ) : NULL ) ;
+   }
+
+   dmsExtentLockManager * _SDB_DMSCB::getExtentLockMgrHandle()
+   {
+      return ( _extentLockMgr->isInitialized() ? ( _extentLockMgr ) : NULL ) ;
+   }
+
    INT32 _SDB_DMSCB::fini ()
    {
       _localSUMgr.fini() ;
@@ -222,6 +274,20 @@ namespace engine
          }
       }
 
+      // destroy index lock manager
+      if ( _indexLockMgr )
+      {
+         _indexLockMgr->fini() ;
+         SDB_OSS_DEL _indexLockMgr ;
+         _indexLockMgr = NULL ;
+      }
+      // destroy extent lock manager
+      if ( _extentLockMgr )
+      {
+         _extentLockMgr->fini() ;
+         SDB_OSS_DEL _extentLockMgr ;
+         _extentLockMgr = NULL ;
+      }
       return SDB_OK ;
    }
 
@@ -2547,6 +2613,233 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_LOCKEXTENT, "_SDB_DMSCB::lockExtent" )
+   INT32 _SDB_DMSCB::lockExtent( _pmdEDUCB *cb,
+                                 const   UINT32 csID,
+                                 const   UINT16 clID,
+                                 const   dmsExtentID extID,
+                                 const   OSS_LATCH_MODE lockType,
+                                 BOOLEAN infinitelyWait )
+   {
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                    "Invalid extent id" ) ;
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      dmsRecordID   recordID( extID, DMS_INVALID_OFFSET ) ;
+      dpsTransLockId  lockId( csID,  DPS_LOCKID_EXT_COLLECTION, &recordID ) ;
+      DPS_TRANSLOCK_TYPE lockMode = ( SHARED == lockType ) ? DPS_TRANSLOCK_S
+                                                           : DPS_TRANSLOCK_X ;
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+      dpsTransRetInfo latchConflict ;
+
+      do
+      {
+         rc = _extentLockMgr->acquire( dpsTxExectr,
+                                       lockId,
+                                       lockMode,
+                                       NULL,           // _IContext
+                                       &latchConflict, // dpsTransRetInfo
+                                       NULL ) ; // _dpsITransLockCallback
+         // add up lock wait time
+         if ( dpsTxExectr->hasLockWait() )
+         {
+            dpsTxExectr->finishLockWait() ;
+            if ( cb->getMonQueryCB() )
+            {
+               cb->getMonQueryCB()->lockWaitTime += dpsTxExectr->
+                                                       getLockWaitTime() ;
+            }
+         }
+      } while ( infinitelyWait &&
+                ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                  ( SDB_TIMEOUT == rc ) ) ) ;
+      if ( rc )
+      {
+          PD_LOG( PDERROR,
+                  "Failed to lock extent:%d, rc: %d"OSS_NEWLINE
+                  "Request Mode:   %s"OSS_NEWLINE
+                  "Conflict ( representative ):"OSS_NEWLINE
+                  "   EDUID:  %llu"OSS_NEWLINE
+                  "   TID:    %u"OSS_NEWLINE
+                  "   LockId: %s"OSS_NEWLINE
+                  "   Mode:   %s"OSS_NEWLINE,
+                  extID,
+                  rc,
+                  lockModeToString( lockMode ),
+                  latchConflict._eduID,
+                  latchConflict._tid,
+                  latchConflict._lockID.toString().c_str(),
+                  lockModeToString( latchConflict._lockType ) ) ;
+      }
+      return rc ;
+   }
+
+
+   INT32 _SDB_DMSCB::tryLockExtentAndWait( _pmdEDUCB *cb,
+                                           const   UINT32 csID,
+                                           const   UINT16 clID,
+                                           const   dmsExtentID extID,
+                                           const   OSS_LATCH_MODE lockType,
+                                           _dmsIXTransContext * pConext,
+                                           dpsTransRetInfo * pdpsTxResInfo )
+   {
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      dmsRecordID   recordID( extID, DMS_INVALID_OFFSET ) ;
+      dpsTransLockId  lockId( csID,  DPS_LOCKID_EXT_COLLECTION, &recordID ) ;
+      DPS_TRANSLOCK_TYPE lockMode = ( SHARED == lockType ) ? DPS_TRANSLOCK_S
+                                                           : DPS_TRANSLOCK_X ;
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+
+      rc = _extentLockMgr->tryAcquireAndWait( dpsTxExectr,
+                                              lockId,
+                                              lockMode,
+                                              pConext,
+                                              pdpsTxResInfo,
+                                              NULL ) ; // _dpsITransLockCallback
+      // add up lock wait time
+      if ( dpsTxExectr->hasLockWait() )
+      {
+         dpsTxExectr->finishLockWait() ;
+         if ( cb->getMonQueryCB() )
+         {
+             cb->getMonQueryCB()->lockWaitTime += dpsTxExectr->
+                                                     getLockWaitTime() ;
+         }
+      }
+      return rc  ;
+   }
+
+
+   INT32 _SDB_DMSCB::tryLockExtent( _pmdEDUCB *cb,
+                                    const  UINT32 csID,
+                                    const  UINT16 clID,
+                                    const  dmsExtentID extID,
+                                    const  OSS_LATCH_MODE lockType )
+   {
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      dmsRecordID   recordID( extID, DMS_INVALID_OFFSET ) ;
+      dpsTransLockId  lockId( csID,  DPS_LOCKID_EXT_COLLECTION, &recordID ) ;
+      DPS_TRANSLOCK_TYPE lockMode = ( SHARED == lockType ) ? DPS_TRANSLOCK_S
+                                                           : DPS_TRANSLOCK_X ;
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+
+      rc = _extentLockMgr->tryAcquire( dpsTxExectr,
+                                       lockId,
+                                       lockMode,
+                                       NULL,    // dpsTransRetInfo
+                                       NULL ) ; // _dpsITransLockCallback
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_UNLOCKEXTENT, "_SDB_DMSCB::unlockExtent" )
+   void _SDB_DMSCB::unlockExtent( _pmdEDUCB *cb,
+                                  const  UINT32 csID,
+                                  const  UINT16 clID,
+                                  const  dmsExtentID extID,
+                                  BOOLEAN bForceRelease )
+   {
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      dmsRecordID   recordID( extID, DMS_INVALID_OFFSET ) ;
+      dpsTransLockId  lockId( csID,  DPS_LOCKID_EXT_COLLECTION, &recordID ) ;
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+
+      INT8   lockMode ;
+
+      if ( _extentLockMgr->isHolding( dpsTxExectr, lockId, lockMode) )
+      {
+         _extentLockMgr->release( dpsTxExectr,
+                                  lockId,
+                                  bForceRelease,
+                                  NULL ) ; // _dpsITransLockCallback
+      }
+      return ;
+   }
+
+   INT8 _SDB_DMSCB::getExtLockMode( _pmdEDUCB *cb,
+                                   const   UINT32 csID,
+                                   const   UINT16 clID,
+                                   const   dmsExtentID extID )
+   {
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      dmsRecordID   recordID( extID, DMS_INVALID_OFFSET ) ;
+      dpsTransLockId  lockId( csID,  DPS_LOCKID_EXT_COLLECTION, &recordID ) ;
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+
+      INT8 lockMode = DPS_TRANSLOCK_MAX ;
+
+      _extentLockMgr->isHolding( dpsTxExectr, lockId, lockMode ) ;
+
+      return  lockMode ;
+   }
+
+
+   void _SDB_DMSCB::unlockAllExtent( _pmdEDUCB *cb )
+   {
+      SDB_DASSERT( ( _extentLockMgr && _extentLockMgr->isInitialized() ),
+                   "Extent lock manager is not initialized" ) ;
+      SDB_DASSERT( ( cb->getTransExecutor() ),
+                   "Executor point can't be NULL" ) ;
+
+      _dpsTransExecutor * dpsTxExectr = cb->getTransExecutor() ;
+      _extentLockMgr->releaseAll( dpsTxExectr ) ;
+   }
+
+   // Increment the extent pincount
+   void _SDB_DMSCB::useExtent( const  UINT32 csID,
+                               const  UINT16 clID,
+                               const  dmsExtentID extID )
+   {
+      UINT32 entry =  _hashExtent( csID, clID, extID ) ;
+      _extProtect[entry]._pinCount.inc() ;
+   }
+
+   UINT32 _SDB_DMSCB::getExtPinCount( const  UINT32 csID,
+                                      const  UINT16 clID,
+                                      const  dmsExtentID extID )
+   {
+      UINT32 entry = _hashExtent( csID, clID, extID ) ;
+      return (UINT32)( _extProtect[entry]._pinCount.fetch() ) ;
+   }
+
+   // Decrement the extent pincount
+   void _SDB_DMSCB::unuseExtent( const  UINT32 csID,
+                                 const  UINT16 clID,
+                                 const  dmsExtentID extID )
+   {
+      UINT32 entry =  _hashExtent( csID, clID, extID ) ;
+      _extProtect[entry]._pinCount.dec() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPCLSIMPLE, "_SDB_DMSCB::dumpInfo" )

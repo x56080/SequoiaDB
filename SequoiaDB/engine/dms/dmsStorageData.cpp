@@ -38,6 +38,7 @@
 *******************************************************************************/
 
 #include "dmsStorageData.hpp"
+#include "dmsCB.hpp"
 #include "dmsStorageIndex.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
@@ -194,9 +195,10 @@ namespace engine
                                                 IDmsOprHandler *pHandler,
                                                 utilUpdateResult *pResult )
    {
+      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD ) ;
+
       INT32 rc                     = SDB_OK ;
       UINT32 dmsRecordSize         = 0 ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD ) ;
       monAppCB * pMonAppCB         = cb ? cb->getMonAppCB() : NULL ;
       dmsCompressorEntry *compressorEntry = &_compressorEntry[context->mbID()] ;
       const dmsExtent *pExtent     = NULL ;
@@ -222,13 +224,16 @@ namespace engine
          goto error ;
       }
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
+      //
+      // caller MUST have extent latch in X
+      //
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    rc = SDB_SYS ;
+      //    PD_LOG( PDERROR, "Caller must hold exclusive lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    goto error ;
+      // }
 
       try
       {
@@ -288,6 +293,9 @@ namespace engine
             }
          }
 
+         // the overflow record is invisible to others,
+         // no need to take latch on the extent where ovf part
+         // resides in
          if ( pRecord->isOvf() )
          {
             ovfRID = pRecord->getOvfRID() ;
@@ -296,6 +304,9 @@ namespace engine
             ovfRW = record2RW( ovfRID, context->mbID() ) ;
             pOvfRecord = ovfRW.writePtr( 0 ) ;
          }
+
+         // get metaLatch X before update meta info
+         context->metaLatch() ;
 
          // if the current space is big enough for the whole record,
          // let's put it here and return rightaway
@@ -327,7 +338,7 @@ namespace engine
             context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
             goto done ;
          }
-         // over-flow recrod
+         // over-flow record
          else
          {
             dmsRecordID foundDeletedID ;
@@ -389,6 +400,8 @@ namespace engine
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
          }
+         // release metaLatch
+         context->metaUnlatch() ;
       }
       catch( std::exception &e )
       {
@@ -398,14 +411,26 @@ namespace engine
       }
 
    done :
+      // release metaLatch
+      if ( context->isMetaLatch() )
+      {
+         context->metaUnlatch() ;
+      }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, rc ) ;
       return rc ;
    error :
+      // release metaLatch
+      if ( context->isMetaLatch() )
+      {
+         context->metaUnlatch() ;
+      }
       if( needUndoIndex )
       {
          ctrlAssist.switchToUndo() ;
          BSONObj oriObj( recordData.data() ) ;
          BSONObj newObj( newRecordData.orgData() ) ;
+         // release index latches
+         _pIdxSU->releaseIndexLatches( context, cb ) ;
          // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                              newObj, oriObj,
@@ -450,8 +475,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__RESERVEFROMDELETELIST ) ;
       PD_TRACE1 ( SDB__DMSSTORAGEDATA__RESERVEFROMDELETELIST,
                   PD_PACK_UINT ( requiredSize ) ) ;
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      //
+      // caller must hold metaLatch in X
+      //
+      // rc = context->mbLock( EXCLUSIVE ) ;
+      // PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
    retry:
       // let's count which delete slots it fits
@@ -528,13 +557,17 @@ namespace engine
                                             context->mbID(),
                                             NULL ) == retInfo._lockID )
                   {
-                     context->pause() ;
-                     ossSleep( 10 ) ;
-                     rc = context->resume() ;
-                     if ( rc )
-                     {
-                        goto error ;
-                     }
+                     // mblatch optimization
+                     //
+                     // context->pause() ;
+                     // ossSleep( 10 ) ;
+                     // rc = context->resume() ;
+                     // if ( rc )
+                     // {
+                     //    goto error ;
+                     // }
+                     context->metaUnlatch() ;
+                     context->metaLatch() ;
                      goto retry ;
                   }
                   else
@@ -543,7 +576,6 @@ namespace engine
                      --i ;
                   }
                }
-
                //for some reason this slot can't be reused, let's get to the next
                preRW = delRecordRW ;
                foundDeletedID = pRead->getNextRID() ;
@@ -789,8 +821,12 @@ namespace engine
       dmsOffset  myOffset              = DMS_INVALID_OFFSET ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD ) ;
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
+
+      //
+      // caller must hold extent latch in X and meta latch in X
+      //
+      // rc = context->mbLock( EXCLUSIVE ) ;
+      // PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
       pRecord = recordRW.writePtr( needRecordSize ) ;
       myOffset = pRecord->getMyOffset() ;
@@ -819,9 +855,9 @@ namespace engine
          // original offset+new size = new delete offset
          dmsOffset newOffset = myOffset + needRecordSize ;
          // original size - new size = new delete size
-         INT32 newSize = pRecord->getSize() - needRecordSize ;
-         dmsRecordID newRid = recordRW.getRecordID() ;
-         newRid._offset = newOffset ;
+         INT32       newSize = pRecord->getSize() - needRecordSize ;
+         dmsRecordID newRid  = recordRW.getRecordID() ;
+         newRid._offset      = newOffset ;
          rc = _saveDeletedRecord( context->mb(), newRid, newSize ) ;
          if ( rc )
          {
@@ -901,13 +937,16 @@ namespace engine
       const dmsRecord *pRecord = NULL ;
       dmsRecordID rid = recordRW.getRecordID() ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
+      //
+      // caller must hold extent latch in X and meta latch  in X
+      //
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    rc = SDB_SYS ;
+      //    PD_LOG( PDERROR, "Caller must hold exclusive lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    goto error ;
+      // }
 
       pExtent = extRW.writePtr<dmsExtent>() ;
       pRecord = recordRW.readPtr() ;

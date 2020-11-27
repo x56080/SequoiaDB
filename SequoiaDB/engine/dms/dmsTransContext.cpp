@@ -43,6 +43,9 @@
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
+// #include "pmd.hpp"    // pmdGetKRCB
+#include "pmdEDU.hpp" // _pmdEDUCB
+#include "dmsCB.hpp"  // SDB_DMSCB
 
 namespace engine
 {
@@ -51,11 +54,15 @@ namespace engine
       _dmsTBTransContext implement
    */
    _dmsTBTransContext::_dmsTBTransContext( _dmsMBContext *pMBContext,
-                                           DMS_ACCESS_TYPE accessType )
+                                           DMS_ACCESS_TYPE accessType,
+                                           _pmdEDUCB *cb )
    {
       SDB_ASSERT( pMBContext, "MB Context can't be NULL" ) ;
+      SDB_ASSERT( cb, "EDUCB can't be NULL" ) ;
       _pMBContext    = pMBContext ;
       _accessType    = accessType ;
+      _pauseFlag     = DMS_TRNCTX_PAUSE_FLG_NONE ;
+      _cb            = cb ;
    }
 
    _dmsTBTransContext::~_dmsTBTransContext()
@@ -77,23 +84,57 @@ namespace engine
       return rc ;
    }
 
+
+   void _dmsTBTransContext::setPauseFlag( UINT32 flag )
+   {
+      _pauseFlag = flag ;
+   }
+
+   void _dmsTBTransContext::resetPauseFlag()
+   {
+      _pauseFlag = DMS_TRNCTX_PAUSE_FLG_NONE ;
+   }
+
+   UINT32 _dmsTBTransContext::getPauseFlag()
+   {
+      return _pauseFlag ;
+   }
+
+
    INT32 _dmsTBTransContext::pause()
    {
-      return _pMBContext->pause() ;
+      INT32 rc = SDB_OK ;
+
+      const UINT32 flag = getPauseFlag() ;
+
+      if ( DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT == ( flag & 0xF0 ) )
+      {
+         SDB_DMSCB *pDMSCB = pmdGetKRCB()->getDMSCB() ;
+         pDMSCB->unlockAllExtent( _cb ) ;
+      }
+    
+      if ( ! ( DMS_TRNCTX_PAUSE_FLG_KEEPMBLATCH == ( flag & 0xF000 ) ) )
+      {
+         rc = _pMBContext->pause() ;
+      }
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSTBTRANSCONTEXT_RESUME, "_dmsTBTransContext::resume" )
-   INT32 _dmsTBTransContext::resume()
+   INT32 _dmsTBTransContext::resume( UINT8 whom )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSTBTRANSCONTEXT_RESUME ) ;
 
-      rc = _pMBContext->resume() ;
-      if ( rc )
+      if ( OSS_BIT_TEST( whom, ICTX_RESUME_CONTEXT ) )
       {
-         PD_LOG( PDERROR, "Resume dms mblock[%s] failed, rc: %d",
-                 _pMBContext->toString().c_str(), rc ) ;
-         goto error ;
+         rc = _pMBContext->resume( ICTX_RESUME_CONTEXT ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Resume dms mblock[%s] failed, rc: %d",
+                    _pMBContext->toString().c_str(), rc ) ;
+            goto error ;
+         }
       }
 
       rc = _checkAccess() ;
@@ -114,11 +155,11 @@ namespace engine
    */
    _dmsIXTransContext::_dmsIXTransContext( _dmsMBContext *pMBContext,
                                            DMS_ACCESS_TYPE accessType,
-                                           _rtnIXScanner *pScanner )
-   :_dmsTBTransContext( pMBContext, accessType )
+                                           _rtnIXScanner *pScanner,
+                                           _pmdEDUCB * cb )
+   :_dmsTBTransContext( pMBContext, accessType, cb )
    {
       SDB_ASSERT( pScanner, "Scanner can't be NULL" ) ;
-
       _pScanner      = pScanner ;
       _isSame        = TRUE ;
    }
@@ -130,40 +171,60 @@ namespace engine
    INT32 _dmsIXTransContext::pause()
    {
       INT32 rc = SDB_OK ;
+      const UINT32 flag = getPauseFlag() ;
 
       _isSame = TRUE ;
 
-      rc = _pScanner->pauseScan() ;
-      if ( SDB_OK == rc )
+      if ( DMS_TRNCTX_PAUSE_FLG_IXADVONHOLD == ( flag & 0xF ) )
       {
-         rc = _dmsTBTransContext::pause() ;
+         _pScanner->informAdvanceToCurrentPos() ;
       }
 
+      rc = _pScanner->pauseScan() ;
+
+      if ( DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT == ( flag & 0xF0 ) )
+      {
+         SDB_DMSCB *pDMSCB = pmdGetKRCB()->getDMSCB() ;
+         pDMSCB->unlockAllExtent( _cb ) ;
+      }
+
+      if ( SDB_OK == rc )
+      {
+         if ( !( DMS_TRNCTX_PAUSE_FLG_IXMCTXONLY == ( flag & 0xF00 ) ) )
+         {
+            rc = _dmsTBTransContext::pause() ;
+         }
+      }
       return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXTRANSCONTEXT_RESUME, "_dmsIXTransContext::resume" )
-   INT32 _dmsIXTransContext::resume()
+   INT32 _dmsIXTransContext::resume( UINT8 whom )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSIXTRANSCONTEXT_RESUME ) ;
 
       /// first resume base
-      rc = _dmsTBTransContext::resume() ;
-      if ( rc )
+      if ( OSS_BIT_TEST( whom, ICTX_RESUME_CONTEXT ) )
       {
-         goto error ;
+         rc = _dmsTBTransContext::resume( whom ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
       /// then resume scanner
-      rc = _pScanner->resumeScan( &_isSame ) ;
-      if ( rc )
+      if ( OSS_BIT_TEST( whom, ICTX_RESUME_SCANNER ) )
       {
-         PD_LOG( PDERROR, "Resume index scanner failed, rc: %d",
-                 rc ) ;
-         goto error ;
+         rc = _pScanner->resumeScan( &_isSame ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Resume index scanner failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
       }
-
    done:
       PD_TRACE_EXITRC ( SDB__DMSIXTRANSCONTEXT_RESUME, rc ) ;
       return rc ;

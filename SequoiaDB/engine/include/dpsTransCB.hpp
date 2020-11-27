@@ -469,6 +469,42 @@ namespace engine
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
 
+      // try and wait on X-lock if the lock request is not fulfilled.
+      // After it is woken up, it will not retry X-lock nor wake up
+      // next waiter ( unless the owner queue is empty ) since it hasn't
+      // have the lock yet. It will pause context if the lock is not acquired
+      // Currently this functioin is called in dmsScanner
+      INT32 transLockTryAndWaitX( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                  UINT16 collectionID = DMS_INVALID_MBID,
+                                  const dmsRecordID *recordID = NULL,
+                                  _IContext *pContext = NULL,
+                                  dpsTransRetInfo * pdpsTxResInfo = NULL,
+                                  _dpsITransLockCallback *callback = NULL ) ;
+
+      // try and wait on U-lock if the lock request is not fulfilled.
+      // After it is woken up, it will not retry X-lock nor wake up
+      // next waiter ( unless the owner queue is empty ) since it hasn't
+      // have the lock yet. It will pause context if the lock is not acquired
+      // Currently this functioin is called in dmsScanner
+      INT32 transLockTryAndWaitU( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                  UINT16 collectionID = DMS_INVALID_MBID,
+                                  const dmsRecordID *recordID = NULL,
+                                  _IContext *pContext = NULL,
+                                  dpsTransRetInfo * pdpsTxResInfo = NULL,
+                                  _dpsITransLockCallback *callback = NULL ) ;
+
+      // try and wait on S-lock if the lock request is not fulfilled.
+      // After it is woken up, it will not retry X-lock nor wake up
+      // next waiter ( unless the owner queue is empty ) since it hasn't
+      // have the lock yet. It will pause context if the lock is not acquired
+      // Currently this functioin is called in dmsScanner
+      INT32 transLockTryAndWaitS( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                  UINT16 collectionID = DMS_INVALID_MBID,
+                                  const dmsRecordID *recordID = NULL,
+                                  _IContext *pContext = NULL,
+                                  dpsTransRetInfo * pdpsTxResInfo = NULL,
+                                  _dpsITransLockCallback *callback = NULL ) ;
+
       BOOLEAN hasWait( UINT32 logicCSID, UINT16 collectionID,
                        const dmsRecordID *recordID) ;
 
@@ -483,7 +519,6 @@ namespace engine
       UINT64 usedLogSpace() ;
 
       dpsTransLockManager * getLockMgrHandle() ;
-      ixmIndexLockManager * getIndexLockMgrHandle() ;
 
       UINT32 getMaxLRSize() ;
       void   updateMaxLRSize( UINT32 recordSize, DPS_LSN_OFFSET curLSN ) ;
@@ -553,7 +588,6 @@ namespace engine
       ossAtomic64       _reservedSpace ;
 
       dpsTransLockManager  *_transLockMgr ;
-      ixmIndexLockManager  *_indexLockMgr ;
       oldVersionCB         *_oldVCB ;  // control block holding old(last committed)
                                        // version of record and index key value
 

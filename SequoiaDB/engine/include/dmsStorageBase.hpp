@@ -372,6 +372,7 @@ namespace engine
       /// For Persistence
       public:
          virtual BOOLEAN      isClosed() const ;
+         virtual BOOLEAN      isRemovingStorage() const ;
          virtual BOOLEAN      canSync( BOOLEAN &force ) const ;
 
          virtual INT32        sync( BOOLEAN force,
@@ -595,6 +596,7 @@ namespace engine
          ossSpinXLatch                 _persistLatch ;
          ossSpinXLatch                 _commitLatch ;
          BOOLEAN                       _isClosed ;
+         BOOLEAN                       _isRemoveStorage ;
          volatile UINT32               _commitFlag ;
          BOOLEAN                       _isCrash ;
          BOOLEAN                       _forceSync ;

@@ -485,6 +485,7 @@ public:
    UINT32 xOwnerTID ;
    UINT32 waiterTID ;
    UINT32 numOwner ;
+   UINT32 lockType ;
    dpsTransLockId lockID ;
    DPS_TRANSLOCK_TYPE lockMode ;
 } ;

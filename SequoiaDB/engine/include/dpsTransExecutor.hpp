@@ -420,6 +420,7 @@ namespace engine
          virtual IExecutor*   getExecutor() = 0 ;
          virtual BOOLEAN      isInterrupted () = 0 ;
 
+         ossPoolSet<UINT32>      _pendingIndex ;
       protected:
          dpsTransLRB *           _waiter[ LOCKMGR_TYPE_MAX ] ;
          DPS_TRANS_QUE_TYPE      _waiterQueType[ LOCKMGR_TYPE_MAX ] ;
@@ -429,7 +430,8 @@ namespace engine
          DPS_LOCKID_MAP          _mapCSCLLockID[ LOCKMGR_TYPE_MAX ] ;
          UINT32                  _lockCount[ LOCKMGR_TYPE_MAX ] ;
 
-         ossSpinSLatch           _accessingLRBMutex ;
+         ossRWMutex              _accessingLRBMutex ;
+         // ossSpinSLatch           _accessingLRBMutex ;
          // LOCKMGR_TRANS_LOCK
          dpsTransLRB *           _accessingTransLRB[ LOCKMGR_TYPE_MAX ] ;
 

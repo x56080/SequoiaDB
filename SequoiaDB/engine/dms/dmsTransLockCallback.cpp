@@ -531,7 +531,7 @@ namespace engine
    //
    // Input:
    //    lockId: lock id to operate on
-   //    rc:  rc from the lock acquire
+   //    irc:  rc from the lock acquire
    //    requestLockMode: lock mode requested (IS/IX/S/U/X)
    //    opMode: lock operation mode (TRY/ACQUIRE/TEST)
    // Output:
@@ -874,6 +874,12 @@ namespace engine
             goto done ;
          }
 
+         //// get latch mode
+         if ( _pScanner )
+         {
+            _latchedIdxMode = _pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
+         }
+
          if ( _latchedIdxLid != indexCB->getLogicalID() ||
               -1 == _latchedIdxMode )
          {
@@ -1113,6 +1119,12 @@ namespace engine
          goto done ;
       }
 
+      // get latch mode
+      if ( _pScanner )
+      {
+         _latchedIdxMode = _pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
+      }
+
       if ( _latchedIdxLid == gid._idxLID && _latchedIdxMode != -1 )
       {
          if ( EXCLUSIVE == _latchedIdxMode )
@@ -1129,6 +1141,9 @@ namespace engine
          }
       }
 
+      PD_LOG ( PDDEBUG, "Inserting index keys(%s) to tree with rid(%d, %d) "
+                        "hasLocked: %d", keyObj.toString().c_str(),
+                        rid._extent, rid._offset, hasLocked ) ;
       rc = treePtr->insertWithOldVer( &keyObj, rid, _oldVer, hasLocked ) ;
       if ( rc )
       {

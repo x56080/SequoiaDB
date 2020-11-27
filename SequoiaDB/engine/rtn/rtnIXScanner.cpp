@@ -40,6 +40,8 @@
 #include "rtnIXScanner.hpp"
 #include "dmsStorageUnit.hpp"
 
+#include "ixmContext.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -125,6 +127,12 @@ namespace engine
                                              NULL ) ;
          _owned = TRUE ;
       }
+
+      // REVISIT :
+      // I assume the indexCB is fully initailized at this time,
+      // getMBID() will return correct logical collection ID. 
+      _pixmContext = SDB_OSS_NEW _ixmContext( cb,
+                                              su->LogicalCSID() ) ;
    }
 
    _rtnIXScanner::~_rtnIXScanner()
@@ -135,6 +143,11 @@ namespace engine
          _indexCB = NULL ;
       }
       _owned = FALSE ;
+      if ( _pixmContext )
+      {
+         SDB_OSS_DEL _pixmContext ;
+         _pixmContext = NULL ;
+      }
    }
 
    INT32 _rtnIXScanner::init()
@@ -235,6 +248,11 @@ namespace engine
       return _cb ;
    }
 
+   _ixmContext* _rtnIXScanner::getIXMContext()
+   {
+      return _pixmContext ;
+   }
+
    INT32 _rtnIXScanner::compareWithCurKeyObj( const BSONObj &keyObj ) const
    {
       return getCurKeyObj()->woCompare( keyObj, _order, false ) * _direction ;
@@ -291,7 +309,4 @@ namespace engine
    error:
       goto done ;
    }
-
 }
-
-

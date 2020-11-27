@@ -80,7 +80,9 @@ namespace engine
    {
       if ( _treeLatchHeld )
       {
-         isReadonly() ? _memIdxTree->unlockS() :  _memIdxTree->unlockX() ;
+         // REVISIT: only take latch S on memory tree when scan
+         // isReadonly() ? _memIdxTree->unlockS() :  _memIdxTree->unlockX() ;
+         _memIdxTree->unlockS() ;
          _treeLatchHeld = FALSE ;
       }
    }
@@ -185,12 +187,13 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNMEMIXTREESCAN_RELORID1 ) ;
       BOOLEAN hasResume = FALSE ;
       BOOLEAN found = FALSE ;
+      BOOLEAN isSame = TRUE ; 
 
       if ( !_treeLatchHeld )
       {
          _savedObj = BSONObj() ;
 
-         rc = resumeScan() ;
+         rc = resumeScan( &isSame ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Resume scan failed, rc: %d", rc ) ;
@@ -210,7 +213,10 @@ namespace engine
             goto error ;
          }
 
-         if ( found && !isReadonly() )
+         //REVISIT:
+         //
+         //if ( found && !isReadonly() )
+         if ( found && ( ! _savedRID.isNull() ) )
          {
             _savedRID._offset -= 1 ;
             found = FALSE ;
@@ -218,12 +224,29 @@ namespace engine
 
          // mark _init to true so that advance won't call keyLocate again
          _init = TRUE ;
+
          // remove the eof flag so we will restart scan on the tree
          _eof = _memIdxTree->isPosValid( _curIndexPos ) ? FALSE : TRUE ;
       }
 
    done :
-      if ( hasResume )
+      //
+      // One eage case observed in _rtnMergeTreeScanner::resumeScan,
+      // at the time it calls _leftIXScanner->resumeScan(), the memory
+      // index tree doesn't exist yet, _leftIXScanner->resumeScan
+      // will not latch the memory index tree. However, when it sync left
+      // to right, the memory index tree may be created ( by another
+      // thread ), relocateRID will see it ( relocateRID calls resumeScan
+      // if the _treeLatchHeld is FALSE ) and set _init and _eof flag (
+      // and calls pauseScan since _treeLatchHeld is FALSE before it
+      // calls resumeScan ). After that ( sync left to right ), _lrid
+      // is NULL, _fromDir is SCAN_RIGHT, _leftEnable is true and
+      // the _eof flag is FALSE, so when it calls
+      // _leftIXScanner->advance( _lrid ) without the memory tree latch.
+      // To solve this problem, pass isSame into resumeScan ( resumeScan
+      // will set isSame to FALSE for that case ). Keep the memory tree
+      // latch if it is changed ( i.e., isSame is FALSE )
+      if ( hasResume && isSame )
       {
          pauseScan() ;
       }
@@ -269,9 +292,13 @@ namespace engine
          found = FALSE ;
       }
 
-      PD_LOG( PDDEBUG, "Relocate to obj(%s) with rid(%d,%d), found(%d)",
-              _savedObj.toString().c_str(), _savedRID._extent,
-              _savedRID._offset, found ) ;
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "_rtnMemIXTreeScanner: Relocate to obj(%s) with "
+              "rid(%d,%d), found(%d)",
+              _savedObj.toString().c_str(),
+              _savedRID._extent, _savedRID._offset, found ) ;
+#endif
 
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
 
@@ -302,9 +329,10 @@ namespace engine
    INT32 _rtnMemIXTreeScanner::advance ( dmsRecordID &rid )
    {
       PD_TRACE_ENTRY ( SDB__RTNMEMIXTREESCAN_ADVANCE ) ;
+      INT32 rc              = SDB_OK ;
+      monAppCB * pMonAppCB  = _cb ? _cb->getMonAppCB() : NULL ;
 
-      INT32 rc             = SDB_OK ;
-      monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
+      BOOLEAN bNextElement = FALSE ;
 
    begin:
       // first time run, _curIndexPos was set to invalid, we need to
@@ -350,18 +378,12 @@ namespace engine
             goto done ;
          }
 
-         // _savedRID/_savedObj should always be NULL
-         // unless we have pauseScan(), resumeScan(), found the
-         // index structure is changed and we have called relocateRID(),
-         // in that case _savedRID may not be NULL for readonly mode
-
-         // in write mode, the possible NULL savedRID is that when the
-         // previous read is a psuedo-delete, note resumeScan() shouldn't set
-         // _savedRID to NULL in this case
-
+         // the possible NULL savedRID is that when the previous read
+         // is a psuedo-delete, _savedRID set to NULL in this case
          // In such scenario, we advance to next element
-         if ( _savedRID.isNull() )
+         if ( _savedRID.isNull() && bNextElement )
          {
+            bNextElement = FALSE ;
             rc = _memIdxTree->advance( _curIndexPos, _direction ) ;
             if ( rc )
             {
@@ -375,12 +397,11 @@ namespace engine
                _memIdxTree->resetPos( _curIndexPos ) ;
             }
          }
-         else if ( !isReadonly() )
+         else
          {
-            // if it's update or delete index scan, the index structure may get
-            // changed so everytime we have to compare _curIndexPos and onmem
-            // rid, as well as the stored object
-
+            // the index structure may get changed so everytime,
+            // we have to compare _curIndexPos and in mem rid,
+            // as well as the stored object
             BOOLEAN isSame = FALSE ;
 
             rc = isCursorSame( _savedObj, _savedRID, isSame ) ;
@@ -450,6 +471,7 @@ namespace engine
             if ( nodeVal.isRecordDeleted() )
             {
                _savedRID.reset() ;
+               bNextElement = TRUE ;
                goto begin ;
             }
 
@@ -502,7 +524,9 @@ namespace engine
                   // if we are able to find the recordid in dupBuffer, that
                   // means we've already processed the record, so let's also
                   // jump back to begin
+                  rc = SDB_OK ;
                   _savedRID.reset() ;
+                  bNextElement = TRUE ;
                   goto begin ;
                }
 
@@ -515,17 +539,19 @@ namespace engine
 
                rid = _savedRID ;
 
-               // if we are write mode, let's record the _savedObj as well
-               if ( !isReadonly() )
-               {
-                  _savedObj = _curKeyObj.getOwned() ;
-               }
-               else
-               {
-                  // in readonly scenario, _savedRID should always be null
-                  // unless pauseScan() is called
-                  _savedRID.reset() ;
-               }
+               _savedObj = _curKeyObj.getOwned() ;
+
+               ////if we are write mode, let's record the _savedObj as well
+               //if ( !isReadonly() )
+               //{
+               //   _savedObj = _curKeyObj.getOwned() ;
+               //}
+               //else
+               //{
+               //   // in readonly scenario, _savedRID should always be null
+               //   // unless pauseScan() is called
+               //    _savedRID.reset() ;
+               //}
                rc = SDB_OK ;
                break ;
             }
@@ -553,9 +579,29 @@ namespace engine
          PD_LOG( PDDEBUG, "Hit end with obj(%s)",
                  _curKeyObj.toString().c_str() ) ;
       }
+#ifdef _DEBUG
+      else
+      {
+         PD_LOG( PDDEBUG,
+                 "_rtnMemIXTreeScanner::advance returns obj(%s), "
+                 "with rid(%d, %d), _savedRID(%d, %d)",
+                 _curKeyObj.toString().c_str(),
+                 rid._extent, rid._offset,
+                 _savedRID._extent, _savedRID._offset ) ;
+
+      }
+#endif
       PD_TRACE_EXITRC( SDB__RTNMEMIXTREESCAN_ADVANCE, rc ) ;
       return rc ;
    error :
+      // Release latch on the tree
+      if ( _treeLatchHeld )
+      {
+         // REVISIT: only take S latch on memory tree when scan
+         // isReadonly() ? _memIdxTree->unlockS() :  _memIdxTree->unlockX() ;
+         _memIdxTree->unlockS() ;
+         _treeLatchHeld = FALSE ;
+      }
       goto done ;
    }
 
@@ -581,41 +627,51 @@ namespace engine
          goto done ;
       }
 
-      // for write mode, since we write _savedRID and _savedObj in advance, we
-      // don't do it here
-      if ( isReadonly() )
-      {
-         try
-         {
-            const preIdxTreeNodeKey& nodeKey =
-               _memIdxTree->getNodeKey( _curIndexPos ) ;
-            _savedRID = nodeKey.getRID() ;
-            _savedObj = nodeKey.getKeyObj().getOwned() ;
-
-            PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                    _savedObj.toString().c_str(),
-                    _savedRID._extent, _savedRID._offset ) ;
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG ( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
+      // in advance we always save _savedRID and _savedObj 
+      //
+      //// for write mode, since we write _savedRID and _savedObj in advance, we
+      //// don't do it here
+      //if ( isReadonly() )
+      //{
+      //   try
+      //   {
+      //      const preIdxTreeNodeKey& nodeKey =
+      //         _memIdxTree->getNodeKey( _curIndexPos ) ;
+      //      _savedRID = nodeKey.getRID() ;
+      //      _savedObj = nodeKey.getKeyObj().getOwned() ;
+      //
+      //      PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
+      //              _savedObj.toString().c_str(),
+      //              _savedRID._extent, _savedRID._offset ) ;
+      //   }
+      //   catch ( std::exception &e )
+      //   {
+      //      PD_LOG ( PDERROR, "Occur exception: %s", e.what() ) ;
+      //      rc = SDB_SYS ;
+      //      goto error ;
+      //   }
+      //}
 
    done:
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "_rtnMemIXTreeScanner: Paused in obj(%s) with rid(%d,%d)",
+              _savedObj.toString().c_str(),
+              _savedRID._extent, _savedRID._offset ) ;
+#endif
       // Release latch on the tree
       if ( _treeLatchHeld )
       {
-         isReadonly() ? _memIdxTree->unlockS() :  _memIdxTree->unlockX() ;
+         // REVISIT: only take S latch on memory tree when scan
+         // isReadonly() ? _memIdxTree->unlockS() :  _memIdxTree->unlockX() ;
+         _memIdxTree->unlockS() ; 
          _treeLatchHeld = FALSE ;
       }
 
       PD_TRACE_EXITRC ( SDB__RTNMEMIXTREESCAN_PAUSESCAN, rc ) ;
       return rc ;
-   error :
-      goto done ;
+   // error :
+   //   goto done ;
    }
 
    // restoring the bson key and rid for the current index scan. This is done by
@@ -635,8 +691,6 @@ namespace engine
 
       _curKeyObj = BSONObj() ;
 
-      SDB_ASSERT( !_treeLatchHeld, "Tree latch shouldn't be held" ) ;
-
       if ( _treeLatchHeld )
       {
          goto done ;
@@ -654,6 +708,9 @@ namespace engine
             goto done ;
          }
 
+         // when get here means the tree just emerged
+         isSame = FALSE ;
+
          _available = TRUE ;
          _memIdxTree->resetPos( _curIndexPos ) ;
       }
@@ -666,14 +723,16 @@ namespace engine
          goto error ;
       }
 
-      if ( isReadonly() )
-      {
-         _memIdxTree->lockS() ;
-      }
-      else
-      {
-         _memIdxTree->lockX() ;
-      }
+      // REVISIT: only take S latch on memory tree when scan
+      _memIdxTree->lockS() ;
+      // if ( isReadonly() )
+      // {
+      //    _memIdxTree->lockS() ;
+      // }
+      // else
+      // {
+      //    _memIdxTree->lockX() ;
+      // }
       _treeLatchHeld = TRUE ;
 
       // haven't locate the rid in the tree yet, the first run of advance
@@ -700,16 +759,24 @@ namespace engine
          isSame = FALSE ;
       }
 
-      if ( !isReadonly() )
-      {
-         goto done ;
-      }
+      // REVISIT:
+      // need to relocate, since we don't hold memory tree latch
+      // if ( !isReadonly() )
+      // {
+      //    goto done ;
+      // }
 
       if ( isSame )
       {
-         // this means the last scaned record is still here, so let's
-         // reset _savedRID so that we'll call advance()
-         _savedRID.reset() ;
+         // this means the last scaned record is still here
+         // _savedRID.reset() ;
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "_rtnMemIXTreeScanner: Resume to obj(%s) "
+                 "with rid(%d, %d), isSame(%d)",
+                 _savedObj.toString().c_str(),
+                 _savedRID._extent, _savedRID._offset, isSame ) ;
+#endif
       }
       else
       {
@@ -725,15 +792,30 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
             goto error ;
          }
+
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "_rtnMemIXTreeScanner: Resume and relocate obj(%s) "
+                 "with rid(%d,%d), found(%d)",
+                 _savedObj.toString().c_str(),
+                 _savedRID._extent, _savedRID._offset, isSame ) ;
+#endif
          if ( isSame )
          {
-            _savedRID.reset() ;
+            // _savedRID.reset() ;
             _curKeyObj = _savedObj ;
             goto done ;
          }
       }
 
    done :
+
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "_rtnMemIXTreeScanner: Resumed, isReadOnly(%d)",
+              isReadonly() ) ;
+#endif
+
       if ( pIsCursorSame )
       {
          *pIsCursorSame = isSame ;
@@ -742,8 +824,10 @@ namespace engine
       return rc ;
    error :
       if( _treeLatchHeld )
-      {
-         isReadonly() ? _memIdxTree->unlockS() : _memIdxTree->unlockX() ;
+      { 
+         // REVISIT: only take S latch on memory tree when scan
+         // isReadonly() ? _memIdxTree->unlockS() : _memIdxTree->unlockX() ;
+         _memIdxTree->unlockS() ;
          _treeLatchHeld = FALSE ;
       }
       goto done ;
@@ -780,5 +864,24 @@ namespace engine
       return &_listIterator ;
    }
 
+
+   void  _rtnMemIXTreeScanner::informAdvanceToCurrentPos()
+   {
+      // sanity check, make sure we are on valid index
+      SDB_ASSERT( _indexCB->isInitialized(),
+                  "Index does not exist" ) ;
+      SDB_ASSERT( _indexCB->getFlag() == IXM_INDEX_FLAG_NORMAL,
+                  "Unexpected index status" ) ;
+
+      if ( _indexCB->unique() )
+      {
+         _savedRID.reset() ;
+      }
+      else if ( ! _savedRID.isNull() )
+      {
+         _savedRID._offset -= 1 ;
+      }
+      return ;
+   }
 }
 

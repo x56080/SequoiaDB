@@ -1423,8 +1423,8 @@ namespace engine
                                     FALSE, ppsu, suID, lockType, millisec ) ;
       if ( rc )
       {
-         PD_LOG ( PDINFO, "Failed to lock collection space %s, rc: %d",
-                  strCollectionFullName, rc ) ;
+         PD_LOG ( PDINFO, "Failed to lock collection space %s,lockType:%d, rc: %d",
+                  strCollectionFullName, lockType, rc ) ;
          goto error ;
       }
 

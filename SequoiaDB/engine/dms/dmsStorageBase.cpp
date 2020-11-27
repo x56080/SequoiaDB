@@ -391,6 +391,7 @@ namespace engine
 
       _pSyncMgr           = NULL ;
       _isClosed           = TRUE ;
+      _isRemoveStorage    = FALSE ;
       _commitFlag         = 0 ;
       _isCrash            = FALSE ;
       _forceSync          = FALSE ;
@@ -419,6 +420,11 @@ namespace engine
    BOOLEAN _dmsStorageBase::isClosed() const
    {
       return _isClosed ;
+   }
+
+   BOOLEAN _dmsStorageBase::isRemovingStorage() const
+   {
+      return _isRemoveStorage ;
    }
 
    void _dmsStorageBase::setTransSupport( BOOLEAN supported )
@@ -971,6 +977,7 @@ namespace engine
          _pSyncMgr = NULL ;
       }
       _isClosed = FALSE ;
+      _isRemoveStorage = FALSE ;
 
    done:
       return rc ;
@@ -1032,6 +1039,9 @@ namespace engine
       {
          goto done ;
       }
+
+      // set flag to indicate remove storage is in progress
+      _isRemoveStorage = TRUE ;
 
       // clean all dirty
       _dirtyList.cleanAll() ;
@@ -1736,7 +1746,7 @@ namespace engine
             rc = _extendSegments( 1 ) ;
 
             // end to resume
-            rc1 = context ? context->resume() : SDB_OK ;
+            rc1 = context ? context->resume( ICTX_RESUME_ALL ) : SDB_OK ;
 
             ossUnlatch( _segmentLatch.get(), EXCLUSIVE ) ;
 
@@ -1761,7 +1771,7 @@ namespace engine
             ossLatch( _segmentLatch.get(), SHARED ) ;
             ossUnlatch( _segmentLatch.get(), SHARED );
             // end to resume
-            rc = context ? context->resume() : SDB_OK ;
+            rc = context ? context->resume( ICTX_RESUME_ALL ) : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to resum context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
             _onAllocSpaceReady( context, needAlloc ) ;

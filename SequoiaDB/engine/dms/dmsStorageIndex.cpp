@@ -49,6 +49,10 @@
 #include "dmsTrace.hpp"
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
+#include "dmsCB.hpp"
+
+#include "ixmContext.hpp"
+#include "ixmOutsideKeyPageMap.hpp"
 
 using namespace bson ;
 
@@ -94,6 +98,11 @@ namespace engine
    dmsPageMap* _dmsStorageIndex::getPageMap( UINT16 mbID )
    {
       return _mbPageInfo.getMap( mbID ) ;
+   }
+
+   ixmOutsideKeyPageMap * _dmsStorageIndex::getIXMOutsideKeyPageMap()
+   {
+      return & _ixmPageMap ;
    }
 
    UINT64 _dmsStorageIndex::_dataOffset()
@@ -239,6 +248,12 @@ namespace engine
 
    void _dmsStorageIndex::_onClosed()
    {
+      /// clean up all index pages containing outside key
+      if ( FALSE == isRemovingStorage() )
+      {
+         cleanUpAllIndexPages() ;
+      }
+
       /// Flush all pageMap to disk
       UINT16 pos = 0 ;
       dmsPageMap *pPageMap = NULL ;
@@ -387,8 +402,7 @@ namespace engine
             _pDataSu->_mbStatInfo[ i ]._idxLastWriteTick = pmdGetDBTick() ;
             if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) &&
                  !_pDataSu->_mbStatInfo[ i ]._idxIsCrash &&
-                 _pDataSu->_mbStatInfo[ i
-                 ]._idxCommitFlag.compareAndSwap( 1, 0 ) )
+                 _pDataSu->_mbStatInfo[ i ]._idxCommitFlag.compareAndSwap(1,0) )
             {
                needSync = TRUE ;
                _pDataSu->_dmsMME->_mbList[ i ]._idxCommitFlag = 0 ;
@@ -884,6 +898,7 @@ namespace engine
       UINT32 logRecSize            = 0 ;
       BSONObj indexDef ;
       IDmsExtDataHandler *extDataHandler = NULL ;
+      ixmOutsideKeyPageMap * pOutKeyPageMap = getIXMOutsideKeyPageMap() ;
 
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(),
                                      cb ) ;
@@ -1013,6 +1028,8 @@ namespace engine
             }
          }
 
+         indexCB.setCLLID( context->clLID() ) ;
+
          callback.setIDInfo( _pDataSu->CSID(), context->mbID(),
                              _pDataSu->logicalID(),
                              context->clLID() ) ;
@@ -1020,6 +1037,12 @@ namespace engine
          if ( rc )
          {
             goto error ;
+         }
+
+         if ( pOutKeyPageMap )
+         {
+            // remove all pages in outside key map for this index
+            pOutKeyPageMap->removePagesOfIndex( indexCB.getLogicalID() ) ;
          }
 
          // truncate index, do remove root
@@ -1134,6 +1157,7 @@ namespace engine
       OID indexOID ;    // Used for dropping THIS index in case of error.
       dmsTransLockCallback callback( pmdGetKRCB()->getTransCB(), cb ) ;
       IDmsOprHandler *pOprHandler = NULL ;
+      ixmOutsideKeyPageMap * pOutKeyPageMap = getIXMOutsideKeyPageMap() ;
 
       SDB_ASSERT( context->isMBLock(), "Caller should hold mb lock" ) ;
       SDB_ASSERT( DMS_INVALID_EXTENT != metaExtentID,
@@ -1168,6 +1192,8 @@ namespace engine
          // definition. For example, _id is added on primary node.
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
+
+         indexCB.setCLLID( context->clLID() ) ;
 
          // create old version index tree if needed
          // NOTE: alter command will not pass dpsCB to write DPS log, so we can
@@ -1230,6 +1256,12 @@ namespace engine
       context->mb()->_indexExtent[indexID] = metaExtentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
+
+      if ( pOutKeyPageMap )
+      {
+         // remove all pages in outside key map for this index
+         pOutKeyPageMap->removePagesOfIndex( indexLID ) ;
+      }
 
       // create index callback
       if ( _pDataSu->_pEventHolder )
@@ -1731,6 +1763,8 @@ namespace engine
                    "Failed to initialize index, index extent id: %d ",
                    context->mb()->_indexExtent[indexID] ) ;
 
+         indexCB.setCLLID( context->clLID() ) ;
+
          rc = _rebuildIndex( context, context->mb()->_indexExtent[ indexID ],
                              indexCB.getLogicalID(), cb, sortBufferSize,
                              indexCB.getIndexType(), NULL, NULL,
@@ -1749,6 +1783,48 @@ namespace engine
       goto done ;
    }
 
+#define DMS_MAX_RETRIES ( 3 )
+
+   INT32 _dmsStorageIndex::_lockIndexRoot( _ixmIndexCB *indexCB,
+                                           _ixmContext *pixmContext,
+                                           dmsExtentID &rootPage,
+                                           BOOLEAN     latchRootPageOnX )
+   {
+      INT32 rc = SDB_OK ;
+      INT8 lockMode = latchRootPageOnX ? DPS_TRANSLOCK_X : DPS_TRANSLOCK_S ;
+      UINT32 retries = 0 ;
+      for ( retries = 0 ; retries < DMS_MAX_RETRIES ; retries ++ )
+      {
+         rootPage = indexCB->getRoot() ;
+         // acquire X lock on root page
+         rc = ixmLock( pixmContext, rootPage, lockMode ) ;
+         if ( rc )
+         {
+            break ;
+         }
+
+         ixmExtent rootidx ( rootPage, this ) ;
+
+         // in case root page is changed after getRoot()
+         if ( rootidx.getParent() != DMS_INVALID_EXTENT )
+         {
+            ixmUnlock( pixmContext, rootPage, TRUE ) ;
+            continue ;
+         }
+         else
+         {
+            break ;
+         }
+      }
+
+      if ( ( DMS_MAX_RETRIES == retries ) && ( SDB_OK == rc ) )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         rc = SDB_SYS ;
+      }
+      return rc ;
+   }
+
    INT32 _dmsStorageIndex::_indexInsert( _ixmIndexCB *indexCB,
                                          const ixmKey &key,
                                          const dmsRecordID &rid,
@@ -1756,14 +1832,14 @@ namespace engine
                                          _pmdEDUCB *cb,
                                          BOOLEAN dupAllowed,
                                          BOOLEAN dropDups,
+                                         _ixmContext * pixmContext,
                                          utilWriteResult *pResult )
    {
       INT32 rc = SDB_OK ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-
-      // get root in each loop, since root page may change after each
-      // insert (root split)
-      ixmExtent rootidx ( indexCB->getRoot(), this ) ;
+      dmsExtentID rootPage = DMS_INVALID_EXTENT ;
+      BOOLEAN latchRootPageOnX = FALSE ;
+      UINT32  xLockLevel       = 0 ;
 
       // adjust allow duplicated flag
       // - doing DPS log rollback: allow duplicated
@@ -1773,32 +1849,65 @@ namespace engine
                      ( cb->isInTransRollback() &&
                            !indexCB->isSysIndex() ) ) ) ? TRUE : dupAllowed ;
 
-      rc = rootidx.insert ( key, rid, order, dupAllowed, indexCB, pResult ) ;
+
+    retry:
+      rc = _lockIndexRoot ( indexCB, pixmContext, rootPage, latchRootPageOnX ) ;
       if ( rc )
       {
-         if ( pResult )
-         {
-            if ( pResult->getCurRID().isNull() )
-            {
-               pResult->setCurRID( rid ) ;
-            }
-            INT32 rcTmp = pResult->setIndexErrInfo( indexCB->getName(),
-                                                    indexCB->keyPattern(),
-                                                    key.toBson() ) ;
-            if ( rcTmp )
-            {
-               rc = rcTmp ;
-            }
-         }
-
-         PD_LOG ( PDERROR, "Failed to insert index, key[%s], rid[%d:%d], rc: %d",
+         PD_LOG ( PDERROR,
+                  "Failed to acquire X lock on index root page:%d, rc:%d, "
+                  "while insert index, key[%s], rid[%d:%d]",
+                  rootPage, rc,
                   key.toString( FALSE, TRUE ).c_str(), rid._extent,
-                  rid._offset, rc ) ;
+                  rid._offset ) ;
          goto error ;
+      }
+
+      SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ), "Invalid root page" ) ;
+
+      {
+         ixmExtent rootidx ( rootPage, this ) ;
+         rc = rootidx.insert ( key, rid, order, dupAllowed,
+                              indexCB, xLockLevel, pixmContext, pResult ) ;
+         if ( SDB_OK != rc )
+         {
+            if ( ( SDB_IXM_HAS_SPLITTED == rc ) ||
+                 ( SDB_TIMEOUT == rc ) ||
+                 ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) )
+            {
+               ixmUnlockAll( pixmContext ) ;
+               if ( 0 == xLockLevel )
+               {
+                  latchRootPageOnX = TRUE ;
+               }
+               goto retry ;
+            }
+
+            if ( pResult )
+            {
+               if ( pResult->getCurRID().isNull() )
+               {
+                  pResult->setCurRID( rid ) ;
+               }
+               INT32 rcTmp = pResult->setIndexErrInfo( indexCB->getName(),
+                                                       indexCB->keyPattern(),
+                                                       key.toBson() ) ;
+               if ( rcTmp )
+               {
+                  rc = rcTmp ;
+               }
+            }
+            PD_LOG ( PDERROR,
+                     "Failed to insert index, key[%s], rid[%d:%d], rc: %d",
+                     key.toString( FALSE, TRUE ).c_str(), rid._extent,
+                     rid._offset, rc ) ;
+            goto error ;
+         }
       }
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
 
    done:
+      ixmUnlockAll( pixmContext ) ;
       return rc ;
    error:
       goto done ;
@@ -1817,6 +1926,9 @@ namespace engine
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
       INT32 rc = SDB_OK ;
       BSONObjSet keySet ;
+
+      // create ixm context
+      _ixmContext ixmContext( cb, getDatalogicalCSID() ) ;
 
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
@@ -1840,11 +1952,13 @@ namespace engine
          for ( it = keySet.begin() ; it != keySet.end() ; ++it )
          {
 #ifdef _DEBUG
-            PD_LOG ( PDDEBUG, "Insert key: %s", (*it).toString().c_str() ) ;
+            PD_LOG ( PDDEBUG, "Inserting key: %s, rid(%d, %d)",
+                     (*it).toString().c_str(),
+                     rid._extent, rid._offset ) ;
 #endif
             ixmKeyOwned ko ((*it)) ;
             rc = _indexInsert ( indexCB, ko, rid, order, cb,
-                                dupAllowed, dropDups, pResult ) ;
+                                dupAllowed, dropDups, &ixmContext, pResult ) ;
             if ( rc )
             {
                if ( pResult )
@@ -1860,6 +1974,7 @@ namespace engine
       }
 
    done :
+      ixmUnlockAll( &ixmContext ) ;
       return rc ;
    error :
       goto done ;
@@ -1911,7 +2026,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to append record, record: %s,rc: %d",
                    record.toString().c_str(), rc ) ;
 
-   done:
+   done
+:
       return rc ;
    error:
       goto done ;
@@ -2078,18 +2194,41 @@ namespace engine
       BOOLEAN dropDups             = FALSE ;
       vector<ixmIndexCB> textIdxCBs ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      // mblatch optimization
+      // caller must take mblatch in S and extent latch in X first
+      //
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+      //           context->toString().c_str() ) ;
+      //    rc = SDB_SYS ;
+      //    goto error ;
+      // }
 
       // do global index first.
       rc = _globalIndexesInsert( context, extLID, inputObj, cb, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to delete global index, rc: %d",
                    rc ) ;
+
+      // latch index for log sync
+      // for unique index
+      // T1: delete a key, T2: insert same key
+      // we will need to make sure the transaction log record
+      // has same sequence as data operation
+      //
+      // no need to latch index if it is capped CS/CL, or
+      // already holding mblatch X
+      if ( ( !context->isMBLock( EXCLUSIVE ) ) &&
+           ( !_pDataSu->isCapped() ) )
+      {
+         rc = _latchIndexes( context, extLID, inputObj, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to latch index, rc:%d", rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
 
       // loops through all potential indexes for the record
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
@@ -2103,7 +2242,9 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
                     PDERROR, "Failed to init index" ) ;
 
+         indexCB.setCLLID( context->clLID() ) ;
          if ( !_needProcessIndex( indexCB, extLID ) )
+
          {
             continue ;
          }
@@ -2190,6 +2331,9 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
+      // create ixm context
+      _ixmContext ixmContext( cb, getDatalogicalCSID() ) ;
+
       rc = indexCB->getKeysFromObject( originalObj, keySetOri ) ;
       if ( rc )
       {
@@ -2230,10 +2374,13 @@ namespace engine
       }
 
 #if defined (_DEBUG)
-      PD_LOG ( PDDEBUG, "IndexUpdate\nIndex: %s\nFrom Record: %s\nTo Record %s",
+      PD_LOG ( PDDEBUG, "IndexUpdate\n"
+                        "Index: %s\nFrom Record: %s\nTo Record %s\n"
+                        "rid(%d, %d)",
                indexCB->keyPattern().toString().c_str(),
                originalObj.toString().c_str(),
-               newObj.toString().c_str() ) ;
+               newObj.toString().c_str(),
+               rid._extent, rid._offset ) ;
 #endif
 
       // do merge scan for two sets, unindex the keys if the one in keySetOri
@@ -2243,6 +2390,8 @@ namespace engine
          BSONObjSet::iterator itori ;
          BSONObjSet::iterator itnew ;
          Ordering order = Ordering::make(indexCB->keyPattern()) ;
+
+         dmsExtentID rootPage = DMS_INVALID_EXTENT ;
 
          itori = keySetOri.begin() ;
          itnew = keySetNew.begin() ;
@@ -2264,11 +2413,43 @@ namespace engine
             }
             else if ( result < 0 )
             {
-               ixmExtent rootidx ( indexCB->getRoot(), this ) ;
+               BOOLEAN latchRootPageOnX = FALSE ;
+               UINT32  xLockLevel       = 0 ;
+            retryUnindex1:
+               rc = _lockIndexRoot ( indexCB, &ixmContext, rootPage, latchRootPageOnX ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG ( PDERROR,
+                           "Failed to acquire X lock on index root page:%d, "
+                           "rc:%d, when delete index key(%s) with rid(%d, %d)",
+                           rootPage, rc,
+                           (*itori).toString().c_str(),
+                           rid._extent, rid._offset ) ;
+                  goto error ;
+               }
+
+               SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ),
+                           "Invalid root page" ) ;
+
+               // acquire root page
+               ixmExtent rootidx ( rootPage, this ) ;
+
                ixmKeyOwned ko ((*itori)) ;
-               rc = rootidx.unindex ( ko, rid, order, indexCB, found ) ;
+               rc = rootidx.unindex ( ko, rid, order, indexCB, found,
+                                      xLockLevel, &ixmContext ) ;
                if ( rc )
                {
+                  if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                       ( SDB_TIMEOUT == rc ) ||
+                       ( SDB_IXM_HAS_SPLITTED == rc ) )
+                  {
+                     ixmUnlockAll( &ixmContext ) ;
+                     if ( 0 == xLockLevel )
+                     {
+                        latchRootPageOnX = TRUE ;
+                     }
+                     goto retryUnindex1 ;
+                  }
                   PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
                            "failed, rc: %d", (*itori).toString().c_str(),
                            rid._extent, rid._offset, rc ) ;
@@ -2289,14 +2470,45 @@ namespace engine
             }
             else
             {
+               BOOLEAN latchRootPageOnX = FALSE ;
+               UINT32  xLockLevel       = 0 ;
+            retryIndexInsert1:
+               rc = _lockIndexRoot ( indexCB, &ixmContext, rootPage, latchRootPageOnX ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG ( PDERROR,
+                           "Failed to acquire X lock on index root page:%d, "
+                           "rc:%d, when insert index(%s) with rid(%d, %d)",
+                           rootPage, rc,
+                           (*itnew).toString().c_str(),
+                           rid._extent, rid._offset ) ;
+                  goto error ;
+               }
+
+               SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ),
+                           "Invalid root page" ) ;
+
                // new smaller than original, that means the new one doesn't
                // appear in the original list, let's add it
-               ixmExtent rootidx ( indexCB->getRoot(), this ) ;
+               ixmExtent rootidx ( rootPage, this ) ;
+
                ixmKeyOwned ko ((*itnew)) ;
                rc = rootidx.insert ( ko, rid, order, dupAllowed, indexCB,
-                                     pResult ) ;
+                                     xLockLevel, &ixmContext, pResult ) ;
                if ( rc )
                {
+                  if ( ( SDB_IXM_HAS_SPLITTED == rc ) ||
+                       ( SDB_TIMEOUT == rc ) ||
+                       ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) )
+                  {
+                     ixmUnlockAll( &ixmContext ) ;
+                     if ( 0 == xLockLevel )
+                     {
+                        latchRootPageOnX = TRUE ;
+                     }
+                     goto retryIndexInsert1 ;
+                  }
+
                   // during rollback, since the previous change may half-way
                   // completed, there could be some keys that has not been
                   // removed. So if we hit error indicating the key and rid are
@@ -2336,11 +2548,42 @@ namespace engine
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Key From %s", (*itori).toString().c_str() ) ;
 #endif
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
+            BOOLEAN latchRootPageOnX = FALSE ;
+            UINT32  xLockLevel       = 0 ;
+         retryUnindex2:
+            rc = _lockIndexRoot ( indexCB, &ixmContext, rootPage, latchRootPageOnX ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to acquire X lock on index root page:%d, rc:%d,"
+                        "when delete index key(%s) with rid(%d, %d)",
+                        rootPage, rc,
+                        (*itori).toString().c_str(),
+                        rid._extent, rid._offset ) ;
+               goto error ;
+            }
+
+            SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ),
+                        "Invalid root page" ) ;
+
+            ixmExtent rootidx ( rootPage, this ) ;
+
             ixmKeyOwned ko ((*itori)) ;
-            rc = rootidx.unindex ( ko, rid, order, indexCB, found ) ;
+            rc = rootidx.unindex( ko, rid, order, indexCB, found,
+                                  xLockLevel, &ixmContext );
             if ( rc )
             {
+               if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                    ( SDB_TIMEOUT == rc ) ||
+                    ( SDB_IXM_HAS_SPLITTED == rc ) )
+               {
+                  ixmUnlockAll( &ixmContext ) ;
+                  if ( 0 == xLockLevel )
+                  {
+                     latchRootPageOnX = TRUE ;
+                  }
+                  goto retryUnindex2 ;
+               }
                PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
                         "failed, rc: %d", (*itori).toString().c_str(),
                         rid._extent, rid._offset, rc ) ;
@@ -2366,11 +2609,43 @@ namespace engine
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Key To %s", (*itnew).toString().c_str() ) ;
 #endif
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
+            BOOLEAN latchRootPageOnX = FALSE ;
+            UINT32  xLockLevel       = 0 ;
+         retryIndexInsert2 :
+            rc = _lockIndexRoot ( indexCB, &ixmContext, rootPage, latchRootPageOnX ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to acquire X lock on index root page:%d, rc:%d,"
+                        "when insert index(%s) with rid(%d, %d), rc: %d",
+                        rootPage, rc,
+                        (*itnew).toString().c_str(),
+                        rid._extent, rid._offset ) ;
+               goto error ;
+            }
+
+            SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ),
+                        "Invalid root page" ) ;
+
+            ixmExtent rootidx ( rootPage, this ) ;
+
             ixmKeyOwned ko ((*itnew)) ;
-            rc = rootidx.insert ( ko, rid, order, dupAllowed, indexCB, pResult ) ;
+            rc = rootidx.insert ( ko, rid, order, dupAllowed, indexCB,
+                                  xLockLevel, &ixmContext, pResult ) ;
             if ( rc )
             {
+               if ( ( SDB_IXM_HAS_SPLITTED == rc ) ||
+                    ( SDB_TIMEOUT == rc ) ||
+                    ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) )
+               {
+                  ixmUnlockAll( &ixmContext ) ;
+                  if ( 0 == xLockLevel )
+                  {
+                     latchRootPageOnX = TRUE ;
+                  } 
+                  goto retryIndexInsert2 ;
+               }
+
                // during rollback, since the previous change may half-way
                // completed, there could be some keys that has not been
                // removed. So if we hit error indicating the key and rid are
@@ -2404,6 +2679,7 @@ namespace engine
       }
 
    done :
+      ixmUnlockAll( &ixmContext ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXUPDATE, rc ) ;
       return rc ;
    error :
@@ -2549,19 +2825,35 @@ namespace engine
       INT32 indexID                = 0 ;
       vector<ixmIndexCB> textIdxCBs ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    rc = SDB_SYS ;
+      //    PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    goto error ;
+      // }
 
       // do global index first.
       rc = _globalIndexesUpdate( context, extLID, originalObj, newObj,
                                  cb, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
+
+      // latch unique index for log sync
+      //
+      // no need to latch index if it is capped CS/CL, or
+      // already holding mblatch X
+      if ( ( !context->isMBLock( EXCLUSIVE ) ) &&
+           ( !_pDataSu->isCapped() ) )
+      {
+         rc = _latchIndexes( context, extLID, originalObj, newObj, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to latch index, rc:%d", rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
 
       for ( indexID=0; indexID < DMS_COLLECTION_MAX_INDEX; indexID++ )
       {
@@ -2575,7 +2867,9 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
                     error, PDERROR, "Failed to init index" ) ;
 
+         indexCB.setCLLID( context->clLID() ) ;
          if ( !_needProcessIndex( indexCB, extLID ) )
+
          {
             continue ;
          }
@@ -2643,6 +2937,10 @@ namespace engine
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
+      dmsExtentID rootPage = DMS_INVALID_EXTENT ;
+      // create ixm context
+      _ixmContext ixmContext( cb, getDatalogicalCSID() ) ;
+
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       if ( rc )
       {
@@ -2670,26 +2968,62 @@ namespace engine
          for ( it = keySet.begin() ; it != keySet.end() ; it++ )
          {
 #if defined (_DEBUG)
-            PD_LOG ( PDDEBUG, "Delete key: %s", (*it).toString().c_str() ) ;
+            PD_LOG ( PDDEBUG, "Delete key: %s, rid(%d, %d)",
+                     (*it).toString().c_str(),
+                     rid._extent, rid._offset ) ;
 #endif
-            // get root in each loop, since root page may change after each
-            // insert (root split)
-            ixmExtent rootidx ( indexCB->getRoot(), this ) ;
-            ixmKeyOwned ko ((*it)) ;
-            rc = rootidx.unindex ( ko, rid, order, indexCB, result ) ;
-            if ( rc )
+            BOOLEAN latchRootPageOnX = FALSE ;
+            UINT32  xLockLevel       = 0 ;
+
+         retry :
+            rc = _lockIndexRoot ( indexCB, &ixmContext, rootPage, latchRootPageOnX ) ;
+            if ( SDB_OK != rc )
             {
-               PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
-                        "failed, rc: %d", it->toString().c_str(),
-                        rid._extent, rid._offset, rc ) ;
+               PD_LOG ( PDERROR,
+                        "Can't acquire X lock on index root page:%d, rc:%d, "
+                        "while delete index key(%s) with rid(%d, %d) ",
+                        rootPage, rc,
+                        it->toString().c_str(),
+                        rid._extent, rid._offset ) ;
                goto error ;
             }
 
+            SDB_ASSERT( ( DMS_INVALID_EXTENT != rootPage ),
+                        "Invalid root page" ) ;
+
+            {
+               // get root in each loop, since root page may change after each
+               // insert (root split)
+               ixmExtent rootidx ( rootPage, this ) ;
+
+               ixmKeyOwned ko ((*it)) ;
+               rc = rootidx.unindex ( ko, rid, order, indexCB, result,
+                                      xLockLevel, &ixmContext ) ;
+               if ( rc )
+               {
+                  if ( ( SDB_IXM_HAS_SPLITTED == rc ) ||
+                       ( SDB_TIMEOUT == rc ) ||
+                       ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) )
+                  {
+                     ixmUnlockAll( &ixmContext ) ;
+                     if ( 0 == xLockLevel )
+                     {
+                        latchRootPageOnX = TRUE ;
+                     }
+                     goto retry ;
+                  }
+                  PD_LOG ( PDERROR, "Delete index key(%s) with rid(%d, %d) "
+                           "failed, rc: %d", it->toString().c_str(),
+                           rid._extent, rid._offset, rc ) ;
+                  goto error ;
+               }
+            }
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
          }
       }
 
    done :
+      ixmUnlockAll( &ixmContext ) ;
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXDELETE, rc ) ;
       return rc ;
    error :
@@ -2811,13 +3145,16 @@ namespace engine
       vector<ixmIndexCB> textIdxCBs ;
       INT32 rcGIndex               = SDB_OK ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
+      // mblatch optimization
+      // caller must take mblatch in S and extent latch in X first
+      //
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    rc = SDB_SYS ;
+      //    PD_LOG( PDERROR, "Caller must hold mb shared lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    goto error ;
+      // }
 
       // do global index first.
       rc = _globalIndexesDelete( context, extLID, inputObj, cb ) ;
@@ -2836,6 +3173,22 @@ namespace engine
          // but we still return the return code.
       }
 
+      // latch unique index for log sync
+      //
+      // no need to latch index if it is capped CS/CL, or
+      // already holding mblatch X
+      if ( ( !context->isMBLock( EXCLUSIVE ) ) &&
+           ( !_pDataSu->isCapped() ) )
+      {
+         rc = _latchIndexes( context, extLID, inputObj, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to latch index, rc:%d", rc ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
       for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
       {
          if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
@@ -2852,7 +3205,9 @@ namespace engine
             goto error ;
          }
 
+         indexCB.setCLLID( context->clLID() ) ;
          if ( !_needProcessIndex( indexCB, extLID ) )
+
          {
             continue ;
          }
@@ -2913,6 +3268,7 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       INT32 indexID                = 0 ;
+      ixmOutsideKeyPageMap * pOutKeyPageMap = getIXMOutsideKeyPageMap() ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -2932,11 +3288,20 @@ namespace engine
             goto error ;
          }
 
+         indexCB.setCLLID( context->clLID() ) ;
+
          if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
                                    IXM_EXTENT_TYPE_TEXT ) )
          {
             continue ;
          }
+
+         if ( pOutKeyPageMap )
+         {
+            // remove all pages in outside key map for this index
+            pOutKeyPageMap->removePagesOfIndex( indexCB.getLogicalID() ) ;
+         }
+
          // we don't check index flag since we are doing full index rebuild now
          // truncate index, do not remove root
          rc = indexCB.truncate ( FALSE, IXM_INDEX_FLAG_NORMAL ) ;
@@ -3111,7 +3476,568 @@ namespace engine
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
    }
+
+   UINT32 _dmsStorageIndex::getDatalogicalCSID()
+   {
+      SDB_ASSERT( _pDataSu, "Data Su can't be NULL" ) ;
+      return  _pDataSu->logicalID() ;
+   }
+
+   UINT32 _dmsStorageIndex::getDataCSID()
+   {
+      SDB_ASSERT( _pDataSu, "Data Su can't be NULL" ) ;
+      return  _pDataSu->CSID() ;
+   }
+
+
+   INT32 _dmsStorageIndex::cleanUpIndexPage
+   (
+      _dmsMBContext * context,
+      _pmdEDUCB     * cb,
+      INT32           indexLID,
+      UINT32          indexPage
+   )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 indexID  = 0 ;
+      ixmOutsideKeyPageMap * pOutKeyPageMap = getIXMOutsideKeyPageMap() ;
+
+      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; indexID++ )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+         {
+            break ;
+         }
+         ixmIndexCB indexCB( context->mb()->_indexExtent[indexID], this,
+                             context ) ;
+         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
+                   "Failed to initialize index, index extent id: %d ",
+                   context->mb()->_indexExtent[indexID] ) ;
+         indexCB.setCLLID( context->clLID() ) ;
+
+         // only attempt to insert into normal and creating indexes
+         if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
+              indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
+         {
+            continue ;
+         }
+         // if it is the right index
+         if ( ( indexLID == indexCB.getLogicalID() ) && pOutKeyPageMap )
+         {
+            Ordering order = Ordering::make( indexCB.keyPattern() ) ;
+            _ixmContext ixmContext( cb, getDatalogicalCSID() ) ;
+            dmsExtentID rootPage     = DMS_INVALID_EXTENT ;
+            BOOLEAN latchRootPageOnX = FALSE ;
+            UINT32  xLockLevel       = 0 ;
+            BSONObj keyObj ;
+            dmsRecordID rid ;
+            UINT32  idxLID = -1 ;
+   retry :
+            // if the page is still there
+            if ( pOutKeyPageMap->findItem( indexPage, keyObj, rid, idxLID ) )
+            {
+               // construct key obj
+               ixmKeyOwned key( keyObj ) ;
+#ifdef _DEBUG
+               PD_LOG ( PDWARNING, "Cleaning index:%d, page:%d, rid[%d:%d]",
+                        indexLID, indexPage, rid._extent, rid._offset ) ;
+               SDB_ASSERT( indexLID == idxLID,
+                           "indexLID of keyObj doesn't match" ) ;
+#endif
+               // get root page and lock it
+               rc = _lockIndexRoot ( &indexCB, &ixmContext,
+                                     rootPage, latchRootPageOnX ) ;
+               if ( ( SDB_OK != rc ) || ( DMS_INVALID_EXTENT == rootPage ) )
+               {
+                  ixmUnlockAll( &ixmContext ) ;
+                  PD_LOG ( PDERROR,
+                           "Failed to lock on root page:%d, rc:%d, "
+                           "while cleaning up index:%d",
+                           rootPage, rc, indexLID ) ;
+                  break ;
+               }
+
+               ixmExtent rootidx ( rootPage, this ) ;
+
+               // clean up the page contains outside key
+               rc = rootidx.cleanUpOutsideKey( key,
+                                               rid,
+                                               order,
+                                               indexPage,
+                                               ! indexCB.unique(),
+                                               &indexCB,
+                                               xLockLevel,
+                                               &ixmContext ) ;
+
+               // release index page locks
+               ixmUnlockAll( &ixmContext ) ;
+
+               if ( SDB_OK != rc )
+               {
+                  if ( ( SDB_IXM_HAS_SPLITTED == rc ) ||
+                       ( SDB_TIMEOUT == rc ) ||
+                       ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) )
+                  {
+                     if ( 0 == xLockLevel )
+                     {
+                        latchRootPageOnX = TRUE ;
+                     }
+                     goto retry ;
+                  }
+                  else
+                  {
+                     PD_LOG ( PDERROR, "Failed to clean up index:%d, page:%d, "
+                              "rid[%d:%d], rc: %d",
+                              indexLID, indexPage,
+                              rid._extent, rid._offset, rc ) ;
+                     break ;
+                  }
+               }
+            }
+            // release index page locks
+            ixmUnlockAll( &ixmContext ) ;
+            break ;
+         }
+      }  // for loop
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
+   INT32 _dmsStorageIndex::cleanUpAllIndexPages()
+   {
+      INT32      rc       = SDB_OK ;
+      BOOLEAN    bJobDone = FALSE ;
+      dmsMBContext *  pContext = NULL ;
+      _pmdEDUCB    *  cb       = pmdGetThreadEDUCB() ;
+      ixmOutsideKeyPageMap * pOutKeyPageMap = getIXMOutsideKeyPageMap() ;
+      MAP_OUTKEY_PAGES outKeyPageMap ;
+
+      // REVISIT
+      // do we need lock CS shared ?
+
+      if ( pOutKeyPageMap && cb )
+      {
+         do
+         {
+            outKeyPageMap.clear() ;
+
+            // make a copy of the outside key page map
+            pOutKeyPageMap->dupOutsideKeyPageMap( outKeyPageMap ) ;
+
+            // clean up all index pages in the map
+            MAP_OUTKEY_PAGES_IT it ;
+            for ( it = outKeyPageMap.begin(); it != outKeyPageMap.end(); it++ )
+            {
+               UINT16 mbID      = it->second._mbID ;
+               UINT32 clLID     = it->second._clLID ;
+               UINT32 indexLID  = it->second._indexLID ;
+               UINT32 indexPage = it->first ;
+
+               // get MBContext, mblatch shared
+               rc = _pDataSu->getMBContext( &pContext, mbID, clLID, clLID,
+                                            SHARED ) ;
+               if ( SDB_OK != rc )
+               {
+                  // cl not exist
+                  if ( SDB_TIMEOUT != rc )
+                  {
+                     outKeyPageMap.erase( it ) ;
+                  }
+                  continue ;
+               }
+
+               // cleanup index page
+               rc = cleanUpIndexPage( pContext, cb, indexLID, indexPage ) ;
+               if ( SDB_OK == rc )
+               {
+                  outKeyPageMap.erase( it ) ;
+               }
+
+               // release mblatch
+               pContext->mbUnlock() ;
+            }
+
+            if ( outKeyPageMap.empty() )
+            {
+               bJobDone = TRUE ;
+            }
+
+         } while ( FALSE == bJobDone ) ;
+      }
+   done :
+      return rc ;
+   }
+
+
+
+   UINT32 _dmsStorageIndex::_indexKeyHash( _ixmKey & key,
+                                           UINT32    csID,
+                                           UINT32    mbID,
+                                           UINT32    indexLID )
+   {
+      UINT64 b = 0 ;
+
+      // hash key obj
+      UINT32 keyHash = ossHash( (CHAR*)key.data(), key.dataSize(), 5 ) ;
+
+      // 14bits for data CSID
+      b |= (UINT64)( csID & 0xFFFF ) << 50 ;
+      // 12bits for CLID/mbID,
+      b |= (UINT64)( mbID & 0xFFF ) << 38 ;
+      // 32bits for keyObjHash
+      b |= (UINT64)( keyHash & 0xFFFFFFFF ) << 6 ;
+      // 6bits  for indexLID
+      b |= (UINT64)( indexLID & 0x3F ) ;
+
+      // hash ( CSID, CLID/mbID, keyObjHash, indexLID )
+      return ossHash( (CHAR*)&( b ), (sizeof( b )), 5 ) ;
+   }
+
+
+   INT32 _dmsStorageIndex::_latchIndexes( _dmsMBContext * context,
+                                          dmsExtentID     extLID,
+                                          BSONObj       & inputObj,
+                                          _pmdEDUCB     * cb )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 indexID  = 0 ;
+
+      SDB_ASSERT ( context, "context can't be NULL" ) ;
+      SDB_ASSERT ( cb, "eduCB can't be NULL" ) ;
+
+      dpsTransExecutor *pExe = cb->getTransExecutor() ;
+      SDB_ASSERT ( pExe,    "executor can't be NULL" ) ;
+
+      SDB_ASSERT( pExe->_pendingIndex.empty(),
+                  "index latch set must be empty" ) ;
+
+      // no need to latch indexes if it is capped CS/CL,
+      // or already holding mblatch X
+      if ( context->isMBLock( EXCLUSIVE ) || _pDataSu->isCapped() )
+      {
+         goto done ;
+      }
+
+      // loops through all potential indexes for the record
+      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; ++indexID )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+         {
+            break ;
+         }
+         ixmIndexCB indexCB ( context->mb()->_indexExtent[indexID], this,
+                              context ) ;
+         PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
+                    PDERROR, "Failed to init index" ) ;
+
+         indexCB.setCLLID( context->clLID() ) ;
+
+         // if index is 'IXM_INDEX_FLAG_CREATING', then judge extent LID
+         if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() &&
+              extLID > indexCB.scanExtLID() )
+         {
+            continue ;
+         }
+         // only attempt to insert into normal and creating indexes
+         else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
+                   indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
+         {
+            continue ;
+         }
+         // skip text index
+         else if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                        IXM_EXTENT_TYPE_TEXT ) &&
+                   ( IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() ) )
+         {
+            continue ;
+         }
+
+         // add key of unique index into index latch set
+         if ( indexCB.unique() )
+         {
+            rc = _addIdxLatchHashId( &indexCB, cb, inputObj ) ;
+            if ( rc )
+            {
+               // empty index latch set
+               pExe->_pendingIndex.clear() ;
+               break ;
+            }
+         }
+      }
+      // latch unique index key for log sync
+      if ( SDB_OK == rc )
+      {
+         for ( ossPoolSet<UINT32>::iterator it = pExe->_pendingIndex.begin() ;
+               it != pExe->_pendingIndex.end() ; it ++ )
+         {
+            context->_indexLatch[*it].get() ;
+         }
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+
+   INT32 _dmsStorageIndex::_latchIndexes( _dmsMBContext * context,
+                                          dmsExtentID     extLID,
+                                          BSONObj       & originalObj,
+                                          BSONObj       & newObj,
+                                          _pmdEDUCB     * cb )
+   {
+      INT32 rc      = SDB_OK ;
+      INT32 indexID = 0 ;
+
+      SDB_ASSERT ( context, "context can't be NULL" ) ;
+      SDB_ASSERT ( cb, "eduCB can't be NULL" ) ;
+
+      dpsTransExecutor *pExe = cb->getTransExecutor() ;
+      SDB_ASSERT( pExe, "executor can't be NULL" ) ;
+
+      SDB_ASSERT( pExe->_pendingIndex.empty(),
+                  "index latch set must be empty" ) ;
+
+      // no need to latch indexes if it is capped CS/CL,
+      // or already holding mblatch X
+      if ( context->isMBLock( EXCLUSIVE ) || _pDataSu->isCapped() )
+      {
+         goto done ;
+      }
+
+      for ( indexID = 0; indexID < DMS_COLLECTION_MAX_INDEX; indexID++ )
+      {
+         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
+         {
+            break ;
+         }
+
+         ixmIndexCB indexCB ( context->mb()->_indexExtent[indexID], this,
+                              context ) ;
+         PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
+                    error, PDERROR, "Failed to init index" ) ;
+
+         indexCB.setCLLID( context->clLID() ) ;
+
+         if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() &&
+              extLID > indexCB.scanExtLID() )
+         {
+            continue ;
+         }
+         // only attempt to insert into normal and creating indexes
+         else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
+                   indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
+         {
+            continue ;
+         }
+         // skip text index
+         else if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
+                                        IXM_EXTENT_TYPE_TEXT ) &&
+                   ( IXM_INDEX_FLAG_NORMAL == indexCB.getFlag() ) )
+         {
+            continue ;
+         }
+
+         // add key of unique index into index latch set
+         if ( indexCB.unique() )
+         {
+            rc = _addIdxLatchHashId( &indexCB, cb, originalObj, newObj ) ;
+            if ( rc )
+            {
+               // empty index latch set
+               pExe->_pendingIndex.clear() ;
+               break ;
+            }
+         }
+      }
+
+      // latch unique index key for log sync
+      if ( SDB_OK == rc )
+      {
+         for ( ossPoolSet<UINT32>::iterator it = pExe->_pendingIndex.begin() ;
+               it != pExe->_pendingIndex.end() ; it ++ )
+         {
+            context->_indexLatch[*it].get() ;
+         }
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+
+   INT32 _dmsStorageIndex::_addIdxLatchHashId( _ixmIndexCB * indexCB,
+                                               _pmdEDUCB   * cb,
+                                               BSONObj     & inputObj )
+   {
+      INT32       rc = SDB_OK ;
+      BSONObjSet  keySet ;
+      BSONObjSet::iterator it ;
+      dpsTransExecutor *pExe = cb->getTransExecutor() ;
+      SDB_ASSERT ( pExe,    "executor can't be NULL" ) ;
+
+      UINT32 csID   = getDataCSID() ;
+      UINT32 mbID   = indexCB->getMBID() ;
+      UINT32 idxLID = indexCB->getLogicalID() ;
+
+      rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get keys from object %s",
+                  inputObj.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // go through each index in the set
+      for ( it = keySet.begin() ; it != keySet.end() ; it++ )
+      {
+         ixmKeyOwned ko ((*it)) ;
+         UINT32 idxHash = _indexKeyHash( ko, csID, mbID, idxLID ) ;
+
+         // get bucketId
+         idxHash = idxHash % DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ;
+         pExe->_pendingIndex.insert( idxHash ) ;
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+
+   INT32 _dmsStorageIndex::_addIdxLatchHashId( _ixmIndexCB * indexCB,
+                                               _pmdEDUCB   * cb,
+                                               BSONObj     & originalObj,
+                                               BSONObj     & newObj )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjSet keySetOri ;
+      BSONObjSet keySetNew ;
+      dpsTransExecutor *pExe = cb->getTransExecutor() ;
+
+      SDB_ASSERT ( pExe, "executor can't be NULL" ) ;
+
+      UINT32 csID   = getDataCSID() ;
+      UINT32 mbID   = indexCB->getMBID() ;
+      UINT32 idxLID = indexCB->getLogicalID() ;
+
+      rc = indexCB->getKeysFromObject( originalObj, keySetOri ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get keys from org object %s",
+                  originalObj.toString().c_str() ) ;
+         goto error ;
+      }
+      rc = indexCB->getKeysFromObject ( newObj, keySetNew ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get keys from new object %s",
+                  newObj.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // do merge scan for two sets, unindex the keys if the one in keySetOri
+      // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
+      // appear in keySetOri
+      {
+         BSONObjSet::iterator itori ;
+         BSONObjSet::iterator itnew ;
+
+         itori = keySetOri.begin() ;
+         itnew = keySetNew.begin() ;
+         while ( keySetOri.end() != itori && keySetNew.end() != itnew )
+         {
+            INT32 result = (*itori).woCompare((*itnew), BSONObj(), FALSE ) ;
+            if ( 0 == result )
+            {
+               // new and original are the same, we don't need to change
+               // anything in the index
+               itori++ ;
+               itnew++ ;
+               continue ;
+            }
+            else if ( result < 0 )
+            {
+               ixmKeyOwned ko ((*itori)) ;
+               UINT32 idxHash = _indexKeyHash( ko, csID, mbID, idxLID ) ;
+               // get bucketId
+               idxHash = idxHash % DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ;
+               pExe->_pendingIndex.insert( idxHash ) ;
+
+               itori++ ;
+               continue ;
+            }
+            else
+            {
+               ixmKeyOwned ko ((*itnew)) ;
+               UINT32 idxHash = _indexKeyHash( ko, csID, mbID, idxLID ) ;
+               // get bucketId
+               idxHash = idxHash % DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ;
+               pExe->_pendingIndex.insert( idxHash ) ;
+
+               itnew++ ;
+               continue ;
+            }
+         }
+
+         // reset of itori
+         while ( keySetOri.end() != itori )
+         {
+            ixmKeyOwned ko ((*itori)) ;
+            UINT32 idxHash = _indexKeyHash( ko, csID, mbID, idxLID ) ;
+            // get bucketId
+            idxHash = idxHash % DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ;
+            pExe->_pendingIndex.insert( idxHash ) ;
+
+            itori++ ;
+         }
+
+         // rest of itnew
+         while ( keySetNew.end() != itnew )
+         {
+            ixmKeyOwned ko ((*itnew)) ;
+            UINT32 idxHash = _indexKeyHash( ko, csID, mbID, idxLID ) ;
+            // get bucketId
+            idxHash = idxHash % DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ;
+            pExe->_pendingIndex.insert( idxHash ) ;
+            itnew++ ;
+         }
+      }
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   void _dmsStorageIndex::releaseIndexLatches( _dmsMBContext * context,
+                                               _pmdEDUCB * cb )
+   {
+      SDB_ASSERT ( context, "context can't be NULL" ) ;
+      SDB_ASSERT ( cb, "eduCB can't be NULL" ) ;
+
+      // we don't take index latch for capped CS/CL,
+      // or already holding mblatch X, so no need to release
+      if ( context->isMBLock( EXCLUSIVE ) || _pDataSu->isCapped() )
+      {
+         goto done ;
+      }
+
+      if ( cb->getTransExecutor() )
+      {
+         dpsTransExecutor* pExe = cb->getTransExecutor() ;
+
+         for ( ossPoolSet<UINT32>::iterator it = pExe->_pendingIndex.begin() ;
+               it != pExe->_pendingIndex.end() ; it ++ )
+         {
+            context->_indexLatch[*it].release() ;
+         }
+         pExe->_pendingIndex.clear() ;
+      }
+   done :
+      return ;
+   }
 }
-
-
-

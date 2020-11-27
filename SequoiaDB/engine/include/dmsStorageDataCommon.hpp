@@ -542,7 +542,7 @@ namespace engine
       public:
          virtual string toString () const ;
          virtual INT32  pause () ;
-         virtual INT32  resume () ;
+         virtual INT32  resume( UINT8 whom = ICTX_RESUME_CONTEXT ) ;
 
          OSS_INLINE INT32   mbLock( INT32 lockType ) ;
          OSS_INLINE INT32   mbTryLock( INT32 lockType ) ;
@@ -550,6 +550,9 @@ namespace engine
          OSS_INLINE BOOLEAN isMBLock( INT32 lockType ) const ;
          OSS_INLINE BOOLEAN isMBLock() const ;
          OSS_INLINE BOOLEAN canResume() const ;
+         OSS_INLINE void    metaLatch() ;
+         OSS_INLINE void    metaUnlatch() ;
+         OSS_INLINE BOOLEAN isMetaLatch() ;
 
          virtual     UINT16 mbID () const { return _mbID ; }
          OSS_INLINE  dmsMB* mb () { return _mb ; }
@@ -558,16 +561,19 @@ namespace engine
          OSS_INLINE  UINT32 startLID() const { return _startLID ; }
          OSS_INLINE  INT32  mbLockType() const { return _mbLockType ; }
 
+         ossSpinXLatch    *_indexLatch ;
       private:
          OSS_INLINE INT32   _mbLock( INT32 lockType, BOOLEAN isTry ) ;
       private:
          dmsMB             *_mb ;
          dmsMBStatInfo     *_mbStat ;
          monSpinSLatch     *_latch ;
+         ossSpinXLatch     *_metaLatch ;  // mbLatch prototype, meta data latch
          UINT32            _clLID ;
          UINT32            _startLID ;
          UINT16            _mbID ;
          INT32             _mbLockType ;
+         INT32             _mbMetaLatchType ;
          INT32             _resumeType ;
    };
    typedef _dmsMBContext   dmsMBContext ;
@@ -669,6 +675,31 @@ namespace engine
       }
       return SDB_OK ;
    }
+
+   OSS_INLINE void _dmsMBContext::metaLatch()
+   {
+      if ( ( FALSE == isMBLock( EXCLUSIVE ) ) &&
+           ( -1 == _mbMetaLatchType ) )
+      {
+         _metaLatch->get() ;
+         _mbMetaLatchType = EXCLUSIVE ;
+      }
+   }
+
+   OSS_INLINE void _dmsMBContext::metaUnlatch()
+   {
+      if ( EXCLUSIVE == _mbMetaLatchType )
+      {
+         _metaLatch->release() ;
+         _mbMetaLatchType = -1 ;
+      }
+   }
+
+   OSS_INLINE BOOLEAN _dmsMBContext::isMetaLatch()
+   {
+      return _mbMetaLatchType == EXCLUSIVE ? TRUE : FALSE ;
+   }
+
    OSS_INLINE BOOLEAN _dmsMBContext::isMBLock( INT32 lockType ) const
    {
       return lockType == _mbLockType ? TRUE : FALSE ;
@@ -784,6 +815,11 @@ namespace engine
    /*
       _dmsStorageDataCommon defined
    */
+
+   // index latch bucket
+   // 131071 ( a prime number close to 131072 )
+   #define DMS_INDEX_LATCH_BUCKET_SLOTS_MAX ( (UINT32) 131071 )
+
    class _dmsStorageDataCommon : public _dmsStorageBase
    {
       friend class _dmsStorageIndex ;
@@ -958,6 +994,21 @@ namespace engine
                                   SDB_DPSCB *dpscb,
                                   INT8 direction = 1,
                                   BOOLEAN byNumber = FALSE ) ;
+
+         // extent lock functions, currently doesn't work for capped CS
+         INT32 lockExtent ( _pmdEDUCB *          cb,
+                            const UINT32         csID,
+                            const UINT16         clID,
+                            const dmsExtentID    extID,
+                            const OSS_LATCH_MODE mode ) ;
+         void unlockExtent( _pmdEDUCB *       cb,
+                            const UINT32      csID,
+                            const UINT16      clID,
+                            const dmsExtentID extID ) ;
+         INT8 getExtentLockMode ( _pmdEDUCB *       cb,
+                                  const UINT32      csID,
+                                  const UINT16      clID,
+                                  const dmsExtentID extID ) ;
 
          // the dataRecord is not owned
          // Caller must hold mb exclusive/shared lock
@@ -1184,6 +1235,10 @@ namespace engine
          // requested exclusive latch on mblock is only when changing
          // metadata (say add an extent into the MB, or create/drop the MB)
          monSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
+
+         ossSpinXLatch                       _indexLatch [ DMS_INDEX_LATCH_BUCKET_SLOTS_MAX + 1 ] ;
+         ossSpinXLatch                       _mbMetaLatch[ DMS_MME_SLOTS ] ;
+
          dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
          monSpinSLatch                       _metadataLatch ;
          COLNAME_MAP                         _collectionNameMap ;
@@ -1205,6 +1260,7 @@ namespace engine
          _IDmsEventHolder                    *_pEventHolder ;
          _IDmsExtDataHandler                 *_pExtDataHandler ;
 
+         _SDB_DMSCB                          *_pDMSCB ;
    };
    typedef _dmsStorageDataCommon dmsStorageDataCommon ;
 
@@ -1373,7 +1429,9 @@ namespace engine
       (*pContext)->_mbID = mbID ;
       (*pContext)->_mb = &_dmsMME->_mbList[mbID] ;
       (*pContext)->_mbStat = &_mbStatInfo[mbID] ;
+      (*pContext)->_indexLatch = &_indexLatch[0] ;
       (*pContext)->_latch = &_mblock[mbID] ;
+      (*pContext)->_metaLatch= &_mbMetaLatch[mbID] ;
       if ( SHARED == lockType || EXCLUSIVE == lockType )
       {
          INT32 rc = (*pContext)->mbLock( lockType ) ;

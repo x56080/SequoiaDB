@@ -225,6 +225,8 @@ namespace engine
       UINT8       _version ;
       // extent ID for the control block extent
       dmsExtentID _extentID ;
+      // collection LID
+      UINT32 _clLID ;
 
       BOOLEAN _isGlobalIndex ;
       utilCLUniqueID _indexCLUID ;
@@ -402,6 +404,13 @@ namespace engine
                       "index details must be initialized first" ) ;
          return _extent->_mbID ;
       }
+
+      void setCLLID( UINT32 clLID ) ;
+      UINT32 getCLLID() const
+      {
+         return _clLID ;
+      }
+
       dmsExtentID scanExtLID () const
       {
          SDB_ASSERT ( _isInitialized,

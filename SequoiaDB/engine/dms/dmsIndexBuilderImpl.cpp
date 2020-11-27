@@ -95,9 +95,14 @@ namespace engine
             rc = _insertKey( recordDataPtr, recordID, ordering ) ;
             if ( SDB_OK != rc )
             {
+               // release the extent pin
+               extScanner.stop();
                goto error ;
             }
          }
+
+         // release the extent pin when move to next extent
+         extScanner.stop();
 
          if ( SDB_DMS_EOC != rc )
          {
@@ -235,6 +240,8 @@ namespace engine
             rc = _getKeySet( recordDataPtr, keySet ) ;
             if ( SDB_OK != rc )
             {
+               // release the extent pin
+               extScanner.stop();
                goto error ;
             }
 
@@ -244,11 +251,16 @@ namespace engine
                rc = _sorter->push( key, recordID ) ;
                if ( SDB_OK != rc )
                {
+                  // release the extent pin
+                  extScanner.stop();
                   SDB_ASSERT( SDB_DMS_EOC != rc, "sorter can't overflow" ) ;
                   goto error ;
                }
             }
          }
+
+         // release the pin when move to next extent
+         extScanner.stop();
 
          if ( SDB_DMS_EOC == rc )
          {
@@ -266,7 +278,6 @@ namespace engine
          {
             goto error ;
          }
-
       }
 
    done:

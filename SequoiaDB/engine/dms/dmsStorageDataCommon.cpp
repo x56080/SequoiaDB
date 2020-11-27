@@ -51,6 +51,7 @@
 #include "utilCompressor.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "dmsLightJob.hpp"
+#include "dmsCB.hpp"
 
 using namespace bson ;
 
@@ -257,6 +258,7 @@ namespace engine
       _mbID          = DMS_INVALID_MBID ;
       _mbLockType    = -1 ;
       _resumeType    = -1 ;
+      _mbMetaLatchType = -1 ;
       PD_TRACE_EXIT ( SDB__DMSMBCONTEXT__RESET ) ;
    }
 
@@ -298,15 +300,18 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSMBCONTEXT_RESUME, "_dmsMBContext::resume" )
-   INT32 _dmsMBContext::resume()
+   INT32 _dmsMBContext::resume( UINT8 whom )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSMBCONTEXT_RESUME ) ;
-      if ( SHARED == _resumeType || EXCLUSIVE == _resumeType )
+      if ( OSS_BIT_TEST( whom, ICTX_RESUME_CONTEXT ) )
       {
-         INT32 lockType = _resumeType ;
-         _resumeType = -1 ;
-         rc = mbLock( lockType ) ;
+         if ( SHARED == _resumeType || EXCLUSIVE == _resumeType )
+         {
+            INT32 lockType = _resumeType ;
+            _resumeType = -1 ;
+            rc = mbLock( lockType ) ;
+         }
       }
       PD_TRACE_EXITRC ( SDB__DMSMBCONTEXT_RESUME, rc ) ;
       return rc ;
@@ -507,10 +512,20 @@ namespace engine
       _pEventHolder     = pEventHolder ;
       _pExtDataHandler  = NULL ;
       _isCapped         = FALSE;
+      _pDMSCB           = pmdGetKRCB()->getDMSCB () ;
+
       for ( UINT16 i = 0; i < DMS_MME_SLOTS; ++i )
       {
          _mblock[i] = monSpinSLatch( MON_LATCH_MBLOCK ) ;
       }
+      // for (int i = 0 ; i < DMS_MME_SLOTS; i ++ )
+      // {
+      //    _mbMetaLatch[i] = monSpinSLatch(MON_LATCH_METALOCK) ;
+      // }
+      // for ( UINT32 i = 0 ; i < DMS_INDEX_LATCH_BUCKET_SLOTS_MAX + 1; i++ )
+      // {
+      //    _indexLatch[i] = monSpinXLatch(MON_LATCH_INDEX_KEY_LATCH) ;
+      // }
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATACOMMON ) ;
    }
 
@@ -1269,8 +1284,11 @@ namespace engine
          goto error ;
       }
 
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
+      //
+      // caller must hold meta latch in X
+      //
+      // rc = context->mbLock( EXCLUSIVE ) ;
+      // PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
 
       rc = _findFreeSpace ( numPages, firstFreeExtentID, context ) ;
       if ( rc )
@@ -1709,13 +1727,13 @@ namespace engine
       dmsExtent *prevExt = NULL ;
       dmsExtent *nextExt = NULL ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    rc = SDB_SYS ;
+      //    PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    goto error ;
+      // }
 
       // Currently including system temp su and capped su.
       if ( !isBlockScanSupport() )
@@ -3087,6 +3105,18 @@ namespace engine
 
       _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
 
+      INT32   mbLatchMode    = SHARED ;
+      UINT32  CSLID          = _logicalCSID ;
+      UINT16  mbID           = context->mbID() ;
+
+      // Note:
+      // For normal collection take mbLatch mode SHARED
+      // for capped collection take mbLatch mode EXCLUSIVE
+      if ( isCapped() )
+      {
+          mbLatchMode = EXCLUSIVE ;
+      }
+
       if ( !isTransSupport() )
       {
          transID = DPS_INVALID_TRANS_ID ;
@@ -3104,9 +3134,19 @@ namespace engine
             markInsert = TRUE ;
             const dmsRecord *pRecord = NULL ;
 
-            rc = context->mbLock( EXCLUSIVE ) ;
-            PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
-                         rc ) ;
+            rc = context->mbLock( mbLatchMode ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "dms mb context lock failed, rc: %d", rc ) ;
+
+            // latch extent
+            rc = lockExtent( cb, CSLID, mbID, foundRID._extent, SHARED ) ;
+            if ( SDB_OK != rc )
+            {
+               context->mbUnlock() ;
+               PD_LOG( PDERROR, "Lock extent( %d ) failed, rc: %d",
+                       foundRID._extent, rc ) ;
+               goto error ;
+            }
 
             recordRW = record2RW( foundRID, context->mbID() ) ;
 
@@ -3133,7 +3173,11 @@ namespace engine
                }
             }
 
+            // release extent latch
+            unlockExtent( cb, CSLID, mbID, foundRID._extent ) ;
+
             context->mbUnlock() ;
+
             recordData.setData( insertObj.objdata(), insertObj.objsize(),
                                 UTIL_COMPRESSOR_INVALID, TRUE ) ;
          }
@@ -3142,8 +3186,8 @@ namespace engine
          {
             rc = _prepareInsertData( record, mustOID, cb, recordData,
                                      newMem, position ) ;
-            PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
-                         rc ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Prepare data for insertion failed, rc: %d", rc ) ;
             if ( newMem )
             {
                pMergedData = (CHAR *)recordData.data() ;
@@ -3253,7 +3297,7 @@ namespace engine
          }
 
          // lock mb
-         rc = context->mbLock( EXCLUSIVE ) ;
+         rc = context->mbLock( mbLatchMode ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
          // then make sure the collection compatiblity
@@ -3306,16 +3350,35 @@ namespace engine
                goto error ;
             }
 
+            // latch extent
+            rc = lockExtent( cb, CSLID, mbID, foundRID._extent, EXCLUSIVE ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Lock extent( %d ) failed, rc: %d",
+                         foundRID._extent, rc ) ;
+
             recordRW = record2RW( foundRID, context->mbID() ) ;
             pRecord = recordRW.writePtr< dmsRecord >() ;
-            pRecord->unsetDeleting() ;
 
+            // unset deleting flag
+            pRecord->unsetDeleting() ;
             ++( pWRExtent->_recCount ) ;
+
+            // latch meta
+            context->metaLatch() ;
+            // update mbStatInfo
             _increaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+            // release meta
+            context->metaUnlatch() ;
          }
          else
          {
+            foundRID.reset() ;
+
+            // latch meta
+            context->metaLatch() ;
+
+            // allocate space
             if ( position >= 0 )
             {
                rc = _allocRecordSpaceByPos( context, dmsRecordSize, position,
@@ -3325,6 +3388,10 @@ namespace engine
             {
                rc = _allocRecordSpace( context, dmsRecordSize, foundRID, cb ) ;
             }
+
+            // release meta
+            context->metaUnlatch() ;
+
             PD_RC_CHECK( rc, PDERROR, "Allocate space for record failed, "
                          "rc: %d", rc ) ;
 
@@ -3379,13 +3446,27 @@ namespace engine
                }
             }
 
+            // latch extent before insert
+            rc = lockExtent( cb, CSLID, mbID, foundRID._extent, EXCLUSIVE ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Lock extent( %d ) failed, rc: %d",
+                         foundRID._extent, rc ) ;
+
+            // latch meta
+            context->metaLatch() ;
+
             // insert to extent
             rc = _extentInsertRecord( context, extRW, recordRW, recordData,
                                       dmsRecordSize, cb, TRUE ) ;
+
+            // release meta
+            context->metaUnlatch() ;
+
             PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
          }
 
          hasInsert = TRUE ;
+
          // update totalInsert monitor counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
          _incWriteRecord() ;
@@ -3401,6 +3482,9 @@ namespace engine
          rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
          goto error ;
       }
+
+      // release extent lock
+      unlockExtent( cb, CSLID, mbID, foundRID._extent ) ;
 
       if ( dpscb )
       {
@@ -3433,6 +3517,20 @@ namespace engine
       }
 
    done:
+      // make sure meta lock is released
+      if ( context->isMetaLatch() )
+      {
+         context->metaUnlatch() ;
+      }
+      // make sure extent latch is released
+      unlockExtent( cb, CSLID, mbID, foundRID._extent ) ;
+
+      // release index latches
+      // index latch is acquired in indexesInsert, indexsUpdate,
+      // and indexesDelete if it is not capped CS/CL and not holding
+      // mblatch X, the same condition is checekd by releaseIndexLatches
+      _pIdxSU->releaseIndexLatches( context, cb ) ;
+
       // release the lock immediately if it is not transaction-operation,
       // the transaction-operation's lock will release in rollback or commit
       if ( isTransLocked && ( transID == DPS_INVALID_TRANS_ID || rc ) )
@@ -3440,6 +3538,7 @@ namespace engine
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID(),
                                      &foundRID, &callback ) ;
       }
+
       if ( 0 != logRecSize )
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
@@ -3455,8 +3554,74 @@ namespace engine
       }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD, rc ) ;
       return rc ;
+
    error:
       ctrlAssist.switchToUndo() ;
+      // release index latches
+      _pIdxSU->releaseIndexLatches( context, cb ) ;
+
+      if ( isCapped() )
+      {
+         // capped CS, the CL is protected by mblatch X
+         // we may release meta latch
+         if ( context->isMetaLatch() )
+         {
+            context->metaUnlatch() ;
+         }
+      }
+      else
+      {
+         // for normal CL, the _onInsertFail calls deleteRecord
+         // when record has been inserted. We release extent latch
+         // and meta latch, since deleteRecord will acquire them
+         // in its code path
+         if ( markInsert ? TRUE : hasInsert )
+         {
+            unlockExtent( cb, CSLID, mbID, foundRID._extent ) ;
+            if ( context->isMetaLatch() )
+            {
+               context->metaUnlatch() ;
+            }
+         }
+         // for normal CL, when record hasn't been inserted,
+         // _onInsertFail calls _saveDeletedRecord to return
+         // the space to deleted list. We need to keep extent
+         // latch on hold and acquire meta latch
+         else if ( foundRID.isValid() )
+         {
+            if ( EXCLUSIVE ==
+                 getExtentLockMode( cb, CSLID, mbID, foundRID._extent ) )
+            {
+               if ( FALSE == context->isMetaLatch() )
+               {
+                  context->metaLatch() ;
+               }
+            }
+            else
+            {
+               if ( SHARED ==
+                    getExtentLockMode( cb, CSLID, mbID, foundRID._extent ) )
+               {
+                  unlockExtent( cb, CSLID, mbID, foundRID._extent ) ;
+               }
+               if ( context->isMetaLatch() )
+               {
+                  context->metaUnlatch() ;
+               }
+
+               INT32 rc2 = lockExtent( cb, CSLID, mbID, foundRID._extent,
+                                       EXCLUSIVE ) ;
+               if ( SDB_OK != rc2 )
+               {
+                  PD_LOG( PDERROR, "Lock extent( %d ) failed, rc: %d",
+                          foundRID._extent, rc2 ) ;
+                  goto error2 ;
+               }
+
+               context->metaLatch() ;
+            }
+         }
+      }
       ( void )_onInsertFail( context, ( markInsert ? TRUE : hasInsert),
                              foundRID, dropDps,
                              (ossValuePtr)insertObj.objdata(),
@@ -3470,6 +3635,7 @@ namespace engine
          }
       }
 
+   error2:
       if ( handler )
       {
          handler->abortOperation( DMS_EXTOPR_TYPE_INSERT, cb ) ;
@@ -3501,7 +3667,7 @@ namespace engine
       dpsTransCB *pTransCB          = pmdGetKRCB()->getTransCB() ;
       monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
       BOOLEAN isDeleting            = FALSE ;
-      BOOLEAN markDeleting          = FALSE ;
+      BOOLEAN markDeleting          = TRUE ;
       dmsRecordID ovfRID ;
       BSONObj delObject ;
       UINT32 logRecSize             = 0 ;
@@ -3523,13 +3689,22 @@ namespace engine
       _sdbRemoteCountAssist countAssist ;
       BOOLEAN needSetTransRC        = FALSE ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      UINT32  CSLID                 = _logicalCSID ;
+      UINT16  mbID                  = context->mbID() ;
+
+      UINT32  extPinCount           = 0 ;
+      BOOLEAN bcanDelete            = FALSE ;
+
+      // mblatch optimization, shared mode for normal IUD
+      // current we shall hold mblatch in S and record lock in X
+      //
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    PD_LOG( PDERROR, "Caller must hold mb shared lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    rc = SDB_SYS ;
+      //    goto error ;
+      // }
 
 #ifdef _DEBUG
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
@@ -3549,6 +3724,15 @@ namespace engine
          relatedLSN = DPS_INVALID_LSN_OFFSET ;
       }
 
+      // extent latch in X
+      rc = lockExtent( cb, CSLID, mbID, recordID._extent, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Lock extent( %d ) failed, rc: %d",
+                   recordID._extent, rc ) ;
+
+      // get extent pinCount while holding extent latch X
+      // the extent pinCount to tell if a table scan
+      // is walking through this extent.
+      extPinCount = _pDMSCB->getExtPinCount( CSLID, mbID, recordID._extent ) ;
       try
       {
          extRW = extent2RW( recordID._extent, context->mbID() ) ;
@@ -3562,7 +3746,14 @@ namespace engine
          }
          else if ( pRecord->isOvt() )
          {
+            // get meta latch
+            context->metaLatch() ;
+
             _extentRemoveRecord( context, extRW, recordRW, cb ) ;
+
+            // release meta latch
+            context->metaUnlatch() ;
+
             goto done ;
          }
          else if ( pRecord->isDeleted() )
@@ -3603,16 +3794,57 @@ namespace engine
             // TRUE, table scan may wait on that record, index scan will
             // not wait on that record lock.
             markDeleting = TRUE ;
+            if ( pInfo && pInfo->_transInsert && ( 0 == extPinCount ) )
+            {
+               markDeleting = FALSE ;
+            }
+         }
+         else if ( 0 == extPinCount  )
+         {
+            markDeleting = FALSE ;
          }
 
          if ( pRecord->isDeleting() )
          {
             isDeleting = TRUE ;
-
-            if ( !hasWaitLock && markDeleting && pInfo &&
-                 pInfo->_refCount == 1 )
+            if ( !hasWaitLock && markDeleting )
             {
-               markDeleting = FALSE ;
+               if ( pInfo )
+               {
+                  // pInfo->_refCount = 1 means, I am locking record in X
+                  if ( 1 == pInfo->_refCount )
+                  {
+                     if ( ( 0 == extPinCount ) ||
+                          ( ( 1 == extPinCount ) && pInfo->_extentPinnedByMe ) )
+                     {
+                        // extPinCount = 0, means no table scan on this extent
+                        // extPinCount = 1 and pInfo->_extentPinnedByMe, means
+                        // I am doing table scan on this extent, i.e., the extent
+                        // is pinned by me
+                        markDeleting = FALSE ;
+                     }
+                  }
+                  // I don't have or acquire record lock
+                  else if ( 0 == pInfo->_refCount )
+                  {
+                     // extPinCount = 0, means no table scan on this extent
+                     if ( 0 == extPinCount )
+                     {
+                        markDeleting = FALSE ;
+                     }
+                  }
+               }
+               // pInfo is NULL, I don't acquire record lock
+               else if ( 0 == extPinCount )
+               {
+                  // extPinCount = 0, means no table scan on this extent
+                  markDeleting = FALSE ;
+               }
+
+               if ( markDeleting )
+               {
+                  goto done ;
+               }
             }
             else if ( markDeleting )
             {
@@ -3738,8 +3970,15 @@ namespace engine
 
                   // if local index delete fail, let's continue remove the record
                }
+
+               // get meta latch
+               context->metaLatch() ;
+
                context->mbStat()->_totalDataLen -= recordData.orgLen() ;
                context->mbStat()->_totalOrgDataLen -= recordData.len() ;
+
+               // release meta latch
+               context->metaUnlatch() ;
             }
             catch ( std::exception &e )
             {
@@ -3753,16 +3992,27 @@ namespace engine
          // delete really
          if ( !markDeleting )
          {
+            // get meta latch
+            context->metaLatch() ;
+
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
                                       !isDeleting ) ;
+            if ( rc )
+            {
+               // release meta latch
+               context->metaUnlatch() ;
 
-            PD_RC_CHECK( rc, PDERROR, "Extent remove record failed, "
-                         "rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Extent remove record failed, rc: %d", rc ) ;
+               goto error ;
+            }
             if ( ovfRID.isValid() )
             {
                dmsRecordRW ovfRW = record2RW( ovfRID, context->mbID() ) ;
                _extentRemoveRecord( context, extRW, ovfRW, cb, FALSE ) ;
             }
+
+            // release meta latch
+            context->metaUnlatch() ;
          }
          // set deleting attr
          else
@@ -3770,8 +4020,16 @@ namespace engine
             pRecord->setDeleting() ;
             // need to dec count
             --( pExtent->_recCount ) ;
+
+            // latch meta
+            context->metaLatch() ;
+
             _decreaseMBStat( context->mb()->_clUniqueID,
                              &( _mbStatInfo[ context->mbID() ] ), cb ) ;
+
+            // release meta lock
+            context->metaUnlatch() ;
+
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
          }
@@ -3789,6 +4047,9 @@ namespace engine
          rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
          goto error ;
       }
+
+      // release extent latch
+      unlockExtent( cb, CSLID, mbID, recordID._extent ) ;
 
       // if we are asked to log
       if ( dpscb && !isDeleting )
@@ -3834,6 +4095,20 @@ namespace engine
       }
 
    done :
+      if ( context->isMetaLatch() )
+      {
+         context->metaUnlatch() ;
+      }
+
+      // release extent latch
+      unlockExtent( cb, CSLID, mbID, recordID._extent ) ;
+
+      // release index latches
+      // index latch is acquired in indexesInsert, indexsUpdate,
+      // and indexesDelete if it is not capped CS/CL and not holding
+      // mblatch X, the same condition is checekd by releaseIndexLatches
+      _pIdxSU->releaseIndexLatches( context, cb ) ;
+
       if ( 0 != logRecSize )
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
@@ -3844,6 +4119,7 @@ namespace engine
          dmsStartAsyncDeleteRecord( CSID(), context->mbID(), logicalID(),
                                     context->clLID(), recordID ) ;
       }
+
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_DELETERECORD, rc ) ;
       return rc ;
    error :
@@ -3869,27 +4145,31 @@ namespace engine
                                               IDmsOprHandler *pHandler,
                                               utilUpdateResult *pResult )
    {
-      INT32 rc                      = SDB_OK ;
+      INT32 rc                  = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD ) ;
-      monAppCB * pMonAppCB          = cb ? cb->getMonAppCB() : NULL ;
+      monAppCB * pMonAppCB      = cb ? cb->getMonAppCB() : NULL ;
       BSONObj oldMatch, oldChg ;
       BSONObj newMatch, newChg ;
       BSONObj oldShardingKey, newShardingKey ;
-      UINT32 logRecSize             = 0 ;
+      UINT32 logRecSize         = 0 ;
       dpsMergeInfo info ;
-      dpsLogRecord &record = info.getMergeBlock().record() ;
-      UINT32 writeMod = DMS_LOG_WRITE_MOD_INCREMENT ;
-      UINT32 *pWriteMod = NULL ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      dpsLogRecord &record      = info.getMergeBlock().record() ;
+      UINT32        writeMod    = DMS_LOG_WRITE_MOD_INCREMENT ;
+      UINT32        *pWriteMod  = NULL ;
+      dpsTransCB   *pTransCB    = pmdGetKRCB()->getTransCB() ;
+
+      UINT32  CSLID             = _logicalCSID ;
+      UINT16  mbID              = context->mbID() ;
+
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
-      DPS_TRANS_ID transID = cb->getTransID() ;
+      DPS_TRANS_ID transID      = cb->getTransID() ;
       DPS_LSN_OFFSET preTransLsn = cb->getCurTransLsn() ;
       DPS_LSN_OFFSET relatedLSN = cb->getRelatedTransLSN() ;
 
       dmsExtRW extRW ;
       dmsRecordRW recordRW ;
       const dmsExtent *pExtent  = NULL ;
-      const dmsRecord *pRecord = NULL ;
+      const dmsRecord *pRecord  = NULL ;
       dmsRecordData recordData ;
       UINT32 textIdxNum = 0 ;
       IDmsExtDataHandler *handler = NULL ;
@@ -3898,13 +4178,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed in permission check of update, rc: %d", rc ) ;
 
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
+      // if ( !context->isMBLock( EXCLUSIVE ) )
+      // {
+      //    PD_LOG( PDERROR, "Caller must hold mb exclusive lock[%s]",
+      //            context->toString().c_str() ) ;
+      //    rc = SDB_SYS ;
+      //    goto error ;
+      // }
 
       if ( !isTransSupport() )
       {
@@ -3912,6 +4192,12 @@ namespace engine
          preTransLsn = DPS_INVALID_LSN_OFFSET ;
          relatedLSN = DPS_INVALID_LSN_OFFSET ;
       }
+
+      // latch extent
+      rc = lockExtent( cb, CSLID, mbID, recordID._extent, EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Lock extent( %d ) failed, rc: %d",
+                   recordID._extent, rc ) ;
 
       try
       {
@@ -4129,6 +4415,9 @@ namespace engine
          goto error ;
       }
 
+      // release extent lock
+      unlockExtent( cb, CSLID, mbID, recordID._extent ) ;
+
       // log update information
       if ( dpscb )
       {
@@ -4168,6 +4457,14 @@ namespace engine
       }
 
    done :
+      unlockExtent( cb, CSLID, mbID, recordID._extent ) ;
+
+      // release index latches
+      // index latch is acquired in indexesInsert, indexsUpdate,
+      // and indexesDelete if it is not capped CS/CL and not holding
+      // mblatch X, the same condition is checekd by releaseIndexLatches
+      _pIdxSU->releaseIndexLatches( context, cb ) ;
+
       if ( 0 != logRecSize )
       {
          pTransCB->releaseLogSpace( logRecSize, cb );
@@ -4191,6 +4488,7 @@ namespace engine
             }
          }
       }
+
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_UPDATERECORD, rc ) ;
       return rc ;
    error :
@@ -4611,6 +4909,54 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATACOMMON__DECMBSTAT ) ;
+   }
+
+
+   INT32 _dmsStorageDataCommon::lockExtent
+   (
+      _pmdEDUCB *          cb,
+      const UINT32         csID,
+      const UINT16         clID,
+      const dmsExtentID    extID,
+      const OSS_LATCH_MODE mode
+   )
+   {
+      INT32 rc = SDB_OK ;
+      if ( ! isCapped() && ( DMS_INVALID_EXTENT != extID ) )
+      {
+         rc = _pDMSCB->lockExtent( cb, csID, clID, extID, mode ) ;
+      }
+      return rc ;
+   }
+
+   void _dmsStorageDataCommon::unlockExtent
+   (
+      _pmdEDUCB *       cb,
+      const UINT32      csID,
+      const UINT16      clID,
+      const dmsExtentID extID
+   )
+   {
+      if ( ! isCapped() && ( DMS_INVALID_EXTENT != extID ) )
+      {
+         _pDMSCB->unlockExtent( cb, csID, clID, extID ) ;
+      }
+   }
+
+   INT8 _dmsStorageDataCommon::getExtentLockMode
+   (
+      _pmdEDUCB *       cb,
+      const UINT32      csID,
+      const UINT16      clID,
+      const dmsExtentID extID
+   )
+   {
+      INT8 result = DPS_TRANSLOCK_MAX ;
+      if ( ! isCapped() && ( DMS_INVALID_EXTENT != extID ) )
+      {
+         result = _pDMSCB->getExtLockMode( cb, csID, clID, extID ) ;
+      }
+      return result ;
    }
 
    /*

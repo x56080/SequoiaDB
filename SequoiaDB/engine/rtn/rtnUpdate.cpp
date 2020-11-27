@@ -357,6 +357,7 @@ namespace engine
    done :
       if ( pScanner )
       {
+         pScanner->stop() ;
          SDB_OSS_DEL pScanner ;
       }
       if ( NULL != cb )

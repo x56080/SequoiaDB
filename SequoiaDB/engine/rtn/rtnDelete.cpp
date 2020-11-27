@@ -271,6 +271,7 @@ namespace engine
    done :
       if ( pScanner )
       {
+         pScanner->stop() ;
          SDB_OSS_DEL pScanner ;
       }
       if ( NULL != cb )
@@ -410,6 +411,10 @@ namespace engine
                rid.resetMin () ;
             }
             rc = scanner->relocateRID ( key, rid ) ;
+
+            // release latch / lock acquired by relocateRID
+            scanner->pauseScan() ;
+
             PD_RC_CHECK ( rc, PDERROR, "Failed to relocate key to the specified "
                           "location: %s, rc: %d", key.toString().c_str(), rc ) ;
          }

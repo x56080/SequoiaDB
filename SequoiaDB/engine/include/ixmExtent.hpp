@@ -52,6 +52,9 @@
 #include "rtnPredicate.hpp"
 #include "utilResult.hpp"
 
+#include "ixmContext.hpp"
+#include "ixmOutsideKeyPageMap.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -61,13 +64,24 @@ namespace engine
    /*
       _ixmKeyNode define
    */
+
+   enum IXM_ADVANCEDOWN_OP_MODE_TYPE
+   {
+      IXM_ADVANCEDOWN_OP_MODE_DEL = 0,
+      IXM_ADVANCEDOWN_OP_MODE_QRY
+   } ;
+
+   #define IXM_KEYNODE_FLAG_OUTSIDEKEY ( UINT8( 0x55 ) ) 
    class _ixmKeyNode : public SDBObject
    {
    public :
       dmsExtentID _left ;
       dmsRecordID _rid ;
       UINT16      _keyOffset ;
-      UINT16      _pad ;
+      UINT8       _flag ;
+      UINT8       _pad ;
+
+      _ixmKeyNode():_flag(0){} 
 
       UINT16 keyDataOffset () const
       {
@@ -92,6 +106,18 @@ namespace engine
       BOOLEAN isUsed() const
       {
          return !isUnused() ;
+      }
+      void SetOutsideKeyFlag()
+      {
+         _flag = IXM_KEYNODE_FLAG_OUTSIDEKEY ;
+      }
+      void clearOutsideKeyFlag()
+      {
+         _flag = 0 ;
+      }
+      BOOLEAN isOutsideKey() const
+      {
+         return ( IXM_KEYNODE_FLAG_OUTSIDEKEY == _flag ) ;
       }
    } ;
    typedef class _ixmKeyNode ixmKeyNode ;
@@ -130,7 +156,7 @@ namespace engine
       ixmOffset   _beginFreeOffset ;
       // current free space
       UINT16      _totalFreeSize ;
-      // right pointer for the B+ tree
+      // right pointer to next page in the B tree
       // DMS_INVALID_EXTENT for leaf page
       dmsExtentID _right ;
    } ;
@@ -143,12 +169,12 @@ namespace engine
    {
    protected:
       const ixmExtentHead  *_extentHead ;
-      dmsExtentID          _me ;
+      dmsExtentID           _me ;  // current page number
       _dmsStorageIndex     *_pIndexSu ;
       dmsPageMap           *_pPageMap ;
-      INT32                _pageSize ;
-
-      dmsExtRW             _extRW ;
+      ixmOutsideKeyPageMap *_pOutKeyPageMap ;
+      INT32                 _pageSize ;
+      dmsExtRW              _extRW ;
 
       // reorganize the extent
       INT32 _reorg (const Ordering &order, UINT16 &newPos) ;
@@ -158,15 +184,24 @@ namespace engine
       INT32 _splitPos ( UINT16 pos, UINT16 &splitPos ) const ;
 
       // this function physically copy key and rid into extent page
-      INT32 _basicInsert ( UINT16 &pos, const dmsRecordID &rid,
-                           const ixmKey &key, const Ordering &order ) ;
+      INT32 _basicInsert ( UINT16            & pos,
+                           const dmsRecordID & rid,
+                           const ixmKey      & key,
+                           const Ordering    & order,
+                           ixmIndexCB        * indexCB,
+                           BOOLEAN bOutsideKey = FALSE ) ;
 
       // this function is called when the page is too small for the new key, it
       // will split the page and do insert
-      INT32 _split ( UINT16 pos, const dmsRecordID &rid,
-                     const ixmKey &key, const Ordering &order,
-                     const dmsExtentID lchild, const dmsExtentID rchild,
-                     ixmIndexCB *indexCB ) ;
+      INT32 _split ( UINT16              pos,
+                     const dmsRecordID & rid,
+                     const ixmKey      & key,
+                     const Ordering    & order,
+                     const dmsExtentID   lchild,
+                     const dmsExtentID   rchild,
+                     ixmIndexCB        * indexCB,
+                     _ixmContext       * pixmContext,
+                     BOOLEAN             bSplitOnly ) ;
 
       enum _ixmExtentValidateLevel
       {
@@ -189,31 +224,70 @@ namespace engine
       void  _assignRight ( const dmsExtentID right ) ;
 
       INT32 _truncate ( UINT16 totalNodes,UINT16 &newPos,const Ordering &order);
-      INT32 _insert ( const dmsRecordID &rid, const ixmKey &key,
-                      const Ordering &order, BOOLEAN dupAllowed,
-                      dmsExtentID lchild, dmsExtentID rchild,
-                      ixmIndexCB *indexCB,
+
+      INT32 _insert ( const dmsRecordID &rid,
+                      const ixmKey      &key,
+                      const Ordering    &order,
+                      BOOLEAN           dupAllowed,
+                      dmsExtentID       lchild,
+                      dmsExtentID       rchild,
+                      ixmIndexCB       *indexCB,
+                      UINT32 & depth,      // current level of an index tree
+                      UINT32 & xLockLevel, // level need to start getting X lock
+                      _ixmContext     *pixmContext,
                       utilWriteResult *pResult = NULL ) ;
+
       INT32 _delKeyAtPos ( UINT16 pos ) ;
-      INT32 _delKeyAtPos ( UINT16 pos, const Ordering &order,
-                           ixmIndexCB *indexCB ) ;
+
+      INT32 _delKeyAtPos ( UINT16 pos,
+                           const Ordering &order,
+                           ixmIndexCB *indexCB,
+                           _ixmContext * pixmContext ) ;
+
       INT32 _mayBalanceWithNeighbors ( const Ordering &order,
                                        ixmIndexCB *indexCB,
                                        BOOLEAN &result ) ;
+
       INT32 _delExtent ( ixmIndexCB *indexCB ) ;
+
       INT32 _findChildExtent ( dmsExtentID childExtent, UINT16 &pos ) const ;
-      INT32 _deleteInternalKey ( UINT16 pos, const Ordering &order,
-                                 ixmIndexCB *indexCB ) ;
-      INT32 _setInternalKey ( UINT16 pos, const dmsRecordID &rid,
-                              const ixmKey &key,
-                              const Ordering &order, dmsExtentID lchild,
-                              dmsExtentID rchild, ixmIndexCB *indexCB ) ;
+
+      INT32 _deleteInternalKey ( UINT16           pos,
+                                 const Ordering & order,
+                                 ixmIndexCB     * indexCB,
+                                 _ixmContext    * pixmContext ) ;
+
+      INT32 _setInternalKey ( UINT16              pos,
+                              const dmsRecordID & rid,
+                              const ixmKey      & key,
+                              const Ordering    & order,
+                              dmsExtentID         lchild,
+                              dmsExtentID         rchild,
+                              ixmIndexCB        * indexCB,
+                              _ixmContext       * pixmContext ) ;
+
       INT32 _doMergeChildren ( UINT16 pos, const Ordering &order,
                                ixmIndexCB *indexCB, BOOLEAN &result ) ;
-      INT32 _locate ( const ixmKey &key, const dmsRecordID &rid,
-                      const Ordering &order, ixmRecordID &indexrid,
-                      BOOLEAN &found, INT32 direction,
-                      const ixmIndexCB *indexCB ) const ;
+
+      INT32 _locate ( const ixmKey      & key,
+                      const dmsRecordID & rid,
+                      const Ordering    & order,
+                      ixmRecordID       & indexrid,
+                      BOOLEAN           & found,
+                      INT32               direction,
+                      ixmIndexCB        * indexCB,
+                      _ixmContext       * pixmContext ) const ;
+
+      INT32 _locateForDelete ( const ixmKey      & key,
+                               const dmsRecordID & rid,
+                               const Ordering    & order,
+                               ixmRecordID       & indexrid,
+                               BOOLEAN           & found,
+                               INT32               direction,
+                               ixmIndexCB        * indexCB,
+                               UINT32            & depth,
+                               UINT32            & xLockLevel,
+                               _ixmContext       * pixmContext ) ;
 
       INT32 _keyFind ( UINT16 low, UINT16 high, const BSONObj &prevKey,
                        INT32 keepFieldsNum, BOOLEAN skipToNext,
@@ -223,6 +297,37 @@ namespace engine
                        INT32 direction,
                        ixmRecordID &bestIxmRID,
                        dmsExtentID &resultExtent, _pmdEDUCB *cb ) const ;
+
+      INT32 _advanceDown ( ixmRecordID & keyRID,
+                           INT32         direction,
+                           _ixmContext * pixmContext,
+                           IXM_ADVANCEDOWN_OP_MODE_TYPE opMode
+                              = IXM_ADVANCEDOWN_OP_MODE_QRY ) const  ;
+
+      INT32 _doSplitIfOutsideKeyExist( const dmsRecordID & rid,
+                                       const ixmKey      & key,
+                                       const Ordering    & order,
+                                       UINT16              pos,
+                                       INT8              & currentPageLockMode,
+                                       INT8              & parentPageLockMode,
+                                       ixmIndexCB        * indexCB,
+                                       const UINT32        depth,
+                                       UINT32            & xLockLevel,
+                                       _ixmContext       * pixmContext ) ;
+
+      // internal function to clean up outside key by splitting that index page
+      INT32 _cleanUpOutsideKey ( const dmsRecordID & rid,
+                                 const ixmKey      & key,
+                                 const Ordering    & order,
+                                 dmsExtentID         pageToSplit,
+                                 BOOLEAN             dupAllowed,
+                                 dmsExtentID         lchild,
+                                 dmsExtentID         rchild,
+                                 ixmIndexCB        * indexCB,
+                                 UINT32            & depth,
+                                 UINT32            & xLockLevel,
+                                 _ixmContext       * pixmContext ) ;
+
    public:
       // currentKey is the key from current disk location that trying to
       // be matched
@@ -284,7 +389,60 @@ namespace engine
          {
             return NULL ;
          }
-         return (const CHAR*)_extentHead+getKeyNode(i)->_keyOffset ;
+         {
+            ixmKeyNode *kn = ( ixmKeyNode *)getKeyNode(i) ;
+            if ( kn->isOutsideKey() )
+            {
+               imxOutsideKey outKey, dummy ;
+               if ( _pOutKeyPageMap->findItem( _me, &outKey ) )
+               {
+#if defined (_DEBUG)
+                  ixmKey key( outKey._keyObjPtr.get() ) ;
+                  PD_LOG ( PDWARNING,
+                           "getKeyData: outside key, "
+                           "pageId:%d,  key addr:%x"OSS_NEWLINE
+                           "Keynode[%d]"OSS_NEWLINE
+                           "  _left     : %d"OSS_NEWLINE
+                           "  _rid      : ( %d,%d )"OSS_NEWLINE
+                           "  _keyOffset: %d"OSS_NEWLINE
+                           "  _flag     : %d"OSS_NEWLINE
+                           "  key value : %s"OSS_NEWLINE,
+                           _me, outKey._keyObjPtr.get(),
+                           i,
+                           kn->_left,
+                           kn->_rid._extent, kn->_rid._offset,
+                           kn->_keyOffset,
+                           kn->_flag,
+                           key.toString( FALSE, TRUE ).c_str() ) ; 
+#endif
+                  const CHAR * pResult = (const CHAR*)(outKey._keyObjPtr.get()) ;
+                  outKey = dummy ;
+                  return pResult ;
+               } 
+               else
+               {
+                  PD_LOG ( PDERROR,
+                           "Doesn't find key in map, pageId:%d"OSS_NEWLINE
+                           "Keynode[%d]"OSS_NEWLINE
+                           "  _left     : %d"OSS_NEWLINE
+                           "  _rid      : ( %d,%d )"OSS_NEWLINE
+                           "  _keyOffset: %d"OSS_NEWLINE
+                           "  _flag     : %d"OSS_NEWLINE ,
+                           _me,
+                           i,
+                           kn->_left,
+                           kn->_rid._extent, kn->_rid._offset,
+                           kn->_keyOffset,
+                           kn->_flag ) ;
+                  ossPanic() ;
+                  return NULL ;
+               }
+            }
+            else
+            {
+               return (const CHAR*)_extentHead + kn->_keyOffset ;
+            }
+         }
       }
       OSS_INLINE CHAR *writeKeyData( UINT16 i )
       {
@@ -295,6 +453,7 @@ namespace engine
          CHAR *pHeader = _extRW.writePtr( 0, _pageSize ) ;
          return pHeader + getKeyNode(i)->_keyOffset ;
       }
+
       OSS_INLINE UINT16 getFreeSize() const
       {
          return _extentHead->_totalFreeSize ;
@@ -382,33 +541,74 @@ namespace engine
                    INT32 &keyFoundPos,
                    BOOLEAN &sameFound ) const ;
 
-      INT32 locate ( const BSONObj &key, const dmsRecordID &rid,
-                     const Ordering &order, ixmRecordID &indexrid,
-                     BOOLEAN &found, INT32 direction,
-                     const ixmIndexCB *indexCB ) const ;
+      INT32 locate ( const BSONObj     & key,
+                     const dmsRecordID & rid,
+                     const Ordering    & order,
+                     ixmRecordID       & indexrid,
+                     BOOLEAN           & found,
+                     INT32               direction,
+                     ixmIndexCB        * indexCB,
+                     _ixmContext       * pixmContext ) const ;
 
       // actual insert into the ixmExtent at given pos
-      INT32 insertHere ( UINT16 pos, const dmsRecordID &rid, const ixmKey &key,
-                         const Ordering &order, dmsExtentID lchild,
-                         dmsExtentID rchild,
-                         ixmIndexCB *indexCB ) ;
+      INT32 insertHere ( UINT16              pos,
+                         const dmsRecordID & rid,
+                         const ixmKey      & key,
+                         const Ordering    & order,
+                         dmsExtentID         lchild,
+                         dmsExtentID         rchild,
+                         ixmIndexCB        * indexCB,
+                         _ixmContext       * pixmContext ) ;
 
-      INT32 unindex ( const ixmKey &key, const dmsRecordID &rid,
-                      const Ordering &order, ixmIndexCB *indexCB,
-                      BOOLEAN &result ) ;
-      INT32 advance ( ixmRecordID &keyRID, INT32 direction ) const ;
-      INT32 exists ( const ixmKey &key, const Ordering &order,
-                     const ixmIndexCB *indexCB, BOOLEAN &result ) const ;
+      INT32 unindex ( const ixmKey      & key,
+                      const dmsRecordID & rid,
+                      const Ordering    & order,
+                      ixmIndexCB        * indexCB,
+                      BOOLEAN           & result,
+                      UINT32            & xLockLevel,
+                      _ixmContext       * pixmContext ) ;
+
+      INT32 advance ( ixmRecordID & keyRID,
+                      INT32         direction,
+                      _ixmContext * pixmContext ) const ;
+
+      INT32 exists ( const ixmKey   & key,
+                     const Ordering & order,
+                     ixmIndexCB     * indexCB,
+                     BOOLEAN        & result,
+                     _ixmContext    * pixmContext ) const ;
+
       dmsExtentID getRoot() const ;
-      INT32 findSingle ( const ixmKey &key, const Ordering &order,
-                         dmsRecordID &rid, ixmIndexCB *indexCB ) const ;
+
+      INT32 findSingle ( const ixmKey   & key,
+                         const Ordering & order,
+                         dmsRecordID    & rid,
+                         ixmIndexCB     * indexCB,
+                         _ixmContext    * pixmContext ) const ;
+
       // syncronized insert, insert a key and rid into index
-      INT32 insert ( const ixmKey &key, const dmsRecordID &rid,
-                     const Ordering &order, BOOLEAN dupAllowed,
-                     ixmIndexCB *indexCB,
-                     utilWriteResult *pResult = NULL ) ;
+      INT32 insert ( const ixmKey      & key,
+                     const dmsRecordID & rid,
+                     const Ordering    & order,
+                     BOOLEAN             dupAllowed,
+                     ixmIndexCB        * indexCB,
+                     UINT32            & xLockLevel,
+                     _ixmContext       * pixmContext,
+                     utilWriteResult   * pResult = NULL ) ;
+
+      // clean up the outside key by splitting that index page
+      INT32 cleanUpOutsideKey ( const ixmKey      & key,
+                                const dmsRecordID & rid,
+                                const Ordering    & order,
+                                dmsExtentID         pageToSplit,
+                                BOOLEAN             dupAllowed,
+                                ixmIndexCB        * indexCB,
+                                UINT32            & xLockLevel,
+                               _ixmContext        * pixmContext ) ;
+
       // wipe out everything in the extent and all child extents
       void truncate ( ixmIndexCB *indexCB, dmsExtentID parent, BOOLEAN &valid) ;
+
       // get the total number of elements in the index node and all children
       UINT64 count() const ;
 
@@ -439,22 +639,31 @@ namespace engine
       //   B.2) if first key is greater than prevKey, rid unchange and scan most
       //   left pointer
       //   B.3) in other condition,do binary search using keyFind and scan child
-      INT32 keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
-                        INT32 keepFieldsNum, BOOLEAN skipToNext,
-                        const VEC_ELE_CMP &matchEle,
-                        const VEC_BOOLEAN &matchInclusive,
-                        const Ordering &o, INT32 direction,
-                        _pmdEDUCB *cb ) const ;
-      INT32 keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
-                         INT32 keepFieldsNum, BOOLEAN skipToNext,
-                         const VEC_ELE_CMP &matchEle,
-                         const VEC_BOOLEAN &matchInclusive,
-                         const Ordering &o, INT32 direction,
-                         _pmdEDUCB *cb ) const ;
+      INT32 keyLocate ( ixmRecordID       & rid,
+                        const BSONObj     & prevKey,
+                        INT32               keepFieldsNum,
+                        BOOLEAN             skipToNext,
+                        const VEC_ELE_CMP & matchEle,
+                        const VEC_BOOLEAN & matchInclusive,
+                        const Ordering    & o,
+                        INT32               direction,
+                        _pmdEDUCB         * cb,
+                        _ixmContext       * pixmContext ) const ;
+
+      INT32 keyAdvance ( ixmRecordID       & rid,
+                         const BSONObj     & prevKey,
+                         INT32               keepFieldsNum,
+                         BOOLEAN             skipToNext,
+                         const VEC_ELE_CMP & matchEle,
+                         const VEC_BOOLEAN & matchInclusive,
+                         const Ordering    & o,
+                         INT32               direction,
+                         _pmdEDUCB         * cb,
+                         _ixmContext       * pixmContext ) const ;
+
       INT32 dumpIndexExtentIntoLog() const ;
    } ;
    typedef class _ixmExtent ixmExtent ;
 }
 
 #endif //IXMEXTENT_HPP_
-

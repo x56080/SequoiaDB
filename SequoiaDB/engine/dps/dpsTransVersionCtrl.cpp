@@ -174,6 +174,7 @@ namespace engine
       preIdxTree implement
    */
    preIdxTree::preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB )
+     : _latch( MON_LATCH_PREIDXTREE_LATCH )
    {
       _isValid = TRUE ;
       _idxLID = idxID ;
@@ -183,6 +184,7 @@ namespace engine
 
    // copy constructor
    preIdxTree::preIdxTree( const preIdxTree &intree )
+     : _latch( MON_LATCH_PREIDXTREE_LATCH )
    {
       _idxLID = intree._idxLID ;
       _keyPattern = intree._keyPattern ;
@@ -190,9 +192,9 @@ namespace engine
       _isValid = intree._isValid ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
    }
-   
+
    // destructor
-   preIdxTree::~preIdxTree() 
+   preIdxTree::~preIdxTree()
    {
       if ( NULL != _order )
       {
@@ -282,6 +284,10 @@ namespace engine
          goto error ;
       }
 
+      PD_LOG( PDDEBUG, 
+              "insert to index tree(%d) with key[%s], hasLock: %d",
+              _idxLID,
+              keyNode.toString().c_str(), hasLock ) ;
       // insert the pair into the map(tree)
       if( !hasLock )
       {
@@ -400,6 +406,12 @@ namespace engine
          SDB_ASSERT( oldVer->idxLidExist( getLID() ),
                      "LID is not exist" ) ;
 
+         PD_LOG( PDDEBUG,
+                 "insert to idxSet and index tree(%d) with key[%s], hasLock:%d",
+                 myIdxObj.getIdxLID(),
+                 keyNode.toString().c_str(), hasLock ) ;
+
+
          // insert to both idxset(oldVer) and idxTree
          if( oldVer->insertIdx( myIdxObj ) )
          {
@@ -408,8 +420,8 @@ namespace engine
          else
          {
             rc = SDB_SYS ;
-            SDB_ASSERT( SDB_OK == rc, "Index tree's node is inconsistency with "
-                        "OldVer" ) ;
+            SDB_ASSERT( SDB_OK == rc,
+                        "Index tree's node is inconsistency with OldVer" ) ;
             goto error ;
          }
       }
@@ -449,6 +461,9 @@ namespace engine
 
       SDB_ASSERT( keyNode.isValid(), "KeyNode is invalid" ) ;
 
+      PD_LOG( PDDEBUG, 
+              "remove from index tree(%d) with key[%s], hasLock: %d",
+              _idxLID, keyNode.toString().c_str(), hasLock ) ;
       if ( !hasLock )
       {
          lockX() ;

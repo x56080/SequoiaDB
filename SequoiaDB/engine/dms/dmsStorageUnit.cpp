@@ -1654,18 +1654,29 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
       PD_TRACE_ENTRY ( SDB__DMSSU_UPDATERECORDS ) ;
+      INT32   mbLatchMode          = SHARED ;
+
+      // FIXME:
+      // For normal collection take mbLock SHARED mode
+      // for capped CL still take mbLock EXCLUSIVE mode
+      SDB_ASSERT( _pDataSu, "_pDataSu can't be NULL" ) ;
+      if ( DMS_STORAGE_CAPPED == type() )  
+      {
+         mbLatchMode = EXCLUSIVE ;
+      }
+
       if ( NULL == context )
       {
          SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
 
-         rc = _pDataSu->getMBContext( &context, pName, EXCLUSIVE ) ;
+         rc = _pDataSu->getMBContext( &context, pName, mbLatchMode ) ;
          PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                       "rc: %d", pName, rc ) ;
          getContext = TRUE ;
       }
       else
       {
-         rc = context->mbLock( EXCLUSIVE ) ;
+         rc = context->mbLock( mbLatchMode ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       }
 
@@ -1723,18 +1734,30 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
       PD_TRACE_ENTRY ( SDB__DMSSU_DELETERECORDS ) ;
+
+      INT32   mbLatchMode          = SHARED ;
+
+      // FIXME:
+      // For normal collection take mbLock SHARED mode
+      // for capped CL still take mbLock EXCLUSIVE mode
+      SDB_ASSERT( _pDataSu, "_pDataSu can't be NULL" ) ;
+      if ( DMS_STORAGE_CAPPED == type() )
+      {
+         mbLatchMode = EXCLUSIVE ;
+      }
+
       if ( NULL == context )
       {
          SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
 
-         rc = _pDataSu->getMBContext( &context, pName, EXCLUSIVE ) ;
+         rc = _pDataSu->getMBContext( &context, pName, mbLatchMode ) ;
          PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
                       "rc: %d", pName, rc ) ;
          getContext = TRUE ;
       }
       else
       {
-         rc = context->mbLock( EXCLUSIVE ) ;
+         rc = context->mbLock( mbLatchMode ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       }
 

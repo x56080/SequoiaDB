@@ -286,6 +286,7 @@ namespace engine
       }
 
    done:
+      tbScanner.stop();
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CREATEDICT, rc ) ;
       return rc ;
    error:

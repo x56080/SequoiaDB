@@ -46,6 +46,8 @@
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
 
+#include "ixmOutsideKeyPageMap.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -58,13 +60,15 @@ namespace engine
    class _dmsMBContext ;
    class _ixmKey ;
    class _dmsDupKeyProcessor ;
+   class _ixmContext ;
 
    #define DMS_INDEXSU_EYECATCHER         "SDBIDX"
    #define DMS_INDEXSU_CUR_VERSION        1
 
    class _dmsExtraRecord : public SDBObject
    {
-   public:
+   public
+:
       _dmsExtraRecord( const CHAR *clName, BSONObj record, BOOLEAN isInsert )
       {
          _clName = clName ;
@@ -149,6 +153,7 @@ namespace engine
 
          dmsPageMapUnit*   getPageMapUnit() ;
          dmsPageMap*       getPageMap( UINT16 mbID ) ;
+         ixmOutsideKeyPageMap* getIXMOutsideKeyPageMap() ;
 
       public:
          // reserve a signal page
@@ -225,6 +230,22 @@ namespace engine
 
          INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
 
+         // get correlate data SU logical CSID
+         UINT32   getDatalogicalCSID() ;
+         // get correlate data SU CSID
+         UINT32   getDataCSID() ;
+         // clean up outside key by splitting index page
+         INT32    cleanUpIndexPage( _dmsMBContext * context,
+                                    _pmdEDUCB     * cb,
+                                    INT32           indexLID,
+                                    UINT32          indexPage ) ;
+         // clean up outside keys of all index pages
+         INT32 cleanUpAllIndexPages() ;
+
+         // release all index key latches
+         void     releaseIndexLatches( _dmsMBContext * context,
+                                       _pmdEDUCB * cb ) ;
+
       private:
          INT32    _createIndex( _dmsMBContext *context,
                                 const BSONObj &index,
@@ -264,6 +285,7 @@ namespace engine
                                  const Ordering& order,
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
                                  BOOLEAN dropDups,
+                                 _ixmContext * pixmContext,
                                  utilWriteResult *pResult = NULL ) ;
 
          INT32    _indexInsert ( _dmsMBContext *context, _ixmIndexCB *indexCB,
@@ -285,6 +307,10 @@ namespace engine
                                  _pmdEDUCB *cb,
                                  IDmsOprHandler *pOprHandle ) ;
 
+         INT32    _lockIndexRoot( _ixmIndexCB *indexCB,
+                                  _ixmContext *pixmContext,
+                                  dmsExtentID &rootPage,
+                                  BOOLEAN latchRootPageOnX ) ;
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
                                        BSONObj &record ) ;
 
@@ -315,6 +341,31 @@ namespace engine
                                         BSONObj &inputObj,
                                         _pmdEDUCB *cb,
                                         utilWriteResult *pResult = NULL ) ;
+         // calculate index key hash
+         UINT32   _indexKeyHash( _ixmKey & key,
+                                 UINT32    csID,
+                                 UINT32    mbID,
+                                 UINT32    indexLID ) ;
+         // latch all index keys saved in map
+         INT32    _latchIndexes( _dmsMBContext * context,
+                                 dmsExtentID     extLID,
+                                 BSONObj       & inputObj,
+                                 _pmdEDUCB     * cb ) ;
+         // latch all index keys saved in map
+         INT32    _latchIndexes( _dmsMBContext * context,
+                                 dmsExtentID     extLID,
+                                 BSONObj       & originalObj,
+                                 BSONObj       & newObj,
+                                 _pmdEDUCB     * cb ) ;
+         // add index key latch bucket id into map
+         INT32    _addIdxLatchHashId( _ixmIndexCB * indexCB,
+                                      _pmdEDUCB   * cb,
+                                      BSONObj     & inputObj ) ;
+         // add index key latch bucket id into map
+         INT32    _addIdxLatchHashId( _ixmIndexCB * indexCB,
+                                      _pmdEDUCB   * cb,
+                                      BSONObj     & originalObj,
+                                      BSONObj     & newObj ) ;
 
          BOOLEAN  _needProcessGlobalIndex( _pmdEDUCB *cb ) ;
 
@@ -349,6 +400,7 @@ namespace engine
          _dmsStorageData         *_pDataSu ;
          dmsPageMapUnit          _mbPageInfo ;
          INT32                   _idxKeySizeMax ; // max size of index key value
+         ixmOutsideKeyPageMap    _ixmPageMap ;
 
       friend class _dmsIndexBuilder ;
    };

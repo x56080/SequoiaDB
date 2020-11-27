@@ -66,6 +66,7 @@ namespace engine
       _pContext = context ;
       _extentID = extentID ;
       _pageSize = _pIndexSu->pageSize () ;
+      _clLID    = DMS_INVALID_EXTENT ;
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr( extentID,
                                                                    1 ) ;
       _init() ;
@@ -91,6 +92,8 @@ namespace engine
       _pContext = context ;
       _extentID = extentID ;
       _pageSize = _pIndexSu->pageSize() ;
+
+      _clLID    = DMS_INVALID_EXTENT ;
 
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr ( extentID,
                                                                     1 ) ;
@@ -193,6 +196,13 @@ namespace engine
                                              _pContext->mbID() ) ;
       ixmIndexCBExtent *pExtent = extRW.writePtr<ixmIndexCBExtent>() ;
       pExtent->_logicID = logicalID ;
+   }
+
+   void _ixmIndexCB::setCLLID( UINT32 clLID )
+   {
+      SDB_ASSERT ( _isInitialized,
+                   "index details must be initialized first" ) ;
+      _clLID = clLID ;
    }
 
    void _ixmIndexCB::clearLogicID()

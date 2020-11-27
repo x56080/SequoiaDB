@@ -55,9 +55,17 @@ namespace engine
    enum LOCKMGR_TYPE
    {
       LOCKMGR_TRANS_LOCK = 0,
-      LOCKMGR_INDEX_LOCK
+      LOCKMGR_INDEX_LOCK ,
+      LOCKMGR_EXTENT_LOCK
    } ;
-   #define LOCKMGR_TYPE_MAX ( 2 )
+   #define LOCKMGR_TYPE_MAX ( 3 )
+
+   enum LOCKMGR_LRB_QUE_TYPE
+   {
+      LOCKMGR_LRB_QUE_OWNER         = 0,
+      LOCKMGR_LRB_QUE_UPGRADE,
+      LOCKMGR_LRB_QUE_WAITER
+   } ;
 
    // trans lock bucket, 524287 ( a prime number close to 524288 )
    #define DPS_TRANS_LOCKBUCKET_SLOTS_MAX ( (UINT32) 524287 )
@@ -66,6 +74,8 @@ namespace engine
    // the table, so we take 524288 / 4 = 131072 as the size of
    // the index lock bucket
    #define DPS_INDEX_LOCKBUCKET_SLOTS_MAX ( (UINT32) 131071 )
+   // take the extent lock bucket with same value as index lock
+   #define DPS_EXTENT_LOCKBUCKET_SLOTS_MAX ( (UINT32) 131071 ) 
 
    #define DPS_LOCK_INVALID_BUCKET_SLOT  ( (UINT32) -1 )
 
@@ -147,7 +157,23 @@ namespace engine
          const dpsTransLockId     & lockId,
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL
+         _dpsITransLockCallback   * callback      = NULL
+      ) ;
+
+      // try to acquire a lock with given mode.
+      // If a lock can't be acquired right away, the request will be added
+      // to waiter/upgrade queue and wait for the lock till it be waken up,
+      // lock waiting timeout elapsed, or be interrupted. When it is woken up,
+      // it will NOT try to acquire the lock again. It will always pause
+      // context if the lock is not acquired
+      INT32 tryAcquireAndWait
+      (
+         _dpsTransExecutor        * dpsTxExectr,
+         const dpsTransLockId     & lockId,
+         const DPS_TRANSLOCK_TYPE   requestLockMode,
+         _IContext                * pContext      = NULL,
+         dpsTransRetInfo          * pdpsTxResInfo = NULL,
+         _dpsITransLockCallback   * callback      = NULL
       ) ;
 
       // test if a lock with give lock mode can be acquired, higher level intent
@@ -162,7 +188,7 @@ namespace engine
          const DPS_TRANSLOCK_TYPE   requestLockMode,
          const BOOLEAN              isPreemptMode = FALSE,
          dpsTransRetInfo          * pdpsTxResInfo = NULL,
-         _dpsITransLockCallback   * callback = NULL,
+         _dpsITransLockCallback   * callback      = NULL,
          BOOLEAN                    needIntentLock = TRUE
       ) ;
 
@@ -220,8 +246,7 @@ namespace engine
       (
          _dpsTransExecutor    * dpsTxExectr,
          const dpsTransLockId & lockId,
-         INT8                 & owningLockMode,
-         UINT32               & refCount
+         INT8                 & owningLockMode
       ) ;
 
    private:
@@ -274,15 +299,17 @@ namespace engine
          const dpsTransLRB *       lrbBegin,
          _dpsTransExecutor *       dpsTxExectr,
          const DPS_TRANSLOCK_TYPE  requestLockMode,
-         dpsTransLRB     *       & pLRBIncompatible
+         dpsTransLRB     *       & pLRBIncompatible,
+         BOOLEAN                   bSortedAndSUXModeList
       ) ;
 
 
       // add a LRB at the end of the queue ( waiter or upgrade list )
       void _addToLRBListTail
       (
-         dpsTransLRB * & lrbBegin,
-         dpsTransLRB *   idxNew
+         LOCKMGR_LRB_QUE_TYPE   queueType,
+         dpsTransLRB *        & lrbBegin,
+         dpsTransLRB *          lrbNew
       ) ;
 
       // add a LRB at the beginning of the queue ( owner list )
@@ -313,12 +340,13 @@ namespace engine
       //  . the pointer of first incompatible LRB
       void _searchOwnerLRBList
       (
-         const _dpsTransExecutor * dpsTxExectr,
-         const DPS_TRANSLOCK_TYPE  lockMode,
-         dpsTransLRB *             lrbBegin,
-         dpsTransLRB *           & pLRBToInsert,
-         dpsTransLRB *           & pLRBIncompatible,
-         dpsTransLRB *           & pLRBOwner
+         const _dpsTransExecutor *    dpsTxExectr,
+         DPS_TRANSLOCK_OP_MODE_TYPE   opMode,
+         const DPS_TRANSLOCK_TYPE     lockMode,
+         dpsTransLRB *                lrbBegin,
+         dpsTransLRB *              & pLRBToInsert,
+         dpsTransLRB *              & pLRBIncompatible,
+         dpsTransLRB *              & pLRBOwner
       ) ;
 
       // search owner LRB list, and find
@@ -361,8 +389,9 @@ namespace engine
       // remove a LRB from a LRB list ( owner, waiter, upgrade list )
       void _removeFromLRBList
       (
-         dpsTransLRB * & idxBegin,
-         dpsTransLRB *   lrb
+         LOCKMGR_LRB_QUE_TYPE   queueType,
+         dpsTransLRB *        & lrbBegin,
+         dpsTransLRB *          lrb
       ) ;
 
       // remove LRB from waiter or upgrade queue/list,
@@ -372,7 +401,9 @@ namespace engine
          _dpsTransExecutor    * dpsTxExectr,
          const dpsTransLockId & lockId,
          const UINT32           bktIdx,
-         const BOOLEAN          removeLRBHeader
+         const BOOLEAN          removeLRBHeader,
+         const BOOLEAN          bSortedAndSUXModeList,
+         const BOOLEAN          bTryAndWait
       ) ;
 
 
@@ -481,6 +512,7 @@ namespace engine
       BOOLEAN                _autoUpperLockOp ;
    } ;
    typedef class dpsTransLockManager ixmIndexLockManager ;
+   typedef class dpsTransLockManager dmsExtentLockManager ;
 }
 
 #endif // DPSTRANSLOCKMANAGER_HPP_

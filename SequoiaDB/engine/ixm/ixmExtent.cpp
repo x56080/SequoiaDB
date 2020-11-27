@@ -44,12 +44,16 @@
 #include "dmsStorageUnit.hpp"
 #include "dmsDump.hpp"
 #include "pdTrace.hpp"
-#include "ixmTrace.hpp"
+#include "ixmTrace.hpp" //include ixmTrace
+
+#include "ixmContext.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
+   // index tree level starting from 0
+   #define IXM_X_LOCK_START_LEVEL ( 2 )
 
    // create new extent id without parent
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT2, "_ixmExtent::_ixmExtent" )
@@ -63,6 +67,8 @@ namespace engine
       _pIndexSu = pIndexSu ;
       _pPageMap = _pIndexSu->getPageMap( mbID ) ;
       _pageSize = _pIndexSu->pageSize() ;
+
+      _pOutKeyPageMap = _pIndexSu->getIXMOutsideKeyPageMap() ; 
 
       pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       _extentHead = (const ixmExtentHead*)pHeader ;
@@ -95,6 +101,9 @@ namespace engine
       _extRW = pIndexSu->extent2RW( extentID, -1 ) ;
       _pIndexSu = pIndexSu ;
       _pageSize = _pIndexSu->pageSize() ;
+
+      _pOutKeyPageMap = _pIndexSu->getIXMOutsideKeyPageMap() ; 
+
       _me = extentID ;
       _extentHead = _extRW.readPtr<ixmExtentHead>( 0, _pageSize ) ;
       /// set collection id
@@ -259,13 +268,22 @@ namespace engine
    }
 
    // syncronized insert, insert a key and rid into index
-   INT32 _ixmExtent::insert ( const ixmKey &key, const dmsRecordID &rid,
-                              const Ordering &order, BOOLEAN dupAllowed,
-                              ixmIndexCB *indexCB,
-                              utilWriteResult *pResult )
+   INT32 _ixmExtent::insert ( const ixmKey      & key,
+                              const dmsRecordID & rid,
+                              const Ordering    & order,
+                              BOOLEAN             dupAllowed,
+                              ixmIndexCB        * indexCB,
+                              UINT32            & xLockLevel,
+                              _ixmContext       * pixmContext,
+                              utilWriteResult   * pResult )
    {
+      // make sure current page is locked
+      SDB_DASSERT( pixmContext->isLocking( _me ),
+                   "Doesn't have lock on index page !" ) ;
+      UINT32 depth = 0 ;
       return _insert ( rid, key, order, dupAllowed, DMS_INVALID_EXTENT,
-                       DMS_INVALID_EXTENT, indexCB, pResult ) ;
+                       DMS_INVALID_EXTENT, indexCB,
+                       depth, xLockLevel, pixmContext, pResult ) ;
    }
 
    // This function is the wrapper for _basicInsert and _split, depends on
@@ -285,29 +303,87 @@ namespace engine
    //                into parent during split
    //   indexCB    : index control block
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_INSERTHERE, "_ixmExtent::insertHere" )
-   INT32 _ixmExtent::insertHere ( UINT16 pos, const dmsRecordID &rid,
-                                  const ixmKey &key, const Ordering &order,
-                                  dmsExtentID lchild, dmsExtentID rchild,
-                                  ixmIndexCB *indexCB )
+   INT32 _ixmExtent::insertHere ( UINT16              pos,
+                                  const dmsRecordID & rid,
+                                  const ixmKey      & key,
+                                  const Ordering    & order,
+                                  dmsExtentID         lchild,
+                                  dmsExtentID         rchild,
+                                  ixmIndexCB        * indexCB,
+                                  _ixmContext       * pixmContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_INSERTHERE ) ;
 
+      _ixmLockInfo currentPage( _me ), parentPage( getParent() ) ; 
+
+      // the caller must have X lock on current page
+      SDB_DASSERT( ( pixmContext->getLockHeldInfo( currentPage ) &&
+                   ( DPS_TRANSLOCK_X == currentPage.lockMode ) ),
+                   "Doesn't have X lock on current page !" ) ;
+
+      // get the child extent id for pos, as _basicInsert
+      // calls _reorg in its code path, where pos may be changed
+      dmsExtentID ch = getChildExtentID ( pos ) ;
+
       // attempt to physically insert the key into page
       // if there's no space in the page, it will attempt to reorg the page
       // first, if still not enough space it will return SDB_IXM_NOSPC
-      rc = _basicInsert ( pos, rid, key, order ) ;
+      rc = _basicInsert ( pos, rid, key, order, indexCB, FALSE ) ;
       if ( rc )
       {
-         // if there's no space in the extent, let's split and insert
          if ( SDB_IXM_NOSPC == rc )
          {
-            rc = _split ( pos, rid, key, order, lchild, rchild, indexCB ) ;
-            goto done ;
+            // if _reorg is called in _basicInsert code path
+            // the pos might be changed, so return with
+            // SDB_IXM_REORG_DONE and retry to avoid inserting
+            // into wrong position
+            if ( getChildExtentID( pos ) != ch )
+            {
+               rc = SDB_IXM_REORG_DONE ;
+               goto error ;
+            }
+
+            // try acquire X lock on parent page
+            if ( parentPage.isValid() )
+            {
+               rc = ixmTryLock( pixmContext, parentPage.page, DPS_TRANSLOCK_X );
+               if ( SDB_OK == rc )
+               {
+                  rc = _split ( pos, rid, key, order, lchild, rchild, indexCB,
+                                pixmContext, FALSE ) ;
+                  // release lock on parent page
+                  ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+                  goto done ;
+               }
+               else
+               {
+                  // insert a dummy slot/key in current page
+                  rc = _basicInsert ( pos, rid, key, order, indexCB, TRUE ) ;
+                  if ( rc )
+                  {
+                     // dump error message if errCode returned
+                     PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+                     goto error ;
+                  }
+               }
+            }
+            else
+            {
+               rc = _split ( pos, rid, key, order, lchild, rchild, indexCB,
+                             pixmContext, FALSE ) ;
+               goto done ;
+            }
          }
-         // dump error message if other errCode returned
-         PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
-         goto error ;
+         else
+         {
+            if ( SDB_IXM_REORG_DONE != rc )
+            { 
+               // dump error message if other errCode returned
+               PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+            }
+            goto error ;
+         }
       }
       // if insert completed in the current extent, let's reset the left and
       // right pointer
@@ -372,6 +448,8 @@ namespace engine
             // rchild to _me
             if ( DMS_INVALID_EXTENT != rchild )
             {
+               // since we locked current page with X mode, it is OK to update
+               // child page without latching it
                _ixmExtent ( rchild, _pIndexSu ).setParent ( _me ) ;
             }
          }
@@ -382,17 +460,26 @@ namespace engine
    error :
       goto done ;
    }
+
    // This function physically insert a key/rid into page. Please note that this
    // function does NOT fix the childs for the adj keys. This operation is
    // performed by insertHere()
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__BASICINS, "_ixmExtent::_basicInsert" )
-   INT32 _ixmExtent::_basicInsert ( UINT16 &pos, const dmsRecordID &rid,
-                                    const ixmKey &key, const Ordering &order )
+   INT32 _ixmExtent::_basicInsert ( UINT16            & pos,
+                                    const dmsRecordID & rid,
+                                    const ixmKey      & key,
+                                    const Ordering    & order,
+                                    ixmIndexCB        * indexCB,
+                                    BOOLEAN             bOutsideKey )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__BASICINS );
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       UINT16 bytesNeeded = 0 ;
+      imxOutsideKey outKey, dummyKey ;
+
+      // the caller MUST have X lock on current page
+
       // first let's validate the pos is same or less than the total number of
       // keys in the extent
       if ( pos > getNumKeyNode () )
@@ -418,11 +505,24 @@ namespace engine
             goto error ;
          }
          SDB_ASSERT ( pos <= getNumKeyNode(), "pos is out of range" ) ;
-         // if we still don't have enough space, let's return error
-         if ( bytesNeeded > getFreeSize() )
+
+         if ( FALSE == bOutsideKey )
          {
-            rc = SDB_IXM_NOSPC ;
-            goto error ;
+            // if we still don't have enough space, let's return error
+            if ( bytesNeeded > getFreeSize() )
+            {
+               rc = SDB_IXM_NOSPC ;
+               goto error ;
+            }
+         }
+         else
+         {
+            // if we don't have enough space for a slot, retrun error
+            if ( sizeof(ixmKeyNode) > getFreeSize() )
+            {
+               rc = SDB_IXM_NOSPC ;
+               goto error ;
+            }
          }
          // after reorg, the pos may points to an element with different lchild,
          // in this case we should be careful and perform find again
@@ -432,6 +532,22 @@ namespace engine
             goto error ;
          }
       }
+
+      if ( bOutsideKey )
+      {
+         // allocate memory for key obj before insert
+         // into outside key page map
+         outKey._keyObjPtr = _ixmKeyObjPtr::alloc( key.dataSize(),
+                                                   __FILE__, __LINE__ ) ;
+         if ( NULL == outKey._keyObjPtr.get() )
+         {
+            rc = SDB_OOM ;
+            PD_LOG ( PDERROR,
+                     "Failed to allocate memory, rc = %d", rc ) ;
+            goto error ;
+         }
+      }
+
       // move getNumKeyNode-pos elements to next slot
       ossMemmove ( (void*)writeKeyNode(pos+1), (void*)getKeyNode(pos),
                    sizeof(ixmKeyNode)*(getNumKeyNode()-pos) ) ;
@@ -445,17 +561,60 @@ namespace engine
          ixmKeyNode *kn = writeKeyNode( pos ) ;
          kn->_left = DMS_INVALID_EXTENT ;
          kn->_rid = rid ;
-         // allocate datasize bytes from the page
-         rc = _alloc ( datasize, kn->_keyOffset ) ;
-         if ( rc )
+
+         if ( bOutsideKey )
          {
-            PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
-                     key.dataSize()) ;
-            goto error ;
+#if defined (_DEBUG)
+            // debug info
+            PD_LOG ( PDDEBUG,
+                     "Write dummy slot into page:%d, pos:%d, rid(%d,%d)",
+                     _me, pos, rid._extent, rid._offset ) ;
+#endif
+            // prepare data
+            kn->SetOutsideKeyFlag() ;
+            outKey._rid      = rid ;
+            outKey._indexLID = indexCB->getLogicalID() ;
+            outKey._mbID     = indexCB->getMBID() ;
+            outKey._clLID    = indexCB->getCLLID() ;
+            ossMemcpy( outKey._keyObjPtr.get(),
+                       key.data(), datasize ) ;
+            // insert into outside key page map
+            _pOutKeyPageMap->addItem( _me, &outKey ) ;
+#if defined (_DEBUG)
+            // debug info
+            PD_LOG ( PDDEBUG,
+                     "Add to outside key map, "
+                     "pageId:%d, keyObj addr:%x, size:%d, key value:%s",
+                     _me, outKey._keyObjPtr.get(), key.dataSize(),
+                     key.toString( FALSE, TRUE ).c_str() ) ;
+#endif
+            outKey = dummyKey ;
+
+            // start async clean up job to index page
+            ixmStartAsyncCleanupIndexPage( _pIndexSu->getDataCSID(),
+                                           indexCB->getMBID(),
+                                           _pIndexSu->getDatalogicalCSID(),
+                                           indexCB->getCLLID(),
+                                           indexCB->getLogicalID(),
+                                           _me ) ;
          }
-         // copy the data into the position
-         ossMemcpy ( ((CHAR*)pHeader) + kn->_keyOffset,
-                      key.data(), datasize ) ;
+         else
+         {
+            kn->clearOutsideKeyFlag() ;
+
+            // allocate datasize bytes from the page
+            rc = _alloc ( datasize, kn->_keyOffset ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to allocate %d bytes in index",
+                        key.dataSize()) ;
+               goto error ;
+            }
+
+            // copy the data into the position
+            ossMemcpy ( ((CHAR*)pHeader) + kn->_keyOffset,
+                        key.data(), datasize ) ;
+         }
       }
 #if defined (_DEBUG)
       rc = _validate(MAX, order) ;
@@ -484,11 +643,15 @@ namespace engine
    // Once the left/right pointer in root are fixed, it will truncate the
    // current page
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLIT, "_ixmExtent::_split" )
-   INT32 _ixmExtent::_split ( UINT16 pos, const dmsRecordID &rid,
-                              const ixmKey &key, const Ordering &order,
-                              const dmsExtentID lchild,
-                              const dmsExtentID rchild,
-                              ixmIndexCB *indexCB )
+   INT32 _ixmExtent::_split ( UINT16              pos,
+                              const dmsRecordID & rid,
+                              const ixmKey      & key,
+                              const Ordering    & order,
+                              const dmsExtentID   lchild,
+                              const dmsExtentID   rchild,
+                              ixmIndexCB        * indexCB,
+                              _ixmContext       * pixmContext,
+                              BOOLEAN             bSplitOnly )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLIT );
@@ -496,6 +659,36 @@ namespace engine
       SDB_ASSERT ( indexCB, "index control block can't be NULL" ) ;
       dmsExtentID newExtentID = DMS_INVALID_EXTENT ;
       const ixmKeyNode *splitKey = NULL ;
+
+      _ixmLockInfo currentPage( _me ), parentPage( getParent() ),
+                   newPage, newRootPage ;
+      BOOLEAN bHasOutsideKey = FALSE ;
+      BOOLEAN bNewPageLocked = FALSE, bNewRootPageLocked = FALSE ;
+
+      // caller MUST hold X lock on current page
+      // caller MUST hold X lock on parent page
+      if ( ! ( pixmContext->getLockHeldInfo( currentPage ) &&
+               ( DPS_TRANSLOCK_X == currentPage.lockMode ) ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR,
+                 "Error: doesn't have X lock on page:%d, rc:%d",
+                 currentPage.page, rc ) ;
+         goto error ;
+      }
+      if ( parentPage.isValid() )
+      {
+         if ( ! ( pixmContext->getLockHeldInfo( parentPage ) &&
+                  ( DPS_TRANSLOCK_X == parentPage.lockMode ) ) )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR,
+                    "Error: doesn't have X lock on page:%d, rc:%d",
+                    parentPage.page, rc ) ;
+            goto error ;
+         }
+      }
+
       // find the split position
       rc = _splitPos ( pos, splitPos ) ;
       if ( rc )
@@ -514,20 +707,38 @@ namespace engine
          goto error ;
       }
       {
+         // X lock on new page
+         newPage.setPage( newExtentID ) ;
+         rc = ixmLock( pixmContext, newPage.page, DPS_TRANSLOCK_X ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         bNewPageLocked = TRUE ;
+
          // initialize the header for the new extent
          _ixmExtent newExtent( newExtentID, _extentHead->_mbID, _pIndexSu ) ;
+
          // copy all keys from the split pos to new extent
          for ( UINT16 i = splitPos + 1 ; i < getNumKeyNode() ; i++ )
          {
             const ixmKeyNode *kn = getKeyNode(i) ;
-            rc = newExtent._pushBack ( kn->_rid,
-                                    ixmKey(((const CHAR*)_extentHead)+kn->_keyOffset),
-                                    order, kn->_left, indexCB->getFlag() ) ;
+            rc = newExtent._pushBack( kn->_rid,
+                                      // ixmKey(((const CHAR*)_extentHead)
+                                      //        +kn->_keyOffset),
+                                      ixmKey( getKeyData(i) ),
+                                      order, kn->_left, indexCB->getFlag() ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to push back key %d to new extent, "
                         "rc = %d", (INT32)i, rc ) ;
                goto error ;
+            }
+            if ( kn->isOutsideKey() )
+            {
+               ixmKeyNode *knW = writeKeyNode(i) ;
+               knW->clearOutsideKeyFlag() ;
+               bHasOutsideKey = TRUE ;
             }
          }
          // assign the right pointer
@@ -562,14 +773,26 @@ namespace engine
                         "rc = %d", rc ) ;
                goto error ;
             }
+
+            // X lock on new root page
+            newRootPage.setPage( rootExtentID ) ;
+            rc = ixmLock( pixmContext, newRootPage.page, DPS_TRANSLOCK_X ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            bNewRootPageLocked = TRUE ;
+
             // initialize the header for the new extent
             _ixmExtent rootExtent( rootExtentID, _extentHead->_mbID,
                                    _pIndexSu ) ;
             // promote the split key into parent, key._left point to the current
             // extent
             rc = rootExtent._pushBack ( splitKey->_rid,
-                                        ixmKey(((const CHAR*)_extentHead)+
-                                        splitKey->_keyOffset), order, _me,
+                                        // ixmKey(((const CHAR*)_extentHead)+
+                                        // splitKey->_keyOffset),
+                                        ixmKey( getKeyData( splitPos ) ),
+                                        order, _me,
                                         indexCB->getFlag() ) ;
             if ( rc )
             {
@@ -592,19 +815,33 @@ namespace engine
             }
             // set new root page
             indexCB->setRoot ( rootExtentID ) ;
+
+            // release lock on new root page
+            ixmUnlock( pixmContext, newRootPage.page, TRUE ) ;
+            bNewRootPageLocked = FALSE ;
          }
          else
          {
             // when there is parent page exist (so we are not root)
             newExtent.setParent ( getParent(),
-                                  IXM_INDEX_FLAG_NORMAL == indexCB->getFlag() ) ;
+                                  IXM_INDEX_FLAG_NORMAL == indexCB->getFlag() );
             // get the parent extent
             _ixmExtent parentExtent( getParent(), _pIndexSu ) ;
             // do physical insert into it
+            //
+            // When get here, X lock must be held on both parent 
+            // and current page. So, it is OK to pass dummy depth
+            // and xLockLevel to following _insert()
+            UINT32 dummyDepth = 0 ; 
+            UINT32 dummyXLockLevel = 0 ;
             rc = parentExtent._insert( splitKey->_rid,
-                       ixmKey(((const CHAR*)_extentHead)+splitKey->_keyOffset),
-                       order, TRUE, _me,
-                       newExtentID, indexCB ) ;
+                                       // ixmKey(((const CHAR*)_extentHead)
+                                       //        +splitKey->_keyOffset),
+                                       ixmKey( getKeyData( splitPos ) ),
+                                       order, TRUE, _me,
+                                       newExtentID, indexCB,
+                                       dummyDepth, dummyXLockLevel,
+                                       pixmContext ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to promote into parent, rc = %d",
@@ -612,6 +849,14 @@ namespace engine
                goto error ;
             }
          }
+
+         if ( splitKey->isOutsideKey() )
+         {
+            ixmKeyNode * splitKeyW = writeKeyNode( splitPos ) ;
+            splitKeyW->clearOutsideKeyFlag() ;
+            bHasOutsideKey = TRUE ;
+         }
+
          // now new page and(or) root page are created, and all keys are copied,
          // so we are safe to truncate
          newPos = pos ;
@@ -623,36 +868,71 @@ namespace engine
                      rc ) ;
             goto error ;
          }
-         PD_TRACE1 ( SDB__IXMEXT__SPLIT, PD_PACK_USHORT(newPos) ) ;
-         // if the insert position is smaller than split position, it will be
-         // insert into the original page
-         if ( pos <= splitPos )
+         if ( FALSE == bSplitOnly )
          {
-            SDB_ASSERT ( 0xFFFF != newPos, "Invalid newPos" ) ;
-            // insert into newPos since _truncate will call _reorg, which will
-            // remove unused keys from original extent, which may change newPos
-            rc = insertHere ( newPos, rid, key, order, lchild, rchild,
-                              indexCB ) ;
+            PD_TRACE1 ( SDB__IXMEXT__SPLIT, PD_PACK_USHORT(newPos) ) ;
+            // if the insert position is smaller than split position, it will be
+            // insert into the original page
+            if ( pos <= splitPos )
+            {
+               SDB_ASSERT ( 0xFFFF != newPos, "Invalid newPos" ) ;
+               // insert into newPos since _truncate will call _reorg,
+               // which will remove unused keys from original extent,
+               // which may change newPos
+               rc = insertHere ( newPos, rid, key, order, lchild, rchild,
+                                 indexCB, pixmContext ) ;
+            }
+            else
+            {
+               // otherwise the insert will be performed in new page
+               rc = newExtent.insertHere ( pos-splitPos-1, rid, key, order,
+                                           lchild, rchild, indexCB,
+                                           pixmContext ) ;
+            }
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to insert into splitted page, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
          }
-         else
+
+         // release lock on newExtent
+         ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         bNewPageLocked = FALSE ;
+
+         // if this page contains outside key, remove it from map
+         if ( bHasOutsideKey )
          {
-            // otherwise the insert will be performed in new page
-            rc = newExtent.insertHere ( pos-splitPos-1, rid, key, order, lchild,
-                                        rchild, indexCB ) ;
-         }
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to insert into splitted page, rc = %d",
-                     rc ) ;
-            goto error ;
+#if defined (_DEBUG)
+            PD_LOG ( PDDEBUG,
+                     "Remove key from outside key page map while _split, "
+                     "pageId:%d", _me ) ;
+#endif
+            _pOutKeyPageMap->rmItem( _me ) ;
          }
       }
    done :
+      if ( bNewPageLocked )
+      {
+         ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         bNewPageLocked = FALSE ;
+      }
+      if ( bNewRootPageLocked )
+      {
+         ixmUnlock( pixmContext, newRootPage.page, TRUE ) ;
+         bNewRootPageLocked = FALSE ;
+      }
+
       PD_TRACE_EXITRC ( SDB__IXMEXT__SPLIT, rc );
       return rc ;
    error :
+      ixmUnlockAll( pixmContext ) ;
+      bNewPageLocked     = FALSE ;
+      bNewRootPageLocked = FALSE ;
       goto done ;
    }
+
    // truncate a page and leave totalNodes. Passin a newPos as
    // input/output, for any interested slot that may move its position.
    // For example the original layout looks like
@@ -664,6 +944,8 @@ namespace engine
    INT32 _ixmExtent::_truncate ( UINT16 totalNodes, UINT16 &newPos,
                                  const Ordering &order )
    {
+      // caller MUST hold X lock on current page
+
       if ( totalNodes < getNumKeyNode() )
       {
          ixmExtentHead *pExtent = _extRW.writePtr<ixmExtentHead>() ;
@@ -685,10 +967,13 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__SPLITPOS );
       UINT16 rightSize = 0 ;
-      UINT16 maxRightSize = 0 ;
+      UINT16 maxRightSize = 0, halfSize = 0 ;
       UINT16 totalKeySize = getTotalKeySize() ;
       PD_TRACE1 ( SDB__IXMEXT__SPLITPOS, PD_PACK_USHORT(totalKeySize) );
       splitPos = 1 ;
+
+      // the caller MUST have X lock on current page
+
       // we should never call this function when there are less than two keys
       // (if that happen, after split and prompt to parent, we'll have empty
       // page
@@ -700,6 +985,7 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+      halfSize = totalKeySize / 2 ;
       if ( pos == _extentHead->_totalKeyNodeNum )
       {
          // if the new key is at end of the page, we do 90%+10% split
@@ -714,11 +1000,21 @@ namespace engine
       // key
       for ( INT32 i = _extentHead->_totalKeyNodeNum-1 ; i >= 0 ; --i )
       {
+         const ixmKeyNode *kn = getKeyNode(i) ;
          rightSize += ixmKey(getKeyData(i)).dataSize() ;
          if ( rightSize > maxRightSize )
          {
             splitPos = i ;
             break ;
+         }
+         // make sure it has enough space to store 'outside' key
+         if ( kn->isOutsideKey() )
+         {
+            if ( rightSize >= halfSize )
+            {
+               splitPos = i ;
+               break ;
+            }
          }
       }
       if ( splitPos > getNumKeyNode() - 2 )
@@ -757,6 +1053,8 @@ namespace engine
       pHeader->_right = right ;
       if ( DMS_INVALID_EXTENT != right )
       {
+         // FIXME:
+         // verify if lock child page
          _ixmExtent childExtent ( right, _pIndexSu ) ;
          childExtent.setParent ( _me ) ;
       }
@@ -777,6 +1075,8 @@ namespace engine
          writeKeyNode(i)->_left = extentID ;
          if ( DMS_INVALID_EXTENT != extentID )
          {
+            // REVISIT:
+            // verify if need to lock child page
             _ixmExtent childExtent ( extentID, _pIndexSu ) ;
             childExtent.setParent ( _me ) ;
          }
@@ -795,6 +1095,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__PSHBACK );
+
+      // the caller MUST have X lock on current page
+
       UINT16 bytesNeeded = key.dataSize() + sizeof(ixmKeyNode) ;
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       ixmKeyNode *kn = NULL ;
@@ -845,10 +1148,14 @@ namespace engine
          }
          else
          {
+            // hold X on current page, it is OK to update child page without
+            // latch
             ixmExtent child( kn->_left, _pIndexSu ) ;
             child.setParent( _me, FALSE ) ;
          }
       }
+
+      kn->clearOutsideKeyFlag() ;
 
       kn->_rid = rid ;
       rc = _alloc ( key.dataSize(), kn->_keyOffset ) ;
@@ -1038,6 +1345,8 @@ namespace engine
          goto done ;
       }
 
+      // the caller MUST have X lock on current page
+
       pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
 
       // loop through all keys in the page
@@ -1065,7 +1374,10 @@ namespace engine
          }
          totalFreeSize -= sizeof(ixmKeyNode) ;
          // copy the key
-         ixmKey key ( ((const CHAR*)pHeader)+kn->_keyOffset) ;
+         // ixmKey key ( ((const CHAR*)pHeader)+kn->_keyOffset) ;
+         // ixmKey key ( getKeyData(i) ) ;
+         const CHAR *keyData = getKeyData( i ) ;
+         ixmKey key ( keyData ) ;
          keyDataSize = key.dataSize() ;
          if ( (INT32)beginFreeOffset - keyDataSize < 0 ||
               (INT32)totalFreeSize - keyDataSize < 0 )
@@ -1078,9 +1390,25 @@ namespace engine
          beginFreeOffset -= keyDataSize ;
          totalFreeSize -= keyDataSize ;
          ossMemcpy ( &buffer[beginFreeOffset],
-                     ((const CHAR*)pHeader)+kn->_keyOffset,
-                      keyDataSize ) ;
+                     // ((const CHAR*)pHeader)+kn->_keyOffset,
+                     // getKeyData( i ),  
+                     keyData,  
+                     keyDataSize ) ;
          kn->_keyOffset = beginFreeOffset ;
+         // if this key/slot is marked as outside key
+         // reset the flag
+         if ( kn->isOutsideKey() )
+         {
+            kn->clearOutsideKeyFlag() ;
+#if defined (_DEBUG)
+            SDB_ASSERT( ( _pOutKeyPageMap->findItem( _me, NULL ) ),
+                        "Page doesn't exist in map" ) ;
+            PD_LOG ( PDDEBUG,
+                     "Remove key from outside key page map while _reorg, "
+                     "pageId:%d", _me ) ;
+#endif
+            _pOutKeyPageMap->rmItem( _me ) ;
+         }
          // copy the slot
          if ( totalKeyNodeNum != i )
          {
@@ -1146,17 +1474,328 @@ namespace engine
       return SDB_OK ;
    }
 
+
+   //
+   // . if a page contains outside key, do split, then release all locks
+   //   and the caller shall restart the operation from scratch.
+   // . if the free space in a page is smaller than the size of ixmKeyNode,
+   //   i.e., the minimum free space size, then try reorg. 
+   //   If he free space is still smaller than minimum free space size after
+   //   rerog, then do split, release alllocks and caller restart the operation
+   // Returns
+   //   SDB_IXM_HAS_SPLITTED -- split has been done, caller shall restart
+   //   SDB_OK               -- . page has no outside key
+   //                           . free space is greater than one slot
+   //   SDB_IXM_REORG_DONE   -- the pos has been changed after reorg,
+   //                           caller may retry find/locate or restart 
+   //   SDB_DPS_TRANS_LOCK_INCOMPATIBLE -- failed to upgrade / aquire page lock
+   //                                      caller shall release all locks and
+   //                                      restart this operation   
+   //   SDB_TIMEOUT                     -- failed to upgrade / aquire page lock
+   //                                      caller shall release all locks and
+   //                                      restart this operation 
+   //   other ERRORs                    -- caller falls its error handling logic
+   INT32 _ixmExtent::_doSplitIfOutsideKeyExist
+   (
+      const dmsRecordID  & rid,
+      const ixmKey       & key,
+      const Ordering     & order,
+      UINT16               pos,
+      INT8               & currentPageLockMode,
+      INT8               & parentPageLockMode,
+      ixmIndexCB         * indexCB,
+      const UINT32         depth,
+      UINT32             & xLockLevel,
+      _ixmContext        * pixmContext
+   )
+   {
+      INT32 rc = SDB_OK ;
+      const UINT32 minimumBytesNeeded = sizeof(ixmKeyNode) ;
+      dmsExtentID ch = DMS_INVALID_EXTENT ;
+      UINT16 newPos  = pos ;
+      _ixmLockInfo currentPage( _me ), parentPage( getParent() ) ;
+      BOOLEAN bAllLockReleased     = FALSE ;
+      const UINT32 savedXLockLevel = xLockLevel ;
+
+      // caller shall lock on current page
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Error: dosen't have lock on index page:%d, rc=%d",
+                  currentPage.page, rc ) ;
+         SDB_DASSERT ( FALSE,
+                       "_doSplitIfOutsideKeyExist: Current page "
+                       "has not been locked !" ) ;
+         goto error ;
+      }
+
+      ch = getChildExtentID( pos ) ;
+
+      // check if this page has outside key/data.
+      // if so do split, then release all locks goto done and restart
+      // from scratch
+      if ( _pOutKeyPageMap->findItem( currentPage.page, NULL ) )
+      {
+         if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+         {
+            xLockLevel = depth ;
+         }
+
+         // try acquire X lock on parent page
+         if ( parentPage.isValid() ) 
+         {
+            // make sure parent page is locked
+            SDB_DASSERT( pixmContext->isLocking( parentPage.page ),
+                         "Doesn't have lock on parent page !" ) ;
+            SDB_DASSERT( ( depth > 0 ),
+                         "depath must be greater than 0 " ) ;
+            if ( xLockLevel >= depth - 1 )
+            {
+               xLockLevel = depth - 1 ;
+            }
+
+            if ( DPS_TRANSLOCK_X != parentPageLockMode )
+            {
+               // unlock current page first
+               ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               currentPageLockMode = DPS_TRANSLOCK_MAX ;
+
+               // update / get X lock on parent page
+               rc = ixmLock( pixmContext, parentPage.page, DPS_TRANSLOCK_X ) ;
+               if ( rc )
+               {
+                  // it may fail to upgrade to X due to dead-lock detection,
+                  // release locks on all pages and retry from scratch
+                  ixmUnlockAll( pixmContext ) ;
+                  bAllLockReleased = TRUE ;
+                  goto error ;
+               }
+               parentPageLockMode = DPS_TRANSLOCK_X ;
+
+               // get X lock on current page
+               rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_X ) ;
+               if ( SDB_OK != rc )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  bAllLockReleased = TRUE ;
+                  goto error ;
+               }
+               currentPageLockMode = DPS_TRANSLOCK_X ;
+
+               // after release lock on current page, it is possible
+               // the current page is changed by another thread.
+               // Now return to caller ( _locateForDelete or _insert ) to
+               // locate the right position.
+               //
+               // Here, just reuse the SDB_IXM_REORG_DONE as rc,
+               // since caller is check this value for re-finding/locating
+               // the position
+               rc = SDB_IXM_REORG_DONE ;
+               goto done ;
+            }
+         }
+
+         // upgrade / get X lock on current page
+         if ( DPS_TRANSLOCK_X != currentPageLockMode )
+         {
+            rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_X ) ;
+            if ( SDB_OK != rc )
+            {
+               // it may fail to upgrade to X due to dead-lock detection,
+               // release locks on all pages and retry from scratch
+               ixmUnlockAll( pixmContext ) ;
+               bAllLockReleased = TRUE ;
+               goto error ;
+            }
+            currentPageLockMode = DPS_TRANSLOCK_X ;
+         }
+
+         // do split(), then release all locks goto done
+         // and restart from scratch
+         rc = _split ( newPos, rid, key, order,
+                       DMS_INVALID_EXTENT, DMS_INVALID_EXTENT,
+                       indexCB, pixmContext, TRUE ) ;
+         if ( SDB_OK == rc )
+         {
+            // release locks on all pages and restart from beginning
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            rc = SDB_IXM_HAS_SPLITTED ;
+
+            // restore previous xLockLevel after _split successfully done
+            xLockLevel = savedXLockLevel ;
+            goto done ;
+         }
+         else
+         {
+            // release locks on all pages
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            goto error ;
+         }
+      }
+      else if ( getFreeSize() < minimumBytesNeeded )
+      {
+         if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+         {
+            xLockLevel = depth ;
+         }
+
+         // upgrade to X lock on current page
+         if ( DPS_TRANSLOCK_X != currentPageLockMode )
+         {
+            rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_X ) ;
+            if ( SDB_OK != rc )
+            {
+               // it may fail to upgrade to X due to dead-lock detection,
+               // release locks on all pages and retry from scratch
+               ixmUnlockAll( pixmContext ) ;
+               bAllLockReleased = TRUE ;
+               goto error ;
+            }
+            currentPageLockMode = DPS_TRANSLOCK_X ;
+         }
+
+         // do reorg
+         rc = _reorg( order, newPos ) ;
+         if ( rc )
+         {
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            PD_LOG( PDERROR, "index extent:%d reorg failed, rc:%d",
+                    currentPage.page, rc ) ;
+            goto error ;
+         }
+         else
+         {
+            // after reorg, the pos may points to an element
+            // with different lchild, in this case, do find again
+            if ( getChildExtentID( newPos ) != ch )
+            {
+               rc = SDB_IXM_REORG_DONE ;
+               goto done ;
+            }
+         }
+
+         // check if have mininum space after reorg
+         if ( getFreeSize() < minimumBytesNeeded )
+         {
+            // try acquire X lock on parent page
+            if ( parentPage.isValid() )
+            {
+               // make sure parent page is locked
+               SDB_DASSERT( pixmContext->isLocking( parentPage.page ),
+                            "Doesn't have lock on parent page !" ) ;
+               SDB_DASSERT( ( depth > 0 ),
+                            "depath must be greater than 0 " ) ;
+               if ( xLockLevel >= depth - 1 )
+               {
+                  xLockLevel = depth - 1 ;
+               }
+
+               if ( DPS_TRANSLOCK_X != parentPageLockMode )
+               {
+                  // unlock current page first
+                  ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+                  currentPageLockMode = DPS_TRANSLOCK_MAX ;
+
+                  // upgrade / get X lock on parent page
+                  rc = ixmLock( pixmContext, parentPage.page, DPS_TRANSLOCK_X );
+                  if ( rc )
+                  {
+                     // release locks on all pages and restart from scratch
+                     ixmUnlockAll( pixmContext ) ;
+                     bAllLockReleased = TRUE ;
+                     goto error ;
+                  }
+                  parentPageLockMode = DPS_TRANSLOCK_X ;
+
+                  // get X lock on current page
+                  rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_X);
+                  if ( SDB_OK != rc )
+                  {
+                     // it may fail to upgrade to X due to dead-lock detection,
+                     // release locks on all pages and retry from scratch
+                     ixmUnlockAll( pixmContext ) ;
+                     bAllLockReleased = TRUE ;
+                     goto error ;
+                  }
+                  currentPageLockMode = DPS_TRANSLOCK_X ;
+
+                  // after release lock on current page, it is possible
+                  // the current page is changed by another thread.
+                  // Now return to caller ( _locateForDelete or _insert ) to
+                  // locate the right position.
+                  //
+                  // Here, just reuse the SDB_IXM_REORG_DONE as rc,
+                  // since caller is check this value for re-finding/locating
+                  // the position
+                  rc = SDB_IXM_REORG_DONE ;
+                  goto done ;
+               }
+            }
+
+            // do split(), then release all locks goto done
+            // and restart from scratch 
+            rc = _split ( newPos, rid, key, order,
+                          DMS_INVALID_EXTENT, DMS_INVALID_EXTENT,
+                          indexCB, pixmContext, TRUE ) ;
+            if ( SDB_OK == rc )
+            {
+               // release locks on all pages and restart from beginning
+               ixmUnlockAll( pixmContext ) ;
+               bAllLockReleased = TRUE ;
+               rc = SDB_IXM_HAS_SPLITTED ;
+
+               // restore previous xLockLevel after _split successfully done
+               xLockLevel = savedXLockLevel ;
+               goto done ;
+            }
+            else
+            {
+               // release locks on all pages and restart from beginning
+               ixmUnlockAll( pixmContext ) ;
+               bAllLockReleased = TRUE ;
+               goto error ;
+            }
+         }
+      }
+   done :
+      if ( bAllLockReleased )
+      {
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ;
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+
+      PD_TRACE_EXITRC ( SDB__IXMEXT__INSERT, rc ) ;
+      return rc ;
+   error :
+      // if error occurs, release locks on all pages
+      if ( ! bAllLockReleased )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLockReleased = TRUE ;
+      }
+      goto done ;
+   }
+
    // find + insertHere
    // Internal function, insert an rid/key pair into the current page. This
    // function will perform find() for the given key/rid pair, and recursively
    // call itself if there's child page associate with the keynodes until hit
    // leaf. In leaf it will call insertHere()
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__INSERT, "_ixmExtent::_insert" )
-   INT32 _ixmExtent::_insert ( const dmsRecordID &rid, const ixmKey &key,
-                               const Ordering &order, BOOLEAN dupAllowed,
-                               dmsExtentID lchild, dmsExtentID rchild,
-                               ixmIndexCB *indexCB,
-                               utilWriteResult *pResult )
+   INT32 _ixmExtent::_insert ( const dmsRecordID & rid,
+                               const ixmKey      & key,
+                               const Ordering    & order,
+                               BOOLEAN             dupAllowed,
+                               dmsExtentID         lchild,
+                               dmsExtentID         rchild,
+                               ixmIndexCB        * indexCB,
+                               UINT32            & depth,
+                               UINT32            & xLockLevel,
+                               _ixmContext       * pixmContext,
+                               utilWriteResult   * pResult )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__INSERT ) ;
@@ -1166,9 +1805,16 @@ namespace engine
       UINT16 pos = 0 ;
       dmsExtentID ch = DMS_INVALID_EXTENT ;
       const ixmKeyNode *kn = NULL ;
+      INT32 keySize ;
+
+      _ixmLockInfo childPage, currentPage( _me ), parentPage( getParent() ) ;
+      BOOLEAN bAllLockReleased = FALSE ;
+      INT8 parentPageLockMode  = DPS_TRANSLOCK_MAX,
+           currentPageLockMode = DPS_TRANSLOCK_MAX,
+           childPageLockMode   = DPS_TRANSLOCK_MAX ;
 
       // sanity check
-      INT32 keySize = key.dataSize() ;
+      keySize = key.dataSize() ;
       if ( keySize > _pIndexSu->indexKeySizeMax() )
       {
          PD_LOG ( PDERROR, "key size[%d] must be less than or equal to [%d]",
@@ -1192,6 +1838,29 @@ namespace engine
       }
 
    retry :
+      // make sure current page is locked
+      // verify if have lock on current page
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Error: dosen't have lock on index page:%d, rc=%d",
+                  _me, rc ) ;
+
+         SDB_DASSERT ( FALSE,
+                      "_insert: Current page has not been locked !" ) ;
+         goto error ;
+      }
+      currentPageLockMode = currentPage.lockMode ;
+
+      if ( parentPage.isValid() && pixmContext->getLockHeldInfo( parentPage ) )
+      {
+         parentPageLockMode = parentPage.lockMode ;
+      }
+      else
+      {
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ;
+      }
+
       // try to locate where the insert should happen
       rc = find ( indexCB, key, rid, order, pos, keyFoundPos, sameFound ) ;
       if ( rc )
@@ -1252,6 +1921,54 @@ namespace engine
       }
 
       ch = getChildExtentID( pos ) ;
+
+      // _doSplitIfOutsideKeyExist does following checks
+      // 1 if this page has outside key/data,
+      //     . acquire X locks on this page and its parent,
+      //     . do split,
+      //     . release all locks, returns rc as SDB_IXM_HAS_SPLITTED,
+      //    -- caller shall restart from scratch for this case
+      // 2 check if this page has minimum free space, one slot, i.e., the sizeof
+      //   ixmKeyNode.
+      //     if so,
+      //        return SDB_OK
+      //     if not,
+      //        . acquire X lock on this page and try reorg
+      //        . if pos is changed after rerog,
+      //             if so, return SDB_IXM_REORG_DONE
+      //             -- the caller may find the pos again and retry, or restart
+      //             if not, check if has minimum free space after rerog
+      //                if so, return SDB_OK
+      //                if not, try X lock on parent,
+      //                        do split if acquired X on parent, 
+      //                        release all locks if split successfully and
+      //                        return rc as SDB_IXM_HAS_SPLITTED 
+      rc = _doSplitIfOutsideKeyExist( rid, key, order, pos,
+                                      currentPageLockMode,
+                                      parentPageLockMode,
+                                      indexCB,
+                                      depth,
+                                      xLockLevel,
+                                      pixmContext ) ;
+      if ( rc )
+      {
+         // we have performed reorg and found the position we supposed to
+         // insert got a left pointer, so let's reperform find
+         if ( SDB_IXM_REORG_DONE == rc )
+         {
+            rc = SDB_OK ;
+            goto retry ;
+         }
+         goto error ;
+      }
+
+      // release lock on parent
+      if ( parentPage.isValid() )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         parentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+
       // if there's no child, of course we will insert into the current page
       // and if there is child, but rchild is specified, this means the function
       // is called by the child extent in split (when prompt the last key to the
@@ -1259,7 +1976,28 @@ namespace engine
       // simply insert it into the page instead of traversing down
       if ( DMS_INVALID_EXTENT == ch || DMS_INVALID_EXTENT != rchild )
       {
-         rc = insertHere ( pos, rid, key, order, lchild, rchild, indexCB ) ;
+         if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+         {
+            xLockLevel = depth ;
+         }
+
+         // upgrade to X lock on current index page
+         if ( DPS_TRANSLOCK_X != currentPageLockMode )
+         {
+            rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_X ) ;
+            if ( SDB_OK != rc )
+            {
+               // it may fail to upgrade to X due to dead-lock detection,
+               // release locks on all pages and restart from scratch 
+               ixmUnlockAll( pixmContext ) ;
+               bAllLockReleased = TRUE ;
+               goto error ;
+            }
+            currentPageLockMode = DPS_TRANSLOCK_X ;
+         }
+
+         rc = insertHere( pos, rid, key, order, lchild, rchild, indexCB,
+                          pixmContext ) ;
          if ( rc )
          {
             // we have performed reorg and found the position we supposed to
@@ -1276,58 +2014,483 @@ namespace engine
       // otherwise let's traverse down
       else
       {
-         rc = _ixmExtent(ch, _pIndexSu)._insert( rid, key, order, dupAllowed,
-                                                 lchild, rchild, indexCB,
-                                                 pResult ) ;
+         depth ++ ;
+
+         // acquire proper lock on child page
+         INT8 lockMode = currentPageLockMode ;
+         if ( DPS_TRANSLOCK_S == lockMode )
+         {
+            if ( ( IXM_X_LOCK_START_LEVEL <= depth ) ||
+                 ( ( xLockLevel > 0 ) && ( xLockLevel >= depth ) ) )
+            {
+               lockMode = DPS_TRANSLOCK_X ;
+               if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+               {  
+                  xLockLevel = depth ;
+               }
+            }
+         }
+
+         childPage.setPage( ch ) ;
+         rc = ixmLock( pixmContext, childPage.page, lockMode ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+            // in case fails to acquire lock on child page, release locks
+            // on all pages and restart from scratch.
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
             goto error ;
          }
+         childPageLockMode = lockMode ;
+
+         rc = _ixmExtent(ch, _pIndexSu)._insert( rid, key, order, dupAllowed,
+                                                 lchild, rchild, indexCB,
+                                                 depth,
+                                                 xLockLevel,
+                                                 pixmContext, pResult ) ;
+         if ( rc )
+         {
+            if ( ( SDB_IXM_HAS_SPLITTED != rc ) && 
+                 ( SDB_TIMEOUT != rc ) &&
+                 ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) )
+            {
+               PD_LOG ( PDERROR, "Failed to insert, rc = %d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+   done :
+      if ( bAllLockReleased )
+      {
+         childPageLockMode   = DPS_TRANSLOCK_MAX ;
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ; 
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( ( DPS_TRANSLOCK_MAX != childPageLockMode ) &&
+           childPage.isValid() )
+      {
+         ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         childPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( DPS_TRANSLOCK_MAX != currentPageLockMode )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( ( DPS_TRANSLOCK_MAX != parentPageLockMode ) &&
+           parentPage.isValid() )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         parentPageLockMode = DPS_TRANSLOCK_MAX ;
       }
 
-   done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__INSERT, rc ) ;
       return rc ;
    error :
+      // if error occurs, release locks on all pages
+      if ( ! bAllLockReleased )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLockReleased = TRUE ;
+      }
       goto done ;
    }
 
+
+   // clean up the outside key by splitting that index page
+   INT32 _ixmExtent::cleanUpOutsideKey ( const ixmKey      & key,
+                                         const dmsRecordID & rid,
+                                         const Ordering    & order,
+                                         dmsExtentID         pageToSplit,
+                                         BOOLEAN             dupAllowed,
+                                         ixmIndexCB        * indexCB,
+                                         UINT32            & xLockLevel,
+                                        _ixmContext        * pixmContext )
+   {
+      // make sure current page is locked
+      SDB_DASSERT( pixmContext->isLocking( _me ),
+                   "Doesn't have lock on index page !" ) ;
+      UINT32 depth = 0 ;
+      return _cleanUpOutsideKey ( rid, key, order, pageToSplit,
+                                  dupAllowed,
+                                  DMS_INVALID_EXTENT, DMS_INVALID_EXTENT,
+                                  indexCB,
+                                  depth, xLockLevel, pixmContext ) ;
+   }
+
+
+   INT32 _ixmExtent::_cleanUpOutsideKey ( const dmsRecordID & rid,
+                                          const ixmKey      & key,
+                                          const Ordering    & order,
+                                          dmsExtentID         pageToSplit,
+                                          BOOLEAN             dupAllowed,
+                                          dmsExtentID         lchild,
+                                          dmsExtentID         rchild,
+                                          ixmIndexCB        * indexCB,
+                                          UINT32            & depth,
+                                          UINT32            & xLockLevel,
+                                          _ixmContext       * pixmContext )
+   {
+      INT32 rc          = SDB_OK ;
+      INT32 keyFoundPos = -1 ;
+      BOOLEAN sameFound = FALSE ;
+      UINT16 pos        = 0 ;
+      dmsExtentID ch    = DMS_INVALID_EXTENT ;
+
+      _ixmLockInfo childPage, currentPage( _me ), parentPage( getParent() ) ;
+      BOOLEAN bAllLockReleased = FALSE ;
+      INT8 parentPageLockMode  = DPS_TRANSLOCK_MAX,
+           currentPageLockMode = DPS_TRANSLOCK_MAX,
+           childPageLockMode   = DPS_TRANSLOCK_MAX ;
+
+   retry :
+      // make sure current page is locked
+      // verify if have lock on current page
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Error: dosen't have lock on index page:%d, rc=%d",
+                  _me, rc ) ;
+         SDB_DASSERT ( FALSE,
+                       "_cleanUpOutsideKey: Current page hasn't been locked !");
+         goto error ;
+      }
+      currentPageLockMode = currentPage.lockMode ;
+
+      if ( parentPage.isValid() && pixmContext->getLockHeldInfo( parentPage ) )
+      {
+         parentPageLockMode = parentPage.lockMode ;
+      }
+      else
+      {
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ;
+      }
+
+      // try to locate where the insert should happen
+      rc = find ( indexCB, key, rid, order, pos, keyFoundPos, sameFound ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Error happened during find, rc = %d", rc ) ;
+         goto error ;
+      }
+
+      ch = getChildExtentID( pos ) ;
+
+      // _doSplitIfOutsideKeyExist does following checks
+      // 1 if this page has outside key/data,
+      //     . acquire X locks on this page and its parent,
+      //     . do split,
+      //     . release all locks, returns rc as SDB_IXM_HAS_SPLITTED,
+      // 2 check if this page has minimum free space, one slot, i.e.,
+      //   the sizeof ixmKeyNode.
+      //     if so,
+      //        return SDB_OK
+      //     if not,
+      //        . acquire X lock on this page and try reorg
+      //        . if pos is changed after rerog,
+      //             if so, return SDB_IXM_REORG_DONE
+      //             -- the caller may find the pos again and retry, or restart
+      //             if not, check if has minimum free space after rerog
+      //                if so, return SDB_OK
+      //                if not, acquire X locks on this page and its parent
+      //                        do split if acquired X on parent, 
+      //                        release all locks if split successfully and
+      //                        return rc as SDB_IXM_HAS_SPLITTED 
+      rc = _doSplitIfOutsideKeyExist( rid, key, order, pos,
+                                      currentPageLockMode,
+                                      parentPageLockMode,
+                                      indexCB,
+                                      depth,
+                                      xLockLevel,
+                                      pixmContext ) ;
+      if ( rc )
+      {
+         // we have performed reorg and found the position we supposed to
+         // insert got a left pointer, so let's reperform find
+         if ( SDB_IXM_REORG_DONE == rc )
+         {
+            rc = SDB_OK ;
+            goto retry ;
+         }
+         goto error ;
+      }
+
+      // release lock on parent
+      if ( parentPage.isValid() )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         parentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+
+      if ( ( DMS_INVALID_EXTENT == ch ) ||
+           ( DMS_INVALID_EXTENT != rchild ) ||
+           ( !dupAllowed && -1 != keyFoundPos ) ||
+           sameFound ||
+           ( SDB_IXM_HAS_SPLITTED == rc ) )
+      {
+         if ( ( DMS_INVALID_EXTENT != pageToSplit ) && ( pageToSplit == _me ) )
+         {
+            if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+            {
+               xLockLevel = depth ;
+            }
+            if ( xLockLevel >= depth - 1 )
+            {
+               xLockLevel = depth - 1 ;
+            }
+         }
+      }
+      // otherwise let's traverse down
+      else
+      {
+         depth ++ ;
+
+         // acquire proper lock on child page
+         INT8 lockMode = currentPageLockMode ;
+         if ( DPS_TRANSLOCK_S == lockMode )
+         {
+            if ( ( IXM_X_LOCK_START_LEVEL <= depth ) ||
+                 ( ( xLockLevel > 0 ) && ( xLockLevel >= depth ) ) )
+            {
+               lockMode = DPS_TRANSLOCK_X ;
+               if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+               {  
+                  xLockLevel = depth ;
+               }
+            }
+         }
+
+         childPage.setPage( ch ) ;
+         rc = ixmLock( pixmContext, childPage.page, lockMode ) ;
+         if ( rc )
+         {
+            // in case fails to acquire lock on child page, release locks
+            // on all pages and restart from scratch.
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            goto error ;
+         }
+         childPageLockMode = lockMode ;
+
+         rc = _ixmExtent(ch, _pIndexSu)._cleanUpOutsideKey( rid, key, order,
+                                                            pageToSplit,
+                                                            dupAllowed,
+                                                            lchild, rchild,
+                                                            indexCB,
+                                                            depth,
+                                                            xLockLevel,
+                                                            pixmContext ) ;
+         if ( rc )
+         {
+            if ( ( SDB_IXM_HAS_SPLITTED != rc ) && 
+                 ( SDB_TIMEOUT != rc ) &&
+                 ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) )
+            {
+               PD_LOG( PDERROR, "Failed to clean up outside key, rc = %d", rc );
+               goto error ;
+            }
+         }
+      }
+   done :
+      if ( bAllLockReleased )
+      {
+         childPageLockMode   = DPS_TRANSLOCK_MAX ;
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ; 
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( ( DPS_TRANSLOCK_MAX != childPageLockMode ) &&
+           childPage.isValid() )
+      {
+         ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         childPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( DPS_TRANSLOCK_MAX != currentPageLockMode )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+      if ( ( DPS_TRANSLOCK_MAX != parentPageLockMode ) &&
+           parentPage.isValid() )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         parentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+
+      return rc ;
+   error :
+      // if error occurs, release locks on all pages
+      if ( ! bAllLockReleased )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLockReleased = TRUE ;
+      }
+      goto done ;
+   }
+
+
    // Find and remove specific key from an index
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_UNINDEX, "_ixmExtent::unindex" )
-   INT32 _ixmExtent::unindex ( const ixmKey &key, const dmsRecordID &rid,
-                               const Ordering &order, ixmIndexCB *indexCB,
-                               BOOLEAN &result )
+   INT32 _ixmExtent::unindex ( const ixmKey      & key,
+                               const dmsRecordID & rid,
+                               const Ordering    & order,
+                               ixmIndexCB        * indexCB,
+                               BOOLEAN           & result,
+                               UINT32            & xLockLevel,
+                               _ixmContext       * pixmContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_UNINDEX );
       BOOLEAN found ;
       ixmRecordID indexrid ;
       result = FALSE ;
+      UINT32 depth = 0 ;
 
-      rc = _locate ( key, rid, order, indexrid, found, 1, indexCB ) ;
-      if ( rc )
+      _ixmLockInfo currentPage( _me ), parentPage, newFound ;
+      BOOLEAN bAllLocksReleased = FALSE,
+              bParentPageLocked = FALSE ;
+
+      // Caller MUST acquire lock on current page
+      // make sure current page is locked before _locate
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
       {
-         PD_LOG ( PDERROR, "Failed to locate key and rid" ) ;
+         rc = SDB_SYS ;
+         PD_LOG ( PDDEBUG,
+                  "Haven't acquire lock on index page:%d before delete."
+                  "while unindex, rc: %d.",
+                  currentPage.page, rc  );
+         SDB_DASSERT ( FALSE, "Page has not been locked !"  );
+
          goto error ;
       }
+
+      // when _locate returns, it holds S/X lock on the page found,
+      // as well as the S/X lock on parent page.
+      rc = _locateForDelete ( key, rid, order, indexrid, found, 1, indexCB,
+                              depth,       // current index tree level
+                              xLockLevel,  // level need to take X lock
+                              pixmContext ) ;
+      if ( rc )
+      {
+         if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) &&
+              ( SDB_TIMEOUT != rc ) &&
+              ( SDB_IXM_HAS_SPLITTED != rc ) )
+         {
+            PD_LOG ( PDERROR, "Failed to locate key and rid" ) ;
+         }
+         goto error ;
+      }
+
       if ( found )
       {
-         rc = ixmExtent( indexrid._extent, _pIndexSu)._delKeyAtPos (
-                         indexrid._slot, order, indexCB ) ;
+         newFound.setPage( indexrid._extent ) ;
+
+         SDB_DASSERT ( pixmContext->getLockHeldInfo( newFound ),
+                       "Page has not been locked !"  );
+
+         if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+         { 
+            xLockLevel = depth ;
+         }
+
+         ixmExtent childExtent( indexrid._extent, _pIndexSu ) ;
+
+         parentPage.setPage( childExtent.getParent() ) ;
+
+         if ( parentPage.isValid() )
+         { 
+            SDB_DASSERT ( pixmContext->getLockHeldInfo( parentPage ),
+                          "Page has not been locked !" ) ;
+
+            // in case the currentPage is still locked,
+            // release the lock if currentPage is neither
+            // the new found page nor parent of new found page 
+            if ( ( currentPage.page != indexrid._extent ) &&
+                 ( currentPage.page != childExtent.getParent() ) )
+            {
+               ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            }
+
+            // try to get X lock on parent page of the newFound page
+            // if there is only one key on the newFound page
+            if ( 1 == childExtent.getNumKeyNode() )
+            {
+               SDB_ASSERT( ( depth > 0 ),
+                           "Index tree level must be greater than 0" ) ;
+
+               if ( xLockLevel >= depth - 1 )
+               {
+                  xLockLevel = depth - 1 ;
+               }
+               // the index page locking protocol is taking parent first,
+               // then child. Currently we hold lock on child, now we want to
+               // lock parent lock with X mode. To avoid deadlock, do tryX.
+               // If fails release all locks and re-try from scratch. 
+               rc = ixmTryLock( pixmContext, parentPage.page, DPS_TRANSLOCK_X );
+               if ( SDB_OK != rc )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  bAllLocksReleased = TRUE ;
+                  goto error ;
+               }
+               bParentPageLocked = TRUE ;
+            }
+            else
+            {
+               // new found page has more than one key note
+               // so can we release the lock on its parent
+               ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+            }
+         }
+         else
+         {
+            // in case the currentPage is still locked,
+            // release the lock if currentPage is not
+            // the new found page
+            if ( currentPage.page != indexrid._extent )
+            {
+               ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            }
+         }
+
+         // upgrade X lock on new found page
+         rc = ixmLock( pixmContext, newFound.page, DPS_TRANSLOCK_X ) ;
+         if ( SDB_OK != rc )
+         {
+            // it may fail to upgrade to X due to dead-lock detection,
+            // release all locks and restart from scratch
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+            goto error ;
+         }
+
+         rc = childExtent._delKeyAtPos ( indexrid._slot, order, indexCB,
+                                         pixmContext ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "failed to delete key" ) ;
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) &&
+                 ( SDB_TIMEOUT != rc ) &&
+                 ( SDB_IXM_HAS_SPLITTED != rc ) ) 
+            {
+               PD_LOG ( PDERROR, "failed to delete key, rc = %d" ) ;
+            }
             goto error ;
          }
          result = TRUE ;
       }
    done :
+      if ( FALSE == bAllLocksReleased )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLocksReleased = TRUE ;
+      }
       PD_TRACE_EXITRC ( SDB__IXMEXT_UNINDEX, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // delete a key from a given position
    // caller must make sure the pos is smaller than the total number of keys in
    // the page, and there is no left pointer on the key
@@ -1335,8 +2498,10 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS1, "_ixmExtent::_delKeyAtPos" )
    INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos )
    {
+      // the caller must have X lock on current page
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELKEYATPOS1 );
+
       ixmKeyNode *kn = NULL ;
       ixmExtentHead *pHeader = _extRW.writePtr<ixmExtentHead>( 0, _pageSize ) ;
       if ( pos >= getNumKeyNode() )
@@ -1356,25 +2521,80 @@ namespace engine
       pHeader->_totalFreeSize += sizeof(ixmKeyNode) ;
       _pIndexSu->addStatFreeSpace( pHeader->_mbID, sizeof(ixmKeyNode) ) ;
       pHeader->_totalKeyNodeNum-- ;
+
+      // if the key is an outside key, then remove it from outside key page map
+      if ( kn->isOutsideKey() )
+      {
+#if defined (_DEBUG)
+         PD_LOG ( PDDEBUG,
+                  "Remove key from outside key page map while _delKeyAtPos, "
+                  "pageId:%d", _me ) ;
+#endif
+         kn->clearOutsideKeyFlag() ;
+         _pOutKeyPageMap->rmItem( _me ) ;
+      }
+
       ossMemmove ( (CHAR*)kn, (const CHAR*)getKeyNode(pos+1),
                    sizeof(ixmKeyNode)*(pHeader->_totalKeyNodeNum-pos) ) ;
       unsetCompact() ;
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELKEYATPOS1, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // delete a key from page at pos, caller do NOT need to validate left pointer
    // and root
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS2, "_ixmExtent::_delKeyAtPos" )
-   INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos, const Ordering &order,
-                                    ixmIndexCB *indexCB )
+   INT32 _ixmExtent::_delKeyAtPos ( UINT16           pos,
+                                    const Ordering & order,
+                                    ixmIndexCB     * indexCB,
+                                    _ixmContext    * pixmContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELKEYATPOS2 );
       dmsExtentID left = DMS_INVALID_EXTENT ;
       BOOLEAN result = FALSE ;
+
+      _ixmLockInfo currentPage( _me ), parentPage( getParent() ) ;
+      BOOLEAN bCurrentPageLocked = FALSE, bParentPageLocked = FALSE ;
+
+      /// verify if current page have been locked
+      if ( ! ( pixmContext->getLockHeldInfo( currentPage ) &&
+               ( DPS_TRANSLOCK_X == currentPage.lockMode ) ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR,
+                 "Error: doesn't lock page:%d with X mode, rc:%d",
+                 _me, rc ) ;
+
+         SDB_DASSERT( FALSE, "Current page is not locked" ) ;
+
+         goto error ;
+      }
+      bCurrentPageLocked = TRUE ;
+
+      // caller MUST hold X lock on parent page if current 
+      // page only have one key
+      if ( parentPage.isValid() && ( 1 == getNumKeyNode() ) )
+      {
+         if ( ! ( pixmContext->getLockHeldInfo( parentPage ) &&
+                  ( DPS_TRANSLOCK_X == parentPage.lockMode ) ) )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR,
+                    "Error: doesn't lock page:%d with X mode, rc:%d",
+                    parentPage.page, rc ) ;
+
+            SDB_DASSERT( FALSE, "Parent page is not locked" ) ;
+
+            goto error ;
+         }
+         bParentPageLocked = TRUE ;
+      }
+
       if ( pos >= getNumKeyNode() )
       {
          PD_LOG ( PDERROR, "pos out of range, pos=%d, totalKey=%d",
@@ -1422,19 +2642,26 @@ namespace engine
                   }
                }
             }
+
             // when we get here, we already balanced with neighbor or deleted
             // the extent, or it's root page, let's return
             goto done ;
          }
+
          // when we get here, that means either left pointer is not null or
          // there's right pointer in the page, then let's attempt to do delete
          // internal key
-         rc = _deleteInternalKey ( pos, order, indexCB ) ;
+         rc = _deleteInternalKey ( pos, order, indexCB, pixmContext ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to delete internal key" ) ;
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) &&
+                 ( SDB_TIMEOUT != rc ) )
+            {
+               PD_LOG ( PDERROR, "Failed to delete internal key, rc=%d", rc ) ;
+            }
             goto error ;
          }
+
          goto done ;
       }  // end of if ( 1 == getNumKeyNode() )
 
@@ -1459,14 +2686,29 @@ namespace engine
       {
          // if the left pointer is not null, let's do internal delete, this may
          // touch/move the next key
-         rc = _deleteInternalKey ( pos, order, indexCB ) ;
+         rc = _deleteInternalKey ( pos, order, indexCB, pixmContext ) ;
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to delete internal key" ) ;
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) &&
+                 ( SDB_TIMEOUT != rc ) )
+            {
+               PD_LOG ( PDERROR, "Failed to delete internal key , rc=%d", rc ) ;
+            }
             goto error ;
          }
       }
    done :
+      if ( bCurrentPageLocked )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+      if ( parentPage.isValid() && bParentPageLocked )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         bParentPageLocked = FALSE ;
+      }
+
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELKEYATPOS2, rc );
       return rc ;
    error :
@@ -1482,7 +2724,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__MAYBLCWITHNGB );
       result = FALSE ;
-      UINT16 pos ;
+      //UINT16 pos ;
       //BOOLEAN mayBalanceRight ;
       //BOOLEAN mayBalanceLeft ;
       // let's return if it's root
@@ -1491,18 +2733,20 @@ namespace engine
       {
          goto done ;
       }
-      {
+      // {
          // get the parent extent
-         ixmExtent parent( getParent(), _pIndexSu ) ;
+         // ixmExtent parent( getParent(), _pIndexSu ) ;
+
          // find the key pointing to this extent
-         rc = parent._findChildExtent( _me, pos ) ;
+         // rc = parent._findChildExtent( _me, pos ) ;
+
          // if we can't find the key, something really bad happened
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
-            goto error ;
-         }
-      }
+         // if ( rc )
+         // {
+         //    PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
+         //    goto error ;
+         // }
+      // }
 
       // if we are not the _right, and our next slot got child, we may do right
       // balance
@@ -1565,8 +2809,8 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT__MAYBLCWITHNGB, rc );
       return rc ;
-   error :
-      goto done ;
+   // error :
+   //    goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELEXT, "_ixmExtent::_delExtent" )
@@ -1583,17 +2827,22 @@ namespace engine
       {
          // get the parent extent
          ixmExtent parent( getParent(), _pIndexSu ) ;
+
          // find the key pointing to this extent
          rc = parent._findChildExtent ( _me, pos ) ;
+
          // if we can't find the key, something really bad happened
          if ( rc )
          {
             PD_LOG ( PDERROR, "Unable to find the extent in it's parent" ) ;
             goto error ;
          }
+      
+         // update child id in parent page 
          parent.setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
          mbID = _extentHead->_mbID ;
          freeSize = _extentHead->_totalFreeSize ;
+
          rc = indexCB->freeExtent ( _me ) ;
          if ( rc )
          {
@@ -1602,6 +2851,17 @@ namespace engine
          }
          _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
          _pPageMap->rmItem( _me ) ;
+
+         // if this page contains outside key, remove it from map
+         if ( _pOutKeyPageMap->findItem( _me, NULL ) )
+         {
+#if defined (_DEBUG)
+             PD_LOG ( PDDEBUG,
+                      "Remove key from outside key page map while _delExtent, "
+                      "pageId:%d", _me ) ;
+#endif
+            _pOutKeyPageMap->rmItem( _me ) ;
+         }
       }
 
    done :
@@ -1639,7 +2899,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELITNKEY, "_ixmExtent::_deleteInternalKey" )
    INT32 _ixmExtent::_deleteInternalKey ( UINT16 pos, const Ordering &order,
-                                          ixmIndexCB *indexCB )
+                                          ixmIndexCB *indexCB,
+                                          _ixmContext * pixmContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__DELITNKEY );
@@ -1647,6 +2908,32 @@ namespace engine
       dmsExtentID rchild = getChildExtentID(pos+1) ;
       ixmRecordID nextIndexKey ;
       INT32 direction ;
+
+      _ixmLockInfo currentPage( _me ), newPage,
+                   parentPage( getParent() ) ;
+      BOOLEAN bParentPageLocked  = FALSE,
+              bAllLocksReleased  = FALSE ;
+
+      // caller MUST hold X lock on parent page if current
+      // page only have one key
+      if ( parentPage.isValid() && ( 1 == getNumKeyNode() ) )
+      {
+         if ( ! ( pixmContext->getLockHeldInfo( parentPage ) &&
+                  ( DPS_TRANSLOCK_X == parentPage.lockMode ) ) )
+         {
+            rc = SDB_SYS ;
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+            PD_LOG( PDERROR,
+                    "Error: doesn't lock page:%d with X mode, rc:%d",
+                    parentPage.page, rc ) ;
+
+            SDB_DASSERT ( FALSE, "Parent page hasn't been locked !" ) ;
+            goto error ;
+         }
+      }
+      parentPage.reset() ;
+
       if ( DMS_INVALID_EXTENT == lchild && DMS_INVALID_EXTENT == rchild )
       {
          PD_LOG ( PDERROR, "both left/right child are NULL" ) ;
@@ -1654,27 +2941,88 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+
       direction = (DMS_INVALID_EXTENT == lchild)?1:-1 ;
       nextIndexKey._extent = _me ;
       nextIndexKey._slot = pos ;
-      rc = advance ( nextIndexKey, direction ) ;
+
+      // when advanceDown returns, the found page shall be locked
+      rc = _advanceDown ( nextIndexKey, direction, pixmContext,
+                          IXM_ADVANCEDOWN_OP_MODE_DEL ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to find the next index key" ) ;
+         if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) || 
+              ( SDB_TIMEOUT == rc ) )
+         {
+            // _advanceDown fails due to not be able to acquire lock 
+            // release all locks and restart from scratch
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+         }
+         else
+         {
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+
+            PD_LOG ( PDERROR, "Failed to find the next index key, rc:%d", rc ) ;
+         }
          goto error ;
       }
+
       // since we already checked that either lchild or rchild exist,
       // nextIndexKey should never be NULL here
       if ( nextIndexKey.isNull() )
       {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLocksReleased = TRUE ;
+
          PD_LOG ( PDERROR, "advance key shouldn't be NULL" ) ;
          dumpIndexExtentIntoLog () ;
          rc = SDB_SYS ;
          goto error ;
       }
+
       {
+         // verify the new found page is locked 
+         newPage.setPage( nextIndexKey._extent ) ;
+         if ( ! ( pixmContext->getLockHeldInfo( newPage ) &&
+                  ( DPS_TRANSLOCK_X == newPage.lockMode ) ) )
+         {
+            ixmUnlockAll( pixmContext ) ;
+            bAllLocksReleased = TRUE ;
+            rc = SDB_SYS ;
+            PD_LOG ( PDERROR, "Page:%d hasn't been locked, rc = %d",
+                     newPage.page, rc ) ;
+            SDB_DASSERT ( FALSE, "Page hasn't been locked !" ) ;
+            goto error ;
+         }
+
          // now the nextExtent contains the next key
          ixmExtent nextExtent ( nextIndexKey._extent, _pIndexSu ) ;
+
+         // if the new found page has only one key node,
+         // its parent must have X lock on it
+         parentPage.setPage( nextExtent.getParent() ) ;
+         if ( parentPage.isValid() )
+         { 
+            bParentPageLocked = pixmContext->getLockHeldInfo( parentPage ) ;
+            if ( 1 == nextExtent.getNumKeyNode() )
+            {
+               if ( ! ( bParentPageLocked && 
+                        ( DPS_TRANSLOCK_X == parentPage.lockMode ) ) )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  bAllLocksReleased = TRUE ;
+                  rc = SDB_SYS ;
+                  PD_LOG ( PDERROR,
+                           "Parent page:%d hasn't been locked, rc = %d",
+                           parentPage.page, rc ) ;
+                  SDB_DASSERT ( FALSE, "Parent page hasn't been locked !" ) ;
+                  goto error ;
+               }
+            }
+         }
+
          // if the next key do have child or its next (including _right)
          // do have child, let's use a simple way to set the key unused (a
          // better way could be recursively swap+_deleteInternalKey /
@@ -1685,6 +3033,32 @@ namespace engine
                     DMS_INVALID_EXTENT )
          {
             writeKeyNode(pos)->setUnused() ;
+
+            // if it is possible, release current page lock
+            if ( parentPage.isValid() &&
+                 ( 1 == nextExtent.getNumKeyNode() ) )
+            {
+               // if parent of the new found page is locked,
+               // then lock on current page can be released
+               // only when this page is neither the new found
+               // page nor parent of the new found page
+               if ( ( currentPage.page != newPage.page ) &&
+                    ( currentPage.page != parentPage.page ) )
+               {
+                  ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               }
+            }
+            else
+            {
+               // if the new found page contains more key nodes
+               // then no need to lock its parent. In this case,
+               // we may release current page if it is not same
+               // as new found page
+               if ( currentPage.page != newPage.page )
+               {
+                  ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               }
+            }
          }
          else
          {
@@ -1696,30 +3070,99 @@ namespace engine
             ixmKey nextKey ( nextExtent.getKeyData(nextIndexKey._slot)) ;
             if ( !kn )
             {
+               ixmUnlockAll( pixmContext ) ;
+               bAllLocksReleased = TRUE ;
+
                PD_LOG ( PDERROR, "Failed to find key node" ) ;
                dumpIndexExtentIntoLog () ;
                rc = SDB_SYS ;
                goto error ;
             }
+
             rc = _setInternalKey ( pos, kn->_rid, nextKey, order,
                                    getChildExtentID ( pos ) ,
                                    getChildExtentID ( pos+1 ) ,
-                                   indexCB ) ;
+                                   indexCB, pixmContext ) ;
             if ( rc )
             {
+               ixmUnlockAll( pixmContext ) ;
+               bAllLocksReleased = TRUE ;
+
                PD_LOG ( PDERROR, "failed to set internal key" ) ;
                goto error ;
             }
+
+            // if it is possible, release current page lock
+            if ( parentPage.isValid() && 
+                 ( 1 == nextExtent.getNumKeyNode() ) )
+            {
+               // if parent of the new found page is locked,
+               // then lock on current page can be released
+               // only when this page is neither the new found
+               // page nor parent of the new found page
+               if ( ( currentPage.page != newPage.page ) &&
+                    ( currentPage.page != parentPage.page ) )
+               {
+                  ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               }
+            }
+            else
+            {
+               // if the new found page contains more key nodes
+               // then no need to lock its parent. In this case,
+               // we may release current page if it is not same
+               // as new found page
+               if ( currentPage.page != newPage.page )
+               {
+                  ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               }
+            }
+
             rc = nextExtent._delKeyAtPos ( nextIndexKey._slot, order,
-                                           indexCB ) ;
+                                           indexCB, pixmContext ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "failed to delete key" ) ;
+               ixmUnlockAll( pixmContext ) ;
+               bAllLocksReleased = TRUE ;
+
+               if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE != rc ) &&
+                    ( SDB_TIMEOUT != rc ) )
+               {
+                  PD_LOG ( PDERROR, "failed to delete key" ) ;
+               }
                goto error ;
             }
          }
+
+         // release new page lock 
+         if ( newPage.isValid() )
+         {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         }
+
+         // release lock on parent page of new found page
+         if ( parentPage.isValid() && bParentPageLocked )
+         {
+            ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+            bParentPageLocked = FALSE ;
+         }
       }
    done :
+      if ( FALSE == bAllLocksReleased )
+      {
+         // release lock on new page
+         if ( newPage.isValid() )
+         {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         } 
+         // release lock on parent page of new found page
+         if ( parentPage.isValid() && bParentPageLocked )
+         {
+            ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+            bParentPageLocked = FALSE ;
+         }
+      }
+
       PD_TRACE_EXITRC ( SDB__IXMEXT__DELITNKEY, rc );
       return rc ;
    error :
@@ -1730,15 +3173,196 @@ namespace engine
    // keyRID is for input and output
    // direction=1 means forward, -1 means backward
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_ADVANCE, "_ixmExtent::advance" )
-   INT32 _ixmExtent::advance ( ixmRecordID &keyRID, INT32 direction ) const
+   INT32 _ixmExtent::advance ( ixmRecordID &keyRID, INT32 direction,
+                               _ixmContext * pixmContext ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_ADVANCE );
       INT32 adj ;
-      INT32 ko ;
-      dmsExtentID nextDown ;
       dmsExtentID childExtent ;
       dmsExtentID parent ;
+
+      _ixmLockInfo parentPage, childPage ;
+      BOOLEAN bParentLocked = FALSE, bChildLocked = FALSE ;
+
+      adj = direction < 0 ? 1:0 ;
+
+      // make sure current page is locked
+      childPage.setPage( _me ) ;
+      if ( FALSE == pixmContext->getLockHeldInfo( childPage )  )
+      {
+         rc = ixmLock( pixmContext, childPage.page, DPS_TRANSLOCK_S ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         bChildLocked = TRUE ;
+      }
+
+      rc = _advanceDown( keyRID, direction, pixmContext,
+                         IXM_ADVANCEDOWN_OP_MODE_QRY ) ;
+      if ( SDB_OK == rc )
+      {
+         // if the new found page is not same as child page ( _me )
+         // release lock on child page
+         if (    ( keyRID._extent != childPage.page )
+              && ( !keyRID.isNull() ) )
+         {
+            // release child apge
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildLocked = FALSE ;
+         }
+      }
+      // here we are at end of bucket, we should go to parent
+      else if ( ( SDB_IXM_EOC == rc ) && ( !keyRID.isNull() ) )
+      {
+         rc = SDB_OK ;
+
+         childExtent = _me ;
+         parent = getParent() ;
+         childPage.setPage( childExtent ) ;
+
+         while ( TRUE )
+         {
+            // we don't continue if getting to root
+            if ( DMS_INVALID_EXTENT == parent )
+               break ;
+
+            // try lock S on parent
+            parentPage.setPage( parent ) ;
+            rc = ixmTryLock( pixmContext, parentPage.page, DPS_TRANSLOCK_S ) ;
+            if ( SDB_OK != rc )
+            {
+               // release child apge and retry from beginning
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildLocked = FALSE ;
+               goto error;
+            }
+            bParentLocked = TRUE ;
+
+            // release child apge
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildLocked = FALSE ;
+
+            ixmExtent parentExtent ( parent, _pIndexSu ) ;
+
+            // switch
+            childPage = parentPage ;
+            bChildLocked = bParentLocked ;
+            parentPage.reset() ;
+            bParentLocked = FALSE ;
+
+            // in the parent extent, let's see who's _left pointing to
+            // the current extent, then that's what we are looking for
+            for ( UINT16 i=0; i<parentExtent.getNumKeyNode(); i++ )
+            {
+               if ( childExtent == parentExtent.getChildExtentID(i+adj) )
+               {
+                  keyRID._slot = i ;
+                  keyRID._extent = parent ;
+                  goto done ;
+               }
+            }
+
+            // we should never hit here in forward search, because each _left
+            // must have a valid keynode, unless it's at _right node
+            if ( direction > 0 &&
+                 parentExtent._extentHead->_right != childExtent )
+            {
+               PD_LOG ( PDERROR,"Invalid tree structure" ) ;
+               dumpIndexExtentIntoLog () ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+
+            childExtent = parent ;
+            parent = parentExtent.getParent() ;
+         }
+
+         // when we get here, it means there's no other keys avaliable
+         keyRID.reset() ;
+         if ( bChildLocked )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildLocked = FALSE ;
+         }
+         if ( bParentLocked )
+         {
+            ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+            bParentLocked = FALSE ;
+         }
+      }
+      else
+      {
+         goto error ;
+      }
+   done :
+      if ( !keyRID.isNull() )
+      {
+         if ( ( keyRID._extent != childPage.page ) &&
+              ( DMS_INVALID_EXTENT != childPage.page ) )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildLocked = FALSE ;
+         }
+         if ( ( keyRID._extent != parentPage.page ) &&
+              ( DMS_INVALID_EXTENT != parentPage.page ) )
+         {
+            ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+            bParentLocked = FALSE ;
+         }
+      }
+
+      PD_TRACE_EXITRC ( SDB__IXMEXT_ADVANCE, rc );
+      return rc ;
+   error :
+      if ( bChildLocked )
+      {
+         ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         bChildLocked = FALSE ;
+      }
+      if ( bParentLocked )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         bParentLocked = FALSE ;
+      }
+      goto done ;
+   }
+
+   // Move to the next key based on the direction
+   // keyRID is for input and output
+   // direction=1 means forward, -1 means backward
+   INT32 _ixmExtent::_advanceDown ( ixmRecordID &keyRID,
+                                    INT32 direction,
+                                    _ixmContext * pixmContext,
+                                    IXM_ADVANCEDOWN_OP_MODE_TYPE opMode ) const
+   {
+      INT32 rc = SDB_OK ;
+      INT32 adj ;
+      INT32 ko ;
+      dmsExtentID nextDown ;
+
+      _ixmLockInfo curPage( _me ), nextPage ;
+      BOOLEAN bCurLocked = FALSE, bNextLocked = FALSE  ;
+
+      SDB_ASSERT ( (( IXM_ADVANCEDOWN_OP_MODE_QRY == opMode ) ||
+                    ( IXM_ADVANCEDOWN_OP_MODE_DEL == opMode )),
+                   "Invalid operation mode !" ) ;
+
+      INT8 lockMode = ( opMode == IXM_ADVANCEDOWN_OP_MODE_QRY )
+                      ? ( DPS_TRANSLOCK_S )
+                      : ( DPS_TRANSLOCK_X ) ;
+
+      // make sure current page is locked
+      if ( FALSE == pixmContext->getLockHeldInfo( curPage ) )
+      {
+         rc = ixmLock( pixmContext, curPage.page, lockMode ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         bCurLocked = TRUE ;
+      }
 
       if ( keyRID._slot >= getNumKeyNode() )
       {
@@ -1746,6 +3370,7 @@ namespace engine
          rc = SDB_IXM_KEY_NOTEXIST ;
          goto error ;
       }
+
       adj = direction < 0 ? 1:0 ;
       ko = keyRID._slot + direction ;
       // for forward, we get _left for the next key
@@ -1758,21 +3383,71 @@ namespace engine
          // the current element for backward search
          while ( TRUE )
          {
+            // lock new page
+            nextPage.setPage( nextDown ) ;
+            rc = ixmLock( pixmContext, nextPage.page, lockMode ) ;
+            if ( rc )
+            {
+               // unlock all pages
+               ixmUnlockAll( pixmContext ) ;
+               bCurLocked  = FALSE ;
+               bNextLocked = FALSE ;
+               goto error ;
+            }
+            bNextLocked = TRUE ;
+
             ixmExtent childExtent(nextDown, _pIndexSu) ;
+
+            // unlock current page if we can
+            if ( IXM_ADVANCEDOWN_OP_MODE_QRY == lockMode )
+            {
+               ixmUnlock( pixmContext, curPage.page, TRUE ) ;
+               bCurLocked = FALSE ;
+            }
+            else if ( IXM_ADVANCEDOWN_OP_MODE_DEL == lockMode )
+            {
+               // free the lock on grandpa page in case it is still locked
+               dmsExtentID grandpa
+                  = ixmExtent(curPage.page, _pIndexSu).getParent() ;
+               if ( DMS_INVALID_EXTENT != grandpa )
+               {
+                  ixmUnlock( pixmContext, grandpa, TRUE ) ;
+               }
+
+               // if child page has more than 1 key release lock on curPage
+               if ( childExtent.getNumKeyNode() > 1 )
+               {
+                  SDB_ASSERT( ( childExtent.getParent() == curPage.page ),
+                              "Invalid parent page, corrupted index page" ) ;
+                  ixmUnlock( pixmContext, curPage.page, TRUE ) ;
+                  bCurLocked = FALSE ;
+               }
+            }
+
             // for forward, we get first element in the child, for backward we
             // get the last element in the child
             keyRID._slot = direction>0?0:
                 (childExtent.getNumKeyNode()-1) ;
             // get the _left for the child extent
             dmsExtentID child = childExtent.getChildExtentID(keyRID._slot+adj) ;
+
             if ( DMS_INVALID_EXTENT == child )
                break ;
+
             nextDown = child ;
+
+            // switch to next page
+            curPage     = nextPage ;
+            bCurLocked  = bNextLocked ;
+            nextPage.reset() ;
+            bNextLocked = FALSE ;
          }
+
          // after loop, the nextDown should represent the element without _left,
          // and keyRID._slot is updated for the target slot. So let's just
          // update keyRID._extent to nextDown
          keyRID._extent = nextDown ;
+
          goto done ;
       }
       // if we don't have _left, let's just check if we are on the key (instead
@@ -1783,56 +3458,55 @@ namespace engine
          keyRID._extent = _me ;
          goto done ;
       }
-      // here we are at end of bucket, we should go to parent
-      childExtent = _me ;
-      parent = getParent() ;
-      while ( TRUE )
+      // here we are at end of bucket
+      rc = SDB_IXM_EOC ;
+      if ( bCurLocked )
       {
-         // we don't continue if getting to root
-         if ( DMS_INVALID_EXTENT == parent )
-            break ;
-         ixmExtent parentExtent ( parent, _pIndexSu ) ;
-         // in the parent extent, let's see who's _left pointing to the current
-         // extent, then that's what we are looking for
-         for ( UINT16 i=0; i<parentExtent.getNumKeyNode(); i++ )
-         {
-            if ( childExtent == parentExtent.getChildExtentID(i+adj) )
-            {
-               keyRID._slot = i ;
-               keyRID._extent = parent ;
-               goto done ;
-            }
-         }
-         // we should never hit here in forward search, because each _left must
-         // have a valid keynode, unless it's at _right node
-         if ( direction > 0 && parentExtent._extentHead->_right != childExtent )
-         {
-            PD_LOG ( PDERROR,"Invalid tree structure" ) ;
-            dumpIndexExtentIntoLog () ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         childExtent = parent ;
-         parent = parentExtent.getParent() ;
+         ixmUnlock( pixmContext, curPage.page, TRUE ) ;
+         bCurLocked = FALSE ;
       }
-      // when we get here, it means there's no other keys avaliable
-      keyRID.reset() ;
+      if ( bNextLocked )
+      {
+         ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+         bNextLocked = FALSE ;
+      }
    done :
-      PD_TRACE_EXITRC ( SDB__IXMEXT_ADVANCE, rc );
+
       return rc ;
    error :
+      // unlock current page
+      if ( bCurLocked )
+      {
+         ixmUnlock( pixmContext, curPage.page, TRUE ) ;
+         bCurLocked = FALSE ;
+      }
+      // unlock next page
+      if ( bNextLocked )
+      {
+         ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+         bNextLocked = FALSE ;
+      }
       goto done ;
    }
+
    // caller must make sure there's no _left for pos
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SETITNKEY, "_ixmExtent::_setInternalKey" )
    INT32 _ixmExtent::_setInternalKey (UINT16 pos, const dmsRecordID &rid,
                                       const ixmKey &key,
                                       const Ordering &order, dmsExtentID lchild,
-                                      dmsExtentID rchild, ixmIndexCB *indexCB )
+                                      dmsExtentID rchild, ixmIndexCB *indexCB,
+                                      _ixmContext * pixmContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__SETITNKEY );
       setChildExtentID ( pos, DMS_INVALID_EXTENT ) ;
+
+      _ixmLockInfo currentPage( _me ) ;
+
+      // the caller must have X lock on current page
+      SDB_DASSERT( ( pixmContext->getLockHeldInfo( currentPage ) &&
+                     ( DPS_TRANSLOCK_X == currentPage.lockMode ) ),
+                   "Doesn't have X lock on current page !" ) ;
       rc = _delKeyAtPos ( pos ) ;
       if ( rc )
       {
@@ -1850,13 +3524,14 @@ namespace engine
       }
       // set child extent for the next to lchild
       setChildExtentID ( pos, lchild ) ;
-      rc = insertHere ( pos, rid, key, order, lchild, rchild, indexCB ) ;
+      rc = insertHere ( pos, rid, key, order, lchild, rchild, indexCB,
+                        pixmContext ) ;
       if ( rc )
       {
          // we don't need to worry about SDB_IXM_REORG_DONE because we already
          // set child extent id to lchild, so _reorg should never remove the
          // slot
-         PD_LOG ( PDERROR, "Failed to insert here" ) ;
+         PD_LOG ( PDERROR, "Failed to insert here, rc=%d", rc ) ;
          goto error ;
       }
    done :
@@ -1872,20 +3547,40 @@ namespace engine
       INT32 rc = SDB_OK ;
       return rc ;
    }
+
    INT32 _ixmExtent::locate ( const BSONObj &key, const dmsRecordID &rid,
                               const Ordering &order, ixmRecordID &indexrid,
                               BOOLEAN &found, INT32 direction,
-                              const ixmIndexCB *indexCB ) const
+                              ixmIndexCB *indexCB,
+                              _ixmContext * pixmContext ) const
    {
+      INT32 rc = SDB_OK ;
       ixmKeyOwned ixkey ( key ) ;
-      return _locate ( ixkey, rid, order, indexrid, found, direction, indexCB );
+
+      _ixmLockInfo currentPage( _me ) ;
+
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_S ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+      rc = _locate ( ixkey, rid, order, indexrid, found, direction,
+                     indexCB, pixmContext ) ;
+   done :
+      return rc ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__LOCATE, "_ixmExtent::_locate" )
    INT32 _ixmExtent::_locate ( const ixmKey &key, const dmsRecordID &rid,
                                const Ordering &order, ixmRecordID &indexrid,
                                BOOLEAN &found, INT32 direction,
-                               const ixmIndexCB *indexCB ) const
+                               ixmIndexCB *indexCB,
+                               _ixmContext * pixmContext ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT__LOCATE );
@@ -1894,12 +3589,21 @@ namespace engine
       dmsExtentID childExtent = DMS_INVALID_EXTENT ;
       INT32 keyFoundPos = -1 ;
 
+      _ixmLockInfo childPage, currentPage( _me ) ;
+      BOOLEAN bChildPageLocked = FALSE,
+              bCurrentPageLocked = TRUE ;
+
+      //   caller MUST have current page locked 
+      SDB_DASSERT( ( pixmContext->getLockHeldInfo( currentPage ) ),
+                   "_locate: Page has not been locked !" ) ;
+
       rc = find ( indexCB, key, rid, order, pos, keyFoundPos, found ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to find in locate" ) ;
          goto error ;
       }
+
       // if the key and rid exist in this page and not psuedo-deleted
       // then let's just record the extent id and position and return
       if ( found )
@@ -1913,16 +3617,52 @@ namespace engine
       childExtent = getChildExtentID ( pos ) ;
       if ( DMS_INVALID_EXTENT != childExtent )
       {
+         // lock child page with S mode
+         childPage.setPage( childExtent ) ;
+         rc = ixmLock( pixmContext, childPage.page, DPS_TRANSLOCK_S ) ;
+         if ( SDB_OK != rc )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+            goto error ;
+         }
+         bChildPageLocked = TRUE ;
+ 
+         // release parent page lock before recursively walk through child page
+         ixmUnlock( pixmContext, currentPage.page ) ;
+         bCurrentPageLocked = FALSE ;
+
          // if we get left pointer, that means we have child page, then let's do
          // _locate recursively
          rc = ixmExtent(childExtent, _pIndexSu)._locate( key, rid, order,
                                                          indexrid, found,
-                                                         direction, indexCB ) ;
+                                                         direction, indexCB,
+                                                         pixmContext ) ;
          if ( rc )
          {
+            // release lock on child page when _locate fails
+            if ( bChildPageLocked )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildPageLocked = FALSE ;
+            }
+            // release lock on the new found page if error occurs
+            if ( DMS_INVALID_EXTENT != indexrid._extent )
+            {
+               ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+            }
             // don't have to repeatedly log in interm pages
             goto error ;
          }
+
+         // if the new found page ( indexrid._extent )
+         // is not same as the child page ( childExtent ),
+         // try to release lock on child page
+         if ( childPage.page != indexrid._extent )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         }
+
          // if child found the key/rid, or if it find a good place for "next",
          // then we simply return
          // otherwise jump out if and do other checks
@@ -1931,10 +3671,259 @@ namespace engine
             goto done ;
          }
       }
+
       // check scan direction
       if ( (direction<0 && 0==pos) || (direction>0 && getNumKeyNode()==pos) )
       {
+         if ( DMS_INVALID_EXTENT != indexrid._extent )
+         {
+            ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+         }
+
          indexrid.reset() ;
+
+         if ( bCurrentPageLocked )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+         }
+         if ( bChildPageLocked )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildPageLocked = FALSE ;
+         }
+      }
+      else
+      {
+         indexrid._extent = _me ;
+         indexrid._slot = direction<0?pos-1:pos ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB__IXMEXT__LOCATE, rc );
+      return rc ;
+   error :
+      if ( bCurrentPageLocked ) 
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+      if ( bChildPageLocked )
+      {
+         ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         bChildPageLocked = FALSE ;
+      }
+      if ( DMS_INVALID_EXTENT != indexrid._extent )
+      {
+         ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+      }
+      goto done ;
+   }
+
+
+   INT32 _ixmExtent::_locateForDelete
+   (
+      const ixmKey      & key,
+      const dmsRecordID & rid,
+      const Ordering    & order,
+      ixmRecordID       & indexrid,
+      BOOLEAN           & found,
+      INT32               direction,
+      ixmIndexCB        * indexCB,
+      UINT32            & depth,
+      UINT32            & xLockLevel,
+      _ixmContext       * pixmContext
+   )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__IXMEXT__LOCATE ) ;
+      SDB_ASSERT ( 1 == direction || -1 == direction, "Invalid direction" ) ;
+      UINT16 pos = 0 ;
+      dmsExtentID childExtent = DMS_INVALID_EXTENT ;
+      INT32 keyFoundPos = -1 ;
+
+      _ixmLockInfo childPage, currentPage( _me ), parentPage( getParent() ) ;
+      BOOLEAN bAllLockReleased = FALSE ;
+      INT8 parentPageLockMode  = DPS_TRANSLOCK_MAX,
+           currentPageLockMode = DPS_TRANSLOCK_MAX,
+           childPageLockMode   = DPS_TRANSLOCK_MAX ;
+
+   retry :
+      // make sure current page is locked
+      // verify if have lock on current page
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Error: dosen't have lock on index page:%d, rc=%d",
+                  _me, rc ) ;
+
+         SDB_DASSERT ( FALSE,
+                       "_locateForDelete: Page has not been locked !" ) ;
+
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+         goto error ;
+      }
+      currentPageLockMode = currentPage.lockMode ;
+
+      if ( parentPage.isValid() && pixmContext->getLockHeldInfo( parentPage ) )
+      {
+         parentPageLockMode = parentPage.lockMode ;
+      }
+      else
+      {
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ;
+      }
+
+      rc = find ( indexCB, key, rid, order, pos, keyFoundPos, found ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to find in locate" ) ;
+         goto error ;
+      }
+
+      // if the key and rid exist in this page and not psuedo-deleted
+      // then let's just record the extent id and position and return
+      if ( found )
+      {
+         indexrid._extent = _me ;
+         indexrid._slot = pos ;
+         goto done ;
+      }
+
+      // when we get here, that means result == FALSE
+      childExtent = getChildExtentID ( pos ) ;
+
+      // when unindex, we may need to check if the page has outside key,
+      // if so do split first.
+      rc = _doSplitIfOutsideKeyExist( rid, key, order, pos,
+                                      currentPageLockMode,
+                                      parentPageLockMode,
+                                      indexCB,
+                                      depth,      // current tree level
+                                      xLockLevel, // level need an X lock
+                                      pixmContext ) ;
+      if ( rc )
+      {
+         // we have performed reorg and found the position we supposed to
+         // insert got a left pointer, so let's reperform find
+         if ( SDB_IXM_REORG_DONE == rc )
+         {
+            rc = SDB_OK ;
+            goto retry ;
+         }
+         goto error ;
+      }
+
+      // release lock on parent
+      if ( parentPage.isValid() )
+      {
+         ixmUnlock( pixmContext, parentPage.page, TRUE ) ;
+         parentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
+
+      if ( DMS_INVALID_EXTENT != childExtent )
+      {
+         depth ++ ;
+
+         // lock child page with proper mode
+         INT8 lockMode = currentPageLockMode ;
+         if ( DPS_TRANSLOCK_S == lockMode )
+         {
+            if ( ( IXM_X_LOCK_START_LEVEL <= depth ) ||
+                 ( ( xLockLevel > 0 ) && ( xLockLevel >= depth ) ) )
+            {
+               lockMode = DPS_TRANSLOCK_X ; 
+               if ( ( 0 == xLockLevel ) || ( xLockLevel >= depth ) )
+               {
+                  xLockLevel = depth ;
+               }
+            }
+         }
+
+         childPage.setPage( childExtent ) ;
+         rc = ixmLock( pixmContext, childPage.page, lockMode ) ;
+         if ( SDB_OK != rc )
+         {
+            // in case fails to acquire lock on child page, release locks
+            // on all pages and restart from scratch.
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            goto error ;
+         }
+         childPageLockMode = lockMode ;
+ 
+         // if we get left pointer, that means we have child page, then let's do
+         // _locate recursively
+         rc = ixmExtent(childExtent, _pIndexSu)._locateForDelete( key,
+                                                                  rid,
+                                                                  order,
+                                                                  indexrid,
+                                                                  found,
+                                                                  direction,
+                                                                  indexCB,
+                                                                  depth,
+                                                                  xLockLevel,
+                                                                  pixmContext );
+         if ( rc )
+         {
+            ixmUnlockAll( pixmContext ) ;
+            bAllLockReleased = TRUE ;
+            goto error ;
+         }
+
+         // if child found the key/rid, or if it find a good place for "next",
+         // then we simply return
+         // otherwise jump out if and do other checks
+         if ( !indexrid.isNull() )
+         {
+            SDB_DASSERT( pixmContext->isLocking( indexrid._extent ),
+                         "_locateForDelete: Page has not been locked !" ) ;
+
+            // when _locateForDelete returns it should have lock on
+            // the new found page
+            ixmExtent newFound( indexrid._extent, _pIndexSu ) ;
+
+            // if the new found page ( indexrid._extent )
+            // is not same as the child page ( childExtent ),
+            // nor its parent, release lock on child page
+            if ( ( childPage.page != indexrid._extent ) &&
+                 ( childPage.page != newFound.getParent() ) )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               childPageLockMode = DPS_TRANSLOCK_MAX ;
+            }
+            // release lock on current page if it is not same
+            // as the new found page ( indexrid._extent ) nor
+            // its parent page
+            if ( ( currentPage.page != indexrid._extent ) &&
+                 ( currentPage.page != newFound.getParent() ) )
+            {
+               ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               currentPageLockMode = DPS_TRANSLOCK_MAX ;
+            }
+            goto done ;
+         }
+      }
+      // check scan direction
+      if ( (direction<0 && 0==pos) || (direction>0 && getNumKeyNode()==pos) )
+      {
+         if ( !indexrid.isNull() )
+         {
+            ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+         }
+
+         indexrid.reset() ;
+
+         if ( DPS_TRANSLOCK_MAX != currentPageLockMode )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            currentPageLockMode = DPS_TRANSLOCK_MAX ;
+         }
+         if ( DPS_TRANSLOCK_MAX != childPageLockMode )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            childPageLockMode = DPS_TRANSLOCK_MAX ;
+         }
       }
       else
       {
@@ -1945,13 +3934,25 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__IXMEXT__LOCATE, rc );
       return rc ;
    error :
+      // if error occurs, release locks on all pages
+      if ( ! bAllLockReleased )
+      {
+         ixmUnlockAll( pixmContext ) ;
+         bAllLockReleased = TRUE ;
+         childPageLockMode   = DPS_TRANSLOCK_MAX ;
+         parentPageLockMode  = DPS_TRANSLOCK_MAX ;
+         currentPageLockMode = DPS_TRANSLOCK_MAX ;
+      }
       goto done ;
    }
+
+
    // Weather a key exists in the index tree
    // output in result
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
    INT32 _ixmExtent::exists ( const ixmKey &key, const Ordering &order,
-                             const ixmIndexCB *indexCB, BOOLEAN &result ) const
+                              ixmIndexCB *indexCB, BOOLEAN &result,
+                              _ixmContext * pixmContext ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_EXIST );
@@ -1959,20 +3960,56 @@ namespace engine
       dmsRecordID dummyID ;
       ixmRecordID indexrid ;
       result = FALSE ;
+
+      _ixmLockInfo currentPage( _me ), newPage ;
+      BOOLEAN bCurrentPageLocked = FALSE, bNewPageLocked = FALSE ;
+
+      indexrid.reset() ;
+
+      // lock current page( starting page )
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_S ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         bCurrentPageLocked = TRUE ;
+      }
+
       // try to locate the key and (-1,-1) for rid
-      rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB );
+      rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB,
+                     pixmContext ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to locate key" ) ;
          goto error ;
       }
+
       // loop until indexrid is invalid
       while ( TRUE )
       {
          if ( indexrid.isNull() )
             break ;
+
+         // _locate, advance returns the found page locked
+         newPage.setPage( indexrid._extent ) ;
+
+         SDB_DASSERT( pixmContext->getLockHeldInfo( newPage ),
+                      "Page hasn't been locked !" ) ;
+
+         bNewPageLocked = TRUE ;
+
          // create extent for indexrid
          ixmExtent extent ( indexrid._extent, _pIndexSu ) ;
+
+         // release lock on starting page if it is not same as new found page
+         if ( currentPage.page != newPage.page )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+         }
+
          // get the keynode
          const ixmKeyNode *kn = extent.getKeyNode(indexrid._slot) ;
          // skip unused keys (psuedo-deleted)
@@ -1983,20 +4020,49 @@ namespace engine
             result = ixmKey(extent.getKeyData(indexrid._slot)).woEqual(key) ;
             goto done ;
          }
+
          // advance to next keynode
-         rc = extent.advance ( indexrid, 1 ) ;
+         rc = extent.advance ( indexrid, 1, pixmContext ) ;
          if ( rc )
          {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+            if ( DMS_INVALID_EXTENT != indexrid._extent )
+            {
+               ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+            }
             PD_LOG ( PDERROR, "Failed to advance" ) ;
             goto error ;
          }
+
+         if ( ( DMS_INVALID_EXTENT != indexrid._extent ) &&
+              ( newPage.page       != indexrid._extent ) )
+         {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+            bNewPageLocked = FALSE ;
+         }
       }
+
    done :
+      if ( bCurrentPageLocked )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+      if ( bNewPageLocked )
+      {
+         ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         bNewPageLocked = FALSE ;
+      }
+      if ( DMS_INVALID_EXTENT != indexrid._extent )
+      {
+         ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__IXMEXT_EXIST, rc );
       return rc ;
    error :
       goto done ;
    }
+
    // in order to avoid parent pointer pointing to itself (from disk
    // corruption), we loop 100 rounds max, usually B tree will never exceed 100
    // levels
@@ -2026,8 +4092,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FNDSNG, "_ixmExtent::findSingle" )
-   INT32 _ixmExtent::findSingle ( const ixmKey &key, const Ordering &order,
-                                  dmsRecordID &rid, ixmIndexCB *indexCB ) const
+   INT32 _ixmExtent::findSingle ( const ixmKey   & key,
+                                  const Ordering & order,
+                                  dmsRecordID    & rid,
+                                  ixmIndexCB     * indexCB,
+                                  _ixmContext    * pixmContext ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_FNDSNG );
@@ -2036,7 +4105,24 @@ namespace engine
       dmsRecordID dummyID ;
       ixmRecordID indexrid ;
 
-      rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB ) ;
+      _ixmLockInfo currentPage( _me ), newPage ;
+      BOOLEAN bCurrentPageLocked = FALSE, bNewPageLocked = FALSE ;
+
+      indexrid.reset() ;
+
+      // lock current page( starting page )
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_S ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         bCurrentPageLocked = TRUE ;
+      }
+
+      rc = _locate ( key, dummyID, order, indexrid, found, 1, indexCB,
+                     pixmContext ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to locate key" ) ;
@@ -2050,8 +4136,25 @@ namespace engine
             indexrid.reset() ;
             break ;
          }
+
+         // _locate, advance returns the found page locked
+         newPage.setPage( indexrid._extent ) ;
+
+         SDB_DASSERT( pixmContext->getLockHeldInfo( newPage ),
+                      "Page hasn't been locked !" ) ;
+
+         bNewPageLocked = TRUE ;
+
          // create extent for indexrid
          ixmExtent extent ( indexrid._extent, _pIndexSu ) ;
+
+         // release lock on starting page if it is not same as new found page
+         if ( currentPage.page != newPage.page )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+         }
+
          // get the keynode
          const ixmKeyNode *kn = extent.getKeyNode(indexrid._slot) ;
          // skip unused keys (psuedo-deleted)
@@ -2072,14 +4175,43 @@ namespace engine
             goto done ;
          }
          // advance to next keynode
-         rc = extent.advance ( indexrid, 1 ) ;
+         rc = extent.advance ( indexrid, 1, pixmContext ) ;
          if ( rc )
          {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+
+            if ( DMS_INVALID_EXTENT != indexrid._extent )
+            {
+               ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+            }
             PD_LOG ( PDERROR, "Failed to advance" ) ;
             goto error ;
          }
+
+         if ( DMS_INVALID_EXTENT != indexrid._extent )
+         {
+            ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+            bNewPageLocked = FALSE ;
+         }
       }
    done :
+      if ( bCurrentPageLocked )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+
+      if ( bNewPageLocked )
+      {
+         ixmUnlock( pixmContext, newPage.page, TRUE ) ;
+         bNewPageLocked = FALSE ;
+      }
+
+      if ( DMS_INVALID_EXTENT != indexrid._extent )
+      {
+         ixmUnlock( pixmContext, indexrid._extent, TRUE ) ;
+      }
+
       PD_TRACE_EXITRC ( SDB__IXMEXT_FNDSNG, rc );
       return rc ;
    error :
@@ -2410,12 +4542,16 @@ namespace engine
    //   left pointer
    //   B.3) in other condition, do binary search using keyFind and scan child
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYLOCATE, "_ixmExtent::keyLocate" )
-   INT32 _ixmExtent::keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
-                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
-                                 const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
-                                 const Ordering &o, INT32 direction,
-                                 _pmdEDUCB *cb ) const
+   INT32 _ixmExtent::keyLocate ( ixmRecordID       & rid,
+                                 const BSONObj     & prevKey,
+                                 INT32               keepFieldsNum,
+                                 BOOLEAN             skipToNext,
+                                 const VEC_ELE_CMP & matchEle,
+                                 const VEC_BOOLEAN & matchInclusive,
+                                 const Ordering    & o,
+                                 INT32               direction,
+                                 _pmdEDUCB         * cb,
+                                 _ixmContext       * pixmContext )const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_KEYLOCATE );
@@ -2425,6 +4561,21 @@ namespace engine
       dmsExtentID childExtentID ;
       SDB_ASSERT ( direction == 1 || direction == -1, "direction must be "
                    "either 1 or -1" ) ;
+
+      _ixmLockInfo childPage, currentPage( _me ) ;
+      BOOLEAN bCurrentPageLocked = FALSE, bChildPageLocked = FALSE ;
+
+      // make sure current page is locked
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_S ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         bCurrentPageLocked = TRUE ;
+      }
+
       // empty root?
       if ( 0 == getNumKeyNode() )
       {
@@ -2478,16 +4629,47 @@ namespace engine
          // is child exist? if not let's just return the best match
          if ( DMS_INVALID_EXTENT != childExtentID )
          {
-            // otherwise get the child and recursively call keyLocate
-            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
-            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
-                                        matchEle, matchInclusive, o, direction,
-                                        cb );
+            // lock child page
+            childPage.setPage( childExtentID ) ;
+            rc = ixmLock( pixmContext, childPage.page, DPS_TRANSLOCK_S ) ;
             if ( rc )
             {
+               goto error ;
+            }
+            bChildPageLocked = TRUE ;
+ 
+            // otherwise get the child and recursively call keyLocate
+            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+
+            // release lock on current page
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+ 
+            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                        matchEle, matchInclusive, o, direction,
+                                        cb, pixmContext );
+            if ( rc )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildPageLocked = FALSE ;
+
+               if ( DMS_INVALID_EXTENT != rid._extent )
+               {
+                  ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+               }
+
                PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
                         childExtentID ) ;
                goto error ;
+            }
+
+            // release lock on child page ( childExtentID ), if the new found
+            // page ( rid._extent ) is not same as child page
+            if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+                 ( childPage.page != rid._extent ) )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildPageLocked = FALSE ;
             }
          }
          goto done ;
@@ -2532,16 +4714,47 @@ namespace engine
          // is child exist? if not let's just return the best match
          if ( DMS_INVALID_EXTENT != childExtentID )
          {
-            // otherwise get the child and recursively call keyLocate
-            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
-            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
-                                        matchEle, matchInclusive, o, direction,
-                                        cb );
+            // lock child page
+            childPage.setPage( childExtentID );
+            rc = ixmLock( pixmContext, childPage.page, DPS_TRANSLOCK_S ) ;
             if ( rc )
             {
+               goto error ;
+            }
+            bChildPageLocked = TRUE ;
+
+            // otherwise get the child and recursively call keyLocate
+            ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+
+            // release lock on current page
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+
+            rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                        matchEle, matchInclusive, o, direction,
+                                        cb, pixmContext );
+            if ( rc )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildPageLocked = FALSE ;
+
+               if ( DMS_INVALID_EXTENT != rid._extent )
+               {
+                  ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+               }
+
                PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
                         childExtentID ) ;
                goto error ;
+            }
+
+            // release lock on child page ( childExtentID ), if the new found
+            // page ( rid._extent ) is not same as child page
+            if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+                 ( childPage.page != rid._extent ) )
+            {
+               ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+               bChildPageLocked = FALSE ;
             }
          }
          goto done ;
@@ -2557,33 +4770,90 @@ namespace engine
       }
       if ( DMS_INVALID_EXTENT != childExtentID )
       {
-         ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
-         rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
-                                     matchEle, matchInclusive, o, direction,
-                                     cb ) ;
+         // lock child page
+         childPage.setPage( childExtentID );
+         rc = ixmLock( pixmContext, childPage.page, DPS_TRANSLOCK_S ) ;
          if ( rc )
          {
+            goto error ;
+         }
+         bChildPageLocked = TRUE ;
+
+         ixmExtent nextExtent ( childExtentID, _pIndexSu ) ;
+
+         // release lock on current page
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+
+         rc = nextExtent.keyLocate ( rid, prevKey, keepFieldsNum, skipToNext,
+                                     matchEle, matchInclusive, o, direction,
+                                     cb, pixmContext ) ;
+         if ( rc )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildPageLocked = FALSE ;
+
+            if ( DMS_INVALID_EXTENT != rid._extent )
+            {
+               ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+            }
+
             PD_LOG ( PDERROR, "Failed to run keyLocate from extent %d",
                      childExtentID ) ;
             goto error ;
          }
+
+         // release lock on child page ( childExtentID ), if the new found
+         // page ( rid._extent ) is not same as child page
+         if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+              ( childPage.page != rid._extent ) )
+         {
+            ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+            bChildPageLocked = FALSE ;
+         }
       }
+
+      // release lock on current page ( _me ), if the new found
+      // page ( rid._extent ) is not same as child page
+      if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+           ( currentPage.page != rid._extent ) )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_KEYLOCATE, rc );
       return rc ;
    error :
+      if ( bCurrentPageLocked )
+      {
+         // release lock on current page
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+      if ( bChildPageLocked )
+      {
+         // release lock on child page
+         ixmUnlock( pixmContext, childPage.page, TRUE ) ;
+         bChildPageLocked = FALSE ;
+      }
       goto done ;
    }
 
    // get the rid for the smallest/greatest key matching prevKey (forward and
    // backward scan), if there's no such thing exist, rid is reset.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYADVANCE, "_ixmExtent::keyAdvance" )
-   INT32 _ixmExtent::keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
-                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
-                                 const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
-                                 const Ordering &o, INT32 direction,
-                                 _pmdEDUCB *cb ) const
+   INT32 _ixmExtent::keyAdvance ( ixmRecordID       & rid,
+                                  const BSONObj     & prevKey,
+                                  INT32               keepFieldsNum,
+                                  BOOLEAN             skipToNext,
+                                  const VEC_ELE_CMP & matchEle,
+                                  const VEC_BOOLEAN & matchInclusive,
+                                  const Ordering    & o,
+                                  INT32               direction,
+                                  _pmdEDUCB         * cb,
+                                  _ixmContext       * pixmContext ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_KEYADVANCE );
@@ -2592,6 +4862,20 @@ namespace engine
       dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
       dmsExtentID parentExtentID = DMS_INVALID_EXTENT ;
       const CHAR *data = NULL ;
+
+      _ixmLockInfo nextPage, currentPage( _me ) ;
+      BOOLEAN bCurrentPageLocked = FALSE, bNextPageLocked = FALSE ;
+
+      // make sure current page is locked
+      if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) )
+      {
+         rc = ixmLock( pixmContext, currentPage.page, DPS_TRANSLOCK_S ) ;
+         if ( rc )
+         {
+            goto error ; 
+         }
+         bCurrentPageLocked = TRUE ;
+      }
 
       // first let's compare the last/first item (forward and backward scan)
       // with the expect key
@@ -2630,6 +4914,7 @@ namespace engine
                                     keepFieldsNum, skipToNext, matchEle,
                                     matchInclusive, o, direction) <= 0 ) ;
       }
+
       // if the latest/first key is greater/smaller than the target, that means
       // we don't need to traversal up. So let's simply call keyFind in the
       // current level
@@ -2652,15 +4937,47 @@ namespace engine
          }
          else
          {
+            // acquire lock on child page
+            nextPage.setPage( childExtentID ) ;
+            rc = ixmLock( pixmContext, nextPage.page, DPS_TRANSLOCK_S );
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            bNextPageLocked = TRUE ;
+
             ixmExtent childExtent ( childExtentID, _pIndexSu ) ;
+
+            // release lock on curren page
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+
             rc = childExtent.keyLocate ( rid, prevKey, keepFieldsNum,
                                          skipToNext, matchEle,
-                                         matchInclusive, o, direction, cb ) ;
+                                         matchInclusive, o, direction, cb,
+                                         pixmContext ) ;
             if ( rc )
             {
+               ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+               bNextPageLocked = FALSE ;
+
+               if ( DMS_INVALID_EXTENT != rid._extent )
+               {
+                  ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+               }
+
                PD_LOG ( PDERROR, "Failed to keyLocate in extent %d",
                         childExtentID ) ;
                goto error ;
+            }
+
+            // release lock on nextPage page ( childExtentID ), if the new found
+            // page ( rid._extent ) is not same as child page
+            if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+                 ( nextPage.page != rid._extent ) )
+            {
+               ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+               bNextPageLocked = FALSE ;
             }
          }
       }
@@ -2671,15 +4988,49 @@ namespace engine
          // if we get here, that means the target is greater or smaller than
          // latest/first key (forward and backward). That means the key is not
          // within the current node, and we should traversal up
+
+         // acquire lock on parent page
+         nextPage.setPage( parentExtentID ) ;
+         rc = ixmTryLock( pixmContext, nextPage.page, DPS_TRANSLOCK_S );
+         if ( SDB_OK != rc )
+         {
+            // release lock on current page
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+            goto error ;
+         }
+         bNextPageLocked = TRUE ;
+
+         // release lock on current page
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+
          ixmExtent parentExtent ( parentExtentID, _pIndexSu ) ;
          rc = parentExtent.keyAdvance ( rid, prevKey, keepFieldsNum,
                                         skipToNext, matchEle, matchInclusive,
-                                        o, direction, cb ) ;
+                                        o, direction, cb, pixmContext ) ;
          if ( rc )
          {
+            ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+            bNextPageLocked = FALSE ;
+
+            if ( DMS_INVALID_EXTENT != rid._extent )
+            {
+               ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+            }
+
             PD_LOG ( PDERROR, "Failed to keyAdvance in extent %d",
                      parentExtentID ) ;
             goto error ;
+         }
+
+         // release lock on nextPage page ( parentExtentID ), if the new found
+         // page ( rid._extent ) is not same as child page
+         if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+              ( nextPage.page != rid._extent ) )
+         {
+            ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+            bNextPageLocked = FALSE ;
          }
       }
       else
@@ -2687,19 +5038,61 @@ namespace engine
          // we have to reset rid here, so that if there's no further keys
          // in index scan let's return NULL
          rid.reset() ;
+
          // if we are root?
          rc = keyLocate ( rid, prevKey, keepFieldsNum, skipToNext, matchEle,
-                          matchInclusive, o, direction, cb ) ;
+                          matchInclusive, o, direction, cb, pixmContext ) ;
          if ( rc )
          {
+            if ( bCurrentPageLocked )
+            {
+               ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+               bCurrentPageLocked = FALSE ;
+            }
+
+            if ( DMS_INVALID_EXTENT != rid._extent )
+            {
+               ixmUnlock( pixmContext, rid._extent, TRUE ) ;
+            }
+
             PD_LOG ( PDERROR, "Failed to keyLocate in extent %d", _me ) ;
             goto error ;
          }
+
+         // release lock on CurrentPage ( _me ), if the new found
+         // page ( rid._extent ) is not same
+         if ( ( DMS_INVALID_EXTENT != rid._extent ) &&
+              ( currentPage.page != rid._extent ) )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            bCurrentPageLocked = FALSE ;
+         }
       }
+
+      // release lock on CurrentPage ( _me ), if the new found
+      // page ( rid._extent ) is not same
+      if ( bCurrentPageLocked &&
+           ( DMS_INVALID_EXTENT != rid._extent ) &&
+           ( currentPage.page != rid._extent ) )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__IXMEXT_KEYADVANCE, rc );
       return rc ;
    error :
+      if ( bNextPageLocked )
+      {
+         ixmUnlock( pixmContext, nextPage.page, TRUE ) ;
+         bNextPageLocked = FALSE ;
+      }
+      if ( bCurrentPageLocked )
+      {
+         ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+         bCurrentPageLocked = FALSE ;
+      }
       goto done ;
    }
 
@@ -2742,5 +5135,3 @@ namespace engine
    }
 
 }
-
-

@@ -72,7 +72,6 @@ namespace engine
       _isNeedSyncTrans     = TRUE ;
       _logFileTotalSize    = 0 ;
       _transLockMgr        = NULL ;
-      _indexLockMgr        = NULL ;
       _oldVCB              = NULL;
       _maxLRSize1          = 0 ;
       _maxLRSize2          = 0 ;
@@ -203,13 +202,6 @@ namespace engine
          _transLockMgr->fini() ;
          SDB_OSS_DEL _transLockMgr ;
          _transLockMgr = NULL ;
-      }
-
-      if ( _indexLockMgr )
-      {
-         _indexLockMgr->fini() ;
-         SDB_OSS_DEL _indexLockMgr ;
-         _indexLockMgr = NULL ;
       }
 
       if ( _oldVCB )
@@ -1361,6 +1353,48 @@ namespace engine
                                        pdpsTxResInfo, callback );
    }
 
+
+   // try and wait on X-lock if the lock request is not fulfilled.
+   // After it is woken up, it will not retry X-lock nor wake up
+   // next waiter ( unless the owner queue is empty ) since it hasn't
+   // have the lock yet. It will pause context if the lock is not acquired
+   // Currently this functioin is called in dmsScanner
+   INT32 dpsTransCB::transLockTryAndWaitX
+   (
+      _pmdEDUCB              * eduCB,
+      UINT32                   logicCSID,
+      UINT16                   collectionID,
+      const dmsRecordID      * recordID,
+      _IContext              * pContext,
+      dpsTransRetInfo        * pdpsTxResInfo,
+      _dpsITransLockCallback * callback
+   )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !_isOn )
+      {
+         return rc ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      rc =  _transLockMgr->tryAcquireAndWait( eduCB->getTransExecutor(),
+                                              lockId, DPS_TRANSLOCK_X,
+                                              pContext, pdpsTxResInfo,
+                                              callback ) ;
+      if ( eduCB->getTransExecutor()->hasLockWait() )
+      {
+         eduCB->getTransExecutor()->finishLockWait() ;
+
+         if ( eduCB->getMonQueryCB() )
+         {
+            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
+                                                     getTransExecutor()->
+                                                     getLockWaitTime() ;
+         }
+      }
+      return rc ;
+   }
+
+
    INT32 dpsTransCB::transLockTryU( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
                                     const dmsRecordID *recordID,
@@ -1379,6 +1413,47 @@ namespace engine
    }
 
 
+   // try and wait on U-lock if the lock request is not fulfilled.
+   // After it is woken up, it will not retry X-lock nor wake up
+   // next waiter ( unless the owner queue is empty ) since it hasn't
+   // have the lock yet. It will pause context if the lock is not acquired
+   // Currently this functioin is called in dmsScanner
+   INT32 dpsTransCB::transLockTryAndWaitU
+   (
+      _pmdEDUCB              * eduCB,
+      UINT32                   logicCSID,
+      UINT16                   collectionID,
+      const dmsRecordID      * recordID,
+      _IContext              * pContext,
+      dpsTransRetInfo        * pdpsTxResInfo,
+      _dpsITransLockCallback * callback
+   )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !_isOn )
+      {
+         return rc ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      rc =  _transLockMgr->tryAcquireAndWait( eduCB->getTransExecutor(),
+                                              lockId, DPS_TRANSLOCK_U,
+                                              pContext, pdpsTxResInfo,
+                                              callback );
+      if ( eduCB->getTransExecutor()->hasLockWait() )
+      {
+         eduCB->getTransExecutor()->finishLockWait() ;
+
+         if ( eduCB->getMonQueryCB() )
+         {
+            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
+                                                     getTransExecutor()->
+                                                     getLockWaitTime() ;
+         }
+      }
+      return rc ;
+   }
+
+
    INT32 dpsTransCB::transLockTryS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
                                     const dmsRecordID *recordID,
@@ -1394,6 +1469,47 @@ namespace engine
                                        lockId, DPS_TRANSLOCK_S,
                                        pdpsTxResInfo,
                                        callback ) ;
+   }
+
+
+   // try and wait on S-lock if the lock request is not fulfilled.
+   // After it is woken up, it will not retry X-lock nor wake up
+   // next waiter ( unless the owner queue is empty ) since it hasn't
+   // have the lock yet. It will pause context if the lock is not acquired
+   // Currently this functioin is called in dmsScanner
+   INT32 dpsTransCB::transLockTryAndWaitS
+   (
+      _pmdEDUCB              * eduCB,
+      UINT32                   logicCSID,
+      UINT16                   collectionID,
+      const dmsRecordID      * recordID,
+      _IContext              * pContext,
+      dpsTransRetInfo        * pdpsTxResInfo,
+      _dpsITransLockCallback * callback
+   )
+   {
+      INT32 rc = SDB_OK ;
+      if ( !_isOn )
+      {
+         return rc ;
+      }
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      rc =  _transLockMgr->tryAcquireAndWait( eduCB->getTransExecutor(),
+                                              lockId, DPS_TRANSLOCK_S,
+                                              pContext, pdpsTxResInfo,
+                                              callback );
+      if ( eduCB->getTransExecutor()->hasLockWait() )
+      {
+         eduCB->getTransExecutor()->finishLockWait() ;
+
+         if ( eduCB->getMonQueryCB() )
+         {
+            eduCB->getMonQueryCB()->lockWaitTime += eduCB->
+                                                     getTransExecutor()->
+                                                     getLockWaitTime() ;
+         }
+      }
+      return rc ;
    }
 
 
@@ -1645,10 +1761,6 @@ namespace engine
       return ( _transLockMgr->isInitialized() ? ( _transLockMgr ) : NULL ) ;
    }
 
-   ixmIndexLockManager * dpsTransCB::getIndexLockMgrHandle()
-   {
-      return ( _indexLockMgr->isInitialized() ? ( _indexLockMgr ) : NULL ) ;
-   }
 
    /*
       get global trans cb

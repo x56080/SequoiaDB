@@ -985,7 +985,8 @@ namespace engine
 
       while ( SDB_OK == rc )
       {
-         rc = _context->getMBContext()->mbLock( SHARED ) ;
+         // rc = _context->getMBContext()->mbLock( SHARED ) ;
+         rc = _context->getMBContext()->mbLock( EXCLUSIVE ) ;
          if ( SDB_OK != rc )
          {
             break ;

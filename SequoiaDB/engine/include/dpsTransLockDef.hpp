@@ -230,14 +230,18 @@ namespace engine
    #define DPS_LOCKID_OFFSET        "Offset"
 
    // Note :
-   // In order to implement index page lock through record locking mechanism,
-   // we construct a special lockId to delinetate
+   // In order to implement index page lock and extent lock
+   // through record locking mechanism, we construct special lockIds
+   // to delinetate
    // . an index page :
    //    ( CSId, -2, indexPageNumber, -1 )
+   // . an extent :
+   //    ( CSId, -3, extentNumber, -1 )
    //
    // When DPS_LOCKID_CLSID field is filled with -2, we can tell a lock is
-   // an index lock.
+   // an index lock ; when it is -3, it is an extent lock
    #define DPS_LOCKID_IDX_COLLECTION ((UINT16)( -2 ))
+   #define DPS_LOCKID_EXT_COLLECTION ((UINT16)( -3 ))
 
    /*
       _dpsTransLockId define
@@ -404,7 +408,8 @@ namespace engine
    OSS_INLINE UINT32 _dpsTransLockId::lockIdHash() const
    {
       UINT64 b = 0 ;
-      if ( DPS_LOCKID_IDX_COLLECTION == _collectionID )
+      if ( ( DPS_LOCKID_IDX_COLLECTION == _collectionID ) ||
+           ( DPS_LOCKID_EXT_COLLECTION == _collectionID ) )
       {
          // index page lock only use CS and extent field
          b |= (UINT64)(_logicCSID & 0xFFFFFFFF) << 32 ;

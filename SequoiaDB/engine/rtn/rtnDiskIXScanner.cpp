@@ -42,6 +42,8 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 
+#include "ixmContext.hpp"
+
 using namespace bson;
 
 namespace engine
@@ -52,7 +54,7 @@ namespace engine
                                           _dmsStorageUnit *su,
                                           _pmdEDUCB *cb,
                                           BOOLEAN indexCBOwnned )
-   :_rtnIXScanner( indexCB, predList, su, cb, indexCBOwnned ),
+   : _rtnIXScanner( indexCB, predList, su, cb, indexCBOwnned ),
      _listIterator( *predList ),
      _pMonCtxCB(NULL)
    {
@@ -117,6 +119,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_RELORID1 ) ;
 
+      _ixmContext* pixmContext = getIXMContext() ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
+
       PD_CHECK ( _indexCB, SDB_OOM, error, PDERROR,
                  "Failed to allocate memory for indexCB" ) ;
 
@@ -130,14 +135,46 @@ namespace engine
 
       {
          monAppCB * pMonAppCB   = _cb ? _cb->getMonAppCB() : NULL ;
+      retry :
+         // release all locks before starting as we starting from
+         // root page
+         ixmUnlockAll( pixmContext ) ;
+
          // get root
          dmsExtentID rootExtent = _indexCB->getRoot() ;
+       
+         // acquire S lock on root page 
+         rc = ixmLock( pixmContext, rootExtent, DPS_TRANSLOCK_S ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to lock root page rc: %d, "
+                     "rootExtent: %d", rc, rootExtent ) ;
+            goto error ;
+         }
+
          ixmExtent root ( rootExtent, _su->index() ) ;
+        
+         // in case root page is changed after getRoot()
+         if ( root.getParent() != DMS_INVALID_EXTENT )
+         {
+            goto retry ;
+         }
+
          BOOLEAN found          = FALSE ;
 
          // locate the new key, the returned RID is stored in _curIndexRID
          rc = root.locate ( keyObj, rid, _order, _curIndexRID,
-                            found, _direction, _indexCB ) ;
+                            found, _direction, _indexCB, pixmContext ) ;
+         if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+              ( SDB_TIMEOUT == rc ) ) 
+         {
+            ixmUnlockAll( pixmContext ) ;
+            goto retry ;
+         }
+         if ( _curIndexRID.isNull() )
+         {
+            ixmUnlockAll( pixmContext ) ;
+         }
          PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
                        "and rid(%d,%d), rc: %d", keyObj.toString().c_str(),
                        rid._extent, rid._offset, rc ) ;
@@ -145,7 +182,9 @@ namespace engine
          _savedObj = keyObj.getOwned() ;
          _savedRID = rid ;
 
-         if ( found && !isReadonly() )
+         //REVISIT:
+         //if ( found && !isReadonly() )
+         if ( found && ( ! _savedRID.isNull() ) )
          {
             _savedRID._offset -= 1 ;
             found = FALSE ;
@@ -165,6 +204,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_RELORID1, rc ) ;
       return rc ;
    error :
+      ixmUnlockAll( pixmContext ) ;
       goto done ;
    }
 
@@ -177,26 +217,61 @@ namespace engine
       found = FALSE ;
       monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
 
+      _ixmContext* pixmContext = getIXMContext() ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
+
+   retry :
+      // release all locks before starting from root
+      ixmUnlockAll( pixmContext ) ;
+
       // either the key doesn't exist, or we got key/rid not match,
       // or the key is psuedo-deleted, we all get here
       dmsExtentID rootExtent = _indexCB->getRoot() ;
-      ixmExtent root ( rootExtent, _su->index() ) ;
 
-      rc = root.locate ( _savedObj, _savedRID, _order, _curIndexRID,
-                         found, _direction, _indexCB ) ;
+      // acquire S lock on root page
+      rc = ixmLock( pixmContext, rootExtent, DPS_TRANSLOCK_S ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
-                  "rid(%d,%d), rc: %d", _savedObj.toString().c_str(),
-                  _savedRID._extent, _savedRID._offset, rc ) ;
+         PD_LOG ( PDERROR, "Failed to lock root page rc: %d, "
+                  "rootExtent: %d", rc, rootExtent ) ;
          goto error ;
       }
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+      {
+         ixmExtent root ( rootExtent, _su->index() ) ;
 
+         // in case root page is changed after getRoot()
+         if ( root.getParent() != DMS_INVALID_EXTENT )
+         {
+            ixmUnlock( pixmContext, rootExtent, TRUE ) ;
+            goto retry ;
+         }
+
+         rc = root.locate ( _savedObj, _savedRID, _order, _curIndexRID,
+                            found, _direction, _indexCB, getIXMContext() ) ;
+         if ( rc )
+         {
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                 ( SDB_TIMEOUT == rc ) )
+            {
+               ixmUnlockAll( pixmContext ) ;
+               goto retry ;
+            }
+            PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
+                     "rid(%d,%d), rc: %d", _savedObj.toString().c_str(),
+                     _savedRID._extent, _savedRID._offset, rc ) ;
+            goto error ;
+         }
+         if ( _curIndexRID.isNull() )
+         {
+            ixmUnlockAll( pixmContext ) ;
+         }
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+      }
    done :
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_RELORID2, rc ) ;
       return rc ;
    error :
+      ixmUnlockAll( pixmContext ) ;
       goto done ;
    }
 
@@ -217,21 +292,52 @@ namespace engine
       monAppCB * pMonAppCB = _cb ? _cb->getMonAppCB() : NULL ;
       ixmRecordID lastRID ;
 
+      _ixmContext* pixmContext = getIXMContext() ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
+
+      BOOLEAN bNextElement = FALSE ;
+
    begin:
       // first time run after reset, we need to locate the first key
       if ( !_init )
       {
+      initRetry :
+         ixmUnlockAll( pixmContext ) ;
+
          // when we get here, we should always hold lock on the collection, so
          // _indexCB should remain valid until pauseScan() and resumeScan(). So
          // in resumeScan() we should always validate if the index still the
          // same
          dmsExtentID rootExtent = _indexCB->getRoot() ;
-         ixmExtent root ( rootExtent, _su->index() ) ;
-         rc = root.keyLocate ( _curIndexRID, BSONObj(), 0, FALSE,
-                               _listIterator.cmp(), _listIterator.inc(),
-                               _order, _direction, _cb ) ;
+
+         // acquire S lock on root page
+         rc = ixmLock( pixmContext, rootExtent, DPS_TRANSLOCK_S ) ;
          if ( rc )
          {
+            PD_LOG ( PDERROR, "Failed to lock root page rc: %d, "
+                     "rootExtent: %d", rc, rootExtent ) ;
+            goto error ;
+         }
+
+         ixmExtent root ( rootExtent, _su->index() ) ;
+
+         // in case root page is changed after getRoot()
+         if ( root.getParent() != DMS_INVALID_EXTENT )
+         {
+            goto initRetry ;
+         }
+
+         rc = root.keyLocate ( _curIndexRID, BSONObj(), 0, FALSE,
+                               _listIterator.cmp(), _listIterator.inc(),
+                               _order, _direction, _cb, pixmContext ) ;
+         if ( rc )
+         {
+            if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                 ( SDB_TIMEOUT == rc ) )
+            {
+               ixmUnlockAll( pixmContext ) ;
+               goto initRetry ;
+            }
             PD_LOG ( PDERROR, "Failed to locate first key, rc: %d, "
                      "rootExtent: %d", rc, rootExtent ) ;
             goto error ;
@@ -250,24 +356,59 @@ namespace engine
             rc = SDB_IXM_EOC ;
             goto done ;
          }
-         ixmExtent indexExtent ( _curIndexRID._extent, _su->index() ) ;
-         // in readonly mode, _savedRID should always be NULL unless pauseScan()
-         // + resumeScan() found the index structure is changed and we have
-         // relocateRID(), in that case _savedRID may not be NULL for readonly
-         // mode
 
-         // in write mode, the possible NULL savedRID is that when the
-         // previous read is a psuedo-delete, note resumeScan() shouldn't set
-         // _savedRID to NULL in this case
+#ifdef _DEBUG
+        // PD_LOG( PDDEBUG,
+        //         "_rtnDiskIXScanner::advance, begins."OSS_NEWLINE
+        //         "_curKeyObj(%s), _curIndexRID(%d, %d)"OSS_NEWLINE
+        //         "_savedObj (%s), _savedRID(%d, %d)"OSS_NEWLINE
+        //         "rid(%d, %d)",
+        //         _curKeyObj.toString().c_str(),
+        //         _curIndexRID._extent, _curIndexRID._slot,
+        //         _savedObj.toString().c_str(),
+        //         _savedRID._extent, _savedRID._offset,
+        //         rid._extent, rid._offset ) ;
+#endif
 
-         // In such scenario, we advance to next element
-         if ( _savedRID.isNull() )
+         if ( FALSE == pixmContext->isLocking( _curIndexRID._extent ) )
          {
-            lastRID = _curIndexRID ;
-            // changed during the time
-            rc = indexExtent.advance ( _curIndexRID, _direction ) ;
+            // acquire S lock on _curIndexRID._extent page
+            rc = ixmLock( pixmContext, _curIndexRID._extent, DPS_TRANSLOCK_S ) ;
             if ( rc )
             {
+               if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                    ( SDB_TIMEOUT == rc ) )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  goto begin ;
+               }
+               PD_LOG ( PDERROR, "Failed to lock current page, rc: %d, "
+                        " _curIndexRID._extent: %d", rc, _curIndexRID._extent );
+               goto error ;
+            }
+         }
+
+         ixmExtent indexExtent ( _curIndexRID._extent, _su->index() ) ;
+
+         // the possible NULL savedRID is that when the previous read
+         // is a psuedo-delete. In such scenario, we advance to next element
+         if ( _savedRID.isNull() && bNextElement )
+         {
+            bNextElement = FALSE ;
+            lastRID = _curIndexRID ;
+            _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
+
+            // changed during the time
+            rc = indexExtent.advance ( _curIndexRID, _direction, pixmContext ) ;
+            if ( rc )
+            {
+               if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                    ( SDB_TIMEOUT == rc ) )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  informAdvanceToCurrentPos() ;
+                  goto begin ;
+               }
                goto error ;
             }
             if ( lastRID == _curIndexRID )
@@ -275,15 +416,10 @@ namespace engine
                _curIndexRID.reset() ;
             }
          }
-         // need to specially deal with the situation that index tree structure
-         // may changed during scan
-         // in this case _savedRID can't be NULL
-         // advance happened only when both _savedRID and _savedObj matches on
-         // disk version
-         else if ( !isReadonly() )
+         else
          {
-            // if it's update or delete index scan, the index structure may get
-            // changed so everytime we have to compare _curIndexRID and ondisk
+            // the index structure may get changed,
+            // so everytime we have to compare _curIndexRID and ondisk
             // rid, as well as the stored object
 
             BOOLEAN isSame = FALSE ;
@@ -306,6 +442,7 @@ namespace engine
                   PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
                   goto error ;
                }
+
                if ( isSame && ( !getSharedInfo() ||
                                 !getSharedInfo()->exists( _savedRID ) ) )
                {
@@ -317,9 +454,17 @@ namespace engine
             // to the next.
             if ( isSame )
             {
-               rc = indexExtent.advance ( _curIndexRID, _direction ) ;
+               rc = indexExtent.advance( _curIndexRID, _direction,
+                                         pixmContext ) ;
                if ( rc )
                {
+                  if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                       ( SDB_TIMEOUT == rc ) )
+                  {
+                     ixmUnlockAll( pixmContext ) ;
+                     informAdvanceToCurrentPos() ;
+                     goto begin ;
+                  }
                   PD_LOG ( PDERROR, "Failed to advance, rc: %d", rc ) ;
                   goto error ;
                }
@@ -329,7 +474,7 @@ namespace engine
             {
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
             }
-         } // if ( !isReadonly() )
+         }  // if ( !isReadonly() )
       }
 
       // after getting the first key location or advanced to next, let's
@@ -354,6 +499,7 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
+
          try
          {
             // get the key from index rid
@@ -371,6 +517,7 @@ namespace engine
                              _curIndexRID._extent,
                              _curIndexRID._slot, e.what() ) ;
             }
+
             // compare the key in list iterator
             rc = _listIterator.advance ( _curKeyObj ) ;
             // if -2, that means we hit end of iterator, so all other keys in
@@ -385,17 +532,32 @@ namespace engine
             else if ( rc >= 0 )
             {
                lastRID = _curIndexRID ;
+               _savedObj = _curKeyObj.getOwned() ;
+               _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
                rc = indexExtent.keyAdvance ( _curIndexRID, _curKeyObj, rc,
                                              _listIterator.after(),
                                              _listIterator.cmp(),
                                              _listIterator.inc(),
-                                             _order, _direction, _cb ) ;
+                                             _order, _direction, _cb,
+                                             pixmContext ) ;
+               // keyAdvance may fail to acquire index page lock
+               // when traverse index tree, let's restart from beginning.
+               if ( ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc ) ||
+                    ( SDB_TIMEOUT == rc ) )
+               {
+                  ixmUnlockAll( pixmContext ) ;
+                  informAdvanceToCurrentPos() ;
+                  goto begin ;
+               }
+
                PD_RC_CHECK ( rc, PDERROR,
                              "Failed to advance, rc = %d", rc ) ;
+
                if ( lastRID == _curIndexRID )
                {
                   _curIndexRID.reset() ;
                }
+
                continue ;
             }
             // otherwise let's attempt to get dms rid
@@ -403,17 +565,20 @@ namespace engine
             {
                _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
                // make sure the RID we read is not psuedo-deleted
-               if ( _savedRID.isNull() || !_insert2Dup( _savedRID ) )
+               // usually this means a psuedo-deleted rid, we should jump
+               // back to beginning of the function and advance to next
+               // key
+               // if we are able to find the recordid in dupBuffer, that
+               // means we've already processed the record, so let's also
+               // jump back to begin
+               if ( _savedRID.isNull() || ( !_insert2Dup( _savedRID ) ) )
                {
-                  // usually this means a psuedo-deleted rid, we should jump
-                  // back to beginning of the function and advance to next
-                  // key
-                  // if we are able to find the recordid in dupBuffer, that
-                  // means we've already processed the record, so let's also
-                  // jump back to begin
+                  rc = SDB_OK ;
                   _savedRID.reset() ;
+                  bNextElement = TRUE ;
                   goto begin ;
                }
+
                // make sure we don't hit maximum size of dedup buffer
                /*if ( _pInfo && _pInfo->isUpToLimit() )
                {
@@ -424,18 +589,22 @@ namespace engine
                // ready to return to caller
                rid = _savedRID ;
 
-               // if we are write mode, let's record the _savedObj as well
-               if ( !isReadonly() )
-               {
-                  _savedObj = _curKeyObj.getOwned() ;
-               }
-               // otherwise if we are read mode, let's reset _savedRID
-               else
-               {
-                  // in readonly scenario, _savedRID should always be null
-                  // unless pauseScan() is called
-                  _savedRID.reset() ;
-               }
+               // record the _saveObj always
+               _savedObj = _curKeyObj.getOwned() ;
+
+               //// if we are write mode, let's record the _savedObj as well
+               //if ( !isReadonly() )
+               //{
+               //   _savedObj = _curKeyObj.getOwned() ;
+               //}
+               //// otherwise if we are read mode, let's reset _savedRID
+               //else
+               //{
+               //   // in readonly scenario, _savedRID should always be null
+               //   // unless pauseScan() is called
+               //   _savedRID.reset() ;
+               //}
+
                rc = SDB_OK ;
                break ;
             }
@@ -452,20 +621,39 @@ namespace engine
                           "exception during advance index tree: %s",
                           e.what() ) ;
          }
-      } // while ( TRUE )
+      }  // while ( TRUE )
 
    done :
+      if ( _curIndexRID.isNull() )
+      {
+         ixmUnlockAll( pixmContext ) ;
+      }
       if ( SDB_IXM_EOC == rc )
       {
          _eof = TRUE ;
          rid.reset() ;
-
+         ixmUnlockAll( pixmContext ) ;
          PD_LOG( PDDEBUG, "Hit end with last obj(%s)",
                  _curKeyObj.toString().c_str() ) ;
       }
+#ifdef _DEBUG
+      else
+      {
+         PD_LOG( PDDEBUG,
+                 "_rtnDiskIXScanner::advance returns obj(%s), "
+                 "with rid(%d, %d), _savedRID(%d, %d), "
+                 "_curIndexRID(%d, %d)",
+                 _curKeyObj.toString().c_str(),
+                 rid._extent, rid._offset,
+                 _savedRID._extent, _savedRID._offset,
+                 _curIndexRID._extent, _curIndexRID._slot ) ;
+      }
+#endif
+
       PD_TRACE_EXITRC( SDB__RTNDISKIXSCAN_ADVANCE, rc ) ;
       return rc ;
    error :
+      ixmUnlockAll( pixmContext ) ;
       goto done ;
    }
 
@@ -480,50 +668,59 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_PAUSESCAN ) ;
 
+      _ixmContext* pixmContext = getIXMContext() ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
+
       if ( !_init || _curIndexRID.isNull() )
       {
          goto done ;
       }
 
-      // for write mode, since we write _savedRID and _savedObj in advance, we
-      // don't do it here
-      if ( isReadonly() )
-      {
-         const CHAR *dataBuffer = NULL ;
-         // for read mode, let's copy savedobj then
-         ixmExtent indexExtent( _curIndexRID._extent, _su->index() ) ;
-         dataBuffer = indexExtent.getKeyData( _curIndexRID._slot ) ;
-         if ( !dataBuffer )
-         {
-            PD_LOG ( PDERROR, "Failed to get buffer from current rid: %d,%d",
-                     _curIndexRID._extent, _curIndexRID._slot ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         try
-         {
-            _savedObj = ixmKey(dataBuffer).toBson().getOwned() ;
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG ( PDERROR, "Failed to convert buffer to bson from current "
-                     "rid: %d,%d: %s", _curIndexRID._extent,
-                     _curIndexRID._slot, e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
+      //
+      // in advance we always save _savedRID and _savedObj
+      //
 
-         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d)",
-                 _savedObj.toString().c_str(),
-                 _savedRID._extent, _savedRID._offset ) ;
-      }
+      //if ( isReadonly() )
+      //{
+      //   const CHAR *dataBuffer = NULL ;
+      //   // for read mode, let's copy savedobj then
+      //   ixmExtent indexExtent( _curIndexRID._extent, _su->index() ) ;
+      //   dataBuffer = indexExtent.getKeyData( _curIndexRID._slot ) ;
+      //   if ( !dataBuffer )
+      //   {
+      //      PD_LOG ( PDERROR, "Failed to get buffer from current rid: %d,%d",
+      //               _curIndexRID._extent, _curIndexRID._slot ) ;
+      //      rc = SDB_SYS ;
+      //      goto error ;
+      //   }
+      //   try
+      //   {
+      //      _savedObj = ixmKey(dataBuffer).toBson().getOwned() ;
+      //   }
+      //   catch ( std::exception &e )
+      //   {
+      //      PD_LOG ( PDERROR, "Failed to convert buffer to bson from current "
+      //               "rid: %d,%d: %s", _curIndexRID._extent,
+      //               _curIndexRID._slot, e.what() ) ;
+      //      rc = SDB_SYS ;
+      //      goto error ;
+      //   }
+      //   _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
+      //}
 
    done:
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "_rtnDiskIXScanner: Paused in obj(%s) with rid(%d,%d)",
+              _savedObj.toString().c_str(),
+              _savedRID._extent, _savedRID._offset ) ;
+#endif
+      // release all index page locks
+      ixmUnlockAll( pixmContext ) ;
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_PAUSESCAN, rc ) ;
       return rc ;
-   error :
-      goto done ;
+   // error :
+   //    goto done ;
    }
 
    // restoring the bson key and rid for the current index rid. This is done by
@@ -538,6 +735,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNDISKIXSCAN_RESUMESCAN ) ;
       BOOLEAN isSame = TRUE ;
+
+      _ixmContext* pixmContext = getIXMContext() ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
 
       _curKeyObj = BSONObj() ;
 
@@ -574,6 +774,8 @@ namespace engine
          goto done ;
       }
 
+      // when isCursorSame returns, if cursor is same,
+      // the index page contains this key is S locked
       rc = isCursorSame( _savedObj, _savedRID, isSame ) ;
       if ( rc )
       {
@@ -584,25 +786,38 @@ namespace engine
          _curKeyObj = _savedObj ;
       }
 
-      if ( !isReadonly() )
-      {
-         goto done ;
-      }
+      // We always save _saveRID in advance() even if isReadOnly() is TRUE.
+      // We need to relocate after pauseScan, as the index might be changed
+      // once the index page lock is released.
+      // ----------------
+      //
+      //if ( !isReadonly() )
+      //{
+      //   goto done ;
+      //}
 
       if ( isSame )
       {
-         // this means the last scaned record is still here, so let's
-         // reset _savedRID so that we'll call advance()
-         _savedRID.reset() ;
+         // We always save _saveRID in advance() to keep the previous
+         // location, since we will need it to relocate after pauseScan.
+         // In this case, we shall not reset _savedRID, it would be used
+         // to relocate.
+
+         // this means the last scaned record is still here
+         // _savedRID.reset() ;
+
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "_rtnDiskIXScanner: Resume to obj(%s) "
+                 "with rid(%d,%d), isSame(%d)",
+                 _savedObj.toString().c_str(),
+                 _savedRID._extent, _savedRID._offset, isSame ) ;
+#endif
       }
       else
       {
          // when we get here, it means something changed and we need to
          // relocateRID
-         // note relocateRID may relocate to the index that already read.
-         // However after advance() returning the RID we'll check if the
-         // index already has been read, so we should be safe to not
-         // reset _savedRID
          rc = relocateRID( isSame ) ;
          if ( rc )
          {
@@ -610,18 +825,30 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d,%d), found(%d)",
-                 _savedObj.toString().c_str(), _savedRID._extent,
-                 _savedRID._offset, isSame ) ;
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "_rtnDiskIXScanner: Resume and relocate obj(%s) "
+                 "with rid(%d,%d), found(%d)",
+                 _savedObj.toString().c_str(),
+                 _savedRID._extent, _savedRID._offset, isSame ) ;
+#endif
 
          if ( isSame )
          {
-            _savedRID.reset() ;
+            // REVISIT:
+            // _savedRID.reset() ;
             _curKeyObj = _savedObj ;
          }
       }
 
    done:
+
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              "_rtnDiskIXScanner: Resumed, isReadonly(%d)",
+              isReadonly() ) ;
+#endif
+
       if ( pIsCursorSame )
       {
          *pIsCursorSame = isSame ;
@@ -629,6 +856,8 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_RESUMESCAN, rc ) ;
       return rc ;
    error:
+      // release all index page locks
+      ixmUnlockAll( pixmContext ) ;
       goto done ;
    }
 
@@ -643,10 +872,27 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      BOOLEAN curIndexPageLocked = FALSE ;
+      _ixmContext* pixmContext   = getIXMContext() ;
+      _ixmLockInfo currentPage( _curIndexRID._extent ) ;
+      SDB_ASSERT( pixmContext, "IXM Context can't be NULL !" ) ;
+
       isSame = FALSE ;
 
       if ( _init && !_curIndexRID.isNull() )
       {
+         if ( FALSE == pixmContext->getLockHeldInfo( currentPage ) ) 
+         {
+            rc = ixmLock( pixmContext, currentPage.page , DPS_TRANSLOCK_S ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to lock index page: %d, rc: %d",
+                        currentPage.page, rc ) ;
+               goto error ;
+            }
+            curIndexPageLocked = TRUE ;
+         }
+
          ixmExtent indexExtent ( _curIndexRID._extent, _su->index() ) ;
          if ( indexExtent.isStillValid( _indexCB->getMBID() ) )
          {
@@ -659,8 +905,17 @@ namespace engine
       }
 
    done:
+      if ( FALSE == isSame )
+      {
+         if ( curIndexPageLocked )
+         {
+            ixmUnlock( pixmContext, currentPage.page, TRUE ) ;
+            curIndexPageLocked = FALSE ;
+         }
+      }
       return rc ;
    error:
+      ixmUnlockAll( pixmContext ) ;
       goto done ;
    }
 
@@ -724,5 +979,22 @@ namespace engine
       goto done ;
    }
 
-}
+   void  _rtnDiskIXScanner::informAdvanceToCurrentPos()
+   {
+      // sanity check, make sure we are on valid index
+      SDB_ASSERT( _indexCB->isInitialized(),
+                  "Index does not exist" ) ;
+      SDB_ASSERT( _indexCB->getFlag() == IXM_INDEX_FLAG_NORMAL,
+                  "Unexpected index status" ) ;
 
+      if ( _indexCB->unique() )
+      {
+         _savedRID.reset() ;
+      }
+      else if ( ! _savedRID.isNull() )
+      {
+         _savedRID._offset -= 1 ;
+      }
+      return ;
+   }
+}

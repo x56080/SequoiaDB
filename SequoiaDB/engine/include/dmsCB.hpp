@@ -59,6 +59,8 @@
 #include "dmsStorageJob.hpp"
 #include "ossMemPool.hpp"
 
+#include "dpsTransLockDef.hpp" // dpsTransRetInfo
+#include "dpsTransLockMgr.hpp" // dmsExtentLockManager, ixmIndexLockManager
 
 using namespace std ;
 
@@ -66,6 +68,7 @@ namespace engine
 {
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
+   class _dmsIXTransContext ;
 
    // 20 minutes
    #define DMS_DFT_BLOCKWRITE_TIMEOUT       ( 20 * 60 * OSS_ONE_SEC )
@@ -137,6 +140,9 @@ namespace engine
    } ;
    typedef _dmsDictJob dmsDictJob ;
 
+   // FIXME: mblatch optimization prototype, use prime number for now
+   #define DMS_EXTLATCH_SLOTS_MAX ( (UINT32) 131071 )
+
    /*
       _SDB_DMSCB define
    */
@@ -152,6 +158,18 @@ namespace engine
             return std::strcmp(a,b)<0 ;
          }
       } ;
+
+      class extProtect
+      {
+      public :
+         ossSpinSLatch _extLatch ;
+         ossAtomic32   _pinCount ;
+      public :
+         extProtect() : _pinCount( 0 )
+         {
+         }
+      } ;
+
       ossPoolMap<const CHAR*, dmsStorageUnitID, cmp_cscb> _cscbNameMap ;
       ossPoolMap<utilCSUniqueID, dmsStorageUnitID>  _cscbIDMap ;
       std::vector<SDB_DMS_CSCB*>          _cscbVec ;
@@ -162,6 +180,9 @@ namespace engine
       std::queue<dmsStorageUnitID>        _freeList ;
       // collection spaces mutex in create and drop operations
       std::vector< ossSpinRecursiveXLatch* >  _vecCSMutex ;
+
+      // FIXME: mbLatch prototype, implement extentlatch and indexLatch here
+      extProtect    _extProtect[DMS_EXTLATCH_SLOTS_MAX+1];
 
 #if defined (_WINDOWS)
       typedef ossPoolMap<const CHAR*,
@@ -212,6 +233,10 @@ namespace engine
       dmsIxmKeySorterCreator* _ixmKeySorterCreator ;
 
       dmsPageMappingDispatcher   _pageMapDispatcher ;
+
+      ixmIndexLockManager *   _indexLockMgr ;   
+
+      dmsExtentLockManager *  _extentLockMgr ;
 
    private:
       void  _logCSCBNameMap () ;
@@ -309,6 +334,28 @@ namespace engine
 
       void _registerHandler ( _IDmsEventHandler *pHandler) ;
 
+      OSS_INLINE UINT32 _hashExtent( const  UINT32 csID, 
+                                     const  UINT16 clID,
+                                     const  dmsExtentID extID ) 
+      {
+         UINT64 b     = 0 ;
+
+         // recordExtentID is unique within a CS, so no
+         // need to use collectionID
+         // 32 bits for csID, 32 bits for extID
+         b |= (UINT64)(csID & 0xFFFFFFFF) << 32 ;
+         b |= (UINT64)(extID & 0xFFFFFFFF) ;
+
+         // ossHash use DJB Hash ( Daniel J. Bernstein ) algorithm :
+         //   h(i) = h(i-1) * 33 + str[i]
+         // bitwise multiplication x << 5 + x it equivalent to x * 33,
+         // where the magic 5 comes. However, there is no adequate
+         // explaination on why 33 is choosed as multiplier
+         return  ( ossHash( (CHAR*)&( b ), (sizeof( b )), 5 )
+                   % DMS_EXTLATCH_SLOTS_MAX );
+
+      }
+
    public:
       _SDB_DMSCB() ;
       virtual ~_SDB_DMSCB() ;
@@ -377,6 +424,59 @@ namespace engine
                                      const CHAR *pNewName,
                                      _pmdEDUCB *cb,
                                      SDB_DPSCB *dpsCB ) ;
+
+      ixmIndexLockManager  * getIndexLockMgrHandle() ;
+      dmsExtentLockManager * getExtentLockMgrHandle() ;
+
+      INT32 lockExtent( _pmdEDUCB *cb,
+                        const   UINT32 csID,
+                        const   UINT16 clID,
+                        const   dmsExtentID extID,
+                        const   OSS_LATCH_MODE lockType,
+                        BOOLEAN infinitelyWait = TRUE ) ;
+
+      INT8 getExtLockMode( _pmdEDUCB *cb,
+                           const   UINT32 csID,
+                           const   UINT16 clID,
+                           const   dmsExtentID extID ) ;
+
+      // currently this function is used in _dmsIXSecScanner::advance
+      // As we want to pauseScan ( release memory tree latch, index page
+      // lock ) when wait for post if try lock fails, so conext pointer
+      // is passed in
+      INT32 tryLockExtentAndWait( _pmdEDUCB *cb,
+                                  const   UINT32 csID,
+                                  const   UINT16 clID,
+                                  const   dmsExtentID extID,
+                                  const   OSS_LATCH_MODE lockType,
+                                  _dmsIXTransContext * pConext,
+                                  dpsTransRetInfo * pdpsTxResInfo ) ;
+
+      INT32 tryLockExtent( _pmdEDUCB *cb,
+                           const  UINT32 csID,
+                           const  UINT16 clID,
+                           const  dmsExtentID extID,
+                           const  OSS_LATCH_MODE lockType ) ;
+
+      void unlockExtent( _pmdEDUCB *cb,
+                         const  UINT32 csID,
+                         const  UINT16 clID,
+                         const  dmsExtentID extID,
+                         BOOLEAN bForceRelease = TRUE ) ;
+
+      void unlockAllExtent( _pmdEDUCB *cb ) ;
+
+      void useExtent( const  UINT32 csID,
+                      const  UINT16 clID,
+                      const  dmsExtentID extID ) ;
+
+      void unuseExtent( const  UINT32 csID,
+                        const  UINT16 clID,
+                        const  dmsExtentID extID ) ;
+
+      UINT32 getExtPinCount( const  UINT32 csID,
+                             const  UINT16 clID,
+                             const  dmsExtentID extID ) ;
 
       INT32 dumpInfo ( MON_CL_SIM_LIST &collectionList,
                        BOOLEAN sys = FALSE ) ;

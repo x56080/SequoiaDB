@@ -1052,6 +1052,10 @@ namespace engine
 
          // reloate RID to the key that we want
          rc = scanner->relocateRID ( key, rid ) ;
+
+         // release latches / locks acquired by relocateRID
+         scanner->pauseScan() ;
+   
          PD_CHECK ( SDB_OK == rc, rc, error, PDERROR,
                     "Failed to relocate key to the specified location: %s, "
                     "rc = %d", key.toString().c_str(), rc ) ;

@@ -35,6 +35,8 @@
 #include "dmsIndexBuilderImpl.hpp"
 #include "ixm.hpp"
 
+#include "ixmContext.hpp"
+
 using namespace bson ;
 
 namespace engine
@@ -370,6 +372,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // create ixm context
+      _ixmContext ixmContext( _eduCB,
+                              _suIndex->getDatalogicalCSID() ) ;
+
+      _indexCB->setCLLID( _mbContext->clLID() ) ;
+
       // Callback to validate in memory tree
       if ( _pOprHandler && _indexCB->unique() )
       {
@@ -388,7 +396,7 @@ namespace engine
 
       rc = _suIndex->_indexInsert( _indexCB, key, rid, ordering,
                                    _eduCB, !_unique, _dropDups,
-                                   _pResult ) ;
+                                   &ixmContext, _pResult ) ;
       if ( SDB_OK != rc )
       {
          // during index rebuild, it's possible some other

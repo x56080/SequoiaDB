@@ -339,6 +339,7 @@ namespace engine
       OSS_INLINE void _recLid2ExtLidAndOffset( INT64 logicalID,
                                                dmsExtentID &extID,
                                                dmsOffset &offset ) ;
+
       OSS_INLINE dmsExtentID _logicID2ExtID( dmsMBContext *context,
                                              INT64 logicalID,
                                              const dmsExtent *&extent ) ;
@@ -403,7 +404,7 @@ namespace engine
                                                          UINT32 totalSize,
                                                          const dmsRecordData &recordData )
    {
-      ++( mbStat._totalRecords ) ;
+      mbStat._totalRecords ++ ;
       mbStat._rcTotalRecords.inc() ;
       mbStat._totalDataFreeSpace -= totalSize ;
       mbStat._totalOrgDataLen += totalSize ;
@@ -460,7 +461,7 @@ namespace engine
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::spaceEnough( dmsMBContext *context,
                                                           UINT32 newSize )
    {
-      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
+      dmsMBStatInfo *mbStatInfo = context->mbStat() ;
       SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
 
       return (((UINT64)mbStatInfo->_totalDataPages << pageSizeSquareRoot()) + newSize)
@@ -470,7 +471,7 @@ namespace engine
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,
                                                               UINT32 newNum )
    {
-      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
+      dmsMBStatInfo *mbStatInfo = context->mbStat() ;
       SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
 
       return ( _options[context->mbID()]->_maxRecNum > 0 &&

@@ -868,16 +868,22 @@ class _ossSpinSLatchPOSIX : public ossSLatch
 {
 private :
    pthread_rwlock_t  _lock ;
+   pthread_rwlockattr_t _attr;
 public :
    _ossSpinSLatchPOSIX ()
    {
-      SDB_ASSERT( 0 == pthread_rwlock_init( &_lock, NULL ),
+      pthread_rwlockattr_init( &_attr ) ;
+      pthread_rwlockattr_setkind_np( &_attr,
+              PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP ) ;
+      SDB_ASSERT( 0 == pthread_rwlock_init( &_lock, &_attr ),
                   "init rwlock failed" ) ;
    }
    ~_ossSpinSLatchPOSIX()
    {
       SDB_ASSERT( 0 == pthread_rwlock_destroy( &_lock ),
                   "destroy rwlock failed" ) ;
+      SDB_ASSERT( 0 == pthread_rwlockattr_destroy( &_attr ),
+                  "destroy rwlocattr failed" ) ;
    }
    void get ()
    {

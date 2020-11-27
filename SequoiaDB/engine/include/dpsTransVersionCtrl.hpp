@@ -42,7 +42,7 @@
 
 #include "dms.hpp"
 #include "ixm.hpp"
-#include "ossLatch.hpp"
+#include "monLatch.hpp"
 #include "dmsRecord.hpp"
 #include "utilPooledObject.hpp"
 #include "utilPooledAutoPtr.hpp"
@@ -455,7 +455,7 @@ namespace engine
       //    in the tree so that we have direct access to lrbHdr without need
       //    to go through lrbhash bkt.
 
-      ossSpinSLatch       _latch ;  // latch for concurrency control, 
+      monSpinSLatch        _latch ; // latch for concurrency control,
                                     // adding/removing node need latch in X
                                     // find/travers need latch in S
 
@@ -629,22 +629,26 @@ namespace engine
 
       void latchS()
       {
-         _oldVersionCBLatch.get_shared() ;
+         // _oldVersionCBLatch.get_shared() ;
+         _oldVersionCBLatch.lock_r() ;
       }
 
       void latchX()
       {
-         _oldVersionCBLatch.get() ;
+         // _oldVersionCBLatch.get() ;
+         _oldVersionCBLatch.lock_w() ;
       }
 
       void releaseX()
       {
-         _oldVersionCBLatch.release() ;
+         // _oldVersionCBLatch.release() ;
+         _oldVersionCBLatch.release_w() ;
       }
 
       void releaseS()
       {
-         _oldVersionCBLatch.release_shared() ;
+         // _oldVersionCBLatch.release_shared() ;
+         _oldVersionCBLatch.release_r() ;
       }
 
       INT32             addIdxTree( const globIdxID &gid,
@@ -694,7 +698,8 @@ namespace engine
    private:
       // latch to protect the fields. Should hold it in X to initialize and 
       // destroy _memBlockPool, otherwise hold in S
-      ossSpinSLatch       _oldVersionCBLatch ;
+      // ossSpinSLatch       _oldVersionCBLatch ;
+      ossRWMutex          _oldVersionCBLatch ;
       IDXID_TO_TREE_MAP   _idxTrees ;     // in memory trees holding older 
                                           // version of indexes
       MAP_OLDVERION_UNIT  _mapOldVersionUnit ;

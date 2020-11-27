@@ -646,7 +646,7 @@ namespace engine
                                             DMS_ACCESS_TYPE accessType,
                                             vector<INT64>* dollarList )
    {
-      INT32 rc = SDB_OK ;
+      INT32 rc = SDB_OK, rc2 = SDB_OK ;
       INT32 startNumRecords = numRecords() ;
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
@@ -810,11 +810,31 @@ namespace engine
 
          // If the next extent is valid, let's step to it. Otherwise, the end
          // is hit.
-         if ( DMS_INVALID_EXTENT == _extentID ||
-              SDB_DMS_EOC == extScanner->stepToNextExtent() )
+         if ( DMS_INVALID_EXTENT == _extentID )
          {
             _hitEnd = TRUE ;
             break ;
+         }
+         else
+         {
+            // stepToNextExtent will attempt to lock extent
+            // in shared mode to get next extent ID before
+            // step on it. Locking an extent may fail, e.g,
+            // when the EDU is interrupted.
+            rc2 = extScanner->stepToNextExtent() ;
+            if ( SDB_DMS_EOC == rc2 )
+            {
+               _hitEnd = TRUE ;
+               break ;
+            }
+            else if ( rc2 )
+            {
+               if ( SDB_OK == rc )
+               {
+                  rc = rc2 ;
+               }
+               goto error ;
+            }
          }
 
          if ( !hasLocked )
@@ -840,6 +860,7 @@ namespace engine
       }
       if ( extScanner )
       {
+         extScanner->stop() ;
          SDB_OSS_DEL extScanner ;
       }
       PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, rc );

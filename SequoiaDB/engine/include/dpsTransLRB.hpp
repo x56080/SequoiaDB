@@ -210,6 +210,8 @@ namespace engine
       dpsTransLRB       * ownerLRB ;     // the first owner LRB in its chain
       dpsTransLRB       * waiterLRB ;    // the first waiter LRB in its chain
       dpsTransLRB       * upgradeLRB;    // the first upgrader LRB in its chain
+      dpsTransLRB       * waiterTail ;   // the last waiter LRB in its chain
+      dpsTransLRB       * upgradeTail;   // the last upgrader LRB in its chain
       dpsTransLRB       * newestIXOwner ;// the newest IX LRB in owner list
       dpsTransLRB       * newestISOwner ;// the newest IS LRB in owner list
       dpsTransLockId      lockId ;       // lockId, 16 bytes
@@ -223,6 +225,8 @@ namespace engine
         ownerLRB( NULL ),
         waiterLRB( NULL ),
         upgradeLRB( NULL ),
+        waiterTail( NULL ),
+        upgradeTail( NULL ),
         newestIXOwner( NULL ),
         newestISOwner( NULL ),
         lockId( lock ),
@@ -257,6 +261,8 @@ namespace engine
          ownerLRB      = NULL ;
          waiterLRB     = NULL ;
          upgradeLRB    = NULL ;
+         waiterTail    = NULL ;
+         upgradeTail   = NULL ;
          newestIXOwner = NULL ;
          newestISOwner = NULL ;
          bktIdx        = ( (UINT32) -1 ) ;

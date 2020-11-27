@@ -55,6 +55,7 @@ namespace engine
 {
    class _dmsStorageUnit ;
    class _pmdEDUCB ;
+   class _ixmContext ;
 
    // define type of index scanners
    enum IXScannerType
@@ -135,6 +136,7 @@ namespace engine
       ixmIndexCB*             getIndexCB() ;
       BOOLEAN                 getIndexCBOwned() const ;
       _pmdEDUCB*              getEDUCB() ;
+      _ixmContext*            getIXMContext() ;
 
       INT32       compareWithCurKeyObj( const BSONObj &keyObj ) const ;
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
@@ -170,6 +172,8 @@ namespace engine
                                             const dmsRecordID &saveRID,
                                             BOOLEAN &isSame ) = 0 ;
 
+      virtual void            informAdvanceToCurrentPos() = 0 ;
+
    protected:
       virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;
       virtual rtnPredicateListIterator*   getPredicateListInterator() = 0 ;
@@ -192,10 +196,11 @@ namespace engine
       Ordering                _order ;
       BOOLEAN                 _eof ;
 
+      _ixmContext            *_pixmContext ;
+
    private:
       BOOLEAN                 _isReadonly ;
       rtnScannerSharedInfo    _sharedInfo ;
-
    } ;
    typedef class _rtnIXScanner rtnIXScanner ;
 

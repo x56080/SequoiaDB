@@ -105,7 +105,7 @@ namespace engine
          mthMatchRuntime        *_matchRuntime ;
          DMS_ACCESS_TYPE         _accessType ;
          INT32                   _mbLockType ;
-
+         INT32                   _mbLockTypeN ;
          INT32                   _transIsolation ;
          BOOLEAN                 _waitLock ;
          BOOLEAN                 _useRollbackSegment ;
@@ -138,6 +138,13 @@ namespace engine
          INT32 stepToNextExtent() ;
          INT64 getMaxRecords() const { return _maxRecords ; }
          INT64 getSkipNum () const { return _skipNum ; }
+
+         void applyExtentPin( dmsExtentID extID ) ;
+         INT32 releaseExtentPin() ;
+         dmsExtentID getPinnedExtentID() { return  _pinnedExtent ; }
+         INT32 lockExtentShared( dmsExtentID extID ) ;
+         void  unlockExtent() ;
+         BOOLEAN isExtentLocked( dmsExtentID extID ) ;
 
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
@@ -173,8 +180,10 @@ namespace engine
          BOOLEAN              _CSCLLockHeld ;
          BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
-
-         dmsTransLockCallback    _callback ;
+         dmsTransLockCallback  _callback ;
+         dmsExtentID           _pinnedExtent ;
+         dmsExtentID           _lockedExtent ;
+         _SDB_DMSCB           *_pDMSCB ;
    };
    typedef _dmsExtScannerBase dmsExtScannerBase ;
 
@@ -287,6 +296,9 @@ namespace engine
    typedef _dmsTBScanner dmsTBScanner ;
 
    class _dmsIXScanner ;
+
+   struct _dpsTransRetInfo ;
+   class  _dmsIXTransContext ;
    /*
       _dmsIXSecScanner define
       dms index section scanner
@@ -335,12 +347,22 @@ namespace engine
          void _updateMaxRecordsNum( _mthRecordGenerator &generator ) ;
          INT32 acquireCSCLLock( ) ;
          void  releaseCSCLLock( ) ;
-
-         // test or acquire transaction lock, acquire old version
-         INT32 _checkTransLock( pmdEDUCB *cb,
-                                dmsRecordID &waitUnlockRID,
-                                BOOLEAN &skipRecord ) ;
-
+         INT32 _checkTransLock( _pmdEDUCB          *cb,
+                                _dmsIXTransContext &ixTxContext,
+                                const UINT32        lockTimeout,
+                                UINT64             &startTick,
+                                dmsRecordID        &lastRID,
+                                dmsRecordID        &waitUnlockRID,
+                                BOOLEAN            &skipRecord,
+                                BOOLEAN            &needResumeScan,
+                                BOOLEAN            &needRetry ) ;
+         INT32 lockExtentShared( _pmdEDUCB *cb, dmsExtentID extID ) ;
+         void  unlockExtent( _pmdEDUCB *cb ) ;
+         BOOLEAN isExtentLocked( _pmdEDUCB *cb,  dmsExtentID extID ) ;
+         INT32 tryLockExtentSharedAndWait( _pmdEDUCB *cb,
+                                           dmsExtentID extID,
+                                           _dmsIXTransContext * pConext,
+                                           _dpsTransRetInfo * pdpsTxResInfo ) ;
       private:
          INT64                _maxRecords ;
          INT64                _skipNum ;
@@ -371,6 +393,8 @@ namespace engine
          BOOLEAN              _includeEndKey ;
          BOOLEAN              _countOnly ;
          BOOLEAN              _CSCLLockHeld ;
+         _SDB_DMSCB *         _pDMSCB ;
+         dmsExtentID          _lockedExtent ;
    } ;
    typedef _dmsIXSecScanner dmsIXSecScanner ;
 

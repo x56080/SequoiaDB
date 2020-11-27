@@ -371,6 +371,7 @@ namespace engine
       _reservedLogSpace = 0 ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
+      _pendingIndex.clear() ;
    }
 
    _dpsTransExecutor::~_dpsTransExecutor()
@@ -389,26 +390,35 @@ namespace engine
       }
       clearRecordMap() ;
       resetLogSpace() ;
+      _pendingIndex.clear() ;
    }
 
    void _dpsTransExecutor::assertLocks()
    {
       SDB_ASSERT( _mapCSCLLockID[LOCKMGR_TRANS_LOCK].size() == 0,
-                  "Trans lock must be 0" ) ;
+                  "Trans lock map must be empty" ) ;
       SDB_ASSERT( _mapCSCLLockID[LOCKMGR_INDEX_LOCK].size() == 0,
-                  "Index lock must be 0" ) ;
+                  "Index lock map must be empty" ) ;
+      SDB_ASSERT( _mapCSCLLockID[LOCKMGR_EXTENT_LOCK].size() == 0,
+                  "Extent lock map must be empty" ) ;
       SDB_ASSERT( _lockCount[LOCKMGR_TRANS_LOCK] == 0,
-                  "Trans Lock must be 0" ) ;
+                  "Trans Lock count number must be 0" ) ;
       SDB_ASSERT( _lockCount[LOCKMGR_INDEX_LOCK] == 0,
-                  "Index lock must be 0" ) ;
+                  "Index lock count number must be 0" ) ;
+      SDB_ASSERT( _lockCount[LOCKMGR_EXTENT_LOCK] == 0,
+                  "Extent lock count number must be 0" ) ;
       SDB_ASSERT( _waiter[ LOCKMGR_TRANS_LOCK ] == NULL,
-                  "Trans lock waiter LRB must be invalid" ) ;
+                  "Trans lock waiter LRB must be NULL" ) ;
       SDB_ASSERT( _waiter[ LOCKMGR_INDEX_LOCK ] == NULL,
-                  "Index lock waiter LRB must be invalid" ) ;
+                  "Index lock waiter LRB must be NULL" ) ;
+      SDB_ASSERT( _waiter[ LOCKMGR_EXTENT_LOCK ] == NULL,
+                  "Extent lock waiter LRB must be NULL" ) ;
       SDB_ASSERT( _lastLRB[ LOCKMGR_TRANS_LOCK ] == NULL,
-                  "Tran lock last LRB must be invalid" ) ;
+                  "Trans lock last LRB must be NULL" ) ;
       SDB_ASSERT( _lastLRB[ LOCKMGR_INDEX_LOCK ] == NULL,
-                  "Index lock last LRB must be invalid" ) ;
+                  "Index lock last LRB must be NULL" ) ;
+      SDB_ASSERT( _lastLRB[ LOCKMGR_EXTENT_LOCK ] == NULL,
+                  "Extent lock last LRB must be NULL" ) ;
       SDB_ASSERT( isRecordMapEmpty(), "Record map must be empty" ) ;
       SDB_ASSERT( _reservedLogSpace == 0, "Reserved log space must be 0" ) ;
    }
@@ -455,6 +465,7 @@ namespace engine
                      ownerLRB = ownerLRB->nextLRB ;
                   }
                }
+               _monLock->lockType = lockMgrType ;
                _monLock->waiterTID = getTID() ;
                _monLock->lockID = waiter->lrbHdr->lockId ;
                _monLock->lockMode = waiter->lockMode ;
@@ -919,13 +930,21 @@ namespace engine
    // protect waiter and edu's lrb
    void _dpsTransExecutor::acquireLRBAccessingLock( LOCKMGR_TYPE lockMgrType )
    {
-      _accessingLRBMutex.get() ;
+      if ( LOCKMGR_TRANS_LOCK == lockMgrType )
+      {
+         // _accessingLRBMutex.get() ;
+         _accessingLRBMutex.lock_w() ;
+      }
    }
 
    // protect waiter and edu's lrb
    void _dpsTransExecutor::releaseLRBAccessingLock( LOCKMGR_TYPE lockMgrType )
    {
-      _accessingLRBMutex.release() ;
+      if ( LOCKMGR_TRANS_LOCK == lockMgrType )
+      {
+         // _accessingLRBMutex.release() ;
+         _accessingLRBMutex.release_w() ;
+      }
    }
 
    void _dpsTransExecutor::setAccessingLRB( LOCKMGR_TYPE lockMgrType,

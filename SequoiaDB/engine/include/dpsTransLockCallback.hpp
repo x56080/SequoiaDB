@@ -63,13 +63,13 @@ namespace engine
       }
 
       /// Interface
-      virtual void afterLockAcquire( const dpsTransLockId &lockId,
-                                     INT32 irc,
-                                     DPS_TRANSLOCK_TYPE requestLockMode,
-                                     UINT32 refCounter,
-                                     DPS_TRANSLOCK_OP_MODE_TYPE opMode,
-                                     const dpsTransLRBHeader *pLRBHeader,
-                                     dpsLRBExtData *pExtData ) = 0 ;
+      virtual void afterLockAcquire(  const dpsTransLockId &lockId,
+                                      INT32 irc,
+                                      DPS_TRANSLOCK_TYPE requestLockMode,
+                                      UINT32 refCounter,
+                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                      const dpsTransLRBHeader *pLRBHeader,
+                                      dpsLRBExtData *pExtData ) = 0 ;
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
                                       DPS_TRANSLOCK_TYPE lockMode,

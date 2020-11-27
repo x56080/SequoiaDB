@@ -2802,5 +2802,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_IXM_HAS_SPLITTED</name>
+         <description>
+            <en>Index page has been splitted</en>
+            <cn>索引页分裂完成</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

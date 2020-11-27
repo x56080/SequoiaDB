@@ -512,6 +512,9 @@ namespace engine
    /*
       _IContext define
    */
+   #define ICTX_RESUME_CONTEXT  ( UINT8 ( 0x1 ) )
+   #define ICTX_RESUME_SCANNER  ( UINT8 ( 0x2 ) )
+   #define ICTX_RESUME_ALL ( ICTX_RESUME_CONTEXT | ICTX_RESUME_SCANNER )
    class _IContext
    {
       public:
@@ -520,8 +523,9 @@ namespace engine
 
       public:
          virtual INT32 pause() = 0 ;
-         virtual INT32 resume() = 0 ;
-
+         // whom shall be ICTX_RESUME_CONTEXT, ICTX_RESUME_SCANNER
+         // or ICTX_RESUME_ALL
+         virtual INT32 resume( UINT8 whom ) = 0 ;
    } ;
    typedef _IContext IContext ;
 

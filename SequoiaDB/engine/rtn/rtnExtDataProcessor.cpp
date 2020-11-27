@@ -1032,7 +1032,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__UPDATESPACEINFO ) ;
-      const dmsMBStatInfo *mbStat = NULL ;
+      dmsMBStatInfo *mbStat = NULL ;
       UINT64 remainSize = 0 ;
       UINT32 remainExtentNum = 0 ;
       dmsMBContext *context = NULL ;

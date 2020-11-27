@@ -43,6 +43,7 @@
 #include "rtnTrace.hpp"
 #include "dpsTransCB.hpp"
 
+
 using namespace bson ;
 
 namespace engine
@@ -440,7 +441,9 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG( PDDEBUG, "Relocate right scanner to obj(%s) with rid(%d,%d)",
+         PD_LOG( PDDEBUG,
+                 "_rtnMergeIXScanner::resumeScan "
+                 "Relocate right scanner to obj(%s) with rid(%d,%d)",
                  _savedObj.toString().c_str(),
                  _savedRID._extent, _savedRID._offset ) ;
 
@@ -465,7 +468,9 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG( PDDEBUG, "Relocate left scanner to obj(%s) with rid(%d,%d)",
+         PD_LOG( PDDEBUG,
+                 "_rtnMergeIXScanner::resumeScan "
+                 "Relocate left scanner to obj(%s) with rid(%d,%d)",
                  _savedObj.toString().c_str(),
                  _savedRID._extent, _savedRID._offset ) ;
 
@@ -491,7 +496,9 @@ namespace engine
             PD_LOG( PDERROR, "Left scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
-         PD_LOG( PDDEBUG, "Left scanner advance to obj(%s) with rid(%d,%d)",
+         PD_LOG( PDDEBUG,
+                 "_rtnMergeIXScanner::resumeScan "
+                 "Left scanner advance to obj(%s) with rid(%d,%d)",
                  _leftIXScanner->getCurKeyObj()->toString().c_str(),
                  _lrid._extent, _lrid._offset ) ;
          rc = SDB_OK ;
@@ -507,7 +514,9 @@ namespace engine
             PD_LOG( PDERROR, "Right scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
-         PD_LOG( PDDEBUG, "Right scanner advance to obj(%s) with rid(%d,%d)",
+         PD_LOG( PDDEBUG,
+                 "_rtnMergeIXScanner::resumeScan "
+                 "Right scanner advance to obj(%s) with rid(%d,%d)",
                  _rightIXScanner->getCurKeyObj()->toString().c_str(),
                  _rrid._extent, _rrid._offset ) ;
          rc = SDB_OK ;
@@ -554,7 +563,8 @@ namespace engine
          _savedRID = getSavedRIDFromChild() ;
          _savedObj = getSavedObjFromChild()->getOwned() ;
 
-         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d), From(%s)",
+         PD_LOG( PDDEBUG,
+                 "_rtnMergeIXScanner: Paused in obj(%s) with rid(%d,%d), From(%s)",
                  _savedObj.toString().c_str(), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;
@@ -699,6 +709,20 @@ namespace engine
                                           _rightIXScanner->getCurKeyObj() ;
    }
 
+
+   void  _rtnMergeIXScanner::informAdvanceToCurrentPos()
+   {
+      SDB_ASSERT( isAvailable(), "Must be available" ) ;
+      if ( SCAN_LEFT == _fromDir )
+      {
+         _leftIXScanner->informAdvanceToCurrentPos() ; 
+      }
+      else if ( SCAN_RIGHT == _fromDir )
+      {
+         _rightIXScanner->informAdvanceToCurrentPos() ;
+      }
+      return ;
+   }
 
 }
 

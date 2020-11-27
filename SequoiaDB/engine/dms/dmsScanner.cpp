@@ -55,6 +55,7 @@
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 
+#include "ixmContext.hpp"
 
 using namespace bson ;
 
@@ -84,6 +85,7 @@ namespace engine
       _matchRuntime = matchRuntime ;
       _accessType = accessType ;
       _mbLockType = SHARED ;
+      _mbLockTypeN = SHARED ;
       _transIsolation = TRANS_ISOLATION_RU ;
       _waitLock = FALSE ;
       _useRollbackSegment = TRUE ;
@@ -127,6 +129,9 @@ namespace engine
       _selectForUpdate     = FALSE ;
       _CSCLLockHeld        = FALSE ;
       _cb                  = NULL ;
+      _pinnedExtent        = DMS_INVALID_EXTENT ;
+      _lockedExtent        = DMS_INVALID_EXTENT ;
+      _pDMSCB              = pmdGetKRCB()->getDMSCB() ;
 
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
@@ -136,7 +141,12 @@ namespace engine
 
    _dmsExtScannerBase::~_dmsExtScannerBase ()
    {
-      _extent     = NULL ;
+      // decrease extent pinCount
+      releaseExtentPin() ;
+      // unlock extent
+      unlockExtent() ;
+
+      _extent = NULL ;
 
       if ( FALSE == _firstRun && _recordLock != DPS_TRANSLOCK_MAX &&
            _hasLockedRecord &&
@@ -174,10 +184,14 @@ namespace engine
       if ( 0 != _maxRecords &&
            DMS_INVALID_EXTENT != nextExtentID() )
       {
+         INT32 rc = SDB_OK ;
+         // decrease extent pinCount
+         rc = releaseExtentPin() ;
+
          _curRID._extent = nextExtentID() ;
          releaseCSCLLock() ;
          _firstRun = TRUE ;
-         return SDB_OK ;
+         return rc ;
       }
       return SDB_DMS_EOC ;
    }
@@ -242,6 +256,12 @@ namespace engine
 
    void _dmsExtScannerBase::stop()
    {
+      // decrease extent pinCount
+      releaseExtentPin() ;
+
+      // unlock extent
+      unlockExtent() ;
+
       if ( FALSE == _firstRun && _recordLock != DPS_TRANSLOCK_MAX
            && _hasLockedRecord &&
            DMS_INVALID_OFFSET != _curRID._offset )
@@ -255,6 +275,7 @@ namespace engine
 
       _next = DMS_INVALID_OFFSET ;
       _curRID._offset = DMS_INVALID_OFFSET ;
+      _firstRun = TRUE ;
    }
 
    INT32 _dmsExtScannerBase::acquireCSCLLock( )
@@ -262,7 +283,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       if ( !_CSCLLockHeld && DPS_TRANSLOCK_MAX != _recordLock )
       {
-         dmsTBTransContext tbTxContext( _context, _accessType ) ;
+         dmsTBTransContext tbTxContext( _context, _accessType, _cb ) ;
          dpsTransRetInfo   lockConflict ;
 
          if ( DPS_TRANSLOCK_IS == dpsIntentLockMode( _recordLock ) )
@@ -320,6 +341,124 @@ namespace engine
                                       _context->mbID() );
          _CSCLLockHeld = FALSE ;
       }
+   }
+
+
+   void _dmsExtScannerBase::applyExtentPin( dmsExtentID extID )
+   {
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         // extent lock shall be held
+         SDB_ASSERT( ( isExtentLocked( extID ) ),
+                     "Extent must be locked !" ) ;
+         SDB_ASSERT( ( _lockedExtent == extID ),
+                     "Extent must be locked !" ) ;
+         // increase the extent pinCount
+         _pDMSCB->useExtent( _pSu->logicalID(), _context->mbID() , extID ) ;
+
+         // remember the pinned extent ID
+         _pinnedExtent = extID ;
+      }
+   }
+
+   INT32 _dmsExtScannerBase::releaseExtentPin()
+   {
+      INT32 rc = SDB_OK ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != _pinnedExtent ) )
+      {
+         BOOLEAN     bReleaseExtLock = FALSE ;
+         UINT32      csID            = _pSu->logicalID() ;
+         UINT16      clID            = _context->mbID()  ;
+         dmsExtentID extID           = _pinnedExtent ;
+
+         // lock extent if it is needed
+         if ( FALSE == isExtentLocked( extID ) )
+         {
+            rc = _pDMSCB->lockExtent( _cb, csID, clID, extID, SHARED ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG ( PDERROR,
+                        "Failed to acquire extent(cs:%d, cl:%d, ext:%d) lock "
+                        "when release extent pin, rc:%d",
+                        _pSu->logicalID(), _context->mbID(), extID, rc ) ;
+
+               goto error ;
+            }
+            bReleaseExtLock = TRUE ;
+         }
+
+         // decrease the extent pinCount
+         _pDMSCB->unuseExtent( csID, clID, extID ) ;
+
+         // reset _pinnedExtent
+         _pinnedExtent = DMS_INVALID_EXTENT ;
+
+         // rlease extent if it is locked above
+         if ( bReleaseExtLock )
+         {
+            _pDMSCB->unlockExtent( _cb, csID, clID, extID, FALSE ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _dmsExtScannerBase::lockExtentShared( dmsExtentID extID )
+   {
+      INT32 rc = SDB_OK ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         // lock extent shared
+         rc = _pDMSCB->lockExtent( _cb,
+                                   _pSu->logicalID(),
+                                   _context->mbID(),
+                                   extID,
+                                   SHARED ) ;
+         if ( SDB_OK == rc )
+         {
+            // remember the locked extent ID
+            _lockedExtent = extID ;
+         }
+      }
+      return rc ;
+   }
+
+   void _dmsExtScannerBase::unlockExtent()
+   {
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != _lockedExtent ) )
+      {
+         // unlock the extent
+         _pDMSCB->unlockExtent( _cb,
+                                _pSu->logicalID(),
+                                _context->mbID(),
+                                _lockedExtent ) ;
+         // reset _lockedExtent
+         _lockedExtent = DMS_INVALID_EXTENT ;
+      }
+   }
+
+   BOOLEAN _dmsExtScannerBase::isExtentLocked( dmsExtentID extID )
+   {
+      BOOLEAN result = FALSE ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         if ( DPS_TRANSLOCK_MAX !=
+              _pDMSCB->getExtLockMode( _cb,
+                                       _pSu->logicalID(),
+                                       _context->mbID(),
+                                       extID ) )
+         {
+            result = TRUE ;
+         }
+      }
+      return result;
    }
 
    _dmsExtScanner::_dmsExtScanner( dmsStorageDataCommon *su,
@@ -418,22 +557,15 @@ namespace engine
          }
       }
 
-      _extRW = _pSu->extent2RW( _curRID._extent, _context->mbID() ) ;
-      _extRW.setNothrow( TRUE ) ;
-      _extent = _extRW.readPtr<dmsExtent>() ;
-      if ( NULL == _extent )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
       if ( cb->isInterrupted() )
       {
          rc = SDB_APP_INTERRUPT ;
          goto error ;
       }
-      if ( !_context->isMBLock( _mbLockType ) )
+
+      if ( !_context->isMBLock( _mbLockTypeN ) )
       {
-         rc = _context->mbLock( _mbLockType ) ;
+         rc = _context->mbLock( _mbLockTypeN ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
       if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
@@ -442,6 +574,38 @@ namespace engine
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
                   _context->mb()->_flag ) ;
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
+         goto error ;
+      }
+
+      _cb   = cb ;
+
+      // As a performance improvement, we are going to acquire the CS and
+      // CL lock right in the beginning to avoid extra performance overhead
+      // to acquire these locks when acquiring record lock in each step
+      // We release and require the lock during pauseScan/resumeScan
+      rc = acquireCSCLLock() ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // lock extent in shared mode and increase the extent pinCount
+      rc = lockExtentShared( _curRID._extent ) ;
+      if ( SDB_OK != rc )
+      {
+         // failed to lock extent
+         goto error ;
+      }
+
+      // increase the extent pinCount
+      applyExtentPin( _curRID._extent ) ;
+
+      _extRW = _pSu->extent2RW( _curRID._extent, _context->mbID() ) ;
+      _extRW.setNothrow( TRUE ) ;
+      _extent = _extRW.readPtr<dmsExtent>() ;
+      if ( NULL == _extent )
+      {
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
       if ( !_extent->validate( _context->mbID() ) )
@@ -464,18 +628,7 @@ namespace engine
                                                      _extent->_nextExtent )) ;
       }
 
-      _cb   = cb ;
       _next = _extent->_firstRecordOffset ;
-
-      // As a performance improvement, we are going to acquire the CS and
-      // CL lock right in the beginning to avoid extra performance overhead
-      // to acquire these locks when acquiring record lock in each step
-      // We release and require the lock during pauseScan/resumeScan
-      rc = acquireCSCLLock() ;
-      if ( rc )
-      {
-         goto error ;
-      }
 
       // unset first run
       _firstRun = FALSE ;
@@ -484,6 +637,12 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSEXTSCAN__FIRSTINIT, rc );
       return rc ;
    error:
+      // decrease extent pinCount
+      releaseExtentPin() ;
+      // unlock extent
+      unlockExtent() ;
+      // release CSCL lock if held
+      releaseCSCLLock() ;
       goto done ;
    }
 
@@ -494,13 +653,19 @@ namespace engine
                                      pmdEDUCB *cb,
                                      _mthMatchTreeContext *mthContext )
    {
-      INT32 rc                = SDB_OK ;
-      BOOLEAN result          = TRUE ;
-      ossValuePtr recordDataPtr ;
+      INT32         rc            = SDB_OK ;
+      BOOLEAN       result        = TRUE ;
+      ossValuePtr   recordDataPtr ;
       dmsRecordData recordData ;
-      BOOLEAN ignoredLock     = FALSE ;
+      BOOLEAN       ignoredLock   = FALSE ;
 
-      _hasLockedRecord        = FALSE ;
+      dmsExtentID   extID         = _curRID._extent ;
+
+      UINT64        startTick ;
+      const UINT32  lockTimeout   = cb->getTransExecutor()->getTransTimeout();
+      dmsRecordID   lastRID ;
+
+      _hasLockedRecord  = FALSE ;
 
       PD_TRACE_ENTRY ( SDB__DMSEXTSCAN__FETCHNEXT );
       PD_TRACE5 ( SDB__DMSEXTSCAN__FETCHNEXT,
@@ -517,6 +682,21 @@ namespace engine
          _next = DMS_INVALID_OFFSET ;
       }
 
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ), "Invalid extent ID" ) ;
+      SDB_DASSERT( ( extID == getPinnedExtentID() ), "Extent must be pinned" ) ;
+
+      // latch extent if it is needed,
+      // the extent coould be latched in _firstInit
+      if ( FALSE == isExtentLocked( extID ) )
+      {
+         rc = lockExtentShared( extID ) ;
+         if ( SDB_OK != rc )
+         {
+            // failed to lock extent
+            goto error ;
+         }
+      }
+
       while ( DMS_INVALID_OFFSET != _next && 0 != _maxRecords )
       {
          _curRID._offset = _next ;
@@ -524,29 +704,50 @@ namespace engine
          _curRecordPtr = _recordRW.readPtr( 0 ) ;
          _next = _curRecordPtr->getNextOffset() ;
          ignoredLock = FALSE ;
+         _hasLockedRecord = FALSE ;
 
          if ( _recordLock != DPS_TRANSLOCK_MAX )
          {
-            dmsTBTransContext tbTxContext( _context, _accessType ) ;
+            dmsTBTransContext tbTxContext( _context, _accessType, cb ) ;
             dpsTransRetInfo   lockConflict ;
 
             // attach the recordRW in callback
             _callback.attachRecordRW( &_recordRW ) ;
             _callback.clearStatus() ;
 
+            lastRID.reset() ;
+         retry:
+            // sample time / CPU tick when access a new record
+            if ( lastRID.isNull() )
+            {
+               startTick = pmdGetDBTick() ;
+            }
+
             if ( DPS_TRANSLOCK_X == _recordLock )
             {
-               rc = _pTransCB->transLockGetX( cb, _pSu->logicalID(),
-                                              _context->mbID(), &_curRID,
-                                              & tbTxContext, &lockConflict,
-                                              &_callback ) ;
+               tbTxContext.setPauseFlag(( DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT |
+                                          DMS_TRNCTX_PAUSE_FLG_KEEPMBLATCH )) ;
+               rc = _pTransCB->transLockTryAndWaitX( cb,
+                                                     _pSu->logicalID(),
+                                                     _context->mbID(),
+                                                     &_curRID,
+                                                     &tbTxContext,
+                                                     &lockConflict,
+                                                     &_callback ) ;
+               tbTxContext.resetPauseFlag() ;
             }
             else if ( DPS_TRANSLOCK_U == _recordLock )
             {
-               rc = _pTransCB->transLockGetU( cb, _pSu->logicalID(),
-                                              _context->mbID(), &_curRID,
-                                              &tbTxContext,
-                                              &lockConflict ) ;
+               tbTxContext.setPauseFlag(( DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT |
+                                          DMS_TRNCTX_PAUSE_FLG_KEEPMBLATCH )) ;
+               rc = _pTransCB->transLockTryAndWaitU( cb,
+                                                     _pSu->logicalID(),
+                                                     _context->mbID(),
+                                                     &_curRID,
+                                                     &tbTxContext,
+                                                     &lockConflict,
+                                                     &_callback ) ;
+               tbTxContext.resetPauseFlag() ;
             }
             /// DPS_TRANSLOCK_S
             else
@@ -581,14 +782,49 @@ namespace engine
                /// wait lock
                if ( needWaitForLock() || rc )
                {
-                  rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
-                                                 _context->mbID(), &_curRID,
-                                                 & tbTxContext,
-                                                 &lockConflict ) ;
-                  if ( SDB_OK == rc )
+                  tbTxContext.setPauseFlag(( DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT |
+                                             DMS_TRNCTX_PAUSE_FLG_KEEPMBLATCH));
+                  rc = _pTransCB->transLockTryAndWaitS( cb,
+                                                        _pSu->logicalID(),
+                                                        _context->mbID(),
+                                                        &_curRID,
+                                                        &tbTxContext,
+                                                        &lockConflict,
+                                                        &_callback ) ;
+                  tbTxContext.resetPauseFlag() ;
+               }
+            }
+
+            // if failed due to lock conflict, retry
+            if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc )
+            {
+               // retry if extent lock wait duration is within timeout setting
+               if ( lockTimeout > pmdGetTickSpanTime( startTick ) )
+               {
+                  if ( FALSE == isExtentLocked( extID ) )
                   {
-                     ignoredLock = FALSE ;
+                     rc = lockExtentShared( extID ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        // failed to lock extent
+                        PD_LOG( PDERROR,
+                                "Failed to get extent lock, rc: %d"OSS_NEWLINE
+                                "Request mode: S"OSS_NEWLINE
+                                "Extent Info: "OSS_NEWLINE
+                                "   CS: %d, CL:%d, Extent:%d "OSS_NEWLINE,
+                                rc,
+                                _pSu->logicalID(), _context->mbID(), extID ) ;
+                        cb->printInfo( EDU_INFO_ERROR, "Failed to get extent lock" ) ;
+                        goto error ;
+                     }
                   }
+                  lastRID = _curRID ;
+                  rc = SDB_OK ;
+                  goto retry ;
+               }
+               else
+               {
+                  rc = SDB_TIMEOUT ;
                }
             }
 
@@ -611,6 +847,8 @@ namespace engine
                cb->printInfo( EDU_INFO_ERROR, "Failed to get record lock" ) ;
                goto error ;
             }
+
+            lastRID.reset() ;
 
             if ( !ignoredLock )
             {
@@ -647,13 +885,23 @@ namespace engine
          {
             if ( _recordLock == DPS_TRANSLOCK_X )
             {
+               // unlock extent before calling deleteRecord
+               // since deleteRecord will locked this extent in X
+               dmsTransRecordInfo *pRecInfo =
+                  (dmsTransRecordInfo*)_callback.getTransRecordInfo() ;
+               pRecInfo->_extentPinnedByMe = TRUE ;
+
+               unlockExtent() ;
+
                INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
-                                               0, cb, NULL, NULL,
-                                               _callback.getTransRecordInfo() ) ;
+                                               0, cb, NULL, NULL, pRecInfo ) ;
+
+               pRecInfo->_extentPinnedByMe = FALSE ;
+
                if ( rc1 )
                {
                   PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                          "rc: %d", rc ) ;
+                          "rc: %d", rc1 ) ;
                }
             }
 
@@ -664,8 +912,21 @@ namespace engine
                                             &_callback ) ;
                _hasLockedRecord = FALSE ;
             }
+
+            // regain extent lock after deleteRecord
+            if ( FALSE == isExtentLocked( extID ) )
+            {
+               rc = lockExtentShared( extID ) ;
+               if ( SDB_OK != rc )
+               {
+                  // failed to lock extent
+                  goto error ;
+               }
+            }
+
             continue ;
          }
+
          SDB_ASSERT( !_curRecordPtr->isDeleted(), "record can't be deleted" ) ;
 
          if ( !_matchRuntime && _skipNum > 0 )
@@ -777,12 +1038,23 @@ namespace engine
          }
       } // while
 
+      // we may safely release extent pintCount here.
+      // for simplicity, move these logic in error handling
+      // code path
       rc = SDB_DMS_EOC ;
       goto error ;
 
    done:
+      // make sure extent is unlocked
+      if ( isExtentLocked( extID ) )
+      {
+         unlockExtent() ;
+      }
+      // make sure to detach the recordRW form callback
+      _callback.detachRecordRW() ;
       PD_TRACE_EXITRC ( SDB__DMSEXTSCAN__FETCHNEXT, rc );
       return rc ;
+
    error:
       if ( _hasLockedRecord )
       {
@@ -790,6 +1062,13 @@ namespace engine
                                       &_curRID, &_callback ) ;
          _hasLockedRecord = FALSE ;
       }
+
+      // release extent pinCount
+      INT32 tmpRC = releaseExtentPin() ;
+      SDB_ASSERT( ( SDB_OK == tmpRC ), "release extent pin count failed" ) ;
+      // unlock extent
+      unlockExtent() ;
+
       releaseCSCLLock() ;
 
       recordID.reset() ;
@@ -1181,6 +1460,9 @@ namespace engine
       _curExtentID   = DMS_INVALID_EXTENT ;
       if ( _extScanner )
       {
+         _extScanner->releaseExtentPin() ;
+         _extScanner->unlockExtent() ;
+
          SDB_OSS_DEL _extScanner ;
       }
    }
@@ -1210,9 +1492,9 @@ namespace engine
       rc = _getExtScanner() ;
       PD_RC_CHECK( rc, PDERROR, "Get extent scanner failed, rc: %d", rc ) ;
 
-      if ( !_context->isMBLock( _extScanner->_mbLockType ) )
+      if ( !_context->isMBLock( _extScanner->_mbLockTypeN ) )
       {
-         rc = _context->mbLock( _extScanner->_mbLockType ) ;
+         rc = _context->mbLock( _extScanner->_mbLockTypeN ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
 
@@ -1277,6 +1559,9 @@ namespace engine
          {
             if ( 0 != _extScanner->getMaxRecords() )
             {
+               // when _extScanner->advance doesn't return SDB_OK,
+               // the extent pin is released. _resetExtentScanner will
+               // set _firstRun to TRUE, so advance will pin the new extent
                _curExtentID = _extScanner->nextExtentID() ;
                _resetExtScanner() ;
                _context->pause() ;
@@ -1298,12 +1583,16 @@ namespace engine
             goto done ;
          }
       }
+      // when _extScanner returns SDB_OK it still has the extent pinned,
+      // we release the extent pin in error code path 
       rc = SDB_DMS_EOC ;
       goto error ;
 
    done:
       return rc ;
    error:
+      // make sure the extent pin is released
+      _extScanner->releaseExtentPin() ;
       goto done ;
    }
 
@@ -1347,6 +1636,9 @@ namespace engine
       _countOnly           = FALSE ;
       _CSCLLockHeld        = FALSE ;
 
+      _lockedExtent        = DMS_INVALID_EXTENT ;
+      _pDMSCB              = pmdGetKRCB()->getDMSCB() ;
+
       if ( OSS_BIT_TEST( flag, FLG_QUERY_FOR_UPDATE ) )
       {
          _selectForUpdate = TRUE ;
@@ -1355,18 +1647,8 @@ namespace engine
 
    _dmsIXSecScanner::~_dmsIXSecScanner ()
    {
-      if ( FALSE == _firstRun && _recordLock != DPS_TRANSLOCK_MAX
-           && _hasLockedRecord
-           && DMS_INVALID_OFFSET != _curRID._offset )
-      {
-         _pTransCB->transLockRelease( _cb, _pSu->logicalID(), _context->mbID(),
-                                      &_curRID, &_callback ) ;
-         _hasLockedRecord = FALSE ;
-      }
-
-      releaseCSCLLock() ;
-
-      _scanner    = NULL ;
+      stop() ;
+      _scanner = NULL ;
    }
 
    dmsTransLockCallback* _dmsIXSecScanner::callbackHandler()
@@ -1458,7 +1740,7 @@ namespace engine
       {
          dpsTransRetInfo   lockConflict ;
          dmsIXTransContext ixTxContext( _context, _accessType,
-                                        _scanner ) ;
+                                        _scanner, _cb ) ;
 
          if ( DPS_TRANSLOCK_IS == dpsIntentLockMode( _recordLock ) )
          {
@@ -1608,9 +1890,9 @@ namespace engine
          rc = SDB_APP_INTERRUPT ;
          goto error ;
       }
-      if ( !_context->isMBLock( _mbLockType ) )
+      if ( !_context->isMBLock( _mbLockTypeN ) )
       {
-         rc = _context->mbLock( _mbLockType ) ;
+         rc = _context->mbLock( _mbLockTypeN ) ;
          PD_RC_CHECK( rc, PDERROR, "dms mb lock failed, rc: %d", rc ) ;
       }
       if ( !dmsAccessAndFlagCompatiblity ( _context->mb()->_flag,
@@ -1622,8 +1904,6 @@ namespace engine
          goto error ;
       }
 
-      rc = _scanner->resumeScan() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
       _cb   = cb ;
 
       // As a performance improvement, we are going to acquire the CS and
@@ -1642,6 +1922,9 @@ namespace engine
                            _pSu->logicalID(),
                            _context->clLID() ) ;
       _callback.setIXScanner( _scanner ) ;
+
+      rc = _scanner->resumeScan() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
 
       // unset first run
       _firstRun = FALSE ;
@@ -1691,9 +1974,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSIXSECSCAN__CHECKTRANSLOCK, "_dmsIXSecScanner::_checkTransLock" )
-   INT32 _dmsIXSecScanner::_checkTransLock( pmdEDUCB *cb,
-                                            dmsRecordID &waitUnlockRID,
-                                            BOOLEAN &skipRecord )
+   INT32 _dmsIXSecScanner::_checkTransLock( _pmdEDUCB          *cb,
+                                            _dmsIXTransContext &ixTxContext,
+                                            const UINT32        lockTimeout,
+                                            UINT64             &startTick,
+                                            dmsRecordID        &lastRID,
+                                            dmsRecordID        &waitUnlockRID,
+                                            BOOLEAN            &skipRecord,
+                                            BOOLEAN            &needResumeScan,
+                                            BOOLEAN            &needRetry )
    {
       INT32 rc = SDB_OK ;
 
@@ -1707,14 +1996,13 @@ namespace engine
       if ( _recordLock != DPS_TRANSLOCK_MAX )
       {
          dpsTransRetInfo   lockConflict ;
-         dmsIXTransContext ixTxContext( _context, _accessType, _scanner ) ;
 
          /// already locked, but not the same, should release lock first
          if ( waitUnlockRID.isValid() && _curRID != waitUnlockRID )
          {
             _pTransCB->transLockRelease( cb, _pSu->logicalID(),
                                          _context->mbID(), &waitUnlockRID,
-                                         &_callback ) ;
+                                        &_callback ) ;
             waitUnlockRID.reset() ;
          }
 
@@ -1724,18 +2012,53 @@ namespace engine
 
          if ( DPS_TRANSLOCK_X == _recordLock )
          {
-            // exclusive lock has to always wait on the lock
-            rc = _pTransCB->transLockGetX( cb, _pSu->logicalID(),
-                                           _context->mbID(), &_curRID,
-                                           &ixTxContext,
-                                           &lockConflict, &_callback ) ;
+            // sample time / CPU tick when access a new record
+            if ( lastRID.isNull() )
+            {
+               startTick = pmdGetDBTick() ;
+            }
+            // set pause flag since transLockTryAndWaitX will call
+            // _scanner->pauseScan() if it failes to get the lock
+            ixTxContext.setPauseFlag( ( DMS_TRNCTX_PAUSE_FLG_IXMCTXONLY |
+                                        DMS_TRNCTX_PAUSE_FLG_IXADVONHOLD ) );
+            rc = _pTransCB->transLockTryAndWaitX( cb,
+                                                  _pSu->logicalID(),
+                                                  _context->mbID(),
+                                                  &_curRID,
+                                                  &ixTxContext,
+                                                  &lockConflict,
+                                                  &_callback ) ;
+            // clear pause flag
+            ixTxContext.resetPauseFlag();
+            if ( SDB_OK != rc )
+            {
+               needResumeScan = TRUE ;
+            }
          }
          else if ( DPS_TRANSLOCK_U == _recordLock )
          {
-            rc = _pTransCB->transLockGetU( cb, _pSu->logicalID(),
-                                           _context->mbID(), &_curRID,
-                                           &ixTxContext,
-                                           &lockConflict, &_callback ) ;
+            // sample time / CPU tick when access a new record
+            if ( lastRID.isNull() )
+            {
+               startTick = pmdGetDBTick() ;
+            }
+            // set pause flag because transLockTryAndWaitU will call
+            // _scanner->pauseScan() if it failes to get the lock
+            ixTxContext.setPauseFlag( ( DMS_TRNCTX_PAUSE_FLG_IXMCTXONLY |
+                                        DMS_TRNCTX_PAUSE_FLG_IXADVONHOLD ) );
+            rc = _pTransCB->transLockTryAndWaitU( cb,
+                                                  _pSu->logicalID(),
+                                                  _context->mbID(),
+                                                  &_curRID,
+                                                  &ixTxContext,
+                                                  &lockConflict,
+                                                  &_callback ) ;
+            // clear pause flag
+            ixTxContext.resetPauseFlag() ;
+            if ( SDB_OK != rc )
+            {
+               needResumeScan = TRUE ;
+            }
          }
          // DPS_TRANSLOCK_S
          else
@@ -1752,9 +2075,20 @@ namespace engine
                                                       &lockConflict,
                                                       &_callback,
                                                       !_CSCLLockHeld ) ;
+
                ignoredLock = TRUE ;
                if ( _callback.isSkipRecord() )
                {
+                  // unlock extent if needed
+                  unlockExtent( cb ) ;
+                  // release memory index tree latch and index page lock
+                  rc = _scanner->pauseScan() ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Pause scan failed, rc: %d", rc ) ;
+                     goto error ;
+                  }
+                  needResumeScan = TRUE ;
                   // For newly created records by another transaction,
                   // we could still find it through diskIXScan, we will
                   // skip those records without waiting for lock.
@@ -1772,18 +2106,54 @@ namespace engine
             /// wait lock
             if ( needWaitForLock() || rc )
             {
-               // test S lock failed and the record is not in old version
-               // container nor in RBS. most likely the one hold / wait X
-               // hasn't finish updating the record.
-               rc = _pTransCB->transLockGetS( cb, _pSu->logicalID(),
-                                              _context->mbID(), &_curRID,
-                                              &ixTxContext,
-                                              &lockConflict,
-                                              &_callback ) ;
+               // sample time / CPU tick when access a new record
+               if ( lastRID.isNull() )
+               {
+                  startTick = pmdGetDBTick() ;
+               }
+               // set pause flag because transLockTryAndWaitS will call
+               // _scanner->pauseScan() if it failes to get the lock
+               ixTxContext.setPauseFlag((DMS_TRNCTX_PAUSE_FLG_IXMCTXONLY |
+                                         DMS_TRNCTX_PAUSE_FLG_IXADVONHOLD |
+                                         DMS_TRNCTX_PAUSE_FLG_UNLOCKALLEXT));
+               rc = _pTransCB->transLockTryAndWaitS( cb,
+                                                     _pSu->logicalID(),
+                                                     _context->mbID(),
+                                                     &_curRID,
+                                                     &ixTxContext,
+                                                     &lockConflict,
+                                                     &_callback ) ;
+               // reset flag
+               ixTxContext.resetPauseFlag() ;
                if ( SDB_OK == rc )
                {
                   ignoredLock = FALSE ;
                }
+               else
+               {
+                  needResumeScan = TRUE ;
+               }
+            }
+         }
+
+         // try record lock fails, retry
+         if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc )
+         {
+            // retry if lock wait duration is within timeout setting
+            if ( lockTimeout > pmdGetTickSpanTime( startTick ) )
+            {
+               // remove the duplicate key
+               _scanner->removeDuplicatRID( _curRID ) ;
+               // remember RID before retry
+               lastRID = _curRID ;
+               // do retry
+               needRetry = TRUE ;
+               rc = SDB_OK  ;
+               goto done ;
+            }
+            else
+            {
+               rc = SDB_TIMEOUT ;
             }
          }
 
@@ -1815,6 +2185,8 @@ namespace engine
             goto error ;
          }
 
+         lastRID.reset() ;
+
          if ( !ignoredLock )
          {
             _hasLockedRecord = TRUE ;
@@ -1830,6 +2202,17 @@ namespace engine
          // index has changed under us between wait on lock and got lock
          if ( !ixTxContext.isCursorSame() || _callback.isSkipRecord() )
          {
+            // unlock extent if needed
+            unlockExtent( cb ) ;
+            // release memory index tree latch and index page lock
+            rc = _scanner->pauseScan() ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Pause scan failed, rc: %d", rc ) ;
+               goto error ;
+            }
+            needResumeScan = TRUE ;
+
             if ( _hasLockedRecord )
             {
                waitUnlockRID = _curRID ;
@@ -1869,6 +2252,7 @@ namespace engine
       goto done ;
    }
 
+
    // Description
    //    Index section scan. Advance to next index entry based on the on-disk
    // index tree and searching criteria, return the found recordID pointed
@@ -1894,11 +2278,19 @@ namespace engine
       dmsRecordID waitUnlockRID ;
       BOOLEAN skipRecord      = FALSE ;
 
+      BOOLEAN needResumeScan  = TRUE ;
+      BOOLEAN needRetry       = FALSE ;
+      dpsTransRetInfo latchConflict ;
+      dmsIXTransContext ixTxContext( _context, _accessType, _scanner, cb ) ;
+      UINT64 startTick ;
+      const UINT32 lockTimeout = cb->getTransExecutor()->getTransTimeout() ;
+      dmsRecordID  lastRID ;
+
       PD_TRACE_ENTRY ( SDB__DMSIXSECSCAN_ADVANCE );
 
       PD_TRACE5( SDB__DMSIXSECSCAN_ADVANCE,
                  PD_PACK_UINT(_needUnLock),
-                 PD_PACK_UINT(_mbLockType),
+                 PD_PACK_UINT(_mbLockTypeN),
                  PD_PACK_UINT(_accessType),
                  PD_PACK_UINT(_waitLock),
                  PD_PACK_UINT(_recordLock) );
@@ -1907,6 +2299,7 @@ namespace engine
       {
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
+         needResumeScan = FALSE ;
       }
       // last run have record lock held, but not trans, need to release
       // record lock
@@ -1922,8 +2315,31 @@ namespace engine
       while ( _onceRestNum-- > 0 && 0 != _maxRecords )
       {
          skipRecord = FALSE ;
+         lastRID.reset() ;
+   retry :
+         //// sample time / CPU tick when access a new record
+         //if ( lastRID.isNull() )
+         //{
+         //   startTick = pmdGetDBTick() ;
+         //}
+         if ( needResumeScan )
+         {
+            rc = _scanner->resumeScan() ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR,
+                       "IXScanner advance resume failed, rc: %d", rc ) ;
+               goto error ;
+            }
+            needResumeScan = FALSE ;
+         }
+
+         _hasLockedRecord = FALSE ;
 
          // advance index tree
+         //
+         // when advance / resumeScan ( _rtnMergeIXScaner ) returns,
+         // the memory tree latch or disk index page lock is held
          rc = _scanner->advance( _curRID ) ;
          if ( SDB_IXM_EOC == rc )
          {
@@ -1985,20 +2401,9 @@ namespace engine
                --_skipNum ;
                continue ;
             }
-            else if ( _countOnly )
+            else if ( ( _countOnly ) &&
+                      ( ! ( cb->isTransaction() && !cb->isTransRU() ) ) )
             {
-               if ( cb->isTransaction() && !cb->isTransRU() )
-               {
-                  // no need to read record
-                  // look for transaction lock
-                  rc = _checkTransLock( cb, waitUnlockRID, skipRecord ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
-                               "rc: %d", rc ) ;
-                  if ( skipRecord )
-                  {
-                     continue ;
-                  }
-               }
                if ( _maxRecords > 0 )
                {
                   --_maxRecords ;
@@ -2010,21 +2415,163 @@ namespace engine
             }
          }
 
+         SDB_ASSERT( ( FALSE == isExtentLocked( cb, _curRID._extent ) ),
+                     "Must not have latched extent!" ) ;
+
+         // for record lock X/U, we may defer acquiring extent lock
+         // till record lock is acquired, since no data reading during
+         // the callback function of record lock U/X
+         if ( ( DPS_TRANSLOCK_X != _recordLock ) &&
+              ( DPS_TRANSLOCK_U != _recordLock ) )
+         {
+            // set pause flag, tryLockExtentAndWait will call
+            // pauseScan() when fails try to lock the extent
+            ixTxContext.setPauseFlag( ( DMS_TRNCTX_PAUSE_FLG_IXMCTXONLY |
+                                        DMS_TRNCTX_PAUSE_FLG_IXADVONHOLD ) );
+            rc = tryLockExtentSharedAndWait( cb,
+                                             _curRID._extent,
+                                             &ixTxContext,
+                                             &latchConflict ) ;
+            // reset pause flag
+            ixTxContext.resetPauseFlag() ;
+            if ( SDB_OK != rc )
+            {
+               // pauseScan() is executed in tryLockExtentAndWait
+               // when fails to try extent lock, where memory index
+               // tree latch and index page lock are released
+               needResumeScan = TRUE ;
+
+               if ( SDB_DPS_TRANS_LOCK_INCOMPATIBLE == rc )
+               {
+                  //// retry if lock wait duration is within timeout setting
+                  //if ( lockTimeout > pmdGetTickSpanTime( startTick ) )
+                  {
+                     // remove the duplicate key
+                     _scanner->removeDuplicatRID( _curRID ) ;
+                     //// remember RID before retry
+                     //lastRID = _curRID ;
+                     rc = SDB_OK  ;
+                     goto retry ;
+                  }
+                  //else
+                  //{
+                  //   rc = SDB_TIMEOUT ;
+                  //}
+               }
+               if ( SDB_OK != rc )
+               {
+                   PD_LOG( PDERROR,
+                       "Failed to lock extent:%d, rc: %d"OSS_NEWLINE
+                       "Request Mode:   %s"OSS_NEWLINE
+                       "Conflict ( representative ):"OSS_NEWLINE
+                       "   EDUID:  %llu"OSS_NEWLINE
+                       "   TID:    %u"OSS_NEWLINE
+                       "   LockId: %s"OSS_NEWLINE
+                       "   Mode:   %s"OSS_NEWLINE,
+                       _curRID._extent,
+                       rc,
+                       lockModeToString( DPS_TRANSLOCK_S ),
+                       latchConflict._eduID,
+                       latchConflict._tid,
+                       latchConflict._lockID.toString().c_str(),
+                       lockModeToString( latchConflict._lockType ) ) ;
+                  cb->printInfo( EDU_INFO_ERROR, "Failed to lock extent" ) ;
+                  goto error ;
+               }
+            }
+         }
+
+         // don't read data
+         if ( !_matchRuntime )
+         {
+            if ( _countOnly )
+            {
+               if ( cb->isTransaction() && !cb->isTransRU() )
+               {
+                  // no need to read record
+                  // look for transaction lock
+                  rc = _checkTransLock( cb,
+                                        ixTxContext,
+                                        lockTimeout, startTick,
+                                        lastRID,
+                                        waitUnlockRID,
+                                        skipRecord,
+                                        needResumeScan,
+                                        needRetry ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
+                               "rc: %d", rc ) ;
+                  if ( skipRecord )
+                  {
+                     continue ;
+                  }
+                  if ( needRetry )
+                  {
+                     needRetry = FALSE ;
+                     goto retry ;
+                  }
+                  if ( _maxRecords > 0 )
+                  {
+                     --_maxRecords ;
+                  }
+                  recordID = _curRID ;
+                  recordDataPtr = 0 ;
+                  generator.setDataPtr( recordDataPtr ) ;
+                  goto done ;
+               }
+            }
+         }
+
          // read record for further process
          // record2RW already take care of in memory version vs on disk
          // version under the cover
          _recordRW = _pSu->record2RW( _curRID, _context->mbID() ) ;
 
          // look for transaction lock
-         rc = _checkTransLock( cb, waitUnlockRID, skipRecord ) ;
+         rc = _checkTransLock( cb,
+                               ixTxContext,
+                               lockTimeout, startTick,
+                               lastRID,
+                               waitUnlockRID,
+                               skipRecord,
+                               needResumeScan,
+                               needRetry ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check transaction lock, "
                       "rc: %d", rc ) ;
          if ( skipRecord )
          {
             continue ;
          }
+         if ( needRetry )
+         {
+            needRetry = FALSE ;
+            goto retry ;
+         }
 
-         // Move _curRecordPtr to here so that _recordRW is fully setup for
+         // release memory index tree locks, index pages/tree locks
+         // after record lock acquired
+         rc = _scanner->pauseScan() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Pause scan failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         needResumeScan = TRUE ;
+
+         // for record lock X/U, acquire the extent lock
+         if ( ( DPS_TRANSLOCK_X == _recordLock ) ||
+              ( DPS_TRANSLOCK_U == _recordLock ) )
+         {
+            rc = lockExtentShared( cb, _curRID._extent ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to lock extent:%d, rc: %d"OSS_NEWLINE,
+                       _curRID._extent, rc ) ;
+               goto error ;
+            }
+         }
+
+         // Move _curRecordPtr here so that _recordRW is fully setup for
          // all cases.
          // NOTE: it might from disk or old version
          _curRecordPtr = _recordRW.readPtr( 0 ) ;
@@ -2032,6 +2579,9 @@ namespace engine
          // Handle the record being deleted
          if ( _curRecordPtr->isDeleting() )
          {
+            // unlock extent
+            unlockExtent( cb ) ;
+
             if ( _recordLock == DPS_TRANSLOCK_X )
             {
                rc = _pSu->deleteRecord( _context, _curRID, 0,
@@ -2150,6 +2700,9 @@ namespace engine
             }
          }
 
+         // unlock extent
+         unlockExtent( cb ) ;
+
          // Proper found case will jump to done, if we got here, there was
          // either unmatch, or we need to skip. Either way, we should
          // release the record lock before advance to next index
@@ -2170,18 +2723,40 @@ namespace engine
             PD_LOG( PDERROR, "Pause scan failed, rc: %d", rcTmp ) ;
             rc = rcTmp ;
          }
+         needResumeScan = TRUE ;
          // release CS/CL lock when we are done
          releaseCSCLLock() ;
       }
       goto error ;
 
    done:
+      if ( FALSE == needResumeScan )
+      {
+         _scanner->pauseScan() ;
+         needResumeScan = TRUE ;
+      }
+
+      // release extentLatch here
+      unlockExtent( cb ) ;
+
       if ( waitUnlockRID.isValid() )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(),
                                       _context->mbID(), &waitUnlockRID,
                                       &_callback ) ;
       }
+
+#ifdef _DEBUG
+      PD_LOG( PDDEBUG,
+              " _dmsIXSecScanner::advance returns rc:%d, rid(%d, %d), "
+              "locked:%d, mode:%d",
+              rc, _curRID._extent, _curRID._offset,
+              _hasLockedRecord, _recordLock ) ;
+      // _pTransCB->getLockMgrHandle()->countAllLocks(
+      //     cb->getTransExecutor(),
+      //     TRUE,
+      //     "trans lock hold when advance return" ) ;
+#endif
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_ADVANCE, rc ) ;
       return rc ;
    error:
@@ -2197,6 +2772,131 @@ namespace engine
       generator.setDataPtr( recordDataPtr ) ;
       _curRID._offset = DMS_INVALID_OFFSET ;
       goto done ;
+   }
+
+   INT32 _dmsIXSecScanner::lockExtentShared( _pmdEDUCB *cb, dmsExtentID extID )
+   {
+      // sanity check
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( NULL != _pSu ),
+                   "Storage data can't be NULL" ) ;
+      SDB_DASSERT( ( NULL != _context ),
+                   "Context is not initialized" ) ;
+      SDB_DASSERT( ( NULL != cb ),
+                   "EDUCB can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         // lock extent shared
+         rc = _pDMSCB->lockExtent( _cb,
+                                   _pSu->logicalID(),
+                                   _context->mbID(),
+                                   extID,
+                                   SHARED ) ;
+         if ( SDB_OK == rc )
+         {
+            // remember the locked extent ID
+            _lockedExtent = extID ;
+         }
+      }
+      return rc ;
+   }
+
+
+   INT32 _dmsIXSecScanner::tryLockExtentSharedAndWait
+   (
+      _pmdEDUCB          * cb,
+      dmsExtentID          extID,
+      _dmsIXTransContext * pContext,
+      _dpsTransRetInfo   * pdpsTxResInfo
+   )
+   {
+      // sanity check
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( NULL != _pSu ),
+                   "Storage data can't be NULL" ) ;
+      SDB_DASSERT( ( NULL != _context ),
+                   "Context is not initialized" ) ;
+      SDB_DASSERT( ( NULL != cb ),
+                   "EDUCB can't be NULL" ) ;
+
+      INT32 rc = SDB_OK ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         // try to lock extent shared
+         rc = _pDMSCB->tryLockExtentAndWait( cb,
+                                             _pSu->logicalID(),
+                                             _context->mbID(),
+                                             extID,
+                                             SHARED,
+                                             pContext,
+                                             pdpsTxResInfo ) ;
+
+         if ( SDB_OK == rc )
+         {
+            // remember the locked extent ID
+            _lockedExtent = extID ;
+         }
+      }
+      return rc ;
+   }
+
+
+   void _dmsIXSecScanner::unlockExtent( _pmdEDUCB *cb )
+   {
+      // sanity check
+      SDB_DASSERT( ( NULL != _pSu ),
+                   "Storage data can't be NULL" ) ;
+      SDB_DASSERT( ( NULL != _context ),
+                   "Context is not initialized" ) ;
+      SDB_DASSERT( ( NULL != cb ),
+                   "EDUCB can't be NULL" ) ;
+
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != _lockedExtent ) )
+      {
+         // unlock the extent
+         _pDMSCB->unlockExtent( cb,
+                                _pSu->logicalID(),
+                                _context->mbID(),
+                                _lockedExtent ) ;
+         // reset _lockedExtent
+         _lockedExtent = DMS_INVALID_EXTENT ;
+      }
+   }
+
+
+   BOOLEAN _dmsIXSecScanner::isExtentLocked( _pmdEDUCB *cb, dmsExtentID extID )
+   {
+      // sanity check
+      SDB_DASSERT( ( DMS_INVALID_EXTENT != extID ),
+                   "Invalid extent id" ) ;
+      SDB_DASSERT( ( NULL != _pSu ),
+                   "Storage data can't be NULL" ) ;
+      SDB_DASSERT( ( NULL != _context ),
+                   "Context is not initialized" ) ;
+      SDB_DASSERT( ( NULL != cb ),
+                   "EDUCB can't be NULL" ) ;
+
+      BOOLEAN result = FALSE ;
+      if ( ( ! _pSu->isCapped() ) &&
+           ( DMS_INVALID_EXTENT != extID ) )
+      {
+         if ( DPS_TRANSLOCK_MAX !=
+              _pDMSCB->getExtLockMode( cb,
+                                       _pSu->logicalID(),
+                                       _context->mbID(),
+                                       extID ) )
+         {
+            result = TRUE ;
+         }
+      }
+      return result;
    }
 
    void _dmsIXSecScanner::stop ()
@@ -2217,6 +2917,20 @@ namespace engine
             PD_LOG( PDERROR, "Pause scan failed, rc: %d", rc ) ;
          }
       }
+
+      // release extent lock if needed
+      if ( ( FALSE == _firstRun )  && _cb )
+      {
+         unlockExtent( _cb ) ;
+      }
+
+      _ixmContext* pixmContext = _scanner->getIXMContext() ;
+      if ( pixmContext )
+      {
+         // release all index page lock
+         ixmUnlockAll( pixmContext ) ;
+      }
+
       releaseCSCLLock() ;
       _curRID._offset = DMS_INVALID_OFFSET ;
    }
