@@ -1,7 +1,7 @@
 
 YYYY-MM-DD形式的日期。范围：0000-01-01至9999-12-31。
 
-数据类型的介绍可参考 [数据类型](manual/infrastructure/Data_Model/data_type.md)。
+数据类型的介绍可参考 [数据类型](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。
 
 ##Json格式##
 

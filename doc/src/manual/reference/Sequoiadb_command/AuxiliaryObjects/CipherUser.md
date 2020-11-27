@@ -1,4 +1,4 @@
-CipherUser 对象，该对象是为了保存用户名、密文文件路径、用户加密令牌和集群名。可直接用于 new Sdb、createUsr 和 dropUsr 接口中，代替原有的用户名和密码的输入，但是密码是从指定路径的密文文件中读取的。关于在密文文件中生成用户名和密文，详细内容可参考 [sdbpasswd](manual/Maintainance/Mgmt_Tools/sdbpasswd.md)。
+CipherUser 对象，该对象是为了保存用户名、密文文件路径、用户加密令牌和集群名。可直接用于 new Sdb、createUsr 和 dropUsr 接口中，代替原有的用户名和密码的输入，但是密码是从指定路径的密文文件中读取的。关于在密文文件中生成用户名和密文，详细内容可参考 [sdbpasswd](manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md)。
 
 ##语法##
 

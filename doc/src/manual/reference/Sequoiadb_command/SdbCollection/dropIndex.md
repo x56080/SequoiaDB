@@ -1,7 +1,7 @@
 ##语法##
 ***db.collectionspace.collection.dropIndex\(\<name\>\)***
 
-删除集合中指定的[索引](manual/infrastructure/Data_Model/index.md)。
+删除集合中指定的[索引](manual/Distributed_Engine/Architecture/Data_Model/index.md)。
 
 ## 参数描述##
 

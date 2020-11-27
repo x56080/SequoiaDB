@@ -45,4 +45,4 @@ API连接模式
 [^_^]:
      本文使用的所有引用和链接
 [location]:manual/reference/Sequoiadb_command/location.md
-[data_type]:manual/infrastructure/Data_Model/data_type.md
+[data_type]:manual/Distributed_Engine/Architecture/Data_Model/data_type.md

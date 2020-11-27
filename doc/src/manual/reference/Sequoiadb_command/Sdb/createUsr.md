@@ -49,7 +49,7 @@
  > db.createUsr( a )
  ```
 
-* 使用 CipherUser 对象创建用户名为 sdbadmin，密码为 sdbadmin 的用户（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd](manual/Maintainance/Mgmt_Tools/sdbpasswd.md)）。
+* 使用 CipherUser 对象创建用户名为 sdbadmin，密码为 sdbadmin 的用户（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd](manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md)）。
 
  ```lang-javascript
  > var a = CipherUser( "sdbadmin" )

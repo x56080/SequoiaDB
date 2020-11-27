@@ -26,7 +26,7 @@ Collection
 
 * `cond` ( *Object*， *选填* )
 
-	记录匹配条件。为空时，查询所有记录；不为空时，查询符合条件记录。如：{"age":{"$gt":30}}。匹配条件可使用[匹配符](reference/operator/match_operator/overview.md)或[全文检索语法](manual/infrastructure/Data_Model/text_index.md)。
+	记录匹配条件。为空时，查询所有记录；不为空时，查询符合条件记录。如：{"age":{"$gt":30}}。匹配条件可使用[匹配符](reference/operator/match_operator/overview.md)或[全文检索语法](manual/Distributed_Engine/Architecture/Data_Model/text_index.md)。
 
 * `sel` ( *Object*， *选填* )
 
@@ -165,7 +165,7 @@ v1.0及以上版本。
 	因为“sex”字段并不存在 find() 方法的 sel 选项 {age:"",name:""} 中，
 	所以 sort() 指定的排序字段 {"sex":1} 将被忽略。
 
-8. 使用[全文检索语法](manual/infrastructure/Data_Model/text_index.md)查询集合 "bar" 中的 "about" 字段包含 "rock climbing" 的记录。
+8. 使用[全文检索语法](manual/Distributed_Engine/Architecture/Data_Model/text_index.md)查询集合 "bar" 中的 "about" 字段包含 "rock climbing" 的记录。
 
 	```lang-javascript
 	> db.foo.bar.find({"":{"$Text":{"query":{"match":{"about" : "rock climbing"}}}}})

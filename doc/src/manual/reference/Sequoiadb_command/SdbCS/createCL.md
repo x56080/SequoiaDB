@@ -91,7 +91,7 @@ Collection Space
 
         例子：`AutoIncrement: { Field: "userID", Generated: "always" }`
 
-        * 参数详情请参考[自增字段介绍](manual/infrastructure/Data_Model/sequence.md)
+        * 参数详情请参考[自增字段介绍](manual/Distributed_Engine/Architecture/Data_Model/sequence.md)
         
     14. `LobShardingKeyFormat` ( *String* )：指定大对象生成主分区集合切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
     
@@ -107,7 +107,7 @@ Collection Space
 >
 > * 当参数 `options` 内设置了多个参数时，需用英文半角的逗号","将各参数的取值隔开。
 >
-> * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](infrastructure/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
+> * 在[创建集合空间](reference/Sequoiadb_command/Sdb/createCS.md)时，可以指定所属的[数据域](manual/Distributed_Engine/Architecture/domain.md)。创建集合时，使用 Group 参数，指定的复制组必须在域内；不使用 Group 参数，集合将被创建在域的任意一个复制组上。
 >
 > * 创建集合的 `AutoSplit` 参数比数据域的 `AutoSplit` 属性优先级更高。
 >

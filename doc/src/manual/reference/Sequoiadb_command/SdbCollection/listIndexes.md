@@ -1,7 +1,7 @@
 ##语法##
 ***db.collectionspace.collection.listIndexes\(\)***
 
-枚举[索引](manual/infrastructure/Data_Model/index.md)，执行此方法会将指定集合下的索引信息全部显示出来。
+枚举[索引](manual/Distributed_Engine/Architecture/Data_Model/index.md)，执行此方法会将指定集合下的索引信息全部显示出来。
 
 ##参数##
 

@@ -22,7 +22,7 @@ Collection
 
 ##返回值##
 
-函数执行成功时，返回汇总后的索引统计信息，其类型为 BSONObj。返回的字段信息可参考[索引统计信息快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_INDEXSTATS.md)。
+函数执行成功时，返回汇总后的索引统计信息，其类型为 BSONObj。返回的字段信息可参考[索引统计信息快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_INDEXSTATS.md)。
 
 函数执行失败时，将抛异常并输出错误信息。
 

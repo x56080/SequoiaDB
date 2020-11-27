@@ -177,5 +177,5 @@
 [getLastErrMsg]:reference/Sequoiadb_command/Global/getLastErrMsg.md
 [getLastError]:reference/Sequoiadb_command/Global/getLastError.md
 [general_guide]:troubleshooting/general/general_guide.md
-[edu]:infrastructure/Thread_Model/edu.md
+[edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
 

@@ -1,4 +1,4 @@
-﻿在 SequoiaDB 中，insert 操作是向集合中添加新的文档记录。我们可以使用[insert()](reference/Sequoiadb_command/SdbCollection/insert.md) 方法向 SequoiaDB 中的集合中添加记录。
+在 SequoiaDB 中，insert 操作是向集合中添加新的文档记录。我们可以使用 [insert()][insert] 方法向 SequoiaDB 中的集合中添加记录。
 
   >**Note:** 本文档的所有例子都是使用 SequoiaDB 的 shell 接口。
 
@@ -79,5 +79,6 @@ insert() 是向SequoiaDB 集合中插入记录的主要方法。
 
 [^_^]:
       本文使用的所有链接和引用
-[collectionspace]:manual/infrastructure/Data_Model/collection_space.md
-[collection]:manual/infrastructure/Data_Model/collection.md
+[collectionspace]:manual/Distributed_Engine/Architecture/Data_Model/collection_space.md
+[collection]:manual/Distributed_Engine/Architecture/Data_Model/collection.md
+[insert]:reference/Sequoiadb_command/SdbCollection/insert.md

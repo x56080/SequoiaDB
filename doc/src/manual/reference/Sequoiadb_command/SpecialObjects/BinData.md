@@ -2,7 +2,7 @@ Base64形式的二进制数据。
 
 在SequoiaDB中的数据使用JSON形式访问，因此对于二进制的数据需要用户使用 Base64方式进行编码，之后以字符串的形式发送至数据库。
 
-数据类型的介绍可参考[数据类型](manual/infrastructure/Data_Model/data_type.md)。
+数据类型的介绍可参考[数据类型](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。
 
 ##Json格式##
 

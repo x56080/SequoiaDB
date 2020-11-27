@@ -81,4 +81,4 @@
 	}
 	```
 
-	这个分区组有两个节点：11800和11850，其中11850为主节点。分区组详细信息请见[分区组列表](manual/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md)
+	这个分区组有两个节点：11800和11850，其中11850为主节点。分区组详细信息请见[分区组列表](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md)。

@@ -23,7 +23,8 @@
 
 2. **统计信息**
 
-统计信息的具体描述可以参考[统计信息](manual/Maintainance/Access_Plan/statistics.md)一节。
+统计信息的具体描述可以参考[统计信息](manual/Distributed_Engine/Maintainance/Access_Plan/statistics.md)一节。
+
 
 ##返回值##
 
@@ -36,7 +37,7 @@
   *  **SDB_IXM_NOTEXIST**(-47)
      指定的索引不存在。
   *  **SDB_INVALIDARG**(-6)
-     指定的参数可能存在冲突，请参考**Options**的约束。
+     指定的参数可能存在冲突，请参考 **Options** 的约束。
 
 更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
 

@@ -29,14 +29,15 @@
 - MariaDB 实例不支持指定虚拟列为分区键。
 
 - MariaDB 实例支持自增字段，MariaDB 表自增字段对应 SequoiaDB 的集合[自增字段][sequence]，只保证趋势递增，不保证连续递增，使用时需注意以下事项:
+
     * auto_increment_offset：该配置项主要解决多活主网下自增字段冲突问题，而 SequoiaDB 作为分布式数据库，自身能保证自增字段全局递增而不冲突，故该配置项不生效。
     * auto_increment_increment：自增字段数值由 SequoiaDB 生成，当发生了创建表以外的行为（例如插入数据），该配置项不起作用。如需要修改步长，可以在 SDB Shell 中通过 [setAttributes()][setAttributes] 修改对应的自增序列步长属性。
     * 自增字段类型为无符号长整型时，取值范围是 0~9223372036854775807。
     * 自增字段数值增长到自身类型最大值时，会报“序列值超出范围”错误且插入数据失败。
 
 
-[^_^]
+[^_^]:
      本文使用的所有引用和链接
 [config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md
-[sequence]:manual/infrastructure/Data_Model/sequence.md#自增字段
+[sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [setAttributes]:manual/reference/Sequoiadb_command/SdbCollection/setAttributes.md

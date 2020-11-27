@@ -1,6 +1,6 @@
 长整型。范围：-9223372036854775808 ~ 9223372036854775807。
 
-数据类型的介绍可参考 [数据类型](manual/infrastructure/Data_Model/data_type.md)。
+数据类型的介绍可参考 [数据类型](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。
 
 ##Json格式##
 

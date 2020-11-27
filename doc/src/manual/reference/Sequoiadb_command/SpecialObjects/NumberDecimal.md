@@ -1,6 +1,6 @@
 高精度数，可以保证精度不丢失。
 
-数据类型的介绍可参考 [数据类型](manual/infrastructure/Data_Model/data_type.md)。
+数据类型的介绍可参考 [数据类型](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。
 
 ##Json格式##
 

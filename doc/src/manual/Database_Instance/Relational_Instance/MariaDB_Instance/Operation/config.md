@@ -353,10 +353,10 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 
 [^_^]:
-    本文使用的所有引用和链接
-[sequence]:manual/infrastructure/Data_Model/sequence.md
+    本文使用的所有引用及链接
+[sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md#自定义表配置
 [createCL]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
-[sdbpasswd]:manual/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
+[sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/reference/Sequoiadb_command/SdbCollection/count.md
 [sql_mode]:https://mariadb.com/kb/en/library/sql-mode/

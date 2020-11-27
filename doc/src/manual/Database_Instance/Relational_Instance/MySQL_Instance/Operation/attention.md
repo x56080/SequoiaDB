@@ -32,6 +32,7 @@
 
 [^_^]:
     本文使用到的所有连接及引用。
-[config]:manual/infrastructure/Sharding/config.md
+[config]:manual/Distributed_Engine/Architecture/Sharding/config.md
 [setAttributes]:manual/reference/Sequoiadb_command/SdbCollection/setAttributes.md
-[auto_increment]:manual/infrastructure/Data_Model/sequence.md#自增字段
+[auto_increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#自增字段
+

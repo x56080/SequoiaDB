@@ -292,7 +292,7 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
 
 部署 SequoiaDB 到本机上，创建 3 个数据组，每个数据组单副本。在本机上创建一个MySQL实例。
 
-![伪集群部署](quickstart_1.png)
+![伪集群部署](images/quickstart_1.png)
 
 - 使用 root 用户或者管理员用户登录主机
 
@@ -329,15 +329,15 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
 
   > **Note:**  
   >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Maintainance/Mgmt_Tools/quickdeploy.md)  
+  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Distributed_Engine/Maintainance/Mgmt_Tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 `setup.sh --clean` 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 ### 集群部署
 
 部署 SequoiaDB 到 3 台机器上，主机名分别为 sdbserver1 / sdbserver2 / sdbserver3，创建 3 个数据组，每个数据组 3 副本。在 sdbserver1 上创建一个MySQL实例。
 
-![集群部署](quickstart_2.png)
+![集群部署](images/quickstart_2.png)
 
 - 使用 root 用户或者管理员用户登录主机
 
@@ -422,9 +422,9 @@ SequoiaDB 部署方案可以选择部署在单台机器上，或者部署在多�
 
   > **Note:**  
   >
-  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Maintainance/Mgmt_Tools/quickdeploy.md)  
+  > * 快速部署工具的使用与配置，具体请参考 [quickDeploy.sh](manual/Distributed_Engine/Maintainance/Mgmt_Tools/quickdeploy.md)  
   >
-  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 [setup.sh --clean](quickstart.md#清除 SequoiaDB 及 MySQL 实例组件) 脚本进行环境清理，然后按照快速入门指南重新操作一次。
+  > * 错误处理：如果执行快速部署的过程中发生异常，在造成异常的问题解除后，应先使用软件包解压路径下的 `setup.sh --clean` 脚本进行环境清理，然后按照快速入门指南重新操作一次。
 
 
 ## 使用 MySQL shell 进行操作

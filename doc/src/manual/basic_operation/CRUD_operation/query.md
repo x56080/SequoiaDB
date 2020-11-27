@@ -141,7 +141,7 @@ find() 方法是查询集合中记录的主要方法
 
 -   cursor.hint( &lt;hint&gt; )
 
-    添加[索引](manual/infrastructure/Data_Model/index.md)加快查找速度，假设存在名为“testIndex”的索引：
+    添加[索引](manual/Distributed_Engine/Architecture/Data_Model/index.md)加快查找速度，假设存在名为“testIndex”的索引：
 
     ```lang-javascript
     > db.foo.bar.find().hint( { "": "testIndex" } )

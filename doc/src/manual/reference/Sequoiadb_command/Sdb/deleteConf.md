@@ -16,8 +16,7 @@
 > * 重启生效和禁止修改配置的详细信息会通过错误信息返回值通知。
 > * 若配置的默认值和数据库当前值相同，则重启生效和禁止修改配置不会报错。
 > * 无命令位置参数时，缺省对所有节点生效，即使用 {Global:true} 的命令位置参数。
-> * 可以通过 [snapshot](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) 获取指定节点的当前配置。
-
+> * 可以通过 [snapshot](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONFIGS.md) 获取指定节点的当前配置。
 
 ##返回值##
 

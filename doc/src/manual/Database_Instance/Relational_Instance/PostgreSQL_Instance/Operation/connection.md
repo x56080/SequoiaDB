@@ -300,7 +300,6 @@ $ bin/psql -p 5432 sample
 [^_^]:
 
     本文使用到的所有连接及引用。
-
 [preferedinstance]:manual/reference/Sequoiadb_command/Sdb/setSessionAttr.md
 [attention]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#注意事项
-[system_security]:manual/Maintainance/Security/system_security.md
+[system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md

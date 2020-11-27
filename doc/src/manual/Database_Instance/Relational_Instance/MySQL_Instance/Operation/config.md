@@ -58,7 +58,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
           COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
    ```
 
-- 在 引擎配置项 sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为 false 显式创建普通表
+- 在引擎配置项 sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为 false 显式创建普通表
 
    ```lang-sql
    mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
@@ -242,7 +242,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 
 + 类型：boolean
 + 默认值：ON
-+ 作用范围：Global，Session
++ 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
 **sequoiadb_rollback_on_timeout**
@@ -270,7 +270,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 
 + 类型：boolean
 + 默认值：ON
-+ 作用范围：Global, Session
++ 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
 ###配置统计信息分析###
@@ -407,10 +407,10 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 
 [^_^]:
     本文使用的所有引用和链接
-[sequence]:manual/infrastructure/Data_Model/sequence.md
+[sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md#自定义表配置
 [createCL]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
-[sdbpasswd]:manual/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
+[sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/reference/Sequoiadb_command/SdbCollection/count.md
 [sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html

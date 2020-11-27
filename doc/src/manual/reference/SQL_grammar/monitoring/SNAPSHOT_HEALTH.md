@@ -14,8 +14,8 @@ $SNAPSHOT_HEALTH
 | -------------------- | ------ | ---------------------------------------------- |
 | NodeName             | 字符串 | 节点名，为“< HostName > : < ServiceName >” |
 | IsPrimary            | 布尔   | 是否为主节点 |
-| ServiceStatus        | 布尔   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步](manual/infrastructure/Replication/architecture.md#数据复制)会使该状态为 false |
-| Status               | 字符串 | 节点状态：<br/>1."Normal"：正常工作状态。<br/>2."Shutdown"：正在关闭状态，表示节点正在被关闭。<br/>3."Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步，则节点会进入该状态，重新构建数据。<br/>4."FullSync"：[全量同步](manual/infrastructure/Replication/architecture.md#数据复制)状态。<br/>5."OfflineBackup"：[数据备份](manual/Maintainance/Backup_Recovery/regular_bar.md)状态。|
+| ServiceStatus        | 布尔   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步](manual/Distributed_Engine/Architecture/Replication/architecture.md#数据复制)会使该状态为 false |
+| Status               | 字符串 | 节点状态：<br/>1."Normal"：正常工作状态。<br/>2."Shutdown"：正在关闭状态，表示节点正在被关闭。<br/>3."Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步，则节点会进入该状态，重新构建数据。<br/>4."FullSync"：[全量同步](manual/Distributed_Engine/Architecture/Replication/architecture.md#数据复制)状态。<br/>5."OfflineBackup"：[数据备份](manual/Distributed_Engine/Maintainance/Backup_Recovery/regular_bar.md)状态。|
 | BeginLSN.Offset      | 长整型 | 起始 LSN 的偏移 |
 | BeginLSN.Version     | 整型   | 起始 LSN 的版本号 |
 | CurrentLSN.Offset    | 长整型 | 当前 LSN 的偏移 |

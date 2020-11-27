@@ -82,7 +82,7 @@ Max realtime priority     0                    0
 Max realtime timeout      unlimited            unlimited            us     
 ```
 
-也可通过[节点健康检测快照](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md)查询各个节点的ulimit信息
+也可通过[节点健康检测快照](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md)查询各个节点的ulimit信息
 
 ```lang-javascript
 > db=new Sdb( 'localhost: 11810' )

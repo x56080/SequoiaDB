@@ -72,9 +72,9 @@ HTAP(Hybrid Transactional and Analytical Processing)混合负载
 
 
 
-[coord_node]:infrastructure/Node/coord_node.md
-[catalog_node]:infrastructure/Node/catalog_node.md
-[data_node]:infrastructure/Node/data_node.md
+[coord_node]:manual/Distributed_Engine/Architecture/Node/coord_node.md
+[catalog_node]:manual/Distributed_Engine/Architecture/Node/catalog_node.md
+[data_node]:manual/Distributed_Engine/Architecture/Node/data_node.md
 [scaleout]:Manual/features.md#弹性水平扩展
 [hadr]:Manual/features.md#高可用与容灾
 [dist_tran]:Manual/features.md#分布式事务

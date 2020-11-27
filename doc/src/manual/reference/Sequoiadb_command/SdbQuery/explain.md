@@ -93,13 +93,14 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 
 Detail 选项为 true 时，将会展示详细的访问计划。在协调节点和数据节点上展示的详细访问计划略有不同。
 
-请参考：[详细的访问计划](manual/Maintainance/Access_Plan/explain.md)。
+请参考：[详细的访问计划](manual/Distributed_Engine/Maintainance/Access_Plan/explain.md)。
+
 
 ##访问计划的搜索过程##
 
 Search 选项为 true 时，将会展示查询优化器搜索过的访问计划，并查看查询优化器选择的结果。
 
-请参考：[访问计划的搜索过程](manual/Maintainance/Access_Plan/cost_estimation.md)。
+请参考：[访问计划的搜索过程](manual/Distributed_Engine/Maintainance/Access_Plan/cost_estimation.md)。
 
 ##返回值##
 

@@ -41,7 +41,7 @@ options 参数详细说明如下：
 
 > 5. 复制组中的可用节点（存活节点）至少需要占总节点数半数以上，才能进行选举。  
 
-> 6. 选举的具体描述可以参考[选举机制](manual/infrastructure/Replication/election.md)。  
+> 6. 选举的具体描述可以参考[选举机制](manual/Distributed_Engine/Architecture/Replication/election.md)。  
 
 
 

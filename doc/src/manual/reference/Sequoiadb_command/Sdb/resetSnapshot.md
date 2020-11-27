@@ -13,7 +13,7 @@
 
  | 属性名 | 描述   | 默认值 | 格式 |
  | ------ | ------ | -------| ---- |
- | Type   | 指定重置的[快照类型](manual/Maintainance/Monitoring/snapshot/snapshot.md)。取值：<br/>"sessions"<br/>"sessions current"<br/>"database"<br/>"health"<br/>"collections"<br/>"all" | "all" | Type: "sessions" |
+ | Type   | 指定重置的[快照类型](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/snapshot.md)。取值：<br/>"sessions"<br/>"sessions current"<br/>"database"<br/>"health"<br/>"collections"<br/>"all" | "all" | Type: "sessions" |
  | SessionID | 指定重置的会话ID。 | 所有会话 | SessionID: 1 |
  | CollectionSpace | 指定需要重置快照统计信息的集合空间名称，字符串类型。 | 空 | CollectionSpace : "foo" |
  | Collection | 指定需要重置快照统计信息的集合名称，字符串类型。需要为集合全名。 | 空 | Collection : "foo.bar" |
@@ -29,11 +29,11 @@
 
  | 快照类型 | 重置项  |
  | ------ | ------ |
- | [sessions](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"WriteTimeSpent"，"ResetTimestamp"，"LastOpType"，"LastOpBegin"<br/>"TotalRead"，"TotalReadTime"，"TotalWriteTime"，"ReadTimeSpent"<br/>"LastOpEnd"，"LastOpInfo"，"ReadTimeSpent"，"WriteTimeSpent"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect" |
- | [sessions current](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md) | 与"sessions"重置项相同 |
- | [database](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md) | "totalDataRead"，"totalIndexRead"，"totalLobRead"，"TotalDataWrite"<br/>"svcNetOut"，"totalReadTime"，"totalWriteTime"，"resetTimestamp"<br/>"TotalIndexWrite"，"totalLobWrite"，"totalUpdate"，"totalDelete"<br/>"totalInsert"，"totalSelect"，"totalRead"，"receiveNum"<br/>"replUpdate"，"replInsert"，"replDelete"，"svcNetIn" |
- | [health](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md) | "ErrNum":{"SDB_OOM"，"SDB_NOSPC"，"SDB_TOO_MANY_OPEN_FD"} |
- | [collections](manual/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"<br/>"TotalRead"，"TotalWrite"，"TotalTbScan"，"TotalIxScan"<br/>"ResetTimestamp" |
+ | [sessions](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"WriteTimeSpent"，"ResetTimestamp"，"LastOpType"，"LastOpBegin"<br/>"TotalRead"，"TotalReadTime"，"TotalWriteTime"，"ReadTimeSpent"<br/>"LastOpEnd"，"LastOpInfo"，"ReadTimeSpent"，"WriteTimeSpent"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect" |
+ | [sessions current](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md) | 与"sessions"重置项相同 |
+ | [database](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md) | "totalDataRead"，"totalIndexRead"，"totalLobRead"，"TotalDataWrite"<br/>"svcNetOut"，"totalReadTime"，"totalWriteTime"，"resetTimestamp"<br/>"TotalIndexWrite"，"totalLobWrite"，"totalUpdate"，"totalDelete"<br/>"totalInsert"，"totalSelect"，"totalRead"，"receiveNum"<br/>"replUpdate"，"replInsert"，"replDelete"，"svcNetIn" |
+ | [health](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_HEALTH.md) | "ErrNum":{"SDB_OOM"，"SDB_NOSPC"，"SDB_TOO_MANY_OPEN_FD"} |
+ | [collections](manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"<br/>"TotalRead"，"TotalWrite"，"TotalTbScan"，"TotalIxScan"<br/>"ResetTimestamp" |
  | all | 除了重置上述所有的项，还包括：<br/>"totalTime"，"totalContexts" |
 
 ##返回值##

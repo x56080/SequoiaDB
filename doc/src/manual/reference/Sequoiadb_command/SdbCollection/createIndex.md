@@ -3,14 +3,14 @@
 
 ***db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[options\])***
 
-为集合创建[索引](manual/infrastructure/Data_Model/index.md)，提高查询速度。
+为集合创建[索引](manual/Distributed_Engine/Architecture/Data_Model/index.md)，提高查询速度。
 
 ##参数描述##
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
 | name | string | 索引名，同一个集合中的索引名必须唯一。 | 是 |
-| indexDef | Json 对象 |  索引键，包含一个或多个指定索引字段与类型的对象。类型值 1 表示字段升序，-1 表示字段降序，"text" 则表示创建[全文索引](manual/infrastructure/Data_Model/text_index.md)。 | 是 |
+| indexDef | Json 对象 |  索引键，包含一个或多个指定索引字段与类型的对象。类型值 1 表示字段升序，-1 表示字段降序，"text" 则表示创建[全文索引](manual/Distributed_Engine/Architecture/Data_Model/text_index.md)。 | 是 |
 | isUnique | Boolean | 索引是否唯一，默认 false。设置为 true 时代表该索引为唯一索引。 | 否 |
 | enforced | Boolean | 索引是否强制唯一，可选参数，在 isUnique 为 true 时生效，默认 false。设置为 true 时代表该索引在 isUnique 为 true 的前提下，不可存在一个以上全空的索引键。 | 否 |
 | sortBufferSize | int | 创建索引时使用的排序缓存的大小，单位为MB。取值为0时表示不使用排序缓存。默认为64。| 否 |
@@ -66,7 +66,7 @@
  Takes 0.002531s.
  ```
 
-* 在集合 bar 中的 address 及 tags 字段上建立[全文索引](manual/infrastructure/Data_Model/text_index.md)，用于对这两个字段进行全文检索。
+* 在集合 bar 中的 address 及 tags 字段上建立[全文索引](manual/Distributed_Engine/Architecture/Data_Model/text_index.md)，用于对这两个字段进行全文检索。
 
  ```lang-javascript
  > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )

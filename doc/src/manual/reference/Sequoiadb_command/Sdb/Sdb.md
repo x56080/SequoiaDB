@@ -92,7 +92,7 @@ v1.12及以上版本。
  	> var db = new Sdb( "sdbserver1", 11810, a )
 	```
 
-5. 使用 CipherUser 对象连接指定机器上的 SequoiaDB（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd](manual/Maintainance/Mgmt_Tools/sdbpasswd.md)）。
+5. 使用 CipherUser 对象连接指定机器上的 SequoiaDB（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd](manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md)）。
 
    	```lang-javascript
     > var a = CipherUser( "sdbadmin" )

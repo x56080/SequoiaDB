@@ -145,5 +145,5 @@ condition = {"_id" : {"$oid":"5d035e2bb4d450b04fcd0dff“}}
 
 [^_^]:
      本文使用的所有引用及链接
-[data_type]:manual/infrastructure/Data_Model/data_type.md
+[data_type]:manual/Distributed_Engine/Architecture/Data_Model/data_type.md
 [api]:api/Python/html/index.html

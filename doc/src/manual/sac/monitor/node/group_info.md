@@ -24,7 +24,7 @@
 > **Note:**  
 > 1. 当前服务没有可启动节点时，将无法使用 **启动节点** 操作。  
 > 2. 当前节点没有可停止节点时，将无法使用 **停止节点** 操作。  
-> 3. 分区组对应的字段说明，可通过[分区组列表](manual/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md)查看。
+> 3. 分区组对应的字段说明，可通过[分区组列表](manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md)查看。
 
 ###分区组图表###
 

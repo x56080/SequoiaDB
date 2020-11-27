@@ -15,7 +15,7 @@ $SNAPSHOT_SYSTEM
 | ServiceName          | 字符串 | svcname 所指定的服务名，与 HostName 共同作为一个逻辑节点的标示 |
 | GroupName            | 字符串 | 该逻辑节点所属的分区组名，standalone 模式下，该字段为空字符串  |
 | IsPrimary            | 布尔   | 该节点是否为主节点，standalone 模式下，该字段为 false          |
-| ServiceStatus        | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](manual/infrastructure/Replication/architecture.md#数据复制)会使该状态为 false |
+| ServiceStatus        | 布尔   | 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步](manual/Distributed_Engine/Architecture/Replication/architecture.md#数据复制)会使该状态为 false |
 | Status               | 字符串 | 数据库状态：包括"Normal"、 "Shutdown"、"Rebuilding"、"FullSync"、"OfflineBackup"状态 |
 | BeginLSN.Offset      | 长整型 | 起始 LSN 的偏移                                                |
 | BeginLSN.Version     | 整型   | 起始 LSN 的版本号                                              |

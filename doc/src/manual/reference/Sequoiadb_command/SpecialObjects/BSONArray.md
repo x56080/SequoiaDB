@@ -1,6 +1,6 @@
 BSON 数组。
 
-数据类型的介绍可参考[数组](manual/infrastructure/Data_Model/data_type.md)。
+数据类型的介绍可参考[数组](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。
 
 ##语法##
 
