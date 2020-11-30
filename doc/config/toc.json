@@ -803,146 +803,157 @@
                      ]
                   }
                ]
+            },
+            {
+               "id": 1606703827,
+               "dir": "Object_Instance",
+               "cn": "对象存储实例",
+               "en": "Object Instance",
+               "top": true,
+               "contents": [
+                  {
+                    "id": 1573442138,
+                    "dir": "S3_Instance",
+                    "cn": "S3对象存储实例",
+                    "en": "S3 Engine",
+                    "contents": [
+                       {
+                          "id": 1606703875,
+                          "dir": "Operation",
+                          "cn": "操作",
+                          "en": "Operation",
+                          "contents": [
+                             {
+                                "id": 1573442163,
+                                "file": "setup",
+                                "cn": "安装与配置",
+                                "en": "Install and Deploy"
+                             },
+                             {
+                                "id": 1573442392,
+                                "file": "restapi",
+                                "cn": "Rest接口",
+                                "en": "Rest API"
+                             },
+                             {
+                                "id": 1573442682,
+                                "file": "javaapi",
+                                "cn": "Java接口",
+                                "en": "Java API"
+                             }
+                          ]
+                       },
+                       {
+                          "id": 1606703899,
+                          "dir": "Development",
+                          "cn": "开发",
+                          "en": "Development",
+                          "contents": [
+                             {
+                                "id": 1606703906,
+                                "file": "engine_download",
+                                "cn": "S3驱动下载",
+                                "en": "S3 Engine Download"
+                             },
+                             {
+                                "id": 1606703915,
+                                "file": "connection",
+                                "cn": "通过s3cmd进行连接",
+                                "en": "Connection"
+                             },
+                             {
+                                "id": 1606703922,
+                                "file": "java_sample",
+                                "cn": "Java程序样例",
+                                "en": "Java Sample"
+                             },
+                             {
+                                "id": 1606703928,
+                                "file": "C++_sample",
+                                "cn": "C++程序样例",
+                                "en": "C++ Sample"
+                             }
+                          ]
+                       }
+                     ]
+                  },
+                  {
+                    "id": 1525955869,
+                    "dir": "File_Instance",
+                    "cn": "FileSystem 引擎",
+                    "en": "FileSystem Engine",
+                    "contents": [
+                      {
+                         "id": 1525955905,
+                         "file": "install_deploy",
+                         "cn": "安装部署",
+                         "en": "Install and Deploy"
+                      },
+                      {
+                         "id": 1525956050,
+                         "dir": "Operation",
+                         "cn": "使用",
+                         "en": "Operation",
+                         "contents": [
+                           {
+                           "id": 1525956060,
+                           "file": "mount",
+                           "cn": "挂载目录",
+                           "en": "Mount"
+                           },
+                           {
+                           "id": 1525956070,
+                           "file": "unmount",
+                           "cn": "卸载目录",
+                           "en": "Unmount"
+                           }
+                        ]
+                      }, 
+                      {
+                         "id": 1525956080,
+                         "dir": "Management",
+                         "cn": "管理",
+                         "en": "Management",
+                         "contents": [
+                           {
+                           "id": 1525956090,
+                           "file": "sequoiafsconfig",
+                           "cn": "配置管理",
+                           "en": "ConfigManagement"
+                           },
+                           {
+                           "id": 1525956100,
+                           "file": "sequoiafsbash",
+                           "cn": "SequoiaFS 启停",
+                           "en": "Bash"
+                           }   
+                         ]
+                      },
+                      {
+                         "id": 1525956110,
+                         "dir": "Development",
+                         "cn": "开发",
+                         "en": "Development",
+                         "contents": [
+                           {
+                           "id": 1525956120,
+                           "file": "datadefine",
+                           "cn": "数据设计",
+                           "en": "Datadefine"
+                           },
+                           {
+                           "id": 1525956130,
+                           "file": "fileapi",
+                           "cn": "API",
+                           "en": "API"
+                           }
+                        ]
+                     }
+                  ]
+                }
+              ]
             }
          ]
-      },
-      {
-        "id": 1525955869,
-        "dir": "sequoiafs",
-        "cn": "FileSystem 引擎",
-        "en": "FileSystem Engine",
-        "contents": [
-          {
-             "id": 1525955897,
-             "file": "overview",
-             "cn": "概述",
-             "en": "Overview"
-          },
-          {
-             "id": 1525955905,
-             "file": "install_deploy",
-             "cn": "安装部署",
-             "en": "Install and Deploy"
-          },
-          {
-             "id": 1525956050,
-             "dir": "usage",
-             "cn": "使用",
-             "en": "Usage",
-             "contents": [
-               {
-               "id": 1525956060,
-               "file": "mount",
-               "cn": "挂载目录",
-               "en": "Mount"          
-               },
-               {
-               "id": 1525956070,
-               "file": "unmount",
-               "cn": "卸载目录",
-               "en": "Unmount"
-               }   
-             ]
-          }, 
-          {
-             "id": 1525956080,
-             "dir": "management",
-             "cn": "管理",
-             "en": "anagement",
-             "contents": [
-               {
-               "id": 1525956090,
-               "file": "sequoiafsconfig",
-               "cn": "配置管理",
-               "en": "ConfigManagement"          
-               },
-               {
-               "id": 1525956100,
-               "file": "sequoiafsbash",
-               "cn": "SequoiaFS 启停",
-               "en": "Bash"
-               }   
-             ]
-          },
-          {
-             "id": 1525956110,
-             "dir": "develop",
-             "cn": "开发指南",
-             "en": "Development",
-             "contents": [
-               {
-               "id": 1525956120,
-               "file": "datadefine",
-               "cn": "数据设计",
-               "en": "Datadefine"          
-               },
-               {
-               "id": 1525956130,
-               "file": "fileapi",
-               "cn": "API",
-               "en": "API"
-               }   
-             ]
-          }
-        ]
-      },
-      {
-        "id": 1573442138,
-        "dir": "sequoias3",
-        "cn": "S3引擎",
-        "en": "S3 Engine",
-        "contents": [
-          {
-             "id": 1573442156,
-             "file": "overview",
-             "cn": "概述",
-             "en": "Overview"
-          },
-          {
-             "id": 1573442163,
-             "file": "setup",
-             "cn": "SequoiaS3 安装与配置",
-             "en": "SequoiaS3 Install and Deploy"
-          },
-          {
-             "id": 1573442392,
-             "dir": "restapi",
-             "cn": "Rest 接口",
-             "en": "Rest API",
-             "contents": [
-               {
-                 "id": 1573442403,
-                 "file": "restbuckets",
-                 "cn": "桶 API",
-                 "en": "Bucket API"          
-               },
-               {
-                 "id": 1573442410,
-                 "file": "restobjects",
-                 "cn": "对象 API",
-                 "en": "Object API"
-               },
-               {
-                 "id": 1573442471,
-                 "file": "restregions",
-                 "cn": "区域 API",
-                 "en": "Region API"
-               },
-               {
-                 "id": 1573442480,
-                 "file": "restusers",
-                 "cn": "用户 API",
-                 "en": "User API"
-               } 
-             ]
-          },
-          {
-             "id": 1573442682,
-             "file": "javaapi",
-             "cn": "Java 接口",
-             "en": "read and write"
-          } 
-        ]
       },
       {
         "id": 1580978421,

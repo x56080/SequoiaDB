@@ -1,61 +1,61 @@
-本章将介绍通过 SequoiaFS 在 SequoiaDB 巨杉数据库挂载目录的方法。 
-
+本文档主要介绍通过 SequoiaFS 在 SequoiaDB 巨杉数据库挂载目录的方法。
+  
 ##Linux环境下挂载目录##
 
 挂载目录前应确保系统已经安装 SequoiaDB，并已部署 SequoiaDB 集群。
 
-**定义挂载目录基本信息**
+###定义挂载目录基本信息###
 
 1. 查询 SequoiaDB 安装信息（SDBADMIN_USER 为安装用户名，INSTALL_DIR 为安装路径）
 
-   ```lang-bash
-   # cat /etc/default/sequoiadb
-   ```
+  ```lang-bash
+  # cat /etc/default/sequoiadb
+  ```
 
-   输出结果：
+  输出结果如下：
 
-   ```lang-text
-   NAME=sdbcm
-   SDBADMIN_USER=sdbadmin
-   INSTALL_DIR=/opt/sequoiadb
-   ```
+  ```lang-text
+  NAME=sdbcm
+  SDBADMIN_USER=sdbadmin
+  INSTALL_DIR=/opt/sequoiadb
+  ```
 
 2. 切换到 SDBADMIN_USER 指定用户
 
-   ```lang-bash
-   # su sdbadmin
-   ```
+  ```lang-bash
+  # su sdbadmin
+  ```
 
 3. 加载 SequoiaDB 安装信息
 
-   ```lang-bash
-   $ . /etc/default/sequoiadb
-   ```
+  ```lang-bash
+  $ . /etc/default/sequoiadb
+  ```
 
 4. 定义挂载目录基本信息（挂载目录为 `/home/sdbadmin/guestdir/` ；挂载目录别名为"guestdir"，别名一般为挂载目录全路径的最后一层文件夹名称；挂载目标集合名称为"mountcs.mountcl"）
 
-   ```lang-bash
-   $ mountpoint=/home/sdbadmin/guestdir/
-   $ alias=guestdir
-   $ collection=mountcs.mountcl
-   ```
+  ```lang-bash
+  $ mountpoint=/home/sdbadmin/guestdir/
+  $ alias=guestdir
+  $ collection=mountcs.mountcl
+  ```
 
-**创建挂载目录及配置文件**
+###创建挂载目录及配置文件###
 
 1. 创建挂载目录
-  
-   ```lang-bash
-   $ mkdir -p $mountpoint
-   ```
 
-   首次挂载该目录需要先创建配置文件目录，并复制一份配置样例到配置文件路径
+  ```lang-bash
+  $ mkdir -p $mountpoint
+  ```
 
-   ```lang-bash
-   $ mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
-   $ cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
-   ```
+  首次挂载该目录需要先创建配置文件目录，并复制一份配置样例到配置文件路径
 
-2. 修改配置文件中的挂载目录、别名和集合名称，其他配置可参考[配置管理](sequoiafs/management/sequoiafsconfig.md)
+  ```lang-bash
+  $ mkdir -p $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+  $ cp $INSTALL_DIR/tools/sequoiafs/conf/sample/sequoiafs.conf $INSTALL_DIR/tools/sequoiafs/conf/local/$alias/
+  ```
+
+2. 修改配置文件中的挂载目录、别名和集合名称，其他配置可参考[配置管理][sequoiafsconfig]
 
    ```lang-bash
    $ FS_ALIAS_CONF=$INSTALL_DIR/tools/sequoiafs/conf/local/$alias/sequoiafs.conf
@@ -64,69 +64,69 @@
    $ sed -i "s|^collection=|collection=$collection|" $FS_ALIAS_CONF
    ```
 
-**挂载目录**
+###挂载目录###
 
 1. 使用 `fsstart.sh` 指定别名挂载目录
 
-   ```lang-bash
-   $ cd $INSTALL_DIR/tools/sequoiafs/bin
-   $ ./fsstart.sh --alias $alias
-   ```
+  ```lang-bash
+  $ cd $INSTALL_DIR/tools/sequoiafs/bin
+  $ ./fsstart.sh --alias $alias
+  ```
 
-   输出结果显示挂载成功：
+  输出结果显示挂载成功：
 
-   ```lang-text
-   Start /opt/sequoiadb/tools/sequoiafs/bin/sequoiafs -c /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir --alias guestdir  
-   Succeed: 19496
-   Total: 1; Succeed: 1; Failed: 0
-   ```
+  ```lang-text
+  Start /opt/sequoiadb/tools/sequoiafs/bin/sequoiafs -c /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir --alias guestdir  
+  Succeed: 19496
+  Total: 1; Succeed: 1; Failed: 0
+  ```
 
 2. 通过 `fslist.sh` 查看挂载信息
 
-   ```lang-bash
-   $ ./fslist.sh -l
-   ```
-  
-   输出结果：
+  ```lang-bash
+  $ ./fslist.sh -l
+  ```
 
-   ```lang-text
-   Alias     Mountpoint               PID    Collection       ConfPath
-   guestdir  /home/sdbadmin/guestdir  19496  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
-   Total: 1
-   ```
+  输出结果如下：
 
-**验证**
+  ```lang-text
+  Alias     Mountpoint               PID    Collection       ConfPath
+  guestdir  /home/sdbadmin/guestdir  19496  mountcs.mountcl  /opt/sequoiadb/tools/sequoiafs/conf/local/guestdir
+  Total: 1
+  ```
+
+###验证###
 
 1. 进入 $mountpoint 指定目录
 
-   ```lang-bash
-   $ cd $mountpoint
-   ```
+  ```lang-bash
+  $ cd $mountpoint
+  ```
 
 2. 在挂载目录下创建文件 `testfile` 并写入"hello, this is a testfile!"
 
-   ```lang-bash
-   $ touch testfile
-   $ echo 'hello, this is a testfile!' >> testfile
-   ```
+  ```lang-bash
+  $ touch testfile
+  $ echo 'hello, this is a testfile!' >> testfile
+  ```
 
 3. 查看 `testfile` 文件内容是否写入
 
-   ```lang-bash
-   $ cat testfile 
-   ```
+  ```lang-bash
+  $ cat testfile 
+  ```
 
 4. 创建子目录 `testdir`
 
-   ```lang-bash
-   $ mkdir testdir
-   ```
+  ```lang-bash
+  $ mkdir testdir
+  ```
 
 5. 查看目录是否创建成功
 
-   ```lang-bash
-   $ ls
-   ``` 
+  ```lang-bash
+  $ ls
+  ``` 
 
 ##在Windows环境下访问挂载目录##
 
@@ -134,7 +134,7 @@
 
 以下操作均在 root 用户下执行。
 
-**Samba 安装**
+###Samba 安装###
 
 * 对于 CentOS/Red Hat：
 
@@ -154,7 +154,7 @@
    # apt-get install samba
    ```
 
-**检查当前 Samba 版本**
+###检查当前 Samba 版本###
 
 * 对于 CentOS/Red Hat/SUSE：
 
@@ -162,7 +162,7 @@
    # rpm -qa samba
    ```
 
-   输出当前 Samba 版本号：
+   输出当前 Samba 版本号
 
    ```lang-text
    samba-3.6.23-53.el6_10.x86_64
@@ -174,13 +174,13 @@
    # samba --version
    ```
 
-   输出当前 Samba 版本号：
+   输出当前 Samba 版本号
 
    ```lang-text
    Version 4.3.11-Ubuntu
    ```
 
-**Samba 配置**
+###Samba 配置###
 
 1. 创建一个 Linux 用户 `sambauser` 
 
@@ -207,7 +207,7 @@
    # smbpasswd -a sambauser
    ```
 
-   根据提示设置密码:
+   根据提示设置密码
 
    ```lang-text
    New SMB password:
@@ -248,17 +248,26 @@
    # service smbd start
    ```
 
-**Windows下访问 Samba 共享目录**
+###Windows下访问 Samba 共享目录###
 
-1. Windows 10环境下打开“此电脑”，选择"映射网络驱动器"
-![](sequoiafs/samba_windows1.png)  
+1. Windows 10 环境下打开【此电脑】，选择【映射网络驱动器】
+![windows1][samba_windows1]  
 
-2. 在“驱动器”中输入本地映射驱动器名称，在“文件夹”中输入共享路径
-![](sequoiafs/samba_windows2.png) 
+2. 在【驱动器】中输入本地映射驱动器名称，在【文件夹】中输入共享路径
+![windows2][samba_windows2] 
 
 3. 输入 Samba 用户名密码
-![](sequoiafs/samba_windows3.png) 
+![windows3][samba_windows3] 
 
 4. 在 Windows 下即可通过映射驱动器访问共享目录
-![](sequoiafs/samba_windows4.png) 
+![windows4][samba_windows4] 
 
+
+
+[^_^]:
+     本文使用的所有链接及引用
+[sequoiafsconfig]:manual/Database_Instance/Object_Instance/File_Instance/Management/sequoiafsconfig.md
+[samba_windows1]:images/Database_Instance/Object_Instance/File_Instance/Operation/samba_windows1.png
+[samba_windows2]:images/Database_Instance/Object_Instance/File_Instance/Operation/samba_windows2.png
+[samba_windows3]:images/Database_Instance/Object_Instance/File_Instance/Operation/samba_windows3.png
+[samba_windows4]:images/Database_Instance/Object_Instance/File_Instance/Operation/samba_windows4.png

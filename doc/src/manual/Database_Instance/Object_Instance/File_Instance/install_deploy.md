@@ -1,11 +1,4 @@
-##安装部署
-
-本文档将介绍 FUSE 和 SequoiaFS 的安装部署。
-
-**安装说明**
-
-* 安装 SequoiaFS 之前应确保已安装 SequoiaDB 巨杉数据库；
-* 需要使用 root 用户权限进行安装部署，应确保 root 用户对相关命令或配置文件具有访问权限。
+本文档主要介绍 FUSE 和 SequoiaFS 的安装部署。
 
 ##检查FUSE版本##
 
@@ -23,11 +16,17 @@
 
 > **Note：**
 >
-> 若未安装 FUSE 或 FUSE 版本号低于 2.8.6，需进行 [FUSE安装](sequoiafs/install_deploy.md#FUSE安装)。
+> 若未安装 FUSE 或 FUSE 版本号低于 2.8.6，需进行 [FUSE 安装][install_deploy]。
 
 ##FUSE安装##
 
-CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统可参考包管理器安装，其他系统可参考源码安装或尝试其他方式自行安装。
+###安装说明###
+
+* 安装 SequoiaFS 之前应确保已安装 SequoiaDB 巨杉数据库；
+* 需要使用 root 用户权限进行安装部署，应确保 root 用户对相关命令或配置文件具有访问权限；
+* CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统可参考包管理器安装，其他系统可参考源码安装或尝试其他方式自行安装。
+
+###安装步骤###
 
 **包管理器安装**
 
@@ -37,7 +36,7 @@ CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统
    # yum install fuse
    ```
 
-* 对于 SESU 11.3 及其更高版本系统：
+* 对于 SUSE 11.3 及其更高版本系统：
 
    ```lang-bash
    # zypper install fuse
@@ -51,7 +50,7 @@ CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统
 
 **源码安装**
 
-用户自行下载 libfuse 的源码包 [libfuse-fuse-2.8.6.tar.gz](https://github.com/libfuse/libfuse/archive/fuse_2_8_6.tar.gz) 进行编译安装。
+用户自行下载 libfuse 的源码包 [libfuse-fuse-2.8.6.tar.gz][jar] 进行编译安装。
 
 1. 解压源码包并进入源码包目录
 
@@ -89,3 +88,9 @@ CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统
 ```lang-bash
 # echo "user_allow_other" >> /etc/fuse.conf
 ```
+
+
+[^_^]:
+     本文使用的所有链接及引用
+[install_deploy]:manual/Database_Instance/Object_Instance/File_Instance/install_deploy.md#FUSE安装
+[jar]:https://github.com/libfuse/libfuse/archive/fuse_2_8_6.tar.gz

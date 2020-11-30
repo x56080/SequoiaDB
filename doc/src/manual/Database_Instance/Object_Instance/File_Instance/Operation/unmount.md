@@ -1,4 +1,4 @@
-本章将介绍如何卸载 SequoiaFS 目录。
+本文档主要介绍如何卸载 SequoiaFS 目录。  
 
 ##fsstop.sh卸载##
 
