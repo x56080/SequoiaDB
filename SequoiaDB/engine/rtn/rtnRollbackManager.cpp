@@ -96,6 +96,11 @@ INT32 _rtnRollbackManager::_readLogAndRollback()
    // Read the log and rollback one by one
    while (_cursor != DPS_INVALID_LSN_OFFSET)
    {
+      if ( _cb->isInterrupted() )
+      {
+         PD_LOG(PDERROR, "Rollback interrupted");
+         return (rc = SDB_APP_INTERRUPT);
+      }
       dpsLogRecord record;
       BOOLEAN undone = FALSE;
       // If any step fails (rc != SDB_OK) then error out
