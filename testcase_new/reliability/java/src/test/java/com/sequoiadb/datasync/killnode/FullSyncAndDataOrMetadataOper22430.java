@@ -139,8 +139,9 @@ public class FullSyncAndDataOrMetadataOper22430 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = db.getCollectionSpace( csNames[ 0 ] )
                         .getCollection( clNameBase + 1 );
+
                 for ( BSONObject obj: insertor ){
-                    obj.removeField(arg0)
+                    obj.removeField("_id") ;
                 }
                 cl.insert( insertor );
             }
