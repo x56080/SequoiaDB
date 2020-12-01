@@ -28,8 +28,8 @@ func.js 中方法：
 
    4、检查
       检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout)   
-      检查集群状态           commCheckBusinessStatus(db,timeout,checkLSN)
-      检测 group 状态        commCheckBusiness(groups,checkLSN)
+      检查集群状态(retry)    commCheckBusinessStatus(db,timeout,checkLSN)
+      检测 group 状态(once)  commCheckBusiness(groups,checkLSN)
       检测主备 LSN           commCheckLSN(db,groupNames,timeout)
    
    5、获取
@@ -821,7 +821,7 @@ function commGetProcedures ( db, filter )
 }
 
 /******************************************************************************
-@description  检查 data group 和 coord group 状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选），超时检测不过报错
+@description  多次检查 data group 和 catalog group 状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选），超时检测不过报错
          此处检测 LSN 的逻辑是：假设主 LSN 为 A，备 LSN 为 B，多次更新 A、B，检测 A、B 是否相等
 @author  Jianhui Xu
 @parameter
@@ -857,7 +857,9 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
 }
 
 /******************************************************************************
-@description  检查集群状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选），返回故障的节点
+@description  检查集群状态（包括检测连接、是否有主、服务是否可用，检测 LSN 可选）
+              只检测 1 次集群状态，并返回故障的节点信息
+              如果需要循环多次检查集群环境，请使用 commCheckBusinessStatus
 @author  Jianhui Xu
 @parameter
    groups            {array}    :   从 commGetGroups 方法中取到的 group 信息
