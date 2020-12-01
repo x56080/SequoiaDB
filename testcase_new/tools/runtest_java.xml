@@ -162,7 +162,11 @@
          <default>
             <delete file="${casedir}/proxyxml.xml"/>
             <if>
-               <equals arg1="${testcasetype}" arg2="s3_java"/>
+               <or>
+                  <equals arg1="${testcasetype}" arg2="s3_java"/>
+                  <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo2"/>
+                  <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo3"/>
+               </or>
                <then>
                   <copyfile src="${casedir}/testng.xml" dest="${casedir}/proxyxml.xml"/>
                </then>
@@ -180,7 +184,18 @@
                   <generatexml filename="${xmlfile}"/>
                </else>
             </if>
-            <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}"/>
+            <if>
+               <or>
+                  <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo2"/>
+                  <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo3"/>
+               </or>
+               <then>
+                  <execmongojavatest xmlfile="${xmlfile}" mongodriver="${mongoversion}"/>
+               </then>
+               <else>
+                  <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}"/>
+               </else>
+            </if>
          </default>
       </switch>
 
@@ -268,6 +283,20 @@
       <sequential>
          <hostinfo prefix="host" />
          <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dsdbdriver=@{sdbdriver} -DthreadexecutorDir=${CI_WORK_DIR}/testcase/tools -DsdbdriverDir=@{sdbdriverdir}  -DreportDir=${tmp_report_dir} -DHOSTNAME=@{hostname} -DSVCNAME=@{svcname} -DS3HOSTNAME=${host.ADDR4} -DS3SVCNAME=${s3svcname} -Ds3client=@{s3client} -Ds3clientDir=@{s3clientdir} -DESHOSTNAME=@{eshostname} -DESSVCNAME=@{essvcname} -DFULLTEXTPREFIX=${IDXPREFIX}"/>
+         <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
+         <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
+            <arg line="${cmd}" />
+         </exec>
+
+      </sequential>
+   </macrodef>
+   
+   <macrodef name="execmongojavatest">
+      <attribute name="xmlfile"/>
+      <attribute name="mongodriver"/>
+      <sequential>
+         <hostinfo prefix="host" />
+         <var name="cmd" value="surefire-report:report -DxmlFileName=@{xmlfile} -Dmongo-java-driver=@{mongodriver} -DreportDir=${tmp_report_dir}"/>
          <echo message="cmd : mvn ${cmd} in dir ${casedir}"/>
          <exec executable="mvn" dir="${casedir}" failonerror="true" logError="true">
             <arg line="${cmd}" />
