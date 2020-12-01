@@ -45,14 +45,7 @@ public class SdbTestBase {
             if ( !workDirFile.exists() ) {
                 workDirFile.mkdir();
             }
-            Runtime runtime = Runtime.getRuntime();
-            String command = "chown sdbadmin:sdbadmin_group " + workDirFile;
-            Process process = runtime.exec( command );
-            int exitValue = process.waitFor();
-            if ( exitValue != 0 ) {
-                Assert.fail( "failed to exec : " + command );
-            }
-        } catch ( BaseException | InterruptedException | IOException e ) {
+        } catch ( BaseException e ) {
             e.printStackTrace();
             Assert.fail( "failed to initSuite" );
         } finally {
