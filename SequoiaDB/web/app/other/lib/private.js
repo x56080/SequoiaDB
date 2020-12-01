@@ -236,6 +236,7 @@ var _IndexLeft = {} ;
 //激活导航要激活的服务的索引
 _IndexLeft.getActiveIndex = function( $rootScope, SdbFunction, navMenu )
 {
+   var isFind = false ;
    var defaultIndex   = [ -1, -1, -1 ] ;
    var cursorIndex    = [  0, -1, -1 ] ;
    var cursorModule   = $rootScope.Url.Module ;
@@ -245,9 +246,13 @@ _IndexLeft.getActiveIndex = function( $rootScope, SdbFunction, navMenu )
       if( val['module'] == cursorModule )
       {
          cursorIndex[0] = key ;
+         isFind = true ;
       }
    } ) ;
-   defaultIndex[0] = cursorIndex[0] ;
+   if( isFind )
+   {
+      defaultIndex[0] = cursorIndex[0] ;
+   }
    if( typeof( navMenu[ cursorIndex[0] ]['list'] ) != 'undefined' )
    {
       $.each( navMenu[ cursorIndex[0] ]['list'], function( index1, moduleNav ){

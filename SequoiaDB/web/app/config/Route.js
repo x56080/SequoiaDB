@@ -67,14 +67,14 @@
            resolve: resolveFun( [ './app/controller/Strategy/Sdb/Strategy.js' ] )
         }
       },
-      //¼à¿ØÖ÷Ò³
+      //ç›‘æ§ä¸»é¡µ
       { path: '/Monitor/SDB/Index',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Index.html',
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Index.js' ] )
          }
       },
-      //SDB½ÚµãÀà
+      //SDBèŠ‚ç‚¹ç±»
       { path: '/Monitor/SDB-Nodes/Groups',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Node/GroupList.html',
@@ -111,7 +111,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/NodesSync.js' ] )
          }
       },
-      //½Úµã-·ÖÇø×é
+      //èŠ‚ç‚¹-åˆ†åŒºç»„
       { path: '/Monitor/SDB-Nodes/Group/Index',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Node/Group/Index.html',
@@ -124,7 +124,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/Group/Charts.js' ] )
          }
       },
-      //½Úµã-½Úµã
+      //èŠ‚ç‚¹-èŠ‚ç‚¹
       { path: '/Monitor/SDB-Nodes/Node/Index',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Node/Node/Index.html',
@@ -155,7 +155,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/Node/Log.js' ] )
          }
       },
-      //SDB×ÊÔ´Àà
+      //SDBèµ„æºç±»
       { path: '/Monitor/SDB-Resources/Domain',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Resource/Domain.html',
@@ -192,7 +192,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Resource/ResourceCharts.js' ] )
          }
       },
-      //¼à¿Ø-Ö÷»úÁĞ±í
+      //ç›‘æ§-ä¸»æœºåˆ—è¡¨
       { path: '/Monitor/SDB-Host/List/Index',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Host/List/Index.html',
@@ -211,7 +211,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Host/List/HostsSnapshot.js' ] )
          }
       },
-      //¼à¿Ø-µ¥Ö÷»ú
+      //ç›‘æ§-å•ä¸»æœº
       { path: '/Monitor/SDB-Host/Info/Index',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Host/Info/Index.html',
@@ -248,21 +248,21 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Host/Info/Charts.js' ] )
          }
       },
-      //¼à¿Ø-ÉçÇø°æÌáÊ¾Ò³Ãæ
+      //ç›‘æ§-ç¤¾åŒºç‰ˆæç¤ºé¡µé¢
       { path: '/Monitor/Preview',
         options: {
            templateUrl: './app/template/Monitor/other/Preview.html',
            resolve: resolveFun( [ './app/controller/Monitor/other/Preview.js' ] )
          }
       },
-      // =============== ²¿Êğ =============
+      // =============== éƒ¨ç½² =============
       { path: '/Deploy/Index',
         options: {
            templateUrl: './app/template/Deploy/Index.html',
            resolve: resolveFun( [ './app/controller/Deploy/Index.js', './app/controller/Deploy/Index/Index.Instance.js', './app/controller/Deploy/Index/Index.Storage.js', './app/controller/Deploy/Index/Index.Host.js' ] )
         }
       },
-      //²¿ÊğÖ÷»ú
+      //éƒ¨ç½²ä¸»æœº
       { path: '/Deploy/ScanHost',
         options: {
            templateUrl: './app/template/Deploy/InstallHost/Scan.html',
@@ -275,7 +275,7 @@
            resolve: resolveFun( [ './app/controller/Deploy/InstallHost/Add.js', './app/controller/Deploy/InstallHost/AddHost.HostList.js', './app/controller/Deploy/InstallHost/AddHost.HostInfo.js' ] )
         }
       },
-      //²¿ÊğÒµÎñ
+      //éƒ¨ç½²ä¸šåŠ¡
       { path: '/Deploy/SDB-Conf',
         options: {
            templateUrl: './app/template/Deploy/InstallModule/Sdb/Conf.html',
@@ -404,7 +404,14 @@
            resolve: resolveFun( [ './app/controller/Deploy/DeployPackage/Conf.js' ] )
         }
       },
-      //ÅäÖÃ
+      //å†å²è®°å½•
+      { path: '/System/History',
+        options: {
+           templateUrl: './app/template/System/History/Index.html',
+           resolve: resolveFun( [ './app/controller/System/History/Index.js' ] )
+        }
+      },
+      //é…ç½®
       { path: '/Config/SDB/Index',
         options: {
            templateUrl: './app/template/Config/Sdb/Index.html',

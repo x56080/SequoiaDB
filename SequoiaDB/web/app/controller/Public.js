@@ -208,21 +208,36 @@
       //用户操作下拉菜单
       $scope.Top.UserOperateDropdown = {
          'config': [
+            { 'key': $scope.autoLanguage( '系统配置' ) },
+            { 'key': $scope.autoLanguage( '历史记录' ) },
+            { 'divider': true },
             { 'key': $scope.autoLanguage( '修改密码' ) },
             { 'key': $scope.autoLanguage( '注销' ) }
          ],
          'OnClick': function( index ){
             if( index == 0 )
             {
-               $scope.Top.ShowChangePasswd() ;
+               openSetConfigWindow() ;
             }
             else if( index == 1 )
+            {
+               gotoHistory() ;
+            }
+            else if( index == 3 )
+            {
+               $scope.Top.ShowChangePasswd() ;
+            }
+            else
             {
                $scope.Top.Logout() ;
             }
             $scope.Top.UserOperateDropdown['callback']['Close']() ;
          },
          'callback': {}
+      }
+
+      var gotoHistory = function(){
+         $location.path( '/System/History' ).search( { 'r': new Date().getTime() } ) ;
       }
 
       $scope.Top.SetConfigWindow = {
@@ -320,25 +335,6 @@
       //打开用户操作下拉菜单
       $scope.Top.OpenUserOperate = function( event ){
          $scope.Top.UserOperateDropdown['callback']['Open']( event.currentTarget ) ;
-      }
-
-      //设置操作下拉菜单
-      $scope.Top.SettingDropdown = {
-         'config': [
-            { 'key': $scope.autoLanguage( '系统配置' ) }
-         ],
-         'OnClick': function( index ){
-            if( index == 0 )
-            {
-               openSetConfigWindow() ;
-            }
-            $scope.Top.SettingDropdown['callback']['Close']() ;
-         },
-         'callback': {}
-      }
-
-      $scope.Top.OpenSetting = function( event ){
-          $scope.Top.SettingDropdown['callback']['Open']( event.currentTarget ) ;
       }
 
       var NoticeFrench = {
@@ -730,7 +726,7 @@
                {
                   $scope.showModuleIndex = $scope.cursorIndex[0] ;
                }
-               if( $scope.Left.navMenu.length > 1 && $scope.Left.navMenu[$scope.showModuleIndex]['module'] != 'Deploy' && $scope.Left.nav2Show == false )
+               if( $scope.Left.navMenu.length > 1 && $scope.showModuleIndex >=0 && $scope.Left.navMenu[$scope.showModuleIndex]['module'] != 'Deploy' && $scope.Left.nav2Show == false )
                {
                   $scope.Left.nav1Btn = { 'visibility': 'visible' } ;
                }
