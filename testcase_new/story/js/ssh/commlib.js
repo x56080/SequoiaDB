@@ -155,9 +155,17 @@ function cleanRemoteFile ( remoteHostName, remoteSvcName, fileName )
 ******************************************************************************/
 function getIPAddr ( hostName )
 {
-   var cmd = getRemoteCmd( hostName );
-   var command = "cat /etc/hosts | grep " + hostName + " | awk '{print $1}'";
-   var ip = cmd.run( command ).split( "\n" )[0];
+
+   if( hostName == "localhost" || hostName == "127.0.0.1" )
+   {
+      ip = "127.0.0.1";
+   }
+   else
+   {
+      var cmd = getRemoteCmd( hostName );
+      var command = "cat /etc/hosts | grep " + hostName + " | grep -v 127 | grep -v '#' | awk '{print $1}'";
+      ip = cmd.run( command ).split( "\n" )[0];
+   }
    return ip;
 }
 

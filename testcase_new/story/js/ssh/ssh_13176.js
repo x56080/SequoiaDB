@@ -22,14 +22,12 @@ function test ()
       {
          throw new Error( "localIp = " + localIp + ", expect = " + expect );
       }
-
       var peerIp = ssh.getPeerIP();
       expect = getIPAddr( COORDHOSTNAME );
       if( peerIp !== expect )
       {
          throw new Error( "peerIp = " + peerIp + ", expect = " + expect );
       }
-
    }
    finally
    {
