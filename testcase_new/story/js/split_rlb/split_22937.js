@@ -54,7 +54,7 @@ function test ( testPara )
          }
 
          // check business
-         commCheckBusiness( [CATALOG_GROUPNAME] );
+         commCheckBusinessStatus( db );
 
          // check results
          cursor = new Sdb( hostAndService ).SYSINFO.SYSDCBASE.find();
