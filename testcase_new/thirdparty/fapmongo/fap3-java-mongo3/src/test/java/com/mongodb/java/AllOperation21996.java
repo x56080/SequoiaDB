@@ -1,5 +1,11 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.lte;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,12 +29,6 @@ import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.utils.MongodbTestBase;
-
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-import static com.mongodb.client.model.Filters.lte;
 
 /**
  * @Description seqDB-21996:find/update/distinct/aggregate/count/delete大量数据
@@ -60,7 +60,7 @@ public class AllOperation21996 extends MongodbTestBase {
                         10000 } };
     }
 
-    @Test(dataProvider = "data-provider")
+    @Test(dataProvider = "data-provider", enabled = false) // jira-6463
     public void test1( String clName, int recordNum ) {
         List< Document > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {

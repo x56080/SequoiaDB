@@ -45,7 +45,7 @@ public class AllOperation21996 extends MongodbTestBase {
                         10000 } };
     }
 
-    @Test(dataProvider = "data-provider")
+    @Test(dataProvider = "data-provider", enabled = false) // jira-6463
     @SuppressWarnings("unchecked")
     public void test1( String clName, int recordNum ) {
         List< DBObject > list = new ArrayList<>();

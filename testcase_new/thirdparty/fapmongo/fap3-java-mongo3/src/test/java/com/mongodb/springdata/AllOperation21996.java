@@ -1,5 +1,7 @@
 package com.mongodb.springdata;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,8 +22,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.WriteResult;
 import com.mongodb.utils.Entity;
 import com.mongodb.utils.MongodbTestBase;
-
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 
 /**
  * @Description seqDB-21996:find/update/distinct/aggregate/count/delete大量数据
@@ -51,7 +51,7 @@ public class AllOperation21996 extends MongodbTestBase {
                         10000 } };
     }
 
-    @Test(dataProvider = "data-provider")
+    @Test(dataProvider = "data-provider", enabled = false) // jira-6463
     public void test1( String clName, int recordNum ) {
         List< Entity > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {
