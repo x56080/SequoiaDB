@@ -51,7 +51,7 @@ function test ()
    deleteConf( db, config, options );
 
    //补充问题单SEQUOIADBMAINSTREAM-4809中关于非法值的测试点
-   testInvalidValue( nodes, groupName );
+   testInvalidValue( nodes, groupName, options );
 
    var key = Object.getOwnPropertyNames( config )[0];
    config[key] = getConfigs( "defaultVal" )["runConfigs"][key];
@@ -67,7 +67,7 @@ function test ()
  @Description : 补充问题单SEQUOIADBMAINSTREAM-4809中的测试点的测试点
  @Modify list : 2020.9.5 yipan
  *******************************************************************************/
-function testInvalidValue ( nodes, groupName )
+function testInvalidValue ( nodes, groupName, options )
 {
    var data = [];
    data.push( new configuration( "preferedinstance", "runConfigs", "1,N,2,M,Y", "M,1,2" ) );
@@ -78,7 +78,8 @@ function testInvalidValue ( nodes, groupName )
    data.push( new configuration( "diagnum", "runConfigs", -10, -1 ) );
    data.push( new configuration( "auditnum", "runConfigs", -100, -1 ) );
    data.push( new configuration( "transisolation", "runConfigs", -10, 0 ) );
-   data.push( new configuration( "transisolation", "runConfigs", 100, 2 ) );
+   //mvcc分支和主干、3.2隔离级别最大值不一致，屏蔽最大值测试
+   //data.push( new configuration( "transisolation", "runConfigs", 100, 2 ) );
    data.push( new configuration( "maxreplsync", "runConfigs", 300, 200 ) );
    data.push( new configuration( "maxreplsync", "expFail", -1, 10 ) );
    data.push( new configuration( "numpreload", "expFail", -1, 0 ) );
@@ -94,43 +95,39 @@ function testInvalidValue ( nodes, groupName )
       config[key] = data[i]["invalidVal"];
       //预期结果
       var expResult = {};
-      expResult[key] = data[i]["expResult"]
+      expResult[ key] = data[i]["expResult"]
       //修改配置
       if( data[i]["type"] == "expFail" )
       {
          //期望失败
          assert.tryThrow( SDB_INVALIDARG, function()
          {
-            db.updateConf( config );
+            db.updateConf( config, options );
          } );
       } else if( data[i]["type"] == "rebootConfigs" )
       {
          //重启生效
-         try
-         {
-            db.updateConf( config );
-            throw new Error( "updateConf{" + data[i]["name"] + data[i]["invalidVal"] + "} exec success" );
-         } catch( e )
-         {
-            if( e.message != SDB_RTN_CONF_NOT_TAKE_EFFECT )
-            {
-               throw e;
-            }
-            db.getRG( groupName ).stop();
-            db.getRG( groupName ).start();
-            var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
-            checkResult( expResult, snapshotInfo );
-            var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
-            checkResult( expResult, fileInfo );
-         }
+         updateConf( db, config, options, SDB_RTN_CONF_NOT_TAKE_EFFECT );
+         db.getRG( groupName ).stop();
+         db.getRG( groupName ).start();
+         var snapshotInfo = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
+         checkResult( expResult, snapshotInfo );
+         var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
+         checkResult( expResult, fileInfo );
+         
+         deleteConf(db, config, options, SDB_RTN_CONF_NOT_TAKE_EFFECT);
+         db.getRG( groupName ).stop();
+         db.getRG( groupName ).start();
       } else if( data[i]["type"] == "runConfigs" )
       {
          //在线生效
-         db.updateConf( config );
+         db.updateConf( config, options );
          var actResult = getConfFromSnapshot( db, nodes[0].hostname, nodes[0].svcname );
          checkResult( expResult, actResult );
          var fileInfo = getConfFromFile( nodes[0].hostname, nodes[0].svcname );
          checkResult( expResult, fileInfo );
+         
+         deleteConf(db, config, options);
       }
    }
 };
