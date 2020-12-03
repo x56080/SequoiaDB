@@ -4,24 +4,26 @@
 *@createdate:  2020.05.09
 ******************************************************************************/
 testConf.skipStandAlone = true;
-testConf.useSrcGroup = true;
-testConf.clName = COMMCLNAME + "_snapshot_maincl_22178";
-testConf.clOpt = { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", Compressed: true };
 main( test );
 
 function test ( testPara )
 {
-   var groupName = testPara.srcGroupName;
+   var groupName = testPara.groups[0][0].GroupName;
+   var mainclName = COMMCLNAME + "_snapshot_maincl_22178";
    var subclName1 = COMMCLNAME + "_snapshot_subcl1_22178";
    var subclName2 = COMMCLNAME + "_snapshot_subcl2_22178";
+   commDropCL( db, COMMCSNAME, mainclName, true, true );
    commDropCL( db, COMMCSNAME, subclName1, true, true );
    commDropCL( db, COMMCSNAME, subclName2, true, true );
+   var dbcl = commCreateCL( db, COMMCSNAME, mainclName, { IsMainCL: true, ShardingKey: { a: 1 }, ShardingType: "range", Compressed: true } );
    commCreateCL( db, COMMCSNAME, subclName1, { ShardingKey: { no: 1 }, ShardingType: "hash", Group: groupName } );
    commCreateCL( db, COMMCSNAME, subclName2, { ShardingKey: { no: 1 }, ShardingType: "range", Group: groupName } );
 
-   attachCLAndInsertRecs( testPara.testCL, subclName1, subclName2 );
+   attachCLAndInsertRecs( dbcl, subclName1, subclName2 );
 
-   getDetailAndCheckResult( groupName, testPara.testCL, testConf.clName, subclName1, subclName2 );
+   getDetailAndCheckResult( groupName, dbcl, mainclName, subclName1, subclName2 );
+
+   commDropCL( db, COMMCSNAME, mainclName, true, true );
 }
 
 function getDetailAndCheckResult ( groupName, maincl, mainclName, subclName1, subclName2 )

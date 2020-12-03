@@ -21,8 +21,8 @@ function test(testPara) {}
 testPara.groups           获取数据组的信息，没有前置要求，可直接获取
 testPara.testCS           获取创建的 cs，需要指定 testConf.csName
 testPara.testCL           获取创建的 cl，需要指定 testConf.clName
-testPara.srcGroupName     获取创建的 cl 所在组，需要指定 testConf.clName,testConf.clOpt,testConf.useSrcGroup = true
-testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testConf.clName,testConf.clOpt,testConf.useDstGroup = true
+testPara.srcGroupName     获取创建的 cl 所在组，需要指定 testConf.clName,testConf.useSrcGroup = true
+testPara.dstGroupNames    获取创建的 cl 不在的组，需要指定 testConf.clName,testConf.useDstGroup = true
 */
 
 var testConf = {
@@ -31,10 +31,11 @@ var testConf = {
 };
 // e.g. testConf.csName = COMMCSNAME, testConf.csOpt = {PageSize:4096}} };
 // e.g. testConf.clName = COMMCLNAME, testConf.clOpt = {AutoSplit:true} } ;
-// e.g. testConf.useSrcGroup = true  返回源组，一般用于创建CL时指定组；设置true后在测试方法中获取源组，如test( arg ){ arg.srcGroupName ...}
-// e.g. testConf.useDstGroup = true  返回目标组，一般用于切分；设置为true返回除源组外的所有组，在测试方法中获取源组，如test( arg ){ arg.dstGroupNames ...}
+// e.g. testConf.useSrcGroup = true  设置为true获取CL所在组；设置true后在测试方法中获取，如test( arg ){ arg.srcGroupName ...}
+// e.g. testConf.useDstGroup = true  设置为true返回CL所在组外的所有组，设置true后在测试方法中获取，如test( arg ){ arg.dstGroupNames ...}
 
 var testPara = {};
+
 
 var oneGroup = 1;
 var nodeNum = 1;
@@ -91,46 +92,19 @@ function buildDomainContainGroups ()
    return dmGroupNames;
 }
 
-var dataGroupNames = [];
-function getAllDataGroupName ()
+function getDstGroupName ( db )
 {
-   if( dataGroupNames.length !== 0 )
+   var srcGroupName = commGetCLGroups( db, testConf.csName + "." + testConf.clName );
+   var dataGroupNames = commGetDataGroupNames( db );
+   var dstGroupName = [];
+   for( var i = 0; i < dataGroupNames.length; i++ )
    {
-      return dataGroupNames;
-   }
-
-   for( var i = 0; i < testPara.groups.length; ++i )
-   {
-      var groupName = testPara.groups[i][0].GroupName;
-      if( groupName !== CATALOG_GROUPNAME && groupName !== COORD_GROUPNAME
-         && groupName !== SPARE_GROUPNAME )
+      if( srcGroupName.indexOf( dataGroupNames[i] ) === -1 )
       {
-         dataGroupNames.push( groupName );
+         dstGroupName.push( dataGroupNames[i] );
       }
    }
-
-   return dataGroupNames;
-}
-
-function getSrcGroupName ()
-{
-   var dataGroupNames = getAllDataGroupName();
-   var pos = Math.floor( Math.random() * dataGroupNames.length );
-   return dataGroupNames[pos];
-}
-
-function getDstGroupName ( srcGroupName )
-{
-   var groupNames = [];
-   var dataGroupNames = getAllDataGroupName();
-   for( var i = 0; i < dataGroupNames.length; ++i )
-   {
-      if( dataGroupNames[i] !== srcGroupName )
-      {
-         groupNames.push( dataGroupNames[i] );
-      }
-   }
-   return groupNames;
+   return dstGroupName;
 }
 
 function createTestCS ( db, testConf )
@@ -161,6 +135,7 @@ function createTestCL ( db, testConf )
 {
    if( testConf.clName !== undefined )
    {
+      var objCl = null;
       if( testConf.clName !== COMMCLNAME )
       {
          commDropCL( db, testConf.csName, testConf.clName, true, true );
@@ -168,22 +143,27 @@ function createTestCL ( db, testConf )
 
       if( testConf.clOpt !== undefined )
       {
-         if( testConf.useSrcGroup )
-         {
-            testPara.srcGroupName = getSrcGroupName();
-            testConf.clOpt.Group = testPara.srcGroupName;
-         }
-
-         if( testConf.useDstGroup )
-         {
-            testPara.dstGroupNames = getDstGroupName( testPara.srcGroupName );
-         }
-         return commCreateCL( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
+         objCl = commCreateCL( db, testConf.csName, testConf.clName, testConf.clOpt, true, true );
       }
       else
       {
-         return commCreateCL( db, testConf.csName, testConf.clName );
+         objCl = commCreateCL( db, testConf.csName, testConf.clName );
       }
+
+      if( testConf.useSrcGroup )
+      {
+         testPara.srcGroupName = commGetCLGroups( db, testConf.csName + "." + testConf.clName );
+         if( testPara.srcGroupName.length == 1 )
+         {
+            testPara.srcGroupName = testPara.srcGroupName[0];
+         }
+      }
+
+      if( testConf.useDstGroup )
+      {
+         testPara.dstGroupNames = getDstGroupName( db );
+      }
+      return objCl;
    }
 }
 
