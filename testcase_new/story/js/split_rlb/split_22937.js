@@ -54,7 +54,7 @@ function test ( testPara )
          }
 
          // check business
-         commCheckBusinessStatus( db );
+         commCheckBusinessStatus( db, 180 );
 
          // check results
          cursor = new Sdb( hostAndService ).SYSINFO.SYSDCBASE.find();
