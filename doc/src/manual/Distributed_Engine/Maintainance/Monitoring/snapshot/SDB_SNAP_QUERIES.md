@@ -8,7 +8,7 @@
 
 ##标示##
 
-SDB_SNAPSHOT_QUERIES
+SDB_SNAP_QUERIES
 
 ###字段信息###
 
