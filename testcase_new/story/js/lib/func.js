@@ -835,7 +835,31 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
    commCheckType( checkLSN, "boolean" );
    commCheckType( timeout, "number" );
 
-   for( var i = 0; i < timeout; i++ )
+   var time = 0;
+   for( var i = 1; i <= timeout; i++ )
+   {
+      try
+      {
+         rg = db.getRG( "SYSCatalogGroup" );
+         break;
+      } catch( e )
+      {
+         if( !commCompareErrorCode( e, SDB_CLS_NOT_PRIMARY ) )
+         {
+            throw e;
+         }
+      }
+      sleep( 1000 );
+      time++;
+   }
+
+   if( time == timeout )
+   {
+      throw new Error( "checkout the cluster state timeout,check failed reason: " +
+         "exec db.getRG( \"SYSCatalogGroup\" ) failed" );
+   }
+
+   for( var i = time; i <= timeout; i++ )
    {
       // data and cata group
       var groups = commGetGroups( db, false, "", false );
@@ -844,7 +868,7 @@ function commCheckBusinessStatus ( db, timeout, checkLSN )
       {
          break;
       }
-      else if( i < ( timeout - 1 ) )
+      else if( i < timeout )
       {
          sleep( 1000 );
       }
