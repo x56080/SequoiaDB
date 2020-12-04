@@ -75,6 +75,16 @@ namespace engine
          return _contextID ;
       }
 
+      OSS_INLINE void setHitEnd()
+      {
+         _hitEnd = TRUE ;
+      }
+
+      OSS_INLINE BOOLEAN isHitEnd() const
+      {
+         return _hitEnd ;
+      }
+
    private:
       rtnContextBuf        _buffer ;
       // Why do we need this _startPos?
@@ -89,6 +99,9 @@ namespace engine
       // properly.
       INT32                _startPos ;
       INT32                _remainNum ;
+
+      // indicate the data context for sub-collection is ended
+      BOOLEAN              _hitEnd ;
    };
    typedef class _rtnSubCLContext rtnSubCLContext ;
 
@@ -132,6 +145,17 @@ namespace engine
       INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx ) ;
       INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
       INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
+
+      virtual INT32 _doAfterPrepareData( _pmdEDUCB *cb )
+      {
+         if ( _subs.empty() &&
+              _subContextMap.empty() &&
+              _orderedContextMap.empty() )
+         {
+            _hitEnd = TRUE ;
+         }
+         return SDB_OK ;
+      }
 
       void    _deleteSubContexts () ;
 

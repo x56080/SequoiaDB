@@ -592,7 +592,11 @@ namespace engine
       builder.append( OPT_FIELD_CONTEXT_ID, _runtimeMonitor.getContextID() ) ;
       builder.append( OPT_FIELD_QUERY_START_TIME, timestampStr ) ;
       builder.append( OPT_FIELD_QUERY_TIME_SPENT, queryTime ) ;
+      // for COORD and MERGE node, one more batch for explain results
       builder.append( OPT_FIELD_GETMORES,
+                      ( OPT_PLAN_MERGE == getType() ||
+                        OPT_PLAN_COORD == getType() ) ?
+                      (INT32)_runtimeMonitor.getReturnBatches() - 1 :
                       (INT32)_runtimeMonitor.getReturnBatches() ) ;
       builder.append( OPT_FIELD_RETURN_NUM,
                       (INT64)_runtimeMonitor.getReturnRecords() ) ;
