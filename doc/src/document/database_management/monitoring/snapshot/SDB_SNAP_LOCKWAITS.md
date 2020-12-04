@@ -8,7 +8,7 @@
 
 ##标示##
 
-SDB_SNAPSHOT_LOCKWAITS
+SDB_SNAP_LOCKWAITS
 
 ###字段信息###
 
