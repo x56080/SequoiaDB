@@ -1,5 +1,9 @@
 package com.mongodb.java.concurrent;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,10 +34,6 @@ import com.mongodb.utils.MongodbTestBase;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-
 /**
  * @Description seqDB-21878:并发做CRUD+创建/删除索引操作
  * @author fanyu
@@ -62,7 +62,7 @@ public class AllOperation21878 extends MongodbTestBase {
         cl.insertMany( list );
     }
 
-    @Test
+    @Test(enabled = false) // jira-6463
     public void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         threadExec.addWorker( new CreateIndex( "a1" ) );

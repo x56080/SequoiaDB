@@ -53,7 +53,7 @@ public class AllOperation21878 extends MongodbTestBase {
         cl.insert( list );
     }
 
-    @Test
+    @Test(enabled = false) // jira-6463
     public void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         threadExec.addWorker( new CreateIndex( "a1" ) );

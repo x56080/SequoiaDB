@@ -60,7 +60,7 @@ public class AllOperation21996 extends MongodbTestBase {
                         10000 } };
     }
 
-    @Test(dataProvider = "data-provider", enabled = false) // jira-6463
+    @Test(dataProvider = "data-provider")
     public void test1( String clName, int recordNum ) {
         List< Document > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {
