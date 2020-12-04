@@ -52,6 +52,7 @@ namespace engine
    {
       _startPos = 0 ;
       _remainNum = 0;
+      _hitEnd = FALSE ;
    }
 
    _rtnSubCLContext::~_rtnSubCLContext()
@@ -465,6 +466,7 @@ namespace engine
       rtnContext *pContext = NULL;
       rtnContextBuf contextBuf;
       SUBCL_CTX_MAP::iterator iterSubCTX = _subContextMap.find( contextID ) ;
+      _rtnSubCLContext *subCtx = NULL ;
       if ( _subContextMap.end() == iterSubCTX )
       {
          PD_LOG( PDERROR, "can not find context[%lld] in local context buf",
@@ -480,14 +482,15 @@ namespace engine
 
       pContext = pRtnCB->contextFind( contextID );
       PD_CHECK( pContext, SDB_RTN_CONTEXT_NOTEXIST, error, PDERROR,
-                "Context %lld does not exist", iterSubCTX->first ) ;
+                "Context %lld does not exist", contextID ) ;
+
+      subCtx = iterSubCTX->second ;
 
       for ( ; ; )
       {
          rc = pContext->getMore( maxNumToReturn, contextBuf, cb ) ;
          if ( SDB_OK == rc )
          {
-            rtnSubCLContext * subCtx = iterSubCTX->second ;
             BOOLEAN skipBuffer = FALSE ;
             subCtx->setBuffer( contextBuf ) ;
             rc = _processSubContext( subCtx, skipBuffer ) ;
@@ -507,10 +510,14 @@ namespace engine
          break ;
       }
 
-      if ( SDB_DMS_EOC == rc )
+      if ( SDB_DMS_EOC == rc || pContext->eof() )
       {
          INT32 rcTmp = SDB_OK ;
          SINT64 nextContextID = -1 ;
+
+         // set sub-context hit end
+         subCtx->setHitEnd() ;
+
          rcTmp = _getNextContext( cb, nextContextID ) ;
          if ( SDB_OK != rcTmp )
          {
@@ -636,6 +643,10 @@ namespace engine
                PD_LOG( PDERROR, "getmore failed(rc=%d)", rc );
                goto error;
             }
+            else if ( rtnCtx->eof() )
+            {
+               subCtx->setHitEnd() ;
+            }
          }
 
          SDB_ASSERT( subCtx->recordNum() > 0, "no data for sub ctx" ) ;
@@ -711,17 +722,30 @@ namespace engine
 
       SDB_ASSERT( NULL != subCtx, "subCtx should be not null" ) ;
 
-      try
+      _rtnSubCLContext *tmpCtx = dynamic_cast<_rtnSubCLContext*>( subCtx ) ;
+      SDB_ASSERT( NULL != tmpCtx, "sub-context is invalid" ) ;
+
+      if ( tmpCtx->isHitEnd() )
       {
-         _subContextMap.insert(
-            SUBCL_CTX_MAP::value_type( subCtx->contextID(),
-               dynamic_cast<_rtnSubCLContext*>( subCtx ) ) ) ;
+         sdbGetRTNCB()->contextDelete( subCtx->contextID(),
+                                       pmdGetThreadEDUCB() ) ;
+         // move from ordered context map
+         // no need to erase from sub-context map
+         SDB_OSS_DEL subCtx ;
       }
-      catch( std::exception& e )
+      else
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
-         goto error ;
+         try
+         {
+            _subContextMap.insert(
+               SUBCL_CTX_MAP::value_type( subCtx->contextID(), tmpCtx ) ) ;
+         }
+         catch( std::exception& e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "occur unexpected error:%s", e.what() );
+            goto error ;
+         }
       }
 
    done:
@@ -735,8 +759,17 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() == 0, "sub ctx is not empty" ) ;
 
-      // normal sub ctx is in _subContextMap,
-      // no need to do anything
+      _rtnSubCLContext *tmpCtx = dynamic_cast<_rtnSubCLContext*>( subCtx ) ;
+      SDB_ASSERT( NULL != tmpCtx, "sub-context is invalid" ) ;
+
+      if ( tmpCtx->isHitEnd() )
+      {
+         sdbGetRTNCB()->contextDelete( subCtx->contextID(),
+                                       pmdGetThreadEDUCB() );
+         _subContextMap.erase( subCtx->contextID() ) ;
+         SDB_OSS_DEL subCtx ;
+      }
+
       return SDB_OK ;
    }
 

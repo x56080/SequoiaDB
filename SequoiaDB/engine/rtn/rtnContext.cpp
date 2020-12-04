@@ -845,6 +845,8 @@ namespace engine
       }
       else
       {
+         _monCtxCB.monReturnInc( 1, 0 ) ;
+
          rc = SDB_DMS_EOC ;
          _isOpened = FALSE ;
       }
