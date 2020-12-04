@@ -870,6 +870,8 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
    sdbbson obj ;
    INT32 count = 0 ;
 
+   sdbbson_init(&obj);
+
    sdbState->hConnection = sdbGetConnectionHandle(
                                         (const char **)sdbState->sdbServerList,
                                         sdbState->sdbServerNum,
@@ -892,7 +894,6 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
       goto error ;
    }
 
-   sdbbson_init(&obj);
    while(!(rc=sdbNext(cursor, &obj)))
    {
       sdbbson_iterator sdbbsonIter1 = {NULL, 0} ;
