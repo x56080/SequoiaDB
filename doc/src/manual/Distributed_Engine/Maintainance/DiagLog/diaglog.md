@@ -98,5 +98,5 @@ Failed to create collection space[employees], rc: -33
 [^_^]: 
     如下链接没有，后面补充
 
-[errorCode]:manual/reference/sequoiadb_error_code.md
+[errorCode]:manual/reference/Sequoiadb_error_code.md
 [updateConf]: manual/reference/Sequoiadb_command/Sdb/updateConf.md
