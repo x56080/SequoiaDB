@@ -922,8 +922,8 @@ do                                                            \
                                      &condition, NULL, NULL, &newObj,
                                      0, 0, -1, -1, &pCursor ) ;
       /// udpate and ignore the update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -1626,8 +1626,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_POP,
                                      &cmdOption ) ;
       /// ignore the update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -1881,8 +1881,8 @@ do                                                            \
                                      0, 0, numToSkip, numToReturn,
                                      cursor ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -1941,8 +1941,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
                                      &matcher, NULL, NULL, &hint ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2008,8 +2008,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX,
                                      &matcher, NULL, NULL, &hint ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2063,8 +2063,8 @@ do                                                            \
                                      0, 0, 0, -1,
                                      cursor ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2162,8 +2162,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX,
                                      &newObj ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2257,8 +2257,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
                                      &newObj ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2299,8 +2299,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_SPLIT,
                                      &newObj ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2353,8 +2353,8 @@ do                                                            \
                                      0, 0, 0, -1,
                                      &cursor ) ;
       /// ingore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -2439,8 +2439,8 @@ do                                                            \
                                      0, 0, 0, -1,
                                      &cursor ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -3127,8 +3127,8 @@ do                                                            \
          CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       }
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -3193,8 +3193,8 @@ do                                                            \
       rc = _connection->_sendAndRecv( _pSendBuffer, &_pReceiveBuffer,
                                       &_receiveBufferSize ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3250,8 +3250,8 @@ do                                                            \
       rc = _connection->_sendAndRecv( _pSendBuffer, &_pReceiveBuffer,
                                       &_receiveBufferSize ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3332,8 +3332,8 @@ do                                                            \
          CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       }
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3629,8 +3629,8 @@ do                                                            \
       rc = _connection->_runCommand( cmd, query, selector, orderBy, hint,
                                      0, 0, skip, returnNum, cursor ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3660,8 +3660,8 @@ do                                                            \
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
                                      &obj ) ;
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3864,8 +3864,8 @@ do                                                            \
                                      cursor ) ;
 
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
@@ -3910,8 +3910,8 @@ do                                                            \
                                      &cursor.pCursor ) ;
 
       /// ignore update result
-      updateCachedObject( rc, _connection->_getCachedContainer(),
-                          _collectionFullName ) ;
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
       if ( rc )
       {
          goto error ;
