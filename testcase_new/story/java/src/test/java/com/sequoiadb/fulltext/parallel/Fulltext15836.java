@@ -110,9 +110,7 @@ public class Fulltext15836 extends FullTestBase {
                 options.put( "CollectionSpace", csName );
                 db.sync( options );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -264 ) {
-                    throw e;
-                }
+                e.printStackTrace();
             }
         }
     }

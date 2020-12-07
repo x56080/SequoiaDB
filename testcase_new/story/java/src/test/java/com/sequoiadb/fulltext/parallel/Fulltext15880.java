@@ -105,6 +105,7 @@ public class Fulltext15880 extends FullTestBase {
                 System.out.println( new Date() + " end   "
                         + this.getClass().getName().toString() );
             } catch ( BaseException e ) {
+                e.printStackTrace();
             }
         }
     }
