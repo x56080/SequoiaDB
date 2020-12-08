@@ -508,6 +508,10 @@ namespace engine
       }
 
       _isActive = FALSE ;
+
+      // destroy trace
+      sdbGetPDTraceCB()->destroy() ;
+
       INT64 shutdownWaitTimeout = _optioncb.shutdownWaitTimeout() ;
       if ( shutdownWaitTimeout < PMD_STOP_DEADCHECK_TIMEOUT )
       {
