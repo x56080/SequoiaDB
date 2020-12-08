@@ -560,9 +560,8 @@ PowerleLinux64:
         copy parser/sm/js/src/build-release/dist/include to parser/sm/js/include and
         parser/sm/js/src/build-release/dist/lib to parser/sm/js/lib/ppclelinux64.
         do same operation for build-debug
-    
     Note:
-            autoconf2.13 is required to compile this version of SpiderMonkey. If it's not
+         1. autoconf2.13 is required to compile this version of SpiderMonkey. If it's not
             installed in your system, you can compile and install it from source provided
             by the sequoiadb repository. The source code path is tools/compile/autoconf-2.13.
             Compile and install as follows:
@@ -572,6 +571,10 @@ PowerleLinux64:
             sudo make install
             Then check if it's installed successfully:
             autoconf2.13 --version
+
+         2. If the command '../configure ppc64le' reports an error, use the command 'gcc -dM -E -x c /dev/null'
+            to check if the macro '__ppc64le__' exists, if the macro does not, use another macro that has been 
+            defined, such as: '../configure __PPC64__'
 
     OpenSSL 1.1.1g:
         # for release build:
