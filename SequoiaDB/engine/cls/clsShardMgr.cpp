@@ -3312,13 +3312,29 @@ namespace engine
               DPS_INVALID_LSN_OFFSET != lsn &&
               pReplCB->groupSize() > 1 )
          {
-            // just wait for one replica node in this special case
-            checkRC = pReplCB->sync( lsn, pmdGetThreadEDUCB(), 2, 10 ) ;
+            pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+            INT16 finalReplSize = 0 ;
+            INT16 replSize = pmdGetOptionCB()->transReplSize() ;
+            replSize = ( 1 == replSize ) ? 2 : replSize ;
+            checkRC = pReplCB->replSizeCheck( replSize, finalReplSize, cb ) ;
             if ( SDB_OK != checkRC )
             {
-               PD_LOG( PDWARNING, "Failed to check sync for transaction "
-                       "[%llu] lsn [%llu], rc: %d", pReq->transID, lsn, checkRC ) ;
+               PD_LOG( PDWARNING, "Failed to check repl size for transaction "
+                       "[%llu], given repl size [%d], rc: %d",
+                       pReq->transID, replSize, checkRC ) ;
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
+            }
+            else
+            {
+               // just wait for one replica node in this special case
+               checkRC = pReplCB->sync( lsn, cb, finalReplSize, 10 ) ;
+               if ( SDB_OK != checkRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to check sync for transaction "
+                          "[%llu] lsn [%llu], rc: %d",
+                          pReq->transID, lsn, checkRC ) ;
+                  checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
+               }
             }
             reply.flags = checkRC ;
          }
