@@ -3618,18 +3618,32 @@ namespace engine
               DPS_INVALID_LSN_OFFSET != transInfo._lsn &&
               pReplCB->groupSize() > 1 )
          {
-            // just wait for one replica node in this special case
-            checkRC = pReplCB->sync( transInfo._lsn,
-                                     pmdGetThreadEDUCB(),
-                                     2,
-                                     10 ) ;
+            pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+            INT16 finalReplSize = 0 ;
+            INT16 replSize = pmdGetOptionCB()->transReplSize() ;
+            replSize = ( 1 == replSize ) ? 2 : replSize ;
+            checkRC = pReplCB->replSizeCheck( replSize, finalReplSize, cb ) ;
             if ( SDB_OK != checkRC )
             {
-               PD_LOG( PDWARNING, "Failed to check sync for transaction "
-                       "[%s] lsn [%llu], rc: %d",
-                       dpsTransIDToString( transID ).c_str(),
-                       transInfo._lsn, checkRC ) ;
+               PD_LOG( PDWARNING, "Failed to check repl size for transaction "
+                       "[%s], given repl size [%d], rc: %d",
+                       dpsTransIDToString( transID ).c_str(), replSize,
+                       checkRC ) ;
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
+            }
+            else
+            {
+               // just wait for one replica node in this special case
+               checkRC = pReplCB->sync( transInfo._lsn, cb, finalReplSize,
+                                        10 ) ;
+               if ( SDB_OK != checkRC )
+               {
+                  PD_LOG( PDWARNING, "Failed to check sync for transaction "
+                          "[%s] lsn [%llu], rc: %d",
+                          dpsTransIDToString( transID ).c_str(),
+                          transInfo._lsn, checkRC ) ;
+                  checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
+               }
             }
             reply.flags = checkRC ;
          }

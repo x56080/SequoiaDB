@@ -600,6 +600,21 @@ namespace engine
               pmdIsPrimary() &&
               timePassed < waitSyncTimeout )
       {
+         INT16 finalReplSize = 0 ;
+
+         // check for replsize
+         rc = replCB->replSizeCheck( w, finalReplSize, _pEDUCB ) ;
+         if ( SDB_OK != rc )
+         {
+            // wait sync may not pass 1 second, so sleep and retry
+            ossSleep( OSS_ONE_SEC ) ;
+            timePassed += OSS_ONE_SEC ;
+            continue ;
+         }
+
+         PD_LOG( PDDEBUG, "Begin to wait LSN [%llu] by size [%d/%d]",
+                 offset, w, finalReplSize ) ;
+
          // just wait for one replica node in this special case
          rc = replCB->sync( offset, _pEDUCB, w, waitTime ) ;
          if ( SDB_OK == rc )
@@ -668,7 +683,10 @@ namespace engine
          // for wait-commit status, we need to make sure pre-commit log
          // is replicated to at least one other replicate node ( group with
          // multiple nodes )
-         rc = _waitSync( lsn.offset, 2, waitSyncTimeout ) ;
+         INT16 replSize = pmdGetOptionCB()->transReplSize() ;
+         replSize = ( 1 == replSize ) ? 2 : replSize ;
+
+         rc = _waitSync( lsn.offset, replSize, waitSyncTimeout ) ;
          if ( SDB_OK != rc )
          {
             if ( ignoreWaitSyncError )
