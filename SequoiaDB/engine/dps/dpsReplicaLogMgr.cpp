@@ -529,8 +529,8 @@ namespace engine
       }
       else if ( info.isIrreversible() )
       {
-         // the log is irreversible, reset the restore PIT window
-         _transCB->resetRestoreWindow() ;
+         // the log is irreversible, push the restore PIT window
+         _transCB->pushRestoreWindow() ;
       }
 
       // change global metadata

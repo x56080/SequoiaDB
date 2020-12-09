@@ -2780,10 +2780,10 @@ namespace engine
          if ( checkRstPITWindow &&
               LOG_TYPE_DUMMY != record.head()._type )
          {
-            // for irreversible operators, reset restore window
+            // for irreversible operators, push restore window
             // NOTE: dummy logs are meaningless, and only used to fullfill the
             // log files, so skip dummy logs
-            resetRestoreWindow() ;
+            pushRestoreWindow() ;
          }
          goto done ;
       }
@@ -2791,7 +2791,7 @@ namespace engine
       if ( checkRstPITWindow && !transID.isGlobTrans() )
       {
          // operators in non-global transactions are irreversible as well
-         resetRestoreWindow() ;
+         pushRestoreWindow() ;
       }
 
       if ( transID.isValid() )

@@ -281,25 +281,32 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
       PD_LOG(PDERROR, "Failed to update DC state across nodes");
       return rc;
    }
-   // Update the coords
-   if ((rc = _setRestoreInProgressCoords(enable)))
+   // Update the coord and data nodes
+   if ((rc = _setRestoreInProgressNodes(enable, TRUE, TRUE)))
    {
       return rc;
    }
    return rc;
 }
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SETCOORDS, "_coordCMDRestore::_setRestoreInProgressCoords" )
-INT32 _coordCMDRestore::_setRestoreInProgressCoords(BOOLEAN enable)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SETNODES, "_coordCMDRestore::_setRestoreInProgressNodes" )
+INT32 _coordCMDRestore::_setRestoreInProgressNodes(BOOLEAN enable,
+                                                   BOOLEAN coord, BOOLEAN data)
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTORE_SETCOORDS, &rc);
+   PD_TRACER_BEGIN(COORD_RESTORE_SETNODES, &rc);
    const string command =
        enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
-   if ((rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
-                        BSONObj())))
+   if (coord && (rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
+                                 BSONObj())))
    {
       PD_LOG(PDERROR, "Failed to update status on coord nodes");
+      return rc;
+   }
+   if (data && (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
+                                      CMD_ADMIN_PREFIX + command, BSONObj())))
+   {
+      PD_LOG(PDERROR, "Failed to update status on data nodes");
       return rc;
    }
    return rc;

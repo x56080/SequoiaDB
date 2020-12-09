@@ -714,6 +714,23 @@ namespace engine
          _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
       }
 
+      // push restore window forward
+      OSS_INLINE void pushRestoreWindow()
+      {
+         // push the restore window by irreversible operators like DDL
+         // or non-transaction operators
+         // e.g. the current window is ( min: 10, max: 20 ), after a
+         // DDL, it becames ( min: 21, max: 20 )
+         // NOTE: we don't move the max time to avoid a large volumn
+         // of irreversible operators to push the window with large
+         // values which might exceeds the current logical time
+         if ( DPS_INVALID_TRANS_TIME != _maxTransCommitTime &&
+              _minRecoverableTime < _maxTransCommitTime )
+         {
+            _minRecoverableTime = _maxTransCommitTime + 1 ;
+         }
+      }
+
       // rollback restore window to given transaction time
       OSS_INLINE void rollbackRestoreWindow( UINT64 transTime )
       {

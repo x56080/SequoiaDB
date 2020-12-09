@@ -5252,12 +5252,28 @@ error:
       return SDB_OK;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPREP_DOIT, "_rtnRestorePrepare::doit" )
    INT32 _rtnRestorePrepare::doit( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                                    SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                    INT16 w, INT64 *pContextID )
    {
-      pmdGetKRCB()->setDBRestoring(true);
-      return SDB_OK ;
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPREP_DOIT, &rc);
+      if (SDB_ROLE_COORD == pmdGetDBRole())
+      {
+         pmdGetKRCB()->setDBRestoring(true);
+      }
+      if (SDB_ROLE_DATA == pmdGetDBRole())
+      {
+         stpLogicalTimeUS t;
+         if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
+         {
+            PD_LOG(PDERROR, "Error getting time");
+            return rc;
+         }
+         sdbGetTransCB()->updateRestoreWindow(t.getTime());
+      }
+      return rc;
    }
 }
 
