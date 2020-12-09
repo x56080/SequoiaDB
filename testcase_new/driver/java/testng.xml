@@ -26,7 +26,9 @@
     </listeners>
     
     <test name="javadriver" parallel="classes" thread-count="5">
-        <packages> 
+        <packages>
+            <package name="com.sequoiadb.datasource"/>
+            <package name="com.sequoiadb.monitor"/>
             <package name="com.sequoiadb.basicoperation" />
             <package name="com.sequoiadb.bsontypes"/>
             <package name="com.sequoiadb.metadata" />
