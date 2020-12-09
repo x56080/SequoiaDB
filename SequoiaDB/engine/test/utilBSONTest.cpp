@@ -1,7 +1,12 @@
 #include "utilBSON.hpp"
+
+#include "ossMemPool.hpp"
+
 #include <../bson/bson.h>
 #include "gtest/gtest.h"
+
 #include <string>
+using namespace std;
 using namespace engine;
 using namespace engine::util;
 using namespace bson;
@@ -39,6 +44,8 @@ TEST_F (utilBSONTest, UINT32)
    BSONObj obj = BSON(_field << x);
    ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
    ASSERT_EQ(x, y);
+   obj = BSON(_field << -1);
+   ASSERT_EQ(SDB_INVALIDARG, fromBsonObj(obj, _field, &y));
 }
 
 TEST_F (utilBSONTest, INT64)
@@ -57,6 +64,8 @@ TEST_F (utilBSONTest, UINT64)
    BSONObj obj = BSON(_field << (INT64)x);
    ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
    ASSERT_EQ(x, y);
+   obj = BSON(_field << -1);
+   ASSERT_EQ(SDB_INVALIDARG, fromBsonObj(obj, _field, &y));
 }
 
 TEST_F (utilBSONTest, BOOLEAN)
@@ -77,6 +86,18 @@ TEST_F (utilBSONTest, BOOLEAN)
    obj = BSONObj();
    ASSERT_EQ(SDB_OK, boolFromBsonObj(obj, _field, &x));
    ASSERT_EQ(x, FALSE);
+}
+
+TEST_F (utilBSONTest, String)
+{
+   string x = "test";
+   BSONObj obj = BSON(_field << x);
+   string y;
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &y));
+   ASSERT_STREQ(x.c_str(), y.c_str());
+   ossPoolString z;
+   ASSERT_EQ(SDB_OK, fromBsonObj(obj, _field, &z));
+   ASSERT_STREQ(x.c_str(), z.c_str());
 }
 
 TEST_F (utilBSONTest, SubObject)

@@ -19,7 +19,7 @@
 
 #include "coordCommandRestore.hpp"
 
-#include <string>
+#include <vector>
 
 #include "catDef.hpp"
 #include "coordCommandBase.hpp"
@@ -42,7 +42,6 @@
 using bson::BSONElement;
 using bson::BSONObj;
 using std::exception;
-using std::string;
 
 namespace
 {
@@ -81,6 +80,28 @@ INT32 extractQuery(MsgHeader *pMsg, BSONObj *query)
    }
    // Using an existing buffer, does not copy, so no need to try/catch
    query->init(pQuery);
+   return rc;
+}
+
+// Converts epoch seconds to stpHPTime object
+INT32 timeFromInt(UINT64 input, engine::stpHPTime* timestamp)
+{
+   // Seconds precision only, nanoseconds = 0
+   *timestamp = engine::stpHPTime(input, 0);
+   return SDB_OK;
+}
+
+// Converts from a string timestamp to stpHPTime object
+INT32 timeFromStr(const ossPoolString &input, engine::stpHPTime *timestamp)
+{
+   INT32 rc = SDB_OK;
+   time_t sec;
+   UINT64 usec = 0;
+   if ((rc = engine::utilStr2TimeT(input.c_str(), sec, &usec)))
+   {
+      return rc;
+   }
+   *timestamp = engine::stpHPTime(sec, usec * 1000);
    return rc;
 }
 
@@ -142,7 +163,7 @@ class _QueryMsg
 
    // Constructor uses a pointer to store the rc.
    // If the build fails it releases the buffer.
-   _QueryMsg(INT32 *rc, engine::pmdEDUCB *cb, const string &clName,
+   _QueryMsg(INT32 *rc, engine::pmdEDUCB *cb, const ossPoolString &clName,
              MSG_TYPE opCode, const BSONObj &query)
        : _cb(cb), _buff(NULL), _size(0), header(NULL)
    {
@@ -193,7 +214,7 @@ class _Operator
    };
 
  public:
-   _Operator(INT32 *rc, const string &cmdName) : ptr(NULL)
+   _Operator(INT32 *rc, const ossPoolString &cmdName) : ptr(NULL)
    {
       if ((*rc = engine::coordGetFactory()->create(cmdName.c_str(), ptr)))
       {
@@ -295,7 +316,7 @@ INT32 _coordCMDRestore::_setRestoreInProgressNodes(BOOLEAN enable,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORE_SETNODES, &rc);
-   const string command =
+   const ossPoolString command =
        enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
    if (coord && (rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
                                  BSONObj())))
@@ -376,7 +397,8 @@ INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
 
 // Run the given query against the data groups
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_QUERYDATA, "_coordCMDRestore::_queryDataGroups" )
-INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode, const string &clName,
+INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
+                                         const ossPoolString &clName,
                                          const BSONObj &query, OBJ_VEC *results)
 {
    INT32 rc = SDB_OK;
@@ -424,7 +446,7 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode, const string &clName,
 
 // Run the given command on the coord nodes
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_CMDCOORDS, "_coordCMDRestore::_cmdCoords" )
-INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const string &clName,
+INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const ossPoolString &clName,
                                    const BSONObj &query)
 {
    INT32 rc = SDB_OK;
@@ -514,72 +536,76 @@ INT32 coordCMDRestoreToTime::_parseRequest(UINT64 *targetTime)
    return rc;
 }
 
-// Get the target time input (if provided)
+// Get the TIME option and set the targetTime. If TIME is 0 then targetTime is
+// DPS_INVALID_TRANS_TIME and the latest consistency point will be used.
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSETIME, "coordCMDRestoreToTime::_parseTime" )
 INT32 coordCMDRestoreToTime::_parseTime(const BSONObj &query,
                                         UINT64 *targetTime)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSETIME, &rc);
-   // Check that exactly one of Latest: TRUE, GlobalTime and Time are provided
-   BOOLEAN latest = FALSE;
-   if ((rc = boolFromBsonObj(query, FIELD_NAME_LATEST, &latest, FALSE)))
-   {
-      PD_LOG_MSG(PDERROR, "%s must be boolean", FIELD_NAME_LATEST);
+   // TIME option is required
+   if (!query.hasElement(FIELD_NAME_TIME)) {
+      PD_LOG_MSG(PDERROR, "Option %s required", FIELD_NAME_TIME);
       return (rc = SDB_INVALIDARG);
    }
-   INT32 specifier_count = latest;
-   specifier_count += query.hasElement(FIELD_NAME_GLOBAL_TIME) ? 1 : 0;
-   specifier_count += query.hasElement(FIELD_NAME_TIME) ? 1 : 0;
-   if (specifier_count != 1)
-   {
-      PD_LOG_MSG(PDERROR, "Exactly one of %s, %s, and %s must be provided",
-                 FIELD_NAME_LATEST, FIELD_NAME_GLOBAL_TIME, FIELD_NAME_TIME);
-      return (rc = SDB_INVALIDARG);
-   }
-   if (latest)
-   {
-      // Restore to latest consistency point
-      return rc;
-   }
-   if (query.hasElement(FIELD_NAME_GLOBAL_TIME))
-   {
-      // Global time specified
-      if ((rc = fromBsonObj(query, FIELD_NAME_GLOBAL_TIME, targetTime)))
-      {
-         PD_LOG_MSG(PDERROR, "%s must be a valid global time",
-                    FIELD_NAME_GLOBAL_TIME);
-         return (rc = SDB_INVALIDARG);
-      }
-      return rc; // success
-   }
-   // Timestamp specified, convert it to global logical time
-   return (rc = _targetTimeFromTimestamp(query, targetTime));
-}
-
-// Get the target time from the timestamp input, converted to a global time
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TIMESTAMP, "coordCMDRestoreToTime::_targetTimeFromTimestamp" )
-INT32 coordCMDRestoreToTime::_targetTimeFromTimestamp(const BSONObj &query,
-                                                      UINT64 *targetTime)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_TIMESTAMP, &rc);
+   bson::BSONElement ele = query.getField(FIELD_NAME_TIME);
    stpHPTime timestamp;
-   // Try and parse as BSON Timestamp
-   if (query.getField(FIELD_NAME_TIME).type() == bson::Timestamp)
+   // Get the timestamp. TIME can be int, string, or timestamp.
+   if (ele.type() == bson::NumberInt || ele.type() == bson::NumberLong)
    {
+      // If TIME is an integer it is the timestamp in epoch seconds
+      UINT64 secs;
+      if ((rc = fromBsonObj(query, FIELD_NAME_TIME, &secs)))
+      {
+         // Already checked it was a number, the only reason this would fail is
+         // if it is a negative number
+         PD_LOG_MSG(PDERROR, "Time cannot be negative");
+         return rc;
+      }
+      if (0 == secs)
+      {
+         // Use latest consistency point
+         PD_LOG(PDINFO, "Restoring to latest consistency point");
+         *targetTime = DPS_INVALID_TRANS_TIME;
+         return rc;
+      }
+      timeFromInt(secs, &timestamp);
+   }
+   else if (ele.type() == bson::String)
+   {
+      // If TIME is a string it is a timestamp
+      ossPoolString timestamp_string;
+      fromBsonObj(query, FIELD_NAME_TIME, &timestamp_string);
+      if ((rc = timeFromStr(timestamp_string, &timestamp)))
+      {
+         PD_LOG_MSG(PDERROR, "Error parsing [%s] as a timestamp",
+                    timestamp_string.c_str());
+         return rc;
+      }
+   }
+   else if (ele.type() == bson::Timestamp)
+   {
+      // Try and parse as BSON Timestamp
       if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
       {
-         PD_LOG_MSG(PDERROR, "Error parsing %s as Timestamp", FIELD_NAME_TIME);
+         PD_LOG_MSG(PDERROR, "Error parsing timestamp object");
          return rc;
       }
    }
    else
    {
-      PD_LOG_MSG(PDERROR, "Unsupported type for argument %s", FIELD_NAME_TIME);
+      PD_LOG_MSG(PDERROR, "Unsupported type [%d] for argument %s", ele.type(),
+                 FIELD_NAME_TIME);
       return (rc = SDB_INVALIDARG);
    }
-   return (rc = convRealToLogicalTime(timestamp, targetTime));
+   if ((rc = convRealToLogicalTime(timestamp, targetTime)))
+   {
+      PD_LOG_MSG(PDERROR, "Stp error converting timestamp");
+      return rc;
+   }
+   PD_LOG(PDINFO, "Restoring to global time [%llu]", *targetTime);
+   return rc;
 }
 
 // Check that the cluster is awaiting restore and coordinate the operation
@@ -741,7 +767,6 @@ INT32 coordCMDRestoreToTime::_generateQueryAndRestore(UINT64 targetTime,
    PD_TRACER_BEGIN(COORD_RESTOREPIT_DO, &rc);
    PD_TRACER(1, PD_PACK_INT(test));
    BSONObj query;
-   PD_LOG(PDINFO, "Restoring cluster to %llu", targetTime);
    if (test)
    {
       if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||

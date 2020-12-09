@@ -30,6 +30,12 @@ namespace engine {
 
 namespace util {
 
+// Note that there are 2 versions of each until string_view is available.
+// const char* is preferable if the caller passes a C-style string as it avoids
+// creating a temporary string, but it is incompatible with a string input.
+// const string& is efficient for string inputs as it avoids copy.
+// string_view would be compatible and efficient for both.
+
 // Extract the field's value as the type of output.
 // @param   input    Object from which to extract
 // @param   field    Name of the field in the object
@@ -40,12 +46,22 @@ namespace util {
 //          SDB_INVALIDARG if the field value does not map to the output type
 //          SDB_OK otherwise
 template <typename T>
-INT32 fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+INT32 fromBsonObj(const bson::BSONObj &input, const char *field, T *pOutput,
                   BOOLEAN required = TRUE);
+
+template <typename T>
+INT32 fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+                  BOOLEAN required = TRUE)
+{
+   return fromBsonObj(input, field.c_str(), pOutput, required);
+}
 
 // Explicit for boolean values. Sets pOutput to 1 or 0. This is needed because
 // sdb BOOLEAN is a typedef of INT32 so the template would interpret the value
 // as a number.
+INT32 boolFromBsonObj(const bson::BSONObj &input, const char *field,
+                      BOOLEAN *pOutput, BOOLEAN required = TRUE);
+
 INT32 boolFromBsonObj(const bson::BSONObj &input, const string &field,
                       BOOLEAN *pOutput, BOOLEAN required = TRUE);
 

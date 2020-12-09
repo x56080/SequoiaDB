@@ -20,13 +20,13 @@
 #ifndef COORD_COMMAND_RESTORE_HPP__
 #define COORD_COMMAND_RESTORE_HPP__
 
-#include <string>
 #include <vector>
 
 #include "coordCommandBase.hpp"
 #include "coordFactory.hpp"
 #include "coordTransOperator.hpp"
 #include "msg.h"
+#include "ossMemPool.hpp"
 #include "ossTypes.hpp"
 
 #include "../bson/bson.h"
@@ -49,10 +49,10 @@ class _coordCMDRestore : public _coordCommandBase
                                     BOOLEAN data);
    INT32 _queryCataDCBase(bson::BSONObj *result);
    INT32 _alterDC(const bson::BSONObj &query);
-   INT32 _queryDataGroups(MSG_TYPE opCode, const std::string &clName,
+   INT32 _queryDataGroups(MSG_TYPE opCode, const ossPoolString &clName,
                           const bson::BSONObj &query,
                           OBJ_VEC *results = NULL);
-   INT32 _cmdCoords(MSG_TYPE opCode, const string &clName,
+   INT32 _cmdCoords(MSG_TYPE opCode, const ossPoolString &clName,
                     const BSONObj &query);
 
  protected:

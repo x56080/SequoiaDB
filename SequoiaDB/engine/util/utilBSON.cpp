@@ -21,11 +21,10 @@
 
 #include <string>
 
+#include <ossMemPool.hpp>
 #include <ossTypes.h>
 
 #include <../bson/bson.h>
-
-using std::string;
 
 namespace
 {
@@ -65,6 +64,11 @@ template <> void _valGetter<UINT64>(bson::BSONElement &ele, UINT64 *pOutput)
 
 BOOLEAN _checkNum(const bson::BSONElement &ele) { return ele.isNumber(); }
 
+BOOLEAN _checkUnsignedNum(const bson::BSONElement &ele)
+{
+   return (ele.isNumber() && ele.numberLong() >= 0);
+}
+
 BOOLEAN _checkStr(const bson::BSONElement &ele)
 {
    return ele.type() == bson::String;
@@ -74,7 +78,7 @@ BOOLEAN _checkObj(const bson::BSONElement &ele) { return ele.isABSONObj(); }
 
 // Base fromBsonObj. Callers pass the validator and getter functions
 template <typename T, typename V, typename G>
-INT32 _fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+INT32 _fromBsonObj(const bson::BSONObj &input, const char *field, T *pOutput,
                    BOOLEAN required, V validator, G getter)
 {
    INT32 rc = SDB_OK;
@@ -98,7 +102,7 @@ INT32 _fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
 // Generic getter fromBsonObj. Callers pass a validator. Uses the default
 // getter.
 template <typename T, typename V>
-INT32 _fromBsonObj(const bson::BSONObj &input, const string &field, T *pOutput,
+INT32 _fromBsonObj(const bson::BSONObj &input, const char *field, T *pOutput,
                    BOOLEAN required, V validator)
 {
    return _fromBsonObj(input, field, pOutput, required, validator,
@@ -119,7 +123,7 @@ namespace util
 
 // INT32
 template <>
-INT32 fromBsonObj<INT32>(const bson::BSONObj &input, const string &field,
+INT32 fromBsonObj<INT32>(const bson::BSONObj &input, const char *field,
                          INT32 *pOutput, BOOLEAN required)
 {
    return _fromBsonObj(input, field, pOutput, required, _checkNum);
@@ -127,15 +131,16 @@ INT32 fromBsonObj<INT32>(const bson::BSONObj &input, const string &field,
 
 // UINT32
 template <>
-INT32 fromBsonObj<UINT32>(const bson::BSONObj &input, const string &field,
+INT32 fromBsonObj<UINT32>(const bson::BSONObj &input, const char *field,
                           UINT32 *pOutput, BOOLEAN required)
 {
-   return _fromBsonObj(input, field, (INT32 *)pOutput, required, _checkNum);
+   return _fromBsonObj(input, field, (INT32 *)pOutput, required,
+                       _checkUnsignedNum);
 }
 
 // INT64
 template <>
-INT32 fromBsonObj<INT64>(const bson::BSONObj &input, const string &field,
+INT32 fromBsonObj<INT64>(const bson::BSONObj &input, const char *field,
                          INT64 *pOutput, BOOLEAN required)
 {
    return _fromBsonObj(input, field, pOutput, required, _checkNum);
@@ -143,16 +148,24 @@ INT32 fromBsonObj<INT64>(const bson::BSONObj &input, const string &field,
 
 // UINT64
 template <>
-INT32 fromBsonObj<UINT64>(const bson::BSONObj &input, const string &field,
+INT32 fromBsonObj<UINT64>(const bson::BSONObj &input, const char *field,
                           UINT64 *pOutput, BOOLEAN required)
 {
-   return _fromBsonObj(input, field, (INT64 *)pOutput, required, _checkNum);
+   return _fromBsonObj(input, field, (INT64 *)pOutput, required,
+                       _checkUnsignedNum);
 }
 
 // String
 template <>
-INT32 fromBsonObj<string>(const bson::BSONObj &input, const string &field,
-                          string *pOutput, BOOLEAN required)
+INT32 fromBsonObj<std::string>(const bson::BSONObj &input, const char *field,
+                               std::string *pOutput, BOOLEAN required)
+{
+   return _fromBsonObj(input, field, pOutput, required, _checkStr);
+}
+
+template <>
+INT32 fromBsonObj<ossPoolString>(const bson::BSONObj &input, const char *field,
+                                 ossPoolString *pOutput, BOOLEAN required)
 {
    return _fromBsonObj(input, field, pOutput, required, _checkStr);
 }
@@ -160,19 +173,25 @@ INT32 fromBsonObj<string>(const bson::BSONObj &input, const string &field,
 // Sub-object
 template <>
 INT32 fromBsonObj<bson::BSONObj>(const bson::BSONObj &input,
-                                 const string &field, bson::BSONObj *pOutput,
+                                 const char *field, bson::BSONObj *pOutput,
                                  BOOLEAN required)
 {
    return _fromBsonObj(input, field, pOutput, required, _checkObj);
 }
 
-INT32 boolFromBsonObj(const bson::BSONObj &input, const string &field,
+INT32 boolFromBsonObj(const bson::BSONObj &input, const char *field,
                       BOOLEAN *pOutput, BOOLEAN required)
 {
    INT32 rc = SDB_OK;
    bson::BSONElement ele = input.getField(field);
    *pOutput = ele.trueValue();
    return rc;
+}
+
+INT32 boolFromBsonObj(const bson::BSONObj &input, const string &field,
+                      BOOLEAN *pOutput, BOOLEAN required)
+{
+   return boolFromBsonObj(input, field.c_str(), pOutput, required);
 }
 
 } // namespace util
