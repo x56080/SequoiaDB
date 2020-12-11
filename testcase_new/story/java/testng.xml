@@ -40,7 +40,6 @@
             <package name="com.sequoiadb.lob.subcl"/>
             <package name="com.sequoiadb.lob.shareread"/>
             <package name="com.sequoiadb.numberlong"  />
-            <package name="com.sequoiadb.datasource" />
             <package name="com.sequoiadb.index"/>
             <package name="com.sequoiadb.crud.numoverflow" />
             <package name="com.sequoiadb.crud.truncate" />
