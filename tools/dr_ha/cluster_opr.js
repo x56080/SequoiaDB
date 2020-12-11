@@ -462,7 +462,7 @@ function updateGroupsInCatalog( cataAddr, keepHosts ) {
            newFieldGroup.push( tmpHostObj ) ;
          } else {
             ++kickNum ;
-            println( "Kick host[" + tmpHostObj.HostName + "] from group[" + tmpGroupObj.GroupName + "]" ) ;
+            println( "Kick out host[" + tmpHostObj.HostName + "] from group[" + tmpGroupObj.GroupName + "]" ) ;
          }
       }
 
@@ -1068,11 +1068,11 @@ function splitCluster( cataAddrs, keepHosts, active ) {
          println( "Update " + cataAddrs[ i ] + " catalog's info failed"  ) ;
          return false ;
       }
-      /* 3. Update catalog datacenter readonly prop */
+      /* 3. Update catalog datacenter readonly property */
       if ( updateDCInfoInCatalog( cataAddrs[i], newAddrLine, active ) ) {
-         println( "Update " + cataAddrs[i] + " catalog's readonly prop succeed" ) ;
+         println( "Update " + cataAddrs[i] + " catalog's readonly property succeed" ) ;
       } else {
-         println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
+         println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
       /* 4. Restore to catalog */
@@ -1085,12 +1085,12 @@ function splitCluster( cataAddrs, keepHosts, active ) {
       } */
    }
 
-   /* 5. Update all node's addr--kick host */
+   /* 5. Update all nodes' addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
-      println( "Update all nodes's catalogaddr to " + newAddrLine + " succeed" ) ;
+      println( "Update all nodes' catalogaddr to " + newAddrLine + " succeed" ) ;
    } else {
-      println( "Update all nodes's catalogaddr to " + newAddrLine + " failed" ) ;
+      println( "Update all nodes' catalogaddr to " + newAddrLine + " failed" ) ;
       return false ;
    }
 
@@ -1183,7 +1183,7 @@ function initCluster( coordAddrs, filename, active ) {
    }
    if ( true == init && NEEDBROADCASTINITINFO ) {
       var copySuccess = true ;
-      println( "Start to copy init file to cluster host" ) ;
+      println( "Begin to copy init file to cluster hosts" ) ;
       var hostAddrs = getClusterHostAddrs( coordAddrs ) ;
       for( var i = 0; i < hostAddrs.length; ++i ) {
          if( hostAddrs[i] == System.getHostName() ) {
@@ -1196,7 +1196,7 @@ function initCluster( coordAddrs, filename, active ) {
          } catch( e ) {
             copySuccess = false ;
             println( "Connect to " + hostAddrs[i] + " failed: " + e +
-                     "(" + getLastErrMsg + ")" ) ;
+                     "(" + getLastErrMsg() + ")" ) ;
             break ;
          }
          try {
@@ -1206,7 +1206,7 @@ function initCluster( coordAddrs, filename, active ) {
          } catch( e ) {
             copySuccess = false ;
             println( "Get " + hostAddrs[i] + " ewd failed: " + e +
-                     "(" + getLastErrMsg + ")" ) ;
+                     "(" + getLastErrMsg() + ")" ) ;
             break ;
          }
          try {
@@ -1215,10 +1215,10 @@ function initCluster( coordAddrs, filename, active ) {
          } catch( e ) {
             copySuccess = false ;
             println( "Copy init file to " + hostAddrs[i] + " failed" + e +
-                     "(" + getLastErrMsg + ")" ) ;
+                     "(" + getLastErrMsg() + ")" ) ;
             break ;
          }
-         println( "Copy init file to " + hostAddrs[i] + " success" ) ;
+         println( "Copy init file to " + hostAddrs[i] + " succeed" ) ;
       }
       if( false == copySuccess ) {
          println( "Failed" ) ;
@@ -1234,18 +1234,18 @@ function initCluster( coordAddrs, filename, active ) {
          weigth = 100 ;
       }
       // update catalog and datanode
-      print( "Begin to update catalog and data nodes's config..." ) ;
+      print( "Begin to update catalog and data nodes' config..." ) ;
       if ( !updateNodesConfig( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), "weight", weigth ) ) {
-         println( "Update catalog and data node's config failed" ) ;
+         println( "Update catalog and data nodes' config failed" ) ;
          try { File.remove( filename ) ; } catch( e ) {}
          return false ;
       } else {
          println( "Done" ) ;
       }
       /* Reload all catalog and datanode */
-      print( "Begin to reload catalog and data nodes's config..." ) ;
+      print( "Begin to reload catalog and data nodes' config..." ) ;
       if ( !reloadNodesConf( mergeArrayWithoutRepeat( CURCATAS, CURDATAS ), [ -15 ] ) ) {
-         println( "Reload catalog and data node's config failed" ) ;
+         println( "Reload catalog and data nodes' config failed" ) ;
          try { File.remove( filename ) ; } catch( e ) {}
          return false ;
       } else {
@@ -1297,11 +1297,11 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          println( "Restore " + cataAddrs[ i ] + " catalog's info failed"  ) ;
          return false ;
       }
-      /* 3. Update catalog datacenter readonly prop */
+      /* 3. Update catalog datacenter readonly property */
       if ( updateDCInfoInCatalog( cataAddrs[i], CATAADDRLINE, true ) ) {
-         println( "Update " + cataAddrs[i] + " catalog's readonly prop succeed" ) ;
+         println( "Update " + cataAddrs[i] + " catalog's readonly property succeed" ) ;
       } else {
-         println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
+         println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
       /* 4. Restore to catalog */
@@ -1314,12 +1314,12 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
       } */
    }
 
-   /* 6. Update all all node's addr */
+   /* 6. Update all nodes' addr */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", CATAADDRLINE ) ) {
-      println( "Update all nodes's catalogaddr to " + CATAADDRLINE + " succeed" ) ;
+      println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " succeed" ) ;
    } else {
-      println( "Update all nodes's catalogaddr to " + CATAADDRLINE + " failed" ) ;
+      println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " failed" ) ;
       return false ;
    }
 
@@ -1390,7 +1390,7 @@ function restartNode( nodeNameArray ) {
 ***************************************************************************** */
 function updateNodeConfigAndRestart( nodeArr, key, value ) {
    if( !updateNodesConfig( nodeArr, key , value ) ) {
-      println( "update nodes config failed" ) ;
+      println( "update nodes' config failed" ) ;
       return false ;
    }
    if( !restartNode( nodeArr ) ) {
@@ -1682,7 +1682,7 @@ function detachCatalogNode( coordAddr, cataAddr ) {
                                              { "GroupName": SDB_CATALOG_GROUP_NAME } ) ;
          tmpCataDb.close() ;
       } catch( e ) {
-         println( "Update " + addrArray[0] + ":" + addrArray[1] + " node info failed: "
+         println( "Update " + addrArray[0] + ":" + addrArray[1] + " node's info failed: "
                   + e + " (" + getLastErrMsg() + ")" ) ;
          if( needDisableAuth ) {
             /* Restore auth */
@@ -2033,7 +2033,7 @@ function main() {
       println( "Failed" ) ;
       return ;
    }
-   println( "Begin to check enviroment..." ) ;
+   println( "Begin to check environment..." ) ;
    if ( checkHostsEvn( CURHOSTS ) ) {
       println( "Done" ) ;
    } else {

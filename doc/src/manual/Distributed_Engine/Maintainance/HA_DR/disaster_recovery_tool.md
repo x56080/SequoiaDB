@@ -16,7 +16,13 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 
 在[同城双中心架构][twodatacenter]下，将机器划分为两个子网 SUB1（sdbserver1、sdbserver2）和 SUB2（sdbserver3），并在 sdbserver1 和 sdbserver3 上进行配置的修改。
 
-1. 修改 sdbserver1 的 `cluster_opr.js` 文件
+1. 切换至安装路径下的 `tools/dr_ha` 目录 
+
+   ```lang-bash
+   $ cd /opt/sequoiadb/tools/dr_ha
+   ```
+
+2. 修改 sdbserver1 的 `cluster_opr.js` 文件
 
    ```lang-javascript
    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
@@ -31,7 +37,7 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true ; }
    ```
 
-2. 修改 sdbserver3 的 `cluster_opr.js` 文件
+3. 修改 sdbserver3 的 `cluster_opr.js` 文件
 
    ```lang-javascript
    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
@@ -50,21 +56,21 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    >
    > 初始化时 ACTIVE 的值决定当前子网的权重，SUB1 中应设置 ACTIVE=true，使主节点分布在主中心内，SUB2 中应设置 ACTIVE=false，防止主节点分布在灾备中心内。
 
-3. 在 sdbserver1 执行 init
+4. 在 sdbserver1 执行 init
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver2 success
-   Copy init file to sdbserver3 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver2 succeed
+   Copy init file to sdbserver3 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
@@ -87,33 +93,33 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 2.  在 sdbserver3 执行分裂（split）
 
    ```lang-bash
-   [sdbadmin@sdbserver3 dr_ha]$ sh split.sh 
+   $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    Stop 11800 succeed in sdbserver3
    Start 11800 by standalone succeed in sdbserver3
    Change sdbserver3:11800 to standalone succeed
-   Kick host[sdbserver2] from group[SYSCatalogGroup]
-   Kick host[sdbserver1] from group[SYSCatalogGroup]
+   Kick out host[sdbserver2] from group[SYSCatalogGroup]
+   Kick out host[sdbserver1] from group[SYSCatalogGroup]
    Update kicked group[SYSCatalogGroup] to sdbserver3:11800 succeed
-   Kick host[sdbserver1] from group[group1]
-   Kick host[sdbserver2] from group[group1]
+   Kick out host[sdbserver1] from group[group1]
+   Kick out host[sdbserver2] from group[group1]
    Update kicked group[group1] to sdbserver3:11910 succeed
-   Kick host[sdbserver1] from group[group2]
-   Kick host[sdbserver2] from group[group2]
+   Kick out host[sdbserver1] from group[group2]
+   Kick out host[sdbserver2] from group[group2]
    Update kicked group[group2] to sdbserver3:11920 succeed
-   Kick host[sdbserver1] from group[group3]
-   Kick host[sdbserver2] from group[group3]
+   Kick out host[sdbserver1] from group[group3]
+   Kick out host[sdbserver2] from group[group3]
    Update kicked group[group3] to sdbserver3:11930 succeed
-   Kick host[sdbserver1] from group[SYSCoord]
-   Kick host[sdbserver2] from group[SYSCoord]
+   Kick out host[sdbserver1] from group[SYSCoord]
+   Kick out host[sdbserver2] from group[SYSCoord]
    Update kicked group[SYSCoord] to sdbserver3:11810 succeed
    Update sdbserver3:11800 catalog's info succeed
-   Update sdbserver3:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver3:11803 succeed
+   Update sdbserver3:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver3:11803 succeed
    Restart all nodes succeed in sdbserver3
    Restart all host nodes succeed
    Done
@@ -136,10 +142,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 5. 在 sdbserver1 执行分裂（split）
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh split.sh 
+   $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    ...
@@ -156,7 +162,7 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    $ sh merge.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to merge cluster...
    Stop 11800 succeed in sdbserver3
@@ -168,9 +174,9 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver3:11800 succeed
    Restore group[SYSCoord] to sdbserver3:11800 succeed
    Restore sdbserver3:11800 catalog's info succeed
-   Update sdbserver3:11800 catalog's readonly prop succeed
+   Update sdbserver3:11800 catalog's readonly property succeed
    ...
-   Update all nodes's catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
+   Update all nodes' catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
    Restart all nodes succeed in sdbserver3
    Restart all host nodes succeed
    Done
@@ -186,33 +192,31 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 
    修改 sdbserver1 的 `cluster_opr.js` 文件
 
-   ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ grep 'ACTIVE =' cluster_opr.js
+   ```lang-javascript
    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = true; }
    ```
 
    修改 sdbserver3 的 `cluster_opr.js` 文件
 
-   ```lang-bash
-   [sdbadmin@sdbserver3 dr_ha]$ grep 'ACTIVE =' cluster_opr.js
+   ```lang-javascript
    if ( typeof(ACTIVE) == "undefined" ) { ACTIVE = false; }
    ```
 
    在 sdbserver1 执行初始化
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver2 success
-   Copy init file to sdbserver3 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver2 succeed
+   Copy init file to sdbserver3 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
@@ -231,7 +235,13 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 
 在[同城三中心架构][threedatacenter]下，初始化时将机器划分为两个子网 SUB1（sdbserver1）和 SUB2（sdbserver2、 sdbserver3）。
 
-1. 修改 sdbserver1 的 `cluster_opr.js` 文件
+1. 切换至安装路径下的 `tools/dr_ha` 目录
+
+   ```lang-bash
+   $ cd /opt/sequoiadb/tools/dr_ha
+   ```
+
+2. 修改 sdbserver1 的 `cluster_opr.js` 文件
 
    ```lang-javascript
    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
@@ -251,21 +261,21 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    >
    > 初始化时 ACTIVE 的值决定当前子网的权重，SUB1 中应设置 ACTIVE=true，使主节点分布在主中心内，SUB2 中应设置 ACTIVE=false，防止主节点分布在灾备中心内。
 
-2. 在 sdbserver1 上执行 init
+3. 在 sdbserver1 上执行 init
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver3 success
-   Copy init file to sdbserver2 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver3 succeed
+   Copy init file to sdbserver2 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
@@ -298,33 +308,33 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 2. 在 sdbserver2 执行分裂（split）
 
    ```lang-bash
-   [sdbadmin@sdbserver2 dr_ha]$ sh split.sh 
+   $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    Stop 11800 succeed in sdbserver2
    Start 11800 by standalone succeed in sdbserver2
    Change sdbserver2:11800 to standalone succeed
-   Kick host[sdbserver1] from group[SYSCatalogGroup]
-   Kick host[sdbserver3] from group[SYSCatalogGroup]
+   Kick out host[sdbserver1] from group[SYSCatalogGroup]
+   Kick out host[sdbserver3] from group[SYSCatalogGroup]
    Update kicked group[SYSCatalogGroup] to sdbserver2:11800 succeed
-   Kick host[sdbserver1] from group[group1]
-   Kick host[sdbserver3] from group[group1]
+   Kick out host[sdbserver1] from group[group1]
+   Kick out host[sdbserver3] from group[group1]
    Update kicked group[group1] to sdbserver2:11800 succeed
-   Kick host[sdbserver1] from group[group2]
-   Kick host[sdbserver3] from group[group2]
+   Kick out host[sdbserver1] from group[group2]
+   Kick out host[sdbserver3] from group[group2]
    Update kicked group[group2] to sdbserver2:11800 succeed
-   Kick host[sdbserver1] from group[group3]
-   Kick host[sdbserver3] from group[group3]
+   Kick out host[sdbserver1] from group[group3]
+   Kick out host[sdbserver3] from group[group3]
    Update kicked group[group3] to sdbserver2:11800 succeed
-   Kick host[sdbserver1] from group[SYSCoord]
-   Kick host[sdbserver3] from group[SYSCoord]
+   Kick out host[sdbserver1] from group[SYSCoord]
+   Kick out host[sdbserver3] from group[SYSCoord]
    Update kicked group[SYSCoord] to sdbserver2:11800 succeed
    Update sdbserver2:11800 catalog's info succeed
-   Update sdbserver2:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver2:11803 succeed
+   Update sdbserver2:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver2:11803 succeed
    Restart all nodes succeed in sdbserver2
    Restart all host nodes succeed
    Done
@@ -351,10 +361,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 5. 在 sdbserver1执行分裂
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh split.sh 
+    $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    Stop 11800 succeed in sdbserver1
@@ -373,10 +383,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 1. 在 sdbserver2 执行合并
 
    ```lang-bash
-   [sdbadmin@sdbserver2 dr_ha]$ sh merge.sh 
+   $ sh merge.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to merge cluster...
    Stop 11800 succeed in sdbserver2
@@ -388,8 +398,8 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver2:11800 succeed
    Restore group[SYSCoord] to sdbserver2:11800 succeed
    Restore sdbserver2:11800 catalog's info succeed
-   Update sdbserver2:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
+   Update sdbserver2:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
    Restart all nodes succeed in sdbserver2
    Restart all host nodes succeed
    Done
@@ -398,10 +408,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 2. 在 sdbserver1 执行合并
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh merge.sh 
+   $ sh merge.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to merge cluster...
    Stop 11800 succeed in sdbserver1
@@ -413,7 +423,7 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver1:11800 succeed
    Restore group[SYSCoord] to sdbserver1:11800 succeed
    Restore sdbserver1:11800 catalog's info succeed
-   Update sdbserver1:11800 catalog's readonly prop succeed
+   Update sdbserver1:11800 catalog's readonly property succeed
    Stop 11800 succeed in sdbserver3
    Start 11800 by standalone succeed in sdbserver3
    Change sdbserver3:11800 to standalone succeed
@@ -423,8 +433,8 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver3:11800 succeed
    Restore group[SYSCoord] to sdbserver3:11800 succeed
    Restore sdbserver3:11800 catalog's info succeed
-   Update sdbserver3:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
+   Update sdbserver3:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803 succeed
    Restart all nodes succeed in sdbserver1
    Restart all nodes succeed in sdbserver3
    Restart all host nodes succeed
@@ -459,18 +469,18 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    在 sdbserver1 上执行初始化
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver2 success
-   Copy init file to sdbserver3 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver2 succeed
+   Copy init file to sdbserver3 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
@@ -496,7 +506,13 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 ### 灾备环境初始化
 在[三地五中心架构][threecity_fivedatacenter]下，初始化时将机器划分为两个子网 SUB1（sdbserver1）和 SUB2（sdbserver2、sdbserver3、sdbserver4、sdbserver5)。
 
-1. 修改 sdbserver1 的 `cluster_opr.js` 文件
+1. 切换至安装路径下的 `tools/dr_ha` 目录
+
+   ```lang-bash
+   $ cd /opt/sequoiadb/tools/dr_ha
+   ```
+
+2. 修改 sdbserver1 的 `cluster_opr.js` 文件
 
    ```lang-javascript
    if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
@@ -516,23 +532,23 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    >
    > 初始化时 ACTIVE 的值决定当前子网的权重，SUB1 中应设置 ACTIVE=true，使主节点分布在主中心内，SUB2 中应设置 ACTIVE=false，防止主节点分布在灾备中心内。
 
-2. 在 sdbserver1 执行 init
+3. 在 sdbserver1 执行 init
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver3 success
-   Copy init file to sdbserver4 success
-   Copy init file to sdbserver5 success
-   Copy init file to sdbserver2 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver3 succeed
+   Copy init file to sdbserver4 succeed
+   Copy init file to sdbserver5 succeed
+   Copy init file to sdbserver2 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
@@ -566,63 +582,63 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 2. 在 sdbserver4 执行分裂
 
    ```lang-bash
-   [sdbadmin@sdbserver4 dr_ha]$ sh split.sh 
+   $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    Stop 11800 succeed in sdbserver3
    Start 11800 by standalone succeed in sdbserver3
    Change sdbserver3:11800 to standalone succeed
-   Kick host[sdbserver1] from group[SYSCatalogGroup]
-   Kick host[sdbserver2] from group[SYSCatalogGroup]
-   Kick host[sdbserver5] from group[SYSCatalogGroup]
+   Kick out host[sdbserver1] from group[SYSCatalogGroup]
+   Kick out host[sdbserver2] from group[SYSCatalogGroup]
+   Kick out host[sdbserver5] from group[SYSCatalogGroup]
    Update kicked group[SYSCatalogGroup] to sdbserver3:11800 succeed
-   Kick host[sdbserver1] from group[group1]
-   Kick host[sdbserver2] from group[group1]
-   Kick host[sdbserver5] from group[group1]
+   Kick out host[sdbserver1] from group[group1]
+   Kick out host[sdbserver2] from group[group1]
+   Kick out host[sdbserver5] from group[group1]
    Update kicked group[group1] to sdbserver3:11800 succeed
-   Kick host[sdbserver1] from group[group2]
-   Kick host[sdbserver2] from group[group2]
-   Kick host[sdbserver5] from group[group2]
+   Kick out host[sdbserver1] from group[group2]
+   Kick out host[sdbserver2] from group[group2]
+   Kick out host[sdbserver5] from group[group2]
    Update kicked group[group2] to sdbserver3:11800 succeed
-   Kick host[sdbserver1] from group[group3]
-   Kick host[sdbserver2] from group[group3]
-   Kick host[sdbserver5] from group[group3]
+   Kick out host[sdbserver1] from group[group3]
+   Kick out host[sdbserver2] from group[group3]
+   Kick out host[sdbserver5] from group[group3]
    Update kicked group[group3] to sdbserver3:11800 succeed
-   Kick host[sdbserver1] from group[SYSCoord]
-   Kick host[sdbserver2] from group[SYSCoord]
-   Kick host[sdbserver5] from group[SYSCoord]
+   Kick out host[sdbserver1] from group[SYSCoord]
+   Kick out host[sdbserver2] from group[SYSCoord]
+   Kick out host[sdbserver5] from group[SYSCoord]
    Update kicked group[SYSCoord] to sdbserver3:11800 succeed
    Update sdbserver3:11800 catalog's info succeed
-   Update sdbserver3:11800 catalog's readonly prop succeed
+   Update sdbserver3:11800 catalog's readonly property succeed
    Stop 11800 succeed in sdbserver4
    Start 11800 by standalone succeed in sdbserver4
    Change sdbserver4:11800 to standalone succeed
-   Kick host[sdbserver1] from group[SYSCatalogGroup]
-   Kick host[sdbserver2] from group[SYSCatalogGroup]
-   Kick host[sdbserver5] from group[SYSCatalogGroup]
+   Kick out host[sdbserver1] from group[SYSCatalogGroup]
+   Kick out host[sdbserver2] from group[SYSCatalogGroup]
+   Kick out host[sdbserver5] from group[SYSCatalogGroup]
    Update kicked group[SYSCatalogGroup] to sdbserver4:11800 succeed
-   Kick host[sdbserver1] from group[group1]
-   Kick host[sdbserver2] from group[group1]
-   Kick host[sdbserver5] from group[group1]
+   Kick out host[sdbserver1] from group[group1]
+   Kick out host[sdbserver2] from group[group1]
+   Kick out host[sdbserver5] from group[group1]
    Update kicked group[group1] to sdbserver4:11800 succeed
-   Kick host[sdbserver1] from group[group2]
-   Kick host[sdbserver2] from group[group2]
-   Kick host[sdbserver5] from group[group2]
+   Kick out host[sdbserver1] from group[group2]
+   Kick out host[sdbserver2] from group[group2]
+   Kick out host[sdbserver5] from group[group2]
    Update kicked group[group2] to sdbserver4:11800 succeed
-   Kick host[sdbserver1] from group[group3]
-   Kick host[sdbserver2] from group[group3]
-   Kick host[sdbserver5] from group[group3]
+   Kick out host[sdbserver1] from group[group3]
+   Kick out host[sdbserver2] from group[group3]
+   Kick out host[sdbserver5] from group[group3]
    Update kicked group[group3] to sdbserver4:11800 succeed
-   Kick host[sdbserver1] from group[SYSCoord]
-   Kick host[sdbserver2] from group[SYSCoord]
-   Kick host[sdbserver5] from group[SYSCoord]
+   Kick out host[sdbserver1] from group[SYSCoord]
+   Kick out host[sdbserver2] from group[SYSCoord]
+   Kick out host[sdbserver5] from group[SYSCoord]
    Update kicked group[SYSCoord] to sdbserver4:11800 succeed
    Update sdbserver4:11800 catalog's info succeed
-   Update sdbserver4:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver3:11803,sdbserver4:11803 succeed
+   Update sdbserver4:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver3:11803,sdbserver4:11803 succeed
    Restart all nodes succeed in sdbserver3
    Restart all nodes succeed in sdbserver4
    Restart all host nodes succeed
@@ -650,10 +666,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 5. 在 sdbserver1 执行分裂
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh split.sh 
+   $ sh split.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to split cluster...
    Stop 11800 succeed in sdbserver1
@@ -674,10 +690,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 1. 城市2执行合并
 
    ```lang-bash
-   [sdbadmin@sdbserver4 dr_ha]$ sh merge.sh 
+   $ sh merge.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to merge cluster...
    Stop 11800 succeed in sdbserver3
@@ -689,7 +705,7 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver3:11800 succeed
    Restore group[SYSCoord] to sdbserver3:11800 succeed
    Restore sdbserver3:11800 catalog's info succeed
-   Update sdbserver3:11800 catalog's readonly prop succeed
+   Update sdbserver3:11800 catalog's readonly property succeed
    Stop 11800 succeed in sdbserver4
    Start 11800 by standalone succeed in sdbserver4
    Change sdbserver4:11800 to standalone succeed
@@ -699,8 +715,8 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    Restore group[group3] to sdbserver4:11800 succeed
    Restore group[SYSCoord] to sdbserver4:11800 succeed
    Restore sdbserver4:11800 catalog's info succeed
-   Update sdbserver4:11800 catalog's readonly prop succeed
-   Update all nodes's catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803,sdbserver4:11803,sdbserver5:11803 succeed
+   Update sdbserver4:11800 catalog's readonly property succeed
+   Update all nodes' catalogaddr to sdbserver1:11803,sdbserver2:11803,sdbserver3:11803,sdbserver4:11803,sdbserver5:11803 succeed
    Restart all nodes succeed in sdbserver4
    Restart all nodes succeed in sdbserver3
    Restart all host nodes succeed
@@ -710,10 +726,10 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
 2. 城市1和城市3（SUB2） 执行合并
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh merge.sh 
+   $ sh merge.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to merge cluster...
    ...
@@ -752,20 +768,20 @@ SequoiaDB 巨杉数据库对于容灾处理提供了 split/merge 工具。split 
    在 sdbserver1 执行初始化
 
    ```lang-bash
-   [sdbadmin@sdbserver1 dr_ha]$ sh init.sh 
+   $ sh init.sh 
    Begin to check args...
    Done
-   Begin to check enviroment...
+   Begin to check environment...
    Done
    Begin to init cluster...
-   Start to copy init file to cluster host
-   Copy init file to sdbserver3 success
-   Copy init file to sdbserver4 success
-   Copy init file to sdbserver5 success
-   Copy init file to sdbserver2 success
+   Begin to copy init file to cluster hosts
+   Copy init file to sdbserver3 succeed
+   Copy init file to sdbserver4 succeed
+   Copy init file to sdbserver5 succeed
+   Copy init file to sdbserver2 succeed
    Done
-   Begin to update catalog and data nodes's config...Done
-   Begin to reload catalog and data nodes's config...Done
+   Begin to update catalog and data nodes' config...Done
+   Begin to reload catalog and data nodes' config...Done
    Begin to reelect all groups...Done
    Done
    ```
