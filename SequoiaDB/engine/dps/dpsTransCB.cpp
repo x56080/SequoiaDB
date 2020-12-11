@@ -327,7 +327,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get summary from meta, "
                    "rc: %d", rc ) ;
 
-      if ( DPS_INVALID_TRANS_TIME == summary._maxTransCommitTime ||
+      if ( DPS_INVALID_TRANS_TIME == summary._maxTransCommitTime &&
            DPS_INVALID_TRANS_TIME == summary._minRecoverableTime )
       {
          // summary from meta file is invalid, need get from log file
@@ -386,7 +386,8 @@ namespace engine
       if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
            SDB_ROLE_STANDALONE != pmdGetDBRole() )
       {
-         rc = syncTransInfoFromLocal( startLsnOffset ) ;
+         // if the meta file is valid, no need to check restore window
+         rc = syncTransInfoFromLocal( startLsnOffset, !isSummaryValid ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",
@@ -3082,7 +3083,8 @@ namespace engine
       _isNeedSyncTrans = isNeed;
    }
 
-   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn )
+   INT32 dpsTransCB::syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
+                                             BOOLEAN checkRestoreWindow )
    {
       INT32 rc = SDB_OK ;
       DPS_LSN curLsn ;
@@ -3107,7 +3109,7 @@ namespace engine
          _dpsLogRecord record ;
          rc = record.load( mb.readPtr() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to load log record, rc=%d", rc );
-         saveTransInfoFromLog( record, TRUE ) ;
+         saveTransInfoFromLog( record, checkRestoreWindow ) ;
          curLsn.offset += record.head()._length;
       }
    done:

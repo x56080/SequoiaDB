@@ -857,7 +857,8 @@ namespace engine
       BOOLEAN  isNeedSyncTrans() ;
       void     setIsNeedSyncTrans( BOOLEAN isNeed ) ;
 
-      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn ) ;
+      INT32 syncTransInfoFromLocal( DPS_LSN_OFFSET beginLsn,
+                                    BOOLEAN checkRestoreWindow ) ;
 
       // get record-X-lock: also get the space-IS-lock and collection-IX-lock
       // get collection-X-lock: also get the space-IX-lock

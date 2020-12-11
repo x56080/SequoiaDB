@@ -310,6 +310,9 @@ namespace engine
                                dpsLogSummary &summary,
                                BOOLEAN &isValid ) ;
 
+      // flush metadata of transaction to meta file
+      void flushTransMeta() ;
+
    private:
       void _allocate( UINT32 len,
                       dpsPageMeta &allocated ) ;
@@ -343,8 +346,6 @@ namespace engine
          ++pageID ;
          return pageID >= _pageNum ? 0 : pageID ;
       }
-
-      void _flushTransMeta() ;
 
       UINT32 _generateDummySize( dpsMergeBlock &block,
                                  dpsLogRecordHeader &head,

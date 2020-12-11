@@ -803,6 +803,21 @@ namespace engine
          rc = _writeMetaFile () ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
       }
+      else if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      {
+         // for global backup, we need to save a global timestamp for backup,
+         // so save a file even the backup is empty
+
+         // 2. backup config
+         rc = _backupConfig() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+
+         // 3. no data to backup
+
+         // 4. write meta file
+         rc = _writeMetaFile () ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+      }
       else
       {
          PD_LOG( PDWARNING, "Backup[%s] is empty, will ignored",
@@ -1300,6 +1315,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       DPS_LSN beginlsn, expectlsn, currentLSN ;
       DPS_LSN_OFFSET transLSN = DPS_INVALID_LSN_OFFSET ;
+      UINT64 backupTime = 0LL ;
 
       isEmpty = FALSE ;
 
@@ -1342,6 +1358,24 @@ namespace engine
          _hasRegBackup = TRUE ;
       }
 
+      // for global transaction backup
+      if ( _pTransCB->isGlobTransOn() )
+      {
+         stpLogicalTimeUS tempTime ;
+         rc = _pTransCB->getGlobTransTime( tempTime, OSS_ONE_SEC ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                      "backup, rc: %d", rc ) ;
+
+         backupTime = tempTime.getUpperTime() ;
+
+         // register as read transaction, so coming transaction will be
+         // committed after backup
+         _pTransCB->regReadTranTime( backupTime ) ;
+
+         // save the meta header
+         _metaHeader._globalBackupTime = backupTime ;
+      }
+
       // if increase backup, need to check lsn
       beginlsn = _pDPSCB->getStartLsn( FALSE ) ;
       expectlsn = _pDPSCB->expectLsn() ;
@@ -1350,7 +1384,10 @@ namespace engine
 
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
-         if ( beginlsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
+         // if begin LSN in meta is invalid, means the last backup is
+         // empty, should not report error
+         if ( DPS_INVALID_LSN_OFFSET != _metaHeader._beginLSNOffset &&
+              beginlsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
          {
             PD_LOG( PDERROR, "Begin lsn[%lld] is smaller than log's begin "
                     "lsn[%u,%lld]", _metaHeader._beginLSNOffset,
@@ -3228,36 +3265,61 @@ namespace engine
                       rc ) ;
       }
 
-      if ( SDB_ROLE_CATALOG == pmdGetDBRole() &&
-           _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
       {
-         // This is a global restore. The cluster is now awaiting restoreToTime.
-         // Need to set RestoreInProgress: true in SYSINFO.SYSDCBASE
-         // This requires a real update operation - need to fully init some CBs
-
-         // Fully init transCB
-         pmdGetKRCB()->setIsRestore( FALSE ) ;
-         rc = _pTransCB->init() ;
-         pmdGetKRCB()->setIsRestore( TRUE ) ;
-         if ( SDB_OK != rc )
+         if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
          {
-            PD_LOG( PDERROR, "Failed to init transCB." ) ;
-            goto error ;
+            // This is a global restore. The cluster is now awaiting
+            // restoreToTime. Need to set RestoreInProgress: true in
+            // SYSINFO.SYSDCBASE
+            // This requires a real update operation - need to fully init
+            // some CBs
+
+            // Fully init transCB
+            pmdGetKRCB()->setIsRestore( FALSE ) ;
+            rc = _pTransCB->init() ;
+            pmdGetKRCB()->setIsRestore( TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to init transCB." ) ;
+               goto error ;
+            }
+
+            // Fully init DMS
+            if ( (rc = _loadDMS()) != SDB_OK )
+            {
+               goto error ;
+            }
+
+            PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
+            std::cout << "Setting DC to restore-in-progress..." << std::endl ;
+            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORING, TRUE, cb, 1,
+                                        _pDMSCB, _pDPSCB)) != SDB_OK)
+            {
+               PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;
+               goto error ;
+            }
          }
 
-         // Fully init DMS
-         if ( (rc = _loadDMS()) != SDB_OK )
+         // save global backup time to metadata file if needed
+         if ( 0LL != _metaHeader._globalBackupTime )
          {
-            goto error ;
+            UINT64 minTime = 0LL, maxTime = 0LL ;
+            // move max time forward
+            _pTransCB->setMaxTransCommitTime( _metaHeader._globalBackupTime ) ;
+            // flush to meta file
+            _pDPSCB->getLogMgr()->flushTransMeta() ;
+            // log a message
+            _pTransCB->getRestoreWindow( minTime, maxTime ) ;
+            PD_LOG( PDEVENT, "Saved global transaction recoverable window ( "
+                    "min: %llu, max: %llu )", minTime, maxTime ) ;
+            std::cout << "Saved global transaction recoverable window ( min: " <<
+                         minTime << ", max: " << maxTime << " )" << std::endl ;
          }
-
-         PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
-         std::cout << "Setting DC to restore-in-progress..." << std::endl ;
-         if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORING, TRUE, cb, 1,
-                                     _pDMSCB, _pDPSCB)) != SDB_OK)
+         else
          {
-            PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;
-            goto error ;
+            PD_LOG( PDWARNING, "No bakcup time is given for global backup" ) ;
+            std::cout << "WARNING: No backup time is given for global backup" << std::endl ;
          }
       }
 
@@ -3525,6 +3587,9 @@ namespace engine
       builder.append( FIELD_NAME_GLOBAL_TRANS,
                       pHeader->_global & BAR_BACKUP_GLOBAL_BKP ?
                       true : false ) ;
+
+      builder.append( FIELD_NAME_GLOBAL_TIME,
+                      (INT64)( pHeader->_globalBackupTime ) ) ;
 
       // stat info
       builder.append( "BeginLSNOffset", (INT64)pHeader->_beginLSNOffset ) ;

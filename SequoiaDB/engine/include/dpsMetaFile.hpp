@@ -187,6 +187,7 @@ namespace engine
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
       INT32 writeTransMeta( DPS_LSN_OFFSET offset,
                             const dpsLogSummary &summary ) ;
+      INT32 writeSummary( const dpsLogSummary &summary ) ;
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;

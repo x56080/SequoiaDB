@@ -155,7 +155,8 @@ namespace engine
       UINT64            _compressDataSize ;
       INT32             _compressionType ;
       UINT32            _global ;
-      CHAR              _pad[61928] ;
+      UINT64            _globalBackupTime ;
+      CHAR              _pad[61920] ;
 
       _barBackupHeader ()
       {

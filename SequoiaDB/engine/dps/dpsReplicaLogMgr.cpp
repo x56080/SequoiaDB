@@ -1396,7 +1396,7 @@ namespace engine
          // same as _pageFlushCount % 0x4000 == 0
          if ( ( _pageFlushCount & 0x3FFF ) == 0 )
          {
-            _flushTransMeta() ;
+            flushTransMeta() ;
          }
 
          rc = _flushPage ( page ) ;
@@ -1414,7 +1414,7 @@ namespace engine
       goto done ;
    }
 
-   void _dpsReplicaLogMgr::_flushTransMeta()
+   void _dpsReplicaLogMgr::flushTransMeta()
    {
       if ( NULL != _transCB )
       {
@@ -1434,6 +1434,11 @@ namespace engine
             if ( !_pageFlushedBeginLSN.invalid() )
             {
                _metaFile.writeTransMeta( offset, summary ) ;
+            }
+            else
+            {
+               // no valid offset is given, flush summary only
+               _metaFile.writeSummary( summary ) ;
             }
          }
       }

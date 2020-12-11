@@ -343,6 +343,13 @@ namespace engine
       return writeContent() ;
    }
 
+   INT32 _dpsMetaFile::writeSummary( const dpsLogSummary &summary )
+   {
+      // write summary only
+      _content._summary = summary ;
+      return writeContent() ;
+   }
+
    INT32 _dpsMetaFile::invalidateStatus( BOOLEAN resetSummary )
    {
       INT32 rc = SDB_OK ;
