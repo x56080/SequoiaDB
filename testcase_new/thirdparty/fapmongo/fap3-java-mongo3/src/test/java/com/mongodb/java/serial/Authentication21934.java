@@ -81,9 +81,8 @@ public class Authentication21934 extends MongodbTestBase {
             }
         } catch ( Exception e ) {
             // 鉴权
-            MongoCredential tmpCred = MongoCredential
-                    .createScramSha1Credential( username1, dbName,
-                            username1.toCharArray() );
+            MongoCredential tmpCred = MongoCredential.createScramSha1Credential(
+                    username1, dbName, username1.toCharArray() );
             MongoClient tmpClient = null;
             try {
                 tmpClient = new MongoClient(
@@ -179,9 +178,8 @@ public class Authentication21934 extends MongodbTestBase {
         }
 
         // 使用不存在的用户创建连接
-        MongoCredential cred3 = MongoCredential
-                .createScramSha1Credential( "noexists", dbName,
-                        "noexists".toCharArray() );
+        MongoCredential cred3 = MongoCredential.createScramSha1Credential(
+                "noexists", dbName, "noexists".toCharArray() );
         MongoClient client3 = new MongoClient(
                 new ServerAddress( config.getHost(), config.getPort() ),
                 Collections.singletonList( cred3 ), opt );
@@ -191,7 +189,7 @@ public class Authentication21934 extends MongodbTestBase {
             cl3.insertOne( new Document( "a", 1 ) );
             Assert.fail( "Expect fail but actual success!!!" );
         } catch ( Exception e ) {
-            if ( !e.getMessage().contains( "Authentication failed" ) ) {
+            if ( !e.getMessage().contains( "Exception authenticating" ) ) {
                 throw e;
             }
         }
