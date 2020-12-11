@@ -2317,31 +2317,23 @@ namespace engine
       case MSG_BS_QUERY_REQ:
          {
             // only the whitelisted commands are allowed
-
             CHAR *pCollectionName = NULL ;
-
             // ignore error, only want the collection name
             msgExtractQuery ( (CHAR *)_msg, NULL, &pCollectionName,
                               NULL, NULL, NULL, NULL, NULL, NULL ) ;
-
             if (rtnIsCommand(pCollectionName))
             {
-               ossPoolVector<std::string> _restorePendingOpWhitelist;
-               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_RESTORE);
-               _restorePendingOpWhitelist.push_back(CMD_NAME_STP_PREFIX);
-               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_GET);
-               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_LIST);
-               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_SNAPSHOT);
-               _restorePendingOpWhitelist.push_back(CMD_NAME_PREFIX_TRACE);
-
-               for (UINT32 i = 0; i < _restorePendingOpWhitelist.size(); ++i)
+               // trim the leading $ from the collection name
+               CHAR *pCmdName = pCollectionName + 1;
+               if (utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_RESTORE) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_GET) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_LIST) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_SNAPSHOT) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TEST) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TRACE) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_STP_PREFIX))
                {
-                  // trim the leading $ from the collection name
-                  if (utilStrStartsWith(string(pCollectionName + 1),
-                                        _restorePendingOpWhitelist[i]))
-                  {
-                     return TRUE ;
-                  }
+                  return TRUE;
                }
             }
             break ;
