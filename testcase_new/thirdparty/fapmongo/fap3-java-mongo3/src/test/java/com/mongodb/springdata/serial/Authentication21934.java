@@ -47,6 +47,7 @@ public class Authentication21934 extends MongodbTestBase {
     private List< Entity > records;
     private boolean runSuccess = false;
 
+    @SuppressWarnings("deprecation")
     @BeforeClass
     public void setup() throws Exception {
         // 创建client
@@ -113,6 +114,7 @@ public class Authentication21934 extends MongodbTestBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void test() throws UnknownHostException {
         // 创建用户
@@ -173,7 +175,8 @@ public class Authentication21934 extends MongodbTestBase {
                             1, Entity.COURSES ) );
             Assert.fail( "Expect fail but actual success!!!" );
         } catch ( Exception e ) {
-            if ( !e.getMessage().contains( "Exception authenticating" ) ) {
+            if ( !( e.getMessage().contains( "Authentication failed" ) || e
+                    .getMessage().contains( "Exception authenticating" ) ) ) {
                 throw e;
             }
         }
@@ -197,6 +200,7 @@ public class Authentication21934 extends MongodbTestBase {
         runSuccess = true;
     }
 
+    @SuppressWarnings("deprecation")
     @AfterClass
     public void tearDown( ITestContext context ) {
         try {

@@ -200,7 +200,8 @@ public class Authentication21934 extends MongodbTestBase {
             cl3.insert( new BasicDBObject( "a", 1 ) );
             Assert.fail( "Expect fail but actual success!!!" );
         } catch ( Exception e ) {
-            if ( !e.getMessage().contains( "Authentication failed" ) ) {
+            if ( !( e.getMessage().contains( "Authentication failed" ) || e
+                    .getMessage().contains( "Exception authenticating" ) ) ) {
                 throw e;
             }
         }

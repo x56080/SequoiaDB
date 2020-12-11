@@ -86,8 +86,8 @@ public class Authentication21934 extends MongodbTestBase {
                                 new ServerAddress( config.getHost(),
                                         config.getPort() ),
                                 Collections.singletonList( tmpCred ), opt );
-                        MongoTemplate tmpTemp = new MongoTemplate(
-                                tmpClient, dbName );
+                        MongoTemplate tmpTemp = new MongoTemplate( tmpClient,
+                                dbName );
                         // 删除数据库
                         tmpClient.dropDatabase( dbName );
                         // 删除用户
@@ -190,7 +190,8 @@ public class Authentication21934 extends MongodbTestBase {
                             1, Entity.COURSES ) );
             Assert.fail( "Expect fail but actual success!!!" );
         } catch ( UncategorizedMongoDbException e ) {
-            if ( !e.getMessage().contains( "Authentication failed" ) ) {
+            if ( !( e.getMessage().contains( "Authentication failed" ) || e
+                    .getMessage().contains( "Exception authenticating" ) ) ) {
                 throw e;
             }
         }
