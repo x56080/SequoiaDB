@@ -27,6 +27,7 @@
     
     <test name="story">
         <packages>
+            <package name="com.sequoiadb.datasource.serial"/>
             <package name="com.sequoiadb.auth"/>
             <package name="com.sequoiadb.backup"/>
             <package name="com.sequoiadb.clustermanager"/>
