@@ -1553,13 +1553,13 @@ INT64 _dpsDumper::_dumpMeta( const dpsMetaData& meta,
                        "    LogFile work      : sequoiadbLog.%d"OSS_NEWLINE,
                        meta.metaList[ meta.fileWork ].index ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "        begin Lsn     : 0x%08lx"OSS_NEWLINE,
+                       "    Begin Lsn         : 0x%08lx"OSS_NEWLINE,
                        meta.metaList[ meta.fileBegin].firstLSN ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "        current Lsn   : 0x%08lx"OSS_NEWLINE,
+                       "    Current Lsn       : 0x%08lx"OSS_NEWLINE,
                        meta.metaList[ meta.fileWork ].lastLSN ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
-                       "        expect Lsn    : 0x%08lx"OSS_NEWLINE,
+                       "    Expect Lsn        : 0x%08lx"OSS_NEWLINE,
                        ( meta.metaList[ meta.fileWork ].expectLSN ) ) ;
    len += ossSnprintf( pBuffer + len, bufferSize - len,
                        "======================================="OSS_NEWLINE

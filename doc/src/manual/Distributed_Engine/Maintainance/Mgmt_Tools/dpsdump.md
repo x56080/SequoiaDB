@@ -131,9 +131,9 @@ sdbdpsdump --version | -v
        Log Files in total: 1
        LogFile begin     : sequoiadbLog.0
        LogFile work      : sequoiadbLog.0
-           begin Lsn     : 0x00000000
-           current Lsn   : 0x00000644
-           expect Lsn    : 0x00000710
+       Begin Lsn         : 0x00000000
+       Current Lsn       : 0x00000644
+       Expect Lsn        : 0x00000710
    =======================================
    
    Log File Name: sequoiadbLog.0
