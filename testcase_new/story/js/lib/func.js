@@ -29,7 +29,6 @@ func.js 中方法：
    4、检查
       检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout)   
       检查集群状态(retry)    commCheckBusinessStatus(db,timeout,checkLSN)
-      检测 group 状态(once)  commCheckBusiness(groups,checkLSN)
       检测主备 LSN           commCheckLSN(db,groupNames,timeout)
    
    5、获取
