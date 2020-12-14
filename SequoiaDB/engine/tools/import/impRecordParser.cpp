@@ -85,7 +85,7 @@ namespace import
          if (NULL == csvParser)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create CSVRecordParser object, rc=%d",
+            PD_LOG(PDERROR, "Failed to create CSVRecordParser object, rc=%d",
                    rc);
             goto error;
          }
@@ -103,7 +103,7 @@ namespace import
          if (NULL == jsonParser)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create JSONRecordParser object, rc=%d",
+            PD_LOG(PDERROR, "Failed to create JSONRecordParser object, rc=%d",
                    rc);
             goto error;
          }
@@ -113,7 +113,7 @@ namespace import
          rc = jsonParser->init() ;
          if( rc )
          {
-            PD_LOG( PDERROR, "failed to call JSONRecordParser init, rc=%d",
+            PD_LOG( PDERROR, "Failed to call JSONRecordParser init, rc=%d",
                     rc ) ;
             goto error ;
          }
@@ -195,7 +195,7 @@ namespace import
       if (bson_size(&obj) > IMP_MAX_BSON_SIZE)
       {
          rc = SDB_DRIVER_BSON_ERROR;
-         PD_LOG(PDERROR, "the bson obj is beyond "
+         PD_LOG(PDERROR, "The bson obj is beyond "
                 "the max size %d, actual size %d, rc=%d",
                 IMP_MAX_BSON_SIZE, bson_size(&obj), rc);
          goto error;

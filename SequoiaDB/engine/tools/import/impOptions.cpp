@@ -360,7 +360,7 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(!_parsed, "can't parse again");
+      SDB_ASSERT(!_parsed, "Can't parse again");
 
       addOptions("General Options")
          IMP_GENERAL_OPTIONS
@@ -430,7 +430,7 @@ namespace import
 
    void Options::printHelpInfo()
    {
-      SDB_ASSERT(_parsed, "must be parsed");
+      SDB_ASSERT(_parsed, "Must be parsed");
       print();
    }
 
@@ -527,7 +527,7 @@ namespace import
       rc = Hosts::parse(_hostsString, _hosts);
       if (SDB_OK != rc)
       {
-         std::cerr << "invalid host"  << std::endl;
+         std::cerr << "Invalid host"  << std::endl;
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -615,9 +615,8 @@ namespace import
 
       if (has(IMP_OPTION_FILENAME) && has(IMP_OPTION_EXEC))
       {
-         std::cerr << IMP_OPTION_FILENAME
-                   << " can't be specified with "
-                   << IMP_OPTION_EXEC
+         std::cerr << IMP_OPTION_FILENAME " and "
+                   << IMP_OPTION_EXEC " cannot be used at same time"
                    << std::endl;
          rc = SDB_INVALIDARG;
          goto error;
@@ -631,7 +630,7 @@ namespace import
          rc = parseFileList(fileList, _files);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_FILENAME
+            std::cerr << "Invalid option " << IMP_OPTION_FILENAME
                       << std::endl;
             goto error;
          }
@@ -655,7 +654,7 @@ namespace import
          }
          else
          {
-            std::cerr << "invalid argument of [" IMP_OPTION_TYPE "]: "
+            std::cerr << "Invalid value for option " IMP_OPTION_TYPE ": "
                       << type
                       << std::endl;
             rc = SDB_INVALIDARG;
@@ -760,7 +759,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_stringDelimiterIn, _stringDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_DELCHAR
+            std::cerr << "Invalid option " << IMP_OPTION_DELCHAR
                       << std::endl;
             goto error;
          }
@@ -780,7 +779,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_recordDelimiterIn, _recordDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_DELRECORD
+            std::cerr << "Invalid option " << IMP_OPTION_DELRECORD
                       << std::endl;
             goto error;
          }
@@ -800,7 +799,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_fieldDelimiterIn, _fieldDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_DELFIELD
+            std::cerr << "Invalid option " << IMP_OPTION_DELFIELD
                       << std::endl;
             goto error;
          }
@@ -890,7 +889,7 @@ namespace import
          }
          else
          {
-            std::cerr << "invalid argument of [" IMP_OPTION_DECIMALTO "]: "
+            std::cerr << "Invalid value for option " IMP_OPTION_DECIMALTO ": "
                       << decimalto << std::endl ;
             rc = SDB_INVALIDARG;
             goto error;
@@ -939,7 +938,7 @@ namespace import
          rc = checkDateTimeFormat(datefmt);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_DATEFMT
+            std::cerr << "Invalid option " << IMP_OPTION_DATEFMT
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -954,7 +953,7 @@ namespace import
          rc = checkDateTimeFormat(tsfmt);
          if (SDB_OK != rc)
          {
-            std::cerr << "invalid " << IMP_OPTION_TIMESTAMPFMT
+            std::cerr << "Invalid option " << IMP_OPTION_TIMESTAMPFMT
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;
@@ -984,7 +983,7 @@ namespace import
          }
          else
          {
-            std::cerr << "invalid " << IMP_OPTION_TRIMSTRING
+            std::cerr << "Invalid option " << IMP_OPTION_TRIMSTRING
                       << std::endl;
             rc = SDB_INVALIDARG;
             goto error;

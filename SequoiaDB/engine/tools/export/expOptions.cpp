@@ -385,7 +385,7 @@ namespace exprt
       po::options_description csv("CSV Options") ;
       po::options_description conf("Configure-file Options") ;
 
-      SDB_ASSERT( _cmdParsed, "cant be used before parsing cmd" ) ;
+      SDB_ASSERT( _cmdParsed, "Cannot be used before parsing cmd" ) ;
 
       general.add_options()EXP_GENERAL_OPTIONS ;
       sCL.add_options()EXP_SINGLE_COLLECTION_OPTIONS ;
@@ -482,7 +482,7 @@ namespace exprt
       rc = utilWriteConfigFile( _genConf.c_str(), writeBuf.c_str(), TRUE ) ;
       if ( SDB_FE == rc )
       {
-         cerr << "file " << _genConf <<" already existed" << endl ;
+         cerr << "File " << _genConf <<" already existed" << endl ;
          goto error ;
       }
       else if ( SDB_OK != rc )
@@ -501,7 +501,7 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( !_cmdParsed, "can't parse cmd again" ) ;
+      SDB_ASSERT( !_cmdParsed, "Can't parse cmd again" ) ;
 
       _cmdDesc.add_options()
          EXP_GENERAL_OPTIONS
@@ -558,7 +558,7 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( !_confParsed, "can't parse conf again" ) ;
+      SDB_ASSERT( !_confParsed, "Can't parse conf again" ) ;
 
       _confDesc.add_options()
          EXP_GENERAL_OPTIONS
@@ -602,7 +602,7 @@ namespace exprt
    template <typename T>
    T expOptions::_get( const CHAR *option ) const
    {
-      SDB_ASSERT( _has(option), "has the option" );
+      SDB_ASSERT( _has(option), "Has the option" );
       if ( _cmdHas(option) )
          return _cmdVm[option].as<T>() ;
       else
@@ -815,10 +815,10 @@ namespace exprt
 
       if ( TRUE == hasEscape && TRUE == hasHex )
       {
-         cerr << "doesn't support value in mixed format for option \""  OPTION_DELFIELD "\""
+         cerr << "Doesn't support value in mixed format for option "  OPTION_DELFIELD
               << endl ;
-         PD_LOG( PDERROR, "Doesn't support value in mixed format for option \""
-                          OPTION_DELFIELD "\"" ) ;
+         PD_LOG( PDERROR, "Doesn't support value in mixed format for option "
+                          OPTION_DELFIELD ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -848,10 +848,10 @@ namespace exprt
          rc = _convertAsciiChar( rawStr, _delChar ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELCHAR "\""
+            cerr << "Invalid value for option "  OPTION_DELCHAR
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELCHAR "\"" ) ;
+            PD_LOG( PDERROR, "Invalid value for option "
+                             OPTION_DELCHAR ) ;
             goto error ;
          }
       }
@@ -863,18 +863,18 @@ namespace exprt
          {
             rc = SDB_INVALIDARG ;
             std::cerr << OPTION_DELFIELD << " can't be empty" << std::endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELFIELD "\"" ) ;
+            PD_LOG( PDERROR, "Invalid value for option "
+                             OPTION_DELFIELD ) ;
             goto error ;
          }
 
          rc = _convertAsciiChar( rawStr, _delField ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELFIELD "\""
+            cerr << "Invalid value for option "  OPTION_DELFIELD
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELFIELD "\"" ) ;
+            PD_LOG( PDERROR, "Invalid value for option "
+                             OPTION_DELFIELD ) ;
             goto error ;
          }
       }
@@ -886,43 +886,43 @@ namespace exprt
          {
             rc = SDB_INVALIDARG ;
             std::cerr << OPTION_DELRECORD << " can't be empty" << std::endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELRECORD "\"" ) ;
+            PD_LOG( PDERROR, "Invalid value for option "
+                             OPTION_DELRECORD ) ;
             goto error ;
          }
 
          rc = _convertAsciiChar( rawStr, _delRecord ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""  OPTION_DELRECORD "\""
+            cerr << "Invalid value for option "  OPTION_DELRECORD
                  << endl ;
-            PD_LOG( PDERROR, "Invalid value for option \""
-                             OPTION_DELRECORD "\"" ) ;
+            PD_LOG( PDERROR, "Invalid value for option "
+                             OPTION_DELRECORD ) ;
             goto error ;
          }
       }
 
       if ( _delChar.size() > 0 && string::npos != _delField.find( _delChar ) )
       {
-         cerr << "option \"" << OPTION_DELCHAR << "\" cant be same as "
-              << "option \"" << OPTION_DELFIELD  << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
+         cerr << "Option " << OPTION_DELCHAR << " cant be same as "
+              << "option " << OPTION_DELFIELD << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELCHAR, OPTION_DELFIELD ) ;
          goto error ;
       }
       if ( _delChar.size() > 0 && string::npos != _delRecord.find( _delChar ) )
       {
-         cerr << "option \"" << OPTION_DELCHAR << "\" cant be same as "
-              << "option \"" << OPTION_DELRECORD  << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
+         cerr << "Option " << OPTION_DELCHAR << " cant be same as "
+              << "option " << OPTION_DELRECORD << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELCHAR, OPTION_DELRECORD ) ;
          goto error ;
       }
       if ( _delField == _delRecord )
       {
-         cerr << "option \"" << OPTION_DELFIELD << "\" cant be same as "
-              << "option \"" << OPTION_DELRECORD << "\"" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" cant be same as option \"%s\"",
+         cerr << "Option " << OPTION_DELFIELD << " cant be same as "
+              << "option " << OPTION_DELRECORD << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" cant be same as option \"%s\"",
                  OPTION_DELFIELD, OPTION_DELRECORD ) ;
          goto error ;
       }
@@ -1000,11 +1000,11 @@ namespace exprt
 
       if ( _cmdHas(OPTION_CONF) && _cmdHas(OPTION_GENCONF) )
       {
-         cerr << "option \"" << OPTION_CONF << "\" and "
-              << "option \"" << OPTION_GENCONF << "\" "
-              << "cant be specified at the same time" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time",
+         cerr << "Option " << OPTION_CONF << " and "
+              << "option " << OPTION_GENCONF << " "
+              << "cannot be used at the same time" << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" and option \"%s\""
+                          "cannot be used at the same time",
                  OPTION_CONF, OPTION_GENCONF ) ;
          goto error ;
       }
@@ -1034,11 +1034,11 @@ namespace exprt
       INT32 rc = SDB_OK ;
       if ( _has(OPTION_FILENAME) && _has(OPTION_DIRNAME) )
       {
-         cerr << "option \"" << OPTION_FILENAME << "\" and "
-              << "option \"" << OPTION_DIRNAME << "\" "
-              << "cant be specified at the same time" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time",
+         cerr << "Option " << OPTION_FILENAME << " and "
+              << "option " << OPTION_DIRNAME << " "
+              << "cannot be used at the same time" << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" and option \"%s\""
+                          "cannot be used at the same time",
                  OPTION_FILENAME, OPTION_DIRNAME ) ;
          goto error ;
       }
@@ -1046,10 +1046,10 @@ namespace exprt
                 !_has(OPTION_DIRNAME) &&
                 !_has(OPTION_GENCONF) )
       {
-         cerr << "option \"" << OPTION_FILENAME << "\" or "
-              << "option \"" << OPTION_DIRNAME << "\" "
+         cerr << "Option " << OPTION_FILENAME << " or "
+              << "option " << OPTION_DIRNAME << " "
               << "must be specified" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" or option \"%s\""
+         PD_LOG( PDERROR, "Option \"%s\" or option \"%s\""
                           "must be specified ",
                  OPTION_FILENAME, OPTION_DIRNAME ) ;
          goto error ;
@@ -1070,14 +1070,14 @@ namespace exprt
          rc = ossAccess( _dir.c_str(), W_OK ) ;
          if ( SDB_FNE == rc )
          {
-            cerr << "dir " << _dir << " does not exist" << endl ;
-            PD_LOG( PDERROR, "dir %s does not exist", _dir.c_str() ) ;
+            cerr << "Directory " << _dir << " does not exist" << endl ;
+            PD_LOG( PDERROR, "Directory %s does not exist", _dir.c_str() ) ;
             goto error ;
          }
          else if ( SDB_OK != rc )
          {
-            cerr << "failed to access dir " << _dir << endl ;
-            PD_LOG( PDERROR, "failed to access dir %s", _dir.c_str() ) ;
+            cerr << "Failed to access directory " << _dir << endl ;
+            PD_LOG( PDERROR, "Failed to access directory %s", _dir.c_str() ) ;
             goto error ;
          }
       }
@@ -1102,9 +1102,9 @@ namespace exprt
       if ( ( !_has(OPTION_COLLECTSPACE) && _has(OPTION_COLLECTION) ) ||
            ( _has(OPTION_COLLECTSPACE) && !_has(OPTION_COLLECTION) ) )
       {
-         cerr << "option \"" << OPTION_COLLECTSPACE
-              << "\" must be specified with "
-              << "option \"" << OPTION_COLLECTION << "\"" << endl ;
+         cerr << "Option " << OPTION_COLLECTSPACE
+              << " must be specified with "
+              << "option " << OPTION_COLLECTION << endl ;
          PD_LOG( PDERROR, "Option \"%s\" must be specified with option \"%s\"",
                  OPTION_COLLECTSPACE, OPTION_COLLECTION ) ;
          goto error ;
@@ -1114,11 +1114,10 @@ namespace exprt
       if ( _has(OPTION_COLLECTSPACE) &&
            ( _has(OPTION_CSCL) || _has(OPTION_EXCLUDECSCL) ) )
       {
-         cerr << "option \"" OPTION_COLLECTSPACE "\"/\"" OPTION_COLLECTION "\""
-              << " cant be used mixing with option \"" OPTION_CSCL "\"/\""
-                 OPTION_EXCLUDECSCL "\""
-              << endl ;
-         PD_LOG( PDERROR, "Option \"%s\"/\"%s\" cant be used mixing with "
+         cerr << "Option " OPTION_COLLECTSPACE "/" OPTION_COLLECTION
+              << " cannot be used mixing with option " OPTION_CSCL "/"
+                 OPTION_EXCLUDECSCL << endl ;
+         PD_LOG( PDERROR, "Option \"%s\"/\"%s\" cannot be used mixing with "
                           "option \"%s\"/\"%s\"",
                  OPTION_COLLECTSPACE, OPTION_COLLECTION,
                  OPTION_CSCL, OPTION_EXCLUDECSCL ) ;
@@ -1128,11 +1127,11 @@ namespace exprt
       // --select cant be used with --fields
       if ( _has(OPTION_SELECT) && _has(OPTION_FIELDS) )
       {
-         cerr << "option \"" << OPTION_SELECT << "\" and "
-              << "option \"" << OPTION_FIELDS << "\" "
-              << "cant be specified at the same time" << endl ;
-         PD_LOG( PDERROR, "option \"%s\" and option \"%s\""
-                          "cant be specified at the same time",
+         cerr << "Option " << OPTION_SELECT << " and "
+              << "option " << OPTION_FIELDS << " "
+              << "cannot be used at the same time" << endl ;
+         PD_LOG( PDERROR, "Option \"%s\" and option \"%s\""
+                          "cannot be used at the same time",
                  OPTION_SELECT, OPTION_FIELDS ) ;
          goto error ;
       }
@@ -1233,8 +1232,8 @@ namespace exprt
       rc = Hosts::parse( _hostsString, _hosts ) ;
       if ( rc )
       {
-         std::cerr << "invalid host"  << std::endl;
-         PD_LOG( PDERROR, "invalid host, hosts=%s", _hostsString.c_str() ) ;
+         std::cerr << "Invalid value for hosts"  << std::endl;
+         PD_LOG( PDERROR, "Invalid value for hosts : %s", _hostsString.c_str() ) ;
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -1329,8 +1328,8 @@ namespace exprt
          rc = formatOfName( _typeName, _type ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \"" << OPTION_TYPE << "\"" <<endl;
-            PD_LOG( PDERROR, "invalid value for option \"" OPTION_TYPE "\"" ) ;
+            cerr << "Invalid value for option " << OPTION_TYPE <<endl;
+            PD_LOG( PDERROR, "Invalid value for option " OPTION_TYPE ) ;
             goto error ;
          }
       }
@@ -1356,9 +1355,9 @@ namespace exprt
          rc = getFileLimit( _get<string>(OPTION_FILELIMIT), _fileLimit ) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid value for option \""
-                 << OPTION_FILELIMIT << "\"" <<endl;
-            PD_LOG( PDERROR, "invalid value for option \""OPTION_FILELIMIT"\"");
+            cerr << "Invalid value for option "
+                 << OPTION_FILELIMIT <<endl;
+            PD_LOG( PDERROR, "Invalid value for option "OPTION_FILELIMIT);
             goto error ;
          }
       }

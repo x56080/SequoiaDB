@@ -95,10 +95,10 @@ namespace import
       INT32 rc = SDB_OK ;
       sdbConnectionStruct *connection = NULL ;
 
-      SDB_ASSERT( SDB_INVALID_HANDLE == _connection, "already connected" ) ;
+      SDB_ASSERT( SDB_INVALID_HANDLE == _connection, "Already connected" ) ;
       SDB_ASSERT( SDB_INVALID_HANDLE == _collectionSpace,
-                  "already get collection space" ) ;
-      SDB_ASSERT( SDB_INVALID_HANDLE == _collection, "already get collection");
+                  "Already get collection space" ) ;
+      SDB_ASSERT( SDB_INVALID_HANDLE == _collection, "Already get collection");
 
       if ( _useSSL )
       {
@@ -130,14 +130,14 @@ namespace import
       {
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
-            ossPrintf( "collection space %s does not exist"OSS_NEWLINE,
+            ossPrintf( "Collection space %s does not exist"OSS_NEWLINE,
                        _csname.c_str() ) ;
-            PD_LOG( PDERROR, "collection space %s does not exist, rc = %d",
+            PD_LOG( PDERROR, "Collection space %s does not exist, rc = %d",
                     _csname.c_str(), rc ) ;
          }
          else
          {
-            PD_LOG( PDERROR, "failed to get collection space %s, rc = %d",
+            PD_LOG( PDERROR, "Failed to get collection space %s, rc = %d",
                     _csname.c_str(), rc ) ;
          }
 
@@ -150,14 +150,14 @@ namespace import
       {
          if ( SDB_DMS_NOTEXIST == rc )
          {
-            ossPrintf( "collection %s does not exist."OSS_NEWLINE,
+            ossPrintf( "Collection %s does not exist."OSS_NEWLINE,
                        _clname.c_str() ) ;
-            PD_LOG( PDERROR, "collection %s does not exist, rc = %d",
+            PD_LOG( PDERROR, "Collection %s does not exist, rc = %d",
                     _clname.c_str(), rc ) ;
          }
          else if ( rc )
          {
-            PD_LOG( PDERROR, "failed to get collection %s, rc = %d",
+            PD_LOG( PDERROR, "Failed to get collection %s, rc = %d",
                     _clname.c_str(), rc ) ;
          }
 
@@ -167,7 +167,7 @@ namespace import
       rc = _initInsertMsg() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init insert message, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init insert message, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -211,7 +211,7 @@ namespace import
          rc = sdbTransactionBegin( _connection ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to begin transaction, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to begin transaction, rc=%d", rc ) ;
             goto error ;
          }
       }
@@ -228,7 +228,7 @@ namespace import
       rc = _bulkInsert( pageInfo, flag ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to bulk insert, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to bulk insert, rc=%d", rc ) ;
 
          if ( _enableTransaction )
          {
@@ -237,7 +237,7 @@ namespace import
             ret = sdbTransactionRollback( _connection ) ;
             if ( ret )
             {
-               PD_LOG( PDERROR, "failed to rollback transaction, rc=%d", ret ) ;
+               PD_LOG( PDERROR, "Failed to rollback transaction, rc=%d", ret ) ;
                rc = ret ;
                goto error ;
             }
@@ -251,7 +251,7 @@ namespace import
          rc = sdbTransactionCommit( _connection ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to commit transaction, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to commit transaction, rc=%d", rc ) ;
             goto error ;
          }
       }
@@ -281,7 +281,7 @@ namespace import
       if ( NULL == _insertBuffer )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to malloc buffer, size=%d",
+         PD_LOG( PDERROR, "Failed to malloc buffer, size=%d",
                  _insertBufferSize ) ;
          goto error ;
       }
@@ -323,7 +323,7 @@ namespace import
       rc = _send( _insertBuffer, _insertBufferSize ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to send header buffer, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to send header buffer, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -333,7 +333,7 @@ namespace import
          rc = _send( pages->getBuffer(), pages->getRecordsSize() ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to send bson buffer, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to send bson buffer, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -343,14 +343,14 @@ namespace import
       rc = _recv() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to recv message, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to recv message, rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _extract() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to extract message, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to extract message, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -452,7 +452,7 @@ namespace import
          if ( NULL == _recvBuffer )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to malloc buffer, size=%d",
+            PD_LOG( PDERROR, "Failed to malloc buffer, size=%d",
                     _recvBufferSize ) ;
             goto error ;
          }

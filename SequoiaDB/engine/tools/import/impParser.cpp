@@ -69,7 +69,7 @@ namespace import
          {
             SAFE_OSS_FREE( tmp ) ;
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to malloc fields buffer, size=%d", size ) ;
+            PD_LOG( PDERROR, "Failed to malloc fields buffer, size=%d", size ) ;
             goto error ;
          }
       }
@@ -84,8 +84,8 @@ namespace import
       rc = csvParser->parseFields( fields, fieldsLength, isHeaderline ) ;
       if ( rc )
       {
-         std::cout << "failed to parse fields" << std::endl ;
-         PD_LOG( PDERROR, "failed to parse fields, rc=%d", rc ) ;
+         std::cout << "Failed to parse fields" << std::endl ;
+         PD_LOG( PDERROR, "Failed to parse fields, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -126,7 +126,7 @@ namespace import
       {
          stringstream ss ;
 
-         ss << "parser [" << parArgs->id << "] started..." ;
+         ss << "Parser [" << parArgs->id << "] started..." ;
 
          PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
 
@@ -140,7 +140,7 @@ namespace import
                                          *options, parser ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to create RecordParser object,"
+         PD_LOG( PDERROR, "Failed to create RecordParser object,"
                  "rc=%d, INPUT_FORMAT=%d", rc, options->inputFormat() ) ;
          goto error ;
       }
@@ -208,12 +208,12 @@ namespace import
                                            recordData.dataLen ) ;
                if ( ret )
                {
-                  PD_LOG( PDERROR, "failed to log write record, rc=%d", ret ) ;
+                  PD_LOG( PDERROR, "Failed to log write record, rc=%d", ret ) ;
                }
 
                recordData.bufferBlock->release_r() ;
 
-               PD_LOG( PDERROR, "failed to parse record, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to parse record, rc=%d", rc ) ;
 
                if ( options->errorStop() )
                {
@@ -236,7 +236,7 @@ namespace import
 
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to packing record, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to packing record, rc=%d", rc ) ;
 
             if ( options->errorStop() )
             {
@@ -259,7 +259,7 @@ namespace import
       {
          stringstream ss ;
 
-         ss << "parser [" << parArgs->id << "] stopped" ;
+         ss << "Parser [" << parArgs->id << "] stopped" ;
 
          PD_LOG( PDEVENT, "%s, rc=%d", ss.str().c_str(), rc ) ;
 
@@ -318,7 +318,7 @@ namespace import
       rc = _logFile.init( parserLogFile, TRUE ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init parser log file, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init parser log file, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -335,7 +335,7 @@ namespace import
          if ( NULL == args )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to create parser args, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to create parser args, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -346,7 +346,7 @@ namespace import
          if ( NULL == worker )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to create parser Worker object" ) ;
+            PD_LOG( PDERROR, "Failed to create parser Worker object" ) ;
             goto error ;
          }
 
@@ -366,7 +366,7 @@ namespace import
       INT32 rc  = SDB_OK ;
       INT32 num = _workers.size() ;
 
-      SDB_ASSERT( num > 0, "must have woker" ) ;
+      SDB_ASSERT( num > 0, "Must have woker" ) ;
 
       for ( INT32 i = 0; i < num; ++i )
       {
@@ -375,7 +375,7 @@ namespace import
          rc = worker->start() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to start parser" ) ;
+            PD_LOG( PDERROR, "Failed to start parser" ) ;
             goto error ;
          }
 
@@ -405,7 +405,7 @@ namespace import
          rc = worker->waitStop() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to wait importer stop" ) ;
+            PD_LOG( PDERROR, "Failed to wait importer stop" ) ;
             ++i ;
             rc = SDB_OK ;
          }

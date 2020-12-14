@@ -58,7 +58,7 @@ namespace import
       INT32 rc = SDB_OK;
       INT32 cataCount = 0;
 
-      SDB_ASSERT(!_inited, "alreay inited");
+      SDB_ASSERT(!_inited, "Alreay inited");
 
       _hosts    = &hosts ;
       _user     = user ;
@@ -72,7 +72,7 @@ namespace import
       rc = _getCatalogInfo( FALSE, cataCount ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get catalog info, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -86,7 +86,7 @@ namespace import
       rc = _cataAgent.getCataInfo( _collectionName, _cataInfo ) ;
       if (SDB_OK != rc)
       {
-         PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get catalog info, rc=%d", rc ) ;
          goto error;
       }
 
@@ -101,14 +101,14 @@ namespace import
          rc = _getCatalogInfo( TRUE, cataCount ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to get catalog info, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get catalog info, rc=%d", rc ) ;
             goto error ;
          }
 
          rc = _cataInfo.getSubCLList(subCLList);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get group by record, rc=%d", rc);
             goto error;
          }
 
@@ -119,7 +119,7 @@ namespace import
             rc = _cataAgent.getCataInfo(*it, cataInfo);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to get catalog info, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to get catalog info, rc=%d", rc);
                goto error;
             }
 
@@ -167,7 +167,7 @@ namespace import
                                             _collectionName.c_str() ) )
       {
          rc = SDB_DRIVER_BSON_ERROR ;
-         PD_LOG( PDERROR, "failed to build catalog condition bson, rc=%d",
+         PD_LOG( PDERROR, "Failed to build catalog condition bson, rc=%d",
                  rc ) ;
          goto error ;
       }
@@ -175,7 +175,7 @@ namespace import
       if( BSON_ERROR == bson_finish( &condition ) )
       {
          rc = SDB_DRIVER_BSON_ERROR ;
-         PD_LOG( PDERROR, "failed to build catalog condition bson, rc=%d",
+         PD_LOG( PDERROR, "Failed to build catalog condition bson, rc=%d",
                  rc ) ;
          goto error;
       }
@@ -240,7 +240,7 @@ namespace import
                continue;
             }
 
-            PD_LOG(PDWARNING, "failed to get coordinator group from %s:%s, rc = %d",
+            PD_LOG(PDWARNING, "Failed to get coordinator group from %s:%s, rc = %d",
                    host.hostname.c_str(), host.svcname.c_str(), rc);
             rc = SDB_OK;
             continue;
@@ -252,7 +252,7 @@ namespace import
       if ( SDB_INVALID_HANDLE == cursor )
       {
          rc = SDB_OK ;
-         PD_LOG( PDWARNING, "failed to get coordinator group" ) ;
+         PD_LOG( PDWARNING, "Failed to get coordinator group" ) ;
          goto done ;
       }
 
@@ -267,14 +267,14 @@ namespace import
                break ;
             }
 
-            PD_LOG( PDERROR, "failed to get cataObj from cursor, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get cataObj from cursor, rc=%d", rc ) ;
             goto error ;
          }
 
          rc = _cataAgent.updateCatalog( bson_data( &cataObj ) ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to update catalog agent, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to update catalog agent, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -307,8 +307,8 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(_inited, "must be inited");
-      SDB_ASSERT(NULL != record, "record can't be NULL");
+      SDB_ASSERT(_inited, "Must be inited");
+      SDB_ASSERT(NULL != record, "Record can't be NULL");
 
       if ( _isMainCL )
       {
@@ -317,7 +317,7 @@ namespace import
          rc = _cataInfo.getSubCLNameByRecord(bson_data(record), collection);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get subCL by record, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get subCL by record, rc=%d", rc);
             goto error;
          }
 
@@ -325,7 +325,7 @@ namespace import
          if (it == _subCataInfo.end())
          {
             rc = SDB_SYS;
-            PD_LOG(PDERROR, "failed to get CataInfo by subCL, subCL=%s, rc=%d",
+            PD_LOG(PDERROR, "Failed to get CataInfo by subCL, subCL=%s, rc=%d",
                    collection.c_str(), rc);
             goto error;
          }
@@ -333,7 +333,7 @@ namespace import
          rc = (it->second).getGroupByRecord(bson_data(record), groupId);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get group of subCL[%s] by record, rc=%d",
+            PD_LOG(PDERROR, "Failed to get group of subCL[%s] by record, rc=%d",
                    collection.c_str(), rc);
             goto error;
          }
@@ -343,7 +343,7 @@ namespace import
          rc = _cataInfo.getGroupByRecord(bson_data(record), groupId);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get group by record, rc=%d", rc);
             goto error;
          }
          collection = _collectionName;

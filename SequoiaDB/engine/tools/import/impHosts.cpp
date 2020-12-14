@@ -122,7 +122,7 @@ namespace import
             if (nameIt == nameTok.end())
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid host [%s]", host.c_str());
+               PD_LOG(PDERROR, "Invalid host [%s]", host.c_str());
                goto error;
             }
             hostname = *nameIt;
@@ -130,7 +130,7 @@ namespace import
             if (hostname.empty())
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "empty hostname of host [%s]", host.c_str());
+               PD_LOG(PDERROR, "Empty hostname of host [%s]", host.c_str());
                goto error;
             }
 
@@ -139,7 +139,7 @@ namespace import
             if (nameIt == nameTok.end())
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid host [%s]", host.c_str());
+               PD_LOG(PDERROR, "Invalid host [%s]", host.c_str());
                goto error;
             }
             svcname = *nameIt;
@@ -147,7 +147,7 @@ namespace import
             if (svcname.empty())
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "empty svcname of host [%s]", host.c_str());
+               PD_LOG(PDERROR, "Empty svcname of host [%s]", host.c_str());
                goto error;
             }
 
@@ -156,7 +156,7 @@ namespace import
             if (nameIt != nameTok.end())
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid host [%s]", host.c_str());
+               PD_LOG(PDERROR, "Invalid host [%s]", host.c_str());
                goto error;
             }
 
@@ -172,7 +172,7 @@ namespace import
       if (hosts.empty())
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "there is no host");
+         PD_LOG(PDERROR, "There is no host");
          goto error;
       }
 

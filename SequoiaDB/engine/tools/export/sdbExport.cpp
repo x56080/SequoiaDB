@@ -57,7 +57,7 @@ int main( int argc, char* argv[] )
       rc = options.parseCmd( argc, argv ) ;
       if (SDB_OK != rc)
       {
-         cerr << "failed to parse options" << endl ;
+         cerr << "Failed to parse options" << endl ;
          PD_LOG(PDERROR, "Failed to parse cmd options, rc=%d", rc) ;
          goto error ;
       }

@@ -119,7 +119,7 @@ namespace exprt
             if ( nameIt == nameTok.end() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "invalid host [%s]", host.c_str() ) ;
+               PD_LOG( PDERROR, "Invalid host [%s]", host.c_str() ) ;
                goto error ;
             }
 
@@ -129,7 +129,7 @@ namespace exprt
             if ( hostname.empty() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "empty hostname of host [%s]", host.c_str() ) ;
+               PD_LOG( PDERROR, "Empty hostname of host [%s]", host.c_str() ) ;
                goto error ;
             }
 
@@ -138,7 +138,7 @@ namespace exprt
             if ( nameIt == nameTok.end() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "invalid host [%s]", host.c_str() ) ;
+               PD_LOG( PDERROR, "Invalid host [%s]", host.c_str() ) ;
                goto error ;
             }
 
@@ -148,7 +148,7 @@ namespace exprt
             if ( svcname.empty() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "empty svcname of host [%s]", host.c_str() ) ;
+               PD_LOG( PDERROR, "Empty svcname of host [%s]", host.c_str() ) ;
                goto error ;
             }
 
@@ -157,7 +157,7 @@ namespace exprt
             if ( nameIt != nameTok.end() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "invalid host [%s]", host.c_str() ) ;
+               PD_LOG( PDERROR, "Invalid host [%s]", host.c_str() ) ;
                goto error ;
             }
 
@@ -174,7 +174,7 @@ namespace exprt
       if ( hosts.empty() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "there is no host" ) ;
+         PD_LOG( PDERROR, "There is no host" ) ;
          goto error ;
       }
 

@@ -50,7 +50,7 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(NULL != bsonData, "bsonData can't be NULL");
+      SDB_ASSERT(NULL != bsonData, "BsonData can't be NULL");
 
       if (NULL == _cataAgent)
       {
@@ -58,7 +58,7 @@ namespace import
          if (NULL == _cataAgent)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to alloc _clsCatalogAgent");
+            PD_LOG(PDERROR, "Failed to alloc _clsCatalogAgent");
             goto error;
          }
       }
@@ -70,14 +70,14 @@ namespace import
          rc = _cataAgent->updateCatalog(0, 0, bsonData, obj.objsize());
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to update _cataAgent from bson");
+            PD_LOG(PDERROR, "Failed to update _cataAgent from bson");
             goto error;
          }
       }
       catch (std::exception &e)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "failed to update _cataAgent from bson,"
+         PD_LOG(PDERROR, "Failed to update _cataAgent from bson,"
                 "received unexcepted error:%s", e.what());
          goto error;
       }
@@ -100,7 +100,7 @@ namespace import
       if (NULL == cataSet)
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to find catalog of collection %s",
+         PD_LOG(PDERROR, "Failed to find catalog of collection %s",
                 collectionName.c_str());
          goto error;
       }

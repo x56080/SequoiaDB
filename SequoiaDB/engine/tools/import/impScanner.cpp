@@ -105,7 +105,7 @@ namespace import
       string inputString ;
 
       {
-         CHAR* str = "scanner started..." ;
+         CHAR* str = "Scanner started..." ;
 
          PD_LOG( PDEVENT, "%s", str ) ;
 
@@ -133,11 +133,11 @@ namespace import
             isFirst = TRUE ;
             inputString = options->files()[fileId] ;
             ++fileId ;
-            PD_LOG( PDINFO, "read data from file [%s]", inputString.c_str() ) ;
+            PD_LOG( PDINFO, "Read data from file [%s]", inputString.c_str() ) ;
 
             if ( options->verbose() )
             {
-               std::cout << "read data from file [" 
+               std::cout << "Read data from file [" 
                          << inputString << "]"
                          << std::endl ;
             }
@@ -152,7 +152,7 @@ namespace import
                                         inputString, *options, input ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to create InputStream object,"
+         PD_LOG( PDERROR, "Failed to create InputStream object,"
                  "rc=%d, INPUT_TYPE=%d", rc, options->inputType() ) ;
          goto error ;
       }
@@ -202,7 +202,7 @@ namespace import
             {
                std::stringstream ss;
 
-               ss << "scan records of file ["
+               ss << "Scan records of file ["
                   << inputString << "]: "
                   << scanNum
                   << std::endl;
@@ -216,7 +216,7 @@ namespace import
          }
          else if ( rc )
          {
-            printf( "read record error!"OSS_NEWLINE ) ;
+            printf( "Read record error!"OSS_NEWLINE ) ;
             PD_LOG( PDERROR, "failed to read record" ) ;
             goto error ;
          }
@@ -227,7 +227,7 @@ namespace import
                  options->hasHeaderLine() )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "the headerline is empty" ) ;
+               PD_LOG( PDERROR, "The headerline is empty" ) ;
                printf( "ERROR: the headerline is empty"OSS_NEWLINE ) ;
                goto error ;
             }
@@ -264,11 +264,11 @@ namespace import
 
                fieldsLen = recordLength ;
 
-               PD_LOG( PDINFO, "file: %s, fields: %s", inputString.c_str(),
+               PD_LOG( PDINFO, "File: %s, fields: %s", inputString.c_str(),
                        fields.c_str() ) ;
                if ( options->verbose() )
                {
-                  std::cout << "file: " << inputString <<
+                  std::cout << "File: " << inputString <<
                                ", fields: " << fields << std::endl;
                }
 
@@ -278,8 +278,8 @@ namespace import
                rc = csvParser->parseFields( record, recordLength, TRUE ) ;
                if ( rc )
                {
-                  std::cout << "failed to parse fields" << std::endl;
-                  PD_LOG( PDERROR, "failed to parse fields, rc = %d", rc ) ;
+                  std::cout << "Failed to parse fields" << std::endl;
+                  PD_LOG( PDERROR, "Failed to parse fields, rc = %d", rc ) ;
                   goto error ;
                }
 
@@ -292,7 +292,7 @@ namespace import
                if ( NULL == pFields )
                {
                   rc = SDB_OOM ;
-                  PD_LOG( PDERROR, "failed to malloc record buffer, size=%d",
+                  PD_LOG( PDERROR, "Failed to malloc record buffer, size=%d",
                           fieldsLen + 1 ) ;
                   goto error ;
                }
@@ -341,7 +341,7 @@ namespace import
       }
 
       {
-         CHAR* str= "scanner stopped";
+         CHAR* str= "Scanner stopped";
 
          PD_LOG( PDEVENT, "%s, rc=%d", str, rc ) ;
 
@@ -396,7 +396,7 @@ namespace import
                                             *options, _parser ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to create RecordParser object,"
+            PD_LOG( PDERROR, "Failed to create RecordParser object,"
                     "rc=%d, INPUT_FORMAT=%d", rc, options->inputFormat() ) ;
             goto error ;
          }
@@ -407,11 +407,11 @@ namespace import
             const CHAR* str = options->fields().c_str() ;
             CSVRecordParser* csvParser = NULL ;
 
-            PD_LOG( PDINFO, "fields: %s", options->fields().c_str() ) ;
+            PD_LOG( PDINFO, "Fields: %s", options->fields().c_str() ) ;
 
             if ( options->verbose() )
             {
-               std::cout << "fields: " << options->fields() << std::endl ;
+               std::cout << "Fields: " << options->fields() << std::endl ;
             }
 
             csvParser = (CSVRecordParser*)_parser ;
@@ -419,8 +419,8 @@ namespace import
             rc = csvParser->parseFields( str, len, FALSE ) ;
             if ( rc )
             {
-               std::cout << "failed to parse fields" << std::endl ;
-               PD_LOG( PDERROR, "failed to parse fields, rc=%d", rc ) ;
+               std::cout << "Failed to parse fields" << std::endl ;
+               PD_LOG( PDERROR, "Failed to parse fields, rc=%d", rc ) ;
                goto error ;
             }
 
@@ -456,14 +456,14 @@ namespace import
       rc = _bufferBlock1.init( bufferSize ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init buffer page, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init buffer page, rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _bufferBlock2.init( bufferSize ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init buffer page, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init buffer page, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -475,7 +475,7 @@ namespace import
       if ( NULL == _worker )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "failed to create scanner Worker object" ) ;
+         PD_LOG( PDERROR, "Failed to create scanner Worker object" ) ;
          goto error ;
       }
 
@@ -490,7 +490,7 @@ namespace import
    INT32 Scanner::start()
    {
       INT32 rc = SDB_OK ;
-      SDB_ASSERT( _inited, "must be inited" ) ;
+      SDB_ASSERT( _inited, "Must be inited" ) ;
 
       _stopped = FALSE ;
 
@@ -498,7 +498,7 @@ namespace import
       if ( rc )
       {
          _stopped = TRUE ;
-         PD_LOG( PDERROR, "failed to start scanner" ) ;
+         PD_LOG( PDERROR, "Failed to start scanner" ) ;
          goto error ;
       }
 
@@ -521,7 +521,7 @@ namespace import
          rc = _worker->waitStop() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to wait the scanner stop" ) ;
+            PD_LOG( PDERROR, "Failed to wait the scanner stop" ) ;
          }
 
          SAFE_OSS_DELETE( _worker ) ;

@@ -81,7 +81,7 @@ namespace import
          rc = _initPageMap() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to init page map, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to init page map, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -96,7 +96,7 @@ namespace import
                            _options->useSSL() );
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init sharding, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init sharding, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -109,7 +109,7 @@ namespace import
          rc = _initPageMap() ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to init page map, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to init page map, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -125,14 +125,14 @@ namespace import
       rc = _logFile.init( shardingLogFile, TRUE ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init sharding log file" ) ;
+         PD_LOG( PDERROR, "Failed to init sharding log file" ) ;
          goto error ;
       }
 
       {
          stringstream ss ;
 
-         ss << "sharding started with " << _sharding.getGroupNum() <<
+         ss << "Sharding started with " << _sharding.getGroupNum() <<
                " groups..." << std::endl ;
 
          PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
@@ -146,7 +146,7 @@ namespace import
       rc = _initShardingMap() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init page map, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init page map, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -223,7 +223,7 @@ namespace import
             }
             else if ( rc )
             {
-               PD_LOG( PDERROR, "failed to get page, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get page, rc=%d", rc ) ;
                goto error ;
             }
 
@@ -234,7 +234,7 @@ namespace import
       }
 
       writeSize = pageHeader->write( data, dataSize ) ;
-      SDB_ASSERT( writeSize == dataSize, "page buffer not enough space" ) ;
+      SDB_ASSERT( writeSize == dataSize, "Page buffer not enough space" ) ;
 
       if ( _needSharding )
       {
@@ -298,7 +298,7 @@ namespace import
       rc = _sharding.getAllGroupID( list ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to get all group id, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get all group id, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -311,7 +311,7 @@ namespace import
          if ( NULL == pageHeader )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to allocate PageHeader, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to allocate PageHeader, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -349,7 +349,7 @@ namespace import
          if ( NULL == pageHeader )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to allocate PageHeader, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to allocate PageHeader, rc=%d", rc ) ;
             goto error ;
          }
 
@@ -389,12 +389,12 @@ namespace import
 
             _failedNum.add( 1 ) ;
 
-            PD_LOG( PDERROR, "failed to get group by record, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get group by record, rc=%d", rc ) ;
 
             ret = _logFile.write( record ) ;
             if ( ret )
             {
-               PD_LOG( PDERROR, "failed to log record, rc=%d", ret ) ;
+               PD_LOG( PDERROR, "Failed to log record, rc=%d", ret ) ;
             }
 
             goto error ;

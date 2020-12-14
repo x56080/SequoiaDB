@@ -231,7 +231,7 @@ namespace exprt
             rc = cl.parseCLFields(*it) ;
             if ( SDB_OK != rc )
             {
-               cerr << "invalid format of \"" << *it << "\"" << endl ;
+               cerr << "Invalid format of \"" << *it << "\"" << endl ;
                goto error ;
             }
             excludeCollection.insert(cl) ;
@@ -256,7 +256,7 @@ namespace exprt
             rc = cl.parseCLFields(*it) ;
             if ( SDB_OK != rc )
             {
-               cerr << "invalid format of \"" << *it << "\"" << endl ;
+               cerr << "Invalid format of \"" << *it << "\"" << endl ;
                goto error ;
             }
 
@@ -282,7 +282,7 @@ namespace exprt
       rc = sdbGetCollectionSpace ( hConn, cs.c_str(), &hCS ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
-         cerr << "collection space " << cs << " does not exist" << endl ;
+         cerr << "Collection space " << cs << " does not exist" << endl ;
          PD_LOG ( PDERROR, "Collection space %s does not exist", cs.c_str() ) ;
          goto error ;
       }
@@ -310,7 +310,7 @@ namespace exprt
       rc = sdbGetCollection( hConn, fullName.c_str(), &hCL ) ;
       if ( SDB_DMS_NOTEXIST == rc )
       {
-         cerr << "collection " << fullName << " does not exist" << endl ;
+         cerr << "Collection " << fullName << " does not exist" << endl ;
          PD_LOG( PDERROR, "Collection %s does not exist", fullName.c_str() ) ;
          goto error ;
       }
@@ -475,9 +475,9 @@ namespace exprt
          rc = cl.parseCLFields(clFields) ;
          if ( SDB_OK != rc )
          {
-            cerr << "invalid format to specify the fileds : "
+            cerr << "Invalid format to specify the fileds : "
                  << rawCLFields.back() << endl ;
-            PD_LOG( PDERROR, "invalid format to specify the fileds : %s",
+            PD_LOG( PDERROR, "Invalid format to specify the fileds : %s",
                     rawCLFields.back().c_str() ) ;
             goto error ;
          }
@@ -492,9 +492,9 @@ namespace exprt
             rc = cl.parseCLFields(*it) ;
             if ( SDB_OK != rc )
             {
-               cerr << "invalid format to specify the fileds : "
+               cerr << "Invalid format to specify the fileds : "
                     << *it << endl ;
-               PD_LOG( PDERROR, "invalid format to specify the fileds : %s",
+               PD_LOG( PDERROR, "Invalid format to specify the fileds : %s",
                        it->c_str() ) ;
                goto error ;
             }
@@ -570,7 +570,7 @@ namespace exprt
                  !it->fields.empty() &&
                  _options.select().empty() )
             {
-               cerr << "for csv, fields for each collection must be specified"
+               cerr << "For csv, fields for each collection must be specified"
                     << endl ;
                PD_LOG( PDERROR, "For csv, fields for each collection "
                                 "must be specified, but collection %s not",
@@ -627,18 +627,18 @@ namespace exprt
                   !_options.sort().empty()  )   
                )
       {
-         cerr << "ambiguity of select/filter/sort in more than one collections"
+         cerr << "Ambiguity of select/filter/sort in more than one collections"
               << endl ;
-         PD_LOG( PDERROR, "ambiguity of select/filter/sort "
+         PD_LOG( PDERROR, "Ambiguity of select/filter/sort "
                           "in more than one collections" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
       else if ( _collections.size() > 1 && !_options.file().empty() )
       {
-         cerr << "ambiguity of output file in more than one collections"
+         cerr << "Ambiguity of output file in more than one collections"
               << endl ;
-         PD_LOG( PDERROR, "ambiguity of output file "
+         PD_LOG( PDERROR, "Ambiguity of output file "
                           "in more than one collections" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;

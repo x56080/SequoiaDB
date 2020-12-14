@@ -69,7 +69,7 @@ namespace import
       rc = _scanner.initParser( &_options ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init parser, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init parser, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -125,7 +125,7 @@ namespace import
       rc = _packer.init( &_options, _freeQueue, _importQueue ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init packer, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init packer, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -141,7 +141,7 @@ namespace import
       pt::ptime startTime ;
       pt::ptime endTime ;
 
-      PD_LOG( PDINFO, "begin importing" ) ;
+      PD_LOG( PDINFO, "Begin importing" ) ;
 
       startTime = pt::second_clock::universal_time() ;
 
@@ -155,21 +155,21 @@ namespace import
       rc = _startScanner() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start scanner, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start scanner, rc=%d", rc ) ;
          goto stop ;
       }
 
       rc = _startParser() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start parser, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start parser, rc=%d", rc ) ;
          goto stop ;
       }
 
       rc = _startImporter() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start importers, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start importers, rc=%d", rc ) ;
          goto stop ;
       }
 
@@ -182,19 +182,19 @@ namespace import
       rc = _stopScanner() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to stop scanner, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to stop scanner, rc=%d", rc ) ;
       }
 
       rc = _waitParserStop() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to wait parser stop, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to wait parser stop, rc=%d", rc ) ;
       }
 
       rc = _stopImporter();
       if ( rc )
       {
-         PD_LOG(PDERROR, "failed to stop importers, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to stop importers, rc=%d", rc);
       }
 
       endTime = pt::second_clock::universal_time() ;
@@ -207,7 +207,7 @@ namespace import
 
          sec = time.total_seconds() ;
 
-         ss << "import " << _importer.importedNum() <<
+         ss << "Import " << _importer.importedNum() <<
                " records in " << sec << " second(s)" ;
 
          if ( sec > 0 )
@@ -219,7 +219,7 @@ namespace import
       }
 
    done:
-      PD_LOG( PDINFO, "finished importing" ) ;
+      PD_LOG( PDINFO, "Finished importing" ) ;
       return rc ;
    }
 
@@ -231,14 +231,14 @@ namespace import
       rc = _scanner.init( &_options, _dataQueue, workerNum ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init scanner, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init scanner, rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _scanner.start() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start scanner, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start scanner, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -255,7 +255,7 @@ namespace import
       rc = _scanner.stop() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to wait the scanner stop" ) ;
+         PD_LOG( PDERROR, "Failed to wait the scanner stop" ) ;
       }
 
       return rc ;
@@ -270,14 +270,14 @@ namespace import
       rc = _parser.init( &_options, _dataQueue, &_packer, workerNum ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init parser, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init parser, rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _parser.start() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start parser, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start parser, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -296,7 +296,7 @@ namespace import
       rc = _parser.stop() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to wait the parser stop" ) ;
+         PD_LOG( PDERROR, "Failed to wait the parser stop" ) ;
       }
 
       return rc ;
@@ -311,14 +311,14 @@ namespace import
 
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init importer, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init importer, rc=%d", rc ) ;
          goto error ;
       }
 
       rc = _importer.start() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to start importer, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to start importer, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -335,7 +335,7 @@ namespace import
       rc = _importer.stop();
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to stop importer, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to stop importer, rc=%d", rc ) ;
       }
 
       return rc;
@@ -345,30 +345,30 @@ namespace import
    {
       stringstream ss;
 
-      ss << "parsed records: " << _parser.parsedNum() << std::endl
-         << "parse failure: " << _parser.failedNum() << std::endl;
+      ss << "Parsed records: " << _parser.parsedNum() << std::endl
+         << "Parsed failure: " << _parser.failedNum() << std::endl;
 
-      ss << "sharding records: " << _packer.shardingNum() << std::endl
-         << "sharding failure: " << _packer.failedNum() << std::endl;
+      ss << "Sharding records: " << _packer.shardingNum() << std::endl
+         << "Sharding failure: " << _packer.failedNum() << std::endl;
 
-      ss << "imported records: " << _importer.importedNum() << std::endl
-         << "import failure: " << _importer.failedNum() << std::endl;
+      ss << "Imported records: " << _importer.importedNum() << std::endl
+         << "Imported failure: " << _importer.failedNum() << std::endl;
 
       if ( _parser.failedNum() > 0 )
       {
-         ss << "see " << _parser.logFileName()
+         ss << "See " << _parser.logFileName()
             << " for parse failure records" << std::endl ;
       }
 
       if ( _packer.failedNum() > 0 )
       {
-         ss << "see " << _packer.logFileName()
+         ss << "See " << _packer.logFileName()
             << " for sharding failure records" << std::endl ;
       }
 
       if ( _importer.failedNum() > 0 )
       {
-         ss << "see " << _importer.logFileName()
+         ss << "See " << _importer.logFileName()
             << " for import failure records" << std::endl ;
       }
 

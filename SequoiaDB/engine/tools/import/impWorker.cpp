@@ -50,7 +50,7 @@ namespace import
       }
       catch(std::exception &e)
       {
-         PD_LOG(PDERROR, "unexpected err happened:%s", e.what());
+         PD_LOG(PDERROR, "Unexpected err happened:%s", e.what());
       }
       return SDB_OK;
    }
@@ -65,7 +65,7 @@ namespace import
                                               0, NULL);
       if (NULL == thread->thread)
       {
-         PD_LOG(PDERROR, "failed to create thread");
+         PD_LOG(PDERROR, "Failed to create thread");
          return SDB_SYS;
       }
 
@@ -82,14 +82,14 @@ namespace import
       rc = WaitForSingleObject (thread->thread, INFINITE);
       if (WAIT_FAILED == rc)
       {
-         PD_LOG(PDERROR, "failed to wait for thread, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to wait for thread, rc=%d", rc);
          return SDB_SYS;
       }
 
       brc = CloseHandle(thread->thread);
       if (0 == brc)
       {
-         PD_LOG(PDERROR, "failed to close thread");
+         PD_LOG(PDERROR, "Failed to close thread");
          return SDB_SYS;
       }
 
@@ -125,7 +125,7 @@ namespace import
       }
       catch(std::exception &e)
       {
-         PD_LOG(PDERROR, "unexpected err happened:%s", e.what());
+         PD_LOG(PDERROR, "Unexpected err happened:%s", e.what());
       }
       return NULL;
    }
@@ -140,7 +140,7 @@ namespace import
       ret = pthread_create(&thread->thread, NULL, _threadMain, thread);
       if (0 != ret)
       {
-         PD_LOG(PDERROR, "failed to create thread");
+         PD_LOG(PDERROR, "Failed to create thread");
          return SDB_SYS;
       }
 
@@ -156,7 +156,7 @@ namespace import
       ret = pthread_join(thread->thread, NULL);
       if (0 != ret)
       {
-         PD_LOG(PDERROR, "failed to join thread");
+         PD_LOG(PDERROR, "Failed to join thread");
          return SDB_SYS;
       }
 
@@ -184,7 +184,7 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(!_started, "worker already started");
+      SDB_ASSERT(!_started, "Worker already started");
 
       rc = _threadCreate(&_thread);
       if (SDB_OK == rc)
@@ -199,7 +199,7 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(_started, "worker didn't start");
+      SDB_ASSERT(_started, "Worker didn't start");
 
       rc = _threadJoin(&_thread);
       if (SDB_OK == rc)

@@ -69,8 +69,8 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(_inited, "must inited");
-      SDB_ASSERT(!_isOpened, "can't open again");
+      SDB_ASSERT(_inited, "Must inited");
+      SDB_ASSERT(!_isOpened, "Can't open again");
 
       rc = ossOpen(_fileName.c_str(),
                    OSS_REPLACE | OSS_WRITEONLY | OSS_EXCLUSIVE,
@@ -78,7 +78,7 @@ namespace import
                    _file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open file %s, rc=%d",
+         PD_LOG(PDERROR, "Failed to open file %s, rc=%d",
                 _fileName.c_str(), rc);
       }
       else
@@ -104,9 +104,9 @@ namespace import
          if (SDB_OK != rc)
          {
             string s(buf, length);
-            PD_LOG(PDERROR, "failed to open file %s, rc=%d",
+            PD_LOG(PDERROR, "Failed to open file %s, rc=%d",
                    _fileName.c_str(), rc, s.c_str());
-            std::cout << "failed to open file " << _fileName << std::endl;
+            std::cout << "Failed to open file " << _fileName << std::endl;
             goto error;
          }
       }
@@ -115,7 +115,7 @@ namespace import
       if (SDB_OK != rc)
       {
          string s(buf, length);
-         PD_LOG(PDERROR, "failed to write to file %s, rc=%d, text:%s",
+         PD_LOG(PDERROR, "Failed to write to file %s, rc=%d, text:%s",
                 _fileName.c_str(), rc, s.c_str());
       }
       else
@@ -123,7 +123,7 @@ namespace import
          rc = ossWriteN(&_file, "\n", 1);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to write to file %s, rc=%d",
+            PD_LOG(PDERROR, "Failed to write to file %s, rc=%d",
                    _fileName.c_str(), rc);
          }
       }
@@ -153,21 +153,21 @@ namespace import
       if (NULL == buffer)
       {
          rc = SDB_OOM;
-         PD_LOG(PDERROR, "failed to malloc for bson sprint, size=%d", len);
+         PD_LOG(PDERROR, "Failed to malloc for bson sprint, size=%d", len);
          goto error;
       }
 
       if (!bson_sprint(buffer, len, obj))
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "failed to bson sprint");
+         PD_LOG(PDERROR, "Failed to bson sprint");
          goto error;
       }
 
       rc = write(buffer, ossStrlen(buffer));
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to write bson, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to write bson, rc=%d", rc);
          goto error;
       }
 
