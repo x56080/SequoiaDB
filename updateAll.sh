@@ -337,7 +337,7 @@ if [ $readType -ne 0 ] ; then
 fi
 
 if [ "$buildStr" == "" ] ; then
-   buildStr="--engine --tool --shell --fmp"
+   buildStr="--engine --tool --shell --fmp --stp"
 fi
 
 # run entry
