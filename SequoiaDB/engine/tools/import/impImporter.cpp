@@ -106,7 +106,7 @@ namespace import
          if ( NULL == obj->data )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to init bson size, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to init bson size, rc=%d", rc ) ;
             goto error ;
          }
       }
@@ -121,7 +121,7 @@ namespace import
       ret = logFile->write( obj ) ;
       if ( ret )
       {
-         PD_LOG( PDERROR, "failed to log write records, rc=%d", ret ) ;
+         PD_LOG( PDERROR, "Failed to log write records, rc=%d", ret ) ;
       }
 
    done:
@@ -199,7 +199,7 @@ namespace import
       {
          stringstream ss ;
 
-         ss << "importer [" << impArgs->id << "] with " <<
+         ss << "Importer [" << impArgs->id << "] with " <<
                impArgs->hostname << ":" << impArgs->svcname << " started..." ;
 
          PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
@@ -213,7 +213,7 @@ namespace import
       rc = importer.connect() ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to connect, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to connect, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -239,7 +239,7 @@ namespace import
 
                self->_failedNum.add( pageInfo.recordNum ) ;
 
-               PD_LOG( PDERROR, "failed to import records, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to import records, rc=%d", rc ) ;
                continue ;
             }
          }
@@ -253,7 +253,7 @@ namespace import
       {
          stringstream ss ;
 
-         ss << "importer [" << impArgs->id << "] stop" ;
+         ss << "Importer [" << impArgs->id << "] stop" ;
 
          PD_LOG( PDEVENT, "%s", ss.str().c_str() ) ;
 
@@ -311,7 +311,7 @@ namespace import
       rc = _logFile.init( fileName, TRUE ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "failed to init importer log file, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init importer log file, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -323,7 +323,7 @@ namespace import
                             _options->useSSL() ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "failed to init coords, rc=%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to init coords, rc=%d", rc ) ;
             goto error ;
          }
       }
@@ -339,7 +339,7 @@ namespace import
             rc = _coords.getRandomCoord( hostname, svcname ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "failed to get coord, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get coord, rc=%d", rc ) ;
                goto error ;
             }
          }
@@ -349,7 +349,7 @@ namespace import
                                          hostname, svcname) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "failed to get coord, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get coord, rc=%d", rc ) ;
                goto error ;
             }
          }
@@ -371,7 +371,7 @@ namespace import
          {
             SDB_OSS_DEL( args ) ;
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "failed to create importer Worker object" ) ;
+            PD_LOG( PDERROR, "Failed to create importer Worker object" ) ;
             goto error ;
          }
 
@@ -391,7 +391,7 @@ namespace import
       INT32 rc = SDB_OK;
       INT32 num = _workers.size();
 
-      SDB_ASSERT(num > 0, "must have woker");
+      SDB_ASSERT(num > 0, "Must have woker");
 
       for (INT32 i = 0; i < num; i++)
       {
@@ -400,7 +400,7 @@ namespace import
          rc = worker->start();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to start importer");
+            PD_LOG(PDERROR, "Failed to start importer");
             goto error;
          }
 
@@ -438,7 +438,7 @@ namespace import
          rc = worker->waitStop();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to wait importer stop");
+            PD_LOG(PDERROR, "Failed to wait importer stop");
             i++;
             rc = SDB_OK;
          }

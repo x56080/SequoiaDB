@@ -120,7 +120,7 @@ namespace import
          {
             if ( SDB_EOF != rc )
             {
-               PD_LOG( PDERROR, "failed to read from InputStream, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to read from InputStream, rc=%d", rc ) ;
                goto error ;
             }
 
@@ -148,7 +148,7 @@ namespace import
             if ( _dataLength >= _bufferSize )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "the remain data is out of length [0-%d]: %d",
+               PD_LOG( PDERROR, "The remain data is out of length [0-%d]: %d",
                        _bufferSize, _dataLength ) ;
                goto error ;
             }
@@ -165,7 +165,7 @@ namespace import
             goto done ;
          }
 
-         PD_LOG( PDERROR, "failed to scan record, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to scan record, rc=%d", rc ) ;
          goto error ;
       }
 

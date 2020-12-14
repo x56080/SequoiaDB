@@ -54,7 +54,7 @@ namespace import
          if (NULL == fileStream)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create FileInputStream object, rc=%d",
+            PD_LOG(PDERROR, "Failed to create FileInputStream object, rc=%d",
                    rc);
             goto error;
          }
@@ -62,7 +62,7 @@ namespace import
          rc = fileStream->init();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init FileInputStream, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to init FileInputStream, rc=%d", rc);
             SDB_OSS_DEL(fileStream);
             goto error;
          }
@@ -75,7 +75,7 @@ namespace import
          if (NULL == stdinStream)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create StdinInputStream object, rc=%d",
+            PD_LOG(PDERROR, "Failed to create StdinInputStream object, rc=%d",
                    rc);
             goto error;
          }
@@ -90,14 +90,14 @@ namespace import
          {
             rc = SDB_OOM;
             PD_LOG(PDERROR,
-                   "failed to create SubProcessInputStream object, rc=%d", rc);
+                   "Failed to create SubProcessInputStream object, rc=%d", rc);
             goto error;
          }
 
          rc = subProcessStream->init();
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to init SubProcessInputStream, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to init SubProcessInputStream, rc=%d", rc);
             SDB_OSS_DEL(subProcessStream);
             goto error;
          }
@@ -106,9 +106,9 @@ namespace import
       }
       else
       {
-         SDB_ASSERT(FALSE, "invalid input type");
+         SDB_ASSERT(FALSE, "Invalid input type");
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid input type, rc=%d", rc);
+         PD_LOG(PDERROR, "Invalid input type, rc=%d", rc);
          goto error;
       }
 
@@ -116,7 +116,7 @@ namespace import
       if (NULL == istream)
       {
          rc = SDB_OOM;
-         PD_LOG(PDERROR, "failed to create FileInputStream object, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to create FileInputStream object, rc=%d", rc);
          goto error;
       }
 
@@ -154,7 +154,7 @@ namespace import
                    _file);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to open file %s, rc=%d",
+         PD_LOG(PDERROR, "Failed to open file %s, rc=%d",
                 _fileName.c_str(), rc);
       }
 
@@ -171,7 +171,7 @@ namespace import
       rc = ossReadN(&_file, bufSize, buf, readSize);
       if (SDB_OK != rc && SDB_EOF != rc)
       {
-         PD_LOG(PDERROR, "failed to read from file %s, rc=%d",
+         PD_LOG(PDERROR, "Failed to read from file %s, rc=%d",
                 _fileName.c_str(), rc);
       }
 
@@ -202,7 +202,7 @@ namespace import
          }
          else if (ferror(stdin))
          {
-            PD_LOG(PDERROR, "failed to read from stdin, errno=%d",
+            PD_LOG(PDERROR, "Failed to read from stdin, errno=%d",
                    ossGetLastError());
             rc = SDB_IO;
          }
@@ -255,12 +255,12 @@ namespace import
       INT32 rc = SDB_OK;
       INT64 size = 0;
 
-      SDB_ASSERT(_first, "must be first");
+      SDB_ASSERT(_first, "Must be first");
 
       rc = _upstream->read(buf, UTF8_BOM_SIZE, size);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to read from upstream, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to read from upstream, rc=%d", rc);
          goto error;
       }
 
@@ -283,7 +283,7 @@ namespace import
       {
          if (SDB_EOF != rc)
          {
-            PD_LOG(PDERROR, "failed to read from upstream, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to read from upstream, rc=%d", rc);
             goto error;
          }
 
@@ -341,7 +341,7 @@ namespace import
          rc = ossBuildArguments(&arguments, argLen, argvList);
          if (SDB_OK != rc)
          {
-            PD_LOG( PDERROR, "failed to build arguments, rc=%d", rc);
+            PD_LOG( PDERROR, "Failed to build arguments, rc=%d", rc);
             goto error;
          }
       }
@@ -350,12 +350,12 @@ namespace import
                    NULL, flag, _subPid, result, NULL, &_pipe);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to execute %s, rc=%d", cmd, rc);
+         PD_LOG(PDERROR, "Failed to execute %s, rc=%d", cmd, rc);
          goto error;
       }
       else
       {
-         PD_LOG(PDEVENT, "execute %s successfully", cmd);
+         PD_LOG(PDEVENT, "Execute %s successfully", cmd);
       }
 
    done:
@@ -375,7 +375,7 @@ namespace import
       rc = ossReadNamedPipe(_pipe, buf, bufSize, &readSize);
       if (SDB_OK != rc && SDB_EOF != rc)
       {
-         PD_LOG(PDERROR, "failed to read from sub process %s, rc=%d",
+         PD_LOG(PDERROR, "Failed to read from sub process %s, rc=%d",
                 _subProcessCmd.c_str(), rc);
       }
 

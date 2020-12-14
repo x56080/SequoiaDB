@@ -486,7 +486,7 @@ namespace exprt
       rc = _connectDB(hConn) ;
       if ( SDB_OK != rc )
       {
-         cerr << "failed to connect to " << _options.hostName() << ":"
+         cerr << "Failed to connect to " << _options.hostName() << ":"
               << _options.svcName() << endl ;
          goto error ;
       }

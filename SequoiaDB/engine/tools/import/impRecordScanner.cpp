@@ -66,7 +66,7 @@ namespace import
      _format(format),
      _linePriority(linePriority)
    {
-      SDB_ASSERT(FORMAT_CSV == format || FORMAT_JSON == format, "invalid format");
+      SDB_ASSERT(FORMAT_CSV == format || FORMAT_JSON == format, "Invalid format");
    }
 
    RecordScanner::~RecordScanner()

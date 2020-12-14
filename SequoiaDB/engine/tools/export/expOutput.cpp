@@ -216,14 +216,14 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
-      SDB_ASSERT( !_opened, "cant open again" ) ;
+      SDB_ASSERT( !_opened, "Cannot open again" ) ;
 
       if ( FALSE == _options.replace() &&
            SDB_OK == ossAccess( _fileName.c_str() ) )
       {
          rc = SDB_FE ;
-         PD_LOG ( PDERROR, "file %s already existed", _fileName.c_str() ) ;
-         cerr << "file " << _fileName <<" already existed" << endl ;
+         PD_LOG ( PDERROR, "File %s already existed", _fileName.c_str() ) ;
+         cerr << "File " << _fileName <<" already existed" << endl ;
          goto error ;
       }
 

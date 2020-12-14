@@ -459,7 +459,7 @@ namespace import
       rc = _str2i( str, len, min, numLen ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "invalid string argument" ) ;
+         PD_LOG( PDERROR, "Invalid string argument" ) ;
          goto error ;
       }
 
@@ -526,14 +526,14 @@ namespace import
          rc = _str2i( str, len, max, numLen ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "invalid string max length" ) ;
+            PD_LOG( PDERROR, "Invalid string max length" ) ;
             goto error ;
          }
 
          if ( max < 0 )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "invalid string max length" ) ;
+            PD_LOG( PDERROR, "Invalid string max length" ) ;
             goto error ;
          }
 
@@ -613,7 +613,7 @@ namespace import
       if ( min > max && max > 0 )
       {
          rc = SDB_INVALIDARG;
-         PD_LOG( PDERROR, "string min length can't be greater than"
+         PD_LOG( PDERROR, "String min length can't be greater than"
                           " max length" ) ;
          goto error ;
       }
@@ -666,14 +666,14 @@ namespace import
       rc = _str2i(str, len, precision, numLen);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "invalid decimal precision");
+         PD_LOG(PDERROR, "Invalid decimal precision");
          goto error;
       }
 
       if (precision < 1 || precision > SDB_DECIMAL_MAX_PRECISION )
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid decimal precision");
+         PD_LOG(PDERROR, "Invalid decimal precision");
          goto error;
       }
 
@@ -715,14 +715,14 @@ namespace import
       rc = _str2i(str, len, scale, numLen);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "invalid decimal scale");
+         PD_LOG(PDERROR, "Invalid decimal scale");
          goto error;
       }
 
       if (scale < 0)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid decimal scale");
+         PD_LOG(PDERROR, "Invalid decimal scale");
          goto error;
       }
 
@@ -757,7 +757,7 @@ namespace import
       if (scale > precision)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "decimal scale can't be greater than precision");
+         PD_LOG(PDERROR, "Decimal scale can't be greater than precision");
          goto error;
       }
 
@@ -894,7 +894,7 @@ namespace import
       if (length < CSV_STR_TYPE_MIN_SIZE)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid csv type");
+         PD_LOG(PDERROR, "Invalid csv type");
          goto error;
       }
 
@@ -956,7 +956,7 @@ namespace import
                                         opt);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "invalid decimal type");
+               PD_LOG(PDERROR, "Invalid decimal type");
                goto error;
             }
             type = CSV_TYPE_DECIMAL;
@@ -1025,7 +1025,7 @@ namespace import
                                     length - CSV_STR_STRING_SIZE, opt ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "invalid string type" ) ;
+               PD_LOG( PDERROR, "Invalid string type" ) ;
                goto error ;
             }
 
@@ -1053,7 +1053,7 @@ namespace import
                                      opt ) ;
             if ( rc )
             {
-               PD_LOG(PDERROR, "invalid timestamp type");
+               PD_LOG(PDERROR, "Invalid timestamp type");
                goto error;
             }
             type = CSV_TYPE_TIMESTAMP ;
@@ -1067,7 +1067,7 @@ namespace import
       if (CSV_TYPE_AUTO == type)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid csv type");
+         PD_LOG(PDERROR, "Invalid csv type");
          goto error;
       }
 
@@ -2010,7 +2010,7 @@ namespace import
       if (SDB_OK == rc && valueLength > CSV_MAX_STRING_SIZE)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "the string is out of length [0-%d]: %d",
+         PD_LOG(PDERROR, "The string is out of length [0-%d]: %d",
                 CSV_MAX_STRING_SIZE, valueLength);
       }
       return rc;
@@ -2756,7 +2756,7 @@ namespace import
          rc = _trimLeft(value.str, value.length, value.escaped);
          break;
       default:
-         SDB_ASSERT(FALSE, "invalid trim type");
+         SDB_ASSERT(FALSE, "Invalid trim type");
       }
 
    done:
@@ -3003,7 +3003,7 @@ namespace import
             SDB_ASSERT('Y' == fmt[0] &&
                        'Y' == fmt[1] &&
                        'Y' == fmt[2] &&
-                       'Y' == fmt[3], "invalid format of year");
+                       'Y' == fmt[3], "Invalid format of year");
             rc = _str2i(str, 4, year, valueLength);
             if (SDB_OK != rc)
             {
@@ -3017,7 +3017,7 @@ namespace import
          // month: MM
          case 'M':
             SDB_ASSERT('M' == fmt[0] &&
-                       'M' == fmt[1], "invalid format of month");
+                       'M' == fmt[1], "Invalid format of month");
             rc = _str2i(str, 2, month, valueLength);
             if (SDB_OK != rc)
             {
@@ -3031,7 +3031,7 @@ namespace import
          // day: DD
          case 'D':
             SDB_ASSERT('D' == fmt[0] &&
-                       'D' == fmt[1], "invalid format of day");
+                       'D' == fmt[1], "Invalid format of day");
             rc = _str2i(str, 2, day, valueLength);
             if (SDB_OK != rc)
             {
@@ -3045,7 +3045,7 @@ namespace import
          // hour: HH
          case 'H':
             SDB_ASSERT('H' == fmt[0] &&
-                       'H' == fmt[1], "invalid format of hour");
+                       'H' == fmt[1], "Invalid format of hour");
             rc = _str2i(str, 2, hour, valueLength);
             if (SDB_OK != rc)
             {
@@ -3059,7 +3059,7 @@ namespace import
          // minute: mm
          case 'm':
             SDB_ASSERT('m' == fmt[0] &&
-                       'm' == fmt[1], "invalid format of minute");
+                       'm' == fmt[1], "Invalid format of minute");
             rc = _str2i(str, 2, minute, valueLength);
             if (SDB_OK != rc)
             {
@@ -3073,7 +3073,7 @@ namespace import
          // second: ss
          case 's':
             SDB_ASSERT('s' == fmt[0] &&
-                       's' == fmt[1], "invalid format of second");
+                       's' == fmt[1], "Invalid format of second");
             rc = _str2i(str, 2, second, valueLength);
             if (SDB_OK != rc)
             {
@@ -3090,7 +3090,7 @@ namespace import
                INT32 ms;
                SDB_ASSERT('S' == fmt[0] &&
                           'S' == fmt[1] &&
-                          'S' == fmt[2], "invalid format of millisecond");
+                          'S' == fmt[2], "Invalid format of millisecond");
                if (mxs)
                {
                   rc = SDB_INVALIDARG;
@@ -3116,7 +3116,7 @@ namespace import
                        'f' == fmt[2] &&
                        'f' == fmt[3] &&
                        'f' == fmt[4] &&
-                       'f' == fmt[5], "invalid format of microsecond");
+                       'f' == fmt[5], "Invalid format of microsecond");
             if (mxs)
             {
                rc = SDB_INVALIDARG;
@@ -3195,7 +3195,7 @@ namespace import
             }
 
             SDB_ASSERT( isdigit(fmt[2]) &&
-                        isdigit(fmt[3]), "invalid format of time zone");
+                        isdigit(fmt[3]), "Invalid format of time zone");
 
             if ( '+' == str[0] )
             {
@@ -3294,7 +3294,7 @@ namespace import
             }
 
             SDB_ASSERT( isdigit(fmt[2]) &&
-                        isdigit(fmt[3]), "invalid format of time zone");
+                        isdigit(fmt[3]), "Invalid format of time zone");
 
             rc = _stringToTimeZone( &fmt, fmtLen, gmtoff ) ;
             if ( rc )
@@ -3336,7 +3336,7 @@ namespace import
       if ( data.length <= 0 )
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid timestamp length");
+         PD_LOG(PDERROR, "Invalid timestamp length");
          goto error;
       }
 
@@ -3386,7 +3386,7 @@ namespace import
 
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to scan timestamp, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to scan timestamp, rc=%d", rc);
             goto error;
          }
 
@@ -3396,7 +3396,7 @@ namespace import
              t.tm_mday > RELATIVE_DAY || t.tm_mday <= 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid date of timestamp");
+            PD_LOG(PDERROR, "Invalid date of timestamp");
             goto error;
          }
 
@@ -3406,7 +3406,7 @@ namespace import
              microsec >= RELATIVE_MICRO_SEC || microsec < 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid time of timestamp");
+            PD_LOG(PDERROR, "Invalid time of timestamp");
             goto error;
          }
 
@@ -3428,7 +3428,7 @@ namespace import
          if( !ossIsTimestampValid( timep ) )
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid time of timestamp");
+            PD_LOG(PDERROR, "Invalid time of timestamp");
             goto error;
          }
          value.sec = (INT32)timep;
@@ -3444,7 +3444,7 @@ namespace import
          rc = _stringToRawLong(data.str, data.length, varLong, valueLength);
          if (SDB_OK != rc || data.length != valueLength)
          {
-            PD_LOG(PDERROR, "failed to get the number of timestamp, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get the number of timestamp, rc=%d", rc);
             goto error;
          }
 
@@ -3502,7 +3502,7 @@ namespace import
       if ( data.length <= 0 )
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid date length");
+         PD_LOG(PDERROR, "Invalid date length");
          goto error;
       }
 
@@ -3540,7 +3540,7 @@ namespace import
                                 &t, microsec, isLocalTime, gmtoff);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to scan date");
+            PD_LOG(PDERROR, "Failed to scan date");
             goto error;
          }
 
@@ -3550,7 +3550,7 @@ namespace import
              t.tm_mday > RELATIVE_DAY || t.tm_mday <= 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid date");
+            PD_LOG(PDERROR, "Invalid date");
             goto error;
          }
 
@@ -3602,7 +3602,7 @@ namespace import
       if (data.length != 24)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid oid length");
+         PD_LOG(PDERROR, "Invalid oid length");
       }
       else
       {
@@ -3635,7 +3635,7 @@ namespace import
       if (len < 0)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid regex length");
+         PD_LOG(PDERROR, "Invalid regex length");
          goto error;
       }
 
@@ -3666,7 +3666,7 @@ namespace import
       if (len == 0 || str - data.str <= 1) // '/...' or '//...'
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid regex format");
+         PD_LOG(PDERROR, "Invalid regex format");
          goto error;
       }
 
@@ -3712,7 +3712,7 @@ namespace import
          if (len != 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid regex format");
+            PD_LOG(PDERROR, "Invalid regex format");
             goto error;
          }
       }
@@ -3743,7 +3743,7 @@ namespace import
       if (len <= 0)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid binary length");
+         PD_LOG(PDERROR, "Invalid binary length");
          goto error;
       }
 
@@ -3760,21 +3760,21 @@ namespace import
          if (len == 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid binary format");
+            PD_LOG(PDERROR, "Invalid binary format");
             goto error;
          }
 
          rc = _stringToRawInt(str, len, type, typeLength);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "invalid binary type");
+            PD_LOG(PDERROR, "Invalid binary type");
             goto error;
          }
 
          if (type < 0 || type > 255)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "binary type is out of range[0~255], type:%d",
+            PD_LOG(PDERROR, "Binary type is out of range[0~255], type:%d",
                    type);
             goto error;
          }
@@ -3789,14 +3789,14 @@ namespace import
          if (len == 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid binary format");
+            PD_LOG(PDERROR, "Invalid binary format");
             goto error;
          }
 
          if (CSV_STR_RIGHTBRACKET != *str)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid binary format");
+            PD_LOG(PDERROR, "Invalid binary format");
             goto error;
          }
 
@@ -3807,7 +3807,7 @@ namespace import
          if (len == 0)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "invalid binary format");
+            PD_LOG(PDERROR, "Invalid binary format");
             goto error;
          }
       }
@@ -3822,7 +3822,7 @@ namespace import
       if (base64Len < 0)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid binary base64 size");
+         PD_LOG(PDERROR, "Invalid binary base64 size");
          goto error;
       }
 
@@ -3832,14 +3832,14 @@ namespace import
          if (NULL == value.bin)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to malloc");
+            PD_LOG(PDERROR, "Failed to malloc");
             goto error;
          }
          ossMemset(value.bin, 0, base64Len);
          if (0 > base64Decode(str, value.bin, base64Len))
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "failed to decode binary");
+            PD_LOG(PDERROR, "Failed to decode binary");
             goto error;
          }
 
@@ -4244,7 +4244,7 @@ namespace import
    error:
       {
          string field(data, length);
-         PD_LOG(PDERROR, "failed to parse field value, type=%s, value=[%s]",
+         PD_LOG(PDERROR, "Failed to parse field value, type=%s, value=[%s]",
                 _CSVTypeToString(type, opt).c_str(), field.c_str());
       }
       goto done;
@@ -4315,7 +4315,7 @@ namespace import
       if (!_isValidFieldName(start, fieldNameLength))
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid field name: [%s]", fieldName.c_str());
+         PD_LOG(PDERROR, "Invalid field name: [%s]", fieldName.c_str());
          goto error;
       }
 
@@ -4364,7 +4364,7 @@ namespace import
             if (LEFT_BRACKET == *str)
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "duplicate left bracket");
+               PD_LOG(PDERROR, "Duplicate left bracket");
                goto error;
             }
 
@@ -4394,14 +4394,14 @@ namespace import
       if (len == length)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "invalid field type");
+         PD_LOG(PDERROR, "Invalid field type");
          goto error;
       }
 
       if (inBracket)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "bracket is not closed");
+         PD_LOG(PDERROR, "Bracket is not closed");
          goto error;
       }
 
@@ -4411,7 +4411,7 @@ namespace import
       if (SDB_OK != rc)
       {
          string s(data, fieldTypeLength);
-         PD_LOG(PDERROR, "invalid csv type: %s", s.c_str());
+         PD_LOG(PDERROR, "Invalid csv type: %s", s.c_str());
          goto error;
       }
 
@@ -4455,7 +4455,7 @@ namespace import
          else
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "missed \"default\" keyword");
+            PD_LOG(PDERROR, "Missed \"default\" keyword");
             goto error;
          }
       }
@@ -4492,7 +4492,7 @@ namespace import
                             valueLen, fieldEnd);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "invalid field value");
+         PD_LOG(PDERROR, "Invalid field value");
          goto error;
       }
 
@@ -4540,7 +4540,7 @@ namespace import
          value = &(data.value);
       }
 
-      SDB_ASSERT(type > CSV_TYPE_AUTO && type < CSV_TYPE_NUM, "invalid type");
+      SDB_ASSERT(type > CSV_TYPE_AUTO && type < CSV_TYPE_NUM, "Invalid type");
 
       switch(type)
       {
@@ -4646,7 +4646,7 @@ namespace import
       case CSV_TYPE_AUTO:
       default:
          rc = SDB_INVALIDARG;
-         SDB_ASSERT(FALSE, "invalid csv type");
+         SDB_ASSERT(FALSE, "Invalid csv type");
       }
 
       if (BSON_OK != rc)
@@ -4755,7 +4755,7 @@ namespace import
          if (NULL == field)
          {
             rc = SDB_OOM;
-            PD_LOG(PDERROR, "failed to create CSVField, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to create CSVField, rc=%d", rc);
             goto error;
          }
 
@@ -4768,7 +4768,7 @@ namespace import
                                  field->name, fieldNameLen, fieldEnd);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to parse field name, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to parse field name, rc=%d", rc);
                goto error;
             }
 
@@ -4783,7 +4783,7 @@ namespace import
                rc = _pushField(field);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                   goto error;
                }
                field = NULL;
@@ -4799,7 +4799,7 @@ namespace import
             rc = _pushField(field);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                goto error;
             }
             field = NULL;
@@ -4817,7 +4817,7 @@ namespace import
                                        fieldType, fieldTypeLen, opt, fieldEnd);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to parse field type, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to parse field type, rc=%d", rc);
                goto error;
             }
 
@@ -4836,7 +4836,7 @@ namespace import
                rc = _pushField(field);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                   goto error;
                }
                field = NULL;
@@ -4852,7 +4852,7 @@ namespace import
             rc = _pushField(field);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                goto error;
             }
             field = NULL;
@@ -4869,7 +4869,7 @@ namespace import
                                          *field, fieldDefaultLen, fieldEnd);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "failed to parse field default value, rc=%d", rc);
+               PD_LOG(PDERROR, "Failed to parse field default value, rc=%d", rc);
                goto error;
             }
 
@@ -4881,7 +4881,7 @@ namespace import
                rc = _pushField(field);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                   goto error;
                }
                field = NULL;
@@ -4895,7 +4895,7 @@ namespace import
                rc = _pushField(field);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to push field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to push field, rc=%d", rc);
                   goto error;
                }
                field = NULL;
@@ -4905,7 +4905,7 @@ namespace import
             if (len > 0)
             {
                rc = SDB_INVALIDARG;
-               PD_LOG(PDERROR, "invalid field");
+               PD_LOG(PDERROR, "Invalid field");
                goto error;
             }
          }
@@ -4931,7 +4931,7 @@ namespace import
          if (field->name == _fieldVec[i]->name)
          {
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "duplicate field name: %s", field->name.c_str());
+            PD_LOG(PDERROR, "Duplicate field name: %s", field->name.c_str());
             goto error;
          }
       }
@@ -4980,7 +4980,7 @@ namespace import
          rc = bson_append_oid(&obj, RECORD_ID_NAME, &oid);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append record id, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to append record id, rc=%d", rc);
             goto error;
          }
       }
@@ -5009,14 +5009,14 @@ namespace import
                                valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to parse field, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to parse field, rc=%d", rc);
             goto error;
          }
 
          rc = _bsonAppendField(obj, *field, fieldData);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to append field, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to append field, rc=%d", rc);
             goto error;
          }
 
@@ -5050,7 +5050,7 @@ namespace import
          {
             string r = string(data, length);
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "record field num less than definition, "\
+            PD_LOG(PDERROR, "Record field num less than definition, "\
                             "fieldNum=%d, defNum=%d, record=%s",
                             fieldCount, fieldDefNum, r.c_str());
             goto error ;
@@ -5067,7 +5067,7 @@ namespace import
                rc = _bsonAppendField(obj, *field, fieldData);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to append field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to append field, rc=%d", rc);
                   goto error;
                }
 
@@ -5081,7 +5081,7 @@ namespace import
          {
             string r = string(data, length);
             rc = SDB_INVALIDARG;
-            PD_LOG(PDERROR, "parsed %d fields, but record still has fields, "\
+            PD_LOG(PDERROR, "Parsed %d fields, but record still has fields, "\
                             "record=%s",
                             fieldCount, r.c_str());
             goto error ;
@@ -5112,7 +5112,7 @@ namespace import
                                      valueLength, fieldEnd);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to parse field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to parse field, rc=%d", rc);
                   goto error;
                }
 
@@ -5125,7 +5125,7 @@ namespace import
                rc = _bsonAppendField(obj, tmpField, fieldData);
                if (SDB_OK != rc)
                {
-                  PD_LOG(PDERROR, "failed to append field, rc=%d", rc);
+                  PD_LOG(PDERROR, "Failed to append field, rc=%d", rc);
                   goto error;
                }
 
@@ -5158,14 +5158,14 @@ namespace import
       if (BSON_OK != bson_finish(&obj))
       {
          rc = SDB_DRIVER_BSON_ERROR;
-         PD_LOG(PDERROR, "failed to finish bson, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to finish bson, rc=%d", rc);
          goto error;
       }
 
       if (bson_size(&obj) > IMP_MAX_BSON_SIZE)
       {
          rc = SDB_DRIVER_BSON_ERROR;
-         PD_LOG(PDERROR, "the bson obj is beyond "
+         PD_LOG(PDERROR, "The bson obj is beyond "
                 "the max size %d, actual size %d, rc=%d",
                 IMP_MAX_BSON_SIZE, bson_size(&obj), rc);
          goto error;

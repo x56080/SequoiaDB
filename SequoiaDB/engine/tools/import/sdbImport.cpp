@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
    rc = options.parse(argc, argv);
    if (SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "failed to parse options, rc=%d", rc);
+      PD_LOG(PDERROR, "Failed to parse options, rc=%d", rc);
       goto error;
    }
 
@@ -79,14 +79,14 @@ int main(int argc, char* argv[])
       rc = routine.run();
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "routine running failure, rc=%d", rc);
+         PD_LOG(PDERROR, "Routine running failure, rc=%d", rc);
       }
 
       routine.printStatistics();
    }
    catch(std::exception &e)
    {
-      PD_LOG(PDERROR, "unexpected error happened:%s", e.what());
+      PD_LOG(PDERROR, "Unexpected error happened:%s", e.what());
    }
 
 done:

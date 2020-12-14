@@ -53,7 +53,7 @@ namespace import
          if (BSON_OBJECT != bson_iterator_type(it))
          {
             rc = SDB_SYS;
-            PD_LOG(PDERROR, "invalid service data");
+            PD_LOG(PDERROR, "Invalid service data");
             goto error;
          }
 
@@ -62,7 +62,7 @@ namespace import
          if (BSON_INT != bson_find(it, &obj, FIELD_NAME_SERVICE_TYPE))
          {
             rc = SDB_SYS;
-            PD_LOG(PDERROR, "invalid type of service type in bson");
+            PD_LOG(PDERROR, "Invalid type of service type in bson");
             goto error;
          }
 
@@ -74,7 +74,7 @@ namespace import
          if (BSON_STRING != bson_find(it, &obj, FIELD_NAME_NAME))
          {
             rc = SDB_SYS;
-            PD_LOG(PDERROR, "invalid type of service name in bson");
+            PD_LOG(PDERROR, "Invalid type of service name in bson");
             goto error;
          }
 
@@ -86,7 +86,7 @@ namespace import
       if (!find)
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to find service name in bson");
+         PD_LOG(PDERROR, "Failed to find service name in bson");
          goto error;
       }
 
@@ -108,7 +108,7 @@ namespace import
       if (BSON_STRING != bson_find(&it, obj, FIELD_NAME_HOST))
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to find hostname in bson");
+         PD_LOG(PDERROR, "Failed to find hostname in bson");
          goto error;
       }
 
@@ -117,7 +117,7 @@ namespace import
       if (BSON_ARRAY != bson_find(&it, obj, FIELD_NAME_SERVICE))
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "invalid coord data");
+         PD_LOG(PDERROR, "Invalid coord data");
          goto error;
       }
 
@@ -126,7 +126,7 @@ namespace import
       rc = _getService(&subit, svcname);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get service name");
+         PD_LOG(PDERROR, "Failed to get service name");
          goto error;
       }
 
@@ -152,7 +152,7 @@ namespace import
       if (BSON_ARRAY != bson_find(&it, obj, FIELD_NAME_GROUP))
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "invalid coord data");
+         PD_LOG(PDERROR, "Invalid coord data");
          goto error;
       }
 
@@ -165,7 +165,7 @@ namespace import
          if (BSON_OBJECT != bson_iterator_type(&subit))
          {
             rc = SDB_SYS;
-            PD_LOG(PDERROR, "invalid coord data");
+            PD_LOG(PDERROR, "Invalid coord data");
             goto error;
          }
 
@@ -174,7 +174,7 @@ namespace import
          rc = _getCoord(&coord, host.hostname, host.svcname);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "invalid coord data");
+            PD_LOG(PDERROR, "Invalid coord data");
             continue;
          }
 
@@ -184,7 +184,7 @@ namespace import
       if (coords.empty())
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to get coords");
+         PD_LOG(PDERROR, "Failed to get coords");
          goto error;
       }
 
@@ -220,7 +220,7 @@ namespace import
 
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(!_inited, "alreay inited");
+      SDB_ASSERT(!_inited, "Alreay inited");
 
       _user = user;
       _password = password;
@@ -234,14 +234,14 @@ namespace import
                                         COORD_GROUP_NAME))
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to append string to bson");
+         PD_LOG(PDERROR, "Failed to append string to bson");
          goto error;
       }
 
       if (BSON_OK != bson_finish(&cond))
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to finish bson");
+         PD_LOG(PDERROR, "Failed to finish bson");
          goto error;
       }
 
@@ -262,7 +262,7 @@ namespace import
          if (SDB_OK != rc)
          {
             PD_LOG(PDWARNING,
-                   "failed to connect to server %s:%s, rc = %d, usessl=%d",
+                   "Failed to connect to server %s:%s, rc = %d, usessl=%d",
                    host.hostname.c_str(), host.svcname.c_str(), rc, _useSSL);
             continue;
          }
@@ -280,7 +280,7 @@ namespace import
                continue;
             }
 
-            PD_LOG(PDWARNING, "failed to get coordinator group from %s:%s, rc = %d",
+            PD_LOG(PDWARNING, "Failed to get coordinator group from %s:%s, rc = %d",
                    host.hostname.c_str(), host.svcname.c_str(), rc);
             rc = SDB_OK;
             continue;
@@ -295,7 +295,7 @@ namespace import
                sdbReleaseCursor(cursor);
                cursor = SDB_INVALID_HANDLE;
             }
-            PD_LOG(PDWARNING, "failed to get result from cursor, rc=%d", rc);
+            PD_LOG(PDWARNING, "Failed to get result from cursor, rc=%d", rc);
             rc = SDB_OK;
             continue;
          }
@@ -308,7 +308,7 @@ namespace import
          rc = _getCoords(&result, _coords);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get coordinators, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get coordinators, rc=%d", rc);
             goto error;
          }
       }
@@ -331,7 +331,7 @@ namespace import
          rc = _checkCoord(host.hostname, host.svcname);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to connect to %s:%s, rc=%d",
+            PD_LOG(PDERROR, "Failed to connect to %s:%s, rc=%d",
                    host.hostname.c_str(), host.svcname.c_str(), rc);
             i = _coords.erase(i);
             rc = SDB_OK;
@@ -345,7 +345,7 @@ namespace import
       if (_coords.empty())
       {
          rc = SDB_SYS;
-         PD_LOG(PDERROR, "failed to get coordinators, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to get coordinators, rc=%d", rc);
          goto error;
       }
       else

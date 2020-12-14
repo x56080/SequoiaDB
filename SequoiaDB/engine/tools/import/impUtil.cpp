@@ -119,7 +119,7 @@ namespace import
       catch(std::exception& e)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "unexpected error happened: %s", e.what());
+         PD_LOG(PDERROR, "Unexpected error happened: %s", e.what());
          goto error;
       }
 

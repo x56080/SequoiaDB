@@ -48,14 +48,14 @@ namespace import
 
    BOOLEAN CataInfo::isMainCL()
    {
-      SDB_ASSERT(NULL != _cataSet, "must be inited");
+      SDB_ASSERT(NULL != _cataSet, "Must be inited");
 
       return _cataSet->isMainCL();
    }
 
    INT32 CataInfo::getGroupNum()
    {
-      SDB_ASSERT(NULL != _cataSet, "must be inited");
+      SDB_ASSERT(NULL != _cataSet, "Must be inited");
 
       return _cataSet->getAllGroupID()->size();
    }
@@ -64,8 +64,8 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(NULL != _cataSet, "must be inited");
-      SDB_ASSERT(NULL != bsonData, "bsonData can't be NULL");
+      SDB_ASSERT(NULL != _cataSet, "Must be inited");
+      SDB_ASSERT(NULL != bsonData, "BsonData can't be NULL");
 
       try
       {
@@ -74,14 +74,14 @@ namespace import
          rc = _cataSet->findGroupID(obj, groupId);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get group by record, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to get group by record, rc=%d", rc);
             goto error;
          }
       }
       catch (std::exception &e)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "failed to get group by record,"
+         PD_LOG(PDERROR, "Failed to get group by record,"
                 "received unexcepted error:%s", e.what());
          goto error;
       }
@@ -99,13 +99,13 @@ namespace import
       engine::VEC_GROUP_ID tmpList ;
       engine::VEC_GROUP_ID::iterator it ;
 
-      SDB_ASSERT( NULL != _cataSet, "must be inited" ) ;
+      SDB_ASSERT( NULL != _cataSet, "Must be inited" ) ;
 
       size = _cataSet->getAllGroupID( tmpList );
       if ( 0 > size )
       {
          rc = size ;
-         PD_LOG( PDERROR, "failed to get all group id, rc=%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get all group id, rc=%d", rc ) ;
          goto error ;
       }
 
@@ -135,13 +135,13 @@ namespace import
 
       engine::CLS_SUBCL_LIST tmpList ;
       engine::CLS_SUBCL_LIST_IT itList ;
-      SDB_ASSERT(NULL != _cataSet, "must be inited");
-      SDB_ASSERT(isMainCL(), "must be MainCL");
+      SDB_ASSERT(NULL != _cataSet, "Must be inited");
+      SDB_ASSERT(isMainCL(), "Must be MainCL");
 
       rc = _cataSet->getSubCLList( tmpList );
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get subCL, rc=%d", rc);
+         PD_LOG(PDERROR, "Failed to get subCL, rc=%d", rc);
          goto error;
       }
 
@@ -172,8 +172,8 @@ namespace import
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(NULL != _cataSet, "must be inited");
-      SDB_ASSERT(NULL != bsonData, "bsonData can't be NULL");
+      SDB_ASSERT(NULL != _cataSet, "Must be inited");
+      SDB_ASSERT(NULL != bsonData, "BsonData can't be NULL");
 
       try
       {
@@ -182,14 +182,14 @@ namespace import
          rc = _cataSet->findSubCLName(obj, subCLName);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to find subCLName by record, rc=%d", rc);
+            PD_LOG(PDERROR, "Failed to find subCLName by record, rc=%d", rc);
             goto error;
          }
       }
       catch (std::exception &e)
       {
          rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "failed to find subCLName by record,"
+         PD_LOG(PDERROR, "Failed to find subCLName by record,"
                 "received unexcepted error:%s", e.what());
          goto error;
       }
