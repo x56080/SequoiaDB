@@ -1186,11 +1186,6 @@ namespace engine
       return sdbGetTransCB()->isGlobTransOn() ;
    }
 
-   BOOLEAN _pmdEDUCB::isTransRRRequired() const
-   {
-      return ( isGlobTransOn() && TRANS_ISOLATION_RR == getTransIsolation() ) ;
-   }
-
    UINT32 _pmdEDUCB::getTransTimeout() const
    {
       return _transExecutor.getTransTimeout() ;

@@ -124,8 +124,7 @@ namespace engine
 
          // set max retry times for global transaction which might need retry
          // to synchronize with global logical time with STP
-         if ( cb->isGlobTrans() &&
-              cb->isTransRRRequired() )
+         if ( cb->isGlobTrans() )
          {
             _groupSession.getGroupCtrl()->
                   setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
@@ -134,12 +133,10 @@ namespace engine
 
       /// in below cases we need to send transaction begin separately,
       /// - when data is old version
-      /// - when RR transaction and input message is too long, which may cause
-      ///   network delay
+      /// - when input message is too long, which may cause network delay
       if ( _isTrans( cb, inMsg.msg() ) &&
            ( ( _remoteHandler.isVersion0() ) ||
-             ( cb->isTransRR() &&
-               inMsg.msg()->messageLength > COORD_MAX_PACK_TRANS_MESSAGE ) ) )
+             ( inMsg.msg()->messageLength > COORD_MAX_PACK_TRANS_MESSAGE ) ) )
       {
          ROUTE_RC_MAP newNodeMap ;
          // build trans session on new data groups
@@ -404,8 +401,7 @@ namespace engine
       rc = _groupSession.getPropSite()->beginTrans( cb, isAutoCommit ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc ) ;
 
-      if ( cb->isGlobTrans() &&
-           cb->isTransRRRequired() )
+      if ( cb->isGlobTrans() )
       {
          _groupSession.getGroupCtrl()->
                setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;

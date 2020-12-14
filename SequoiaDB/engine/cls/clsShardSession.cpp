@@ -821,15 +821,15 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKRRBEGIN, "_clsShdSession::_checkRRBegin" )
-   INT32 _clsShdSession::_checkRRBegin( const DPS_TRANS_ID &transID,
-                                        const MsgRouteID &remoteRID,
-                                        const stpLogicalTimeUS &transBeginTime,
-                                        const stpLogicalTimeUS &sendTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKGLOBBEGIN, "_clsShdSession::_checkGlobBegin" )
+   INT32 _clsShdSession::_checkGlobBegin( const DPS_TRANS_ID &transID,
+                                          const MsgRouteID &remoteRID,
+                                          const stpLogicalTimeUS &transBeginTime,
+                                          const stpLogicalTimeUS &sendTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKRRBEGIN ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKGLOBBEGIN ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
@@ -945,23 +945,23 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKRRBEGIN, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKGLOBBEGIN, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKRRPRECOMMIT, "_clsShdSession::_checkRRPreCommit" )
-   INT32 _clsShdSession::_checkRRPreCommit( const DPS_TRANS_ID &transID,
-                                            const MsgRouteID &remoteRID,
-                                            const stpLogicalTimeUS &transBeginTime,
-                                            const stpLogicalTimeUS &sendTime,
-                                            stpLogicalTimeUS &preCommitTime )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT, "_clsShdSession::_checkGlobPreCommit" )
+   INT32 _clsShdSession::_checkGlobPreCommit( const DPS_TRANS_ID &transID,
+                                              const MsgRouteID &remoteRID,
+                                              const stpLogicalTimeUS &transBeginTime,
+                                              const stpLogicalTimeUS &sendTime,
+                                              stpLogicalTimeUS &preCommitTime )
    {
       INT32 rc = SDB_OK ;
 
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKRRPRECOMMIT ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
       clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
@@ -1074,7 +1074,7 @@ namespace engine
                    dpsTransIDToString( transID ).c_str(), rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKRRPRECOMMIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT, rc ) ;
       return rc ;
 
    error:
@@ -3133,16 +3133,13 @@ namespace engine
                beginTime.setTime( transID.getLogicalTime() ) ;
                beginTime.setTimeError( message->transTimeError ) ;
 
-               // for RR isolation, we need to do transaction arbitration
-               if ( _pEDUCB->isTransRRRequired() )
-               {
-                  stpLogicalTimeUS sendTime( message->sendTime,
-                                             message->transTimeError ) ;
-                  rc = _checkRRBegin( transID, remoteRID, beginTime,
-                                      sendTime ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
-                               "begin with RR isolation, rc: %d", rc ) ;
-               }
+               // we need to do transaction arbitration
+               stpLogicalTimeUS sendTime( message->sendTime,
+                                          message->transTimeError ) ;
+               rc = _checkGlobBegin( transID, remoteRID, beginTime,
+                                     sendTime ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
+                            "begin with global transaction, rc: %d", rc ) ;
 
                isGlobTrans = TRUE ;
             }
@@ -3283,7 +3280,6 @@ namespace engine
          //       transaction does not care about pre-commit time which won't
          //       affect visibility of other transactions
          if ( _pEDUCB->isGlobTrans() &&
-              _pEDUCB->isTransRRRequired() &&
               DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
          {
             // version 1, has send time
@@ -3291,13 +3287,13 @@ namespace engine
                         MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( pCommitPreMsg ),
                         _pEDUCB->getTransBeginTime().getTimeError() ) ;
 
-            rc = _checkRRPreCommit( transID,
-                                    pCommitPreMsg->header.routeID,
-                                    _pEDUCB->getTransBeginTime(),
-                                    sendTime,
-                                    preCommitTime ) ;
+            rc = _checkGlobPreCommit( transID,
+                                      pCommitPreMsg->header.routeID,
+                                      _pEDUCB->getTransBeginTime(),
+                                      sendTime,
+                                      preCommitTime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check transaction pre-commit "
-                         "with RR isolation, rc: %d", rc ) ;
+                         "with global transaction, rc: %d", rc ) ;
 
             // build reply object if needed, for global transaction, we send
             // back pre-commit time on this node to COORD, and COORD will

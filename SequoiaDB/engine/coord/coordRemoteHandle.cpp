@@ -652,9 +652,9 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN ) ;
 
-      if ( cb->isGlobTrans() && cb->isTransRR() && !isVersion0() )
+      if ( cb->isGlobTrans() && !isVersion0() )
       {
-         // need synchronize global logical time for global RR transaction
+         // need synchronize global logical time for global transaction
          request->header.opCode =
                MAKE_GLOBTIME_TYPE( request->header.opCode ) ;
       }
@@ -711,7 +711,7 @@ namespace engine
             pPropSite->addTransNode( pSub->getNodeID(), isWriteMsg ) ;
          }
       }
-      else if ( cb->isGlobTrans() && cb->isTransRR() )
+      else if ( cb->isGlobTrans() )
       {
          switch ( pSub->getOrgReqOpCode() )
          {

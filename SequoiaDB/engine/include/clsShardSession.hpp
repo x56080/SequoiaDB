@@ -500,7 +500,7 @@ namespace engine
                                INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
                                BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
-         // check transaction begin with RR isolation
+         // check transaction begin with global transaction
          // input:
          //    - transID: transaction ID of current transaction
          //    - remoteRID: route ID of remote node to launch this transaction
@@ -513,12 +513,12 @@ namespace engine
          // NOTE:
          //    - the RR isolation requires global transaction support
          //    - also check global time synchronization between nodes
-         INT32 _checkRRBegin( const DPS_TRANS_ID &transID,
-                              const MsgRouteID &remoteRID,
-                              const stpLogicalTimeUS &transBeginTime,
-                              const stpLogicalTimeUS &sendTime ) ;
+         INT32 _checkGlobBegin( const DPS_TRANS_ID &transID,
+                                const MsgRouteID &remoteRID,
+                                const stpLogicalTimeUS &transBeginTime,
+                                const stpLogicalTimeUS &sendTime ) ;
 
-         // check transaction pre-commit with RR isolation
+         // check transaction pre-commit with global transaction
          // input:
          //    - transID: transaction ID of current transaction
          //    - remoteRID: route ID of remote node to launch this transaction
@@ -534,11 +534,11 @@ namespace engine
          // NOTE:
          //    - the RR isolation requires global transaction support
          //    - also check global time synchronization between nodes
-         INT32 _checkRRPreCommit( const DPS_TRANS_ID &transID,
-                                  const MsgRouteID &remoteRID,
-                                  const stpLogicalTimeUS &transBeginTime,
-                                  const stpLogicalTimeUS &sendTime,
-                                  stpLogicalTimeUS &preCommitTime ) ;
+         INT32 _checkGlobPreCommit( const DPS_TRANS_ID &transID,
+                                    const MsgRouteID &remoteRID,
+                                    const stpLogicalTimeUS &transBeginTime,
+                                    const stpLogicalTimeUS &sendTime,
+                                    stpLogicalTimeUS &preCommitTime ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;

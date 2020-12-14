@@ -422,8 +422,6 @@ namespace engine
       BOOLEAN  isAutoCommitTrans() const ;
       // check if global transaction is acquired
       BOOLEAN  isGlobTransOn() const ;
-      // check if transaction isolation for RR is required
-      BOOLEAN  isTransRRRequired() const ;
       // get transaction timeout
       UINT32   getTransTimeout() const ;
       // check if current transaction is global transaction
