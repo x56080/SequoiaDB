@@ -25,8 +25,15 @@ import com.mongodb.client.MongoDatabase;
 public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     private static final Logger logger = Logger
             .getLogger( MongodbTestBase.class );
-    public static MongoClient client;
+
+    public static String javaMongoVersion;
+    public static String springMongoVersion;
+
+    private static String javaMongoDBName;
+    private static String springMongoDBName;
     public static String dbName;
+
+    public static MongoClient client;
     public static MongoClient springMongoClient;
     private Config springConfig;
     @Autowired
@@ -45,7 +52,15 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
                 "spring-mongodb-3x1.xml" );
         springConfig = ( Config ) ctx.getBean( "config" );
         springMongoClient = ( MongoClient ) ctx.getBean( "mongo" );
-        dbName = springConfig.getJavaDBName();
+
+        javaMongoVersion = springConfig.getJavaMongoVersion();
+        springMongoVersion = springConfig.getSpringMongoVersion();
+
+        javaMongoDBName = springConfig.getJavaDBName();
+        springMongoDBName = springConfig.getSpringDBName();
+
+        dbName = javaMongoDBName + "_" + javaMongoVersion;
+
         client = getClient( springConfig.getUrls(),
                 springMongoClient.getMongoClientOptions() );
         cleanEnv();
@@ -54,7 +69,7 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description 结束测试套，如果有用例失败，不会清理环境； 如果用例全部执行成功，会清理环境
      * @param context
-     *            testng上下文
+     *                    testng上下文
      * @throws Exception
      */
     @AfterSuite(alwaysRun = true)
@@ -73,9 +88,9 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description: 获取mongodb客户端
      * @param hostname
-     *            主机名
+     *                     主机名
      * @param port
-     *            端口号
+     *                     端口号
      * @return
      * @throws UnknownHostException
      */
@@ -163,13 +178,13 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description 根据每个用例测试结果决定是否删除cl。用例失败则不删除；用例成功则删除
      * @param context
-     *            testng上下文
+     *                        testng上下文
      * @param classString
-     *            类的toString，如：this.toString()
+     *                        类的toString，如：this.toString()
      * @param db
-     *            数据库实例
+     *                        数据库实例
      * @param clNames
-     *            集合
+     *                        集合
      */
     public static void dropCLByTestResult( ITestContext context,
             String classString, MongoDatabase db, String... clNames ) {
@@ -184,11 +199,11 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description 根据每个用例测试结果删除cl。用例失败则不删除；用例成功则删除
      * @param context
-     *            testng上下文
+     *                        testng上下文
      * @param classString
-     *            类的toString，如：this.toString()
+     *                        类的toString，如：this.toString()
      * @param clNames
-     *            集合名
+     *                        集合名
      */
     public static void dropCLByTestResult( ITestContext context,
             String classString, MongoTemplate mongoTemplate,
@@ -209,7 +224,7 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     public void cleanEnv() throws UnknownHostException {
         try {
             MongoDatabase db = client
-                    .getDatabase( springConfig.getJavaDBName() );
+                    .getDatabase( javaMongoDBName + "_" + javaMongoVersion );
             db.drop();
         } catch ( Exception e ) {
             e.printStackTrace();
@@ -217,8 +232,8 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
         }
 
         try {
-            MongoDatabase db = springMongoClient
-                    .getDatabase( springConfig.getSpringDBName() );
+            MongoDatabase db = springMongoClient.getDatabase(
+                    springMongoDBName + "_" + springMongoVersion );
             db.drop();
         } catch ( Exception e ) {
             e.printStackTrace();

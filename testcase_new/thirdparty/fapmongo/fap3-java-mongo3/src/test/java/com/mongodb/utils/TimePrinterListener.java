@@ -36,22 +36,26 @@ public class TimePrinterListener extends TestListenerAdapter {
     }
 
     @Override
-    public void beforeConfiguration( ITestResult tr ) {
-        super.beforeConfiguration( tr );
-        if ( tr.getName().equals( "springTestContextBeforeTestClass" ) ) {
-            printBeginTime( tr );
+    public void beforeConfiguration( ITestResult itr ) {
+        super.beforeConfiguration( itr );
+        if ( itr.getName().equals( "springTestContextBeforeTestClass" ) ) {
+            printBeginTime( itr );
         }
     }
 
-    private void printBeginTime( ITestResult tr ) {
-        logger.info( "\tBegin testcase: " + getTestMethodName( tr ) );
+    private void printBeginTime( ITestResult itr ) {
+        logger.info( "\tBegin testcase: java-mongo-"
+                + MongodbTestBase.javaMongoVersion + " "
+                + getTestMethodName( itr ) );
     }
 
-    private void printEndTime( ITestResult tr ) {
-        logger.info( "\tEnd testcase: " + getTestMethodName( tr ) );
+    private void printEndTime( ITestResult itr ) {
+        logger.info(
+                "\tEnd testcase: java-mongo-" + MongodbTestBase.javaMongoVersion
+                        + " " + getTestMethodName( itr ) );
     }
 
-    private String getTestMethodName( ITestResult tr ) {
-        return tr.getTestClass().getRealClass().getName();
+    private String getTestMethodName( ITestResult itr ) {
+        return itr.getTestClass().getRealClass().getName();
     }
 }

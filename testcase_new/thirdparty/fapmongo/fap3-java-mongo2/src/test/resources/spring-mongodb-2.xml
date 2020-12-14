@@ -28,7 +28,7 @@
     </mongo:mongo>
 
     <!-- mongo的工厂，通过它来取得mongo实例,dbname为mongodb的数据库名，没有的话会自动创建  -->
-    <mongo:db-factory dbname="${mongodb.springDBName}" mongo-ref="mongo"
+    <mongo:db-factory dbname="${mongodb.springDBName}_${mongodb.springMongoVersion}" mongo-ref="mongo"
                       id="mongoDbFactory"  username="" password=""/>
     <mongo:mapping-converter id="converter" />
 
@@ -45,9 +45,11 @@
     </bean>
 
     <bean id="config" class="com.mongodb.utils.Config" lazy-init="true">
+        <constructor-arg type="String" value="${mongodb.javaMongoVersion}"/>
+        <constructor-arg type="String" value="${mongodb.springMongoVersion}"/>
         <constructor-arg type="String" value="${mongodb.multiUrl}"/>
-        <constructor-arg type="String" value="${mongodb.springDBName}"/>
         <constructor-arg type="String" value="${mongodb.javaDBName}"/>
+        <constructor-arg type="String" value="${mongodb.springDBName}"/>
         <constructor-arg type="String" value="${mongodb.username}"/>
         <constructor-arg type="String" value="${mongodb.password}"/>
     </bean>

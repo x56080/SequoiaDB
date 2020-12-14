@@ -10,23 +10,44 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Config {
+    private String javaMongoVersion;
+    private String springMongoVersion;
     private String multiUrl;
     private String springDBName;
     private String javaDBName;
     private String username;
     private String password;
 
-    public Config( String multiUrl, String springDBName, String javaDBName,
+    public Config( String javaMongoVersion, String springMongoVersion,
+            String multiUrl, String javaDBName, String springDBName,
             String username, String password ) {
+        this.javaMongoVersion = javaMongoVersion;
+        this.springMongoVersion = springMongoVersion;
         this.multiUrl = multiUrl;
-        this.springDBName = springDBName;
         this.javaDBName = javaDBName;
+        this.springDBName = springDBName;
         this.username = username;
         this.password = password;
     }
 
     public void setDbname2( String dbname2 ) {
         this.javaDBName = dbname2;
+    }
+
+    public String getJavaMongoVersion() {
+        return javaMongoVersion;
+    }
+
+    public void setJavaMongoVersion( String javaMongoVersion ) {
+        this.javaMongoVersion = javaMongoVersion;
+    }
+
+    public String getSpringMongoVersion() {
+        return springMongoVersion;
+    }
+
+    public void setSpringMongoVersion( String springMongoVersion ) {
+        this.springMongoVersion = springMongoVersion;
     }
 
     public String getMultiUrl() {
@@ -37,12 +58,20 @@ public class Config {
         this.multiUrl = multiUrl;
     }
 
+    public String getJavaDBName() {
+        return javaDBName;
+    }
+
     public void setJavaDBName( String javaDBName ) {
         this.javaDBName = javaDBName;
     }
 
-    public String getJavaDBName() {
-        return javaDBName;
+    public String getSpringDBName() {
+        return springDBName;
+    }
+
+    public void setSpringDBName( String springDBName ) {
+        this.springDBName = springDBName;
     }
 
     public String getUsername() {
@@ -61,14 +90,6 @@ public class Config {
         this.password = password;
     }
 
-    public String getSpringDBName() {
-        return springDBName;
-    }
-
-    public void setSpringDBName( String springDBName ) {
-        this.springDBName = springDBName;
-    }
-
     public String getHost() {
         return getMultiUrl().split( "," )[ 0 ].split( ":" )[ 0 ];
     }
@@ -84,8 +105,10 @@ public class Config {
 
     @Override
     public String toString() {
-        return "Config{" + "multiUrl='" + multiUrl + '\'' + ", springDBName='"
-                + springDBName + '\'' + ", javaDBName='" + javaDBName + '\''
+        return "Config{" + "javaMongoVersion='" + javaMongoVersion + '\''
+                + ", springMongoVersion='" + springMongoVersion + '\''
+                + ", javaDBName='" + javaDBName + '\'' + ", springDBName='"
+                + springDBName + '\'' + ", multiUrl='" + multiUrl + '\''
                 + ", username='" + username + '\'' + ", password='" + password
                 + '\'' + '}';
     }

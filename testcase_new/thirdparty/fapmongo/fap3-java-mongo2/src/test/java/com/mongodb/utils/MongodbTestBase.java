@@ -24,11 +24,18 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoOptions;
 import com.mongodb.ServerAddress;
 
+@SuppressWarnings("deprecation")
 @ContextConfiguration(locations = { "classpath*:spring-mongodb-2.xml" })
 public class MongodbTestBase extends AbstractTestNGSpringContextTests {
+    public static String javaMongoVersion;
+    public static String springMongoVersion;
+
+    private static String javaMongoDBName;
+    private static String springMongoDBName;
+    public static String dbName;
+
     public static MongoClient client;
     public static Mongo springMongoClient;
-    public static String dbName;
     @Autowired
     public MongoDbFactory mongoDbFactory;
     @Autowired
@@ -46,23 +53,31 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      * @throws UnknownHostException
      */
     @BeforeSuite(alwaysRun = true)
-    @SuppressWarnings("deprecation")
     public void initSuite() throws UnknownHostException {
         @SuppressWarnings("resource")
         ApplicationContext ctx = new ClassPathXmlApplicationContext(
                 "spring-mongodb-2.xml" );
         springConfig = ( Config ) ctx.getBean( "config" );
         springMongoClient = ( Mongo ) ctx.getBean( "mongo" );
-        dbName = springConfig.getJavaDBName();
+
+        javaMongoVersion = springConfig.getJavaMongoVersion();
+        springMongoVersion = springConfig.getSpringMongoVersion();
+
+        javaMongoDBName = springConfig.getJavaDBName();
+        springMongoDBName = springConfig.getSpringDBName();
+
+        dbName = javaMongoDBName + "_" + javaMongoVersion;
+
         client = getClient( springConfig.getUrls(),
                 springMongoClient.getMongoOptions() );
+
         cleanEnv();
     }
 
     /**
      * @Description 结束测试套，如果有用例失败，不会清理环境； 如果用例全部执行成功，会清理环境
      * @param context
-     *            testng上下文
+     *                    testng上下文
      * @throws Exception
      */
     @AfterSuite(alwaysRun = true)
@@ -81,13 +96,12 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description: 获取mongodb客户端
      * @param hostname
-     *            主机名
+     *                     主机名
      * @param port
-     *            端口号
+     *                     端口号
      * @return
      * @throws UnknownHostException
      */
-    @SuppressWarnings("deprecation")
     public static MongoClient getClient( String hostname, int port )
             throws UnknownHostException {
         return getClient( new String[] { hostname + ":" + port },
@@ -99,7 +113,6 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      * @return
      * @throws UnknownHostException
      */
-    @SuppressWarnings("deprecation")
     public static MongoClient getClient( String[] urls, MongoOptions options )
             throws UnknownHostException {
         List< ServerAddress > serverAddressList = new ArrayList<>();
@@ -120,7 +133,6 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description: 获取默认的mongodb数据库
      * @return
-     * @throws UnknownHostException
      */
     public static DB getDB( MongoClient client ) {
         return client.getDB( dbName );
@@ -129,7 +141,6 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description: 获取默认mongodb数据库
      * @return
-     * @throws UnknownHostException
      */
     public static DB getDataBase( MongoClient client ) {
         return client.getDB( dbName );
@@ -164,13 +175,13 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description 根据每个用例测试结果决定是否删除cl。用例失败则不删除；用例成功则删除
      * @param context
-     *            testng上下文
+     *                        testng上下文
      * @param classString
-     *            类的toString，如：this.toString()
+     *                        类的toString，如：this.toString()
      * @param db
-     *            数据库实例
+     *                        数据库实例
      * @param clNames
-     *            集合
+     *                        集合
      */
     public static void dropCLByTestResult( ITestContext context,
             String classString, DB db, String... clNames ) {
@@ -185,11 +196,11 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     /**
      * @Description 根据每个用例测试结果删除cl。用例失败则不删除；用例成功则删除
      * @param context
-     *            testng上下文
+     *                        testng上下文
      * @param classString
-     *            类的toString，如：this.toString()
+     *                        类的toString，如：this.toString()
      * @param clNames
-     *            集合名
+     *                        集合名
      */
     public static void dropCLByTestResult( ITestContext context,
             String classString, MongoTemplate mongoTemplate,
@@ -209,7 +220,7 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      */
     public void cleanEnv() throws UnknownHostException {
         try {
-            DB db = client.getDB( springConfig.getJavaDBName() );
+            DB db = client.getDB( javaMongoDBName + "_" + javaMongoVersion );
             db.dropDatabase();
         } catch ( Exception e ) {
             e.printStackTrace();
@@ -217,7 +228,8 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
         }
 
         try {
-            DB db = springMongoClient.getDB( springConfig.getSpringDBName() );
+            DB db = springMongoClient
+                    .getDB( springMongoDBName + "_" + springMongoVersion );
             db.dropDatabase();
         } catch ( Exception e ) {
             e.printStackTrace();

@@ -17,15 +17,14 @@
     <mongo:mongo-client replica-set="${mongodb.singleUrl}" id="mongo">
         <mongo:client-options
                 connections-per-host="${mongodb.connectionsPerHost}"
-                threads-allowed-to-block-for-connection-multiplier=
-                        "${mongodb.threadsAllowedToBlockForConnectionMultiplier}"
+                threads-allowed-to-block-for-connection-multiplier="${mongodb.threadsAllowedToBlockForConnectionMultiplier}"
                 connect-timeout="${mongodb.connectTimeout}"
                 max-wait-time="${mongodb.maxWaitTime}"
                 socket-keep-alive="${mongodb.socketKeepAlive}"
                 socket-timeout="${mongodb.socketTimeout}"/>
     </mongo:mongo-client>
 
-    <mongo:db-factory id="mongoDbFactory" dbname="${mongodb.springDBName}" mongo-ref="mongo"/>
+    <mongo:db-factory id="mongoDbFactory" dbname="${mongodb.springDBName}_${mongodb.springMongoVersion}" mongo-ref="mongo"/>
 
     <!-- 只要使用这个调用相应的方法操作 -->
     <bean id="mongoTemplate"
@@ -34,11 +33,13 @@
     </bean>
 
     <bean id="config" class="com.mongodb.utils.Config" lazy-init="true">
-        <constructor-arg name="multiUrl" value="${mongodb.multiUrl}"/>
-        <constructor-arg name="springDBName" value="${mongodb.springDBName}"/>
-        <constructor-arg name="javaDBName" value="${mongodb.javaDBName}"/>
-        <constructor-arg name="username" value="${mongodb.username}"/>
-        <constructor-arg name="password"  value="${mongodb.password}"/>
+        <constructor-arg type="String" value="${mongodb.javaMongoVersion}"/>
+        <constructor-arg type="String" value="${mongodb.springMongoVersion}"/>
+        <constructor-arg type="String" value="${mongodb.multiUrl}"/>
+        <constructor-arg type="String" value="${mongodb.javaDBName}"/>
+        <constructor-arg type="String" value="${mongodb.springDBName}"/>
+        <constructor-arg type="String" value="${mongodb.username}"/>
+        <constructor-arg type="String" value="${mongodb.password}"/>
     </bean>
 
 </beans>
