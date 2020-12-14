@@ -5,11 +5,11 @@
    sacApp.controllerProvider.register( 'System.History.Ctrl', function( $scope, SdbRest ){
       
       var sdbList = {
-         'add business': $scope.autoLanguage( '添加分布式存储' ),
-         'remove business': $scope.autoLanguage( '卸载分布式存储' ),
-         'discover business': $scope.autoLanguage( '发现分布式存储' ),
-         'unbind business': $scope.autoLanguage( '移除分布式存储' ),
-         'restart business': $scope.autoLanguage( '重启分布式存储' ),
+         'add business': $scope.autoLanguage( '添加分布式存储集群' ),
+         'remove business': $scope.autoLanguage( '卸载分布式存储集群' ),
+         'discover business': $scope.autoLanguage( '发现分布式存储集群' ),
+         'unbind business': $scope.autoLanguage( '移除分布式存储集群' ),
+         'restart business': $scope.autoLanguage( '重启分布式存储集群' ),
          'sync business configure': $scope.autoLanguage( '同步配置' ),
          'extend business': $scope.autoLanguage( '扩容' ),
          'shrink business': $scope.autoLanguage( '减容' ),
@@ -84,7 +84,13 @@
                         info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 删除实例存储 ?' ), info['User'], info['Detail']['Name'] ) ;
                         break ;
                      case 'grant sysconf':
+                        info['hasContent'] = true ;
+                        info['Name'] = info['Detail']['Name'] ;
                         info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 修改集群 ? 资源授权' ), info['User'], info['Detail']['ClusterName'] ) ;
+                        break ;
+                     case 'update host info':
+                        info['hasContent'] = true ;
+                        info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 更新了 ? 台主机' ), info['User'], info['Detail']['Hosts'].length ) ;
                         break ;
                      case 'scan host':
                         info['hasContent'] = true ;
@@ -113,7 +119,7 @@
                      case 'update business config':
                         if( info['Detail']['BusinessType'] == 'sequoiadb' )
                         {
-                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 修改分布式存储 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
+                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 修改分布式存储集群 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
                         }
                         else
                         {
@@ -123,7 +129,7 @@
                      case 'delete business config':
                         if( info['Detail']['BusinessType'] == 'sequoiadb' )
                         {
-                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 删除分布式存储 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
+                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 删除分布式存储集群 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
                         }
                         else
                         {
@@ -133,7 +139,7 @@
                      case 'sync business configure':
                         if( info['Detail']['BusinessType'] == 'sequoiadb' )
                         {
-                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 同步分布式存储 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
+                           info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 同步分布式存储集群 ? 的配置' ), info['User'], info['Detail']['BusinessName'] ) ;
                         }
                         else
                         {
@@ -142,11 +148,11 @@
                         break ;
                      case 'extend business':
                         info['hasContent'] = true ;
-                        info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 在分布式存储 ? 扩容了 ? 节点' ), info['User'], info['Detail']['BusinessName'] , info['Detail']['Nodes'].length ) ;
+                        info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 在分布式存储集群 ? 扩容了 ? 节点' ), info['User'], info['Detail']['BusinessName'] , info['Detail']['Nodes'].length ) ;
                         break ;
                      case 'shrink business':
                         info['hasContent'] = true ;
-                        info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 在分布式存储 ? 减容了 ? 节点' ), info['User'], info['Detail']['BusinessName'] , info['Detail']['Nodes'].length ) ;
+                        info['Desc'] = sprintf( $scope.autoLanguage( '用户 ? 在分布式存储集群 ? 减容了 ? 节点' ), info['User'], info['Detail']['BusinessName'] , info['Detail']['Nodes'].length ) ;
                         break ;
                   }
                   if( !isUndefined( info['Detail']['ClusterName'] ) )
@@ -160,6 +166,10 @@
                   if( !isUndefined( info['Detail']['BusinessType'] ) )
                   {
                      info['BusinessType'] = info['Detail']['BusinessType'] ;
+                  }
+                  if( !isEmpty( info['Detail']['DeployMod'] ) )
+                  {
+                     info['DeployMod'] = info['Detail']['DeployMod'] ;
                   }
                   
                   if( !isUndefined( info['Detail']['Hosts'] ) )
@@ -199,6 +209,10 @@
                   if( !isUndefined( info['Detail']['PackageName'] ) )
                   {
                      info['PackageName'] = info['Detail']['PackageName'] ;
+                  }
+                  if( !isUndefined( info['Detail']['Enforced'] ) )
+                  {
+                     info['Enforced'] = info['Detail']['Enforced'] == 1 ? true : false ;
                   }
                } ) ;
               
