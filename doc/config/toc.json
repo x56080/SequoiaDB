@@ -1664,6 +1664,12 @@
                            "en": "Log Replay Tool"
                         },
                         {
+                           "id": 1608024411,
+                           "file": "sdbaudit_exprt",
+                           "cn": "审计日志导出工具",
+                           "en": "Audit log exporter tool"
+                        },
+                        {
                            "id": 1599730475,
                            "file": "split_merge",
                            "cn": "容灾切换合并工具",
