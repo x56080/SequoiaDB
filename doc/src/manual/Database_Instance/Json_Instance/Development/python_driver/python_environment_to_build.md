@@ -6,7 +6,11 @@
 
 ##配置开发环境##
 
-支持 Python 2.7、Python3.5 的 64 位版本
+支持 Python 2.7、Python3.5 的 64 位版本  
+
+> **Note:**
+>
+> 由于 SSL 兼容问题，暂不支持 Python 2.7.13。
 
 * Linux
 
