@@ -719,6 +719,7 @@ function replicaGroup ( db, name, id )
    this.name = name;
    this.id = id;
    this.nodeSet = [];
+   this.totalSleepDuration = 30000;
 }
 
 replicaGroup.prototype.getSelf =
