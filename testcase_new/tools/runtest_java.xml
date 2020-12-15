@@ -159,7 +159,7 @@
          <default>
             <delete file="${casedir}/proxyxml.xml"/>
             <if>
-               <equals arg1="${testcasetype}" arg2="s3_java"/>
+               <equals arg1="${testcasetype}" arg2="thirdparty_s3_java"/>
                <then>
                   <copyfile src="${casedir}/testng.xml" dest="${casedir}/proxyxml.xml"/>
                </then>
