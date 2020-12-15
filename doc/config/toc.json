@@ -963,6 +963,12 @@
                      "en": "Large Object Tools"
                   },
                   {
+                     "id": 1608024411,
+                     "file": "sdbaudit_exprt",
+                     "cn": "审计日志导出工具",
+                     "en": "Audit log exporter tool"
+                  },
+                  {
                      "id": 1541583490,
                      "file": "sdbpasswd",
                      "cn": "数据库密码工具",
