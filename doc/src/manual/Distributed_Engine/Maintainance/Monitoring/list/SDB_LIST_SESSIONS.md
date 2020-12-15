@@ -2,9 +2,9 @@
 
 会话列表 SDB_LIST_SESSIONS 列出当前数据库节点中所有的用户与系统会话，每一个会话为一条记录。
 
-##标示##
+##标示## 
 
-SDB_LIST_SESSIONS
+SDB_LIST_SESSIONS 
 
 ##字段信息##
 
@@ -16,6 +16,7 @@ SDB_LIST_SESSIONS
 | Status    | 字符串       | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
 | Type      | 字符串       | [EDU 类型](manual/Distributed_Engine/Architecture/Thread_Model/edu.md)  |
 | Name      | 字符串       | EDU 名，一般系统 EDU 名为空            |
+| Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | RelatedID | 字符串       | 会话的内部标识                         |
 
 ##示例##
@@ -29,25 +30,7 @@ SDB_LIST_SESSIONS
   "Status": "Running",
   "Type": "TCPListener",
   "Name": "",
+  "Source": "MySQL:hostname1:32762:3",
   "RelatedID": "7f000101a41000006d9c"
-}
-{
-  "NodeName": "hostname1:11820",
-  "SessionID": 2,
-  "TID": 6169,
-  "Status": "Running",
-  "Type": "HTTPListener",
-  "Name": "",
-  "RelatedID": "7f0001019c4000006dd9"
-}
-...
-{
-  "NodeName": "hostname1:11820",
-  "SessionID": 21,
-  "TID": 6691,
-  "Status": "Running",
-  "Type": "ShardAgent",
-  "Name": "hostname1:11821",
-  "RelatedID": "7f0001019c4000006dd9"
 }
 ```

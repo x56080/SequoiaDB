@@ -1,4 +1,4 @@
-##描述##
+﻿##描述##
 
 会话快照 SDB_SNAP_SESSIONS 列出当前数据库节点中所有的用户与系统会话，每一个会话为一条记录。
 
@@ -15,9 +15,10 @@ SDB_SNAP_SESSIONS
 | TID               | 整型          | 该会话所对应的系统线程 ID                          |
 | Status            | 字符串        | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
 | IsBlocked         | 布尔型        | 会话当前是否处理阻塞状态                           |
-| Type              | 字符串        | [EDU 类型](manual/Distributed_Engine/Architecture/Thread_Model/edu.md)             |
+| Type              | 字符串        | [EDU 类型](manual/Distributed_Engine/Architecture/Thread_Model/edu.md)         |
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
 | Doing             | 字符串        | 会话当前阻塞状态的详细描述信息                     |
+| Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
 | RelatedID         | 字符串        | 会话的内部标识                                     |
@@ -47,7 +48,7 @@ SDB_SNAP_SESSIONS
 ##示例##
 
 ```lang-javascript
-> db.snapshot( SDB_SNAP_SESSIONS )
+> db.snapshot( SDB_SNAP_SESSIONS,{ Role:"coord" } )
 {
   "NodeName": "hostname1:11810",
   "SessionID": 1,
@@ -57,6 +58,7 @@ SDB_SNAP_SESSIONS
   "Type": "LogWriter",
   "Name": "",
   "Doing": "",
+  "Source": "MySQL:hostname1:32762:3",
   "QueueSize": 0,
   "ProcessEventCount": 1,
   "RelatedID": "c0a81e442e7200008c8a",

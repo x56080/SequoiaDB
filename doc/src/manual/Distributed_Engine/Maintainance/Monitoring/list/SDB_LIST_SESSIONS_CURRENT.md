@@ -4,9 +4,9 @@
 
 如果当前连接在协调节点上，将会返回当前会话通过协调节点连接各个数据节点或者编目节点的会话，每个数据节点或者编目节点连接产生一条记录；如果当前连接在数据节点或者编目节点上，将会返回一条记录。
 
-##标示##
+##标示## 
 
-SDB_LIST_SESSIONS_CURRENT
+SDB_LIST_SESSIONS_CURRENT 
 
 ##字段信息##
 
@@ -18,6 +18,7 @@ SDB_LIST_SESSIONS_CURRENT
 | Status    | 字符串       | 会话状态<br>- Creating：创建状态<br>- Running：运行状态<br>- Waiting：等待状态<br>- Idle：线程池待机状态<br>- Destroying：销毁状态 |
 | Type      | 字符串       | [EDU 类型](manual/Distributed_Engine/Architecture/Thread_Model/edu.md)  |
 | Name      | 字符串       | EDU 名，一般系统 EDU 名为空            |
+| Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | RelatedID | 字符串       | 会话的内部标识                         |
 
 ##示例##
@@ -31,6 +32,7 @@ SDB_LIST_SESSIONS_CURRENT
   "Status": "Running",
   "Type": "ShardAgent",
   "Name": "hostname1:11821",
+  "Source": "",
   "RelatedID": "7f0001019c4000006dd9"
 }
 ```

@@ -19,6 +19,7 @@ $SNAPSHOT_SESSION_CUR
 | Type              | 字符串        | [EDU 类型](manual/Distributed_Engine/Architecture/Thread_Model/edu.md)  |
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
 | Doing             | 字符串        | 会话当前阻塞状态的详细描述信息                     |
+| Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
 | RelatedID         | 字符串        | 会话的内部标识                                     |
