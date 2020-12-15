@@ -719,6 +719,7 @@ function replicaGroup ( db, name, id )
    this.name = name;
    this.id = id;
    this.nodeSet = [];
+   this.totalSleepDuration = 30000 ;
 }
 
 replicaGroup.prototype.getSelf =
@@ -1037,8 +1038,8 @@ replicaGroup.prototype.checkConsistency =
             else
             {
                println( "sdbinspect exec result:" + result )
-               sleep( 1000 );
-               sleepTimeLen += 1000;
+               sleep( 10000 );
+               sleepTimeLen += 10000;
                continue;
             }
          }
