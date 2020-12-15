@@ -260,6 +260,12 @@
                                  "en": "Instance management tool"
                               },
                               {
+                                 "id": 1608019035,
+                                 "file": "sequence",
+                                 "cn": "序列",
+                                 "en": "Sequence"
+                              },
+                              {
                                  "id": 1974045910,
                                  "file": "data_type",
                                  "cn": "数据类型映射表",
