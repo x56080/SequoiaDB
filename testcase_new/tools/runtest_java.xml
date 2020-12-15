@@ -163,7 +163,7 @@
             <delete file="${casedir}/proxyxml.xml"/>
             <if>
                <or>
-                  <equals arg1="${testcasetype}" arg2="s3_java"/>
+                  <equals arg1="${testcasetype}" arg2="thirdparty_s3_java"/>
                   <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo2"/>
                   <equals arg1="${testcasetype}" arg2="thirdparty_fapmongo_fap3-java-mongo3"/>
                </or>
