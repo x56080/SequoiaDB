@@ -1210,7 +1210,11 @@ function commCompareResults ( cursor, expRecs, exceptId )
    {
       while( cursor.next() )
       {
-         var expRecord = expRecs[pos++];
+         var expRecord = null;
+         if ( pos < expRecs.length )
+         {
+            expRecord = expRecs[pos++];
+         }
          var actRecord = cursor.current().toObj();
          if( actRecord._id != undefined && exceptId )
          {
@@ -1219,8 +1223,8 @@ function commCompareResults ( cursor, expRecs, exceptId )
 
          if( isSuccess && !commCompareObject( expRecord, actRecord ) )
          {
+            if (isSuccess) posOfFailure = pos - 1;
             isSuccess = false;
-            posOfFailure = pos - 1;
             if( JSON.stringify( actRecord ).length > 1024 )
             {
                isLong = true;
@@ -1231,7 +1235,8 @@ function commCompareResults ( cursor, expRecs, exceptId )
       if( actRecs.length !== expRecs.length )
       {
          isSuccess = false;
-         posOfFailure = pos !== 0 ? ( pos - 1 ) : 0;
+         pos = actRecs.length > expRecs.length ? expRecs.length : actRecs.length ;
+         posOfFailure = pos == 0 ? 0 : pos -1 ;
          if( actRecs.length != 0 && JSON.stringify( actRecs[posOfFailure] ).length > 1024 )
          {
             isLong = true;
@@ -1255,11 +1260,14 @@ function commCompareResults ( cursor, expRecs, exceptId )
    {
       if( isLong )
       {
+         var expStr = posOfFailure < expRecs.length ? JSON.stringify( expRecs[posOfFailure] ) : "" ;
+         var actStr = posOfFailure < actRecs.length ? JSON.stringify( actRecs[posOfFailure] ) : "" ;
+
          throw new Error( "compare the " + recordLocation + "th record failed, "
             + "\nexp record count: " + expRecs.length
             + "\nact record count: " + actRecs.length
-            + "\nexp record: " + JSON.stringify( expRecs[posOfFailure] )
-            + "\nact record: " + JSON.stringify( actRecs[posOfFailure] ) );
+            + "\nexp record: " + expStr )
+            + "\nact record: " + actStr );
       }
       else
       {
@@ -1310,7 +1318,7 @@ function commCompareObject ( expObj, actObj )
    {
       return expObj == actObj;
    }
-   if( isDirectCompare( actObj ) )
+   if( isDirectCompare( actObj ) || isDirectCompare(expObj) != isDirectCompare(actObj) )
    {
       if( typeof ( actObj ) === "number" && isNaN( actObj ) )
       {
