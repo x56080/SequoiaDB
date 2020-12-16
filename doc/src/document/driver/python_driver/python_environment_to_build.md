@@ -8,6 +8,10 @@
 
   支持Python 2.7、Python3.5的64位版本。
 
+  > **Note:**
+  >
+  > 由于 SSL 兼容问题，暂不支持 Python 2.7.13。
+
 * Linux
 
  安装：
