@@ -985,6 +985,10 @@ namespace engine
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
 
+      BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                              UINT16 collectionID,
+                              const dmsRecordID *recordID ) ;
+
       BOOLEAN hasWait( UINT32 logicCSID, UINT16 collectionID,
                        const dmsRecordID *recordID) ;
 

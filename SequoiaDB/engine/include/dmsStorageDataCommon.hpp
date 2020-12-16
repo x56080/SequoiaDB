@@ -552,6 +552,8 @@ namespace engine
          virtual INT32  pause () ;
          virtual INT32  resume () ;
 
+         void setSubContext( _IContext *subContext ) ;
+
          OSS_INLINE INT32   mbLock( INT32 lockType ) ;
          OSS_INLINE INT32   mbTryLock( INT32 lockType ) ;
          OSS_INLINE INT32   mbUnlock() ;
@@ -577,8 +579,19 @@ namespace engine
          UINT16            _mbID ;
          INT32             _mbLockType ;
          INT32             _resumeType ;
+         _IContext         *_pSubContext ;
    };
    typedef _dmsMBContext   dmsMBContext ;
+
+   class _dmsMBContextSubScope : public SDBObject
+   {
+   public:
+      _dmsMBContextSubScope( _dmsMBContext* mbContext, _IContext *subContext ) ;
+      ~_dmsMBContextSubScope() ;
+
+   private:
+      _dmsMBContext *_mbContext ;
+   } ;
 
    /*
       _dmsMBContext OSS_INLINE functions

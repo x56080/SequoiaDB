@@ -247,6 +247,11 @@ namespace engine
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb, &mthContext ) ) )
             {
+               // pScanner->advance() may pause mbContext and scanner too.
+               // so we should clear mbContext's subContext before advance()
+               // to avoid pause scanner twice
+               _dmsMBContextSubScope subScope( mbContext,
+                                               pScanner->getScannerContext() ) ;
                if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX ) )
                {
@@ -260,6 +265,7 @@ namespace engine
 
                mthContext.getDollarList( &dollarList ) ;
                generator.getDataPtr( recordDataPtr ) ;
+
                rc = su->data()->updateRecord( mbContext, recordID,
                                               recordDataPtr, cb, dpsCB,
                                               modifier, NULL,

@@ -204,6 +204,11 @@ namespace engine
             while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                         cb ) ) )
             {
+               // pScanner->advance() may pause mbContext and scanner too.
+               // so we should clear mbContext's subContext before advance()
+               // to avoid pause scanner twice
+               _dmsMBContextSubScope subScope( mbContext,
+                                               pScanner->getScannerContext() ) ;
                // Capped collection has no index, but delete is supported.
                if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
                                   DMS_MB_ATTR_NOIDINDEX )
