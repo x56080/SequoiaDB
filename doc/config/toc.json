@@ -880,8 +880,8 @@
                   {
                     "id": 1525955869,
                     "dir": "File_Instance",
-                    "cn": "FileSystem 引擎",
-                    "en": "FileSystem Engine",
+                    "cn": "Posix 文件系统实例",
+                    "en": "Posix Instance",
                     "contents": [
                       {
                          "id": 1525955905,
@@ -5437,45 +5437,25 @@
       },
       {
          "id": 1483942793,
-         "dir": "sac",
-         "cn": "SAC 管控中心",
+         "dir": "SAC",
+         "cn": "SAC管控中心",
          "en": "SAC",
          "contents": [
             {
                "id": 1483942791,
-               "file": "runtime_env",
+               "file": "operating_environment",
                "cn": "运行环境",
-               "en": "Runtime environment"
+               "en": "Operating Environment"
             },
             {
                "id": 1483942792,
-               "dir": "install_login",
+               "file": "install_login",
                "cn": "安装与登录",
-               "en": "Install and login",
-               "contents": [
-                  {
-                     "id": 1483944515,
-                     "file": "install_sac",
-                     "cn": "安装 SAC",
-                     "en": "Install SAC"
-                  },
-                  {
-                     "id": 1483944516,
-                     "file": "login_sac",
-                     "cn": "登录 SAC",
-                     "en": "Login SAC"
-                  },
-                  {
-                     "id": 1483944517,
-                     "file": "reset_pwd",
-                     "cn": "修改登录密码",
-                     "en": "Reset password"
-                  }
-               ]
+               "en": "Install and login"
             },
             {
                "id": 1483942794,
-               "dir": "deployment",
+               "dir": "Deployment",
                "cn": "部署",
                "en": "Deployment",
                "contents": [
@@ -5483,20 +5463,20 @@
                      "id": 1483944500,
                      "file": "deployment_wizard",
                      "cn": "一键部署",
-                     "en": "Deployment wizard"
+                     "en": "Deployment Wizard"
                   },
                   {
-                     "id": 1562665966,
-                     "file": "create_cluster",
-                     "cn": "创建集群",
-                     "en": "Create cluster"
-                  },
-                  {
-                     "id": 1562316945,
-                     "dir": "host",
-                     "cn": "主机操作",
-                     "en": "Host operation",
+                     "id": 1607478105,
+                     "dir": "Deployment_Bystep",
+                     "cn": "分步部署",
+                     "en": "Deployment Bystep",
                      "contents": [
+                        {
+                           "id": 1562665966,
+                           "file": "create_cluster",
+                           "cn": "创建集群",
+                           "en": "Create Cluster"
+                        },
                         {
                            "id": 1484036820,
                            "file": "add_host",
@@ -5504,16 +5484,10 @@
                            "en": "Add host"
                         },
                         {
-                           "id": 1483944505,
-                           "file": "uninstall_host",
-                           "cn": "卸载主机",
-                           "en": "Uninstall host"
-                        },
-                        {
-                           "id": 1509430532,
-                           "file": "unbind_host",
-                           "cn": "解绑主机",
-                           "en": "Unbind host"
+                           "id": 1484036823,
+                           "file": "add_sdb_module",
+                           "cn": "添加存储集群",
+                           "en": "Add Sdb Module"
                         },
                         {
                            "id": 1509430539,
@@ -5522,92 +5496,140 @@
                            "en": "Deploy package"
                         },
                         {
+                           "id": 1534834770,
+                           "file": "deployment_mysql",
+                           "cn": "部署MySQL实例",
+                           "en": "Deployment MySQL"
+                        },
+                        {
+                           "id": 1501736518,
+                           "file": "deployment_postgresql",
+                           "cn": "部署PostgreSQL实例",
+                           "en": "Deployment PostgreSQL"
+                        }
+                     ]
+                  }
+               ]
+            },
+            {
+               "id": 1607478808,
+               "dir": "Operation",
+               "cn": "操作",
+               "en": "Operation",
+               "contents": [
+                  {
+                     "id": 1562316945,
+                     "dir": "Host",
+                     "cn": "主机操作",
+                     "en": "Host Operation",
+                     "contents": [
+                        {
                            "id": 1483944503,
                            "file": "update_host_info",
                            "cn": "更新主机信息",
                            "en": "Update host information"
-                        }
+                        },
+                        {
+                           "id": 1483944505,
+                           "file": "remove_host",
+                           "cn": "删除主机",
+                           "en": "Remove host"
+                        } 
                      ]
                   },
                   {
                      "id": 1562317091,
-                     "dir": "distributed_storage",
+                     "dir": "Module",
                      "cn": "存储集群操作",
-                     "en": "Distributed storage",
+                     "en": "Module Operation",
                      "contents": [
                         {
-                           "id": 1484036823,
-                           "file": "create_storage",
-                           "cn": "创建存储集群",
-                           "en": "Create storage"
-                        },
-                        {
-                           "id": 1501731657,
-                           "file": "add_attach_storage",
-                           "cn": "添加已有的存储集群",
-                           "en": "Add attach storage"
+                           "id": 1509430534,
+                           "file": "basic_operation",
+                           "cn": "基本操作",
+                           "en": "Basic Operation"
                         },
                         {
                            "id": 1483944504,
-                           "file": "uninstall_storage",
+                           "file": "remove_module",
                            "cn": "删除存储集群",
-                           "en": "Uninstall storage"
+                           "en": "Remove Module"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1523182044,
+                     "dir": "Sequoiadb_Data",
+                     "cn": "SequoiaDB数据操作",
+                     "en": "SequoiaDB Data",
+                     "contents": [
+                        {
+                           "id": 1483944509,
+                           "file": "collection_space",
+                           "cn": "集合空间",
+                           "en": "Collection Space"
                         },
                         {
-                           "id": 1509430534,
-                           "file": "unbind_storage",
-                           "cn": "移除存储集群",
-                           "en": "Unbind storage"
+                           "id": 1483944510,
+                           "file": "collection",
+                           "cn": "集合",
+                           "en": "Collection"
                         },
                         {
-                           "id": 1501731655,
-                           "file": "extend_storage",
-                           "cn": "扩容",
-                           "en": "Extend storage"
+                           "id": 1483944511,
+                           "file": "index",
+                           "cn": "索引",
+                           "en": "Index"
                         },
                         {
-                           "id": 1509430537,
-                           "file": "shrink_storage",
-                           "cn": "减容",
-                           "en": "Shrink storage"
+                           "id": 1483944512,
+                           "file": "record",
+                           "cn": "记录",
+                           "en": "Record"
                         },
                         {
-                           "id": 1548829161,
-                           "file": "restart_storage",
-                           "cn": "重启",
-                           "en": "Restart storage"
+                           "id": 1483944513,
+                           "file": "lob",
+                           "cn": "Lob",
+                           "en": "Lob"
                         },
                         {
-                           "id": 1501731656,
-                           "file": "sync_storage",
-                           "cn": "同步配置",
-                           "en": "Sync storage"
-                        },
-                        {
-                           "id": 1483944518,
-                           "file": "auth_storage",
-                           "cn": "设置鉴权",
-                           "en": "Set authentication"
+                           "id": 1548829158,
+                           "file": "sequoiadb_configs",
+                           "cn": "修改存储集群配置",
+                           "en": "Distributed Storage Configs"
                         }
                      ]
                   },
                   {
                      "id": 1562317092,
-                     "dir": "mysql_instance",
-                     "cn": "MySQL 实例操作",
-                     "en": "MySQL instance",
+                     "dir": "Mysql",
+                     "cn": "MySQL实例操作",
+                     "en": "MySQL Instance",
                      "contents": [
                         {
-                           "id": 1534834770,
-                           "file": "install_mysql",
-                           "cn": "创建实例",
-                           "en": "Create instance"
+                           "id": 1562312142,
+                           "file": "basic_operation",
+                           "cn": "基础操作",
+                           "en": "Basic Operation"
                         },
                         {
-                           "id": 1562312142,
-                           "file": "append_mysql",
-                           "cn": "添加已有的实例",
-                           "en": "Add attach instance"
+                           "id": 1534834767,
+                           "file": "database",
+                           "cn": "数据库",
+                           "en": "Database"
+                        },
+                        {
+                           "id": 1534834768,
+                           "file": "record",
+                           "cn": "数据操作",
+                           "en": "Record"
+                        },
+                        {
+                           "id": 1534834769,
+                           "file": "field",
+                           "cn": "字段结构",
+                           "en": "Field"
                         },
                         {
                            "id": 1562641633,
@@ -5616,60 +5638,42 @@
                            "en": "Uninstall instance"
                         },
                         {
-                           "id": 1562641634,
-                           "file": "unbind_mysql",
-                           "cn": "移除实例",
-                           "en": "Unbind instance"
-                        },
-                        {
-                           "id": 1547704803,
-                           "file": "add_mysql_storage",
-                           "cn": "添加实例存储",
-                           "en": "Add instance storage"
-                        },
-                        {
                            "id": 1562586902,
                            "file": "remove_mysql_storage",
                            "cn": "移除实例存储",
                            "en": "Remove instance storage"
-                        },
-                        {
-                           "id": 1562652775,
-                           "file": "restart_mysql",
-                           "cn": "重启实例",
-                           "en": "Restart instance"
-                        },
-                        {
-                           "id": 1562652776,
-                           "file": "sync_mysql",
-                           "cn": "同步配置",
-                           "en": "Sync Configs"
-                        },
-                        {
-                           "id": 156265277,
-                           "file": "auth",
-                           "cn": "设置鉴权",
-                           "en": "Set authentication"
                         }
                      ]
                   },
                   {
                      "id": 1562317093,
-                     "dir": "postgresql_instance",
-                     "cn": "PostgreSQL 实例操作",
-                     "en": "PostgreSQL instance",
+                     "dir": "Postgresql",
+                     "cn": "PostgreSQL实例操作",
+                     "en": "PostgreSQL Instance",
                      "contents": [
                         {
-                           "id": 1501736518,
-                           "file": "install_postgresql",
-                           "cn": "创建实例",
-                           "en": "Create instance"
+                           "id": 1562312143,
+                           "file": "basic_operation",
+                           "cn": "基础操作",
+                           "en": "Basic Operation"
                         },
                         {
-                           "id": 1562312143,
-                           "file": "append_postgresql",
-                           "cn": "添加已有的实例",
-                           "en": "Add attach instance"
+                           "id": 1520921810,
+                           "file": "database",
+                           "cn": "数据库",
+                           "en": "Database"
+                        },
+                        {
+                           "id": 1520921812,
+                           "file": "record",
+                           "cn": "数据操作",
+                           "en": "Record"
+                        },
+                        {
+                           "id": 1520921813,
+                           "file": "field",
+                           "cn": "字段结构",
+                           "en": "Field"
                         },
                         {
                            "id": 1562641764,
@@ -5678,40 +5682,10 @@
                            "en": "Uninstall instance"
                         },
                         {
-                           "id": 1562641765,
-                           "file": "unbind_postgresql",
-                           "cn": "移除实例",
-                           "en": "Unbind instance"
-                        },
-                        {
-                           "id": 1547704802,
-                           "file": "add_postgresql_storage",
-                           "cn": "添加实例存储",
-                           "en": "Add instance storage"
-                        },
-                        {
                            "id": 1562586901,
-                           "file": "remove_postgresql_storage",
+                           "file": "remove_pg_storage",
                            "cn": "移除实例存储",
                            "en": "Remove instance storage"
-                        },
-                        {
-                           "id": 156265278,
-                           "file": "restart_postgresql",
-                           "cn": "重启实例",
-                           "en": "Restart instance"
-                        },
-                        {
-                           "id": 156265279,
-                           "file": "sync_postgresql",
-                           "cn": "同步配置",
-                           "en": "Sync Configs"
-                        },
-                        {
-                           "id": 156265280,
-                           "file": "auth",
-                           "cn": "设置鉴权",
-                           "en": "Set authentication"
                         }
                      ]
                   }
@@ -5719,373 +5693,27 @@
             },
             {
                "id": 1483942795,
-               "dir": "monitor",
+               "dir": "Monitor",
                "cn": "监控",
                "en": "Monitor",
                "contents": [
                   {
-                     "id": 1483944514,
-                     "file": "overview",
-                     "cn": "总览",
-                     "en": "Overview"
-                  },
-                  {
                      "id": 1483944506,
-                     "dir": "node",
-                     "cn": "节点",
-                     "en": "Node",
-                     "contents": [
-                        {
-                           "id": 1484010525,
-                           "file": "nodes_list",
-                           "cn": "节点列表",
-                           "en": "Nodes list"
-                        },
-                        {
-                           "id": 1484010526,
-                           "file": "groups_list",
-                           "cn": "分区组列表",
-                           "en": "Groups list"
-                        },
-                        {
-                           "id": 1484010527,
-                           "file": "groups_snapshot",
-                           "cn": "分区组快照",
-                           "en": "Groups snapshot"
-                        },
-                        {
-                           "id": 1484010528,
-                           "file": "nodes_snapshot",
-                           "cn": "节点快照",
-                           "en": "Nodes snapshot"
-                        },
-                        {
-                           "id": 1484010529,
-                           "file": "group_info",
-                           "cn": "分区组信息",
-                           "en": "Group info"
-                        },
-                        {
-                           "id": 1484010530,
-                           "file": "node_info",
-                           "cn": "节点信息",
-                           "en": "Node info"
-                        },
-                        {
-                           "id": 1484010531,
-                           "file": "charts",
-                           "cn": "图表",
-                           "en": "charts"
-                        },
-                        {
-                           "id": 1551263677,
-                           "file": "node_sync",
-                           "cn": "节点数据同步",
-                           "en": "Node sync"
-                        }
-                     ]
+                     "file": "node",
+                     "cn": "节点监控",
+                     "en": "Node"
                   },
                   {
                      "id": 1483944507,
-                     "dir": "resource",
-                     "cn": "资源",
-                     "en": "Resource",
-                     "contents": [
-                        {
-                           "id": 1484010532,
-                           "file": "sessions_list",
-                           "cn": "会话",
-                           "en": "Sessions list"
-                        },
-                        {
-                           "id": 1484010533,
-                           "file": "contexts_list",
-                           "cn": "上下文",
-                           "en": "Contexts list"
-                        },
-                        {
-                           "id": 1484010534,
-                           "file": "domain",
-                           "cn": "域",
-                           "en": "Domain"
-                        },
-                        {
-                           "id": 1484010535,
-                           "file": "procedures",
-                           "cn": "存储过程",
-                           "en": "Procedures"
-                        },
-                        {
-                           "id": 1484010536,
-                           "file": "transactions",
-                           "cn": "事务",
-                           "en": "Transactions"
-                        },
-                        {
-                           "id": 1484010537,
-                           "file": "charts",
-                           "cn": "图表",
-                           "en": "Charts"
-                        }
-                     ]
+                     "file": "resource",
+                     "cn": "资源监控",
+                     "en": "Resource"
                   },
                   {
                      "id": 1483944508,
-                     "dir": "host",
-                     "cn": "主机",
-                     "en": "Host",
-                     "contents": [
-                        {
-                           "id": 1484010538,
-                           "file": "hosts_list",
-                           "cn": "主机列表",
-                           "en": "Hosts list"
-                        },
-                        {
-                           "id": 1484010539,
-                           "file": "hosts_snapshot",
-                           "cn": "主机快照",
-                           "en": "Hosts snapshot"
-                        },
-                        {
-                           "id": 1484010540,
-                           "file": "charts",
-                           "cn": "图表",
-                           "en": "Charts"
-                        },
-                        {
-                           "id": 1484010541,
-                           "file": "host_info",
-                           "cn": "主机信息",
-                           "en": "Host info"
-                        }
-                     ]
-                  }
-               ]
-            },
-            {
-               "id": 1548829157,
-               "dir": "configs",
-               "cn": "配置",
-               "en": "Configs",
-               "contents": [
-                  {
-                     "id": 1548829158,
-                     "file": "sequoiadb_configs",
-                     "cn": "修改存储集群配置",
-                     "en": "Distributed Storage Configs"
-                  },
-                  {
-                     "id": 1548829159,
-                     "file": "mysql_configs",
-                     "cn": "修改 MySQL 实例配置",
-                     "en": "MySQL Configs"
-                  },
-                  {
-                     "id": 1548829160,
-                     "file": "postgresql_configs",
-                     "cn": "修改 PostgreSQL 实例配置",
-                     "en": "PostgreSQL Configs"
-                  }
-               ]
-            },
-            {
-               "id": 1523182044,
-               "dir": "sequoiadb_data",
-               "cn": "SequoiaDB 数据操作",
-               "en": "SequoiaDB Data",
-               "contents": [
-                  {
-                     "id": 1483944509,
-                     "dir": "collection_space",
-                     "cn": "集合空间",
-                     "en": "Collection Space",
-                     "contents": [
-                        {
-                           "id": 1483949700,
-                           "file": "attribute",
-                           "cn": "集合空间属性",
-                           "en": "Attribute"
-                        },
-                        {
-                           "id": 1483949701,
-                           "file": "create_cs",
-                           "cn": "创建集合空间",
-                           "en": "Create collection space"
-                        },
-                        {
-                           "id": 1483949702,
-                           "file": "drop_cs",
-                           "cn": "删除集合空间",
-                           "en": "Drop collection space"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1483944510,
-                     "dir": "collection",
-                     "cn": "集合",
-                     "en": "Collection",
-                     "contents": [
-                        {
-                           "id": 1483949703,
-                           "file": "attribute",
-                           "cn": "集合属性",
-                           "en": "Attribute"
-                        },
-                        {
-                           "id": 1483949704,
-                           "file": "create_cl",
-                           "cn": "创建集合",
-                           "en": "Create collection"
-                        },
-                        {
-                           "id": 1483949705,
-                           "file": "drop_cl",
-                           "cn": "删除集合",
-                           "en": "Drop collection"
-                        },
-                        {
-                           "id": 1483949706,
-                           "file": "attach_cl",
-                           "cn": "挂载集合",
-                           "en": "Attach collection"
-                        },
-                        {
-                           "id": 1483949707,
-                           "file": "detach_cl",
-                           "cn": "分离集合",
-                           "en": "Detach collection"
-                        },
-                        {
-                           "id": 1483949708,
-                           "file": "split",
-                           "cn": "切分数据",
-                           "en": "Split"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1483944511,
-                     "dir": "index",
-                     "cn": "索引",
-                     "en": "Index",
-                     "contents": [
-                        {
-                           "id": 1483949709,
-                           "file": "attribute",
-                           "cn": "索引属性",
-                           "en": "Attribute"
-                        },
-                        {
-                           "id": 1483949710,
-                           "file": "create_index",
-                           "cn": "创建索引",
-                           "en": "Create index"
-                        },
-                        {
-                           "id": 1483949711,
-                           "file": "drop_index",
-                           "cn": "删除索引",
-                           "en": "Drop index"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1483944512,
-                     "dir": "record",
-                     "cn": "记录",
-                     "en": "Record",
-                     "contents": [
-                        {
-                           "id": 1483949712,
-                           "file": "query",
-                           "cn": "查询",
-                           "en": "Query"
-                        },
-                        {
-                           "id": 1483949713,
-                           "file": "insert",
-                           "cn": "插入",
-                           "en": "Insert"
-                        },
-                        {
-                           "id": 1483949714,
-                           "file": "update",
-                           "cn": "更新",
-                           "en": "Update"
-                        },
-                        {
-                           "id": 1483949715,
-                           "file": "delete",
-                           "cn": "删除",
-                           "en": "Delete"
-                        },
-                        {
-                           "id": 1483949716,
-                           "file": "display_mode",
-                           "cn": "显示模式",
-                           "en": "Display mode"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1483944513,
-                     "file": "lob",
-                     "cn": "Lob",
-                     "en": "Lob"
-                  }
-               ]
-            },
-            {
-               "id": 1523182045,
-               "dir": "postgresql_data",
-               "cn": "PostgreSQL 实例数据操作",
-               "en": "PostgreSQL Data",
-               "contents": [
-                  {
-                     "id": 1520921810,
-                     "file": "database",
-                     "cn": "数据库",
-                     "en": "Database"
-                  },
-                  {
-                     "id": 1520921812,
-                     "file": "record",
-                     "cn": "数据操作",
-                     "en": "Record"
-                  },
-                  {
-                     "id": 1520921813,
-                     "file": "field",
-                     "cn": "字段结构",
-                     "en": "Field"
-                  }
-               ]
-            },
-            {
-               "id": 1534834766,
-               "dir": "mysql_data",
-               "cn": "MySQL 实例数据操作",
-               "en": "MySQL Data",
-               "contents": [
-                  {
-                     "id": 1534834767,
-                     "file": "database",
-                     "cn": "数据库",
-                     "en": "Database"
-                  },
-                  {
-                     "id": 1534834768,
-                     "file": "record",
-                     "cn": "数据操作",
-                     "en": "Record"
-                  },
-                  {
-                     "id": 1534834769,
-                     "file": "field",
-                     "cn": "字段结构",
-                     "en": "Field"
+                     "file": "host",
+                     "cn": "主机监控",
+                     "en": "Host"
                   }
                ]
             }

@@ -4,6 +4,6 @@
 
 | 文档 | 链接 |
 | ---- | ---- |
-| 运行环境 | [点击查看](sac/runtime_env.md) |
-| 安装SAC  | [点击查看](sac/install_login/install_sac.md) |
-| 一键部署 | [点击查看](sac/deployment/deployment_wizard.md) |
+| 运行环境 | [点击查看](manual/SAC/operating_environment.md) |
+| 安装SAC  | [点击查看](manual/SAC/install_login.md) |
+| 一键部署 | [点击查看](manual/SAC/Deployment/deployment_wizard.md) |
