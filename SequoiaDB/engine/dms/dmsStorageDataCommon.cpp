@@ -257,6 +257,7 @@ namespace engine
       _mbID          = DMS_INVALID_MBID ;
       _mbLockType    = -1 ;
       _resumeType    = -1 ;
+      _pSubContext    = NULL ;
       PD_TRACE_EXIT ( SDB__DMSMBCONTEXT__RESET ) ;
    }
 
@@ -281,20 +282,45 @@ namespace engine
       return ss.str() ;
    }
 
+   void _dmsMBContext::setSubContext( _IContext *subContext )
+   {
+      _pSubContext = subContext ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSMBCONTEXT_PAUSE, "_dmsMBContext::pause" )
    INT32 _dmsMBContext::pause()
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN isSubPaused = FALSE ;
       PD_TRACE_ENTRY ( SDB__DMSMBCONTEXT_PAUSE ) ;
+
+      if ( NULL != _pSubContext )
+      {
+         rc = _pSubContext->pause() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to pause subContext, rc: %d",
+                      rc ) ;
+         isSubPaused = TRUE ;
+      }
 
       _resumeType = _mbLockType ;
       if ( SHARED == _mbLockType || EXCLUSIVE == _mbLockType )
       {
          rc = mbUnlock() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to pause mb lock, rc: %d", rc ) ;
       }
 
+   done:
       PD_TRACE_EXITRC ( SDB__DMSMBCONTEXT_PAUSE, rc ) ;
       return rc ;
+   error:
+      if ( isSubPaused )
+      {
+         INT32 rcTmp = _pSubContext->resume() ;
+         SDB_ASSERT( SDB_OK == rcTmp, "Must resume success" ) ;
+         isSubPaused = FALSE ;
+      }
+
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSMBCONTEXT_RESUME, "_dmsMBContext::resume" )
@@ -307,9 +333,36 @@ namespace engine
          INT32 lockType = _resumeType ;
          _resumeType = -1 ;
          rc = mbLock( lockType ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resume mb lock, rc: %d", rc ) ;
       }
+
+      if ( NULL != _pSubContext )
+      {
+         rc = _pSubContext->resume() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to resume sub context, rc: %d",
+                      rc ) ;
+      }
+
+   done:
       PD_TRACE_EXITRC ( SDB__DMSMBCONTEXT_RESUME, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _dmsMBContextSubScope implement
+   */
+   _dmsMBContextSubScope::_dmsMBContextSubScope( _dmsMBContext* mbContext,
+                                                 _IContext *subContext )
+   {
+      _mbContext = mbContext ;
+      _mbContext->setSubContext( subContext ) ;
+   }
+
+   _dmsMBContextSubScope::~_dmsMBContextSubScope()
+   {
+      _mbContext->setSubContext( NULL ) ;
    }
 
    /*

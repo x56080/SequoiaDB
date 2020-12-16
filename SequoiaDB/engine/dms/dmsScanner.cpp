@@ -100,6 +100,19 @@ namespace engine
       _pSu        = NULL ;
    }
 
+   void _dmsScanner::_saveAdvancedRecrodID( const dmsRecordID &recordID,
+                                            INT32 rc )
+   {
+      if ( SDB_OK == rc )
+      {
+         _advancedRecordID = recordID ;
+      }
+      else
+      {
+         _advancedRecordID.reset() ;
+      }
+   }
+
    /*
       _dmsExtScannerBase implement
    */
@@ -112,7 +125,7 @@ namespace engine
                                            INT64 skipNum,
                                            INT32 flag )
    :_dmsScanner( su, context, matchRuntime, accessType ),
-    _curRecordPtr( NULL )
+    _curRecordPtr( NULL ), _scannerContext( this )
    {
       _maxRecords          = maxRecords ;
       _skipNum             = skipNum ;
@@ -233,6 +246,7 @@ namespace engine
       }
 
    done:
+      _saveAdvancedRecrodID( recordID, rc ) ;
       return rc ;
    error:
       recordID.reset() ;
@@ -1166,7 +1180,8 @@ namespace engine
                                  INT64 maxRecords,
                                  INT64 skipNum,
                                  INT32 flag )
-   :_dmsScanner( su, context, matchRuntime, accessType )
+   :_dmsScanner( su, context, matchRuntime, accessType ),
+    _scannerContext( this )
    {
       _extScanner    = NULL ;
       _curExtentID   = DMS_INVALID_EXTENT ;
@@ -1302,6 +1317,7 @@ namespace engine
       goto error ;
 
    done:
+      _saveAdvancedRecrodID( recordID, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1325,7 +1341,7 @@ namespace engine
                                        INT64 skipNum,
                                        INT32 flag )
    :_dmsScanner( su, context, matchRuntime, accessType ),
-    _curRecordPtr( NULL )
+    _curRecordPtr( NULL ), _ixScannerContext( this, scanner )
    {
       _maxRecords          = maxRecords ;
       _skipNum             = skipNum ;
@@ -1355,6 +1371,11 @@ namespace engine
 
    _dmsIXSecScanner::~_dmsIXSecScanner ()
    {
+      release() ;
+   }
+
+   void _dmsIXSecScanner::release()
+   {
       if ( FALSE == _firstRun && _recordLock != DPS_TRANSLOCK_MAX
            && _hasLockedRecord
            && DMS_INVALID_OFFSET != _curRID._offset )
@@ -1366,7 +1387,7 @@ namespace engine
 
       releaseCSCLLock() ;
 
-      _scanner    = NULL ;
+      _scanner = NULL ;
    }
 
    dmsTransLockCallback* _dmsIXSecScanner::callbackHandler()
@@ -2182,6 +2203,8 @@ namespace engine
                                       _context->mbID(), &waitUnlockRID,
                                       &_callback ) ;
       }
+
+      _saveAdvancedRecrodID( recordID, rc ) ;
       PD_TRACE_EXITRC ( SDB__DMSIXSECSCAN_ADVANCE, rc ) ;
       return rc ;
    error:
@@ -2221,6 +2244,72 @@ namespace engine
       _curRID._offset = DMS_INVALID_OFFSET ;
    }
 
+   _dmsScannerContext::_dmsScannerContext( _dmsScanner *pScanner )
+   {
+      _pScanner = pScanner ;
+   }
+
+   _dmsScannerContext::~_dmsScannerContext()
+   {
+      _pScanner = NULL ;
+   }
+
+   _dmsIXScannerContext::_dmsIXScannerContext( _dmsScanner *pScanner,
+                                               _rtnIXScanner *pIXScanner )
+                        :_dmsScannerContext( pScanner ),
+                         _hasPaused( FALSE ), _pIXScanner( pIXScanner )
+   {
+   }
+
+   _dmsIXScannerContext::~_dmsIXScannerContext ()
+   {
+      _hasPaused = FALSE ;
+      _pIXScanner = NULL ;
+   }
+
+   INT32 _dmsIXScannerContext::pause()
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isHolding = FALSE ;
+      dpsTransRetInfo dpsTxResInfo ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+
+      isHolding = transCB->transIsHolding( _pIXScanner->getEDUCB(),
+                                           _pIXScanner->getSu()->LogicalCSID(),
+                                           _pIXScanner->getIndexCB()->getMBID(),
+                                           &_pScanner->getAdvancedRecordID() ) ;
+
+      if ( isHolding )
+      {
+         _hasPaused = TRUE ;
+         return  _pIXScanner->pauseScan() ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _dmsIXScannerContext::resume()
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isCursorSame = FALSE ;
+
+      if ( !_hasPaused )
+      {
+         goto done ;
+      }
+
+      _hasPaused = FALSE ;
+      rc  = _pIXScanner->resumeScan( &isCursorSame ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resume scan, rc: %d", rc ) ;
+
+      SDB_ASSERT( TRUE == isCursorSame, "Must be same" ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _dmsIXScanner implement
    */
@@ -2235,7 +2324,8 @@ namespace engine
                                  INT32 flag )
    :_dmsScanner( su, context, matchRuntime, accessType ),
     _secScanner( su, context, matchRuntime, scanner, accessType, maxRecords,
-                 skipNum, flag )
+                 skipNum, flag ),
+    _ixScannerContext( this, scanner )
    {
       _scanner       = scanner ;
       _eof           = FALSE ;
@@ -2244,6 +2334,7 @@ namespace engine
 
    _dmsIXScanner::~_dmsIXScanner()
    {
+      _secScanner.release() ;
       if ( _scanner && _ownedScanner )
       {
          SDB_OSS_DEL _scanner ;
@@ -2305,6 +2396,7 @@ namespace engine
       goto error ;
 
    done:
+      _saveAdvancedRecrodID( recordID, rc ) ;
       return rc ;
    error:
       goto done ;

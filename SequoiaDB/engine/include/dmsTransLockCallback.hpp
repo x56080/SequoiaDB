@@ -224,6 +224,8 @@ namespace engine
                                      const BSONObj &obj,
                                      UINT32 ownnerTID ) ;
 
+      INT32    _getLatchedIdxMode() ;
+
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
@@ -246,7 +248,6 @@ namespace engine
       INT32                _csID ;
       UINT16               _clID ;
       SINT32               _latchedIdxLid ; // which we are holding a latch on
-      INT32                _latchedIdxMode ;
       _rtnIXScanner       *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 

@@ -272,8 +272,8 @@ namespace engine
       DPS_TRANS_ID getLowTran( ) ;
 
       // FIXME: guoming to implement
-      BOOLEAN isVersionVisible( DPS_TRANS_ID recTransID, 
-                                DPS_TRANS_ID transID ) 
+      BOOLEAN isVersionVisible( DPS_TRANS_ID recTransID,
+                                DPS_TRANS_ID transID )
       {
          // Simple implementation: if transactionID is older than
          // record transID, this record is visible to the transaction
@@ -468,6 +468,10 @@ namespace engine
                            const dmsRecordID *recordID = NULL,
                            dpsTransRetInfo * pdpsTxResInfo = NULL,
                            _dpsITransLockCallback * callback = NULL ) ;
+
+      BOOLEAN transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                              UINT16 collectionID,
+                              const dmsRecordID *recordID ) ;
 
       BOOLEAN hasWait( UINT32 logicCSID, UINT16 collectionID,
                        const dmsRecordID *recordID) ;

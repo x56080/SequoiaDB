@@ -130,7 +130,7 @@ namespace engine
                     rc ) ;
             goto error ;
          }
-        
+
          _oldVCB = SDB_OSS_NEW oldVersionCB() ;
          if ( !_oldVCB )
          {
@@ -1398,6 +1398,32 @@ namespace engine
                                        callback ) ;
    }
 
+   BOOLEAN dpsTransCB::transIsHolding( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                        UINT16 collectionID,
+                                        const dmsRecordID *recordID )
+   {
+      BOOLEAN result = FALSE ;
+      INT8 holdingMode = DPS_TRANSLOCK_MAX ;
+      UINT32 refCount = 0 ;
+      if ( !_isOn )
+      {
+         return FALSE ;
+      }
+
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+
+      result = _transLockMgr->isHolding( eduCB->getTransExecutor(), lockId,
+                                         holdingMode, refCount ) ;
+      if ( result )
+      {
+         if ( holdingMode == DPS_TRANSLOCK_X || holdingMode == DPS_TRANSLOCK_S )
+         {
+            return TRUE ;
+         }
+      }
+
+      return FALSE ;
+   }
 
    BOOLEAN dpsTransCB::hasWait( UINT32 logicCSID, UINT16 collectionID,
                                 const dmsRecordID *recordID)

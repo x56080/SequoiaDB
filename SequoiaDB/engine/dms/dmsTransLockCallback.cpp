@@ -430,7 +430,6 @@ namespace engine
       _csID       = DMS_INVALID_SUID ;
       _clID       = DMS_INVALID_MBID ;
       _latchedIdxLid = DMS_INVALID_EXTENT ;
-      _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
 
       clearStatus() ;
@@ -452,7 +451,6 @@ namespace engine
       _csID       = DMS_INVALID_SUID ;
       _clID       = DMS_INVALID_MBID ;
       _latchedIdxLid = DMS_INVALID_EXTENT ;
-      _latchedIdxMode = -1 ;
       _pScanner      = NULL ;
 
       clearStatus() ;
@@ -484,7 +482,6 @@ namespace engine
    void dmsTransLockCallback::setIXScanner( _rtnIXScanner *pScanner )
    {
       _latchedIdxLid = pScanner->getIdxLID() ;
-      _latchedIdxMode = pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
       _pScanner = pScanner ;
    }
 
@@ -703,7 +700,7 @@ namespace engine
             {
                if( _oldVer->isRecordDeleted() )
                {
-                  BOOLEAN hasLock = -1 != _latchedIdxMode ? TRUE : FALSE ;
+                  BOOLEAN hasLock = -1 != _getLatchedIdxMode() ? TRUE : FALSE ;
                   _oldVer->releaseRecord( _latchedIdxLid, hasLock ) ;
 
                   PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
@@ -777,7 +774,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK_BEFORELOCKRELEASE ) ;
 
-      BOOLEAN hasLock = -1 != _latchedIdxMode ? TRUE : FALSE ;
+      BOOLEAN hasLock = -1 != _getLatchedIdxMode() ? TRUE : FALSE ;
       dmsOnTransLockRelease( lockId, lockMode, refCounter, pExtData,
                              _latchedIdxLid, hasLock ) ;
 
@@ -839,6 +836,16 @@ namespace engine
       goto done ;
    }
 
+   INT32 dmsTransLockCallback::_getLatchedIdxMode()
+   {
+      if ( NULL != _pScanner )
+      {
+         return _pScanner->getLockModeByType( SCANNER_TYPE_MEM_TREE ) ;
+      }
+
+      return -1 ;
+   }
+
    INT32 dmsTransLockCallback::_checkInsertIndex( preIdxTreePtr &treePtr,
                                                   _INSERT_CURSOR &insertCursor,
                                                   const ixmIndexCB *indexCB,
@@ -874,7 +881,7 @@ namespace engine
          }
 
          if ( _latchedIdxLid != indexCB->getLogicalID() ||
-              -1 == _latchedIdxMode )
+              -1 == _getLatchedIdxMode() )
          {
             treePtr->lockS() ;
             locked = TRUE ;
@@ -1112,16 +1119,16 @@ namespace engine
          goto done ;
       }
 
-      if ( _latchedIdxLid == gid._idxLID && _latchedIdxMode != -1 )
+      if ( _latchedIdxLid == gid._idxLID && _getLatchedIdxMode() != -1 )
       {
-         if ( EXCLUSIVE == _latchedIdxMode )
+         if ( EXCLUSIVE == _getLatchedIdxMode() )
          {
             hasLocked = TRUE ;
          }
          else
          {
             PD_LOG( PDERROR, "Lock mode(%d) is not EXCLUSIVE(%d)",
-                    _latchedIdxMode, EXCLUSIVE ) ;
+                    _getLatchedIdxMode(), EXCLUSIVE ) ;
             SDB_ASSERT( FALSE, "Lock mode is invalid" ) ;
             rc = SDB_SYS ;
             goto error ;

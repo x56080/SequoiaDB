@@ -72,6 +72,42 @@ namespace engine
    class _dpsTransExecutor;
 
    /*
+      _dmsScannerContext define
+   */
+   class _dmsScanner ;
+   class _dmsScannerContext : public _IContext
+   {
+   public:
+      _dmsScannerContext( _dmsScanner *pScanner ) ;
+      virtual ~_dmsScannerContext() ;
+
+   public:
+      virtual INT32 pause() { return SDB_OK ; }
+      virtual INT32 resume() { return SDB_OK ; }
+
+   protected:
+      _dmsScanner *_pScanner ;
+   };
+
+   /*
+      _dmsIXScannerContext define
+   */
+   class _dmsIXScannerContext : public _dmsScannerContext
+   {
+   public:
+      _dmsIXScannerContext( _dmsScanner *pScanner, _rtnIXScanner *pIXScanner ) ;
+      virtual ~_dmsIXScannerContext () ;
+
+   public:
+      virtual INT32 pause() ;
+      virtual INT32 resume() ;
+
+   private:
+      BOOLEAN _hasPaused ;
+      _rtnIXScanner *_pIXScanner ;
+   };
+
+   /*
       _dmsScanner define
    */
    class _dmsScanner : public utilPooledObject
@@ -99,6 +135,16 @@ namespace engine
                                  _mthMatchTreeContext *mthContext = NULL ) = 0 ;
          virtual void  stop () = 0 ;
 
+         virtual _dmsScannerContext* getScannerContext() = 0 ;
+
+         const dmsRecordID &getAdvancedRecordID()
+         {
+            return _advancedRecordID ;
+         }
+
+      protected:
+         void _saveAdvancedRecrodID( const dmsRecordID &recordID, INT32 rc ) ;
+
       protected:
          _dmsStorageDataCommon  *_pSu ;
          _dmsMBContext          *_context ;
@@ -110,6 +156,7 @@ namespace engine
          BOOLEAN                 _waitLock ;
          BOOLEAN                 _useRollbackSegment ;
 
+         dmsRecordID             _advancedRecordID ;
    } ;
    typedef _dmsScanner dmsScanner ;
 
@@ -146,6 +193,11 @@ namespace engine
                                  _mthMatchTreeContext *mhtContext = NULL ) ;
          virtual void  stop () ;
 
+         virtual _dmsScannerContext* getScannerContext()
+         {
+            return &_scannerContext ;
+         }
+
       protected:
          virtual INT32 _firstInit( _pmdEDUCB *cb ) = 0 ;
          virtual INT32 _fetchNext( dmsRecordID &recordID,
@@ -173,6 +225,7 @@ namespace engine
          BOOLEAN              _CSCLLockHeld ;
          BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
+         _dmsScannerContext   _scannerContext ;
 
          dmsTransLockCallback    _callback ;
    };
@@ -269,6 +322,11 @@ namespace engine
                                  _mthMatchTreeContext *mthContext = NULL ) ;
          virtual void  stop () ;
 
+         virtual _dmsScannerContext* getScannerContext()
+         {
+            return &_scannerContext ;
+         }
+
       protected:
          void  _resetExtScanner() ;
          INT32 _firstInit() ;
@@ -283,6 +341,7 @@ namespace engine
          INT64                      _maxRecords ;
          INT64                      _skipNum ;
          INT32                      _flag ;
+         _dmsScannerContext         _scannerContext ;
    };
    typedef _dmsTBScanner dmsTBScanner ;
 
@@ -319,12 +378,19 @@ namespace engine
          INT64 getSkipNum () const { return _skipNum ; }
          BOOLEAN eof () const { return _eof ; }
 
+         void release() ;
+
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
                                  _mthRecordGenerator &generator,
                                  _pmdEDUCB *cb,
                                  _mthMatchTreeContext *mhtContext = NULL ) ;
          virtual void  stop () ;
+
+         virtual _dmsScannerContext* getScannerContext()
+         {
+            return &_ixScannerContext ;
+         }
 
       protected:
          INT32 _firstInit( _pmdEDUCB *cb ) ;
@@ -371,6 +437,7 @@ namespace engine
          BOOLEAN              _includeEndKey ;
          BOOLEAN              _countOnly ;
          BOOLEAN              _CSCLLockHeld ;
+         _dmsIXScannerContext _ixScannerContext ;
    } ;
    typedef _dmsIXSecScanner dmsIXSecScanner ;
 
@@ -403,6 +470,11 @@ namespace engine
                                  _mthMatchTreeContext *mthContext = NULL ) ;
          virtual void  stop () ;
 
+         virtual _dmsScannerContext* getScannerContext()
+         {
+            return &_ixScannerContext ;
+         }
+
       protected:
          void  _resetIXSecScanner() ;
 
@@ -412,6 +484,7 @@ namespace engine
          BOOLEAN                    _firstRun ;
          BOOLEAN                    _eof ;
          BOOLEAN                    _ownedScanner ;
+         _dmsIXScannerContext       _ixScannerContext ;
 
    } ;
    typedef _dmsIXScanner dmsIXScanner ;
