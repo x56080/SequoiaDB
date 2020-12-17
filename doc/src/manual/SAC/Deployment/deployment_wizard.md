@@ -23,5 +23,5 @@
     TODO:
 [deployment_wizard_1]:images/SAC/Deployment/deployment_wizard_1.png
 [deployment_wizard_2]:images/SAC/Deployment/deployment_wizard_2.png
-[add_host]:manual/SAC/deployment/Deployment_Bystep/add_host.md
+[add_host]:manual/SAC/Deployment/Deployment_Bystep/add_host.md
 [add_adb_module]:manual/SAC/Deployment/Deployment_Bystep/add_sdb_module.md  
