@@ -734,9 +734,9 @@ function updateNodesConfig( nodesArray, key, value ) {
          obj[key] = value ;
          var rc = true ;
          if ( NEW_VERSION ) {
-            rc = saveConfigObjNew( nodesArray[i], obj ) ) ;
+            rc = saveConfigObjNew( nodesArray[i], obj ) ;
          } else {
-            rc = saveConfigObj( nodesArray[i], obj ) ) ;
+            rc = saveConfigObj( nodesArray[i], obj ) ;
          }
          if ( !saveConfigObj( nodesArray[i], obj ) ) {
             println( "Save config obj to " + nodesArray[i] + " failed" ) ;
