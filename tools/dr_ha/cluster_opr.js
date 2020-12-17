@@ -1,16 +1,17 @@
 ﻿/* ******************************************************************************
 @Description: 集群操作脚本
 @Modify list:
-@   2016-01-19 Jianhui Xu  Init
-@   2017-07-20 Jianhui Xu  引入参数动态生效，集群只读机制；引擎版本必须 2.8.2 及以上。
-@   2017-11-15 Jiaming Wu  将串行的集群重启操作优化为并发操作。
+@   2016-01-19 Jianhui Xu     Init
+@   2017-07-20 Jianhui Xu     引入参数动态生效，集群只读机制；引擎版本必须 2.8.2 及以上。
+@   2017-11-15 Jiaming Wu     将串行的集群重启操作优化为并发操作。
+@   2020-12-18 QinCheng Yang  去除对系统用户名、密码的依赖
 ****************************************************************************** */
 
 /* SequoiaDB 安装目录定义，必须以 '/' 结尾 */
 if ( typeof(SEQPATH) != "string" || SEQPATH.length == 0 ) { SEQPATH = "/opt/sequoiadb/" ; }
-/* 机器登入用户名定义 */
+/* 机器登入用户名定义, 3.2 及以上版本无须填写 */
 if ( typeof(USERNAME) != "string" ) { USERNAME = "sdbadmin" ; }
-/* 机器登入密码定义 */
+/* 机器登入密码定义，3.2 及以上版本无须填写 */
 if ( typeof(PASSWD) != "string" ) { PASSWD = "sdbadmin" ; }
 /* 数据库登入用户名定义 */
 if ( typeof(SDBUSERNAME) != "string" ) { SDBUSERNAME = "" ; }
@@ -48,6 +49,8 @@ var CURDATAS = [] ;   // only data
 var CURCOORDS= [] ;   // only coord
 var CATAADDRLINE = "" ;
 var READSIZE = 655360 ;
+var VERSION_DIVIDE = "3.2" ;
+var NEW_VERSION = false ;
 
 /* *****************************************************************************
 @discription: 从地址中分解出Hostname和SvcName
@@ -260,6 +263,62 @@ function checkArgs() {
          println( "Current host[" + curHost + "] is not in CURHOSTS: " + CURHOSTS + ". Make sure CURSUB value is right?" ) ;
       }
       return false ;
+   }
+   return true ;
+}
+
+/* *****************************************************************************
+@discription: 检查 sequoiadb 版本是否高于 NEW_VERSION
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function checkSdbVersion()
+{
+   var cmd = new Cmd() ;
+   try{
+      version_obj = cmd.run(SDBSHELL, "--version") ;
+      version_arr = version_obj.split("\n")[0].substr(25).split(".") ;
+      divide_arr = VERSION_DIVIDE.split(".") ;
+      for ( i in divide_arr ){
+         if ( divide_arr[i] > version_arr[i]){
+            return false ;
+         }
+      }
+   }catch( e ) {
+       println( "Failed to check sequoiadb version, Info:" + e + "(" + getLastErrMsg() + ")" ) ;
+       return false ;
+   }
+   return true ;
+}
+
+/* *****************************************************************************
+@discription: 通过 Remote 去校验每台机器的环境配置，仅支持 NEW_VERSION 及以上版本
+@hosts : 字符串数组（机器列表信息）
+@author: Jianhui Xu
+@return: true/false
+***************************************************************************** */
+function checkHostsEvnNew ( hosts ) {
+   var checkFiles = [ SDBSTART, SDBSTOP, SDBLIST, SDBSHELL, CONFLOCAL ] ;
+   for ( i in hosts ) {
+      var remoteObj ;
+      try {
+         var sdbcmSvc = Oma.getAOmaSvcName( hosts[i] ) ;
+         remoteObj = new Remote( hosts[i], sdbcmSvc ) ;
+      } catch ( e ) {
+         println( "Remote " + hostname + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      }
+      try {
+         var cmd = remoteObj.getCmd() ;
+         for ( j in checkFiles ) {
+            cmd.run( 'ls', checkFiles[j] ) ;
+         }
+      } catch ( e ) {
+         println( "Check file[" + checkFiles[j] + "] in " + hosts[i] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+         return false ;
+      } finally {
+        remoteObj.close() ;
+      }
    }
    return true ;
 }
@@ -524,6 +583,39 @@ function restoreGroupsInCatalog( cataAddr, groupsArray ) {
 }
 
 /* *****************************************************************************
+@discription: 获取远端节点的配置，仅支持 NEW_VERSION 及以上版本
+@address : node address(string), ex: "192.168.20.106:20000"
+@author: Jianhui Xu
+@return: cofig obj
+@error: with exception
+***************************************************************************** */
+function getConfigObjNew( address ) {
+   var addrArray = splitHostAndSvcFromAddr( address ) ;
+   var conffile = CONFLOCAL + "/" + addrArray[1] + "/sdb.conf" ;
+   var obj ;
+   /* New version */
+   var oma ;
+   try {
+      var sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
+      oma = new Oma( addrArray[0], sdbcmSvc ) ;
+   } catch ( e ) {
+      println( "Failed to connect sdbcm in " + addrArray[0] + ", error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      throw e ;
+   }
+   try {
+      var tmpString = oma.getOmaConfigs( conffile ).toObj() ;
+      obj = eval( tmpString ) ;
+      oma.close() ;
+   } catch ( e ) {
+      println( "Get config object from " + address + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      oma.close() ;
+      throw e ;
+   }
+   return obj ;
+
+}
+
+/* *****************************************************************************
 @discription: 获取远端节点的配置
 @address : node address(string), ex: "192.168.20.106:20000"
 @author: Jianhui Xu
@@ -555,6 +647,31 @@ function getConfigObj( address ) {
    }
 
    return obj ;
+}
+
+/* *****************************************************************************
+@discription: 保存配置到远端节点中，仅支持 NEW_VERSION 及以上版本
+@address : node address(string), ex: "192.168.20.106:20000"
+@obj : config object
+@author: Jianhui Xu
+@return: true/false
+***************************************************************************** */
+function saveConfigObjNew( address, obj ) {
+   var addrArray = splitHostAndSvcFromAddr( address ) ;
+   var oma ;
+   try {
+      var conffile = CONFLOCAL + "/" + addrArray[1] + "/sdb.conf" ;
+      var omaSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
+      oma = new Oma( addrArray[0], omaSvc ) ;
+      oma.setOmaConfigs( obj, conffile ) ;
+      oma.reloadConfigs() ;
+   } catch ( e ) {
+      println( "Save config object to " + address + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   } finally {
+       oma.close() ;
+   }
+   return true ;
 }
 
 /* *****************************************************************************
@@ -604,13 +721,23 @@ function updateNodesConfig( nodesArray, key, value ) {
    for ( var i = 0 ; i < nodesArray.length ; ++i ) {
       var obj ;
       try {
-         obj = getConfigObj( nodesArray[i] ) ;
+         if ( NEW_VERSION ) {
+            obj = getConfigObjNew( nodesArray[i] ) ;
+         } else {
+            obj = getConfigObj( nodesArray[i] ) ;
+         }
       } catch ( e ) {
          println( "Get config obj from " + nodesArray[i] + " failed: " + e ) ;
          return false ;
       }
       if ( typeof( obj[ key ] ) == "undefined" || obj[key] != value ) {
          obj[key] = value ;
+         var rc = true ;
+         if ( NEW_VERSION ) {
+            rc = saveConfigObjNew( nodesArray[i], obj ) ) ;
+         } else {
+            rc = saveConfigObj( nodesArray[i], obj ) ) ;
+         }
          if ( !saveConfigObj( nodesArray[i], obj ) ) {
             println( "Save config obj to " + nodesArray[i] + " failed" ) ;
             return false ;
@@ -702,7 +829,12 @@ function saveCatalogAddrLine( coordAddr, filename ) {
    var addrstring = "" ;
 
    try {
-      var tmpObj = getConfigObj( coordAddr ) ;
+      var tmpObj ;
+      if ( NEW_VERSION ) {
+         tmpObj = getConfigObjNew( coordAddr ) ;
+      } else {
+         tmpObj = getConfigObj( coordAddr ) ;
+      }
       addrstring = tmpObj["catalogaddr"] ;
    } catch ( e ) {
       println( "Get catalog address line from " + coordAddr + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
@@ -768,6 +900,84 @@ function readCatalogAddressLine( filename ) {
    return text ;
 }
 
+
+/* *****************************************************************************
+@discription: 重启指定节点，仅支持 NEW_VERSION 及以上版本
+@hostname : string typ, ex: '192.168.10.106'
+@svcnames : node svcname, (number|string|Array), ex: "11800,11810"
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function restartNodeWithOma( hostname, svcnames ){
+   if ( !NEW_VERSION ){
+       return false ;
+   }
+   var oma ;
+   try {
+      var sdbcmSvc = Oma.getAOmaSvcName( hostname ) ;
+      oma = new Oma( hostname, sdbcmSvc ) ;
+   } catch ( e ) {
+      println( "Failed to connect sdbcm in " + hostname + ", error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      throw e ;
+   }
+
+   try {
+      var svcname_arr ;
+      if ( typeof svcnames == "number" ) {
+         svcname_arr = [ svcnames ] ;
+      }else if ( typeof svcnames == "string") {
+         svcname_arr = svcnames.split(",") ;
+      }else if ( svcnames instanceof Array) {
+         svcname_arr = svcnames ;
+      }
+
+      oma.stopNodes( svcname_arr ) ;
+      println( "Stop " + svcnames + " succeed in " + hostname ) ;
+
+      oma.startNodes( svcname_arr ) ;
+      println( "Restart " + svcname_arr + " succeed in " + hostname ) ;
+      oma.close() ;
+   } catch ( e ) {
+      oma.close() ;
+      println( "Failed to start " + svcname_arr + " in " + hostname  + ", error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      throw e ;
+   }
+   return true ;
+}
+
+/* *****************************************************************************
+@discription: 将Catalog节点改为standalone模式启动，仅支持 NEW_VERSION 及以上版本
+@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
+@author: Jianhui Xu
+@return: true/false
+***************************************************************************** */
+function change2StandaloneNew( cataAddr ) {
+   var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
+
+   var remoteObj ;
+   try {
+      var sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
+      remoteObj = new Remote( addrArray[0], sdbcmSvc ) ;
+   } catch ( e ) {
+      println( "Remote " + addrArray[0] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   }
+   try {
+      var cmd = remoteObj.getCmd() ;
+      cmd.run( SDBSTOP + " -p " + addrArray[1] ) ;
+      println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
+      cmd.run( SDBSTART + " -p " + addrArray[1] + ' -o "--role standalone" ') ;
+      println( "Start " + addrArray[1] + " by standalone succeed in " + addrArray[0] ) ;
+   } catch ( e ) {
+      println( "Change " + cataAddr + " to standalone failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      return false ;
+   } finally {
+      remoteObj.close() ;
+   }
+   return true ;
+
+}
+
 /* *****************************************************************************
 @discription: 将Catalog节点改为standalone模式启动
 @cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
@@ -776,6 +986,7 @@ function readCatalogAddressLine( filename ) {
 ***************************************************************************** */
 function change2Standalone( cataAddr ) {
    var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
+
    var ssh ;
    /* Stop the node and start by standalone */
    try {
@@ -786,6 +997,7 @@ function change2Standalone( cataAddr ) {
    }
 
    try {
+
       ssh.exec( SDBSTOP + " -p " + addrArray[1] ) ;
       println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
       var cmdline = SDBSTART + " -p " + addrArray[1] + ' -o "--role standalone" ' ;
@@ -794,69 +1006,6 @@ function change2Standalone( cataAddr ) {
       println( "Start " + addrArray[1] + " by standalone succeed in " + addrArray[0] ) ;
    } catch ( e ) {
       println( "Change " + cataAddr + " to standalone failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-      ssh.close() ;
-      return false ;
-   }
-   ssh.close() ;
-   return true ;
-}
-
-/* *****************************************************************************
-@discription: 将Catalog节点改为Catalog角色模式启动
-@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
-@author: Jianhui Xu
-@return: true/false
-***************************************************************************** */
-function change2Catalog( cataAddr ) {
-   var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
-   var ssh ;
-   /* Restore the node and start */
-   try {
-      ssh = new Ssh( addrArray[0], USERNAME, PASSWD ) ;
-   } catch ( e ) {
-      println( "Ssh to " + addrArray[0] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-      return false ;
-   }
-
-   try {
-      ssh.exec( SDBSTOP + " -p " + addrArray[1] ) ;
-      println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
-      var cmdline = SDBSTART + " -p " + addrArray[1] ;
-      //println( "CommandLine: " + cmdline ) ;
-      ssh.exec( cmdline ) ;
-      println( "Restore " + addrArray[1] + " to catalog succeed in " + addrArray[0] ) ;
-   } catch ( e ) {
-      println( "Restore " + cataAddr + " to catalog failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-      ssh.close() ;
-      return false ;
-   }
-   ssh.close() ;
-   return true ;
-}
-
-/* *****************************************************************************
-@discription: 重启hostname中的所有SequoiaDB节点
-@hostname : string
-@author: Jianhui Xu
-@return: true/false
-***************************************************************************** */
-function restartAllNode( hostname ) {
-   var ssh ;
-   /* Stop and start  */
-   try {
-      ssh = new Ssh( hostname, USERNAME, PASSWD ) ;
-   } catch ( e ) {
-      println( "Ssh to " + hostname+ " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-      return false ;
-   }
-
-   try {
-      ssh.exec( SDBSTOP + " -t all " ) ;
-      println( "Stop all nodes succeed in " + hostname ) ;
-      ssh.exec( SDBSTART + " -t all " ) ;
-      println( "Start all nodes succeed in " + hostname ) ;
-   } catch ( e ) {
-      println( "Restart all nodes in " + hostname + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       ssh.close() ;
       return false ;
    }
@@ -895,23 +1044,42 @@ function restartAllHostNode( hostnameArr ) {
          return false ;
       }
 
-      try {
-         ssh = new Ssh( hostnameArr[ j ], USERNAME, PASSWD ) ;
-      } catch ( e ) {
-         println( "Ssh to " + hostnameArr[ j ] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-         return false ;
-      }
-      try
-      {
-         var retStr = ssh.exec( SDBSHELL + ' -s \'var cmd = new Cmd(); cmd.start( "'
-                                + SDBSTOP + ' -t all && ' + SDBSTART + ' -t all", "", 1, 0  ) ; \' ' ) ;
-         var pid = retStr.split( "\n" )[ 0 ] ;
-         restartJob[ j ] = { "pid" : "" + pid } ;
-      }
-      catch( e )
-      {
-         println( "Restart " + hostnameArr[ j ] + " node failed: " + e + "(" + getLastErrMsg() + ")" ) ;
-         return false ;
+      /* New version */
+      if ( NEW_VERSION ) {
+         try {
+            var remoteObj = new Remote( hostnameArr[j], svcnameArr[j] ) ;
+            var cmd = remoteObj.getCmd() ;
+            var cmdStr = SDBSHELL + " -s 'var cmd = new Cmd(); cmd.start( \"" + SDBSTOP + " -t all && " + SDBSTART  + " -t all \", \"\", 1, 0 );'" ;
+            var retStr = cmd.run( cmdStr ).toString() ;
+            var pid = retStr.split( "\n" )[ 0 ] ;
+            restartJob[ j ] = { "pid" : "" + pid } ;
+            remoteObj.close() ;
+         } catch ( e ) {
+            remoteObj.close() ;
+            println( "Restart " + hostnameArr[ j ] + " node failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+      } else {
+         try {
+            ssh = new Ssh( hostnameArr[ j ], USERNAME, PASSWD ) ;
+         } catch ( e ) {
+            println( "Ssh to " + hostnameArr[ j ] + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+         try
+         {
+            var retStr = ssh.exec( SDBSHELL + ' -s \'var cmd = new Cmd(); cmd.start( "'
+                                   + SDBSTOP + ' -t all && ' + SDBSTART + ' -t all", "", 1, 0  ) ; \' ' ) ;
+            var pid = retStr.split( "\n" )[ 0 ] ;
+            restartJob[ j ] = { "pid" : "" + pid } ;
+            ssh.close() ;
+         }
+         catch( e )
+         {
+            ssh.close() ;
+            println( "Restart " + hostnameArr[ j ] + " node failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
       }
    }
 
@@ -950,6 +1118,14 @@ function restartAllHostNode( hostnameArr ) {
          }
       }
       sleep( 500 ) ;
+   }
+   /* Close remote obj */
+   for ( i in remoteArr ) {
+      try {
+         remoteArr[i].close() ;
+      } catch ( e ) {
+         continue ;
+      }
    }
 
    // Compare starttime to determine whether the node have been restart
@@ -1055,7 +1231,13 @@ function splitCluster( cataAddrs, keepHosts, active ) {
    var newAddrLine = makeAddrLineWithKeepHosts( CATAADDRLINE, keepHosts ) ;
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
       /* 1. Change catalog to standalone */
-      if ( change2Standalone( cataAddrs[ i ] ) ) {
+      var rc = 0 ;
+      if ( NEW_VERSION ) {
+         rc = change2StandaloneNew( cataAddrs[ i ] ) ;
+      } else {
+         rc = change2Standalone( cataAddrs[ i ] ) ;
+      }
+      if ( rc ) {
          println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
       } else {
          println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
@@ -1075,17 +1257,10 @@ function splitCluster( cataAddrs, keepHosts, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
-      /* 4. Restore to catalog */
-      /* Not change, at last restart all nodes
-      if ( change2Catalog( cataAddrs[ i ] ) ) {
-         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
-      } else {
-         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
-         return false ;
-      } */
    }
 
-   /* 5. Update all nodes' addr--kick host */
+
+   /* 4. Update all node's addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
       println( "Update all nodes' catalogaddr to " + newAddrLine + " succeed" ) ;
@@ -1094,7 +1269,7 @@ function splitCluster( cataAddrs, keepHosts, active ) {
       return false ;
    }
 
-   /* 6. Restart all keepHosts's nodes */
+   /* 5. Restart all keepHosts's nodes */
    if ( restartAllHostNode( keepHosts ) ) {
       println( "Restart all host nodes succeed"  ) ;
    } else {
@@ -1189,18 +1364,10 @@ function initCluster( coordAddrs, filename, active ) {
          if( hostAddrs[i] == System.getHostName() ) {
             continue ;
          }
-         var ssh ;
          var dst_dir ;
+         var omaSvc ;
          try {
-             ssh = new Ssh( hostAddrs[i], USERNAME, PASSWD ) ;
-         } catch( e ) {
-            copySuccess = false ;
-            println( "Connect to " + hostAddrs[i] + " failed: " + e +
-                     "(" + getLastErrMsg() + ")" ) ;
-            break ;
-         }
-         try {
-            var omaSvc = Oma.getAOmaSvcName( hostAddrs[i] ) ;
+            omaSvc = Oma.getAOmaSvcName( hostAddrs[i] ) ;
             var remote = new Remote( hostAddrs[i], omaSvc ) ;
             dst_dir = remote.getSystem().getEWD() ;
          } catch( e ) {
@@ -1210,8 +1377,8 @@ function initCluster( coordAddrs, filename, active ) {
             break ;
          }
          try {
-            var dst_file = dst_dir + "/../datacenter_init.info" ;
-            ssh.push( INITFILE, dst_file, 0700 ) ;
+            var dst_file = hostAddrs[i] + ":" + omaSvc  + "@" + dst_dir + "/../datacenter_init.info" ;
+            File.scp( INITFILE, dst_file, true, 0700 ) ;
          } catch( e ) {
             copySuccess = false ;
             println( "Copy init file to " + hostAddrs[i] + " failed" + e +
@@ -1284,7 +1451,13 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
 
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
       /* 1. Change catalog to standalone */
-      if ( change2Standalone( cataAddrs[ i ] ) ) {
+      var rc = 0 ;
+      if ( NEW_VERSION ) {
+         rc = change2StandaloneNew( cataAddrs[ i ] ) ;
+      } else {
+         rc = change2Standalone( cataAddrs[ i ] ) ;
+      }
+      if ( rc ) {
          println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
       } else {
          println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
@@ -1304,17 +1477,9 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly property failed" ) ;
          return false ;
       }
-      /* 4. Restore to catalog */
-      /* Not change, at last restart all nodes
-      if ( change2Catalog( cataAddrs[ i ] ) ) {
-         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
-      } else {
-         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
-         return false ;
-      } */
    }
 
-   /* 6. Update all nodes' addr */
+   /* 5. Update all all node's addr */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", CATAADDRLINE ) ) {
       println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " succeed" ) ;
@@ -1323,7 +1488,7 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
       return false ;
    }
 
-   /* 7. Restart all keepHosts's nodes */
+   /* 6. Restart all keepHosts's nodes */
    if ( restartAllHostNode( keepHosts ) ) {
       println( "Restart all host nodes succeed"  ) ;
    } else {
@@ -1359,6 +1524,21 @@ function restartNode( nodeNameArray ) {
             portStr += 
 "," + tmpArray[i] ;
          }
+
+         /* New version */
+         try {
+            if ( NEW_VERSION ) {
+               var result = restartNodeWithOma( hostname, portStr ) ;
+               if ( result ) {
+                  continue ;
+               }
+            }
+         } catch ( e ) {
+            println( "Restart all catalog nodes in " + hostname + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+            return false ;
+         }
+
+         /* Old version */
          var ssh ;
          /* Stop and start  */
          try {
@@ -2026,6 +2206,7 @@ function attachGroupNode( coordAddr, filename ) {
 @return: true/false
 ***************************************************************************** */
 function main() {
+   var rc = true ;
    println( "Begin to check args..." ) ;
    if ( checkArgs() ) {
       println( "Done" ) ;
@@ -2033,8 +2214,18 @@ function main() {
       println( "Failed" ) ;
       return ;
    }
-   println( "Begin to check environment..." ) ;
-   if ( checkHostsEvn( CURHOSTS ) ) {
+
+   println( "Begin to check enviroment..." ) ;
+   if ( checkSdbVersion() ) {
+      NEW_VERSION = true ;
+   }
+
+   if ( NEW_VERSION ) {
+      rc = checkHostsEvnNew( CURHOSTS ) ;
+   } else {
+      rc = checkHostsEvn( CURHOSTS ) ;
+   }
+   if ( rc ) {
       println( "Done" ) ;
    } else {
       println( "Failed" ) ;
