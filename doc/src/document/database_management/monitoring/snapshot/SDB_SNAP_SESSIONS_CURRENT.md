@@ -19,6 +19,7 @@ SDB_SNAP_SESSIONS_CURRENT
 | IsBlocked         | 布尔型        | 会话当前是否处理阻塞状态                           |
 | Name              | 字符串        | EDU 名，一般系统 EDU 名为空                        |
 | Doing             | 字符串        | 会话当前阻塞状态的详细描述信息                     |
+| Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
 | RelatedID         | 字符串        | 会话的内部标识                                     |
@@ -58,6 +59,7 @@ SDB_SNAP_SESSIONS_CURRENT
   "Type": "Agent",
   "Name": "127.0.0.1:60309",
   "Doing": "",
+  "Source": "",
   "QueueSize": 0,
   "ProcessEventCount": 12,
   "RelatedID": "c0a81e442e7200008c8a",
