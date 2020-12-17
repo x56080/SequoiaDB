@@ -1266,7 +1266,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
          throw new Error( "compare the " + recordLocation + "th record failed, "
             + "\nexp record count: " + expRecs.length
             + "\nact record count: " + actRecs.length
-            + "\nexp record: " + expStr )
+            + "\nexp record: " + expStr 
             + "\nact record: " + actStr );
       }
       else
