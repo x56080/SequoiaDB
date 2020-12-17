@@ -28,7 +28,7 @@
   *  **SDB_PMD_FORCE_SYSTEM_EDU**(-63)  
      系统会话不能被终止。
 
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
 ##示例##
 

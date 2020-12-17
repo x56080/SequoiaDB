@@ -9,7 +9,7 @@
 
 $+标识符 是一种特殊的命令符，这种命令符只作用于数组对象，标识符是一个整数，如 $1，$3，标识符相当于一个临时的存储，会把匹配成功的数组元素的索引存储起来。下面这些是错误的书写格式：$5.4，$a2，$3c，$MA。
 
-这种命令符只作用于数组，用来代替数组的索引 Key，并且可以把匹配到的第一个索引值传递到方法 [update](basic_operation/CRUD_operation/update.md) 的 rule 参数中。
+这种命令符只作用于数组，用来代替数组的索引 Key，并且可以把匹配到的第一个索引值传递到方法 [update](manual/basic_operation/CRUD_operation/update.md) 的 rule 参数中。
 
 ##示例##
 

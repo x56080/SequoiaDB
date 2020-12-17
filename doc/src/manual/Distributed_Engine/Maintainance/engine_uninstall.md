@@ -8,7 +8,7 @@
     市场部：20190530
 
 
-如果用户不再需要 SequoiaDB 巨杉数据库，可以选择卸载。
+如果用户不再需要 SequoiaDB 巨杉数据库，可以选择卸载。 
 
 卸载前的检查
 ----
@@ -24,7 +24,7 @@
 卸载步骤
 ----
 
-以 SequoiaDB [安装][engine_install]在 `/opt/sequoiadb` 目录下为例，卸载步骤如下：
+以 SequoiaDB 安装在 `/opt/sequoiadb` 目录下为例，卸载步骤如下：
 
 1. 以 root 身份登陆数据库服务器
 
@@ -69,4 +69,3 @@
 - 检查 sdbcm 相关进程已退出
 - 检查安装路径 `/opt/sequoiadb` 下相关文件已不存在
 
-[engine_install]:manual/installation/deployment/command_installation/installation.md

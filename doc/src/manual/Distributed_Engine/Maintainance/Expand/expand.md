@@ -30,10 +30,9 @@
  - 集群添加服务器后，需要在新的服务器上进行[服务器内新增节点][add_node]操作。
 
 
-
 [^_^]:
     本文使用到的所有链接及引用。
-[env_requirement]:manual/installation/system/system_requirement.md
-[cluster_deployment]:manual/installation/deployment/command_installation/cluster.md
+[env_requirement]:manual/Deployment/env_requirement.md
+[cluster_deployment]:manual/Deployment/cluster_deployment.md
 [add_node]:manual/Distributed_Engine/Maintainance/Expand/add_node.md
 [add_host]:images/Distributed_Engine/Maintainance/Expand/add_host.PNG

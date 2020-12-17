@@ -2,9 +2,9 @@
    "contents": [
       {
          "id": 1558957223,
-         "dir": "Manual",
-         "cn": "关于 SequoiaDB",
-         "en": "Manual",
+         "dir": "SequoiaDB_Intro",
+         "cn": "SequoiaDB 简介",
+         "en": "SequoiaDB Intro",
          "contents": [
             {
                "id": 1558957224,
@@ -23,162 +23,76 @@
                "file": "features",
                "cn": "核心特性",
                "en": "Features"
+            },
+            {
+               "id": 1608107861,
+               "file": "usage",
+               "cn": "应用场景",
+               "en": "Usage"
             }
          ]
       },
       {
          "id": 1519612914,
-         "file": "quickstart",
+         "dir": "Quick_Start",
          "cn": "快速入门",
-         "en": "Quickstart"
-      },
-      {
-         "id": 1432190594,
-         "dir": "installation",
-         "cn": "安装",
-         "en": "Installation",
+         "en": "Quickstart",
          "contents": [
             {
-               "id": 1432190595,
-               "dir": "system",
-               "cn": "系统要求",
-               "en": "System",
-               "contents": [
-                  {
-                     "id": 1461056740,
-                     "file": "system_requirement",
-                     "cn": "服务器软硬件要求",
-                     "en": "Server Software and Hardware Requirements"
-                  },
-                  {
-                     "id": 1461057844,
-                     "file": "linux_suggest_settings",
-                     "cn": "Linux环境推荐配置",
-                     "en": "Linux System Suggest Settings"
-                  }
-               ]
+               "id": 1608107951,
+               "file": "quick_deployment",
+               "cn": "快速部署",
+               "en": "Quick Deployment"
             },
             {
-               "id": 1432190596,
-               "dir": "deployment",
-               "cn": "安装部署",
-               "en": "Deployment",
-               "contents": [
-                  {
-                     "id": 1519798610,
-                     "file": "overview",
-                     "cn": "概述",
-                     "en": "overview"
-                  },
-                  {
-                     "id": 1432190599,
-                     "dir": "command_installation",
-                     "cn": "命令行安装",
-                     "en": "Command Installation",
-                     "contents": [
-                        {
-                           "id": 1432191000,
-                           "file": "installation",
-                           "cn": "数据库安装",
-                           "en": "SequoiaDB Installation"
-                        },
-                        {
-                           "id": 148505053,
-                           "file": "planning_database_deployment",
-                           "cn": "规划数据库部署",
-                           "en": "Planning Database Deployment"
-                        },
-                        {
-                           "id": 1432191001,
-                           "file": "standalone",
-                           "cn": "独立模式",
-                           "en": "Standalone"
-                        },
-                        {
-                           "id": 1432191002,
-                           "file": "cluster",
-                           "cn": "集群模式",
-                           "en": "Cluster"
-                        }
-                     ]
-                  },
-                  {
-                     "id": 1562752047,
-                     "file": "docker",
-                     "cn": "Docker 部署",
-                     "en": "Docker"
-                  },
-                  {
-                     "id": 1432190600,
-                     "file": "visualization_installation",
-                     "cn": "可视化安装",
-                     "en": "Visualization Installation"
-                  },
-                  {
-                     "id": 1447122217,
-                     "file": "visualization_data_operation",
-                     "cn": "可视化数据操作",
-                     "en": "Visualization Data Operation"
-                  }
-               ]
-            },
-            {
-               "id": 1516636800,
-               "file": "ulimits",
-               "cn": "limit设置",
-               "en": "Setting Limits"
-            },
-            {
-               "id": 1432190593,
-               "file": "create_host",
-               "cn": "增加机器",
-               "en": "Add Host"
+               "id": 1562752047,
+               "file": "docker_deployment",
+               "cn": "Docker部署",
+               "en": "Docker Deployment"
             }
          ]
       },
       {
-         "id": 1432190601,
-         "dir": "basic_operation",
-         "cn": "基本操作",
-         "en": "Basic Operation",
+         "id": 1432190594,
+         "dir": "Deployment",
+         "cn": "安装部署",
+         "en": "Deployment",
          "contents": [
             {
-               "id": 1432190608,
-               "dir": "CRUD_operation",
-               "cn": "CRUD操作",
-               "en": "CRUD Operation",
-               "contents": [
-                  {
-                     "id": 1432190609,
-                     "file": "insert",
-                     "cn": "插入",
-                     "en": "Insert"
-                  },
-                  {
-                     "id": 1432190610,
-                     "file": "query",
-                     "cn": "查询",
-                     "en": "Query"
-                  },
-                  {
-                     "id": 1432190611,
-                     "file": "update",
-                     "cn": "更新",
-                     "en": "Update"
-                  },
-                  {
-                     "id": 1432190612,
-                     "file": "delete",
-                     "cn": "删除",
-                     "en": "Delete"
-                  }
-               ]
+               "id": 1461056740,
+               "file": "env_requirement",
+               "cn": "软硬件配置需求",
+               "en": "Server Software and Hardware Requirements"
             },
             {
-               "id": 1432190614,
-               "file": "aggregate",
-               "cn": "聚集",
-               "en": "Aggregate"
+               "id": 1461057844,
+               "file": "linux_suggestion",
+               "cn": "Linux环境推荐配置",
+               "en": "Linux System Suggest Settings"
+            },
+            {
+               "id": 1432191000,
+               "file": "engine_install",
+               "cn": "数据库安装",
+               "en": "SequoiaDB Installation"
+            },
+            {
+               "id": 1432191002,
+               "file": "cluster_deployment",
+               "cn": "集群模式部署",
+               "en": "Cluster Deployment"
+            },
+            {
+               "id": 1432191001,
+               "file": "standalone_deployment",
+               "cn": "独立模式部署",
+               "en": "Standalone Deployment"
+            },
+            {
+               "id": 1432190660,
+               "file": "cluster_start_stop",
+               "cn": "集群启停",
+               "en": "Cluster Start and Stop"
             }
          ]
       },
@@ -956,20 +870,6 @@
          ]
       },
       {
-        "id": 1580978421,
-        "dir": "foreign_protocol",
-        "cn": "外部数据库协议兼容",
-        "en": "foreign database protocol compatible",
-        "contents": [
-          {
-             "id": 1580978422,
-             "file": "mongodb_protocol",
-             "cn": "MongoDB协议兼容",
-             "en": "MongoDB protocol compatible"
-          }
-        ]
-      },
-      {
          "id": 1605491134,
          "dir": "Distributed_Engine",
          "cn": "分布式引擎",
@@ -1289,6 +1189,20 @@
                      "file": "compression_encryption",
                      "cn": "数据压缩",
                      "en": "Compression Encryption"
+                  },
+                  {
+                    "id": 1580978421,
+                    "dir": "Foreign_Protocol",
+                    "cn": "外部数据库协议兼容",
+                    "en": "foreign database protocol compatible",
+                    "contents": [
+                      {
+                         "id": 1580978422,
+                         "file": "mongodb_protocol",
+                         "cn": "MongoDB协议兼容",
+                         "en": "MongoDB protocol compatible"
+                      }
+                    ]
                   }
                ]
             },
@@ -2087,26 +2001,6 @@
                       }
                     ]
                  }
-               ]
-            },          
-            {
-               "id": 1432190660,
-               "dir": "cluster_management",
-               "cn": "集群启停",
-               "en": "Cluster Management",
-               "contents": [
-                  {
-                     "id": 1432190661,
-                     "file": "cluster_start",
-                     "cn": "集群启动",
-                     "en": "Cluster Start"
-                  },
-                  {
-                     "id": 1432190662,
-                     "file": "cluster_stop",
-                     "cn": "集群停止",
-                     "en": "Cluster Stop"
-                  }
                ]
             },
             {
@@ -5414,28 +5308,6 @@
          ]
       },
       {
-         "id": 1478742339,
-         "dir": "troubleshooting",
-         "cn": "故障排除",
-         "en": "trouble shooting",
-         "contents": [
-            {
-               "id": 1478742400,
-               "dir": "general",
-               "cn": "常见错误",
-               "en": "general",
-               "contents": [
-                  {
-                     "id": 1478742401,
-                     "file": "general_guide",
-                     "cn": "常见错误处理指南",
-                     "en": "general guide"
-                  }
-               ]
-            }
-         ]
-      },
-      {
          "id": 1483942793,
          "dir": "SAC",
          "cn": "SAC管控中心",
@@ -5810,6 +5682,12 @@
                ]
             }
          ]
+      },
+      {
+         "id": 1478742401,
+         "file": "faq",
+         "cn": "常见问题及解答",
+         "en": "general guide"
       },
       {
          "id": 1432190607,

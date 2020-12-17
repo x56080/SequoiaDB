@@ -45,7 +45,7 @@ Collection Space
 | -149  | SDB_REBUILD_HAS_ALREADY_START| 数据节点正在做rebuild。 | 等待rebuild完成，再执行改名。 |
 
 当异常抛出时，可以通过 [getLastErrObj()](reference/Sequoiadb_command/Global/getLastErrObj.md)  或 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
 ##版本信息##
 3.0.1及以上版本

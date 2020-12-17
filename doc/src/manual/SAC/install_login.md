@@ -176,8 +176,8 @@
     本文使用的所有引用及链接
 [download]:http://download.sequoiadb.com/cn/
 [deployment_wizard]:manual/SAC/Deployment/deployment_wizard.md
-[system_requirement]:manual/installation/system/system_requirement.md
-[linux_suggest_setting]:manual/installation/system/linux_suggest_settings.md
+[system_requirement]:manual/Deployment/env_requirement.md
+[linux_suggest_setting]:manual/Deployment/linux_suggestion.md
 
 [login]:images/SAC/login.png
 [reset_pwd_1]:images/SAC/reset_pwd_1.png

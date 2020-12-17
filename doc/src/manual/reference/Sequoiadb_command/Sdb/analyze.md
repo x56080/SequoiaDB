@@ -39,7 +39,7 @@
   *  **SDB_INVALIDARG**(-6)
      指定的参数可能存在冲突，请参考 **Options** 的约束。
 
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
 ##版本信息##
 2.9及以上版本

@@ -31,7 +31,7 @@
   *  **SDB_DMS_CS_NOTEXIST**(-34)  
      指定集合空间不存在。
 
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
 ##版本信息##
 2.8及以上版本

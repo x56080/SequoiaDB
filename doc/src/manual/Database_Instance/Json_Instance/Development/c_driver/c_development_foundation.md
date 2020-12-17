@@ -200,10 +200,10 @@
    // 获取主数据节点
    rc = sdbGetNodeMaster ( rg, &masternode ) ;
    //获取从数据节点
-   rc = sdbGetNodeSlave ( rg, &slavenode ) ;
+   rc = sdbGetNodeSlave ( rg, &slavenode ) ; 
    ```
 
 [^_^]:
      本文使用的所有引用和链接
-[quickstart]:manual/quickstart.md
+[quickstart]:manual/Quick_Start/quick_deployment.md
 [api]:manual/Database_Instance/Json_Instance/Development/c_driver/c_api.md

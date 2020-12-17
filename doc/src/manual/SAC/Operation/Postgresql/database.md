@@ -44,7 +44,7 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[deployment_postgresql]:manual/SAC/Deployment/Deployment_Bystep/deployement_postgresql.md
+[deployment_postgresql]:manual/SAC/Deployment/Deployment_Bystep/deployment_postgresql.md
 [record]:manual/SAC/Operation/Postgresql/record.md
 
 [database_oltp]:images/SAC/Operation/Postgresql/database_oltp.png

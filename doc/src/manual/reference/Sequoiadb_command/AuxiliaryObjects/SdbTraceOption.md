@@ -176,6 +176,6 @@
     本文使用的所有引用和链接
 [getLastErrMsg]:reference/Sequoiadb_command/Global/getLastErrMsg.md
 [getLastError]:reference/Sequoiadb_command/Global/getLastError.md
-[general_guide]:troubleshooting/general/general_guide.md
+[general_guide]:manual/faq.md
 [edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
 

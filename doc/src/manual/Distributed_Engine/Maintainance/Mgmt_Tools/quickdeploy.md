@@ -290,6 +290,6 @@ SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 所对应的配置文件属于 csv 格式
 
 
 [^_^]:
-     本文使用的所有引用及链接
-[env_requirement]:manual/installation/system/system_requirement.md
-[linux_suggest_settings]:manual/installation/system/linux_suggest_settings.md
+    本文使用的所有引用及链接
+[env_requirement]:manual/Deployment/env_requirement.md
+[linux_suggest_settings]:manual/Deployment/linux_suggestion.md

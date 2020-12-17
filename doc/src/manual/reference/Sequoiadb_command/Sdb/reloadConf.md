@@ -18,7 +18,7 @@
 ##返回值##
 
 无返回值，出错抛异常，并输出错误信息。可以通过 [getLastErrObj()](reference/Sequoiadb_command/Global/getLastErrObj.md)  或 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。
-更多错误可以参考[常见错误处理指南](troubleshooting/general/general_guide.md) 。
+更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
 ##版本信息##
 2.8及以上版本

@@ -107,7 +107,7 @@
 
 
 [^_^]:
-      本文使用的所有引用和链接
+     本文使用的所有引用和链接
 [Replication]:manual/Distributed_Engine/Architecture/Replication/architecture.md
 [syscollctions]:manual/Distributed_Engine/Architecture/Catalog_Table/SYSCOLLECTIONS.md
 [syscollectionspaces]:manual/Distributed_Engine/Architecture/Catalog_Table/SYSCOLLECTIONSPACES.md
@@ -117,7 +117,7 @@
 [sysusrs]:manual/Distributed_Engine/Architecture/Catalog_Table/SYSUSRS.md
 [storeprocedures]:manual/Distributed_Engine/Architecture/Catalog_Table/STOREPROCEDURES.md
 [sequences]:manual/Distributed_Engine/Architecture/Catalog_Table/SEQUENCES.md
-[expand]:manual/installation/create_host.md
+[expand]:manual/Distributed_Engine/Maintainance/Expand/expand.md
 [cluster_config]:manual/database_management/database_configuration/configuration_parameters.md
 [createCataRG]:manual/reference/Sequoiadb_command/Sdb/createCataRG.md
 [getCataRG]:manual/reference/Sequoiadb_command/Sdb/getCataRG.md
