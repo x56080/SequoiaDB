@@ -2245,6 +2245,7 @@ namespace engine
    // for a specific index.
    // Input:
    //    context:  DMS Meta data block information
+   //    indexID:  slot ID of index
    //    indexCB:  The index to update
    //    originalObj: original data
    //    newObj: new data value
@@ -2257,6 +2258,7 @@ namespace engine
    //
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__INDEXUPDATE, "_dmsStorageIndex::_indexUpdate" )
    INT32 _dmsStorageIndex::_indexUpdate( dmsMBContext *context,
+                                         INT32 indexID,
                                          ixmIndexCB *indexCB,
                                          BSONObj &originalObj,
                                          BSONObj &newObj,
@@ -2306,7 +2308,7 @@ namespace engine
 
       if ( pOprHandle )
       {
-         rc = pOprHandle->onUpdateIndex( context, indexCB, unique,
+         rc = pOprHandle->onUpdateIndex( context, indexID, indexCB, unique,
                                          indexCB->enforced(), keySetOri,
                                          keySetNew, rid, isRollback, cb,
                                          pResult ) ;
@@ -2679,8 +2681,8 @@ namespace engine
          }
          else
          {
-            rc = _indexUpdate ( context, &indexCB, originalObj, newObj,
-                                rid, cb, isUndo, pOprHandle, pResult ) ;
+            rc = _indexUpdate( context, indexID, &indexCB, originalObj, newObj,
+                               rid, cb, isUndo, pOprHandle, pResult ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
                           "rc: %d", newObj.toString().c_str(),
                           indexCB.getDef().toString().c_str(), rc ) ;

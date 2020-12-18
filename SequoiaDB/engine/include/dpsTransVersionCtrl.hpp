@@ -472,7 +472,8 @@ namespace engine
                               oldVersionContainer *oldVer,
                               BOOLEAN hasLock,
                               const DPS_TRANS_ID &transID = DPS_TRANS_ID(),
-                              dmsTransLockCallback * callback = NULL ) ;
+                              dmsTransLockCallback * callback = NULL,
+                              INT32 indexID = -1 ) ;
 
       void lockX()
       {
@@ -981,6 +982,10 @@ namespace engine
                                        DPS_TRANS_ID recordTransID ) ;
       void                 releaseRecord( dmsTransLockCallback* callback = NULL ) ;
       BOOLEAN              tryReleaseRecord( dmsTransLockCallback* callback = NULL ) ;
+      // release all items created by this old version from given index tree
+      BOOLEAN              releaseIndex( dmsTransLockCallback *callback,
+                                         preIdxTreePtr &treePtr,
+                                         BOOLEAN hasLocked ) ;
 
       void                 setRecordDeleted() ;
       void                 setOwnerTransID( DPS_TRANS_ID const & ownerTransID ) 

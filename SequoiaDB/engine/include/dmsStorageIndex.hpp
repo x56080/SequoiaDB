@@ -273,7 +273,8 @@ namespace engine
                                  IDmsOprHandler *pOprHandle,
                                  utilWriteResult *pResult = NULL ) ;
 
-         INT32    _indexUpdate ( _dmsMBContext *context, _ixmIndexCB *indexCB,
+         INT32    _indexUpdate ( _dmsMBContext *context, INT32 indexID,
+                                 _ixmIndexCB *indexCB,
                                  BSONObj &originalObj, BSONObj &newObj,
                                  const dmsRecordID &rid, _pmdEDUCB *cb,
                                  BOOLEAN isRollback,

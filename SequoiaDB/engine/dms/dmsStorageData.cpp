@@ -545,7 +545,7 @@ namespace engine
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                              newObj, oriObj,
                                              recordRW.getRecordID(),
-                                             cb, TRUE, NULL ) ;
+                                             cb, TRUE, pHandler ) ;
          if ( rc1 )
          {
             if ( !ctrlAssist.isUndoFinished() )

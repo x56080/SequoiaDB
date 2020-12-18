@@ -579,6 +579,7 @@ namespace engine
       _rbsRecordOffset.reset() ;
       _needPostAction      = FALSE ;
       _recordOnDiskVisible = FALSE ;
+      _indexBitmap.resetBitmap() ;
 
       _diskRecordTransID.reset() ;
    }
@@ -1791,6 +1792,7 @@ namespace engine
 
    INT32 dmsTransLockCallback::_checkDeleteIndex( preIdxTreePtr &treePtr,
                                                   _DELETE_CURSOR &deleteCursor,
+                                                  INT32 indexID,
                                                   const ixmIndexCB *indexCB,
                                                   BOOLEAN isUnique,
                                                   const BSONObj &keyObj,
@@ -1881,7 +1883,8 @@ namespace engine
 
       // use owner transID to insert into the mem tree
       rc = treePtr->insertWithOldVer( &keyObj, rid, _oldVer, hasLocked,
-                                      this->getOwnerTransID(), this ) ;
+                                      this->getOwnerTransID(), this,
+                                      indexID ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Insert index keys(%s) with rid(%d, %d) "
@@ -1916,7 +1919,7 @@ namespace engine
             cit != keySet.end() ;
             ++cit )
       {
-         rc = _checkDeleteIndex( treePtr,deleteCursor, indexCB,
+         rc = _checkDeleteIndex( treePtr,deleteCursor, -1, indexCB,
                                  isUnique, *cit, rid, cb ) ;
          if ( rc )
          {
@@ -1931,6 +1934,7 @@ namespace engine
    }
 
    INT32 dmsTransLockCallback::onUpdateIndex( _dmsMBContext *context,
+                                              INT32 indexID,
                                               const ixmIndexCB *indexCB,
                                               BOOLEAN isUnique,
                                               BOOLEAN isEnforce,
@@ -1993,6 +1997,10 @@ namespace engine
       /// rollback
       else if ( isRollback )
       {
+         // check rollback on index
+         rc = _checkRollbackIndex( indexID, indexCB, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to undo index [%s], rc: %d",
+                      indexCB->getName(), rc ) ;
          goto done ;
       }
 
@@ -2081,7 +2089,7 @@ namespace engine
          itori = oldKeySet.begin() ;
          while ( oldKeySet.end() != itori )
          {
-            rc = _checkDeleteIndex( treePtr, deleteCursor, indexCB,
+            rc = _checkDeleteIndex( treePtr, deleteCursor, indexID, indexCB,
                                     isUnique, *itori, rid, cb ) ;
             if ( rc )
             {
@@ -2233,7 +2241,7 @@ namespace engine
                      goto error ;
                   }
 
-                  rc = _checkDeleteIndex( treePtr,deleteCursor, indexCB,
+                  rc = _checkDeleteIndex( treePtr,deleteCursor, -1, indexCB,
                                           indexCB->unique(), *cit,
                                           oldVer->getRecordID(), cb ) ;
                   if ( rc )
@@ -2348,6 +2356,60 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__CHKIDIDXUPDATE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK__CHKROLLBACKIDX, "dmsTransLockCallback::_checkRollbackIndex" )
+   INT32 dmsTransLockCallback::_checkRollbackIndex( INT32 indexID,
+                                                    const ixmIndexCB *indexCB,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK__CHKROLLBACKIDX ) ;
+
+      SDB_ASSERT( NULL != indexCB, "index is invalid" ) ;
+
+      // test if we need to rollback on given index
+      if ( NULL != _oldVer &&
+           NULL != cb &&
+           isIndexUpdated( indexID ) &&
+           _oldVer->idxLidExist( indexCB->getLogicalID() ) )
+      {
+         oldVersionCB *oldVerCB = _transCB->getOldVCB() ;
+         globIdxID gid( _csID, _clID, indexCB->getLogicalID() ) ;
+         preIdxTreePtr treePtr = oldVerCB->getIdxTree( gid, FALSE ) ;
+         BOOLEAN hasLocked = FALSE ;
+
+         // check if mem-tree already has locked
+         if ( _latchedIdxLid == gid._idxLID && idxTreeLatchMode() != -1 )
+         {
+            if ( EXCLUSIVE == idxTreeLatchMode() )
+            {
+               hasLocked = TRUE ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Lock mode(%d) is not EXCLUSIVE(%d)",
+                       idxTreeLatchMode(), EXCLUSIVE ) ;
+               SDB_ASSERT( FALSE, "Lock mode is invalid" ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+         }
+
+         if ( NULL != treePtr.get() )
+         {
+            // remove index item from given index tree
+            _oldVer->releaseIndex( this, treePtr, hasLocked ) ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__CHKROLLBACKIDX, rc ) ;
       return rc ;
 
    error:

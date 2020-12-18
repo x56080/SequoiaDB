@@ -45,6 +45,7 @@
 #include "dmsOprHandler.hpp"
 #include "dpsTransCB.hpp"
 #include "pmdEDU.hpp"
+#include "utilBitmap.hpp"
 
 using namespace bson ;
 
@@ -57,6 +58,8 @@ namespace engine
    class oldVersionCB ;
    class _rtnIXScanner ;
    struct _dmsMBStatInfo ;
+
+   typedef _utilStackBitmap< DMS_COLLECTION_MAX_INDEX > DMS_TRANS_INDEX_BITMAP ;
 
    // Class to implment lock call back funtions for DMS scanner
    class dmsTransLockCallback : public _dpsITransLockCallback,
@@ -113,6 +116,22 @@ namespace engine
       {
          _rbsRecordOffset._clID = loc._clID ;
          _rbsRecordOffset._logicalID = loc._logicalID ;
+      }
+
+      // mark index updated
+      void setIndexUpdated( INT32 indexID )
+      {
+         if ( indexID >= 0 )
+         {
+            _indexBitmap.setBit( (UINT32)indexID ) ;
+         }
+      }
+
+      // check if index is updated
+      BOOLEAN isIndexUpdated( INT32 indexID )
+      {
+         return ( indexID >= 0 ) &&
+                ( _indexBitmap.testBit( (UINT32)indexID ) ) ;
       }
 
    public:
@@ -197,6 +216,7 @@ namespace engine
                                    utilWriteResult *pResult ) ;
 
       virtual INT32 onUpdateIndex( _dmsMBContext *context,
+                                   INT32 indexID,
                                    const ixmIndexCB *indexCB,
                                    BOOLEAN isUnique,
                                    BOOLEAN isEnforce,
@@ -239,6 +259,7 @@ namespace engine
       } ;
       INT32         _checkDeleteIndex( preIdxTreePtr &treePtr,
                                        _DELETE_CURSOR &deleteCursor,
+                                       INT32 indexID,
                                        const ixmIndexCB *indexCB,
                                        BOOLEAN isUnique,
                                        const BSONObj &keyObj,
@@ -248,6 +269,11 @@ namespace engine
       INT32 _checkIDIndexUpdate( const dmsRecordID &rid,
                                  const BSONElement &idEle,
                                  _pmdEDUCB *cb ) ;
+
+      // check if we need to rollback on given index
+      INT32 _checkRollbackIndex( INT32 indexID,
+                                 const ixmIndexCB *indexCB,
+                                 pmdEDUCB *cb ) ;
 
    private:
 
@@ -325,6 +351,9 @@ namespace engine
       oldVersionUnitPtr    _unitPtr ;
 
       dmsTransRecordInfo   _recordInfo ;
+
+      // index bitmap to indicate which index is updated
+      DMS_TRANS_INDEX_BITMAP _indexBitmap ;
    } ;
 
 }

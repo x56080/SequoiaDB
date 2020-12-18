@@ -464,7 +464,8 @@ namespace engine
                                        oldVersionContainer *oldVer,
                                        BOOLEAN hasLock,
                                        const DPS_TRANS_ID &transID,
-                                       dmsTransLockCallback *callback )
+                                       dmsTransLockCallback *callback,
+                                       INT32 indexID )
    {
       INT32 rc = SDB_OK ;
 
@@ -487,7 +488,6 @@ namespace engine
          {
             SDB_ASSERT( callback, "Callback should not be NULL" ) ;
             keyValue.setRBSOffset( callback->getRBSRecordOffset() ) ;
-            
          }
 
          if ( !hasLock )
@@ -522,6 +522,10 @@ namespace engine
          if( oldVer->insertIdx( myIdxObj ) )
          {
             insert( keyNode, keyValue, TRUE ) ;
+            if ( NULL != callback )
+            {
+               callback->setIndexUpdated( indexID ) ;
+            }
          }
          else
          {
@@ -2476,6 +2480,49 @@ namespace engine
 
    done:
       return succeed ;
+   }
+
+   BOOLEAN oldVersionContainer::releaseIndex( dmsTransLockCallback *callback,
+                                              preIdxTreePtr &treePtr,
+                                              BOOLEAN hasLocked )
+   {
+      BOOLEAN removed = FALSE ;
+
+      SDB_ASSERT( NULL != treePtr.get(), "index tree is invalid" ) ;
+
+      INT32 indexLID = treePtr->getLID() ;
+
+      // check all index items to match given index LID
+      // NOTE: dpsIdxObj compared by pair ( indexLID, key )
+      dpsIdxObj tempObj( BSONObj(), indexLID ) ;
+      idxObjSet::iterator iter = _oldIdx.upper_bound( tempObj ) ;
+      while ( iter != _oldIdx.end() )
+      {
+         if ( iter->getIdxLID() == indexLID )
+         {
+            const dpsIdxObj &idxObj = ( *iter ) ;
+            preIdxTreeNodeKey keyNode( &( idxObj.getKeyObj() ),
+                                       _rid,
+                                       treePtr->getOrdering(),
+                                       _ownerTransID ) ;
+            treePtr->remove( keyNode, this, hasLocked ) ;
+            _oldIdx.erase( iter ++ ) ;
+            removed = TRUE ;
+            continue ;
+         }
+         else if ( iter->getIdxLID() > indexLID )
+         {
+            break ;
+         }
+         ++ iter ;
+      }
+
+      if ( removed )
+      {
+         _oldIdxLid.erase( indexLID ) ;
+      }
+
+      return removed ;
    }
 
    void oldVersionContainer::setRecordDeleted()
