@@ -60,10 +60,11 @@ public class Faulttolerance22211 extends SdbTestBase {
         cl = cs.createCollection( clName,
                 new BasicBSONObject( "Group", groupName ) );
 
-        BSONObject config = new BasicBSONObject();
-        config.put( "ftlevel", 3 );
-        config.put( "ftconfirmperiod", 3 );
-        sdb.updateConfig( config );
+        BSONObject configs = new BasicBSONObject();
+        configs.put( "ftlevel", 3 );
+        configs.put( "ftconfirmperiod", 3 );
+        configs.put( "ftfusingtimeout", 10 );
+        sdb.updateConfig( configs );
 
     }
 
@@ -129,10 +130,11 @@ public class Faulttolerance22211 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-            BSONObject config = new BasicBSONObject();
-            config.put( "ftlevel", 1 );
-            config.put( "ftconfirmperiod", 1 );
-            sdb.deleteConfig( config, new BasicBSONObject() );
+            BSONObject configs = new BasicBSONObject();
+            configs.put( "ftlevel", 1 );
+            configs.put( "ftconfirmperiod", 1 );
+            sdb.deleteConfig( configs, new BasicBSONObject() );
+            sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
             sdb.dropCollectionSpace( csName );
         } finally {
             if ( sdb != null ) {
