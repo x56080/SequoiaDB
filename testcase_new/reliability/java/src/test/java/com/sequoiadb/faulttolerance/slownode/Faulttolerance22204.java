@@ -71,6 +71,7 @@ public class Faulttolerance22204 extends SdbTestBase {
         BSONObject config = new BasicBSONObject();
         config.put( "ftlevel", 3 );
         config.put( "ftmask", "SLOWNODE" );
+        config.put( "ftfusingtimeout", 10 );
         sdb.updateConfig( config,
                 new BasicBSONObject( "GroupName", groupName ) );
 
@@ -106,6 +107,8 @@ public class Faulttolerance22204 extends SdbTestBase {
         config.put( "ftslownodethreshold", 1 );
         config.put( "ftslownodeincrement", 1 );
         sdb.deleteConfig( config, new BasicBSONObject() );
+
+        sdb.updateConfig( new BasicBSONObject( "ftfusingtimeout", 300 ) );
 
         Assert.assertTrue( groupMgr.checkBusinessWithLSN( 120 ) );
     }
