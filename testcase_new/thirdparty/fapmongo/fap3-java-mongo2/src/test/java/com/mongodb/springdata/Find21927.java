@@ -140,17 +140,14 @@ public class Find21927 extends MongodbTestBase {
 
         // $size sequoiadb 不支持
         // query = new Query( Criteria.where( "courses" ).size( 3 ) );
-        // System.out.println( "query = " + query.toString() );
         // List< Entity > list7 = mongoTemplate.find( query, Entity.class,
         // clName );
-        // System.out.println( "list7 = " + list7.toString() );
-        // Assert.assertEquals( list7, list );
+        // Assert.assertEquals( list7, list, "query = " + query.toString() );
 
         // $type sequoiadb 不支持
         // query = new Query( Criteria.where( "sex" ).type( 2 ) );
         // actList = mongoTemplate.find( query, Entity.class, clName );
-        // System.out.println( "list8 = " + actList.toString() );
-        // Assert.assertEquals( actList, list );
+        // Assert.assertEquals( actList, list, "query = " + query.toString() );
     }
 
     @Test

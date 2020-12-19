@@ -329,9 +329,9 @@ public class GridFS22021 extends MongodbTestBase {
         expKeySet.removeAll( Arrays.asList( "filename", "md5", "contentType",
                 "aliases", "chunkSize", "uploadDate", "metadata", "length",
                 "_id" ) );
-        System.out.println( "expKeySet = " + expKeySet );
         for ( String key : expKeySet ) {
-            Assert.assertEquals( act.get( key ), exp.get( key ) );
+            Assert.assertEquals( act.get( key ), exp.get( key ),
+                    "expKeySet = " + expKeySet );
         }
     }
 

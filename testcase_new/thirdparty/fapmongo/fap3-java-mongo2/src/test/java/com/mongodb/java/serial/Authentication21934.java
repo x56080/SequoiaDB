@@ -140,11 +140,15 @@ public class Authentication21934 extends MongodbTestBase {
         // 查询所有用户
         CommandResult userInfo1 = db
                 .command( new BasicDBObject( "usersInfo", 1 ) );
-        List< BasicDBObject > users1 = ( List< BasicDBObject > ) userInfo1
-                .get( "users" );
-        Assert.assertEquals( users1,
-                Arrays.asList( new BasicDBObject( "user", username1 ),
-                        new BasicDBObject( "user", username2 ) ) );
+        String users1 = userInfo1.get( "users" ).toString();
+        Assert.assertTrue(
+                users1.contains(
+                        new BasicDBObject( "user", username1 ).toString() ),
+                users1 );
+        Assert.assertTrue(
+                users1.contains(
+                        new BasicDBObject( "user", username2 ).toString() ),
+                users1 );
         // 查询单个用户
         CommandResult userInfo2 = db.command( new BasicDBObject( "usersInfo",
                 Collections
@@ -255,7 +259,7 @@ public class Authentication21934 extends MongodbTestBase {
                 try {
                     MongoCredential mongoCred2 = MongoCredential
                             .createScramSha1Credential( username2, dbName,
-                                    username1.toCharArray() );
+                                    username2.toCharArray() );
                     client2 = new MongoClient(
                             new ServerAddress( config.getHost(),
                                     config.getPort() ),

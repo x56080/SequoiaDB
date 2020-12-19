@@ -1,5 +1,12 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Projections.exclude;
+import static com.mongodb.client.model.Projections.excludeId;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,13 +32,6 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.utils.MongodbTestBase;
-
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-import static com.mongodb.client.model.Projections.exclude;
-import static com.mongodb.client.model.Projections.excludeId;
-import static com.mongodb.client.model.Projections.fields;
-import static com.mongodb.client.model.Projections.include;
 
 /**
  * @Description seqDB-21930:aggregate操作
@@ -337,8 +337,8 @@ public class Aggregate21930 extends MongodbTestBase {
                                 Accumulators.last( "last_d", "$d" ) ),
                         Aggregates.sort( Sorts.ascending( "last_d" ) ) ) )
                 .into( new ArrayList< Document >() );
-        System.out.println( "result7 = " + actResult.toString() );
-        // Assert.assertEquals( result7.size(), 3 );
+        // Assert.assertEquals( result7.size(), 3, "result7 = " +
+        // actResult.toString() );
         // int last7 = 0;
         // for ( int i = 0; i < result7.size(); i++ ) {
         // for ( int j = 0; j < num; j++ ) {

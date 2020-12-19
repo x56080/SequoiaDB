@@ -128,9 +128,13 @@ public class Authentication21934 extends MongodbTestBase {
         // 查询用户
         // 查询所有用户
         Document userInfo1 = db.runCommand( new Document( "usersInfo", 1 ) );
-        Assert.assertEquals( userInfo1.get( "users", ArrayList.class ),
-                Arrays.asList( new Document( "user", username1 ),
-                        new Document( "user", username2 ) ) );
+        String users1 = userInfo1.get( "users" ).toString();
+        Assert.assertTrue(
+                users1.contains( new Document( "user", username1 ).toString() ),
+                users1 );
+        Assert.assertTrue(
+                users1.contains( new Document( "user", username2 ).toString() ),
+                users1 );
         // 查询单个用户
         Document userInfo2 = db.runCommand( new Document( "usersInfo",
                 Collections.singletonList( new Document( "user", username1 )

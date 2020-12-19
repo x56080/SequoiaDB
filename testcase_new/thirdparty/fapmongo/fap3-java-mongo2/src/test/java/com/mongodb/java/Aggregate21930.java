@@ -378,7 +378,6 @@ public class Aggregate21930 extends MongodbTestBase {
                 new BasicBSONObject( "_id", "$b" ).append( "first_d",
                         new BasicBSONObject( "$first", "$d" ) ) ) );
         actResult = cl.aggregate( aggList ).results().iterator();
-        System.out.println( "$first agg = " + aggList.toString() );
         k = 0;
         while ( actResult.hasNext() ) {
             Assert.assertEquals( actResult.next(),
@@ -386,7 +385,7 @@ public class Aggregate21930 extends MongodbTestBase {
                             k % 3 ) );
             k++;
         }
-        Assert.assertEquals( k, 3 );
+        Assert.assertEquals( k, 3, "$first agg = " + aggList.toString() );
 
         // lte group last
         // TODO:SEQUOIADBMAINSTREAM-5656
@@ -399,8 +398,6 @@ public class Aggregate21930 extends MongodbTestBase {
                 new BasicBSONObject( "_id", "$b" ).append( "last_d",
                         new BasicBSONObject( "$last", "$d" ) ) ) );
         actResult = cl.aggregate( aggList ).results().iterator();
-        System.out.println( "$last agg = " + aggList.toString() );
-        System.out.println( "result2  = " + actResult.next().toString() );
         // int k14 = 0;
         // int last14 = 0;
         // while ( result14.hasNext() ){
@@ -440,7 +437,7 @@ public class Aggregate21930 extends MongodbTestBase {
             expList15.clear();
             k++;
         }
-        Assert.assertEquals( k, 3 );
+        Assert.assertEquals( k, 3, "$last agg = " + aggList.toString() );
     }
 
     @Test
