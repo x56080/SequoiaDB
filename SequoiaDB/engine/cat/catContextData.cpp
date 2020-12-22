@@ -671,9 +671,9 @@ namespace engine
 
                if ( _targetName.length() > DMS_SU_NAME_SZ )
                {
+                  rc = SDB_INVALIDARG ;
                   PD_LOG ( PDERROR, "Invalid length of collectionspace name: "
                            "%s, rc: %d", _targetName.c_str(), rc ) ;
-                  rc = SDB_INVALIDARG ;
                   goto error ;
                }
             }

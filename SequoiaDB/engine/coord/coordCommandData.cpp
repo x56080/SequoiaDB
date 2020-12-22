@@ -1621,13 +1621,14 @@ namespace engine
             goto error ;
          }
 
-         if ( pArgs->_targetName.empty() )
+         if ( dmsCheckCSName( pArgs->_targetName.c_str() ) )
          {
-            PD_LOG( PDERROR, "Collectionspace name is empty in command[%s]",
-                    getName() ) ;
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Collectionspace name is invalid[%s], rc: %d",
+                    pArgs->_targetName.c_str(), rc ) ;
             goto error ;
          }
+
          // Add ignore return codes
          pArgs->_ignoreRCList.insert( SDB_DMS_CS_NOTEXIST ) ;
       }
@@ -2218,21 +2219,15 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+
          if ( dmsCheckFullCLName( pArgs->_targetName.c_str() ) )
          {
-            PD_LOG( PDERROR, "Collection name is invalid[%s]",
-                    pArgs->_targetName.c_str() ) ;
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Collection name is invalid[%s], rc: %d",
+                    pArgs->_targetName.c_str(), rc ) ;
             goto error ;
          }
 
-         if ( pArgs->_targetName.empty() )
-         {
-            PD_LOG( PDERROR, "Collection name is empty in command[%s]",
-                    getName() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
          pArgs->_ignoreRCList.insert( SDB_DMS_NOTEXIST ) ;
       }
       catch( std::exception &e )
