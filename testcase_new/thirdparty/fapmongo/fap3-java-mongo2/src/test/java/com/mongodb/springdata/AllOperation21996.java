@@ -45,7 +45,7 @@ public class AllOperation21996 extends MongodbTestBase {
     }
 
     @SuppressWarnings("rawtypes")
-    @Test(dataProvider = "data-provider")
+    @Test(dataProvider = "data-provider", enabled = false) // jira-6529
     public void test( String clName, int recordNum ) {
         List< Entity > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {
