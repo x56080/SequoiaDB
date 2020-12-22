@@ -129,6 +129,14 @@ namespace engine
          '<',
          '>',
          '|' } ;
+
+      if ( NULL == collectionSpaceName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "collection space name can't be null" ) ;
+         goto error ;
+      }
+
       csNameLen = ossStrlen ( collectionSpaceName ) ;
       if ( DMS_COLLECTION_SPACE_NAME_SZ < csNameLen || 0 >= csNameLen )
       {
@@ -195,15 +203,36 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_DMSCHKFULLCLNM );
       CHAR buffer [ DMS_COLLECTION_NAME_SZ +
                     DMS_COLLECTION_SPACE_NAME_SZ + 2 ] = {0} ;
+      CHAR *p = NULL ;
+      UINT32 fullClNameLen = 0 ;
+
+      if ( NULL == fullCollectionName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "full collection name can't be null" ) ;
+         goto error ;
+      }
+
+      fullClNameLen = ossStrlen( fullCollectionName ) ;
+      if ( fullClNameLen == 0 ||
+           fullClNameLen > ( DMS_COLLECTION_NAME_SZ +
+                             DMS_COLLECTION_SPACE_NAME_SZ + 1 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "full collection name length is not valid: %s",
+                      fullCollectionName ) ;
+         goto error ;
+      }
+
       ossStrncpy ( buffer, fullCollectionName,
                    DMS_COLLECTION_NAME_SZ +
                    DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
-      CHAR *p = ossStrchr ( buffer, '.' ) ;
+      p = ossStrchr ( buffer, '.' ) ;
       if ( !p )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "full collection name should include '.': %s",
-                  fullCollectionName ) ;
+         PD_LOG_MSG ( PDERROR, "full collection name should include '.': %s",
+                      fullCollectionName ) ;
          goto error ;
       }
       *p = '\0' ;
@@ -232,6 +261,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_DMSCHKCLNM );
       INT32 clNameLen = 0 ;
+
+      if ( NULL == collectionName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "collection name can't be null" ) ;
+         goto error ;
+      }
+
       clNameLen = ossStrlen ( collectionName ) ;
       if ( DMS_COLLECTION_NAME_SZ < clNameLen || 0 >= clNameLen )
       {
@@ -252,15 +289,15 @@ namespace engine
       if ( ossStrchr ( collectionName, '.' ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR,
-                  "collection name should not include '.': %s",
-                  collectionName ) ;
+         PD_LOG_MSG ( PDERROR,
+                      "collection name should not include '.': %s",
+                      collectionName ) ;
          goto error ;
       }
       if ( !sys && dmsIsSysCLName(collectionName) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "collection name is system: %s", collectionName ) ;
+         PD_LOG_MSG ( PDERROR, "collection name is system: %s", collectionName ) ;
          goto error ;
       }
    done :

@@ -1904,6 +1904,14 @@ namespace engine
       BOOLEAN writable                    = FALSE ;
       dmsMBContext * mbContext            = NULL ;
 
+      if ( dmsCheckFullCLName( pCollection, TRUE ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Collection name is invalid[%s], rc: %d",
+                 pCollection, rc ) ;
+         goto error ;
+      }
+
       // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;

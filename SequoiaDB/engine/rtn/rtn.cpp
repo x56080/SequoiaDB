@@ -1172,13 +1172,12 @@ namespace engine
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      // make sure the collectionspace length is not out of range
-      UINT32 length = ossStrlen ( pCollectionSpace ) ;
-      if ( length <= 0 || length > DMS_SU_NAME_SZ )
+
+      if ( dmsCheckCSName( pCollectionSpace, TRUE ) )
       {
-         PD_LOG ( PDERROR, "Invalid length of collectionspace name: %s, "
-                  "rc: %d", pCollectionSpace, rc ) ;
          rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Collectionspace name is invalid[%s], rc: %d",
+                 pCollectionSpace, rc ) ;
          goto error ;
       }
 
