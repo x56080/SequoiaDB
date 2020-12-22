@@ -247,6 +247,13 @@ namespace engine
       string serviceName ;
 
       rc = omGetStpFromConfig( configPath, serviceName ) ;
+      if ( SDB_FNE == rc )
+      {
+         rc = SDBCM_NODE_NOTEXISTED ;
+         PD_LOG( PDINFO, "Failed to get STP config file from path %s, "
+                 "STP node does not exist", configPath ) ;
+         goto error ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to get service name from "
                    "STP config path [%s], rc: %d", configPath, rc ) ;
 
