@@ -1030,6 +1030,18 @@ namespace engine
          ++ _errCount ;
       }
 
+      // report global transaction errors
+      void incGlobErrCount( INT32 rc )
+      {
+         // only count error when STP or global transaction is not
+         // available
+         if ( STP_NOT_AVAILABLE == rc ||
+              SDB_GLOB_TRANS_NOT_AVAILABLE == rc )
+         {
+            ++ _errCount ;
+         }
+      }
+
       // get GTS agent
       OSS_INLINE _dpsGTSAgent *getGTSAgent()
       {

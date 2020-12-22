@@ -949,6 +949,8 @@ namespace engine
       return rc ;
 
    error:
+      // report error
+      transCB->incGlobErrCount( rc ) ;
       goto done ;
    }
 
@@ -1080,6 +1082,8 @@ namespace engine
    error:
       // failed to check pre-commit, update back to DOING status
       transCB->updateTransStatus( transID, DPS_TRANS_DOING ) ;
+      // report error
+      transCB->incGlobErrCount( rc ) ;
       goto done ;
    }
 

@@ -271,6 +271,8 @@ namespace engine
       PD_TRACE_EXIT ( SDB_RTNTRANSBEGIN ) ;
       return rc;
    error:
+      // report error
+      sdbGetTransCB()->incGlobErrCount( rc ) ;
       goto done ;
    }
 
@@ -347,6 +349,8 @@ namespace engine
       }
       return rc ;
    error:
+      // report error
+      sdbGetTransCB()->incGlobErrCount( rc ) ;
       goto done ;
    }
 
