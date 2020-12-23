@@ -45,16 +45,16 @@ function test ( testPara )
    commDropCS( db, csName1 );
    commDropCS( db, csName2 );
    */
-   
+
    // 删除名称以 $ 开头的CS
    var name = "$" + csName;
-   var errno = -34;
+   var errno = -6;
    var message = "error,dropCS start $ cs succeeded";
    illegaldropCS( name, errno, message );
 
    // 删除名称中包含 . 的CS
    var name = csName + "." + csName;
-   var errno = -34;
+   var errno = -6;
    var message = "error,dropCS contain . cs succeeded";
    illegaldropCS( name, errno, message );
 
