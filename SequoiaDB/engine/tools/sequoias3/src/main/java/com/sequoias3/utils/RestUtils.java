@@ -78,6 +78,36 @@ public class RestUtils {
         return user;
     }
 
+    public User getOperatorByCredential(String credential) throws S3ServerException {
+        //       1.get access key id
+        String accessKeyId = null;
+        if (authConfig.isCheck()) {
+            if (credential == null){
+                throw new S3ServerException(S3Error.INVALID_AUTHORIZATION, "authorization is null");
+            }
+
+            int endIndex = credential.indexOf(RestParamDefine.REST_DELIMITER, 0);
+            if (endIndex != -1) {
+                accessKeyId = credential.substring(0, endIndex);
+            } else {
+                throw new S3ServerException(S3Error.INVALID_AUTHORIZATION, "authorization is invalid. credential="+credential);
+            }
+        }else {
+            return userDao.getUserByName(InitAdminUserDefine.ADMIN_NAME);
+        }
+
+        //       2.check access key
+        User user = userDao.getUserByAccessKeyID(accessKeyId);
+        if (null == user) {
+            throw new S3ServerException(S3Error.INVALID_ACCESSKEYID,
+                    "Invalid accessKeyId. accessKeyId = " + accessKeyId);
+        }
+
+        //       3.check signature
+
+        return user;
+    }
+
     public String getObjectNameByURI(String uri) throws S3ServerException {
         String decodeUrl;
         try {
@@ -195,6 +225,7 @@ public class RestUtils {
             case ACCESS_DENIED:
             case NO_CREDENTIALS:
             case INVALID_AUTHORIZATION:
+            case ACCESS_EXPIRED:
                 status = HttpStatus.FORBIDDEN;
                 break;
             case USER_NOT_EXIST:

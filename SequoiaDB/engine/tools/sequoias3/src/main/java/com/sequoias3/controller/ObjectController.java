@@ -7,6 +7,7 @@ import com.sequoias3.exception.S3ServerException;
 import com.sequoias3.model.*;
 import com.sequoias3.service.BucketService;
 import com.sequoias3.service.ObjectService;
+import com.sequoias3.utils.DataFormatUtils;
 import com.sequoias3.utils.RestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+
 
 @RestController
 public class ObjectController {
@@ -197,6 +199,75 @@ public class ObjectController {
             throw e;
         }
     }
+
+    @GetMapping(value="/{bucketname:.+}/**", params = RestParamDefine.CommonPara.X_AMZ_SIGNATURE, produces = MediaType.APPLICATION_XML_VALUE )
+    public void getObjectUrl(@PathVariable("bucketname") String bucketName,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_CREDENTIAL, required = false) String credential,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_EXPIRES, required = false) Integer expireTime,
+                             @RequestParam(value = RestParamDefine.VERSION_ID, required = false) String versionId,
+                             @RequestParam(value = RestParamDefine.CommonPara.X_AMZ_DATE, required = false) String xamzdate,
+                             HttpServletRequest httpServletRequest,
+                             HttpServletResponse response)
+            throws S3ServerException, IOException{
+        try {
+            User operator = restUtils.getOperatorByCredential(credential);
+            String objectName = restUtils.getObjectNameByURI(httpServletRequest.getRequestURI());
+            logger.debug("get object by url. bucketName={}, objectName={}", bucketName, objectName);
+
+            Map<String, String> requestHeaders = new HashMap<>();
+
+            if (expireTime != null) {
+                if(xamzdate != null){
+                    Date date = DataFormatUtils.parseXAMZDate(xamzdate);
+                    long nowTime = System.currentTimeMillis();
+                    if(nowTime/1000 - date.getTime()/1000 > expireTime){
+                        throw new S3ServerException(S3Error.ACCESS_EXPIRED,
+                                "Request has expired. object:" + objectName +
+                                ", X-Amz-Date:" + date.toString() +
+                                ", X-Amz-Expires:" + expireTime +
+                                ", ServerTime:" + DataFormatUtils.formatDate(nowTime));
+                    }
+                }
+            }
+
+            Range range = null;
+
+            Boolean nullVersionFlag = null;
+            Long cvtVersionId = null;
+            if (versionId != null) {
+                cvtVersionId = convertVersionId(versionId);
+                if (null == cvtVersionId) {
+                    nullVersionFlag = true;
+                }
+            }
+
+            GetResult result = objectService.getObject(operator.getUserId(), bucketName,
+                    objectName, cvtVersionId, nullVersionFlag, requestHeaders, range);
+
+            try {
+                if (result.getMeta().getDeleteMarker()) {
+                    buildDeleteMarkerResponseHeader(result.getMeta(), response);
+                    if (null == versionId) {
+                        throw new S3ServerException(S3Error.OBJECT_NO_SUCH_KEY, "no object. object:" + objectName);
+                    } else {
+                        throw new S3ServerException(S3Error.METHOD_NOT_ALLOWED, "no object. object:" + objectName);
+                    }
+                } else {
+                    buildHeadersForGetObject(result.getMeta(), httpServletRequest, range, response);
+                    objectService.readObjectData(result.getData(), response.getOutputStream(), range);
+                }
+            } finally {
+                objectService.releaseGetResult(result);
+            }
+
+            logger.debug("get object by url success. bucketName={}, objectName={}", bucketName, objectName);
+        }catch (Exception e){
+            logger.error("get object by url failed. bucketName={}, bucketName/objectName={}, versionId={}",
+                    bucketName, httpServletRequest.getRequestURI(), versionId);
+            throw e;
+        }
+    }
+
 
     @DeleteMapping(value = "/{bucketname:.+}/**", produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity deleteObject(@PathVariable("bucketname") String bucketName,

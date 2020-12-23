@@ -44,6 +44,16 @@ public class RestParamDefine {
         public static final String LIST_REGIONS            = "Action=ListRegions";
     }
 
+    public static class CommonPara{
+        public static final String DATE                 = "date";
+        public static final String X_AMZ_ALGORITHM      = "X-Amz-Algorithm";
+        public static final String X_AMZ_DATE           = "X-Amz-Date";
+        public static final String X_AMZ_SIGNEDHEADERS  = "X-Amz-SignedHeaders";
+        public static final String X_AMZ_EXPIRES        = "X-Amz-Expires";
+        public static final String X_AMZ_CREDENTIAL     = "X-Amz-Credential";
+        public static final String X_AMZ_SIGNATURE      = "X-Amz-Signature";
+    }
+
     public static class ListObjectsPara{
         public static final String LIST_TYPE2              = "list-type=2";
         public static final String PREFIX                  = "prefix";
@@ -75,8 +85,6 @@ public class RestParamDefine {
     public static class PutObjectHeader {
         public static final String CONTENT_LENGTH       = "content-length";
         public static final String CONTENT_MD5          = "content-md5";
-        public static final String DATE                 = "date";
-        public static final String X_AMZ_DATE           = "x-amz-date";
         public static final String CONTENT_ENCODING     = "content-encoding";
         public static final String CONTENT_TYPE         = "content-type";
         public static final String X_AMZ_META_PREFIX    = "x-amz-meta-";

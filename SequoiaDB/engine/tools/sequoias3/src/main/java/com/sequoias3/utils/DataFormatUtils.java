@@ -31,4 +31,14 @@ public class DataFormatUtils {
             throw new S3ServerException(S3Error.OBJECT_INVALID_TIME, "dateString is invalid. dateString:"+dateString, e);
         }
     }
+
+    public static Date parseXAMZDate(String dateString) throws S3ServerException {
+        try {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.ENGLISH);
+            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return simpleDateFormat.parse(dateString);
+        } catch(ParseException e){
+            throw new S3ServerException(S3Error.OBJECT_INVALID_TIME, "dateString is invalid. dateString:"+dateString, e);
+        }
+    }
 }
