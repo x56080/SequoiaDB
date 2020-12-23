@@ -1259,7 +1259,6 @@ function splitCluster( cataAddrs, keepHosts, active ) {
       }
    }
 
-
    /* 4. Update all node's addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
@@ -1479,7 +1478,7 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
       }
    }
 
-   /* 5. Update all all node's addr */
+   /* 5. Update all nodes' addr */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", CATAADDRLINE ) ) {
       println( "Update all nodes' catalogaddr to " + CATAADDRLINE + " succeed" ) ;
@@ -2215,7 +2214,7 @@ function main() {
       return ;
    }
 
-   println( "Begin to check enviroment..." ) ;
+   println( "Begin to check environment..." ) ;
    if ( checkSdbVersion() ) {
       NEW_VERSION = true ;
    }
