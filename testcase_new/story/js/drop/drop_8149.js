@@ -12,7 +12,7 @@
 testConf.csName = COMMCLNAME + "_8149";
 main( test );
 
-function test ( )
+function test ()
 {
    var csName = COMMCLNAME + "_8149";
    var csName1 = COMMCSNAME + "_8149_1";
@@ -20,13 +20,13 @@ function test ( )
 
    // 删除名称以 $ 开头的CS
    var name = "$" + csName;
-   var errno = -34;
+   var errno = -6;
    var message = "error,dropCS start $ cs succeeded";
    illegaldropCS( name, errno, message );
 
    // 删除名称中包含 . 的CS
    var name = csName + "." + csName;
-   var errno = -34;
+   var errno = -6;
    var message = "error,dropCS contain . cs succeeded";
    illegaldropCS( name, errno, message );
 
