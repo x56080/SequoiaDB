@@ -364,14 +364,31 @@ namespace engine
       dmsStorageUnitID suID   = DMS_INVALID_CS ;
       IDmsExtDataHandler *extHandler = NULL ;
 
+      CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
+      CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+
+      // resolve collection name
+      rc = rtnResolveCollectionName( pCollectionName,
+                                     ossStrlen( pCollectionName ),
+                                     szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                     szCLName, DMS_COLLECTION_NAME_SZ ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name"
+                   "(collection:%s, rc: %d)", pCollectionName, rc ) ;
+
+      // save collection name
       ossStrncpy( _collectionName, pCollectionName,
                   DMS_COLLECTION_FULL_NAME_SZ ) ;
+      _clShortName = _collectionName + ossStrlen( szCSName ) + 1 ;
 
-      rc = rtnResolveCollectionNameAndLock ( _collectionName, _pDmsCB,
-                                             &_su, &_clShortName,
-                                             suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name"
-                   "(collection:%s, rc: %d)", _collectionName, rc ) ;
+
+      {
+         // acquire CS lock to avoid drop CS
+         dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
+
+         rc = _pDmsCB->nameToSUAndLock( szCSName, suID, &_su ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed lock collection space [%s], rc: %d",
+                      szCSName, rc ) ;
+      }
 
       // lock collection
       if ( getDPSCB() )
@@ -1541,10 +1558,15 @@ namespace engine
       pmdEDUMgr *eduMgr = cb->getEDUMgr() ;
       UINT32 i = 0 ;
 
-      // get collection info
-      rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
-      PD_RC_CHECK( rc, PDERROR, "lock collection space[%s] failed, rc: %d",
-                   csName, rc );
+      {
+         // acquire CS lock to avoid drop CS
+         dmsCSMutexScope csLock( _pDmsCB, csName ) ;
+
+         // get collection info
+         rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
+         PD_RC_CHECK( rc, PDERROR, "lock collection space[%s] failed, rc: %d",
+                      csName, rc );
+      }
 
       rc = _su->data()->getMBContext( &mbContext, _clShortName, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
