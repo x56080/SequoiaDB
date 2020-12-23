@@ -1,17 +1,19 @@
 #!/bin/bash
+CUR_PATH=$(pwd)
 
+faileTestCaseFile="$CUR_PATH/failedTestcase.txt"
 needUpdate=1
 needCompile=1
 isRelease=0
 
 hostname="localhost"
-svcname="11810"
+svcname="50000"
 user=""
 passwd=""
 dbpath="/opt/sequoiadb/database/"
 useSSL=0
 transactionOn=0
-
+stopFlag=1
 autoTest=0
 
 sslFile=( "sslTrue9648" "sslTrue9648.static" )
@@ -30,13 +32,16 @@ function display()
    echo " -nocompile          : 不执行编译，不加表示重新编译"
    echo " -release            : 编译release版本，不加表示编译debug版本"
    echo " -hostname hostname  : 指定主机名（默认localhost）"
-   echo " -svcname svcname    : 指定节点端口号（独立模式或协调节点，默认11810）"
+   echo " -svcname svcname    : 指定节点端口号（独立模式或协调节点，默认50000）"
    echo " -user user          : 指定sdb登录用户名（默认为空）"
    echo " -passwd passwd      : 指定sdb登录用户密码（默认为空）"
    echo " -dbpath dbpath      : 指定节点路径（默认/opt/sequoiadb/database/）" 
    echo " -usessl             : 是否已开启SSL（默认未开启）"
    echo " -transactionOn      : 是否已开启事务（默认未开启）"
    echo " -test               : 是否执行测试用例（默认不执行测试）"
+   echo " -stopFlag           : 遇到用例错误是否停止，0表示继续，1表示停止，默认为1"
+   echo " -runLastFailed      : 是否执行上次运行失败的测试用例，默认不执行，执行上次失败用例时"
+   echo "                       无须再次指定 hostname、svcname、user 等用例参数，"
 
    echo ""
    exit $1
@@ -76,9 +81,59 @@ function compile()
    echo "====================End to compile===================================="
 }
 
+function addFailedTestcase()
+{
+   local failedCase="$1"
+   if [ ! -f "$faileTestCaseFile" ] ; then
+      touch "$faileTestCaseFile"
+   fi
+   if [ "$failedCase" != "" ] ; then
+       echo -e "$failedCase" >> "$faileTestCaseFile"
+   fi
+}
+
+function runLastFailedTestcase()
+{
+   local failedCaseList=()
+   if [ ! -f "$faileTestCaseFile" ] ; then
+      echo "There are no testcases that failed last time"
+      exit $1
+   else
+      failedCaseList=$(cat "$faileTestCaseFile")
+      if [ ${#failedCaseList} = 0 ]; then
+         echo "There are no testcases that failed last time"
+         exit $1
+      fi
+      rm -f "$faileTestCaseFile"
+   fi
+   echo "$failedCaseList" | while read line
+   do
+      runTestcase "$line"
+   done
+   exit $1
+}
+
+function runTestcase()
+{
+   local testCmd="$@"
+   echo ""
+   echo "Execution the testcase cmd: $testCmd"
+   eval "$testCmd"
+   if [ $? != 0 ]; then
+      echo "[ERROR] Execution of the testcase failed"
+      addFailedTestcase "$testCmd"
+      if [ $stopFlag = 0 ] ; then
+         continue
+      else
+         break
+      fi
+   fi
+}
+
 # run testcase
 function autoTest()
 {
+   rm -f "$faileTestCaseFile"
    testcases=`ls build_test`
    for testcase in ${testcases}
    do
@@ -113,11 +168,8 @@ function autoTest()
       fi
    
       # run testcase
-      build_test/${testcase} -n $hostname -s $svcname -d $dbpath
-      if [ $? != 0 ]; then
-         echo $file" run failed with hostname = "$hostname" svcname = "$svcname" dbpath = "$dbpath
-         break
-      fi
+      testCmd="build_test/${testcase} -n $hostname -s $svcname -d $dbpath"
+      runTestcase "$testCmd"
    done
 }
 
@@ -148,6 +200,11 @@ while [ "$1" != "" ]; do
       -usessl )         useSSL=1
                         ;;
       -transactionOn )  transactionOn=1
+                        ;;
+      -stopFlag )       shift
+                        stopFlag=$1
+                        ;;
+      -runLastFailed )  runLastFailedTestcase 0
                         ;;
       -test )           autoTest=1
                         ;;
