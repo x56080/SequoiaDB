@@ -226,6 +226,42 @@ TEST_F( clVersionCheckTest, update_check_repeat)
    ASSERT_EQ( SDB_OK, rc ) << "fail to update repeat" ;
 }
 
+TEST_F( clVersionCheckTest, upsert_check)
+{
+   INT32 rc = SDB_OK ;
+   BSONObj checkObj ;
+   BSONObj updateObj ;
+   BSONObj cond ;
+   BSONObj errObj ;
+
+   cl.setVersion( CATALOG_INVALID_CHECK_VERSION );
+   ASSERT_EQ(CATALOG_INVALID_CHECK_VERSION,cl.getVersion());
+
+   // upsert version check with version:-1 to sdb
+   checkObj = BSON(FIELD_NAME_CHECK_CLIENT_CATA_VERSION << true);
+   rc = db.setSessionAttr(checkObj);
+   ASSERT_EQ( SDB_OK, rc ) << "fail to set check cat version true" ;
+
+   cond = BSON( "_id" << 1 ) ;
+   updateObj = BSON( "$inc" << BSON( "a" << 5 ) ) ;
+   rc = cl.upsert( updateObj, cond ) ;
+   ASSERT_EQ( SDB_CLIENT_CATA_VER_OLD, rc ) << "fail to update"
+              "with version check expect rc SDB_CLIENT_CATA_VER_OLD" ;
+
+   ASSERT_NE(CATALOG_INVALID_CHECK_VERSION,cl.getVersion());
+   // upsert version check with version:last sdb send back version
+   cond = BSON( "_id" << 1 ) ;
+   updateObj = BSON( "$inc" << BSON( "a" << 5 ) ) ;
+   rc = cl.upsert( updateObj, cond ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to upsert repeat" ;
+
+   // upsert version check with version:last sdb send back version
+   cond = BSON( "_id" << 1 ) ;
+   updateObj = BSON( "$inc" << BSON( "a" << 5 ) ) ;
+   rc = cl.upsert( updateObj, cond ) ;
+   ASSERT_EQ( SDB_OK, rc ) << "fail to upsert repeat" ;
+}
+
 TEST_F( clVersionCheckTest, delete_default )
 {
    INT32 rc = SDB_OK ;
@@ -427,7 +463,6 @@ TEST_F(clVersionCheckTest,aggregate_dml_return_currentVersion)
    ASSERT_EQ( SDB_OK, rc ) << "fail to aggregate repeat"
               "with version check expect rc SDB_CLIENT_CATA_VER_OLD" ;
 }
-
 
 
 INT32 _tmain ( INT32 argc, CHAR* argv[] )

@@ -104,7 +104,8 @@ namespace engine
                            BOOLEAN strictDataMode,
                            pmdEDUCB *cb,
                            INT64 &contextID,
-                           rtnContextBuf *buf ) ;
+                           rtnContextBuf *buf,
+                           INT32 clientVer ) ;
 
          void     _clearBlock( pmdEDUCB *cb ) ;
 
