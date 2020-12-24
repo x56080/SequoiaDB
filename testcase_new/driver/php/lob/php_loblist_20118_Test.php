@@ -77,3 +77,4 @@ class lob20118 extends PHPUnit_Framework_TestCase
       self::$db -> close();
    }
 }
+?>
