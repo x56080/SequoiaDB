@@ -41,7 +41,7 @@
 #include "pmdProcessor.hpp"
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
-
+#include "pmdDummySession.hpp"
 
 using namespace bson ;
 
@@ -71,9 +71,24 @@ namespace engine
 
       _cb = cb ;
       _ctrl = _cb->getRemoteOpCtrl() ;
-      _session = dynamic_cast<pmdSessionBase*>( _cb->getSession() ) ;
-      PD_CHECK( NULL != _session , SDB_SYS, error, PDERROR,
-                "Failed to dynamic_cast pmdSessionBase, rc: %d", rc ) ;
+
+      if ( cb->getSession() )
+      {
+         _session = dynamic_cast<pmdSessionBase*>( _cb->getSession() ) ;
+      }
+      else
+      {
+         // create/drop index may use background job, it's cb hasn't session,
+         // so we need use dummy session
+         _session = SDB_OSS_NEW _pmdDummySession() ;
+      }
+      PD_CHECK( NULL != _session , SDB_OOM, error, PDERROR,
+                "Failed to malloc dummy session, rc: %d", rc ) ;
+
+      if ( SDB_SESSION_DUMMY == _session->sessionType() )
+      {
+         ((_pmdDummySession*)_session)->attachCB( cb ) ;
+      }
 
       _processor = SDB_OSS_NEW _pmdCoordProcessor() ;
       PD_CHECK( NULL != _processor , SDB_OOM, error, PDERROR,
@@ -95,9 +110,14 @@ namespace engine
       if ( NULL != _session )
       {
          _session->detachProcessor() ;
+         if ( SDB_SESSION_DUMMY == _session->sessionType() )
+         {
+            ((_pmdDummySession*)_session)->detachCB() ;
+            SAFE_OSS_DELETE( _session ) ;
+         }
       }
 
-      SAFE_DELETE( _processor ) ;
+      SAFE_OSS_DELETE( _processor ) ;
 
       _session = NULL ;
       _cb = NULL ;

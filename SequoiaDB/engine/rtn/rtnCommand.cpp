@@ -1055,12 +1055,12 @@ namespace engine
          goto error ;
       }
 
-      if ( _index.hasField( IXM_FIELD_NAME_ISGLOBAL ) )
+      if ( _index.hasField( IXM_FIELD_NAME_GLOBAL ) )
       {
-         rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_ISGLOBAL,
+         rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_GLOBAL,
                                     _isGlobal ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):index=%s,rc=%d",
-                      IXM_FIELD_NAME_ISGLOBAL, _index.toString().c_str(), rc ) ;
+                      IXM_FIELD_NAME_GLOBAL, _index.toString().c_str(), rc ) ;
       }
 
       if ( arg.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )

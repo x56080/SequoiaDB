@@ -86,23 +86,23 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isGlobal = FALSE ;
-      rc = rtnGetBooleanElement( indexObj, IXM_FIELD_NAME_ISGLOBAL, isGlobal ) ;
+      rc = rtnGetBooleanElement( indexObj, IXM_FIELD_NAME_GLOBAL, isGlobal ) ;
       if ( SDB_OK != rc )
       {
          // do not have global info
-         builder.appendBool( IXM_FIELD_NAME_ISGLOBAL, FALSE ) ;
+         builder.appendBool( IXM_FIELD_NAME_GLOBAL, FALSE ) ;
          return ;
       }
 
       if ( isGlobal )
       {
-         builder.appendBool( IXM_FIELD_NAME_ISGLOBAL, TRUE ) ;
+         builder.appendBool( IXM_FIELD_NAME_GLOBAL, TRUE ) ;
          builder.append( IXM_FIELD_NAME_GLOBAL_OPTION,
                       indexObj.getObjectField(IXM_FIELD_NAME_GLOBAL_OPTION) ) ;
       }
       else
       {
-         builder.appendBool( IXM_FIELD_NAME_ISGLOBAL, FALSE ) ;
+         builder.appendBool( IXM_FIELD_NAME_GLOBAL, FALSE ) ;
       }
    }
 

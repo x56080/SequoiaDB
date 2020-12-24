@@ -4626,12 +4626,12 @@ namespace engine
          {
             BSONElement e = iter.next() ;
             if ( 0 != ossStrcmp(e.fieldName(), IXM_FIELD_NAME_GLOBAL_OPTION)
-                 && 0 != ossStrcmp(e.fieldName(), IXM_FIELD_NAME_ISGLOBAL) )
+                 && 0 != ossStrcmp(e.fieldName(), IXM_FIELD_NAME_GLOBAL) )
             {
                indexDefBuilder.append( e ) ;
             }
          }
-         indexDefBuilder.appendBool( IXM_FIELD_NAME_ISGLOBAL, TRUE ) ;
+         indexDefBuilder.appendBool( IXM_FIELD_NAME_GLOBAL, TRUE ) ;
          indexDefBuilder.append( IXM_FIELD_NAME_GLOBAL_OPTION, globalOption ) ;
          indexDefBuilder.done() ;
 
@@ -5017,13 +5017,13 @@ namespace engine
                 "Catalog objs size must be 1" ) ;
 
       obj = cataObjs[0] ;
-      rc = rtnGetBooleanElement( obj, IXM_ISGLOBAL_FIELD, _isGlobalIndex ) ;
+      rc = rtnGetBooleanElement( obj, IXM_GLOBAL_FIELD, _isGlobalIndex ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
          rc = SDB_OK ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):obj=%s,rc=%d",
-                   IXM_ISGLOBAL_FIELD, obj.toString().c_str(), rc ) ;
+                   IXM_GLOBAL_FIELD, obj.toString().c_str(), rc ) ;
 
       if ( _isGlobalIndex )
       {

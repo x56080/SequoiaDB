@@ -3903,7 +3903,7 @@ namespace engine
             BSONObjBuilder retObjBuilder ;
             if ( _isGlobalIndex )
             {
-               retObjBuilder.appendBool( IXM_ISGLOBAL_FIELD, TRUE ) ;
+               retObjBuilder.appendBool( IXM_GLOBAL_FIELD, TRUE ) ;
                BSONObjBuilder globalOption(
                          retObjBuilder.subobjStart(IXM_GLOBAL_OPTION_FIELD) ) ;
                globalOption.append( CAT_COLLECTION, _indexCLName ) ;

@@ -260,7 +260,7 @@ namespace engine
             _infoObj = BSONObj( ((const CHAR*)_extent) +
                                 IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
 
-            _isGlobalIndex = _infoObj.getBoolField( IXM_ISGLOBAL_FIELD ) ;
+            _isGlobalIndex = _infoObj.getBoolField( IXM_GLOBAL_FIELD ) ;
             if ( _isGlobalIndex )
             {
                BSONObj globalOptions ;
@@ -673,7 +673,7 @@ namespace engine
          {
             fieldCount ++ ;
          }
-         if ( obj.hasField( IXM_ISGLOBAL_FIELD) )
+         if ( obj.hasField( IXM_GLOBAL_FIELD) )
          {
             fieldCount++ ;
          }

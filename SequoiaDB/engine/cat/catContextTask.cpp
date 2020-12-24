@@ -590,7 +590,7 @@ namespace engine
             _isUnique = element.boolean() ;
          }
 
-         element = _boIdx.getField( IXM_ISGLOBAL_FIELD ) ;
+         element = _boIdx.getField( IXM_GLOBAL_FIELD ) ;
          if ( element.isBoolean() )
          {
             _isGlobal = element.boolean() ;
