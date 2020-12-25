@@ -47,7 +47,7 @@ _
 T{
 1
 T}@T{
-\-359
+\-362
 T}@T{
 SDB_SEQUENCE_NEVER_USED
 T}@T{
@@ -87,7 +87,7 @@ Get the current value of a new sequence, and failed.
 \f[C]
 >\ var\ sequence\ =\ db.createSequence("IDSequence")
 >\ sequence.getCurrentValue()
-(shell):1\ uncaught\ exception:\ \-359
+(shell):1\ uncaught\ exception:\ \-362
 Sequence\ has\ never\ been\ used
 \f[]
 .fi

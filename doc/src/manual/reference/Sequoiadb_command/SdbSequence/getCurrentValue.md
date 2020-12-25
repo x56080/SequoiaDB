@@ -26,7 +26,7 @@ getCurrentValue - 获取序列的当前值
 
 | 错误码 | 错误类型                | 可能发生的原因 | 解决办法 |
 | ------ | ----------------------- | -------------- | -------- |
-| -359   | SDB_SEQUENCE_NEVER_USED | 序列未经使用   | 检查序列使用情况 |
+| -362   | SDB_SEQUENCE_NEVER_USED | 序列未经使用   | 检查序列使用情况 |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
 
@@ -41,7 +41,7 @@ v3.4.2 及以上版本
    ```lang-javascript
    > var sequence = db.createSequence("IDSequence")
    > sequence.getCurrentValue()
-   (shell):1 uncaught exception: -359
+   (shell):1 uncaught exception: -362
    Sequence has never been used
    ```
 

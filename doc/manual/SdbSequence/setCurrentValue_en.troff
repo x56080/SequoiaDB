@@ -53,7 +53,7 @@ _
 T{
 1
 T}@T{
-\-358
+\-361
 T}@T{
 SDB_SEQUENCE_VALUE_USED
 T}@T{
@@ -101,7 +101,7 @@ Error message:
 .IP
 .nf
 \f[C]
-(shell):1\ uncaught\ exception:\ \-358
+(shell):1\ uncaught\ exception:\ \-361
 Sequence\ value\ has\ been\ used
 \f[]
 .fi

@@ -28,7 +28,7 @@ value（ *number*， *必填* ）
 
 | 错误码 | 错误类型                | 可能发生的原因       | 解决办法 |
 | ------ | ----------------------- | -------------------- | -------- |
-| -358   | SDB_SEQUENCE_VALUE_USED | 指定当前值已经被使用 | 如要反向设置，可以使用 [setAttributes()][setAttributes] 设置 CurrentValue 属性。 |
+| -361   | SDB_SEQUENCE_VALUE_USED | 指定当前值已经被使用 | 如要反向设置，可以使用 [setAttributes()][setAttributes] 设置 CurrentValue 属性。 |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
 
@@ -50,7 +50,7 @@ v3.4.2 及以上版本
    输出错误信息如下：
 
    ```lang-text
-   (shell):1 uncaught exception: -358
+   (shell):1 uncaught exception: -361
    Sequence value has been used
    ```
 

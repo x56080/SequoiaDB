@@ -32,7 +32,7 @@ Frequent exceptions of `getCurrentValue()`:
 
 |Error Code|Error Name|Causes|Solution|
 |----------|----------|------|--------|
-|-358      |SDB_SEQUENCE_VALUE_USED|Sequence value has been used|To set it back, use interface [setAttributes()][setAttributes]|
+|-361      |SDB_SEQUENCE_VALUE_USED|Sequence value has been used|To set it back, use interface [setAttributes()][setAttributes]|
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
 
@@ -53,7 +53,7 @@ v3.4.2 and above
     Error message:
 
     ```lang-text
-    (shell):1 uncaught exception: -358
+    (shell):1 uncaught exception: -361
     Sequence value has been used
     ```
 

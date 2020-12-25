@@ -30,7 +30,7 @@ Frequent exceptions of `getCurrentValue()`:
 
 |Error Code|Error Name|Causes|Solution|
 |----------|----------|------|--------|
-|-359      |SDB_SEQUENCE_NEVER_USED|Sequence has never been used|Check whether the sequence has ever been used|
+|-362      |SDB_SEQUENCE_NEVER_USED|Sequence has never been used|Check whether the sequence has ever been used|
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
 
@@ -45,7 +45,7 @@ v3.4.2 and above
     ```lang-javascript
     > var sequence = db.createSequence("IDSequence")
     > sequence.getCurrentValue()
-    (shell):1 uncaught exception: -359
+    (shell):1 uncaught exception: -362
     Sequence has never been used
     ```
 
