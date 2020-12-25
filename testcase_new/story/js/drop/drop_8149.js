@@ -10,7 +10,8 @@
 *@createdate:  2020.07.17
 ******************************************************************************/
 testConf.csName = COMMCLNAME + "_8149";
-main( test );
+// SEQUOIADBMAINSTREAM-6212
+//main( test );
 
 function test ()
 {
