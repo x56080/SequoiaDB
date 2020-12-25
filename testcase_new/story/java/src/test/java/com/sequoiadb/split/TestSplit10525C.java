@@ -126,7 +126,7 @@ public class TestSplit10525C extends SdbTestBase {
 
             // 数据
             boolean flag = false;
-            for ( int j = 0; j < 300; j++ ) {
+            for ( int j = 0; j < 300; j++ ) { // 5min
                 DBCursor cursor = dbcl.query( null, null, "{\"_id\":1}", null );
                 List< BSONObject > actual = new ArrayList< BSONObject >();
                 while ( cursor.hasNext() ) {

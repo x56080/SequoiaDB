@@ -1,12 +1,12 @@
 package com.sequoiadb.rename;
 
 import java.util.ArrayList;
-
 import java.util.Arrays;
 import java.util.List;
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -15,6 +15,7 @@ import org.testng.annotations.Test;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.ReplicaGroup;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.CommLib;

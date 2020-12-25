@@ -3,6 +3,7 @@
 <!--Testcases for reliability test, except disk-full testcases. -->
 
 <suite name="reliability" verbose="1" preserve-order="true">
+
     <!--主机名，CI默认传入localhost-->
     <parameter name="HOSTNAME"        value="${HOSTNAME}" />
     <!--协调节点端口号，CI默认传入11810-->
@@ -66,7 +67,7 @@
             <package name="com.sequoiadb.lob.noderestart" />
             <!--全文索引用例暂时屏蔽，待问题单SEQUOIADBMAINSTREAM-4325修复后再统一放开 -->
             <!-- <package name="com.sequoiadb.fulltext.killnode" /> <package 
-             name="com.sequoiadb.fulltext.restartnode" /> -->
+                name="com.sequoiadb.fulltext.restartnode" /> -->
             <package name="com.sequoiadb.compress" />
             <package name="com.sequoiadb.faulttolerance.diskfull" />
             <package name="com.sequoiadb.faulttolerance.restartnode" />
@@ -82,7 +83,8 @@
         </packages>
     </test>
 
-    <test name="reliability_transaction_rcauto" preserve-order="true">
+    <test name="reliability_transaction_rcauto"
+        preserve-order="true">
         <groups>
             <run>
                 <include name="rcauto" />
@@ -108,3 +110,4 @@
         </packages>
     </test>
 </suite>
+    
