@@ -81,11 +81,13 @@ namespace engine
    private:
       INT32 _ensureMsgJobController() ;
 
-      INT32 _processSequenceAcquireMsg( MsgHeader* msg, rtnContextBuf& buf,
-                                        _pmdEDUCB* eduCB ) ;
+      INT32 _processSequenceAcquireMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
+                                        rtnContextBuf& buf ) ;
       INT32 _processSequenceCreateMsg( MsgHeader* msg, _pmdEDUCB* eduCB ) ;
-      INT32 _processSequenceDropMsg( MsgHeader* msg, _pmdEDUCB* eduCB ) ;
-      INT32 _processSequenceAlterMsg( MsgHeader* msg, _pmdEDUCB* eduCB ) ;
+      INT32 _processSequenceDropMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
+                                     rtnContextBuf& buf ) ;
+      INT32 _processSequenceAlterMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
+                                      rtnContextBuf& buf ) ;
 
       // process lowTran request
       INT32 _processLowTranReq( MsgHeader *message,

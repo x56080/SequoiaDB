@@ -64,16 +64,29 @@ namespace engine
       INT32 getNextValue( const std::string& name, const utilSequenceID ID,
                           INT64& nextValue, _pmdEDUCB* eduCB ) ;
       INT32 adjustNextValue( const std::string& name, const utilSequenceID ID,
-                             INT64 userValue, _pmdEDUCB* eduCB ) ;
-      BOOLEAN removeCache( const std::string& sequenceName,  utilSequenceID ID ) ;
+                             INT64 expectValue, _pmdEDUCB* eduCB ) ;
+      INT32 setCurrentValue( const std::string& name, const utilSequenceID ID,
+                             INT64 expectValue, _pmdEDUCB* eduCB,
+                             utilSequenceID *pCachedID ) ;
+      INT32 getCurrentValue( const std::string& name, const utilSequenceID ID,
+                             INT64& currentValue, _pmdEDUCB* eduCB ) ;
+      INT32 fetch( const std::string& name, const utilSequenceID ID,
+                   const INT32 fetchNum, INT64& nextValue, INT32& returnNum,
+                   INT32& increment, _pmdEDUCB* eduCB ) ;
+      BOOLEAN removeCache( const std::string& sequenceName, utilSequenceID ID,
+                           const INT64* pCurrentValue = NULL ) ;
       void clear() ;
 
    private:
       class _operateSequence ;
       class _getNextValue ;
       class _adjustNextValue ;
+      class _getCurrentValue ;
+      class _fetchValue ;
       friend class _getNextValue ;
       friend class _adjustNextValue ;
+      friend class _getCurrentValue ;
+      friend class _fetchValue ;
 
       INT32 _doOnSequence( const std::string& name,
                            const utilSequenceID ID,
@@ -105,7 +118,8 @@ namespace engine
 
    INT32 coordSequenceInvalidateCache ( const CHAR * sequenceName,
                                         utilSequenceID ID,
-                                        _pmdEDUCB * eduCB ) ;
+                                        _pmdEDUCB * eduCB,
+                                        const INT64 * pCurrentValue = NULL ) ;
 
    INT32 coordSequenceInvalidateCache ( const CHAR * collection,
                                         const CHAR * field,

@@ -60,6 +60,8 @@ namespace engine
          _acquireSize = 0 ;
          _increment = 0 ;
          _ID = UTIL_SEQUENCEID_NULL ;
+         _currentValue = 0 ;
+         _initial = TRUE ;
       }
       ~_coordSequence() {}
 
@@ -69,6 +71,8 @@ namespace engine
       OSS_INLINE INT64 nextValue() const { return _nextValue ; }
       OSS_INLINE INT32 acquireSize() const { return _acquireSize ; }
       OSS_INLINE INT32 increment() const { return _increment ; }
+      OSS_INLINE BOOLEAN initial() const { return _initial ; }
+      OSS_INLINE INT64 currentValue() const { return _currentValue ; }
 
       OSS_INLINE void setID( const utilSequenceID ID )
       {
@@ -85,6 +89,14 @@ namespace engine
       OSS_INLINE void setIncrement( INT32 increment )
       {
          _increment = increment ;
+      }
+      OSS_INLINE void setInitial( BOOLEAN initial )
+      {
+         _initial = initial ;
+      }
+      OSS_INLINE void setCurrentValue( INT64 currentValue )
+      {
+         _currentValue = currentValue ;
       }
       OSS_INLINE void decreaseAcquireSize()
       {
@@ -108,6 +120,8 @@ namespace engine
          _nextValue = other._nextValue ;
          _acquireSize = other._acquireSize ;
          _increment = other._increment ;
+         _initial = other._initial ;
+         _currentValue = other._currentValue ;
       }
 
    private:
@@ -116,6 +130,8 @@ namespace engine
       INT64          _nextValue ;
       INT32          _acquireSize ;
       INT32          _increment ;
+      BOOLEAN        _initial ;
+      INT64          _currentValue ; // Last used value
       ossSpinXLatch  _latch ;
    } ;
    typedef _coordSequence coordSequence ;
@@ -151,7 +167,9 @@ namespace engine
          public _coordSequenceAgent::_operateSequence
    {
    public:
-      _adjustNextValue( INT64 expectValue ): _expectValue( expectValue )
+      _adjustNextValue( INT64 expectValue, BOOLEAN allowAcquire ):
+            _expectValue( expectValue ),
+            _allowAcquire( allowAcquire )
       {
       }
 
@@ -160,15 +178,54 @@ namespace engine
                                  _pmdEDUCB *eduCB ) ;
 
    private:
-      void _adjustAscendingly( _coordSequence& seq,
-                               INT64 expectValue,
-                               BOOLEAN& needAcquire ) ;
-      void _adjustDecendingly( _coordSequence& seq,
-                               INT64 expectValue,
-                               BOOLEAN& needAcquire ) ;
+      INT32 _adjustAscendingly( _coordSequence& seq,
+                                INT64 expectValue ) ;
+      INT32 _adjustDecendingly( _coordSequence& seq,
+                                INT64 expectValue ) ;
 
    private:
       INT64 _expectValue ;
+      BOOLEAN _allowAcquire ;
+   } ;
+
+   class _coordSequenceAgent::_getCurrentValue:
+         public _coordSequenceAgent::_operateSequence
+   {
+   public:
+      _getCurrentValue( INT64 *pCurrentValue ): _pCurrentValue( pCurrentValue )
+      {
+         SDB_ASSERT( pCurrentValue != NULL, "Pointer can't be NULL" ) ;
+      }
+
+      virtual INT32 operator() ( coordSequenceAgent *pAgent,
+                                 _coordSequence& seq,
+                                 _pmdEDUCB *eduCB ) ;
+
+   private:
+      INT64 *_pCurrentValue ;
+   } ;
+
+   class _coordSequenceAgent::_fetchValue:
+         public _coordSequenceAgent::_operateSequence
+   {
+   public:
+      _fetchValue( const INT32 fetchNum, INT64 &nextValue, INT32 &returnNum,
+                   INT32 &increment ):
+            _fetchNum( fetchNum ),
+            _nextValue( nextValue ),
+            _returnNum( returnNum ),
+            _increment( increment )
+      {
+      }
+
+      virtual INT32 operator() ( coordSequenceAgent *pAgent,
+                                 _coordSequence& seq,
+                                 _pmdEDUCB *eduCB ) ;
+   private:
+      INT32 _fetchNum ;
+      INT64& _nextValue ;
+      INT32& _returnNum ;
+      INT32& _increment ;
    } ;
 
    _coordSequenceAgent::_coordSequenceAgent()
@@ -194,7 +251,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORD_SEQ_AGENT_REMOVE_CACHE, "_coordSequenceAgent::removeCache" )
    BOOLEAN _coordSequenceAgent::removeCache( const std::string& name,
-                                             const utilSequenceID ID )
+                                             const utilSequenceID ID,
+                                             const INT64 *pCurrentValue )
    {
       BOOLEAN removed = FALSE ;
       PD_TRACE_ENTRY ( SDB_COORD_SEQ_AGENT_REMOVE_CACHE ) ;
@@ -202,20 +260,46 @@ namespace engine
       COORD_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( name ) ;
       BUCKET_XLOCK( bucket ) ;
 
+      _coordSequence* cache = NULL ;
       COORD_SEQ_MAP::map_const_iterator iter = bucket.find( name ) ;
-      if ( bucket.end() != iter )
+      if ( bucket.end() == iter )
       {
-         _coordSequence* cache = (*iter).second ;
-         if( UTIL_SEQUENCEID_NULL != ID && ID != cache->ID() )
+         goto done ;
+      }
+
+      cache = (*iter).second ;
+      if( UTIL_SEQUENCEID_NULL != ID && ID != cache->ID() )
+      {
+         PD_LOG( PDWARNING, "Mismatch ID(%llu) for sequence[%s, %llu]",
+                 ID, cache->name().c_str(), cache->ID() ) ;
+         goto done ;
+      }
+
+      // Only the values before current value should be removed.
+      if( NULL != pCurrentValue )
+      {
+         BOOLEAN needRemove = TRUE ;
+         if ( cache->increment() > 0 )
          {
-            PD_LOG( PDWARNING, "Mismatch ID(%llu) for sequence[%s, %llu]",
-                    ID, cache->name().c_str(), cache->ID() ) ;
+            needRemove = ( cache->nextValue() <= *pCurrentValue ) ;
+         }
+         else
+         {
+            needRemove = ( cache->nextValue() >= *pCurrentValue ) ;
+         }
+         PD_LOG( PDDEBUG, "Sequence cache is %s the current value. %s to remove",
+                 needRemove ? "before" : "after",
+                 needRemove ? "Need" : "No need" ) ;
+         if ( !needRemove )
+         {
             goto done ;
          }
-         bucket.erase( name ) ;
-         SDB_OSS_DEL( cache ) ;
-         removed = TRUE ;
       }
+
+      bucket.erase( name ) ;
+      SDB_OSS_DEL( cache ) ;
+      removed = TRUE ;
+
    done:
       PD_TRACE_EXITRC ( SDB_COORD_SEQ_AGENT_REMOVE_CACHE, removed ) ;
       return removed ;
@@ -258,10 +342,98 @@ namespace engine
 
    INT32 _coordSequenceAgent::adjustNextValue( const std::string& name,
                                                const utilSequenceID ID,
-                                               INT64 userValue,
+                                               INT64 expectValue,
                                                _pmdEDUCB* eduCB )
    {
-      _adjustNextValue func( userValue ) ;
+      _adjustNextValue func( expectValue, TRUE ) ;
+      return _doOnSequence( name, ID, eduCB, func ) ;
+   }
+
+   INT32 _coordSequenceAgent::setCurrentValue( const std::string& name,
+                                               const utilSequenceID ID,
+                                               INT64 expectValue,
+                                               _pmdEDUCB* eduCB,
+                                               utilSequenceID *pCachedID )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN noCache = FALSE ;
+      utilSequenceID cachedID = UTIL_SEQUENCEID_NULL ;
+      _adjustNextValue func( expectValue, FALSE ) ;
+
+      rc = _doOnSequenceBySLock( name, ID, eduCB, func, noCache, &cachedID ) ;
+      if ( SDB_OK == rc )
+      {
+         // if no cache, notify caller to handle it
+         if ( noCache )
+         {
+            rc = SDB_SEQUENCE_OUT_OF_CACHE ;
+            goto done ;
+         }
+      }
+      else
+      {
+         if ( SDB_SEQUENCE_NOT_EXIST == rc )
+         {
+            // remove cache if sequence not exist
+            _removeCacheByID( name, cachedID ) ;
+         }
+         goto error ;
+      }
+
+      if ( pCachedID != NULL )
+      {
+         *pCachedID = cachedID ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordSequenceAgent::getCurrentValue( const std::string& name,
+                                               const utilSequenceID ID,
+                                               INT64& currentValue,
+                                               _pmdEDUCB* eduCB )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN noCache = FALSE ;
+      utilSequenceID cachedID = UTIL_SEQUENCEID_NULL ;
+      _getCurrentValue func( &currentValue ) ;
+
+      rc = _doOnSequenceBySLock( name, ID, eduCB, func, noCache, &cachedID ) ;
+      if ( SDB_OK == rc )
+      {
+         // if no cache, notify caller to handle it
+         if ( noCache )
+         {
+            rc = SDB_SEQUENCE_OUT_OF_CACHE ;
+            goto done ;
+         }
+      }
+      else
+      {
+         if ( SDB_SEQUENCE_NOT_EXIST == rc )
+         {
+            // remove cache if sequence not exist
+            _removeCacheByID( name, cachedID ) ;
+         }
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordSequenceAgent::fetch( const std::string& name,
+                                     const utilSequenceID ID,
+                                     const INT32 fetchNum,
+                                     INT64& nextValue,
+                                     INT32& returnNum,
+                                     INT32& increment,
+                                     _pmdEDUCB* eduCB )
+   {
+      _fetchValue func( fetchNum, nextValue, returnNum, increment ) ;
       return _doOnSequence( name, ID, eduCB, func ) ;
    }
 
@@ -295,8 +467,14 @@ namespace engine
          }
       }
 
+      if ( seq.initial() )
+      {
+         seq.setInitial( FALSE ) ;
+      }
+
       seq.decreaseAcquireSize() ;
       _nextValue = seq.nextValue() ;
+      seq.setCurrentValue( _nextValue ) ;
       seq.setNextValue( seq.nextValue() + seq.increment() ) ;
 
    done:
@@ -312,7 +490,6 @@ namespace engine
                                                              _pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN needAcquire = FALSE ;
       PD_TRACE_ENTRY ( SDB_COORD_SEQ_AGENT__ADJUST_NEXT_VALUE ) ;
 
       SDB_ASSERT( seq.acquireSize() >= 0, "AcquireSize should >= 0" ) ;
@@ -321,19 +498,19 @@ namespace engine
       {
          if ( seq.increment() > 0 )
          {
-            _adjustAscendingly( seq, _expectValue, needAcquire ) ;
+            rc = _adjustAscendingly( seq, _expectValue ) ;
          }
          else
          {
-            _adjustDecendingly( seq, _expectValue, needAcquire ) ;
+            rc = _adjustDecendingly( seq, _expectValue ) ;
          }
       }
       else
       {
-         needAcquire = TRUE ;
+         rc = SDB_SEQUENCE_OUT_OF_CACHE ;
       }
 
-      if ( needAcquire )
+      if ( SDB_SEQUENCE_OUT_OF_CACHE == rc && _allowAcquire )
       {
          rc = pAgent->_acquireSequence( seq, eduCB, TRUE, _expectValue ) ;
          if ( SDB_SEQUENCE_EXCEEDED == rc )
@@ -345,6 +522,11 @@ namespace engine
          goto done ;
       }
 
+      if ( rc != SDB_OK )
+      {
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB_COORD_SEQ_AGENT__ADJUST_NEXT_VALUE, rc ) ;
       return rc ;
@@ -352,25 +534,28 @@ namespace engine
       goto done ;
    }
 
-   void _coordSequenceAgent::_adjustNextValue::_adjustAscendingly(
+   INT32 _coordSequenceAgent::_adjustNextValue::_adjustAscendingly(
          _coordSequence& seq,
-         INT64 expectValue,
-         BOOLEAN& needAcquire )
+         INT64 expectValue )
    {
       /*
          adjust rule:
-         if expectValue >= maxValue
-            acquire a new cache which value greater than expectValue
-         if maxValue > expectValue >= nextValue
-            adjust nextValue to be greater than expectValue
-         if nextValue > expectValue
-            ignore
+         |-----A-----|-----B-----|-----C-----|
+                 nextValue    maxValue
+
+         A: expectValue < nextValue
+            value has been used. do nothing.
+         B: nextValue <= expectValue < maxValue
+            adjust nextValue to be greater than expectValue.
+         C: maxValue <= expectValue
+            out of cache. acquire a new cache outside.
       */
+      INT32 rc = SDB_OK ;
       INT64 maxValue = seq.nextValue() + seq.increment() * (seq.acquireSize() - 1) ;
       if ( expectValue >= maxValue )
       {
          seq.setAcquireSize( 0 ) ;
-         needAcquire = TRUE ;
+         rc = SDB_SEQUENCE_OUT_OF_CACHE ;
       }
       else if ( expectValue >= seq.nextValue() )
       {
@@ -380,28 +565,37 @@ namespace engine
          INT32 acquireCount = (INT32) (( diff - 1 ) / seq.increment() + 1) ;
          seq.setAcquireSize( seq.acquireSize() - acquireCount ) ;
          seq.setNextValue( seq.nextValue() + seq.increment() * acquireCount ) ;
+         seq.setCurrentValue( seq.nextValue() - seq.increment() ) ;
       }
+      else
+      {
+         rc = SDB_SEQUENCE_VALUE_USED ;
+      }
+      return rc ;
    }
 
-   void _coordSequenceAgent::_adjustNextValue::_adjustDecendingly(
+   INT32 _coordSequenceAgent::_adjustNextValue::_adjustDecendingly(
          _coordSequence& seq,
-         INT64 expectValue,
-         BOOLEAN& needAcquire )
+         INT64 expectValue )
    {
       /*
          adjust rule:
-         if expectValue <= minValue
-            acquire a new cache which value less than expectValue
-         if minValue < expectValue <= nextValue
+         |-----A-----|-----B-----|-----C-----|
+                 nextValue    minValue
+
+         A: expectValue > nextValue
+            value has been used. do nothing.
+         B: nextValue >= expectValue > maxValue
             adjust nextValue to be less than expectValue
-         if nextValue < expectValue
-            ignore
+         C: minValue >= expectValue
+            out of cache. acquire a new cache outside.
       */
+      INT32 rc = SDB_OK ;
       INT64 minValue = seq.nextValue() + seq.increment() * (seq.acquireSize() - 1) ;
       if ( expectValue <= minValue )
       {
          seq.setAcquireSize( 0 ) ;
-         needAcquire = TRUE ;
+         rc = SDB_SEQUENCE_OUT_OF_CACHE ;
       }
       else if ( expectValue <= seq.nextValue() )
       {
@@ -409,7 +603,88 @@ namespace engine
          INT32 acquireCount = (INT32) (( diff - 1 ) / (-seq.increment()) + 1) ;
          seq.setAcquireSize( seq.acquireSize() - acquireCount ) ;
          seq.setNextValue( seq.nextValue() + seq.increment() * acquireCount ) ;
+         seq.setCurrentValue( seq.nextValue() - seq.increment() ) ;
       }
+      else
+      {
+         rc = SDB_SEQUENCE_VALUE_USED ;
+      }
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_COORD_SEQ_AGENT__GET_CURR_VALUE, "_coordSequenceAgent::_getCurrentValue::operator" )
+   INT32 _coordSequenceAgent::_getCurrentValue::operator() (
+         coordSequenceAgent *pAgent,
+         _coordSequence& seq,
+         _pmdEDUCB* eduCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_COORD_SEQ_AGENT__GET_CURR_VALUE ) ;
+
+      if ( seq.initial() )
+      {
+         rc = SDB_SEQUENCE_OUT_OF_CACHE ;
+         PD_LOG( PDDEBUG, "Sequence[%s] is not in coord cache", seq.name() ) ;
+         goto error ;
+      }
+
+      *_pCurrentValue = seq.currentValue() ;
+   done:
+      PD_TRACE_EXITRC ( SDB_COORD_SEQ_AGENT__GET_CURR_VALUE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_COORD_SEQ_AGENT__FETCH_VALUE, "_coordSequenceAgent::_fetchValue::operator" )
+   INT32 _coordSequenceAgent::_fetchValue::operator() ( coordSequenceAgent *pAgent,
+                                                        _coordSequence& seq,
+                                                        _pmdEDUCB* eduCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_COORD_SEQ_AGENT__FETCH_VALUE ) ;
+
+      SDB_ASSERT( seq.acquireSize() >= 0, "AcquireSize should >= 0" ) ;
+
+      if ( seq.acquireSize() == 0 )
+      {
+         rc = pAgent->_acquireSequence( seq, eduCB ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to acquire sequence[%s], rc=%d",
+                    seq.name().c_str(), rc ) ;
+            goto error ;
+         }
+
+         if ( seq.acquireSize() == 0 )
+         {
+            SDB_ASSERT( FALSE, "AcquireSize == 0" ) ;
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Invalid AcquireSize of sequence[%s], rc=%d",
+                    seq.name().c_str(), rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( seq.initial() )
+      {
+         seq.setInitial( FALSE ) ;
+      }
+
+      _nextValue = seq.nextValue() ;
+      _increment = seq.increment() ;
+      _returnNum = ( seq.acquireSize() >= _fetchNum ) ? _fetchNum :
+                                                        seq.acquireSize() ;
+
+      seq.setAcquireSize( seq.acquireSize() - _returnNum ) ;
+      seq.setNextValue( seq.nextValue() + ( seq.increment() * _returnNum ) ) ;
+      seq.setCurrentValue( seq.nextValue() - seq.increment() ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_COORD_SEQ_AGENT__FETCH_VALUE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORD_SEQ_AGENT__DO_ON_SEQUENCE, "_coordSequenceAgent::_doOnSequence" )
@@ -960,7 +1235,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORD_SEQ_INVALIDATE_CACHE_SEQ, "coordSequenceInvalidateCache" )
    INT32 coordSequenceInvalidateCache ( const CHAR * sequenceName,
                                         utilSequenceID sequenceID,
-                                        _pmdEDUCB * eduCB )
+                                        _pmdEDUCB * eduCB,
+                                        const INT64 * pCurrentValue )
    {
       INT32 rc = SDB_OK ;
 
@@ -977,6 +1253,10 @@ namespace engine
          if( UTIL_SEQUENCEID_NULL != sequenceID )
          {
             builder.append( FIELD_NAME_SEQUENCE_ID , (INT64)sequenceID ) ;
+         }
+         if( NULL != pCurrentValue )
+         {
+            builder.append( FIELD_NAME_CURRENT_VALUE, *pCurrentValue ) ;
          }
          commandObject = builder.obj() ;
       }

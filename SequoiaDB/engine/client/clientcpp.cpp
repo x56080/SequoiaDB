@@ -6959,6 +6959,294 @@ do                                                            \
    }
 
    /*
+    * sdbSequenceImpl
+    * Collection Space Implementation
+    */
+   _sdbSequenceImpl::_sdbSequenceImpl () :
+   _connection ( NULL ),
+   _pSequenceName ( NULL )
+   {
+   }
+
+   _sdbSequenceImpl::~_sdbSequenceImpl ()
+   {
+      if ( _connection )
+      {
+         _connection->_unregSequence ( this ) ;
+      }
+      if ( _pSequenceName )
+      {
+         SDB_OSS_FREE ( _pSequenceName ) ;
+      }
+   }
+
+   void _sdbSequenceImpl::_setConnection ( _sdb *connection )
+   {
+      _connection = (_sdbImpl*)connection ;
+      _connection->_regSequence ( this ) ;
+   }
+
+   INT32 _sdbSequenceImpl::_setName ( const CHAR *pSequenceName )
+   {
+      INT32 rc       = SDB_OK ;
+      UINT32 nameLen = 0 ;
+
+      if ( !pSequenceName || !pSequenceName[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( _pSequenceName )
+      {
+         SDB_OSS_FREE ( _pSequenceName ) ;
+      }
+
+      nameLen = ossStrlen ( pSequenceName ) ;
+      _pSequenceName = ( CHAR * ) SDB_OSS_MALLOC ( nameLen + 1 ) ;
+      if ( NULL == _pSequenceName )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      ossStrncpy( _pSequenceName, pSequenceName, nameLen + 1 );
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSequenceImpl::setAttributes ( const bson::BSONObj &options )
+   {
+      return _alterInternal ( CMD_VALUE_NAME_SETATTR, options ) ;
+   }
+
+   INT32 _sdbSequenceImpl::_alterInternal ( const CHAR *actionName,
+                                            const BSONObj &arguments )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      BSONObj newObj ;
+
+      try
+      {
+         bob.append( FIELD_NAME_ACTION, actionName ) ;
+         BSONObjBuilder subBob( bob.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+         subBob.append( FIELD_NAME_NAME, _pSequenceName ) ;
+         subBob.appendElements( arguments ) ;
+         subBob.done() ;
+         newObj = bob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      // run command
+      rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE,
+                                      &newObj ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+     return rc ;
+   error:
+     goto done ;
+   }
+
+   INT32 _sdbSequenceImpl::getNextValue ( INT64 &value )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 returnNum = 0 ;
+      INT32 increment = 0 ;
+
+      rc = fetch( 1, value, returnNum, increment ) ;
+      if ( rc != SDB_OK )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSequenceImpl::getCurrentValue ( INT64 &value )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj newObj ;
+      _sdbCursor *pCursor = NULL ;
+      BSONObj result ;
+      BSONElement ele ;
+
+      try
+      {
+         newObj = BSON( FIELD_NAME_NAME << _pSequenceName ) ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_GET_SEQ_CURR_VAL,
+                                      &newObj, NULL, NULL, NULL,
+                                      0, 0, 0, -1, &pCursor ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( NULL == pCursor )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // there should only 1 record read
+      rc = pCursor->next( result ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      ele = result.getField( FIELD_NAME_CURRENT_VALUE ) ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      value = ele.numberLong() ;
+
+   done:
+      if ( NULL != pCursor )
+      {
+         delete( pCursor ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSequenceImpl::setCurrentValue ( const INT64 value )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      BSONObjBuilder bob ;
+
+      try
+      {
+         bob.append( FIELD_NAME_EXPECT_VALUE, value ) ;
+         obj = bob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alterInternal ( CMD_VALUE_NAME_SET_CURR_VALUE, obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbSequenceImpl::fetch( const INT32 fetchNum, INT64 &nextValue,
+                                  INT32 &returnNum, INT32 &increment )
+   {
+      INT32 rc = SDB_OK ;
+      _sdbCursor *pCursor = NULL ;
+      BSONObj obj ;
+      BSONElement ele ;
+
+      if ( fetchNum < 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = clientBuildSeqFetchMsgCpp( &_connection->_pSendBuffer,
+                                      &_connection->_sendBufferSize,
+                                      _pSequenceName, fetchNum, 0,
+                                      _connection->_endianConvert ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = _connection->_sendAndRecv( _connection->_pSendBuffer,
+                                      &_connection->_pReceiveBuffer,
+                                      &_connection->_receiveBufferSize,
+                                      &pCursor ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( NULL == pCursor )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // there should only 1 record read
+      rc = pCursor->next( obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      ele = obj.getField( FIELD_NAME_NEXT_VALUE ) ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      nextValue = ele.numberLong() ;
+
+      ele = obj.getField( FIELD_NAME_RETURN_NUM ) ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      returnNum = ele.numberInt() ;
+
+      ele = obj.getField( FIELD_NAME_INCREMENT ) ;
+      if ( !ele.isNumber() )
+      {
+         rc = SDB_UNEXPECTED_RESULT ;
+         goto error ;
+      }
+      increment = ele.numberInt() ;
+
+   done:
+      if ( NULL != pCursor )
+      {
+         delete( pCursor ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
     * sdbImpl
     * SequoiaDB Connection Implementation
     */
@@ -7041,6 +7329,12 @@ do                                                            \
       for ( it = copySet.begin(); it != copySet.end(); ++it )
       {
          ((_sdbLobImpl*)(*it))->_detachConnection () ;
+      }
+      // release sequences
+      copySet = _sequences ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbSequenceImpl*)(*it))->_dropConnection () ;
       }
       if ( NULL != _tb )
       {
@@ -7196,6 +7490,13 @@ do                                                            \
       unlock () ;
    }
 
+   void _sdbImpl::_regSequence ( _sdbSequenceImpl *sequence )
+   {
+      lock () ;
+      _sequences.insert ( (ossValuePtr)sequence ) ;
+      unlock () ;
+   }
+
    void _sdbImpl::_unregCursor ( _sdbCursorImpl *cursor )
    {
       lock () ;
@@ -7249,6 +7550,13 @@ do                                                            \
    {
       lock () ;
       _lobs.erase ( (ossValuePtr)lob ) ;
+      unlock () ;
+   }
+
+   void _sdbImpl::_unregSequence ( _sdbSequenceImpl *sequence )
+   {
+      lock () ;
+      _sequences.erase ( (ossValuePtr)sequence ) ;
       unlock () ;
    }
 
@@ -11051,6 +11359,186 @@ do                                                            \
 
       return initCacheStrategy( config->enableCacheStrategy,
                                 config->cacheTimeInterval ) ;
+   }
+
+   INT32 _sdbImpl::createSequence( const CHAR *pSequenceName,
+                                   const bson::BSONObj &options,
+                                   _sdbSequence **sequence )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder ob ;
+      BSONObj newObj ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CREATE_SEQUENCE ;
+
+      if ( !pSequenceName || !*pSequenceName || !sequence )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      ob.append ( FIELD_NAME_NAME, pSequenceName ) ;
+      ob.appendElements( options ) ;
+      newObj = ob.obj() ;
+      rc = _runCommand ( pCommand, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      *sequence = (_sdbSequence*)( new(std::nothrow) sdbSequenceImpl () ) ;
+      if ( !*sequence )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      rc = ((sdbSequenceImpl*)*sequence)->_setName ( pSequenceName ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error :
+      if ( sequence && NULL != *sequence )
+      {
+         delete *sequence ;
+         *sequence = NULL ;
+      }
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getSequence( const CHAR *pSequenceName,
+                                _sdbSequence **sequence )
+   {
+      INT32 rc = SDB_OK ;
+      sdbCursor resultCursor ;
+      BSONObj condition ;
+      BSONObj result ;
+
+      if ( !pSequenceName || !*pSequenceName || !sequence )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( '$' == pSequenceName[ 0 ] ||
+           0 == strncasecmp( "SYS", pSequenceName, 3 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // TODO: cache it
+         condition = BSON ( FIELD_NAME_NAME << pSequenceName ) ;
+         rc = getList( &resultCursor.pCursor, SDB_LIST_SEQUENCES, condition ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         rc = resultCursor.next ( result ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_SEQUENCE_NOT_EXIST ;
+         }
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      *sequence = (_sdbSequence*)( new(std::nothrow) sdbSequenceImpl () ) ;
+      if ( !*sequence )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      ((sdbSequenceImpl*)*sequence)->_setConnection ( this ) ;
+      rc = ((sdbSequenceImpl*)*sequence)->_setName ( pSequenceName ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error :
+      if ( sequence && NULL != *sequence )
+      {
+         delete *sequence ;
+         *sequence = NULL ;
+      }
+      goto done ;
+   }
+
+   INT32 _sdbImpl::renameSequence( const CHAR *pOldName, const CHAR *pNewName )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      BSONObj obj ;
+
+      if ( !pOldName || !*pOldName || !pNewName || !*pNewName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         bob.append( FIELD_NAME_ACTION, CMD_VALUE_NAME_RENAME ) ;
+         BSONObjBuilder subBob( bob.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+         subBob.append( FIELD_NAME_NAME, pOldName ) ;
+         subBob.append( FIELD_NAME_NEWNAME, pNewName ) ;
+         subBob.done() ;
+         obj = bob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE, &obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::dropSequence( const CHAR *pSequenceName )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder ob ;
+      BSONObj newObj ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_DROP_SEQUENCE ;
+
+      if ( !pSequenceName || !*pSequenceName )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      ob.append ( FIELD_NAME_NAME, pSequenceName ) ;
+      newObj = ob.obj() ;
+      rc = _runCommand ( pCommand, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error :
+      goto done ;
    }
 
 }

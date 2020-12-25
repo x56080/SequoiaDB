@@ -24,6 +24,7 @@ $SNAPSHOT_SEQUENCES
 | CacheSize           | 整型   | 编目节点每次缓存序列值数     |
 | AcquireSize         | 整型   | 协调节点每次获取序列值数     |
 | Cycled              | 布尔   | 序列值到达最大值（或最小值）是否允许循环 |
+| CycledCount         | 整型   | 序列已循环次数 |
 | Version             | 整型   | 序列版本号                   |
 | Initial             | 布尔   | 该序列是否未使用，true表示未使用 |
 | Internal            | 布尔   | 该序列是否是系统内部序列     |
@@ -41,6 +42,7 @@ $SNAPSHOT_SEQUENCES
   "CacheSize": 1000,
   "CurrentValue": 6000,
   "Cycled": false,
+  "CycledCount": 0,
   "ID": 168,
   "Increment": 1,
   "Initial": false,

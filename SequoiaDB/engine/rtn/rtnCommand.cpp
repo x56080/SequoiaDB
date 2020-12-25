@@ -408,6 +408,9 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotSequences)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotSequencesIntr)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListSequences)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateSequence)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropSequence)
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnAlterSequence)
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnBackup)
    _rtnBackup::_rtnBackup ()

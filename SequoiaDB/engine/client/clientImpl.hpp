@@ -1169,6 +1169,53 @@ namespace sdbclient
    typedef class _sdbLobImpl sdbLobImpl ;
 
    /*
+      _sdbSequenceImpl
+   */
+   class _sdbSequenceImpl : public _sdbSequence
+   {
+      friend class _sdbImpl ;
+
+   private :
+      _sdbSequenceImpl ( const _sdbSequenceImpl &other ) ;
+      _sdbSequenceImpl& operator=( const _sdbSequenceImpl& ) ;
+
+      void _setConnection ( _sdb *connection ) ;
+
+      INT32 _setName ( const CHAR *pSequenceName ) ;
+
+      void _dropConnection()
+      {
+         _connection = NULL ;
+      }
+
+      INT32 _alterInternal ( const CHAR *actionName,
+                             const bson::BSONObj &arguments ) ;
+
+   private:
+#if defined CLIENT_THREAD_SAFE
+      ossSpinSLatch           _mutex ;
+#endif
+      _sdbImpl                *_connection ;
+      CHAR                    *_pSequenceName ;
+
+   public :
+      _sdbSequenceImpl () ;
+      ~_sdbSequenceImpl () ;
+
+      INT32 setAttributes ( const bson::BSONObj &options ) ;
+
+      INT32 getNextValue ( INT64 &value ) ;
+
+      INT32 getCurrentValue ( INT64 &value ) ;
+
+      INT32 setCurrentValue ( const INT64 value ) ;
+
+      INT32 fetch( const INT32 fetchNum, INT64 &nextValue,
+                   INT32 &returnNum, INT32 &Increment ) ;
+   } ;
+   typedef class _sdbSequenceImpl sdbSequenceImpl ;
+
+   /*
       _sdbImpl
    */
    class _sdbImpl : public _sdb
@@ -1198,6 +1245,7 @@ namespace sdbclient
       std::set<ossValuePtr>    _domains ;
       std::set<ossValuePtr>    _dataCenters ;
       std::set<ossValuePtr>    _lobs ;
+      std::set<ossValuePtr>    _sequences ;
       hashTable               *_tb ;
       // If the authVersion is 0, we use MD5 authentication.
       // And if the authVersion is 1, we use SCRAM-SHA256 authentication.
@@ -1264,6 +1312,7 @@ namespace sdbclient
       void _regDomain ( _sdbDomainImpl *domain ) ;
       void _regDataCenter ( _sdbDataCenterImpl *dc ) ;
       void _regLob ( _sdbLobImpl *lob ) ;
+      void _regSequence ( _sdbSequenceImpl *sequence ) ;
       void _unregCursor ( _sdbCursorImpl *cursor ) ;
       void _unregCollection ( _sdbCollectionImpl *collection ) ;
       void _unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
@@ -1272,6 +1321,7 @@ namespace sdbclient
       void _unregDomain ( _sdbDomainImpl *domain ) ;
       void _unregDataCenter ( _sdbDataCenterImpl *dc ) ;
       void _unregLob ( _sdbLobImpl *lob ) ;
+      void _unregSequence ( _sdbSequenceImpl *sequence ) ;
 
       hashTable* _getCachedContainer() const ;
 
@@ -1311,6 +1361,7 @@ namespace sdbclient
       friend class _sdbDomainImpl ;
       friend class _sdbDataCenterImpl ;
       friend class _sdbLobImpl ;
+      friend class _sdbSequenceImpl ;
    public :
       _sdbImpl ( BOOLEAN useSSL = FALSE ) ;
       ~_sdbImpl () ;
@@ -1769,6 +1820,36 @@ namespace sdbclient
       INT32 restoreToTime( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restorePrepare( const bson::BSONObj &options = _sdbStaticObject ) ;
+
+      INT32 createSequence( const CHAR *pSequenceName,
+                            const bson::BSONObj &options,
+                            _sdbSequence **sequence ) ;
+
+      INT32 createSequence( const CHAR *pSequenceName,
+                            const bson::BSONObj &options,
+                            sdbSequence &sequence )
+      {
+         RELEASE_INNER_HANDLE( sequence.pSequence ) ;
+         return createSequence( pSequenceName, options, &sequence.pSequence ) ;
+      }
+
+      INT32 createSequence( const CHAR *pSequenceName,
+                            sdbSequence &sequence )
+      {
+         return createSequence( pSequenceName, _sdbStaticObject, sequence ) ;
+      }
+
+      INT32 getSequence( const CHAR *pSequenceName, _sdbSequence **sequence ) ;
+
+      INT32 getSequence( const CHAR *pSequenceName, sdbSequence &sequence )
+      {
+         RELEASE_INNER_HANDLE( sequence.pSequence ) ;
+         return getSequence( pSequenceName, &sequence.pSequence ) ;
+      }
+
+      INT32 renameSequence( const CHAR *pOldName, const CHAR *pNewName ) ;
+
+      INT32 dropSequence( const CHAR *pSequenceName ) ;
 
    } ;
    typedef class _sdbImpl sdbImpl ;

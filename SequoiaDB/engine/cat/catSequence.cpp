@@ -61,6 +61,7 @@ namespace engine
       _cacheSize = 1000 ;
       _acquireSize = 1000 ;
       _cycled = FALSE ;
+      _cycledCount = 0 ;
       _initial = TRUE ;
       _exceeded = FALSE ;
       _ID = UTIL_GLOBAL_NULL ;
@@ -135,6 +136,16 @@ namespace engine
       _cycled = cycled ;
    }
 
+   void _catSequence::setCycledCount( INT32 cycledCount )
+   {
+      _cycledCount = cycledCount ;
+   }
+
+   void _catSequence::increaseCycledCount()
+   {
+      _cycledCount++ ;
+   }
+
    void _catSequence::setInitial( BOOLEAN initial )
    {
       _initial = initial ;
@@ -160,10 +171,10 @@ namespace engine
          if ( !forUpdate )
          {
             builder.append( CAT_SEQUENCE_OID, _oid ) ;
-            builder.append( CAT_SEQUENCE_NAME, _name ) ;
             builder.append( CAT_SEQUENCE_INTERNAL, (bool)_internal ) ;
             builder.append( CAT_SEQUENCE_ID, (INT64)_ID ) ;
          }
+         builder.append( CAT_SEQUENCE_NAME, _name ) ;
          builder.append( CAT_SEQUENCE_VERSION, _version ) ;
          builder.append( CAT_SEQUENCE_CURRENT_VALUE, _currentValue ) ;
          builder.append( CAT_SEQUENCE_START_VALUE, _startValue ) ;
@@ -173,6 +184,7 @@ namespace engine
          builder.append( CAT_SEQUENCE_CACHE_SIZE, _cacheSize ) ;
          builder.append( CAT_SEQUENCE_ACQUIRE_SIZE, _acquireSize ) ;
          builder.append( CAT_SEQUENCE_CYCLED, (bool)_cycled ) ;
+         builder.append( CAT_SEQUENCE_CYCLED_COUNT, _cycledCount ) ;
          builder.append( CAT_SEQUENCE_INITIAL, (bool)_initial ) ;
 
          obj = builder.obj() ;
@@ -198,6 +210,7 @@ namespace engine
       _cacheSize = other.getCacheSize() ;
       _acquireSize = other.getAcquireSize() ;
       _cycled = other.isCycled() ;
+      _cycledCount = other.getCycledCount() ;
       _initial = other.isInitial() ;
       _exceeded = other.isExceeded() ;
       if ( withInternalField )
@@ -220,10 +233,25 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_SET_OPTIONS ) ;
 
       UINT32 fieldMask = UTIL_ARG_FIELD_EMPTY ;
+      const CHAR *readOnlyField = NULL ;
+
       rc = _loadOptions( options, isFirstInitial, withInternalFields,
                          fieldMask ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load sequence options, "
                    "rc: %d", rc ) ;
+
+      if ( OSS_BIT_TEST( fieldMask, UTIL_CL_AUTOINC_INITIAL_FIELD ) )
+      {
+         readOnlyField = CAT_SEQUENCE_INITIAL ;
+      }
+      else if ( OSS_BIT_TEST( fieldMask, UTIL_CL_AUTOINC_CYCLEDCOUNT_FIELD ) )
+      {
+         readOnlyField = CAT_SEQUENCE_CYCLED_COUNT ;
+      }
+
+      PD_CHECK( NULL == readOnlyField, SDB_INVALIDARG, error, PDERROR,
+               "Field[%s] is read-only and not allowed to be modified",
+               readOnlyField ) ;
 
       if ( isFirstInitial )
       {
@@ -476,6 +504,7 @@ namespace engine
          CAT_SEQUENCE_CACHE_SIZE,
          CAT_SEQUENCE_ACQUIRE_SIZE,
          CAT_SEQUENCE_CYCLED,
+         CAT_SEQUENCE_CYCLED_COUNT,
          CAT_SEQUENCE_INTERNAL,
          CAT_SEQUENCE_INITIAL,
          CAT_SEQUENCE_NEXT_VALUE
@@ -671,6 +700,29 @@ namespace engine
          PD_CHECK( EOO == ele.type(), SDB_INVALIDARG, error, PDERROR,
                    "Invalid type (%d) for option [%s]",
                    ele.type(), CAT_SEQUENCE_CYCLED ) ;
+      }
+
+      // CAT_SEQUENCE_CYCLED_COUNT
+      ele = options.getField( CAT_SEQUENCE_CYCLED_COUNT ) ;
+      if ( NumberInt == ele.type() )
+      {
+         INT64 cycledCount = ele.numberLong() ;
+         PD_CHECK( cycledCount >= OSS_SINT32_MIN_LL &&
+                   cycledCount <= OSS_SINT32_MAX_LL,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Option [%s] is overflow: %lld",
+                   CAT_SEQUENCE_CYCLED_COUNT, cycledCount ) ;
+         if ( isFirstInitial || getCycledCount() != (INT32)cycledCount )
+         {
+            setCycledCount( (INT32)cycledCount ) ;
+            OSS_BIT_SET( fieldMask, UTIL_CL_AUTOINC_CYCLEDCOUNT_FIELD ) ;
+         }
+      }
+      else
+      {
+         PD_CHECK( EOO == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Invalid type (%d) for option [%s]",
+                   ele.type(), CAT_SEQUENCE_CYCLED_COUNT ) ;
       }
 
       // CAT_SEQUENCE_INITIAL

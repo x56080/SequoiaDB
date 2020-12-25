@@ -88,8 +88,9 @@ namespace engine
          public _catSequenceManager::_operateSequence
    {
    public:
-      _adjustSequence( INT64 expectValue ) :
-            _expectValue( expectValue )
+      _adjustSequence( INT64 expectValue, utilSequenceID *pAlteredSeqID ) :
+            _expectValue( expectValue ),
+            _pAlteredSeqID( pAlteredSeqID )
       {
       }
 
@@ -98,14 +99,15 @@ namespace engine
                                 _pmdEDUCB *eduCB,
                                 INT16 w ) ;
    private:
-      void _adjustAscendingSequence( _catSequence& seq,
-                                     INT64 expectValue,
-                                     BOOLEAN& needUpdate ) ;
-      void _adjustDecendingSequence( _catSequence& seq,
-                                     INT64 expectValue,
-                                     BOOLEAN& needUpdate ) ;
+      INT32 _adjustAscendingSequence( _catSequence& seq,
+                                      INT64 expectValue,
+                                      BOOLEAN& needUpdate ) ;
+      INT32 _adjustDecendingSequence( _catSequence& seq,
+                                      INT64 expectValue,
+                                      BOOLEAN& needUpdate ) ;
    private:
       INT64 _expectValue ;
+      utilSequenceID* _pAlteredSeqID ;
    } ;
 
    _catSequenceManager::_catSequenceManager()
@@ -250,7 +252,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_DROP_SEQ, "_catSequenceManager::dropSequence" )
    INT32 _catSequenceManager::dropSequence( const std::string& name,
-                                            _pmdEDUCB* eduCB, INT16 w )
+                                            _pmdEDUCB* eduCB, INT16 w,
+                                            utilSequenceID *pDroppedSeqID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_DROP_SEQ ) ;
@@ -266,7 +269,7 @@ namespace engine
          SDB_OSS_DEL sequence ;
       }
 
-      rc = _deleteSequence( name, eduCB, w ) ;
+      rc = _deleteSequence( name, eduCB, w, pDroppedSeqID ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -284,8 +287,9 @@ namespace engine
                                              const BSONObj& options,
                                              _pmdEDUCB* eduCB,
                                              INT16 w,
-                                             bson::BSONObj * oldOptions,
-                                             UINT32 * alterMask )
+                                             bson::BSONObj* oldOptions,
+                                             UINT32* alterMask,
+                                             utilSequenceID* pAlteredSeqID )
    {
       INT32 rc = SDB_OK ;
       BSONObj obj ;
@@ -374,7 +378,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _updateSequence( name, obj, eduCB, w ) ;
+      rc = _updateSequence( name, obj, eduCB, w, pAlteredSeqID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
@@ -394,6 +398,90 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_RENAME_SEQ, "_catSequenceManager::renameSequence" )
+   INT32 _catSequenceManager::renameSequence( const std::string& oldName,
+                                              const std::string& newName,
+                                              _pmdEDUCB* eduCB,
+                                              INT16 w,
+                                              utilSequenceID* pAlteredSeqID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_RENAME_SEQ ) ;
+
+      BSONObj obj ;
+      _catSequence* cache = NULL ;
+      _catSequence sequence( newName ) ;
+
+      CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( oldName ) ;
+      BUCKET_XLOCK( bucket ) ;
+
+      CAT_SEQ_MAP::map_const_iterator iter = bucket.find( oldName ) ;
+      if ( bucket.end() != iter )
+      {
+         cache = (*iter).second ;
+         sequence.copyFrom( *cache ) ;
+      }
+      else
+      {
+         BSONObj seqObj ;
+         rc = _findSequence( oldName, seqObj, eduCB ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR,
+                    "Failed to find sequence[%s] from system collection, rc=%d",
+                    oldName.c_str(), rc ) ;
+            goto error ;
+         }
+
+         rc = sequence.loadOptions( seqObj ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to set sequence[%s], rc=%d",
+                    oldName.c_str(), rc ) ;
+            goto error ;
+         }
+      }
+
+      sequence.increaseVersion() ;
+
+      rc = sequence.validate() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Invalid sequence[%s], rc=%d",
+                 newName.c_str(), rc ) ;
+         goto error ;
+      }
+
+      rc = sequence.toBSONObj( obj, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to build BSONObj for sequence[%s], rc=%d",
+                 newName.c_str(), rc ) ;
+         goto error ;
+      }
+
+      rc = _updateSequence( oldName, obj, eduCB, w, pAlteredSeqID ) ;
+      if ( SDB_IXM_DUP_KEY == rc )
+      {
+         rc = SDB_SEQUENCE_EXIST ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
+                 oldName.c_str(), rc ) ;
+         goto error ;
+      }
+
+      bucket.erase( oldName ) ;
+      SDB_OSS_DEL( cache ) ;
+   done:
+      PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR_RENAME_SEQ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _catSequenceManager::acquireSequence( const std::string& name,
                                                const utilSequenceID ID,
                                                _catSequenceAcquirer& acquirer,
@@ -404,12 +492,12 @@ namespace engine
    }
 
    INT32 _catSequenceManager::adjustSequence( const std::string &name,
-                                              const utilSequenceID ID,
                                               INT64 expectValue,
-                                              _pmdEDUCB *eduCB, INT16 w )
+                                              _pmdEDUCB *eduCB, INT16 w,
+                                              utilSequenceID* pAlteredSeqID )
    {
-      _adjustSequence func( expectValue ) ;
-      return _doOnSequence( name, ID, eduCB, w, func ) ;
+      _adjustSequence func( expectValue, pAlteredSeqID ) ;
+      return _doOnSequence( name, UTIL_SEQUENCEID_NULL, eduCB, w, func ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_RESET_SEQ, "_catSequenceManager::resetSequence" )
@@ -456,6 +544,7 @@ namespace engine
       sequence.setCurrentValue( sequence.getStartValue() ) ;
       sequence.setInitial( TRUE ) ;
       sequence.setExceeded( FALSE ) ;
+      sequence.setCycledCount( 0 ) ;
       sequence.increaseVersion() ;
 
       rc = sequence.toBSONObj( obj, TRUE ) ;
@@ -516,15 +605,18 @@ namespace engine
 
       if ( needUpdate )
       {
+         BSONObjBuilder builder( 128 ) ;
          BSONObj options ;
          try
          {
-            options = BSON( CAT_SEQUENCE_CURRENT_VALUE << seq.getCurrentValue()
-                         << CAT_SEQUENCE_INITIAL << (bool) seq.isInitial() ) ;
+            builder.append( CAT_SEQUENCE_CURRENT_VALUE, seq.getCurrentValue() ) ;
+            builder.append( CAT_SEQUENCE_INITIAL, (bool) seq.isInitial() ) ;
+            builder.append( CAT_SEQUENCE_CYCLED_COUNT, seq.getCycledCount() ) ;
+            options = builder.obj() ;
          }
          catch( std::exception& e )
          {
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Failed to build bson, exception: %s, rc=%d",
                     e.what(), rc ) ;
             goto error ;
@@ -564,7 +656,6 @@ namespace engine
       if ( seq.isInitial() )
       {
          nextValue = seq.getStartValue() ;
-         seq.setInitial( FALSE ) ;
          needUpdate = TRUE ;
       }
       else if ( seq.isExceeded() )
@@ -584,6 +675,7 @@ namespace engine
             seq.setCurrentValue( nextValue ) ;
             seq.setCachedValue( nextValue ) ;
             seq.setExceeded( FALSE ) ;
+            seq.increaseCycledCount() ;
             needUpdate = TRUE ;
          }
       }
@@ -598,6 +690,10 @@ namespace engine
       // use minus to avoid overflow
       if ( seq.getCurrentValue() - nextValue >= fetchInc )
       {
+         if ( seq.isInitial() )
+         {
+            seq.setInitial( FALSE ) ;
+         }
          seq.setCachedValue( nextValue + fetchInc ) ;
          acquirer.nextValue = nextValue ;
          acquirer.acquireSize = seq.getAcquireSize() ;
@@ -606,6 +702,12 @@ namespace engine
       else
       {
          INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
+         if ( seq.isInitial() )
+         {
+            // exclude the start value
+            cachedInc -= (INT64) seq.getIncrement() ;
+            seq.setInitial( FALSE ) ;
+         }
          if ( seq.getCurrentValue() <= seq.getMaxValue() - cachedInc )
          {
             seq.setCachedValue( nextValue + fetchInc ) ;
@@ -668,7 +770,6 @@ namespace engine
       if ( seq.isInitial() )
       {
          nextValue = seq.getStartValue() ;
-         seq.setInitial( FALSE ) ;
          needUpdate = TRUE ;
       }
       else if ( seq.isExceeded() )
@@ -688,6 +789,7 @@ namespace engine
             seq.setCurrentValue( nextValue ) ;
             seq.setCachedValue( nextValue ) ;
             seq.setExceeded( FALSE ) ;
+            seq.increaseCycledCount() ;
             needUpdate = TRUE ;
          }
       }
@@ -702,6 +804,10 @@ namespace engine
       // use minus to avoid overflow
       if ( nextValue - seq.getCurrentValue() >= -fetchInc )
       {
+         if ( seq.isInitial() )
+         {
+            seq.setInitial( FALSE ) ;
+         }
          seq.setCachedValue( nextValue + fetchInc ) ;
          acquirer.nextValue = nextValue ;
          acquirer.acquireSize = seq.getAcquireSize() ;
@@ -710,6 +816,12 @@ namespace engine
       else
       {
          INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
+         if ( seq.isInitial() )
+         {
+            // exclude the start value
+            cachedInc -= (INT64) seq.getIncrement() ;
+            seq.setInitial( FALSE ) ;
+         }
          if ( seq.getCurrentValue() >= seq.getMinValue() - cachedInc )
          {
             seq.setCachedValue( nextValue + fetchInc ) ;
@@ -767,11 +879,16 @@ namespace engine
       BOOLEAN needUpdate = FALSE ;
       if ( seq.getIncrement() > 0 )
       {
-         _adjustAscendingSequence( seq, _expectValue, needUpdate ) ;
+         rc = _adjustAscendingSequence( seq, _expectValue, needUpdate ) ;
       }
       else
       {
-         _adjustDecendingSequence( seq, _expectValue, needUpdate ) ;
+         rc = _adjustDecendingSequence( seq, _expectValue, needUpdate ) ;
+      }
+
+      if ( rc != SDB_OK )
+      {
+         goto error ;
       }
 
       if ( needUpdate )
@@ -779,12 +896,14 @@ namespace engine
          BSONObj options ;
          try
          {
-            options = BSON( CAT_SEQUENCE_CURRENT_VALUE << seq.getCurrentValue()
-                         << CAT_SEQUENCE_INITIAL << (bool) seq.isInitial() ) ;
+            BSONObjBuilder ob( 64 ) ;
+            ob.append( CAT_SEQUENCE_CURRENT_VALUE, seq.getCurrentValue() ) ;
+            ob.append( CAT_SEQUENCE_INITIAL, (bool) seq.isInitial() ) ;
+            options = ob.obj() ;
          }
          catch( std::exception& e )
          {
-            rc = SDB_SYS ;
+            rc = ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Failed to build bson, exception: %s, rc=%d",
                     e.what(), rc ) ;
             goto error ;
@@ -799,6 +918,11 @@ namespace engine
          }
       }
 
+      if ( _pAlteredSeqID != NULL )
+      {
+         *_pAlteredSeqID = seq.getID() ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR__ADJUST_SEQUENCE, rc ) ;
       return rc ;
@@ -807,36 +931,48 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR__ADJUST_ASCENDING_SEQ, "_catSequenceManager::_adjustSequence::_adjustAscendingSequence" )
-   void _catSequenceManager::_adjustSequence::_adjustAscendingSequence(
+   INT32 _catSequenceManager::_adjustSequence::_adjustAscendingSequence(
          _catSequence &seq,
          INT64 expectValue,
          BOOLEAN &needUpdate )
    {
       /*
          adjust rule:
-         if expectValue >= maxValue
-            mark sequence as exceed
-         if maxValue > expectValue >= currentValue
-            adjust currentValue to be greater than expectValue
-         if currentValue > expectValue >= nextValue
+         |-----A-----|-----B-----|-----C-----|-----D-----|
+                 nextValue  currentValue  maxValue
+
+         A: expectValue < nextValue
+            value has been used
+         B: nextValue <= expectValue < currentValue
             adjust nextValue to be greater than expectValue
-         if nextValue > expectValue
-            ignore
+         C: currentValue <= expectValue < maxValue
+            adjust currentValue to be greater than expectValue
+         D: maxValue <= expectValue
+            mark sequence as exceed
        */
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR__ADJUST_ASCENDING_SEQ ) ;
 
+      INT32 rc = SDB_OK ;
       UINT64 diff = 0 ;
       UINT64 reminder = 0 ;
       UINT64 diffInc = 0 ;
       INT64 newCachedValue = 0 ;
       INT64 newNextValue = 0 ;
 
-      // When sequence is initial, cachedValue is inexistent.
-      // We can ignore it, because when the conflict occurs, coord will retry.
-      // At that time, we can handle it.
-      if ( seq.isInitial() || seq.isExceeded() ||
-           seq.getCachedValue() + seq.getIncrement() > expectValue )
+      // When initial, no cache exists. Make the first cache.
+      if ( seq.isInitial() )
       {
+         INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
+         cachedInc -= seq.getIncrement() ; // exclude the start value
+         seq.setCachedValue( seq.getStartValue() ) ;
+         seq.setCurrentValue( seq.getStartValue() + cachedInc ) ;
+         seq.setInitial( FALSE ) ;
+         needUpdate = TRUE ;
+      }
+
+      if ( seq.isExceeded() || seq.getCachedValue() >= expectValue )
+      {
+         rc = SDB_SEQUENCE_VALUE_USED ;
          goto done ;
       }
 
@@ -863,45 +999,58 @@ namespace engine
       else
       {
          seq.setCachedValue( newCachedValue ) ;
-         seq.setCurrentValue( newNextValue ) ;
+         seq.setCurrentValue( newCachedValue ) ;
          needUpdate = TRUE ;
       }
 
    done:
       PD_TRACE_EXIT ( SDB_GTS_SEQ_MGR__ADJUST_ASCENDING_SEQ ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR__ADJUST_DECENDING_SEQ, "_catSequenceManager::_adjustSequence::_adjustDecendingSequence" )
-   void _catSequenceManager::_adjustSequence::_adjustDecendingSequence(
+   INT32 _catSequenceManager::_adjustSequence::_adjustDecendingSequence(
          _catSequence& seq,
          INT64 expectValue,
          BOOLEAN& needUpdate )
    {
       /*
          adjust rule:
-         if expectValue <= minValue
-            mark sequence as exceed
-         if minValue < expectValue <= currentValue
-            adjust currentValue to be less than expectValue
-         if currentValue < expectValue <= nextValue
+         |-----A-----|-----B-----|-----C-----|-----D-----|
+                 nextValue  currentValue  minValue
+
+         A: expectValue > nextValue
+            value has been used
+         B: nextValue >= expectValue > currentValue
             adjust nextValue to be less than expectValue
-         if nextValue < expectValue
-            ignore
+         C: currentValue >= expectValue > minValue
+            adjust currentValue to be less than expectValue
+         D: minValue <= expectValue
+            mark sequence as exceed
        */
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR__ADJUST_DECENDING_SEQ ) ;
 
+      INT32 rc = SDB_OK ;
       UINT64 diff = 0 ;
       UINT64 reminder = 0 ;
       UINT64 diffInc = 0 ;
       INT64 newCachedValue = 0 ;
       INT64 newNextValue = 0 ;
 
-      // When sequence is initial, cachedValue is inexistent.
-      // We can ignore it, because when the conflict occurs, coord will retry.
-      // At that time, we can handle it.
-      if ( seq.isInitial() || seq.isExceeded() ||
-           seq.getCachedValue() + seq.getIncrement() < expectValue )
+      // When initial, no cache exists. Make the first cache.
+      if ( seq.isInitial() )
       {
+         INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
+         cachedInc -= seq.getIncrement() ; // exclude the start value
+         seq.setCachedValue( seq.getStartValue() ) ;
+         seq.setCurrentValue( seq.getStartValue() + cachedInc ) ;
+         seq.setInitial( FALSE ) ;
+         needUpdate = TRUE ;
+      }
+
+      if ( seq.isExceeded() || seq.getCachedValue() <= expectValue )
+      {
+         rc = SDB_SEQUENCE_VALUE_USED ;
          goto done ;
       }
 
@@ -928,12 +1077,13 @@ namespace engine
       else
       {
          seq.setCachedValue( newCachedValue ) ;
-         seq.setCurrentValue( newNextValue ) ;
+         seq.setCurrentValue( newCachedValue ) ;
          needUpdate = TRUE ;
       }
 
    done:
       PD_TRACE_EXIT ( SDB_GTS_SEQ_MGR__ADJUST_DECENDING_SEQ ) ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR__DO_ON_SEQUENCE, "_catSequenceManager::_doOnSequence" )
@@ -1178,55 +1328,104 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR__DELETE_SEQ, "_catSequenceManager::_deleteSequence" )
    INT32 _catSequenceManager::_deleteSequence( const std::string& name,
-                                               _pmdEDUCB* eduCB, INT16 w )
+                                               _pmdEDUCB* eduCB, INT16 w,
+                                               utilSequenceID *pDeletedSeqID )
    {
       INT32 rc = SDB_OK ;
-      utilDeleteResult delResult ;
-      BSONObj hint ;
-      BSONObj matcher ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR__DELETE_SEQ ) ;
 
+      BSONObj matcher ;
+      BSONObj selector ;
+      BSONObj hint ;
+      INT64 contextID = -1 ;
+      rtnQueryOptions options ;
       SDB_DMSCB* dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB* dpsCB = pmdGetKRCB()->getDPSCB() ;
+      SDB_RTNCB* rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnContextBase *pContext = NULL ;
+      rtnContextBuf contextBuf ;
 
+      // Use queryAndRemove() to get the sequence id while removing the record
       try
       {
-         matcher = BSON( CAT_SEQUENCE_NAME << name ) ;
+         // 1. Build the option
+         BSONObjBuilder matcherOb( 128 ) ;
+         matcher = matcherOb.append( CAT_SEQUENCE_NAME, name ).obj() ;
+         options.setQuery( matcher ) ;
+
+         BSONObjBuilder selectorOb( 32 ) ;
+         selector = selectorOb.append( CAT_SEQUENCE_ID, 0 ).obj() ;
+         options.setSelector( selector ) ;
+
+         BSONObjBuilder hintOb( 64 ) ;
+         BSONObjBuilder modifyOb( hintOb.subobjStart( FIELD_NAME_MODIFY ) ) ;
+         modifyOb.append( FIELD_NAME_OP, FIELD_OP_VALUE_REMOVE ) ;
+         modifyOb.appendBool( FIELD_NAME_OP_REMOVE, TRUE ) ;
+         modifyOb.done() ;
+         hint = hintOb.obj() ;
+         options.setHint( hint ) ;
+
+         options.setFlag( FLG_QUERY_MODIFY ) ;
+         options.setCLFullName( GTS_SEQUENCE_COLLECTION_NAME ) ;
+
+         // 2. Do query and remove
+         rc = rtnQuery( options, eduCB, dmsCB, rtnCB, contextID, &pContext ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to find sequence[%s], rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+
+         if ( pContext && pContext->isWrite() )
+         {
+            pContext->setWriteInfo( dpsCB, w ) ;
+         }
+
+         rc = rtnGetMore( contextID, 1, contextBuf, eduCB, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_SEQUENCE_NOT_EXIST ;
+            PD_LOG( PDERROR, "Sequence[%s] is not found, rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sequence[%s], rc=%d",
+                      name.c_str(), rc ) ;
+
+         // 3. Process result
+         if ( contextBuf.recordNum() != 1 )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Unexpected sequence num[%lld], which should be 1",
+                    contextBuf.recordNum() ) ;
+            goto error ;
+         }
+
+         if ( pDeletedSeqID != NULL )
+         {
+            BSONObj result( contextBuf.data() ) ;
+            INT64 num = 0 ;
+            rc = rtnGetNumberLongElement( result, CAT_SEQUENCE_ID, num ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get the sequence id, rc=%d",
+                         rc ) ;
+            *pDeletedSeqID = (utilSequenceID) num ;
+         }
+
       }
       catch( std::exception& e )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to build delete matcher for sequence[%s], exception=%s",
-                 name.c_str(), e.what() ) ;
-         goto error ;
-      }
-
-      rc = rtnDelete( GTS_SEQUENCE_COLLECTION_NAME,
-                      matcher, hint, 0, eduCB,
-                      dmsCB, dpsCB, w, &delResult ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to delete sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( 0 == delResult.deletedNum() )
-      {
-         rc = SDB_SEQUENCE_NOT_EXIST ;
-         PD_LOG( PDERROR, "Sequence[%s] is not found, rc=%d",
-                 name.c_str(), rc ) ;
-         goto error ;
-      }
-      else if ( delResult.deletedNum() > 1 )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected delete num[%llu] for sequence[%s], rc=%d",
-                 delResult.deletedNum(), name.c_str(), rc ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build bson, exception: %s, rc=%d",
+                 e.what(), rc ) ;
          goto error ;
       }
 
    done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, eduCB ) ;
+      }
       PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR__DELETE_SEQ, rc ) ;
       return rc ;
    error:
@@ -1236,59 +1435,108 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR__UPDATE_SEQ, "_catSequenceManager::_updateSequence" )
    INT32 _catSequenceManager::_updateSequence( const std::string& name,
                                                const BSONObj& options,
-                                               _pmdEDUCB* eduCB, INT16 w )
+                                               _pmdEDUCB* eduCB, INT16 w,
+                                               utilSequenceID* pUpdatedSeqID )
    {
       INT32 rc = SDB_OK ;
-      BSONObj matcher ;
-      BSONObj updator ;
-      BSONObj hint ;
-      utilUpdateResult upResult ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR__UPDATE_SEQ ) ;
 
+      BSONObj matcher ;
+      BSONObj selector ;
+      BSONObj hint ;
+      INT64 contextID = -1 ;
+      rtnQueryOptions queryOptions ;
       SDB_DMSCB* dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB* dpsCB = pmdGetKRCB()->getDPSCB() ;
+      SDB_RTNCB* rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnContextBase *pContext = NULL ;
+      rtnContextBuf contextBuf ;
 
-      SDB_ASSERT( !options.hasField( CAT_SEQUENCE_NAME ), "can't have name" ) ;
-
+      // Use queryAndUpdate() to get the sequence id while updating the record
       try
       {
-         matcher = BSON( CAT_SEQUENCE_NAME << name ) ;
-         updator = BSON( "$set" << options ) ;
+         // 1. Build the option
+         BSONObjBuilder matcherOb( 128 ) ;
+         matcher = matcherOb.append( CAT_SEQUENCE_NAME, name ).obj() ;
+         queryOptions.setQuery( matcher ) ;
+
+         BSONObjBuilder selectorOb( 32 ) ;
+         selector = selectorOb.append( CAT_SEQUENCE_ID, 0 ).obj() ;
+         queryOptions.setSelector( selector ) ;
+
+         // { $Modify: { OP: "update", Update: { $set: <options> }, ReturnNew: true } }
+         BSONObjBuilder hintOb ;
+         BSONObjBuilder modifyOb( hintOb.subobjStart( FIELD_NAME_MODIFY ) ) ;
+         modifyOb.append( FIELD_NAME_OP, FIELD_OP_VALUE_UPDATE ) ;
+         BSONObjBuilder updateOb( modifyOb.subobjStart( FIELD_NAME_OP_UPDATE ) ) ;
+         updateOb.append( "$set", options ) ;
+         updateOb.done() ;
+         modifyOb.appendBool( FIELD_NAME_RETURNNEW, TRUE ) ;
+         modifyOb.done() ;
+         hint = hintOb.obj() ;
+         queryOptions.setHint( hint ) ;
+
+         queryOptions.setFlag( FLG_QUERY_MODIFY ) ;
+         queryOptions.setCLFullName( GTS_SEQUENCE_COLLECTION_NAME ) ;
+
+         // 2. Do query and update
+         rc = rtnQuery( queryOptions, eduCB, dmsCB, rtnCB, contextID, &pContext ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to find sequence[%s], rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+
+         if ( pContext && pContext->isWrite() )
+         {
+            pContext->setWriteInfo( dpsCB, w ) ;
+         }
+
+         rc = rtnGetMore( contextID, 1, contextBuf, eduCB, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_SEQUENCE_NOT_EXIST ;
+            PD_LOG( PDERROR, "Sequence[%s] is not found, rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sequence[%s], rc=%d",
+                      name.c_str(), rc ) ;
+
+         // 3. Parse result
+         if ( contextBuf.recordNum() != 1 )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Unexpected sequence num[%lld], which should be 1",
+                    contextBuf.recordNum() ) ;
+            goto error ;
+         }
+
+         if ( pUpdatedSeqID != NULL )
+         {
+            BSONObj result( contextBuf.data() ) ;
+            INT64 num = 0 ;
+            rc = rtnGetNumberLongElement( result, CAT_SEQUENCE_ID, num ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get the sequence id, rc=%d",
+                         rc ) ;
+            *pUpdatedSeqID = (utilSequenceID) num ;
+         }
+
       }
       catch( std::exception& e )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to build matcher or updator for sequence[%s], exception=%s",
-                 name.c_str(), e.what() ) ;
-         goto error ;
-      }
-
-      rc = rtnUpdate( GTS_SEQUENCE_COLLECTION_NAME,
-                      matcher, updator, hint, 0, eduCB,
-                      dmsCB, dpsCB, w, &upResult ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
-                 name.c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( 0 == upResult.updateNum() )
-      {
-         rc = SDB_SEQUENCE_NOT_EXIST ;
-         PD_LOG( PDERROR, "Sequence[%s] is not found, rc=%d",
-                 name.c_str(), rc ) ;
-         goto error ;
-      }
-      else if ( upResult.updateNum() > 1 )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected update num[%lld] for sequence[%s], rc=%d",
-                 upResult.updateNum(), name.c_str(), rc ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to build bson, exception: %s, rc=%d",
+                 e.what(), rc ) ;
          goto error ;
       }
 
    done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, eduCB ) ;
+      }
       PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR__UPDATE_SEQ, rc ) ;
       return rc ;
    error:

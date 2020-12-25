@@ -2342,6 +2342,12 @@
                            "en": "createRG()"
                         },
                         {
+                           "id": 1606120774,
+                           "file": "createSequence",
+                           "cn": "createSequence()",
+                           "en": "createSequence()"
+                        },
+                        {
                            "id": 1432290820,
                            "file": "createSpareRG",
                            "cn": "createSpareRG()",
@@ -2364,6 +2370,12 @@
                            "file": "dropDomain",
                            "cn": "dropDomain()",
                            "en": "dropDomain()"
+                        },
+                        {
+                           "id": 1606120775,
+                           "file": "dropSequence",
+                           "cn": "dropSequence()",
+                           "en": "dropSequence()"
                         },
                         {
                            "id": 1432190780,
@@ -2436,6 +2448,12 @@
                            "file": "getRG",
                            "cn": "getRG()",
                            "en": "getRG()"
+                        },
+                        {
+                           "id": 1606120776,
+                           "file": "getSequence",
+                           "cn": "getSequence()",
+                           "en": "getSequence()"
                         },
                         {
                            "id": 1516326561,
@@ -2556,6 +2574,12 @@
                            "file": "renameCS",
                            "cn": "renameCS()",
                            "en": "renameCS()"
+                        },
+                        {
+                           "id": 1606120777,
+                           "file": "renameSequence",
+                           "cn": "renameSequence()",
+                           "en": "renameSequence()"
                         },
                         {
                            "id": 1432190807,
@@ -3272,6 +3296,44 @@
                            "file": "listGroups",
                            "cn": "listGroups()",
                            "en": "listGroups()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1606119698,
+                     "dir": "SdbSequence",
+                     "cn": "SdbSequence",
+                     "en": "SdbSequence",
+                     "contents": [
+                        {
+                           "id": 1606119775,
+                           "file": "fetch",
+                           "cn": "fetch()",
+                           "en": "fetch()"
+                        },
+                        {
+                           "id": 1606119776,
+                           "file": "getCurrentValue",
+                           "cn": "getCurrentValue()",
+                           "en": "getCurrentValue()"
+                        },
+                        {
+                           "id": 1606119777,
+                           "file": "getNextValue",
+                           "cn": "getNextValue()",
+                           "en": "getNextValue()"
+                        },
+                        {
+                           "id": 1606119778,
+                           "file": "setAttributes",
+                           "cn": "setAttributes()",
+                           "en": "setAttributes()"
+                        },
+                        {
+                           "id": 1606119779,
+                           "file": "setCurrentValue",
+                           "cn": "setCurrentValue()",
+                           "en": "setCurrentValue()"
                         }
                      ]
                   },

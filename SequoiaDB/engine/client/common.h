@@ -187,6 +187,9 @@ INT32 clientBuildAuthCrtMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
                                 UINT64 reqID, BOOLEAN endianConvert,
                                 INT32 authVersion ) ;
 
+INT32 clientBuildSeqFetchMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                 const CHAR *seqName, INT32 fetchNum,
+                                 UINT64 reqID, BOOLEAN endianConvert ) ;
 #else // __cplusplus
 
 INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
@@ -275,6 +278,9 @@ INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              UINT64 reqID, BOOLEAN endianConvert,
                              INT32 authVersion ) ;
 
+INT32 clientBuildSeqFetchMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                              const CHAR *seqName, INT32 fetchNum,
+                              UINT64 reqID, BOOLEAN endianConvert ) ;
 #endif // __cplusplus
 
 INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,

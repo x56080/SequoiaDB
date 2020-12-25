@@ -157,6 +157,9 @@ namespace engine
 #define NAME_GET_DCINFO                      CMD_NAME_GET_DCINFO
 #define NAME_LIST_SEQUENCES                  CMD_NAME_LIST_SEQUENCES
 #define NAME_SNAP_SEQUENCES                  CMD_NAME_SNAPSHOT_SEQUENCES
+#define NAME_CREATE_SEQUENCE                 CMD_NAME_CREATE_SEQUENCE
+#define NAME_DROP_SEQUENCE                   CMD_NAME_DROP_SEQUENCE
+#define NAME_ALTER_SEQUENCE                  CMD_NAME_ALTER_SEQUENCE
    /*
       Command Type Define
    */
@@ -298,9 +301,14 @@ namespace engine
 
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
       CMD_SNAPSHOT_INDEXSTATS                = 256,
+
       CMD_RESTORE_TO_TIME                    = 257,
       CMD_RESTORE_ABORT                      = 258,
       CMD_RESTORE_PREPARE                    = 259,
+
+      CMD_CREATE_SEQUENCE                    = 260,
+      CMD_DROP_SEQUENCE                      = 261,
+      CMD_ALTER_SEQUENCE                     = 262,
       CMD_UNKNOW                             = 65535
    };
 

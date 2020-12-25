@@ -617,7 +617,8 @@ coordFiles = [
       "coord/coordOmStrategyJob.cpp",
       "coord/coordSequenceAgent.cpp",
       "coord/coordCommandSequence.cpp",
-      "coord/coordGTSAgent.cpp"
+      "coord/coordGTSAgent.cpp",
+      "coord/coordSequenceOperator.cpp"
       ]
 
 aggrFiles = [

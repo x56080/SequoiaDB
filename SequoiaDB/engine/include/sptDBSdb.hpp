@@ -269,6 +269,22 @@ namespace engine
                           _sptReturnVal &rval,
                           bson::BSONObj &detail ) ;
 
+      INT32 createSequence( const _sptArguments &arg,
+                            _sptReturnVal &rval,
+                            bson::BSONObj &detail ) ;
+
+      INT32 getSequence( const _sptArguments &arg,
+                         _sptReturnVal &rval,
+                         bson::BSONObj &detail ) ;
+
+      INT32 renameSequence( const _sptArguments &arg,
+                           _sptReturnVal &rval,
+                           bson::BSONObj &detail ) ;
+
+      INT32 dropSequence( const _sptArguments &arg,
+                          _sptReturnVal &rval,
+                          bson::BSONObj &detail ) ;
+
       INT32 resolve( const _sptArguments &arg,
                      UINT32 opcode,
                      BOOLEAN &processed,

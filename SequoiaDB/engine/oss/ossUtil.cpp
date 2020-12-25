@@ -2337,3 +2337,12 @@ void ossSignalShield::close()
       ossGetPendingSignal() = 0 ;
    }
 }
+
+INT32 ossException2RC( std::exception *pe )
+{
+   if ( NULL != dynamic_cast<std::bad_alloc*>(pe) )
+   {
+      return SDB_OOM ;
+   }
+   return SDB_SYS ;
+}

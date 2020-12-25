@@ -53,6 +53,7 @@
 #include "coordAuthDelOperator.hpp"
 #include "coordQueryOperator.hpp"
 #include "coordInterruptOperator.hpp"
+#include "coordSequenceOperator.hpp"
 #include "pmdController.hpp"
 #include "schedDef.hpp"
 #include "dpsUtil.hpp"
@@ -1944,6 +1945,16 @@ namespace engine
          case MSG_AUTH_DELUSR_REQ :
          {
             coordAuthDelOperator opr ;
+            rc = opr.init( pResource, eduCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
+                         opr.getName(), rc ) ;
+            needRollback = opr.needRollback() ;
+            rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
+            break ;
+         }
+         case MSG_BS_SEQUENCE_FETCH_REQ :
+         {
+            coordSeqFetchOperator opr ;
             rc = opr.init( pResource, eduCB() ) ;
             PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
                          opr.getName(), rc ) ;

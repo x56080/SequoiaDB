@@ -83,7 +83,10 @@ typedef ossValuePtr sdbNodeHandle  ;
 typedef ossValuePtr sdbDomainHandle ;
 /** sequoiadb large object handle */
 typedef ossValuePtr sdbLobHandle ;
+/** sequoiadb data center handle */
 typedef ossValuePtr sdbDCHandle ;
+/** sequoiadb sequence handle */
+typedef ossValuePtr sdbSequenceHandle ;
 
 /** Callback function when the reply message is error **/
 typedef void (*ERROR_ON_REPLY_FUNC)( const CHAR *pErrorObj,
@@ -2291,7 +2294,7 @@ SDB_EXPORT void sdbReleaseCollection ( sdbCollectionHandle cHandle ) ;
 
 /** \fn void sdbReleaseCS ( sdbCSHandle cHandle )
     \brief Release the collection space handle, the collecion and cursor handle of this collection space will still available
-    \param [in] cHandle The database connection handle
+    \param [in] cHandle The collection space handle
 */
 SDB_EXPORT void sdbReleaseCS ( sdbCSHandle cHandle ) ;
 
@@ -3716,6 +3719,149 @@ SDB_EXPORT INT32 sdbGetLastErrorObj( sdbConnectionHandle cHandle, bson *errObj )
 */
 SDB_EXPORT void sdbCleanLastErrorObj( sdbConnectionHandle cHandle ) ;
 
+/** \fn INT32 sdbCreateSequence( sdbConnectionHandle cHandle,
+                                 const CHAR *pSequenceName,
+                                 const bson *options,
+                                 sdbSequenceHandle *sHandle )
+    \brief Create the specified sequence
+    \param [in] cHandle The database connection handle
+    \param [in] pSequenceName The name of sequence
+    \param [in] options The options specified by user, e.g. {"Increment": 2, "Cycled": true}
+
+         StartValue     : The start value of sequence
+         MinValue       : The minimum value of sequence
+         MaxValue       : The maxmun value of sequence
+         Increment      : The increment value of sequence
+         CacheSize      : The cache size of sequence
+         AcquireSize    : The acquire size of sequence
+         Cycled         : The cycled flag of sequence
+
+    \param [out] sHandle The sequence handle
+                                when fail to create sequence,
+                                *handle == -1 and error code is return
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbCreateSequence( sdbConnectionHandle cHandle,
+                                    const CHAR *pSequenceName,
+                                    const bson *options,
+                                    sdbSequenceHandle *sHandle ) ;
+
+/** \fn INT32 sdbGetSequence( sdbConnectionHandle cHandle,
+                              const CHAR *pSequenceName,
+                              sdbSequenceHandle *sHandle )
+    \brief Get the named sequence
+    \param [in] cHandle The database connection handle
+    \param [in] pSequenceName The name of sequence
+    \param [out] sHandle The sequence handle
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbGetSequence( sdbConnectionHandle cHandle,
+                                 const CHAR *pSequenceName,
+                                 sdbSequenceHandle *sHandle ) ;
+
+/** \fn INT32 sdbRenameSequence( sdbConnectionHandle cHandle,
+                                 const CHAR *pOldName,
+                                 const CHAR *pNewName )
+    \brief Rename sequence
+    \param [in] cHandle The database connection handle
+    \param [in] pOldName The old sequence name
+    \param [in] pNewName The new sequence name
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbRenameSequence( sdbConnectionHandle cHandle,
+                                    const CHAR *pOldName,
+                                    const CHAR *pNewName ) ;
+
+/** \fn INT32 sdbDropSequence( sdbConnectionHandle cHandle,
+                               const CHAR *pSequenceName )
+    \brief Drop the specified sequence
+    \param [in] cHandle The database connection handle
+    \param [in] pSequenceName The name of sequence
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbDropSequence( sdbConnectionHandle cHandle,
+                                  const CHAR *pSequenceName ) ;
+
+/** \fn void sdbReleaseSequence( sdbSequenceHandle sHandle )
+    \brief Release the sequence handle
+    \param [in] sHandle The sequence handle
+*/
+SDB_EXPORT void sdbReleaseSequence( sdbSequenceHandle sHandle ) ;
+
+/** \fn INT32 sdbSeqSetAttributes( sdbSequenceHandle sHandle,
+                                   const bson *options )
+    \brief Alter the specified sequence
+    \param [in] sHandle The sequence handle
+    \param [in] options options The options of sequence to be changed, e.g. { "CurrentValue": 4096 }.
+
+         CurrentValue   : The current value of sequence
+         StartValue     : The start value of sequence
+         MinValue       : The minimum value of sequence
+         MaxValue       : The maxmun value of sequence
+         Increment      : The increment value of sequence
+         CacheSize      : The cache size of sequence
+         AcquireSize    : The acquire size of sequence
+         Cycled         : The cycled flag of sequence
+
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqSetAttributes( sdbSequenceHandle sHandle,
+                                      const bson *options ) ;
+
+/** \fn INT32 sdbSeqGetNextValue( sdbSequenceHandle sHandle, INT64 *value )
+    \brief Get the next value of sequence
+    \param [in] sHandle The sequence handle
+    \param [out] value The next value
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqGetNextValue( sdbSequenceHandle sHandle, INT64 *value ) ;
+
+/** \fn INT32 sdbSeqGetCurrentValue( sdbSequenceHandle sHandle, INT64 *value )
+    \brief Get the current value of sequence
+    \param [in] sHandle The sequence handle
+    \param [out] value The current value
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqGetCurrentValue( sdbSequenceHandle sHandle,
+                                        INT64 *value ) ;
+
+/** \fn INT32 sdbSeqSetCurrentValue( sdbSequenceHandle sHandle,
+                                     const INT64 value )
+    \brief Set the current value to sequence
+    \param [in] sHandle The sequence handle
+    \param [out] value The expected current value
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqSetCurrentValue( sdbSequenceHandle sHandle,
+                                        const INT64 value ) ;
+
+/** \fn INT32 sdbSeqFetch( sdbSequenceHandle sHandle,
+                           const INT32 fetchNum,
+                           INT64 *nextValue,
+                           INT32 *returnNum,
+                           INT32 *increment )
+    \brief Fetch a bulk of continuous values.
+    \param [in] sHandle The sequence handle
+    \param [in] fetchNum The number of values to be fetched.
+    \param [out] nextValue The next value and also the first returned value.
+    \param [out] returnNum The number of values returned.
+    \param [out] increment Increment of values.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqFetch( sdbSequenceHandle sHandle,
+                              const INT32 fetchNum,
+                              INT64 *nextValue,
+                              INT32 *returnNum,
+                              INT32 *increment ) ;
 
 SDB_EXTERN_C_END
 #endif

@@ -914,6 +914,12 @@ SdbDC.prototype.toString = function() {
 }
 // end SdbDc
 
+// SdbSequence
+SdbSequence.prototype.toString = function() {
+   return this._conn.toString() + "." + this._name;
+}
+// end SdbSequence
+
 // Sdb
 Sdb.prototype.toString = function() {
    return this._host + ":" + this._port;

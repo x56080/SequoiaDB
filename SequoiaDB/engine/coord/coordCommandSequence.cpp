@@ -37,11 +37,60 @@
 #include "clsResourceContainer.hpp"
 #include "coordResource.hpp"
 #include "msgMessage.hpp"
+#include "pdTrace.hpp"
+#include "coordTrace.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
+   static BOOLEAN coordIsSysSequence( const CHAR *sequenceName )
+   {
+      if ( utilStrStartsWithIgnoreCase( sequenceName, "SYS" ) ||
+           utilStrStartsWithIgnoreCase( sequenceName, "$" ) )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
+   static INT32 coordExtractSeqID( rtnContextCoord *pContext,
+                                   pmdEDUCB *cb,
+                                   utilSequenceID &seqID )
+   {
+      INT32 rc = SDB_OK ;
+      rtnContextBuf buffObj ;
+
+      if ( NULL == pContext || NULL == cb )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = pContext->getMore( 1, buffObj, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get more from context [%lld], rc: %d",
+                   pContext->contextID(), rc ) ;
+
+      try
+      {
+         BSONObj obj( buffObj.data() ) ;
+         INT64 num = 0 ;
+         rc = rtnGetNumberLongElement( obj, FIELD_NAME_SEQUENCE_ID, num ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sequence id, rc=%d", rc ) ;
+         seqID = (utilSequenceID) num ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurs: %s", e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       _coordCMDInvalidateSequenceCache implement
    */
@@ -76,13 +125,14 @@ namespace engine
    : _collection( NULL ),
      _fieldName( NULL ),
      _sequenceName( NULL ),
-     _sequenceID( UTIL_SEQUENCEID_NULL )
+     _sequenceID( UTIL_SEQUENCEID_NULL ),
+     _explicitCurrValue( FALSE ),
+     _currentValue( 0 )
    {
    }
 
    _coordInvalidateSequenceCache::~_coordInvalidateSequenceCache()
    {
-
    }
 
    INT32 _coordInvalidateSequenceCache::spaceNode()
@@ -145,6 +195,17 @@ namespace engine
                      FIELD_NAME_SEQUENCE_ID, _object.toString().c_str() ) ;
             _sequenceID = e.Long() ;
          }
+
+         // check current value
+         if( _object.hasField( FIELD_NAME_CURRENT_VALUE ) )
+         {
+            e = _object.getField( FIELD_NAME_CURRENT_VALUE ) ;
+            PD_CHECK( e.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                      "Field [%s] is invalid in obj [%s]",
+                     FIELD_NAME_CURRENT_VALUE, _object.toString().c_str() ) ;
+            _explicitCurrValue = TRUE ;
+            _currentValue = e.Long() ;
+         }
       }
       catch( std::exception &e )
       {
@@ -178,7 +239,8 @@ namespace engine
 
       if ( NULL != _sequenceName )
       {
-         sequenceAgent->removeCache( _sequenceName, _sequenceID ) ;
+         INT64 *pCurrentValue = _explicitCurrValue ? &_currentValue : NULL ;
+         sequenceAgent->removeCache( _sequenceName, _sequenceID, pCurrentValue ) ;
          PD_LOG( PDDEBUG, "Removed sequence cache [%s]", _sequenceName ) ;
       }
       else if ( NULL != _collection && NULL != _fieldName )
@@ -217,6 +279,504 @@ namespace engine
 
       // ignore errors
       return SDB_OK ;
+   }
+
+   /*
+      _coordCMDCreateSequence implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDCreateSequence,
+                                      CMD_NAME_CREATE_SEQUENCE,
+                                      FALSE ) ;
+   _coordCMDCreateSequence::_coordCMDCreateSequence()
+   {
+   }
+
+   _coordCMDCreateSequence::~_coordCMDCreateSequence()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CREATE_SEQUENCE_EXE, "_coordCMDCreateSequence::execute" )
+   INT32 _coordCMDCreateSequence::execute( MsgHeader *pMsg,
+                                           pmdEDUCB *cb,
+                                           INT64 &contextID,
+                                           rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_CREATE_SEQUENCE_EXE ) ;
+
+      contextID = -1 ;
+
+      _printDebug ( (const CHAR*)pMsg, getName() ) ;
+
+      try
+      {
+         CHAR *pQuery = NULL ;
+         BSONObj boQuery ;
+         const CHAR *pSeqName = NULL ;
+         MsgOpQuery *forward  = (MsgOpQuery *)pMsg;
+         forward->header.opCode = MSG_GTS_SEQUENCE_CREATE_REQ ;
+
+         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
+                               NULL, NULL, &pQuery, NULL, NULL, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
+
+         boQuery = BSONObj( pQuery ) ;
+         rc = rtnGetStringElement( boQuery, FIELD_NAME_NAME, &pSeqName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name" ) ;
+
+         rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
+         PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName, rc,
+                           "Options:%s", boQuery.toString().c_str() ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Execute on catalog failed in command[%s], rc: %d",
+                     getName(), rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   done :
+      PD_TRACE_EXITRC ( COORD_CREATE_SEQUENCE_EXE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   /*
+      _coordCMDDropSequence implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDDropSequence,
+                                      CMD_NAME_DROP_SEQUENCE,
+                                      FALSE ) ;
+   _coordCMDDropSequence::_coordCMDDropSequence()
+   {
+   }
+
+   _coordCMDDropSequence::~_coordCMDDropSequence()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_DROP_SEQUENCE_EXE, "_coordCMDDropSequence::execute" )
+   INT32 _coordCMDDropSequence::execute( MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         INT64 &contextID,
+                                         rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_DROP_SEQUENCE_EXE ) ;
+
+      CHAR *pQuery = NULL ;
+      BSONObj boQuery ;
+      const CHAR *pSeqName = NULL ;
+      rtnContextCoord *pContext = NULL ;
+      utilSequenceID seqID = UTIL_SEQUENCEID_NULL ;
+
+      contextID = -1 ;
+
+      _printDebug ( (const CHAR*)pMsg, getName() ) ;
+
+      try
+      {
+         MsgOpQuery *forward  = (MsgOpQuery *)pMsg;
+         forward->header.opCode = MSG_GTS_SEQUENCE_DROP_REQ ;
+
+         rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                               &pQuery, NULL, NULL, NULL ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
+
+         boQuery = BSONObj( pQuery ) ;
+         rc = rtnGetStringElement( boQuery, FIELD_NAME_NAME, &pSeqName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name" ) ;
+
+         if ( coordIsSysSequence( pSeqName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "System sequences are not allowed to be dropped" ) ;
+            goto error ;
+         }
+
+         rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, &pContext, buf ) ;
+         PD_RC_CHECK( rc, PDERROR, "Execute on catalog failed in command[%s], "
+                      "rc: %d", getName(), rc ) ;
+
+         rc = coordExtractSeqID( pContext, cb, seqID ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG( PDWARNING, "Failed to get sequence id from reply, rc: %d",
+                    rc ) ;
+            rc = SDB_OK ;
+         }
+
+         rc = coordSequenceInvalidateCache( pSeqName, seqID, cb ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate sequence[%s] cache, "
+                    "rc: %d", pSeqName, rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+      catch( std::exception& e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurs: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( pContext )
+      {
+         SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
+         pRtnCB->contextDelete( pContext->contextID(), cb ) ;
+         pContext = NULL ;
+      }
+      PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName, rc, "" ) ;
+      PD_TRACE_EXITRC ( COORD_DROP_SEQUENCE_EXE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDAlterSequence implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAlterSequence,
+                                      CMD_NAME_ALTER_SEQUENCE,
+                                      FALSE ) ;
+   _coordCMDAlterSequence::_coordCMDAlterSequence()
+   {
+   }
+
+   _coordCMDAlterSequence::~_coordCMDAlterSequence()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_ALTER_SEQUENCE_EXE, "_coordCMDAlterSequence::execute" )
+   INT32 _coordCMDAlterSequence::execute( MsgHeader *pMsg,
+                                          pmdEDUCB *cb,
+                                          INT64 &contextID,
+                                          rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORD_ALTER_SEQUENCE_EXE ) ;
+
+      CHAR *pQuery = NULL ;
+      BSONObj boQuery ;
+      BSONObj options ;
+      const CHAR *pSeqName = "" ;
+      const CHAR *pAction = "" ;
+      utilSequenceID seqID = UTIL_SEQUENCEID_NULL ;
+      rtnContextCoord *pContext = NULL ;
+
+      MsgOpQuery *pAttachMsg           = (MsgOpQuery *)pMsg ;
+      pAttachMsg->header.opCode        = MSG_GTS_SEQUENCE_ALTER_REQ ;
+      contextID                        = -1 ;
+
+      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            &pQuery, NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract command[%s] msg failed, rc: %d",
+                   getName(), rc ) ;
+
+      try
+      {
+         boQuery = BSONObj( pQuery ) ;
+         rc = _parseArguments( boQuery, &pAction, options, &pSeqName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse arguments, rc: %d", rc ) ;
+
+         if ( coordIsSysSequence( pSeqName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "System sequences are not allowed to be modified" ) ;
+            goto error ;
+         }
+
+         // For 'set current value', firstly try setting on coord. If not in
+         // coord, then try setting on catalog.
+         if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SET_CURR_VALUE ) )
+         {
+            INT64 expectValue = 0 ;
+            BOOLEAN isSet = FALSE ;
+            rc = rtnGetNumberLongElement( options, FIELD_NAME_EXPECT_VALUE,
+                                          expectValue ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse expect value, rc: %d", rc ) ;
+
+            rc = _setCurrValueOnCoord( pSeqName, expectValue, cb, isSet ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to set current value on coord, rc=%d", rc ) ;
+            if ( isSet )
+            {
+               goto done ;
+            }
+         }
+
+         rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, &pContext, buf ) ;
+         PD_RC_CHECK( rc, PDERROR, "Execute on catalog failed in command[%s], "
+                      "rc: %d", getName(), rc ) ;
+
+         rc = coordExtractSeqID( pContext, cb, seqID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to get sequence id from reply, rc=%d", rc ) ;
+            rc = SDB_OK ;
+         }
+
+         rc = coordSequenceInvalidateCache( pSeqName, seqID, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate sequence cache, name[%s], "
+                    "rc: %d", pSeqName, rc ) ;
+            rc = SDB_OK ;
+         }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "exception occurs during process command[%s]: %s",
+                 getName(), e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( pContext )
+      {
+         SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
+         pRtnCB->contextDelete( pContext->contextID(), cb ) ;
+         pContext = NULL ;
+      }
+      PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName,
+                        rc, "Options:%s", boQuery.toString().c_str() ) ;
+
+      PD_TRACE_EXITRC( COORD_ALTER_SEQUENCE_EXE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDAlterSequence::_parseArguments( const BSONObj &boQuery,
+                                                  const CHAR **ppAction,
+                                                  BSONObj &options,
+                                                  const CHAR **ppSeqName )
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement beOptions ;
+
+      rc = rtnGetStringElement( boQuery, FIELD_NAME_ACTION, ppAction ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse the action, rc: %d", rc ) ;
+
+      beOptions = boQuery.getField( FIELD_NAME_OPTIONS ) ;
+      PD_CHECK( Object == beOptions.type(), SDB_INVALIDARG, error, PDERROR,
+                "Field[%s] should be object, but found %s",
+                FIELD_NAME_OPTIONS, beOptions.toString().c_str() ) ;
+      options = beOptions.embeddedObject() ;
+
+      rc = rtnGetStringElement( options, FIELD_NAME_NAME, ppSeqName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse the action, rc: %d", rc ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDAlterSequence::_setCurrValueOnCoord( const CHAR *pSeqName,
+                                                       const INT64 expectValue,
+                                                       pmdEDUCB *cb,
+                                                       BOOLEAN &isSet )
+   {
+      INT32 rc = SDB_OK ;
+      coordSequenceAgent *pSeqAgent = _pResource->getSequenceAgent() ;
+      utilSequenceID cachedSeqID = UTIL_SEQUENCEID_NULL ;
+
+      rc = pSeqAgent->setCurrentValue( pSeqName, UTIL_SEQUENCEID_NULL,
+                                       expectValue, cb, &cachedSeqID ) ;
+      if ( SDB_OK == rc )
+      {
+         isSet = TRUE ;
+         rc = coordSequenceInvalidateCache( pSeqName, cachedSeqID, cb,
+                                            &expectValue ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to invalidate sequence cache, name[%s], "
+                    "rc: %d", pSeqName, rc ) ;
+            rc = SDB_OK ;
+         }
+      }
+      else if ( SDB_SEQUENCE_OUT_OF_CACHE == rc )
+      {
+         isSet = FALSE ;
+         rc = SDB_OK ;
+      }
+      else
+      {
+         isSet = FALSE ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _coordCMDGetSeqCurrentValue implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDGetSeqCurrentValue,
+                                      CMD_NAME_GET_SEQ_CURR_VAL,
+                                      FALSE ) ;
+   _coordCMDGetSeqCurrentValue::_coordCMDGetSeqCurrentValue()
+   {
+   }
+
+   _coordCMDGetSeqCurrentValue::~_coordCMDGetSeqCurrentValue()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_SEQ_CURR_VAL_EXE, "_coordCMDGetSeqCurrentValue::execute" )
+   INT32 _coordCMDGetSeqCurrentValue::execute( MsgHeader *pMsg,
+                                               pmdEDUCB *cb,
+                                               INT64 &contextID,
+                                               rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_GET_SEQ_CURR_VAL_EXE ) ;
+
+      CHAR *pQuery = NULL ;
+      const CHAR *pSeqName = NULL ;
+      coordSequenceAgent *pSeqAgent = _pResource->getSequenceAgent() ;
+      INT64 currentValue = 0 ;
+      BSONObjBuilder bob( 64 ) ;
+      BSONObj result ;
+
+      _printDebug ( (const CHAR*)pMsg, getName() ) ;
+
+      rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
+                            &pQuery, NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract message, rc: %d", rc ) ;
+
+      try
+      {
+         BSONObj boQuery( pQuery ) ;
+         pSeqName = boQuery.getField( FIELD_NAME_NAME ).valuestrsafe() ;
+
+         rc = pSeqAgent->getCurrentValue( pSeqName, UTIL_SEQUENCEID_NULL,
+                                          currentValue, cb ) ;
+         if ( SDB_SEQUENCE_OUT_OF_CACHE == rc )
+         {
+            rc = _getCurrValueFromCatalog( pSeqName, pMsg, cb, currentValue ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get current value of sequence[%s], rc: %d",
+                      pSeqName, rc ) ;
+
+         bob.append( FIELD_NAME_CURRENT_VALUE, currentValue ) ;
+         result = bob.obj() ;
+
+         *buf = rtnContextBuf( result ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done :
+      contextID = -1 ;
+      PD_TRACE_EXITRC ( COORD_GET_SEQ_CURR_VAL_EXE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_GET_SEQ_CURR_VAL__GET_CURR_VAL_FROM_CATA, "_coordCMDGetSeqCurrentValue::_getCurrValueFromCatalog" )
+   INT32 _coordCMDGetSeqCurrentValue::_getCurrValueFromCatalog(
+         const CHAR *pSeqName,
+         MsgHeader *pMsg,
+         pmdEDUCB *cb,
+         INT64 &currentValue )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_GET_SEQ_CURR_VAL__GET_CURR_VAL_FROM_CATA ) ;
+      SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
+      coordCommandFactory *pFactory = coordGetFactory() ;
+      coordOperator *pOperator = NULL ;
+      rtnContextBuf buf ;
+      rtnContextBuf buffObj ;
+      INT64 contextID = 0 ;
+      BSONObj obj ;
+      BSONElement ele ;
+
+      rc = pFactory->create( CMD_NAME_SNAPSHOT_SEQUENCES, pOperator ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Create operator by name[%s] failed, rc: %d",
+                 CMD_NAME_SNAPSHOT_SEQUENCES, rc ) ;
+         goto error ;
+      }
+
+      rc = pOperator->init( _pResource, cb, getTimeout() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init operator failed[%s], rc: %d",
+                 pOperator->getName(), rc ) ;
+         goto error ;
+      }
+
+      rc = pOperator->execute( pMsg, cb, contextID, &buf ) ;
+      if ( rc != SDB_OK )
+      {
+         PD_LOG ( PDERROR, "Execute operator[%s] failed, rc: %d",
+                  pOperator->getName(), rc ) ;
+         goto error ;
+      }
+
+      rc = rtnGetMore( contextID, -1, buffObj, cb, pRtncb ) ;
+      if ( rc )
+      {
+         contextID = -1 ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_SEQUENCE_NOT_EXIST ;
+            PD_LOG ( PDWARNING, "Sequence[%s] doesn't exist", pSeqName ) ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
+         }
+      }
+      else
+      {
+         obj = BSONObj( buffObj.data() ) ;
+         ele = obj.getField( FIELD_NAME_INITIAL ) ;
+         if ( ele.booleanSafe() )
+         {
+            rc = SDB_SEQUENCE_NEVER_USED ;
+            PD_LOG ( PDDEBUG, "Sequence[%s] has never been used", pSeqName ) ;
+            goto done ;
+         }
+
+         ele = obj.getField( FIELD_NAME_CURRENT_VALUE ) ;
+         currentValue = ele.numberLong() ;
+      }
+
+   done:
+      if ( contextID >= 0 )
+      {
+         pRtncb->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      if ( pOperator )
+      {
+         pFactory->release( pOperator ) ;
+      }
+      PD_TRACE_EXITRC ( COORD_GET_SEQ_CURR_VAL__GET_CURR_VAL_FROM_CATA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

@@ -1181,7 +1181,7 @@ namespace engine
                                                   pItem->sequenceID(),
                                                   ele.numberLong(),
                                                   cb ) ;
-            if ( SDB_SEQUENCE_NOT_EXIST == rc )
+            if ( SDB_SEQUENCE_NOT_EXIST == rc || SDB_SEQUENCE_VALUE_USED == rc )
             {
                rc = SDB_OK ;
             }

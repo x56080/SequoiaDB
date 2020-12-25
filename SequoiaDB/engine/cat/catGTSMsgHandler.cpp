@@ -43,6 +43,8 @@
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "pd.hpp"
+#include "dmsCB.hpp"
+#include "rtn.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -264,16 +266,16 @@ namespace engine
       switch( msg->opCode )
       {
       case MSG_GTS_SEQUENCE_ACQUIRE_REQ:
-         rc = _processSequenceAcquireMsg( msg, buf, eduCB ) ;
+         rc = _processSequenceAcquireMsg( msg, eduCB, buf ) ;
          break ;
       case MSG_GTS_SEQUENCE_CREATE_REQ:
          rc = _processSequenceCreateMsg( msg, eduCB ) ;
          break ;
       case MSG_GTS_SEQUENCE_DROP_REQ:
-         rc = _processSequenceDropMsg( msg, eduCB ) ;
+         rc = _processSequenceDropMsg( msg, eduCB, buf ) ;
          break ;
       case MSG_GTS_SEQUENCE_ALTER_REQ:
-         rc = _processSequenceAlterMsg( msg, eduCB ) ;
+         rc = _processSequenceAlterMsg( msg, eduCB, buf ) ;
          break ;
       case MSG_GTS_LOWTRAN_REQ :
          rc = _processLowTranReq( msg, buf, eduCB ) ;
@@ -441,7 +443,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PROCESS_SEQ_ACQUIRE, "_catGTSMsgHandler::_processSequenceAcquireMsg" )
-   INT32 _catGTSMsgHandler::_processSequenceAcquireMsg( MsgHeader* msg, rtnContextBuf& buf, _pmdEDUCB* eduCB )
+   INT32 _catGTSMsgHandler::_processSequenceAcquireMsg( MsgHeader* msg,
+                                                        _pmdEDUCB* eduCB,
+                                                        rtnContextBuf& buf )
    {
       INT32 rc = SDB_OK ;
       BSONObj options ;
@@ -515,8 +519,12 @@ namespace engine
 
       if ( hasExpectValue )
       {
-         rc = seqMgr->adjustSequence( name, ID, expectValue, eduCB, 1 ) ;
-         if ( SDB_OK != rc )
+         rc = seqMgr->adjustSequence( name, expectValue, eduCB, 1 ) ;
+         if ( SDB_SEQUENCE_VALUE_USED == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK != rc )
          {
             goto error ;
          }
@@ -598,7 +606,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PROCESS_SEQ_DROP, "_catGTSMsgHandler::_processSequenceDropMsg" )
-   INT32 _catGTSMsgHandler::_processSequenceDropMsg( MsgHeader* msg, _pmdEDUCB* eduCB )
+   INT32 _catGTSMsgHandler::_processSequenceDropMsg( MsgHeader* msg,
+                                                     _pmdEDUCB* eduCB,
+                                                     rtnContextBuf& buf )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;
@@ -611,6 +621,7 @@ namespace engine
 
       _catSequenceManager* seqMgr = _gtsMgr->getSequenceMgr() ;
       INT16 w = _catCB->majoritySize( TRUE ) ;
+      utilSequenceID droppedSeqID = UTIL_SEQUENCEID_NULL ;
 
       rc = msgExtractSequenceRequestMsg( (CHAR*) msg, options ) ;
       if ( SDB_OK != rc )
@@ -631,9 +642,22 @@ namespace engine
       // clear sequence tasks
       catRemoveSequenceTasks( name.c_str(), eduCB, w ) ;
 
-      rc = seqMgr->dropSequence( name, eduCB, w ) ;
+      rc = seqMgr->dropSequence( name, eduCB, w, &droppedSeqID ) ;
       if ( SDB_OK != rc )
       {
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder ob( 32 ) ;
+         BSONObj obj = ob.append( CAT_SEQUENCE_ID, (INT64) droppedSeqID ).obj() ;
+         buf = _rtnContextBuf( obj ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 
@@ -645,40 +669,101 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PROCESS_SEQ_ALTER, "_catGTSMsgHandler::_processSequenceAlterMsg" )
-   INT32 _catGTSMsgHandler::_processSequenceAlterMsg( MsgHeader* msg, _pmdEDUCB* eduCB )
+   INT32 _catGTSMsgHandler::_processSequenceAlterMsg( MsgHeader* msg,
+                                                      _pmdEDUCB* eduCB,
+                                                      rtnContextBuf& buf )
    {
       INT32 rc = SDB_OK ;
-      BSONElement ele ;
-      BSONObj options ;
-      string name ;
-
       PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__PROCESS_SEQ_ALTER ) ;
       SDB_ASSERT( NULL != msg, "msg must be not null" ) ;
       SDB_ASSERT( NULL != eduCB, "eduCB must be not null" ) ;
 
-      _catSequenceManager* seqMgr = _gtsMgr->getSequenceMgr() ;
+      CHAR* pQuery = NULL ;
+      const CHAR *pSeqName = "" ;
+      const CHAR *pAction = "" ;
+      BSONObj boQuery ;
+      BSONObj boOptions ;
+      utilSequenceID alteredSeqID = UTIL_SEQUENCEID_NULL ;
 
-      rc = msgExtractSequenceRequestMsg( (CHAR*) msg, options ) ;
-      if ( SDB_OK != rc )
+      sdbCatalogueCB* cataCB = sdbGetCatalogueCB() ;
+      _catSequenceManager* pSeqMgr = cataCB->getCatGTSMgr()->getSequenceMgr() ;
+
+      rc = msgExtractQuery( ( CHAR * )msg, NULL, NULL, NULL, NULL,
+                            &pQuery, NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract sequence msg, rc=%d", rc ) ;
+
+      try
       {
-         goto error ;
+         BSONElement beOptions;
+         boQuery = BSONObj( pQuery ) ;
+
+         // parse arguments
+         rc = rtnGetStringElement( boQuery, FIELD_NAME_ACTION, &pAction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse the action, rc: %d", rc ) ;
+
+         beOptions = boQuery.getField( FIELD_NAME_OPTIONS ) ;
+         PD_CHECK( Object == beOptions.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Field[%s] should be object, but found %s",
+                   FIELD_NAME_OPTIONS, beOptions.toString().c_str() ) ;
+
+         boOptions = beOptions.embeddedObject() ;
+
+         rc = rtnGetStringElement( boOptions, FIELD_NAME_NAME, &pSeqName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse the sequence name, rc: %d",
+                      rc ) ;
+
+         // set current value
+         if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SET_CURR_VALUE ) )
+         {
+            INT64 expectValue = 0 ;
+            rc = rtnGetNumberLongElement( boOptions, FIELD_NAME_EXPECT_VALUE,
+                                          expectValue ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse expect value, rc: %d",
+                         rc ) ;
+            rc = pSeqMgr->adjustSequence( pSeqName, expectValue, eduCB,
+                                          cataCB->majoritySize( TRUE ),
+                                          &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set current value, rc: %d",
+                         rc ) ;
+         }
+         // rename sequence
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_RENAME ) )
+         {
+            const CHAR *pNewName = NULL ;
+            rc = rtnGetStringElement( boOptions, FIELD_NAME_NEWNAME,
+                                      &pNewName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse new name, rc: %d", rc ) ;
+
+            rc = pSeqMgr->renameSequence( pSeqName, pNewName, eduCB,
+                                          cataCB->majoritySize( TRUE ),
+                                          &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rename sequence, rc: %d", rc ) ;
+         }
+         // set attributes
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SETATTR ) )
+         {
+            rc = pSeqMgr->alterSequence( pSeqName, boOptions, eduCB,
+                                         cataCB->majoritySize( TRUE ),
+                                         NULL, NULL, &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set attributes, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Action[%s] is unknown", pAction ) ;
+            goto error ;
+         }
+
+         {
+            BSONObjBuilder ob( 32 ) ;
+            BSONObj obj = ob.append( CAT_SEQUENCE_ID, (INT64) alteredSeqID ).obj() ;
+            buf = _rtnContextBuf( obj ) ;
+         }
       }
-
-      ele = options.getField( CAT_SEQUENCE_NAME ) ;
-      if ( String != ele.type() )
+      catch( std::exception &e )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid type[%d] of sequence options[%s]",
-                 ele.type(), CAT_SEQUENCE_NAME ) ;
-         goto error ;
-      }
-
-      name = ele.String() ;
-
-      rc = seqMgr->alterSequence( name, options, eduCB,
-                                  _catCB->majoritySize( TRUE ), NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurs: %s", e.what() ) ;
          goto error ;
       }
 

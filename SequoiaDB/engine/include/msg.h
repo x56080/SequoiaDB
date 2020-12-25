@@ -104,6 +104,8 @@ enum MSG_TYPE
    MSG_BS_INTERRUPTE_SELF              = 2020,
    MSG_BS_TRANS_QUERY_REQ              = 2021,
    MSG_BS_TRANS_QUERY_RES              = MAKE_REPLY_TYPE(MSG_BS_TRANS_QUERY_REQ),
+   MSG_BS_SEQUENCE_FETCH_REQ           = 2022,
+   MSG_BS_SEQUENCE_FETCH_RSP           = MAKE_REPLY_TYPE(MSG_BS_SEQUENCE_FETCH_REQ),
 
    //catalogue msg
    //(MainController:3001~3099, catalogueManager:3100~3199, nodeManager:3200~3299)

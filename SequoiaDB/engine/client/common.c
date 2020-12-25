@@ -2365,6 +2365,49 @@ error:
    goto done ;
 }
 
+INT32 clientBuildSeqFetchMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                              const CHAR *seqName, INT32 fetchNum,
+                              UINT64 reqID, BOOLEAN endianConvert )
+{
+   INT32 rc = SDB_OK ;
+   INT32 opCode = MSG_BS_SEQUENCE_FETCH_REQ ;
+   bson obj ;
+   bson_init( &obj ) ;
+
+   rc = bson_append_string( &obj, FIELD_NAME_NAME, seqName ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+
+   rc = bson_append_int( &obj, FIELD_NAME_FETCH_NUM, fetchNum ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+
+   rc = bson_finish( &obj ) ;
+   if ( SDB_OK != rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      goto error ;
+   }
+
+   rc = clientBuildQueryMsg( ppBuffer, bufferSize,
+                             "", 0, reqID, 0, -1,
+                             &obj, NULL, NULL, NULL,
+                             endianConvert ) ;
+   MsgOpQuery *pQuery = (MsgOpQuery*)(*ppBuffer) ;
+   ossEndianConvertIf( opCode, pQuery->header.opCode, endianConvert ) ;
+done:
+   bson_destroy ( &obj ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 /*****************************************************************
     +++++  CPP Message functions begin  ++++
 ******************************************************************/
@@ -2718,6 +2761,14 @@ done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 clientBuildSeqFetchMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
+                                 const CHAR *seqName, INT32 fetchNum,
+                                 UINT64 reqID, BOOLEAN endianConvert )
+{
+   return clientBuildSeqFetchMsg( ppBuffer, bufferSize, seqName, fetchNum,
+                                  reqID, endianConvert ) ;
 }
 
 /*****************************************************************

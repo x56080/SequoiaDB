@@ -63,6 +63,7 @@ namespace engine
       OSS_INLINE INT32 getCacheSize() const { return _cacheSize ; }
       OSS_INLINE INT32 getAcquireSize() const { return _acquireSize ; }
       OSS_INLINE BOOLEAN isCycled() const { return _cycled ; }
+      OSS_INLINE INT32 getCycledCount() const { return _cycledCount ; }
       OSS_INLINE BOOLEAN isInitial() const { return _initial ; }
       OSS_INLINE BOOLEAN isExceeded() const { return _exceeded ; }
       OSS_INLINE utilSequenceID getID() const { return _ID ; }
@@ -90,6 +91,8 @@ namespace engine
       void setCacheSize( INT32 cacheSize ) ;
       void setAcquireSize( INT32 acquireSize ) ;
       void setCycled( BOOLEAN cycled ) ;
+      void setCycledCount( INT32 cycledCount ) ;
+      void increaseCycledCount() ;
       void setInitial( BOOLEAN initial ) ;
       void setExceeded( BOOLEAN exceeded ) ;
       void setID( utilGlobalID id ) ;
@@ -127,6 +130,7 @@ namespace engine
       INT32          _cacheSize ;      // cache size in Catalog
       INT32          _acquireSize ;    // acquire size in Coordinator
       BOOLEAN        _cycled ;         // true if cycle is allowed
+      INT32          _cycledCount ;    // cycled count
       BOOLEAN        _initial ;        // sequence is unused
       BOOLEAN        _exceeded ;       // sequence is exceeded, only in cache
       utilSequenceID _ID ;             // sequence id

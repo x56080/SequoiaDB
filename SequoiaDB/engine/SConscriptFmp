@@ -82,7 +82,8 @@ sptFiles = [
       "spt/db/sptDBQueryOption.cpp",
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
-      "spt/db/sptDBCipherUser.cpp"
+      "spt/db/sptDBCipherUser.cpp",
+      "spt/db/sptDBSequence.cpp"
       ]
 
 ssh2Files = [

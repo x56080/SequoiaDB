@@ -2890,5 +2890,29 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_SEQUENCE_VALUE_USED</name>
+         <description>
+            <en>Sequence value has been used</en>
+            <cn>序列值已经被使用</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEQUENCE_NEVER_USED</name>
+         <description>
+            <en>Sequence has never been used</en>
+            <cn>序列尚未被使用</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SEQUENCE_OUT_OF_CACHE</name>
+         <description>
+            <en>Out of sequence cache</en>
+            <cn>超出序列缓存</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

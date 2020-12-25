@@ -35,6 +35,7 @@
 #define COORD_COMMAND_SEQUENCE_HPP_
 
 #include "coordCommandCommon.hpp"
+#include "coordCommandData.hpp"
 #include "coordFactory.hpp"
 #include "rtnCommand.hpp"
 #include <string>
@@ -84,7 +85,102 @@ namespace engine
       const CHAR *   _fieldName ;
       const CHAR *   _sequenceName ;
       utilSequenceID _sequenceID ;
+      BOOLEAN        _explicitCurrValue ;
+      INT64          _currentValue ;
    } ;
+
+   /*
+      _coordCMDCreateSequence define
+   */
+   class _coordCMDCreateSequence : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public :
+         _coordCMDCreateSequence() ;
+         virtual ~_coordCMDCreateSequence() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+   } ;
+   typedef _coordCMDCreateSequence coordCMDCreateSequence ;
+
+   /*
+      _coordCMDDropSequence define
+   */
+   class _coordCMDDropSequence : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public :
+         _coordCMDDropSequence() ;
+         virtual ~_coordCMDDropSequence() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+      private:
+         INT32 _extractSeqID( rtnContextCoord *pContext,
+                              pmdEDUCB *cb,
+                              utilSequenceID &seqID ) ;
+   } ;
+   typedef _coordCMDDropSequence coordCMDDropSequence ;
+
+   /*
+      _coordCMDAlterSequence define
+   */
+   class _coordCMDAlterSequence : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+
+      public :
+         _coordCMDAlterSequence() ;
+         virtual ~_coordCMDAlterSequence() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+      private:
+         INT32 _parseArguments( const BSONObj &boQuery,
+                                const CHAR **ppAction,
+                                BSONObj &options,
+                                const CHAR **ppSeqName ) ;
+
+         INT32 _setCurrValueOnCoord( const CHAR *pSeqName,
+                                     const INT64 expectValue,
+                                     pmdEDUCB *cb,
+                                     BOOLEAN &isSet ) ;
+
+         INT32 _extractSeqID( rtnContextCoord *pContext,
+                              pmdEDUCB *cb,
+                              utilSequenceID &seqID ) ;
+   } ;
+   typedef _coordCMDAlterSequence coordCMDAlterSequence ;
+
+   /*
+      _coordCMDGetSeqCurrentValue define
+   */
+   class _coordCMDGetSeqCurrentValue : public _coordCommandBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public :
+         _coordCMDGetSeqCurrentValue() ;
+         virtual ~_coordCMDGetSeqCurrentValue() ;
+
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
+
+      private:
+         INT32 _getCurrValueFromCatalog( const CHAR *pSeqName,
+                                         MsgHeader *pMsg,
+                                         pmdEDUCB *cb,
+                                         INT64 &currentValue ) ;
+   } ;
+   typedef _coordCMDGetSeqCurrentValue coordCMDGetSeqCurrentValue ;
 }
 
 #endif /* COORD_COMMAND_SEQUENCE_HPP_ */

@@ -32,6 +32,7 @@
 #define SDB_HANDLE_TYPE_DOMAIN       7
 #define SDB_HANDLE_TYPE_LOB          8
 #define SDB_HANDLE_TYPE_DC           9
+#define SDB_HANDLE_TYPE_SEQUENCE     10
 
 struct _Node
 {
@@ -237,5 +238,13 @@ struct _sdbDCStruct
 } ;
 typedef struct _sdbDCStruct sdbDCStruct ;
 
+struct _sdbSequenceStruct
+{
+   INT32 _handleType ;
+   sdbConnectionHandle _connection ;
+   Socket* _sock ;
+   CHAR _name[ 1 ] ;
+} ;
+typedef struct _sdbSequenceStruct sdbSequenceStruct ;
 
 #endif

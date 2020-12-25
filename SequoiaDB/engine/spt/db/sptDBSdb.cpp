@@ -42,6 +42,7 @@
 #include "sptDBSnapshotOption.hpp"
 #include "sptDBTraceOption.hpp"
 #include "sptDBUser.hpp"
+#include "sptDBSequence.hpp"
 #include "sptBsonobj.hpp"
 #include "ossSocket.hpp"
 #include "msgDef.hpp"
@@ -60,6 +61,7 @@ using sdbclient::_sdbReplicaGroup ;
 using sdbclient::_sdbCursor ;
 using sdbclient::_sdbDataCenter ;
 using sdbclient::_sdbDomain ;
+using sdbclient::_sdbSequence ;
 
 namespace engine
 {
@@ -125,6 +127,10 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToTime )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreAbort )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepare )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createSequence )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getSequence )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, renameSequence )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, dropSequence )
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -188,6 +194,10 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "restoreToTime", restoreToTime )
       JS_ADD_MEMBER_FUNC( "restoreAbort", restoreAbort )
       JS_ADD_MEMBER_FUNC( "restorePrepare", restorePrepare )
+      JS_ADD_MEMBER_FUNC( "createSequence", createSequence )
+      JS_ADD_MEMBER_FUNC( "getSequence", getSequence )
+      JS_ADD_MEMBER_FUNC( "renameSequence", renameSequence )
+      JS_ADD_MEMBER_FUNC( "dropSequence", dropSequence )
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -3017,6 +3027,243 @@ namespace engine
       }
 
       return rc ;
+   }
+
+   INT32 _sptDBSdb::createSequence( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+      BSONObj options ;
+      _sdbSequence *pSequence = NULL ;
+      sptDBSequence *pSptSequence = NULL ;
+
+      if( arg.argc() < 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Sequence name must be configured" ) ;
+         goto error ;
+      }
+      else if( arg.argc() > 2 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      if( !arg.isString( 0 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Sequence name should be string" ) ;
+         goto error ;
+      }
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to parse sequence name" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 1, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.createSequence( seqName.c_str(), options, &pSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to create sequence" ) ;
+         goto error ;
+      }
+
+      pSptSequence = SDB_OSS_NEW sptDBSequence( pSequence ) ;
+      if( NULL == pSptSequence )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+      }
+      pSequence = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBSequence >( pSptSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      pSptSequence = NULL ;
+
+      rval.getReturnVal().setName( seqName.c_str() ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SEQ_NAME_FIELD )->setValue( seqName.c_str() ) ;
+      rval.addSelfToReturnValProperty( SPT_SEQ_CONN_FIELD ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pSequence ) ;
+      SAFE_OSS_DELETE( pSptSequence ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getSequence( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+      _sdbSequence *pSequence = NULL ;
+      sptDBSequence *pSptSequence = NULL ;
+
+      if( arg.argc() < 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Sequence name must be configured" ) ;
+         goto error ;
+      }
+      else if( arg.argc() > 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      if( !arg.isString( 0 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Sequence name should be string" ) ;
+         goto error ;
+      }
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to parse sequence name" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.getSequence( seqName.c_str(), &pSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get sequence" ) ;
+         goto error ;
+      }
+
+      pSptSequence = SDB_OSS_NEW sptDBSequence( pSequence ) ;
+      if( NULL == pSptSequence )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+      }
+      pSequence = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBSequence >( pSptSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      pSptSequence = NULL ;
+
+      rval.getReturnVal().setName( seqName.c_str() ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SEQ_NAME_FIELD )->setValue( seqName.c_str() ) ;
+      rval.addSelfToReturnValProperty( SPT_SEQ_CONN_FIELD ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pSequence ) ;
+      SAFE_OSS_DELETE( pSptSequence ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::renameSequence( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string oldName ;
+      string newName ;
+
+      rc = arg.getString( 0, oldName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Old name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Old name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, newName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "New name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "New name must be string" ) ;
+         goto error ;
+      }
+
+      if( arg.argc() > 2 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.renameSequence( oldName.c_str(), newName.c_str() ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to rename sequence" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::dropSequence( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Sequence name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Sequence name must be string" ) ;
+         goto error ;
+      }
+
+      if( arg.argc() > 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.dropSequence( seqName.c_str() ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop sequence" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _sptDBSdb::resolve( const _sptArguments &arg,

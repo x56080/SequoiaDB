@@ -1236,5 +1236,7 @@ class ossSignalShield
       void close() ;
 } ;
 
+INT32 ossException2RC( std::exception *pe ) ;
+
 #endif  //OSSUTIL_HPP_
 

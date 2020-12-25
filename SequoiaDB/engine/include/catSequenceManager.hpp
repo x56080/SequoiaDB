@@ -78,25 +78,32 @@ namespace engine
 
       INT32 createSequence( const std::string& name, const bson::BSONObj& options,
                             _pmdEDUCB* eduCB, INT16 w ) ;
-      INT32 insertSequence ( const std::string & name,
-                             bson::BSONObj & options, _pmdEDUCB * eduCB,
+      INT32 insertSequence ( const std::string& name,
+                             bson::BSONObj& options, _pmdEDUCB* eduCB,
                              INT16 w ) ;
-      INT32 dropSequence( const std::string& name, _pmdEDUCB* eduCB, INT16 w ) ;
+      INT32 dropSequence( const std::string& name, _pmdEDUCB* eduCB, INT16 w,
+                          utilSequenceID* pDroppedSeqID = NULL ) ;
       INT32 alterSequence( const std::string& name,
                            const bson::BSONObj& options,
                            _pmdEDUCB* eduCB,
                            INT16 w,
-                           bson::BSONObj * oldOptions,
-                           UINT32 * alterMask ) ;
+                           bson::BSONObj* oldOptions,
+                           UINT32* alterMask,
+                           utilSequenceID* pAlteredSeqID = NULL ) ;
+      INT32 renameSequence( const std::string& oldName,
+                            const std::string& newName,
+                            _pmdEDUCB* eduCB,
+                            INT16 w,
+                            utilSequenceID* pAlteredSeqID = NULL ) ;
       INT32 acquireSequence( const std::string& name,
                              const utilSequenceID ID,
                              _catSequenceAcquirer& acquirer,
                              _pmdEDUCB* eduCB, INT16 w ) ;
       INT32 resetSequence( const std::string& name, _pmdEDUCB* eduCB, INT16 w ) ;
-      INT32 adjustSequence( const std::string &name,
-                            const utilSequenceID ID,
-                            INT64 expectValue,
-                            _pmdEDUCB *eduCB, INT16 w ) ;
+      INT32 adjustSequence( const std::string& name,
+                            const INT64 expectValue,
+                            _pmdEDUCB* eduCB, INT16 w,
+                            utilSequenceID* pAlteredSeqID = NULL ) ;
       OSS_INLINE INT32 getSequence( const std::string& name,
                                     bson::BSONObj& sequence,
                                     _pmdEDUCB* eduCB )
@@ -112,9 +119,11 @@ namespace engine
       friend class _adjustSequence ;
 
       INT32 _insertSequence( bson::BSONObj& sequence, _pmdEDUCB* eduCB, INT16 w ) ;
-      INT32 _deleteSequence( const std::string& name, _pmdEDUCB* eduCB, INT16 w ) ;
+      INT32 _deleteSequence( const std::string& name, _pmdEDUCB* eduCB, INT16 w,
+                             utilSequenceID* pDeletedSeqID = NULL ) ;
       INT32 _updateSequence( const std::string& name, const bson::BSONObj& options,
-                             _pmdEDUCB* eduCB, INT16 w ) ;
+                             _pmdEDUCB* eduCB, INT16 w,
+                             utilSequenceID* pUpdatedSeqID = NULL ) ;
       INT32 _findSequence( const std::string& name, bson::BSONObj& sequence,
                            _pmdEDUCB* eduCB ) ;
       INT32 _doOnSequence( const std::string& name,

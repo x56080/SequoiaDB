@@ -4479,6 +4479,166 @@ namespace sdbclient
 
    } ;
 
+   class DLLEXPORT _sdbSequence
+   {
+   private :
+      _sdbSequence ( const _sdbSequence& other ) ;
+      _sdbSequence& operator=( const _sdbSequence& ) ;
+   public :
+      _sdbSequence () {}
+      virtual ~_sdbSequence () {}
+
+      virtual INT32 setAttributes ( const bson::BSONObj &options ) = 0 ;
+
+      virtual INT32 getNextValue ( INT64 &value ) = 0 ;
+
+      virtual INT32 getCurrentValue ( INT64 &value ) = 0 ;
+
+      virtual INT32 setCurrentValue ( const INT64 value ) = 0 ;
+
+      virtual INT32 fetch( const INT32 fetchNum,
+                           INT64 &nextValue,
+                           INT32 &returnNum,
+                           INT32 &Increment ) = 0 ;
+   } ;
+
+   /** \class sdbSequence
+       \brief Database operation interfaces of sequence
+   */
+   class DLLEXPORT sdbSequence
+   {
+   private :
+      /** \fn sdbSequence ( const sdbSequence& other )
+          \brief Copy constructor.
+          \param[in] A const object reference of class sdbSequence .
+      */
+      sdbSequence ( const sdbSequence& other ) ;
+
+      /** \fn sdbSequence& operator=( const sdbSequence& )
+          \brief Assignment constructor.
+          \param[in] A const object reference of class sdbSequence.
+          \retval A const object reference  of class sdbSequence.
+      */
+      sdbSequence& operator=( const sdbSequence& ) ;
+   public :
+      /** \var pSequence
+          \breif A pointer of virtual base class _sdbSequence
+
+           Class sdbSequence is a shell for _sdbSequence. We use
+           pSequence to call the methods in class _sdbSequence.
+      */
+      _sdbSequence *pSequence ;
+
+      /** \fn sdbSequence ()
+          \brief Default constructor.
+      */
+      sdbSequence ()
+      {
+         pSequence = NULL ;
+      }
+
+      /** \fn ~sdbSequence ()
+          \brief Destructor.
+      */
+      ~sdbSequence ()
+      {
+         if ( pSequence )
+         {
+            delete pSequence ;
+         }
+      }
+
+      /** \fn INT32 setAttributes ( const bson::BSONObj & options )
+          \brief Alter sequence.
+          \param [in] options The options of sequence to be changed, e.g. { "CurrentValue": 4096 }.
+
+              CurrentValue   : The current value of sequence
+              StartValue     : The start value of sequence
+              MinValue       : The minimum value of sequence
+              MaxValue       : The maxmun value of sequence
+              Increment      : The increment value of sequence
+              CacheSize      : The cache size of sequence
+              AcquireSize    : The acquire size of sequence
+              Cycled         : The cycled flag of sequence
+
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setAttributes ( const bson::BSONObj & options )
+      {
+         if ( NULL == pSequence )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSequence->setAttributes( options ) ;
+      }
+
+      /** \fn INT32 getNextValue( INT64 &value )
+          \brief Get the next value of sequence.
+          \param [out] value The next value
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getNextValue( INT64 &value )
+      {
+         if ( NULL == pSequence )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSequence->getNextValue( value ) ;
+      }
+
+      /** \fn INT32 getCurrentValue( INT64 &value )
+          \brief Get the current value of sequence.
+          \param [out] value The current value
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 getCurrentValue( INT64 &value )
+      {
+         if ( NULL == pSequence )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSequence->getCurrentValue( value ) ;
+      }
+
+      /** \fn INT32 setCurrentValue( const INT64 value )
+          \brief Set the current value to sequence.
+          \param [in] value The expected current value
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 setCurrentValue( const INT64 value )
+      {
+         if ( NULL == pSequence )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSequence->setCurrentValue( value ) ;
+      }
+
+      /** \fn INT32 fetch( const INT32 fetchNum, INT64 &nextValue,
+                           INT32 &returnNum, INT32 &Increment )
+          \brief Fetch a bulk of continuous values.
+          \param [in] fetchNum The number of values to be fetched.
+          \param [out] nextValue The next value and also the first returned value.
+          \param [out] returnNum The number of values returned.
+          \param [out] increment Increment of values.
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 fetch( const INT32 fetchNum, INT64 &nextValue,
+                   INT32 &returnNum, INT32 &increment )
+      {
+         if ( NULL == pSequence )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSequence->fetch( fetchNum, nextValue, returnNum, increment ) ;
+      }
+   } ;
+
    class DLLEXPORT _sdb
    {
    private :
@@ -4844,6 +5004,30 @@ namespace sdbclient
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
       virtual INT32 restorePrepare(
                         const bson::BSONObj &options = _sdbStaticObject) = 0;
+
+      // create a new sequence object
+      virtual INT32 createSequence( const CHAR *pSequenceName,
+                                    const bson::BSONObj &options,
+                                    _sdbSequence **sequence ) = 0 ;
+
+      virtual INT32 createSequence( const CHAR *pSequenceName,
+                                    const bson::BSONObj &options,
+                                    sdbSequence &sequence ) = 0 ;
+
+      virtual INT32 createSequence( const CHAR *pSequenceName,
+                                    sdbSequence &sequence ) = 0 ;
+
+      // get a sequence object
+      virtual INT32 getSequence( const CHAR *pSequenceName,
+                                 _sdbSequence **sequence ) = 0 ;
+
+      virtual INT32 getSequence( const CHAR *pSequenceName,
+                                 sdbSequence &sequence ) = 0 ;
+
+      virtual INT32 renameSequence( const CHAR *pOldName,
+                                    const CHAR *pNewName ) = 0 ;
+
+      virtual INT32 dropSequence( const CHAR *pSequenceName ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7060,7 +7244,7 @@ namespace sdbclient
                  The result object will not be clean up automatically until the next
                  result object cover it.
           \param [out] result The return result bson object.
-          \param [in]  getOwned Wether the return result bson object should get
+          \param [in]  getOwned Whether the return result bson object should get
                        owned memory or not.
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
@@ -7112,16 +7296,161 @@ namespace sdbclient
           \retval SDB_OK Operation Success.
           \retval Others Operation Fail.
       */
-      INT32
-      restorePrepare(const bson::BSONObj &options = _sdbStaticObject)
+      INT32 restorePrepare(const bson::BSONObj &options = _sdbStaticObject)
       {
          if( !pSDB )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pSDB->restorePrepare ( options ) ;
+         return pSDB->restorePrepare( options ) ;
+      }
+
+      /** \fn INT32 createSequence( const CHAR *pSequenceName,
+                                    const bson::BSONObj &options,
+                                    _sdbSequence **sequence )
+          \brief Create the sequence with specified options.
+          \param [in]  pSequenceName The name of sequence.
+          \param [in]  options The options specified by user, e.g. {"Increment": 2, "Cycled": true}
+
+              StartValue     : The start value of sequence
+              MinValue       : The minimum value of sequence
+              MaxValue       : The maxmun value of sequence
+              Increment      : The increment value of sequence
+              CacheSize      : The cache size of sequence
+              AcquireSize    : The acquire size of sequence
+              Cycled         : The cycled flag of sequence
+
+          \param [out]  sequence The return sequence object of creation.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 createSequence( const CHAR *pSequenceName,
+                            const bson::BSONObj &options,
+                            _sdbSequence **sequence )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->createSequence( pSequenceName, options, sequence ) ;
+      }
+
+      /** \fn INT32 createSequence( const CHAR *pSequenceName,
+                                    const bson::BSONObj &options,
+                                    sdbSequence &sequence )
+          \brief Create the sequence with specified options.
+          \param [in]  pSequenceName The name of sequence.
+          \param [in]  options The options specified by user, e.g. {"Increment": 2, "Cycled": true}
+
+              StartValue     : The start value of sequence
+              MinValue       : The minimum value of sequence
+              MaxValue       : The maxmun value of sequence
+              Increment      : The increment value of sequence
+              CacheSize      : The cache size of sequence
+              AcquireSize    : The acquire size of sequence
+              Cycled         : The cycled flag of sequence
+
+          \param [out]  sequence The return sequence object of creation.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 createSequence( const CHAR *pSequenceName,
+                            const bson::BSONObj &options,
+                            sdbSequence &sequence )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->createSequence( pSequenceName, options, sequence ) ;
+      }
+
+      /** \fn INT32 createSequence( const CHAR *pSequenceName,
+                                    sdbSequence &sequence )
+          \brief Create the sequence with default options.
+          \param [in]  pSequenceName The name of sequence.
+          \param [out]  sequence The return sequence object of creation.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 createSequence( const CHAR *pSequenceName,
+                            sdbSequence &sequence )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->createSequence( pSequenceName, sequence ) ;
+      }
+
+      /** \fn INT32 getSequence( const CHAR *pSequenceName,
+                                 _sdbSequence **sequence )
+          \brief Get the named sequence.
+          \param [in]  pSequenceName The name of sequence.
+          \param [out]  sequence The return sequence object.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 getSequence( const CHAR *pSequenceName,
+                         _sdbSequence **sequence )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getSequence( pSequenceName, sequence ) ;
+      }
+
+      /** \fn INT32 getSequence( const CHAR *pSequenceName,
+                                 sdbSequence &sequence )
+          \brief Get the named sequence.
+          \param [in]  pSequenceName The name of sequence.
+          \param [out]  sequence The return sequence object.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 getSequence( const CHAR *pSequenceName,
+                         sdbSequence &sequence )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getSequence( pSequenceName, sequence ) ;
+      }
+
+      /** \fn INT32 renameSequence( const CHAR *pOldName, const CHAR *pNewName )
+          \brief Rename sequence.
+          \param [in]  pOldName The old name of sequence.
+          \param [in]  pNewName The new name of sequence.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 renameSequence( const CHAR *pOldName, const CHAR *pNewName )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->renameSequence( pOldName, pNewName ) ;
+      }
+
+      /** \fn INT32 dropSequence( const CHAR *pSequenceName )
+          \brief Drop the specified sequence.
+          \param [in]  pSequenceName The name of sequence.
+          \retval SDB_OK Operation Success.
+          \retval Others Operation Fail.
+      */
+      INT32 dropSequence( const CHAR *pSequenceName )
+      {
+         if( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->dropSequence( pSequenceName ) ;
       }
    } ;
+
    /** \typedef class sdb sdb
          \brief Class sdb definition for sdb.
    */
