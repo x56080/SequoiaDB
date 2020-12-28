@@ -56,6 +56,8 @@ namespace engine
 
    const CHAR* dpsTransStatusToString( INT32 status ) ;
 
+   INT32 dpsGetTransIDFromString( const CHAR *pStr, DPS_TRANS_ID &transID ) ;
+
    // format transaction ID to string format
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,

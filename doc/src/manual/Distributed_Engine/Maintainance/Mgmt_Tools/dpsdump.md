@@ -31,6 +31,8 @@ sdbdpsdump [--source | -s arg][--meta | -m]
 
 sdbdpsdump [--source | -s arg][--last | -e arg] 
 
+sdbdpsdump [--source | -s arg][--transaction arg] 
+
 sdbdpsdump --help | -h
 
 sdbdpsdump --version | -v
@@ -88,6 +90,10 @@ sdbdpsdump --version | -v
 - **--last, -e**  
 
  指定解析日志文件最后的 N 条日志，N 为指定的数值（需要 -s 指定到文件）
+ 
+- **--transaction**  
+
+ 指定事务ID，只解析和指定事务ID相关的日志。其中事务ID的格式为16进制格式，例如：--transaction 0x00040105b78b1bc9eed4
 
 - **--source, -s**  
 

@@ -89,6 +89,43 @@ namespace engine
       return pStr ;
    }
 
+   INT32 dpsGetTransIDFromString( const CHAR *pStr, DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 len = ossStrlen( pStr ) ;
+      transID.reset() ;
+
+      if ( 22 == len )
+      {
+         if ( '0' == pStr[0] && ( 'x' == pStr[1] || 'X' == pStr[1] ) )
+         {
+            UINT32 nodeID = DPS_INVALID_TRANSID_NODEID ;
+            DPS_TRANSID_SN globSN = DPS_INVALID_TRANSID_SN ;
+            ossSscanf( pStr, "0x%04x%016llx", &nodeID, &globSN ) ;
+            transID.setNodeID( (DPS_TRANSID_NODEID) nodeID ) ;
+            transID.setSN( globSN ) ;
+            goto done ;
+         }
+      }
+      else if ( 16 == len )
+      {
+         if ( '0' == pStr[0] && ( 'x' == pStr[1] || 'X' == pStr[1] ) )
+         {
+            UINT32 nodeID = 0 ;
+            DPS_TRANS_ID_V0 id = 0 ;
+            ossSscanf( pStr, "0x%04x%010llx", &nodeID, &id ) ;
+            id = (UINT64)nodeID << DPS_TRANSID_NODEID_SHIFT_BITS_V0 | id ;
+            transID.convertFromV0( id ) ;
+            goto done ;
+         }
+      }
+
+      rc = SDB_INVALIDARG ;
+
+   done:
+      return rc ;
+   }
+
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,
                                    UINT32 bufSize )

@@ -50,6 +50,7 @@
 #define DPS_DUMP_HELP      "help"
 #define DPS_DUMP_VER       "version"
 #define DPS_DUMP_TYPE      "type"
+#define DPS_DUMP_TRANS     "transaction"
 #define DPS_DUMP_NAME      "name"
 #define DPS_DUMP_META      "meta"
 #define DPS_DUMP_LSN       "lsn"
@@ -71,6 +72,7 @@
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_VER,       ",v" ), "show version" ) \
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_META,      ",m" ), "show meta info of logs" ) \
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_TYPE,      ",t" ), boost::program_options::value< INT32 >(), "specify the record type" ) \
+   ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_TRANS,       "" ), boost::program_options::value< std::string >(), "specify the transaction id" ) \
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_NAME,      ",n" ), boost::program_options::value< std::string >(), "specify the name of collectionspace/collections" ) \
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_LSN,       ",l" ), boost::program_options::value< std::string >(), "specify the lsn, -a/-b may help" ) \
    ( DPS_FILTER_COMMANDS_STRING( DPS_DUMP_LAST,      ",e" ), boost::program_options::value< INT32 >(), "specify the number of last records of file to display ")\
@@ -193,6 +195,7 @@ enum SDB_DPS_LOG_FILTER_TYPE
    SDB_LOG_FILTER_LSN,
    SDB_LOG_FILTER_META,
    SDB_LOG_FILTER_LAST,
+   SDB_LOG_FILTER_TRANS,
 } ;
 
 class _dpsDumper;
@@ -267,6 +270,7 @@ typedef filterName alias ;
 FILTER_DEFINITION( Type, SDB_LOG_FILTER_TYPE )
 FILTER_DEFINITION( Name, SDB_LOG_FILTER_NAME )
 FILTER_DEFINITION( Lsn,  SDB_LOG_FILTER_LSN  )
+FILTER_DEFINITION( Trans, SDB_LOG_FILTER_TRANS )
 FILTER_DEFINITION( None, SDB_LOG_FILTER_NONE )
 FILTER_DEFINITION( Last, SDB_LOG_FILTER_LAST )
 FILTER_DEFINITION( Meta, SDB_LOG_FILTER_META )
@@ -365,6 +369,7 @@ public:
    INT32    lastCount ;
    BOOLEAN  consolePrint ;
    UINT64   lsn ;
+   DPS_TRANS_ID _transID ;
    CHAR     name[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     srcPath[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     dstPath[ OSS_MAX_PATHSIZE + 1 ] ;
