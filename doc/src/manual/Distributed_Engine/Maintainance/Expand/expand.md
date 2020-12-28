@@ -15,7 +15,7 @@
 扩容架构
 ----
 
-集群从三台服务器扩容至六台服务器如图所示
+集群从三台服务器扩容至六台服务器如图所示：
 
 ![架构图][add_host]
 
@@ -26,13 +26,13 @@
 
  - 需要在新的服务器上安装与其他主机相同的操作系统；
  - 新的服务器需要按照[操作系统要求][env_requirement]章节对操作系统进行配置，使所有主机可以两两通过主机名访问对方；
- - 在新的服务器上按照[数据库安装][cluster_deployment]章节对 SequoiaDB 进行安装时，配置管理服务端口需要与现有系统的端口保持一致（默认为 11790）；
+ - 在新的服务器上按照[数据库安装][database_deployment]章节对 SequoiaDB 进行安装时，配置管理服务端口需要与现有系统的端口保持一致（默认为 11790）；
  - 集群添加服务器后，需要在新的服务器上进行[服务器内新增节点][add_node]操作。
 
 
 [^_^]:
     本文使用到的所有链接及引用。
 [env_requirement]:manual/Deployment/env_requirement.md
-[cluster_deployment]:manual/Deployment/cluster_deployment.md
+[database_deployment]:manual/Deployment/engine_install.md
 [add_node]:manual/Distributed_Engine/Maintainance/Expand/add_node.md
 [add_host]:images/Distributed_Engine/Maintainance/Expand/add_host.PNG
