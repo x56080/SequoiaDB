@@ -81,6 +81,10 @@ typedef UINT32 DPS_LSN_VER ;
 #define DPS_TRANSID_SN_BIT                   0X000000FFFFFFFFFFll
 #define DPS_TRANSID_VALID_BIT                0XFFFF00FFFFFFFFFFll
 
+// nodeid is the highest 16 bits of transID (0XFFFF000000000000),
+// right shift 48(64-16) bits to get nodeid
+#define DPS_TRANSID_NODEID_POW               48
+
 #define DPS_TRANS_CLEAR_FIRSTOP( id )  \
    OSS_BIT_CLEAR( id, DPS_TRANSID_FIRSTOP_BIT )
 
@@ -115,7 +119,7 @@ typedef UINT32 DPS_LSN_VER ;
    OSS_BIT_CLEAR( id, DPS_TRANSID_RBPENDING_BIT )
 
 
-#define DPS_TRANS_GET_NODEID( id )           ( (DPS_TRANS_ID)(id) >> 48 )
+#define DPS_TRANS_GET_NODEID( id )           ( (DPS_TRANS_ID)(id) >> DPS_TRANSID_NODEID_POW )
 #define DPS_TRANS_GET_SN( id )               ( (id) & DPS_TRANSID_SN_BIT )
 #define DPS_TRANS_GET_ID( id )               ( (id) & DPS_TRANSID_VALID_BIT )
 

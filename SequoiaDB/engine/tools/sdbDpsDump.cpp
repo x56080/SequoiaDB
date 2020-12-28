@@ -46,7 +46,8 @@
 #include "dpsLogRecordDef.hpp"
 #include "ossPath.hpp"
 #include "utilCommon.hpp"
-
+#include "dpsUtil.hpp"
+#include <sstream>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -164,7 +165,12 @@ dpsDumpFilter* _dpsFilterFactory::createFilter( int type )
          filter = SDB_OSS_NEW dpsLsnFilter() ;
          break ;
       }
-    case SDB_LOG_FILTER_META :
+   case SDB_LOG_FILTER_TRANS :
+      {
+         filter = SDB_OSS_NEW dpsTransFilter() ;
+         break ;
+      }
+   case SDB_LOG_FILTER_META :
       {
           filter = SDB_OSS_NEW dpsMetaFilter() ;
           break ;
@@ -442,6 +448,54 @@ error:
 }
 
 ////////////////////////////////////////////////////////////////////
+///< for _dpsTransFilter
+BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
+{
+   BOOLEAN rc = FALSE ;
+
+   if( 0 == dumper->_transID )
+   {
+      rc = dpsDumpFilter::match( dumper, pRecord ) ;
+      goto done ;
+   }
+
+   {
+      dpsLogRecord record ;
+      record.load( pRecord ) ;
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      if( itr.valid() )
+      {
+         UINT64 transID = *( (UINT64 *)itr.value() ) ;
+         if( DPS_TRANS_GET_ID(transID) == DPS_TRANS_GET_ID(dumper->_transID) )
+         {
+            rc = dpsDumpFilter::match( dumper, pRecord ) ;
+            goto done ;
+         }
+      }
+   }
+
+done:
+   return rc ;
+}
+
+INT32 _dpsTransFilter::doFilte( dpsDumper *dumper, OSSFILE &out,
+                                const CHAR *logFilePath )
+{
+   INT32 rc = SDB_OK ;
+
+   rc = dumper->filte( this, out, logFilePath ) ;
+   if( rc )
+   {
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+////////////////////////////////////////////////////////////////////
 ///< for _dpsNoneFilter
 BOOLEAN _dpsNoneFilter::match( dpsDumper *dumper, CHAR *pRecord )
 {
@@ -495,7 +549,8 @@ error:
 
 
 _dpsDumper::_dpsDumper()
-: _metaContent( NULL ),
+: _transID( 0 ),
+  _metaContent( NULL ),
   _metaContentSize( 0 ),
   _filter( NULL ),
   _fileNum( 0 )
@@ -600,6 +655,22 @@ INT32 _dpsDumper::process( const po::options_description &desc,
    else
    {
       consolePrint = TRUE ;
+   }
+
+   /// deal with transaction
+   if( vm.count( DPS_DUMP_TRANS ) )
+   {
+      _filter = dpsFilterFactory::getInstance()
+                ->createFilter( SDB_LOG_FILTER_TRANS ) ;
+      CHECK_FILTER( _filter ) ;
+      const CHAR *pTransID = vm[ DPS_DUMP_TRANS ].as<std::string>().c_str() ;
+      rc = dpsGetTransIDFromString( pTransID, _transID ) ;
+      if ( SDB_OK != rc )
+      {
+         std::cout << "Unable to parse transaction id: " << pTransID
+                   << std::endl ;
+         goto error ;
+      }
    }
 
    ///< we should deal with lsn filter first
@@ -872,6 +943,7 @@ BOOLEAN _dpsDumper::_validCheck( const po::variables_map &vm )
       || vm.count( DPS_DUMP_NAME )
       || vm.count( DPS_DUMP_META )
       || vm.count( DPS_DUMP_LSN )
+      || vm.count( DPS_DUMP_TRANS )
       || vm.count( DPS_DUMP_SOURCE )
       || vm.count( DPS_DUMP_OUTPUT )
       || vm.count( DPS_DUMP_LAST ) )

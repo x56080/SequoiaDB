@@ -82,6 +82,27 @@ namespace engine
       return pStr ;
    }
 
+   INT32 dpsGetTransIDFromString( const CHAR *pStr, DPS_TRANS_ID &transID )
+   {
+      INT32 rc = SDB_OK ;
+      if ( '\0' != pStr[0] && '\0' != pStr[1] )
+      {
+         if ( '0' == pStr[0] && ( 'x' == pStr[1] || 'X' == pStr[1] ) )
+         {
+            //16 base string
+            UINT32 nodeID = 0 ;
+            ossSscanf( pStr, "0x%04x%010llx", &nodeID, &transID ) ;
+            transID = (UINT64)nodeID << DPS_TRANSID_NODEID_POW | transID ;
+            goto done ;
+         }
+      }
+
+      rc = SDB_INVALIDARG ;
+
+   done:
+      return rc ;
+   }
+
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,
                                    UINT32 bufSize )
