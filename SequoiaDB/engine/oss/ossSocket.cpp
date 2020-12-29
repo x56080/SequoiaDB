@@ -507,6 +507,7 @@ error :
 BOOLEAN _ossSocket::isConnected ()
 {
    INT32 rc = SDB_OK ;
+   CHAR tmpBuff[ 1 ] = { 0 } ;
    PD_TRACE_ENTRY ( SDB_OSSSK_ISCONN );
 
    if ( !_init )
@@ -527,7 +528,7 @@ BOOLEAN _ossSocket::isConnected ()
    // error is still returned.
    //rc = ::send ( _fd, "", 0, MSG_NOSIGNAL ) ;
    //if ( 0 > rc )
-   rc = ::recv ( _fd, NULL, 0, MSG_DONTWAIT ) ;
+   rc = ::recv ( _fd, tmpBuff, sizeof( tmpBuff ), MSG_DONTWAIT | MSG_PEEK ) ;
    if ( 0 == rc )
 #endif
    {
