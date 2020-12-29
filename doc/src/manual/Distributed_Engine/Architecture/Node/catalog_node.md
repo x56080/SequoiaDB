@@ -118,7 +118,7 @@
 [storeprocedures]:manual/Distributed_Engine/Architecture/Catalog_Table/STOREPROCEDURES.md
 [sequences]:manual/Distributed_Engine/Architecture/Catalog_Table/SEQUENCES.md
 [expand]:manual/Distributed_Engine/Maintainance/Expand/expand.md
-[cluster_config]:manual/database_management/database_configuration/configuration_parameters.md
+[cluster_config]:manual/Deployment/cluster_deployment.md
 [createCataRG]:manual/reference/Sequoiadb_command/Sdb/createCataRG.md
 [getCataRG]:manual/reference/Sequoiadb_command/Sdb/getCataRG.md
 [create_group]:manual/Distributed_Engine/Architecture/Node/catalog_node.md#新建编目复制组
