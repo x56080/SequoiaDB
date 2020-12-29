@@ -32,7 +32,7 @@
 
 [^_^]:
     本文使用到的所有连接及引用。
-[config]:manual/Distributed_Engine/Architecture/Sharding/config.md
+[config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md
 [setAttributes]:manual/reference/Sequoiadb_command/SdbCollection/setAttributes.md
 [auto_increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#自增字段
 
