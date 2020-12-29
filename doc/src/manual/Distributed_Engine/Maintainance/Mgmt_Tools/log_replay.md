@@ -197,5 +197,5 @@ $cat SDB_db1_1000_dbName_tableName_0000000001_384_201904291212.csv
    [^_^]:
     本文使用到的所有链接及引用。
 [log_archive]:manual/Distributed_Engine/Maintainance/Backup_Recovery/log_archive.md
-[passwd_mgm]: manual/Distributed_Engine/Maintainance/Security/system_security.md
+[passwd_mgm]: manual/Distributed_Engine/Maintainance/Security/system_security.md#密码管理
 [outputconf]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/log_replay.md#outputconf说明

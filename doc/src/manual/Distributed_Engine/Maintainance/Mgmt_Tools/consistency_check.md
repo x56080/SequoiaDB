@@ -304,4 +304,4 @@ sdbinspect [--coord | -d arg] [--output | -o arg] [--collectionspace | -c arg] [
      本文使用到的所有连接及引用。
     
 [architecture]:manual/Distributed_Engine/Architecture/Replication/architecture.md#节点一致性
-[system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md
+[system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md#密码管理

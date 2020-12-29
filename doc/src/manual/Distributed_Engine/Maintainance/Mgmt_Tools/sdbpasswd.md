@@ -125,7 +125,7 @@ sdbpasswd 工具支持以下设置参数：
 
 [^_^]:
      本文使用的所有链接及引用
-[passwd]:manual/Distributed_Engine/Maintainance/Security/system_security.md
+[passwd]:manual/Distributed_Engine/Maintainance/Security/system_security.md#密码管理
 [sdbexprt]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbexprt.md
 [sdbimprt]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbimprt.md
 [log_replay]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/log_replay.md
