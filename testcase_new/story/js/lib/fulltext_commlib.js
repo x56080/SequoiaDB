@@ -987,7 +987,7 @@ function dropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, messag
       catch( e )
       {
          doTimes++;
-         if( ( commCompareErrorCode( e, -34 ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, -23 ) && ignoreCLNotExist ) )
+         if( ( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, SDB_DMS_NOTEXIST ) && ignoreCLNotExist ) )
          {
             break;
          }
@@ -1030,7 +1030,7 @@ function dropCS ( db, csName, ignoreNotExist, message )
       catch( e )
       {
          doTimes++;
-         if( commCompareErrorCode( e, -34 ) && ignoreNotExist )
+         if( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreNotExist )
          {
             break;
          }
@@ -1071,7 +1071,7 @@ function dropIndex ( cl, name, ignoreNotExist )
       catch( e )
       {
          doTimes++;
-         if( ignoreNotExist && commCompareErrorCode( e, -47 ) )
+         if( ignoreNotExist && commCompareErrorCode( e, SDB_IXM_NOTEXIST ) )
          {
             break;
          }

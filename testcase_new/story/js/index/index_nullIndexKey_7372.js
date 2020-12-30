@@ -19,7 +19,7 @@ function test ()
    idxCL.insert( { a: 1 } );
 
    // create index
-   createIndex( idxCL, "testindex", {}, false, false, -6 );
+   createIndex( idxCL, "testindex", {}, false, false, SDB_INVALIDARG );
 
    // inspect the index
    try

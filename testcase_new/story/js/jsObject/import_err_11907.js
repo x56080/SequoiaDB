@@ -17,7 +17,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -4 )
+      if( e != SDB_FNE )
       {
          throw e;
       }
@@ -29,7 +29,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -4 )
+      if( e != SDB_FNE )
       {
          throw e;
       }
@@ -47,7 +47,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -152 )
+      if( e != SDB_SPT_EVAL_FAIL )
       {
          throw e;
       }
@@ -59,7 +59,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -152 )
+      if( e != SDB_SPT_EVAL_FAIL )
       {
          throw e;
       }

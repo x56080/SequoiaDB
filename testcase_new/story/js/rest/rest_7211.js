@@ -2,7 +2,7 @@
 @description:   queryandremove, abnormal case
 @input:         1 insert{myid:229095,age:10}
                 2 rest command lack of [name]
-@expectation:   1 return -6 error
+@expectation:   1 return SDB_INVALIDARG error
 @modify list:
                 2015-5-25 Ting YU init   2016-3-16 XiaoNi Huang init
 ****************************************************/
@@ -33,7 +33,7 @@ function ready ()
 
 function lackName ()
 {
-   tryCatch( ["cmd=queryandremove"], [-6], "Error occurs in " + getFuncName() );
+   tryCatch( ["cmd=queryandremove"], [SDB_INVALIDARG], "Error occurs in " + getFuncName() );
 
    /******check count is 1**********/
    var recNum = varCL.find().count();

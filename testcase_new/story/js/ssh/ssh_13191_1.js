@@ -47,7 +47,7 @@ function test ()
       }
       catch( e )
       {
-         if( dstModes[i] === 0555 && !commCompareErrorCode( e, -10 ) )
+         if( dstModes[i] === 0555 && !commCompareErrorCode( e, SDB_SYS ) )
          {
             commThrowError( e );
          }

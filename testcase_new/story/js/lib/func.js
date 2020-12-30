@@ -124,7 +124,7 @@ function commIsStandalone ( db )
    }
    catch( e )
    {
-      if( commCompareErrorCode( e, -159 ) )
+      if( commCompareErrorCode( e, SDB_RTN_COORD_ONLY ) )
       {
          return true;
       }
@@ -160,7 +160,7 @@ function commCreateCS ( db, csName, ignoreExisted, message, options )
    }
    catch( e )
    {
-      if( commCompareErrorCode( e, -33 ) && ignoreExisted )
+      if( commCompareErrorCode( e, SDB_DMS_CS_EXIST ) && ignoreExisted )
       {
          // think right
       } else
@@ -225,7 +225,7 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
    }
    catch( e )
    {
-      if( commCompareErrorCode( e, -22 ) && ignoreExisted )
+      if( commCompareErrorCode( e, SDB_DMS_EXIST ) && ignoreExisted )
       {
          // think right
          csObj.dropCL( clName );
@@ -269,7 +269,7 @@ function commDropCS ( db, csName, ignoreNotExist, message, options )
    }
    catch( e )
    {
-      if( commCompareErrorCode( e, -34 ) && ignoreNotExist )
+      if( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreNotExist )
       {
          // think right
       }
@@ -304,7 +304,7 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
    }
    catch( e )
    {
-      if( ( commCompareErrorCode( e, -34 ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, -23 ) && ignoreCLNotExist ) )
+      if( ( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, SDB_DMS_NOTEXIST ) && ignoreCLNotExist ) )
       {
          // think right
       }
@@ -336,7 +336,7 @@ function commCreateIndex ( cl, indexName, indexDef, options, ignoreExist )
    }
    catch( e )
    {
-      if( ignoreExist && ( commCompareErrorCode( e, -46 ) || commCompareErrorCode( e, -247 ) ) )
+      if( ignoreExist && ( commCompareErrorCode( e, SDB_IXM_EXIST ) || commCompareErrorCode( e, SDB_IXM_REDEF ) ) )
       {
          // ok
       }
@@ -364,7 +364,7 @@ function commDropIndex ( cl, indexName, ignoreNotExist )
    }
    catch( e )
    {
-      if( ignoreNotExist && commCompareErrorCode( e, -47 ) )
+      if( ignoreNotExist && commCompareErrorCode( e, SDB_IXM_NOTEXIST ) )
       {
          // ok
       }
@@ -592,7 +592,7 @@ function commGetGroups ( db, print, filter, excludeCata, excludeCoord, excludeSp
    }
    catch( e )
    {
-      if( commCompareErrorCode( e, -159 ) )
+      if( commCompareErrorCode( e, SDB_RTN_COORD_ONLY ) )
       {
          return tmpArray;
       }
@@ -1508,7 +1508,7 @@ function commCreateRG ( db, rgName, nodeNum, hostname, nodeOption )
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( commCompareErrorCode( e, -145 ) || commCompareErrorCode( e, -290 ) )
+            if( commCompareErrorCode( e, SDBCM_NODE_EXISTED ) || commCompareErrorCode( e, SDB_DIR_NOT_EMPTY ) )
             {
                svc = svc + 10;
                dbPath = RSRVNODEDIR + "data/" + svc;
@@ -1908,7 +1908,7 @@ function commDropDomain ( db, domainName, ignoreNotExist )
       db.dropDomain( domainName );
    } catch( e )
    {
-      if( commCompareErrorCode( e, -214 ) && ignoreNotExist )
+      if( commCompareErrorCode( e, SDB_CAT_DOMAIN_NOT_EXIST ) && ignoreNotExist )
       {
          // think right
       } else

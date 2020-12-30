@@ -21,25 +21,25 @@ function test ()
 
    // 删除名称以 $ 开头的CS
    var name = "$" + csName;
-   var errno = -6;
+   var errno = SDB_INVALIDARG;
    var message = "error,dropCS start $ cs succeeded";
    illegaldropCS( name, errno, message );
 
    // 删除名称中包含 . 的CS
    var name = csName + "." + csName;
-   var errno = -6;
+   var errno = SDB_INVALIDARG;
    var message = "error,dropCS contain . cs succeeded";
    illegaldropCS( name, errno, message );
 
    // 删除名称为空的CS
    var name = "";
-   var errno = -6;
+   var errno = SDB_INVALIDARG;
    var message = "error,dropCS empty cs succeeded";
    illegaldropCS( name, errno, message );
 
    // 删除名称长度为 128 字节的CS
    var name = new Array( 129 ).join( 'c' );
-   var errno = -6;
+   var errno = SDB_INVALIDARG;
    var message = "error,dropCS 128 byte cs succeeded";
    illegaldropCS( name, errno, message );
 
@@ -54,7 +54,7 @@ function test ()
 
    // 再次删除已经删除的CS
    var name = csName;
-   var errno = -34;
+   var errno = SDB_DMS_CS_NOTEXIST;
    var message = "have droped the cs:" + csName + ", but it can be dropCS again";
    illegaldropCS( name, errno, message );
 }

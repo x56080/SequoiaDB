@@ -81,7 +81,7 @@ function test ()
    checkResult( dbcl, findConf7, hintConf, sortConf, expRecs7 );
 
    var findConf8 = { a: { $options: "i", $regex: "^b", $nt: "Bb" } };
-   InvalidArgCheck( dbcl, findConf8, null, -6 );
+   InvalidArgCheck( dbcl, findConf8, null, SDB_INVALIDARG );
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }

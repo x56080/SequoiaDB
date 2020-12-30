@@ -33,7 +33,7 @@ function test ()
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( e == -145 || e == -290 )
+            if( e == SDBCM_NODE_EXISTED || e == SDB_DIR_NOT_EMPTY )
             {
                svc = svc + 10;
                dbpath = RSRVNODEDIR + "data/" + svc;
@@ -60,7 +60,7 @@ function test ()
       }
       catch( e )
       {
-         if( e.message !== "-6" )
+         if( e.message != SDB_INVALIDARG )
          {
             throw e;
          }

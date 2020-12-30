@@ -140,19 +140,19 @@ function test ()
 
    //value is illegal,seqDB-10278
    var condition24 = { a: { $substr: [1, 2] } };
-   InvalidArgCheck( dbcl, condition24, null, -6 );
+   InvalidArgCheck( dbcl, condition24, null, SDB_INVALIDARG );
 
    var condition25 = { a: { $substr: ["a", 1], $et: "a" } };
-   InvalidArgCheck( dbcl, condition25, null, -6 );
+   InvalidArgCheck( dbcl, condition25, null, SDB_INVALIDARG );
 
    var condition26 = { a: { $substr: [1, "a"] } };
-   InvalidArgCheck( dbcl, condition26, null, -6 );
+   InvalidArgCheck( dbcl, condition26, null, SDB_INVALIDARG );
 
    var condition27 = { a: { $substr: 2 } };
-   InvalidArgCheck( dbcl, condition27, null, -6 );
+   InvalidArgCheck( dbcl, condition27, null, SDB_INVALIDARG );
 
    var condition28 = { a: { $substr: "a", $et: "a" } };
-   InvalidArgCheck( dbcl, condition28, null, -6 );
+   InvalidArgCheck( dbcl, condition28, null, SDB_INVALIDARG );
 
    //two fields use substr;seqDB-10280
    var condition29 = { a: { $substr: 5, $et: "abcde" }, e: { $substr: -5, $et: "vwxyz" } };

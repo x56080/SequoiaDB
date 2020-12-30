@@ -57,8 +57,8 @@ function test ()
 
    //seqDB-10250
    condition4 = { a: { $ceiling: -1, $et: 1 } };
-   InvalidArgCheck( dbcl, condition4, null, -6 );
+   InvalidArgCheck( dbcl, condition4, null, SDB_INVALIDARG );
 
    condition5 = { a: { $ceiling: -1 } };
-   InvalidArgCheck( dbcl, condition5, null, -6 );
+   InvalidArgCheck( dbcl, condition5, null, SDB_INVALIDARG );
 }

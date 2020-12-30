@@ -34,10 +34,10 @@ function test ()
 
    //seqDB-10292
    condition3 = { name: { $lower: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition3, null, -6 );
+   InvalidArgCheck( dbcl, condition3, null, SDB_INVALIDARG );
 
    condition4 = { name: { $lower: 1 } };
-   InvalidArgCheck( dbcl, condition4, null, -6 );
+   InvalidArgCheck( dbcl, condition4, null, SDB_INVALIDARG );
 
    //seqDB-10293/seqDB-10294
    var condition5 = { name: { $upper: 1, $et: "ZHANGSAN" }, major: { $upper: 1, $et: "CHINESE" } };
@@ -53,10 +53,10 @@ function test ()
 
    //seqDB-10292
    condition7 = { name: { $upper: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition7, null, -6 );
+   InvalidArgCheck( dbcl, condition7, null, SDB_INVALIDARG );
 
    condition8 = { name: { $upper: 1 } };
-   InvalidArgCheck( dbcl, condition8, null, -6 );
+   InvalidArgCheck( dbcl, condition8, null, SDB_INVALIDARG );
 
    //Non-String
    var condition9 = { name: { $lower: 1, $et: "zhangsan" }, major: { $lower: 1, $et: "chinese" }, weight: { $lower: 1, $et: null } };

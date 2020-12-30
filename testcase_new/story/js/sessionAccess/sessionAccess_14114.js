@@ -25,7 +25,7 @@ function test ( testPara )
       catch( e )
       {
          //TODO:这里需确认更新超时不报错和更新几十秒后报错-116是否合理
-         if( e.message !== "-13" && e.message !== "-116" )
+         if( e.message !== "SDB_TIMEOUT" && e.message !== "SDB_APP_INTERRUPT" )
          {
             throw e;
          }

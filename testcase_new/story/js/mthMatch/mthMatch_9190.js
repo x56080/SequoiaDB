@@ -56,7 +56,7 @@ function test ()
    checkExplainResult( dbcl, findCondition2, null, null, explainExpRecs2 );
 
    var findCondition3 = { a: { $regex: '^string$', $options: 'i', b: "string" } };
-   InvalidArgCheck( dbcl, findCondition3, null, -6 );
+   InvalidArgCheck( dbcl, findCondition3, null, SDB_INVALIDARG );
 
    //feildName exists $ or .
    dbcl.remove();
@@ -100,7 +100,7 @@ function test ()
    checkExplainResult( dbcl, findCondition2, null, null, explainExpRecs2 );
 
    var findCondition3 = { "a.$1": { $regex: '^string$', $options: 'i', b: "string" } };
-   InvalidArgCheck( dbcl, findCondition3, null, -6 );
+   InvalidArgCheck( dbcl, findCondition3, null, SDB_INVALIDARG );
 
    var findCondition4 = { "a.0": { $regex: '^string$', $options: 'i' } };
    var expRecs4 = [{ No: 1, a: ["string", { b: "string" }] },

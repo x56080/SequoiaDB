@@ -114,7 +114,7 @@ function test ()
       throw new Error( "NEED_AN_ERR" );
    } catch( e )
    {
-      if( e.message !== "-104" )
+      if( e.message != SDB_CLS_NOT_PRIMARY )
       {
          throw e;
       }
@@ -167,7 +167,7 @@ function test ()
       throw new Error( "NEED_AN_ERR" );
    } catch( e )
    {
-      if( e.message !== "-155" )
+      if( e.message != SDB_CLS_NODE_NOT_EXIST )
       {
          throw e;
       }

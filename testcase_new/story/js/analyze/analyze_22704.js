@@ -33,7 +33,7 @@ function test ()
             出错可能导致 LSN 不一致，如果 LSN 检测不通过，不知道是错误导致的，还是其他用例回放 LSN 始终未同步导致的
          */
          // 可能由于备节点未同步cl报错
-         if( !commCompareErrorCode( e, -34 ) )
+         if( !commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) )
          {
             throw e;
          }

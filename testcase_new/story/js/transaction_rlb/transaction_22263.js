@@ -31,7 +31,7 @@ function test( testPara )
       }
       catch( e )
       {
-         if( e.message !== "-85" )
+         if( e.message != SDB_NET_INVALID_HANDLE )
          {
             throw e;
          }

@@ -84,7 +84,7 @@ function test ()
 
    //seqDB-10326
    var findCondition2 = { b: { $expand: 1 }, c: { $expand: 1 } };
-   InvalidArgCheck( dbcl, findCondition2, null, -6 );
+   InvalidArgCheck( dbcl, findCondition2, null, SDB_INVALIDARG );
 
    //seqDB-10327
    var findCondition3 = { d: { $expand: 1 } };
@@ -92,7 +92,7 @@ function test ()
 
    //seqDB-10328
    var findCondition4 = { b: { $expand: 0 }, c: { $expand: 1 } };
-   InvalidArgCheck( dbcl, findCondition4, null, -6 );
+   InvalidArgCheck( dbcl, findCondition4, null, SDB_INVALIDARG );
 
    //seqDB-10329
    var findCondition5 = { b: { $expand: 1 } };

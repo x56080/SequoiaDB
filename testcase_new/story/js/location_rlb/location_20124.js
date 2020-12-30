@@ -124,7 +124,7 @@ function mycommCreateRG ( db, rgName, instanceidList )
          catch( e )
          {
             //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-            if( commCompareErrorCode( e, -145 ) || commCompareErrorCode( e, -290 ) )
+            if( commCompareErrorCode( e, SDBCM_NODE_EXISTED ) || commCompareErrorCode( e, SDB_DIR_NOT_EMPTY ) )
             {
                svc = svc + 10;
                dbPath = RSRVNODEDIR + "data/" + svc;

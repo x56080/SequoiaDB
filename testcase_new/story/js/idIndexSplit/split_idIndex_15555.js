@@ -24,7 +24,7 @@ function test ( arg )
    }
    catch( e )
    {
-      if( "-32" !== e.message )
+      if( SDB_OPTION_NOT_SUPPORT != e.message )
       {
          throw e;
       }
@@ -38,7 +38,7 @@ function test ( arg )
    }
    catch( e )
    {
-      if( "-32" !== e.message )
+      if( SDB_OPTION_NOT_SUPPORT != e.message )
       {
          throw e;
       }
@@ -52,7 +52,7 @@ function test ( arg )
    }
    catch( e )
    {
-      if( "-32" !== e.message )
+      if( SDB_OPTION_NOT_SUPPORT != e.message )
       {
          throw e;
       }

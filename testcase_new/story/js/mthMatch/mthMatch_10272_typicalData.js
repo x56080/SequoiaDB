@@ -72,11 +72,11 @@ function test ()
    checkResult( dbcl, findCondition6, null, expRecs6, { No: 1 } );
 
    condition7 = { a: { $mod: -1 } };
-   InvalidArgCheck( dbcl, condition7, null, -6 );
+   InvalidArgCheck( dbcl, condition7, null, SDB_INVALIDARG );
 
    condition8 = { a: { $mod: "a" }, $et: 1 };
-   InvalidArgCheck( dbcl, condition8, null, -6 );
+   InvalidArgCheck( dbcl, condition8, null, SDB_INVALIDARG );
 
    condition9 = { a: { $mod: 0 }, $et: 1 };
-   InvalidArgCheck( dbcl, condition9, null, -6 );
+   InvalidArgCheck( dbcl, condition9, null, SDB_INVALIDARG );
 }

@@ -45,22 +45,22 @@ function test ()
    checkResult( dbcl, condition6, null, expRecs6, { No: 1 } );
 
    condition7 = { name: { $trim: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition7, null, -6 );
+   InvalidArgCheck( dbcl, condition7, null, SDB_INVALIDARG );
 
    condition8 = { name: { $trim: 1 } };
-   InvalidArgCheck( dbcl, condition8, null, -6 );
+   InvalidArgCheck( dbcl, condition8, null, SDB_INVALIDARG );
 
    condition9 = { name: { $ltrim: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition9, null, -6 );
+   InvalidArgCheck( dbcl, condition9, null, SDB_INVALIDARG );
 
    condition10 = { name: { $ltrim: 1 } };
-   InvalidArgCheck( dbcl, condition10, null, -6 );
+   InvalidArgCheck( dbcl, condition10, null, SDB_INVALIDARG );
 
    condition11 = { name: { $rtrim: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition11, null, -6 );
+   InvalidArgCheck( dbcl, condition11, null, SDB_INVALIDARG );
 
    condition12 = { name: { $rtrim: 1 } };
-   InvalidArgCheck( dbcl, condition12, null, -6 );
+   InvalidArgCheck( dbcl, condition12, null, SDB_INVALIDARG );
 
    //Non-String
    var condition13 = { name: { $trim: 1, $et: "Zha Ng\ts\ra\nn" }, major: { $trim: 1, $et: "Ch \t\n\rinese" }, weight: { $trim: 1, $et: null } };

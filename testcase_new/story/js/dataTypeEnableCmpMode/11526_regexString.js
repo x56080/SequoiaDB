@@ -59,7 +59,7 @@ function test ()
    checkResult( dbcl, findConf3, hintConf, sortConf, expRecs3 );
 
    var findConf4 = { a: { $options: "i" } };
-   InvalidArgCheck( dbcl, findConf4, null, -6 );
+   InvalidArgCheck( dbcl, findConf4, null, SDB_INVALIDARG );
 
    commDropCL( db, COMMCSNAME, clName, true, true, "drop CL in the end" );
 }

@@ -2,9 +2,9 @@
 @description:   split, abnormal case
                 testlink cases: seqDB-7224
 @input:         insert a rec: {age:1}, split by [splitpercent=50]
-@expectation:   1 lackSource(): expect: return -6 
-                2 lackTarget(): expect: return -6 
-                3 lackSpiltpercent(): expect: return -6 
+@expectation:   1 lackSource(): expect: return SDB_INVALIDARG
+                2 lackTarget(): expect: return SDB_INVALIDARG
+                3 lackSpiltpercent(): expect: return SDB_INVALIDARG
 @modify list:
                 2015-4-7 Ting YU init   2016-3-16 XiaoNi Huang init
 ****************************************************/
@@ -39,7 +39,7 @@ function lackSource ()
    var word = "split";
    tryCatch( ["cmd=" + word, "name=" + csName + '.' + clName,
    // 'source='+sourceGroup, 
-   'target=' + targetGroup, 'splitpercent=50'], [-6], "error occurs in " + getFuncName() );
+   'target=' + targetGroup, 'splitpercent=50'], [SDB_INVALIDARG], "error occurs in " + getFuncName() );
 }
 
 function lackTarget ()
@@ -47,7 +47,7 @@ function lackTarget ()
    var word = "split";
    tryCatch( ["cmd=" + word, "name=" + csName + '.' + clName, 'source=' + sourceGroup,
       // 'target='+targetGroup,
-      'splitpercent=50'], [-6], "error occurs in " + getFuncName() );
+      'splitpercent=50'], [SDB_INVALIDARG], "error occurs in " + getFuncName() );
 }
 
 function lackSplitpercent ()
@@ -55,7 +55,7 @@ function lackSplitpercent ()
    var word = "split";
    tryCatch( ["cmd=" + word, "name=" + csName + '.' + clName, 'source=' + sourceGroup, 'target=' + targetGroup,
       // 'splitpercent=50'
-   ], [-6], "error occurs in " + getFuncName() );
+   ], [SDB_INVALIDARG], "error occurs in " + getFuncName() );
 }
 
 

@@ -100,7 +100,7 @@ function cleanProcedure ( procName )
    }
    catch( e )
    {
-      if( e.message !== "-233" )
+      if( e.message != SDB_FMP_FUNC_NOT_EXIST )
       {
          throw new Error( e );
       }
@@ -118,7 +118,7 @@ function cleanUsers ( user1, user2 )
       }
       catch( e )
       {
-         if( e.message !== "-300" )
+         if( e.message != SDB_AUTH_USER_NOT_EXIST )
          {
             throw new Error( e );
          }
