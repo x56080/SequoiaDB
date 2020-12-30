@@ -78,7 +78,10 @@ if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 
 // CHANGEDPREFIX = local_test
-var COMMCSNAME = CHANGEDPREFIX + "_cs";
+
+var cmd = new Cmd();
+var hostname = cmd.run( "hostname" ).split( "\n" )[0];
+var COMMCSNAME = CHANGEDPREFIX + "_" + hostname + "_cs";
 var COMMCLNAME = CHANGEDPREFIX + "_cl";
 var COMMDUMMYCLNAME = "test_dummy_cl";
 //public capped cs
@@ -224,20 +227,12 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
       if( commCompareErrorCode( e, -22 ) && ignoreExisted )
       {
          // think right
+         csObj.dropCL( clName );
+         return csObj.createCL( clName, optionObj );
       } else
       {
          commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] create collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
       }
-   }
-
-   //get collection
-   try
-   {
-      return csObj.getCL( clName );
-   }
-   catch( e )
-   {
-      commThrowError( e, "commCreateCL[" + funcCommCreateCLOptTimes + "] get collection[" + csName + "." + clName + "] failed: " + e + ",message: " + message );
    }
 
 }
@@ -1211,7 +1206,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
       while( cursor.next() )
       {
          var expRecord = null;
-         if ( pos < expRecs.length )
+         if( pos < expRecs.length )
          {
             expRecord = expRecs[pos++];
          }
@@ -1224,7 +1219,7 @@ function commCompareResults ( cursor, expRecs, exceptId )
 
          if( isSuccess && !commCompareObject( expRecord, actRecord ) )
          {
-            if (isSuccess) posOfFailure = pos - 1;
+            if( isSuccess ) posOfFailure = pos - 1;
             isSuccess = false;
             if( JSON.stringify( actRecord ).length > 1024 )
             {
@@ -1236,8 +1231,8 @@ function commCompareResults ( cursor, expRecs, exceptId )
       if( actRecs.length !== expRecs.length )
       {
          isSuccess = false;
-         pos = actRecs.length > expRecs.length ? expRecs.length : actRecs.length ;
-         posOfFailure = pos ;
+         pos = actRecs.length > expRecs.length ? expRecs.length : actRecs.length;
+         posOfFailure = pos;
          if( actRecs.length != 0 && JSON.stringify( actRecs[posOfFailure] ).length > 1024 )
          {
             isLong = true;
@@ -1261,8 +1256,8 @@ function commCompareResults ( cursor, expRecs, exceptId )
    {
       if( isLong )
       {
-         var expStr = posOfFailure < expRecs.length ? JSON.stringify( expRecs[posOfFailure] ) : "" ;
-         var actStr = posOfFailure < actRecs.length ? JSON.stringify( actRecs[posOfFailure] ) : "" ;
+         var expStr = posOfFailure < expRecs.length ? JSON.stringify( expRecs[posOfFailure] ) : "";
+         var actStr = posOfFailure < actRecs.length ? JSON.stringify( actRecs[posOfFailure] ) : "";
          throw new Error( "compare the " + recordLocation + "th record failed, "
             + "\nexp record count: " + expRecs.length
             + "\nact record count: " + actRecs.length
@@ -1314,7 +1309,7 @@ function commCompareObject ( expObj, actObj )
       }
    }
 
-   if( typeof ( expObj ) != typeof ( actObj ) || isDirectCompare(expObj) != isDirectCompare(actObj))
+   if( typeof ( expObj ) != typeof ( actObj ) || isDirectCompare( expObj ) != isDirectCompare( actObj ) )
    {
       return expObj == actObj;
    }
