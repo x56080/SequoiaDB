@@ -58,7 +58,7 @@ function test ()
    }
 
    //create the index and geater than 64 error
-   createIndex( idxCL, "testindex", { a: 1 }, false, false, -42 );
+   createIndex( idxCL, "testindex", { a: 1 }, false, false, SDB_DMS_MAX_INDEX );
 
    /*var getIndex64 = undefined ;
    try

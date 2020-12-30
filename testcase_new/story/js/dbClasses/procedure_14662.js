@@ -303,7 +303,7 @@ function commCreateProcedure ( db, code, ignoreExisted )
       db.createProcedure( code );
    } catch( e )
    {
-      if( !commCompareErrorCode( e, -342 ) || !ignoreExisted )
+      if( !commCompareErrorCode( e, SDB_FMP_FUNC_EXIST ) || !ignoreExisted )
       {
          commThrowError( e, "commCreateProcedure, create procedure: " + code + " failed: " + e );
       }
@@ -323,7 +323,7 @@ function commRemoveProcedure ( db, functionName, ignoreNotExist )
       db.removeProcedure( functionName );
    } catch( e )
    {
-      if( !commCompareErrorCode( e, -233 ) || !ignoreNotExist )
+      if( !commCompareErrorCode( e, SDB_FMP_FUNC_NOT_EXIST ) || !ignoreNotExist )
       {
          commThrowError( e, "commRemoveProcedure, remove procedure: " + functionName + " failed: " + e );
       }

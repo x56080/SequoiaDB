@@ -365,7 +365,7 @@ function removeRG ( rgName )
    }
    catch( e )
    {
-      if( e.message !== "-154" )
+      if( e.message != SDB_CLS_GRP_NOT_EXIST )
       {
          throw e;
       }

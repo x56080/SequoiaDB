@@ -73,7 +73,7 @@ function test ()
       "}" +
       "catch(e)" +
       "{" +
-      "if( e != -34 )" +
+      "if( e != SDB_DMS_CS_NOTEXIST )" +
       "{" +
       "throw e ;" +
       "}" +

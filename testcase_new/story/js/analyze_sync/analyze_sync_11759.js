@@ -257,7 +257,7 @@ function checkAnalyzeResult ( options )
    }
    catch( e )
    {
-      if( "-104" !== e.message )
+      if( SDB_CLS_NOT_PRIMARY != e.message )
       {
          throw e;
       }

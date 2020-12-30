@@ -50,7 +50,7 @@ function test ()
       "}" +
       "catch ( e )" +
       "{" +
-      "   if ( -47 != e )" +
+      "   if ( SDB_IXM_NOTEXIST != e )" +
       "   {" +
       "      throw e ;" +
       "   }" +

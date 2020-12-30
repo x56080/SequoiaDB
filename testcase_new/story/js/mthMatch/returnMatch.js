@@ -110,11 +110,11 @@ function test ()
 
    //seqDB-10332
    var findCondition6 = { b: { $returnMatch: "a", $in: [1, 2, 3] } };
-   InvalidArgCheck( dbcl, findCondition6, null, -6 );
+   InvalidArgCheck( dbcl, findCondition6, null, SDB_INVALIDARG );
 
    //seqDB-10333
    var findCondition7 = { b: { $returnMatch: 0, $in: [1, 2, 3] }, c: { $returnMatch: 0, $in: [1, 2, 3] } };
-   InvalidArgCheck( dbcl, findCondition7, null, -6 );
+   InvalidArgCheck( dbcl, findCondition7, null, SDB_INVALIDARG );
 
    //seqDB-10334
    var findCondition8 = { c: { $returnMatch: 0, $in: [1, 2, 3] } };
@@ -194,14 +194,14 @@ function test ()
 
    //seqDB-10336
    var findCondition18 = { b: { $returnMatch: ["a", 2], $in: [1, 2, 3] } };
-   InvalidArgCheck( dbcl, findCondition18, null, -6 );
+   InvalidArgCheck( dbcl, findCondition18, null, SDB_INVALIDARG );
 
    var findCondition19 = { b: { $returnMatch: [2, "a"], $in: [1, 2, 3] } };
-   InvalidArgCheck( dbcl, findCondition19, null, -6 );
+   InvalidArgCheck( dbcl, findCondition19, null, SDB_INVALIDARG );
 
    //seqDB-10337
    var findCondition19 = { b: { $returnMatch: [2, 2], $in: [1, 2, 3] }, c: { $returnMatch: [2, 2], $in: [1, 2, 3] } };
-   InvalidArgCheck( dbcl, findCondition19, null, -6 );
+   InvalidArgCheck( dbcl, findCondition19, null, SDB_INVALIDARG );
 
    //seqDB-10338
    var findCondition20 = { c: { $returnMatch: [0, 1], $in: [1, 2, 3] } };

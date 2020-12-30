@@ -246,7 +246,7 @@ function getConfigs ( value )
             catch( e )
             {
                //-145 :SDBCM_NODE_EXISTED  -290:SDB_DIR_NOT_EMPTY
-               if( e == -145 || e == -290 )
+               if( e == SDBCM_NODE_EXISTED || e == SDB_DIR_NOT_EMPTY )
                {
                   svcName = svcName + 10;
                   dbPath = RSRVNODEDIR + "data/" + svcName;

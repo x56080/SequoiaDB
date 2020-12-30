@@ -26,7 +26,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -3 )
+      if( e != 	SDB_PERM )
       {
          throw e;
       }
@@ -38,7 +38,7 @@ function test ()
       throw new Error( "should error" );
    } catch( e )
    {
-      if( e != -3 )
+      if( e != SDB_PERM )
       {
          throw e;
       }

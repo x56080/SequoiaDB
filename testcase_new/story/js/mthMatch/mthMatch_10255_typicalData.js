@@ -66,8 +66,8 @@ function test ()
    checkResult( dbcl, findCondition6, null, expRecs6, { No: 1 } );
 
    condition7 = { a: { $add: -1 } };
-   InvalidArgCheck( dbcl, condition7, null, -6 );
+   InvalidArgCheck( dbcl, condition7, null, SDB_INVALIDARG );
 
    condition8 = { a: { $add: "a" }, $et: 1 };
-   InvalidArgCheck( dbcl, condition8, null, -6 );
+   InvalidArgCheck( dbcl, condition8, null, SDB_INVALIDARG );
 }

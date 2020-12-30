@@ -41,7 +41,7 @@ function test ()
       }
       catch( e )
       {
-         if( i === 0 && !commCompareErrorCode( e, -3 ) )
+         if( i === 0 && !commCompareErrorCode( e, SDB_PERM ) )
          {
             commThrowError( e );
          }

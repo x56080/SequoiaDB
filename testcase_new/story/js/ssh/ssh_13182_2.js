@@ -42,7 +42,7 @@ function test ()
       }
       catch( e )
       {
-         if( srcModes[i] === 0333 && !commCompareErrorCode( e, -10 ) )
+         if( srcModes[i] === 0333 && !commCompareErrorCode( e, SDB_SYS ) )
          {
             commThrowError( e );
          }

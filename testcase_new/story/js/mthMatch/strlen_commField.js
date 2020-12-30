@@ -30,10 +30,10 @@ function test ()
 
    //seqDB-10288
    condition3 = { name: { $strlen: "a", $et: 8 } };
-   InvalidArgCheck( dbcl, condition3, null, -6 );
+   InvalidArgCheck( dbcl, condition3, null, SDB_INVALIDARG );
 
    condition4 = { name: { $strlen: 8 } };
-   InvalidArgCheck( dbcl, condition4, null, -6 );
+   InvalidArgCheck( dbcl, condition4, null, SDB_INVALIDARG );
 
    //Non-String
    var condition5 = { name: { $strlen: 1, $et: 8 }, major: { $strlen: 1, $et: 4 }, weight: { $strlen: 1, $et: null } };

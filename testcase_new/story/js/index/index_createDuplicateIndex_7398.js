@@ -19,10 +19,10 @@ function test ()
    createIndex( idxCL, "testindex", { a: 1 }, false, false );
 
    // the index name duplicate
-   createIndex( idxCL, "testindex", { a: 1 }, false, false, -247 );
+   createIndex( idxCL, "testindex", { a: 1 }, false, false, SDB_IXM_REDEF );
 
    // the index key duplicate
-   createIndex( idxCL, "testkey", { a: 1 }, false, false, -291 );
+   createIndex( idxCL, "testkey", { a: 1 }, false, false, SDB_IXM_EXIST_COVERD_ONE );
 
    // inspect the index
    try

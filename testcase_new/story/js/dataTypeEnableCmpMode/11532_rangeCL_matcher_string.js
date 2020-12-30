@@ -219,7 +219,7 @@ function test ()
    checkResult( dbcl, findConf11, hintConf, sortConf, expRecs11 );
 
    var findConf12 = { a: { $options: "i" } };
-   InvalidArgCheck( dbcl, findConf12, null, -6 );
+   InvalidArgCheck( dbcl, findConf12, null, SDB_INVALIDARG );
 
    var findConf11 = { a: { $options: "i", $regex: "^a", $lt: "ae" } };
    var expRecs11 = [{ a: "aa" },

@@ -230,7 +230,7 @@ function checkAnalyzeInvalidGroup ( options )
    }
    catch( e )
    {
-      if( "-165" !== e.message && "-154" !== e.message )
+      if( SDB_RTN_CMD_NO_NODE_AUTH != e.message && SDB_CLS_GRP_NOT_EXIST != e.message )
       {
          throw e;
       }

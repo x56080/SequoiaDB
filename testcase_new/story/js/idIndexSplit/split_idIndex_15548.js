@@ -48,7 +48,7 @@ function test ( arg )
    }
    catch( e )
    {
-      if( "-279" !== e.message )
+      if( SDB_RTN_AUTOINDEXID_IS_FALSE != e.message )
       {
          throw e;
       }

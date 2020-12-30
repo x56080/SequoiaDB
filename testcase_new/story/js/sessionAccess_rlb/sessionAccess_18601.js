@@ -47,7 +47,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message !== "-250" )
+      if( e.message != SDB_CLS_NODE_BSFAULT )
       {
          throw e;
       }

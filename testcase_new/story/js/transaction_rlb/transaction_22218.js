@@ -26,10 +26,10 @@ function test ( testPara )
     {
         slaveNode.stop();
         testPara.testCL.insert( { a: 1 } );
-        throw new Error( "need throw error: -105" );
+        throw new Error( "need throw error: SDB_CLS_NODE_NOT_ENOUGH" );
     } catch( e )
     {
-        if( -105 != parseInt( e.message ) )
+        if( SDB_CLS_NODE_NOT_ENOUGH != parseInt( e.message ) )
         {
             println( "e:" + e );
             throw e;
@@ -46,3 +46,4 @@ function test ( testPara )
     var cursor = testPara.testCL.find();
     commCompareResults( cursor, [] );
 }
+

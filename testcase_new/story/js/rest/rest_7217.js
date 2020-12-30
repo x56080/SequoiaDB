@@ -3,7 +3,7 @@
                 testlink cases: seqDB-7217
 @input:         1 insert {_id:229095, age:10}
 				2 rest command lack of [name/updator] field
-@expectation:   rest return -6 error
+@expectation:   rest return SDB_INVALIDARG error
 @modify list:
                 2015-5-25 Ting YU init   2016-3-16 XiaoNi Huang init
 ****************************************************/
@@ -52,7 +52,7 @@ function lackName ()
 
 function lackUpdator ()
 {
-   tryCatch( ["cmd=upsert", cl], [-6], "Error occurs in " + getFuncName() + "; lack of updator" );
+   tryCatch( ["cmd=upsert", cl], [SDB_INVALIDARG], "Error occurs in " + getFuncName() + "; lack of updator" );
 
 
    /******check count is 1**********/

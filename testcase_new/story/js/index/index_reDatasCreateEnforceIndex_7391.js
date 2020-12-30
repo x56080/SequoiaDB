@@ -24,9 +24,9 @@ function test ()
 
    // create index
    createIndex( idxCL, "noIndex", { no: 1 }, true, false );
-   createIndex( idxCL, "nameIndex", { name: -1 }, true, false, -38 );
-   createIndex( idxCL, "姓名索引", { "姓名": 1 }, true, false, -38 );
-   createIndex( idxCL, "ageIndex", { "age": 1 }, true, false, -38 );
+   createIndex( idxCL, "nameIndex", { name: -1 }, true, false, SDB_IXM_DUP_KEY );
+   createIndex( idxCL, "姓名索引", { "姓名": 1 }, true, false, SDB_IXM_DUP_KEY );
+   createIndex( idxCL, "ageIndex", { "age": 1 }, true, false, SDB_IXM_DUP_KEY );
 
    // inspect the index
    try

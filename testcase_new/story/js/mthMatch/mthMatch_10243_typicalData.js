@@ -149,8 +149,8 @@ function test ()
 
    //seqDB-10246
    condition6 = { a: { $abs: -1, $et: 1 } };
-   InvalidArgCheck( dbcl, condition6, null, -6 );
+   InvalidArgCheck( dbcl, condition6, null, SDB_INVALIDARG );
 
    condition7 = { a: { $abs: -1 } };
-   InvalidArgCheck( dbcl, condition7, null, -6 );
+   InvalidArgCheck( dbcl, condition7, null, SDB_INVALIDARG );
 }

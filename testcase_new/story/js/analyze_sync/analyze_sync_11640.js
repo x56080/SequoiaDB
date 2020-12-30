@@ -421,7 +421,7 @@ function analyzeInvalidPara ( db, options )
       throw new Error( "NEED_ERR" );
    } catch( e )
    {
-      if( e.message !== "-6" )
+      if( e.message != SDB_INVALIDARG )
       {
          throw e;
       }

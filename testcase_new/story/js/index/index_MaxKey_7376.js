@@ -13,7 +13,7 @@ function test ()
 
    varCL.insert( { a: 1, longint: 2147483647000, floatNum: 12345.456 } );
    varCL.insert( { a: 2, b: "abcdgasdgasdgadgadgadgasdgadsgasdgadgasdgasdgasdgasdgasdgetetetetetetetasdgasdgasdgasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggasdgasdgasdgasdgadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggadgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdgasdggas12" } );
-   createIndex( varCL, "testindex", { b: 1 }, false, false, -39 );
+   createIndex( varCL, "testindex", { b: 1 }, false, false, SDB_IXM_KEY_TOO_LARGE );
 
    commDropCL( db, csName, clName, false, false );
 }
