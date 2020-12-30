@@ -630,6 +630,10 @@ namespace engine
             setCachedValue( currentValue ) ;
             OSS_BIT_SET( fieldMask, UTIL_CL_AUTOINC_CURVALUE_FIELD ) ;
          }
+         else if ( isInitial() )
+         {
+            OSS_BIT_SET( fieldMask, UTIL_CL_AUTOINC_CURVALUE_FIELD ) ;
+         }
       }
       else
       {
