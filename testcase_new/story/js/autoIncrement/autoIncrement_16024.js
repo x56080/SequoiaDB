@@ -19,6 +19,7 @@ function test ()
 
    var increment = 12;
    var acquireSize = 11;
+
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, AcquireSize: acquireSize } } );
 
    var coordNodes = getCoordNodeNames( db );
@@ -44,12 +45,12 @@ function test ()
    var cacheSize = 32;
    var acquireSize = 11;
    var generated = "strict";
-   var currentValue = 1000 * increment + 1;
+   var currentValue = 999 * increment + 1;
    dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, CompressionType: 'lzw' } );
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrementArr );
 
    var clExpSequenceObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: currentValue };
    checkSequence( db, clSequenceName, clExpSequenceObj );

@@ -18,13 +18,13 @@ function test ()
    commCreateIndex( dbcl, "id", { id: 1 }, { Unique: true } );
 
    //获取自增字段名
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    var expLastGenerateID = 1;
    var ret = dbcl.insert( [{ a: 1 }, { a: 2 }] );
    var actLastGenerateID = ret.toObj().LastGenerateID;
-   var expSeq = { CurrentValue: 1001 };
+   var expSeq = { CurrentValue: 1000 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
    checkSequence( db, clSequenceName, expSeq );
 
@@ -36,7 +36,7 @@ function test ()
    ret = dbcl.insert( { a: 1001 } );
    actLastGenerateID = ret.toObj().LastGenerateID;
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
-   expSeq = { CurrentValue: 2001 };
+   expSeq = { CurrentValue: 2000 };
    checkSequence( db, clSequenceName, expSeq );
 
    expR = [{ id: 1, a: 1 }, { id: 3, a: 2 }, { id: 1001, a: 1001 }];

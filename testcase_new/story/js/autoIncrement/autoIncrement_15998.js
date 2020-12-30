@@ -24,10 +24,10 @@ function test ()
    var maxValue = -1;
    var dbcl = commCreateCL( db, COMMCSNAME, clName, { AutoIncrement: { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } } );
 
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expArr );
 
    var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: maxValue, MinValue: minValue, MaxValue: maxValue, StartValue: maxValue };
    checkSequence( db, clSequenceName, expObj );
@@ -49,10 +49,10 @@ function test ()
    var increment = -2147483647;
    dbcl.createAutoIncrement( { Field: fieldName, Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize } );
 
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expArr = [{ Field: fieldName, SequenceName: clSequenceName }];
-   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expArr );
 
    var expObj = { Increment: increment, CacheSize: cacheSize, AcquireSize: acquireSize, CurrentValue: maxValue, MinValue: minValue, MaxValue: maxValue, StartValue: maxValue };
    checkSequence( db, clSequenceName, expObj );

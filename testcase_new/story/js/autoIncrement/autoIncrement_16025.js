@@ -52,7 +52,7 @@ function test ()
    checkRec( actR, expR );
 
    //插入100条记录，catalog上缓存序列生成了100/cacheSize次,且序列值已用完
-   var currentValue = ( Math.ceil( 100 / cacheSize ) + 1 ) * cacheSize * increment + 1;
+   var currentValue = ( Math.ceil( 100 / cacheSize ) + 1 ) * cacheSize * increment + 1 - increment;
 
    //插入100条记录，coord获取的序列值未用完，alter后会清空coord上未用完的序列值
    var nextValue = Math.ceil( 100 / acquireSize ) * acquireSize * increment + 1;

@@ -118,7 +118,7 @@ function test ()
 
    /*每个coord插入100条记录，需要从catalog上取acquireSizeNum = Math.ceil(100 /acquireSize)次序列值，多个coord总共取coordNum*acquireSizeNum
      再计算这么多序列值，catalog需要生成多少次，再加上初始值*/
-   var currentValue = Math.ceil( Math.ceil( 100 / acquireSize ) * coordNum * acquireSize / cacheSize ) * cacheSize * increment + 1;
+   var currentValue = Math.ceil( Math.ceil( 100 / acquireSize ) * coordNum * acquireSize / cacheSize ) * cacheSize * increment + 1 - increment;
 
    //插入coordNum*100条记录，coord获取的序列值未用完，alter后会清空coord上未用完的序列值
    var nextValue = Math.ceil( 100 / acquireSize ) * acquireSize * coordNum * increment + 1;

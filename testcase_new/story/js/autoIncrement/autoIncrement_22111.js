@@ -21,7 +21,7 @@ function test ()
    dbcl.insert( [{ a: 1 }, { a: 2 }] );
 
    //获取自增字段名
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_id_SEQ";
 
    //指定自增字段值单插，插入重复键
@@ -34,7 +34,7 @@ function test ()
    var expLastGenerateID = 3;
    var ret = dbcl.insert( { a: 3 } );
    var actLastGenerateID = ret.toObj().LastGenerateID;
-   var expSeq = { CurrentValue: 1001 };
+   var expSeq = { CurrentValue: 1000 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
    checkSequence( db, clSequenceName, expSeq );
 
@@ -72,7 +72,7 @@ function test ()
    expLastGenerateID = 6;
    ret = dbcl.insert( { a: 6 } );
    actLastGenerateID = ret.toObj().LastGenerateID;
-   expSeq = { CurrentValue: 1001 };
+   expSeq = { CurrentValue: 1000 };
    checkLastGenerateID( actLastGenerateID, expLastGenerateID );
    checkSequence( db, clSequenceName, expSeq );
 

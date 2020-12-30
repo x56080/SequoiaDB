@@ -38,6 +38,7 @@ function test ()
       coord.close();
    }
    var actR = dbcl.find().sort( { a: 1 } );
+
    checkRec( actR, expR );
 
    var increment1 = 10;
@@ -51,17 +52,17 @@ function test ()
       AutoIncrement: [{ Field: fieldName1, Increment: increment1, CacheSize: cacheSize1, AcquireSize: acquireSize1, Generated: generated1 },
       { Field: fieldName2, Increment: increment2, CacheSize: cacheSize2, AcquireSize: acquireSize2 }]
    } );
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName1 = "SYS_" + clID + "_" + fieldName1 + "_SEQ";
    var clSequenceName2 = "SYS_" + clID + "_" + fieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: fieldName1, SequenceName: clSequenceName1, Generated: generated1 },
    { Field: fieldName2, SequenceName: clSequenceName2 }];
-   checkAutoIncrementonCL( db,  COMMCSNAME, clName, expIncrementArr );
+   checkAutoIncrementonCL( db, COMMCSNAME, clName, expIncrementArr );
 
-   var currentValue1 = coordNum * 1000 + 1;
+   var currentValue1 = coordNum * 1000;
    var clExpSequenceObj = { Increment: increment1, CacheSize: cacheSize1, AcquireSize: acquireSize1, CurrentValue: currentValue1 };
    checkSequence( db, clSequenceName1, clExpSequenceObj );
-   var currentValue2 = coordNum * 1000 + 1;
+   var currentValue2 = coordNum * 1000;
    var clExpSequenceObj = { Increment: increment2, CacheSize: cacheSize2, AcquireSize: acquireSize2, CurrentValue: currentValue2 };
    checkSequence( db, clSequenceName2, clExpSequenceObj );
    for( var k = 0; k < coordNum; k++ )
@@ -75,7 +76,7 @@ function test ()
       for( var i = 0; i < 100; i++ )
       {
          doc.push( { a: sortField } );
-         expR.push( { a: sortField, id1: currentValue1 + increment1 - 1 + Math.ceil( 100 / acquireSize1 ) * acquireSize1 * increment1 * k + increment1 * i, id2: currentValue2 + increment2 - 1 + Math.ceil( 100 / acquireSize2 ) * acquireSize2 * increment2 * k + increment2 * i } );
+         expR.push( { a: sortField, id1: currentValue1 + increment1 + Math.ceil( 100 / acquireSize1 ) * acquireSize1 * increment1 * k + increment1 * i, id2: currentValue2 + increment2 + Math.ceil( 100 / acquireSize2 ) * acquireSize2 * increment2 * k + increment2 * i } );
          sortField++;
       }
       cl.insert( doc );

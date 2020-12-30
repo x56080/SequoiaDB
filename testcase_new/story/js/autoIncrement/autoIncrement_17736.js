@@ -38,10 +38,10 @@ function test ()
    expRecs.push( insertR1 );
 
    //检查catalog已丢弃老的缓存，重新生成新的缓存
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
-   if( cursor.current().toObj().CurrentValue !== -2002 )
+   if( cursor.current().toObj().CurrentValue !== -2001 )
    {
       throw new Error( "failed!" );
    }

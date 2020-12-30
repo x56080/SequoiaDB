@@ -7,7 +7,7 @@ var sortField = 0;
 main( test );
 function test ()
 {
-   var dataGroupNames = commGetDataGroupNames( db);
+   var dataGroupNames = commGetDataGroupNames( db );
    if( commIsStandalone( db ) || dataGroupNames.length < 2 )
    {
       return;
@@ -69,25 +69,25 @@ function test ()
    maincl.attachCL( subclFullName2, { LowBound: { a1: 20 }, UpBound: { a1: 40 } } );
    maincl.attachCL( subclFullName3, { LowBound: { a1: 40 }, UpBound: { a1: 6000 } } );
 
-   var mainclID = getCLID( db,  maincsName, mainclName );
+   var mainclID = getCLID( db, maincsName, mainclName );
    var mainclSequenceName = "SYS_" + mainclID + "_" + mainclFieldName + "_SEQ";
    var expIncrementArr = [{ Field: mainclFieldName, SequenceName: mainclSequenceName, Generated: generated }];
-   checkAutoIncrementonCL( db,  maincsName, mainclName, expIncrementArr );
+   checkAutoIncrementonCL( db, maincsName, mainclName, expIncrementArr );
 
-   var subclID = getCLID( db,  maincsName, subclName1 );
+   var subclID = getCLID( db, maincsName, subclName1 );
    var subclSequenceName1 = "SYS_" + subclID + "_" + subclFieldName1 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName1, SequenceName: subclSequenceName1 }];
-   checkAutoIncrementonCL( db,  maincsName, subclName1, expIncrementArr );
+   checkAutoIncrementonCL( db, maincsName, subclName1, expIncrementArr );
 
-   var subclID = getCLID( db,  subcsName, subclName2 );
+   var subclID = getCLID( db, subcsName, subclName2 );
    var subclSequenceName2 = "SYS_" + subclID + "_" + subclFieldName2 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName2, SequenceName: subclSequenceName2 }];
-   checkAutoIncrementonCL( db,  subcsName, subclName2, expIncrementArr );
+   checkAutoIncrementonCL( db, subcsName, subclName2, expIncrementArr );
 
-   var subclID = getCLID( db,  subcsName, subclName3 );
+   var subclID = getCLID( db, subcsName, subclName3 );
    var subclSequenceName3 = "SYS_" + subclID + "_" + subclFieldName3 + "_SEQ";
    var expIncrementArr = [{ Field: subclFieldName3, SequenceName: subclSequenceName3 }];
-   checkAutoIncrementonCL( db,  subcsName, subclName3, expIncrementArr );
+   checkAutoIncrementonCL( db, subcsName, subclName3, expIncrementArr );
 
    var mainExpSequenceObj = {
       Increment: increment, StartValue: startValue, MinValue: minValue, MaxValue: maxValue, CacheSize: cacheSize,
@@ -113,7 +113,7 @@ function test ()
    commDropCL( db, maincsName, subclName1 );
    var mainExpSequenceObj = {
       Increment: increment, StartValue: startValue, MinValue: minValue, MaxValue: maxValue, CacheSize: cacheSize,
-      AcquireSize: acquireSize, Cycled: cycled, CurrentValue: startValue + Math.ceil( 100 / cacheSize ) * cacheSize * increment
+      AcquireSize: acquireSize, Cycled: cycled, CurrentValue: startValue + Math.ceil( 100 / cacheSize ) * cacheSize * increment - increment
    };
    checkSequence( db, mainclSequenceName, mainExpSequenceObj );
    var subclSequenceNum1 = db.snapshot( 15, { Name: subclSequenceName1 } ).toArray().length;
