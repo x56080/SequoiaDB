@@ -92,7 +92,7 @@ HTAP混合负载
 [2pc]:manual/Distributed_Engine/Architecture/Transactions/2pc.md
 [isolation]:manual/Distributed_Engine/Architecture/Transactions/isolation.md
 [instance]:manual/Database_Instance/Readme.md
-[read_write]:manual/Distributed_Engine/Architecture/Replication/architecture.md
+[read_write]:manual/Distributed_Engine/Architecture/Replication/architecture.md#读写分离
 [domain]:manual/Distributed_Engine/Architecture/domain.md
 [scaleout]:manual/SequoiaDB_Intro/features.md#弹性水平扩展
 [hadr]:manual/SequoiaDB_Intro/features.md#高可用与容灾
