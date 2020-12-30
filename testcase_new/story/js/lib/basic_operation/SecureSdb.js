@@ -13,11 +13,13 @@ var tmpSecureSdb = {
    createDomain: SecureSdb.prototype.createDomain,
    createProcedure: SecureSdb.prototype.createProcedure,
    createRG: SecureSdb.prototype.createRG,
+   createSequence: SecureSdb.prototype.createSequence,
    createSpareRG: SecureSdb.prototype.createSpareRG,
    createUsr: SecureSdb.prototype.createUsr,
    deleteConf: SecureSdb.prototype.deleteConf,
    dropCS: SecureSdb.prototype.dropCS,
    dropDomain: SecureSdb.prototype.dropDomain,
+   dropSequence: SecureSdb.prototype.dropSequence,
    dropUsr: SecureSdb.prototype.dropUsr,
    eval: SecureSdb.prototype.eval,
    exec: SecureSdb.prototype.exec,
@@ -32,6 +34,7 @@ var tmpSecureSdb = {
    getDC: SecureSdb.prototype.getDC,
    getDomain: SecureSdb.prototype.getDomain,
    getRG: SecureSdb.prototype.getRG,
+   getSequence: SecureSdb.prototype.getSequence,
    getSessionAttr: SecureSdb.prototype.getSessionAttr,
    getSpareRG: SecureSdb.prototype.getSpareRG,
    help: SecureSdb.prototype.help,
@@ -56,7 +59,11 @@ var tmpSecureSdb = {
    removeRG: SecureSdb.prototype.removeRG,
    removeSpareRG: SecureSdb.prototype.removeSpareRG,
    renameCS: SecureSdb.prototype.renameCS,
+   renameSequence: SecureSdb.prototype.renameSequence,
    resetSnapshot: SecureSdb.prototype.resetSnapshot,
+   restoreAbort: SecureSdb.prototype.restoreAbort,
+   restorePrepare: SecureSdb.prototype.restorePrepare,
+   restoreToTime: SecureSdb.prototype.restoreToTime,
    setPDLevel: SecureSdb.prototype.setPDLevel,
    setSessionAttr: SecureSdb.prototype.setSessionAttr,
    snapshot: SecureSdb.prototype.snapshot,
@@ -93,11 +100,13 @@ SecureSdb.prototype.createCoordRG=function(){try{return tmpSecureSdb.createCoord
 SecureSdb.prototype.createDomain=function(){try{return tmpSecureSdb.createDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.createProcedure=function(){try{return tmpSecureSdb.createProcedure.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.createRG=function(){try{return tmpSecureSdb.createRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.createSequence=function(){try{return tmpSecureSdb.createSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.createSpareRG=function(){try{return tmpSecureSdb.createSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.createUsr=function(){try{return tmpSecureSdb.createUsr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.deleteConf=function(){try{return tmpSecureSdb.deleteConf.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.dropCS=function(){try{return tmpSecureSdb.dropCS.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.dropDomain=function(){try{return tmpSecureSdb.dropDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.dropSequence=function(){try{return tmpSecureSdb.dropSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.dropUsr=function(){try{return tmpSecureSdb.dropUsr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.eval=function(){try{return tmpSecureSdb.eval.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.exec=function(){try{return tmpSecureSdb.exec.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -112,6 +121,7 @@ SecureSdb.prototype.getCoordRG=function(){try{return tmpSecureSdb.getCoordRG.app
 SecureSdb.prototype.getDC=function(){try{return tmpSecureSdb.getDC.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getDomain=function(){try{return tmpSecureSdb.getDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getRG=function(){try{return tmpSecureSdb.getRG.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.getSequence=function(){try{return tmpSecureSdb.getSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSessionAttr=function(){try{return tmpSecureSdb.getSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSpareRG=function(){try{return tmpSecureSdb.getSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.help=function(){try{return tmpSecureSdb.help.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -136,7 +146,11 @@ SecureSdb.prototype.removeProcedure=function(){try{return tmpSecureSdb.removePro
 SecureSdb.prototype.removeRG=function(){try{return tmpSecureSdb.removeRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.removeSpareRG=function(){try{return tmpSecureSdb.removeSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.renameCS=function(){try{return tmpSecureSdb.renameCS.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.renameSequence=function(){try{return tmpSecureSdb.renameSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.resetSnapshot=function(){try{return tmpSecureSdb.resetSnapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.restoreAbort=function(){try{return tmpSecureSdb.restoreAbort.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.restorePrepare=function(){try{return tmpSecureSdb.restorePrepare.apply(this,arguments);}catch(e){throw new Error(e);}};
+SecureSdb.prototype.restoreToTime=function(){try{return tmpSecureSdb.restoreToTime.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.setPDLevel=function(){try{return tmpSecureSdb.setPDLevel.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.setSessionAttr=function(){try{return tmpSecureSdb.setSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.snapshot=function(){try{return tmpSecureSdb.snapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
