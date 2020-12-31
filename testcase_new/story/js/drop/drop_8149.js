@@ -12,7 +12,7 @@
 ******************************************************************************/
 testConf.csName = COMMCLNAME + "_8149";
 // SEQUOIADBMAINSTREAM-6212
-//main( test );
+main( test );
 
 function test ( testPara )
 {
