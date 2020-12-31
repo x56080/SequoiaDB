@@ -845,18 +845,21 @@ replicaGroup.prototype.checkResult =
          throw  new Error("checkfun is not function") ;
       }
 
-      var totalSleepDuration = 30000;
-      var sleepInteval = 20;
+      var totalSleepDuration = 120000;
+      var sleepInteval = 10000;
 
       var sleepDuration = 0;
       var checkOk = true;
 
+      times = 0;
       do
       {
          if( needSleep )
          {
             sleep( sleepInteval );
             sleepDuration += sleepInteval;
+            if (sleepInteval > 10000) 
+               sleepInteval /= 2;
          }
          else
          {
@@ -897,9 +900,12 @@ replicaGroup.prototype.checkLSN =
             prevLsn = obj.CompleteLSN;
             prevSvc = obj.NodeName;
          }
-         else if( prevLsn !== obj.CompleteLSN && this.failedCound++ % 100 == 0 )
+         else if( prevLsn !== obj.CompleteLSN )
          {
-            println( prevSvc + "is LSN: " + prevLsn + obj.NodeName + " is LSN:" + obj.CompleteLSN );
+            if ( this.failedCound++  == 0 )
+            {
+               println( prevSvc + "is LSN: " + prevLsn + obj.NodeName + " is LSN:" + obj.CompleteLSN );
+            }
             return false;
          }
       }
