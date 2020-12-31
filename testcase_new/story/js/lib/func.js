@@ -81,6 +81,7 @@ if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 
 var cmd = new Cmd();
 var hostname = cmd.run( "hostname" ).split( "\n" )[0];
+hostname = hostname.replace(/-/g,"_");
 var COMMCSNAME = CHANGEDPREFIX + "_" + hostname + "_cs";
 var COMMCLNAME = CHANGEDPREFIX + "_cl";
 var COMMDUMMYCLNAME = "test_dummy_cl";
