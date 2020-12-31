@@ -9,7 +9,7 @@
 点击右下角 **创建数据库**，填写数据库名后点击 **确定** 按钮
 ![创建数据库][add_database]
 
-创建数据表
+创建数据表 
 ----
 
 创建数据表可以选择创建普通表和外部表，创建外部表需要当前数据库已经进行了[添加 PostgreSQL 实例存储][deployment_postgresql]操作。
@@ -35,7 +35,7 @@
 
 删除数据表
 ----
-从数据表列表中选择需要删除的表，点击行中的 **X** 按钮，确认后点击 **确定** 按钮
+从数据表列表中选择需要删除的表，点击行中的【X】符号，确认后点击 **确定** 按钮
 ![删除数据表][drop_table]
 
    > **Note:**
@@ -44,7 +44,7 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[deployment_postgresql]:manual/SAC/Deployment/Deployment_Bystep/deployment_postgresql.md
+[deployment_postgresql]:manual/SAC/Deployment/Deployment_Bystep/deployment_postgresql.md#添加已有PostgreSQL实例
 [record]:manual/SAC/Operation/Postgresql/record.md
 
 [database_oltp]:images/SAC/Operation/Postgresql/database_oltp.png

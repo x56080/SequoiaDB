@@ -7,7 +7,7 @@
 
 **主机操作**
  
-  - [删除主机][remove_host]
+  - [删除主机][remove_host] 
   - [更新主机信息][update_host_info]
 
 **存储集群操作**
@@ -22,27 +22,25 @@
   - [索引][index]
   - [记录][record]
   - [Lob][lob]
-  - [SequoiaDB 修改配置][sequoiadb_configs]
+  - [修改存储集群配置][sequoiadb_configs]
 
 **MySQL 实例操作**
 
-  - [删除实例][uninstall_mysql]
-  - [移除实例存储][remove_mysql_storage]
   - [基本操作][basic_operation_mysql]
   - [数据库][database]
   - [数据操作][record]
   - [字段结构][field]
+  - [删除实例][uninstall_mysql]
+  - [移除实例存储][remove_mysql_storage]
 
 **PostgreSQL 实例操作**
 
-  - [删除实例][uninstall_postgresql]
-  - [移除实例存储][remove_pg_storage]
   - [基本操作][basic_operation_pg]
   - [数据库][database_pg]
   - [数据操作][record_pg]
   - [字段结构][field_pg]
-
-
+  - [删除实例][uninstall_postgresql]
+  - [移除实例存储][remove_pg_storage]
 
 [^_^]:
     本文使用的所有引用及链接
@@ -56,7 +54,7 @@
 [remove_mysql_storage]:manual/SAC/Operation/Mysql/remove_mysql_storage.md
 [basic_operation_mysql]:manual/SAC/Operation/Mysql/basic_operation.md
 [database]:manual/SAC/Operation/Mysql/database.md
-[record]:manual/SAC/Operation/Mmysql/record.md
+[record]:manual/SAC/Operation/Mysql/record.md
 [field]:manual/SAC/Operation/Mysql/field.md
 
 [uninstall_postgresql]:manual/SAC/Operation/Postgresql/uninstall_postgresql.md
