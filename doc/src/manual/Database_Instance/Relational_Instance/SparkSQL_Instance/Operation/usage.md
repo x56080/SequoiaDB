@@ -1,4 +1,4 @@
-﻿[^_^]:
+[^_^]:
     Spark-SequoiaDB 使用
     作者：林友滨
     时间：20190815
@@ -124,4 +124,4 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 
 [^_^]:
      本文使用的所有引用和链接
-[parameter]:manual/database_management/database_configuration/configuration_parameters.md
+[parameter]:manual/Manual/Database_Configuration/configuration_parameters.md

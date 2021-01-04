@@ -83,6 +83,6 @@
 
 [^_^]: 
     本文使用到的所有链接及引用。
-[create_collection]:manual/reference/Sequoiadb_command/Sdb/createCS.md
-[split]:manual/reference/Sequoiadb_command/SdbCollection/split.md
-[attach_command]:manual/reference/Sequoiadb_command/SdbCollection/attachCL.md
+[create_collection]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
+[split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md
+[attach_command]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md

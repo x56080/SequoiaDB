@@ -927,62 +927,6 @@
                      ]
                   },
                   {
-                     "id": 1432190635,
-                     "dir": "Catalog_Table",
-                     "cn": "编目表",
-                     "en": "Catalog Table",
-                     "contents": [
-                        {
-                           "id": 1519625791,
-                           "file": "SYSCOLLECTIONS",
-                           "cn": "SYSCOLLECTIONS 集合",
-                           "en": "SYSCOLLECTIONS"
-                        },
-                        {
-                           "id": 1519625792,
-                           "file": "SYSCOLLECTIONSPACES",
-                           "cn": "SYSCOLLECTIONSPACES 集合",
-                           "en": "SYSCOLLECTIONSPACES"
-                        },
-                        {
-                           "id": 1519625793,
-                           "file": "SYSDOMAINS",
-                           "cn": "SYSDOMAINS 集合",
-                           "en": "SYSDOMAINS"
-                        },
-                        {
-                           "id": 1519625794,
-                           "file": "SYSNODES",
-                           "cn": "SYSNODES 集合",
-                           "en": "SYSNODES"
-                        },
-                        {
-                           "id": 1519625795,
-                           "file": "SYSTASKS",
-                           "cn": "SYSTASKS 集合",
-                           "en": "SYSTASKS"
-                        },
-                        {
-                           "id": 1519625796,
-                           "file": "SYSUSRS",
-                           "cn": "SYSUSRS 集合",
-                           "en": "SYSUSRS"
-                        },
-                        {
-                           "id": 1519625797,
-                           "file": "STOREPROCEDURES",
-                           "cn": "STOREPROCEDURES 集合",
-                           "en": "STOREPROCEDURES"
-                        },
-                        {
-                           "id": 1588131727,
-                           "file": "SEQUENCES",
-                           "cn": "SEQUENCES 集合",
-                           "en": "SEQUENCES"
-                        }
-                     ]
-                  },
-                  {
                      "id": 1432190645,
                      "dir": "Replication",
                      "cn": "复制组",
@@ -1274,238 +1218,6 @@
                            "file": "monitor_node",
                            "cn": "监控节点状态",
                            "en": "Monitor Node Status"
-                        },
-                        {
-                           "id": 1432190669,
-                           "dir": "snapshot",
-                           "cn": "快照",
-                           "en": "Snapshot",
-                           "contents": [
-                              {
-                                 "id": 1479173710,
-                                 "file": "snapshot",
-                                 "cn": "快照类型",
-                                 "en": "Snapshot Types"
-                              },
-                              {
-                                 "id": 1479173711,
-                                 "file": "SDB_SNAP_CONTEXTS",
-                                 "cn": "上下文快照",
-                                 "en": "SDB_SNAP_CONTEXTS"
-                              },
-                              {
-                                 "id": 1479173712,
-                                 "file": "SDB_SNAP_CONTEXTS_CURRENT",
-                                 "cn": "当前上下文快照",
-                                 "en": "SDB_SNAP_CONTEXTS_CURRENT"
-                              },
-                              {
-                                 "id": 1479173713,
-                                 "file": "SDB_SNAP_SESSIONS",
-                                 "cn": "会话快照",
-                                 "en": "SDB_SNAP_SESSIONS"
-                              },
-                              {
-                                 "id": 1479173714,
-                                 "file": "SDB_SNAP_SESSIONS_CURRENT",
-                                 "cn": "当前会话快照",
-                                 "en": "SDB_SNAP_SESSIONS_CURRENT"
-                              },
-                              {
-                                 "id": 1479173715,
-                                 "file": "SDB_SNAP_COLLECTIONS",
-                                 "cn": "集合快照",
-                                 "en": "SDB_SNAP_COLLECTIONS"
-                              },
-                              {
-                                 "id": 1479173716,
-                                 "file": "SDB_SNAP_COLLECTIONSPACES",
-                                 "cn": "集合空间快照",
-                                 "en": "SDB_SNAP_COLLECTIONSPACES"
-                              },
-                              {
-                                 "id": 1479173717,
-                                 "file": "SDB_SNAP_DATABASE",
-                                 "cn": "数据库快照",
-                                 "en": "SDB_SNAP_DATABASE"
-                              },
-                              {
-                                 "id": 1479173718,
-                                 "file": "SDB_SNAP_SYSTEM",
-                                 "cn": "操作系统快照",
-                                 "en": "SDB_SNAP_SYSTEM"
-                              },
-                              {
-                                 "id": 1479173719,
-                                 "file": "SDB_SNAP_CATALOG",
-                                 "cn": "编目信息快照",
-                                 "en": "SDB_SNAP_CATALOG"
-                              },
-                              {
-                                 "id": 1479173720,
-                                 "file": "SDB_SNAP_TRANSACTIONS",
-                                 "cn": "事务快照",
-                                 "en": "SDB_SNAP_TRANSACTIONS"
-                              },
-                              {
-                                 "id": 1479173721,
-                                 "file": "SDB_SNAP_TRANSACTIONS_CURRENT",
-                                 "cn": "当前事务快照",
-                                 "en": "SDB_SNAP_TRANSACTIONS_CURRENT"
-                              },
-                              {
-                                 "id": 1511852592,
-                                 "file": "SDB_SNAP_ACCESSPLANS",
-                                 "cn": "访问计划缓存快照",
-                                 "en": "SDB_SNAP_ACCESSPLANS"
-                              },
-                              {
-                                 "id": 1516786163,
-                                 "file": "SDB_SNAP_HEALTH",
-                                 "cn": "节点健康检测快照",
-                                 "en": "SDB_SNAP_HEALTH"
-                              },
-                              {
-                                 "id": 1521423973,
-                                 "file": "SDB_SNAP_CONFIGS",
-                                 "cn": "配置快照",
-                                 "en": "SDB_SNAP_CONFIGS"
-                              },
-                              {
-                                 "id": 1565839362,
-                                 "file": "SDB_SNAP_SVCTASKS",
-                                 "cn": "服务任务快照",
-                                 "en": "SDB_SNAP_SVCTASKS"
-                              },
-                              {
-                                 "id": 1541038691,
-                                 "file": "SDB_SNAP_SEQUENCES",
-                                 "cn": "序列快照",
-                                 "en": "SDB_SNAP_SEQUENCES"
-                              },
-                              {
-                                 "id": 1598034944,
-                                 "file": "SDB_SNAP_QUERIES",
-                                 "cn": "查询快照",
-                                 "en": "SDB_SNAP_QUERIES"
-                              },
-                              {
-                                 "id": 1598034972,
-                                 "file": "SDB_SNAP_LOCKWAITS",
-                                 "cn": "锁等待快照",
-                                 "en": "SDB_SNAP_LOCKWAITS"
-                              },
-                              {
-                                 "id": 1598034986,
-                                 "file": "SDB_SNAP_LATCHWAITS",
-                                 "cn": "闩锁等待快照",
-                                 "en": "SDB_SNAP_LATCHWAITS"
-                              },
-                              {
-                                 "id": 1592467466,
-                                 "file": "SDB_SNAP_INDEXSTATS",
-                                 "cn": "索引统计信息快照",
-                                 "en": "SDB_SNAP_INDEXSTATS"
-                              }
-                           ]
-                        },
-                        {
-                           "id": 1432190670,
-                           "dir": "list",
-                           "cn": "列表",
-                           "en": "List",
-                           "contents": [
-                              {
-                                 "id": 1479173730,
-                                 "file": "list",
-                                 "cn": "列表类型",
-                                 "en": "List Types"
-                              },
-                              {
-                                 "id": 1479173731,
-                                 "file": "SDB_LIST_CONTEXTS",
-                                 "cn": "上下文列表",
-                                 "en": "SDB_LIST_CONTEXTS"
-                              },
-                              {
-                                 "id": 1479173732,
-                                 "file": "SDB_LIST_CONTEXTS_CURRENT",
-                                 "cn": "当前上下文列表",
-                                 "en": "SDB_LIST_CONTEXTS_CURRENT"
-                              },
-                              {
-                                 "id": 1479173733,
-                                 "file": "SDB_LIST_SESSIONS",
-                                 "cn": "会话列表",
-                                 "en": "SDB_LIST_SESSIONS"
-                              },
-                              {
-                                 "id": 1479173734,
-                                 "file": "SDB_LIST_SESSIONS_CURRENT",
-                                 "cn": "当前会话列表",
-                                 "en": "SDB_LIST_SESSIONS_CURRENT"
-                              },
-                              {
-                                 "id": 1479173735,
-                                 "file": "SDB_LIST_COLLECTIONS",
-                                 "cn": "集合列表",
-                                 "en": "SDB_LIST_COLLECTIONS"
-                              },
-                              {
-                                 "id": 1479173736,
-                                 "file": "SDB_LIST_COLLECTIONSPACES",
-                                 "cn": "集合空间列表",
-                                 "en": "SDB_LIST_COLLECTIONSPACES"
-                              },
-                              {
-                                 "id": 1479173737,
-                                 "file": "SDB_LIST_STORAGEUNITS",
-                                 "cn": "存储单元列表",
-                                 "en": "SDB_LIST_STORAGEUNITS"
-                              },
-                              {
-                                 "id": 1479173738,
-                                 "file": "SDB_LIST_GROUPS",
-                                 "cn": "分区组列表",
-                                 "en": "SDB_LIST_GROUPS"
-                              },
-                              {
-                                 "id": 1501230617,
-                                 "file": "SDB_LIST_TRANSACTIONS",
-                                 "cn": "事务列表",
-                                 "en": "SDB_LIST_TRANSACTIONS"
-                              },
-                              {
-                                 "id": 1501230618,
-                                 "file": "SDB_LIST_TRANSACTIONS_CURRENT",
-                                 "cn": "当前事务列表",
-                                 "en": "SDB_LIST_TRANSACTIONS_CURRENT"
-                              },
-                              {
-                                 "id": 1565839437,
-                                 "file": "SDB_LIST_SVCTASKS",
-                                 "cn": "服务任务列表",
-                                 "en": "SDB_LIST_SVCTASKS"
-                              },
-                              {
-                                 "id": 1541038852,
-                                 "file": "SDB_LIST_SEQUENCES",
-                                 "cn": "序列列表",
-                                 "en": "SDB_LIST_SEQUENCES"
-                              },
-                              {
-                                 "id": 1565839438,
-                                 "file": "SDB_LIST_USERS",
-                                 "cn": "用户列表",
-                                 "en": "SDB_LIST_USERS"
-                              },
-                              {
-                                 "id": 1565839436,
-                                 "file": "SDB_LIST_BACKUPS",
-                                 "cn": "备份列表",
-                                 "en": "SDB_LIST_BACKUPS"
-                              }
-                           ]
                         }
                      ]
                   },
@@ -1958,64 +1670,6 @@
                "en": "Database service"
             },
             {
-              "id": 1577931587,
-              "dir": "database_configuration",
-              "cn": "数据库配置",
-              "en": "Database Configuration",
-              "contents": [
-                {
-                  "id": 1432190643,
-                  "file": "configuration_parameters",
-                  "cn": "配置项参数",
-                  "en": "Configuration Parameters"
-                },
-                {
-                  "id": 1432191411,
-                  "dir": "special_configuration_modify",
-                  "cn": "特殊配置项修改",
-                  "en": "Special Configuration Modify",
-                  "contents": [
-                      {
-                        "id": 1432191412,
-                        "file": "overview",
-                        "cn": "概述",
-                        "en": "overview"
-                      },
-                      {
-                        "id": 1432191413,
-                        "file": "dbpath_modify",
-                        "cn": "数据文件",
-                        "en": "dbpath_modify"
-                      },
-                      {
-                        "id": 1432191414,
-                        "file": "indexpath_modify",
-                        "cn": "索引文件",
-                        "en": "indexpath_modify"
-                      },
-                      {
-                        "id": 1432191415,
-                        "file": "lobpath_modify",
-                        "cn": "大对象数据文件",
-                        "en": "lobpath_modify"
-                      },
-                      {
-                        "id": 1432191416,
-                        "file": "lobmetapath_modify",
-                        "cn": "大对象元数据文件",
-                        "en": "lobmetapath_modify"
-                      },
-                      {
-                        "id": 1432190652,
-                        "file": "log_synchronization",
-                        "cn": "同步日志",
-                        "en": "Log Synchronization"
-                      }
-                    ]
-                 }
-               ]
-            },
-            {
                "id": 1589351530,
                "dir": "stp",
                "cn": "时间序列服务",
@@ -2070,74 +1724,66 @@
          ]
       },
       {
-         "id": 1432190701,
-         "dir": "connector",
-         "cn": "连接器",
-         "en": "Connector",
+         "id": 1432190763,
+         "dir": "Manual",
+         "cn": "参考手册",
+         "en": "Manual",
          "contents": [
             {
-               "id": 1432190702,
-               "dir": "hadoop",
-               "cn": "Hadoop",
-               "en": "Hadoop",
-               "contents": [
-                  {
-                     "id": 1432190703,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "Deployment"
-                  },
-                  {
-                     "id": 1432190704,
-                     "file": "integration",
-                     "cn": "集成",
-                     "en": "Integration"
-                  }
+              "id": 1577931587,
+              "dir": "Database_Configuration",
+              "cn": "数据库配置",
+              "en": "Database Configuration",
+              "contents": [
+                {
+                  "id": 1432190643,
+                  "file": "configuration_parameters",
+                  "cn": "配置项参数",
+                  "en": "Configuration Parameters"
+                },
+                {
+                  "id": 1432191411,
+                  "dir": "Special_Configuration_Modify",
+                  "cn": "特殊配置项修改",
+                  "en": "Special Configuration Modify",
+                  "contents": [
+                      {
+                        "id": 1432191413,
+                        "file": "dbpath_modify",
+                        "cn": "数据文件",
+                        "en": "dbpath_modify"
+                      },
+                      {
+                        "id": 1432191414,
+                        "file": "indexpath_modify",
+                        "cn": "索引文件",
+                        "en": "indexpath_modify"
+                      },
+                      {
+                        "id": 1432191415,
+                        "file": "lobpath_modify",
+                        "cn": "大对象数据文件",
+                        "en": "lobpath_modify"
+                      },
+                      {
+                        "id": 1432191416,
+                        "file": "lobmetapath_modify",
+                        "cn": "大对象元数据文件",
+                        "en": "lobmetapath_modify"
+                      },
+                      {
+                        "id": 1432190652,
+                        "file": "log_synchronization",
+                        "cn": "同步日志",
+                        "en": "Log Synchronization"
+                      }
+                    ]
+                 }
                ]
             },
             {
-               "id": 1432190705,
-               "dir": "hive",
-               "cn": "Hive",
-               "en": "Hive",
-               "contents": [
-                  {
-                     "id": 1432190706,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "Deployment"
-                  },
-                  {
-                     "id": 1432190707,
-                     "file": "create_table_a_based_SequoiaDB",
-                     "cn": "建表",
-                     "en": "Create a table based SequoiaDB"
-                  },
-                  {
-                     "id": 1432190708,
-                     "file": "import_data_from_HDFS_files_to_Sequoiadb_table",
-                     "cn": "从hdfs上导入表",
-                     "en": "Import data from HDFS files to SequoiaDB table"
-                  },
-                  {
-                     "id": 1432190709,
-                     "file": "query_data",
-                     "cn": "查询数据",
-                     "en": "Query Data"
-                  }
-               ]
-            }
-         ]
-      },
-      {
-         "id": 1432190763,
-         "dir": "reference",
-         "cn": "参考手册",
-         "en": "Reference",
-         "contents": [
-            {
                "id": 1432190764,
-               "dir": "Sequoiadb_command",
+               "dir": "Sequoiadb_Command",
                "cn": "SequoiaDB Shell方法",
                "en": "SequoiaDB Shell Method List",
                "contents": [
@@ -3701,7 +3347,7 @@
                         }
                      ]
                   },
-              {
+                  {
                      "id": 1552035549,
                      "dir": "FileContent",
                      "cn": "FileContent",
@@ -3818,6 +3464,12 @@
                            "file": "getInfo",
                            "cn": "getInfo()",
                            "en": "getInfo()"
+                        },
+                        {
+                           "id": 1608883259,
+                           "file": "getSystem",
+                           "cn": "getSystem()",
+                           "en": "getSystem()"
                         },
                         {
                            "id": 1557121270,
@@ -4426,23 +4078,83 @@
                ]
             },
             {
+               "id": 1432190985,
+               "file": "Sequoiadb_error_code",
+               "cn": "错误码",
+               "en": "Error Code List"
+            },
+            {
+               "id": 1432190701,
+               "dir": "Connector",
+               "cn": "连接器",
+               "en": "Connector",
+               "contents": [
+                  {
+                     "id": 1432190702,
+                     "dir": "Hadoop",
+                     "cn": "Hadoop",
+                     "en": "Hadoop",
+                     "contents": [
+                        {
+                           "id": 1432190703,
+                           "file": "deployment",
+                           "cn": "部署",
+                           "en": "Deployment"
+                        },
+                        {
+                           "id": 1432190704,
+                           "file": "integration",
+                           "cn": "集成",
+                           "en": "Integration"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1432190705,
+                     "dir": "Hive",
+                     "cn": "Hive",
+                     "en": "Hive",
+                     "contents": [
+                        {
+                           "id": 1432190706,
+                           "file": "deployment",
+                           "cn": "部署",
+                           "en": "Deployment"
+                        },
+                        {
+                           "id": 1432190707,
+                           "file": "create_table_a_based_SequoiaDB",
+                           "cn": "建表",
+                           "en": "Create a table based SequoiaDB"
+                        },
+                        {
+                           "id": 1432190708,
+                           "file": "import_data_from_HDFS_files_to_Sequoiadb_table",
+                           "cn": "从hdfs上导入表",
+                           "en": "Import data from HDFS files to SequoiaDB table"
+                        },
+                        {
+                           "id": 1432190709,
+                           "file": "query_data",
+                           "cn": "查询数据",
+                           "en": "Query Data"
+                        }
+                     ]
+                  }
+               ]
+            },
+            {
                "id": 1432190898,
-               "dir": "operator",
+               "dir": "Operator",
                "cn": "操作符",
                "en": "Operator",
                "contents": [
                   {
                      "id": 1432190899,
-                     "dir": "match_operator",
+                     "dir": "Match_Operator",
                      "cn": "匹配符",
                      "en": "Match Operator",
                      "contents": [
-                        {
-                           "id": 1464770442,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1432190900,
                            "file": "gt",
@@ -4528,12 +4240,6 @@
                            "en": "$or"
                         },
                         {
-                           "id": 1432190915,
-                           "file": "type",
-                           "cn": "$type",
-                           "en": "$type"
-                        },
-                        {
                            "id": 1432190916,
                            "file": "exists",
                            "cn": "$exists",
@@ -4550,12 +4256,6 @@
                            "file": "identifier",
                            "cn": "$+标识符",
                            "en": "$+Identifier"
-                        },
-                        {
-                           "id": 1432190919,
-                           "file": "size",
-                           "cn": "$size",
-                           "en": "$size"
                         },
                         {
                            "id": 1432190920,
@@ -4579,16 +4279,10 @@
                   },
                   {
                      "id": 1432190921,
-                     "dir": "selector_operator",
+                     "dir": "Selector_Operator",
                      "cn": "选择符",
                      "en": "Select Operator",
                      "contents": [
-                        {
-                           "id": 1476082867,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1440656849,
                            "file": "include",
@@ -4617,16 +4311,10 @@
                   },
                   {
                      "id": 1476082795,
-                     "dir": "function_operator",
+                     "dir": "Function_Operator",
                      "cn": "函数操作",
                      "en": "Function Operator",
                      "contents": [
-                        {
-                           "id": 1476082889,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1440656855,
                            "file": "abs",
@@ -4745,16 +4433,10 @@
                   },
                   {
                      "id": 1432190922,
-                     "dir": "update_operator",
+                     "dir": "Update_Operator",
                      "cn": "更新符",
                      "en": "Update Operator",
                      "contents": [
-                        {
-                           "id": 1479713933,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1432190923,
                            "file": "inc",
@@ -4831,16 +4513,10 @@
                   },
                   {
                      "id": 1432190933,
-                     "dir": "aggregate_operator",
+                     "dir": "Aggregate_Operator",
                      "cn": "聚集符",
                      "en": "Aggregate Operator",
                      "contents": [
-                        {
-                           "id": 1464770465,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1432190934,
                            "file": "project",
@@ -4887,7 +4563,7 @@
                   },
                   {
                      "id": 1589449291,
-                     "dir": "field_operator",
+                     "dir": "Field_Operator",
                      "cn": "字段操作符",
                      "en": "Field Operator",
                      "contents": [
@@ -4902,14 +4578,20 @@
                ]
             },
             {
+               "id": 1432190983,
+               "file": "SQL_to_Sequoiadb_mapping",
+               "cn": "SQL to SequoiaDB 映射表",
+               "en": "Mapping Table from SQL to SequoiaDB"
+            },
+            {
                "id": 1510278739,
-               "dir": "SQL_grammar",
+               "dir": "SQL_Grammar",
                "cn": "SQL语法",
                "en": "SQL Grammar",
                "contents": [
                   {
                      "id": 1510279692,
-                     "dir": "statement",
+                     "dir": "Statement",
                      "cn": "语句",
                      "en": "Statement",
                      "contents": [
@@ -4995,7 +4677,7 @@
                   },
                   {
                      "id": 1510279691,
-                     "dir": "clause",
+                     "dir": "Clause",
                      "cn": "子句",
                      "en": "Clause",
                      "contents": [
@@ -5069,7 +4751,7 @@
                   },
                   {
                      "id": 1510279690,
-                     "dir": "function",
+                     "dir": "Function",
                      "cn": "函数",
                      "en": "Function",
                      "contents": [
@@ -5143,16 +4825,10 @@
                   },
                   {
                      "id": 1559282734,
-                     "dir": "monitoring",
+                     "dir": "Monitoring",
                      "cn": "监控视图",
                      "en": "Monitoring view",
                      "contents": [
-                        {
-                           "id": 1559546719,
-                           "file": "overview",
-                           "cn": "概述",
-                           "en": "Overview"
-                        },
                         {
                            "id": 1559282883,
                            "file": "SNAPSHOT_CONTEXT",
@@ -5362,22 +5038,416 @@
                ]
             },
             {
-               "id": 1432190983,
-               "file": "SQL_to_Sequoiadb_mapping",
-               "cn": "SQL to SequoiaDB 映射表",
-               "en": "Mapping Table from SQL to SequoiaDB"
+               "id": 1432190635,
+               "dir": "Catalog_Table",
+               "cn": "编目表",
+               "en": "Catalog Table",
+               "contents": [
+                  {
+                     "id": 1519625791,
+                     "file": "SYSCOLLECTIONS",
+                     "cn": "SYSCOLLECTIONS 集合",
+                     "en": "SYSCOLLECTIONS"
+                  },
+                  {
+                     "id": 1519625792,
+                     "file": "SYSCOLLECTIONSPACES",
+                     "cn": "SYSCOLLECTIONSPACES 集合",
+                     "en": "SYSCOLLECTIONSPACES"
+                  },
+                  {
+                     "id": 1519625793,
+                     "file": "SYSDOMAINS",
+                     "cn": "SYSDOMAINS 集合",
+                     "en": "SYSDOMAINS"
+                  },
+                  {
+                     "id": 1519625794,
+                     "file": "SYSNODES",
+                     "cn": "SYSNODES 集合",
+                     "en": "SYSNODES"
+                  },
+                  {
+                     "id": 1519625795,
+                     "file": "SYSTASKS",
+                     "cn": "SYSTASKS 集合",
+                     "en": "SYSTASKS"
+                  },
+                  {
+                     "id": 1519625796,
+                     "file": "SYSUSRS",
+                     "cn": "SYSUSRS 集合",
+                     "en": "SYSUSRS"
+                  },
+                  {
+                     "id": 1519625797,
+                     "file": "STOREPROCEDURES",
+                     "cn": "STOREPROCEDURES 集合",
+                     "en": "STOREPROCEDURES"
+                  },
+                  {
+                     "id": 1588131727,
+                     "file": "SEQUENCES",
+                     "cn": "SEQUENCES 集合",
+                     "en": "SEQUENCES"
+                  }
+               ]
+            },
+            {
+               "id": 1432190669,
+               "dir": "Snapshot",
+               "cn": "数据库快照",
+               "en": "Snapshot",
+               "contents": [
+                  {
+                     "id": 1479173710,
+                     "file": "snapshot",
+                     "cn": "快照类型",
+                     "en": "Snapshot Types"
+                  },
+                  {
+                     "id": 1479173711,
+                     "file": "SDB_SNAP_CONTEXTS",
+                     "cn": "上下文快照",
+                     "en": "SDB_SNAP_CONTEXTS"
+                  },
+                  {
+                     "id": 1479173712,
+                     "file": "SDB_SNAP_CONTEXTS_CURRENT",
+                     "cn": "当前上下文快照",
+                     "en": "SDB_SNAP_CONTEXTS_CURRENT"
+                  },
+                  {
+                     "id": 1479173713,
+                     "file": "SDB_SNAP_SESSIONS",
+                     "cn": "会话快照",
+                     "en": "SDB_SNAP_SESSIONS"
+                  },
+                  {
+                     "id": 1479173714,
+                     "file": "SDB_SNAP_SESSIONS_CURRENT",
+                     "cn": "当前会话快照",
+                     "en": "SDB_SNAP_SESSIONS_CURRENT"
+                  },
+                  {
+                     "id": 1479173715,
+                     "file": "SDB_SNAP_COLLECTIONS",
+                     "cn": "集合快照",
+                     "en": "SDB_SNAP_COLLECTIONS"
+                  },
+                  {
+                     "id": 1479173716,
+                     "file": "SDB_SNAP_COLLECTIONSPACES",
+                     "cn": "集合空间快照",
+                     "en": "SDB_SNAP_COLLECTIONSPACES"
+                  },
+                  {
+                     "id": 1479173717,
+                     "file": "SDB_SNAP_DATABASE",
+                     "cn": "数据库快照",
+                     "en": "SDB_SNAP_DATABASE"
+                  },
+                  {
+                     "id": 1479173718,
+                     "file": "SDB_SNAP_SYSTEM",
+                     "cn": "操作系统快照",
+                     "en": "SDB_SNAP_SYSTEM"
+                  },
+                  {
+                     "id": 1479173719,
+                     "file": "SDB_SNAP_CATALOG",
+                     "cn": "编目信息快照",
+                     "en": "SDB_SNAP_CATALOG"
+                  },
+                  {
+                     "id": 1479173720,
+                     "file": "SDB_SNAP_TRANSACTIONS",
+                     "cn": "事务快照",
+                     "en": "SDB_SNAP_TRANSACTIONS"
+                  },
+                  {
+                     "id": 1479173721,
+                     "file": "SDB_SNAP_TRANSACTIONS_CURRENT",
+                     "cn": "当前事务快照",
+                     "en": "SDB_SNAP_TRANSACTIONS_CURRENT"
+                  },
+                  {
+                     "id": 1511852592,
+                     "file": "SDB_SNAP_ACCESSPLANS",
+                     "cn": "访问计划缓存快照",
+                     "en": "SDB_SNAP_ACCESSPLANS"
+                  },
+                  {
+                     "id": 1516786163,
+                     "file": "SDB_SNAP_HEALTH",
+                     "cn": "节点健康检测快照",
+                     "en": "SDB_SNAP_HEALTH"
+                  },
+                  {
+                     "id": 1521423973,
+                     "file": "SDB_SNAP_CONFIGS",
+                     "cn": "配置快照",
+                     "en": "SDB_SNAP_CONFIGS"
+                  },
+                  {
+                     "id": 1565839362,
+                     "file": "SDB_SNAP_SVCTASKS",
+                     "cn": "服务任务快照",
+                     "en": "SDB_SNAP_SVCTASKS"
+                  },
+                  {
+                     "id": 1541038691,
+                     "file": "SDB_SNAP_SEQUENCES",
+                     "cn": "序列快照",
+                     "en": "SDB_SNAP_SEQUENCES"
+                  },
+                  {
+                     "id": 1598034944,
+                     "file": "SDB_SNAP_QUERIES",
+                     "cn": "查询快照",
+                     "en": "SDB_SNAP_QUERIES"
+                  },
+                  {
+                     "id": 1598034972,
+                     "file": "SDB_SNAP_LOCKWAITS",
+                     "cn": "锁等待快照",
+                     "en": "SDB_SNAP_LOCKWAITS"
+                  },
+                  {
+                     "id": 1598034986,
+                     "file": "SDB_SNAP_LATCHWAITS",
+                     "cn": "闩锁等待快照",
+                     "en": "SDB_SNAP_LATCHWAITS"
+                  },
+                  {
+                     "id": 1592467466,
+                     "file": "SDB_SNAP_INDEXSTATS",
+                     "cn": "索引统计信息快照",
+                     "en": "SDB_SNAP_INDEXSTATS"
+                  }
+               ]
+            },
+            {
+               "id": 1432190670,
+               "dir": "List",
+               "cn": "数据库列表",
+               "en": "List",
+               "contents": [
+                  {
+                     "id": 1479173730,
+                     "file": "list",
+                     "cn": "列表类型",
+                     "en": "List Types"
+                  },
+                  {
+                     "id": 1479173731,
+                     "file": "SDB_LIST_CONTEXTS",
+                     "cn": "上下文列表",
+                     "en": "SDB_LIST_CONTEXTS"
+                  },
+                  {
+                     "id": 1479173732,
+                     "file": "SDB_LIST_CONTEXTS_CURRENT",
+                     "cn": "当前上下文列表",
+                     "en": "SDB_LIST_CONTEXTS_CURRENT"
+                  },
+                  {
+                     "id": 1479173733,
+                     "file": "SDB_LIST_SESSIONS",
+                     "cn": "会话列表",
+                     "en": "SDB_LIST_SESSIONS"
+                  },
+                  {
+                     "id": 1479173734,
+                     "file": "SDB_LIST_SESSIONS_CURRENT",
+                     "cn": "当前会话列表",
+                     "en": "SDB_LIST_SESSIONS_CURRENT"
+                  },
+                  {
+                     "id": 1479173735,
+                     "file": "SDB_LIST_COLLECTIONS",
+                     "cn": "集合列表",
+                     "en": "SDB_LIST_COLLECTIONS"
+                  },
+                  {
+                     "id": 1479173736,
+                     "file": "SDB_LIST_COLLECTIONSPACES",
+                     "cn": "集合空间列表",
+                     "en": "SDB_LIST_COLLECTIONSPACES"
+                  },
+                  {
+                     "id": 1479173737,
+                     "file": "SDB_LIST_STORAGEUNITS",
+                     "cn": "存储单元列表",
+                     "en": "SDB_LIST_STORAGEUNITS"
+                  },
+                  {
+                     "id": 1479173738,
+                     "file": "SDB_LIST_GROUPS",
+                     "cn": "分区组列表",
+                     "en": "SDB_LIST_GROUPS"
+                  },
+                  {
+                     "id": 1501230617,
+                     "file": "SDB_LIST_TRANSACTIONS",
+                     "cn": "事务列表",
+                     "en": "SDB_LIST_TRANSACTIONS"
+                  },
+                  {
+                     "id": 1501230618,
+                     "file": "SDB_LIST_TRANSACTIONS_CURRENT",
+                     "cn": "当前事务列表",
+                     "en": "SDB_LIST_TRANSACTIONS_CURRENT"
+                  },
+                  {
+                     "id": 1565839437,
+                     "file": "SDB_LIST_SVCTASKS",
+                     "cn": "服务任务列表",
+                     "en": "SDB_LIST_SVCTASKS"
+                  },
+                  {
+                     "id": 1541038852,
+                     "file": "SDB_LIST_SEQUENCES",
+                     "cn": "序列列表",
+                     "en": "SDB_LIST_SEQUENCES"
+                  },
+                  {
+                     "id": 1565839438,
+                     "file": "SDB_LIST_USERS",
+                     "cn": "用户列表",
+                     "en": "SDB_LIST_USERS"
+                  },
+                  {
+                     "id": 1565839436,
+                     "file": "SDB_LIST_BACKUPS",
+                     "cn": "备份列表",
+                     "en": "SDB_LIST_BACKUPS"
+                  }
+               ]
+            },
+            {
+               "id": 1608882373,
+               "dir": "Cost_Estimation",
+               "cn": "访问计划的评估过程",
+               "en": "Cost Estimation",
+               "contents": [
+                  {
+                     "id": 1608882686,
+                     "file": "search",
+                     "cn": "访问计划的搜索过程",
+                     "en": "Search"
+                  },
+                  {
+                     "id": 1608884933,
+                     "file": "IXSCAN",
+                     "cn": "IXSCAN推演公式",
+                     "en": "IXSCAN"
+                  },
+                  {
+                     "id": 1608884947,
+                     "file": "SORT",
+                     "cn": "SORT推演公式",
+                     "en": "SORT"
+                  },
+                  {
+                     "id": 1608884955,
+                     "file": "TBSCAN",
+                     "cn": "TBSCAN推演公式",
+                     "en": "TBSCAN"
+                  }
+               ]
+            },
+            {
+               "id": 1489719425,
+               "dir": "webserverapp",
+               "cn": "Web服务",
+               "en": "web server",
+               "contents": [
+                  {
+                     "id": 1489720081,
+                     "dir": "Websphere",
+                     "cn": "WebSphere",
+                     "en": "WebSphere",
+                     "contents": [
+                        {
+                           "id": 1489720082,
+                           "file": "deployment",
+                           "cn": "部署",
+                           "en": "deployment"
+                        },
+                        {
+                           "id": 1489720083,
+                           "file": "connection",
+                           "cn": "连接",
+                           "en": "connection"
+                        },
+                        {
+                           "id": 1489720084,
+                           "file": "web_application",
+                           "cn": "web应用",
+                           "en": "web application"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1489720188,
+                     "dir": "Tomcat",
+                     "cn": "Tomcat",
+                     "en": "Tomcat",
+                     "contents": [
+                        {
+                           "id": 1489731602,
+                           "file": "deployment",
+                           "cn": "部署",
+                           "en": "deployment"
+                        },
+                        {
+                           "id": 1489731877,
+                           "file": "connection",
+                           "cn": "连接",
+                           "en": "connection"
+                        },
+                        {
+                           "id": 1489731925,
+                           "file": "web_application",
+                           "cn": "web应用",
+                           "en": "web application"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1489742184,
+                     "dir": "Jboss",
+                     "cn": "JBoss",
+                     "en": "JBoss",
+                     "contents": [
+                        {
+                           "id": 1489742185,
+                           "file": "deployment",
+                           "cn": "部署",
+                           "en": "deployment"
+                        },
+                        {
+                           "id": 1489742186,
+                           "file": "connection",
+                           "cn": "连接",
+                           "en": "connection"
+                        },
+                        {
+                           "id": 1489742187,
+                           "file": "web_application",
+                           "cn": "web应用",
+                           "en": "web application"
+                        }
+                     ]
+                  }
+               ]
             },
             {
                "id": 1432190984,
                "file": "Sequoiadb_limitation",
                "cn": "限制",
                "en": "Limitation"
-            },
-            {
-               "id": 1432190985,
-               "file": "Sequoiadb_error_code",
-               "cn": "错误码",
-               "en": "Error Code List"
             }
          ]
       },
@@ -5660,98 +5730,6 @@
                      "file": "host",
                      "cn": "主机监控",
                      "en": "Host"
-                  }
-               ]
-            }
-         ]
-      },
-      {
-         "id": 1489719425,
-         "dir": "webserverapp",
-         "cn": "Web服务",
-         "en": "web server",
-         "contents": [
-            {
-               "id": 1489720079,
-               "file": "overview",
-               "cn": "概述",
-               "en": "overview"
-            },
-            {
-               "id": 1489720081,
-               "dir": "websphere",
-               "cn": "WebSphere",
-               "en": "WebSphere",
-               "contents": [
-                  {
-                     "id": 1489720082,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "deployment"
-                  },
-                  {
-                     "id": 1489720083,
-                     "file": "connection",
-                     "cn": "连接",
-                     "en": "connection"
-                  },
-                  {
-                     "id": 1489720084,
-                     "file": "web_application",
-                     "cn": "web应用",
-                     "en": "web application"
-                  }
-               ]
-            },
-            {
-               "id": 1489720188,
-               "dir": "tomcat",
-               "cn": "Tomcat",
-               "en": "Tomcat",
-               "contents": [
-                  {
-                     "id": 1489731602,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "deployment"
-                  },
-                  {
-                     "id": 1489731877,
-                     "file": "connection",
-                     "cn": "连接",
-                     "en": "connection"
-                  },
-                  {
-                     "id": 1489731925,
-                     "file": "web_application",
-                     "cn": "web应用",
-                     "en": "web application"
-                  }
-               ]
-            },
-            {
-               "id": 1489742184,
-               "dir": "jboss",
-               "cn": "JBoss",
-               "en": "JBoss",
-               "contents": [
-                  {
-                     "id": 1489742185,
-                     "file": "deployment",
-                     "cn": "部署",
-                     "en": "deployment"
-                  },
-                  {
-                     "id": 1489742186,
-                     "file": "connection",
-                     "cn": "连接",
-                     "en": "connection"
-                  },
-                  {
-                     "id": 1489742187,
-                     "file": "web_application",
-                     "cn": "web应用",
-                     "en": "web application"
                   }
                ]
             }

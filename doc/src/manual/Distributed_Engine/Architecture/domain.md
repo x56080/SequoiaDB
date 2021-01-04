@@ -1,4 +1,3 @@
-
 数据域（Domain）是指由若干个复制组组成的逻辑单元，其主要作用是数据隔离。
 
 - 一个复制组可以属于多个域。
@@ -116,5 +115,4 @@
 [^_^]:
       本文使用的所有引用和链接
 [domain]:images/Distributed_Engine/Architecture/domain.png
-[SDB_SNAP_CATALOG]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md
-
+[SDB_SNAP_CATALOG]:manual/Manual/Snapshot/SDB_SNAP_CATALOG.md

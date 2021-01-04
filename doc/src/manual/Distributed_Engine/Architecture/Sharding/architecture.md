@@ -76,5 +76,5 @@
 [intro_sharding_collection]:images/Distributed_Engine/Architecture/Sharding/intro_sharding_collection.png
 [intro_sharding_mode_range]:images/Distributed_Engine/Architecture/Sharding/intro_sharding_mode_range.png
 [intro_sharding_mode_hash]:images/Distributed_Engine/Architecture/Sharding/intro_sharding_mode_hash.png
-[split]:manual/reference/Sequoiadb_command/SdbCollection/split.md
-[attach_command]:manual/reference/Sequoiadb_command/SdbCollection/attachCL.md
+[split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md
+[attach_command]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md

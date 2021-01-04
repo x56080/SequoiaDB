@@ -75,7 +75,7 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[SDB_SNAP_SYSTEM]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md
+[SDB_SNAP_SYSTEM]:manual/Manual/Snapshot/SDB_SNAP_SYSTEM.md
 
 [information]:manual/SAC/Monitor/host.md#主机信息
 [hosts_list_1]:images/SAC/Monitor/hosts_list_1.png

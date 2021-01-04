@@ -155,5 +155,5 @@
 [catalog]:manual/Distributed_Engine/Architecture/Node/catalog_node.md
 [cluster_deploy]:manual/Deployment/cluster_deployment.md
 [election]:manual/Distributed_Engine/Architecture/Replication/election.md
-[weight]:manual/database_management/database_configuration/configuration_parameters.md
-[SDB_LIST_GROUPS]:manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md
+[weight]:manual/Manual/Database_Configuration/configuration_parameters.md
+[SDB_LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md

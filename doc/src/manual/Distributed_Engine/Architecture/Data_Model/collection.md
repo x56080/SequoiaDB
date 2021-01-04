@@ -43,6 +43,6 @@
 
 [^_^]:
     本文使用到的所有链接及引用
-[data_mode_createCL]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
+[data_mode_createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [data_mode_split]:manual/Distributed_Engine/Architecture/Sharding/Readme.md
 

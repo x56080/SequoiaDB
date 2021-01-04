@@ -254,4 +254,4 @@
     
 [sharding_key]:manual/Distributed_Engine/Architecture/Sharding/sharding_keys.md
 [multi_dimension]:manual/Distributed_Engine/Architecture/Sharding/multi_dimension.md
-[db_snapshot]:manual/reference/Sequoiadb_command/Sdb/snapshot.md
+[db_snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md

@@ -22,7 +22,7 @@ JSON 实例支持多种 SDK 驱动开发，用户可参考[开发][driver_develo
     引用页面
 [^_^]:
     TODO:该页面需要调整
-[SequoiaDB_Shell]:manual/reference/Sequoiadb_command/location.md
+[SequoiaDB_Shell]:manual/Manual/Sequoiadb_Command/location.md
 [driver_develop]:manual/Database_Instance/Json_Instance/Development/SDK.md
 [quick_deployment]:manual/Quick_Start/quick_deployment.md
 

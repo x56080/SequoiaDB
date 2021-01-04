@@ -28,5 +28,5 @@
     本文中用到的所有链接
 
 [compatible_list]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
-[reelect]:manual/reference/Sequoiadb_command/SdbReplicaGroup/reelect.md
+[reelect]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/reelect.md
 [offlineupgrade]:manual/Distributed_Engine/Maintainance/Upgrade/offline.md

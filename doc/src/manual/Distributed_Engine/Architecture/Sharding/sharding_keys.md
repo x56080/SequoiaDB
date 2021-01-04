@@ -104,5 +104,6 @@
 
 [^_^]:
     本文使用到的所有链接及引用。
-[createCL]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
-[snapshot]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md
+[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
+[snapshot]:manual/Manual/Snapshot/SDB_SNAP_CATALOG.md
+

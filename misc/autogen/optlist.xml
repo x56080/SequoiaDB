@@ -958,7 +958,7 @@
              ● There are 2 kinds of values: ROLE value, like "M", "S", etc; INSTANCE value, specified by node's instanceid value.<fig></fig>
              ● ROLE value: "M", "m": read and write instance( master instance ); "S", "s": read only instance( slave instance ); "A", "a": any role instance.<fig></fig>
              ● INSTANCE value: 1-255, instance ID specified by node's instanceid configuration.<fig></fig>
-             5. More detailed information can be found in [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md).</en>
+             5. More detailed information can be found in [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).</en>
          <cn>1. 指定执行读请求时优先选择的实例<fig></fig>
              2. 如果不指定，则默认值为M，即选择可读写实例。<fig></fig>
              3. 取值可以取单值单独指定，也可以取多值混合指定；在 SequoiaDB 的配置文件中可以使用 ',' 连接多个值。连接多值时字符串最大长度为 256。如："1,2,S"。<fig></fig>
@@ -966,7 +966,7 @@
              ● 取值类型分为两类，一类是角色取值，如 "M", "S" 等；一类是实例取值，即数据节点通过配置 instanceid 设置的实例 ID。<fig></fig>
              ● 角色取值："M", "m"：可读写实例（主实例）；"S", "s": 只读实例（备实例）；"A", "a": 任意角色实例。<fig></fig>
              ● 实例取值：1-255，指定匹配 instanceid 设置的节点。数据节点可以通过配置 instanceid 配合使用。<fig></fig>
-             5. 更详细的内容请参考 [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md)。</cn>
+             5. 更详细的内容请参考 [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>M</default>
@@ -1000,7 +1000,7 @@
                 ● "ordered": 从候选的实例取值中按照 perferedinstance 的顺序进行选择。<fig></fig>
                 ● preferedinstance 中的角色取值，根据规则选择时优于或者次于实例取值，与 preferedinstancemode 取值无关。<fig></fig>
              3. 默认值为 "random"。<fig></fig>
-             4. 更详细的内容请参考 [db.setSessionAttr()](reference/Sequoiadb_command/Sdb/setSessionAttr.md)。</cn>
+             4. 更详细的内容请参考 [db.setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。</cn>
       </detail>
       <typeofweb>str</typeofweb>
       <default>random</default>

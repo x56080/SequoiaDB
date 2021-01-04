@@ -88,4 +88,4 @@ MME 段被切分成 4096 个 1KB 大小的元数据块（MB, Meta Block），每
     本文使用的所有链接及引用
 [data_mode_data_su_struct]:images/Distributed_Engine/Architecture/Data_Model/data_storage_unit_struct.png
 [data_mode_index_su_struct]:images/Distributed_Engine/Architecture/Data_Model/index_storage_unit_struct.png
-[data_mode_createCS]:manual/reference/Sequoiadb_command/Sdb/createCS.md
+[data_mode_createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md

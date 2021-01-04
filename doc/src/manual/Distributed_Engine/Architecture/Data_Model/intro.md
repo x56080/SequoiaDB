@@ -87,7 +87,7 @@ SequoiaDB 提供[自增字段][data_mode_sequence]能力。在创建集合时，
 [data_mode_collection]:manual/Distributed_Engine/Architecture/Data_Model/collection.md
 [data_mode_document]:manual/Distributed_Engine/Architecture/Data_Model/document.md
 [data_mode_lob]:manual/Distributed_Engine/Architecture/Data_Model/lob.md
-[data_mode_oid]:manual/reference/Sequoiadb_command/SpecialObjects/OID.md
+[data_mode_oid]:manual/Manual/Sequoiadb_Command/SpecialObjects/OID.md
 
 [data_mode_index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [data_mode_text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md

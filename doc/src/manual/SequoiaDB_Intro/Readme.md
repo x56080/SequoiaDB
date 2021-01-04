@@ -72,14 +72,14 @@ SequoiaDB 巨杉数据库社区版使用 [AGPL-3.0][licensing] 协议授权。
 [mysql_development]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Development/engine_download.md
 [json_development]:manual/Database_Instance/Json_Instance/Development/JavaScript.md
 [object_development]:manual/Database_Instance/Object_Instance/S3_Instance/Development/Readme.md
-[shell_development]:manual/reference/Sequoiadb_command/location.md
+[shell_development]:manual/Manual/Sequoiadb_Command/location.md
 [monitoring]:manual/Distributed_Engine/Maintainance/Monitoring/Readme.md
 [expand]:manual/Distributed_Engine/Maintainance/Expand/Readme.md
 [upgrade]:manual/Distributed_Engine/Maintainance/Upgrade/Readme.md
 [performance]:manual/Distributed_Engine/Maintainance/Performance/Readme.md
-[command]:manual/reference/Sequoiadb_command/location.md
-[operator]:manual/reference/operator/match_operator/overview.md
-[errorcode]:manual/reference/sequoiadb_error_code.md
+[command]:manual/Manual/Sequoiadb_Command/location.md
+[operator]:manual/Manual/Operator/Match_Operator/Readme.md
+[errorcode]:manual/Manual/sequoiadb_error_code.md
 
 [^_^]:
     TODO:change to tools

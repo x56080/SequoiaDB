@@ -70,4 +70,5 @@ EDU监控
 [^_^]:
     本文使用到的所有链接及引用
 [background]:manual/Distributed_Engine/Architecture/Thread_Model/background.md
-[snapshot_session]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md
+[snapshot_session]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
+

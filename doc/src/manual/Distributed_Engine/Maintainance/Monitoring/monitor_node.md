@@ -49,4 +49,4 @@
 [^_^]:
        本文所用到的所有链接和引用
 
-[snapshot]: manual/reference/Sequoiadb_command/Sdb/snapshot.md
+[snapshot]: manual/Manual/Sequoiadb_Command/Sdb/snapshot.md

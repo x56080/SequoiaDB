@@ -40,4 +40,4 @@
      本文使用的所有引用和链接
 [config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
-[setAttributes]:manual/reference/Sequoiadb_command/SdbCollection/setAttributes.md
+[setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md

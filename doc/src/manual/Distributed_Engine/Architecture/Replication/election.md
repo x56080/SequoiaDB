@@ -45,4 +45,4 @@ SequoiaDB 巨杉数据库使用改进过的 Raft 选举协议。
 [heartbeat]:images/Distributed_Engine/Architecture/Replication/heartbeat.png
 [vote]:images/Distributed_Engine/Architecture/Replication/vote.png
 [head_split]:images/Distributed_Engine/Architecture/Replication/head_split.png
-[weight]:manual/database_management/database_configuration/configuration_parameters.md
+[weight]:manual/Manual/Database_Configuration/configuration_parameters.md

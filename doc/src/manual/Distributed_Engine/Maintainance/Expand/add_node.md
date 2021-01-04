@@ -222,7 +222,7 @@ coord.snapshot( SDB_SNAP_COLLECTIONS, { "Name": "CS.CL" } )
 [^_^]:
     本文使用到的所有链接及引用。
 
-[snapshot]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md
+[snapshot]:manual/Manual/Snapshot/SDB_SNAP_COLLECTIONS.md
 [env_requirement]:manual/Deployment/env_requirement.md
 [data_node]:manual/Distributed_Engine/Architecture/Node/data_node.md
 [catalog_node]:manual/Distributed_Engine/Architecture/Node/catalog_node.md

@@ -231,11 +231,11 @@ db.sample.employee.dropIndex( 'fulltext_idx' )
 
 [^_^]:
      本文使用的所有链接和引用
-[regex]:manual/reference/operator/match_operator/regex.md
+[regex]:manual/Manual/Operator/Match_Operator/regex.md
 [sdbseadapter]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md#搜索引擎适配器
 [fulltext_deployment]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md#全文检索环境部署
-[create_index]:manual/reference/Sequoiadb_command/SdbCollection/createIndex.md
+[create_index]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
 [index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [dsl]:https://elasticsearch-dsl.readthedocs.io/en/6.2.1/
-[drop_index]:manual/reference/Sequoiadb_command/SdbCollection/dropIndex.md
+[drop_index]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
 [full_text_search_flow]:images/Distributed_Engine/Architecture/Data_Model/full_text_search_flow.png

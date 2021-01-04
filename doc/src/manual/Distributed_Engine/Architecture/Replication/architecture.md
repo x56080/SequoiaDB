@@ -204,10 +204,10 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 [replication]:images/Distributed_Engine/Architecture/Replication/replication.png
 [dpsdump]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/dpsdump.md
 [full_sync]:images/Distributed_Engine/Architecture/Replication/full_sync.png
-[create_cl]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
-[session_attr]: manual/reference/Sequoiadb_command/Sdb/setSessionAttr.md
-[logfilesz]: manual/database_management/database_configuration/configuration_parameters.md
-[logfilenum]: manual/database_management/database_configuration/configuration_parameters.md
+[create_cl]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
+[session_attr]: manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[logfilesz]: manual/Manual/Database_Configuration/configuration_parameters.md
+[logfilenum]: manual/Manual/Database_Configuration/configuration_parameters.md
 
 
 

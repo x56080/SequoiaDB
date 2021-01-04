@@ -117,8 +117,8 @@ LOBM 和 LOBD 的存储结构如图 1 所示。
     本文使用到的所有内部链接及引用：
 [data_mode_hash_split]:manual/Distributed_Engine/Architecture/Sharding/architecture.md
 [data_mode_collection_space]:manual/Distributed_Engine/Architecture/Data_Model/collection_space.md
-[data_mode_createCS]:manual/reference/Sequoiadb_command/Sdb/createCS.md
-[data_mode_putLob]:manual/reference/Sequoiadb_command/SdbCollection/putLob.md
-[data_mode_getLob]:manual/reference/Sequoiadb_command/SdbCollection/getLob.md
-[data_mode_deleteLob]:manual/reference/Sequoiadb_command/SdbCollection/deleteLob.md
-[data_mode_listLobs]:manual/reference/Sequoiadb_command/SdbCollection/listLobs.md
+[data_mode_createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
+[data_mode_putLob]:manual/Manual/Sequoiadb_Command/SdbCollection/putLob.md
+[data_mode_getLob]:manual/Manual/Sequoiadb_Command/SdbCollection/getLob.md
+[data_mode_deleteLob]:manual/Manual/Sequoiadb_Command/SdbCollection/deleteLob.md
+[data_mode_listLobs]:manual/Manual/Sequoiadb_Command/SdbCollection/listLobs.md

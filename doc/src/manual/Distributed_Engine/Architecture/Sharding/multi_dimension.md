@@ -61,4 +61,4 @@
 [^_^]:
     本文使用到的所有链接及引用。
 [intro_sharding_multiple]:images/Distributed_Engine/Architecture/Sharding/intro_sharding_multiple.png
-[attach_command]:manual/reference/Sequoiadb_command/SdbCollection/attachCL.md
+[attach_command]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md

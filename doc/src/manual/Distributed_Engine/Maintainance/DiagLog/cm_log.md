@@ -237,7 +237,7 @@ Stop programme.
 [^_^]: 
     本文使用到的所有链接及引用。
 
-[database_conf]: manual/database_management/database_configuration/configuration_parameters.md
-[errorCode]: manual/reference/Sequoiadb_error_code.md
-[update_conf]:manual/reference/Sequoiadb_command/Sdb/updateConf.md
+[database_conf]: manual/Manual/Database_Configuration/configuration_parameters.md
+[errorCode]: manual/Manual/Sequoiadb_error_code.md
+[update_conf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 

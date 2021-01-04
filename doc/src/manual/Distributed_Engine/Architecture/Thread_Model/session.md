@@ -130,7 +130,6 @@
 [^_^]:
     本文使用到的所有链接及引用
 
-[setSessionAttr]:manual/reference/Sequoiadb_command/Sdb/setSessionAttr.md
-[snapshot_current_session]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md
-[snapshot_session]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md
-
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[snapshot_current_session]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS_CURRENT.md
+[snapshot_session]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md

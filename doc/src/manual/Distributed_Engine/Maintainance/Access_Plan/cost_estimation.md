@@ -59,10 +59,10 @@
 当 SdbQuery.explain() 的 Search 选项为 true 时，将会展示查询优化器搜索过的访问计划，并查看查询优化器选择的结果。
 当 SdbQuery.explain() 的 Evaluate 选项为 true 时，将会展示查询优化器估算访问计划总代价的演算过程。
 
-*  访问计划的搜索过程
-*  TBSCAN的推演公式
-*  IXSCAN的推演公式
-*  SORT的推演公式
+*  [访问计划的搜索过程][search]
+*  [TBSCAN的推演公式][TBSCAN]
+*  [IXSCAN的推演公式][IXSCAN]
+*  [SORT的推演公式][SORT]
 
 >   **Note:**
 >
@@ -73,4 +73,8 @@
 [^_^]:
      本文使用的所有引用和链接
 [statistics]:manual/Distributed_Engine/Maintainance/Access_Plan/statistics.md
-[explain]:manual/reference/Sequoiadb_command/SdbQuery/explain.md
+[explain]:manual/Manual/Sequoiadb_Command/SdbQuery/explain.md
+[search]:manual/Manual/Cost_Estimation/search.md
+[TBSCAN]:manual/Manual/Cost_Estimation/TBSCAN.md
+[IXSCAN]:manual/Manual/Cost_Estimation/IXSCAN.md
+[SORT]:manual/Manual/Cost_Estimation/SORT.md

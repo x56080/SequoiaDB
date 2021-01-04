@@ -117,6 +117,6 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 [^_^]:
      本文所有引用和链接
-[createCoord]:manual/reference/Sequoiadb_command/Oma/createCoord.md
+[createCoord]:manual/Manual/Sequoiadb_Command/Oma/createCoord.md
 [cluster_deployment]:manual/Deployment/cluster_deployment.md
-[getRG]:manual/reference/Sequoiadb_command/Sdb/getRG.md
+[getRG]:manual/Manual/Sequoiadb_Command/Sdb/getRG.md

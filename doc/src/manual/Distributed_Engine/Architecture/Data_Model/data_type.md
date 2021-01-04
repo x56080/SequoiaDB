@@ -358,12 +358,12 @@ SequoiaDB 巨杉数据库采用存储与计算分离的模型。SequoiaDB 是数
 
 [data_mode_lob]:manual/Distributed_Engine/Architecture/Data_Model/lob.md
 
-[data_type_numberDecimal]:manual/reference/Sequoiadb_command/SpecialObjects/NumberDecimal.md
-[data_type_OID]:manual/reference/Sequoiadb_command/SpecialObjects/OID.md
-[data_type_date]:manual/reference/Sequoiadb_command/SpecialObjects/SdbDate.md
-[data_type_timestamp]:manual/reference/Sequoiadb_command/SpecialObjects/Timestamp.md
-[data_type_binary]:manual/reference/Sequoiadb_command/SpecialObjects/BinData.md
-[data_type_regex]:manual/reference/Sequoiadb_command/SpecialObjects/Regex.md
+[data_type_numberDecimal]:manual/Manual/Sequoiadb_Command/SpecialObjects/NumberDecimal.md
+[data_type_OID]:manual/Manual/Sequoiadb_Command/SpecialObjects/OID.md
+[data_type_date]:manual/Manual/Sequoiadb_Command/SpecialObjects/SdbDate.md
+[data_type_timestamp]:manual/Manual/Sequoiadb_Command/SpecialObjects/Timestamp.md
+[data_type_binary]:manual/Manual/Sequoiadb_Command/SpecialObjects/BinData.md
+[data_type_regex]:manual/Manual/Sequoiadb_Command/SpecialObjects/Regex.md
 
 [data_mode_mysql_data_type_reference]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/data_type.md
 [data_mode_postgresql_data_type_reference]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/SQL_to_Sequoiadb_mapping.md

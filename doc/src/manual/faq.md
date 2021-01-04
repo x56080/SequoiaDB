@@ -372,29 +372,29 @@
 3. SDB_AUTH_USER_NOT_EXIST(-300)
    * 用户名或密码不正确
 
-[snapsystem]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md
-[transRollback]: manual/reference/Sequoiadb_command/Sdb/transRollback.md
-[setSessionAttr]:manual/reference/Sequoiadb_command/Sdb/setSessionAttr.md
-[sequoiadb_limitation]:manual/reference/sequoiadb_limitation.md#集合空间
-[listCollections]:manual/reference/Sequoiadb_command/Sdb/listCollections.md
-[setSessionAttr]:manual/reference/Sequoiadb_command/Sdb/setSessionAttr.md
-[find]:manual/reference/Sequoiadb_command/SdbCollection/find.md
-[dropIndex]:manual/reference/Sequoiadb_command/SdbCollection/dropIdIndex.md
-[listReplicaGroups]:manual/reference/Sequoiadb_command/Sdb/listReplicaGroups.md
-[invalidateCache]:manual/reference/Sequoiadb_command/Sdb/invalidateCache.md
-[SDB_SNAP_SESSIONS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md
+[snapsystem]:manual/Manual/Snapshot/SDB_SNAP_SYSTEM.md
+[transRollback]: manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md#集合空间
+[listCollections]:manual/Manual/Sequoiadb_Command/Sdb/listCollections.md
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[find]:manual/Manual/Sequoiadb_Command/SdbCollection/find.md
+[dropIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIdIndex.md
+[listReplicaGroups]:manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md
+[invalidateCache]:manual/Manual/Sequoiadb_Command/Sdb/invalidateCache.md
+[SDB_SNAP_SESSIONS]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
 [sdbdmsdump]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/dmsdump.md
-[alter]:manual/reference/Sequoiadb_command/SdbCollection/alter.md
-[invalidateCache]:manual/reference/Sequoiadb_command/Sdb/invalidateCache.md
-[SDB_SNAP_CATALOG]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md
-[attachCL]:manual/reference/Sequoiadb_command/SdbCollection/attachCL.md
-[listReplicaGroups]:manual/reference/Sequoiadb_command/Sdb/listReplicaGroups.md
-[SDB_SNAP_CONTEXTS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md
-[forceSession]:manual/reference/Sequoiadb_command/Sdb/forceSession.md
-[listIndexes]:manual/reference/Sequoiadb_command/SdbCollection/listIndexes.md
-[removeRG]:manual/reference/Sequoiadb_command/Sdb/removeRG.md
-[listDomains]:manual/reference/Sequoiadb_command/Sdb/listDomains.md
-[SDB_SNAP_SYSTEM]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SYSTEM.md
-[getSessionAttr]:manual/reference/Sequoiadb_command/Sdb/getSessionAttr.md
-[SDB_SNAP_COLLECTIONS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_COLLECTIONS.md
-[start]:manual/reference/Sequoiadb_command/SdbReplicaGroup/start.md
+[alter]:manual/Manual/Sequoiadb_Command/SdbCollection/alter.md
+[invalidateCache]:manual/Manual/Sequoiadb_Command/Sdb/invalidateCache.md
+[SDB_SNAP_CATALOG]:manual/Manual/Snapshot/SDB_SNAP_CATALOG.md
+[attachCL]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md
+[listReplicaGroups]:manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md
+[SDB_SNAP_CONTEXTS]:manual/Manual/Snapshot/SDB_SNAP_CONTEXTS.md
+[forceSession]:manual/Manual/Sequoiadb_Command/Sdb/forceSession.md
+[listIndexes]:manual/Manual/Sequoiadb_Command/SdbCollection/listIndexes.md
+[removeRG]:manual/Manual/Sequoiadb_Command/Sdb/removeRG.md
+[listDomains]:manual/Manual/Sequoiadb_Command/Sdb/listDomains.md
+[SDB_SNAP_SYSTEM]:manual/Manual/Snapshot/SDB_SNAP_SYSTEM.md
+[getSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md
+[SDB_SNAP_COLLECTIONS]:manual/Manual/Snapshot/SDB_SNAP_COLLECTIONS.md
+[start]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/start.md

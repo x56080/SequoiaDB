@@ -249,7 +249,7 @@
 
 [^_^]:
      本文使用的所有引用及链接
-[analyze]:reference/Sequoiadb_command/Sdb/analyze.md
-[snapshot]:reference/Sequoiadb_command/Sdb/snapshot.md
-[deleteConf]:reference/Sequoiadb_command/Sdb/deleteConf.md
-[updateConf]:reference/Sequoiadb_command/Sdb/updateConf.md
+[analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
+[snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md
+[deleteConf]:manual/Manual/Sequoiadb_Command/Sdb/deleteConf.md
+[updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md

@@ -106,4 +106,4 @@
 [consistency1]:images/Distributed_Engine/Architecture/Replication/consistency1.png
 [consistency2]:images/Distributed_Engine/Architecture/Replication/consistency2.png
 [consistency_alive]:images/Distributed_Engine/Architecture/Replication/consistency_alive.png
-[session_attr]:manual/reference/Sequoiadb_command/SdbCS/setAttributes.md
+[session_attr]:manual/Manual/Sequoiadb_Command/SdbCS/setAttributes.md

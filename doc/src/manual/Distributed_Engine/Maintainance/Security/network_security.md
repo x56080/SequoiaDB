@@ -68,7 +68,7 @@ SequoiaDB 在开启 SSL 后会自动创建证书，不需要用户指定。
 
 [^_^]:
      本文使用的所有链接和引用
-[config]:manual/database_management/database_configuration/configuration_parameters.md
+[config]:manual/Manual/Database_Configuration/configuration_parameters.md
 [c_driver]:manual/Database_Instance/Json_Instance/Development/c_driver/Readme.md
 [cpp_driver]:manual/Database_Instance/Json_Instance/Development/cpp_driver/Readme.md
 [java_driver]:manual/Database_Instance/Json_Instance/Development/java_driver/Readme.md
@@ -76,7 +76,7 @@ SequoiaDB 在开启 SSL 后会自动创建证书，不需要用户指定。
 [csharp_driver]:manual/Database_Instance/Json_Instance/Development/csharp_driver/Readme.md
 [php_driver]:manual/Database_Instance/Json_Instance/Development/php_driver/Readme.md
 [rest]:manual/Database_Instance/Json_Instance/Development/rest/Readme.md
-[secure]:manual/reference/Sequoiadb_command/SecureSdb.md
+[secure]:manual/Manual/Sequoiadb_Command/SecureSdb.md
 [expert]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbexprt.md
 [imprt]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbimprt.md
 [lobtool]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/lobtools.md

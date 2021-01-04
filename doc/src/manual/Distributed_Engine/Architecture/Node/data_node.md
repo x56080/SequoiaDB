@@ -106,9 +106,9 @@
      本文使用的所有引用和链接
 [Replication]:manual/Distributed_Engine/Architecture/Replication/architecture.md
 [expand]:manual/Distributed_Engine/Maintainance/Expand/expand.md
-[createRG]:manual/reference/Sequoiadb_command/Sdb/createRG.md
-[createNode]:manual/reference/Sequoiadb_command/SdbReplicaGroup/createNode.md
+[createRG]:manual/Manual/Sequoiadb_Command/Sdb/createRG.md
+[createNode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/createNode.md
 [cluster_deployment]:manual/Deployment/cluster_deployment.md
-[regular_bar]:manual/database_management/database_configuration/special_configuration_modify/log_synchronization.md#全量同步
+[regular_bar]:manual/Manual/Database_Configuration/Special_Configuration_Modify/log_synchronization.md#全量同步
 [architecture]:manual/Distributed_Engine/Architecture/Replication/architecture.md
-[cluster_config]:manual/database_management/database_configuration/configuration_parameters.md
+[cluster_config]:manual/Manual/Database_Configuration/configuration_parameters.md

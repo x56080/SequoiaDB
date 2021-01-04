@@ -268,10 +268,10 @@ cl.setAttributes( { "AutoIncrement": { "Field": "ID", "StartValue": 1024 } } )
 
 [^_^]:
      本文使用的所有链接和引用
-[create_autoincrement]:manual/reference/Sequoiadb_command/SdbCollection/createAutoIncrement.md
-[create_cl]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
-[drop_autoincrement]:manual/reference/Sequoiadb_command/SdbCollection/dropAutoIncrement.md
-[cl_set_attributes]:manual/reference/Sequoiadb_command/SdbCollection/setAttributes.md
-[snapshot_sequence]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SEQUENCES.md
-[snapshot_catalog]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CATALOG.md
+[create_autoincrement]:manual/Manual/Sequoiadb_Command/SdbCollection/createAutoIncrement.md
+[create_cl]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
+[drop_autoincrement]:manual/Manual/Sequoiadb_Command/SdbCollection/dropAutoIncrement.md
+[cl_set_attributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
+[snapshot_sequence]:manual/Manual/Snapshot/SDB_SNAP_SEQUENCES.md
+[snapshot_catalog]:manual/Manual/Snapshot/SDB_SNAP_CATALOG.md
 [diagram]:images/Distributed_Engine/Architecture/Data_Model/sequence_diagram.png

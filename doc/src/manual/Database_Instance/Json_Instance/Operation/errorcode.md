@@ -13,4 +13,4 @@
 
 [^_^]:
      本文使用的所有引用和链接
-[errorcode]:manual/reference/sequoiadb_error_code.md
+[errorcode]:manual/Manual/sequoiadb_error_code.md

@@ -478,4 +478,4 @@ localhost:11810.test.nobalance_temp
     
 [sharding_domain]:manual/Distributed_Engine/Architecture/domain.md
 [sharding_key]:manual/Distributed_Engine/Architecture/Sharding/sharding_keys.md
-[db_snapshot]:reference/Sequoiadb_command/Sdb/snapshot.md
+[db_snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md

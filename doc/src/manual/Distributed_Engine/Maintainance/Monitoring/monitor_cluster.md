@@ -96,4 +96,4 @@
 [^_^]:
       本文使用到的所有链接和引用
 
-[listReplicaGroups]: manual/reference/Sequoiadb_command/Sdb/listReplicaGroups.md
+[listReplicaGroups]: manual/Manual/Sequoiadb_Command/Sdb/listReplicaGroups.md

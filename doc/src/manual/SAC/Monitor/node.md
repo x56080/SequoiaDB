@@ -207,10 +207,10 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[SDB_SNAP_DATABASE]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md
-[SDB_LIST_GROUPS]:manual/Distributed_Engine/Maintainance/Monitoring/list/SDB_LIST_GROUPS.md
-[SDB_SNAP_SESSIONS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md
-[SDB_SNAP_CONTEXTS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md
+[SDB_SNAP_DATABASE]:manual/Manual/Snapshot/SDB_SNAP_DATABASE.md
+[SDB_LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md
+[SDB_SNAP_SESSIONS]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
+[SDB_SNAP_CONTEXTS]:manual/Manual/Snapshot/SDB_SNAP_CONTEXTS.md
 
 [nodes_list_1]:images/SAC/Monitor/nodes_list_1.png
 [nodes_list_2]:images/SAC/Monitor/nodes_list_2.png

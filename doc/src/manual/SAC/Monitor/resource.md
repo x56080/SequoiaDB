@@ -122,10 +122,10 @@
 
 [^_^]:
     本文使用的所有引用和链接
-[SDB_SNAP_DATABASE]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_DATABASE.md
-[SDB_SNAP_TRANSACTIONS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_TRANSACTIONS.md
-[SDB_SNAP_SESSIONS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_SESSIONS.md
-[SDB_SNAP_CONTEXTS]:manual/Distributed_Engine/Maintainance/Monitoring/snapshot/SDB_SNAP_CONTEXTS.md
+[SDB_SNAP_DATABASE]:manual/Manual/Snapshot/SDB_SNAP_DATABASE.md
+[SDB_SNAP_TRANSACTIONS]:manual/Manual/Snapshot/SDB_SNAP_TRANSACTIONS.md
+[SDB_SNAP_SESSIONS]:manual/Manual/Snapshot/SDB_SNAP_SESSIONS.md
+[SDB_SNAP_CONTEXTS]:manual/Manual/Snapshot/SDB_SNAP_CONTEXTS.md
 
 [sessions_list_1]:images/SAC/Monitor/sessions_list_1.png
 [contexts_list_1]:images/SAC/Monitor/contexts_list_1.png

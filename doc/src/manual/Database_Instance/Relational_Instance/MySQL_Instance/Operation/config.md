@@ -409,8 +409,8 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
     本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md#自定义表配置
-[createCL]:manual/reference/Sequoiadb_command/SdbCS/createCL.md
+[createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
-[count]:manual/reference/Sequoiadb_command/SdbCollection/count.md
+[count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md
 [sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html

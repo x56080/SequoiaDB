@@ -149,11 +149,13 @@ db.sample.employee.dropIndex('idIdx')
 
 [^_^]:
     本文使用的所有链接和引用
+[create_index]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
+[limit]:manual/Manual/sequoiadb_limitation.md
 [data_type]:manual/Distributed_Engine/Architecture/Data_Model/data_type.md
 [access_plan]:manual/Distributed_Engine/Maintainance/Access_Plan/Readme.md
-[query_hint]:manual/reference/Sequoiadb_command/SdbQuery/hint.md
-[query_explain]:manual/reference/Sequoiadb_command/SdbQuery/explain.md
+[query_hint]:manual/Manual/Sequoiadb_Command/SdbQuery/hint.md
+[query_explain]:manual/Manual/Sequoiadb_Command/SdbQuery/explain.md
 [statistics]:manual/Distributed_Engine/Maintainance/Access_Plan/statistics.md
-[analyze]:manual/reference/Sequoiadb_command/Sdb/analyze.md
-[drop_index]:manual/reference/Sequoiadb_command/SdbCollection/dropIndex.md
+[analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
+[drop_index]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
 [picture1]:images/Distributed_Engine/Architecture/Data_Model/index_picture_1.png

@@ -23,5 +23,5 @@ SequoiaSQL-MariaDB 中 SequoiaDB 返回的错误码范围是 40000~50000。由�
 
 [^_^]:
      本文使用的所有引用和链接
-[getErr]:manual/reference/Sequoiadb_command/Global/getErr.md
-[sequoiadb_error_code]:manual/reference/sequoiadb_error_code.md
+[getErr]:manual/Manual/Sequoiadb_Command/Global/getErr.md
+[sequoiadb_error_code]:manual/Manual/sequoiadb_error_code.md

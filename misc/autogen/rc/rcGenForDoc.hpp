@@ -3,7 +3,7 @@
 
 #include "rcGeneratorBase.hpp"
 
-#define RC_MD_FILE_PATH    DOCUMENT_PATH"reference/Sequoiadb_error_code.md"
+#define RC_MD_FILE_PATH    DOCUMENT_PATH"Manual/Sequoiadb_error_code.md"
 
 class rcGenForDoc : public rcGeneratorBase
 {

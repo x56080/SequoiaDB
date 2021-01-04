@@ -80,5 +80,6 @@ SequoiaDB 事务支持的操作：
 [isolation]:manual/Distributed_Engine/Architecture/Transactions/isolation.md
 [2pc]:manual/Distributed_Engine/Architecture/Transactions/2pc.md
 [configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
-[sql_transactions]:manual/reference/SQL_grammar/statement/transaction.md
+[sql_transactions]:manual/Manual/SQL_Grammar/Statement/transaction.md
 [json]:manual/Database_Instance/Json_Instance/Development/JavaScript.md
+
