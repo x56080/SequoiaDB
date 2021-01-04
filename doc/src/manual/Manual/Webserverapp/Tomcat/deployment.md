@@ -63,4 +63,4 @@
      本文使用的所有引用和链接
 [install_deploy]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/install_deploy.md
 [dowmload]:http://tomcat.apache.org/download-70.cgi
-[tomcathome]:images/Manual/Webserverapp/tomcat/tomcathome.jpg
+[tomcathome]:images/Manual/Webserverapp/Tomcat/tomcathome.jpg

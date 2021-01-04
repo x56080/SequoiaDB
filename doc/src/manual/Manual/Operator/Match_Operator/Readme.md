@@ -21,7 +21,6 @@
 | [$elemMatch][elemMatch] | 元素匹配       | db.sample.employee.find( { content: { $elemMatch: { age: 20 } } } )                |
 | [$+标识符][identifier]  | 数组元素匹配   | db.sample.employee.find( { "array.$2": 10 } )                      |
 | [$regex][regex]         | 正则表达式     | db.sample.employee.find( { str: { $regex:  'dh, * fj', $options:'i' } } ) |
-| [$field][field]         | 字段匹配       | db.sample.employee.find( { "t1": { "$field": "t2" } } ) |
 | [$mod][mod]             | 取模匹配       | db.sample.employee.find( { "age": { "$mod": [ 5, 3 ] } } ) |
 | [$et][et]               | 相等匹配       | db.sample.employee.find( { "id": { "$et": 1 } } )       |
 | [$isnull][isnull]       | 选择集合中指定字段是否为空或不存在 |  db.sample.employee.find( { age: { $isnull: 0 } } )  |
@@ -54,7 +53,6 @@
 [elemMatch]:manual/Manual/Operator/Match_Operator/elemMatch.md
 [identifier]:manual/Manual/Operator/Match_Operator/identifier.md
 [regex]:manual/Manual/Operator/Match_Operator/regex.md
-[field]:manual/Manual/Operator/Match_Operator/field.md
 [mod]:manual/Manual/Operator/Match_Operator/mod.md
 [et]:manual/Manual/Operator/Match_Operator/et.md
 [isnull]:manual/Manual/Operator/Match_Operator/isnull.md

@@ -20,8 +20,8 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[web-0]:images/Manual/Webserverapp/jboss/web-0.png
-[web-2]:images/Manual/Webserverapp/jboss/web-2.png
-[web-3]:images/Manual/Webserverapp/jboss/web-3.png
-[web-6]:images/Manual/Webserverapp/jboss/web-6.png
+[web-0]:images/Manual/Webserverapp/Jboss/web-0.png
+[web-2]:images/Manual/Webserverapp/Jboss/web-2.png
+[web-3]:images/Manual/Webserverapp/Jboss/web-3.png
+[web-6]:images/Manual/Webserverapp/Jboss/web-6.png
 

@@ -2,7 +2,7 @@
 
 > **Note:**
 >
-> * 也可以通过 `stp --daemon` 来启动 STP 节点，请参考[后台模式](database_management/stp/tools/stp.md#后台模式)
+> * 也可以通过 `stp --daemon` 来启动 STP 节点，可参考[后台模式][stp]
 
 ##权限需求##
 
@@ -40,3 +40,9 @@ bin/stpstart --confpath conf/stp
 ```
 bin/stpstart --options "--diaglevel=5"
 ```
+
+
+
+[^_^]:
+     本文使用的所有引用及链接
+[stp]:manual/Distributed_Engine/Architecture/Stp/Tools/stp.md#后台模式

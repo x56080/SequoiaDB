@@ -15,4 +15,4 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[webtest]:images/Manual/Webserverapp/tomcat/webtest.jpg
+[webtest]:images/Manual/Webserverapp/Tomcat/webtest.jpg

@@ -49,4 +49,4 @@ update 用于修改集合中的记录。
 
 [^_^]:
     本文使用的所有引用及链接
-[hint1]:manual/Manual/SQL_grammar/clause/hint.md
+[hint1]:manual/Manual/SQL_Grammar/Clause/hint.md

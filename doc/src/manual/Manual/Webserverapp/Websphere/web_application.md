@@ -62,15 +62,15 @@
 
 [^_^]:
     本文使用的所有引用和链接
-[app_1]:images/Manual/Webserverapp/websphere/app_1.jpg
-[app_2]:images/Manual/Webserverapp/websphere/app_2.jpg
-[app_3]:images/Manual/Webserverapp/websphere/app_3.jpg
-[app_4]:images/Manual/Webserverapp/websphere/app_4.jpg
-[app_5]:images/Manual/Webserverapp/websphere/app_5.jpg
-[app_6]:images/Manual/Webserverapp/websphere/app_6.jpg
-[app_7]:images/Manual/Webserverapp/websphere/app_7.jpg
-[app_8]:images/Manual/Webserverapp/websphere/app_8.jpg
-[app_9]:images/Manual/Webserverapp/websphere/app_9.jpg
-[app_10]:images/Manual/Webserverapp/websphere/app_10.jpg
-[app_11]:images/Manual/Webserverapp/websphere/app_11.jpg
-[app_12]:images/Manual/Webserverapp/websphere/app_12.jpg
+[app_1]:images/Manual/Webserverapp/Websphere/app_1.jpg
+[app_2]:images/Manual/Webserverapp/Websphere/app_2.jpg
+[app_3]:images/Manual/Webserverapp/Websphere/app_3.jpg
+[app_4]:images/Manual/Webserverapp/Websphere/app_4.jpg
+[app_5]:images/Manual/Webserverapp/Websphere/app_5.jpg
+[app_6]:images/Manual/Webserverapp/Websphere/app_6.jpg
+[app_7]:images/Manual/Webserverapp/Websphere/app_7.jpg
+[app_8]:images/Manual/Webserverapp/Websphere/app_8.jpg
+[app_9]:images/Manual/Webserverapp/Websphere/app_9.jpg
+[app_10]:images/Manual/Webserverapp/Websphere/app_10.jpg
+[app_11]:images/Manual/Webserverapp/Websphere/app_11.jpg
+[app_12]:images/Manual/Webserverapp/Websphere/app_12.jpg

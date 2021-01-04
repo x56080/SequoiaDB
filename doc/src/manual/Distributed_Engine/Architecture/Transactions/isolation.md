@@ -85,7 +85,7 @@ SequoiaDB 的 RR 级别是通过多版本并发控制（MVCC，Multi-Version Con
 
 > **Note:**
 >
-> RR 隔离级别需要[时间序列服务（STP）](database_management/stp/overview.md)和全局事务的支持。开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon](database_management/database_configuration/configuration_parameters.md#mvccon) 和 [globtranson](database_management/database_configuration/configuration_parameters.md#globtranson) 为 true。
+> RR 隔离级别需要[时间序列服务（STP）][overview]和全局事务的支持。开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon][configuration_parameters] 和 [globtranson][configuration_parameters] 为 true。
 
 隔离级别摘要
 ----
@@ -105,3 +105,5 @@ SequoiaDB 的 RR 级别是通过多版本并发控制（MVCC，Multi-Version Con
     本文使用到的所有链接
 
 [configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
+[overview]:manual/Distributed_Engine/Architecture/Stp/Readme.md
+[configuration_parameters]:manual/Manual/Database_Configuration/configuration_parameters.md

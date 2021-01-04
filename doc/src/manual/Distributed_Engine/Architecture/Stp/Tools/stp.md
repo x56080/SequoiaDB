@@ -22,7 +22,7 @@
 >      * STP 最多可以配置 7 个 "server" 角色的节点，因此 serverlist 最多可以配置 7 个节点
 > * STP 的 "client" 角色
 >      * client 节点只能向 server 节点进行同步
-> * `maxtimeerror` 指定的可以容忍的最大时间误差，是指当前 STP 节点与 server 主节点之间的时间误差，详细请参考[逻辑时间](database_management/stp/logicaltime.md)
+> * `maxtimeerror` 指定的可以容忍的最大时间误差，是指当前 STP 节点与 server 主节点之间的时间误差，详细可参考[逻辑时间][logicaltime]
 
 ##配置参数##
 
@@ -39,7 +39,7 @@
 
 ##后台模式##
 
-通过 `daemon` 可以使用后台模式运行 STP 节点，其功能与 [stpstart](database_management/stp/tools/stpstart.md) 相同
+通过 `daemon` 可以使用后台模式运行 STP 节点，其功能与 [stpstart][start] 相同
 
 ```
 bin/stp --daemon
@@ -88,3 +88,8 @@ serverlist=server-1:9622
 role=client
 ```
 
+
+[^_^]:
+    本文使用的所有引用及链接
+[logicaltime]:manual/Distributed_Engine/Architecture/Stp/logicaltime.md
+[start]:manual/Distributed_Engine/Architecture/Stp/Tools/stpstart.md

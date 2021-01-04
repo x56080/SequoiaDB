@@ -38,8 +38,8 @@
 >
 > - 事务的隔离级别可参考[隔离级别][isolation]
 > - RR 隔离级别需要全局事务的支持：
->   - 开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon](database_management/database_configuration/configuration_parameters.md#mvccon) 和 [globtranson](database_management/database_configuration/configuration_parameters.md#globtranson) 为 true
->   - 另外，需要时间序列服务(STP)的支持，详细请参考 [时间序列服务](database_management/stp/overview.md)
+>   - 开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon][cluster_config] 和 [globtranson][cluster_config] 为 true
+>   - 另外，需要时间序列服务(STP)的支持，详细可参考[时间序列服务][Readme]
 
 事务自动回滚
 ----
@@ -189,4 +189,4 @@
 [update_conf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
 [set_session_attr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
 [get_session_attr]:manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md
-
+[Readme]:manual/Distributed_Engine/Architecture/Stp/Readme.md

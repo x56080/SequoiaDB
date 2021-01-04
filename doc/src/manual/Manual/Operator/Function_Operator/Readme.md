@@ -92,12 +92,12 @@
 [multiply]:manual/Manual/Operator/Function_Operator/multiply.md
 [divide]:manual/Manual/Operator/Function_Operator/divide.md
 [substr]:manual/Manual/Operator/Function_Operator/substr.md
-[strlen]:manual/Manual/Operator/function_operator/strlen.md
+[strlen]:manual/Manual/Operator/Function_Operator/strlen.md
 [lower]:manual/Manual/Operator/Function_Operator/lower.md
-[upper]:manual/Manual/Operator/function_operator/upper.md
-[ltrim]:manual/Manual/Operator/function_operator/ltrim.md
+[upper]:manual/Manual/Operator/Function_Operator/upper.md
+[ltrim]:manual/Manual/Operator/Function_Operator/ltrim.md
 [rtrim]:manual/Manual/Operator/Function_Operator/rtrim.md
-[trim]:manual/Manual/Operator/function_operator/trim.md
+[trim]:manual/Manual/Operator/Function_Operator/trim.md
 [cast]:manual/Manual/Operator/Function_Operator/cast.md
 [size]:manual/Manual/Operator/Function_Operator/size.md
 [type]:manual/Manual/Operator/Function_Operator/type.md
