@@ -1,10 +1,10 @@
 ##NAME##
 
-getNextValue - get the next value of current sequence
+restart - restart the sequence
 
 ##SYNOPSIS##
 
-**sequence.getNextValue\(\)**
+**sequence.restart\(\)**
 
 ##CATEGORY##
 
@@ -12,7 +12,7 @@ SdbSequence
 
 ##DESCRIPTION##
 
-Get the next value of current sequence. Generally the values can be unique.
+Restart the sequence. The sequence value will be set back to the start.
 
 ##PARAMETERS##
 
@@ -20,7 +20,7 @@ None
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return the next value as number.
+When the function executes successfully, return void.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -34,15 +34,19 @@ v3.4.2 and above
 
 ##EXAMPLES##
 
-Get the next value of the sequence.
+Restart a sequence with the current value of 10
+
+```lang-javascript
+> sequence.getNextValue()
+10
+> sequence.restart()
+```
+
+Then the sequence value goes back to the start value of 1
 
 ```lang-javascript
 > sequence.getNextValue()
 1
-> sequence.getNextValue()
-2
-> sequence.getNextValue()
-3
 ```
 
 

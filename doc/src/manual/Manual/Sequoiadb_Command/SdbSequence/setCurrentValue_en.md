@@ -75,8 +75,8 @@ v3.4.2 and above
 
 [^_^]:
      本文使用的所有引用及链接
-[setAttributes]:reference/Sequoiadb_command/SdbSequence/setAttributes.md
-[getLastErrMsg]:manual/reference/Sequoiadb_command/Global/getLastErrMsg.md
-[getLastError]:manual/reference/Sequoiadb_command/Global/getLastError.md
+[setAttributes]:manual/Manual/Sequoiadb_Command/SdbSequence/setAttributes.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/faq.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

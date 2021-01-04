@@ -66,8 +66,8 @@ Print the fetched values out.
 
 [^_^]:
      本文使用的所有引用及链接
-[getNextValue]:reference/Sequoiadb_command/SdbSequence/getNextValue.md
-[getLastErrMsg]:manual/reference/Sequoiadb_command/Global/getLastErrMsg.md
-[getLastError]:manual/reference/Sequoiadb_command/Global/getLastError.md
+[getNextValue]:manual/Manual/Sequoiadb_Command/SdbSequence/getNextValue.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/faq.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
