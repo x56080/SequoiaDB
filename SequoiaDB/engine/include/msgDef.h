@@ -860,6 +860,7 @@
 
 #define CMD_VALUE_NAME_SET_CURR_VALUE        "set current value"
 #define CMD_VALUE_NAME_RENAME                "rename"
+#define CMD_VALUE_NAME_RESTART               "restart"
 
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )

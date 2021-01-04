@@ -7246,6 +7246,11 @@ do                                                            \
       goto done ;
    }
 
+   INT32 _sdbSequenceImpl::restart ()
+   {
+      return _alterInternal ( CMD_VALUE_NAME_RESTART, _sdbStaticObject ) ;
+   }
+
    /*
     * sdbImpl
     * SequoiaDB Connection Implementation

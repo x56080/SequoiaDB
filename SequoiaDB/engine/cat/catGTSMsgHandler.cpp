@@ -747,6 +747,14 @@ namespace engine
                                          NULL, NULL, &alteredSeqID ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set attributes, rc: %d", rc ) ;
          }
+         // restart sequence
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_RESTART ) )
+         {
+            rc = pSeqMgr->restartSequence( pSeqName, eduCB,
+                                           cataCB->majoritySize( TRUE ),
+                                           &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to restart sequence, rc: %d", rc ) ;
+         }
          else
          {
             rc = SDB_INVALIDARG ;

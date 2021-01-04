@@ -13900,3 +13900,27 @@ error:
    goto done ;
 }
 
+SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle )
+{
+   INT32 rc = SDB_OK ;
+   BOOLEAN bsoninit = FALSE ;
+   sdbSequenceStruct *s = (sdbSequenceStruct*)sHandle ;
+   bson obj ;
+
+   BSON_INIT( obj ) ;
+   HANDLE_CHECK( sHandle, s, SDB_HANDLE_TYPE_SEQUENCE ) ;
+   BSON_FINISH( obj ) ;
+
+   rc = _sdbAlterSequenceInternal( sHandle, CMD_VALUE_NAME_RESTART, &obj ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   BSON_DESTROY( obj ) ;
+   return rc ;
+error:
+   goto done ;
+}
+

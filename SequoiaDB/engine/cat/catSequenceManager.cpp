@@ -142,7 +142,7 @@ namespace engine
       utilGlobalID ID = UTIL_GLOBAL_NULL ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_CREATE_SEQ ) ;
 
-      _catSequence sequence = _catSequence( name ) ;
+      _catSequence sequence( name ) ;
 
       rc = _catSequence::validateFieldNames( options ) ;
       if ( SDB_OK != rc )
@@ -297,7 +297,7 @@ namespace engine
       _catSequence* cache = NULL ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_ALTER_SEQ ) ;
 
-      _catSequence sequence = _catSequence( name ) ;
+      _catSequence sequence( name ) ;
 
       CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( name ) ;
       BUCKET_XLOCK( bucket ) ;
@@ -482,6 +482,84 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_RESTART_SEQ, "_catSequenceManager::restartSequence" )
+   INT32 _catSequenceManager::restartSequence( const std::string& name,
+                                               _pmdEDUCB* eduCB,
+                                               INT16 w,
+                                               utilSequenceID* pAlteredSeqID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      _catSequence* cache = NULL ;
+      PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_RESTART_SEQ ) ;
+
+      _catSequence sequence( name ) ;
+
+      CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( name ) ;
+      BUCKET_XLOCK( bucket ) ;
+
+      CAT_SEQ_MAP::map_const_iterator iter = bucket.find( name ) ;
+      if ( bucket.end() != iter )
+      {
+         // found from cache
+         cache = (*iter).second ;
+         sequence.copyFrom( *cache ) ;
+      }
+      else
+      {
+         // not found from cache, acquire from collection
+         BSONObj seqObj ;
+         rc = _findSequence( name, seqObj, eduCB ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR,
+                    "Failed to find sequence[%s] from system collection, rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+
+         rc = sequence.loadOptions( seqObj ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to set sequence[%s], rc=%d",
+                    name.c_str(), rc ) ;
+            goto error ;
+         }
+      }
+
+      sequence.setCurrentValue( sequence.getStartValue() ) ;
+      sequence.setCachedValue( sequence.getStartValue() ) ;
+      sequence.setInitial( TRUE ) ;
+      sequence.setExceeded( FALSE ) ;
+
+      rc = sequence.toBSONObj( obj, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to build BSONObj for sequence[%s], rc=%d",
+                 name.c_str(), rc ) ;
+         goto error ;
+      }
+
+      rc = _updateSequence( name, obj, eduCB, w, pAlteredSeqID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
+                 name.c_str(), rc ) ;
+         goto error ;
+      }
+
+      if ( NULL != cache )
+      {
+         cache->copyFrom( sequence ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR_RESTART_SEQ, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _catSequenceManager::acquireSequence( const std::string& name,
                                                const utilSequenceID ID,
                                                _catSequenceAcquirer& acquirer,
@@ -509,7 +587,7 @@ namespace engine
       _catSequence* cache = NULL ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR_RESET_SEQ ) ;
 
-      _catSequence sequence = _catSequence( name ) ;
+      _catSequence sequence( name ) ;
 
       CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( name ) ;
       BUCKET_XLOCK( bucket ) ;

@@ -44,6 +44,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSequence, getCurrentValue )
    JS_MEMBER_FUNC_DEFINE( _sptDBSequence, setCurrentValue )
    JS_MEMBER_FUNC_DEFINE( _sptDBSequence, fetch )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSequence, restart )
 
    JS_BEGIN_MAPPING( _sptDBSequence, SPT_SEQ_NAME )
       JS_ADD_CONSTRUCT_FUNC( construct )
@@ -53,6 +54,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getCurrentValue", getCurrentValue )
       JS_ADD_MEMBER_FUNC( "setCurrentValue", setCurrentValue )
       JS_ADD_MEMBER_FUNC( "fetch", fetch )
+      JS_ADD_MEMBER_FUNC( "restart", restart )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSequence::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSequence::fmpToBSON )
       JS_SET_BSON_TO_JSOBJ_FUNC( _sptDBSequence::bsonToJSObj )
@@ -257,6 +259,30 @@ namespace engine
       result = builder.obj() ;
 
       rval.getReturnVal().setValue( result ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSequence::restart( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      if( arg.argc() > 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+      rc = _sequence.restart() ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to restart sequence" ) ;
+         goto error ;
+      }
    done:
       return rc ;
    error:

@@ -104,6 +104,10 @@ namespace engine
                             const INT64 expectValue,
                             _pmdEDUCB* eduCB, INT16 w,
                             utilSequenceID* pAlteredSeqID = NULL ) ;
+      INT32 restartSequence( const std::string& name,
+                             _pmdEDUCB* eduCB,
+                             INT16 w,
+                             utilSequenceID* pAlteredSeqID = NULL ) ;
       OSS_INLINE INT32 getSequence( const std::string& name,
                                     bson::BSONObj& sequence,
                                     _pmdEDUCB* eduCB )

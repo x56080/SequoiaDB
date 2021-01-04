@@ -3836,7 +3836,7 @@ SDB_EXPORT INT32 sdbSeqGetCurrentValue( sdbSequenceHandle sHandle,
                                      const INT64 value )
     \brief Set the current value to sequence
     \param [in] sHandle The sequence handle
-    \param [out] value The expected current value
+    \param [in] value The expected current value
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -3862,6 +3862,13 @@ SDB_EXPORT INT32 sdbSeqFetch( sdbSequenceHandle sHandle,
                               INT64 *nextValue,
                               INT32 *returnNum,
                               INT32 *increment ) ;
+
+/** \fn INT32 sdbSeqRestart( sdbSequenceHandle sHandle )
+    \brief Set the sequence value back to the start.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle ) ;
 
 SDB_EXTERN_C_END
 #endif
