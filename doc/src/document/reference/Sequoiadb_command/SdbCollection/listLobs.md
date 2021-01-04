@@ -16,13 +16,13 @@ Collection
 
 ##参数##
 
-* `SdbQueryOption`( *Object*， *选填* )
+SdbQueryOption( *Object*， *选填* )
     
-    使用一个对象来指定记录查询参数，使用方法可参考 [SdbQueryOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbQueryOption.md)
+使用一个对象来指定记录查询参数，使用方法可参考 [SdbQueryOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbQueryOption.md)
     
-    >**Note:**
-    >
-    > 当用户使用 SdbQueryOption 指定 hint 为{"ListPieces": 1}时，可以获取 Lob 详细的分片信息。
+>**Note:**
+>
+> 当用户使用 SdbQueryOption 指定 hint 为{"ListPieces": 1}时，可以获取 Lob 详细的分片信息。
 
 ##返回值##
 
@@ -51,55 +51,55 @@ Collection
 * 列举 sample.employee 中所有的大对象
 
 ```lang-javascript
-> db.sample.employee.listLobs()
-{
- "Size": 2,
- "Oid": {
-   "$oid": "00005d36c8a5350002de7edc"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.43.17.360000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.43.17.508000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-{
- "Size": 51717368,
- "Oid": {
-   "$oid": "00005d36cae8370002de7edd"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.52.56.278000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.52.56.977000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-Return 2 row(s).
-```
+   > db.sample.employee.listLobs()
+   {
+    "Size": 2,
+    "Oid": {
+      "$oid": "00005d36c8a5350002de7edc"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.43.17.360000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.43.17.508000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   {
+    "Size": 51717368,
+    "Oid": {
+      "$oid": "00005d36cae8370002de7edd"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.52.56.278000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.52.56.977000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   Return 2 row(s).
+   ```
 
 * 列举 sample.employee 中 Size 大于 10 的大对象
 
 ```lang-javascript
-> db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
-{
- "Size": 51717368,
- "Oid": {
-   "$oid": "00005d36cae8370002de7edd"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.52.56.278000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.52.56.977000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-Return 1 row(s).
-```
+   > db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
+   {
+    "Size": 51717368,
+    "Oid": {
+      "$oid": "00005d36cae8370002de7edd"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.52.56.278000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.52.56.977000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   Return 1 row(s).
+   ```

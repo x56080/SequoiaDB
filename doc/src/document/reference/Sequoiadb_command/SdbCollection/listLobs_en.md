@@ -1,6 +1,6 @@
 ##NAME##
 
-listLobs - List the LOBs in the collection.
+listLobs - list the LOBs in the collection
 
 ##SYNOPSIS##
 
@@ -16,13 +16,14 @@ Users can use this function to get the LOBs in the collection, and the obtained 
 
 ##PARAMETERS##
 
-* `SdbQueryOption`( *Object*， *Optional* )
+SdbQueryOption( *Object*， *Optional* )
     
-    Use an object to specify record query parameters, and the usage can refer to [SdbQueryOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbQueryOption.md).
+Use an object to specify record query parameters, and the usage can refer to [SdbQueryOption](reference/Sequoiadb_command/AuxiliaryObjects/SdbQueryOption.md).
     
-    >**Note:**
-    >
-    > When using SdbQueryOption to specify hint as {"ListPieces": 1}, users can get Lob's detailed sharding information.
+
+>**Note:**
+>
+> When using SdbQueryOption to specify 	hint as {"ListPieces": 1}, users can get 	detailed sharding information about the Lob.
 
 ##RETURN VALUE##
 
@@ -51,55 +52,55 @@ The function is applicable to v2.0 and above, of which v3.2 and above support ob
 * List all LOBs in sample.employee.
 
 ```lang-javascript
-> db.sample.employee.listLobs()
-{
- "Size": 2,
- "Oid": {
-   "$oid": "00005d36c8a5350002de7edc"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.43.17.360000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.43.17.508000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-{
- "Size": 51717368,
- "Oid": {
-   "$oid": "00005d36cae8370002de7edd"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.52.56.278000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.52.56.977000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-Return 2 row(s).
-```
+   > db.sample.employee.listLobs()
+   {
+    "Size": 2,
+    "Oid": {
+      "$oid": "00005d36c8a5350002de7edc"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.43.17.360000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.43.17.508000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   {
+    "Size": 51717368,
+    "Oid": {
+      "$oid": "00005d36cae8370002de7edd"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.52.56.278000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.52.56.977000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   Return 2 row(s).
+   ```
 
 * List LOBs with size greater than 10 in sample.employee.
 
 ```lang-javascript
-> db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
-{
- "Size": 51717368,
- "Oid": {
-   "$oid": "00005d36cae8370002de7edd"
- },
- "CreateTime": {
-   "$timestamp": "2019-07-23-16.52.56.278000"
- },
- "ModificationTime": {
-   "$timestamp": "2019-07-23-16.52.56.977000"
- },
- "Available": true,
- "HasPiecesInfo": false
-}
-Return 1 row(s).
-```
+   > db.sample.employee.listLobs( SdbQueryOption().cond( { "Size": { $gt: 10 } } ) )
+   {
+    "Size": 51717368,
+    "Oid": {
+      "$oid": "00005d36cae8370002de7edd"
+    },
+    "CreateTime": {
+      "$timestamp": "2019-07-23-16.52.56.278000"
+    },
+    "ModificationTime": {
+      "$timestamp": "2019-07-23-16.52.56.977000"
+    },
+    "Available": true,
+    "HasPiecesInfo": false
+   }
+   Return 1 row(s).
+   ```
