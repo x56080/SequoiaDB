@@ -1,5 +1,11 @@
 package com.mongodb.java.concurrent;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,12 +31,6 @@ import com.mongodb.utils.MongodbTestBase;
 import com.sequoiadb.threadexecutor.ThreadExecutor;
 import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.exists;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-
 /**
  * @Description seqDB-21998:并发自动创建cs和cl
  * @author fanyu
@@ -43,7 +43,7 @@ public class AutoCreateCSCL21998 extends MongodbTestBase {
     private String clName = "cl21998";
     private MongoDatabase db;
 
-    @BeforeClass
+    @BeforeClass(enabled = false)
     public void setUp() throws UnknownHostException {
         if ( client.listDatabaseNames().into( new ArrayList<>() )
                 .contains( dbName ) ) {
