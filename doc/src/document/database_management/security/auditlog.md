@@ -1,169 +1,118 @@
 SequoiaDB 巨杉数据库审计日志记录了用户对数据库执行的所有操作。通过审计日志，用户可以对数据库进行故障分析、行为分析和安全审计等操作，能有效帮助用户获取数据库的执行情况。
 
-同时，SequoiaDB 提供包含节点级和用户级审计日志，用户可以通过配置决定不同级别的审计日志，或者同一级别不同角色的审计日志。
-
-启用和关闭审计输出
+审计层级
 ----
 
-SequoiaDB 可以通过修改配置方式开启和关闭审计日志，详情可参见后续相关操作独立段落。
+SequoiaDB 支持配置节点和用户两种层级的审计功能。
 
-审计日志文件路径默认为`数据文件路径/diaglog/sdbaudit.log`，也可通过修改 diagpath 进行调整。有关审计日志消息的详情可参见查看审计日志。
+* 节点级审计功能：表示对节点内所有的用户和集合都是采用统一的审计配置
 
-开启审计日志后，用户在每次操作时，数据库会根据用户配置的审计日志操作类型掩码输出对应的审计日志，可配置的审计日志操作类型掩码参见操作类型掩码表。
+* 用户级审计功能：表示该用户的所有操作优先使用该用户的审计配置
+
+用户通过配置[审计操作类型](database_management/security/auditlog.md#审计操作类型)可以决定日志输出的审计信息。用户级的审计配置优先级高于节点级审计配置，当用户同时配置多级审计操作类型时，未配置的项将继承优先级较低的审计配置项。例如：节点级审计配置为 DDL，用户级审计配置为 DML，则该用户的生效审计配置为"DDL | DML"；如果用户级审计配置为"!DDL | DML"，则该用户的生效审计配置为"DML"。
 
 > **Note：**
 > 
 >  SequoiaDB 集群模式支持所有级别的审计日志，独立模式仅支持节点级审计日志。
 
-配置说明
-----
+##节点级审计日志##
 
-SequoiaDB 开启或关闭审计日志需要配置操作类型掩码，支持的操作类型掩码如下：
+###开启审计功能###
 
-### 操作类型掩码
+SequoiaDB 默认开启节点级审计功能，默认审计操作类型为"SYSTEM|DDL|DCL"。
 
-| 操作类型掩码 | 操作类型                                                 |
-| -------- | ------------------------------------------------------------ |
-| ACCESS   | 登入登出                                                     |
-| CLUSTER  | 集群操作，支持的操作：创建组、删除组                         |
-| SYSTEM   | 系统操作，支持的操作：重启节点                               |
-| DCL      | 用户操作，支持的操作：创建用户、修改用户、删除用户           |
-| DDL      | 集合空间和集合操作，支持的操作：创建集合空间、修改集合空间、删除集合空间、创建集合、修改集合及删除集合 |
-| DML      | 数据操作，支持的操作：插入数据、更新数据和删除数据           |
-| DQL      | 查询数据                                                     |
-| INSERT   | 插入数据                                                     |
-| UPDATE   | 更新数据                                                     |
-| DELETE   | 删除数据                                                     |
-| OTHER    | 其他，以上类型之外的操作                                     |
+###查看审计配置###
+
+用户可以使用 snapshot() 命令查看审计配置
+
+```lang-javascript
+db.snapshot(SDB_SNAP_CONFIGS, {}, {NodeName:"", auditpath:"", auditnum:"", auditmask:""})
+```
+
+输出结果如下：
+
+```lang-json
+{ "NodeName": "sdbserver:30000", "auditpath": "/opt/sequoiadb/30000/diaglog/", "auditnum": 20, "auditmask": "SYSTEM|DDL|DCL" }
+{ "NodeName": "sdbserver:30010", "auditpath": "/opt/sequoiadb/30010/diaglog/", "auditnum": 20, "auditmask": "SYSTEM|DDL|DCL" }
+{ "NodeName": "sdbserver:30020", "auditpath": "/opt/sequoiadb/30020/diaglog/", "auditnum": 20, "auditmask": "SYSTEM|DDL|DCL" }
+{ "NodeName": "sdbserver:50000", "auditpath": "/opt/sequoiadb/50000/diaglog/", "auditnum": 20, "auditmask": "SYSTEM|DDL|DCL" }
+```
+
+- auditpath 表示审计日志文件路径，默认为`数据文件路径/diaglog/sdbaudit.log`
+- auditnum 表示审计日志文件个数，默认为 20
+- auditmask 表示审计日志审计操作类型，默认为"SYSTEM|DDL|DCL"
+
+###修改审计操作类型###
+
+用户可以执行 [updateConf()](reference/Sequoiadb_command/Sdb/updateConf.md) 命令修改 auditmask 取值以修改审计操作类型，该操作动态生效。
+
+修改 auditmask 取值为"SYSTEM|DDL|DCL|DQL"
+
+```
+> db.updateConf({auditmask:"SYSTEM|DDL|DCL|DQL"}) 
+```
 
 > **Note：**
 >
-> - 支持配置 ALL, NONE，配置 ALL 则支持所有操作类型的审计日志，配置 NONE 则禁止所有类型的审计日志
-> - 支持使用"|"连接多个操作类型，如"DDL|DML|DQL"
-> - 支持使用"!"禁止某个操作类型，如"!DCL|DML"
-> - 审计日志优先级：节点 -> 用户，级别关系从大到小
-> - 只开启了某一级别的审计日志，则最终只生效该级别的配置
-> - 同时开启了多个级别的审计日志，当前级别未配置的操作类型则使用上一级别的配置，以此类推
-> - 反之，当前级别配置了但是上一级别未配置，只生效当前级别配置。
-> - 修改配置生效后可执行 [invalidateCache](reference/Sequoiadb_command/Sdb/invalidateCache.md) 命令清除 NODE/CATALOG/AUTH 缓存
+> SequoiaDB 巨杉数据库 v3.0 及以上版本配置节点"auditmask"后在线动态生效，v3.0 以下版本需要重启节点生效，详情可参考[配置项参数](database_management/database_configuration/configuration_parameters.md)章节 auditmask 参数说明。
 
-### 示例
+###关闭审计功能###
 
-配置审计日志的操作类型见"配置"列，配置后的生效值见"生效配置"列
+用户可通过 [updateConf()](reference/Sequoiadb_command/Sdb/updateConf.md) 命令修改 auditMask 取值为"NONE"以关闭节点级审计功能。
 
 ```
-日志类型       配置              生效配置              说明                        
-节点        SYSTEM|ACCESS     SYSTEM|ACCESS    最高级别，只生效当前配置     
-用户        !SYSTEM|DCL       DCL|ACCESS       当前级别未配置的使用上级配置                    
+> db.updateConf({auditmask:"NONE"}) 
 ```
 
-开启审计日志
-----
+##用户级审计日志##
 
-用户可以通过修改配置的方式开启审计日志，开启后再次修改生效新的配置。
+###开启审计功能###
 
-### 节点级
+SequoiaDB 默认关闭用户级审计功能，用户可通过 [createUsr()](reference/Sequoiadb_command/Sdb/createUsr.md) 命令开启用户级审计功能。
 
-  - 节点级审计日志默认开启，默认配置的操作类型为"SYSTEM|DDL|DCL"
-
-  - 执行 [updateConf](reference/Sequoiadb_command/Sdb/updateConf.md) 命令修改"auditmask"取值并动态生效
-
-    > **Note：**
-    >
-    > - 审计日志文件路径默认为`数据文件路径/diaglog/sdbaudit.log`，文件个数默认为20，详情可参考"[配置项参数](database_management/database_configuration/configuration_parameters.md)"
-    > - SequoiaDB 巨杉数据库3.0及以上版本配置节点"auditmask"后在线动态生效，3.0以下版本需要重启节点生效，详情可参考"[配置项参数](database_management/database_configuration/configuration_parameters.md)"章节 auditmask 参数说明
-
-**示例:** 
-
-修改数据组 db1 上的数据节点 20000，修改"auditmask"取值为"SYSTEM|DDL|DCL"
-
-```
-> db.updateConf( { auditmask:"SYSTEM|DDL|DCL"}, { GroupName:"db1", ServiceName:"20000"} ) 
-```
-
-### 用户级
-
-  - 新用户执行 [createUsr](reference/Sequoiadb_command/Sdb/createUsr.md) 命令配置"AuditMask"，并重新登录用户使配置生效
-  - 已存在的用户执行 [alterUsr](alter_user) 命令修改"AuditMask"取值，并重新登录用户使配置生效
-
-   **示例：**
+用户可执行 createUsr() 命令配置 AuditMask，并重新登录用户使配置生效。
     
-   1.创建 admin 用户，配置用户名为"admin"，密码为"admin"，操作类型掩码"AuditMask"为"DDL|DML|!DQL"
+创建 admin 用户，配置用户名为"admin"，密码为"admin"，审计操作类型 AuditMask 为"DDL|DML|!DQL"
 
-   ```
-   > db.createUsr( "admin", "admin", { AuditMask: "DDL|DML|!DQL" } )
-   ```
-
-   2.修改 admin 用户，修改操作类型掩码"AuditMask"为"ACCESS|DDL"
-
-   ```
-   > db.alterUsr( "admin", "set attributes", { AuditMask: "ACCESS|DDL" } )
-   ```
-
-查看审计日志配置
-----
-
-### 节点级
-
-在数据库安装目录下执行 `bin/sdblist --detail --expand` 查看"auditmask"取值。
-
-**示例：**
-
-- 查看 coord 节点的审计日志配置信息，sdblist命令详解可参考`bin/sdblist --help`帮助信息
-
-```lang-bash
-$ ./bin/sdblist --detail --expand -r coord
-```
-    
-- 如下示例只展示审计日志相关配置：审计日志文件路径 auditpath, 审计日志文件个数 auditnum, 审计日志操作类型掩码 auditmask 等配置信息。 其他配置以省略号“......”表示，返回结果如下：
-
-```
-......
-auditpath      :  /opt/sequoiadb/database/coord/11810/diaglog/
-auditnum       :  20
-auditmask      :  SYSTEM|DDL|DCL
-......
+```lang-javascript
+> db.createUsr("admin", "admin", {AuditMask: "DDL|DML|!DQL"})
 ```
 
-### 用户级
+###查看审计配置###
 
-可以通过 [用户列表](database_management/monitoring/list/SDB_LIST_USERS.md) 查看指定用户的"AuditMask"取值。
+用户可以通过[用户列表](database_management/monitoring/list/SDB_LIST_USERS.md)查看指定用户的 AuditMask 取值。
 
-**示例：**
+查看 sample 用户的审计操作类型 AuditMask 配置
 
-查看 sample 用户的操作类型掩码"AuditMask"配置
+```lang-javascript
+> db.list(SDB_LIST_USERS)
+```
 
-   ```
-   > db.list( SDB_LIST_USERS )
-   {
-       "User": "sample"
-       "Options": {
-           "AuditMask": "DDL|DML|!DQL"
-       }
-   }
-   ```
+输出结果如下：
 
-关闭审计日志
+```lang-json
+{
+    "User": "sample"
+    "Options": {
+        "AuditMask": "DDL|DML|!DQL"
+    }
+}
+```
+
+###关闭审计功能###
+
+用户可以通过 [dropUsr()](reference/Sequoiadb_command/Sdb/dropUsr.md) 删除指定用户来关闭用户级审计功能。
+
+删除用户名为"admin"，密码为"admin"的数据库权限
+
+```lang-javascript
+> db.dropUsr("admin","admin")
+ ```
+
+审计日志解析
 ----
 
-### 节点级
-
-执行 [updateConf](reference/Sequoiadb_command/Sdb/updateConf.md) 命令修改"auditMask"取值为"NONE"并动态生效。
-
-### 用户级
-
-执行 [alterUsr](alter_user) 命令修改"AuditMask"取值为"NONE"，并重新登录用户使配置生效。
-
-> **Note：**
-> 
-> 关闭审计日志的方法同开启审计日志，操作类型掩码修改"NONE"，生效后将不再输出对应级别的审计日志。
-
-查看审计日志信息
-----
-
-SequoiaDB 只能查看节点路径下的审计日志文件，审计日志文件路径默认为`数据文件路径/diaglog/sdbaudit.log`，如果是非默认路径，也可以在数据库安装目录下执行 `bin/sdblist --detail`查看"auditpath"，再查看对应路径下的审计日志文件。
-
-sdbaudit.log 审计日志内容包含如下字段，说明如下：
+SequoiaDB 只能查看节点路径下的审计日志文件，`sdbaudit.log` 审计日志内容所包含字段说明如下：
 
 | 字段       | 说明                                                |
 | ---------- | --------------------------------------------------- |
@@ -180,11 +129,10 @@ sdbaudit.log 审计日志内容包含如下字段，说明如下：
 
 > **Note：**
 >
-> Result 操作结果中的返回码，0表示操作成功，非0表示操作失败（如-33创建集合失败）。非0返回码对应解读信息可参考[错误码](reference/Sequoiadb_error_code.md)。
+> Result 操作结果中的返回码，0 表示操作成功，非 0 表示操作失败（如 -33 创建集合失败）。非 0 返回码对应解读信息可参考[错误码](reference/Sequoiadb_error_code.md)。
 
-**示例：**
 
-在 SequoiaDB 创建集合 `sample.employee`，查看当前 coord 节点数据目录下的 `sdbaudit.log` 审计日志文件，内容如下：
+创建集合 sample.employee，查看当前 coord 节点数据目录下的 `sdbaudit.log` 审计日志文件，内容如下：
 
 ```
 2018-08-24-17.45.49.444138               Type:DDL
@@ -195,3 +143,40 @@ ObjectType:COLLECTION                    ObjectName:sample.employee
 Message:
 Option: { "Name": "sample.employee" }
 ```
+
+审计操作类型
+----
+
+审计操作类型分为操作审计和数据审计，可配置的审计操作类型如下：
+
+###操作审计###
+
+| 操作类型 | 说明                                                         |
+| -------- | ------------------------------------------------------------ |
+| ACCESS   | 登入登出                                                     |
+| CLUSTER  | 集群操作，支持的操作包括创建组和删除组                         |
+| SYSTEM   | 系统操作，支持的操作包括重启节点                               |
+| DCL      | 数据控制操作，支持的操作包括创建用户、修改用户和删除用户           |
+| DDL      | 数据定义操作，支持的操作包括创建集合空间、修改集合空间、删除集合空间、创建集合、修改集合及删除集合 |
+| DML      | 数据库操作，支持的操作包括插入数据、更新数据和删除数据           |
+| DQL      | 数据查询操作                                                     |
+| OTHER    | 其他，以上类型之外的操作                                     |
+
+> **Note:**
+>
+> 当用户配置 DML 时，仅记录具体操作，而不记录具体的操作数据。
+
+###数据审计###
+
+| 操作类型 | 说明                                                         |
+| -------- | ------------------------------------------------------------ |
+| INSERT   | 插入数据，记录每条插入语句所操作的具体数据                   |
+| UPDATE   | 更新数据，记录每条更新语句所操作的具体数据                   |
+| DELETE   | 删除数据，记录每条删除语句所操作的具体数据                   |
+
+> **Note：**
+>
+> - 支持使用"|"连接多个操作类型，如"DDL|DML|DQL"
+> - 支持使用"!"禁止某个操作类型，如"!DCL|DML"；此设置仅允许用户级配置使用
+> - 修改配置生效后可执行 [invalidateCache()](reference/Sequoiadb_command/Sdb/invalidateCache.md) 命令清除 NODE/CATALOG/AUTH 缓存
+
