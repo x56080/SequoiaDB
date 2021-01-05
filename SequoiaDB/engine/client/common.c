@@ -2372,6 +2372,7 @@ INT32 clientBuildSeqFetchMsg( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc = SDB_OK ;
    INT32 opCode = MSG_BS_SEQUENCE_FETCH_REQ ;
    bson obj ;
+   MsgOpQuery *pQuery = NULL ;
    bson_init( &obj ) ;
 
    rc = bson_append_string( &obj, FIELD_NAME_NAME, seqName ) ;
@@ -2399,7 +2400,7 @@ INT32 clientBuildSeqFetchMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              "", 0, reqID, 0, -1,
                              &obj, NULL, NULL, NULL,
                              endianConvert ) ;
-   MsgOpQuery *pQuery = (MsgOpQuery*)(*ppBuffer) ;
+   pQuery = (MsgOpQuery*)(*ppBuffer) ;
    ossEndianConvertIf( opCode, pQuery->header.opCode, endianConvert ) ;
 done:
    bson_destroy ( &obj ) ;

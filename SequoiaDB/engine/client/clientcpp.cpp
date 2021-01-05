@@ -11427,7 +11427,7 @@ do                                                            \
       }
 
       if ( '$' == pSequenceName[ 0 ] ||
-           0 == strncasecmp( "SYS", pSequenceName, 3 ) )
+           0 == ossStrncasecmp( "SYS", pSequenceName, 3 ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;

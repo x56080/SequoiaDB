@@ -624,7 +624,7 @@ namespace engine
       if ( seq.initial() )
       {
          rc = SDB_SEQUENCE_OUT_OF_CACHE ;
-         PD_LOG( PDDEBUG, "Sequence[%s] is not in coord cache", seq.name() ) ;
+         PD_LOG( PDDEBUG, "Sequence[%s] is not in coord cache", seq.name().c_str() ) ;
          goto error ;
       }
 
