@@ -57,6 +57,9 @@ using namespace bson;
 // 2. By using user specified allocator(instances of optPlanAllocator).
 // The actions when releasing these two kinds of node are different.
 // So a type flag is added at the head of the actual allocated memory.
+// NOTE: we only use 4 bytes in memory header, but for arm64, it requires
+//       8 bytes align for atomic variables inside struct or class, so
+//       we make the memory header 8 bytes here
 #define OPT_MEM_TYPE_SIZE            sizeof(INT64)
 #define OPT_MEM_BY_USER_ALLOCATOR    0
 #define OPT_MEM_BY_DFT_ALLOCATOR     1
