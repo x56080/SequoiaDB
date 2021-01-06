@@ -30,7 +30,7 @@ $SNAPSHOT_LATCHWAITS
 查看闩锁等待快照
 
 ```lang-javascript
-> db.snapshot(SDB_SNAP_LATCHWAITS)
+> db.exec( "select * from $SDB_SNAP_LATCHWAITS" )
 ```
 
 输出结果如下：

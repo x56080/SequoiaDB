@@ -32,7 +32,7 @@ $SNAPSHOT_LOCKWAITS
 查看锁等待快照
 
 ```
-> db.snapshot(SDB_SNAP_LOCKWAITS)
+> db.exec( "select * from $SDB_SNAP_LOCKWAITS" )
 ```
 
 输出结果如下：

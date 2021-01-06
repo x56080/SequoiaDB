@@ -5207,6 +5207,25 @@
                            "cn": "$SNAPSHOT_SEQUENCES",
                            "en": "$SNAPSHOT_SEQUENCES"
                         },
+			{
+			   "id": 1609926164,
+			   "file": "SNAPSHOT_LATCHWAITS",
+			   "cn": "$SNAPSHOT_LATCHWAITS",
+			   "en": "$SNAPSHOT_LATCHWAITS"
+			},
+			{
+			   "id": 1609926432,
+			   "file": "SNAPSHOT_LOCKWAITS",
+			   "cn": "$SNAPSHOT_LOCKWAITS",
+			   "en": "$SNAPSHOT_LOCKWAITS"
+			},
+			{
+                           "id": 1609926547,
+                           "file": "SNAPSHOT_QUERIES",
+                           "cn": "$SNAPSHOT_QUERIES",
+                           "en": "$SNAPSHOT_QUERIES"
+                        },
+
                         {
                            "id": 1592467468,
                            "file": "SNAPSHOT_INDEXSTATS",
@@ -5641,7 +5660,7 @@
             },
             {
                "id": 1489719425,
-               "dir": "webserverapp",
+               "dir": "Webserverapp",
                "cn": "Web服务",
                "en": "web server",
                "contents": [
@@ -5727,7 +5746,7 @@
             },
             {
                "id": 1432190984,
-               "file": "Sequoiadb_limitation",
+               "file": "sequoiadb_limitation",
                "cn": "限制",
                "en": "Limitation"
             }

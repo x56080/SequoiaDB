@@ -33,6 +33,12 @@ svcname=50000
 >1. 当两种方式并存时，命令行参数将会覆盖配置文件中的相同的配置项。 
 
 ###配置动态生效###
-使用 [updateConf()](reference/Sequoiadb_command/Sdb/updateConf.md) 以及 [deleteConf()](reference/Sequoiadb_command/Sdb/deleteConf.md) 在线修改配置。
+使用 [updateConf()][updateConf()] 以及 [deleteConf()][deleteConf()] 在线修改配置。
 
-使用 [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) 重新加载配置文件，并进行配置动态生效，只支持“生效类型”列为“在线生效”的配置项，其他配置项会被忽略。“生效策略”若无其他说明，则默认为立即生效。
+使用 [reloadConf()][reloadConf()] 重新加载配置文件，并进行配置动态生效，只支持“生效类型”列为“在线生效”的配置项，其他配置项会被忽略。“生效策略”若无其他说明，则默认为立即生效。
+
+[^_^]:
+     本文使用的所有引用及链接
+[updateConf()]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
+[deleteConf()]:manual/Manual/Sequoiadb_Command/Sdb/deleteConf.md
+[reloadConf()]:manual/Manual/Sequoiadb_Command/Sdb/reloadConf.md
