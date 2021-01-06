@@ -43,7 +43,7 @@ public class AutoCreateCSCL21998 extends MongodbTestBase {
     private String clName = "cl21998";
     private MongoDatabase db;
 
-    @BeforeClass(enabled = false)
+    @BeforeClass
     public void setUp() throws UnknownHostException {
         if ( client.listDatabaseNames().into( new ArrayList<>() )
                 .contains( dbName ) ) {
@@ -52,7 +52,7 @@ public class AutoCreateCSCL21998 extends MongodbTestBase {
         db = client.getDatabase( dbName );
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         int threadNum = 10;
