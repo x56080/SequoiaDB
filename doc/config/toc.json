@@ -977,6 +977,12 @@
                            "en": "Architecture"
                         },
                         {
+                           "id": 1432190618,
+                           "file": "sharding_index",
+                           "cn": "分区索引",
+                           "en": "Sharding Index"
+                        },
+                        {
                            "id": 1432190617,
                            "file": "config",
                            "cn": "分区配置",
@@ -989,7 +995,7 @@
                            "en": "Sharding Keys"
                         },
                         {
-                           "id": 1432190618,
+                           "id": 1432190619,
                            "file": "multi_dimension",
                            "cn": "多维分区",
                            "en": "Multi Dimension"
