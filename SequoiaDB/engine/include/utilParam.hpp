@@ -43,6 +43,7 @@
 #include "ossProc.hpp"
 #include "ossUtil.h"
 #include "utilStr.hpp"
+#include "ossMemPool.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -51,16 +52,16 @@ namespace po = boost::program_options ;
 using namespace std ;
 
 namespace engine
-{                                  
+{
    INT32 utilReadConfigureFile( const CHAR *file,
                                 po::options_description &desc,
                                 po::variables_map &vm ) ;
-   
+
    INT32 utilReadCommandLine3( INT32 argc, CHAR **argv,
                                po::options_description &desc,
                                po::positional_options_description &posDesc,
                                po::variables_map &vm,
-                               BOOLEAN allowUnreg );   
+                               BOOLEAN allowUnreg );
 
    INT32 utilReadCommandLine2( INT32 argc, CHAR **argv,
                                po::options_description &desc,
@@ -78,9 +79,11 @@ namespace engine
    INT32 utilGetServiceByConfigPath( const string& confPath,
                                      const CHAR *fileName,
                                      const CHAR *fieldName,
-                                     string &svcname,
                                      const string &defaultName,
-                                     BOOLEAN allowFileNotExist = TRUE ) ;
+                                     string &svcname,
+                                     BOOLEAN allowFileNotExist = TRUE,
+                                     BOOLEAN *isConfFileValid = NULL,
+                                     ossPoolString *errMsg = NULL ) ;
 
    INT32 utilGetRoleByConfigPath( const string& confPath,
                                   INT32 &role,

@@ -152,8 +152,9 @@ namespace engine
 
       // get service name
       rc = utilGetServiceByConfigPath( configPath, STP_CFG_FILE_NAME,
-                                       STP_OPTION_PORT, serviceName,
-                                       STP_DEF_SERVICE_NAME ) ;
+                                       STP_OPTION_PORT, 
+                                       STP_DEF_SERVICE_NAME,
+                                       serviceName ) ;
       if ( SDB_OK == rc && !serviceName.empty() &&
            _stpGetServiceNode( serviceName.c_str(), info ) )
       {
