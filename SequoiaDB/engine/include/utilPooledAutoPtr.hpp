@@ -96,6 +96,7 @@ namespace engine
 
       private:
          CHAR                 *_ptr ;
+         // NOTE: the atomic operaters in arm64 requires 8 bytes align
          INT64                *_pRef ;
          UTIL_ALLOC_TYPE      _allocType ;
    } ;
@@ -143,6 +144,7 @@ namespace engine
 
       private:
          T                    *_ptr ;
+         // NOTE: the atomic operaters in arm64 requires 8 bytes align
          INT64                *_pRef ;
          UTIL_ALLOC_TYPE      _allocType ;
 
