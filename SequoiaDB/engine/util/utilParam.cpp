@@ -277,10 +277,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 utilGetServiceByConfigPath( const string & confPath,
-                                     string & svcname,
+   INT32 utilGetServiceByConfigPath( const string &confPath,
                                      const string &defaultName,
-                                     BOOLEAN allowFileNotExist )
+                                     string &svcname,
+                                     BOOLEAN allowFileNotExist,
+                                     BOOLEAN *isConfFileValid,
+                                     string *errMsg )
    {
       INT32 rc = SDB_OK ;
       po::options_description desc ;
@@ -288,6 +290,12 @@ namespace engine
       desc.add_options()
          ( PMD_OPTION_SVCNAME, po::value<string>(), "" ) ;
       CHAR conf[OSS_MAX_PATHSIZE + 1] = { 0 } ;
+
+      if ( NULL != isConfFileValid )
+      {
+         *isConfFileValid = TRUE ;
+      }
+
       if ( defaultName.empty() )
       {
          svcname = boost::lexical_cast<string>(OSS_DFT_SVCPORT) ;
@@ -301,13 +309,24 @@ namespace engine
                                OSS_MAX_PATHSIZE, conf ) ;
       if ( rc )
       {
-         std::cerr << "Failed to build full path, rc: " << rc << std::endl ;
+         if ( NULL != errMsg )
+         {
+            *errMsg = "Failed to build full path" ;
+         }
          goto error ;
       }
 
-      if ( allowFileNotExist && SDB_OK != ossAccess( conf ) )
+      if ( SDB_OK != ossAccess( conf, OSS_MODE_ACCESS | OSS_MODE_READ ) )
       {
-         goto done ;
+         if ( NULL != isConfFileValid )
+         {
+            *isConfFileValid = FALSE ;
+         }
+
+         if ( allowFileNotExist )
+         {
+            goto done ;
+         }
       }
 
       rc = utilReadConfigureFile( conf, desc, vm ) ;

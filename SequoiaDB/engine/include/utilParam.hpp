@@ -70,10 +70,12 @@ namespace engine
    INT32 utilWriteConfigFile( const CHAR * pFile, const CHAR * pData,
                               BOOLEAN createOnly = FALSE ) ;
 
-   INT32 utilGetServiceByConfigPath( const string& confPath,
-                                     string &svcname,
+   INT32 utilGetServiceByConfigPath( const string &confPath,
                                      const string &defaultName,
-                                     BOOLEAN allowFileNotExist = TRUE ) ;
+                                     string &svcname,
+                                     BOOLEAN allowFileNotExist = TRUE,
+                                     BOOLEAN *isConfFileValid = NULL,
+                                     string *errMsg = NULL ) ;
 
    INT32 utilGetRoleByConfigPath( const string& confPath,
                                   INT32 &role,

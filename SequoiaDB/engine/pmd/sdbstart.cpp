@@ -139,7 +139,8 @@ namespace engine
                            vector< string > &configs,
                            vector< utilNodeInfo > &nodesinfo,
                            INT32 &typeFilter, INT32 &roleFilter,
-                           string &options )
+                           string &options,
+                           BOOLEAN &isForce )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_SDBSTART_RESVARG );
@@ -171,6 +172,11 @@ namespace engine
          goto done ;
       }
 
+      if ( vm.count( PMD_OPTION_FORCE ) )
+      {
+         isForce = TRUE ;
+      }
+
       if ( vm.count ( PMD_OPTION_CONFPATH ) )
       {
          confPath = vm[PMD_OPTION_CONFPATH].as<string>() ;
@@ -182,25 +188,33 @@ namespace engine
          }
 
          rc = ossAccess( confPath.c_str(),
-                         OSS_MODE_ACCESS | OSS_MODE_READWRITE ) ;
-         if( SDB_OK != rc && !vm.count( PMD_OPTION_FORCE ) )
+                         OSS_MODE_ACCESS | OSS_MODE_READ ) ;
+         if ( SDB_OK != rc )
          {
-            if( SDB_FNE == rc )
+            if ( isForce )
             {
-               std::cout << "confpath[" << confPath.c_str()
-                         << "] does not exist" << std::endl ;
-            }
-            else if( SDB_PERM == rc )
-            {
-               std::cout << "can't open file[" << confPath.c_str()
-                         << "]. Permission denied" << std::endl ;
+               rc = SDB_OK ;
             }
             else
             {
-               std::cout << "confpath invalid" << std::endl ;
+               if ( SDB_FNE == rc )
+               {
+                  std::cerr << "confpath[" << confPath.c_str()
+                            << "] does not exist, rc: " << rc << std::endl ;
+               }
+               else if ( SDB_PERM == rc )
+               {
+                  std::cerr << "can't open file[" << confPath.c_str()
+                            << "]. Permission denied, rc: " << rc << std::endl ;
+               }
+               else
+               {
+                  std::cerr << "confpath invalid, rc: " << rc << std::endl ;
+               }
+               goto error ;
             }
-            goto error ;
          }
+
          configs.push_back( confPath ) ;
          nodesinfo.push_back( info ) ;
       }
@@ -302,20 +316,17 @@ namespace engine
                        const CHAR * pConfPath,
                        const CHAR * pOptions,
                        const CHAR * svcname,
+                       BOOLEAN needToBuildConfPathArg,
                        string &cmd )
    {
       cmd = pEnginePathName ;
 
-      if ( pConfPath && 0 != ossStrlen( pConfPath ) )
+      if ( needToBuildConfPathArg )
       {
-         // when is force, the config file is not exist, can't add config info
-         if ( !isForce || 0 == ossAccess( pConfPath ) )
-         {
-            cmd += " " ;
-            cmd += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
-            cmd += " " ;
-            cmd += pConfPath ;
-         }
+         cmd += " " ;
+         cmd += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
+         cmd += " " ;
+         cmd += pConfPath ;
       }
 
       if ( pOptions && 0 != ossStrlen( pOptions ) )
@@ -365,7 +376,7 @@ namespace engine
 
       /// 1.validate arguments
       rc = resolveArgument ( desc, all, vm, argc, argv, configs, nodesInfo,
-                             typeFilter, roleFilter, options ) ;
+                             typeFilter, roleFilter, options, isForce ) ;
       if ( rc )
       {
          if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
@@ -378,11 +389,6 @@ namespace engine
             rc = SDB_OK ;
          }
          goto done ;
-      }
-
-      if ( vm.count( PMD_OPTION_FORCE ) )
-      {
-         isForce = TRUE ;
       }
 
       /// 2.check ulimit
@@ -509,9 +515,13 @@ namespace engine
          utilNodeInfo &info = nodesInfo[ j ] ;
          OSSHANDLE &handle = handles[ j ] ;
          ossCmdRunner *runner = cmdRunners[ j ] ;
+         BOOLEAN isConfFileValid = TRUE ;
+         BOOLEAN needToBuildConfPathArg = TRUE ;
+
          // first check
-         rc = utilGetServiceByConfigPath( configs[ j ], svcname,
-                                          info._svcname ) ;
+         rc = utilGetServiceByConfigPath( configs[ j ], info._svcname,
+                                          svcname, isForce,
+                                          &isConfFileValid ) ;
          if ( SDB_OK == rc && !svcname.empty() &&
               serviceExists( svcname.c_str(), info ) )
          {
@@ -522,11 +532,17 @@ namespace engine
             continue ;
          }
 
+         if ( !isConfFileValid && isForce )
+         {
+            needToBuildConfPathArg = FALSE ;
+         }
+
          // start node
          buildListArgs( enginePathName, isForce,
                         configs[ j ].c_str(),
                         options.c_str(),
                         svcname.c_str(),
+                        needToBuildConfPathArg,
                         runCmd ) ;
          tmpRC = runner->exec( runCmd.c_str(), exitCode, TRUE,
                                -1, TRUE, &handle ) ;
