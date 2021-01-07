@@ -4501,7 +4501,7 @@ namespace sdbclient
                            INT32 &returnNum,
                            INT32 &Increment ) = 0 ;
 
-      virtual INT32 restart() = 0 ;
+      virtual INT32 restart( const INT64 startValue ) = 0 ;
    } ;
 
    /** \class sdbSequence
@@ -4640,18 +4640,19 @@ namespace sdbclient
          return pSequence->fetch( fetchNum, nextValue, returnNum, increment ) ;
       }
 
-      /** \fn INT32 restart()
-          \brief Set the sequence value back to the start.
+      /** \fn INT32 restart( const INT64 startValue )
+          \brief Restart sequence from the given value.
+          \param [in] startValue The start value.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 restart()
+      INT32 restart( const INT64 startValue )
       {
          if ( NULL == pSequence )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pSequence->restart() ;
+         return pSequence->restart( startValue ) ;
       }
    } ;
 

@@ -270,14 +270,34 @@ namespace engine
                                   BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
+      INT64 startValue = 0 ;
 
-      if( arg.argc() > 0 )
+      if( arg.argc() < 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Start value must be configured" ) ;
+         goto error ;
+      }
+      if( arg.argc() > 1 )
       {
          rc = SDB_INVALIDARG ;
          detail = BSON( SPT_ERR << "Too many arguments" ) ;
          goto error ;
       }
-      rc = _sequence.restart() ;
+      if( !arg.isInt( 0 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Argument should be number" ) ;
+         goto error ;
+      }
+      rc = arg.getNative( 0, &startValue, SPT_NATIVE_INT64 ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to parse start value" ) ;
+         goto error ;
+      }
+
+      rc = _sequence.restart( startValue ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to restart sequence" ) ;

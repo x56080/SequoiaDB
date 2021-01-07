@@ -13900,7 +13900,8 @@ error:
    goto done ;
 }
 
-SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle )
+SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle,
+                                const INT64 startValue )
 {
    INT32 rc = SDB_OK ;
    BOOLEAN bsoninit = FALSE ;
@@ -13909,6 +13910,8 @@ SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle )
 
    BSON_INIT( obj ) ;
    HANDLE_CHECK( sHandle, s, SDB_HANDLE_TYPE_SEQUENCE ) ;
+
+   BSON_APPEND( obj, FIELD_NAME_START_VALUE, startValue, long ) ;
    BSON_FINISH( obj ) ;
 
    rc = _sdbAlterSequenceInternal( sHandle, CMD_VALUE_NAME_RESTART, &obj ) ;

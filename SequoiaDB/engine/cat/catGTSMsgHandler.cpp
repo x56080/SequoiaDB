@@ -750,7 +750,12 @@ namespace engine
          // restart sequence
          else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_RESTART ) )
          {
-            rc = pSeqMgr->restartSequence( pSeqName, eduCB,
+            INT64 startValue = 0 ;
+            rc = rtnGetNumberLongElement( boOptions, FIELD_NAME_START_VALUE,
+                                          startValue ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse start value, rc: %d",
+                         rc ) ;
+            rc = pSeqMgr->restartSequence( pSeqName, startValue, eduCB,
                                            cataCB->majoritySize( TRUE ),
                                            &alteredSeqID ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to restart sequence, rc: %d", rc ) ;

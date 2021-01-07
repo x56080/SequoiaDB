@@ -484,6 +484,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_SEQ_MGR_RESTART_SEQ, "_catSequenceManager::restartSequence" )
    INT32 _catSequenceManager::restartSequence( const std::string& name,
+                                               const INT64 startValue,
                                                _pmdEDUCB* eduCB,
                                                INT16 w,
                                                utilSequenceID* pAlteredSeqID )
@@ -527,8 +528,23 @@ namespace engine
          }
       }
 
-      sequence.setCurrentValue( sequence.getStartValue() ) ;
-      sequence.setCachedValue( sequence.getStartValue() ) ;
+      if ( startValue < sequence.getMinValue() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "The start value[%lld] cannot be less than the "
+                 "minimum value[%lld]", startValue, sequence.getMinValue() ) ;
+         goto error ;
+      }
+      else if ( startValue > sequence.getMaxValue() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "The start value[%lld] cannot be greater than the "
+                 "maximum value[%lld]", startValue, sequence.getMaxValue() ) ;
+         goto error ;
+      }
+
+      sequence.setCurrentValue( startValue ) ;
+      sequence.setCachedValue( startValue ) ;
       sequence.setInitial( TRUE ) ;
       sequence.setExceeded( FALSE ) ;
 
@@ -733,7 +749,10 @@ namespace engine
 
       if ( seq.isInitial() )
       {
-         nextValue = seq.getStartValue() ;
+         // Reason why we get CurrentValue instead of StartValue: At the most
+         // beginning, CurrentValue equals StartValue. But after restarting,
+         // we need the new CurrentValue, and it may not equal StartValue.
+         nextValue = seq.getCurrentValue() ;
          needUpdate = TRUE ;
       }
       else if ( seq.isExceeded() )
@@ -847,7 +866,10 @@ namespace engine
 
       if ( seq.isInitial() )
       {
-         nextValue = seq.getStartValue() ;
+         // Reason why we get CurrentValue instead of StartValue: At the most
+         // beginning, CurrentValue equals StartValue. But after restarting,
+         // we need the new CurrentValue, and it may not equal StartValue.
+         nextValue = seq.getCurrentValue() ;
          needUpdate = TRUE ;
       }
       else if ( seq.isExceeded() )

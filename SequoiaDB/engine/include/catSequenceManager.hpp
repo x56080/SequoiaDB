@@ -105,6 +105,7 @@ namespace engine
                             _pmdEDUCB* eduCB, INT16 w,
                             utilSequenceID* pAlteredSeqID = NULL ) ;
       INT32 restartSequence( const std::string& name,
+                             const INT64 startValue,
                              _pmdEDUCB* eduCB,
                              INT16 w,
                              utilSequenceID* pAlteredSeqID = NULL ) ;

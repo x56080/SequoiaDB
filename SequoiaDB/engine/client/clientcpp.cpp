@@ -7246,9 +7246,32 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbSequenceImpl::restart ()
+   INT32 _sdbSequenceImpl::restart ( const INT64 startValue )
    {
-      return _alterInternal ( CMD_VALUE_NAME_RESTART, _sdbStaticObject ) ;
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      BSONObjBuilder bob ;
+
+      try
+      {
+         bob.append( FIELD_NAME_START_VALUE, startValue ) ;
+         obj = bob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _alterInternal ( CMD_VALUE_NAME_RESTART, obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

@@ -3863,12 +3863,15 @@ SDB_EXPORT INT32 sdbSeqFetch( sdbSequenceHandle sHandle,
                               INT32 *returnNum,
                               INT32 *increment ) ;
 
-/** \fn INT32 sdbSeqRestart( sdbSequenceHandle sHandle )
-    \brief Set the sequence value back to the start.
+/** \fn INT32 sdbSeqRestart( sdbSequenceHandle sHandle, const INT64 startValue )
+    \brief Restart sequence from the given value.
+    \param [in] sHandle The sequence handle
+    \param [in] startValue The star value.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
-SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle ) ;
+SDB_EXPORT INT32 sdbSeqRestart( sdbSequenceHandle sHandle,
+                                const INT64 startValue ) ;
 
 SDB_EXTERN_C_END
 #endif

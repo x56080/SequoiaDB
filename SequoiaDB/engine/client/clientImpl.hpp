@@ -1213,7 +1213,7 @@ namespace sdbclient
       INT32 fetch( const INT32 fetchNum, INT64 &nextValue,
                    INT32 &returnNum, INT32 &Increment ) ;
 
-      INT32 restart() ;
+      INT32 restart( const INT64 startValue ) ;
    } ;
    typedef class _sdbSequenceImpl sdbSequenceImpl ;
 

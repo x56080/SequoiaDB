@@ -312,6 +312,12 @@ namespace engine
          OSS_BIT_SET( fieldMask, UTIL_CL_AUTOINC_CURVALUE_FIELD ) ;
       }
 
+      if ( OSS_BIT_TEST( fieldMask, UTIL_CL_AUTOINC_CYCLED_FIELD ) && !isCycled() )
+      {
+         setCycledCount( 0 ) ;
+         OSS_BIT_SET( fieldMask, UTIL_CL_AUTOINC_CYCLEDCOUNT_FIELD ) ;
+      }
+
       _checkExceeded() ;
 
       if ( NULL != alterMask )
