@@ -1,10 +1,10 @@
 ##NAME##
 
-removeCataRG - remove catalog replication group.
+removeCataRG - delete the catalog replication group in the database
 
 ##SYNOPSIS##
 
-***db.removeCataRG()***
+**db.removeCataRG()**
 
 ##CATEGORY##
 
@@ -12,30 +12,38 @@ Sdb
 
 ##DESCRIPTION##
 
-Remove catalog replication group, require that there is no data node and coordination node information on the catalog replication group, remove catalog replication group will remove all catalog node in the replication group.
+The function is used to delete the catalog replication group in the database. In principle, this operation will delete all catalog nodes of the replication group. Therefore, the data node and coordination node information cannot exist in the targe replication group.
 
 ##PARAMETERS##
 
-No parameters.
+None
 
 ##RETURN VALUE##
 
-On success, no return value.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-When exception occurs, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detail, please refer to the [Troubleshooting](troubleshooting/general/general_guide.md) manual.
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-##HISTORY##
+##VERSION##
 
-Since v1.10
+v1.10 and above
 
 ##EXAMPLES##
 
-* Remove catalog replication group.
+Delete the catalog replication group.
 
-	```lang-javascript
-	> db.removeCataRG()
-	```
+```lang-javascript
+> db.removeCataRG()
+```
+
+
+[^_^]:
+   links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/faq.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md

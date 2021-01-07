@@ -4,42 +4,43 @@
 .hy
 .SH NAME
 .PP
-removeCataRG \- remove catalog replication group.
+removeCataRG \- delete the catalog replication group in the database
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.removeCataRG()\f[]\f[]
+\f[B]db.removeCataRG()\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-Remove catalog replication group, require that there is no data node and
-coordination node information on the catalog replication group, remove catalog
-replication group will remove all catalog node in the replication group.
+The function is used to delete the catalog replication group in the database.
+In principle, this operation will delete all catalog nodes of the replication
+group.
+Therefore, the data node and coordination node information cannot exist in the
+targe replication group.
 .SH PARAMETERS
 .PP
-No parameters.
+None
 .SH RETURN VALUE
 .PP
-On success, no return value.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-When exception occurs, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detail, please refer to the Troubleshooting manual.
-.SH HISTORY
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
 .PP
-Since v1.10
+v1.10 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Remove catalog replication group.
-.RS 2
+.PP
+Delete the catalog replication group.
 .IP
 .nf
 \f[C]
 >\ db.removeCataRG()
 \f[]
 .fi
-.RE

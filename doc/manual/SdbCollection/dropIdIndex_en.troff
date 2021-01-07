@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-dropIdIndex \- Drop the $id index.
+dropIdIndex \- drop the $id index in the collection
 .SH SYNOPSIS
 .PP
 \f[B]db.collectionspace.collection.dropIdIndex()\f[]
@@ -14,24 +14,30 @@ dropIdIndex \- Drop the $id index.
 SdbCollection
 .SH DESCRIPTION
 .PP
-Drop the $id index in the collection.
-And prohibit the operation of update or delete.
+The function is used to drop the $id index in the collection, prohibit the
+update or delete operations.
+.SH PARAMETERS
+.PP
+None
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
-Users can get the error message by getLastErrMsg() or get the error code by
-getLastError().
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
+.PP
+The common exceptions of \f[C]dropIdIndex\f[] function are as follows:
 .PP
 .TS
 tab(@);
-l l l l.
+l l l l l.
 T{
 0
 T}@T{
 Error code
+T}@T{
+Error Type
 T}@T{
 Description
 T}@T{
@@ -43,6 +49,8 @@ T{
 T}@T{
 \-47
 T}@T{
+SDB_IXM_NOTEXIST
+T}@T{
 $id index does not
 T}@T{
 \-
@@ -50,13 +58,21 @@ T}
 T{
 T}@T{
 T}@T{
-exist
+T}@T{
+exist.
 T}@T{
 T}
 .TE
+.PP
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP \[bu] 2
-Drop the $id index.
+.PP
+Drop the $id index in the collection.
 .IP
 .nf
 \f[C]

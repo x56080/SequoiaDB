@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-removeCoordRG \- Delete the coordination replication group.
+removeCoordRG \- delete the coordination replication group in the database
 .SH SYNOPSIS
 .PP
 \f[B]db.removeCoordRG()\f[]
@@ -13,29 +13,37 @@ removeCoordRG \- Delete the coordination replication group.
 Sdb
 .SH DESCRIPTION
 .PP
-Delete the coordination replication group in the database.
-In principle, all coordination nodes of the replication group will be deleted.
-However, if in the process of deleting these nodes, first delete the
-coordination nodes which connected to the db object, there may be some
-coordination nodes left unremoved.
-Need to use the \[aq]removeCoord\[aq] method of class \[aq]Oma\[aq] to remove
-the remaining coordination nodes.
+The function is used to delete the coordination replication group in the
+database.
+In principle, this operation will delete all coordination nodes of the
+replication group.
+However, if the coordination node connected to the db object is deleted first
+during the process of deleting nodes, some coordination nodes may be left.
+At this point, users need to use Oma.removeCoord() to delete remaining
+coordination node.
+.SH PARAMETERS
+.PP
+None
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, there is no return value.
 .PP
-On error, exception will be thrown.
-Users can get the error message by getLastErrMsg() or get the error code by
-getLastError().
-For error handling, refer to the common troubleshooting.
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERROR
+.PP
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Delete the coordination replication group.
-.RS 2
 .IP
 .nf
 \f[C]
 >\ db.removeCoordRG()
 \f[]
 .fi
-.RE

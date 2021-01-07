@@ -4,7 +4,7 @@
 .hy
 .SH NAME
 .PP
-getCoordRG \- Get a reference of coordination replication group.
+getCoordRG \- get a reference of coordination replication group
 .SH SYNOPSIS
 .PP
 \f[B]db.getCoordRG()\f[]
@@ -13,23 +13,74 @@ getCoordRG \- Get a reference of coordination replication group.
 Sdb
 .SH DESCRIPTION
 .PP
-Get a reference of coordination replication group.
+The function is used to obtain the reference of the coordination replication
+group, and user can perform related operation on the replication group through
+the reference.
+.SH PARAMETERS
+.PP
+None
 .SH RETURN VALUE
 .PP
-On success, return the reference of the replication group.
+When the function executes successfully, returns an object of type
+SdbReplicaGroup.
 .PP
-On error, exception will be thrown.
-Users can get the error message by getLastErrMsg() or get the error code by
-getLastError().
-For error handling, refer to the common troubleshooting.
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
-.IP \[bu] 2
+.PP
 Get a reference of coordination replication group.
-.RS 2
 .IP
 .nf
 \f[C]
 >\ var\ rg\ =\ db.getCoordRG()
 \f[]
 .fi
-.RE
+.PP
+Get the details of the replication group through the reference.
+.IP
+.nf
+\f[C]
+>\ rg.getDetail()
+{
+\ \ "Group":\ [
+\ \ \ \ {
+\ \ \ \ \ \ "HostName":\ "sdbserver",
+\ \ \ \ \ \ "Status":\ 1,
+\ \ \ \ \ \ "dbpath":\ "/opt/sequoiadb/database/coord/11810/",
+\ \ \ \ \ \ "Service":\ [
+\ \ \ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ \ \ "Type":\ 0,
+\ \ \ \ \ \ \ \ \ \ "Name":\ "11810"
+\ \ \ \ \ \ \ \ },
+\ \ \ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ \ \ "Type":\ 1,
+\ \ \ \ \ \ \ \ \ \ "Name":\ "11811"
+\ \ \ \ \ \ \ \ },
+\ \ \ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ \ \ "Type":\ 2,
+\ \ \ \ \ \ \ \ \ \ "Name":\ "11812"
+\ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ ],
+\ \ \ \ \ \ "NodeID":\ 2
+\ \ \ \ }
+\ \ ],
+\ \ "GroupID":\ 2,
+\ \ "GroupName":\ "SYSCoord",
+\ \ "Role":\ 1,
+\ \ "SecretID":\ 112493285,
+\ \ "Status":\ 1,
+\ \ "Version":\ 2,
+\ \ "_id":\ {
+\ \ \ \ "$oid":\ "5ff52af65c0657cec2f706d9"
+\ \ }
+}
+\f[]
+.fi
