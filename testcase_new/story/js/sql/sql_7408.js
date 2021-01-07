@@ -19,8 +19,6 @@
 @date 2020-4-7
 ******************************************************************************/
 //  单号：5767
-// TODO: testConf.skipStandAlone = false;
-testConf.skipStandAlone = true;
 main( test )
 
 function test ()
@@ -144,7 +142,7 @@ function test ()
    var tmpclName = succlName + "a";
    var sql = "drop collection " + succsName + "." + tmpclName;
    // 单号：5767
-   // TODO: compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: SDB_INVALIDARG", SDB_INVALIDARG );
+   compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: SDB_INVALIDARG", SDB_INVALIDARG );
    compareError( sql, "drop collection success when the length of the name is 128B (invalid length), Except errorno: SDB_DMS_NOTEXIST or SDB_INVALIDARG", SDB_DMS_NOTEXIST, SDB_INVALIDARG );
    var sql = "drop collection " + succsName + "." + succlName;
    db.execUpdate( sql );
@@ -165,7 +163,7 @@ function test ()
    var tmpcsName = succsName + "a";
    var sql = "drop collectionspace " + tmpcsName;
    // 单号：5767
-   // TODO：compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno:SDB_INVALIDARG", SDB_INVALIDARG );
+   compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno:SDB_INVALIDARG", SDB_INVALIDARG );
    compareError( sql, "drop collectionspace success when the length of the name is 128B (invalid length), Except errorno: SDB_DMS_CS_NOTEXIST or SDB_INVALIDARG", SDB_DMS_CS_NOTEXIST, SDB_INVALIDARG );
 
    var sql = "drop collectionspace " + succsName;
