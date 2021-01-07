@@ -46,6 +46,7 @@ Create an index for the collection to accelerate query.
 	* Enforced (Boolean): Whether the index is enforced unique.
 	* NotNull (Boolean): Whether any filed of index can be null or not exist.
 	* SortBufferSize (Int): The size of sort buffer used when creating index.
+    * NotArray(Boolean):  Whether any filed of index can array.
 
 **Note:**
 
@@ -91,3 +92,14 @@ On error, exception will be thrown.
 	```lang-javascript
 	 > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
 	 ```
+4. Create an unique index in collection "bar", and any field of index not support array.
+
+    ```lang-javascript
+    > db.foo.bar.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
+    >
+    > // "a" field is array. Insert will throw error.
+    > db.foo.bar.insert( { a: [1],b: 10 } )
+    sdb.js:645 uncaught exception: -364
+    Any field of index key cannot be array
+    Takes 0.001760s.
+	```
