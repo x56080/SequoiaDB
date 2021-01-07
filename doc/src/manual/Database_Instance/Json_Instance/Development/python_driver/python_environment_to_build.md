@@ -19,7 +19,7 @@
    2. 执行解压目录下的 `setup.py`
 
      ```lang-bash
-     $ python setup.py install
+     $ sudo python setup.py install
      ```
 
 * Windows
