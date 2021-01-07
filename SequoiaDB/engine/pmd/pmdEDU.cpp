@@ -156,6 +156,8 @@ namespace engine
       _curAutoTransCtxID = -1 ;
       _pMemPool = NULL ;
       _monQueryCB = NULL ;
+
+      _doReplay = FALSE ;
    }
 
    _pmdEDUCB::~_pmdEDUCB ()

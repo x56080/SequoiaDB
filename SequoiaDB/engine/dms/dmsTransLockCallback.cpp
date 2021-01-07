@@ -1203,46 +1203,10 @@ namespace engine
       _DELETE_CURSOR deleteCursor = _DELETE_NONE ;
       _INSERT_CURSOR insertCursor = _INSERT_NONE ;
       BOOLEAN hasChanged = FALSE ;
-      // check ID index for normal update
-      // NOTE: for sequoiadb upgrade, if the old data before upgrade
-      //       contains invalid _id field, we could not report error,
-      //       we need to allow update if _id field is not changed
-      BOOLEAN checkIDIndex = indexCB->isSysIndex() &&
-                             !cb->isInTransRollback() &&
-                             !cb->isDoRollback() ;
 
       /// not use transaction
       if ( !_transCB || !_transCB->isTransOn() )
       {
-         if ( checkIDIndex )
-         {
-            // for no transaction, we need to check _id field
-            if ( oldKeySet.size() != newKeySet.size() )
-            {
-               // check length of _id field
-               PD_CHECK( 1 == newKeySet.size(), SDB_INVALIDARG, error, PDERROR,
-                         "Failed to update $id index, "
-                         "_id field can't be array or empty" ) ;
-            }
-
-            itori = oldKeySet.begin() ;
-            itnew = newKeySet.begin() ;
-            while ( oldKeySet.end() != itori && newKeySet.end() != itnew )
-            {
-               if ( 0 != (*itori).woCompare((*itnew), BSONObj(), FALSE ) )
-               {
-                  PD_CHECK( 1 == newKeySet.size(), SDB_INVALIDARG, error, PDERROR,
-                            "Failed to update $id index, "
-                            "_id field can't be array" ) ;
-                  // check _id field
-                  rc = _checkIDIndexUpdate( rid, (*itnew).firstElement(), cb ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to update $id index, "
-                               "rc: %d", rc ) ;
-               }
-               itori++ ;
-               itnew++ ;
-            }
-         }
          goto done ;
       }
       /// rollback
@@ -1253,13 +1217,6 @@ namespace engine
 
       if ( oldKeySet.size() != newKeySet.size() )
       {
-         if ( checkIDIndex )
-         {
-            // check length of _id field
-            PD_CHECK( 1 == newKeySet.size(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to update $id index, "
-                      "_id field can't be array or empty" ) ;
-         }
          hasChanged = TRUE ;
       }
 
@@ -1284,17 +1241,6 @@ namespace engine
          }
          else
          {
-            if ( checkIDIndex )
-            {
-               PD_CHECK( 1 == newKeySet.size(), SDB_INVALIDARG, error, PDERROR,
-                         "Failed to update $id index, "
-                         "_id field can't be array" ) ;
-               // check _id field
-               rc = _checkIDIndexUpdate( rid, (*itnew).firstElement(), cb ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to update $id index, "
-                            "rc: %d", rc ) ;
-            }
-
             hasChanged = TRUE ;
             rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
                                     isUnique, isEnforce, *itnew,
@@ -1310,16 +1256,6 @@ namespace engine
       // insert rest of itnew
       while ( newKeySet.end() != itnew )
       {
-         if ( checkIDIndex )
-         {
-            PD_CHECK( 1 == newKeySet.size(), SDB_INVALIDARG, error, PDERROR,
-                      "Failed to update $id index, "
-                      "_id field can't be array" ) ;
-            // check _id field
-            rc = _checkIDIndexUpdate( rid, (*itnew).firstElement(), cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to update $id index, "
-                         "rc: %d", rc ) ;
-         }
          rc = _checkInsertIndex( treePtr, insertCursor, indexCB,
                                  isUnique, isEnforce, *itnew,
                                  rid, cb, TRUE, pResult ) ;
@@ -1576,34 +1512,5 @@ namespace engine
          pOldVCB->delOldVersionUnit( csID, clID ) ;
       }
    }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSTRANSLOCKCALLBACK__CHKIDIDXUPDATE, "dmsTransLockCallback::_checkIDIndexUpdate" )
-   INT32 dmsTransLockCallback::_checkIDIndexUpdate( const dmsRecordID &rid,
-                                                    const BSONElement &idEle,
-                                                    pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_DMSTRANSLOCKCALLBACK__CHKIDIDXUPDATE ) ;
-
-      const CHAR *errStr = "" ;
-
-      // check _id field
-      if ( !dmsIsRecordIDValid( idEle, FALSE, &errStr ) )
-      {
-         PD_LOG( PDERROR, "Failed to update $id index, "
-                 "_id is error: %s", errStr ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_DMSTRANSLOCKCALLBACK__CHKIDIDXUPDATE, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
 }
 

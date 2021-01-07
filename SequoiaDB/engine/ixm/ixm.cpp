@@ -66,6 +66,16 @@ namespace engine
       _pageSize = _pIndexSu->pageSize () ;
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr( extentID,
                                                                    1 ) ;
+      _indexObjVersion = 0 ;
+      _name = NULL ;
+      _unique = FALSE ;
+      _enforced = FALSE ;
+      _notNull = FALSE ;
+      _notArray = FALSE ;
+      _dropDups = FALSE ;
+      _isIDIndex = FALSE ;
+      _nameExtData = NULL ;
+      _fieldInitedFlag = 0 ;
       _init() ;
       PD_TRACE_EXIT( SDB__IXMINXCB1 );
    }
@@ -87,6 +97,16 @@ namespace engine
       _pContext = context ;
       _extentID = extentID ;
       _pageSize = _pIndexSu->pageSize() ;
+      _indexObjVersion = 0 ;
+      _name = NULL ;
+      _unique = FALSE ;
+      _enforced = FALSE ;
+      _notNull = FALSE ;
+      _notArray = FALSE ;
+      _dropDups = FALSE ;
+      _isIDIndex = FALSE ;
+      _nameExtData = NULL ;
+      _fieldInitedFlag = 0 ;
 
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr ( extentID,
                                                                     1 ) ;
@@ -320,40 +340,34 @@ namespace engine
    {
       //PD_TRACE_ENTRY ( SDB__IXMINXCB_ISSAMEDEF );
       BOOLEAN rs = TRUE;
-      SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" );
+      BOOLEAN lValue = FALSE;
+      BOOLEAN rValue = FALSE;
+      BSONElement lEle ;
+      BSONElement rEle ;
+
+      SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" ) ;
       try
       {
-         BSONElement beLKey = _infoObj.getField( IXM_KEY_FIELD );
-         BSONElement beRKey = defObj.getField( IXM_KEY_FIELD );
-         if ( 0 != beLKey.woCompare( beRKey, false ) )
+         lEle = _infoObj.getField( IXM_KEY_FIELD ) ;
+         rEle = defObj.getField( IXM_KEY_FIELD ) ;
+         if ( 0 != lEle.woCompare( rEle, false ) )
          {
             rs = FALSE;
             goto done;
          }
 
-         BOOLEAN lIsUnique = FALSE;
-         BOOLEAN rIsUnique = FALSE;
-         BSONElement beLUnique = _infoObj.getField( IXM_UNIQUE_FIELD );
-         BSONElement beRUnique = defObj.getField( IXM_UNIQUE_FIELD );
-         if ( beLUnique.booleanSafe() )
-         {
-            lIsUnique = TRUE;
-         }
-         if ( beRUnique.booleanSafe() )
-         {
-            rIsUnique = TRUE;
-         }
-
+         lValue = unique() ;
+         rValue = defObj.getBoolField( IXM_UNIQUE_FIELD ) ;
          if ( !strict )
          {
-            if ( lIsUnique )
+            if ( lValue )
             {
                /// it is useless to create any same defined index
                /// when an unique index exists.
                rs = TRUE ;
                goto done ;
             }
-            else if ( lIsUnique != rIsUnique )
+            else if ( lValue != rValue )
             {
                rs = FALSE;
                goto done;
@@ -365,54 +379,50 @@ namespace engine
          }
          else
          {
-            if ( lIsUnique != rIsUnique )
+            if ( lValue != rValue )
             {
-                rs = FALSE;
+                rs = FALSE ;
                 goto done ;
             }
          }
 
-         BOOLEAN lEnforced = FALSE;
-         BOOLEAN rEnforced = FALSE;
-         BSONElement beLEnforced = _infoObj.getField( IXM_ENFORCED_FIELD );
-         BSONElement beREnforced = defObj.getField( IXM_ENFORCED_FIELD );
-         if ( beLEnforced.booleanSafe() )
+         lValue = enforced() ;
+         rValue = defObj.getBoolField( IXM_ENFORCED_FIELD ) ;
+         if ( lValue != rValue )
          {
-            lEnforced = TRUE;
-         }
-         if ( beREnforced.booleanSafe() )
-         {
-            rEnforced = TRUE;
+            rs = FALSE ;
+            goto done ;
          }
 
-         if ( lEnforced != rEnforced )
+         lValue = notNull() ;
+         rValue = defObj.getBoolField( IXM_NOTNULL_FIELD );
+         if ( lValue != rValue )
          {
-            rs = FALSE;
-            goto done;
+            rs = FALSE ;
+            goto done ;
          }
 
-         BOOLEAN lNotNull = FALSE;
-         BOOLEAN rNotNull = FALSE;
-         BSONElement beLNotNull = _infoObj.getField( IXM_NOTNULL_FIELD );
-         BSONElement beRNotNull = defObj.getField( IXM_NOTNULL_FIELD );
-         if ( beLNotNull.booleanSafe() )
+         lValue = notArray() ;
+         if( 0 == ossStrcmp( defObj.getStringField( IXM_NAME_FIELD ),
+                             IXM_ID_KEY_NAME ) )
          {
-            lNotNull = TRUE;
+            rValue = TRUE ;
          }
-         if ( beRNotNull.booleanSafe() )
+         else
          {
-            rNotNull = TRUE;
+            rValue = defObj.getBoolField( IXM_NOTARRAY_FIELD ) ;
          }
-         if ( lNotNull != rNotNull )
+
+         if( lValue != rValue )
          {
-            rs = FALSE;
-            goto done;
+            rs = FALSE ;
+            goto done ;
          }
       }
       catch( std::exception &e )
       {
-         rs = FALSE;
-         PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() );
+         rs = FALSE ;
+         PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() ) ;
       }
 
    done:

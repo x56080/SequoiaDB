@@ -2285,6 +2285,18 @@ namespace engine
             {
                builder.append( IXM_NOTNULL_FIELD, e.trueValue() ) ;
             }
+            else if ( 0 == ossStrcmp( e.fieldName(), IXM_NOTARRAY_FIELD ) )
+            {
+               if( 0 == ossStrcmp( indexDef.getStringField( IXM_NAME_FIELD ),
+                                   IXM_ID_KEY_NAME ) )
+               {
+                  builder.append( IXM_NOTARRAY_FIELD, true ) ;
+               }
+               else
+               {
+                  builder.append( IXM_NOTARRAY_FIELD, e.trueValue() ) ;
+               }
+            }
             else
             {
                builder.append( e ) ;

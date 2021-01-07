@@ -1768,7 +1768,7 @@ namespace engine
       dupAllowed = ( NULL != cb &&
                      ( cb->isDoRollback() ||
                      ( cb->isInTransRollback() &&
-                           !indexCB->isSysIndex() ) ) ) ? TRUE : dupAllowed ;
+                           !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
 
       rc = rootidx.insert ( key, rid, order, dupAllowed, indexCB, pResult ) ;
       if ( rc )
@@ -2008,7 +2008,7 @@ namespace engine
       dupAllowed = ( NULL != cb &&
                      ( cb->isDoRollback() ||
                      ( cb->isInTransRollback() &&
-                           !indexCB->isSysIndex() ) ) ) ? TRUE : !unique ;
+                           !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
 
       rc = indexCB->getKeysFromObject ( newObj, keySetNew ) ;
       if ( rc )

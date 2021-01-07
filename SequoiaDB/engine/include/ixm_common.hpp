@@ -55,6 +55,7 @@ using namespace bson ;
 #define IXM_NOTNULL_FIELD           IXM_FIELD_NAME_NOTNULL
 #define IXM_DROPDUP_FIELD           IXM_FIELD_NAME_DROPDUPS
 #define IXM_2DRANGE_FIELD           IXM_FIELD_NAME_2DRANGE
+#define IXM_NOTARRAY_FIELD          IXM_FIELD_NAME_NOTARRAY
 
 namespace engine
 {

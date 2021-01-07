@@ -188,6 +188,37 @@ namespace engine
    */
    class _ixmIndexCB : public utilPooledObject
    {
+      #define NAME_IS_INITED()               ( _fieldInitedFlag &  0x00000001 )
+      #define SET_NAME_INITED()              ( _fieldInitedFlag |= 0x00000001 )
+      #define KEY_IS_INITED()                ( _fieldInitedFlag &  0x00000002 )
+      #define SET_KEY_INITED()               ( _fieldInitedFlag |= 0x00000002 )
+      #define V_IS_INITED()                  ( _fieldInitedFlag &  0x00000004 )
+      #define SET_V_INITED()                 ( _fieldInitedFlag |= 0x00000004 )
+      #define UNIQUE_IS_INITED()             ( _fieldInitedFlag &  0x00000008 )
+      #define SET_UNIQUE_INITED()            ( _fieldInitedFlag |= 0x00000008 )
+      #define UNIQUE1_IS_INITED()            ( _fieldInitedFlag &  0x00000010 )
+      #define SET_UNIQUE1_INITED()           ( _fieldInitedFlag |= 0x00000010 )
+      #define ENFORCED_IS_INITED()           ( _fieldInitedFlag &  0x00000020 )
+      #define SET_ENFORCED_INITED()          ( _fieldInitedFlag |= 0x00000020 )
+      #define ENFORCED1_IS_INITED()          ( _fieldInitedFlag &  0x00000040 )
+      #define SET_ENFORCED1_INITED()         ( _fieldInitedFlag |= 0x00000040 )
+      #define NOTNULL_IS_INITED()            ( _fieldInitedFlag &  0x00000080 )
+      #define SET_NOTNULL_INITED()           ( _fieldInitedFlag |= 0x00000080 )
+      #define GLOBAL_IS_INITED()             ( _fieldInitedFlag &  0x00000100 )
+      #define SET_GLOBAL_INITED()            ( _fieldInitedFlag |= 0x00000100 )
+      #define GLOBAL_OPTION_IS_INITED()      ( _fieldInitedFlag &  0x00000200 )
+      #define SET_GLOBAL_OPTION_INITED()     ( _fieldInitedFlag |= 0x00000200 )
+      #define DROPDUPS_IS_INITED()           ( _fieldInitedFlag &  0x00000400 )
+      #define SET_DROPDUPS_INITED()          ( _fieldInitedFlag |= 0x00000400 )
+      #define NOTARRAY_IS_INITED()           ( _fieldInitedFlag &  0x00000800 )
+      #define SET_NOTARRY_INITED()           ( _fieldInitedFlag |= 0x00000800 )
+      #define DMS_ID_KEY_NAME_IS_INITED()    ( _fieldInitedFlag &  0x00001000 )
+      #define SET_DMS_ID_KEY_NAME_INITED()   ( _fieldInitedFlag |= 0x00001000 )
+      #define NAME_EXT_DATA_IS_INITED()      ( _fieldInitedFlag &  0x00002000 )
+      #define SET_NAME_EXT_DATA_INITED()     ( _fieldInitedFlag |= 0x00002000 )
+      #define ID_INDEX_IS_INITED()           ( _fieldInitedFlag &  0x00004000 )
+      #define SET_ID_INDEX_INITED()          ( _fieldInitedFlag |= 0x00004000 )
+
    private:
 #pragma pack(1)
       class _IDToInsert : public SDBObject
@@ -225,6 +256,19 @@ namespace engine
       UINT8       _version ;
       // extent ID for the control block extent
       dmsExtentID _extentID ;
+
+      mutable UINT8 _indexObjVersion ;
+      mutable BSONObj _keyPattern ;
+      mutable const CHAR* _name ;
+      mutable BOOLEAN _unique ;
+      mutable BOOLEAN _enforced ;
+      mutable BOOLEAN _notNull ;
+      mutable BOOLEAN _notArray ;
+      mutable BOOLEAN _dropDups ;
+      mutable BOOLEAN _isIDIndex ;
+      mutable OID _oid ;
+      mutable const CHAR* _nameExtData ;
+      mutable UINT32 _fieldInitedFlag ;
 
       // Whether the given extent is a valid control block
       OSS_INLINE BOOLEAN _verify() const
@@ -390,17 +434,21 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         try
+         if( !KEY_IS_INITED() )
          {
-            return _infoObj.getObjectField( IXM_KEY_FIELD ) ;
+            try
+            {
+               _keyPattern = _infoObj.getObjectField( IXM_KEY_FIELD ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract key from index pattern: %s",
+                       e.what() ) ;
+               _keyPattern = BSONObj() ;
+            }
+            SET_KEY_INITED() ;
          }
-         catch( std::exception &e )
-         {
-            pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
-                    "Unable to extract key from index pattern: %s",
-                    e.what() ) ;
-         }
-         return BSONObj() ;
+         return _keyPattern ;
       }
 
       BSONObj getDef() const
@@ -428,39 +476,75 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return _infoObj.getStringField( IXM_NAME_FIELD ) ;
+         if( !NAME_IS_INITED() )
+         {
+            try
+            {
+               _name = _infoObj.getStringField( IXM_NAME_FIELD ) ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract name from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_NAME_INITED() ;
+         }
+         return _name ;
       }
-      // Is this _id index?
-      // _id index got only one field and contains _id keyword
-      static BOOLEAN isSysIndexPattern ( const BSONObj &pattern )
-      {
-         BSONObjIterator i(pattern);
-         BSONElement e = i.next();
-         if( ossStrcmp(e.fieldName(), DMS_ID_KEY_NAME) != 0 )
-            return FALSE ;
-         return i.next().eoo();
-      }
-      BOOLEAN isSysIndex() const
+
+      BOOLEAN isIDIndex() const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return isSysIndexPattern( keyPattern() );
+         if( !ID_INDEX_IS_INITED() )
+         {
+            try
+            {
+               if( 0 == ossStrcmp( getName(), IXM_ID_KEY_NAME ) )
+               {
+                  _isIDIndex = TRUE ;
+               }
+               else
+               {
+                  _isIDIndex = FALSE ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract is ID_index from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_ID_INDEX_INITED() ;
+         }
+         return _isIDIndex ;
       }
       // get the version of index, 0 by default
-      static INT32 versionForIndexObj( const BSONObj &obj )
-      {
-         BSONElement e = obj[ IXM_V_FIELD ];
-         if( e.type() == NumberInt )
-         {
-            return e._numberInt();
-         }
-         return 0 ;
-      }
       INT32 version() const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return versionForIndexObj( _infoObj );
+         if( !V_IS_INITED() )
+         {
+            try
+            {
+               BSONElement e = _infoObj[ IXM_V_FIELD ] ;
+               if( e.type() == NumberInt )
+               {
+                  _indexObjVersion = e._numberInt();
+               }
+               else
+               {
+                  _indexObjVersion = 0;
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract version from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_V_INITED() ;
+         }
+         return _indexObjVersion ;
       }
 
       /// generate index type from input bsonobj.
@@ -621,6 +705,10 @@ namespace engine
          {
             fieldCount ++ ;
          }
+         if ( obj.hasField ( IXM_NOTARRAY_FIELD ))
+         {
+            fieldCount ++ ;
+         }
          if ( obj.hasField ( IXM_DROPDUP_FIELD ))
          {
             fieldCount ++ ;
@@ -650,7 +738,21 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return _infoObj[ IXM_UNIQUE_FIELD ].trueValue() ;
+         if( !UNIQUE_IS_INITED() )
+         {
+            try
+            {
+               _unique = _infoObj.getField( IXM_UNIQUE_FIELD ).trueValue() ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, __FUNC__, __FILE__, __LINE__,
+                       "Unable to extract unique from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_UNIQUE_INITED() ;
+         }
+         return _unique ;
       }
 
       // get enforcement
@@ -658,14 +760,68 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return _infoObj[ IXM_ENFORCED_FIELD ].trueValue() ;
+         if( !ENFORCED_IS_INITED() )
+         {
+            try
+            {
+               _enforced = _infoObj[ IXM_ENFORCED_FIELD ].trueValue() ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract enforced from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_ENFORCED_INITED() ;
+         }
+         return _enforced ;
       }
 
       BOOLEAN notNull() const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return _infoObj[ IXM_NOTNULL_FIELD ].trueValue() ;
+         if( !NOTNULL_IS_INITED() )
+         {
+            try
+            {
+               _notNull = _infoObj[ IXM_NOTNULL_FIELD ].trueValue() ;
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, __FUNC__, __FILE__, __LINE__,
+                       "Unable to extract notNull from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_NOTNULL_INITED() ;
+         }
+         return _notNull ;
+      }
+
+      BOOLEAN notArray() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         if( !NOTARRAY_IS_INITED() )
+         {
+            try
+            {
+               if( 0 == ossStrcmp( getName(), IXM_ID_KEY_NAME ) )
+               {
+                  _notArray = TRUE ;
+               }
+               else
+               {
+                  _notArray = _infoObj.getBoolField( IXM_NOTARRAY_FIELD ) ;
+               }
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract notArray from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_NOTARRY_INITED() ;
+         }
+         return _notArray ;
       }
 
       /** return true if dropDups was set when building index (if any
@@ -674,12 +830,26 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         return _infoObj.getBoolField( IXM_DROPDUP_FIELD );
+         if( !DROPDUPS_IS_INITED() )
+         {
+            try
+            {
+               _dropDups = _infoObj.getBoolField( IXM_DROPDUP_FIELD ) ;
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract dropDups from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_DROPDUPS_INITED() ;
+         }
+         return _dropDups ;
       }
       std::string toString() const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
+
          return _infoObj.toString() ;
       }
 
@@ -706,15 +876,21 @@ namespace engine
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
-         try
+
+         if( !DMS_ID_KEY_NAME_IS_INITED() )
          {
-            _infoObj.getField(DMS_ID_KEY_NAME).Val(oid) ;
+            try
+            {
+               _infoObj.getField( DMS_ID_KEY_NAME ).Val( _oid ) ;
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG ( PDERROR, "Failed to get index id: %s", e.what() ) ;
+               return SDB_SYS ;
+            }
+            SET_DMS_ID_KEY_NAME_INITED() ;
          }
-         catch ( std::exception &e )
-         {
-            PD_LOG ( PDERROR, "Failed to get index id: %s", e.what() ) ;
-            return SDB_SYS ;
-         }
+         oid = _oid ;
          return SDB_OK ;
       }
       BOOLEAN isStillValid ( OID &oid ) const
@@ -754,7 +930,22 @@ namespace engine
       // INT32 appendDef() ;
       const CHAR *getExtDataName() const
       {
-         return _infoObj.getStringField( FIELD_NAME_EXT_DATA_NAME ) ;
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         if( !NAME_EXT_DATA_IS_INITED() )
+         {
+            try
+            {
+               _nameExtData = _infoObj.getStringField( FIELD_NAME_EXT_DATA_NAME ) ;
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Unable to extract extra data name from index pattern: %s",
+                       e.what() ) ;
+            }
+            SET_NAME_EXT_DATA_INITED() ;
+         }
+         return _nameExtData ;
       }
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;

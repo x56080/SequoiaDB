@@ -980,6 +980,16 @@ namespace engine
                         indexObj.getBoolField(IXM_ENFORCED_FIELD) ) ;
             ob.append ( IXM_NOTNULL_FIELD,
                         indexObj.getBoolField(IXM_NOTNULL_FIELD) ) ;
+            if( 0 == ossStrcmp( indexObj.getStringField( IXM_NAME_FIELD ),
+                                IXM_ID_KEY_NAME ) )
+            {
+               ob.append ( IXM_NOTARRAY_FIELD, true ) ;
+            }
+            else
+            {
+               ob.append ( IXM_NOTARRAY_FIELD,
+                           indexObj.getBoolField(IXM_NOTARRAY_FIELD) ) ;
+            }
             BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
             if ( !range.isEmpty() )
             {
@@ -3701,6 +3711,17 @@ namespace engine
                       indexObj.getBoolField( IXM_ENFORCED_FIELD ) ) ;
          sub.append ( IXM_NOTNULL_FIELD,
                       indexObj.getBoolField( IXM_NOTNULL_FIELD ) ) ;
+         if( 0 == ossStrcmp( indexObj.getStringField( IXM_NAME_FIELD ),
+                             IXM_ID_KEY_NAME ) )
+         {
+            sub.append ( IXM_NOTARRAY_FIELD, true ) ;
+         }
+         else
+         {
+            sub.append ( IXM_NOTARRAY_FIELD,
+                         indexObj.getBoolField( IXM_NOTARRAY_FIELD ) ) ;
+         }
+
          BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
          if ( !range.isEmpty() )
          {

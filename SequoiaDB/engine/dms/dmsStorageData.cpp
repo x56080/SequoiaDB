@@ -106,15 +106,23 @@ namespace engine
          // Step 1: Prepare the data, add OID and compress if necessary.
          recordData.setData( record.objdata(), record.objsize(),
                              UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         // verify whether the record got "_id" inside
+
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
-         const CHAR *pCheckErr = "" ;
-         if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
+         // check ID index for normal update
+         // NOTE: for sequoiadb upgrade, if the old data before upgrade
+         //       contains invalid _id field, we could not report error,
+         //       we need to allow update if _id field is not changed
+         if( !cb->isDoReplay() &&
+             !cb->isInTransRollback() &&
+             !cb->isDoRollback() )
          {
-            PD_LOG( PDERROR, "Record[%s] _id is error: %s",
-                    record.toString().c_str(), pCheckErr ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            const CHAR *pCheckErr = "" ;
+            if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
+            {
+               PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
          }
          // judge must oid
          if ( mustOID && ele.eoo() )
@@ -272,6 +280,31 @@ namespace engine
             // violate any index unique rule
             BSONObj oriObj( recordData.data() ) ;
             BSONObj newObj( newRecordData.orgData() ) ;
+
+            // check ID index for normal update
+            // NOTE: for sequoiadb upgrade, if the old data before upgrade
+            //       contains invalid _id field, we could not report error,
+            //       we need to allow update if _id field is not changed
+            if( !cb->isDoReplay() &&
+                !cb->isInTransRollback() &&
+                !cb->isDoRollback() )
+            {
+               BSONElement newId = newObj.getField( DMS_ID_KEY_NAME ) ;
+               const CHAR *pCheckErr = "" ;
+               if( !dmsIsRecordIDValid( newId, TRUE, &pCheckErr ) )
+               {
+                  if( Array == newId.type() &&
+                      0 == newId.woCompare( oriObj.getField( DMS_ID_KEY_NAME ) ) )
+                  {
+                  }
+                  else
+                  {
+                     PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+               }
+            }
             rc = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                          oriObj, newObj,
                                          recordRW.getRecordID(),

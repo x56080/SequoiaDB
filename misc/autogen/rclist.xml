@@ -2778,5 +2778,149 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_ERROR_RESERVED_347</name> <!-- SDB_COORD_UPDATE_MULTI_NODES -->
+         <description>
+            <en>Reserved</en> <!-- Update one can't be used in multiple nodes or sub-collections -->
+            <cn>保留</cn> <!-- “只更新一条”操作不能在多个节点或子表上执行 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_348</name> <!-- SDB_COORD_DELETE_MULTI_NODES -->
+         <description>
+            <en>Reserved</en> <!-- Delete one can't be used in multiple nodes or sub-collections -->
+            <cn>保留</cn> <!-- “只删除一条” 操作不能在多个节点或子表上执行 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_349</name> <!-- STP_NOT_AVAILABLE -->
+         <description>
+            <en>Reserved</en> <!-- SequoiaDB Time Protocol node is not available -->
+            <cn>保留</cn> <!-- 时间服务不可用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_350</name> <!-- STP_SYNC_FAILED -->
+         <description>
+            <en>Reserved</en> <!-- Serial Time Protocol node failed to synchronize -->
+            <cn>保留</cn> <!-- 时间服务同步失败 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_351</name> <!-- STP_TIME_AHEAD_AFTER_SYNC -->
+         <description>
+            <en>Reserved</en> <!-- Time of Serial Time Protocol node is ahead of the source after synchronization -->
+            <cn>保留</cn> <!-- 时间服务同步后本地时间太快 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_352</name> <!-- STP_SYNC_BUSY -->
+         <description>
+            <en>Reserved</en> <!-- Serial Time Protocol node is busy synchronizing -->
+            <cn>保留</cn> <!-- 时间服务正在同步 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_353</name> <!-- SDB_GLOB_TRANS_NOT_AVAILABLE -->
+         <description>
+            <en>Reserved</en> <!-- Global transaction is not available -->
+            <cn>保留</cn> <!-- 全局事务不可用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_354</name> <!-- SDB_GLOB_LOWTRAN_UNKNOWN -->
+         <description>
+            <en>Reserved</en> <!-- Global LowTran is unknown -->
+            <cn>保留</cn> <!-- 全局事务最早正在执行的事务 ID 未知 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_355</name> <!-- SDB_GLOB_TRANS_NOT_SYNC -->
+         <description>
+            <en>Reserved</en> <!-- Global transaction times of nodes are not synchronized -->
+            <cn>保留</cn> <!-- 节点间的全局逻辑时间不同步 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_356</name> <!-- SDB_IXM_STAT_NOTEXIST -->
+         <description>
+            <en>Reserved</en> <!-- Index statistics do not exist -->
+            <cn>保留</cn> <!-- 索引统计信息不存在 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_357</name> <!-- SDB_CLIENT_CATA_VER_OLD -->
+         <description>
+            <en>Reserved</en> <!-- sdb client cata version old -->
+            <cn>保留</cn> <!-- 驱动端编目版本过旧 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_358</name> <!-- SDB_RESTORE_IN_PROGRESS -->
+         <description>
+            <en>Reserved</en> <!-- Database is in restore-in-progress state -->
+            <cn>保留</cn> <!-- 数据库处于恢复中状态 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_359</name> <!-- SDB_RESTORE_NOT_IN_PROGRESS -->
+         <description>
+            <en>Reserved</en> <!-- Database is not in restore-in-progress state -->
+            <cn>保留</cn> <!-- 数据库不处于恢复中状态 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_360</name> <!-- SDB_RESTORE_NO_CONSISTENT_PIT -->
+         <description>
+            <en>Reserved</en> <!-- No valid consistency point for point-in-time restore -->
+            <cn>保留</cn> <!-- 按时间还原没有一致的有效时间点 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_361</name> <!-- SDB_SEQUENCE_VALUE_USED -->
+         <description>
+            <en>Reserved</en> <!-- Sequence value has been used -->
+            <cn>保留</cn> <!-- 序列值已经被使用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_362</name> <!-- SDB_SEQUENCE_NEVER_USED -->
+         <description>
+            <en>Reserved</en> <!-- Sequence has never been used -->
+            <cn>保留</cn> <!-- 序列尚未被使用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_363</name> <!-- SDB_SEQUENCE_OUT_OF_CACHE -->
+         <description>
+            <en>Reserved</en> <!-- Out of sequence cache -->
+            <cn>保留</cn> <!-- 超出序列缓存 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_KEY_NOT_SUPPORT_ARRAY</name>
+         <description>
+            <en>Any field of index key cannot be array</en>
+            <cn>索引键的任意一个字段都不允许为数组</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

@@ -572,7 +572,7 @@
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
 #define IXM_FIELD_NAME_NOTNULL               "NotNull"
-
+#define IXM_FIELD_NAME_NOTARRAY              "NotArray"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"

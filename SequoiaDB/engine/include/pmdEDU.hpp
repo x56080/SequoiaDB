@@ -205,6 +205,9 @@ namespace engine
          EDU_BLOCK_TYPE    getBlockType() const ;
          BOOLEAN           isBlocked() const ;
 
+         BOOLEAN           isDoReplay() const { return _doReplay ; }
+         void              setDoReplay( BOOLEAN doReplay ) { _doReplay = doReplay ; }
+
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;
       ~_pmdEDUCB() ;
@@ -557,6 +560,8 @@ namespace engine
       INT64                   _curAutoTransCtxID ;
       utilMemListPool         *_pMemPool ;
       monClassQuery           *_monQueryCB ;
+
+      BOOLEAN                 _doReplay ;
    };
    typedef class _pmdEDUCB pmdEDUCB ;
 
