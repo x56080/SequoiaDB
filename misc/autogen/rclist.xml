@@ -2914,5 +2914,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_IXM_KEY_NOT_SUPPORT_ARRAY</name>
+         <description>
+            <en>Any field of index key cannot be array</en>
+            <cn>索引键的任意一个字段都不允许为数组</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

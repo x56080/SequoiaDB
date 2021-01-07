@@ -72,6 +72,8 @@ Enforced (Boolean): Whether the index is enforced unique.
 NotNull (Boolean): Whether any filed of index can be null or not exist.
 .IP \[bu] 2
 SortBufferSize (Int): The size of sort buffer used when creating index.
+.IP \[bu] 2
+NotArray(Boolean): Whether any filed of index can array.
 .RE
 .PP
 \f[B]Note:\f[]
@@ -94,32 +96,54 @@ On success, return void.
 On error, exception will be thrown.
 .SH EXAMPLES
 .IP "1." 3
-Create an unique index named "ageIndex" on the field "age" in collection "bar".
+Create an unique index named "ageIndex" on the field "age" in collection
+"employee".
 The records are in ascending order on the field "age".
 .nf
 \f[C]
->\ db.foo.bar.createIndex(\ "ageIndex",\ {\ age:\ 1\ },\ true\ )
+>\ db.sample.employee.createIndex(\ "ageIndex",\ {\ age:\ 1\ },\ true\ )
 \f[]
 .fi
 .RE
 .IP "2." 3
-Create an unique index in collection "bar", and any field of index should exist
-and cannot be null.
+Create an unique index in collection "employee", and any field of index should
+exist and cannot be null.
 .nf
 \f[C]
->\ db.foo.bar.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ Unique:\ true,\ NotNull:\ true\ }\ )
+>\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ Unique:\ true,\ NotNull:\ true\ }\ )
 >\ 
 >\ //\ "b"\ field\ is\ null.\ Insert\ will\ throw\ error.
->\ db.foo.bar.insert(\ {\ a:\ 1,\ b:\ null\ }\ )
+>\ db.sample.employee.insert(\ {\ a:\ 1,\ b:\ null\ }\ )
 sdb.js:625\ uncaught\ exception:\ \-339
 Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
 Takes\ 0.002531s.
 >\ 
 >\ //\ "b"\ field\ does\ not\ exist.\ Insert\ will\ throw\ error.
->\ db.foo.bar.insert(\ {\ a:\ 1\ }\ )
+>\ db.sample.employee.insert(\ {\ a:\ 1\ }\ )
 sdb.js:625\ uncaught\ exception:\ \-339
 Any\ field\ of\ index\ key\ should\ exist\ and\ cannot\ be\ null
 Takes\ 0.002531s
+\f[]
+.fi
+.RE
+.IP "3." 3
+Create a text index named "addr_tag" on field "address" and "tags" in collection
+"bar", which will be used for full text search.
+.RS 4
+\f[C]lang\-javascript\ \ >\ db.foo.bar.createIndex(\ "addr_tags",\ {\ address:\ "text",\ tags:\ "text"\ }\ )\f[]
+.RE
+.IP "4." 3
+Create an unique index in collection "employee", and any field of index not
+support array.
+.nf
+\f[C]
+>\ db.sample.employee.createIndex(\ "ab",\ {\ a:\ 1,\ b:\ 1\ },\ {\ NotArray:\ true}\ )
+>
+>\ //\ "a"\ field\ is\ array.\ Insert\ will\ throw\ error.
+>\ db.sample.employee.insert(\ {\ a:\ [1],b:\ 10\ }\ )
+sdb.js:645\ uncaught\ exception:\ \-364
+Any\ field\ of\ index\ key\ cannot\ be\ array
+Takes\ 0.001760s.
 \f[]
 .fi
 .RE

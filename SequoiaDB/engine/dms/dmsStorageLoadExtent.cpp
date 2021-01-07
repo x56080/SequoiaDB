@@ -157,8 +157,7 @@ namespace engine
          const CHAR *pCheckErr = "" ;
          if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
          {
-            PD_LOG( PDERROR, "Record[%s] _id is error: %s",
-                    record.toString().c_str(), pCheckErr ) ;
+            PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }

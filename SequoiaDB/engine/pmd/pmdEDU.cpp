@@ -166,6 +166,7 @@ namespace engine
       _isAffectGIndex = FALSE ;
 
       _curTransID.reset() ;
+      _doReplay = FALSE ;
    }
 
    _pmdEDUCB::~_pmdEDUCB ()

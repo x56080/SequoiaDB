@@ -25,6 +25,7 @@
 | Enforced        | Boolean  | 索引是否强制唯一。| false  |
 | NotNull         | Boolean  | 索引的任意一个字段是否允许为 null 或者不存在。| false  |
 | SortBufferSize  | int      | 创建索引时使用的排序缓存的大小。| 64MB  |
+| NotArray        | Boolean  | 索引的任意一个字段是否允许为数组。| true |
 
 > **Note:**
 >
@@ -71,6 +72,17 @@
 
  ```lang-javascript
  > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
+ ```
+
+* 集合 employee 创建索引，并且索引字段不允许为数组 。
+ ```lang-javascript
+ > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
+ >
+ > // a字段为数组，插入索引时报错
+ > db.sample.employee.insert( { a: [1],b: 10 } )
+ sdb.js:645 uncaught exception: -364
+ Any field of index key cannot be array
+ Takes 0.001760s.
  ```
 
 

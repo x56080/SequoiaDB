@@ -783,6 +783,7 @@ namespace engine
       {
          // set last replay LSN
          eduCB->insertLsn( recordHeader->_lsn ) ;
+         eduCB->setDoReplay( TRUE ) ;
       }
 
       // check if a rollback DPS log, if so, mark rollback status
@@ -1550,6 +1551,10 @@ namespace engine
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
                  tmpBuff, rc ) ;
       }
+      if ( !_dpsCB )
+      {
+         eduCB->setDoReplay( FALSE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSREP_REPLAY, rc );
       return rc ;
    error:
@@ -1604,6 +1609,7 @@ namespace engine
       {
          sdbGetRTNCB()->contextDelete( contextID, eduCB ) ;
       }
+
       return rc ;
    error:
       if ( needReport )
@@ -1624,6 +1630,7 @@ namespace engine
       if ( !_dpsCB )
       {
          eduCB->insertLsn( recordHeader->_lsn, TRUE ) ;
+         eduCB->setDoReplay( TRUE ) ;
       }
 
       try
@@ -2042,6 +2049,10 @@ namespace engine
                  "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
                  tmpBuff, rc ) ;
       }
+      if( !_dpsCB )
+      {
+         eduCB->setDoReplay( FALSE ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSREP_ROLBCK, rc );
       return rc ;
    error:
@@ -2164,11 +2175,21 @@ namespace engine
                                      _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
+      if( !_dpsCB )
+      {
+         eduCB->setDoReplay( TRUE ) ;
+      }
+
       INT32 rc = rtnReplayInsert( collection, obj, FLG_INSERT_CONTONDUP, eduCB,
                                   _dmsCB, _dpsCB ) ;
       if ( rc )
       {
          ftReportErr( rc ) ;
+      }
+
+      if( !_dpsCB )
+      {
+         eduCB->setDoReplay( FALSE ) ;
       }
       return rc ;
    }

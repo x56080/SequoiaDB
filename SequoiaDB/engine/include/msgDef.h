@@ -637,6 +637,7 @@
 #define IXM_FIELD_NAME_NOTNULL               "NotNull"
 #define IXM_FIELD_NAME_GLOBAL                "Global"
 #define IXM_FIELD_NAME_GLOBAL_OPTION         "GlobalOption"
+#define IXM_FIELD_NAME_NOTARRAY              "NotArray"
 
 // global logical time to create index ( add meta data to collection )
 #define IXM_FIELD_NAME_CREATETIME            "CreateTime"

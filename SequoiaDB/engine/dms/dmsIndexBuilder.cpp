@@ -247,6 +247,9 @@ namespace engine
       rc = _keyGen.setKeyPattern( _indexCB->keyPattern() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to set key pattern, rc: %d", rc ) ;
 
+      _keyGen.setNotArray( _indexCB->notArray() ) ;
+      _keyGen.setIsIDIndex( _indexCB->isIDIndex() ) ;
+
       // WARNING: should not rewrite return code from _onInit()
       // if SDB_DMS_EOC is returned, it will be processed with caller
       rc = _onInit() ;
