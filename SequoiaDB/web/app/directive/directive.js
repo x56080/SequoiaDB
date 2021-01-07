@@ -6249,6 +6249,11 @@
                   scope.jump = function( event ){
                      if( event.keyCode == 13 )
                      {
+                        if( isEmpty( scope.loadStatus['page'] ) )
+                        {
+                           scope.loadStatus['page'] = 1 ;
+                        }
+
                         if( typeof( scope.customEvent['jump'] ) === 'function' )
                         {
                            scope.customEvent['jump']( scope.loadStatus['page'] ) ;
