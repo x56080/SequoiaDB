@@ -139,6 +139,7 @@ namespace import
    {
       INT32 minLength ;
       INT32 maxLength ;
+      BOOLEAN strict ;
    } ;
 
    struct CSVDecimalOpt

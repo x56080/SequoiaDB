@@ -64,6 +64,7 @@ namespace import
    #define CSV_STR_BINARY           "binary"
    #define CSV_STR_NUMBER           "number"
    #define CSV_STR_SKIP             "skip"
+   #define CSV_STR_STRICT           "strict"
 
    #define CSV_STR_TRUE       "true"
    #define CSV_STR_FALSE      "false"
@@ -103,6 +104,7 @@ namespace import
    #define CSV_STR_BINARY_SIZE         (sizeof(CSV_STR_BINARY) - 1)
    #define CSV_STR_NUMBER_SIZE         (sizeof(CSV_STR_NUMBER) - 1)
    #define CSV_STR_SKIP_SIZE           (sizeof(CSV_STR_SKIP) - 1)
+   #define CSV_STR_STRICT_SIZE         (sizeof(CSV_STR_STRICT) - 1)
    #define CSV_STR_TYPE_MIN_SIZE       3
 
    #define CSV_STR_TYPE_EQ(type, str, len) \
@@ -416,11 +418,12 @@ namespace import
                                    CSVFieldOpt& opt )
    {
       INT32 rc = SDB_OK ;
-      INT32 len    = length ;
-      INT32 min    = 0 ;
-      INT32 max    = -1 ;
-      INT32 numLen = 0 ;
-      CHAR* str    = (CHAR*)data ;
+      INT32 len      = length ;
+      INT32 min      = 0 ;
+      INT32 max      = -1 ;
+      INT32 numLen   = 0 ;
+      BOOLEAN strict = FALSE ;
+      CHAR* str      = (CHAR*)data ;
       SDB_ASSERT( NULL != data, "data can't be NULL" ) ;
 
       if ( LEFT_BRACKET != *str )
@@ -430,6 +433,8 @@ namespace import
 
       ++str ;
       --len ;
+
+      //string(
 
       _skipSpace( &str, len ) ;
 
@@ -441,6 +446,7 @@ namespace import
 
       if ( RIGHT_BRACKET == *str )
       {
+         //string()
          goto done ;
       }
 
@@ -476,10 +482,12 @@ namespace import
 
       if ( RIGHT_BRACKET == *str )
       {
+         //string(x)
          max = min ;
          min = 0 ;
          opt.opt.stringOpt.minLength = min ;
          opt.opt.stringOpt.maxLength = max ;
+         opt.opt.stringOpt.strict    = strict ;
          opt.hasOpt = TRUE ;
          goto done ;
       }
@@ -500,23 +508,82 @@ namespace import
          goto error ;
       }
 
-      numLen = 0 ;
-      rc = _str2i( str, len, max, numLen ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "invalid string max length" ) ;
-         goto error ;
-      }
+      //string(x,
 
-      if ( max < 0 )
+      if ( 0 == ossStrncasecmp( str, CSV_STR_STRICT, CSV_STR_STRICT_SIZE ) )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "invalid string max length" ) ;
-         goto error ;
-      }
+         //string(x,strict
+         strict = TRUE ;
+         max = min ;
+         min = 0 ;
 
-      str += numLen ;
-      len -= numLen ;
+         str += CSV_STR_STRICT_SIZE ;
+         len -= CSV_STR_STRICT_SIZE ;
+      }
+      else
+      {
+         numLen = 0 ;
+         rc = _str2i( str, len, max, numLen ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "invalid string max length" ) ;
+            goto error ;
+         }
+
+         if ( max < 0 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "invalid string max length" ) ;
+            goto error ;
+         }
+
+         str += numLen ;
+         len -= numLen ;
+
+         _skipSpace( &str, len ) ;
+
+         if ( 0 == len )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( RIGHT_BRACKET == *str )
+         {
+            //string(x,y)
+         }
+         else if ( COMMA == *str )
+         {
+            //string(x,y,
+            ++str ;
+            --len ;
+
+            _skipSpace( &str, len ) ;
+
+            if ( 0 == len )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( 0 != ossStrncasecmp( str, CSV_STR_STRICT,
+                                      CSV_STR_STRICT_SIZE ) )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            //string(x,y,strict
+            strict = TRUE ;
+            str += CSV_STR_STRICT_SIZE ;
+            len -= CSV_STR_STRICT_SIZE ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
 
       _skipSpace( &str, len ) ;
 
@@ -553,6 +620,7 @@ namespace import
 
       opt.opt.stringOpt.minLength = min ;
       opt.opt.stringOpt.maxLength = max ;
+      opt.opt.stringOpt.strict    = strict ;
       opt.hasOpt = TRUE ;
 
    done:
@@ -3909,7 +3977,7 @@ namespace import
                                         const CHAR* fieldDel, INT32 fieldDelLen,
                                         const CHAR* strDel, INT32 strDelLen,
                                         CSV_TYPE& type, CSV_TYPE& subType,
-                                        CSVFieldOpt& opt, CSVFieldValue& fieldValue,
+                                        CSVField* field, CSVFieldValue& fieldValue,
                                         INT32& valueLength, BOOLEAN& fieldEnd)
    {
       CHAR* str = (CHAR*)data;
@@ -3917,6 +3985,7 @@ namespace import
       INT32 rc = SDB_OK;
       fieldEnd = FALSE;
       BOOLEAN autoDateTime = FALSE;
+      CSVFieldOpt &opt = field->opt ;
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
@@ -3998,12 +4067,35 @@ namespace import
          {
             if ( fieldValue.strVal.length < opt.opt.stringOpt.minLength )
             {
-               type = CSV_TYPE_NULL ;
+               if ( field->hasDefault )
+               {
+                  type = CSV_TYPE_NULL ;
+               }
+               else
+               {
+                  if ( opt.opt.stringOpt.strict )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     type = CSV_TYPE_NULL ;
+                  }
+               }
             }
             else if ( opt.opt.stringOpt.maxLength > 0 &&
                       fieldValue.strVal.length > opt.opt.stringOpt.maxLength )
             {
-               fieldValue.strVal.length = opt.opt.stringOpt.maxLength ;
+               if ( TRUE == opt.opt.stringOpt.strict )
+               {
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               else
+               {
+                  fieldValue.strVal.length = opt.opt.stringOpt.maxLength ;
+               }
             }
          }
          goto done;
@@ -4396,7 +4488,7 @@ namespace import
                             fieldDel, fieldDelLen,
                             strDel, strDelLen,
                             field.type, field.subType,
-                            field.opt, field.defaultValue,
+                            &field, field.defaultValue,
                             valueLen, fieldEnd);
       if (SDB_OK != rc)
       {
@@ -4566,7 +4658,7 @@ namespace import
          rc = SDB_OK;
       }
 
-      return rc;
+      return rc ;
    }
 
    CSVRecordParser::CSVRecordParser(const string& fieldDelimiter,
@@ -4913,7 +5005,7 @@ namespace import
                                fieldDel, fieldDelLen,
                                strDel, strDelLen,
                                fieldData.type, fieldData.subType,
-                               field->opt, fieldData.value,
+                               field, fieldData.value,
                                valueLength, fieldEnd);
          if (SDB_OK != rc)
          {
@@ -5016,7 +5108,7 @@ namespace import
                                      fieldDel, fieldDelLen,
                                      strDel, strDelLen,
                                      fieldData.type, fieldData.subType,
-                                     tmpField.opt, fieldData.value,
+                                     &tmpField, fieldData.value,
                                      valueLength, fieldEnd);
                if (SDB_OK != rc)
                {
