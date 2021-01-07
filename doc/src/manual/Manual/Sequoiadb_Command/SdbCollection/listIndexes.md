@@ -21,6 +21,7 @@
 | NotNull   | Boolean   | 索引的任意一个字段是否允许为 null 或者不存在 <br> "true"：不允许为 null 或者不存在 <br> "false"：允许为 null 或不存在    |
 | IndexFlag | string    | 索引当前状态 <br> "Normal"：正常 <br> "Creating"：正在创建 <br> "Dropping"：正在删除 <br> "Truncating"：正在清空 <br> "Invalid"：无效                                                        |
 | Type      | string    | 索引类型 <br> "Positive"：正序索引 <br> "Reverse"：逆序索引 <br> "Text"：全文索引                                       |
+| NotArray   | Boolean   | 索引的任意一个字段是否允许数组 <br> "true"：不允许为数组 <br> "false"：允许为数组    |
 
 ##返回值##
 
@@ -49,7 +50,8 @@
     "unique": true,
     "dropDups": false,
     "enforced": true,
-    "NotNull": false
+    "NotNull": false,
+    "NotArray": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"

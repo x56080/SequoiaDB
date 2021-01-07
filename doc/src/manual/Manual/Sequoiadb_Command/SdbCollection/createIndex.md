@@ -75,6 +75,7 @@
  ```
 
 * 集合 employee 创建索引，并且索引字段不允许为数组 。
+
  ```lang-javascript
  > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
  >

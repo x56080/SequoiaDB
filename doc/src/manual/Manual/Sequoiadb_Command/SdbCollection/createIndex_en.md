@@ -94,6 +94,7 @@ On error, exception will be thrown.
 	 > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
 	 ```
 4. Create an unique index in collection "employee", and any field of index not support array.
+
     ```lang-javascript
     > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
     >

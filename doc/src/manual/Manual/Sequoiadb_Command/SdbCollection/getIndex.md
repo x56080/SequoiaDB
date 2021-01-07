@@ -68,7 +68,8 @@ v1.10 及以上版本
     "unique": true,
      "dropDups": false,
      "enforced": false,
-     "NotNull": false
+     "NotNull": false,
+     "NotArray": false
   },
   "IndexFlag": "Normal",
   "Type": "Positive"
