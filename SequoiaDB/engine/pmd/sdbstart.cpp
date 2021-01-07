@@ -344,6 +344,26 @@ namespace engine
       }
    }
 
+   BOOLEAN isServiceHasBeenStarted( const string &svcname,
+                                    utilNodeInfo &info )
+   {
+      INT32 timeout = UTIL_WAIT_NODE_TIMEOUT ;
+
+      while ( timeout > 0 )
+      {
+         --timeout ;
+
+         if ( serviceExists( svcname.c_str(), info ) )
+         {
+            return TRUE ;
+         }
+         ossSleep( OSS_ONE_SEC ) ;
+         continue ;
+      }
+
+      return FALSE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_SDBSTART_MAIN, "mainEntry" )
    INT32 mainEntry ( INT32 argc, CHAR **argv )
    {
@@ -618,6 +638,17 @@ namespace engine
                  SDB_OK == ossGetExitCodeProcess( handle, exitCode ) )
             {
                rc = exitCode ;
+
+               if ( SDB_SRC_PERM == rc &&
+                    isServiceHasBeenStarted( info._svcname, info ) )
+               {
+                  ossPrintf ( "Success: %s(%s) is already started "
+                              "(%d)"OSS_NEWLINE,
+                              utilDBTypeStr( (SDB_TYPE)info._type ),
+                              info._svcname.c_str(), info._pid ) ;
+                  ++succeedNum ;
+                  continue ;
+               }
             }
             ossPrintf( "Error: Start [%s] failed, rc: %d(%s)"OSS_NEWLINE,
                        configs[ j ].c_str(), rc,
