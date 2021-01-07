@@ -314,6 +314,36 @@ class snapshot762902 extends PHPUnit_Framework_TestCase
       $this -> assertTrue( isset( $record["BeginLSN"] ) );
    }
    
+   public function test_snapshotQueries()
+   {
+      $type = SDB_SNAP_QUERIES	;
+      echo "\n---Begin to exec snapshot[SDB_SNAP_QUERIES	, ".$type."].\n";
+      $this -> assertEquals( 18, $type );
+      
+      self::$db -> snapshot( $type );
+      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
+   }
+   
+   public function test_snapshotLatchWaits()
+   {
+      $type = SDB_SNAP_LATCHWAITS;
+      echo "\n---Begin to exec snapshot[SDB_SNAP_LATCHWAITS, ".$type."].\n";
+      $this -> assertEquals( 19, $type );
+      
+      self::$db -> snapshot( $type );
+      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
+   }
+   
+   public function test_snapshotLockWaits()
+   {
+      $type = SDB_SNAP_LOCKWAITS;
+      echo "\n---Begin to exec snapshot[SDB_SNAP_LOCKWAITS, ".$type."].\n";
+      $this -> assertEquals( 20, $type );
+      
+      self::$db -> snapshot( $type );
+      $this -> assertEquals( 0, self::$db -> getError()['errno'] );
+   }
+   
    public static function tearDownAfterClass()
    {
       if ( self::$skipTestCase == false )
