@@ -5130,7 +5130,8 @@ do                                                            \
    }
 
    INT32 _sdbCollectionSpaceImpl::getCollection ( const CHAR *pCollectionName,
-                                                  _sdbCollection **collection )
+                                                  _sdbCollection **collection,
+                                                  BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
       INT32 version       = CATALOG_INVALID_VERSION ;
@@ -5161,14 +5162,16 @@ do                                                            \
       }
       else
       {
-         query     = BSON ( FIELD_NAME_NAME << clFullName ) ;
-         selector  = builder.appendNull( FIELD_NAME_VERSION ).obj() ;
-
-         rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
-                            &query , &selector ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            query     = BSON ( FIELD_NAME_NAME << clFullName ) ;
+            selector  = builder.appendNull( FIELD_NAME_VERSION ).obj() ;
+            rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
+                            &query , &selector ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
          if ( NULL != (*collection) )
          {
@@ -9147,7 +9150,8 @@ do                                                            \
    }
 
    INT32 _sdbImpl::getCollection ( const CHAR *pCollectionFullName,
-                                   _sdbCollection **collection )
+                                   _sdbCollection **collection,
+                                   BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
       INT32 version       = CATALOG_INVALID_VERSION ;
@@ -9169,15 +9173,17 @@ do                                                            \
       }
       else
       {
-         query     = BSON ( FIELD_NAME_NAME << pCollectionFullName ) ;
-         selector  = builder.appendNull( FIELD_NAME_VERSION ).obj() ;
-         rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
-                            &query, &selector ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            query     = BSON ( FIELD_NAME_NAME << pCollectionFullName ) ;
+            selector  = builder.appendNull( FIELD_NAME_VERSION ).obj() ;
+            rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
+                               &query, &selector ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
-
          version = _getRetVersion();
 
          rc = insertCachedVersion( _tb, pCollectionFullName, version ) ;
@@ -9208,7 +9214,8 @@ do                                                            \
    }
 
    INT32 _sdbImpl::getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                        _sdbCollectionSpace **cs )
+                                        _sdbCollectionSpace **cs,
+                                        BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
 
@@ -9224,15 +9231,17 @@ do                                                            \
       }
       else
       {
-         BSONObj newObj ;
-         newObj = BSON ( FIELD_NAME_NAME << pCollectionSpaceName ) ;
-         rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTIONSPACE,
-                            &newObj ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            BSONObj newObj ;
+            newObj = BSON ( FIELD_NAME_NAME << pCollectionSpaceName ) ;
+            rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTIONSPACE,
+                               &newObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
-
          rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
          if ( SDB_OK != rc )
          {

@@ -22,36 +22,59 @@ TEST(collectionspace, not_connect)
    ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
 }
 
-TEST(collectionspace,getCollection)
+TEST(collectionspace, getCollection)
 {
    sdb connection ;
-   sdbCollectionSpace cs ;
-   sdbCollection cl ;
+   sdbCollection cl_1 ;
+   sdbCollection cl_2 ;
+   sdbCollection cl_3 ;
+   sdbCollection cl_4 ;
+   sdbCollection cl_5 ;
+
    // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
    const CHAR *pPasswd                      = PASSWD ;
    INT32 rc                                 = SDB_OK ;
-   const CHAR *clName                       = NULL ;
+   sdbclient::sdbCursor cursor ;
    // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    // connect to database
    rc = connection.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
-   rc = getCollectionSpace( connection, COLLECTION_SPACE_NAME, cs ) ;
+
+   // case 1: get cl when checkExist is not filled in
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_1 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get collection
-   rc = cs.getCollection( COLLECTION_NAME, cl ) ;
+   rc = cl_1.getDetail( cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get the cl name
-   clName = cl.getCollectionName() ;
-   cout<<"The cl we got is : "<<clName<<endl ;
+
+   // case 2: get a existent cl when checkExist is true
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_2, TRUE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 3: get a existent cl when checkExist is false
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_3, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = cl_3.getDetail( cursor ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   // case 4: get a nonexistent cl when checkExist is true
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_4, TRUE) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   // case 5: get a nonexistent cl when checkExist is false
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_5, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = cl_5.getDetail( cursor ) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
    // disconnect the connection
    connection.disconnect() ;
 }
+
 
 TEST(collectionspace,createCollection_without_Sharding_and_replSize)
 {

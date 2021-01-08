@@ -868,13 +868,16 @@ namespace sdbclient
       ~_sdbCollectionSpaceImpl () ;
       // get a collection object
       INT32 getCollection ( const CHAR *pCollectionName,
-                            _sdbCollection **collection ) ;
+                            _sdbCollection **collection,
+                            BOOLEAN checkExist = TRUE ) ;
       INT32 getCollection ( const CHAR *pCollectionName,
-                            sdbCollection &collection )
+                            sdbCollection &collection,
+                            BOOLEAN checkExist = TRUE )
       {
          RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return getCollection ( pCollectionName,
-                                &collection.pCollection ) ;
+                                &collection.pCollection,
+                                checkExist ) ;
       }
       // create a new collection object
       INT32 createCollection ( const CHAR *pCollection,
@@ -1483,24 +1486,31 @@ namespace sdbclient
       }
       #endif
       INT32 getCollection ( const CHAR *pCollectionFullName,
-                            _sdbCollection **collection ) ;
+                            _sdbCollection **collection,
+                            BOOLEAN checkExist = TRUE ) ;
 
       INT32 getCollection ( const CHAR *pCollectionFullName,
-                            sdbCollection &collection )
+                            sdbCollection &collection,
+                            BOOLEAN checkExist = TRUE )
       {
          RELEASE_INNER_HANDLE( collection.pCollection ) ;
-         return getCollection ( pCollectionFullName, &collection.pCollection ) ;
+         return getCollection ( pCollectionFullName,
+                                &collection.pCollection,
+                                checkExist ) ;
       }
 
       INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                 _sdbCollectionSpace **cs ) ;
+                                 _sdbCollectionSpace **cs,
+                                 BOOLEAN checkExist = TRUE ) ;
 
       INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                 sdbCollectionSpace &cs )
+                                 sdbCollectionSpace &cs,
+                                 BOOLEAN checkExist = TRUE )
       {
          RELEASE_INNER_HANDLE( cs.pCollectionSpace ) ;
          return getCollectionSpace ( pCollectionSpaceName,
-                                     &cs.pCollectionSpace ) ;
+                                     &cs.pCollectionSpace,
+                                     checkExist) ;
       }
 
       INT32 createCollectionSpace ( const CHAR *pCollectionSpaceName,
