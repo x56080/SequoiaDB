@@ -139,7 +139,7 @@ function rebalance()
    var domainName = getDomainByCL( CLFULLNAME ) ;
    if ( domainName == null )
    {
-      printLog( "ERROR", "Collection space[" + csName + "] doesn't belong " +
+      printLog( "ERROR", "Collection[" + CLFULLNAME + "] doesn't belong " +
                          "to any domain" ) ;
       throw new Error() ;
    }
