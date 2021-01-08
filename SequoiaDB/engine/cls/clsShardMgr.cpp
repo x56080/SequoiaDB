@@ -2287,7 +2287,8 @@ namespace engine
          {
             //the catalog info is delete, so will delete the local item
             if ( SDB_DMS_EOC == res->flags ||
-                 SDB_DMS_NOTEXIST == res->flags )
+                 SDB_DMS_NOTEXIST == res->flags ||
+                 SDB_DMS_CS_NOTEXIST == res->flags )
             {
                _pCatAgent->lock_w () ;
                rc = _pCatAgent->clear ( pEventInfo->name.c_str() ) ;
