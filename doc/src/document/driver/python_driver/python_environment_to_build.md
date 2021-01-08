@@ -17,7 +17,7 @@
  （2） 执行解压目录下的setup.py。
 
  ```lang-javascript
- $ python setup.py install
+ $ sudo python setup.py install
  ```
 
 * Windows
