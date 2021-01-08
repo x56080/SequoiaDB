@@ -1,17 +1,17 @@
-本文档将介绍如何使用 Java 接口向 SequoiaS3 发送请求及接收响应。
+本文档介绍如何使用 Java 接口向 SequoiaS3 发送请求及接收响应。
 
-SequoiaS3 安装路径下的 `sample` 目录中的压缩包是一个 maven 类型的 Java 工程样例。
-解压后，使用 IDEA 打开该工程(【File】->【Open】->选中解压后文件夹中的 `Pom.xml`->【Open as Project】->【Open Existing Project】->【New Window】)，将 `Test.java` 中的 endPoint 修改为提供 S3 服务的 IP 和端口，开始使用 `sample` 中的样例对存储桶和对象及区域进行操作。
+SequoiaS3 安装路径下的 `sample` 目录中有一个 maven 类型的 Java 工程样例。
+使用 IDEA 打开该工程(【File】->【Open】->选中文件夹中的 `Pom.xml`->【Open as Project】->【Open Existing Project】->【New Window】)，将 `Test.java` 中的 endPoint 修改为提供 S3 服务的 IP 和端口，开始使用 `sample` 中的样例对存储桶和对象及区域进行操作。
 
 初始化客户端
 ----
 
-生成一个 AmazonS3 连接和一个 SequoiaS3 连接时，需要修改 endPoint 的地址和端口，使其指向 SequoiaS3 的地址和端口。
+首先修改 endPoint 的地址和端口，使其指向 SequoiaS3 的地址和端口。
 
 ```lang-java
 String accessKey="ABCDEFGHIJKLMNOPQRST";
 String secretKey="abcdefghijklmnopqrstuvwxyz0123456789ABCD";
-String endPoint = "http://192.168.10.71:8002";
+String endPoint = "http://localhost:8002";
 
 sequoiaS3 = SequoiaS3ClientBuilder.standard()
             .withEndpoint(endPoint)
@@ -39,7 +39,7 @@ File file = new File("example.png");
 创建区域
 ----
 
-创建一个名为"region-example"的区域，该区域设置为每年创建一个集合空间，在该集合空间中每月创建一个新的集合，用于存放对象数据
+创建一个名为"region-example"的区域，该区域设置每年创建一个新的集合空间，在该集合空间中每月创建一个新的集合，用于存放对象数据
 
 ```lang-java
 CreateRegionRequest request = new CreateRegionRequest(regionName)
@@ -81,6 +81,19 @@ for (int i=0; i < buckets.size(); i++) {
 s3.createBucket(bucketName, regionName );
 ```
 
+开启版本控制
+----
+
+打开指定存储桶的版本控制功能
+
+该功能未开启时，同一对象多次上传，历史记录会被覆盖，该功能开启后，同一对象多次上传的历史记录都会被记录在系统中
+
+```lang-java
+BucketVersioningConfiguration cfg = new BucketVersioningConfiguration("Enabled");
+SetBucketVersioningConfigurationRequest request = new SetBucketVersioningConfigurationRequest(bucketName, cfg);
+s3.setBucketVersioningConfiguration(request);
+```
+
 上传对象
 ----
 
@@ -111,6 +124,16 @@ s3is.close();
 fos.close();
 ```
 
+获取指定版本的对象
+----
+
+获取指定版本的对象，当不指定 versionId 时，获取最新版本的对象
+
+```lang-java
+GetObjectRequest request = new GetObjectRequest(bucketName, objectName, versionId);
+S3Object object = s3.getObject(request);
+```
+
 查询桶内对象列表
 ----
 
@@ -120,13 +143,39 @@ fos.close();
 ListObjectsV2Result result = s3.listObjectsV2(bucketName);
 ```
 
+查询桶中所有版本
+----
+
+查询指定存储桶中的所有版本的对象信息，包括历史版本以及删除标记，当桶中版本记录过多，可以进行多次分批查询。
+
+```lang-java
+ListVersionsRequest request = new ListVersionsRequest()
+                                  .withBucketName(bucketName);
+VersionListing result = s3.listVersions(request);
+if (result.isTruncated())
+{
+   result = s3.listNextBatchOfVersions(result);
+}
+```
+
 删除对象
 ----
 
 删除指定对象
 
+版本功能未开启时，删除指定对象会直接将对象内容从系统中删除，版本功能开启后，删除操作会在系统中生成一个对象的删除标记，原对象内容会作为历史记录保留在系统中
+
 ```lang-java
 s3.deleteObject(bucketName, objectName);
+```
+
+删除指定版本的对象
+----
+
+删除指定版本的对象，可以删除历史版本或删除标记，该操作会彻底删除系统中关于该版本的记录
+
+```lang-java
+s3.deleteVersion(bucketName, objectName, versionId);
 ```
 
 删除桶
