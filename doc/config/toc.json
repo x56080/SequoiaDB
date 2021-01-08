@@ -2877,6 +2877,12 @@
                            "en": "getDetail()"
                         },
                         {
+                           "id": 1601192934,
+                           "file": "getDetailObj",
+                           "cn": "getDetailObj()",
+                           "en": "getDetailObj()"
+                        },
+                        {
                            "id": 1432190870,
                            "file": "getMaster",
                            "cn": "getMaster()",
