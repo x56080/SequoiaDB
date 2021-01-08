@@ -24,7 +24,6 @@
 | [$+标识符](reference/operator/match_operator/identifier.md)  | 数组元素匹配   | db.foo.bar.find( { "array.$2": 10 } )                              |
 | [$size](reference/operator/match_operator/size.md)           | 已废弃         | 无                                                            |
 | [$regex](reference/operator/match_operator/regex.md)         | 正则表达式     | db.foo.bar.find( { str: { $regex:  'dh, * fj', $options:'i' } } )      |
-| [$field](reference/operator/match_operator/field.md)         | 字段匹配       | db.foo.bar.find( { "t1": { "$field": "t2" } } )        |
 | [$mod](reference/operator/match_operator/mod.md)            | 取模匹配       | db.foo.bar.find( { "age": { "$mod": [ 5, 3 ] } } )      |
 | [$et](reference/operator/match_operator/et.md)               | 相等匹配       | db.foo.bar.find( { "id": { "$et": 1 } } )               |
 | [$isnull](reference/operator/match_operator/isnull.md)       | 选择集合中指定字段是否为空或不存在 |  db.foo.bar.find( { age: { $isnull: 0 } } )  |
