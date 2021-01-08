@@ -55,6 +55,49 @@ using namespace bson;
 namespace engine
 {
 
+   static INT32 _checkCSExist( const CHAR* collection, pmdEDUCB* cb,
+                               BOOLEAN& csExist )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      INT64 count = 0 ;
+      csExist = FALSE ;
+
+      rc = rtnResolveCollectionSpaceName( collection,
+                                          ossStrlen( collection ),
+                                          csName,
+                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get cs name from cl[%s], rc: %d",
+                   collection, rc ) ;
+
+      try
+      {
+         rc = catGetObjectCount( CAT_COLLECTION_SPACE_COLLECTION, BSONObj(),
+                                 BSON( FIELD_NAME_NAME << csName ),
+                                 BSONObj(), cb, count ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get count of collection[%s], rc: %d",
+                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      if ( count > 0 )
+      {
+         csExist = TRUE ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
       catCatalogueManager implement
    */
@@ -373,26 +416,46 @@ namespace engine
                                    _pEduCB, numToSkip, numToReturn ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to query from catalog, rc = %d", rc ) ;
+
          if ( 0 == ossStrcmp( matcher.firstElementFieldName(),
                               CAT_CATALOGNAME_NAME ) )
          {
-            // check for how many records were returned
-            // need to make sure returned record must be one
-            // 1) if returned = 0, it means collection does not exist
-            // 2) if returned > 1, it means possible catalog corruption
-            PD_CHECK ( pReply->numReturned >= 1, SDB_DMS_NOTEXIST, error,
-                       PDWARNING, "Collection does not exist:%s",
-                       matcher.toString().c_str() ) ;
-            PD_CHECK ( pReply->numReturned <= 1, SDB_CAT_CORRUPTION, error,
-                       PDSEVERE,
-                       "More than one records returned for query, "
-                       "possible catalog corruption" ) ;
+            if ( 0 == pReply->numReturned )
+            {
+               // if returned = 0, it means collection does not exist
+               const CHAR* collection = matcher.firstElement().valuestrsafe() ;
+               BOOLEAN csExist = FALSE ;
+
+               rc = _checkCSExist( collection, _pEduCB, csExist ) ;
+               if ( SDB_OK == rc && !csExist )
+               {
+                  rc = SDB_DMS_CS_NOTEXIST ;
+                  PD_LOG( PDWARNING,
+                          "Collection[%s]'s space does not exist, rc: %d",
+                          collection, rc ) ;
+               }
+               else
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                          collection, rc ) ;
+               }
+               goto error ;
+            }
+            else if ( pReply->numReturned > 1 )
+            {
+               // if returned > 1, it means possible catalog corruption
+               rc = SDB_CAT_CORRUPTION ;
+               PD_LOG( PDSEVERE, "More than one records returned for query, "
+                       "possible catalog corruption, rc: %d", rc ) ;
+               goto error ;
+            }
          }
          else
          {
             PD_CHECK ( pReply->numReturned >= 1, SDB_DMS_NOTEXIST, error,
-                       PDWARNING, "Collection does not exist:%s",
-                       matcher.toString().c_str() ) ;
+                       PDWARNING, "Collection does not exist:%s, rc: %d",
+                       matcher.toString().c_str(), rc ) ;
          }
       }
       catch ( std::exception &e )
