@@ -8,7 +8,7 @@ setCurrentValue - 设置序列的当前值
 
 ##描述##
 
-该函数用于设置序列的当前值，从而调整序列的进度。与 [setAttributes()][setAttributes] 接口中设置 CurrentValue 属性不同，该函数不允许反向设置当前值。对于递增序列，当前值只能增大，不能减小；对于递减序列，则相反。这个特性可以避免序列生成重复的值。
+该函数用于设置序列的当前值，从而调整序列的进度。对于递增序列，设置的当前值只能增大，不能减小；对于递减序列，则相反。该特性可以避免序列生成重复值，如需反向设置，可以使用 [restart()][restart] 函数。
 
 ##参数##
 
@@ -28,7 +28,7 @@ value（ *number*， *必填* ）
 
 | 错误码 | 错误类型                | 可能发生的原因       | 解决办法 |
 | ------ | ----------------------- | -------------------- | -------- |
-| -361   | SDB_SEQUENCE_VALUE_USED | 指定当前值已经被使用 | 如要反向设置，可以使用 [setAttributes()][setAttributes] 设置 CurrentValue 属性。 |
+| -361   | SDB_SEQUENCE_VALUE_USED | 指定当前值已经被使用 | 如要反向设置，可以使用 [restart()][restart] 函数。 |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
 
@@ -72,7 +72,7 @@ v3.4.2 及以上版本
 
 [^_^]:
      本文使用的所有引用及链接
-[setAttributes]:manual/Manual/Sequoiadb_Command/SdbSequence/setAttributes.md
+[restart]:manual/Manual/Sequoiadb_Command/SdbSequence/restart.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/faq.md

@@ -1,18 +1,20 @@
 ##名称##
 
-restart - 重置序列
+restart - 使序列从指定值开始重新计数
 
 ##语法##
 
-**sequence.restart\(\)**
+**sequence.restart\(\<value\>\)**
 
 ##描述##
 
-当用户需要序列从起始值开始重新计数时，可以使用该函数重置序列。
+该函数可以使序列从指定值开始重新计数。指定的起始值可以是序列最小值至最大值范围内的任意值。
 
 ##参数##
 
-无
+value（ *number*， *必填* ）
+
+指定的起始值
 
 ##返回值##
 
@@ -30,17 +32,12 @@ v3.4.2 及以上版本
 
 ##示例##
 
-重置当前值为 10 的序列
+使当前值为 10 的序列从 1 开始重新计数
 
 ```lang-javascript
 > sequence.getNextValue()
 10
-> sequence.restart()
-```
-
-重置后，序列值回到起始值 1
-
-```lang-javascript
+> sequence.restart( 1 )
 > sequence.getNextValue()
 1
 ```

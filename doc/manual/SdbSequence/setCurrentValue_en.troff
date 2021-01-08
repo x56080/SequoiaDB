@@ -14,12 +14,13 @@ setCurrentValue \- set the current value of the sequence
 SdbSequence
 .SH DESCRIPTION
 .PP
-Set the current value of the sequence, to adjust the progress.
-It is different from setting CurrentValue by setAttributes() that this function
-doesn\[aq]t allow setting the value back.
-For an ascending sequence, the current value can only increase, not decrease.
+This function is used to set the current value of the sequence, thereby
+adjusting the progress.
+This function does not allow to set the value back.
+The current value set can only be increased, not decreaseed.
 Descending sequences are the opposite.
-This feature can avoid duplicate values to be generated.
+This feature prevents sequences from generating duplicate.
+To set the current value back, refer to restart().
 .SH PARAMETERS
 .PP
 value ( \f[I]number\f[], \f[I]required\f[] )
@@ -27,13 +28,13 @@ value ( \f[I]number\f[], \f[I]required\f[] )
 The current value to be set.
 .SH RETURN VALUE
 .PP
-When the function executes successfully, return void.
+When the function executes successfully, there is no return value.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
 .SH ERRORS
 .PP
-Frequent exceptions of \f[C]getCurrentValue()\f[]:
+The common exceptions of \f[C]setCurrentValue()\f[] function are as follows:
 .PP
 .TS
 tab(@);
@@ -59,7 +60,7 @@ SDB_SEQUENCE_VALUE_USED
 T}@T{
 Sequence value has been
 T}@T{
-To set it back, use
+To set it back, refer
 T}
 T{
 T}@T{
@@ -67,14 +68,7 @@ T}@T{
 T}@T{
 used
 T}@T{
-interface setAttributes
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-T}@T{
-()
+to restart()
 T}
 .TE
 .PP
@@ -97,7 +91,7 @@ Decrease the current value.
 \f[]
 .fi
 .PP
-Error message:
+The output error message is as follows:
 .IP
 .nf
 \f[C]

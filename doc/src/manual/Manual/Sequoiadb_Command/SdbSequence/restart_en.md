@@ -1,10 +1,10 @@
 ##NAME##
 
-restart - restart the sequence
+restart - restart the sequence from the given value
 
 ##SYNOPSIS##
 
-**sequence.restart\(\)**
+**sequence.restart\(\<value\>\)**
 
 ##CATEGORY##
 
@@ -12,15 +12,17 @@ SdbSequence
 
 ##DESCRIPTION##
 
-Restart the sequence. The sequence value will be set back to the start.
+This function is used to restart the sequence from the given value. The given initial value can be any value in the range from the minimun to the maximun of the sequence.
 
 ##PARAMETERS##
 
-None
+value ( *number*, *required* )
+
+The new start value.
 
 ##RETURN VALUE##
 
-When the function executes successfully, return void.
+When the function executes successfully, there is no return value.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -34,17 +36,12 @@ v3.4.2 and above
 
 ##EXAMPLES##
 
-Restart a sequence with the current value of 10
+Recount the sequence with the current value of 10 to 1.
 
 ```lang-javascript
 > sequence.getNextValue()
 10
 > sequence.restart()
-```
-
-Then the sequence value goes back to the start value of 1
-
-```lang-javascript
 > sequence.getNextValue()
 1
 ```

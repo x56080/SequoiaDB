@@ -4,22 +4,26 @@
 .hy
 .SH NAME
 .PP
-restart \- restart the sequence
+restart \- restart the sequence from the given value
 .SH SYNOPSIS
 .PP
-\f[B]sequence.restart()\f[]
+\f[B]sequence.restart(<value>)\f[]
 .SH CATEGORY
 .PP
 SdbSequence
 .SH DESCRIPTION
 .PP
-Restart the sequence. The sequence value will be set back to the start.
+This function is used to restart the sequence from the given value.
+The given initial value can be any value in the range from the minimun to the
+maximun of the sequence.
 .SH PARAMETERS
 .PP
-None
+value ( \f[I]number\f[], \f[I]required\f[] )
+.PP
+The new start value.
 .SH RETURN VALUE
 .PP
-When the function executes successfully, return void.
+When the function executes successfully, there is no return value.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -33,20 +37,13 @@ For more details, refer to Troubleshooting.
 v3.4.2 and above
 .SH EXAMPLES
 .PP
-Restart a sequence with the current value of 10
-.PP
+Recount the sequence with the current value of 10 to 1.
+.IP
 .nf
 \f[C]
 >\ sequence.getNextValue()
 10
 >\ sequence.restart()
-\f[]
-.fi
-.PP
-Then the sequence value goes back to the start value of 1.
-.PP
-.nf
-\f[C]
 >\ sequence.getNextValue()
 1
 \f[]
