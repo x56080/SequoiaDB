@@ -4829,7 +4829,8 @@ do                                                            \
    }
 
    INT32 _sdbCollectionSpaceImpl::getCollection ( const CHAR *pCollectionName,
-                                                  _sdbCollection **collection )
+                                                  _sdbCollection **collection,
+                                                  BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
       CHAR clFullName[ CLIENT_CL_FULLNAME_SZ + 1 ] = { 0 } ;
@@ -4856,12 +4857,16 @@ do                                                            \
       }
       else
       {
-         BSONObj newObj = BSON ( FIELD_NAME_NAME << clFullName ) ;
-         rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
-                                         &newObj ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            BSONObj newObj = BSON ( FIELD_NAME_NAME << clFullName ) ;
+            rc = _connection->_runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
+                                            &newObj ) ;
+
+            if ( rc )
+            {
+               goto error ;
+            }
          }
          if ( NULL != (*collection) )
          {
@@ -7977,7 +7982,8 @@ do                                                            \
    }
 
    INT32 _sdbImpl::getCollection ( const CHAR *pCollectionFullName,
-                                   _sdbCollection **collection )
+                                   _sdbCollection **collection,
+                                   BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
 
@@ -7995,13 +8001,16 @@ do                                                            \
       }
       else
       {
-         BSONObj newObj ;
-         newObj = BSON ( FIELD_NAME_NAME << pCollectionFullName ) ;
-         rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
-                            &newObj ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            BSONObj newObj ;
+            newObj = BSON ( FIELD_NAME_NAME << pCollectionFullName ) ;
+            rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
+                               &newObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
 
          rc = insertCachedObject( _tb, pCollectionFullName ) ;
@@ -8032,7 +8041,8 @@ do                                                            \
    }
 
    INT32 _sdbImpl::getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                        _sdbCollectionSpace **cs )
+                                        _sdbCollectionSpace **cs,
+                                        BOOLEAN checkExist )
    {
       INT32 rc            = SDB_OK ;
 
@@ -8048,15 +8058,17 @@ do                                                            \
       }
       else
       {
-         BSONObj newObj ;
-         newObj = BSON ( FIELD_NAME_NAME << pCollectionSpaceName ) ;
-         rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTIONSPACE,
-                            &newObj ) ;
-         if ( rc )
+         if ( checkExist )
          {
-            goto error ;
+            BSONObj newObj ;
+            newObj = BSON ( FIELD_NAME_NAME << pCollectionSpaceName ) ;
+            rc = _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTIONSPACE,
+                               &newObj ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
-
          rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
          if ( SDB_OK != rc )
          {

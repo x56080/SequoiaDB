@@ -3,10 +3,13 @@
 #include <string>
 #include "client.hpp"
 
-#define COLLECTION_SPACE_NAME "testfoo"
-#define COLLECTION_NAME       "testbar"
-#define COLLECTION_SPLIT      "split"
-#define COLLECTION_FULL_NAME  "testfoo.testbar"
+#define COLLECTION_SPACE_NAME  "testfoo"
+#define COLLECTION_NAME        "testbar"
+#define COLLECTION_SPLIT       "split"
+#define COLLECTION_FULL_NAME   "testfoo.testbar"
+#define NOT_EXIST_CL_FULL_NAME "testfoo1.testbar1"
+#define NOT_EXIST_CS_NAME      "testfoo1"
+#define NOT_EXIST_CL_NAME      "testbar1"
 //#define RGNAME                ""
 
 

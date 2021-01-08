@@ -3019,10 +3019,12 @@ namespace sdbclient
       virtual ~_sdbCollectionSpace () {}
       // get a collection object
       virtual INT32 getCollection ( const CHAR *pCollectionName,
-                                    _sdbCollection **collection ) = 0 ;
+                                    _sdbCollection **collection,
+                                    BOOLEAN checkExist = TRUE ) = 0 ;
 
       virtual INT32 getCollection ( const CHAR *pCollectionName,
-                                    sdbCollection &collection ) = 0 ;
+                                    sdbCollection &collection,
+                                    BOOLEAN checkExist = TRUE ) = 0 ;
 
       // create a new collection object with options
       virtual INT32 createCollection ( const CHAR *pCollection,
@@ -3112,35 +3114,32 @@ namespace sdbclient
             delete pCollectionSpace ;
          }
       }
-      /** \fn INT32 getCollection ( const CHAR *pCollectionName,
-                                    _sdbCollection **collection )
-          \brief Get the named collection.
-          \param [in] pCollectionName The full name of the collection.
-          \param [out] collection The return collection handle.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
+
       INT32 getCollection ( const CHAR *pCollectionName,
-                            _sdbCollection **collection )
+                            _sdbCollection **collection,
+                            BOOLEAN checkExist = TRUE )
       {
          if ( !pCollectionSpace )
          {
             return SDB_NOT_CONNECTED ;
          }
          return pCollectionSpace->getCollection ( pCollectionName,
-                                                  collection ) ;
+                                                  collection, checkExist ) ;
       }
 
       /** \fn INT32 getCollection ( const CHAR *pCollectionName,
-                                    sdbCollection &collection )
+                                    sdbCollection &collection,
+                                    BOOLEAN checkExist = TRUE )
           \brief Get the named collection.
           \param [in] pCollectionName The full name of the collection.
+          \param [in] checkExist Check if the collection exists, default is true.
           \param [out] collection The return collection object.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
       INT32 getCollection ( const CHAR *pCollectionName,
-                            sdbCollection &collection )
+                            sdbCollection &collection,
+                            BOOLEAN checkExist = TRUE )
       {
          if ( !pCollectionSpace )
          {
@@ -3148,7 +3147,8 @@ namespace sdbclient
          }
          RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return pCollectionSpace->getCollection ( pCollectionName,
-                                                  collection ) ;
+                                                  collection,
+                                                  checkExist ) ;
       }
 
       /** \fn INT32 createCollection ( const CHAR *pCollection,
@@ -4362,19 +4362,23 @@ namespace sdbclient
                             ) = 0 ;
 
       virtual INT32 getCollection ( const CHAR *pCollectionFullName,
-                                    _sdbCollection **collection
+                                    _sdbCollection **collection,
+                                    BOOLEAN checkExist = TRUE
                                   ) = 0 ;
 
       virtual INT32 getCollection ( const CHAR *pCollectionFullName,
-                                    sdbCollection &collection
+                                    sdbCollection &collection,
+                                    BOOLEAN checkExist = TRUE
                                   ) = 0 ;
 
       virtual INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                         _sdbCollectionSpace **cs
+                                         _sdbCollectionSpace **cs,
+                                         BOOLEAN checkExist = TRUE
                                        ) = 0 ;
 
       virtual INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                         sdbCollectionSpace &cs
+                                         sdbCollectionSpace &cs,
+                                         BOOLEAN checkExist = TRUE
                                        ) = 0 ;
 
       virtual INT32 createCollectionSpace ( const CHAR *pCollectionSpaceName,
@@ -5189,17 +5193,9 @@ namespace sdbclient
                                 numToSkip, numToReturn ) ;
       }
 
-      /* \fn INT32 getCollection ( const CHAR *pCollectionFullName,
-                                  _sdbCollection **collection
-                                )
-          \biref Get the specified collection.
-          \param [in] pCollectionFullName The full name of collection.
-          \param [out] collection The return collection handle of query.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 getCollection ( const CHAR *pCollectionFullName,
-                            _sdbCollection **collection
+                            _sdbCollection **collection,
+                            BOOLEAN checkExist = TRUE
                           )
       {
          if ( !pSDB )
@@ -5207,20 +5203,22 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->getCollection ( pCollectionFullName,
-                                      collection ) ;
+                                      collection, checkExist ) ;
       }
 
       /** \fn INT32 getCollection ( const CHAR *pCollectionFullName,
-                                  sdbCollection &collection
-                                )
+                                    sdbCollection &collection,
+                                    BOOLEAN checkExist = TRUE )
           \biref Get the specified collection.
           \param [in] pCollectionFullName The full name of collection.
+          \param [in] checkExist Check if the collection exists, default is true.
           \param [out] collection The return collection object of query.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
       INT32 getCollection ( const CHAR *pCollectionFullName,
-                            sdbCollection &collection
+                            sdbCollection &collection,
+                            BOOLEAN checkExist = TRUE
                           )
       {
          if ( !pSDB )
@@ -5229,19 +5227,13 @@ namespace sdbclient
          }
          RELEASE_INNER_HANDLE( collection.pCollection ) ;
          return pSDB->getCollection ( pCollectionFullName,
-                                      collection ) ;
+                                      collection,
+                                      checkExist ) ;
       }
 
-      /* \fn INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                       _sdbCollectionSpace **cs)
-           \brief Get the specified collection space.
-           \param [in] pCollectionSpaceName The name of collection space.
-          \param [out] cs The return collection space handle of query.
-           \retval SDB_OK Operation Success
-           \retval Others Operation Fail
-      */
       INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                 _sdbCollectionSpace **cs
+                                 _sdbCollectionSpace **cs,
+                                 BOOLEAN checkExist = TRUE
                                )
       {
          if ( !pSDB )
@@ -5249,19 +5241,22 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->getCollectionSpace ( pCollectionSpaceName,
-                                           cs ) ;
+                                           cs, checkExist ) ;
       }
 
       /** \fn INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                        sdbCollectionSpace &cs)
+                                         sdbCollectionSpace &cs,
+                                         BOOLEAN checkExist = TRUE )
            \brief Get the specified collection space.
            \param [in] pCollectionSpaceName The name of collection space.
+           \param [in] checkExist Check if the collection space exists, default is true.
            \param [out] cs The return collection space object of query.
            \retval SDB_OK Operation Success
            \retval Others Operation Fail
       */
       INT32 getCollectionSpace ( const CHAR *pCollectionSpaceName,
-                                 sdbCollectionSpace &cs
+                                 sdbCollectionSpace &cs,
+                                 BOOLEAN checkExist = TRUE
                                )
       {
          if ( !pSDB )
@@ -5270,7 +5265,7 @@ namespace sdbclient
          }
          RELEASE_INNER_HANDLE( cs.pCollectionSpace ) ;
          return pSDB->getCollectionSpace ( pCollectionSpaceName,
-                                           cs ) ;
+                                           cs, checkExist ) ;
       }
 
       /* \fn INT32 createCollectionSpace ( const CHAR *pCollectionSpaceName,
