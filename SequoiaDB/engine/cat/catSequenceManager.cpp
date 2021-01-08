@@ -771,7 +771,6 @@ namespace engine
             nextValue = seq.getMinValue() ;
             seq.setCurrentValue( nextValue ) ;
             seq.setCachedValue( nextValue ) ;
-            seq.setExceeded( FALSE ) ;
             seq.increaseCycledCount() ;
             needUpdate = TRUE ;
          }
@@ -787,10 +786,6 @@ namespace engine
       // use minus to avoid overflow
       if ( seq.getCurrentValue() - nextValue >= fetchInc )
       {
-         if ( seq.isInitial() )
-         {
-            seq.setInitial( FALSE ) ;
-         }
          seq.setCachedValue( nextValue + fetchInc ) ;
          acquirer.nextValue = nextValue ;
          acquirer.acquireSize = seq.getAcquireSize() ;
@@ -799,11 +794,10 @@ namespace engine
       else
       {
          INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
-         if ( seq.isInitial() )
+         if ( seq.isInitial() || seq.isExceeded() )
          {
             // exclude the start value
             cachedInc -= (INT64) seq.getIncrement() ;
-            seq.setInitial( FALSE ) ;
          }
          if ( seq.getCurrentValue() <= seq.getMaxValue() - cachedInc )
          {
@@ -832,6 +826,16 @@ namespace engine
          acquirer.acquireSize = ( seq.getCachedValue() - nextValue ) / seq.getIncrement() + 1 ;
          acquirer.increment = seq.getIncrement() ;
          needUpdate = TRUE ;
+      }
+
+      if ( seq.isInitial() )
+      {
+         seq.setInitial( FALSE ) ;
+      }
+
+      if ( seq.isExceeded() )
+      {
+         seq.setExceeded( FALSE ) ;
       }
 
       // reach the maxValue, so mark exceeded
@@ -888,7 +892,6 @@ namespace engine
             nextValue = seq.getMaxValue() ;
             seq.setCurrentValue( nextValue ) ;
             seq.setCachedValue( nextValue ) ;
-            seq.setExceeded( FALSE ) ;
             seq.increaseCycledCount() ;
             needUpdate = TRUE ;
          }
@@ -904,10 +907,6 @@ namespace engine
       // use minus to avoid overflow
       if ( nextValue - seq.getCurrentValue() >= -fetchInc )
       {
-         if ( seq.isInitial() )
-         {
-            seq.setInitial( FALSE ) ;
-         }
          seq.setCachedValue( nextValue + fetchInc ) ;
          acquirer.nextValue = nextValue ;
          acquirer.acquireSize = seq.getAcquireSize() ;
@@ -916,11 +915,10 @@ namespace engine
       else
       {
          INT64 cachedInc = seq.getCacheSize() * (INT64) seq.getIncrement() ;
-         if ( seq.isInitial() )
+         if ( seq.isInitial() || seq.isExceeded() )
          {
             // exclude the start value
             cachedInc -= (INT64) seq.getIncrement() ;
-            seq.setInitial( FALSE ) ;
          }
          if ( seq.getCurrentValue() >= seq.getMinValue() - cachedInc )
          {
@@ -949,6 +947,16 @@ namespace engine
          acquirer.acquireSize = ( seq.getCachedValue() - nextValue ) / seq.getIncrement() + 1 ;
          acquirer.increment = seq.getIncrement() ;
          needUpdate = TRUE ;
+      }
+
+      if ( seq.isInitial() )
+      {
+         seq.setInitial( FALSE ) ;
+      }
+
+      if ( seq.isExceeded() )
+      {
+         seq.setExceeded( FALSE ) ;
       }
 
       // reach the minValue, so mark exceeded
