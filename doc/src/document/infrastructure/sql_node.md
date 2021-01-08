@@ -12,19 +12,19 @@
    指定实例名为myinst，该实例名映射相应的数据目录和日志路径，用户可以根据自己需要指定不同的实例名。
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data/
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data/
    ```
 
    若端口号被占用，用户可以使用-p参数指定实例端口号：
 
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst -D pg_data/ -p 5433
+   $ bin/sdb_pg_ctl addinst myinst -D pg_data/ -p 5433
    ```
 
 - 启动SQL节点
 
    ```lang-bash
-   $ bin/sdb_sql_ctl start myinst
+   $ bin/sdb_pg_ctl start myinst
    Starting instance myinst ...
    ok (PID: 20502)
    ```
@@ -32,7 +32,7 @@
 - 查看SQL节点
 
     ```lang-bash
-   $ bin/sdb_sql_ctl status
+   $ bin/sdb_pg_ctl status
    INSTANCE   PID      SVCNAME   PGDATA                               PGLOG                                   
    myinst     20502    5432      /opt/sequoiasql/postgresql/pg_data   /opt/sequoiasql/postgresql/pg_data/myinst.log     
    Total: 1; Run: 1
@@ -43,7 +43,7 @@
   系统默认数据库名为 postgres，用户也可以创建指定的数据库，命令如下：
 
    ```lang-bash
-   $bin/sdb_sql_ctl createdb foo myinst
+   $bin/sdb_pg_ctl createdb foo myinst
    Creating database myinst ...
    ok
    ```
@@ -60,7 +60,7 @@
 - 停止SQL节点
 
    ```lang-bash
-   $ bin/sdb_sql_ctl stop myinst
+   $ bin/sdb_pg_ctl stop myinst
    Stoping instance myinst (PID: 20502) ...
    ok
    ```
@@ -68,7 +68,7 @@
 - 删除SQL节点
 
    ```lang-bash
-   $ bin/sdb_sql_ctl delinst myinst
+   $ bin/sdb_pg_ctl delinst myinst
    Deleting instance myinst ...
    ok
    ```
