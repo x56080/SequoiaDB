@@ -1,6 +1,6 @@
 ##NAME##
 
-removeCoordRG - Delete the coordinated replication group.
+removeCoordRG - delete the coordination replication group in the database
 
 ##SYNOPSIS##
 
@@ -12,18 +12,40 @@ Sdb
 
 ##DESCRIPTION##
 
-Delete the coordinated replication group in the database. In principle, all coordination nodes of the replication group will be deleted. but if the coordination nodes connected to the db object are deleted first during the deletion of these nodes, there may be some coordination nodes left unremoved, and Oma class needs to be used. The removeCoord method removes the left coordination node.
+The function is used to delete the coordination replication group in the database. In principle, this operation will delete all coordination nodes of the replication group. However, if the coordination node connected to the db object is deleted first during the process of deleting nodes, some coordination nodes may be left. At this point, users need to use [Oma.removeCoord()][removeCoord] to delete remaining coordination node.
+
+##PARAMETERS##
+
+None
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, there is no return value.
 
-On error, exception will be thrown. Users can get the error message by [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) or get the error code by [getLastError()](reference/Sequoiadb_command/Global/getLastError.md).  For error handling, refer to the common [troubleshooting](troubleshooting/general/general_guide.md).
+When the function fails, an exception will be thrown and an error message will be printed.
+
+##ERROR##
+
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
+
+##VERSION##
+
+v2.0 and above
 
 ##EXAMPLES##
 
-* Delete the coordinated replication group.
+Delete the coordination replication group.
 
-	```lang-javascript
-	> db.removeCoordRG()
-	```
+```lang-javascript
+> db.removeCoordRG()
+```
+
+
+
+[^_^]:
+    links
+[removeCoord]:manual/Manual/Sequoiadb_Command/Oma/removeCoord.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/faq.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
