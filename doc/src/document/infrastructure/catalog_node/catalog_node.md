@@ -2,7 +2,7 @@
 
 编目节点是一种逻辑节点，用于保存数据库的元数据信息，而不保存用户数据。
 
-编目节点属于编目分区组（可参考 [分区组](infrastructure/replication/overview.md)）。
+编目节点属于编目分区组（可参考[分区组](infrastructure/replication/overview.md)）。
 
 编目节点中包含以下集合空间：
 
@@ -40,12 +40,11 @@
 
 ##管理编目节点##
 
+在新建编目分区组和新建编目节点时，如果涉及到新增主机，则需要先按照[集群中新增主机](installation/create_host.md)一节完成主机的主机名和参数配置。
+
 ###新建编目分区组###
 
->**Note:**
->如果新增节点涉及到新增主机，则需要先按照[集群中新增主机](installation/create_host.md)一节完成主机的主机名和参数配置。
-
-一个数据库集群必须且仅有一个编目分区组，所以新建分区组往往在安装时就已经完成，不需要在安装后执行新建分区组操作。实例见安装指南[集群模式的配置与启动](installation/deployment/command_installation/cluster.md)一节。
+一个数据库集群必须且仅有一个编目分区组。
 
 - 操作方法：
 
@@ -53,60 +52,51 @@
   > db.createCataRG( <host>, <service>, <dbpath>, [config] )
   ```
 
- 该命令用于创建编目分区组，同时创建并启动一个编目节点，其中：
+ [Sdb.createCataRG()](reference/Sequoiadb_command/Sdb/createCataRG.md) 用于创建编目分区组，同时创建并启动一个编目节点，其中：
 
   - **host** ：指定编目节点的主机名；
 
-  - **service** ：指定编目节点的服务端口，需要确保该端口号及往后延续的五个端口号未被占用；如端口号设置为11800，应确保11800/11801/11802/11803/11804/11805端口都未被占用；
+  - **service** ：指定编目节点的服务端口，需要确保该端口号及往后延续的五个端口号未被占用；如端口号设置为 11800，应确保 11800/11801/11802/11803/11804/11805 端口都未被占用；
 
-  - **dbpath** ：数据文件路径，用于存放编目数据文件，需要确保数据管理员（安装时创建，默认为sdbadmin）用户有写权限。如果配置路径不以“/”开头，则数据文件存放路径是数据库管理员用户(默认为sdbadmin)的主目录(默认为/home/sequoiadb) + 配置的路径；
+  - **dbpath** ：指定编目节点数据文件的存放路径，必须输入绝对路径，且需要确保数据管理员（安装时创建，默认为 sdbadmin）用户在该路径下有写权限；
 
   - **config** ：该参数为可选参数，用于配置更多细节参数，格式必须为 json 格式，细节参数可参考[数据库配置](database_management/database_configuration/configuration_parameters.md)一节；如需要配置日志大小参数｛logfilesz:64｝。
 
->   **Note:**
->
->   * 编目节点上的事务选项 **transactionon** 默认为开启（为了保证事务日志，编目节点上的日志文件个数 **logfilenum** 需要设置为大于 5）
->
->   * 创建编目分区组，可参考 [Sdb.createCataRG()](reference/Sequoiadb_command/Sdb/createCataRG.md)
-
 ###编目分区组中新增节点###
-
->**Note:**
->如果新增节点涉及到新增主机，则请首先按照在[集群中新增主机](installation/create_host.md)一节完成主机的主机名和参数配置。
 
 随着整个集群中的物理设备的扩展，可以通过增加编目节点来提高编目服务的可靠性。
 
 - 操作方法：
 
-1. 获取编目分区组：
+   1. 获取编目分区组
 
-   ```lang-javascript
-   > var cataRG = db.getCatalogRG()
-   ```
+     ```lang-javascript
+     > var cataRG = db.getCatalogRG()
+     ```
 
-   >   **Note:**
-   >
-   >   在 Sdb Shell 中也可以使用 [Sdb.getCatalogRG()](reference/Sequoiadb_command/Sdb/getCatalogRG.md) 获取编目分区组
+     >   **Note:**
+     >
+     >   在 Sdb Shell 中用户可以使用 [Sdb.getCatalogRG()](reference/Sequoiadb_command/Sdb/getCatalogRG.md) 获取编目分区组。
 
-2. 创建一个新的编目节点：
+   2. 创建一个新的编目节点
 
-   ```lang-javascript
-   > var node1 = cataRG.createNode( <host>, <service>, <dbpath>, [config] )
-   ```
+     ```lang-javascript
+     > var node1 = cataRG.createNode( <host>, <service>, <dbpath>, [config] )
+     ```
 
-   >   **Note:**
-   >
-   >   **host**、 **service**、 **dbpath** 及 **config** 的设置可参考 [新建编目分区组](infrastructure/catalog_node/catalog_node.md#新建编目分区组)
+     >   **Note:**
+     >
+     >   **host**、 **service**、 **dbpath** 及 **config** 的设置可参考[新建编目分区组](infrastructure/catalog_node/catalog_node.md#新建编目分区组)。
 
-3. 启动新增的编目节点：
+   3. 启动新增的编目节点
 
-   ```lang-javascript
-   > node1.start()
-   ```
+     ```lang-javascript
+     > node1.start()
+     ```
 
-###查看编目节点###
+###查看编目分区组###
 
-在 Sdb Shell 中可以查看协调节点的列表：
+在 Sdb Shell 中可以查看编目分区组的详细信息：
 
 ```lang-javascript
 > db.getCatalogRG().getDetail()
