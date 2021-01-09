@@ -198,9 +198,9 @@ function checkImportRC ( rcResults, expParseRecordsNum, expImportedRecordsNum, e
    if( typeof ( expParseFailureNum ) === "undefined" ) { expParseFailureNum = 0; }
    if( typeof ( expImportedRecordsNum ) === "undefined" ) { expImportedRecordsNum = expParseRecordsNum; }
 
-   var expParseRecords = "parsed records: " + expParseRecordsNum;
-   var expParseFailure = "parse failure: " + expParseFailureNum;
-   var expImportedRecords = "imported records: " + expImportedRecordsNum;
+   var expParseRecords = "Parsed records: " + expParseRecordsNum;
+   var expParseFailure = "Parsed failure: " + expParseFailureNum;
+   var expImportedRecords = "Imported records: " + expImportedRecordsNum;
    var actParseRecords = rcResults[0];
    var actParseFailure = rcResults[1];
    var actImportedRecords = rcResults[4];

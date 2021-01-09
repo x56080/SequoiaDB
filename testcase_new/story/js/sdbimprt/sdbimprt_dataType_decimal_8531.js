@@ -49,18 +49,18 @@ function importData ( csName, clName, imprtFile )
       //check import results
       if( i < decimalFmt.length - 1 )
       {
-         var expParseRecords = "parsed records: 0";
-         var expParseFailure = "parse failure: 0";
-         var expImportedRecords = "imported records: 0";
+         var expParseRecords = "Parsed records: 0";
+         var expParseFailure = "Parsed failure: 0";
+         var expImportedRecords = "Imported records: 0";
          var actParseRecords = rcObj[1];
          var actParseFailure = rcObj[2];
          var actImportedRecords = rcObj[5];
       }
       else
       {
-         var expParseRecords = "parsed records: 0";
-         var expParseFailure = "parse failure: 1";
-         var expImportedRecords = "imported records: 0";
+         var expParseRecords = "Parsed records: 0";
+         var expParseFailure = "Parsed failure: 1";
+         var expImportedRecords = "Imported records: 0";
          var actParseRecords = rcObj[0];
          var actParseFailure = rcObj[1];
          var actImportedRecords = rcObj[4];

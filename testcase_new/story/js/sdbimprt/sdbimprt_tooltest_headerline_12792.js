@@ -90,9 +90,9 @@ function importData ( csName, clName, imprtFile, headerline, expParseRecordsNum,
 
    //check import results
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: " + expParseRecordsNum;
-   var expParseFailure = "parse failure: " + expParseFailureNum;
-   var expImportedRecords = "imported records: " + expImportedRecordsNum;
+   var expParseRecords = "Parsed records: " + expParseRecordsNum;
+   var expParseFailure = "Parsed failure: " + expParseFailureNum;
+   var expImportedRecords = "Imported records: " + expImportedRecordsNum;
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];

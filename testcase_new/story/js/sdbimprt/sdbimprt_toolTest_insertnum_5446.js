@@ -45,8 +45,8 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 101";
-   var expImportedRecords = "imported records: 101";
+   var expParseRecords = "Parsed records: 101";
+   var expImportedRecords = "Imported records: 101";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords

@@ -157,8 +157,8 @@ function checkSdbimportLog ( matchInfos, expInfo )
 function checkImportReturn ( rc, parseFail, importRes )
 {
    var rcObj = rc.split( "\n" );
-   var expError = "parse failure: " + parseFail;
-   var expImportedRecords = "imported records: " + importRes;
+   var expError = "Parsed failure: " + parseFail;
+   var expImportedRecords = "Imported records: " + importRes;
    var actError = rcObj[1];
    var actImportedRecords = rcObj[4];
    if( expError !== actError || expImportedRecords !== actImportedRecords )

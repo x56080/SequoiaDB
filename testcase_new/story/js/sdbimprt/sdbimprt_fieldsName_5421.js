@@ -41,8 +41,8 @@ function importData ( csName, clName, imprtFile )
 
    var rcObj = rc.split( "\n" );
    var expError = "ERROR: the headerline is empty";
-   var expParseRecords = "parsed records: 0";
-   var expImportedRecords = "imported records: 0";
+   var expParseRecords = "Parsed records: 0";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actParseRecords = rcObj[1];
    var actImportedRecords = rcObj[5];

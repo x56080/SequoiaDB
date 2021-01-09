@@ -37,9 +37,9 @@ function importData ( csName, clName, imprtFile )
 
    //check import results
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 36";
-   var expParseFailure = "parse failure: 0";
-   var expImportedRecords = "imported records: 36";
+   var expParseRecords = "Parsed records: 36";
+   var expParseFailure = "Parsed failure: 0";
+   var expImportedRecords = "Imported records: 36";
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];

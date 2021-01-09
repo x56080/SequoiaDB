@@ -99,9 +99,9 @@ function importData ( csName, clName, recsNum, imprtFile, isSharding )
       + ' --file ' + imprtFile;
    var rc = cmd.run( imprtOption );
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: " + recsNum;
-   var expImportedRecords = "imported records: " + recsNum;
-   var expImportFailure = "import failure: 0";
+   var expParseRecords = "Parsed records: " + recsNum;
+   var expImportedRecords = "Imported records: " + recsNum;
+   var expImportFailure = "Imported failure: 0";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    var actImportFailure = rcObj[5];
