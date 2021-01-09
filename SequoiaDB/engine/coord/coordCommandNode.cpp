@@ -420,7 +420,8 @@ namespace engine
                        svcName.c_str(), rc, retCode ) ;
                dataObjs.push_back( BSON( FIELD_NAME_HOST << hostName <<
                                          PMD_OPTION_SVCNAME << svcName <<
-                                         OP_ERRNOFIELD << retCode ) ) ;
+                                         OP_ERRNOFIELD <<
+                                         ( ( SDB_OK == retCode ) ? rc : retCode )  ) ) ;
             }
          }
       }
@@ -1890,7 +1891,7 @@ namespace engine
                                        _keepData ) ;
             if ( rc )
             {
-               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
+               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has"
                            " an invalid value in options"
                            " when attaching node.", FIELD_NAME_KEEP_DATA ) ;
                rc = SDB_INVALIDARG ;
@@ -2330,7 +2331,7 @@ namespace engine
                                        _keepData ) ;
             if ( rc )
             {
-               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
+               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has"
                            " an invalid value in options"
                            " when detaching node.", FIELD_NAME_KEEP_DATA ) ;
                rc = SDB_INVALIDARG ;

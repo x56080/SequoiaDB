@@ -2860,7 +2860,6 @@ done:
       if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
       {
          _transactionOn = TRUE ;
-         _invalidConfNum++ ;
       }
 
       if ( _transactionOn )
@@ -2874,7 +2873,6 @@ done:
       {
          _memDebugSize = OSS_MIN ( _memDebugSize, SDB_MEMDEBUG_MAXGUARDSIZE ) ;
          _memDebugSize = OSS_MAX ( _memDebugSize, SDB_MEMDEBUG_MINGUARDSIZE ) ;
-         _invalidConfNum++ ;
       }
 
       _memDebugMask = 0 ;
@@ -2900,7 +2898,6 @@ done:
            ( _transactionOn || _archiveOn ) )
       {
          _dpslocal = TRUE ;
-         _invalidConfNum++ ;
       }
 
       // om and catalog, prefetch and preload and multi-replsync not enable
@@ -2924,7 +2921,6 @@ done:
          }
 
          _enableMixCmp = FALSE ;
-         _invalidConfNum++ ;
       }
 
       if ( 0 == _vecOm.size() )
@@ -2939,7 +2935,6 @@ done:
       if ( SCHED_TYPE_NONE == _svcSchedulerType )
       {
          _svcMaxConcurrency = 0 ;
-         _invalidConfNum++ ;
       }
 
    done:
