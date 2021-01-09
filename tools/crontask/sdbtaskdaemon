@@ -160,7 +160,20 @@ function run_daemon()
 
    ####### touch pid file #######
    mkdir -p "$LOG_PATH"
+   mkdir -p "$DATA_PATH"
    echo $$ > "$DAEMON_PID_FILE"
+   
+   ####### double check pid file #######
+   pid=`check_daemon_exist`
+   if [ $? -ne 0 ]; then 
+      print_log "WARNING" "sdbtaskdaemon (PID: $$) write pid file failed."
+      return 
+   fi
+   
+   if [ ${pid} -ne $$ ]; then
+      print_log "WARNING" "sdbtaskdaemon (PID: $pid) has been already started."
+      return
+   fi
 
    ####### touch last-run file if not exist #######
    test -f $LASTRUN_FILE || echo `date +%s` > $LASTRUN_FILE
@@ -309,11 +322,12 @@ BIN_PATH="${INSTALL_PATH}/bin"
 
 #get conf path
 CONF_PATH="${INSTALL_PATH}/conf/crontask"
+DATA_PATH="${INSTALL_PATH}/conf/crontask/data"
+DAEMON_PID_FILE="${DATA_PATH}/.sdbtaskdaemon.pid"
+LASTRUN_FILE="${DATA_PATH}/.lastrun"
 
 #get log path
 LOG_PATH="${INSTALL_PATH}/conf/log/crontask"
-DAEMON_PID_FILE="$LOG_PATH/.sdbtaskdaemon.pid"
-LASTRUN_FILE="$LOG_PATH/.lastrun"
 
 ####### 3. check user #######
 check_user
