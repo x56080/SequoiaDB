@@ -17,8 +17,8 @@ SDB_SNAP_COLLECTIONS
 | Name                | 字符串        | 集合完整名                                              |
 | UniqueID            | 长整型        | 集合的UniqueID，在集群上全局唯一                        |
 | CollectionSpace     | 字符串        | 集合所属集合空间名                                      |
-| NodeName            | 字符串        | 集合所属节点名（主机名：端口号）                        |
-| GroupName           | 字符串        | 集合所属分区组名                                        |
+| Details.NodeName            | 字符串        | 集合所属节点名（主机名：端口号）                        |
+| Details.GroupName           | 字符串        | 集合所属分区组名                                        |
 | Details.ID          | 整型          | 集合 ID，范围 0 ~ 4095，集合空间内唯一                  |
 | Details.LogicalID   | 整型          | 集合逻辑 ID                                             |
 | Details.Sequence    | 整型          | 序列号                                                  |

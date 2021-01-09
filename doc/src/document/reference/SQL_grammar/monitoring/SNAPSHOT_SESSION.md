@@ -21,6 +21,7 @@ $SNAPSHOT_SESSION
 | Source            | 字符串        | 会话来源信息，该字段仅在与 SQL 实例相关的会话中有值 |
 | QueueSize         | 整型          | 等待处理请求的队列长度                             |
 | ProcessEventCount | 长整型        | 已经处理请求的数量                                 |
+| MemPoolSize       | 长整型        | Pool Memory 的大小（单位：字节）                   |
 | RelatedID         | 字符串        | 会话的内部标识                                     |
 | Contexts          | 长整型数组    | 上下文 ID 数组，为该会话所包含的所有上下文列表     |
 | TotalDataRead     | 长整型        | 数据记录读                                         |
@@ -61,6 +62,7 @@ $SNAPSHOT_SESSION
   "Source": "",
   "QueueSize": 0,
   "ProcessEventCount": 0,
+  "MemPoolSize": 0,
   "RelatedID": "c0a8143ea41000000fb8",
   "Contexts": [],
   "TotalDataRead": 0,
