@@ -294,7 +294,7 @@ function checkSdbVersion()
 /* *****************************************************************************
 @discription: 通过 Remote 去校验每台机器的环境配置，仅支持 NEW_VERSION 及以上版本
 @hosts : 字符串数组（机器列表信息）
-@author: Jianhui Xu
+@author: QinCheng Yang
 @return: true/false
 ***************************************************************************** */
 function checkHostsEvnNew ( hosts ) {
@@ -329,7 +329,7 @@ function checkHostsEvnNew ( hosts ) {
 @author: Jianhui Xu
 @return: true/false
 ***************************************************************************** */
-function checkHostsEvn( hosts ) {
+function checkHostsEvnOld( hosts ) {
    var checkFiles = [ SDBSTART, SDBSTOP, SDBLIST, SDBSHELL, CONFLOCAL ] ;
 
    for ( i in hosts ) {
@@ -356,6 +356,20 @@ function checkHostsEvn( hosts ) {
       ssh.close() ;
    }
    return true ;
+}
+
+/* *****************************************************************************
+@discription: 校验每台机器的环境配置
+@hosts : 字符串数组（机器列表信息）
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function checkHostsEvn( hosts ) {
+   if ( NEW_VERSION ) {
+      return checkHostsEvnNew( hosts ) ;
+   } else {
+      return checkHostsEvnOld( hosts ) ;
+   }
 }
 
 /* *****************************************************************************
@@ -738,7 +752,7 @@ function updateNodesConfig( nodesArray, key, value ) {
          } else {
             rc = saveConfigObj( nodesArray[i], obj ) ;
          }
-         if ( !saveConfigObj( nodesArray[i], obj ) ) {
+         if ( !rc ) {
             println( "Save config obj to " + nodesArray[i] + " failed" ) ;
             return false ;
          }
@@ -946,14 +960,14 @@ function restartNodeWithOma( hostname, svcnames ){
 }
 
 /* *****************************************************************************
-@discription: 将Catalog节点改为standalone模式启动，仅支持 NEW_VERSION 及以上版本
-@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
-@author: Jianhui Xu
+@discription: 使用 sdbstop/sdbstart 工具重启节点，并且可以指定具体的重启参数
+@nodeAddr : node address( string ), ex: '192.168.10.106:30000'
+@options: node configure, ex: "--role data"
+@author: QinCheng Yang
 @return: true/false
 ***************************************************************************** */
-function change2StandaloneNew( cataAddr ) {
-   var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
-
+function restartNodeWithCmd( nodeAddr, options ) {
+   var addrArray = splitHostAndSvcFromAddr( nodeAddr ) ;
    var remoteObj ;
    try {
       var sdbcmSvc = Oma.getAOmaSvcName( addrArray[0] ) ;
@@ -962,20 +976,36 @@ function change2StandaloneNew( cataAddr ) {
       println( "Remote " + addrArray[0] + " failed, error info: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
    }
+   var msg = "ReStart " + addrArray[1] ;
    try {
       var cmd = remoteObj.getCmd() ;
       cmd.run( SDBSTOP + " -p " + addrArray[1] ) ;
       println( "Stop " + addrArray[1] + " succeed in " + addrArray[0] ) ;
-      cmd.run( SDBSTART + " -p " + addrArray[1] + ' -o "--role standalone" ') ;
-      println( "Start " + addrArray[1] + " by standalone succeed in " + addrArray[0] ) ;
+      if ( typeof options == "string" && options != "" ) {
+         cmd.run( SDBSTART + " -p " + addrArray[1] + ' -o \"' + options + "\"" ) ;
+         msg += " with " + options ;
+      }else {
+         cmd.run( SDBSTART + " -p " + addrArray[1] ) ;
+      }
+      println( msg + " succeed in " + addrArray[0] ) ;
    } catch ( e ) {
-      println( "Change " + cataAddr + " to standalone failed: " + e + "(" + getLastErrMsg() + ")" ) ;
+      println( msg + " failed: " + e + "(" + getLastErrMsg() + ")" ) ;
       return false ;
    } finally {
       remoteObj.close() ;
    }
    return true ;
+}
 
+/* *****************************************************************************
+@discription: 将Catalog节点改为standalone模式启动，仅支持 NEW_VERSION 及以上版本
+@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function change2StandaloneNew( cataAddr ) {
+   var options = "--role standalone" ;
+   return restartNodeWithCmd( cataAddr, options ) ;
 }
 
 /* *****************************************************************************
@@ -984,7 +1014,7 @@ function change2StandaloneNew( cataAddr ) {
 @author: Jianhui Xu
 @return: true/false
 ***************************************************************************** */
-function change2Standalone( cataAddr ) {
+function change2StandaloneOld( cataAddr ) {
    var addrArray = splitHostAndSvcFromAddr( cataAddr ) ;
 
    var ssh ;
@@ -1011,6 +1041,50 @@ function change2Standalone( cataAddr ) {
    }
    ssh.close() ;
    return true ;
+}
+
+/* *****************************************************************************
+@discription: 将Catalog节点改为Catalog角色模式启动
+@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function change2Standalone( cataAddr ) {
+   if ( NEW_VERSION ) {
+      /* In new version, there will write the parameters '--role standalone' to the 
+      node configuration file. */
+      return change2StandaloneNew( cataAddr ) ;
+   } else {
+      return change2StandaloneOld( cataAddr ) ;
+   }
+}
+
+/* *****************************************************************************
+@discription: 将Catalog节点改为Catalog角色模式启动，仅支持 NEW_VERSION 及以上版本
+@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function change2CatalogNew( cataAddr ) {
+   var options = "--role catalog" ;
+   return restartNodeWithCmd( cataAddr, options ) ;
+}
+
+/* *****************************************************************************
+@discription: 将Catalog节点改为Catalog角色模式启动
+@cataAddr : catalog address( string ), ex: '192.168.10.106:30000'
+@author: QinCheng Yang
+@return: true/false
+***************************************************************************** */
+function change2Catalog( cataAddr ) {
+   if ( NEW_VERSION ) {
+      /* In new version. we should write the parameters '--role catalog' to the node
+      configuration file. */
+      return change2CatalogNew( cataAddr ) ;
+   } else {
+      /* In the older version dose not need */
+      return true ;
+   }
 }
 
 /* *****************************************************************************
@@ -1231,13 +1305,7 @@ function splitCluster( cataAddrs, keepHosts, active ) {
    var newAddrLine = makeAddrLineWithKeepHosts( CATAADDRLINE, keepHosts ) ;
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
       /* 1. Change catalog to standalone */
-      var rc = 0 ;
-      if ( NEW_VERSION ) {
-         rc = change2StandaloneNew( cataAddrs[ i ] ) ;
-      } else {
-         rc = change2Standalone( cataAddrs[ i ] ) ;
-      }
-      if ( rc ) {
+      if ( change2Standalone( cataAddrs[ i ] ) ) {
          println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
       } else {
          println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
@@ -1257,10 +1325,16 @@ function splitCluster( cataAddrs, keepHosts, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
          return false ;
       }
+      /* 4. Restore to catalog */
+      if ( change2Catalog( cataAddrs[ i ] ) ) {
+         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
+      } else {
+         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
+         return false ;
+      }
    }
 
-
-   /* 4. Update all node's addr--kick host */
+   /* 5. Update all node's addr--kick host */
    var allNodes = mergeArrayWithoutRepeat( CURCATAS, mergeArrayWithoutRepeat( CURDATAS, CURCOORDS ) ) ;
    if ( updateNodesConfig( allNodes, "catalogaddr", newAddrLine ) ) {
       println( "Update all nodes's catalogaddr to " + newAddrLine + " succeed" ) ;
@@ -1269,7 +1343,7 @@ function splitCluster( cataAddrs, keepHosts, active ) {
       return false ;
    }
 
-   /* 5. Restart all keepHosts's nodes */
+   /* 6. Restart all keepHosts's nodes */
    if ( restartAllHostNode( keepHosts ) ) {
       println( "Restart all host nodes succeed"  ) ;
    } else {
@@ -1451,13 +1525,7 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
 
    for ( var i = 0 ; i < cataAddrs.length ; ++i  ) {
       /* 1. Change catalog to standalone */
-      var rc = 0 ;
-      if ( NEW_VERSION ) {
-         rc = change2StandaloneNew( cataAddrs[ i ] ) ;
-      } else {
-         rc = change2Standalone( cataAddrs[ i ] ) ;
-      }
-      if ( rc ) {
+      if ( change2Standalone( cataAddrs[ i ] ) ) {
          println( "Change " + cataAddrs[ i ] + " to standalone succeed"  ) ;
       } else {
          println( "Change " + cataAddrs[ i ] + " to standalone failed"  ) ;
@@ -1475,6 +1543,13 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop succeed" ) ;
       } else {
          println( "Update " + cataAddrs[i] + " catalog's readonly prop failed" ) ;
+         return false ;
+      }
+      /* 4. Restore to catalog */
+      if ( change2Catalog( cataAddrs[ i ] ) ) {
+         println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
+      } else {
+         println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
          return false ;
       }
    }
@@ -2206,7 +2281,6 @@ function attachGroupNode( coordAddr, filename ) {
 @return: true/false
 ***************************************************************************** */
 function main() {
-   var rc = true ;
    println( "Begin to check args..." ) ;
    if ( checkArgs() ) {
       println( "Done" ) ;
@@ -2219,13 +2293,7 @@ function main() {
    if ( checkSdbVersion() ) {
       NEW_VERSION = true ;
    }
-
-   if ( NEW_VERSION ) {
-      rc = checkHostsEvnNew( CURHOSTS ) ;
-   } else {
-      rc = checkHostsEvn( CURHOSTS ) ;
-   }
-   if ( rc ) {
+   if ( checkHostsEvn( CURHOSTS ) ) {
       println( "Done" ) ;
    } else {
       println( "Failed" ) ;
