@@ -40,7 +40,7 @@ Sdb
 | ------ | ------ |
 | [sessions](database_management/monitoring/snapshot/SDB_SNAP_SESSIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"WriteTimeSpent"，"ResetTimestamp"，"LastOpType"，"LastOpBegin"<br/>"TotalRead"，"TotalReadTime"，"TotalWriteTime"，"ReadTimeSpent"<br/>"LastOpEnd"，"LastOpInfo"，"ReadTimeSpent"，"WriteTimeSpent"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect" |
 | [sessions current](database_management/monitoring/snapshot/SDB_SNAP_SESSIONS_CURRENT.md) | 与"sessions"重置项相同 |
-| [database](database_management/monitoring/snapshot/SDB_SNAP_DATABASE.md) | "TotalDataRead"，"TotalIndexRead"，"TotalLobRead"，"TotalDataWrite"<br/>"svcNetOut"，"TotalReadTime"，"TotalWriteTime"，"TotalIndexWrite"，<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"，"TotalRead"<br/>"ReplUpdate"，"ReplInsert"，"ReplDelete"，"svcNetIn" |
+| [database](database_management/monitoring/snapshot/SDB_SNAP_DATABASE.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"<br/>"svcNetOut"，"TotalReadTime"，"TotalWriteTime"，"TotalIndexWrite"，<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"，"TotalRead"<br/>"ReplUpdate"，"ReplInsert"，"ReplDelete"，"svcNetIn" |
 | [health](database_management/monitoring/snapshot/SDB_SNAP_HEALTH.md) | "ErrNum":{"SDB_OOM"，"SDB_NOSPC"，"SDB_TOO_MANY_OPEN_FD"} |
 | [collections](database_management/monitoring/snapshot/SDB_SNAP_COLLECTIONS.md) | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"<br/>"TotalRead"，"TotalWrite"，"TotalTbScan"，"TotalIxScan"<br/>"ResetTimestamp" |
 | all | 除了重置上述所有的项，还包括：<br/>"TotalTime"，"TotalContexts" |
