@@ -881,9 +881,22 @@ SdbReplicaGroup.prototype.toString = function() {
    return this._name;
 }
 
+// getDetail will be remove, suggest using getDetailObj
 SdbReplicaGroup.prototype.getDetail = function() {
    return this._conn.list( SDB_LIST_GROUPS,
                            {GroupName: this._name } ) ;
+}
+
+SdbReplicaGroup.prototype.getDetailObj = function() {
+   var obj = this._conn.list( SDB_LIST_GROUPS,
+                              {GroupName: this._name } ).next() ;
+   if (undefined == obj)
+   {
+      setLastError( SDB_CLS_GRP_NOT_EXIST ) ;
+      setLastErrMsg( getErr( SDB_CLS_GRP_NOT_EXIST ) ) ;
+      throw SDB_CLS_GRP_NOT_EXIST ;
+   }
+   return obj ;
 }
 // end SdbReplicaGroup
 

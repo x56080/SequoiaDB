@@ -3066,6 +3066,12 @@
                            "en": "getDetail()"
                         },
                         {
+                           "id": 1601192934,
+                           "file": "getDetailObj",
+                           "cn": "getDetailObj()",
+                           "en": "getDetailObj()"
+                        },
+                        {
                            "id": 1432190870,
                            "file": "getMaster",
                            "cn": "getMaster()",
@@ -5554,7 +5560,7 @@
                   {
                      "id": 1479173738,
                      "file": "SDB_LIST_GROUPS",
-                     "cn": "分区组列表",
+                     "cn": "数据分区列表",
                      "en": "SDB_LIST_GROUPS"
                   },
                   {
