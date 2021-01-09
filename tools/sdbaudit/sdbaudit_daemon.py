@@ -156,7 +156,7 @@ class Worker:
                     return 1
                 else:
                     os.kill(pid, 15)
-                    shutil.rmtree(pid_file)
+                    os.remove(pid_file)
         return 0
 
     def __status(self):

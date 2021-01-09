@@ -337,7 +337,7 @@ class OptionsMgr:
     def __load_global_configs(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            print("[ERROR] Configuration file {} dose not " \
+            logger.error("Configuration file {} dose not " \
                   "exists".format(CONFIG_FILE_NAME))
             return 1
         self.__global_parser = ConfigParser.ConfigParser()
@@ -356,17 +356,17 @@ class OptionsMgr:
 #        if options.version:
 #          self.__show_version()
         if not options.log_type:
-            print("[ERROR] Log type can not be null. Please use -t to specify.")
+            logger.error("Log type can not be null. Please use -t to specify.")
             return 1
 
         log_type = options.log_type.lower()
         if log_type != LOG_TYPE_SDB and log_type != LOG_TYPE_MYSQL and log_type != LOG_TYPE_MARIADB:
-            print("[ERROR] Invalid log type. Please use 'sdb','mysql' or " \
+            logger.error("Invalid log type. Please use 'sdb','mysql' or " \
                   "'mariadb' instead.")
             return 1
         if options.conf_path:
             if not os.path.isfile(options.conf_path):
-                print("[ERROR] -c '{}' is not a file".format(options.conf_path))
+                logger.error("configuration path '{}' is not a file".format(options.conf_path))
                 return 1
             rc = self.__load_global_configs()
             if 0 != rc:
@@ -412,11 +412,14 @@ class OptionsMgr:
                 options.node_name = local_parser.get(KW_MONITOR, KW_NODE_NAME)
 
         if len(options.audit_path) == 0:
-            print("[ERROR] Auditpath can not be null. Please use --path to " \
+            logger.error("Auditpath can not be null. Please use --path to " \
                   "specify.")
             return 1
+        elif not os.path.exists(options.audit_path):
+            logger.error("Directory of auditpath '{}' is not exists".format(options.audit_path))
+            return 1
         elif not os.path.isdir(options.audit_path):
-            print("[ERROR] Auditpath must be a directory")
+            logger.error("Auditpath '{}' must be a directory".format(options.audit_path))
             return 1
         if options.passwd_type == 1:
             options.passwd = CryptoUtil.decrypt(options.passwd)
@@ -816,11 +819,13 @@ class LogExporter:
                 self.stat_mgr.update_stat()
                 self.__records = []
                 self.__num_of_records = 0
-        except Exception,ValueError:
-            logger.error('parse log failed: {}'.format(self.__buf))
+        except (Exception,ValueError) as e:
+            logger.error('Exception : e, parse log failed: {}'.format(e, self.__buf))
             self.stat_mgr.update_stat()
 
     def __sql_get_operation_type(self, sql):
+        if 0 == len(sql):
+            return ""
         operation = sql.strip("[ ']").split()[0].lower()
         if operation.startswith("alter") \
                 or operation.startswith("create") \
@@ -874,8 +879,11 @@ class LogExporter:
             dict[FIELD_TID] = 0
             dict[FIELD_CONNECT_ID] = int(list[4])
             dict[FIELD_OPERATION_ID] = int(list[5])
-            dict[FIELD_MESSAGE] = re.findall(r"'(.*)'", line)[0]
-            dict[FIELD_TYPE] = self.__sql_get_operation_type(dict['Message'])
+            if 0 == len(list[8]):
+                dict[FIELD_MESSAGE] = '' 
+            else:
+                dict[FIELD_MESSAGE] = re.findall(r"'(.*)'", line)[0]
+            dict[FIELD_TYPE] = self.__sql_get_operation_type(dict[FIELD_MESSAGE])
             dict[FIELD_ACTION] = list[6]
             dict[FIELD_OBJECT_TYPE] = "DATABASE"
             dict[FIELD_OBJECT_NAME] = list[7]
@@ -888,8 +896,8 @@ class LogExporter:
                 self.stat_mgr.update_stat()
                 self.__records = []
                 self.__num_of_records = 0
-        except ValueError,Exception:
-            logger.error('parse log failed: {}'.format(line))
+        except (ValueError,Exception) as e:
+            logger.error('Exception: {}, parse log failed: {}'.format(e, line))
             self.stat_mgr.update_stat()
 
     def __export_audit_log_file(self, file_inode, f):
@@ -940,18 +948,6 @@ class LogExporter:
 def run_task(args, work_path):
     """ Start exporter worker """
 
-    global logger
-
-    #run logging 
-    log_config_file = os.path.join(MY_CONF_PATH, LOG_CONF_FILE_NAME)
-    log_instance = Logger()
-    rc = log_instance.init(log_config_file)
-    if 0 != rc:
-        print("[ERROR] Initialize logging failed: {}".format(rc))
-        sys.exit(1)
-    logger = log_instance.get_logger()
-    logger.info("Start sdbaudit reporter tool...")
-
     #ensure cl exists
     connect = SdbConnect(args)
     connect.ensure_cl()
@@ -981,7 +977,20 @@ def run_task(args, work_path):
         raise
 
 def main():
+    global logger
+
     work_path = os.getcwd()
+
+    #run logging 
+    log_config_file = os.path.join(MY_CONF_PATH, LOG_CONF_FILE_NAME)
+    log_instance = Logger()
+    rc = log_instance.init(log_config_file)
+    if 0 != rc:
+        print("[ERROR] Initialize logging failed: {}".format(rc))
+        sys.exit(1)
+    logger = log_instance.get_logger()
+    logger.info("Start sdbaudit reporter tool...")
+
     pid_file = os.path.join(work_path, PID_FILE_NAME)
     if os.path.exists(pid_file):
         with open(pid_file, "r") as f:
@@ -990,7 +999,7 @@ def main():
             with open("/proc/{pid}/cmdline".format(pid=pid), "r") as process:
                 process_info = process.readline()
             if process_info.find(sys.argv[0]) != -1:
-                print("Only one sdbaudit exporter process is allowed to run " \
+                logger.info("Only one sdbaudit exporter process is allowed to run " \
                       "at the same time. Exit...")
                 return 1
     with open(pid_file, "w") as f:
