@@ -34,7 +34,7 @@ Create a sequence in current database.
 
     3. MaxValue ( *number* )
 
-        The maximum value of the sequence. The default value is 2^63-1.
+        The maximum value of the sequence. The default value is 2^63 -1.
 
     4. Increment ( *number* )
 

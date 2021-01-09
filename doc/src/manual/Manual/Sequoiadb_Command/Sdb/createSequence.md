@@ -28,7 +28,7 @@ createSequence - 创建序列对象
 
        格式：`MinValue : <num>`
 
-    3. MaxValue（ *number* ）：序列的最大值，正序时，默认值为 2^63-1；逆序时，默认值为 -1
+    3. MaxValue（ *number* ）：序列的最大值，正序时，默认值为 2^63 -1；逆序时，默认值为 -1
 
         格式：`MaxValue : <num>`
 
