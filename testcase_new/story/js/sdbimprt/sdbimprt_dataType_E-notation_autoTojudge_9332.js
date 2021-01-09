@@ -39,8 +39,8 @@ function importData ( csName, clName, imprtFile )
 
    //check import results
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 13";
-   var expImportedRecords = "imported records: 13";
+   var expParseRecords = "Parsed records: 13";
+   var expImportedRecords = "Imported records: 13";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords || expImportedRecords !== actImportedRecords )

@@ -50,9 +50,9 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expParseRecords = "parsed records: 0";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expParseRecords = "Parsed records: 0";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actParseRecords = rcObj[1];
    var actImportedRecords = rcObj[5];
@@ -65,7 +65,7 @@ function importData ( csName, clName, imprtFile )
    }
 
    //check sdbimport.log
-   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "duplicate field name: a"' ).split( "\n" );
+   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "Duplicate field name: a"' ).split( "\n" );
    var expV = 2;
    var actV = logInfo.length;
    if( expV !== actV )
@@ -83,9 +83,9 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expParseRecords = "parsed records: 0";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expParseRecords = "Parsed records: 0";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actParseRecords = rcObj[1];
    var actImportedRecords = rcObj[5];
@@ -98,7 +98,7 @@ function importData ( csName, clName, imprtFile )
    }
 
    //check sdbimport.log
-   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "duplicate field name: b"' ).split( "\n" );
+   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "Duplicate field name: b"' ).split( "\n" );
    var expV = 2;
    var actV = logInfo.length;
    if( expV !== actV )

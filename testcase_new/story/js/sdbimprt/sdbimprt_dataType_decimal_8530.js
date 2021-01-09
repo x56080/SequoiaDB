@@ -53,27 +53,27 @@ function importData ( csName, clName, imprtFile )
       //check import results
       if( i === 0 )
       {
-         var expParseRecords = "parsed records: 2";
-         var expParseFailure = "parse failure: 3";
-         var expImportedRecords = "imported records: 2";
+         var expParseRecords = "Parsed records: 2";
+         var expParseFailure = "Parsed failure: 3";
+         var expImportedRecords = "Imported records: 2";
       }
       else if( i === 1 )
       {
-         var expParseRecords = "parsed records: 3";
-         var expParseFailure = "parse failure: 2";
-         var expImportedRecords = "imported records: 3";
+         var expParseRecords = "Parsed records: 3";
+         var expParseFailure = "Parsed failure: 2";
+         var expImportedRecords = "Imported records: 3";
       }
       else if( i === 2 )
       {
-         var expParseRecords = "parsed records: 4";
-         var expParseFailure = "parse failure: 1";
-         var expImportedRecords = "imported records: 4";
+         var expParseRecords = "Parsed records: 4";
+         var expParseFailure = "Parsed failure: 1";
+         var expImportedRecords = "Imported records: 4";
       }
       else if( i === 3 )
       {
-         var expParseRecords = "parsed records: 2";
-         var expParseFailure = "parse failure: 3";
-         var expImportedRecords = "imported records: 2";
+         var expParseRecords = "Parsed records: 2";
+         var expParseFailure = "Parsed failure: 3";
+         var expImportedRecords = "Imported records: 2";
       }
       var actParseRecords = rcObj[0];
       var actParseFailure = rcObj[1];

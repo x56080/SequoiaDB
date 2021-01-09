@@ -36,8 +36,8 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actImportedRecords = rcObj[5];
    if( expError !== actError || expImportedRecords !== actImportedRecords )
@@ -56,8 +56,8 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actImportedRecords = rcObj[5];
    if( expError !== actError || expImportedRecords !== actImportedRecords )
@@ -76,8 +76,8 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actImportedRecords = rcObj[5];
    if( expError !== actError || expImportedRecords !== actImportedRecords )
@@ -96,8 +96,8 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "failed to parse fields";
-   var expImportedRecords = "imported records: 0";
+   var expError = "Failed to parse fields";
+   var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];
    var actImportedRecords = rcObj[5];
    if( expError !== actError || expImportedRecords !== actImportedRecords )

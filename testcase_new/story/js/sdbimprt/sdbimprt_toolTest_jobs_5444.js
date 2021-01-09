@@ -45,8 +45,8 @@ function importData ( csName, clName, imprtFile )
    sleep( 1500 );
 
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: 2000";
-   var expImportedRecords = "imported records: 2000";
+   var expParseRecords = "Parsed records: 2000";
+   var expImportedRecords = "Imported records: 2000";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords

@@ -46,9 +46,9 @@ function importData ( csName, clName, imprtFile, recsNum )
       + ' --file ' + imprtFile;
    var rc = cmd.run( imprtOption );
    var rcObj = rc.split( "\n" );
-   var expParseRecords = "parsed records: " + recsNum;
-   var expParseFailure = "parse failure: 0";
-   var expImportedRecords = "imported records: " + recsNum;
+   var expParseRecords = "Parsed records: " + recsNum;
+   var expParseFailure = "Parsed failure: 0";
+   var expImportedRecords = "Imported records: " + recsNum;
    var actParseRecords = rcObj[0];
    var actParseFailure = rcObj[1];
    var actImportedRecords = rcObj[4];

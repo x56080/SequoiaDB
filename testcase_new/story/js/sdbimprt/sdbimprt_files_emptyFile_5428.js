@@ -44,8 +44,8 @@ function importData ( csName, clName, imprtFile1, imprtFile2 )
       + ' --file ' + imprtFile1;
    var rc1 = cmd.run( imprtOption1 );
    var rcObj = rc1.split( "\n" );
-   var expParseRecords = "parsed records: 0";
-   var expImportedRecords = "imported records: 0";
+   var expParseRecords = "Parsed records: 0";
+   var expImportedRecords = "Imported records: 0";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords
@@ -63,8 +63,8 @@ function importData ( csName, clName, imprtFile1, imprtFile2 )
       + ' --file ' + imprtFile2;
    var rc2 = cmd.run( imprtOption2 );
    var rcObj = rc2.split( "\n" );
-   var expParseRecords = "parsed records: 0";
-   var expImportedRecords = "imported records: 0";
+   var expParseRecords = "Parsed records: 0";
+   var expImportedRecords = "Imported records: 0";
    var actParseRecords = rcObj[0];
    var actImportedRecords = rcObj[4];
    if( expParseRecords !== actParseRecords
