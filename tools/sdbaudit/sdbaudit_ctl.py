@@ -76,6 +76,7 @@ START_OPERATION = 'start'
 REGISTER_CONF_PATH = "/etc/default/"
 CONFIG_FILE_NAME = "sdbaudit.conf"
 PID_FILE_NAME = "sdbaudit.pid"
+LOG_FIEL_NAME = "sdbaudit.log"
 VERSION_FILE_NAME = "version.info"
 DAEMON_PID_FILE_NAME = "sdbaudit_daemon.pid"
 
@@ -655,6 +656,7 @@ class ObjMgr:
             return 0
 
         # timed check
+        has_sucess = False
         time.sleep(PROCESS_WAIT_TIME)
         for i,node_path in enumerate(all_node_path):
             pid_file = os.path.join(node_path, PID_FILE_NAME)
@@ -662,21 +664,24 @@ class ObjMgr:
                 with open(pid_file, 'r') as f:
                     pid = int(f.readline())
                 if not pid_exist(pid):
-                    print("[ERROR] Failed to start exporter({}). You can " \
-                          "use 'python {} {}' to debug".format(all_port[i],
-                           EXPORTER_EXEC, all_exec_para[i]))
+                    print("[ERROR] Failed to start exporter({}), please " \
+                          "verify log '{}'".format(all_port[i],
+                          os.path.join(node_path, LOG_FIEL_NAME)))
                     os.remove(pid_file)
                 else:
                     if pid in exist_pid:
                         continue
+                    has_sucess = True
                     print("Starting exporter({}) " \
                           "success (PID: {})".format(all_port[i], pid))
             else:
-                print("[ERROR] Failed to start exporter({}). You can " \
-                      "use 'python {} {}' to debug".format(all_port[i],
-                       EXPORTER_EXEC, all_exec_para[i]))
+                print("[ERROR] Failed to start exporter({}), please " \
+                      "verify log '{}'".format(all_port[i],
+                      os.path.join(node_path, LOG_FIEL_NAME)))
 
         # start sdbaudit_daemon
+        if not has_sucess:
+            return 0
         daemon_exec = os.path.join(MY_HOME, "sdbaudit_daemon.py")
         daemon_pid_file = os.path.join(MY_HOME, DAEMON_PID_FILE_NAME)
         if not os.path.exists(daemon_pid_file):
