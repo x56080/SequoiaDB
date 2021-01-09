@@ -33,9 +33,9 @@ public class Analyze14226 extends SdbTestBase {
             db.analyze( new BasicBSONObject( "Collection",
                     "Analyze14226.Analyze14226" ) );
             Assert.fail(
-                    "Should throw SDB_DMS_NOTEXIST(-23): Collection does not exist" );
+                    "Should throw SDB_DMS_CS_NOTEXIST(-34): Collection does not exist" );
         } catch ( BaseException e ) {
-            if ( e.getErrorCode() != -23 ) {
+            if ( e.getErrorCode() != -34 ) {
                 throw e;
             }
         }
