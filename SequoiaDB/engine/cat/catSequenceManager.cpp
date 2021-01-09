@@ -410,72 +410,102 @@ namespace engine
 
       BSONObj obj ;
       _catSequence* cache = NULL ;
-      _catSequence sequence( newName ) ;
 
-      CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( oldName ) ;
-      BUCKET_XLOCK( bucket ) ;
-
-      CAT_SEQ_MAP::map_const_iterator iter = bucket.find( oldName ) ;
-      if ( bucket.end() != iter )
+      _catSequence *pSequence = SDB_OSS_NEW _catSequence( newName ) ;
+      if ( NULL == pSequence )
       {
-         cache = (*iter).second ;
-         sequence.copyFrom( *cache ) ;
-      }
-      else
-      {
-         BSONObj seqObj ;
-         rc = _findSequence( oldName, seqObj, eduCB ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR,
-                    "Failed to find sequence[%s] from system collection, rc=%d",
-                    oldName.c_str(), rc ) ;
-            goto error ;
-         }
-
-         rc = sequence.loadOptions( seqObj ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to set sequence[%s], rc=%d",
-                    oldName.c_str(), rc ) ;
-            goto error ;
-         }
-      }
-
-      sequence.increaseVersion() ;
-
-      rc = sequence.validate() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Invalid sequence[%s], rc=%d",
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to alloc sequence[%s], rc=%d",
                  newName.c_str(), rc ) ;
          goto error ;
       }
 
-      rc = sequence.toBSONObj( obj, TRUE ) ;
-      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to build BSONObj for sequence[%s], rc=%d",
-                 newName.c_str(), rc ) ;
-         goto error ;
+         CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( oldName ) ;
+         BUCKET_XLOCK( bucket ) ;
+
+         CAT_SEQ_MAP::map_const_iterator iter = bucket.find( oldName ) ;
+         if ( bucket.end() != iter )
+         {
+            cache = (*iter).second ;
+            pSequence->copyFrom( *cache ) ;
+         }
+         else
+         {
+            BSONObj seqObj ;
+            rc = _findSequence( oldName, seqObj, eduCB ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR,
+                       "Failed to find sequence[%s] from system collection, rc=%d",
+                       oldName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            rc = pSequence->loadOptions( seqObj ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to set sequence[%s], rc=%d",
+                       oldName.c_str(), rc ) ;
+               goto error ;
+            }
+         }
+
+         pSequence->increaseVersion() ;
+
+         rc = pSequence->validate() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Invalid sequence[%s], rc=%d",
+                    newName.c_str(), rc ) ;
+            goto error ;
+         }
+
+         rc = pSequence->toBSONObj( obj, TRUE ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to build BSONObj for sequence[%s], rc=%d",
+                    newName.c_str(), rc ) ;
+            goto error ;
+         }
+
+         rc = _updateSequence( oldName, obj, eduCB, w, pAlteredSeqID ) ;
+         if ( SDB_IXM_DUP_KEY == rc )
+         {
+            rc = SDB_SEQUENCE_EXIST ;
+            goto error ;
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
+                    oldName.c_str(), rc ) ;
+            goto error ;
+         }
+
+         bucket.erase( oldName ) ;
+         SDB_OSS_DEL( cache ) ;
       }
 
-      rc = _updateSequence( oldName, obj, eduCB, w, pAlteredSeqID ) ;
-      if ( SDB_IXM_DUP_KEY == rc )
+      try
       {
-         rc = SDB_SEQUENCE_EXIST ;
-         goto error ;
+         CAT_SEQ_MAP::Bucket& bucket = _sequenceCache.getBucket( newName ) ;
+         BUCKET_XLOCK( bucket ) ;
+         bucket.insert( CAT_SEQ_MAP::value_type( newName, pSequence ) ) ;
+         pSequence = NULL ;
       }
-      else if ( SDB_OK != rc )
+      catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Failed to update sequence[%s], rc=%d",
-                 oldName.c_str(), rc ) ;
-         goto error ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING,
+                 "Failed to insert sequence[%s] to cache, exception: %s, rc: %d",
+                 newName.c_str(), e.what(), rc ) ;
+         rc = SDB_OK ;
       }
-
-      bucket.erase( oldName ) ;
-      SDB_OSS_DEL( cache ) ;
    done:
+      if ( pSequence )
+      {
+         SDB_OSS_DEL( pSequence ) ;
+      }
       PD_TRACE_EXITRC ( SDB_GTS_SEQ_MGR_RENAME_SEQ, rc ) ;
       return rc ;
    error:
