@@ -40,7 +40,7 @@ Sdb
 | ------ | ------ |
 | [sessions][SDB_SNAP_SESSIONS] | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"WriteTimeSpent"，"ResetTimestamp"，"LastOpType"，"LastOpBegin"<br/>"TotalRead"，"TotalReadTime"，"TotalWriteTime"，"ReadTimeSpent"<br/>"LastOpEnd"，"LastOpInfo"，"ReadTimeSpent"，"WriteTimeSpent"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect" |
 | [sessions current][SDB_SNAP_SESSIONS_CURRENT] | 与"sessions"重置项相同 |
-| [database][SDB_SNAP_DATABASE] | "TotalDataRead"，"TotalIndexRead"，"TotalLobRead"，"TotalDataWrite"<br/>"svcNetOut"，"TotalReadTime"，"TotalWriteTime"，"TotalIndexWrite"，<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"，"TotalRead"<br/>"ReplUpdate"，"ReplInsert"，"ReplDelete"，"svcNetIn" |
+| [database][SDB_SNAP_DATABASE] | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"<br/>"svcNetOut"，"TotalReadTime"，"TotalWriteTime"，"TotalIndexWrite"，<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"，"TotalRead"<br/>"ReplUpdate"，"ReplInsert"，"ReplDelete"，"svcNetIn" |
 | [health][SDB_SNAP_HEALTH] | "ErrNum":{"SDB_OOM"，"SDB_NOSPC"，"SDB_TOO_MANY_OPEN_FD"} |
 | [collections][SDB_SNAP_COLLECTIONS] | "TotalDataRead"，"TotalIndexRead"，"TotalDataWrite"，"TotalIndexWrite"<br/>"TotalUpdate"，"TotalDelete"，"TotalInsert"，"TotalSelect"<br/>"TotalRead"，"TotalWrite"，"TotalTbScan"，"TotalIxScan"<br/>"ResetTimestamp" |
 | all | 除了重置上述所有的项，还包括：<br/>"TotalTime"，"TotalContexts" |
