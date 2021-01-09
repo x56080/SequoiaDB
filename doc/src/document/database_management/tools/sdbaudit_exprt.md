@@ -46,29 +46,34 @@ sdbaudit/
 ----
 
 * 添加监控对象
-```lang-text
-sdbaudit_ctl.py add -t <sdb|mysql> [--inst INSTNAME] [--path INSTALL_DIR]
-```
+
+   ```lang-text
+   sdbaudit_ctl.py add -t <sdb|mysql> [--inst INSTNAME] [--path INSTALL_DIR]
+   ```
 
 * 启动节点
-```lang-text
-sdbaudit_ctl.py start
-```
+
+   ```lang-text
+   sdbaudit_ctl.py start
+   ```
 
 * 查看节点状态
-```lang-text
-sdbaudit_ctl.py list
-```
+
+   ```lang-text
+   sdbaudit_ctl.py list
+   ```
 
 * 停止节点
-```lang-text
-sdbaudit_ctl.py stop
-```
+
+   ```lang-text
+   sdbaudit_ctl.py stop
+   ```
 
 * 删除节点
-```lang-text
-sdbaudit_ctl.py del -t <sdb|mysql> [--inst INSTNAME] [--path INSTALL_DIR]
-```
+
+   ```lang-text
+   sdbaudit_ctl.py del -t <sdb|mysql> [--inst INSTNAME] [--path INSTALL_DIR]
+   ```
 
  > **Note:**
  > 
@@ -97,35 +102,35 @@ sdbaudit_ctl.py del -t <sdb|mysql> [--inst INSTNAME] [--path INSTALL_DIR]
 1. 添加 SequoiaDB 各个节点审计日志目录下的文件进行导出
 
    ```lang-bash
-   $ python sdbaudit_ctl add -t sdb
+   $ python sdbaudit_ctl.py add -t sdb
    ```
    
 2. 添加 MySQL 各个节点审计日志目录下的文件进行导出
 
    ```lang-bash
-   $ python sdbaudit_ctl add -t mysql
+   $ python sdbaudit_ctl.py add -t mysql
    ```
 
 3. 启动所有节点
 
    ```lang-bash
-   $ python sdbaudit_ctl start
+   $ python sdbaudit_ctl.py start
    ```
    
 4. 停止所有节点
 
    ```lang-bash
-   $ python sdbaudit_ctl stop
+   $ python sdbaudit_ctl.py stop
    ```
    
 5. 删除 SequoiaDB 所有节点
 
    ```lang-bash
-   $ python sdbaudit_ctl del -t sdb
+   $ python sdbaudit_ctl.py del -t sdb
    ```
    
 6. 删除 MySQL 所有节点
    
    ```lang-bash
-   $ python sdbaudit_ctl del -t mysql
+   $ python sdbaudit_ctl.py del -t mysql
    ```
