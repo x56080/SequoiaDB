@@ -18,6 +18,7 @@ $SNAPSHOT_DB
 | IsPrimary             | boolean| 该节点是否为主节点，standalone 模式下该字段为 false                             |
 | ServiceStatus         | boolean| 是否为可提供服务状态。<br>一些特殊状态，例如[全量同步][architecture]会使该状态为 false |
 | Status                | string | 节点状态，取值如下：<br/>             "Normal"：正常工作状态<br/>             "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据<br/>             "FullSync"：[全量同步][architecture]状态<br/>             "OfflineBackup"：[数据备份][regular_bar]状态  |
+| FTStatus              | 字符串 | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
 | BeginLSN.Offset       | int64  | 起始 LSN 的偏移                                                                 |
 | BeginLSN.Version      | int32  | 起始 LSN 的版本号                                                               |
 | CurrentLSN.Offset     | int64  | 当前 LSN 的偏移                                                                 |
@@ -143,6 +144,7 @@ $SNAPSHOT_DB
   "IsPrimary": false,
   "ServiceStatus": true,
   "Status": "Normal",
+  "FTStatus": "",
   "BeginLSN": {
     "Offset": 2013265920,
     "Version": 1

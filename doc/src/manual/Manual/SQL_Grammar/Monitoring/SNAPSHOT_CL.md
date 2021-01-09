@@ -14,8 +14,8 @@ $SNAPSHOT_CL
 | Name                | string        | 集合完整名                                              |
 | UniqueID            | int64         | 集合的 UniqueID，在集群上全局唯一                        |
 | CollectionSpace     | string        | 集合所属集合空间名                                      |
-| NodeName            | string        | 集合所属节点名，格式为<主机名>:<端口号>                        |
-| GroupName           | string        | 集合所属复制组名                                        |
+| Details.NodeName            | string        | 集合所属节点名，格式为<主机名>:<端口号>                        |
+| Details.GroupName           | string        | 集合所属复制组名                                        |
 | Details.ID          | int32         | 集合 ID，范围 0 ~ 4095，集合空间内唯一                  |
 | Details.LogicalID   | int32         | 集合逻辑 ID                                             |
 | Details.Sequence    | int32         | 序列号                                                  |
