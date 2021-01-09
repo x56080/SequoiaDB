@@ -1581,6 +1581,7 @@ namespace sdbclient
               NotNull:   Any field of index key should exist and cannot be null when NotNull is true
               SortBufferSize: The size of sort buffer used when creating index.
                               Unit is MB. Zero means don't use sort buffer
+              NotArray:  Any field of index not support array when NotArray is true
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
