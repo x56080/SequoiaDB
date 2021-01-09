@@ -91,6 +91,61 @@ namespace engine
       goto done ;
    }
 
+   static INT32 coordValidateSeqOptions( const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         static const CHAR *SEQ_FIELD_ARRAY[] = {
+            FIELD_NAME_NAME,
+            FIELD_NAME_CURRENT_VALUE,
+            FIELD_NAME_INCREMENT,
+            FIELD_NAME_START_VALUE,
+            FIELD_NAME_MIN_VALUE,
+            FIELD_NAME_MAX_VALUE,
+            FIELD_NAME_CACHE_SIZE,
+            FIELD_NAME_ACQUIRE_SIZE,
+            FIELD_NAME_CYCLED
+         } ;
+         static const UINT32 SEQ_FIELD_COUNT =
+               sizeof( SEQ_FIELD_ARRAY ) / sizeof( SEQ_FIELD_ARRAY[0] ) ;
+
+         BSONObjIterator iter( options ) ;
+
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            const CHAR *fieldName = ele.fieldName() ;
+            BOOLEAN found = FALSE ;
+
+            for ( UINT32 i = 0; i < SEQ_FIELD_COUNT; ++i )
+            {
+               if ( 0 == ossStrcmp( fieldName, SEQ_FIELD_ARRAY[i] ) )
+               {
+                  found = TRUE ;
+                  break ;
+               }
+            }
+
+            if ( !found )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Unknown sequence option '%s'", fieldName ) ;
+               break ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurs: %s", e.what() ) ;
+      }
+
+      return rc ;
+   }
+
+
    /*
       _coordCMDInvalidateSequenceCache implement
    */
@@ -324,6 +379,17 @@ namespace engine
          rc = rtnGetStringElement( boQuery, FIELD_NAME_NAME, &pSeqName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get sequence name" ) ;
 
+         rc = coordValidateSeqOptions( boQuery ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to validate sequence options, rc: %d",
+                      rc ) ;
+
+         if ( boQuery.hasField( FIELD_NAME_CURRENT_VALUE ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "CurrentValue is not a creation option" ) ;
+            goto error ;
+         }
+
          rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
          PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_SEQ, pSeqName, rc,
                            "Options:%s", boQuery.toString().c_str() ) ;
@@ -511,6 +577,12 @@ namespace engine
             {
                goto done ;
             }
+         }
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SETATTR ) )
+         {
+            rc = coordValidateSeqOptions( options ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to validate sequence options, "
+                         "rc: %d", rc ) ;
          }
 
          rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, &pContext, buf ) ;

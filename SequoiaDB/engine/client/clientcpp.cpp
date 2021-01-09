@@ -7037,6 +7037,11 @@ do                                                            \
          bob.append( FIELD_NAME_ACTION, actionName ) ;
          BSONObjBuilder subBob( bob.subobjStart( FIELD_NAME_OPTIONS ) ) ;
          subBob.append( FIELD_NAME_NAME, _pSequenceName ) ;
+         if ( arguments.hasField( FIELD_NAME_NAME ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
          subBob.appendElements( arguments ) ;
          subBob.done() ;
          newObj = bob.obj() ;
@@ -11413,7 +11418,8 @@ do                                                            \
       BSONObj newObj ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CREATE_SEQUENCE ;
 
-      if ( !pSequenceName || !*pSequenceName || !sequence )
+      if ( !pSequenceName || !*pSequenceName || !sequence ||
+           options.hasField( FIELD_NAME_NAME ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;

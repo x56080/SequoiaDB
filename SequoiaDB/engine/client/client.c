@@ -13321,7 +13321,8 @@ SDB_EXPORT INT32 sdbCreateSequence( sdbConnectionHandle cHandle,
    sdbSequenceStruct *s    = NULL ;
    BOOLEAN bsoninit        = FALSE ;
    bson newObj ;
-   INT32 size = 0 ;
+   INT32 size              = 0 ;
+   const CHAR *key         = NULL ;
 
    BSON_INIT( newObj ) ;
    HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
@@ -13340,6 +13341,12 @@ SDB_EXPORT INT32 sdbCreateSequence( sdbConnectionHandle cHandle,
       while ( bson_iterator_more( &itr ) )
       {
          bson_iterator_next( &itr ) ;
+         key = bson_iterator_key ( &itr );
+         if ( 0 == ossStrcmp( key, FIELD_NAME_NAME ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
          BSON_APPEND( newObj, NULL, &itr, element ) ;
       }
    }
@@ -13585,6 +13592,8 @@ static INT32 _sdbAlterSequenceInternal ( sdbSequenceHandle sHandle,
    sdbSequenceStruct *s = (sdbSequenceStruct*)sHandle ;
    BOOLEAN bsoninit = FALSE ;
    bson obj ;
+   bson_iterator iter ;
+   bson_type type ;
 
    BSON_INIT( obj ) ;
    HANDLE_CHECK( sHandle, s, SDB_HANDLE_TYPE_SEQUENCE ) ;
@@ -13605,6 +13614,13 @@ static INT32 _sdbAlterSequenceInternal ( sdbSequenceHandle sHandle,
    }
 
    BSON_APPEND( obj, FIELD_NAME_NAME, s->_name, string ) ;
+
+   type = bson_find ( &iter, options, FIELD_NAME_NAME );
+   if ( BSON_EOO != type )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
 
    rc = bson_append_elements( &obj, options ) ;
    if ( SDB_OK != rc )
