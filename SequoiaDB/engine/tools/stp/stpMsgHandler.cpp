@@ -498,7 +498,8 @@ namespace engine
       INT32 replySize = sizeof( reply ) ;
 
       // fill system info reply
-      rc = msgBuildSysInfoReply( (CHAR **)( &replyBuffer ), &replySize ) ;
+      rc = msgBuildSysInfoReply( (CHAR **)( &replyBuffer ), &replySize,
+                                 pmdGetStartTime() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build system info reply, rc: %d",
                    rc ) ;
       // send system info reply by net agent

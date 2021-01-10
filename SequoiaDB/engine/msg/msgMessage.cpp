@@ -45,6 +45,7 @@
 #include "msgTrace.hpp"
 #include "../bson/bsonobj.h"
 #include <stddef.h>
+#include "ossVer.hpp"
 
 using namespace engine ;
 using namespace bson ;
@@ -2376,11 +2377,15 @@ error :
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBUILDSYSINFOREPLY, "msgBuildSysInfoReply" )
 INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
+                             UINT64 dbStartTime,
                              IExecutor *cb )
 {
    SDB_ASSERT ( NULL != ppBuffer &&
                 NULL != pBufferSize, "invalid pBuffer" ) ;
    INT32 rc = SDB_OK ;
+   INT32 version = 0 ;
+   INT32 subVersion = 0 ;
+   INT32 fixVersion = 0 ;
    MsgSysInfoReply *reply = NULL ;
    PD_TRACE_ENTRY ( SDB_MSGBUILDSYSINFOREPLY ) ;
    rc = msgCheckBuffer ( ppBuffer, pBufferSize, sizeof(MsgSysInfoReply), cb ) ;
@@ -2390,6 +2395,12 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
    reply->header.eyeCatcher                  = MSG_SYSTEM_INFO_EYECATCHER ;
    reply->header.realMessageLength           = sizeof(MsgSysInfoReply) ;
    reply->osType                             = OSS_OSTYPE ;
+   reply->dbStartTime                        = dbStartTime ;
+   ossGetVersion( &version, &subVersion, &fixVersion, NULL, NULL, NULL ) ;
+   reply->version                            = version ;
+   reply->subVersion                         = subVersion ;
+   reply->fixVersion                         = fixVersion ;
+   ossMemset( reply->pad, 0, sizeof(reply->pad ) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBUILDSYSINFOREPLY, rc ) ;
    return rc ;

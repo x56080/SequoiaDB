@@ -504,7 +504,11 @@ struct _MsgSysInfoReply
    MsgSysInfoHeader header ;
    INT32            osType ;
    INT32            authVersion ;
-   CHAR             pad[108] ; // total 128 bytes for reply
+   UINT64           dbStartTime ;
+   UINT8            version ;
+   UINT8            subVersion ;
+   UINT8            fixVersion ;
+   CHAR             pad[97] ; // total 128 bytes for reply
 } ;
 typedef struct _MsgSysInfoReply MsgSysInfoReply ;
 // end system info requests

@@ -1067,7 +1067,8 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
 
    rc = clientExtractSysInfoReply ( (CHAR*)&reply,
                                     &(connection->_endianConvert),
-                                    NULL, &(connection->_authVersion) ) ;
+                                    NULL, &(connection->_authVersion),
+                                    NULL, NULL, NULL, NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -11857,8 +11858,8 @@ error:
    goto done ;
 }
 
-SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle, 
-	                                  bson *detail) 
+SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
+	                                  bson *detail)
 {
    INT32 rc = SDB_OK;
    sdbLobStruct *lob = ( sdbLobStruct * )lobHandle ;
@@ -11891,7 +11892,7 @@ SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
    {
       goto error ;
    }
- 
+
    // extract revc message
    rc = _extract( lob->_connection,
                   (MsgHeader*)lob->_pReceiveBuffer, lob->_receiveBufferSize,
@@ -11918,7 +11919,7 @@ SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
       rc = SDB_DRIVER_BSON_ERROR ;
       goto done ;
    }
-   
+
 done:
    bson_destroy( &resultObj ) ;
    return rc ;
