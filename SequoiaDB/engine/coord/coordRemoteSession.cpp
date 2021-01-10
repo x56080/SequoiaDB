@@ -2040,7 +2040,8 @@ namespace engine
       }
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag ||
-                SDB_DATABASE_DOWN == flag )
+                SDB_DATABASE_DOWN == flag ||
+                SDB_CLS_DATA_NOT_SYNC == flag )
       {
          if( groupPtr.get() )
          {
@@ -2056,12 +2057,6 @@ namespace engine
                     NET_NODE_FAULTUP_MIN_TIME ) ;
             ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
          }
-      }
-      else if ( SDB_CLS_DATA_NOT_SYNC == flag )
-      {
-         // it may be that rename operation hasn't been replayed on slave data,
-         // so change to primary data.
-         _pGroupSel->setPrimary( TRUE ) ;
       }
       else if ( ( SDB_UNKNOWN_MESSAGE == flag ||
                   SDB_CLS_UNKNOW_MSG == flag ) &&

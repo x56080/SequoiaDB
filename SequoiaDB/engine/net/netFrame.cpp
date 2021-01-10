@@ -2109,6 +2109,9 @@ namespace engine
          case SDB_DATABASE_DOWN:
             status = NET_NODE_STAT_OFFLINE ;
             break ;
+         case SDB_CLS_DATA_NOT_SYNC:
+            status = NET_NODE_STAT_DATA_NOT_SYNC ;
+            break ;
          default:
             break ;
       }
