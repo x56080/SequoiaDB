@@ -1550,7 +1550,7 @@ function mergeCluster( cataAddrs, keepHosts, filename, active ) {
          return false ;
       }
       /* 4. Restore to catalog */
-      if ( change2Catalogs( cataAddrs[ i ] ) ) {
+      if ( change2Catalog( cataAddrs[ i ] ) ) {
          println( "Restore " + cataAddrs[ i ] + " to catalog succeed"  ) ;
       } else {
          println( "Restore " + cataAddrs[ i ] + " to catalog failed"  ) ;
