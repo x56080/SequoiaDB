@@ -54,48 +54,6 @@ using namespace bson;
 
 namespace engine
 {
-
-   static INT32 _checkCSExist( const CHAR* collection, pmdEDUCB* cb,
-                               BOOLEAN& csExist )
-   {
-      INT32 rc = SDB_OK ;
-      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-      INT64 count = 0 ;
-      csExist = FALSE ;
-
-      rc = rtnResolveCollectionSpaceName( collection,
-                                          ossStrlen( collection ),
-                                          csName,
-                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
-      PD_RC_CHECK( rc, PDWARNING,
-                   "Failed to get cs name from cl[%s], rc: %d",
-                   collection, rc ) ;
-
-      try
-      {
-         rc = catGetObjectCount( CAT_COLLECTION_SPACE_COLLECTION, BSONObj(),
-                                 BSON( FIELD_NAME_NAME << csName ),
-                                 BSONObj(), cb, count ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to get count of collection[%s], rc: %d",
-                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
-      }
-      catch( std::exception &e )
-      {
-         PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() ) ;
-      }
-
-      if ( count > 0 )
-      {
-         csExist = TRUE ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    /*
       catCatalogueManager implement
    */
@@ -423,7 +381,7 @@ namespace engine
                const CHAR* collection = matcher.firstElement().valuestrsafe() ;
                BOOLEAN csExist = FALSE ;
 
-               rc = _checkCSExist( collection, _pEduCB, csExist ) ;
+               rc = catCheckCSExist( collection, _pEduCB, csExist ) ;
                if ( SDB_OK == rc && !csExist )
                {
                   rc = SDB_DMS_CS_NOTEXIST ;
