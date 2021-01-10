@@ -2828,8 +2828,8 @@ do                                                            \
       }
 
       // If user does not offer oid, we won't create one here.
-      // Because, we don't known whether the engine is new or old( 
-      // when the engine is older than v3.2.4, it's an old engine 
+      // Because, we don't known whether the engine is new or old(
+      // when the engine is older than v3.2.4, it's an old engine
       // which is not support sub cl for lob).
       // When oid is null, the old engine will return -6, but the
       // new engine will create one by using the new rule.
@@ -3215,7 +3215,7 @@ do                                                            \
          if ( SDB_INVALIDARG == rc )
          {
             if ( !condition.isEmpty() || !selected.isEmpty()
-                 || !orderBy.isEmpty() || !hint.isEmpty() 
+                 || !orderBy.isEmpty() || !hint.isEmpty()
                  || 0 != numToSkip || -1 != numToReturn )
             {
                // recheck remote server is old or not
@@ -3406,7 +3406,7 @@ do                                                            \
             goto error ;
          }
       }
-      else 
+      else
       {
          rc = SDB_SYS ;
          goto error ;
@@ -6587,6 +6587,10 @@ do                                                            \
    _sendBufferSize ( 0 ),
    _pReceiveBuffer ( NULL ),
    _receiveBufferSize ( 0 ),
+   _dbStartTime( 0 ),
+   _version( 0 ),
+   _subVersion( 0 ),
+   _fixVersion( 0 ),
    _useSSL ( useSSL ),
    _tb ( NULL ),
    _attributeCache ()
@@ -6904,7 +6908,9 @@ do                                                            \
       {
          goto error ;
       }
-      rc = clientExtractSysInfoReply ( (CHAR*)pReply, &_endianConvert, NULL ) ;
+      rc = clientExtractSysInfoReply ( (CHAR*)pReply, &_endianConvert, NULL,
+                                       &_dbStartTime,
+                                       &_version, &_subVersion, &_fixVersion ) ;
       if ( rc )
       {
          goto error ;
@@ -7088,7 +7094,7 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbImpl::connect ( const CHAR **pConnAddrs, 
+   INT32 _sdbImpl::connect ( const CHAR **pConnAddrs,
                              INT32 arrSize,
                              const CHAR *pUsrName,
                              const CHAR *pToken,
@@ -7169,7 +7175,7 @@ do                                                            \
    error :
       goto done ;
    }
-   
+
    INT32 _sdbImpl::createUsr( const CHAR *pUsrName,
                               const CHAR *pPasswd,
                               const bson::BSONObj &options )

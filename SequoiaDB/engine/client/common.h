@@ -303,7 +303,9 @@ INT32 clientBuildTransactionRollbackMsg( CHAR **ppBuffer, INT32 *bufferSize,
 INT32 clientBuildSysInfoRequest ( CHAR **ppBuffer, INT32 *pBufferSize ) ;
 
 INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
-                                  INT32 *osType ) ;
+                                  INT32 *osType, UINT64 *dbStartTime,
+                                  UINT8 *version, UINT8 *subVersion,
+                                  UINT8 *fixVersion ) ;
 
 INT32 clientValidateSql( const CHAR *sql, BOOLEAN isExec ) ;
 

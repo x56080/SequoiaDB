@@ -1144,6 +1144,10 @@ namespace sdbclient
       CHAR                    *_pReceiveBuffer ;
       INT32                    _receiveBufferSize ;
       BOOLEAN                  _endianConvert ;
+      UINT64                   _dbStartTime ;
+      UINT8                    _version ;
+      UINT8                    _subVersion ;
+      UINT8                    _fixVersion ;
       BOOLEAN                  _useSSL ;
       std::set<ossValuePtr>    _cursors ;
       std::set<ossValuePtr>    _collections ;
@@ -1266,7 +1270,7 @@ namespace sdbclient
                       INT32 arrSize,
                       const CHAR *pUsrName,
                       const CHAR *pPasswd ) ;
-      INT32 connect ( const CHAR **pConnAddrs, 
+      INT32 connect ( const CHAR **pConnAddrs,
                       INT32 arrSize,
                       const CHAR *pUsrName,
                       const CHAR *pToken,
@@ -1274,6 +1278,15 @@ namespace sdbclient
       void disconnect () ;
       BOOLEAN isConnected ()
       { return NULL != _sock ; }
+
+      UINT64 getDbStartTime() { return _dbStartTime ; }
+
+      void getVersion( UINT8 &version, UINT8 &subVersion, UINT8 &fixVersion )
+      {
+         version = _version ;
+         subVersion = _subVersion ;
+         fixVersion = _fixVersion ;
+      }
 
       void initCacheStrategy( BOOLEAN enableCacheStrategy,
                               const UINT32 cacheTimeInterval,

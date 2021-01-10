@@ -4297,13 +4297,18 @@ namespace sdbclient
                               INT32 arrSize,
                               const CHAR *pUsrName,
                               const CHAR *pPasswd ) = 0 ;
-      virtual INT32 connect ( const CHAR **pConnAddrs, 
+      virtual INT32 connect ( const CHAR **pConnAddrs,
                               INT32 arrSize,
                               const CHAR *pUsrName,
                               const CHAR *pToken,
                               const CHAR *pCipherFile ) = 0 ;
 
       virtual void disconnect () = 0 ;
+
+      virtual UINT64 getDbStartTime() = 0 ;
+
+      virtual void getVersion( UINT8 &version, UINT8 &subVersion,
+                               UINT8 &fixVersion ) = 0 ;
 
       virtual INT32 createUsr( const CHAR *pUsrName,
                                const CHAR *pPasswd,
@@ -4807,7 +4812,7 @@ namespace sdbclient
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 connect ( const CHAR **pConnAddrs, 
+      INT32 connect ( const CHAR **pConnAddrs,
                       INT32 arrSize,
                       const CHAR *pUsrName,
                       const CHAR *pToken,
@@ -4819,6 +4824,37 @@ namespace sdbclient
          }
          return pSDB->connect ( pConnAddrs, arrSize,
                                  pUsrName, pToken, pCipherFile ) ;
+      }
+
+      /** \fn UINT64 getDbStartTime ()
+          \brief Get sequoiadb start time.
+          \retval Sequoiadb start time
+      */
+      UINT64 getDbStartTime ()
+      {
+         if ( !pSDB )
+         {
+            return -1 ;
+         }
+         return pSDB->getDbStartTime() ;
+      }
+
+      /** \fn void getVersion ( UINT8 &version,
+                                UINT8 &subVersion,
+                                UINT8 &fixVersion )
+          \brief Get sequoiadb version.
+          \param [out] version Version.
+          \param [out] subVersion Sub version.
+          \param [out] fixVersion Fix version.
+          \retval void
+      */
+      void getVersion ( UINT8 &version, UINT8 &subVersion, UINT8 &fixVersion )
+      {
+         if ( !pSDB )
+         {
+            return ;
+         }
+         pSDB->getVersion( version, subVersion, fixVersion ) ;
       }
 
       /** \fn INT32 createUsr( const CHAR *pUsrName,

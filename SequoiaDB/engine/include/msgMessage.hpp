@@ -345,6 +345,7 @@ INT32 msgBuildSysInfoRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
 INT32 msgExtractSysInfoRequest ( CHAR *pBuffer, BOOLEAN &endianConvert ) ;
 
 INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
+                             UINT64 dbStartTime,
                              engine::IExecutor *cb = NULL ) ;
 
 INT32 msgExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN &endianConvert,

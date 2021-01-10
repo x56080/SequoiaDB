@@ -2754,7 +2754,7 @@ error :
 }
 
 INT32 clientBuildInterruptMsg ( CHAR **ppBuffer, INT32 *bufferSize,
-                                UINT64 reqID, BOOLEAN isSelf, 
+                                UINT64 reqID, BOOLEAN isSelf,
                                 BOOLEAN endianConvert )
 {
    INT32 rc = SDB_OK ;
@@ -3250,7 +3250,9 @@ error :
 }
 
 INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
-                                  INT32 *osType )
+                                  INT32 *osType, UINT64 *dbStartTime,
+                                  UINT8 *version, UINT8 *subVersion,
+                                  UINT8 *fixVersion )
 {
    INT32 rc = SDB_OK ;
    MsgSysInfoReply *reply = (MsgSysInfoReply*)pBuffer ;
@@ -3271,6 +3273,22 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
    if ( osType )
    {
       ossEndianConvertIf4(reply->osType, *osType, e ) ;
+   }
+   if ( dbStartTime )
+   {
+      ossEndianConvertIf8(reply->dbStartTime, *dbStartTime, e ) ;
+   }
+   if ( version )
+   {
+      ossEndianConvertIf1(reply->version, *version, e ) ;
+   }
+   if ( subVersion )
+   {
+      ossEndianConvertIf1(reply->subVersion, *subVersion, e ) ;
+   }
+   if ( fixVersion )
+   {
+      ossEndianConvertIf1(reply->fixVersion, *fixVersion, e ) ;
    }
    if ( endianConvert )
    {

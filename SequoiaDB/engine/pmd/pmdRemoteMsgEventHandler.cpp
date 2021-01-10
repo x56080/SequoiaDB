@@ -39,6 +39,7 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "msgMessage.hpp"
+#include "pmdEnv.hpp"
 
 namespace engine
 {
@@ -80,7 +81,8 @@ namespace engine
          MsgSysInfoReply *pReply = &reply ;
          INT32 replySize = sizeof(reply) ;
 
-         rc = msgBuildSysInfoReply ( (CHAR**)&pReply, &replySize ) ;
+         rc = msgBuildSysInfoReply ( (CHAR**)&pReply, &replySize,
+                                     pmdGetStartTime() ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to build sys info reply, rc: %d", rc ) ;

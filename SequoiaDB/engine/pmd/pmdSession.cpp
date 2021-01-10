@@ -38,6 +38,7 @@
 #include "pmd.hpp"
 #include "rtn.hpp"
 #include "pmdTrace.hpp"
+#include "ossVer.hpp"
 
 using namespace bson ;
 
@@ -274,12 +275,21 @@ namespace engine
    INT32 _pmdLocalSession::_processSysInfoRequest( const CHAR * msg )
    {
       INT32 rc = SDB_OK ;
+      INT32 version = 0 ;
+      INT32 subVersion = 0 ;
+      INT32 fixVersion = 0 ;
       BOOLEAN endianConvert = FALSE ;
       MsgSysInfoReply reply ;
       reply.header.specialSysInfoLen      = MSG_SYSTEM_INFO_LEN ;
       reply.header.eyeCatcher             = MSG_SYSTEM_INFO_EYECATCHER ;
       reply.header.realMessageLength      = sizeof(MsgSysInfoReply) ;
       reply.osType                        = OSS_OSTYPE ;
+      reply.pad1                          = 0 ;
+      reply.dbStartTime                   = pmdGetStartTime() ;
+      ossGetVersion( &version, &subVersion, &fixVersion, NULL, NULL, NULL ) ;
+      reply.version                       = version ;
+      reply.subVersion                    = subVersion ;
+      reply.fixVersion                    = fixVersion ;
       ossMemset( reply.pad, 0, sizeof(reply.pad ) ) ;
 
       rc = msgExtractSysInfoRequest ( (CHAR*)msg, endianConvert ) ;

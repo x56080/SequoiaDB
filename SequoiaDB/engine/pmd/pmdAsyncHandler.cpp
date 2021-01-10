@@ -211,7 +211,8 @@ namespace engine
       MsgSysInfoReply *pReply = &reply ;
       INT32 replySize = sizeof(reply) ;
 
-      rc = msgBuildSysInfoReply ( (CHAR**)&pReply, &replySize ) ;
+      rc = msgBuildSysInfoReply ( (CHAR**)&pReply, &replySize,
+                                  pmdGetStartTime() ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to build sys info reply, "
                     "rc = %d", rc ) ;
 
