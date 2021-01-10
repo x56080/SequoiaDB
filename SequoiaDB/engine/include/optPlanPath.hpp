@@ -186,6 +186,16 @@ namespace engine
             return ( NULL != _pScanNode ) ? _pScanNode->isNeedMatch() : FALSE ;
          }
 
+         OSS_INLINE BOOLEAN isIndexCover () const
+         {
+            return ( NULL != _pScanNode ) ? _pScanNode->isIndexCover() : FALSE ;
+         }
+
+         OSS_INLINE BOOLEAN notArray () const
+         {
+            return ( NULL != _pScanNode ) ? _pScanNode->notArray() : FALSE ;
+         }
+
          OSS_INLINE INT32 getDirection () const
          {
             return ( NULL != _pScanNode ) ? _pScanNode->getDirection() : 1 ;

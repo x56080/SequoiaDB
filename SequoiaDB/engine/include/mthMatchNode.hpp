@@ -550,6 +550,8 @@ namespace engine
          virtual INT32 addChild( _mthMatchNode *child ) ;
          virtual void delChild( _mthMatchNode *child ) ;
 
+         virtual INT32 getName ( IXM_FIELD_NAME_SET& nameSet ) = 0 ;
+
          void sortByWeight() ;
 
       public:

@@ -56,10 +56,221 @@ namespace engine
    class _ixmIndexKeyGen ;
    class _ixmKeyGenBase ;
 
+   class _ixmIndexFieldCmp
+   {
+   public:
+      bool operator()(const CHAR* l, const CHAR* r )
+      {
+         return ossStrcmp( l, r ) < 0 ;
+      }
+   } ;
+
+   typedef ossPoolSet< const CHAR*, _ixmIndexFieldCmp >        IXM_FIELD_NAME_SET ;
+   typedef ossPoolMap< const CHAR*, INT32, _ixmIndexFieldCmp > IXM_INDEX_FIELD_MAP ;
+   typedef _utilArray< const CHAR* >                           IXM_ELE_RAWDATA_ARRAY ;
    /*
       IXM get undefined key object
     */
    BSONObj ixmGetUndefineKeyObj( INT32 fieldNum ) ;
+
+
+   typedef class _ixmIndexNode ixmIndexNode ;
+   typedef _utilArray< ixmIndexNode* > IXM_INDEX_NODE_PTR_ARRAY ;
+
+   /*
+      _ixmIndexNode define
+    */
+   class _ixmIndexNode : public utilPooledObject
+   {
+   public:
+      #define DOT_NAME_LEAST_LEVEL 2
+      _ixmIndexNode()
+      : _name( "" ),
+        _fieldIndex( 0 ),
+        _level( 0 ),
+        _reserveSize( 0 )
+      {
+      }
+
+      _ixmIndexNode( const StringData &name, UINT32 level, UINT32 size )
+      : _name( name ),
+        _fieldIndex( 0 ),
+        _level( level ),
+        _reserveSize( size )
+      {
+      }
+
+      ~_ixmIndexNode()
+      {
+         reset() ;
+      }
+
+      void reset()
+      {
+         for( UINT32 i = 0; i < _children.size(); i++ )
+         {
+            SDB_ASSERT( NULL != _children[i], "ixmIndexNode _children is NULL" ) ;
+            SDB_OSS_DEL ( _children[i] ) ;
+         }
+         _children.clear( TRUE ) ;
+      }
+
+      BOOLEAN isLeaf() const
+      {
+         return _children.empty() ;
+      }
+
+      const StringData &getName() const
+      {
+         return _name ;
+      }
+
+      UINT32 getFieldIndex() const
+      {
+         return _fieldIndex ;
+      }
+
+      UINT32 getLevel() const
+      {
+         return _level ;
+      }
+
+      BOOLEAN isEmbedded() const
+      {
+         return ( _level >= DOT_NAME_LEAST_LEVEL ? TRUE : FALSE ) ;
+      }
+
+      void setFieldIndex( INT32 fieldIndex )
+      {
+         _fieldIndex = fieldIndex ;
+      }
+
+      UINT32 getExtraSize() const
+      {
+         UINT32 extraSize = 0 ;
+         // children extraSize
+         for( UINT32 i = 0; i < _children.size(); i++ )
+         {
+            extraSize += _children[i]->getExtraSize() ;
+         }
+
+         // root
+         if( 0 == _level )
+         {
+         }
+         else if( isLeaf() )
+         {
+            extraSize += _name.size() ;
+         }
+         else
+         {
+            /*
+               BSONObj struct:
+               |length(UINT32)   |BSONElements(...)   |EOO(CHAR)  |
+
+               BSONElement struct:
+               |type(CHAR) |fieldName(CHAR*) |value(...) |
+            */
+            // length:4 type:1 fieldName:_name.size()+1 value:not extra EOO:1
+            extraSize += 4 + 1 + _name.size() + 1 + 1 ;
+         }
+
+         return extraSize ;
+      }
+
+      UINT32 childrenSize() const
+      {
+         return _children.size() ;
+      }
+
+      UINT32 childrenCapacity() const
+      {
+         return _children.capacity() ;
+      }
+      // reserve capacity for children
+      INT32 childrenReserve( INT32 size )
+      {
+         return _children.reserve( size ) ;
+      }
+
+      INT32 appendChild( _ixmIndexNode *child )
+      {
+         INT32 rc = SDB_OK ;
+         if( 0 != _reserveSize )
+         {
+            rc = _children.reserve( _reserveSize ) ;
+            if( SDB_OK !=  rc )
+            {
+               return rc ;
+            }
+            _reserveSize = 0 ;
+         }
+         return _children.append( child ) ;
+      }
+
+      IXM_INDEX_NODE_PTR_ARRAY &getChildren()
+      {
+         return _children ;
+      }
+
+      _ixmIndexNode *getLastChild()
+      {
+         if ( !_children.empty() )
+         {
+            return _children[_children.size() - 1] ;
+         }
+         return NULL;
+      }
+   private:
+      StringData _name ;
+      UINT32 _fieldIndex ;
+      UINT32 _level ;
+      IXM_INDEX_NODE_PTR_ARRAY _children ;
+      UINT32 _reserveSize ;
+   } ;
+
+   /*
+      _ixmIndexCover define
+    */
+   // calculate indexCover of the cover arg in param
+   class _ixmIndexCover : public utilPooledObject
+   {
+   public:
+      _ixmIndexCover( const BSONObj &keyPattern ) ;
+      ~_ixmIndexCover() ;
+
+      BOOLEAN cover( const CHAR* fieldName ) ;
+      BOOLEAN cover( const IXM_FIELD_NAME_SET &fieldSet ) ;
+
+      UINT32                 getNfields() ;
+      INT32                  getExtraSize( UINT32 &size ) ;
+      INT32                  getTree( ixmIndexNode *&tree ) ;
+      INT32                  ensureBuff( UINT32 size, CHAR *&pBuff ) ;
+      const CHAR*            getBuf() const ;
+      IXM_ELE_RAWDATA_ARRAY& getContainer() ;
+      INT32                  reInitContainer() ;
+
+   private:
+      INT32 _fieldNameToNodes( const CHAR* fieldName,
+                               ixmIndexNode *&node ) ;
+      INT32 _initTree() ;
+      INT32 _initKeyFieldMap() ;
+
+   private:
+      BSONObj                 _keyPattern ;
+      BOOLEAN                 _treeInited ;
+      BOOLEAN                 _keyFieldMapInited ;
+      ixmIndexNode            _root ;
+      IXM_INDEX_FIELD_MAP     _keyFieldMap ;
+      UINT32                  _nfields ;
+      UINT32                  _bufSize ;
+      CHAR*                   _bufPtr ;
+      IXM_ELE_RAWDATA_ARRAY   _container ;
+      UINT32                  _extraSize ;
+   } ;
+   typedef class _ixmIndexCover ixmIndexCover ;
+
+   typedef class _ixmKeyField ixmKeyField ;
 
    /*
       _ixmKeyField define

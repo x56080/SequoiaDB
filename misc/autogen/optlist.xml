@@ -2536,4 +2536,24 @@
       <hidden>false</hidden>
       <typeofweb>str</typeofweb>
    </opt>
+
+   <opt>
+      <name>PMD_OPTION_INDEXCOVERON</name>
+      <long>indexcoveron</long>
+      <description>
+        <en>Turn on index cover, default true.</en>
+        <cn>开启覆盖索引功能，默认为true。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>Turn on index cover, default true.</en>
+        <cn>开启覆盖索引功能，默认为true。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+   </opt>
+
 </optlist>

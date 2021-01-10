@@ -121,6 +121,7 @@ $SNAPSHOT_CONFIGS
   "logtimeon": "FALSE",
   "enablesleep": "FALSE",
   "recyclerecord": "FALSE",
+  "indexcoveron": "TRUE",
   "maxsocketpernode": 1,
   "maxsocketperthread": 0,
   "maxsocketthread": 1,

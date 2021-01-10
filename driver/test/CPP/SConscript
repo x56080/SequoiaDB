@@ -63,6 +63,10 @@ testFiles14 = [
          "datasource.cpp"
 ]
 
+testFiles15 = [
+         "indexCover.cpp"
+]
+
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
 gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
@@ -82,7 +86,7 @@ selectQuery = dllBuildEnv.Program("selectQuery", [testFiles11, gtestMainObj, tes
 procedure = dllBuildEnv.Program("procedure", [testFiles12, gtestMainObj, testCommonFiles])
 rg = dllBuildEnv.Program("rg", [testFiles13, gtestMainObj, testCommonFiles])
 datasource = dllBuildEnv.Program("datasource", [testFiles14, gtestMainObj, testCommonFiles])
-
+indexCover = dllBuildEnv.Program("indexCover", [testFiles15, gtestMainObj, testCommonFiles])
 # static compile
 # dll compile
 collection.static = staticBuildEnv.Program("collection.static", [testFiles1, gtestMainObj, testCommonFiles])
@@ -99,7 +103,7 @@ selectQuery.static = staticBuildEnv.Program("selectQuery.static", [testFiles11, 
 procedure.static = staticBuildEnv.Program("procedure.static", [testFiles12, gtestMainObj, testCommonFiles])
 rg.static = staticBuildEnv.Program("rg.static", [testFiles13, gtestMainObj, testCommonFiles])
 datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gtestMainObj, testCommonFiles])
-
+indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles15, gtestMainObj, testCommonFiles])
 
 #env.Install( '#/build_test',[collection,collectionspace,cursor,query,
 #                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, rg, dc ] )
@@ -110,10 +114,11 @@ datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gt
 
 # dll compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection,collectionspace,cursor,query,
-                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource ] )
+                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource,
+                             indexCover ] )
 
 # static compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection.static, collectionspace.static, cursor.static, query.static,
                              sdb.static, cppbson.static, debug.static, domain.static, lob.static,
-                             selectQuery.static, procedure.static, datasource.static] )
+                             selectQuery.static, procedure.static, datasource.static, indexCover] )
 

@@ -489,6 +489,7 @@ namespace engine
          pathBuilder.append( OPT_FIELD_DIRECTION, getDirection() ) ;
          pathBuilder.append( OPT_FIELD_IX_BOUND, getIXBound() ) ;
          pathBuilder.appendBool( OPT_FIELD_NEED_MATCH, isNeedMatch() ) ;
+         pathBuilder.appendBool( OPT_FIELD_INDEX_COVER, isIndexCover() ) ;
          if ( NULL != _pScanNode )
          {
             rc = _pScanNode->toBSONIXStatInfo( pathBuilder ) ;
@@ -1115,6 +1116,7 @@ namespace engine
          }
 
          builder.appendBool( OPT_FIELD_NEED_MATCH, _pScanNode->isNeedMatch() ) ;
+         builder.appendBool( OPT_FIELD_INDEX_COVER, _pScanNode->isIndexCover() ) ;
       }
 
       PD_TRACE_EXITRC( SDB_OPTEXPSCANPATH_TOBSONBASIC, rc ) ;

@@ -1513,6 +1513,8 @@ namespace engine
    : _optScanNode(),
      _direction( 1 ),
      _matchAll( FALSE ),
+     _indexCover( FALSE ),
+     _notArray( FALSE ),
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1534,6 +1536,8 @@ namespace engine
    : _optScanNode ( pCollection, estCacheSize ),
      _direction( 1 ),
      _matchAll( FALSE ),
+     _indexCover( FALSE ),
+     _notArray( FALSE ),
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1553,6 +1557,7 @@ namespace engine
          _indexExtID = indexCB.getExtentID() ;
          _indexLID = indexCB.getLogicalID() ;
          _keyPattern = indexCB.keyPattern().getOwned() ;
+         _notArray = indexCB.notArray() ;
       }
    }
 
@@ -1561,6 +1566,7 @@ namespace engine
    : _optScanNode( node, context ),
      _direction( node._direction ),
      _matchAll( node._matchAll ),
+     _indexCover( FALSE ),
      _matchedFields( node._matchedFields ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1581,6 +1587,7 @@ namespace engine
          _indexExtID = node._indexExtID ;
          _indexLID = node._indexLID ;
          _keyPattern = node._keyPattern.getOwned() ;
+         _notArray = node.notArray() ;
       }
 
       if ( NULL != context )
@@ -1604,6 +1611,8 @@ namespace engine
          {
             setNeedMatch( FALSE ) ;
          }
+
+         _indexCover = dataContext->isIndexCover() ;
 
          // Reset index bound by runtime
          setIXBound( planRuntime->getPredIXBound() ) ;
@@ -2081,12 +2090,13 @@ namespace engine
             //      predicate
             while ( iterOrder.more() )
             {
-               BSONElement beOrder = iterOrder.next() ;
+               BSONElement beOrder = *iterOrder ;
                if ( _checkEqualOrder( beOrder, predicates ) )
                {
                   // if the predicate is equal, it can be considered as order
                   // matched
                   ++ matchedOrders ;
+                  ++ iterOrder ;
                }
                else
                {
@@ -2118,6 +2128,8 @@ namespace engine
          _needMatch = FALSE ;
       }
 
+      _evalIndexCover( _keyPattern, iterOrder, matcher ) ;
+
       _matchedFields = matchedFields ;
       _matchedOrders = matchedOrders ;
 
@@ -2130,6 +2142,66 @@ namespace engine
             _mthCPUCost > savedCPUCost ? _mthCPUCost - savedCPUCost : 0 ;
 
       PD_TRACE_EXIT( SDB_OPTIXSCAN_EVALPREDEST ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_EVALINDEXCOVER, "_optIxScanNode::_evalIndexCover" )
+   void _optIxScanNode::_evalIndexCover( const BSONObj &keyPattern,
+                                         BSONObjIterator &restOrder,
+                                         mthMatchTree *matcher )
+   {
+      INT32 rc = SDB_OK ;
+      ixmIndexCover index( keyPattern ) ;
+      PD_TRACE_ENTRY( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
+
+      _indexCover = FALSE ;
+      if( FALSE == _notArray || FALSE == pmdGetOptionCB()->isIndexCoverOn() )
+      {
+         // if index support array, then can't be indexCover
+         goto done ;
+      }
+      // the reset of order
+      while ( restOrder.more() )
+      {
+         BSONElement beOrder = restOrder.next() ;
+         if( FALSE == index.cover( beOrder.fieldName() ) )
+         {
+            // not indexCover
+            goto done ;
+         }
+      }
+
+      if( _matchAll )
+      {
+         // we kown index covered matcher
+      }
+      else if( matcher->totallyConverted() )
+      {
+         // all matcher fields is converted to predicates, but not matchall
+         goto done ;
+      }
+      else
+      {
+         IXM_FIELD_NAME_SET matchNameSet ;
+         // some matcher fileds is not coverted to predicates as follows
+         // matcher is { a:  { $gt: { "$field": "b" } } }
+         // matcher is { $or:[ { a: { $gt:3 } }, { a: { $lt:10 } } ] }
+         rc = matcher->getName( matchNameSet ) ;
+         if( rc )
+         {
+             PD_LOG( PDWARNING, "Get matcher name failed rc: %d", rc ) ;
+             rc = SDB_OK ;
+             goto done ;
+         }
+         if( FALSE == index.cover( matchNameSet ) )
+         {
+            goto done ;
+         }
+      }
+
+      _indexCover =  TRUE ;
+   done :
+      PD_TRACE_EXIT( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
+      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_TOBSONEVAL, "_optIxScanNode::toBSONEvaluation" )
@@ -2277,6 +2349,7 @@ namespace engine
       }
       builder.append( OPT_FIELD_QUERY, _runtimeMatcher ) ;
       builder.appendBool( OPT_FIELD_NEED_MATCH, _needMatch ) ;
+      builder.appendBool( OPT_FIELD_INDEX_COVER, _indexCover ) ;
 
       rc = _toBSONReturnOptions( builder ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for return options, "
@@ -2352,6 +2425,11 @@ namespace engine
                                     _needMatch ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_NEED_MATCH, rc ) ;
+
+         rc = rtnGetBooleanElement( object, OPT_FIELD_INDEX_COVER,
+                                    _indexCover ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
+                      OPT_FIELD_INDEX_COVER, rc ) ;
 
          rc = _fromBSONReturnOptions( object ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse BSON for return options, "

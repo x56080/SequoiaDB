@@ -51,6 +51,7 @@ When the Detail option is false, a normal access plan will be displayed. Access 
 | Query       | BSON   | the user query condition after analysising access plan |
 | IXBound     | BSON   | the index's search range that access plan uses and it is null if the scan is a table scan |
 | NeedMatch   | bool   | whether to filter according to the match when access plan gets the record. If NeedMatch is false, it means there is no query conditions or query conditions can be covered by the index |
+| IndexCover  | bool   | whether the matching condition field, selection field and sorting field of access plan  are covered by the index.if it is covered by index, we can use index value instead of record to improve access performance |
 | ReturnNum   | long   | the number of records that access plan returns |
 | ElapsedTime | double | the query time of access plan( unit: s ) |
 | IndexRead   | long   | the number of index records that access plan scanns |
@@ -79,6 +80,7 @@ Access plan information for subtables in a vertical partition:
 | Query       | BSON   | the user query condition after analysising access plan |
 | IXBound     | BSON   | the index's search range that access plan uses and it is null if the scan is a table scan |
 | NeedMatch   | bool   | whether to filter according to the match when access plan gets the record. If NeedMatch is false, it means there is no query conditions or query conditions can be covered by the index |
+| IndexCover  | bool   | whether the matching condition field, selection field and sorting field of access plan  are covered by the index.if it is covered by index, we can use index value instead of record to improve access performance |
 | ReturnNum   | long   | the number of records that access plan returns |
 | ElapsedTime | double | the query time of access plan( unit: s ) |
 | IndexRead   | long   | the number of index records that access plan scanns |
@@ -138,6 +140,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
     ]
   },
   "NeedMatch": false,
+  "IndexCover": true,
   "NodeName": "hostname:11830",
   "GroupName": "group",
   "Role": "data",
@@ -169,6 +172,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
       },
       "IXBound": null,
       "NeedMatch": false,
+      "IndexCover": true,
       "ReturnNum": 0,
       "ElapsedTime": 0.000088,
       "IndexRead": 0,
@@ -186,6 +190,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
       },
       "IXBound": null,
       "NeedMatch": false,
+      "IndexCover": true,
       "ReturnNum": 0,
       "ElapsedTime": 0.000089,
       "IndexRead": 0,
@@ -234,6 +239,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
   },
   "IXBound": null,
   "NeedMatch": true,
+  "IndexCover": falses,
   "ReturnNum": 49892,
   "ElapsedTime": 0.323423,
   "IndexRead": 0,
@@ -260,6 +266,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
   },
   "IXBound": null,
   "NeedMatch": true,
+  "IndexCover": false,
   "ReturnNum": 50007,
   "ElapsedTime": 0.41887,
   "IndexRead": 0,
@@ -682,6 +689,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
                 ]
               },
               "NeedMatch": true,
+              "IndexCover": false,
               "IXEstFromStat": false
             },
             {
@@ -703,6 +711,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
                 ]
               },
               "NeedMatch": false,
+              "IndexCover": false,
               "IXEstFromStat": false
             },
             {
@@ -807,6 +816,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
                 ]
               },
               "NeedMatch": true,
+              "IndexCover":false,
               "IXEstFromStat": false
             },
             {
@@ -828,6 +838,7 @@ when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/g
                 ]
               },
               "NeedMatch": false,
+              "IndexCover":false,
               "IXEstFromStat": false
             },
             {

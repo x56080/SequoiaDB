@@ -2306,6 +2306,15 @@ INT32& ossGetPendingSignal()
    return s_pendingSignal ;
 }
 
+INT32 ossException2RC( std::exception *pe )
+{
+   if ( NULL != dynamic_cast<std::bad_alloc*>(pe) )
+   {
+      return SDB_OOM ;
+   }
+   return SDB_SYS ;
+}
+
 /*
    ossSignalShield implement
 */

@@ -2318,6 +2318,32 @@ namespace engine
       }
    }
 
+   INT32 _mthMatchOpNode::getName ( IXM_FIELD_NAME_SET& nameSet )
+   {
+      INT32 rc = SDB_OK ;
+      // matcher is { a: { $gt: { "$field": "b" } } }
+      // currentName:a _cmpFieldName:b
+      try
+      {
+         if( NULL != _cmpFieldName && '\0' != *_cmpFieldName )
+         {
+            nameSet.insert( _cmpFieldName );
+         }
+
+         // matcher: { a: { $elemMatch:{ "b": { $elemMatch: { c1: 1 } } } } }
+         // get name:a ignore .b.c1
+         nameSet.insert( _fieldName.getFieldName() ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_RC_CHECK( SDB_SYS, PDERROR, "unexpected error happened:%s", e.what() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _mthMatchOpNode::addFunc( _mthMatchFunc *func )
    {
       INT32 rc = SDB_OK ;

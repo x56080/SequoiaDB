@@ -95,6 +95,11 @@ namespace engine
             return _returnOptions ;
          }
 
+         OSS_INLINE BOOLEAN isIndexCover() const
+         {
+            return _indexCover ;
+         }
+
       public:
          virtual const CHAR*      name() const ;
          virtual RTN_CONTEXT_TYPE getType () const ;
@@ -152,6 +157,8 @@ namespace engine
                                 _mthRecordGenerator &generator ) ;
          INT32    _selectAndAppend( mthSelector *selector, BSONObj &obj ) ;
 
+         INT32    _evalIndexCover( IXM_FIELD_NAME_SET &selectSet ) ;
+
       protected:
          _SDB_DMSCB                 *_dmsCB ;
          _dmsStorageUnit            *_su ;
@@ -183,6 +190,8 @@ namespace engine
 
          // query modify
          rtnQueryModifier*          _queryModifier ;
+
+         BOOLEAN                    _indexCover ;
    } ;
 
    typedef _rtnContextData rtnContextData ;

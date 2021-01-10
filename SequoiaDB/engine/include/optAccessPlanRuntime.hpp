@@ -256,6 +256,16 @@ namespace engine
             return _plan ? _plan->sortRequired() : FALSE ;
          }
 
+         OSS_INLINE BOOLEAN notArray () const
+         {
+            return _plan ? _plan->notArray() : FALSE ;
+         }
+
+         OSS_INLINE BOOLEAN isIndexCover () const
+         {
+            return _plan ? _plan->isIndexCover() : FALSE ;
+         }
+
          OSS_INLINE BOOLEAN isHintFailed () const
          {
             return _plan ? _plan->isHintFailed() : TRUE ;

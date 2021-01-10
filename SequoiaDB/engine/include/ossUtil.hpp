@@ -1223,6 +1223,8 @@ BOOLEAN ossNetIpIsValid( const CHAR *ip, INT32 len ) ;
 INT32& ossGetSignalShieldFlag() ;
 INT32& ossGetPendingSignal() ;
 
+INT32 ossException2RC( std::exception *pe ) ;
+
 /*
    ossSignalShield define
 */

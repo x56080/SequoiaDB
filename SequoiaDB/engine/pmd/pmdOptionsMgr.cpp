@@ -1954,6 +1954,8 @@ done:
       _enableSleep = FALSE ;
       _recycleRecord = FALSE ;
 
+      _indexCoverOn = TRUE ;
+
       _maxSockPerNode = 1 ;
       _maxSockPerThread = 0 ;
       _maxSockThread = 1 ;
@@ -2406,6 +2408,10 @@ done:
       // --recyclerecord
       rdxBooleanS( pEX, PMD_OPTION_RECYCLE_RECORD, _recycleRecord, FALSE,
                    PMD_CFG_CHANGE_RUN, FALSE, TRUE ) ;
+
+      // --indexcoveron
+      rdxBooleanS( pEX, PMD_OPTION_INDEXCOVERON, _indexCoverOn, FALSE,
+                   PMD_CFG_CHANGE_RUN, TRUE ) ;
 
       // --maxsocketpernode
       rdxUInt( pEX, PMD_OPTION_MAXSOCKET_PER_NODE, _maxSockPerNode, FALSE,

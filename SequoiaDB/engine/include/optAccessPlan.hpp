@@ -276,6 +276,20 @@ namespace engine
             return _scanPath.isSortRequired() ;
          }
 
+         OSS_INLINE BOOLEAN notArray () const
+         {
+            SDB_ASSERT ( _isInitialized, "optAccessPlan must be optimized "
+                         "before start using" ) ;
+            return _scanPath.notArray() ;
+         }
+
+         OSS_INLINE BOOLEAN isIndexCover () const
+         {
+            SDB_ASSERT ( _isInitialized, "optAccessPlan must be optimized "
+                         "before start using" ) ;
+            return _scanPath.isIndexCover() ;
+         }
+
          OSS_INLINE virtual double getScore () const
          {
             SDB_ASSERT ( _isInitialized, "optAccessPlan must be optimized "

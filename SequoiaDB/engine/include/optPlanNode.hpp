@@ -477,6 +477,16 @@ namespace engine
             _needMatch = needMatch ;
          }
 
+         OSS_INLINE virtual BOOLEAN isIndexCover () const
+         {
+            return FALSE ;
+         }
+
+         OSS_INLINE virtual BOOLEAN notArray () const
+         {
+            return FALSE ;
+         }
+
          OSS_INLINE virtual BOOLEAN isNeedMatch () const
          {
             return _needMatch ;
@@ -839,6 +849,9 @@ namespace engine
 
          virtual void evaluate () ;
 
+         BOOLEAN isIndexCover() const { return _indexCover ; }
+         BOOLEAN notArray() const { return _notArray ; }
+
       protected :
          void _evalPredEstimation ( optAccessPlanHelper & planHelper,
                                     const BSONObj & boOrder,
@@ -877,6 +890,11 @@ namespace engine
 
          INT32 _toBSONOutputRecordsEval ( BSONObjBuilder & builder ) const ;
 
+      private:
+         void _evalIndexCover( const BSONObj &keyPattern,
+                               BSONObjIterator &restOrder,
+                               mthMatchTree *matcher ) ;
+
       protected :
          idxNameString     _pIndexName ;
 
@@ -885,6 +903,12 @@ namespace engine
 
          // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
+
+         // 1.plan   : index cover matcher orderby
+         // 2.explain: index cover matcher orderby and selector
+         BOOLEAN           _indexCover ;
+
+         BOOLEAN           _notArray ;
 
          // Number of matched fields in index
          UINT32            _matchedFields ;

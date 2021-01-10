@@ -65,12 +65,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSELECTOR_LOADPATTERN, "_mthSelector::loadPattern" )
    INT32 _mthSelector::loadPattern( const bson::BSONObj &pattern, 
-                                    BOOLEAN strictDataMode )
+                                    BOOLEAN strictDataMode,
+                                    IXM_FIELD_NAME_SET *pSelectSet )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSELECTOR_LOADPATTERN ) ;
 
-      rc = _matrix.load( pattern, strictDataMode ) ;
+      rc = _matrix.load( pattern, strictDataMode, pSelectSet ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to parse pattern:%d", rc ) ;
