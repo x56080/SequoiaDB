@@ -853,7 +853,22 @@ class LogExporter:
         else:
             return ""
 
-    def __export_sql_log(self, line, row_number):
+    def __make_position_id(self, file_inode, row_number):
+        # combine inode number and row number into 4 bytes
+        # the greater row_number, the more bytes it occupies
+        if row_number <= 0xFF:
+            file_inode &= 0xFFFFFF
+            return ((int(file_inode)) << 8 | row_number)
+        elif row_number <= 0xFFFF:
+            file_inode &= 0xFFFF
+            return ((int(file_inode)) << 16 | row_number)
+        elif row_number <= 0xFFFFFF:
+            file_inode &= 0xFF
+            return ((int(file_inode)) << 24 | row_number)
+        else:
+            return row_number
+
+    def __export_sql_log(self, line, file_inode, row_number):
         dict = {}
         if 1 == len(line):
             self.stat_mgr.update_stat()
@@ -866,7 +881,8 @@ class LogExporter:
         try:
             list = line.split(",")
             my_time = time.mktime(time.strptime(list[0], "%Y%m%d %H:%M:%S"))
-            dict[FIELD_ID] = (int(my_time)) << 32 | row_number
+            position_id = self.__make_position_id(file_inode, row_number)
+            dict[FIELD_ID] = (int(my_time)) << 32 | position_id
             dict[FIELD_ROLE] = self.__role
             dict[FIELD_HOST_NAME] = self.__node_name.split(":")[0].strip()
             dict[FIELD_SVC_NAME] = int(self.__node_name.split(":")[1].strip())
@@ -916,7 +932,7 @@ class LogExporter:
                     self.__export_sdb_log()
                     self.__buf = ""
             else:
-                self.__export_sql_log(origline, row_number)
+                self.__export_sql_log(origline, file_inode, row_number)
         
         if len(self.__records):
             self.connect.write_row(self.__records)
