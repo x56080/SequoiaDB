@@ -277,11 +277,15 @@ function checkSdbVersion()
    var cmd = new Cmd() ;
    try{
       version_obj = cmd.run(SDBSHELL, "--version") ;
-      version_arr = version_obj.split("\n")[0].substr(25).split(".") ;
+      version_arr = version_obj.split("\n")[0].split(":")[1].trim().split(".");
       divide_arr = VERSION_DIVIDE.split(".") ;
       for ( i in divide_arr ){
          if ( divide_arr[i] > version_arr[i]){
             return false ;
+         }else if ( divide_arr[i] < version_arr[i] ) {
+            return true ;
+         }else if ( divide_arr[i] == version_arr[i] ) {
+            continue ;
          }
       }
    }catch( e ) {
