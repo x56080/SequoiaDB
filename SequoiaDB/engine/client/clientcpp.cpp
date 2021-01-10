@@ -4867,19 +4867,20 @@ do                                                            \
             {
                goto error ;
             }
-         }
-         if ( NULL != (*collection) )
-         {
-            delete *collection ;
-            *collection = NULL ;
-         }
-         rc = insertCachedObject( _connection->_getCachedContainer(),
-                                  clFullName ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            rc = insertCachedObject( _connection->_getCachedContainer(),
+                                     clFullName ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
       }
+      if ( NULL != (*collection) )
+      {
+         delete *collection ;
+         *collection = NULL ;
+      }
+
       *collection = (_sdbCollection*)( new(std::nothrow) sdbCollectionImpl () ) ;
       if ( !*collection )
       {
@@ -8011,12 +8012,12 @@ do                                                            \
             {
                goto error ;
             }
-         }
 
-         rc = insertCachedObject( _tb, pCollectionFullName ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            rc = insertCachedObject( _tb, pCollectionFullName ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
       }
 
@@ -8068,11 +8069,11 @@ do                                                            \
             {
                goto error ;
             }
-         }
-         rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
       }
 
