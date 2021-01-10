@@ -202,6 +202,9 @@ namespace engine
    INT32 catRemoveCL( const CHAR *clFullName, pmdEDUCB *cb, _SDB_DMSCB * dmsCB,
                       _dpsLogWrapper * dpsCB, INT16 w );
 
+   INT32 catCheckCSExist( const CHAR* collection, pmdEDUCB* cb,
+                          BOOLEAN& csExist ) ;
+
    INT32 catCheckCollectionExist( const CHAR *pCollectionName,
                                   BOOLEAN &isExist,
                                   BSONObj &obj,

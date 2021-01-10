@@ -1527,6 +1527,49 @@ namespace engine
       goto done ;
    }
 
+   INT32 catCheckCSExist( const CHAR* collection, pmdEDUCB* cb,
+                          BOOLEAN& csExist )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      INT64 count = 0 ;
+      csExist = FALSE ;
+
+      rc = rtnResolveCollectionSpaceName( collection,
+                                          ossStrlen( collection ),
+                                          csName,
+                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get cs name from cl[%s], rc: %d",
+                   collection, rc ) ;
+
+      try
+      {
+         rc = catGetObjectCount( CAT_COLLECTION_SPACE_COLLECTION, BSONObj(),
+                                 BSON( FIELD_NAME_NAME << csName ),
+                                 BSONObj(), cb, count ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get count of collection[%s], rc: %d",
+                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      if ( count > 0 )
+      {
+         csExist = TRUE ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKCOLLECTIONEXIST, "catCheckCollectionExist" )
    INT32 catCheckCollectionExist( const char *pCollectionName,
                                   BOOLEAN &isExist,
@@ -3315,9 +3358,25 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING,
                       "Failed to get info of collection [%s], rc: %d",
                       clName.c_str(), rc ) ;
-         PD_CHECK( isExist, SDB_DMS_NOTEXIST, error, PDWARNING,
-                   "Collection [%s] does not exist!",
-                   clName.c_str() ) ;
+
+         if ( !isExist )
+         {
+            rc = catCheckCSExist( clName.c_str(), cb, isExist ) ;
+            if ( SDB_OK == rc && !isExist )
+            {
+               rc = SDB_DMS_CS_NOTEXIST ;
+               PD_LOG( PDWARNING,
+                       "Collection[%s]'s space does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+            }
+            else
+            {
+               rc = SDB_DMS_NOTEXIST ;
+               PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+            }
+            goto error ;
+         }
 
          // Lock sub-collection
          if ( pLockMgr &&
