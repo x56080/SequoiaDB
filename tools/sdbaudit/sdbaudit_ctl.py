@@ -76,7 +76,7 @@ START_OPERATION = 'start'
 REGISTER_CONF_PATH = "/etc/default/"
 CONFIG_FILE_NAME = "sdbaudit.conf"
 PID_FILE_NAME = "sdbaudit.pid"
-LOG_FIEL_NAME = "sdbaudit.log"
+LOG_FILE_NAME = "sdbaudit.log"
 VERSION_FILE_NAME = "version.info"
 DAEMON_PID_FILE_NAME = "sdbaudit_daemon.pid"
 
@@ -641,8 +641,10 @@ class ObjMgr:
                               if pid_exist(pid):
                                   skip = True
                           if not skip:
-                              os.system("nohup python {} {} > /dev/null " \
-                                        "2>&1 &".format(EXPORTER_EXEC, parameters))
+                              log_file = os.path.join(node_path, LOG_FILE_NAME)
+                              os.system("nohup python {} {} >> {} " \
+                                        "2>&1 &".format(EXPORTER_EXEC,
+                                        parameters, log_file))
                           else:
                               print("Exporter({}) already " \
                                     "exists(PID: {})".format(node_dir, pid))
@@ -664,9 +666,9 @@ class ObjMgr:
                 with open(pid_file, 'r') as f:
                     pid = int(f.readline())
                 if not pid_exist(pid):
-                    print("[ERROR] Failed to start exporter({}), please " \
+                    print("[ERROR] Failed to start exporter({}). Please " \
                           "verify log '{}'".format(all_port[i],
-                          os.path.join(node_path, LOG_FIEL_NAME)))
+                          os.path.join(node_path, LOG_FILE_NAME)))
                     os.remove(pid_file)
                 else:
                     if pid in exist_pid:
@@ -675,9 +677,9 @@ class ObjMgr:
                     print("Starting exporter({}) " \
                           "success (PID: {})".format(all_port[i], pid))
             else:
-                print("[ERROR] Failed to start exporter({}), please " \
+                print("[ERROR] Failed to start exporter({}). Please " \
                       "verify log '{}'".format(all_port[i],
-                      os.path.join(node_path, LOG_FIEL_NAME)))
+                      os.path.join(node_path, LOG_FILE_NAME)))
 
         # start sdbaudit_daemon
         if not has_sucess:

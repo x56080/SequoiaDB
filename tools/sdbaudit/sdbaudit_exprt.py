@@ -412,14 +412,14 @@ class OptionsMgr:
                 options.node_name = local_parser.get(KW_MONITOR, KW_NODE_NAME)
 
         if len(options.audit_path) == 0:
-            logger.error("Auditpath can not be null. Please use --path to " \
+            logger.error("Audit path can not be null. Please use --path to " \
                   "specify.")
             return 1
         elif not os.path.exists(options.audit_path):
-            logger.error("Directory of auditpath '{}' is not exists".format(options.audit_path))
+            logger.error("Directory of audit path '{}' is not exists".format(options.audit_path))
             return 1
         elif not os.path.isdir(options.audit_path):
-            logger.error("Auditpath '{}' must be a directory".format(options.audit_path))
+            logger.error("Audit path '{}' must be a directory".format(options.audit_path))
             return 1
         if options.passwd_type == 1:
             options.passwd = CryptoUtil.decrypt(options.passwd)
@@ -820,7 +820,7 @@ class LogExporter:
                 self.__records = []
                 self.__num_of_records = 0
         except (Exception,ValueError) as e:
-            logger.error('Exception : e, parse log failed: {}'.format(e, self.__buf))
+            logger.error('Exception : e, failed to parse log: {}'.format(e, self.__buf))
             self.stat_mgr.update_stat()
 
     def __sql_get_operation_type(self, sql):
@@ -897,7 +897,7 @@ class LogExporter:
                 self.__records = []
                 self.__num_of_records = 0
         except (ValueError,Exception) as e:
-            logger.error('Exception: {}, parse log failed: {}'.format(e, line))
+            logger.error('Exception: {}, failed to parse log: {}'.format(e, line))
             self.stat_mgr.update_stat()
 
     def __export_audit_log_file(self, file_inode, f):
@@ -986,7 +986,7 @@ def main():
     log_instance = Logger()
     rc = log_instance.init(log_config_file)
     if 0 != rc:
-        print("[ERROR] Initialize logging failed: {}".format(rc))
+        print("[ERROR] Failed to initialize logging: {}".format(rc))
         sys.exit(1)
     logger = log_instance.get_logger()
     logger.info("Start sdbaudit reporter tool...")
