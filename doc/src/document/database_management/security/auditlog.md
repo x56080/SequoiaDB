@@ -48,7 +48,7 @@ db.snapshot(SDB_SNAP_CONFIGS, {}, {NodeName:"", auditpath:"", auditnum:"", audit
 
 修改 auditmask 取值为"SYSTEM|DDL|DCL|DQL"
 
-```
+```lang-javascript
 > db.updateConf({auditmask:"SYSTEM|DDL|DCL|DQL"}) 
 ```
 
@@ -60,7 +60,7 @@ db.snapshot(SDB_SNAP_CONFIGS, {}, {NodeName:"", auditpath:"", auditnum:"", audit
 
 用户可通过 [updateConf()](reference/Sequoiadb_command/Sdb/updateConf.md) 命令修改 auditMask 取值为"NONE"以关闭节点级审计功能。
 
-```
+```lang-javascript
 > db.updateConf({auditmask:"NONE"}) 
 ```
 
