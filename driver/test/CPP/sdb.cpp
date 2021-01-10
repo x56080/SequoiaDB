@@ -693,6 +693,10 @@ TEST(sdb,getCollection)
    sdbCollection cl_3 ;
    sdbCollection cl_4 ;
    sdbCollection cl_5 ;
+   sdbCollection cl_6_1 ;
+   sdbCollection cl_6_2 ;
+   sdbCollection cl_7_1 ;
+   sdbCollection cl_7_2 ;
 
    // initialize local variables
    const CHAR *pHostName                    = HOST ;
@@ -734,6 +738,25 @@ TEST(sdb,getCollection)
    rc = cl_5.getDetail( cursor ) ;
    ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
 
+   // case 6 :
+   // get a nonexistent cl when checkExist is false
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_1, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the nonexistent cl when checkExist is true
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_2, TRUE) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   // case 7 :
+   // get a existent cl when checkExist is TRUE
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_1, TRUE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the existent cl when checkExist is FALSE
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_2, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   ASSERT_EQ(cl_7_1.getVersion(), cl_7_2.getVersion()) ;
+
+
    // disconnect the connection
    connection.disconnect() ;
 }
@@ -746,6 +769,11 @@ TEST(sdb,getCollectionSpace)
    sdbCollectionSpace cs_3 ;
    sdbCollectionSpace cs_4 ;
    sdbCollectionSpace cs_5 ;
+   sdbCollectionSpace cs_6_1 ;
+   sdbCollectionSpace cs_6_2 ;
+   sdbCollectionSpace cs_7_1 ;
+   sdbCollectionSpace cs_7_2 ;
+
    sdbCollection cl ;
    // initialize local variables
    const CHAR *pHostName                    = HOST ;
@@ -787,6 +815,23 @@ TEST(sdb,getCollectionSpace)
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cs_5.createCollection( NOT_EXIST_CL_NAME, cl ) ;
    ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) ;
+
+
+   // case 6 :
+   // get a nonexistent cs when checkExist is false
+   rc = connection.getCollectionSpace( NOT_EXIST_CS_NAME, cs_6_1, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the nonexistent cs when checkExist is true
+   rc = connection.getCollectionSpace( NOT_EXIST_CS_NAME, cs_6_2, TRUE) ;
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) ;
+
+   // case 7 :
+   // get a existent cs when checkExist is TRUE
+   rc = connection.getCollectionSpace( COLLECTION_SPACE_NAME, cs_7_1, TRUE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the existent cs when checkExist is FALSE
+   rc = connection.getCollectionSpace( COLLECTION_SPACE_NAME, cs_7_2, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
 
    // disconnect the connection
    connection.disconnect() ;

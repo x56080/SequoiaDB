@@ -5172,21 +5172,26 @@ do                                                            \
             {
                goto error ;
             }
-         }
-         if ( NULL != (*collection) )
-         {
-            delete *collection ;
-            *collection = NULL ;
-         }
-         version = _getRetVersion();
+            version = _getRetVersion();
 
-         rc = insertCachedVersion( _connection->_getCachedContainer(),
-                                   clFullName, version ) ;
-         if ( SDB_OK != rc )
+            rc = insertCachedVersion( _connection->_getCachedContainer(),
+                                      clFullName, version ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
+         else
          {
-            goto error ;
+            version = CATALOG_DEFAULT_VERSION ;
          }
       }
+      if ( NULL != (*collection) )
+      {
+         delete *collection ;
+         *collection = NULL ;
+      }
+
       *collection = (_sdbCollection*)( new(std::nothrow) sdbCollectionImpl () ) ;
       if ( !*collection )
       {
@@ -9188,13 +9193,18 @@ do                                                            \
             {
                goto error ;
             }
-         }
-         version = _getRetVersion();
 
-         rc = insertCachedVersion( _tb, pCollectionFullName, version ) ;
-         if ( SDB_OK != rc )
+            version = _getRetVersion();
+
+            rc = insertCachedVersion( _tb, pCollectionFullName, version ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+         }
+         else
          {
-            goto error ;
+            version = CATALOG_DEFAULT_VERSION ;
          }
       }
 
@@ -9246,11 +9256,11 @@ do                                                            \
             {
                goto error ;
             }
-         }
-         rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
+            rc = insertCachedObject( _tb, pCollectionSpaceName ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
          }
       }
 

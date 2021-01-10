@@ -30,6 +30,10 @@ TEST(collectionspace, getCollection)
    sdbCollection cl_3 ;
    sdbCollection cl_4 ;
    sdbCollection cl_5 ;
+   sdbCollection cl_6_2 ;
+   sdbCollection cl_6_1 ;
+   sdbCollection cl_7_1 ;
+   sdbCollection cl_7_2 ;
 
    // initialize local variables
    const CHAR *pHostName                    = HOST ;
@@ -70,6 +74,24 @@ TEST(collectionspace, getCollection)
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = cl_5.getDetail( cursor ) ;
    ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   // case 6 :
+   // get a nonexistent cl when checkExist is false
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_1, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the nonexistent cl when checkExist is true
+   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_2, TRUE) ;
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
+
+   // case 7 :
+   // get a existent cl when checkExist is TRUE
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_1, TRUE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   // get the existent cl when checkExist is FALSE
+   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_2, FALSE) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   ASSERT_EQ(cl_7_1.getVersion(), cl_7_2.getVersion()) ;
 
    // disconnect the connection
    connection.disconnect() ;
