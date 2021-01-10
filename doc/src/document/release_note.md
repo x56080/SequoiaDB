@@ -9,6 +9,7 @@
 
 - 存储引擎增加配置项"indexcoveron"：是否开启"Index Cover"能力，默认为开启
 - MySQL引擎创建索引开启"Not Array"属性
+- 新增对 MySQL 5.7.32 的支持
 
 **主要特性：**
 
