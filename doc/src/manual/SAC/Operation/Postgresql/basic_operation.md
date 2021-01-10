@@ -96,7 +96,7 @@
    4. 重新加载 PostgreSQL 数据库实例配置
 
      ```lang-bash
-     /opt/sequoiasql/postgresql/bin/sdb_sql_ctl reload PostgreSQLInstance1
+     /opt/sequoiasql/postgresql/bin/sdb_pg_ctl reload PostgreSQLInstance1
      ```
 
 - 通过 SAC 设置鉴权

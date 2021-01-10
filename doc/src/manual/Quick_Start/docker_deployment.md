@@ -118,7 +118,7 @@ Docker环境部署SequoiaDB
 13. 查看 mysql 实例状态
 
    ```lang-bash
-   /opt/sequoiasql/mysql/bin/sdb_sql_ctl status
+   /opt/sequoiasql/mysql/bin/sdb_mysql_ctl status
    ```
 
 14. 进入 coord_catalog 容器，查看 SequoiaDB 存储引擎节点列
@@ -167,7 +167,7 @@ Docker环境部署SequoiaDB
 2. 启动 mysql（如未启动）
 
    ```lang-bash
-   /opt/sequoiasql/mysql/bin/sdb_sql_ctl start MySQLInstance
+   /opt/sequoiasql/mysql/bin/sdb_mysql_ctl start MySQLInstance
    ```
 
 3. 登录到 MySQL Shell
