@@ -215,8 +215,10 @@ class ObjMgr:
         local_parser = ConfigParser.ConfigParser()
         local_parser.add_section(KW_MONITOR)
         for i in range(len(self.__info)):
+            node_name = str(self.__info[i][PORT])
             obj_dir = os.path.join(work_dir, self.__info[i][PORT])
             if os.path.exists(obj_dir):
+                print("Node({}) of {} already exists".format(node_name, self.__log_type))
                 continue
             os.mkdir(obj_dir)
             os.chdir(obj_dir)
@@ -225,7 +227,6 @@ class ObjMgr:
             if self.__log_type != LOG_TYPE_SDB:
                 local_parser.set(KW_MONITOR, KW_INST_NAME,
                                          str(self.__info[i][INST_NAME]))
-            node_name = str(self.__info[i][PORT])
             local_parser.set(KW_MONITOR, KW_NODE_NAME, socket.gethostname() + \
                              ":" + node_name)
             local_parser.set(KW_MONITOR, KW_INSTALL_DIR, str(self.__info[i][INSTALL_DIR]))
@@ -611,6 +612,7 @@ class ObjMgr:
         return 0
         
     def __start_obj(self):
+        node_num = 0
         pid = 0
         all_port = []
         exist_pid = []
@@ -649,11 +651,17 @@ class ObjMgr:
                               print("Exporter({}) already " \
                                     "exists(PID: {})".format(node_dir, pid))
                               exist_pid.append(pid)
+                          node_num += 1
             
         except Exception as error:
             print("[ERROR] Run exporter failed: " + str(error))
             raise
 
+        if node_num == 0:
+            print("No node exists")
+            return 0
+
+        # all nodes has started
         if len(exist_pid) == len(all_node_path):
             return 0
 
@@ -698,6 +706,7 @@ class ObjMgr:
         return 0
                         
     def __stop_obj(self):
+        stopped_num = 0
         all_pid = []
         all_port = []
         all_pid_file = []
@@ -721,6 +730,10 @@ class ObjMgr:
                 all_pid.append(pid)
                 if pid_exist(pid):
                     os.kill(pid, 15)
+                    stopped_num += 1
+
+        if stopped_num == 0:
+            print("No running nodes")
 
         for i in range(PROCESS_WAIT_TIME):
             remain_pid = []
