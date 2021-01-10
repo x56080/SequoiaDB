@@ -57,7 +57,7 @@
    * 让 PostgreSQL 数据库实例重新加载配置，演示的实例名是 PostgreSQLInstance1。
 
      ```lang-bash
-     /opt/sequoiasql/postgresql/bin/sdb_sql_ctl reload PostgreSQLInstance1
+     /opt/sequoiasql/postgresql/bin/sdb_pg_ctl reload PostgreSQLInstance1
      ```
 
 2. 在 SAC 设置 PostgreSQL 数据库实例的鉴权，进入 **部署 - 数据库实例** 页面。
