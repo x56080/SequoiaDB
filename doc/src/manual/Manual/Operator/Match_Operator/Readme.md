@@ -36,7 +36,7 @@
 
 [^_^]:
     本文使用的所有引用及链接
-[overview]:manual/Manual/Operator/Function_operator/Readme.md
+[overview]:manual/Manual/Operator/Function_Operator/Readme.md
 [gt]:manual/Manual/Operator/Match_Operator/gt.md
 [gte]:manual/Manual/Operator/Match_Operator/gte.md
 [lt]:manual/Manual/Operator/Match_Operator/lt.md
