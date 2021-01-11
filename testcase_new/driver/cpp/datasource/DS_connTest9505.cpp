@@ -25,7 +25,7 @@
  *               2019-09-05
  ********************************************************************/
 #include <gtest/gtest.h>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include "DS_common.hpp"
 
 using namespace sdbclient ;
@@ -34,7 +34,7 @@ class connTest9505 : public testBase
 {
 protected:
    sdbDataSourceConf conf ;
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    string url ;
 
    void SetUp()

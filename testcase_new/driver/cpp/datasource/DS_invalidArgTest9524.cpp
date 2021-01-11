@@ -9,7 +9,7 @@
  * @Modify:      Liangxw
  *               2019-09-05
  ***********************************************************************/
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -22,7 +22,7 @@ using namespace sdbclient ;
 class invalidArgTest9524 : public testBase
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
    string url ;
 

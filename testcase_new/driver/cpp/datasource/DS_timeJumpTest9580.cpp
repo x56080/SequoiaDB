@@ -5,7 +5,7 @@
  * @Modify:      Liangxw
  *               2019-09-05
  *******************************************************/
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <client.hpp>
 #include "DS_common.hpp"
@@ -17,7 +17,7 @@ class timeJumpTest9580 : public testing::Test
 {
 protected:
    sdbDataSourceConf conf ;
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    string url ;
 
    void SetUp()

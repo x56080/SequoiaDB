@@ -10,7 +10,7 @@
  *               2019-09-05
  ****************************************************************/
 #include <gtest/gtest.h>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <client.hpp>
 #include <iostream>
 #include <vector>
@@ -23,7 +23,7 @@ class coordTest9571 : public testBase
 {
 protected:
    sdbDataSourceConf conf ;
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
 
    void SetUp()
    {
