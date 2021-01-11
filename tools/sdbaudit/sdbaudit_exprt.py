@@ -509,20 +509,40 @@ class SdbConnect:
         self.__connection = client(self.__host, self.__port, self.__user,
                                    self.__passwd, self.__use_ssl)
         self.__has_connect = True
-        while True:
+
+        # ensure cs
+        try:
+            cs = self.__connection.get_collection_space(self.__cs_name)
+        except (SDBTypeError, SDBBaseError) as e:
+            if SDB_DMS_CS_NOTEXIST != get_errcode(e.code):
+                raise e
             try:
-                cs = self.__connection.get_collection_space(self.__cs_name)
-                self.__cl = cs.get_collection(self.__cl_name)
-                if not self.__cl.is_index_exist(index_name):
-                    self.__cl.create_index(index, index_name, True)
-                break
+                self.__connection.create_collection_space(self.__cs_name)
+            except (SDBTypeError, SDBBaseError) as err:
+                if SDB_DMS_CS_EXIST != get_errcode(err.code):
+                    raise err
+            cs = self.__connection.get_collection_space(self.__cs_name)
+
+        # ensure cl
+        try:
+            self.__cl = cs.get_collection(self.__cl_name)
+        except (SDBTypeError, SDBBaseError) as e:
+            if SDB_DMS_NOTEXIST != get_errcode(e.code):
+                raise e
+            try:
+                cs.create_collection(self.__cl_name)
+            except (SDBTypeError, SDBBaseError) as err:
+                if SDB_DMS_EXIST != get_errcode(err.code):
+                    raise err
+            self.__cl = cs.get_collection(self.__cl_name)
+
+        # ensure index
+        if not self.__cl.is_index_exist(index_name):
+            try:
+                self.__cl.create_index(index, index_name, True)
             except (SDBTypeError, SDBBaseError) as e:
-                if SDB_DMS_CS_NOTEXIST == get_errcode(e.code):
-                    self.__connection.create_collection_space(self.__cs_name)
-                elif SDB_DMS_NOTEXIST == get_errcode(e.code):
-                    self.__cl = cs.create_collection(self.__cl_name)
-                    self.__cl.create_index(index, index_name, True)
-                    break
+                if SDB_IXM_REDEF != get_errcode(e.code):
+                    raise e
 
     def write_row(self, records):
         self.__cl.bulk_insert(INSERT_FLG_CONTONDUP, records)
