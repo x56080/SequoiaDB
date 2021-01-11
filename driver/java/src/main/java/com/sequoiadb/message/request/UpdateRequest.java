@@ -34,7 +34,7 @@ public class UpdateRequest extends SdbRequest {
     private static final short w = 0;
     private static final short padding = 0;
     private int flag = 0;
-    private String collectionName;
+    private byte[] clNameBytes;
     private byte[] matcherBytes;
     private byte[] modifierBytes;
     private byte[] hintBytes;
@@ -47,8 +47,12 @@ public class UpdateRequest extends SdbRequest {
             throw new BaseException(SDBError.SDB_INVALIDARG, "Collection name is null or empty");
         }
 
-        this.collectionName = collectionName;
-        length += Helper.alignedSize(collectionName.length() + 1);
+        try {
+            this.clNameBytes = collectionName.getBytes(Helper.ENCODING_TYPE);
+            length += Helper.alignedSize(this.clNameBytes.length + 1);
+        }catch (UnsupportedEncodingException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        }
 
         if (matcher == null) {
             matcherBytes = EMPTY_BSON_BYTES.clone();
@@ -83,17 +87,13 @@ public class UpdateRequest extends SdbRequest {
         out.putShort(w);
         out.putShort(padding);
         out.putInt(flag);
-        out.putInt(collectionName.length());
-        try {
-            out.put(collectionName.getBytes("UTF-8"));
-            out.put((byte) 0);
-            int length = collectionName.length() + 1;
-            int paddingLen = Helper.alignedSize(length) - length;
-            if (paddingLen > 0) {
-                out.put(new byte[paddingLen]);
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        out.putInt(clNameBytes.length);
+        out.put(clNameBytes);
+        out.put((byte) 0);
+        int length = clNameBytes.length + 1;
+        int paddingLen = Helper.alignedSize(length) - length;
+        if (paddingLen > 0) {
+            out.put(new byte[paddingLen]);
         }
         encodeBSONBytes(matcherBytes, out);
         encodeBSONBytes(modifierBytes, out);

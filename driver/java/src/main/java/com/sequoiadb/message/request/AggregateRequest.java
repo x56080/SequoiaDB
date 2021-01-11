@@ -33,7 +33,7 @@ public class AggregateRequest extends SdbRequest {
     private static final short w = 0;
     private static final short padding = 0;
     private static final int flag = 0;
-    private String collectionName;
+    private byte[] clNameBytes;
     private List<byte[]> objsBytes;
 
     public AggregateRequest(String collectionName, List<BSONObject> objects) {
@@ -48,8 +48,12 @@ public class AggregateRequest extends SdbRequest {
             throw new BaseException(SDBError.SDB_INVALIDARG, "Aggregate objects is null or empty");
         }
 
-        this.collectionName = collectionName;
-        length += Helper.alignedSize(collectionName.length() + 1);
+        try {
+            this.clNameBytes = collectionName.getBytes(Helper.ENCODING_TYPE);
+            length += Helper.alignedSize(this.clNameBytes.length + 1);
+        }catch (UnsupportedEncodingException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        }
 
         objsBytes = new ArrayList<byte[]>(objects.size());
         for (BSONObject obj : objects) {
@@ -65,17 +69,13 @@ public class AggregateRequest extends SdbRequest {
         out.putShort(w);
         out.putShort(padding);
         out.putInt(flag);
-        out.putInt(collectionName.length());
-        try {
-            out.put(collectionName.getBytes("UTF-8"));
-            out.put((byte) 0); // end of string
-            int length = collectionName.length() + 1;
-            int paddingLen = Helper.alignedSize(length) - length;
-            if (paddingLen > 0) {
-                out.put(new byte[paddingLen]);
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        out.putInt(clNameBytes.length);
+        out.put(clNameBytes);
+        out.put((byte) 0); // end of string
+        int length = clNameBytes.length + 1;
+        int paddingLen = Helper.alignedSize(length) - length;
+        if (paddingLen > 0) {
+            out.put(new byte[paddingLen]);
         }
         for (byte[] docBytes : objsBytes) {
             encodeBSONBytes(docBytes, out);
