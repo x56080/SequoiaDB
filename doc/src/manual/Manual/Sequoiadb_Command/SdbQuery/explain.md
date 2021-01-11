@@ -49,6 +49,7 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | Query          | BSON 对象 | 访问计划解析后的用户查询条件                     |
 | IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br全>表扫描为 null    |
 | NeedMatch      | 布尔型    | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
+| IndexCover     | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | ReturnNum      | 长整型    | 访问计划返回记录的个数                           |
 | ElapsedTime    | 浮点数    | 访问计划查询耗时（单位：秒）                     |
 | IndexRead      | 长整型    | 访问计划扫描索引记录的个数                       |
@@ -77,6 +78,7 @@ Detail 选项为 false 时，将会展示普通的访问计划。
 | Query          | BSON 对象 | 访问计划解析后的用户查询条件                     |
 | IXBound        | BSON 对象 | 访问计划使用索引的查找范围<br全>表扫描为 null    |
 | NeedMatch      | 布尔型    | 访问计划获取记录时是否需要根据匹配符进行过滤<br>NeedMatch 为 false 的情况有：<br>1. 没有查询条件<br>2. 查询条件可以被索引覆盖 |
+| IndexCover     | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | ReturnNum      | 长整型    | 访问计划返回记录的个数                           |
 | ElapsedTime    | 浮点数    | 访问计划查询耗时（单位：秒）                     |
 | IndexRead      | 长整型    | 访问计划扫描索引记录的个数                       |
@@ -138,6 +140,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
     ]
   },
   "NeedMatch": false,
+  "IndexCover": true,
   "NodeName": "hostname:11830",
   "GroupName": "group",
   "Role": "data",
@@ -169,6 +172,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
       },
       "IXBound": null,
       "NeedMatch": false,
+      "IndexCover": false,
       "ReturnNum": 0,
       "ElapsedTime": 0.000088,
       "IndexRead": 0,
@@ -186,6 +190,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
       },
       "IXBound": null,
       "NeedMatch": false,
+      "IndexCover": true,
       "ReturnNum": 0,
       "ElapsedTime": 0.000089,
       "IndexRead": 0,
@@ -234,6 +239,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
   },
   "IXBound": null,
   "NeedMatch": true,
+  "IndexCover": false,
   "ReturnNum": 49892,
   "ElapsedTime": 0.323423,
   "IndexRead": 0,
@@ -260,6 +266,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
   },
   "IXBound": null,
   "NeedMatch": true,
+  "IndexCover": false,
   "ReturnNum": 50007,
   "ElapsedTime": 0.41887,
   "IndexRead": 0,
@@ -682,6 +689,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
                 ]
               },
               "NeedMatch": true,
+              "IndexCover": false,
               "IXEstFromStat": false
             },
             {
@@ -807,6 +815,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
                 ]
               },
               "NeedMatch": true,
+              "IndexCover": false,
               "IXEstFromStat": false
             },
             {
@@ -828,6 +837,7 @@ Search 选项为 true 时，将会展示[访问计划的搜索过程][cost_estim
                 ]
               },
               "NeedMatch": false,
+              "IndexCover": false,
               "IXEstFromStat": false
             },
             {

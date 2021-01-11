@@ -152,7 +152,7 @@ namespace engine
          goto done ;
       }
 
-      INT32 resize( UINT32 size )
+      INT32 resize( UINT32 size, BOOLEAN copyData = TRUE )
       {
          INT32 rc = SDB_OK ;
          if ( size <= _bufSize )
@@ -167,8 +167,11 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy data
-            ossMemcpy( pTmp, _dynamicBuf, sizeof( T ) * _eleSize ) ;
+            if( copyData)
+            {
+                /// copy data
+                ossMemcpy( pTmp, _dynamicBuf, sizeof( T ) * _eleSize ) ;
+            }
             /// set pointer
             _dynamicBuf = pTmp ;
             _bufSize = size ;
@@ -191,6 +194,11 @@ namespace engine
          return rc ;
       error:
          goto done ;
+      }
+
+      INT32 reserve( UINT32 size )
+      {
+         return resize( size, FALSE ) ;
       }
 
       OSS_INLINE _utilArray<T>& operator= ( const _utilArray<T> &rhs )

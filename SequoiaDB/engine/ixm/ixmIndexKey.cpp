@@ -42,6 +42,8 @@
 #include "ossMem.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
+#include "utilMemListPool.hpp"
+#include "utilStr.hpp"
 #include "ossLatch.hpp"
 
 using namespace bson ;
@@ -93,6 +95,333 @@ namespace engine
          }
          return b.obj() ;
       }
+   }
+
+   _ixmIndexCover::_ixmIndexCover( const BSONObj &keyPattern )
+   : _keyPattern( keyPattern ),
+     _treeInited( FALSE ),
+     _keyFieldMapInited( FALSE ),
+     _nfields( 0 ),
+     _bufSize( 0 ),
+     _bufPtr( NULL ),
+     _extraSize( 0 )
+   {
+   }
+   _ixmIndexCover::~_ixmIndexCover()
+   {
+      if( _bufPtr )
+      {
+         SDB_THREAD_FREE( _bufPtr ) ;
+      }
+   }
+
+   INT32 _ixmIndexCover::_initKeyFieldMap()
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         _nfields = 0;
+         _keyPattern = _keyPattern.getOwned() ;
+         BSONObjIterator iter( _keyPattern ) ;
+         // ensure _keyFieldMap is empty
+         _keyFieldMap.clear() ;
+         while( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            _keyFieldMap[ ele.fieldName() ] = _nfields ++;
+         }
+         _keyFieldMapInited = TRUE ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Init index field map, Occur exception: %s", e.what() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // keyPattern is { "a.c":1,"a.b":1 }
+   // then tree is
+   //   a   //
+   //  / \  //
+   // b   c //
+   INT32 _ixmIndexCover::_initTree()
+   {
+      INT32 rc = SDB_OK ;
+      // index tree has be generated, direct return root node pointer
+      if( !_treeInited )
+      {
+         if( !_keyFieldMapInited )
+         {
+            rc = _initKeyFieldMap() ;
+            PD_RC_CHECK( rc, PDWARNING, "Init index field map failed, rc: %d", rc ) ;
+         }
+         try
+         {
+            IXM_INDEX_FIELD_MAP::iterator iter ;
+            // ensure _root is empty
+            _root.reset() ;
+            // reserve vector capacity for children
+            rc = _root.childrenReserve( _keyFieldMap.size() ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Index field tree reserve children space failed, rc: %d",
+                         rc ) ;
+
+            for( iter = _keyFieldMap.begin() ;
+                 iter != _keyFieldMap.end() ;
+                 iter ++ )
+            {
+               ixmIndexNode *node = NULL ;
+               // the node is the leaf of the field
+               rc = _fieldNameToNodes( iter->first, node ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Index field name to nodes failed, rc: %d", rc ) ;
+               // iter->second is the index of field in key
+               // if a.b is contained by a ,then node is null
+               if( NULL != node )
+               {
+                  node->setFieldIndex( iter->second );
+               }
+            }
+            _treeInited = TRUE ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDWARNING, "Init index field tree Occur exception: %s", e.what() ) ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      _root.reset() ;
+      goto done ;
+   }
+
+   // name:a.c then nodes relation as flows:
+   //      a   //
+   //     /    //
+   //    c     //
+   // node c is leaf node as arg out
+   // if already exist tree a after a.c merged. then tree is a     //
+   //                      /                                / \    //
+   //                     b                                b   c   //
+   INT32 _ixmIndexCover::_fieldNameToNodes( const CHAR* fieldName,
+                                            ixmIndexNode *&node )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 level = 0 ;
+      ixmIndexNode *parent = &_root ;
+      ixmIndexNode *notAppendNode = NULL ;
+      const char* pos = fieldName ;
+
+      try
+      {
+         while ( pos )
+         {
+            const char *p = strchr(pos, '.');
+            INT32 len = 0 ;
+            len = p? (p - pos) : ossStrlen( pos ) ;
+            StringData name( pos, len ) ;
+            pos = p? (p + 1) : NULL ;
+
+            level ++ ;
+
+            ixmIndexNode *lastNode = parent->getLastChild() ;
+            if( NULL == lastNode )
+            {
+               node = SDB_OSS_NEW ixmIndexNode( name, level,
+                                                parent->childrenCapacity()/2 + 1 ) ;
+
+               PD_CHECK( NULL != node, SDB_OOM, error, PDWARNING,
+                         "Alloc index node memory failed, rc: %d", SDB_OOM ) ;
+
+               notAppendNode = node ;
+               rc = parent->appendChild( node ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Append child failed, rc: %d", rc ) ;
+               notAppendNode = NULL ;
+            }
+            else
+            {
+               if ( 0 == ossStrncmp( name.data(), lastNode->getName().data(),
+                                     OSS_MIN( name.size(), lastNode->getName().size() ) ) )
+               {
+                  if( lastNode->isLeaf() )
+                  {
+                     // contain by last field, ignore current field
+                     break ;
+                  }
+                  else
+                  {
+                     node = lastNode ;
+                  }
+               }
+               else
+               {
+                  node = SDB_OSS_NEW ixmIndexNode( name, level,
+                                                   parent->childrenCapacity()/2 + 1) ;
+                  PD_CHECK( NULL != node, SDB_OOM, error, PDWARNING,
+                            "Alloc index node memory failed, rc: %d", SDB_OOM ) ;
+                  notAppendNode = node ;
+                  rc = parent->appendChild( node ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Append child failed, rc: %d", rc ) ;
+                  notAppendNode = NULL ;
+               }
+            }
+            parent = node ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Index filed name to nodes, Occur exception: %s", e.what() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      if( notAppendNode )
+      {
+         SDB_OSS_DEL( notAppendNode ) ;
+      }
+      goto done ;
+   }
+
+   UINT32 _ixmIndexCover::getNfields()
+   {
+      return _nfields ;
+   }
+   INT32 _ixmIndexCover::getExtraSize( UINT32 &size )
+   {
+      INT32 rc = _initTree() ;
+      PD_RC_CHECK( rc, PDWARNING, "Init index tree failed, rc: %d", rc ) ;
+      if( 0 == _extraSize )
+      {
+         _extraSize = _root.getExtraSize() ;
+      }
+      size = _extraSize ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+   INT32 _ixmIndexCover::getTree( ixmIndexNode *&tree )
+   {
+      INT32 rc = _initTree() ;
+      PD_RC_CHECK( rc, PDWARNING, "Init index tree failed, rc: %d", rc ) ;
+      tree = &_root ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _ixmIndexCover::ensureBuff( UINT32 size, CHAR *&pBuff )
+   {
+      INT32 rc = SDB_OK ;
+      if( _bufSize >= size && _bufPtr)
+      {
+         pBuff = _bufPtr ;
+      }
+      else if( NULL != _bufPtr )
+      {
+         pBuff = ( CHAR* )SDB_THREAD_REALLOC( _bufPtr, size ) ;
+         if( NULL == pBuff )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         _bufPtr = pBuff ;
+         _bufSize = size ;
+      }
+      else
+      {
+         pBuff = ( CHAR* )SDB_THREAD_ALLOC( size ) ;
+         if( NULL == pBuff )
+         {
+            _bufSize = 0 ;
+            _bufPtr = NULL ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         _bufPtr = pBuff ;
+         _bufSize = size ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   const CHAR* _ixmIndexCover::getBuf() const
+   {
+      return _bufPtr ;
+   }
+
+   INT32 _ixmIndexCover::reInitContainer()
+   {
+      INT32 rc = SDB_OK ;
+      _container.clear( FALSE ) ;
+      if( _container.capacity() < _nfields )
+      {
+         rc = _container.reserve( _nfields ) ;
+      }
+      return rc ;
+   }
+
+   IXM_ELE_RAWDATA_ARRAY& _ixmIndexCover::getContainer()
+   {
+      return _container ;
+   }
+
+   BOOLEAN _ixmIndexCover::cover( const CHAR* fieldName )
+   {
+      BOOLEAN indexCover = FALSE ;
+      INT32 rc = SDB_OK ;
+
+      if( NULL == fieldName || '\0' == *fieldName )
+      {
+         indexCover = TRUE ;
+         goto done ;
+      }
+
+      if( !_keyFieldMapInited )
+      {
+         rc = _initKeyFieldMap() ;
+         PD_RC_CHECK( rc, PDWARNING, "Init index field map failed, rc: %d", rc ) ;
+      }
+
+      if( _keyFieldMap.end() != _keyFieldMap.find( fieldName ) )
+      {
+         indexCover = TRUE ;
+         goto done ;
+      }
+
+   done:
+      return indexCover ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _ixmIndexCover::cover( const IXM_FIELD_NAME_SET &fieldSet )
+   {
+      BOOLEAN indexCover = FALSE ;
+
+      IXM_FIELD_NAME_SET::iterator iter = fieldSet.begin() ;
+      for( iter = fieldSet.begin() ;
+         iter != fieldSet.end() ;
+         iter ++ )
+      {
+         if( FALSE == cover( *iter ) )
+         {
+            goto done ;
+         }
+      }
+      indexCover = TRUE ;
+   done:
+      return indexCover ;
    }
 
    /*

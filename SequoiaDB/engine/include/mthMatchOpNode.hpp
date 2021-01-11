@@ -533,6 +533,8 @@ namespace engine
          void getFuncList( MTH_FUNC_LIST &funcList ) ;
          BOOLEAN hasReturnMatch() ;
 
+         virtual INT32 getName ( IXM_FIELD_NAME_SET& nameSet ) ;
+
          virtual INT32 getBSONOpType () = 0 ;
 
       protected: /* from itself */

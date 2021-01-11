@@ -70,7 +70,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMNMATRIX_LOAD, "_mthSColumnMatrix::load" )
-   INT32 _mthSColumnMatrix::load( const bson::BSONObj &obj, BOOLEAN strictDataMode )
+   INT32 _mthSColumnMatrix::load( const bson::BSONObj &obj, BOOLEAN strictDataMode,
+                                  IXM_FIELD_NAME_SET *pSelectSet )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX_LOAD ) ;
@@ -91,11 +92,27 @@ namespace engine
 
       try
       {
+         BOOLEAN kownedType = TRUE ;
          /// must be sorted.
          BSONObjIteratorSorted i( _pattern ) ;
          while ( i.more() )
          {
-            rc = _load( i.next(), strictDataMode ) ;
+            BSONElement e = i.next() ;
+
+            if( NULL != pSelectSet )
+            {
+               if( Object == e.type() )
+               {
+                  pSelectSet->clear() ;
+                  kownedType = FALSE ;
+               }
+               else if( TRUE == kownedType)
+               {
+                  pSelectSet->insert( e.fieldName() ) ;
+               }
+            }
+
+            rc = _load( e, strictDataMode ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to load selector column[%s], rc:%d",

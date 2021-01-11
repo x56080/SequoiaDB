@@ -508,6 +508,7 @@
 #define FIELD_NAME_IX_BOUND                  "IXBound"
 #define FIELD_NAME_QUERY                     "Query"
 #define FIELD_NAME_NEED_MATCH                "NeedMatch"
+#define FIELD_NAME_INDEX_COVER               "IndexCover"
 #define FIELD_NAME_RTYPE                     "ReturnType"
 #define FIELD_NAME_ONLY_DETACH               "OnlyDetach"
 #define FIELD_NAME_ONLY_ATTACH               "OnlyAttach"

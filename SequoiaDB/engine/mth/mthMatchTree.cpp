@@ -2066,6 +2066,16 @@ namespace engine
       goto done ;
    }
 
+   INT32 _mthMatchTree::getName ( IXM_FIELD_NAME_SET& nameSet ) const
+   {
+      INT32 rc = SDB_OK ;
+      if ( _root )
+      {
+         rc = _root->getName( nameSet ) ;
+      }
+      return rc ;
+   }
+
    void _mthMatchTree::_checkTotallyConverted( _mthMatchNode *node,
                                                BOOLEAN &isTotallyConverted )
    {

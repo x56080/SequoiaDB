@@ -134,6 +134,8 @@ namespace engine
          INT32    calcPredicate ( rtnPredicateSet &predicateSet,
                                   const rtnParamList * paramList ) ;
 
+         INT32  getName ( IXM_FIELD_NAME_SET& nameSet ) const ;
+
       private:
          INT32    _matches( const BSONObj &matchTarget, BOOLEAN &result,
                             _mthMatchTreeContext &context ) ;
@@ -276,6 +278,8 @@ namespace engine
       void setQueryModify( BOOLEAN isQueryModify ) ;
       void setDataPtr( ossValuePtr &dataPtr ) ;
       void getDataPtr( ossValuePtr &dataPtr ) ;
+
+      BOOLEAN isQueryModify() { return _isQueryModify ; }
 
    private:
       INT32 _createArrayObj( const CHAR* name,

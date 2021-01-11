@@ -102,7 +102,8 @@ namespace engine
    :_direction( planRuntime->getPredList()->getDirection() ),
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
-    _order( Ordering::make( pIndexCB->keyPattern() ) )
+    _order( Ordering::make( pIndexCB->keyPattern() ) ),
+    _index( pIndexCB->keyPattern() )
    {
       _indexCB = NULL ;
       _owned = FALSE ;
@@ -113,6 +114,7 @@ namespace engine
       _isReadonly = TRUE ;
       _eof = FALSE ;
       _transIsolation = cb->getTransExecutor()->getTransIsolation() ;
+      _indexCover = FALSE ;
 
       /// set shared info pointer
       _pInfo = &_sharedInfo ;
@@ -272,6 +274,21 @@ namespace engine
          return _pInfo->insert( rid ) ;
       }
       return TRUE ;
+   }
+
+   BOOLEAN _rtnIXScanner::isIndexCover() const
+   {
+      return _indexCover ;
+   }
+
+   void _rtnIXScanner::setIndexCover( const BOOLEAN indexCover )
+   {
+      _indexCover = indexCover ;
+   }
+
+   ixmIndexCover& _rtnIXScanner::getIndex()
+   {
+      return _index ;
    }
 
    INT32 _rtnIXScanner::syncPredStatus( _rtnIXScanner *source )

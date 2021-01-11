@@ -52,6 +52,7 @@
 #include "dpsTransVersionCtrl.hpp"
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
+#include "utilPooledAutoPtr.hpp"
 
 using namespace bson ;
 
@@ -146,6 +147,9 @@ namespace engine
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
 
       BOOLEAN     eof() const ;
+      BOOLEAN                isIndexCover() const ;
+      void                   setIndexCover( const BOOLEAN indexCover ) ;
+      ixmIndexCover&         getIndex() ;
 
       INT64 getExpReturn () const ;
 
@@ -210,7 +214,8 @@ namespace engine
    private:
       BOOLEAN                 _isReadonly ;
       rtnScannerSharedInfo    _sharedInfo ;
-
+      BOOLEAN                 _indexCover ;
+      ixmIndexCover           _index ;
    } ;
    typedef class _rtnIXScanner rtnIXScanner ;
 

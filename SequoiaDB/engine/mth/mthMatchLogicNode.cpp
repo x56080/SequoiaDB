@@ -144,6 +144,31 @@ namespace engine
       return builder.obj() ;
    }
 
+   INT32 _mthMatchLogicNode::getName ( IXM_FIELD_NAME_SET& nameSet )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         // logic node have children node named a b and c, all of a b c should indexCover
+         _mthMatchNodeIterator iter( this ) ;
+         while ( iter.more() )
+         {
+            _mthMatchNode *node = iter.next() ;
+            node->getName( nameSet ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Get logic match node name, Occur exception: %s",
+                      e.what() ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicAndNode::_mthMatchLogicAndNode( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )

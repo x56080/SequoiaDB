@@ -342,13 +342,14 @@ T}@T{
 T}@T{
 T}@T{
 detailed access plan.
+<
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-Display the estimate
+br>Display the estimate
 T}
 T{
 T}@T{
@@ -787,13 +788,14 @@ T}@T{
 T}@T{
 T}@T{
 estimation results.
+<
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
-If Filter is
+br>If Filter is
 T}
 T{
 T}@T{
@@ -1643,6 +1645,75 @@ T}
 T{
 11
 T}@T{
+IndexCover
+T}@T{
+bool
+T}@T{
+whether the matching
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+condition field,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+selection field and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+sorting field of access
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+plan are covered by
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the index.if it is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+covered by index, we
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+can use index value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+instead of record to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+improve access
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+performance
+T}
+T{
+12
+T}@T{
 ReturnNum
 T}@T{
 long
@@ -1662,7 +1733,7 @@ T}@T{
 returns
 T}
 T{
-12
+13
 T}@T{
 ElapsedTime
 T}@T{
@@ -1677,7 +1748,7 @@ T}@T{
 access plan( unit: s )
 T}
 T{
-13
+14
 T}@T{
 IndexRead
 T}@T{
@@ -1698,7 +1769,7 @@ T}@T{
 plan scanns
 T}
 T{
-14
+15
 T}@T{
 DataRead
 T}@T{
@@ -1719,7 +1790,7 @@ T}@T{
 plan scanns
 T}
 T{
-15
+16
 T}@T{
 UserCPU
 T}@T{
@@ -1734,7 +1805,7 @@ T}@T{
 time( unit: s )
 T}
 T{
-16
+17
 T}@T{
 SysCPU
 T}@T{
@@ -2094,6 +2165,75 @@ T}
 T{
 8
 T}@T{
+IndexCover
+T}@T{
+bool
+T}@T{
+whether the matching
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+condition field,
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+selection field and
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+sorting field of access
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+plan are covered by
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+the index.if it is
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+covered by index, we
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+can use index value
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+instead of record to
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+improve access
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+performance
+T}
+T{
+9
+T}@T{
 ReturnNum
 T}@T{
 long
@@ -2113,7 +2253,7 @@ T}@T{
 returns
 T}
 T{
-9
+10
 T}@T{
 ElapsedTime
 T}@T{
@@ -2128,7 +2268,7 @@ T}@T{
 access plan( unit: s )
 T}
 T{
-10
+11
 T}@T{
 IndexRead
 T}@T{
@@ -2149,7 +2289,7 @@ T}@T{
 plan scanns
 T}
 T{
-11
+12
 T}@T{
 DataRead
 T}@T{
@@ -2170,7 +2310,7 @@ T}@T{
 plan scanns
 T}
 T{
-12
+13
 T}@T{
 UserCPU
 T}@T{
@@ -2185,7 +2325,7 @@ T}@T{
 time( unit: s )
 T}
 T{
-13
+14
 T}@T{
 SysCPU
 T}@T{
@@ -2200,15 +2340,16 @@ T}@T{
 time( unit: s )
 T}
 .TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
-.PP
+.RS
 .IP "1." 3
 If the collection is distributed across multiple replication groups, the access
 plan is returned as a set of records.
 .RE
-.PP
+.RS
 .IP "2." 3
 If the match of the query cannot hit any of the partitions of the vertical
 partiton, the query will not be sebt to the data node for execution, and access
@@ -2231,9 +2372,9 @@ On success, return access plan\[aq]s cursor.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, refer to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Normal access plan.
@@ -2241,7 +2382,7 @@ Normal access plan.
 .nf
 \f[C]
 {
-\ \ "Name":\ "foo.bar",
+\ \ "Name":\ "sample.employee",
 \ \ "ScanType":\ "ixscan",
 \ \ "IndexName":\ "$shard",
 \ \ "UseExtSort":\ false,
@@ -2265,6 +2406,7 @@ Normal access plan.
 \ \ \ \ ]
 \ \ },
 \ \ "NeedMatch":\ false,
+\ \ "IndexCover":\ true,
 \ \ "NodeName":\ "hostname:11830",
 \ \ "GroupName":\ "group",
 \ \ "Role":\ "data",
@@ -2298,6 +2440,7 @@ Vertical partition access plan.
 \ \ \ \ \ \ },
 \ \ \ \ \ \ "IXBound":\ null,
 \ \ \ \ \ \ "NeedMatch":\ false,
+\ \ \ \ \ \ "IndexCover":\ true,
 \ \ \ \ \ \ "ReturnNum":\ 0,
 \ \ \ \ \ \ "ElapsedTime":\ 0.000088,
 \ \ \ \ \ \ "IndexRead":\ 0,
@@ -2315,6 +2458,7 @@ Vertical partition access plan.
 \ \ \ \ \ \ },
 \ \ \ \ \ \ "IXBound":\ null,
 \ \ \ \ \ \ "NeedMatch":\ false,
+\ \ \ \ \ \ "IndexCover":\ true,
 \ \ \ \ \ \ "ReturnNum":\ 0,
 \ \ \ \ \ \ "ElapsedTime":\ 0.000089,
 \ \ \ \ \ \ "IndexRead":\ 0,
@@ -2349,12 +2493,12 @@ option.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Run\ :\ true\ }\ )
+>\ db.sample.employee.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Run\ :\ true\ }\ )
 {
 \ \ "NodeName":\ "hostname:11810",
 \ \ "GroupName":\ "group1",
 \ \ "Role":\ "data",
-\ \ "Name":\ "foo.bar",
+\ \ "Name":\ "sample.employee",
 \ \ "ScanType":\ "tbscan",
 \ \ "IndexName":\ "",
 \ \ "UseExtSort":\ false,
@@ -2369,6 +2513,7 @@ option.
 \ \ },
 \ \ "IXBound":\ null,
 \ \ "NeedMatch":\ true,
+\ \ "IndexCover":\ falses,
 \ \ "ReturnNum":\ 49892,
 \ \ "ElapsedTime":\ 0.323423,
 \ \ "IndexRead":\ 0,
@@ -2380,7 +2525,7 @@ option.
 \ \ "NodeName":\ "hostname:11820",
 \ \ "GroupName":\ "group2",
 \ \ "Role":\ "data",
-\ \ "Name":\ "foo.bar",
+\ \ "Name":\ "sample.employee",
 \ \ "ScanType":\ "tbscan",
 \ \ "IndexName":\ "",
 \ \ "UseExtSort":\ false,
@@ -2395,6 +2540,7 @@ option.
 \ \ },
 \ \ "IXBound":\ null,
 \ \ "NeedMatch":\ true,
+\ \ "IndexCover":\ false,
 \ \ "ReturnNum":\ 50007,
 \ \ "ElapsedTime":\ 0.41887,
 \ \ "IndexRead":\ 0,
@@ -2409,12 +2555,12 @@ Use the Detail option to view the detailed access plan for the query.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true\ }\ )
+>\ db.sample.employee.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true\ }\ )
 {
 \ \ "NodeName":\ "hostname:11800",
 \ \ "GroupName":\ "SYSCoord",
 \ \ "Role":\ "coord",
-\ \ "Collection":\ "foo.bar",
+\ \ "Collection":\ "sample.employee",
 \ \ "Query":\ {
 \ \ \ \ "a":\ {
 \ \ \ \ \ \ "$gt":\ 100
@@ -2465,7 +2611,7 @@ Use the Detail option to view the detailed access plan for the query.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11810",
 \ \ \ \ \ \ \ \ "GroupName":\ "group1",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2499,7 +2645,7 @@ Use the Detail option to view the detailed access plan for the query.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11820",
 \ \ \ \ \ \ \ \ "GroupName":\ "group2",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2540,12 +2686,12 @@ query using the Run option.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Run\ :\ true\ }\ )
+>\ db.sample.employee.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Run\ :\ true\ }\ )
 {
 \ \ "NodeName":\ "hostname:11800",
 \ \ "GroupName":\ "SYSCoord",
 \ \ "Role":\ "coord",
-\ \ "Collection":\ "foo.bar",
+\ \ "Collection":\ "sample.employee",
 \ \ "Query":\ {
 \ \ \ \ "a":\ {
 \ \ \ \ \ \ "$gt":\ 100
@@ -2608,7 +2754,7 @@ query using the Run option.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11820",
 \ \ \ \ \ \ \ \ "GroupName":\ "group2",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2642,7 +2788,7 @@ query using the Run option.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11810",
 \ \ \ \ \ \ \ \ "GroupName":\ "group1",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2683,12 +2829,12 @@ Search option to view the search optimizer\[aq]s search process.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Search\ :\ true\ }\ )
+>\ db.sample.employee.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Search\ :\ true\ }\ )
 {
 \ \ "NodeName":\ "hostname:11800",
 \ \ "GroupName":\ "SYSCoord",
 \ \ "Role":\ "coord",
-\ \ "Collection":\ "foo.bar",
+\ \ "Collection":\ "sample.employee",
 \ \ "Query":\ {
 \ \ \ \ "a":\ {
 \ \ \ \ \ \ "$gt":\ 100
@@ -2739,7 +2885,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11820",
 \ \ \ \ \ \ \ \ "GroupName":\ "group2",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2765,7 +2911,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ "PlanPath":\ {
 \ \ \ \ \ \ \ \ \ \ "Operator":\ "TBSCAN",
-\ \ \ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$and":\ [
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2825,6 +2971,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ]
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "NeedMatch":\ true,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ "IndexCover":\ false,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IXEstFromStat":\ false
 \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2846,6 +2993,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ]
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "NeedMatch":\ false,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ "IndexCover":\ false,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IXEstFromStat":\ false
 \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2864,7 +3012,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11810",
 \ \ \ \ \ \ \ \ "GroupName":\ "group1",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100
@@ -2890,7 +3038,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ "PlanPath":\ {
 \ \ \ \ \ \ \ \ \ \ "Operator":\ "TBSCAN",
-\ \ \ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$and":\ [
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2950,6 +3098,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ]
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "NeedMatch":\ true,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ "IndexCover":false,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IXEstFromStat":\ false
 \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2971,6 +3120,7 @@ Search option to view the search optimizer\[aq]s search process.
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ]
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "NeedMatch":\ false,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ "IndexCover":false,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IXEstFromStat":\ false
 \ \ \ \ \ \ \ \ \ \ \ \ },
 \ \ \ \ \ \ \ \ \ \ \ \ {
@@ -2996,12 +3146,12 @@ Location option to view the query\[aq]s access plan on group1.
 .IP
 .nf
 \f[C]
->\ db.foo.bar.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Location\ :\ {\ GroupName\ :\ \[aq]group1\[aq]\ }\ }\ )
+>\ db.sample.employee.find(\ {\ a\ :\ {\ $gt\ :\ 100\ }\ }\ ).explain(\ {\ Detail\ :\ true,\ Location\ :\ {\ GroupName\ :\ \[aq]group1\[aq]\ }\ }\ )
 {
 \ \ "NodeName":\ "hostname:11800",
 \ \ "GroupName":\ "SYSCoord",
 \ \ "Role":\ "coord",
-\ \ "Collection":\ "foo.bar",
+\ \ "Collection":\ "sample.employee",
 \ \ "Query":\ {
 \ \ \ \ "a":\ {
 \ \ \ \ \ \ "$gt":\ 100
@@ -3052,7 +3202,7 @@ Location option to view the query\[aq]s access plan on group1.
 \ \ \ \ \ \ \ \ "NodeName":\ "hostname:11810",
 \ \ \ \ \ \ \ \ "GroupName":\ "group1",
 \ \ \ \ \ \ \ \ "Role":\ "data",
-\ \ \ \ \ \ \ \ "Collection":\ "foo.bar",
+\ \ \ \ \ \ \ \ "Collection":\ "sample.employee",
 \ \ \ \ \ \ \ \ "Query":\ {
 \ \ \ \ \ \ \ \ \ \ "a":\ {
 \ \ \ \ \ \ \ \ \ \ \ \ "$gt":\ 100

@@ -614,6 +614,7 @@
 |IXBound|bson|IXSCAN 访问索引的查找范围|
 |Query|bson|IXSCAN 执行的匹配符|
 |NeedMatch|boolean|IXSCAN 是否需要在数据上执行匹配符进行过滤|
+| IndexCover     | boolean    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 |Selector|bson|IXSCAN 执行的选择符|
 |Skip|int64|指定 IXSCAN 需要跳过的记录个数|
 |Return|int64|指定 IXSCAN 最多返回的记录个数|
@@ -674,6 +675,7 @@
       ]
     },
     "NeedMatch": false,
+    "IndexCover": true,
     "Selector": {},
     "Skip": 0,
     "Return": -1,

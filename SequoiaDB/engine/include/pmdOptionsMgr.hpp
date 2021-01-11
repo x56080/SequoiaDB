@@ -658,6 +658,7 @@ namespace engine
          OSS_INLINE BOOLEAN logTimeOn() const { return _logTimeOn ; }
          OSS_INLINE BOOLEAN isSleepEnabled() const { return _enableSleep ; }
          OSS_INLINE BOOLEAN recycleRecord() const { return _recycleRecord ; }
+         OSS_INLINE BOOLEAN isIndexCoverOn() const { return _indexCoverOn ; }
          OSS_INLINE UINT32 maxSockPerNode() const { return _maxSockPerNode ; }
          OSS_INLINE UINT32 maxSockPerThread() const { return _maxSockPerThread ; }
          OSS_INLINE UINT32 maxSockThread() const { return _maxSockThread ; }
@@ -792,6 +793,7 @@ namespace engine
          BOOLEAN     _logTimeOn ;
          BOOLEAN     _enableSleep ;
          BOOLEAN     _recycleRecord ;
+         BOOLEAN     _indexCoverOn ;
          UINT32      _maxSockPerNode ;
          UINT32      _maxSockPerThread ;
          UINT32      _maxSockThread ;

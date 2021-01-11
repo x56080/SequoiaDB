@@ -68,7 +68,8 @@ namespace engine
 
    public:
       INT32 loadPattern( const bson::BSONObj &pattern, 
-                         BOOLEAN strictDataMode = FALSE ) ;
+                         BOOLEAN strictDataMode = FALSE,
+                         IXM_FIELD_NAME_SET *pSelectSet = NULL ) ;
 
       INT32 select( const bson::BSONObj &source,
                     bson::BSONObj &target ) ;

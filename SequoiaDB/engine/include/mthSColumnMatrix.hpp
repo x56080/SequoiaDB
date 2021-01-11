@@ -61,7 +61,8 @@ namespace engine
       virtual void clear() ;
 
    public:
-      INT32 load( const bson::BSONObj &obj, BOOLEAN strictDataMode = FALSE ) ;
+      INT32 load( const bson::BSONObj &obj, BOOLEAN strictDataMode = FALSE,
+                  IXM_FIELD_NAME_SET *pSelectSet = NULL ) ;
 
       INT32 select( const bson::BSONObj &obj,
                     bson::BSONObj &selected ) ;
@@ -88,7 +89,6 @@ namespace engine
 
       INT32 _addMiddleAction( _mthSColumn *column,
                               INT32 numberic ) ;
-
    private:
       bson::BSONObj _pattern ;
 

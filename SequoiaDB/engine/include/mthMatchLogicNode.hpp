@@ -67,6 +67,7 @@ namespace engine
          virtual BOOLEAN isTotalConverted() ;
          virtual BSONObj toBson() ;
          virtual BSONObj toParamBson ( const rtnParamList &parameters ) ;
+         virtual INT32 getName ( IXM_FIELD_NAME_SET& nameSet ) ;
 
       protected:
          virtual INT32 _init( const CHAR *fieldName,

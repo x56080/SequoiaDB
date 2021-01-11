@@ -359,6 +359,10 @@ namespace engine
    class _dmsIXSecScanner : public _dmsScanner
    {
       friend class _dmsIXScanner ;
+
+      class _SimpleBSONBuilder ;
+      typedef _SimpleBSONBuilder SimpleBSONBuilder ;
+
       public:
          _dmsIXSecScanner ( dmsStorageDataCommon *su,
                             _dmsMBContext *context,
@@ -413,6 +417,12 @@ namespace engine
                                 dmsRecordID &waitUnlockRID,
                                 dmsRecordData *recordData,
                                 BOOLEAN &skipRecord ) ;
+
+         BOOLEAN _buildObj( ixmIndexNode *node,
+                            IXM_ELE_RAWDATA_ARRAY& value,
+                            SimpleBSONBuilder& builder ) ;
+
+         INT32 _buildIndexRecord( BOOLEAN& completed ) ;
 
       private:
          INT64                _maxRecords ;

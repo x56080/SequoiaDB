@@ -1,4 +1,4 @@
-<!-- Configuration List                                                                     -->
+﻿<!-- Configuration List                                                                     -->
 <!-- name: (required) the macro name that going to be generated in source code              -->
 <!-- long: (required) configure option ( long version )                                     -->
 <!-- short: (optional) configure option ( short version, one character )                    -->
@@ -2641,6 +2641,25 @@
       </detail>
       <type>int</type>
       <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_INDEXCOVERON</name>
+      <long>indexcoveron</long>
+      <description>
+        <en>Turn on index cover, default true.</en>
+        <cn>开启覆盖索引功能，默认为true。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>Turn on index cover, default true.</en>
+        <cn>开启覆盖索引功能，默认为true。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
    </opt>
 
 </optlist>

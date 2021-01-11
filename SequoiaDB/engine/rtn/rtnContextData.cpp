@@ -76,6 +76,7 @@ namespace engine
       _scanner          = NULL ;
       _direction        = 0 ;
       _queryModifier    = NULL ;
+      _indexCover       = FALSE ;
 
       // Save query activity
       _enableMonContext = TRUE ;
@@ -333,19 +334,33 @@ namespace engine
       // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
+         IXM_FIELD_NAME_SET selectSet ;
          try
          {
-            rc = _selector.loadPattern ( selector, isStictType ) ;
+            if( TRUE == pmdGetOptionCB()->isIndexCoverOn() )
+            {
+               rc = _selector.loadPattern ( selector, isStictType, &selectSet ) ;
+            }
+            else
+            {
+               rc = _selector.loadPattern ( selector, isStictType, NULL ) ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for select: "
+                         "%s, rc: %d", selector.toString().c_str(), rc ) ;
          }
          catch ( std::exception &e )
          {
-            PD_LOG ( PDERROR, "Invalid pattern is detected for select: %s: %s",
-                     selector.toString().c_str(), e.what() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed selector loadPattern, exception: %s, rc=%d",
+                         e.what(), rc ) ;
          }
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for select: "
-                      "%s, rc: %d", selector.toString().c_str(), rc ) ;
+
+         _evalIndexCover( selectSet ) ;
+
+         if ( _scanner )
+         {
+            _scanner->setIndexCover( _indexCover ) ;
+         }
       }
 
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -588,6 +603,50 @@ namespace engine
       {
          cb->unregisterMonCRUDCB() ;
       }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__EVALCOVER, "_rtnContextData::_evalIndexCover" )
+   INT32 _rtnContextData::_evalIndexCover( IXM_FIELD_NAME_SET &selectSet )
+   {
+      INT32 rc = SDB_OK ;
+      IXM_FIELD_NAME_SET::iterator it ;
+      PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__EVALCOVER );
+
+      _indexCover = FALSE ;
+      if ( !_planRuntime.isIndexCover() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         if( selectSet.size() > 0 )
+         {
+            ixmIndexCover index( _planRuntime.getPlan()->getKeyPattern() ) ;
+            it = selectSet.begin() ;
+            while( it != selectSet.end() )
+            {
+               if( FALSE == index.cover( (*it) ) )
+               {
+                  goto done ;
+               }
+               ++ it ;
+            }
+            _indexCover = TRUE ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to eval IndexCover, exception: %s, rc=%d",
+                      e.what(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__EVALCOVER, rc );
       return rc ;
    error:
       goto done ;

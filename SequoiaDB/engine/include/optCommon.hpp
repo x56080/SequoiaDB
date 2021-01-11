@@ -277,6 +277,7 @@ namespace engine
    #define OPT_FIELD_IX_BOUND             FIELD_NAME_IX_BOUND
    #define OPT_FIELD_DIRECTION            FIELD_NAME_DIRECTION
    #define OPT_FIELD_NEED_MATCH           FIELD_NAME_NEED_MATCH
+   #define OPT_FIELD_INDEX_COVER          FIELD_NAME_INDEX_COVER
    #define OPT_FIELD_PAGES                "Pages"
    #define OPT_FIELD_PAGE_SIZE            FIELD_NAME_PAGE_SIZE
    #define OPT_FIELD_RECORDS              "Records"
