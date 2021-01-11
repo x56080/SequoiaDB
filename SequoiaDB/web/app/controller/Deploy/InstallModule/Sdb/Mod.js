@@ -308,6 +308,7 @@
                loadName.push( name.toLowerCase() ) ;
                var value = '' ;
                var offset = null ;
+               var prevSvcname = 0 ;
                $.each( currentNodeList, function( index2, info ){
                   if( info['checked'] == true )
                   {
@@ -335,7 +336,7 @@
                         {
                            if( offset == null )
                            {
-                              offset = parseInt( info['svcname'] ) - parseInt( currentNodeList[index2-1]['svcname'] ) ;
+                              offset = parseInt( info['svcname'] ) - parseInt( prevSvcname ) ;
                               if( offset != 0 )
                               {
                                  value = value + '[' + ( offset > 0 ? '+' : '' ) + offset + ']' ;
@@ -343,13 +344,15 @@
                            }
                            else
                            {
-                              if( offset != parseInt( info['svcname'] ) - parseInt( currentNodeList[index2-1]['svcname'] ) )
+                              if( offset != parseInt( info['svcname'] ) - parseInt( prevSvcname ) )
                               {
                                  value = '' ;
                                  return false ;
                               }
                            }
                         }
+
+                        prevSvcname = info['svcname'] ;
                      }
                      else
                      {
