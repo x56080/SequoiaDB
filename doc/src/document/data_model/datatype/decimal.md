@@ -24,7 +24,7 @@
 
 >  **Note:**
 >
->  请参考 [NumberDecimal](reference/Sequoiadb_command/SpecialObjects/NumberDecimal.md)。
+>  高精度数的更多用法可参考 [NumberDecimal](reference/Sequoiadb_command/SpecialObjects/NumberDecimal.md)。
 
 ##示例##
 
