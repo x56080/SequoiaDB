@@ -7636,7 +7636,8 @@ do                                                            \
          goto error ;
       }
       rc = clientExtractSysInfoReply ( (CHAR*)pReply, &_endianConvert, NULL,
-                                       &_authVersion, NULL, NULL, NULL, NULL ) ;
+                                       &_authVersion, &_dbStartTime,
+                                       &_version, &_subVersion, &_fixVersion ) ;
       if ( rc )
       {
          goto error ;
