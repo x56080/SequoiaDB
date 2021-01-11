@@ -83,7 +83,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 - 为分区指定 hash 切片数 Partition 属性，在表备注中指定 partition_options 等价于在每个分区备注中单独指定 partition_options（以下两个语句效果完全一致）
 
    ```lang-sql
-   CREATE TABLE goods (
+   mysql> CREATE TABLE goods (
        id INT NOT NULL,
        produced_date DATE,
        name VARCHAR(100),
@@ -98,7 +98,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
        PARTITION p2 VALUES LESS THAN ('2010-01-01')
    );
 
-   CREATE TABLE goods (
+   mysql> CREATE TABLE goods (
        id INT NOT NULL,
        produced_date DATE,
        name VARCHAR(100),
