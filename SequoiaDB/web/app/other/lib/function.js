@@ -2066,25 +2066,25 @@ function selectDBPath( dbpath, role, svcname, groupname, hostname )
 	}
 	if( role !== null && role !== '' )
 	{
-		var reg = new RegExp( '/' + role + '/|/' + role + '$', 'g' ) ;
+		var reg = new RegExp( '(?!^/' + role + '/)/' + role + '/|/' + role + '$', 'g' ) ;
 		replaceTemp = '[role]' ;
 		dbpath = dbpath.replace( reg, filterSlash ) ;
 	}
 	if( svcname !== null && svcname !== '' )
 	{
-		var reg = new RegExp( '/' + svcname + '/|/' + svcname + '$', 'g' ) ;
+		var reg = new RegExp( '(?!^/' + svcname + '/)/' + svcname + '/|/' + svcname + '$', 'g' ) ;
 		replaceTemp = '[svcname]' ;
 		dbpath = dbpath.replace( reg, filterSlash ) ;
 	}
 	if( groupname !== null && groupname !== '' )
 	{
-		var reg = new RegExp( '/' + groupname + '/|/' + groupname + '$', 'g' ) ;
+		var reg = new RegExp( '(?!^/' + groupname + '/)/' + groupname + '/|/' + groupname + '$', 'g' ) ;
 		replaceTemp = '[groupname]' ;
 		dbpath = dbpath.replace( reg, filterSlash ) ;
 	}
 	if( hostname !== null && hostname !== '' )
 	{
-		var reg = new RegExp( '/' + hostname + '/|/' + hostname + '$', 'g' ) ;
+		var reg = new RegExp( '(?!^/' + hostname + '/)/' + hostname + '/|/' + hostname + '$', 'g' ) ;
 		replaceTemp = '[hostname]' ;
 		dbpath = dbpath.replace( reg, filterSlash ) ;
 	}
