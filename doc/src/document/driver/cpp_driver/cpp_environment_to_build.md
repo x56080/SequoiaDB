@@ -1,4 +1,4 @@
-##获取驱动开发包##
+﻿##获取驱动开发包##
 
 从 [SequoiaDB](http://download.sequoiadb.com/cn/index-cat_id-2) 下载对应操作系统版本的 SequoiaDB 驱动开发包。
 
@@ -17,13 +17,13 @@
   使用 lib 目录下的 libsdbcpp.so 动态库，g++ 编译参数形式如：
 
   ```lang-javascript
-  $ g++ main.cpp -o test -I &lt;PATH&gt;/sdbdriver/include -L &lt;PATH&gt;/sdbdriver/lib -lsdbcpp
+  $ g++ main.cpp -o test -I <PATH>/sdbdriver/include -L<PATH>/sdbdriver/lib -lsdbcpp
   ```
 
   其中：PATH 为 sdbdriver 放置路径；运行程序时，用户需要将 LD_LIBRARY_PATH 路径指定为包含 libsdbcpp.so 动态库的路径。
 
   ```lang-javascript
-  $ export LD_LIBRARY_PATH=&lt;PATH&gt;/sdbdriver/lib
+  $ export LD_LIBRARY_PATH=<PATH>/sdbdriver/lib
   ```
 
   >**Note:**
@@ -41,7 +41,7 @@
   使用 lib 目录下的 libstaticsdbc.a 静态库，g++ 编译参数形式如：
 
   ```lang-javascript
-  $ g++ main.cpp -o test -I &lt;path&gt;/sdbdriver/include –L &lt;path&gt;/sdbdriver/lib/ -lstaticsdbcpp –lm -lpthread -ldl
+  $ g++ main.cpp -o test -I <path>/sdbdriver/include –L <path>/sdbdriver/lib/ -lstaticsdbcpp –lm -lpthread -ldl
   ```
 
 * Windows

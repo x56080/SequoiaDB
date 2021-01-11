@@ -1,11 +1,11 @@
-这里介绍如何使用 C++ 客户端驱动接口编写使用 SequoiaDB 数据库的程序。为了简单起见，下面的示例不全部是完整的代码，只起示例性作用。可到 /sequoiadb/client/samples/CPP 下获取相应的完整的代码。更多查看 [C++ API](api/cpp/html/index.html)
+﻿这里介绍如何使用 C++ 客户端驱动接口编写使用 SequoiaDB 数据库的程序。为了简单起见，下面的示例不全部是完整的代码，只起示例性作用。可到 /sequoiadb/client/samples/CPP 下获取相应的完整的代码。更多查看 [C++ API](api/cpp/html/index.html)
 
 ##数据库操作##
 
 * 连接数据库：connect.cpp 演示如何连接到数据库。文件应当包含“client.hpp”头文件及使用命名空间 sdbclient。
 
   ```lang-javascript
-  #include &lt;iostream&gt;
+  #include <iostream>;
   #include "client.hpp"
 
   using namespace std ;
@@ -53,14 +53,14 @@
     // Display Syntax Error
     void displaySyntax ( CHAR *pCommand )
     {
-      cout << "Syntax:" << pCommand << " &lt;hostname&gt;  &lt;servicename&gt;  &lt;username&gt;  &lt;password&gt; " << endl ;
+      cout << "Syntax:" << pCommand << " <hostname> <servicename> <username><password> " << endl ;
     }
   ```
 
   在 Linux下，可以如下编译及链接动态链接库文件 libsdbcpp.so:
 
   ```lang-javascript
-  $ g++ -o connect connect.cpp -I &lt;PATH&gt;/sdbdriver/include -lsdbcpp -L &lt;PATH&gt;/sdbdriver/lib  
+  $ g++ -o connect connect.cpp -I <PATH>/sdbdriver/include -lsdbcpp -L <PATH>/sdbdriver/lib  
   执行结果如下：
   $ ./connect localhost 11810 "" ""
   Connect success!
