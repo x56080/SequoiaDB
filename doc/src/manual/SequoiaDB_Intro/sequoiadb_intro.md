@@ -40,7 +40,7 @@ SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场
 [^_^]:
     TODO:该页面需要调整
 
-[userlist]:http://solution.sequoiadb.com/cn/
+[userlist]:http://solution.sequoiadb.com/cn/#customer
 [usecase]:manual/SequoiaDB_Intro/usage.md
 [onlinetransaction]:manual/SequoiaDB_Intro/usage.md
 [mid-end]:manual/SequoiaDB_Intro/usage.md#数据中台服务
