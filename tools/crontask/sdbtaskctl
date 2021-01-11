@@ -44,6 +44,36 @@ function check_num_para()
    fi
 }
 
+function check_time_para()
+{
+   # check timestamp, for 'HH:mm'
+   
+   local para_name=$1
+   local para_value=$2
+   
+   # separated by :
+   local arr=(${para_value//:/ })  ## eg: 11:23 -> 11 23
+   local size=${#arr[*]}
+   if [ $size -ne 2 ] ; then 
+      echo "sdbtaskctl: invalid value for parameter \"$para_name\": \"$para_value\"" >&2
+      echo 'Try "sdbtaskctl --help" for more information.'
+      exit 64
+   fi
+   
+   # check hour and minute
+   local hour=${arr[0]}    ## range [0,23]
+   check_num_para "$para_name" "$hour"
+   
+   local minute=${arr[1]}  ## range [0,59]
+   check_num_para "$para_name" "$minute"
+   
+   if [ $hour -lt 0 -o $hour -gt 23 -o $minute -lt 0 -o $minute -gt 59 ] ; then
+      echo "sdbtaskctl: invalid value for parameter \"$para_name\": \"$para_value\"" >&2
+      echo 'Try "sdbtaskctl --help" for more information.'
+      exit 64
+   fi
+}
+
 function print_error()
 {
    local log=$1
@@ -324,6 +354,7 @@ esac
 
 if [ "$FREQUENCY" == "once" -o "$FREQUENCY" == "daily" ]; then
    test -z $BEGIN_TIME && lack_para "-b BEGINTIME"
+   check_time_para "BEGINTIME" "$BEGIN_TIME"
 fi
 
 if [ "$*" != "" ]; then
