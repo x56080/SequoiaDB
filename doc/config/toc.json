@@ -879,7 +879,13 @@
                      "file": "network_security",
                      "cn": "网络安全",
                      "en": "Network Security"
-                  }
+                  },
+                  {
+                     "id": 1587027446,
+                     "file": "auditlog",
+                     "cn": "审计日志",
+                     "en": "auditlog"
+                  } 
                ]
             }
          ]
