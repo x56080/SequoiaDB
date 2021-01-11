@@ -1012,21 +1012,17 @@ namespace engine
          INT16 w )
    {
       INT32 rc = SDB_OK ;
+      INT32 adjustRC = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_GTS_SEQ_MGR__ADJUST_SEQUENCE ) ;
 
       BOOLEAN needUpdate = FALSE ;
       if ( seq.getIncrement() > 0 )
       {
-         rc = _adjustAscendingSequence( seq, _expectValue, needUpdate ) ;
+         adjustRC = _adjustAscendingSequence( seq, _expectValue, needUpdate ) ;
       }
       else
       {
-         rc = _adjustDecendingSequence( seq, _expectValue, needUpdate ) ;
-      }
-
-      if ( rc != SDB_OK )
-      {
-         goto error ;
+         adjustRC = _adjustDecendingSequence( seq, _expectValue, needUpdate ) ;
       }
 
       if ( needUpdate )
@@ -1054,6 +1050,12 @@ namespace engine
                     seq.getName().c_str(), rc ) ;
             goto error ;
          }
+      }
+
+      rc = adjustRC ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
       }
 
       if ( _pAlteredSeqID != NULL )
