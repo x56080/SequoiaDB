@@ -2771,16 +2771,6 @@ namespace sdbclient
          return pReplicaGroup->getNode ( pNodeName, node ) ;
       }
 
-      /** \fn INT32 getNode ( const CHAR *pHostName,
-                            const CHAR *pServiceName,
-                            _sdbNode **node )
-          \brief Get specified node from current replica group.
-          \param [in] pHostName The host name of the node.
-          \param [in] pServiceName The service name of the node.
-          \param [out] node The specified node.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 getNode ( const CHAR *pHostName,
                       const CHAR *pServiceName,
                       _sdbNode **node )
@@ -3152,18 +3142,6 @@ namespace sdbclient
                                                   checkExist ) ;
       }
 
-      /** \fn INT32 createCollection ( const CHAR *pCollection,
-                                       const bson::BSONObj &options,
-                                       _sdbCollection **collection )
-          \brief Create the specified collection in current collection space with options
-          \param [in] pCollection The collection name
-          \param [in] options The options for creating collection or NULL for not specified any options.
-                              Please reference <a href="http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION">here</a>
-                              for more detail.
-          \param [out] collection The return collection handle.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 createCollection ( const CHAR *pCollection,
                                const bson::BSONObj &options,
                                _sdbCollection **collection )
@@ -3203,15 +3181,6 @@ namespace sdbclient
                                                      collection ) ;
       }
 
-      /** \fn INT32 createCollection ( const CHAR *pCollection,
-                                       _sdbCollection **collection )
-          \brief Create the specified collection in current collection space without
-                 sharding key and default ReplSize
-          \param [in] pCollection The collection name
-          \param [out] collection The return collection handle.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 createCollection ( const CHAR *pCollection,
                                _sdbCollection **collection )
       {
@@ -5425,12 +5394,6 @@ namespace sdbclient
          return pSDB->dropCollectionSpace ( pCollectionSpaceName ) ;
       }
 
-      /** \fn INT32 listCollectionSpaces  ( _sdbCursor **result )
-          \brief List all collection space of current database(include temporary collection space).
-          \param [out] result The return cursor handle of query.
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 listCollectionSpaces ( _sdbCursor **result )
       {
          if ( !pSDB )
@@ -5659,13 +5622,6 @@ namespace sdbclient
                                         pDatabasePath, configure ) ;
       }
 
-      /** \fn INT32 activateReplicaGroup ( const CHAR *pName, _sdbReplicaGroup **replicaGroup )
-          \brief Activate the specified replica group.
-          \param [in] pName The name of the replica group
-          \param [out] replicaGroup The return _sdbReplicaGroup object
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
       INT32 activateReplicaGroup ( const CHAR *pName, _sdbReplicaGroup **replicaGroup )
       {
          if ( !pSDB )
