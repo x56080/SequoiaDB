@@ -480,7 +480,8 @@ class collection(object):
         raise_if_error(rc, "Failed to update")
 
     def save(self, doc):
-        """save a documents in current collection, insert if no(matching) _id.
+        """Upsert the record using the main key '_id' of the record.
+
         Parameters:
            Name          Type  Info:
            doc           dict  The updating rule.
@@ -494,7 +495,7 @@ class collection(object):
             raise SDBTypeError("rule must be an instance of dict")
 
         if "_id" in doc:
-            oid = doc.pop("_id")
+            oid = doc.get("_id")
             return self.upsert({"$set": doc}, condition={"_id": oid})
         else:
             return self.insert(doc)
