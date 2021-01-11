@@ -21,10 +21,11 @@ public class Constants {
     // cs
     public final static String TEST_CS_NAME_1 = "testfoo";
     public final static String TEST_CS_NAME_2 = "testCS2";
-
+    public final static String TEST_CS_NAME_3 = "测试cs";
     // cl
     public final static String TEST_CL_NAME_1 = "testbar";
     public final static String TEST_CL_NAME_2 = "testCL2";
+    public final static String TEST_CL_NAME_3 = "测试cl";
    
     public final static String TEST_CL_FULL_NAME1 = "testfoo.testbar";
     public final static int SDB_PAGESIZE_4K = 4 * 1024;

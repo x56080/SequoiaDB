@@ -36,7 +36,7 @@ public class QueryRequest extends SdbRequest {
     private int flag;
     private long skipNum;
     private long returnedNum;
-    private String collectionName;
+    private byte[] clNameBytes;
     private byte[] matcherBytes;
     private byte[] selectorBytes;
     private byte[] orderBytes;
@@ -58,8 +58,13 @@ public class QueryRequest extends SdbRequest {
         if (collectionName == null || collectionName.length() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "Collection name or command is null or empty");
         }
-        this.collectionName = collectionName;
-        length += Helper.alignedSize(collectionName.length() + 1);
+
+        try {
+            this.clNameBytes = collectionName.getBytes(Helper.ENCODING_TYPE);
+            length += Helper.alignedSize(this.clNameBytes.length + 1);
+        }catch (UnsupportedEncodingException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        }
 
         if (matcher == null) {
             matcherBytes = EMPTY_BSON_BYTES.clone();
@@ -100,19 +105,15 @@ public class QueryRequest extends SdbRequest {
         out.putShort(w);
         out.putShort(padding);
         out.putInt(flag);
-        out.putInt(collectionName.length());
+        out.putInt(clNameBytes.length);
         out.putLong(skipNum);
         out.putLong(returnedNum);
-        try {
-            out.put(collectionName.getBytes("UTF-8"));
-            out.put((byte) 0);
-            int length = collectionName.length() + 1;
-            int paddingLen = Helper.alignedSize(length) - length;
-            if (paddingLen > 0) {
-                out.put(new byte[paddingLen]);
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        out.put(clNameBytes);
+        out.put((byte) 0);
+        int length = clNameBytes.length + 1;
+        int paddingLen = Helper.alignedSize(length) - length;
+        if (paddingLen > 0) {
+            out.put(new byte[paddingLen]);
         }
         encodeBSONBytes(matcherBytes, out);
         encodeBSONBytes(selectorBytes, out);
