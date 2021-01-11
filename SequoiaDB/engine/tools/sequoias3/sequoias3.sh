@@ -267,7 +267,7 @@ function List()
     conf=(${confinfo// / })
     versioninfo=${pidinfo##*sequoia-s3-}
     version=${versioninfo%.jar*}
-    port=$(lsof -p $pid | grep LISTEN | awk '{print $9}' | awk -F":" '{print $2}')
+    port=$(lsof -P -p $pid | grep LISTEN | awk '{print $9}' | awk -F":" '{print $2}')
     echo -e "sequoias3\t $pid\t $port\t $version\t\t ${conf[0]}"
     let "count++"  
   done
