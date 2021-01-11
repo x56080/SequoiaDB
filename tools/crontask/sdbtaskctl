@@ -185,6 +185,22 @@ function check_task()
 
    ###### get log path
    local logfile=$LOG_PATH/$TASK_NAME.log
+   if [ -e $LOG_PATH ]
+   then 
+      test -d $LOG_PATH || \
+         { print_error "$LOG_PATH already exist, and it isn't directory. Please delete it." && exit 5 ; }
+   else
+      mkdir -p $LOG_PATH
+      test $? -ne 0 && { print_error "Failed to create directory $LOG_PATH" && exit 5 ; }
+   fi
+   if [ -e $logfile ] 
+   then 
+      test -f $logfile || \
+         { print_error "$logfile already exist, and it isn't file. Please delete it." && exit 5 ; }
+   else
+      touch $logfile
+      test $? -ne 0 && { print_error "Failed to create file $logfile" && exit 5 ; }
+   fi
 
    ###### execute command
    local command=$sdb_shell_path" -f "$js_file" -e "$js_para" >> "$logfile
