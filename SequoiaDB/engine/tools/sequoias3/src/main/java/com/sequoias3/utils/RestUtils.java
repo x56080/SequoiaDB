@@ -67,15 +67,8 @@ public class RestUtils {
         }
 
         //       2.check access key
-        User user = userDao.getUserByAccessKeyID(accessKeyId);
-        if (null == user) {
-            throw new S3ServerException(S3Error.INVALID_ACCESSKEYID,
-                    "Invalid accessKeyId. accessKeyId = " + accessKeyId);
-        }
-
         //       3.check signature
-
-        return user;
+        return getOperatorByAccessKeyId(accessKeyId);
     }
 
     public User getOperatorByCredential(String credential) throws S3ServerException {
@@ -97,13 +90,16 @@ public class RestUtils {
         }
 
         //       2.check access key
+        //       3.check signature
+        return getOperatorByAccessKeyId(accessKeyId);
+    }
+
+    public User getOperatorByAccessKeyId(String accessKeyId) throws S3ServerException{
         User user = userDao.getUserByAccessKeyID(accessKeyId);
         if (null == user) {
             throw new S3ServerException(S3Error.INVALID_ACCESSKEYID,
                     "Invalid accessKeyId. accessKeyId = " + accessKeyId);
         }
-
-        //       3.check signature
 
         return user;
     }

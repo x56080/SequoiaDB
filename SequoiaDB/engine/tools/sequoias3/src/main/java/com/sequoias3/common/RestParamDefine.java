@@ -52,6 +52,9 @@ public class RestParamDefine {
         public static final String X_AMZ_EXPIRES        = "X-Amz-Expires";
         public static final String X_AMZ_CREDENTIAL     = "X-Amz-Credential";
         public static final String X_AMZ_SIGNATURE      = "X-Amz-Signature";
+        public static final String SIGNATURE            = "Signature";
+        public static final String EXPIRES              = "Expires";
+        public static final String ACCESS_KEYID         = "AWSAccessKeyId";
     }
 
     public static class ListObjectsPara{
