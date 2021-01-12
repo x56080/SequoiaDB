@@ -596,6 +596,14 @@ namespace engine
             rc = SDB_OK ;
          }
 
+         rc = _pResource->getSequenceAgent()->removeCache( pSeqName, seqID ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to remove local sequence cache, "
+                    "name[%s], rc: %d", pSeqName, rc ) ;
+            rc = SDB_OK ;
+         }
+
          rc = coordSequenceInvalidateCache( pSeqName, seqID, cb ) ;
          if ( SDB_OK != rc )
          {

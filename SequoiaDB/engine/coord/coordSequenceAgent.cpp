@@ -512,6 +512,7 @@ namespace engine
 
       if ( SDB_SEQUENCE_OUT_OF_CACHE == rc && _allowAcquire )
       {
+         seq.setAcquireSize( 0 ) ;
          rc = pAgent->_acquireSequence( seq, eduCB, TRUE, _expectValue ) ;
          if ( SDB_SEQUENCE_EXCEEDED == rc )
          {
@@ -554,7 +555,6 @@ namespace engine
       INT64 maxValue = seq.nextValue() + seq.increment() * (seq.acquireSize() - 1) ;
       if ( expectValue >= maxValue )
       {
-         seq.setAcquireSize( 0 ) ;
          rc = SDB_SEQUENCE_OUT_OF_CACHE ;
       }
       else if ( expectValue >= seq.nextValue() )
@@ -594,7 +594,6 @@ namespace engine
       INT64 minValue = seq.nextValue() + seq.increment() * (seq.acquireSize() - 1) ;
       if ( expectValue <= minValue )
       {
-         seq.setAcquireSize( 0 ) ;
          rc = SDB_SEQUENCE_OUT_OF_CACHE ;
       }
       else if ( expectValue <= seq.nextValue() )
