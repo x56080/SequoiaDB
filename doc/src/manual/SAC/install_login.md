@@ -144,6 +144,9 @@
    安装程序已经完成安装 SequoiaDB Server 于你的电脑中.
    ```
 
+> **Note:**  
+> 已安装 SequoiaDB 未安装 OM 服务的可使用 [CreateOM][CreateOM] 进行安装。
+
 登录SAC
 ----
 
@@ -178,6 +181,7 @@
 [deployment_wizard]:manual/SAC/Deployment/deployment_wizard.md
 [system_requirement]:manual/Deployment/env_requirement.md
 [linux_suggest_setting]:manual/Deployment/linux_suggestion.md
+[CreateOM]:manual/Manual/Sequoiadb_Command/Oma/createOM.md
 
 [login]:images/SAC/login.png
 [reset_pwd_1]:images/SAC/reset_pwd_1.png
