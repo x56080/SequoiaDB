@@ -12,6 +12,7 @@
 通过本章文档，用户可以了解分区的基本概念和原理，熟悉数据分区的基本操作。使用数据分区，是提高系统性能的重要手段。本章主要内容如下：
 
 + [分区原理][sharding_architecture]
++ [分区索引][sharding_index]
 + [分区配置][sharding_config]
 + [分区键选择][sharding_keys]
 + [多维分区][sharding_multi_dimension]
@@ -20,6 +21,7 @@
 [^_^]:
     本文使用到的所有链接及引用。
 [sharding_architecture]:manual/Distributed_Engine/Architecture/Sharding/architecture.md
+[sharding_index]:manual/Distributed_Engine/Architecture/Sharding/sharding_index.md
 [sharding_config]:manual/Distributed_Engine/Architecture/Sharding/config.md
 [sharding_keys]:manual/Distributed_Engine/Architecture/Sharding/sharding_keys.md
 [sharding_multi_dimension]:manual/Distributed_Engine/Architecture/Sharding/multi_dimension.md
