@@ -33,6 +33,7 @@ class TestSave12502(testlib.SdbTestBase):
          # insert common field without match id
          doc_commNoMatchId = {"a": "newA_withNoMatchId"}
          self.cl.save(doc_commNoMatchId)
+         self.assertFalse("_id" in doc_commNoMatchId)
 
          condition1 = doc_commNoMatchId
          expectCount1 = 1
@@ -41,6 +42,7 @@ class TestSave12502(testlib.SdbTestBase):
          # insert common field and id not exsit
          doc_commNotexistId = {"a": "newA_withNotExistId", "_id": ObjectId("66bb5667c5d061d6f579d000")}
          self.cl.save(doc_commNotexistId)
+         self.assertEqual(doc_commNotexistId["_id"], ObjectId("66bb5667c5d061d6f579d000"))
 
          condition2 = doc_commNotexistId
          expectCount2 = 1
