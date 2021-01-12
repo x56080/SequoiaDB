@@ -251,6 +251,7 @@ public class RestUtils {
             case REGION_CONFLICT_LOBPAGESIZE:
             case REGION_CONFLICT_REPLSIZE:
             case BUCKET_DELIMITER_NOT_STABLE:
+            case OPERATION_CONFLICT:
                 status = HttpStatus.CONFLICT;
                 break;
             case OBJECT_IF_MATCH_FAILED:
