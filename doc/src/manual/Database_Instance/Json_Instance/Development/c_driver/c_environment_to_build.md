@@ -43,7 +43,7 @@
      使用 `lib` 目录下的 `libstaticsdbc.a` 静态库，gcc 编译参数形式如：
     
      ```lang-bash
-     $ gcc testClient.c -o testClientC -I < PATH >/sdbdriver/include –L < PATH >/sdbdriver/lib/ -lstaticsdbc -lm -lpthread -ldl 
+     $ gcc testClient.c -o testClientC -I < PATH >/sdbdriver/include -L < PATH >/sdbdriver/lib/ -lstaticsdbc -lm -lpthread -ldl 
      ```
 
 * Windows
