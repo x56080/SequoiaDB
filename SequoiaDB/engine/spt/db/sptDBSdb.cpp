@@ -2584,7 +2584,7 @@ namespace engine
          goto error ;
       }
       // Get sessionID
-      if( arg.isInt( 0 ) )
+      if( arg.isInt( 0 ) || arg.isLong( 0 ) )
       {
          rc = arg.getNative( 0, &sessionID, SPT_NATIVE_INT64 ) ;
          if( SDB_OK != rc )

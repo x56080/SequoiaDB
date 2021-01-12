@@ -38,6 +38,7 @@
 #include "sptObjDesc.hpp"
 #include "sptSPVal.hpp"
 #include "sptSPObject.hpp"
+#include "sptDBNumberLong.hpp"
 
 using namespace bson ;
 
@@ -401,6 +402,11 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN _sptSPArguments::isLong( UINT32 pos ) const
+   {
+      return isUserObj( pos, sptDBNumberLong::__desc ) ;
+   }
+
    BOOLEAN _sptSPArguments::isDouble( UINT32 pos ) const
    {
       jsval *val = NULL ;
@@ -415,8 +421,8 @@ namespace engine
    BOOLEAN _sptSPArguments::isNumber( UINT32 pos ) const
    {
       jsval *val = NULL ;
-      if ( _argc > pos && NULL != ( val = _getValAtPos( pos ) ) &&
-           JSVAL_IS_NUMBER( *val ) )
+      if ( ( _argc > pos && NULL != ( val = _getValAtPos( pos ) ) &&
+             JSVAL_IS_NUMBER( *val ) ) || isLong( pos ) )
       {
          return TRUE ;
       }
@@ -538,6 +544,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       jsval *val = NULL ;
+      JSObject *jsObj = NULL ;
 
       _errMsg.clear() ;
 
@@ -566,6 +573,21 @@ namespace engine
       else if ( JSVAL_IS_DOUBLE( *val ) )
       {
          NATIVE_VALUE_EQ( value, type, JSVAL_TO_DOUBLE( *val ) ) ;
+      }
+      else if ( JSVAL_IS_OBJECT( *val ) &&
+                NULL != ( jsObj = JSVAL_TO_OBJECT( *val ) ) &&
+                string( SPT_NUMBERLONG_NAME ) ==
+                      sptGetObjFactory()->getClassName( _context, jsObj ) )
+      {
+         sptDBNumberLong *numberLong =
+               (sptDBNumberLong *) JS_GetPrivate( _context, jsObj ) ;
+         if( NULL == numberLong )
+         {
+            rc = SDB_SYS ;
+            _errMsg = "Faild to convert jsobj to user Object" ;
+            goto error ;
+         }
+         NATIVE_VALUE_EQ( value, type, numberLong->getValue() ) ;
       }
       else
       {

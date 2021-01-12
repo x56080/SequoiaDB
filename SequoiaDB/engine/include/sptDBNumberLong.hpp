@@ -32,6 +32,11 @@
 #ifndef SPT_DB_NUMBERLONG_HPP
 #define SPT_DB_NUMBERLONG_HPP
 #include "sptApi.hpp"
+
+#define SPT_NUMBERLONG_NAME             "NumberLong"
+#define SPT_NUMBERLONG_VALUE_FIELD      "_v"
+#define SPT_NUMBERLONG_SPECIALOBJ_FIELD "$numberLong"
+
 namespace engine
 {
    class _sptDBNumberLong : public SDBObject
@@ -45,6 +50,7 @@ namespace engine
                        _sptReturnVal &rval,
                        bson::BSONObj &detail ) ;
       INT32 destruct() ;
+      INT64 getValue() { return _value ; }
       static INT32 cvtToBSON( const CHAR* key, const sptObject &value,
                               BOOLEAN isSpecialObj, BSONObjBuilder& builder,
                               string &errMsg ) ;
@@ -61,6 +67,7 @@ namespace engine
                          bson::BSONObj &detail ) ;
    private:
       static BOOLEAN _isValidNumberLong( const CHAR *value ) ;
+      INT64 _value ;
    } ;
    typedef _sptDBNumberLong sptDBNumberLong ;
 }

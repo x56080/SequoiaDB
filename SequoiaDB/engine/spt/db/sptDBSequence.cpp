@@ -185,7 +185,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Too many arguments" ) ;
          goto error ;
       }
-      if( !arg.isInt( 0 ) )
+      if( !arg.isInt( 0 ) && !arg.isLong( 0 ) )
       {
          rc = SDB_INVALIDARG ;
          detail = BSON( SPT_ERR << "CurrentValue should be number" ) ;
@@ -284,7 +284,7 @@ namespace engine
          detail = BSON( SPT_ERR << "Too many arguments" ) ;
          goto error ;
       }
-      if( !arg.isInt( 0 ) )
+      if( !arg.isInt( 0 ) && !arg.isLong( 0 ) )
       {
          rc = SDB_INVALIDARG ;
          detail = BSON( SPT_ERR << "Argument should be number" ) ;
