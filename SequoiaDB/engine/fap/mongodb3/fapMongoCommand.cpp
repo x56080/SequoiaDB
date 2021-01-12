@@ -425,6 +425,64 @@ error:
    goto done ;
 }
 
+static INT32 checkAuthMechanisms( const BSONElement &mechanismsEle,
+                                  mongoSessionCtx &ctx )
+{
+   INT32 rc = SDB_OK ;
+   const CHAR* mechanismsStr = NULL ;
+   CHAR  errMsg[64] = { 0 } ;
+
+   try
+   {
+      if ( Array != mechanismsEle.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Mechanisms field must be an array" ) ;
+         goto error ;
+      }
+
+      BSONObjIterator itr( mechanismsEle.embeddedObject() ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         if ( String != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            ctx.setError( rc, "Mechanisms field must be an array of strings" ) ;
+            goto error ;
+         }
+
+         mechanismsStr = ele.valuestr() ;
+
+         if ( 0 == ossStrcmp( mechanismsStr, FAP_MONGO_FIELD_VALUE_SCRAMSHA1 ) )
+         {
+            continue ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            ossSnprintf( errMsg, 64, "Unsupported auth mechanism[%s]",
+                         mechanismsStr ) ;
+            ctx.setError( rc, errMsg ) ;
+            goto error ;
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Check auth mechanisms exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 _mongoCmdFactory::_mongoCmdFactory ()
 {
    _pCmdInfoRoot = NULL ;
@@ -3495,8 +3553,8 @@ INT32 _mongoCreateUserCommand::buildSdbMsg( msgBuffer &sdbMsg,
    BSONObj obj ;
    const CHAR *pUserName = NULL ;
    const CHAR *pTextPasswd = NULL ;
-   BOOLEAN digestPasswd = FALSE ;
-   string md5PwdStr ;
+   BOOLEAN digestPasswd = TRUE ;
+   string  md5PwdStr ;
 
    sdbMsg.reserve( sizeof( MsgAuthCrtUsr ) ) ;
    sdbMsg.advance( sizeof( MsgAuthCrtUsr ) ) ;
@@ -3507,31 +3565,83 @@ INT32 _mongoCreateUserCommand::buildSdbMsg( msgBuffer &sdbMsg,
    user->header.routeID.value = 0 ;
    user->header.requestID = _requestID ;
 
-   pUserName = _obj.getStringField( name() ) ;
-   pTextPasswd = _obj.getStringField( FAP_MONGO_FIELD_NAME_PWD ) ;
+   try
+   {
+      BSONObjIterator itr( _obj );
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next();
 
-   BSONElement ele = _obj.getField( FAP_MONGO_FIELD_NAME_DIGESTPWD ) ;
-   if ( ele.eoo() )
-   {
-      digestPasswd = TRUE ;
+         if ( 0 == ossStrcmp( ele.fieldName(), name() ) )
+         {
+            if ( String != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "Username must be string" ) ;
+               goto error ;
+            }
+            pUserName = ele.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_FIELD_NAME_PWD ) )
+         {
+            if ( String != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "Passwd must be string" ) ;
+               goto error ;
+            }
+            pTextPasswd = ele.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                                   FAP_MONGO_FIELD_NAME_DIGESTPWD ) )
+         {
+            if ( !ele.isNumber() && Bool != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "DigestPassword must be number or bool" ) ;
+               goto error ;
+            }
+            digestPasswd = ele.trueValue() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                   FAP_MONGO_FIELD_NAME_MECHANISMS ) )
+         {
+            rc = checkAuthMechanisms( ele, ctx ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+      }
+
+      if ( NULL == pUserName || NULL == pTextPasswd )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Username or passwd can't be empty" ) ;
+         goto error ;
+      }
+
+      if ( FALSE == digestPasswd )
+      {
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         ctx.setError( rc, "'digestPasswd' should be true, "
+                       "use 'db.runCommand( { createUser: ... } )' instead" ) ;
+         goto error ;
+      }
+
+      md5PwdStr = md5::md5simpledigest( pTextPasswd ) ;
+
+      obj = BSON( SDB_AUTH_USER << pUserName <<
+                  SDB_AUTH_PASSWD << md5PwdStr.c_str() <<
+                  SDB_AUTH_TEXTPASSWD << pTextPasswd ) ;
    }
-   else
+   catch( std::exception &e )
    {
-      digestPasswd = ele.trueValue() ;
-   }
-   if ( FALSE == digestPasswd )
-   {
-      rc = SDB_OPTION_NOT_SUPPORT ;
-      ctx.setError( rc, "'digestPasswd' should be true, "
-                        "use 'db.runCommand( { createUser: ... } )' instead" ) ;
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Build createUser msg exception: %s, rc: %d",
+              e.what(), rc ) ;
       goto error ;
    }
-
-   md5PwdStr = md5::md5simpledigest( pTextPasswd ) ;
-
-   obj = BSON( SDB_AUTH_USER << pUserName <<
-               SDB_AUTH_PASSWD << md5PwdStr.c_str() <<
-               SDB_AUTH_TEXTPASSWD << pTextPasswd ) ;
 
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
