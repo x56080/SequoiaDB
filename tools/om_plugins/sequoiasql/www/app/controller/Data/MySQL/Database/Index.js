@@ -912,6 +912,12 @@
                            "value": false
                         },
                         {
+                           "name": "zerofill",
+                           "webName": $scope.pAutoLanguage( "零填充" ),
+                           "type": "checkbox",
+                           "value": false
+                        },
+                        {
                            "name": "null",
                            "webName": $scope.pAutoLanguage( "空" ),
                            "type": "checkbox",
@@ -986,6 +992,8 @@
                      case 'timestamp':
                      case 'time':
                      case 'binary':
+                     case 'double':
+                     case 'float':
                         subSql += '(' + fieldInfo['length'] + ') ' ;
                         break ;
                      case 'set':
@@ -1018,7 +1026,26 @@
                   {
                      subSql += ' ' ;
                   }
-                  if( fieldInfo['unsigned'] == true )
+                  if( fieldInfo['zerofill'] == true )
+                  {
+                     switch( fieldInfo['type'] )
+                     {
+                     case 'tinyint':
+                     case 'smallint':
+                     case 'mediumint':
+                     case 'int':
+                     case 'double':
+                     case 'bigint':
+                     case 'decimal':
+                     case 'float':
+                        subSql += 'zerofill ' ;
+                        break ;
+                     default:
+                        subSql += ' ' ;
+                        break ;
+                     }
+                  }
+                  else if( fieldInfo['unsigned'] == true )
                   {
                      switch( fieldInfo['type'] )
                      {

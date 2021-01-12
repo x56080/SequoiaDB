@@ -20,7 +20,7 @@
 
       //获取字段信息
       $scope.QueryTableStruct = function(){
-         var sql = sprintf( "SELECT TABLE_NAME,COLUMN_NAME,COLUMN_DEFAULT,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '?' AND TABLE_SCHEMA = '?' ORDER BY ORDINAL_POSITION", SdbSwap.tbName, SdbSwap.dbName ) ;
+         var sql = sprintf( "SELECT TABLE_NAME,COLUMN_NAME,COLUMN_DEFAULT,DATA_TYPE,COLUMN_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,COLUMN_COMMENT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '?' AND TABLE_SCHEMA = '?' ORDER BY ORDINAL_POSITION", SdbSwap.tbName, SdbSwap.dbName ) ;
 
          var data = { 'Sql': sql, 'DbName': SdbSwap.dbName, 'Type': 'mysql', 'IsAll': 'true' } ;
          SdbRest.DataOperationV2( '/sql', data, {
@@ -164,6 +164,12 @@
                            "value": false
                         },
                         {
+                           "name": "zerofill",
+                           "webName": $scope.pAutoLanguage( "零填充" ),
+                           "type": "checkbox",
+                           "value": false
+                        },
+                        {
                            "name": "null",
                            "webName": $scope.pAutoLanguage( "空" ),
                            "type": "checkbox",
@@ -225,6 +231,8 @@
                      case 'timestamp':
                      case 'time':
                      case 'binary':
+                     case 'double':
+                     case 'float':
                         subSql += '(' + fieldInfo['length'] + ') ' ;
                         break ;
                      case 'set':
@@ -257,7 +265,26 @@
                   {
                      subSql += ' ' ;
                   }
-                  if( fieldInfo['unsigned'] == true )
+                  if( fieldInfo['zerofill'] == true )
+                  {
+                     switch( fieldInfo['type'] )
+                     {
+                     case 'tinyint':
+                     case 'smallint':
+                     case 'mediumint':
+                     case 'int':
+                     case 'double':
+                     case 'bigint':
+                     case 'decimal':
+                     case 'float':
+                        subSql += 'zerofill ' ;
+                        break ;
+                     default:
+                        subSql += ' ' ;
+                        break ;
+                     }
+                  }
+                  else if( fieldInfo['unsigned'] == true )
                   {
                      switch( fieldInfo['type'] )
                      {
@@ -662,7 +689,7 @@
       } ;
 
       //打开 修改字段 弹窗
-      var showEditField= function( fieldName, type, length, columnType ){
+      var showEditField= function( fieldName, type, length, columnType, comment ){
          if( length === null || type == 'set' || type == 'enum'  )
          {
             length = '' ;
@@ -720,7 +747,17 @@
                   "name": "unsigned",
                   "webName": $scope.pAutoLanguage( '无符号类型' ),
                   "type": "select",
-                  "value": false,
+                  "value": columnType.indexOf( 'zerofill' ) < 0 && columnType.indexOf( 'unsigned' ) > 0,
+                  "valid": [
+                     { "key": false, "value": false },
+                     { "key": true, "value": true }
+                  ]
+               },
+               {
+                  "name": "zerofill",
+                  "webName": $scope.pAutoLanguage( '零填充' ),
+                  "type": "select",
+                  "value": columnType.indexOf( 'zerofill' ) > 0,
                   "valid": [
                      { "key": false, "value": false },
                      { "key": true, "value": true }
@@ -732,6 +769,12 @@
                   "type": "string",
                   "desc": $scope.pAutoLanguage( '如字段类型是set或enum时，请在“长度/值”的输入框填写枚举的值，用半角逗号(,)隔开。' ),
                   "value": length
+               },
+               {
+                  "name": "comment",
+                  "webName": $scope.pAutoLanguage( "注释" ),
+                  "type": "string",
+                  "value": comment
                }
             ]
          }
@@ -763,6 +806,8 @@
                   case 'timestamp':
                   case 'time':
                   case 'binary':
+                  case 'double':
+                  case 'float':
                      subSql += '(' + formVal['length'] + ') ' ;
                      break ;
                   case 'set':
@@ -797,7 +842,23 @@
                   subSql = columnType.replace( type, '' ) ;
                }
                sql += subSql ;
-               if( formVal['unsigned'] )
+               if( formVal['zerofill'] )
+               {
+                  switch( formVal['newType'] )
+                  {
+                  case 'tinyint':
+                  case 'smallint':
+                  case 'mediumint':
+                  case 'int':
+                  case 'double':
+                  case 'bigint':
+                  case 'decimal':
+                  case 'float':
+                     sql += ' zerofill' ;
+                     break ;
+                  }
+               }
+               else if( formVal['unsigned'] )
                {
                   switch( formVal['newType'] )
                   {
@@ -813,7 +874,7 @@
                      break ;
                   }
                }
-               
+               sql += ' comment ' + sqlEscape( formVal['comment'] ) ;
                execSql( sql ) ;
                $scope.EditFieldWindow['callback']['Close']() ;
             }
@@ -833,18 +894,19 @@
 
       //打开 编辑字段 下拉菜单
       SdbSignal.on( 'ShowEditFieldDropdown', function( result ){
+         var field = result['field'] ;
          $scope.EditFieldDropdown['OnClick'] = function( index ){
             if( index == 0 )
             {
-               showEditField( result['field'], result['type'], result['length'], result['columnType'] ) ;
+               showEditField( field['COLUMN_NAME'], field['DATA_TYPE'], field['CHARACTER_MAXIMUM_LENGTH'], field['COLUMN_TYPE'], field['COLUMN_COMMENT'] ) ;
             }
             else if( index == 1 )
             {
-               showSetDefault( result['field'] ) ;
+               showSetDefault( field['COLUMN_NAME'] ) ;
             }
             else
             {
-               shwoRemoveDefault( result['field'] ) ;
+               shwoRemoveDefault( field['COLUMN_NAME'] ) ;
             }
 
             $scope.EditFieldDropdown['callback']['Close']() ;
@@ -863,17 +925,19 @@
             'operation'        : '',
             'DATA_TYPE'        : $scope.pAutoLanguage( '类型' ),
             'COLUMN_DEFAULT'   : $scope.pAutoLanguage( '默认值' ),
-            'IS_NULLABLE'      : $scope.pAutoLanguage( '空' )
+            'IS_NULLABLE'      : $scope.pAutoLanguage( '空' ),
+            'COLUMN_COMMENT'   : $scope.pAutoLanguage( '注释' )
          },
          'body': [],
          'options': {
             'width': {
                'index'            : '35px',
-               'COLUMN_NAME'      : '25%',
+               'COLUMN_NAME'      : '19%',
                'operation'        : '60px',
-               'DATA_TYPE'        : '25%',
-               'COLUMN_DEFAULT'   : '25%',
-               'IS_NULLABLE'      : '25%'
+               'DATA_TYPE'        : '19%',
+               'COLUMN_DEFAULT'   : '18%',
+               'IS_NULLABLE'      : '19%',
+               'COLUMN_COMMENT'   : '25%'
             },
             'sort': {
                'index'            : true,
@@ -881,7 +945,8 @@
                'operation'        : false,
                'DATA_TYPE'        : true,
                'COLUMN_DEFAULT'   : true,
-               'IS_NULLABLE'      : true
+               'IS_NULLABLE'      : true,
+               'COLUMN_COMMENT'   : false
             },
             'max': 50
          }
@@ -893,8 +958,11 @@
       } ) ;
 
       //打开 编辑字段 下拉菜单
-      $scope.ShowEditFieldDropdown = function( event, fieldName, fieldType, fieldLength, columnType ){
-         SdbSignal.commit( 'ShowEditFieldDropdown', { 'event': event, 'field': fieldName, 'type': fieldType, 'length': fieldLength, 'columnType': columnType } ) ;
+      $scope.ShowEditFieldDropdown = function( event, field ){
+         SdbSignal.commit( 'ShowEditFieldDropdown', {
+           'event': event,
+           'field': field
+         } ) ;
       }
 
       //打开 删除字段 弹窗
