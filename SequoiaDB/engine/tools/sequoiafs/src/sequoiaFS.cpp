@@ -4359,7 +4359,6 @@ INT32 sequoiaFS::ioctl(const CHAR *path, INT32 cmd, void *arg,
 
    switch(cmd)
    {
-   case TCGETS:
    default:
      rc = - ENOIOCTLCMD;
    }
