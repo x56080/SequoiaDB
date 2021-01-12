@@ -139,5 +139,7 @@
    "无符号": "unsigned",
    "无索引": "unindex",
    "字段参数错误。": "Field structure invalid parameter",
-   "是否需要对接SequoiaDB的decimal字段": "Do you need to butt the decimal field of SequoiaDB"
+   "是否需要对接SequoiaDB的decimal字段": "Do you need to butt the decimal field of SequoiaDB",
+   "零填充": "zerofill",
+   "注释": "Comment"
 }

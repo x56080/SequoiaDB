@@ -69,11 +69,12 @@
       <div class="Ellipsis" table-key="index">{{$index+1}}</div>
       <div class="Ellipsis" table-key="COLUMN_NAME">{{info.COLUMN_NAME}}</div>
       <div class="Ellipsis" table-key="operation">
-         <a class="linkButton" ng-click="ShowEditFieldDropdown( $event, info['COLUMN_NAME'], info['DATA_TYPE'], info['CHARACTER_MAXIMUM_LENGTH'], info['COLUMN_TYPE'] )" ng-attr="{'data-desc':pAutoLanguage('编辑字段')}"><i class="fa fa-edit"></i></a>
+         <a class="linkButton" ng-click="ShowEditFieldDropdown( $event, info )" ng-attr="{'data-desc':pAutoLanguage('编辑字段')}"><i class="fa fa-edit"></i></a>
          <a class="linkButton" ng-click="ShowDropFieldWindow( info['COLUMN_NAME'] )" ng-attr="{'data-desc':pAutoLanguage('删除字段')}"><i class="fa fa-remove"></i></a>
       </div>
       <div class="Ellipsis" table-key="DATA_TYPE">{{info.COLUMN_TYPE}}</div>
       <div class="Ellipsis" table-key="COLUMN_DEFAULT">{{info.COLUMN_DEFAULT}}</div>
       <div class="Ellipsis" table-key="IS_NULLABLE">{{info.IS_NULLABLE=='YES'?true:false}}</div>
+      <div class="Ellipsis" table-key="COLUMN_COMMENT">{{info.COLUMN_COMMENT}}</div>
    </div>
 </div>
