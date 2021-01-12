@@ -239,7 +239,7 @@
 
 ```lang-javascript
 > var query = new SdbQueryOption().cond( { age: { $gt: 10 } } ).update( { $inc: { age: 1 } } )
-> db.sample.employee.find( { query )
+> db.sample.employee.find( query )
 ```
 > **Note：**
 
