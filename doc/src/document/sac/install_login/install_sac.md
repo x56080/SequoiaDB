@@ -153,3 +153,6 @@
      ```
 安装完成后，OM 会自动启动并开启8000端口的 web 服务，用户可以通过浏览器登陆 SAC，并进行集群的部署。  
 假设安装 OM 的机器 IP 为 192.168.1.101，则在浏览器键入 http://192.168.1.101:8000 ，访问 SAC 服务。
+
+>**Note:**  
+>已安装 SequoiaDB 未安装 OM 服务的可使用 [CreateOM](reference/Sequoiadb_command/Oma/createOM.md) 进行安装。
