@@ -41,7 +41,7 @@
   使用 lib 目录下的 libstaticsdbc.a 静态库，g++ 编译参数形式如：
 
   ```lang-javascript
-  $ g++ main.cpp -o test -I <path>/sdbdriver/include –L <path>/sdbdriver/lib/ -lstaticsdbcpp –lm -lpthread -ldl
+  $ g++ main.cpp -o test -I <path>/sdbdriver/include -L <path>/sdbdriver/lib/ -lstaticsdbcpp -lm -lpthread -ldl
   ```
 
 * Windows
