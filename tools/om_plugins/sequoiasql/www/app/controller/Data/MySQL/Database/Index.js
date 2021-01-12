@@ -423,7 +423,7 @@
                   "webName":  $scope.autoLanguage( '数据压缩' ),
                   "type": "select",
                   "required": false,
-                  "value": 0,
+                  "value": 2,
                   "valid": [
                      { "key": $scope.autoLanguage( '关' ), "value": 0 },
                      { "key": 'Snappy', "value": 1 },
@@ -522,7 +522,7 @@
                   "webName":  $scope.autoLanguage( '数据压缩' ),
                   "type": "select",
                   "required": false,
-                  "value": 0,
+                  "value": 2,
                   "valid": [
                      { "key": $scope.autoLanguage( '关' ), "value": 0 },
                      { "key": 'Snappy', "value": 1 },
@@ -645,7 +645,7 @@
                   "webName":  $scope.autoLanguage( '数据压缩' ),
                   "type": "select",
                   "required": false,
-                  "value": 0,
+                  "value": 2,
                   "valid": [
                      { "key": $scope.autoLanguage( '关' ), "value": 0 },
                      { "key": 'Snappy', "value": 1 },
@@ -800,8 +800,7 @@
                   "valid": {
                      "min": 1,
                      "max": 63,
-                     "regex": "^[a-zA-Z_]+[0-9a-zA-Z_]*$",
-                     "regexError": sprintf( $scope.pAutoLanguage( '?由字母和数字或\"_\"组成，并且以字母或\"_\"起头。' ), $scope.pAutoLanguage( '数据表名' ) )
+                     "ban": '`'
                   }
                },
                {
@@ -1144,8 +1143,7 @@
                   "valid": {
                      "min": 1,
                      "max": 63,
-                     "regex": "^[a-zA-Z_]+[0-9a-zA-Z_]*$",
-                     "regexError": sprintf( $scope.pAutoLanguage( '?由字母和数字或\"_\"组成，并且以字母或\"_\"起头。' ), $scope.pAutoLanguage( '数据库名' ) )
+                     "ban": '`'
                   }
                }
             ]
@@ -1297,8 +1295,7 @@
                   "valid": {
                      "min": 1,
                      "max": 63,
-                     "regex": "^[a-zA-Z_]+[0-9a-zA-Z_]*$",
-                     "regexError": sprintf( $scope.pAutoLanguage( '?由字母和数字或\"_\"组成，并且以字母或\"_\"起头。' ), $scope.pAutoLanguage( '数据表名' ) )
+                     "ban": '`'
                   }
                }
             ]
