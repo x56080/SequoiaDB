@@ -85,7 +85,7 @@ sdbtop 启动后进入主窗口，主窗口中展示两种信息：界面信息�
 ```lang-text
 $ sdbtop -i sdbserver1 -s svcname1 -u sdbuser1 -p sdbpassword1
 
-refresh= 3 secs           version {version}         snapshotMode: GLOBAL
+refresh= 3 secs           version 3.2         snapshotMode: GLOBAL
 displayMode: ABSOLUTE     Main Window         snapshotModeInput: NULL
 hostname: sdbserver1                          filtering Number: 0
 servicename: svcname1                         sortingWay: NULL sortingField: NULL
@@ -187,7 +187,7 @@ Copyright SequoiaDB Corp. 2013-2015 All Rights Reserved.
 - 进入主窗口后，按 **s** 键，列出数据库节点的所有会话信息
 
    ```lang-text
-   refresh= 3 secs           version {version}         snapshotMode: GLOBAL
+   refresh= 3 secs           version 3.2         snapshotMode: GLOBAL
    displayMode: ABSOLUTE     Main Window         snapshotModeInput: NULL
    hostname: sdbserver1                          filtering Number: 0
    servicename: svcname1                         sortingWay: NULL sortingField: NULL
@@ -214,7 +214,7 @@ Copyright SequoiaDB Corp. 2013-2015 All Rights Reserved.
 - 按 **r** 键，在屏幕最下方输入 2，回车，设置刷新间隔时间，屏幕左上方的【refresh】的值变为 2
 
    ```lang-text
-   refresh= 3 secs          version {version}         snapshotMode: GLOBAL
+   refresh= 3 secs          version 3.2         snapshotMode: GLOBAL
    displayMode: AVERAGE     Main Window         snapshotModeInput: NULL
    hostname: sdbserver1                         filtering Number: 0
    servicename: svcname1                        sortingWay: NULL sortingField: NULL
@@ -240,7 +240,7 @@ Copyright SequoiaDB Corp. 2013-2015 All Rights Reserved.
 - 按 **A** 键，并输入“TID”，列表结果按照 TID 进行升序排序，可以看到屏幕右上方的【sortingWay】的值变为 1（ 1 表示升序，-1 表示降序），【sortingField】的值变为 TID
 
    ```lang-text
-   refresh= 3 secs          version {version}         snapshotMode: GLOBAL
+   refresh= 3 secs          version 3.2         snapshotMode: GLOBAL
    displayMode: AVERAGE     Main Window         snapshotModeInput: NULL
    hostname: sdbserver1                         filtering Number: 0
    servicename: svcname1                        sortingWay: 1  sortingField: TID
@@ -268,7 +268,7 @@ Copyright SequoiaDB Corp. 2013-2015 All Rights Reserved.
 - 按 **C** 键，并输入“TID:2869”进行筛选，则只显示 TID 值为 2869 的记录
 
    ```lang-text
-   refresh= 3 secs          version {version}         snapshotMode: GLOBAL
+   refresh= 3 secs          version 3.2         snapshotMode: GLOBAL
    displayMode: AVERAGE     Main Window         snapshotModeInput: NULL
    hostname: sdbserver1                         filtering Number: 0
    servicename: svcname1                        sortingWay: 1  sortingField: TID
