@@ -28,7 +28,7 @@
 
   - [基本操作][basic_operation_mysql]
   - [数据库][database]
-  - [数据操作][record]
+  - [数据操作][record_mysql]
   - [字段结构][field]
   - [删除实例][uninstall_mysql]
   - [移除实例存储][remove_mysql_storage]
@@ -54,7 +54,7 @@
 [remove_mysql_storage]:manual/SAC/Operation/Mysql/remove_mysql_storage.md
 [basic_operation_mysql]:manual/SAC/Operation/Mysql/basic_operation.md
 [database]:manual/SAC/Operation/Mysql/database.md
-[record]:manual/SAC/Operation/Mysql/record.md
+[record_mysql]:manual/SAC/Operation/Mysql/record.md
 [field]:manual/SAC/Operation/Mysql/field.md
 
 [uninstall_postgresql]:manual/SAC/Operation/Postgresql/uninstall_postgresql.md
