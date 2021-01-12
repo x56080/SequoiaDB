@@ -13,7 +13,7 @@ String accessKey="ABCDEFGHIJKLMNOPQRST";
 String secretKey="abcdefghijklmnopqrstuvwxyz0123456789ABCD";
 String endPoint = "http://localhost:8002";
 
-sequoiaS3 = SequoiaS3ClientBuilder.standard()
+SequoiaS3 sequoiaS3 = SequoiaS3ClientBuilder.standard()
             .withEndpoint(endPoint)
             .withAccessKeys(accessKey, secretKey)
             .build();
@@ -66,7 +66,7 @@ ListRegionsResult listRegionsResult = sequoiaS3.listRegions();
 GetRegionResult regionResult = sequoiaS3.getRegion(regionName);
 Region region = regionResult.getRegion();
 List<String> buckets = regionResult.getBuckets();
-System.out.println("region:" + regionResult.getRegion().toString());
+System.out.println("region:" + region.toString());
 for (int i=0; i < buckets.size(); i++) {
     System.out.println("Name:" + buckets.get(i));
 }
@@ -110,11 +110,11 @@ s3.putObject(request);
 从存储桶中获得对象内容，并将对象内容存储在本地文件中
 
 ```lang-java
+String filePath = "example.png";
 GetObjectRequest request = new GetObjectRequest(bucketName, objectName);
 S3Object result = s3.getObject(request);
-
 S3ObjectInputStream s3is = result.getObjectContent();
-FileOutputStream fos = new FileOutputStream(new File(object));
+FileOutputStream fos = new FileOutputStream(new File(filePath));
 byte[] read_buf = new byte[1024];
 int read_len = 0;
 while ((read_len = s3is.read(read_buf)) > 0) {

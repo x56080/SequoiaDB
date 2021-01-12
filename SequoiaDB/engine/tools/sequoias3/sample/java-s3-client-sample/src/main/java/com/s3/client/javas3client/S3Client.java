@@ -1,4 +1,4 @@
-package com.S3.Client.javas3client;
+package com.s3.client.javas3client;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
@@ -399,13 +399,13 @@ public class S3Client {
         }
     }
 
-    public void getregion(String regionName){
+    public void getRegion(String regionName){
         logger.debug("get region enter, regionName:"+regionName);
         try {
             GetRegionResult regionResult = sequoiaS3.getRegion(regionName);
             Region region = regionResult.getRegion();
             List<String> buckets = regionResult.getBuckets();
-            System.out.println("region:" + regionResult.getRegion().toString());
+            System.out.println("region:" + region.toString());
 
             for (int i=0; i < buckets.size(); i++) {
                 String bucket = buckets.get(i);
@@ -425,7 +425,7 @@ public class S3Client {
         }
     }
 
-    public void headregion(String regionName){
+    public void headRegion(String regionName){
         logger.debug("head region enter, regionName:"+regionName);
         try {
             Boolean isRegionExist = sequoiaS3.headRegion(regionName);
@@ -442,7 +442,7 @@ public class S3Client {
         }
     }
 
-    public void deleteregion(String regionName) {
+    public void deleteRegion(String regionName) {
         logger.debug("delete region enter, regionName:"+regionName);
         try {
             sequoiaS3.deleteRegion(regionName);
@@ -458,7 +458,7 @@ public class S3Client {
         }
     }
 
-    public void listregions(){
+    public void listRegions(){
         logger.debug("list regions enter.");
         try {
             ListRegionsResult listRegionsResult = sequoiaS3.listRegions();
