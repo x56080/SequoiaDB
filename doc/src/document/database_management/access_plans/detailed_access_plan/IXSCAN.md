@@ -8,6 +8,7 @@
 | IXBound                           | BSON 对象 | IXSCAN 访问索引的查找范围                                                                  |
 | Query                             | BSON 对象 | IXSCAN 执行的匹配符                                                                        |
 | NeedMatch                         | 布尔型    | IXSCAN 是否需要在数据上执行匹配符进行过滤                                                  |
+| IndexCover                        | 布尔型    | 访问计划匹配条件字段、选择字段、排序字段是否被索引覆盖。<br>被索引覆盖可以直接使用索引键值替代集合记录，提升访问性能 |
 | Selector                          | BSON 对象 | IXSCAN 执行的选择符                                                                        |
 | Skip                              | 长整型    | 指定 IXSCAN 需要跳过的记录个数                                                             |
 | Return                            | 长整型    | 指定 IXSCAN 最多返回的记录个数                                                             |
@@ -68,6 +69,7 @@
       ]
     },
     "NeedMatch": false,
+    "IndexCover": true,
     "Selector": {},
     "Skip": 0,
     "Return": -1,
