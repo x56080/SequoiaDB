@@ -4926,7 +4926,7 @@
                            "cn": "$SNAPSHOT_CONFIGS",
                            "en": "$SNAPSHOT_CONFIGS"
                         },
-                  {
+                        {
                            "id": 1565839923,
                            "file": "SNAPSHOT_SVCTASKS",
                            "cn": "$SNAPSHOT_SVCTASKS",
@@ -4937,6 +4937,24 @@
                            "file": "SNAPSHOT_SEQUENCES",
                            "cn": "$SNAPSHOT_SEQUENCES",
                            "en": "$SNAPSHOT_SEQUENCES"
+                        },
+                        {
+                           "id": 1610432031,
+                           "file": "SNAPSHOT_QUERIES",
+                           "cn": "$SNAPSHOT_QUERIES",
+                           "en": "$SNAPSHOT_QUERIES"
+                        },
+                        {
+                           "id": 1610432032,
+                           "file": "SNAPSHOT_LOCKWAITS",
+                           "cn": "$SNAPSHOT_LOCKWAITS",
+                           "en": "$SNAPSHOT_LOCKWAITS"
+                        },
+                        {
+                           "id": 1610432033,
+                           "file": "SNAPSHOT_LATCHWAITS",
+                           "cn": "$SNAPSHOT_LATCHWAITS",
+                           "en": "$SNAPSHOT_LATCHWAITS"
                         },
                         {
                            "id": 1559282949,
