@@ -34,9 +34,6 @@
 using namespace bson ;
 namespace engine
 {
-   #define SPT_NUMBERLONG_NAME             "NumberLong"
-   #define SPT_NUMBERLONG_VALUE_FIELD      "_v"
-   #define SPT_NUMBERLONG_SPECIALOBJ_FIELD "$numberLong"
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBNumberLong, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBNumberLong, destruct )
    JS_STATIC_FUNC_DEFINE( _sptDBNumberLong, help )
@@ -81,10 +78,22 @@ namespace engine
          {
             goto error ;
          }
+         try
+         {
+            _value = boost::lexical_cast<INT64>( dataStr ) ;
+         }
+         catch ( std::bad_cast &e )
+         {
+            rc = SDB_INVALIDARG ;
+            string errMsg =
+                  "Invalid NumberLong value: " + dataStr + ", " + e.what() ;
+            detail = BSON( SPT_ERR << errMsg ) ;
+            goto error ;
+         }
          rval.addSelfProperty( SPT_NUMBERLONG_VALUE_FIELD )
             ->setValue( dataStr ) ;
       }
-      else if( arg.isNumber( 0 ) )
+      else if( arg.isInt( 0 ) || arg.isDouble( 0 ) )
       {
          FLOAT64 dataNumber ;
          rc = arg.getNative( 0, &dataNumber, SPT_NATIVE_FLOAT64 ) ;
@@ -92,6 +101,7 @@ namespace engine
          {
             goto error ;
          }
+         _value = static_cast< INT64 >( dataNumber ) ;
          rval.addSelfProperty( SPT_NUMBERLONG_VALUE_FIELD )
                               ->setValue( dataNumber ) ;
       }

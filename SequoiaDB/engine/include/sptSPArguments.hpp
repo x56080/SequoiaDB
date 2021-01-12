@@ -81,6 +81,7 @@ namespace engine
 
       virtual BOOLEAN isString( UINT32 pos ) const ;
       virtual BOOLEAN isInt( UINT32 pos ) const ;
+      virtual BOOLEAN isLong( UINT32 pos ) const ;
       virtual BOOLEAN isBoolean( UINT32 pos ) const ;
       virtual BOOLEAN isDouble( UINT32 pos ) const ;
       virtual BOOLEAN isNumber( UINT32 pos ) const ;

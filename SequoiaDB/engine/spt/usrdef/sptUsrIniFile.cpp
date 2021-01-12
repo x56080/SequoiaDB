@@ -251,7 +251,7 @@ JS_MAPPING_END()
             goto error ;
          }
       }
-      else if ( arg.isInt( 2 ) )
+      else if ( arg.isInt( 2 ) || arg.isLong( 2 ) )
       {
          INT64 value ;
 
