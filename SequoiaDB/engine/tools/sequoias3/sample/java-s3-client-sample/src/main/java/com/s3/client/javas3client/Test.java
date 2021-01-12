@@ -1,4 +1,4 @@
-package com.S3.Client.javas3client;
+package com.s3.client.javas3client;
 
 import java.io.File;
 
@@ -16,9 +16,9 @@ public class Test {
 
         s3Client.createRegion(regionName);
 
-        s3Client.listregions();
+        s3Client.listRegions();
 
-        s3Client.getregion(regionName);
+        s3Client.getRegion(regionName);
 
         s3Client.putBucket(bucketName, regionName);
 
@@ -40,7 +40,7 @@ public class Test {
 
         s3Client.deleteBucket(bucketName);
 
-        s3Client.deleteregion(regionName);
+        s3Client.deleteRegion(regionName);
 
         s3Client.shutdown();
     }
