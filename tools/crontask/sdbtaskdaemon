@@ -24,7 +24,7 @@ function show_help()
    echo "  sdbtaskdaemon --help        print help message"
    echo ""
    echo "Example: "
-   echo "  Start daemon by: \"setsid ./sdbtaskdaemon >> ./sdbtaskdaemon.log 2>&1\")"
+   echo "  Start daemon by: \"setsid ./sdbtaskdaemon >> ./sdbtaskdaemon.log 2>&1\""
    echo ""
 
    exit $exit_code

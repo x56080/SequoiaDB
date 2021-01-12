@@ -275,7 +275,7 @@ function build_help()
    echo "sdbtaskctl is a utility to control cron task."
    echo ""
    echo "Usage:"
-   echo "  sdbtaskctl create <TASKNAME> <-t TASKTYPE> <-b BEGINTIME> <-f FREQUENCY> [-l CLNAME] [-u UNIT] [-o HOSTLIST]"
+   echo "  sdbtaskctl create <TASKNAME> <-t TASKTYPE> <-b BEGINTIME> <-f FREQUENCY> [-l CLNAME] [-u UNIT] [--hosts HOSTLIST]"
    echo "  sdbtaskctl remove <TASKNAME>"
    echo "  sdbtaskctl list"
    echo ""
