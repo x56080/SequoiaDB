@@ -239,7 +239,7 @@
 
 ```lang-javascript
 > var query = new SdbQueryOption().cond( { age: { $gt: 10 } } ).update( { $inc: { age: 1 } } )
-> db.foo.bar.find( { query )
+> db.foo.bar.find( query )
 ```
 > **Note：**
 
