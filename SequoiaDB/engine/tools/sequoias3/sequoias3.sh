@@ -122,7 +122,7 @@ function Start()
       echo -e "\033[31mthe port $port out of range:0-65535\033[0m"
       exit 1
     fi
-    portpid=$(lsof -t -i:$port)                                                                                               
+    portpid=$(lsof -w -t -i:$port)                                                                                               
     if [ "$portpid" != "" ] ; then
       echo -e "\033[31mthe port $port already be used by pid:$portpid\033[0m"                                                                                   
       exit 1                                                                                                                          
@@ -222,7 +222,7 @@ function Stop()
   fi
 
   if [ -n "$port" ]; then
-    portpid=$(lsof -t -i :$port)
+    portpid=$(lsof -w -t -i :$port)
     if [ -z "$portpid" ]; then
       echo "no such port: $port"
       exit 1
@@ -267,7 +267,7 @@ function List()
     conf=(${confinfo// / })
     versioninfo=${pidinfo##*sequoia-s3-}
     version=${versioninfo%.jar*}
-    port=$(lsof -P -p $pid | grep LISTEN | awk '{print $9}' | awk -F":" '{print $2}')
+    port=$(lsof -w -P -p $pid | grep LISTEN | awk '{print $9}' | awk -F":" '{print $2}')
     echo -e "sequoias3\t $pid\t $port\t $version\t\t ${conf[0]}"
     let "count++"  
   done
