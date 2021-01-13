@@ -2061,8 +2061,8 @@
       <code>
          <name>SDB_DOMAIN_IS_OCCUPIED</name>
          <description>
-            <en>Domain is not empty</en>
-            <cn>域非空</cn>
+            <en>Domain has been used</en>
+            <cn>域已被使用</cn>
          </description>
       </code>
 
