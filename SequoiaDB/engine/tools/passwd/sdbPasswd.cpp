@@ -37,6 +37,7 @@
 #include "pd.hpp"
 #include <iostream>
 #include "msgDef.h"
+#include "ossVer.h"
 
 using namespace passwd ;
 
@@ -47,6 +48,7 @@ using namespace passwd ;
 #define PASSWD_OPTIONS_TOKEN        ( "token" )
 #define PASSWD_OPTIONS_FILE         ( "file" )
 #define PASSWD_OPTIONS_PASSWD       ( "password" )
+#define PASSWD_OPTIONS_VERSION      ( "version" )
 
 #define COMMANDS_ADD_PARAM_OPTIONS_BEGIN(des)  des.add_options()
 #define COMMANDS_ADD_PARAM_OPTIONS_END ;
@@ -54,6 +56,7 @@ using namespace passwd ;
 
 #define PASSWD_GENERAL_OPTIONS \
    (COMMANDS_STRING(PASSWD_OPTIONS_HELP, ",h"), "help") \
+   (COMMANDS_STRING(PASSWD_OPTIONS_VERSION, ",v"), "version") \
    (COMMANDS_STRING(PASSWD_OPTIONS_ADDUSER,",a"), po::value<string>(), "add a user")\
    (COMMANDS_STRING(PASSWD_OPTIONS_RMUSER,",r"), po::value<string>(), "remove a user")\
    (COMMANDS_STRING(PASSWD_OPTIONS_TOKEN,",t"), po::value<string>(), "password encryption token")\
@@ -109,6 +112,13 @@ INT32 resolveArgument( INT32 argc, CHAR* argv[],
    {
       displayArg( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+
+   if ( vm.count( PASSWD_OPTIONS_VERSION ) )
+   {
+      ossPrintVersion( "sdbpasswd" ) ;
+      rc = SDB_SDB_VERSION_ONLY ;
       goto done ;
    }
 
@@ -224,7 +234,7 @@ INT32 mainEntry( INT32 argc, CHAR **argv )
                          mode, filePath ) ;
    if ( rc )
    {
-      if ( SDB_PMD_HELP_ONLY == rc )
+      if ( SDB_PMD_HELP_ONLY == rc || SDB_SDB_VERSION_ONLY == rc )
       {
          rc = SDB_OK;
       }
