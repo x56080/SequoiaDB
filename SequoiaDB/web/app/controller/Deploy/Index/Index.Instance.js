@@ -1157,6 +1157,7 @@
                ]
             },
             'advance': {
+               'keyWidth': '220px',
                'inputList': [
                   {
                      "name": "preferedinstance",
@@ -1190,9 +1191,9 @@
                   },
                   {
                      "name": "sequoiadb_auto_partition",
-                     "webName": $scope.autoLanguage( "自动分区" ),
+                     "webName": "sequoiadb_auto_partition",
+                     "desc": $scope.autoLanguage( "自动分区" ),
                      "type": "select",
-                     "required": true,
                      "value": "ON",
                      "valid":[
                         { 'key': 'ON', 'value': 'ON' },
@@ -1200,10 +1201,21 @@
                      ]
                   },
                   {
+                     "name": "sequoiadb_replica_size",
+                     "webName": "sequoiadb_replica_size",
+                     "desc": $scope.autoLanguage( "一致性写副本数" ),
+                     "type": "int",
+                     "value": 1,
+                     "valid": {
+                        'min': -1,
+                        'max': 7
+                     }
+                  },
+                  {
                      "name": "sequoiadb_use_bulk_insert",
-                     "webName": $scope.autoLanguage( "批量插入" ),
+                     "webName": "sequoiadb_use_bulk_insert",
+                     "desc": $scope.autoLanguage( "批量插入" ),
                      "type": "select",
-                     "required": true,
                      "value": "ON",
                      "valid":[
                         { 'key': 'ON', 'value': 'ON' },
@@ -1212,9 +1224,9 @@
                   },
                   {
                      "name": "sequoiadb_bulk_insert_size",
-                     "webName": $scope.autoLanguage( "批量插入的最大记录数" ),
+                     "webName": "sequoiadb_bulk_insert_size",
+                     "desc": $scope.autoLanguage( "批量插入的最大记录数" ),
                      "type": "int",
-                     "required": true,
                      "value": 2000,
                      "valid": {
                         'min': 1,
@@ -1222,21 +1234,10 @@
                      }
                   },
                   {
-                     "name": "sequoiadb_replica_size",
-                     "webName": $scope.autoLanguage( "一致性写副本数" ),
-                     "type": "int",
-                     "required": true,
-                     "value": 1,
-                     "valid": {
-                        'min': -1,
-                        'max': 7
-                     }
-                  },
-                  {
                      "name": "sequoiadb_selector_pushdown_threshold",
-                     "webName": $scope.autoLanguage( "查询字段下压触发阈值" ),
+                     "webName": "sequoiadb_selector_pushdown_threshold",
+                     "desc": $scope.autoLanguage( "查询字段下压触发阈值" ),
                      "type": "int",
-                     "required": true,
                      "value": 30,
                      "valid": {
                         'min': 0,
@@ -1244,10 +1245,17 @@
                      }
                   },
                   {
-                     "name": "sequoiadb_debug_log",
-                     "webName": $scope.autoLanguage( "打印debug日志" ),
+                     "name": "sequoiadb_optimizer_options",
+                     "webName": "sequoiadb_optimizer_options",
+                     "desc": $scope.autoLanguage( "SequoiaDB 优化选项开关，以决定是否优化计数、更新、删除操作" ),
+                     "type": "string",
+                     "value": "direct_count,direct_delete,direct_update"
+                  },
+                  {
+                     "name": "sequoiadb_rollback_on_timeout",
+                     "webName": "sequoiadb_rollback_on_timeout",
+                     "desc": $scope.autoLanguage( "配置记录锁超时是否中断并回滚整个事务" ),
                      "type": "select",
-                     "required": true,
                      "value": "OFF",
                      "valid":[
                         { 'key': 'ON', 'value': 'ON' },
@@ -1255,8 +1263,52 @@
                      ]
                   },
                   {
+                     "name": "sequoiadb_alter_table_overhead_threshold",
+                     "webName": "sequoiadb_alter_table_overhead_threshold",
+                     "desc": $scope.autoLanguage( "更改表开销阈值" ),
+                     "type": "int",
+                     "value": 10000000,
+                     "valid": {
+                        'min': 0
+                     }
+                  },
+                  {
+                     "name": "sequoiadb_execute_only_in_mysql",
+                     "webName": "sequoiadb_execute_only_in_mysql",
+                     "desc": $scope.autoLanguage( "DDL 命令只在 MySQL 执行，不下压到 SequoiaDB 执行" ),
+                     "type": "select",
+                     "value": "OFF",
+                     "valid":[
+                        { 'key': 'ON', 'value': 'ON' },
+                        { 'key': 'OFF', 'value': 'OFF' }
+                     ]
+                  },
+                  {
+                     "name": "sequoiadb_debug_log",
+                     "webName": "sequoiadb_debug_log",
+                     "desc": $scope.autoLanguage( "打印debug日志" ),
+                     "type": "select",
+                     "value": "OFF",
+                     "valid":[
+                        { 'key': 'ON', 'value': 'ON' },
+                        { 'key': 'OFF', 'value': 'OFF' }
+                     ]
+                  },
+                  {
+                     "name": "sequoiadb_error_level",
+                     "webName": "sequoiadb_error_level",
+                     "desc": $scope.autoLanguage( "错误级别控制" ),
+                     "type": "select",
+                     "value": "error",
+                     "valid":[
+                        { 'key': 'warning', 'value': 'warning' },
+                        { 'key': 'error', 'value': 'error' }
+                     ]
+                  },
+                  {
                      "name": "address",
-                     "webName": $scope.autoLanguage( '存储集群的节点' ),
+                     "webName": "address",
+                     "desc": $scope.autoLanguage( '存储集群的节点' ),
                      "type": "multiple",
                      "required": true,
                      "value": [],
@@ -1349,13 +1401,18 @@
                $scope.CreateRelationWindow['config']['normal'] .EnableItem( 'DbName' ) ;
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'preferedinstance' ) ;
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'transaction' ) ;
-
+               
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_auto_partition' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_use_bulk_insert' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_bulk_insert_size' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_replica_size' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_selector_pushdown_threshold' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_alter_table_overhead_threshold' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_debug_log' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_error_level' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_execute_only_in_mysql' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_optimizer_options' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'sequoiadb_rollback_on_timeout' ) ;
 
                fromValid = pgsqlBusList ;
                
@@ -1383,7 +1440,12 @@
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_bulk_insert_size' ) ;
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_replica_size' ) ;
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_selector_pushdown_threshold' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_alter_table_overhead_threshold' ) ;
                $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_debug_log' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_error_level' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_execute_only_in_mysql' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_optimizer_options' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_rollback_on_timeout' ) ;
 
                $scope.CreateRelationWindow['config']['normal'] .DisableItem( 'DbName' ) ;
                $scope.CreateRelationWindow['config']['advance'].DisableItem( 'preferedinstance' ) ;
@@ -1521,7 +1583,12 @@
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_bulk_insert_size',              { 'enable': false } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_replica_size',                  { 'enable': false } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_selector_pushdown_threshold',   { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_alter_table_overhead_threshold',{ 'enable': false } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_debug_log',                     { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_error_level',                   { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_execute_only_in_mysql',         { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_optimizer_options',             { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_rollback_on_timeout',           { 'enable': false } ) ;
 
             getPostgresqlDB( $scope.ClusterList[$scope.CurrentCluster]['ClusterName'], fromValid[0]['value'], function( dbList ){
 
@@ -1548,7 +1615,12 @@
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_bulk_insert_size',              { 'enable': true } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_replica_size',                  { 'enable': true } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_selector_pushdown_threshold',   { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_alter_table_overhead_threshold',{ 'enable': true } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_debug_log',                     { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_error_level',                   { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_execute_only_in_mysql',         { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_optimizer_options',             { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_rollback_on_timeout',           { 'enable': true } ) ;
 
             setArrayItemValue( normalInput,  'name', 'DbName',           { 'enable': false } ) ;
             setArrayItemValue( advanceInput, 'name', 'preferedinstance', { 'enable': false } ) ;
@@ -1592,7 +1664,12 @@
                        ( key == 'sequoiadb_bulk_insert_size' && formVal2['sequoiadb_bulk_insert_size'] == 2000 ) ||
                        ( key == 'sequoiadb_replica_size' && formVal2['sequoiadb_replica_size'] == 1 ) ||
                        ( key == 'sequoiadb_selector_pushdown_threshold' && formVal2['sequoiadb_selector_pushdown_threshold'] == 30 ) ||
-                       ( key == 'sequoiadb_debug_log' && formVal2['sequoiadb_debug_log'] == "OFF" )
+                       ( key == 'sequoiadb_debug_log' && formVal2['sequoiadb_debug_log'] == "OFF" ) ||
+                       ( key == 'sequoiadb_alter_table_overhead_threshold' && formVal2['sequoiadb_alter_table_overhead_threshold'] == 10000000 ) ||
+                       ( key == 'sequoiadb_error_level' && formVal2['sequoiadb_error_level'] == "error" ) ||
+                       ( key == 'sequoiadb_execute_only_in_mysql' && formVal2['sequoiadb_execute_only_in_mysql'] == "OFF" ) ||
+                       ( key == 'sequoiadb_optimizer_options' && formVal2['sequoiadb_optimizer_options'] == "direct_count,direct_delete,direct_update" ) ||
+                       ( key == 'sequoiadb_rollback_on_timeout' && formVal2['sequoiadb_rollback_on_timeout'] == 'OFF' )
                      )
                   {
                      continue ;
