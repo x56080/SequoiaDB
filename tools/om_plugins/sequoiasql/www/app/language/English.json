@@ -141,5 +141,6 @@
    "字段参数错误。": "Field structure invalid parameter",
    "是否需要对接SequoiaDB的decimal字段": "Do you need to butt the decimal field of SequoiaDB",
    "零填充": "zerofill",
-   "注释": "Comment"
+   "注释": "Comment",
+   "无属性": "No Attributes"
 }

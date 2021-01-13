@@ -377,7 +377,7 @@
          var length = listOfResizeFun.length ;
          for( var i = 0; i < length; ++i )
          {
-            if( scope['_bindDeferId'] == listOfResizeFun[i]['id'] )
+            if( scope['$id'] == listOfResizeFun[i]['newid'] )
             {
                listOfResizeFun.splice( i, 1 ) ;
                break ;
@@ -389,7 +389,7 @@
       g.defer = function( scope, resizeFun ){
          var id = listOfResizeFun.length ;
          scope['_bindDeferId'] = id ;
-         listOfResizeFun.push( { 'id': id, 'fun': resizeFun } ) ;
+         listOfResizeFun.push( { 'id': id, 'newid': scope['$id'], 'fun': resizeFun } ) ;
          angular.element( $window ).bind( 'resize', resizeFun ) ;
          scope.$on( '$destroy', function(){
             angular.element( $window ).unbind( 'resize', resizeFun ) ;
