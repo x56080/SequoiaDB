@@ -874,6 +874,21 @@ SdbNode.prototype.getNodeDetail = function() {
           this._servicename + "(" +
           this._rg.toString() + ")" ;
 }
+
+SdbNode.prototype.getDetail = function() {
+    var rgInfo = this._rg.getDetailObj().toObj();
+    var groupInfo = rgInfo.Group;
+    for (var i in groupInfo) {
+        if (groupInfo[i].NodeID == this._nodeid) {
+            var node = groupInfo[i];
+            node.GroupName = rgInfo.GroupName;
+            node.GroupID = rgInfo.GroupID;
+            return new BSONObj(node);
+        }
+    }
+    setLastErrMsg(getErr(SDB_CLS_NODE_NOT_EXIST));
+    throw SDB_CLS_NODE_NOT_EXIST;
+}
 // end SdbNode
 
 // SdbReplicaGroup

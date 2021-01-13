@@ -3140,10 +3140,10 @@
                            "en": "getHostName()"
                         },
                         {
-                           "id": 1432190880,
-                           "file": "getNodeDetail",
-                           "cn": "getNodeDetail()",
-                           "en": "getNodeDetail()"
+                           "id": 1610358204,
+                           "file": "getDetail",
+                           "cn": "getDetail()",
+                           "en": "getDetail()"
                         },
                         {
                            "id": 1432190881,
