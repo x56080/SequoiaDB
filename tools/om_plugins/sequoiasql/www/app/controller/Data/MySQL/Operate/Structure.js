@@ -158,16 +158,14 @@
                            "valid": ""
                         },
                         {
-                           "name": "unsigned",
-                           "webName": $scope.pAutoLanguage( "无符号" ),
-                           "type": "checkbox",
-                           "value": false
-                        },
-                        {
-                           "name": "zerofill",
-                           "webName": $scope.pAutoLanguage( "零填充" ),
-                           "type": "checkbox",
-                           "value": false
+                           "name": "attr",
+                           "type": "select",
+                           "value": "",
+                           "valid": [
+                              { "key": $scope.pAutoLanguage( "无属性" ), "value": "" },
+                              { "key": $scope.pAutoLanguage( "无符号" ), "value": "unsigned" },
+                              { "key": $scope.pAutoLanguage( "零填充" ), "value": "zerofill" }
+                           ]
                         },
                         {
                            "name": "null",
@@ -265,7 +263,7 @@
                   {
                      subSql += ' ' ;
                   }
-                  if( fieldInfo['zerofill'] == true )
+                  if( !isEmpty( fieldInfo['attr'] ) )
                   {
                      switch( fieldInfo['type'] )
                      {
@@ -277,26 +275,7 @@
                      case 'bigint':
                      case 'decimal':
                      case 'float':
-                        subSql += 'zerofill ' ;
-                        break ;
-                     default:
-                        subSql += ' ' ;
-                        break ;
-                     }
-                  }
-                  else if( fieldInfo['unsigned'] == true )
-                  {
-                     switch( fieldInfo['type'] )
-                     {
-                     case 'tinyint':
-                     case 'smallint':
-                     case 'mediumint':
-                     case 'int':
-                     case 'double':
-                     case 'bigint':
-                     case 'decimal':
-                     case 'float':
-                        subSql += 'unsigned ' ;
+                        subSql += ' ' + fieldInfo['attr'] + ' ' ;
                         break ;
                      default:
                         subSql += ' ' ;
@@ -698,6 +677,10 @@
          {
             length = length.toString() ;
          }
+         if ( isEmpty( length ) )
+         {
+            length = getParenthesesStr( columnType ) ;
+         }
          $scope.EditFieldWindow['config'] = {
             'inputList': [
                {
@@ -744,23 +727,14 @@
                   ]
                },
                {
-                  "name": "unsigned",
-                  "webName": $scope.pAutoLanguage( '无符号类型' ),
+                  "name": "attr",
+                  "webName": $scope.pAutoLanguage( "属性" ),
                   "type": "select",
-                  "value": columnType.indexOf( 'zerofill' ) < 0 && columnType.indexOf( 'unsigned' ) > 0,
+                  "value": columnType.indexOf( 'zerofill' ) > 0 ? "zerofill" : ( columnType.indexOf( 'unsigned' ) > 0 ? "unsigned" : "" ) ,
                   "valid": [
-                     { "key": false, "value": false },
-                     { "key": true, "value": true }
-                  ]
-               },
-               {
-                  "name": "zerofill",
-                  "webName": $scope.pAutoLanguage( '零填充' ),
-                  "type": "select",
-                  "value": columnType.indexOf( 'zerofill' ) > 0,
-                  "valid": [
-                     { "key": false, "value": false },
-                     { "key": true, "value": true }
+                     { "key": $scope.pAutoLanguage( "无属性" ), "value": "" },
+                     { "key": $scope.pAutoLanguage( "无符号" ), "value": "unsigned" },
+                     { "key": $scope.pAutoLanguage( "零填充" ), "value": "zerofill" }
                   ]
                },
                {
@@ -842,7 +816,7 @@
                   subSql = columnType.replace( type, '' ) ;
                }
                sql += subSql ;
-               if( formVal['zerofill'] )
+               if( !isEmpty( formVal['attr'] ) )
                {
                   switch( formVal['newType'] )
                   {
@@ -854,23 +828,9 @@
                   case 'bigint':
                   case 'decimal':
                   case 'float':
-                     sql += ' zerofill' ;
+                     sql += ' ' + formVal['attr'] + ' ' ;
                      break ;
-                  }
-               }
-               else if( formVal['unsigned'] )
-               {
-                  switch( formVal['newType'] )
-                  {
-                  case 'tinyint':
-                  case 'smallint':
-                  case 'mediumint':
-                  case 'int':
-                  case 'double':
-                  case 'bigint':
-                  case 'decimal':
-                  case 'float':
-                     sql += ' unsigned' ;
+                  default:
                      break ;
                   }
                }
@@ -973,5 +933,4 @@
 
    } ) ;
 
-   
 }());

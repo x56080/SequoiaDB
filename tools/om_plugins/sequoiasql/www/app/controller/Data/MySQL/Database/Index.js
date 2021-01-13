@@ -905,16 +905,14 @@
                            ]
                         },
                         {
-                           "name": "unsigned",
-                           "webName": $scope.pAutoLanguage( "无符号" ),
-                           "type": "checkbox",
-                           "value": false
-                        },
-                        {
-                           "name": "zerofill",
-                           "webName": $scope.pAutoLanguage( "零填充" ),
-                           "type": "checkbox",
-                           "value": false
+                           "name": "attr",
+                           "type": "select",
+                           "value": "",
+                           "valid": [
+                              { "key": $scope.pAutoLanguage( "无属性" ), "value": "" },
+                              { "key": $scope.pAutoLanguage( "无符号" ), "value": "unsigned" },
+                              { "key": $scope.pAutoLanguage( "零填充" ), "value": "zerofill" }
+                           ]
                         },
                         {
                            "name": "null",
@@ -1025,7 +1023,7 @@
                   {
                      subSql += ' ' ;
                   }
-                  if( fieldInfo['zerofill'] == true )
+                  if( !isEmpty( fieldInfo['attr'] ) )
                   {
                      switch( fieldInfo['type'] )
                      {
@@ -1037,26 +1035,7 @@
                      case 'bigint':
                      case 'decimal':
                      case 'float':
-                        subSql += 'zerofill ' ;
-                        break ;
-                     default:
-                        subSql += ' ' ;
-                        break ;
-                     }
-                  }
-                  else if( fieldInfo['unsigned'] == true )
-                  {
-                     switch( fieldInfo['type'] )
-                     {
-                     case 'tinyint':
-                     case 'smallint':
-                     case 'mediumint':
-                     case 'int':
-                     case 'double':
-                     case 'bigint':
-                     case 'decimal':
-                     case 'float':
-                        subSql += 'unsigned ' ;
+                        subSql += fieldInfo['attr'] + ' ' ;
                         break ;
                      default:
                         subSql += ' ' ;

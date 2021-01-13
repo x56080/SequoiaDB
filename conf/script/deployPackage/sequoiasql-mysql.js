@@ -439,7 +439,17 @@ function _getVersion( hostName, user, pwd, sshPort, installPath )
    {
       var ssh = new Ssh( hostName, user, pwd, parseInt( sshPort ) ) ;
       ssh.exec( cmd ) ;
-      version = ssh.getLastOut() ;
+      var str = ssh.getLastOut() ;
+      var lines = str.split( "\n" ) ;
+      var versionInfo = lines[0].split( ":" ) ;
+      if( versionInfo.length == 2 )
+      {
+         version = versionInfo[1].trim() ;
+      }
+      else
+      {
+         version = versionInfo[0].trim() ;
+      }
    }
    catch( e )
    {
@@ -486,7 +496,7 @@ function InstallPackage( taskID )
    var expectTimeout = 300 ;
    var expectPath    = OMA_TEMP_EXPECT_PATH + '/bin/expect' ;
    var expectShell   = OMA_TEMP_EXPECT_PATH + '/shell/sudo_cmd.sh' ;
-   var expectExec    = 'LC_ALL=C;' + expectPath + ' ' + expectShell + ' ' + expectTimeout + ' ' + string_encode( pwd ) + ' ' ;
+   var expectExec    = 'LC_ALL=C;LANG=C;' + expectPath + ' ' + expectShell + ' ' + expectTimeout + ' ' + string_encode( pwd ) + ' ' ;
 
    PD_LOGGER.setTaskId( taskID ) ;
 

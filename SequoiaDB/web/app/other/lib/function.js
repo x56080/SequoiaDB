@@ -529,6 +529,27 @@ function pad( num, n, chars )
    return num ;
 }
 
+//取得圆括号的内容
+function getParenthesesStr( str )
+{
+    if ( !isString( str ) )
+    {
+      return str ;
+    }
+
+    var result = '' ;
+    var options = str.match( /\((.+?)\)/g ) ;
+    if ( !isEmpty( options ) )
+    {
+      var opt = options[0] ;
+      if ( !isEmpty( opt ) )
+      {
+        result = opt.substring( 1, opt.length - 1 ) ;
+      }
+    }
+    return result ;
+}
+
 //获取对象的属性数量
 function getObjectSize( obj )
 {
