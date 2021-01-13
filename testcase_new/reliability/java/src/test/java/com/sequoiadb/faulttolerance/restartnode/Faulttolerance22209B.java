@@ -182,7 +182,7 @@ public class Faulttolerance22209B extends SdbTestBase {
                     "" )) {
                 long masterLsn = 0;
                 long slaveLsn = 0;
-                for ( int i = 0; i < 6000; i++ ) {
+                for ( int i = 0; i < 12000; i++ ) {
                     DBCursor cur = db.getSnapshot( Sequoiadb.SDB_SNAP_DATABASE,
                             "{GroupName:'" + groupName + "', RawData: true}",
                             null, null );
@@ -204,7 +204,7 @@ public class Faulttolerance22209B extends SdbTestBase {
                     } else {
                         Thread.sleep( 100 );
                     }
-                    if ( i == 5999 ) {
+                    if ( i == 11999 ) {
                         Assert.fail( "600 seconds lsn still no distance." );
                     }
                 }
