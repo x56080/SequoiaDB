@@ -2407,6 +2407,7 @@ done:
 __METHOD_IMP(cl_del)
 {
    INT32 rc                       = 0 ;
+   INT32 flag                     = 0 ;
    PYOBJECT *obj                  = NULL ;
    PYOBJECT *bson_condition       = NULL ;
    PYOBJECT *bson_hint            = NULL ;
@@ -2414,7 +2415,7 @@ __METHOD_IMP(cl_del)
    const bson::BSONObj *condition = NULL ;
    const bson::BSONObj *hint      = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOO", &obj, &bson_condition, &bson_hint ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OOOi", &obj, &bson_condition, &bson_hint, &flag ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -2424,7 +2425,7 @@ __METHOD_IMP(cl_del)
    CAST_PYBSON_TO_CPPBSON( bson_condition, condition ) ;
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
 
-   rc = cl->del( *condition, *hint ) ;
+   rc = cl->del( *condition, *hint, flag ) ;
    if ( rc )
    {
       goto done ;

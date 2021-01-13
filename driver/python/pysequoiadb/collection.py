@@ -42,6 +42,9 @@ QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000
 QUERY_FLG_FOR_UPDATE = 0x00010000
 
 UPDATE_FLG_KEEP_SHARDINGKEY = QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE
+UPDATE_FLG_UPDATE_ONE = 0x00000002
+
+DELETE_FLG_DELETE_ONE = 0x00000002
 
 INSERT_FLG_DEFAULT = 0x00000000
 INSERT_FLG_CONTONDUP = 0x00000001
@@ -383,17 +386,19 @@ class collection(object):
            Name        Type     Info:
            rule        dict     The updating rule.
            **kwargs             Useful option are below
-           - condition dict     The matching rule, update all the documents
-                                      if not provided.
+           - condition dict     The matching rule, match all the documents
+                                        if not provided.
            - hint      dict     The hint, automatically match the optimal hint
-                                      if not provided
-           - flags     int      The update flag
+                                        if not provided.
+           - flags     int      See Info as below.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
-           query flags:
-           UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
-                                               update or upsert.
+           The update flags, default to be 0, it can choose the follow values:
+             UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
+                                                   update or upsert.
+             UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
+                                                   matched records
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -431,19 +436,21 @@ class collection(object):
            Name          Type  Info:
            rule          dict  The updating rule.
            **kwargs            Useful options are below
-           - condition   dict  The matching rule, update all the documents
-                                     if not provided.
+           - condition   dict  The matching rule, match all the documents
+                                       if not provided.
            - hint        dict  The hint, automatically match the optimal hint
-                                     if not provided
+                                       if not provided.
            - setOnInsert dict  The setOnInsert assigns the specified values
-                               to the fileds when insert
-           - flags       int   The update flag
+                                       to the fields when insert.
+           - flags       int   See Info as below.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
-           query flags:
-           UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
-                                               update or upsert.
+           The update flags, default to be 0, it can choose the follow values:
+             UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
+                                                   update or upsert.
+             UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
+                                                   matched records
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -506,15 +513,21 @@ class collection(object):
         Parameters:
            Name        Type  Info:
            **kwargs          Useful options are below
-           - condition dict  The matching rule, delete all the documents
-                                   if not provided.
+           - condition dict  The matching rule, match all the documents
+                                     if not provided.
            - hint      dict  The hint, automatically match the optimal hint
-                                   if not provided
+                                     if not provided.
+           - flags     int   See Info as below.
         Exceptions:
            pysequoiadb.error.SDBBaseError
+        Info:
+           The delete flags, default to be 0, it can choose the follow values:
+             DELETE_FLG_DELETE_ONE : The flag represent whether to delete only one matched record
+                                             or all matched records
         """
         bson_condition = None
         bson_hint = None
+        flags = 0
 
         if "condition" in kwargs:
             if not isinstance(kwargs.get("condition"), dict):
@@ -525,7 +538,13 @@ class collection(object):
                 raise SDBTypeError("hint must be an instance of dict")
             bson_hint = bson.BSON.encode(kwargs.get("hint"))
 
-        rc = sdb.cl_delete(self._cl, bson_condition, bson_hint)
+        if "flags" in kwargs:
+            if not isinstance(kwargs.get("flags"), int):
+               raise SDBTypeError("flags must be an instance of int")
+            else:
+               flags = kwargs.get("flags")
+
+        rc = sdb.cl_delete(self._cl, bson_condition, bson_hint, flags)
         raise_if_error(rc, "Failed to delete")
 
     def query(self, **kwargs):
