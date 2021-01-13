@@ -38,7 +38,7 @@ fsstart.sh 用于挂载目录，挂载目录前需保证配置文件路径下已
 
 **-a, --all**
 
-启动所有挂载目录，启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS；若启动时指定本参数，则 --confpath、--alias、--mountpoint 和 --logpath 参数均无效
+启动所有挂载目录，启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS；若启动时指定本参数，则 --confpath、--alias 和 --mountpoint 参数均无效
 
 >**Note:**  
 >

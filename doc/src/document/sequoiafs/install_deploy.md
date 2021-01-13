@@ -37,7 +37,7 @@ CentOS 7、Red Hat 7、SUSE 11.3 和 Ubuntu 14 及其以上版本的操作系统
    # yum install fuse
    ```
 
-* 对于 SESU 11.3 及其更高版本系统：
+* 对于 SUSE 11.3 及其更高版本系统：
 
    ```lang-bash
    # zypper install fuse
