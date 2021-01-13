@@ -119,7 +119,7 @@ namespace engine
                               BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      INT32 isSecure = 0 ;
+      INT32 useSSL = 0 ;
       const sptObject *pObj = arg.getObject() ;
       sptObjectPtr rgPtr ;
       sptObjectPtr connPtr ;
@@ -128,7 +128,7 @@ namespace engine
 
       if ( arg.argc() >= 1 )
       {
-         rc = arg.getNative( 0, (void *)&isSecure, SPT_NATIVE_INT32 ) ;
+         rc = arg.getNative( 0, (void *)&useSSL, SPT_NATIVE_INT32 ) ;
          if ( rc )
          {
             if ( arg.hasErrMsg() )
@@ -137,7 +137,7 @@ namespace engine
             }
             else
             {
-               detail = BSON( SPT_ERR << "Param[isSecure] must be bool" ) ;
+               detail = BSON( SPT_ERR << "useSSL must be boolean" ) ;
             }
             goto error ;
          }
@@ -176,7 +176,7 @@ namespace engine
          goto error ;
       }
 
-      if ( !isSecure )
+      if ( !useSSL )
       {
          pRetSdb = SDB_OSS_NEW _sptDBSdb() ;
          if ( !pRetSdb )
