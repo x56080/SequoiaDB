@@ -112,14 +112,22 @@
 
 用户需要通过 sdb_pg_ctl 工具部署 PostgreSQL 实例组件。
 
-1. 切换用户和目录
+1. 检查端口是否被占用
+
+   SequoiaSQL PostgreSQL 默认启动端口为5432,检查端口是否被占用。
+   ```lang-bash
+   $ sudo netstat -nap | grep 5432
+   ```
+
+
+2. 切换用户和目录
 
    ```lang-bash
    $ su - sdbadmin
    $ cd /opt/sequoiasql/postgresql
    ```
 
-2. 添加实例，指定实例名为 myinst，该实例名映射相应的数据目录和日志路径，实例默认端口号为 5432（用户可根据需要指定不同的实例名）
+3. 添加实例，指定实例名为 myinst，该实例名映射相应的数据目录和日志路径，实例默认端口号为 5432（用户可根据需要指定不同的实例名）
 
    ```lang-bash
    $ bin/sdb_pg_ctl addinst myinst -D database/5432/
@@ -131,13 +139,13 @@
    $ bin/sdb_pg_ctl addinst myinst -D database/5442/ -p 5442
    ```
 
-3. 启动实例进程
+4. 启动实例进程
 
    ```lang-bash
    $ bin/sdb_pg_ctl start myinst
    ```
 
-4. 查看实例状态
+5. 查看实例状态
 
    ```lang-bash
    $ bin/sdb_pg_ctl status
@@ -151,13 +159,34 @@
    Total: 1
    ```
 
-##PostgreSQL实例组件开机自启动##
+##PostgreSQL实例组件系统服务##
 
-安装 PostgreSQL 实例组件时，会自动添加 sequoiasql-postgresql 系统服务。该服务在启动时，会自动启动相关的实例，在实例进程异常退出时，也会自动重启实例。
+安装 PostgreSQL 实例组件时，会自动添加 sequoiasql-postgresql 系统服务。该服务会在系统启动的时候自动运行。该服务是 PostgreSQL 实例的守护进程。它能在机器启动时，自动启动相关的 PostgreSQL 实例；它能实时重启异常退出的 PostgreSQL 实例进程。
 
    > **Note:**  
    > 
    > 一个安装对应一个 sequoiasql-postgresql 服务，一台机器上存在多个安装时，系统服务名为 sequoiasql-postgresql[i]，i 为小于 50 的数值或者为空。
+
+
+用户可通过 service 命令管理 sequoiasql-postgresql 系统服务。
+
+- 如果需要查看服务的运行状态，可使用如下命令：
+
+   ```lang-bash
+   $ sudo service sequoiasql-postgresql status
+   ```
+
+- 如果需要停止服务，可使用如下命令：
+
+   ```lang-bash
+   $ sudo service sequoiasql-postgresql stop
+   ```
+
+- 如果需要启动服务，可使用如下命令：
+
+   ```lang-bash
+   $ sudo service sequoiasql-postgresql start
+   ```
 
 用户添加的新实例会自动加入 sequoiasql-postgresql 系统服务的管理中。
 
@@ -178,3 +207,4 @@
    ```lang-bash
    $ bin/sdb_pg_ctl addtosvc myinst
    ```
+
