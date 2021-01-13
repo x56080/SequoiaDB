@@ -5,23 +5,21 @@
 .hy
 .SH NAME
 .PP
-startNodes \- Start one or more nodes in target host of sdbcm.
+startNodes \- Start one or more nodes by service name
 .SH SYNOPSIS
 .PP
 \f[B]oma.startNodes(<svcname>)\f[]
+.PP
+\f[B]oma.startNodes([<svcname>,...])\f[]
 .SH CATEGORY
 .PP
 Oma
 .SH DESCRIPTION
 .PP
 Start one or more nodes in target host of sdbcm.
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-Oma object is a connect object
 .SH PARAMETERS
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String | Int | Array\f[], \f[I]Required\f[] )
+\f[C]svcname\f[] ( \f[I]Int | String\f[], \f[I]Required\f[] )
 .PP
 The service name of the node.
 .SH RETURN VALUE
@@ -138,31 +136,6 @@ started.
 \f[C]
 >\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
 >\ oma.startNodes(\ [\ 11810,\ 11820,\ 11830\ ]\ )
-\f[]
-.fi
-.RE
-.IP "4." 3
-View error message
-.nf
-\f[C]
->\ var\ oma\ =\ new\ Oma(\ "localhost",\ 11790\ )
->\ oma.startNodes(\ [\ 11810,\ 11820,\ 20000\ ]\ )
-(nofile):0\ uncaught\ exception:\ \-264
-One\ or\ more\ nodes\ did\ not\ complete\ successfully
->\ getLastErrObj()
-{
-\ \ "errno":\ \-264,
-\ \ "description":\ "One\ or\ more\ nodes\ did\ not\ complete\ successfully",
-\ \ "detail":\ "",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "errno":\ \-146,
-\ \ \ \ \ \ "description":\ "Node\ does\ not\ exist",
-\ \ \ \ \ \ "detail":\ "Failed\ to\ start\ node:\ svcname=20000",
-\ \ \ \ \ \ "svcname":\ "20000"
-\ \ \ \ }
-\ \ ]
-}
 \f[]
 .fi
 .RE

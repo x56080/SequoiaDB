@@ -1,11 +1,13 @@
 
 ##NAME##
 
-startNodes - Start one or more nodes in target host of sdbcm.
+startNodes - Start one or more nodes by service name
 
 ##SYNOPSIS##
 
 **oma.startNodes(\<svcname\>)**
+
+**oma.startNodes([\<svcname\>,...])**
 
 ##CATEGORY##
 
@@ -15,13 +17,9 @@ Oma
 
 Start one or more nodes in target host of sdbcm.
 
-**Note:**
-
-* Oma object is a connect object 
-
 ##PARAMETERS##
 
-* `svcname` ( *String | Int | Array*, *Required* )
+* `svcname` ( *Int | String*, *Required* )
 
    The service name of the node.
 
@@ -66,27 +64,4 @@ Since v3.0.2.
  	```lang-javascript
 	> var oma = new Oma( "localhost", 11790 )
 	> oma.startNodes( [ 11810, 11820, 11830 ] )
- 	```
-
-4. View error message
-
- 	```lang-javascript
-	> var oma = new Oma( "localhost", 11790 )
-	> oma.startNodes( [ 11810, 11820, 20000 ] )
-    (nofile):0 uncaught exception: -264
-    One or more nodes did not complete successfully
-    > getLastErrObj()
-    {
-      "errno": -264,
-      "description": "One or more nodes did not complete successfully",
-      "detail": "",
-      "ErrNodes": [
-        {
-          "errno": -146,
-          "description": "Node does not exist",
-          "detail": "Failed to start node: svcname=20000",
-          "svcname": "20000"
-        }
-      ]
-    }
  	```
