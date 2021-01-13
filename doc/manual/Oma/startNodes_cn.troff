@@ -5,23 +5,21 @@
 .hy
 .SH 名称
 .PP
-startNodes \- 在目标集群控制器（sdbcm）所在的机器中启动指定节点。
+startNodes \- 通过服务端口启动节点
 .SH 语法
 .PP
 \f[B]oma.startNodes(<svcname>)\f[]
+.PP
+\f[B]oma.startNodes([<svcname>,...])\f[]
 .SH 类别
 .PP
 Oma
 .SH 描述
 .PP
-在目标集群控制器（sdbcm）所在的机器中启动指定节点。
-.PP
-\f[B]Note:\f[]
-.IP \[bu] 2
-oma对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
+启动目标集群控制器（sdbcm）所在的机器中的指定节点。
 .SH 参数
 .IP \[bu] 2
-\f[C]svcname\f[] ( \f[I]String | Int | Array\f[]， \f[I]必填\f[] )
+\f[C]svcname\f[] ( \f[I]String | Int\f[]， \f[I]必填\f[] )
 .RS 2
 .PP
 节点端口号。
@@ -144,31 +142,6 @@ v3.0.2及以上版本。
 \f[C]
 >\ var\ oma\ =\ new\ Oma()
 >\ oma.startNodes(\ [\ 11810,\ 11820,\ 11830\ ]\ )
-\f[]
-.fi
-.RE
-.IP "4." 3
-查看错误信息
-.nf
-\f[C]
->\ var\ oma\ =\ new\ Oma()
->\ oma.startNodes(\ [\ 11810,\ 11820,\ 20000\ ]\ )
-(nofile):0\ uncaught\ exception:\ \-264
-One\ or\ more\ nodes\ did\ not\ complete\ successfully
->\ getLastErrObj()
-{
-\ \ "errno":\ \-264,
-\ \ "description":\ "One\ or\ more\ nodes\ did\ not\ complete\ successfully",
-\ \ "detail":\ "",
-\ \ "ErrNodes":\ [
-\ \ \ \ {
-\ \ \ \ \ \ "errno":\ \-146,
-\ \ \ \ \ \ "description":\ "Node\ does\ not\ exist",
-\ \ \ \ \ \ "detail":\ "Failed\ to\ start\ node:\ svcname=20000",
-\ \ \ \ \ \ "svcname":\ "20000"
-\ \ \ \ }
-\ \ ]
-}
 \f[]
 .fi
 .RE

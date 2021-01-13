@@ -1,10 +1,12 @@
 ##名称##
 
-startNodes - 在目标集群控制器（sdbcm）所在的机器中启动指定节点。
+startNodes - 通过服务端口启动节点
 
 ##语法##
 
-**oma.startNodes(\<svcname\>)**
+**oma.startNodes(\<svcname\>)**  
+
+**oma.startNodes([\<svcname\>,...])**
 
 ##类别##
 
@@ -12,15 +14,12 @@ Oma
 
 ##描述##
 
-在目标集群控制器（sdbcm）所在的机器中启动指定节点。
+启动目标集群控制器（sdbcm）所在的机器中的指定节点。
 
-**Note:**
-
-* oma对象为连接到目标（本地/远端机器）集群控制器（sdbcm）获得的连接对象。
 
 ##参数##
 
-* `svcname` ( *String | Int | Array*， *必填* )
+* `svcname` ( *String | Int*， *必填* )
 
 	节点端口号。
 
@@ -69,27 +68,4 @@ v3.0.2及以上版本。
  	```lang-javascript
 	> var oma = new Oma()
 	> oma.startNodes( [ 11810, 11820, 11830 ] )
- 	```
-
-4. 查看错误信息
-
- 	```lang-javascript
-	> var oma = new Oma()
-	> oma.startNodes( [ 11810, 11820, 20000 ] )
-    (nofile):0 uncaught exception: -264
-    One or more nodes did not complete successfully
-    > getLastErrObj()
-    {
-      "errno": -264,
-      "description": "One or more nodes did not complete successfully",
-      "detail": "",
-      "ErrNodes": [
-        {
-          "errno": -146,
-          "description": "Node does not exist",
-          "detail": "Failed to start node: svcname=20000",
-          "svcname": "20000"
-        }
-      ]
-    }
  	```
