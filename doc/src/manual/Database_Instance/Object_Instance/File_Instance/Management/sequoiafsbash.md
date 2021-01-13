@@ -24,10 +24,10 @@ fsstart.sh 用于挂载目录，挂载目录前需保证配置文件路径下已
 | ----   | ---- | ---- |
 | --help | -h   | 返回帮助信息 |
 | --version | -v | 显示 SequoiaFS 的版本 |
-|  --confpath | -c | 指定配置文件所在路径，使用该路径中的配置文件及其它指定参数启动 SequoiaFS |
+| --confpath | -c | 指定配置文件所在路径，使用该路径中的配置文件及其它指定参数启动 SequoiaFS |
 | --mountpoint | -m | 指定挂载目录启动，系统会根据挂载目录找到配置文件路径，使用该路径中的配置文件及其它指定参数启动 SequoiaFS |
 | --alias |  | 指定挂载目录的别名，系统会根据别名找到配置文件路径，使用该路径中的配置文件及其它指定参数启动 SequoiaFS | 
-| --all | -a | 启动所有挂载目录，启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS；若启动时指定本参数，则 --confpath、--alias、--mountpoint 和 --logpath 参数均无效 |
+| --all | -a | 启动所有挂载目录，启动脚本在默认配置路径下找到全部配置文件，分别启动 SequoiaFS；若启动时指定本参数，则 --confpath、--alias 和 --mountpoint 参数均无效 |
 
 >**Note:**  
 >

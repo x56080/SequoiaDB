@@ -21,7 +21,7 @@ SequoiaFS 现支持以下文件操作 API：
 
  创建或打开一个文件
 
- * flags 只支持"O_RDONLY"、"O_WRONLY"和"O_CREATE"，填入其他参数则报错
+ * flags 只支持"O_RDONLY"、"O_WRONLY"、"O_RDWR"和"O_CREAT"
  * mode 缺省，则默认为 644
 
 - **close(int fd)**
@@ -40,7 +40,7 @@ SequoiaFS 现支持以下文件操作 API：
 
  读取文件数据
 
-- **write(int fd, const void* buf, size_t count)**
+- **write(int fd, const void *buf, size_t count)**
 
  写文件数据
 
@@ -48,7 +48,7 @@ SequoiaFS 现支持以下文件操作 API：
 
  获取文件的属性信息
 
-- **utime(const char * pathname, struct utimebuf * buf)**
+- **utime(const char *pathname, struct utimebuf *buf)**
 
  更改访问和修改时间
 
@@ -56,7 +56,7 @@ SequoiaFS 现支持以下文件操作 API：
 
  创建链接文件（硬链接）
 
-- **unlink(const char * pathname)**
+- **unlink(const char *pathname)**
 
  删除指定文件，如果该文件为最后的链接点，则文件会被删除；如果为符号链接，则链接删除
 

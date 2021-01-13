@@ -51,12 +51,11 @@ $ echo $INSTALL_DIR
 | --fuse_big_writes |  |FUSE 参数，是否允许超过 4KB 的写操作，默认值为 true，最大为 32KB |
 | --fuse_max_write | | FUSE 参数，指定 write 请求的最大 size，默认值为 131072 |
 | --fuse_max_read | | FUSE 参数，指定 read 请求的最大 size，默认值为 131072 | 
-| --fuse_nonempty | | FUSE 参数，是否允许挂载在非空文件夹上，默认值为 false | 
+
 
 >**Note:**
 >   
->* FUSE 参数配置方式为将参数统一管理，FUSE 相关参数需以“--fuse_xxx”的形式传递传递给 SequoiaFS。对无参数值的 FUSE 参数，例如：-o nonempty，需以 --fuse_nonempty true 形式输入；对有参数值的 FUSE 参数，例如：-o max_read=N，需以 --fuse_max_read N 形式输入。
->* SequoiaFS 将所有以“--fuse_”为前缀的参数及参数值转化为 -o opt,[opt...] 的参数形式传递给 FUSE。
+>* SequoiaFS 可以配置 FUSE 参数，但是需要在 FUSE 参数前加“fuse_”作为前缀以便和 SequoiaFS 的参数进行区分。例如：-o nonempty，需转换为 --fuse_nonempty true，-o max_read=N，需转换为 --fuse_max_read N。
 
 ##参数配置##
 
