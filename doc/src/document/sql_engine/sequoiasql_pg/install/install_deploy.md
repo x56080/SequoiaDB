@@ -89,20 +89,21 @@
 
 ##部署 PostgreSQL 实例组件 ##
 
-1. 切换用户和目录
+1. 检查端口是否被占用
+
+   SequoiaSQL PostgreSQL 默认启动端口为5432,检查端口是否被占用。
+
+   ```lang-bash
+   $ sudo netstat -nap | grep 5432
+   ```
+
+2. 切换用户和目录
 
    ```lang-bash
    $ su - sdbadmin
    $ cd /opt/sequoiasql/postgresql
    ```
 
-2. 检查端口是否被占用
-
-   SequoiaSQL PostgreSQL 默认启动端口为5432,检查端口是否被占用。(检查操作建议使用 root 用户操作，只有检查端口需要 root 权限，其余操作还是需要在 sdbadmin 用户下操作)
-
-   ```lang-bash
-   $ netstat -nap | grep 5432
-   ```
 
 3. 创建实例
 
@@ -144,15 +145,7 @@
    Total: 1; Run: 1
     ```
 
-5. 检查 SequoiaSQL PostgreSQL 是否启动成功
-
-   ```lang-bash
-   $ netstat -nap | grep 5432
-   tcp   0   0 127.0.0.1:5432     0.0.0.0:*         LISTEN     28115/postgres
-   unix  2   [ ACC ]   STREAM    LISTENING   40776754 28115/postgres     /tmp/.s.PGSQL.5432
-   ```
-
-6. 创建 SequoiaSQL PostgreSQL 的 database
+5. 创建 SequoiaSQL PostgreSQL 的 database
 
    ```lang-bash
    $ bin/sdb_pg_ctl createdb foo myinst
@@ -164,63 +157,51 @@
    $ bin/psql -p 5432 foo
    ```
 
-##PostgreSQL 实例组件开机自启动##
+##PostgreSQL实例组件系统服务##
 
-1. 安装 PostgreSQL 实例组件时，会自动添加系统服务：sequoiasql-postgresql。该服务在启动时，会自动拉起相关的实例，在实例进程异常退出时，也会自动拉起实例。
+安装 PostgreSQL 实例组件时，会自动添加 sequoiasql-postgresql 系统服务。该服务会在系统启动的时候自动运行。该服务是 PostgreSQL 实例的守护进程。它能在机器启动时，自动启动相关的 PostgreSQL 实例；它能实时重启异常退出的 PostgreSQL 实例进程。
 
-   >**Note:**   
-   >系统服务名为 sequoiasql-postgresql[i]，i 为小于 50 的数值或者为空。在安装包执行结束时，会打印出该版本对应的服务名。
+   > **Note:**  
+   > 
+   > 一个安装对应一个 sequoiasql-postgresql 服务，一台机器上存在多个安装时，系统服务名为 sequoiasql-postgresql[i]，i 为小于 50 的数值或者为空。
 
-   当添加一个新实例时，会自动加入 service 的管理中。
+
+用户可通过 service 命令管理 sequoiasql-postgresql 系统服务。
+
+- 如果需要查看服务的运行状态，可使用如下命令：
 
    ```lang-bash
-   $ bin/sdb_pg_ctl addinst myinst -D database/5432/
-   Adding instance myinst ...
-   ok
+   $ sudo service sequoiasql-postgresql status
    ```
 
-2. 如果不想实例纳入服务的管理：
+- 如果需要停止服务，可使用如下命令：
+
+   ```lang-bash
+   $ sudo service sequoiasql-postgresql stop
+   ```
+
+- 如果需要启动服务，可使用如下命令：
+
+   ```lang-bash
+   $ sudo service sequoiasql-postgresql start
+   ```
+
+用户添加的新实例会自动加入 sequoiasql-postgresql 系统服务的管理中。
+
+- 如果需要将指定实例从服务的管理中剔除，可使用如下命令：
 
    ```lang-bash
    $ bin/sdb_pg_ctl delfromsvc myinst
-   Deleting instance myinst from service ...
-   ok
    ```
    
-   或者在添加实例的时候指定参数--addtosvc：
+   或者在添加实例的时候指定参数--addtosvc
 
    ```lang-bash
    $ bin/sdb_pg_ctl addinst myinst -D database/5432/ --addtosvc=false
-   Adding instance myinst ...
-   ok
    ```
 
-3. 添加实例到服务
+- 如果需要将被剔除的实例重新纳入服务的管理，可使用如下命令：
 
    ```lang-bash
    $ bin/sdb_pg_ctl addtosvc myinst
-   Adding instance myinst to service ...
-   ok
-   ```
-
-4. 查看服务运行状态
-
-   ```lang-bash
-   $ service sequoiasql-postgresql status
-   Status of service sequoiasql-postgresql: 
-   running. (PID: 14756)
-   ```
-
-5. 启停服务
-
-   ```lang-bash
-   $ service sequoiasql-postgresql stop
-   Stoping service sequoiasql-postgresql ...
-   ok.
-   ```
-   
-   ```lang-bash
-   $ service sequoiasql-postgresql start
-   Starting service sequoiasql-postgresql ...
-   ok. (PID: 4822)
    ```

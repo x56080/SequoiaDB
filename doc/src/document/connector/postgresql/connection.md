@@ -13,18 +13,22 @@
    ```lang-sql
    sample=# create server sdb_server foreign data wrapper sdb_fdw options( address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferedinstance 'A', transaction 'off' );
    ```
-
+   
+   - user：数据库用户名
+   - password：数据库密码
+   - address：协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串
+   - service：协调节点 serviceName
+   - preferedinstance：设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值
+   - preferedinstancemode：设置 SequoiaDB 的连接属性 preferedinstance 的选择模式
+   - sessiontimeout：设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100'
+   - transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on
+   - cipher：设置是否使用密文模式输入密码，默认为 off，开启为 on，关于密文模式的介绍可参考[密码管理](database_management/security/system_security.md)
+   - token：设置加密令牌
+   - cipherfile：设置密文文件路径，默认为 `~/sequoiadb/passwd`
+   
    >**Note：** 
    >
-   > * 如果没有配置数据库密码验证，可以忽略 user 与 password 字段。
-   > * 如果需要提供多个协调节点地址，options 中的 address 字段可以按格式 'ip1:port1,ip2:port2,ip3:port3' 填写。此时，service 字段可填写任意一个非空字符串。
-   > * preferedinstance：设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'。取值可参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md)；
-   > * preferedinstancemode：设置 preferedinstance 的选择模式，取值可参考 [preferedinstancemode](reference/Sequoiadb_command/Sdb/setSessionAttr.md)；
-   > * sessiontimeout：设置会话超时时间 如：sessiontimeout '100'；
-   > * transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on；
-   > * cipher：设置是否使用密文模式输入密码，默认为 off，开启为 on，关于密文模式的介绍，可参考[密码管理](database_management/security/system_security.md)；
-   > * token：设置加密令牌；
-   > * cipherfile：设置密文文件路径，默认为 `~/sequoiadb/passwd`。
+   > 如果没有配置数据库密码验证，可以忽略 user 与 password 字段。
 
 3. 关联 SequoiaDB 的集合空间与集合
 
@@ -32,15 +36,17 @@
    sample=# create foreign table test (name text, id numeric) server sdb_server options ( collectionspace 'sample', collection 'employee', decimal 'on' );
    ```
 
+   - collectionspace：SequoiaDB 中已存在的集合空间
+   - collection：SequoiaDB 中已存在的集合
+   - decimal：是否对接 SequoiaDB 的 decimal 字段，默认为 off
+   - pushdownsort：是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off
+   - pushdownlimit：是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题
+   
    >**Note:**
    >
-   > * 所关联的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
-   > * 如果需要对接 SequoiaDB 的 decimal 字段，则需要在 options 中指定 decimal 'on' 。
-   > * pushdownsort：设置是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off；
-   > * pushdownlimit：设置是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on，关闭为 off。
-   > * 开启 pushdownlimit 时，必须同时开启 pushdownsort，否则可能会造成结果非预期的问题。
-   > * 默认情况下，表的字段映射到 SequoiaDB 中为小写字符，如果强制指定字段为大写字符，创建方式参考“注意事项”。
-   > * 映射 SequoiaDB 的数组类型，创建方式参考“注意事项”。
+   > * 用户所指定的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
+   > * 默认情况下，表的字段映射到 SequoiaDB 中为小写字符，如果强制指定字段为大写字符，可参考[使用须知](connector/postgresql/connection.md#使用须知)。
+
 
 4. 更新表的统计信息
 

@@ -33,12 +33,6 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
  $ cd /opt/postgresql-9.3.4/
  $ ./configure --prefix=/opt/postgresql
  ```
-
-5. 源码编译
-
- ```lang-bash
- $ make
- ```
 当编译出现“All of PostgreSQL successfully made. Ready to install.”，说明编译成功。
 	> **Note:**
 	>
@@ -56,6 +50,12 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
 	>    ```lang-javascript
 	>    # yum install zlib-devel readline-devel
 	>    ```
+
+5. 源码编译
+
+ ```lang-bash
+ $ make
+ ```
 
 6. 源码安装 
 
@@ -128,9 +128,9 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
 
 3. 安装 PostgreSQL 的扩展文件
 
- 从 SequoiaDB 安装后的 postgresql 目录（默认为/opt/sequoiadb/postgresql）中拷贝 sdb_fdw.so 文件到 PostgreSQL 的 lib 目录，并添加软链接。
+ 用户在安装扩展文件前，需确保已安装 PostgreSQL 实例组件。如果未安装可参考[安装 PostgreSQL 实例组件](sql_engine/sequoiasql_pg/install/install_deploy.md)。
 
- sdb_fdw.so 文件名如 sdb_fdw.so_2.2_23000 ，2.2 代表对应的 SequoiaDB 版本，23000 代表 Release 号。
+ 从 postgresql 目录（默认为 `/opt/sequoiasql/postgresql` ）中拷贝 sdb_fdw.so 文件到 PostgreSQL 的 lib 目录，并添加软链接。
 
  ```lang-bash
  $ cp -f /opt/sequoiadb/postgresql/sdb_fdw.so_2.2_23000 ${PGLIBDIR}
@@ -138,11 +138,17 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
  $ ln -s sdb_fdw.so_2.2_23000 sdb_fdw.so
  ```
 
+ > **Note:**
+ >
+ >sdb_fdw.so 文件名如 sdb_fdw.so_2.2_23000 ，2.2 代表对应的 SequoiaDB 版本，23000 代表 Release 号。
+
+
+
 4. 将 sdb_fdw.control 和 sdb_fdw--1.0.sql 脚本拷贝到 extension 目录中：
 
  ```lang-bash
- $ cp -f /opt/sequoiadb/postgresql/sdb_fdw.control ${PGSHAREDIR}/extension/
- $ cp -f /opt/sequoiadb/postgresql/sdb_fdw--1.0.sql ${PGSHAREDIR}/extension/
+ $ cp -f /opt/sequoiasql/postgresql/sdb_fdw.control ${PGSHAREDIR}/extension/
+ $ cp -f /opt/sequoiasql/postgresql/sdb_fdw--1.0.sql ${PGSHAREDIR}/extension/
  ```
 
  sdb_fdw.control 脚本内容：
