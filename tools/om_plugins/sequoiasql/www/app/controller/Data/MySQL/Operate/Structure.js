@@ -534,7 +534,7 @@
                }
                else
                {
-                  sql = sprintf( 'alter table `?` drop index ?', SdbSwap.tbName, formValue['index'] ) ;
+                  sql = sprintf( 'alter table `?` drop index `?`', SdbSwap.tbName, formValue['index'] ) ;
                }
                execSql( sql ) ;
                $scope.DropIndexWindow['callback']['Close']() ;

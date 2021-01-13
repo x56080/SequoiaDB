@@ -958,13 +958,13 @@
             {
                var formVal1 = $scope.CreateTableWindow['config']['Form1'].getValue() ;
                
-               var sql = sprintf( 'create table `?` (', formVal1['tbName'] ) ;
+               var sql = '' ; 
                var primaryKey = formVal1['tbName'] ;
-               var primaryKey2 = ' primary key (' ;
-               var indexName = ',index ' + formVal1['tbName'] ;
-               var indexCont = '(' ;
-               var uniqueName = ',unique index ' + formVal1['tbName'] ;
-               var uniqueCont = '(' ;
+               var primaryKey2 = '' ;
+               var indexName = formVal1['tbName'] ;
+               var uniqueName = formVal1['tbName'] ;
+               var indexCont = '' ;
+               var uniqueCont = '' ;
                $.each( formVal1['fields'], function( index, fieldInfo ){
                   var subSql = '' ;
                   if( index > 0 )
@@ -1066,7 +1066,7 @@
                   if( fieldInfo['indexType'] == 'primary' )
                   {
                      //判断是否第一个主键
-                     if( primaryKey2.length > 14 )
+                     if( primaryKey2.length > 0 )
                      {
                         primaryKey2 += ',' ;
                      }
@@ -1075,7 +1075,7 @@
                   }
                   else if( fieldInfo['indexType'] == 'unique' )
                   {
-                     if( uniqueCont.length > 1 )
+                     if( uniqueCont.length > 0 )
                      {
                         uniqueCont += ',' ;
                      }
@@ -1084,7 +1084,7 @@
                   }
                   else if( fieldInfo['indexType'] == 'index' )
                   {
-                     if( indexCont.length > 1 )
+                     if( indexCont.length > 0 )
                      {
                         indexCont += ',' ;
                      }
@@ -1107,19 +1107,19 @@
                } ) ;
                
                //判断是否有索引
-               if( primaryKey2.length > 14 )
+               if( primaryKey2.length > 0 )
                {
-                  sql = sql + ',constraint ' + primaryKey + primaryKey2 + ')' ;
+                  sql = sql + ',constraint `' + primaryKey + '` primary key (' + primaryKey2 + ')' ;
                }
-               if( indexCont.length > 1 )
+               if( indexCont.length > 0 )
                {
-                  sql = sql + indexName + indexCont + ')' ;
+                  sql = sql + ',index `' + indexName + '`(' + indexCont + ')' ;
                }
-               if( uniqueCont.length > 1 )
+               if( uniqueCont.length > 0 )
                {
-                  sql = sql + uniqueName + uniqueCont + ')' ;
+                  sql = sql + ',unique index `' + uniqueName + '`(' + uniqueCont + ')' ;
                }
-               sql += ' )' ;
+               sql = sprintf( 'create table `?` (', formVal1['tbName'] ) + sql + ' )' ;
 
                //添加引擎
                sql += ' engine = ' + formVal1['engine'] ;
