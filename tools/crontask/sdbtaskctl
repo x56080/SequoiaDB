@@ -116,6 +116,18 @@ function check_task_exist()
 
 function list()
 {
+   if [ "$TASK_TYPE" == "rebalance" ] ; then 
+      list_task_rebalance
+   elif [ "$TASK_TYPE" == "shrink" ] ; then 
+      list_task_shrink
+   else
+      list_task_rebalance
+      list_task_shrink
+   fi
+}
+
+function list_task_rebalance()
+{
    ### rebalance
    printf "*************************** REBALANCE TASK: ***************************\n"
    printf "%-20s %-20s %-20s %-20s\n" "NAME" "SCHEDULE" "CLNAME" "UNIT(MB)"
@@ -134,9 +146,14 @@ function list()
          fi
       done
    fi
+   
+   echo ""
+}
 
+function list_task_shrink()
+{
    ### shrink
-   printf "\n*************************** SHRINK TASK: ******************************\n"
+   printf "*************************** SHRINK TASK: ******************************\n"
    printf "%-20s %-20s %-20s\n" "NAME" "SCHEDULE" "HOSTLIST"
 
    # if conf path exists, then loop every conf file
@@ -277,7 +294,7 @@ function build_help()
    echo "Usage:"
    echo "  sdbtaskctl create <TASKNAME> <-t TASKTYPE> <-b BEGINTIME> <-f FREQUENCY> [-l CLNAME] [-u UNIT] [--hosts HOSTLIST]"
    echo "  sdbtaskctl remove <TASKNAME>"
-   echo "  sdbtaskctl list"
+   echo "  sdbtaskctl list [-t TASKTYPE]"
    echo ""
    echo "Common options:"
    echo "  -t arg             task type, can be 'rebalance' or 'shrink'"
