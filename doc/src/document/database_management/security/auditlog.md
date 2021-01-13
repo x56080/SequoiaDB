@@ -138,6 +138,6 @@ Option: { "Name": "sample.employee" }
 
 > **Note：**
 >
-> - 支持使用"|"连接多个操作类型，如"DDL|DML|DQL"
-> - 修改配置生效后可执行 [invalidateCache()](reference/Sequoiadb_command/Sdb/invalidateCache.md) 命令清除 NODE/CATALOG/AUTH 缓存
+> - 支持使用"|"连接多个操作类型，如"DDL|DML|DQL"；
+> - 用户修改配置生效后可执行 [invalidateCache()](reference/Sequoiadb_command/Sdb/invalidateCache.md) 命令清除节点缓存。
 
