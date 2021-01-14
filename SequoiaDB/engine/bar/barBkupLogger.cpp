@@ -489,6 +489,32 @@ namespace engine
       goto done ;
    }
 
+   INT32 _barBaseLogger::_close( OSSFILE &file, BOOLEAN fsync )
+   {
+      INT32 rc = SDB_OK ;
+      if ( fsync )
+      {
+         INT32 rc2 = ossFsync( &file ) ;
+         // ignore SDB_INVALIDARG - it means the filesystem doesn't need fsync
+         if ( SDB_INVALIDARG != rc2 )
+         {
+            rc = rc2 ;
+         }
+      }
+      // close the file descriptor
+      INT32 rc3 = ossClose( file ) ;
+      if ( rc3 )
+      {
+         if ( SDB_OK == rc )
+         {
+            // only return the new rc if there were no previous errors
+            rc = rc3 ;
+         }
+         PD_LOG( PDERROR, "Error closing file" ) ;
+      }
+      return rc ;
+   }
+
    INT32 _barBaseLogger::_readMetaHeader( UINT32 incID,
                                           barBackupHeader *pHeader,
                                           BOOLEAN check,
@@ -542,7 +568,11 @@ namespace engine
    done:
       if ( isOpened )
       {
-         ossClose( file ) ;
+         INT32 rc2 = _close( file, FALSE ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = rc2 ;
+         }
       }
       return rc ;
    error:
@@ -622,7 +652,11 @@ namespace engine
    done:
       if ( isOpened )
       {
-         ossClose( file ) ;
+         INT32 rc2 = _close( file, FALSE ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = rc2 ;
+         }
       }
       return rc ;
    error:
@@ -666,6 +700,7 @@ namespace engine
       _metaFileSeq   = 0 ;
       _curFileSize   = 0 ;
       _isOpened      = FALSE ;
+      _isOpenedWriter = FALSE ;
 
       _lastLSN       = ~0 ;
       _lastLSNCode   = 0 ;
@@ -677,17 +712,20 @@ namespace engine
 
    _barBkupBaseLogger::~_barBkupBaseLogger ()
    {
+      // ignore the rc - this is a destructor and can't handle failure
       _closeCurFile() ;
    }
 
    INT32 _barBkupBaseLogger::_closeCurFile ()
    {
+      INT32 rc = SDB_OK ;
       if ( _isOpened )
       {
+         rc = _close( _curFile, _isOpenedWriter ) ;
          _isOpened = FALSE ;
-         return ossClose( _curFile ) ;
+         _isOpenedWriter = FALSE ;
       }
-      return SDB_OK ;
+      return rc ;
    }
 
    void _barBkupBaseLogger::setBackupLog( BOOLEAN backupLog )
@@ -1003,7 +1041,12 @@ namespace engine
          }
          if ( _curFileSize + len + dataLen > _metaHeader._maxDataFileSize )
          {
-            _closeCurFile() ;
+            rc = _closeCurFile() ;
+            if ( rc )
+            {
+               // backup() will clean up the bad backup's files
+               goto error ;
+            }
          }
       }
 
@@ -1118,6 +1161,7 @@ namespace engine
          goto error ;
       }
       _isOpened = TRUE ;
+      _isOpenedWriter = TRUE ; // must set this because we are writing
 
       // write header
       pHeader = SDB_OSS_NEW barBackupDataHeader ;
@@ -1232,7 +1276,12 @@ namespace engine
       rc = _onWriteMetaFile() ;
       PD_RC_CHECK( rc, PDERROR, "On write meta file failed, rc: %d", rc ) ;
 
-      _closeCurFile () ;
+      rc = _closeCurFile() ;
+      if ( rc )
+      {
+         // backup() will clean up the bad backup's files
+         goto error ;
+      }
 
       fileName = getIncFileName( _metaFileSeq ) ;
       rc = ossOpen( fileName.c_str(), OSS_REPLACE | OSS_READWRITE,
@@ -1241,6 +1290,7 @@ namespace engine
                    fileName.c_str(), rc ) ;
 
       _isOpened = TRUE ;
+      _isOpenedWriter = TRUE ; // must set this because we are writing
       _metaHeader.makeEndTime() ;
 
       rc = _flush( _curFile, (const CHAR *)&_metaHeader,
@@ -1248,7 +1298,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to write backup header to meta "
                    "file[%s], rc: %d", fileName.c_str(), rc ) ;
 
-      _closeCurFile () ;
+      rc = _closeCurFile() ;
+      if ( rc )
+      {
+         // backup() will clean up the bad backup's files
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -1261,6 +1316,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string fileName ;
 
+      // ignore the rc - this is the failure cleanup anyway
       _closeCurFile() ;
 
       // 1. remove data files
@@ -2089,6 +2145,7 @@ namespace engine
 
    _barRSBaseLogger::~_barRSBaseLogger ()
    {
+      // ignore the rc - this is a destructor and can't handle failure
       _closeCurFile() ;
       if ( _pBuff )
       {
@@ -2130,12 +2187,13 @@ namespace engine
 
    INT32 _barRSBaseLogger::_closeCurFile ()
    {
+      INT32 rc = SDB_OK ;
       if ( _isOpened )
       {
+         rc = _close( _curFile, FALSE ) ;
          _isOpened = FALSE ;
-         return ossClose( _curFile ) ;
       }
-      return SDB_OK ;
+      return rc ;
    }
 
    INT32 _barRSBaseLogger::_openDataFile ()
@@ -2155,6 +2213,7 @@ namespace engine
          PD_LOG( PDEVENT, "Begin to restore data file[%s]", fileName.c_str() ) ;
       }
 
+      // is it really necessary to open with OSS_WU?
       INT32 rc = ossOpen( fileName.c_str(), OSS_READONLY,
                           OSS_RU | OSS_WU | OSS_RG, _curFile ) ;
       if ( rc )
@@ -2690,22 +2749,29 @@ namespace engine
 
    _barRSOfflineLogger::~_barRSOfflineLogger ()
    {
+      // ignore the rc - this is a destructor and can't handle failure
       _closeSUFile () ;
       _replBucket.fini() ;
    }
 
    INT32 _barRSOfflineLogger::_closeSUFile ()
    {
+      INT32 rc = SDB_OK ;
       if ( _openedSU )
       {
-         ossClose( _curSUFile ) ;
+         // SU files are opened for writing during restore, so set fsync
+         rc = _close( _curSUFile, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Error syncing and closing su file" ) ;
+         }
          _openedSU      = FALSE ;
          _curSUName     = "" ;
          _curSUOffset   = 0 ;
          _curSUSequence = 0 ;
          _curSUFileName = "" ;
       }
-      return SDB_OK ;
+      return rc ;
    }
 
    INT32 _barRSOfflineLogger::_parseExtentMeta( barBackupExtentHeader *pExtHeader,
@@ -2963,7 +3029,11 @@ namespace engine
                if ( !restoreInc && _curDataFileSeq >= _incDataFileBeginSeq )
                {
                   restoreInc = TRUE ;
-                  _closeSUFile() ;
+                  rc = _closeSUFile() ;
+                  if ( SDB_OK != rc )
+                  {
+                     break ;
+                  }
 
                   rc = _loadDMS() ;
                   if ( SDB_OK != rc )
@@ -2985,7 +3055,13 @@ namespace engine
       }
 
    done:
-      _closeSUFile() ;
+      {
+         INT32 rc2 = _closeSUFile() ;
+         if ( SDB_OK == rc )
+         {
+            rc = rc2 ;
+         }
+      }
       /// wait all log complete
       if ( _replBucket.maxReplSync() > 0 )
       {
@@ -3201,7 +3277,11 @@ namespace engine
 
       if ( _openedSU && 0 != _curSUFileName.compare( suFileName ) )
       {
-         _closeSUFile() ;
+         rc = _closeSUFile() ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
       if ( BAR_DATA_TYPE_RAW_DATA == pExtHeader->_dataType )
@@ -3257,6 +3337,7 @@ namespace engine
       {
          goto done ;
       }
+      // open as a writer, the close will call fsync
       rc = ossOpen( pathName.c_str(), OSS_CREATE|OSS_READWRITE,
                     OSS_RU | OSS_WU | OSS_RG, _curSUFile ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open su file[%s], rc: %d",

@@ -389,8 +389,12 @@ namespace engine
          INT32       _initInner ( const CHAR *path, const CHAR *backupName,
                                   const CHAR *prefix ) ;
 
+         // Read from the file descriptor
          INT32       _read( OSSFILE &file, CHAR *buf, SINT64 len ) ;
+         // Write to the file descriptor (does NOT call fsync)
          INT32       _flush( OSSFILE &file, const CHAR *buf, SINT64 len ) ;
+         // Close the file descriptor (optionally calls fsync)
+         INT32       _close( OSSFILE &file, BOOLEAN fsync ) ;
 
          INT32       _readMetaHeader( UINT32 incID,
                                       barBackupHeader *pHeader,
@@ -498,6 +502,9 @@ namespace engine
          UINT64                        _curFileSize ;
          OSSFILE                       _curFile ;
          BOOLEAN                       _isOpened ;
+         // if a file is opened with write permission, set this flag!
+         // it will cause fsync to be called before close
+         BOOLEAN                       _isOpenedWriter ;
 
          BOOLEAN                       _needBackupLog ;
          BOOLEAN                       _compressed ;
