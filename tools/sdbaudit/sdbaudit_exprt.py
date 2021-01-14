@@ -171,13 +171,13 @@ class OptionArgs():
         self.__options = options
 
     def get_log_type(self):
-        return self.__options.log_type.lower()
+        return self.__options.log_type
 
     def get_audit_path(self):
         return self.__options.audit_path
 
     def get_is_del_file(self):
-        return string_to_bool(self.__options.delete)
+        return self.__options.delete
 
     def get_host(self):
         return self.__options.addr.split(":")[0]
@@ -201,7 +201,7 @@ class OptionArgs():
     #    return self.__options.cipher_file
 
     def get_use_ssl(self):
-        return string_to_bool(self.__options.use_ssl)
+        return self.__options.use_ssl
 
     def get_cl_full_name(self):
         return self.__options.cl_name
@@ -284,7 +284,7 @@ class OptionsMgr:
                                  dest="delete", help="whether to remove the " \
                                  "audit log file that has finished " \
                                  "exporting, only the full file is deleted, " \
-                                 "(arg: [true|false]")
+                                 "(arg: [true|false])")
         #Add --addr option
         self.__parser.add_option("--addr", action='store', type='string',
                                  dest="addr", help="host " \
@@ -314,7 +314,7 @@ class OptionsMgr:
         #Add --ssl option
         self.__parser.add_option("--ssl", action='store', type='string',
                                  dest="use_ssl", help="set SSL connection " \
-                                 "(arg: [true|false]")
+                                 "(arg: [true|false])")
         #Add --clname option
         self.__parser.add_option("--clname", action='store', type='string',
                                  dest="cl_name", help="collection full name")
@@ -350,11 +350,8 @@ class OptionsMgr:
                     self.__global_parser.set(section, option, str(value))
         return 0
 
-    def parse_option(self):
-        self.__add_option()
-        options,args = self.__parser.parse_args()
-#        if options.version:
-#          self.__show_version()
+    def __validate_and_format_option(self, options):
+        # --type
         if not options.log_type:
             logger.error("Log type can not be null. Please use -t to specify.")
             return 1
@@ -364,6 +361,90 @@ class OptionsMgr:
             logger.error("Invalid log type. Please use 'sdb','mysql' or " \
                   "'mariadb' instead.")
             return 1
+        options.log_type = log_type
+
+        # --auditpath
+        if len(options.audit_path) == 0:
+            logger.error("Audit path can not be null. Please use --auditpath to " \
+                  "specify.")
+            return 1
+        elif not os.path.exists(options.audit_path):
+            logger.error("Directory of audit path '{}' is not exists".format(options.audit_path))
+            return 1
+        elif not os.path.isdir(options.audit_path):
+            logger.error("Audit path '{}' must be a directory".format(options.audit_path))
+            return 1
+
+        # --delete
+        need_delete = options.delete.lower()
+        if need_delete != "true" and need_delete != "false":
+            logger.error("--delete option '{}' is not a boolean(true/false)."
+                         .format(options.delete))
+            return 1
+        options.delete = string_to_bool(need_delete)
+
+        # --addr
+        if options.addr.find(':') == -1:
+            logger.error("Wrong format of address. No svcname found.")
+            return 1
+
+        # --user --password have nothing to check
+
+        # --w_type
+        is_w_type_valid = False
+        if isinstance(options.passwd_type, str):
+            if options.passwd_type == '0' or options.passwd_type == '1':
+                options.passwd_type = int(options.passwd_type)
+                is_w_type_valid = True
+        elif isinstance(options.passwd_type, int):
+            if options.passwd_type == 0 or options.passwd_type == 1:
+                is_w_type_valid = True
+        if not is_w_type_valid:
+            logger.error("Password type '{}' is invalid.".format(options.passwd_type))
+            return 1
+
+        # --ssl
+        use_ssl = options.use_ssl.lower()
+        if use_ssl != "true" and use_ssl != "false":
+            logger.error("--ssl option '{}' is not a boolean(true/false)."
+                         .format(options.use_ssl))
+            return 1
+        options.use_ssl = string_to_bool(use_ssl)
+
+        # --clname
+        if options.cl_name.find('.') == -1:
+            logger.error("--clname option '{}' is not a collection full name."
+                         .format(options.cl_name))
+            return 1
+
+        # --insertnum
+        if isinstance(options.insert_num, str):
+            try:
+                options.insert_num = int(options.insert_num)
+            except (ValueError):
+                logger.error("--insertnum option '{}' is not an integer."
+                             .format(options.insert_num))
+                return 1
+        if isinstance(options.insert_num, int):
+            if options.insert_num < 1:
+                logger.error("--insertnum option '{}' must be greater than 0."
+                             .format(options.insert_num))
+                return 1
+
+        # --role has nothing to check
+
+        # --nodename
+        if options.node_name.find(':') == -1:
+            logger.error("--nodename is with wrong format. No svcname found.")
+            return 1
+
+        return 0
+
+    def parse_option(self):
+        self.__add_option()
+        options,args = self.__parser.parse_args()
+        # if options.version:
+        #     self.__show_version()
         if options.conf_path:
             if not os.path.isfile(options.conf_path):
                 logger.error("configuration path '{}' is not a file".format(options.conf_path))
@@ -391,8 +472,8 @@ class OptionsMgr:
             if not options.passwd:
                 options.passwd = local_parser.get(KW_MONITOR, KW_PASSWD) 
             if not options.passwd_type:
-                options.passwd_type = int(local_parser.get(KW_MONITOR,
-                                                           KW_PASSWD_TYPE)) 
+                options.passwd_type = local_parser.get(KW_MONITOR,
+                                                           KW_PASSWD_TYPE)
 #            if not options.cipher:
 #                options.cipher = local_parser.get(KW_MONITOR, KW_CIPHER)
 #            if not options.token:
@@ -405,22 +486,16 @@ class OptionsMgr:
             if not options.cl_name:
                 options.cl_name = local_parser.get(KW_MONITOR, KW_CL_NAME)
             if not options.insert_num:
-                options.insert_num = int(local_parser.get(KW_MONITOR, KW_INSERT_NUM))
+                options.insert_num = local_parser.get(KW_MONITOR, KW_INSERT_NUM)
             if not options.role:
                 options.role = local_parser.get(KW_MONITOR, KW_ROLE)
             if not options.node_name:
                 options.node_name = local_parser.get(KW_MONITOR, KW_NODE_NAME)
 
-        if len(options.audit_path) == 0:
-            logger.error("Audit path can not be null. Please use --path to " \
-                  "specify.")
-            return 1
-        elif not os.path.exists(options.audit_path):
-            logger.error("Directory of audit path '{}' is not exists".format(options.audit_path))
-            return 1
-        elif not os.path.isdir(options.audit_path):
-            logger.error("Audit path '{}' must be a directory".format(options.audit_path))
-            return 1
+        rc = self.__validate_and_format_option(options)
+        if 0 != rc:
+            return rc
+
         if options.passwd_type == 1:
             options.passwd = CryptoUtil.decrypt(options.passwd)
         elif options.passwd_type == 0:
@@ -1025,8 +1100,16 @@ def main():
         print("[ERROR] Failed to initialize logging: {}".format(rc))
         sys.exit(1)
     logger = log_instance.get_logger()
-    logger.info("Start sdbaudit reporter tool...")
+    logger.info("Start sdbaudit exporter logging")
 
+    # parse arguments
+    program = os.path.basename(__file__.replace(".py", ""))
+    optMgr = OptionsMgr(program)
+    rc = optMgr.parse_option()
+    if 0 != rc:
+        return rc
+
+    # prepare for pid file
     pid_file = os.path.join(work_path, PID_FILE_NAME)
     if os.path.exists(pid_file):
         with open(pid_file, "r") as f:
@@ -1042,12 +1125,7 @@ def main():
         pid = str(os.getpid())
         f.write(pid)
 
-    program = os.path.basename(__file__.replace(".py", ""))
-    optMgr = OptionsMgr(program)
-    rc = optMgr.parse_option()
-    if 0 != rc:
-        return rc
-
+    # run
     run_task(optMgr.args, work_path)
 
 
