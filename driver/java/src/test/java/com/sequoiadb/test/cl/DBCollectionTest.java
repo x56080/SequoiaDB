@@ -27,6 +27,9 @@ public class DBCollectionTest {
     private static Sequoiadb sdb = null;
     private static CollectionSpace cs = null;
     private static DBCollection cl = null;
+    private static DBCollection mainCL = null;
+    private static DBCollection subCL1 = null;
+    private static DBCollection subCL2 = null;
     private static DBCursor cursor = null;
     private static int NUM = 10;
 
@@ -60,6 +63,15 @@ public class DBCollectionTest {
             cursor.close();
             cursor = null;
         }
+
+        // create main cl and sub cl
+        List<String> subCLName = new ArrayList<>();
+        subCLName.add(Constants.TEST_CL_SUB_NAME_1);
+        subCLName.add(Constants.TEST_CL_SUB_NAME_2);
+        createMainSubCollections(Constants.TEST_CL_MAIN_NAME, subCLName, Constants.SHARDING_KEY);
+        mainCL = cs.getCollection(Constants.TEST_CL_MAIN_NAME);
+        subCL1 = cs.getCollection(Constants.TEST_CL_SUB_NAME_1);
+        subCL2 = cs.getCollection(Constants.TEST_CL_SUB_NAME_2);
     }
 
     @After
@@ -69,6 +81,39 @@ public class DBCollectionTest {
         } catch (BaseException e) {
             System.out.println(e.getErrorType());
             assertTrue(false);
+        }
+    }
+
+    public DBCollection createCL(String clName, BSONObject options){
+        DBCollection collection;
+        if (cs.isCollectionExist(clName)){
+            cs.dropCollection(clName);
+        }
+        collection = cs.createCollection(clName, options);
+        return collection;
+    }
+
+    public void createMainSubCollections(String mainName, List<String> subNames, String shardingKey){
+        DBCollection mainCL;
+        BSONObject options = new BasicBSONObject();
+        BasicBSONObject attachOptions = new BasicBSONObject();
+
+        // create main collections
+        options.put("ShardingKey",new BasicBSONObject(shardingKey, 1));
+        options.put("ShardingType","range");
+        options.put("IsMainCL",true);
+        mainCL = createCL(mainName,options);
+
+        // create sub collection
+        int i = 0;
+        int scope = 10;
+        DBCollection subCL ;
+        for (String name :subNames) {
+            subCL = createCL(name, null);
+            attachOptions.clear();
+            attachOptions.put("LowBound",new BasicBSONObject(shardingKey,i++ * scope));
+            attachOptions.put("UpBound", new BasicBSONObject(shardingKey,i * scope ));
+            mainCL.attachCollection(subCL.getFullName(), attachOptions);
         }
     }
 
@@ -272,6 +317,38 @@ public class DBCollectionTest {
     }
 
     @Test
+    public void testDeleteOne() {
+        BSONObject matcher ;
+        BSONObject hint = new BasicBSONObject();
+        int flag = DBCollection.FLG_DELETE_ONE;
+
+        int count = 0;
+        int insertTimes = 5;
+        BSONObject record = new BasicBSONObject("deleteRecord",1);
+        matcher = record;
+        //case 1: delete one record on ordinary collection
+        ConstantsInsert.insertSameRecords(cl,record,insertTimes);
+        cl.delete(matcher,hint,flag);
+        DBCursor result = cl.query(matcher,null,null,null,0);
+        while ( result.hasNext() ){
+            result.getNext();
+            count++;
+        }
+        assertEquals(count,insertTimes - 1 );
+
+        //case 2: delete one on main and sub collection
+        ConstantsInsert.insertSameRecords(subCL1,record,insertTimes);
+        ConstantsInsert.insertSameRecords(subCL2,record,insertTimes);
+        BaseException expectE = new BaseException(0);
+        try {
+            mainCL.delete(matcher,hint,flag);
+        }catch (BaseException e){
+            expectE = e;
+        }
+        assertEquals(expectE.getErrorCode(),SDBError.SDB_COORD_DELETE_MULTI_NODES.getErrorCode() );
+    }
+
+    @Test
     public void testDeleteByHint() {
         // create index
         BSONObject index = new BasicBSONObject();
@@ -354,6 +431,46 @@ public class DBCollectionTest {
     }
 
     @Test
+    public void testUpdateOne() {
+        BSONObject matcher ;
+        BSONObject hint = new BasicBSONObject();
+        BSONObject modifier = new BasicBSONObject();
+        BSONObject updateValue = new BasicBSONObject();
+        int flag = DBCollection.FLG_UPDATE_ONE;
+
+        String updateKey = "updateRecord";
+        String oldValue = "old";
+        String newValue = "new";
+        int count = 0;
+        int insertTimes = 5;
+        BSONObject record = new BasicBSONObject(updateKey, oldValue);
+        matcher = record;
+
+        //case 1: update one record on ordinary collection
+        ConstantsInsert.insertSameRecords(cl, record, insertTimes);
+        updateValue .put(updateKey, newValue);
+        modifier.put("$set", updateValue);
+        cl.update(matcher, modifier, hint, flag);
+        DBCursor result = cl.query(updateValue,null,null,null,0);
+        while ( result.hasNext() ){
+            result.getNext();
+            count++;
+        }
+        assertEquals(count,1);
+
+        //case 2: update one on main and sub collection
+        ConstantsInsert.insertSameRecords(subCL1, record, insertTimes);
+        ConstantsInsert.insertSameRecords(subCL2, record, insertTimes);
+        BaseException expectE = new BaseException(0);
+        try {
+            mainCL.update(matcher, modifier, hint, flag);
+        }catch (BaseException e){
+            expectE = e;
+        }
+        assertEquals(expectE.getErrorCode(),SDBError.SDB_COORD_UPDATE_MULTI_NODES.getErrorCode() );
+    }
+
+    @Test
     public void testUpsert() {
         // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
@@ -370,6 +487,46 @@ public class DBCollectionTest {
         cursor = cl.query(matcher, null, null, null);
         BSONObject obj = cursor.getNext();
         assertEquals(obj.get("age"), 80);
+    }
+
+    @Test
+    public void testUpsertOne() {
+        BSONObject matcher ;
+        BSONObject hint = new BasicBSONObject();
+        BSONObject modifier = new BasicBSONObject();
+        BSONObject upsertValue = new BasicBSONObject();
+        int flag = DBCollection.FLG_UPDATE_ONE;
+
+        String upsertKey = "upsertRecord";
+        String oldValue = "old";
+        String newValue = "new";
+        int count = 0;
+        int insertTimes = 5;
+        BSONObject record = new BasicBSONObject(upsertKey,oldValue);
+        matcher = record;
+        //insert two record, then upsert one
+
+        ConstantsInsert.insertSameRecords(cl,record,insertTimes);
+        upsertValue .put(upsertKey,newValue);
+        modifier.put("$set",upsertValue);
+        cl.upsert(matcher,modifier,hint, null, flag);
+        DBCursor result = cl.query(upsertValue,null,null,null,0);
+        while ( result.hasNext() ){
+            result.getNext();
+            count++;
+        }
+        assertEquals(count,1);
+
+        //case 2: upsert one on main and sub collection
+        ConstantsInsert.insertSameRecords(subCL1, record, insertTimes);
+        ConstantsInsert.insertSameRecords(subCL2, record, insertTimes);
+        BaseException expectE = new BaseException(0);
+        try {
+            mainCL.upsert(matcher, modifier, hint, null, flag);
+        }catch (BaseException e){
+            expectE = e;
+        }
+        assertEquals(expectE.getErrorCode(),SDBError.SDB_COORD_UPDATE_MULTI_NODES.getErrorCode() );
     }
 
     @Test

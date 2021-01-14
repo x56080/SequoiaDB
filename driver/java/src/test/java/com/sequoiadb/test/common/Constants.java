@@ -26,7 +26,11 @@ public class Constants {
     public final static String TEST_CL_NAME_1 = "testbar";
     public final static String TEST_CL_NAME_2 = "testCL2";
     public final static String TEST_CL_NAME_3 = "测试cl";
-   
+    public final static String TEST_CL_MAIN_NAME = "testMainCL";
+    public final static String TEST_CL_SUB_NAME_1 = "testSubCL1";
+    public final static String TEST_CL_SUB_NAME_2 = "testSubCL2";
+    public final static String SHARDING_KEY = "testKey";
+
     public final static String TEST_CL_FULL_NAME1 = "testfoo.testbar";
     public final static int SDB_PAGESIZE_4K = 4 * 1024;
 

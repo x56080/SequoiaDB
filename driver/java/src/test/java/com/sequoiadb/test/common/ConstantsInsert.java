@@ -184,4 +184,22 @@ public class ConstantsInsert {
             e.printStackTrace();
         }
     }
+
+    public static void insertSameRecords(DBCollection cl, BSONObject record, int insertTimes) throws BaseException {
+        try {
+            // check arg
+            if (null == cl ||  null == record || insertTimes <= 0) {
+                throw new BaseException(SDBError.SDB_INVALIDARG);
+            }
+            // TO DO
+            for (int i = 0; i < insertTimes; i++) {
+                BSONObject doc = new BasicBSONObject();
+                doc.putAll(record);
+                cl.insert(doc);
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to insert same records.");
+            e.printStackTrace();
+        }
+    }
 }

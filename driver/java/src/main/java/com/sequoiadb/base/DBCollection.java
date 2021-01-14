@@ -78,6 +78,16 @@ public class DBCollection {
     public static final int FLG_UPDATE_KEEP_SHARDINGKEY = 0x00008000;
 
     /**
+     * The flag represent whether to update only one matched record or all matched records.
+     */
+    public static final int FLG_UPDATE_ONE = 0x00000002;
+
+    /**
+     * The flag represent whether to delete only one matched record or all matched records
+     */
+    public static final int FLG_DELETE_ONE = 0x00000002;
+
+    /**
      * Get the name of current collection.
      *
      * @return The collection name
@@ -566,9 +576,9 @@ public class DBCollection {
     }
 
     /**
-     * Delete the matching BSONObject of current collection.
+     * Delete the matching records of current collection.
      *
-     * @param matcher The matching condition, delete all the documents if null
+     * @param matcher The matching condition, match all the documents if null
      * @throws BaseException If error happens.
      */
     public void delete(BSONObject matcher) throws BaseException {
@@ -576,9 +586,9 @@ public class DBCollection {
     }
 
     /**
-     * Delete the matching of current collection.
+     * Delete the matching records of current collection.
      *
-     * @param matcher The matching condition, delete all the documents if null
+     * @param matcher The matching condition, match all the documents if null
      * @throws BaseException If error happens.
      */
     public void delete(String matcher) throws BaseException {
@@ -590,9 +600,9 @@ public class DBCollection {
     }
 
     /**
-     * Delete the matching bson's string of current collection.
+     * Delete the matching records of current collection.
      *
-     * @param matcher The matching condition, delete all the documents if null
+     * @param matcher The matching condition, match all the documents if null
      * @param hint    Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                null, database automatically match the optimal index to scan data.
@@ -607,20 +617,36 @@ public class DBCollection {
         if (hint != null) {
             hi = (BSONObject) JSON.parse(hint);
         }
-        delete(ma, hi);
+        delete(ma, hi, 0);
     }
-
     /**
-     * Delete the matching BSONObject of current collection.
+     * Delete the matching records of current collection.
      *
-     * @param matcher The matching condition, delete all the documents if null
+     * @param matcher The matching condition, match all the documents if null
      * @param hint    Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
      *                null, database automatically match the optimal index to scan data.
      * @throws BaseException If error happens.
      */
     public void delete(BSONObject matcher, BSONObject hint) throws BaseException {
-        DeleteRequest request = new DeleteRequest(collectionFullName, matcher, hint);
+        delete(matcher, hint, 0);
+    }
+
+    /**
+     * Delete the matching records of current collection.
+     *
+     * @param matcher The matching condition, match all the documents if null.
+     * @param hint    Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
+     *                "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
+     *                 null, database automatically match the optimal index to scan data.
+     * @param flag    The delete flag, default to be 0.
+     *                 <ul>
+     *                 <li>{@link DBCollection#FLG_DELETE_ONE}
+     *                 </ul>
+     * @throws BaseException If error happens.
+     */
+    public void delete(BSONObject matcher, BSONObject hint, int flag) throws BaseException {
+        DeleteRequest request = new DeleteRequest(collectionFullName, matcher, hint, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
         if (response.getFlag() != 0) {
             String msg = "matcher = " + matcher + ", hint = " + hint;
@@ -630,7 +656,7 @@ public class DBCollection {
     }
 
     /**
-     * Update the document of current collection. It won't work to update the ShardingKey field, but
+     * Update the matching records of current collection. It won't work to update the ShardingKey field, but
      * the other fields take effect.
      *
      * @param query DBQuery with matching condition, updating rule and hint
@@ -641,10 +667,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection. It won't work to update the ShardingKey field,
+     * Update the matching records of current collection. It won't work to update the ShardingKey field,
      * but the other fields take effect.
      *
-     * @param matcher  The matching condition, update all the documents if null
+     * @param matcher  The matching condition, match all the documents if null
      * @param modifier The updating rule, can't be null
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -657,10 +683,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection. When flag is set to 0, it won't work to update
+     * Update the matching records of current collection. When flag is set to 0, it won't work to update
      * the ShardingKey field, but the other fields take effect.
      *
-     * @param matcher  The matching condition, update all the documents if null
+     * @param matcher  The matching condition, match all the documents if null
      * @param modifier The updating rule, can't be null
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -668,7 +694,8 @@ public class DBCollection {
      * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
      *                 more detail.
      *                 <ul>
-     *                 <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                 <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
+     *                 <li>{@link DBCollection#FLG_UPDATE_ONE}
      *                 </ul>
      * @throws BaseException If error happens.
      */
@@ -678,10 +705,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection. It won't work to update the ShardingKey field,
+     * Update the matching records of current collection. It won't work to update the ShardingKey field,
      * but the other fields take effect.
      *
-     * @param matcher  The matching condition, update all the documents if null
+     * @param matcher  The matching condition, match all the documents if null
      * @param modifier The updating rule, can't be null or empty
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -705,10 +732,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection. When flag is set to 0, it won't work to update
+     * Update the matching records of current collection. When flag is set to 0, it won't work to update
      * the ShardingKey field, but the other fields take effect.
      *
-     * @param matcher  The matching condition, update all the documents if null
+     * @param matcher  The matching condition, match all the documents if null
      * @param modifier The updating rule, can't be null or empty
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -716,7 +743,8 @@ public class DBCollection {
      * @param flag     the update flag, default to be 0. Please see the definition of follow flags for
      *                 more detail.
      *                 <ul>
-     *                 <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                 <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
+     *                 <li>{@link DBCollection#FLG_UPDATE_ONE}
      *                 </ul>
      * @throws BaseException If error happens.
      */
@@ -738,11 +766,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection, insert if no matching. It won't work to update
+     * Update the matching records of current collection, insert if no matching. It won't work to update
      * the ShardingKey field, but the other fields take effect.
      *
-     * @param matcher  The matching condition, update all the documents if null(that's to say, we match
-     *                 all the documents)
+     * @param matcher  The matching condition, match all the documents if null
      * @param modifier The updating rule, can't be null
      * @param hint     Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                 "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -755,11 +782,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection, insert if no matching. It won't work to update
+     * Update the matching records of current collection, insert if no matching. It won't work to update
      * the ShardingKey field, but the other fields take effect.
      *
-     * @param matcher     The matching condition, update all the documents if null(that's to say, we match
-     *                    all the documents)
+     * @param matcher     The matching condition, match all the documents if null
      * @param modifier    The updating rule, can't be null
      * @param hint        Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                    "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -774,11 +800,10 @@ public class DBCollection {
     }
 
     /**
-     * Update the BSONObject of current collection, insert if no matching. When flag is set to 0, it
+     * Update the matching records of current collection, insert if no matching. When flag is set to 0, it
      * won't work to update the ShardingKey field, but the other fields take effect.
      *
-     * @param matcher     The matching condition, update all the documents if null(that's to say, we match
-     *                    all the documents)
+     * @param matcher     The matching condition, match all the documents if null
      * @param modifier    The updating rule, can't be null
      * @param hint        Specified the index used to scan data. e.g. {"":"ageIndex"} means using index
      *                    "ageIndex" to scan data(index scan); {"":null} means table scan. when hint is
@@ -788,7 +813,8 @@ public class DBCollection {
      * @param flag        the upsert flag, default to be 0. Please see the definition of follow flags for
      *                    more detail.
      *                    <ul>
-     *                    <li>DBCollection.FLG_UPDATE_KEEP_SHARDINGKEY
+     *                    <li>{@link DBCollection#FLG_UPDATE_KEEP_SHARDINGKEY}
+     *                    <li>{@link DBCollection#FLG_UPDATE_ONE}
      *                    </ul>
      * @throws BaseException If error happens.
      */

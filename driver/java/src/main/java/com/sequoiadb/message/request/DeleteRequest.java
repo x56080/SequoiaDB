@@ -38,7 +38,7 @@ public class DeleteRequest extends SdbRequest {
     private byte[] matcherBytes;
     private byte[] hintBytes;
 
-    public DeleteRequest(String collectionName, BSONObject matcher, BSONObject hint) {
+    public DeleteRequest(String collectionName, BSONObject matcher, BSONObject hint, int flag) {
         opCode = MsgOpCode.DELETE_REQ;
         length = FIXED_LENGTH;
 
@@ -68,6 +68,7 @@ public class DeleteRequest extends SdbRequest {
             hintBytes = Helper.encodeBSONObj(hint);
             length += Helper.alignedSize(hintBytes.length);
         }
+        this.flag = flag;
     }
 
     @Override
