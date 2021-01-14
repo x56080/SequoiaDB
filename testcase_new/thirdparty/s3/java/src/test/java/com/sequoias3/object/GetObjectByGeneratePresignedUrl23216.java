@@ -70,7 +70,6 @@ public class GetObjectByGeneratePresignedUrl23216 extends S3TestBase {
         s3Client.putObject( bucketName2, objectName1, "" );
         s3Client.putObject( bucketName2, objectName1, content );
         s3Client.putObject( bucketName2, objectName1, new File( filePath ) );
-
     }
 
     // 有效期内获取对象、对象内容为文件、禁用版本控制
@@ -216,7 +215,8 @@ public class GetObjectByGeneratePresignedUrl23216 extends S3TestBase {
             restTemplate.exchange( requestEntity1, Resource.class );
             Assert.fail( "exp failed but act success!!!" );
         } catch ( HttpClientErrorException e ) {
-            if ( e.getStatusCode().value() != 404 ) {
+            if ( e.getStatusCode().value() != 404
+                    && e.getStatusCode().value() != 403 ) {
                 throw new Exception( e.getResponseBodyAsString() );
             }
         }
@@ -231,7 +231,8 @@ public class GetObjectByGeneratePresignedUrl23216 extends S3TestBase {
             restTemplate.exchange( requestEntity2, Resource.class );
             Assert.fail( "exp failed but act success!!!" );
         } catch ( HttpClientErrorException e ) {
-            if ( e.getStatusCode().value() != 404 ) {
+            if ( e.getStatusCode().value() != 404
+                    && e.getStatusCode().value() != 403 ) {
                 throw new Exception( e.getResponseBodyAsString() );
             }
         }
@@ -265,10 +266,7 @@ public class GetObjectByGeneratePresignedUrl23216 extends S3TestBase {
     private void tearDown() {
         try {
             if ( total.get() == expSuccessNum ) {
-                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName1,
-                        objectName1 );
-                ObjectUtils.deleteObjectAllVersions( s3Client, bucketName1,
-                        objectName2 );
+                CommLib.clearBucket( s3Client, bucketName1 );
                 ObjectUtils.deleteObjectAllVersions( s3Client, bucketName2,
                         objectName1 );
                 TestTools.LocalFile.removeFile( localPath );
