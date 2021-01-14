@@ -25,7 +25,7 @@
 | Enforced        | Boolean  | 索引是否强制唯一。| false  |
 | NotNull         | Boolean  | 索引的任意一个字段是否允许为 null 或者不存在。| false  |
 | SortBufferSize  | int      | 创建索引时使用的排序缓存的大小。| 64MB  |
-| NotArray        | Boolean  | 索引的任意一个字段是否允许为数组。| true |
+| NotArray        | Boolean  | 索引的任意一个字段是否允许为数组。| false |
 
 > **Note:**
 >
