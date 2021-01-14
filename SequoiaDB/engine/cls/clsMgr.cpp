@@ -1247,6 +1247,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__CLSMGR_INVALIDCACHE );
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT32 logRecSize = 0 ;
+
       if ( isPrimary() )
       {
          /// write sync cata info log
@@ -1260,6 +1264,17 @@ namespace engine
             PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
             goto error ;
          }
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserved log space for "
+                    "invalid-cata log, rc: %d", rc ) ;
+            logRecSize = 0 ;
+            goto error ;
+         }
+
          rc = dpsCB->prepare(info ) ;
          if ( SDB_OK == rc )
          {
@@ -1268,6 +1283,10 @@ namespace engine
       }
 
    done:
+      if ( 0 != logRecSize )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSMGR_INVALIDCACHE, rc );
       return rc ;
    error:
@@ -1279,6 +1298,10 @@ namespace engine
    {
       INT32 rc = SDB_CLS_NOT_PRIMARY ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_INVDATACAT );
+
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT32 logRecSize = 0 ;
 
       if ( isPrimary() )
       {
@@ -1294,6 +1317,17 @@ namespace engine
             PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
             goto error ;
          }
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserved log space for "
+                    "invalid-cata log, rc: %d", rc ) ;
+            logRecSize = 0 ;
+            goto error ;
+         }
+
          rc = dpsCB->prepare(info ) ;
          if ( SDB_OK == rc )
          {
@@ -1302,6 +1336,10 @@ namespace engine
       }
 
    done:
+      if ( 0 != logRecSize )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSMGR_INVDATACAT, rc );
       return rc ;
    error:
@@ -1337,6 +1375,10 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__CLSMGR_INVALIDPLAN );
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT32 logRecSize = 0 ;
+
       if ( isPrimary() )
       {
          /// write sync cata info log
@@ -1351,6 +1393,17 @@ namespace engine
             PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
             goto error ;
          }
+
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserved log space for "
+                    "invalid-cata log, rc: %d", rc ) ;
+            logRecSize = 0 ;
+            goto error ;
+         }
+
          rc = dpsCB->prepare(info ) ;
          if ( SDB_OK == rc )
          {
@@ -1359,6 +1412,10 @@ namespace engine
       }
 
    done:
+      if ( 0 != logRecSize )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
       PD_TRACE_EXITRC ( SDB__CLSMGR_INVALIDPLAN, rc );
       return rc ;
 
