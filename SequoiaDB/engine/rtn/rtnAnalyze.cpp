@@ -1928,6 +1928,10 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNANALYZEDPSLOG ) ;
 
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      dpsTransCB *transCB = sdbGetTransCB() ;
+      UINT32 logRecSize = 0 ;
+
       if ( NULL != dpsCB )
       {
          dpsMergeInfo info ;
@@ -1949,6 +1953,16 @@ namespace engine
                                      record ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build analyze log, rc: %d", rc ) ;
 
+         logRecSize = record.alignedLen() ;
+         rc = transCB->reservedLogSpace( logRecSize, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserved log space for "
+                    "invalid-cata log, rc: %d", rc ) ;
+            logRecSize = 0 ;
+            goto error ;
+         }
+
          rc = dpsCB->prepare(info ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare analyze log, rc: %d", rc ) ;
 
@@ -1956,6 +1970,10 @@ namespace engine
       }
 
    done :
+      if ( 0 != logRecSize )
+      {
+         transCB->releaseLogSpace( logRecSize, cb ) ;
+      }
       PD_TRACE_EXITRC( SDB_RTNANALYZEDPSLOG, rc ) ;
       return rc ;
    error :
