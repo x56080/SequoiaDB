@@ -24,6 +24,8 @@ import com.sequoiadb.task.TaskMgr;
 
 /**
  * @Description seqDB-22209 所有备节点未完全同步主节点的lsn，正常停止主节点，任意一个备节点跟上主节点lsn后，主节点停止成功
+                该用例与 22209B 的区别在于参数：shutdownwaittimeout 设置为 120
+                此用例禁用，原因是主备同步速度极快 1s/512MB 需要长时间持续插入数据拉大 LSN 才能构造出合适场景
  * @author luweikang
  * @date 2020年6月5日
  */
@@ -68,7 +70,7 @@ public class Faulttolerance22209A extends SdbTestBase {
 
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws ReliabilityException, InterruptedException {
 
         TaskMgr mgr = new TaskMgr();
