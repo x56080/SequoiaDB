@@ -30,14 +30,20 @@ function test ( testPara )
       // 开启覆盖索引开关
       db.updateConf( { "indexcoveron": true } );
 
-      // 检查索引访问不回表
+      // 检查索引访问回表
       var cond = { "a": { "$gt": 100 }, "c": { "$lt": 1000 } };
       var sel = { "a": "", "b": "" };
       var sortCond = { "c": 1, "d": 1 };
       var hint = { "": idxName };
       db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + testConf.clName } );
       var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
+      var expIndexCover = false;
+      // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
+      if( commIsStandalone( db ) )
+      {
+         expIndexCover = true;
+      }
+      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
       var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
@@ -59,14 +65,20 @@ function test ( testPara )
       // 开启覆盖索引开关
       db.updateConf( { "indexcoveron": true } );
 
-      // 检查索引访问不回表
+      // 检查索引访问回表
       var cond = { "a": { "$gt": 100 }, "b": { "$field": "a" } };
       var sel = { "a": "", "b": "" };
       var sortCond = { "a": 1, "b": 1, "c": 1 };
       var hint = { "": idxName };
       db.analyze( { "Mode": 5, "Collection": COMMCSNAME + "." + testConf.clName } );
       var explainInfo = cl.find( cond, sel ).sort( sortCond ).hint( hint ).explain().toArray();
-      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, false, "explainInfo = " + explainInfo );
+      // 独立模式/直连数据索引访问不回表，见SEQUOIADBMAINSTREAM-6652，此处根据独立模式做区分，保证独立模式下查询数据没有问题
+      var expIndexCover = false;
+      if( commIsStandalone( db ) )
+      {
+         expIndexCover = true;
+      }
+      assert.equal( JSON.parse( explainInfo[0] ).IndexCover, expIndexCover, "explainInfo = " + explainInfo );
 
       // 检查查询数据正确性（开启覆盖索引和不开启覆盖索引相同查询语句结果做对比）
       var obj1 = cl.find( cond, sel ).sort( sortCond ).hint( hint ).toArray();
