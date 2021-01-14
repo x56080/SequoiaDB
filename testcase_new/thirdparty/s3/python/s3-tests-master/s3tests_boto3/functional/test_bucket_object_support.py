@@ -3,6 +3,7 @@ import string
 import threading
 import time
 import datetime
+import requests
 from email.header import decode_header
 from io import StringIO
 from datetime import timedelta
@@ -3988,6 +3989,52 @@ class TestBucketObject(S3TestBase):
 
         response = client.list_object_versions(Bucket=bucket_name)
         self.assertEqual(('Versions' in response), False, response)
+
+    # @attr(resource='object')
+    # @attr(method='get')
+    # @attr(operation='x-amz-expires check not expired')
+    # @attr(assertion='succeeds')
+    def test_object_raw_get_x_amz_expires_not_expired(self):
+        bucket_name = get_new_bucket()
+        client = get_alt_client()
+        client.put_object(Bucket=bucket_name, Key='foo', Body='bar')
+        params = {'Bucket': bucket_name, 'Key': 'foo'}
+        url = client.generate_presigned_url(ClientMethod='get_object', Params=params, ExpiresIn=3600,
+                                            HttpMethod='GET')
+        res = requests.get(url).__dict__
+        self.assertEqual(res['status_code'], 200)
+
+    # @attr(resource='object')
+    # @attr(method='get')
+    # @attr(operation='check x-amz-expires value out of positive range')
+    # @attr(assertion='succeeds')
+    def test_object_raw_get_x_amz_expires_out_positive_range(self):
+        bucket_name = get_new_bucket()
+        client = get_alt_client()
+        client.put_object(Bucket=bucket_name, Key='foo', Body='bar')
+        params = {'Bucket': bucket_name, 'Key': 'foo'}
+        url = client.generate_presigned_url(ClientMethod='get_object', Params=params, ExpiresIn=-360, HttpMethod='GET')
+        res = requests.get(url).__dict__
+        self.assertEqual(res['status_code'], 403)
+
+    # @attr(resource='object')
+    # @attr(method='get')
+    # @attr(operation='check version x-amz-expires')
+    # @attr('versioning')
+    def test_object_raw_get_x_amz_expires_version(self):
+        bucket_name = get_new_bucket()
+        client = get_alt_client()
+        client.put_bucket_versioning(Bucket=bucket_name,VersioningConfiguration={'Status': 'Enabled'})
+        key = 'foo'
+        num_versions = 5
+        (version_ids, contents) = self.create_multiple_versions(client, bucket_name, key, num_versions)
+        for i in range(num_versions):
+            params = {'Bucket': bucket_name, 'Key': key, 'VersionId': version_ids[i]}
+            url = client.generate_presigned_url(ClientMethod='get_object', Params=params, ExpiresIn=6000,
+                                                HttpMethod='GET')
+            res = requests.get(url).__dict__
+            self.assertEqual(res['status_code'], 200)
+            self.assertEqual(res['_content'], str.encode(contents[i]))
 
     def setUp(self):
         # print(self.__module__ + " setup: " + str(datetime.now()))
