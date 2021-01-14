@@ -282,7 +282,9 @@ namespace engine
                               monSpinSLatch >      TRANS_HIST_MAP ;
 
    // delta between runtime log and undo log due to TransRelatedLSN
-   #define DPS_TRANS_LOG_UNDO_DELTA  ( 12 )
+   // sizeof( _dpsRecordEle ) + sizeof( UINT64 ) = 13
+   // and align to 4 bytes, finally, we need at least 16 bytes
+   #define DPS_TRANS_LOG_UNDO_DELTA  ( 16 )
 
    /*
       dpsTransCB define
