@@ -318,7 +318,7 @@ function RemoveBusiness( PD_LOGGER )
    //del
    args = '' ;
    args += ' delinst ' + businessName ;
-   args += ' --print' ;
+   args += ' --print --force' ;
    error = _runRemoteCmd( cmd, exec, args, timeout ) ;
    if ( error !== null )
    {
