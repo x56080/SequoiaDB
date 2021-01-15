@@ -4,66 +4,66 @@
 .hy
 .SH NAME
 .PP
-createCataRG \- Create a new catalog replica group.
+createCataRG \- create a new catalog replication group
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.createCataRG(<host>, <service>, <dbpath>, [config])\f[]\f[]
+\f[B]db.createCataRG( <host>, <service>, <dbpath>, [config] )\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-Create a new catalog replica group, create and start a catalog
-node at the same time.
-.sp 2
-\fBhost (string)\fR
-.br
-       Specify the host name of the catalog node.
-.sp 2
-\fBservice (int)\fR
-.br
-       Specify the service port of the catalog node, please make
-       sure this port and its three succeeding ones are
-       unoccupied. For example, if 11800 is specified, please
-       make sure all of 11800/11801/11802/11803 are unoccupied.
-.sp 2
-\fBdbpath (string)\fR
-.br
-       The path for the data files which is used to store the
-       catalog data files. Please make sure that the data
-       administrator users(created during installation,
-       'sdbadmin' in default) have the write permissions.
-.sp 2
-\fBconfig (json)\fR
-.br
-       Optional. Used to set up more detailed configurations. It
-       must be in Json format. For more details please check the
-       Database Configuration section, for example the parameter
-       for configuring of log file size: {logfilesz:64}.
-.sp 2
-       \fBFormat\fR
-.br
-              createCataRG() method has four parameters: host,
-              service, dbpath, and config. The value of 'host'
-              and 'dbpath' should be a string, 'service' should
-              be an int, and a Json Object for 'config', the
-              format is:
-.br
-              {"<host name>",<port number>,"<data file
-              path>",[database configuration parameter object]}
-.sp 2
-
-.sp 2
-\fBNote: \fR
-.sp 2
-   *  Please make sure to give proper permissions to the
-   data-file storage path, if default installation was used, then
-   give the 'sdbadmin' permission to the path.
-.SH "Examples"
-
-.sp 2
-Named: Create a catalog node group on sdbserver1 host, service
-port: 11800, data files path: /opt/sequoiadb/database/cata/11800
-.sp 2
-db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to create a new catalog replication group, and at the same
+time, create and start a catalog ndoe.
+Only one catalog replication group can be created in the same cluster, and the
+group name is "SYSCatalogGroup" by default.
+.SH PARAMETERS
+.IP \[bu] 2
+host ( \f[I]string, required\f[] )
+.PP
+Specify the host name of the catalog node.
+.IP \[bu] 2
+service ( \f[I]int32/string, required\f[] )
+.PP
+Specify the service port of the catalog node, make sure that the port number and
+the next five port numbers are not occupied; if the designated service port is
+11800, make sure that none of the 11800/11801/11802/11803/11804/11805 ports are
+occupied.
+.IP \[bu] 2
+dbpath ( \f[I]string, required\f[] )
+.PP
+Specify the data file path for storing catalog data files.
+It is recommended that users fill in the absolute path, and ensure that the
+database administrator user ( created during installation with the id sdbadmin
+by default ) has the written permission for the path.
+.IP \[bu] 2
+config ( \f[I]object, optional\f[] )
+.PP
+Specify the detailed parameters that need to be configured.
+For detailed parameters, refer to Database Configuration.
+.SH RETURN VALUE
+.PP
+When the function executes successfully, there is no return value.
+.PP
+When the function fails, an exception will be thrown and an error message will
+be printed.
+.SH ERRORS
+.PP
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH HISTORY
+.PP
+v2.0 and above
+.SH EXAMPLES
+.PP
+Create a catalog replication group on the host named "hostname1", specify the
+service port as 11800, specify the data file storage path as
+\f[C]/opt/sequoiadb/database/cata/11800\f[], and configure the log file size as
+64MB.
+.IP
+.nf
+\f[C]
+>\ db.createCataRG("hostname1",11800,"/opt/sequoiadb/database/cata/11800",{logfilesz:64})
+\f[]
+.fi
