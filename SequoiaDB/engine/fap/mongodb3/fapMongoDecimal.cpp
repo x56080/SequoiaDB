@@ -120,6 +120,8 @@ namespace fap
          if ( ( 0 == ossStrcasecmp( decimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_NAN_STR ) ) ||
               ( 0 == ossStrcasecmp( decimalStr,
+                                    FAP_MONGO_MINUS_SIGN FAP_MONGO_NAN_STR ) ) ||
+              ( 0 == ossStrcasecmp( decimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_MIN_STR ) ) ||
               ( 0 == ossStrcasecmp( decimalStr,
                                     FAP_MONGO_PLUS FAP_MONGO_MAX_STR ) ) ||
