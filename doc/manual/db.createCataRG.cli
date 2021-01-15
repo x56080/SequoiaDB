@@ -7,7 +7,7 @@
 .SH "NAME"
 
 .sp 2
-createCataRG - Create a new catalog replica group.
+createCataRG - create a new catalog replication group
 .SH "SYNOPSIS"
 
 .sp 2
@@ -21,12 +21,14 @@ db.createCataRG(\fB<host>\fR,\fB<service>\fR,\fB<dbpath>\fR,\fB[config]\fR)
 .sp 2
 
 .sp 2
-Sequoiadb
+Sdb
 .SH "DESCRIPTION"
 
 .sp 2
-Create a new catalog replica group, create and start a catalog
-node at the same time.
+This function is used to create a new catalog replication group, and at the same
+time, create and start a catalog ndoe.
+Only one catalog replication group can be created in the same cluster, and the
+group name is "SYSCatalogGroup" by default.
 .sp 2
 \fBhost (string)\fR
 .br
@@ -34,24 +36,23 @@ node at the same time.
 .sp 2
 \fBservice (int)\fR
 .br
-       Specify the service port of the catalog node, please make
-       sure this port and its three succeeding ones are
-       unoccupied. For example, if 11800 is specified, please
-       make sure all of 11800/11801/11802/11803 are unoccupied.
+       Specify the service port of the catalog node, make sure that the port
+       number and the next five port numbers are not occupied; if the designated 
+       service port is 11800, make sure that none of the 11800/11801/11802/11803
+       /11804/11805 ports are
+occupied.
 .sp 2
 \fBdbpath (string)\fR
 .br
-       The path for the data files which is used to store the
-       catalog data files. Please make sure that the data
-       administrator users(created during installation,
-       'sdbadmin' in default) have the write permissions.
+       Specify the data file path for storing catalog data files.
+       It is recommended that users fill in the absolute path, and ensure that the
+       database administrator user ( created during installation with the id 
+       sdbadmin by default ) has the written permission for the path.
 .sp 2
 \fBconfig (json)\fR
 .br
-       Optional. Used to set up more detailed configurations. It
-       must be in Json format. For more details please check the
-       Database Configuration section, for example the parameter
-       for configuring of log file size: {logfilesz:64}.
+       Specify the detailed parameters that need to be configured.
+       For detailed parameters, refer to Database Configuration.
 .sp 2
        \fBFormat\fR
 .br
@@ -74,7 +75,9 @@ node at the same time.
 .SH "Examples"
 
 .sp 2
-Named: Create a catalog node group on sdbserver1 host, service
-port: 11800, data files path: /opt/sequoiadb/database/cata/11800
+Create a catalog replication group on the host named "hostname1", specify the
+service port as 11800, specify the data file storage path as
+\f[C]/opt/sequoiadb/database/cata/11800\f[], and configure the log file size as
+64MB.
 .sp 2
-db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")
+db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800",{logfilesz:64})
