@@ -249,7 +249,7 @@ class ObjMgr:
             self.__install_dir = install_conf.split("=")[1].strip()
         command = os.path.join(self.__install_dir, 'bin/sdblist')
         try:
-            p = Popen([command, '-t', 'all', '--expand'], stdout=PIPE)
+            p = Popen([command, '-t', 'all', '-m', 'local', '--expand'], stdout=PIPE)
         except OSError:
             print("[ERROR] --path '{}' is not installation directory for " \
                   "{}".format(self.__install_dir, self.__log_type))

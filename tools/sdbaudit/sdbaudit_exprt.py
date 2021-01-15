@@ -48,6 +48,7 @@ USAGE = "%prog -t <sdb|mysql|mariadb> --auditpath[=]AUDITPATH " \
         "--clname[=]CS.CL [OPTION]..."
 
 PROCESS_WAIT_TIME = 3
+MAX_RETRY_TIMES = 3
 
 KW_SSL = 'ssl'
 KW_USER = 'user'
@@ -620,8 +621,37 @@ class SdbConnect:
                     raise e
 
     def write_row(self, records):
-        self.__cl.bulk_insert(INSERT_FLG_CONTONDUP, records)
-        
+        retry_times = MAX_RETRY_TIMES
+        while retry_times >= 0 :
+            try:
+                self.__cl.bulk_insert(INSERT_FLG_CONTONDUP, records)
+                break
+            except (SDBTypeError, SDBBaseError) as e:
+                if (not self.__is_net_error(e)) or retry_times == 0:
+                    logger.info("Failed to insert logs, exception: {}".format(e))
+                    raise e
+
+            time.sleep(PROCESS_WAIT_TIME)
+            logger.info("retry to insert logs for exception: {}".format(e))
+            try:
+                if not self.__connection.is_valid():
+                    self.__connection.disconnect()
+                    self.__connection = client(self.__host, self.__port, self.__user,
+                                               self.__passwd, self.__use_ssl)
+                    cs = self.__connection.get_collection_space(self.__cs_name)
+                    self.__cl = cs.get_collection(self.__cl_name)
+            except (SDBTypeError, SDBBaseError) as e:
+                if not self.__is_net_error(e):
+                    raise e
+
+            retry_times -= 1
+
+    def __is_net_error(self, e):
+        return SDB_NETWORK_CLOSE == get_errcode(e.code) or \
+               SDB_NETWORK == get_errcode(e.code) or \
+               SDB_NOT_CONNECTED == get_errcode(e.code) or \
+               SDB_NET_CANNOT_CONNECT == get_errcode(e.code)
+
     def __del__(self):
         if self.__has_connect:
             self.__connection.disconnect()
@@ -660,8 +690,12 @@ class LogExporter:
         pid_file = os.path.join(work_path, PID_FILE_NAME)
         if os.path.exists(pid_file):
             os.remove(pid_file)
-        self.connect.write_row(self.__records)
-        self.stat_mgr.update_stat()
+        try:
+            self.connect.write_row(self.__records)
+            self.stat_mgr.update_stat()
+        except (Exception, ValueError) as e:
+            logger.error('Exception: {}, failed to flush logs'.format(e))
+        logger.info('Exit')
         sys.exit()
 
     def __get_audit_file_list(self, reverse_order):
@@ -833,15 +867,9 @@ class LogExporter:
 
     def __export_sdb_log(self):
         if 1 == len(self.__buf):
-            self.stat_mgr.update_stat()
             return
         try:
             self.__buf = self.__buf.encode('UTF-8')
-        except:
-            self.stat_mgr.update_stat()
-            return  
-
-        try:
             buf = ""
             checked = False
             dict = {}
@@ -891,7 +919,6 @@ class LogExporter:
                     dict[FIELD_OBJECT_TYPE] = value
                 elif buf.endswith(FIELD_MESSAGE):
                     if value == self.__cl_full_name:
-                        self.stat_mgr.update_stat()
                         return
                     checked = True
                     dict[FIELD_OBJECT_NAME] = value
@@ -909,14 +936,14 @@ class LogExporter:
 
             self.__records.append(dict)
             self.__num_of_records += 1
-            if self.__num_of_records >= self.__insert_num:
-                self.connect.write_row(self.__records)
-                self.stat_mgr.update_stat()
-                self.__records = []
-                self.__num_of_records = 0
         except (Exception,ValueError) as e:
-            logger.error('Exception : e, failed to parse log: {}'.format(e, self.__buf))
+            logger.error('Exception: {}, failed to parse log: {}'.format(e, self.__buf))
+
+        if self.__num_of_records >= self.__insert_num:
+            self.connect.write_row(self.__records)
             self.stat_mgr.update_stat()
+            self.__records = []
+            self.__num_of_records = 0
 
     def __sql_get_operation_type(self, sql):
         if 0 == len(sql):
@@ -966,14 +993,9 @@ class LogExporter:
     def __export_sql_log(self, line, file_inode, row_number):
         dict = {}
         if 1 == len(line):
-            self.stat_mgr.update_stat()
             return
         try:
             line = line.encode('UTF-8')
-        except:
-            self.stat_mgr.update_stat()
-            return  
-        try:
             list = line.split(",")
             my_time = time.mktime(time.strptime(list[0], "%Y%m%d %H:%M:%S"))
             position_id = self.__make_position_id(file_inode, row_number)
@@ -1002,14 +1024,14 @@ class LogExporter:
 
             self.__records.append(dict)
             self.__num_of_records += 1
-            if self.__num_of_records >= self.__insert_num:
-                self.connect.write_row(self.__records)
-                self.stat_mgr.update_stat()
-                self.__records = []
-                self.__num_of_records = 0
         except (ValueError,Exception) as e:
             logger.error('Exception: {}, failed to parse log: {}'.format(e, line))
+
+        if self.__num_of_records >= self.__insert_num:
+            self.connect.write_row(self.__records)
             self.stat_mgr.update_stat()
+            self.__records = []
+            self.__num_of_records = 0
 
     def __export_audit_log_file(self, file_inode, f):
         row_number = 0
