@@ -1,8 +1,8 @@
 ##名称##
-getDetail - 获取当前节点信息
+getDetailObj - 获取当前节点信息
 
 ##语法##
-***node.getDetail()***
+***node.getDetailObj()***
 
 ##类别##
 
@@ -10,7 +10,7 @@ SdbNode
 
 ##描述##
 
-获取当前SdbNode节点的基本信息。包括节点所属组,节点启动的服务等。
+获取当前 SdbNode 节点的基本信息。包括节点所属组,节点启动的服务等。
 
 ##参数##
 
@@ -37,7 +37,7 @@ v3.2.8及以上版本、v3.4.2及以上版本、v5.0.2及以上版本
 * 获取 node 节点的信息
 
 ```lang-javascript
-> node.getDetail()
+> node.getDetailObj()
 {
   "HostName": "localhost",
   "Status": 1,

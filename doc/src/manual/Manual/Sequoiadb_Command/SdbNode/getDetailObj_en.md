@@ -1,10 +1,10 @@
 
 ##NAME##
 
-getDetail - Get the detail of current node
+getDetailObj - Get the detail of current node
 
 ##SYNOPSIS##
-***node.getDetail()***
+***node.getDetailObj()***
 
 ##CATEGORY##
 
@@ -39,7 +39,7 @@ v3.2.8 and above, v3.4.2 and above, v5.0.2 and above
 * Retrun the detail of current node
 
 ```lang-javascript
-> node.getDetail()
+> node.getDetailObj()
 {
   "HostName": "localhost",
   "Status": 1,
