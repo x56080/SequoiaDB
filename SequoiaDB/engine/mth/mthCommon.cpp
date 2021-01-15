@@ -50,6 +50,10 @@ using namespace bson ;
 
 namespace engine
 {
+   #define MTH_OPERATOR_STR_AND  "$and"
+   #define MTH_OPERATOR_STR_OR   "$or"
+   #define MTH_OPERATOR_STR_NOT  "$not"
+
    struct mthCastStr2Type
    {
       CHAR *castStr ;
@@ -2860,6 +2864,47 @@ namespace engine
    BOOLEAN mthIsValidLen( INT32 length )
    {
       return TRUE ;
+   }
+
+   INT32 mthCheckIfSubFieldIsOp( const BSONElement &ele, BOOLEAN &subFieldIsOp )
+   {
+      INT32 rc = SDB_OK ;
+      subFieldIsOp = FALSE ;
+
+      try
+      {
+         BSONObjIterator itr( ele.embeddedObject() ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            const CHAR *fieldName = e.fieldName() ;
+
+            if ( MTH_OPERATOR_EYECATCHER != fieldName[0] ||
+                 0 == ossStrcmp( fieldName, MTH_OPERATOR_STR_AND ) ||
+                 0 == ossStrcmp( fieldName, MTH_OPERATOR_STR_OR ) ||
+                 0 == ossStrcmp( fieldName, MTH_OPERATOR_STR_NOT ) )
+            {
+               continue ;
+            }
+            else
+            {
+               subFieldIsOp = TRUE ;
+               break ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG ( PDERROR, "Check if the subfield name is an operator name"
+                  "exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 }
 

@@ -47,6 +47,7 @@ namespace engine
      _attribute( MTH_S_ATTR_NONE ),
      _strictDataMode( FALSE )
    {
+      _matchTargetBob.reset() ;
    }
 
    _mthSAction::~_mthSAction()

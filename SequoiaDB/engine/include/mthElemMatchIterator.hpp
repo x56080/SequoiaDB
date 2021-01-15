@@ -38,6 +38,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "../bson/bson.hpp"
+#include "mthDef.hpp"
 
 namespace engine
 {
@@ -48,12 +49,19 @@ namespace engine
    public:
       _mthElemMatchIterator( const bson::BSONObj &obj,
                              _mthMatchTree *matcher,
+                             bson::BSONObjBuilder *matchTargetBob,
                              INT32 n = -1,
-                             BOOLEAN isArray = TRUE ) ;
+                             BOOLEAN isArray = TRUE,
+                             BOOLEAN subFieldIsOp = FALSE ) ;
       ~_mthElemMatchIterator() ;
 
    public:
       INT32 next( bson::BSONElement &e ) ;
+
+   private:
+      INT32 _buildMatchTarget( const bson::BSONElement &ele,
+                               bson::BSONObj &matchTarget,
+                               const CHAR* newFieldName = NULL ) ;
 
    private:
       _mthMatchTree *_matcher ;
@@ -62,6 +70,8 @@ namespace engine
       INT32 _n ;
       INT32 _matched ;
       BOOLEAN _isArray ;
+      bson::BSONObjBuilder *_matchTargetBob ;
+      BOOLEAN _subFieldIsOp ;
    } ;
    typedef class _mthElemMatchIterator mthElemMatchIterator ;
 }

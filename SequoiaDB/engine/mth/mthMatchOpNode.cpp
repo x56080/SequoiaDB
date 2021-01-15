@@ -4291,8 +4291,10 @@ namespace engine
                                               _mthNodeAllocator *allocator,
                                               const mthNodeConfig *config )
                             :_mthMatchOpNode( allocator, config ),
-                             _subTree( NULL )
+                             _subTree( NULL ),
+                             _subFieldIsOp( FALSE )
    {
+      _matchTargetBob.reset() ;
    }
 
    _mthMatchOpNodeELEMMATCH::~_mthMatchOpNodeELEMMATCH()
@@ -4309,8 +4311,8 @@ namespace engine
       if ( element.type() != Object )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "$elemMatch's element must be Object:element=%s,"
-                  "rc=%d", element.toString().c_str(), rc ) ;
+         PD_LOG ( PDERROR, "$elemMatch's element must be Object: element: %s,"
+                  " rc: %d", element.toString().c_str(), rc ) ;
          goto error ;
       }
 
@@ -4318,14 +4320,34 @@ namespace engine
       if ( NULL == _subTree )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "create subTree failed:rc=%d", rc) ;
+         PD_LOG( PDERROR, "Create subTree failed, rc: %d", rc) ;
          goto error ;
       }
 
       _subTree->setMthEnableMixCmp( mthEnabledMixCmp() ) ;
 
-      rc = _subTree->loadPattern( element.embeddedObject(), FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "failed to loadPattern:obj=%s,rc=%d",
+      rc = mthCheckIfSubFieldIsOp( element, _subFieldIsOp ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to check if the subfield name is an "
+                 "operator name, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+      if ( _subFieldIsOp )
+      {
+         // sub field is op, add an blank field name
+         // eg: { $gte: 80 } ==> { "": { $gte: 80 } }
+         rc = _subTree->loadPattern( element.wrap( "" ), FALSE ) ;
+      }
+      else
+      {
+         // already have a normal field name
+         rc = _subTree->loadPattern( element.embeddedObject(), FALSE ) ;
+      }
+
+      PD_RC_CHECK( rc, PDERROR, "Failed to loadPattern: obj: %s, rc: %d",
                    element.embeddedObject().toString().c_str(), rc ) ;
 
       if ( _subTree->hasDollarFieldName() )
@@ -4336,7 +4358,7 @@ namespace engine
       if ( _subTree->hasExpand() || _subTree->hasReturnMatch() )
       {
          rc = SDB_INVALIDARG ;
-         PD_RC_CHECK( rc, PDERROR, "subTree can't support %s or %s",
+         PD_RC_CHECK( rc, PDERROR, "SubTree can't support %s or %s",
                       MTH_ATTR_STR_EXPAND, MTH_ATTR_STR_RETURNMATCH ) ;
       }
 
@@ -4355,6 +4377,7 @@ namespace engine
       }
 
       _subTree = NULL ;
+      _matchTargetBob.reset() ;
    }
 
    INT32 _mthMatchOpNodeELEMMATCH::getType()
@@ -4382,20 +4405,55 @@ namespace engine
       return FALSE ;
    }
 
+   INT32 _mthMatchOpNodeELEMMATCH::_buildMatchTarget( const BSONElement &ele,
+                                                      BSONObj &matchTarget,
+                                                      const CHAR* newFieldName )
+   {
+      INT32 rc  = SDB_OK ;
+      _matchTargetBob.reset() ;
+
+      try
+      {
+         if ( NULL == newFieldName )
+         {
+            _matchTargetBob.append( ele ) ;
+         }
+         else
+         {
+            _matchTargetBob.appendAs( ele, newFieldName ) ;
+         }
+
+         matchTarget = _matchTargetBob.done() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG ( PDERROR, "Build $elemMatch match target exception: %s, "
+                  "rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _mthMatchOpNodeELEMMATCH::_valueMatch( const BSONElement &left,
                                                 const BSONElement &right,
                                                 BOOLEAN mixCmp,
                                                 _mthMatchTreeContext &context,
                                                 BOOLEAN &result )
    {
-      // for eleMatch, such like {a:{$eleMatch:{b:1}}}, this will
-      // match {a:{b:1}}
-      // or {a:{$eleMatch:{$and:[{b:1},{c:1}]}}}
-      // this will match {a:{b:1,c:1}}
-      // we do not support {a:{$eleMatch:{$lt:1}}} at the moment. The
-      // object in eleMatch must be a full matching condition
+      // for eleMatch, such like { a: { $eleMatch: { b: 1 } } },
+      // this will match { a: { b: 1 } }
+      // or { a: { $eleMatch: { $and: [ { b: 1 }, { c: 1 } ] } } }
+      // this will match { a: { b: 1, c: 1 } }
+      // or { a: { $eleMatch: { $gte: 80 } } },
+      // this will match { a: [ 80, 82, 85 ] }
       INT32 rc = SDB_OK ;
       _mthMatchTreeContext subContext ;
+      BSONObj matchTarget ;
 
       if ( left.type() != Object && left.type() != Array )
       {
@@ -4414,6 +4472,13 @@ namespace engine
          _subTree->setMthEnableMixCmp( mixCmp ) ;
       }
 
+      // if _patternFlag is MTH_MATCH_ELEMATCH_HAS_NO_SUBFIELDNAME,
+      // it means that the match pattern of $elemMatch or $elemMatchOne
+      // has been rebuild.
+      // So when we match every element in array field or object field,
+      // we will rebuild the matching record.
+      // eg: leftObj = { a: [ 1, 2 ] } ==> { a: [ { "": 1 }, { "": 2 } ] }
+      // eg: leftObj = { a: { b: 1, c: 2 } } ==> { a: { "": { b: 1, c: 2 } } }
       if ( Array == left.type() )
       {
          BOOLEAN tmpResult = FALSE ;
@@ -4421,18 +4486,40 @@ namespace engine
          while ( iter.more() )
          {
             BSONElement innerEle = iter.next() ;
-            if ( innerEle.type() == Object || innerEle.type() == Array )
+
+            if ( _subFieldIsOp )
             {
+               rc = _buildMatchTarget( innerEle, matchTarget, "" ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build $elemMatch match target, "
+                          "rc: %d", rc ) ;
+                  goto error ;
+               }
+
                //do not clear dollarlist flag
                subContext.clearRecordInfo() ;
-               rc = _subTree->matches( innerEle.embeddedObject(), result,
-                                       &subContext ) ;
-               PD_RC_CHECK( rc, PDERROR, "matches subtree failed:rc=%d", rc ) ;
+               rc = _subTree->matches( matchTarget, result, &subContext ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Matches subtree failed, rc: %d", rc ) ;
                context.appendDollarList( subContext._dollarList ) ;
             }
             else
             {
-               result = FALSE ;
+               if ( innerEle.type() == Object || innerEle.type() == Array )
+               {
+                  //do not clear dollarlist flag
+                  subContext.clearRecordInfo() ;
+                  rc = _subTree->matches( innerEle.embeddedObject(), result,
+                                          &subContext ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Matches subtree failed, rc: %d", rc ) ;
+                  context.appendDollarList( subContext._dollarList ) ;
+               }
+               else
+               {
+                  result = FALSE ;
+               }
             }
 
             if ( result )
@@ -4450,8 +4537,25 @@ namespace engine
       else
       {
          //Object
-         rc = _subTree->matches( left.embeddedObject(), result, &subContext ) ;
-         PD_RC_CHECK( rc, PDERROR, "matches subtree failed:rc=%d", rc ) ;
+         if ( _subFieldIsOp )
+         {
+            rc = _buildMatchTarget( left, matchTarget, "" ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to build $elemMatch match target, "
+                       "rc: %d", rc ) ;
+               goto error ;
+            }
+
+            rc = _subTree->matches( matchTarget, result, &subContext ) ;
+         }
+         else
+         {
+            rc = _subTree->matches( left.embeddedObject(), result,
+                                    &subContext ) ;
+         }
+
+         PD_RC_CHECK( rc, PDERROR, "Matches subtree failed, rc: %d", rc ) ;
          context.appendDollarList( subContext._dollarList ) ;
       }
 

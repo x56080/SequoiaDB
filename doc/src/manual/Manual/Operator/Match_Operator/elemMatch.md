@@ -2,66 +2,30 @@
 ##语法##
 
 ```lang-json
-{ <字段名>: { $elemMatch: { <子字段名>: <表达式>, ... } } }
+{ <fieldName>: { $elemMatch: <cond> } }
 ```
 
 ##描述##
 
-选择集合中“<字段名>”匹配指定“{ <子字段>: <表达式> ... }”的记录。
+如果数组或者对象中至少有一个元素符合条件，则返回该条记录
 
-其中“<表达式>”可以是值，也可以是带有[匹配符][overview]的表达式， $elemMatch 匹配符支持多层嵌套。
+> **Note:**
+>
+> $elemMatch 匹配条件暂不支持全文检索语法
 
 ##示例##
 
-在集合 sample.employee 中插入如下记录：
+集合 sample.employee 存在如下记录：
 
-```lang-javascript
-> db.sample.employee.insert( { "id": 1, "content": { "name": "Jack", "phone": "123", "address": "1000 Market Street, Philadelphia" } } )
-> db.sample.employee.insert( { "id": 2, "content": [ { "name": "Tom", "phone": "456", "address": "2000 Market Street, Philadelphia" } ] } )
-> db.sample.employee.insert( { "id": 3, "content": { "name": "Septem", "phone": "789", "address": { "addr1": "3000 Market Street, Philadelphia", "addr2": "4000 Market Street, Philadelphia" } } } )
-> db.sample.employee.find()
-{
-  "_id": {
-    "$oid": "5a73ce416a3e18f64e000010"
-  },
-  "id": 1,
-  "content": {
-    "name": "Jack",
-    "phone": "123",
-    "address": "1000 Market Street, Philadelphia"
-  }
-}
-{
-  "_id": {
-    "$oid": "5a73ce476a3e18f64e000011"
-  },
-  "id": 2,
-  "content": [
-    {
-      "name": "Tom",
-      "phone": "456",
-      "address": "2000 Market Street, Philadelphia"
-    }
-  ]
-}
-{
-  "_id": {
-    "$oid": "5aaa25ee48bcff191e000002"
-  },
-  "id": 3,
-  "content": {
-    "name": "Septem",
-    "phone": "789",
-    "address": {
-      "addr1": "3000 Market Street, Philadelphia",
-      "addr2": "4000 Market Street, Philadelphia"
-    }
-  }
-}
-Return 3 row(s).
+```lang-json
+{ "id": 1, "content": { "name": "Jack", "phone": "123", "address": "1000 Market Street, Philadelphia" } } 
+{ "id": 2, "content": [ { "name": "Tom", "phone": "456", "address": "2000 Market Street, Philadelphia" } ] } 
+{ "id": 3, "content": { "name": "Septem", "phone": "789", "address": { "addr1": "3000 Market Street, Philadelphia", "addr2": "4000 Market Street, Philadelphia" } } } 
+{ "id": 4, "content": [ 80, 84, 90 ] } 
+{ "id": 5, "content": [ 1, [ { a: 1 }, { b: 2 }, 90 ], 2, 3 ] }
 ```
 
-* 嵌套对象匹配
+* 匹配对象中的元素，例如：如果 content 对象中存在 name 为 Jack，phone 为 123 的元素，则返回该记录
 
   ```lang-javascript
   > db.sample.employee.find( { "content": { $elemMatch: { "name": "Jack", "phone": "123" } } } )
@@ -79,7 +43,7 @@ Return 3 row(s).
   Return 1 row(s).
   ```
 
-* 数组匹配
+* 匹配数组中的嵌套元素，例如：如果 content 数组中存在 name 为 Tom，phone 为 456 的元素，则返回该记录
 
   ```lang-javascript
   > db.sample.employee.find( { "content": { $elemMatch: { "name": "Tom", "phone": "456" } } } )
@@ -99,45 +63,68 @@ Return 3 row(s).
   Return 1 row(s).
   ```
 
-* 匹配 content 字段中子字段 phone 符合表达式 `$lte："123"` 的记录
+* 匹配数组中的非嵌套元素，例如：如果 content 数组存在值大于等于 80，小于等于 85 的元素，则返回该记录
 
   ```lang-javascript
-  > db.sample.employee.find( { content: { $elemMatch: { "phone" : { $lte : "123" } } } } )
+  > db.sample.employee.find( { "content": { $elemMatch: { $gte: 80, $lte: 85 } } } )
   {
-    "_id": {
-      "$oid": "5a0106e51f9b983f4600000b"
-    },
-    "id": 1,
-    "content": {
-      "name": "Jack",
-      "phone": "123",
-      "address": "1000 Market Street, Philadelphia"
-    }
+      "_id": {
+        "$oid": "5822868a2b4c38286d000009"
+      },
+      "id": 4,
+      "content": [
+        80,
+        84,
+        90
+      ]
   }
   Return 1 row(s).
   ```
 
-* 使用 $regex 匹配符以及嵌套的 $elemMatch 匹配符
+* 匹配数组中的第 2 个元素，例如：如果 content 数组中的第二个元素中存在 a 为 1 的元素，则返回该记录
+
+  ```lang-javascript
+  > db.sample.employee.find( { "content.1": { $elemMatch: { a: 1 } } } )
+  {
+      "_id": {
+        "$oid": "5fec23e6a13bedd56902eb5d"
+      },
+      "id": 5,
+      "content": [
+        1,
+        [
+          {
+            "a": 1
+          },
+          {
+            "b": 2
+          },
+          90
+        ],
+        2,
+        3
+      ]
+  }
+  Return 1 row(s).
+  ```
+
+* $elemMatch 可以和匹配符一起配合使用，例如：跟匹配符 $elemMatch 和 $regex 结合使用，content  对象（或数组）中的 address 对象（或数组）中，如果存在 addr1 满足正则表达式 ".*Philadelphia$" 的元素，则返回该记录
 
   ```lang-javascript
   > db.sample.employee.find( { "content" : { $elemMatch : { address : { $elemMatch: { addr1 : { $regex : ".*Philadelphia$" } } } } } } )
   {
-    "_id": {
-      "$oid": "5a0107641f9b983f4600000d"
-    },
-    "id": 3,
-    "content": {
-      "name": "Septem",
-      "phone": "789",
-      "address": {
-        "addr1": "3000 Market Street, Philadelphia",
-        "addr2": "4000 Market Street, Philadelphia"
+      "_id": {
+        "$oid": "5a0107641f9b983f4600000d"
+      },
+      "id": 3,
+      "content": {
+        "name": "Septem",
+        "phone": "789",
+        "address": {
+          "addr1": "3000 Market Street, Philadelphia",
+          "addr2": "4000 Market Street, Philadelphia"
+        }
       }
-    }
   }
   Return 1 row(s).
   ```
-
-[^_^]:
-    本文使用的所有引用及链接
-[overview]:manual/Manual/Operator/Match_Operator/Readme.md

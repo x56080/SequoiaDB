@@ -93,6 +93,16 @@ namespace engine
                           _mthSAction *,
                           bson::BSONElement & ) ;
 
+   INT32 mthElemMatchBuildSubIsOp( const CHAR *,
+                                   const bson::BSONElement &,
+                                   _mthSAction *,
+                                   bson::BSONObjBuilder & ) ;
+
+   INT32 mthElemMatchGetSubIsOp( const CHAR *,
+                                 const bson::BSONElement &,
+                                 _mthSAction *,
+                                 bson::BSONElement & ) ;
+
    INT32 mthElemMatchOneBuild( const CHAR *,
                                const bson::BSONElement &,
                                _mthSAction *,
@@ -102,6 +112,16 @@ namespace engine
                              const bson::BSONElement &,
                              _mthSAction *,
                              bson::BSONElement & ) ;
+
+   INT32 mthElemMatchOneBuildSubIsOp( const CHAR *,
+                                      const bson::BSONElement &,
+                                      _mthSAction *,
+                                      bson::BSONObjBuilder & ) ;
+
+   INT32 mthElemMatchOneGetSubIsOp( const CHAR *,
+                                    const bson::BSONElement &,
+                                    _mthSAction *,
+                                    bson::BSONElement & ) ;
 
    INT32 mthAbsBuild( const CHAR *,
                       const bson::BSONElement &,

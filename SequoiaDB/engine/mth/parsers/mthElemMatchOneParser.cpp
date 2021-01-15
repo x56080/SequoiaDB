@@ -56,7 +56,9 @@ namespace engine
                                         _mthSAction &action ) const
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN subFieldIsOp = FALSE ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHONEPARSER_PARSE ) ;
+
       if ( Object != e.type() )
       {
          PD_LOG( PDERROR, "$elemMatch(One) requires object value" ) ;
@@ -71,17 +73,39 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
-      rc = action.getMatchTree()->loadPattern( e.embeddedObject() ) ;
+      rc = mthCheckIfSubFieldIsOp( e, subFieldIsOp ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to check if the subfield name is an "
+                 "operator name, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+      if ( subFieldIsOp )
+      {
+         action.setFunc( &mthElemMatchOneBuildSubIsOp,
+                         &mthElemMatchOneGetSubIsOp ) ;
+         // sub field is op, add an blank field name
+         // eg: { $gte: 80 } ==> { "": { $gte: 80 } }
+         rc = action.getMatchTree()->loadPattern( e.wrap( "" ) ) ;
+      }
+      else
+      {
+         action.setFunc( &mthElemMatchOneBuild,
+                         &mthElemMatchOneGet ) ;
+         // already have a normal field name
+         rc = action.getMatchTree()->loadPattern( e.embeddedObject() ) ;
+      }
+
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to load match pattern:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to load match pattern, rc: %d", rc ) ;
          goto error ;
       }
 
       action.setName( _name.c_str() ) ;
       action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
-      action.setFunc( &mthElemMatchOneBuild,
-                      &mthElemMatchOneGet ) ;
 
    done:
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHONEPARSER_PARSE, rc ) ;

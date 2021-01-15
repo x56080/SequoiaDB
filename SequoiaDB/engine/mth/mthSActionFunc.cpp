@@ -189,8 +189,9 @@ namespace engine
    static INT32 mthElemMatchBuildN( const CHAR *fieldName,
                                     const bson::BSONElement &e,
                                     _mthSAction *action,
-                                    bson::BSONObjBuilder &builder,
-                                    INT32 n )
+                                    INT32 n,
+                                    BOOLEAN subFieldIsOp,
+                                    bson::BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHBUILDN ) ;
@@ -201,9 +202,9 @@ namespace engine
       if ( Array == e.type() )
       {
          BSONArrayBuilder arrayBuilder( builder.subarrayStart( fieldName ) ) ;
-         _mthElemMatchIterator i( e.embeddedObject(),
-                                  action->getMatchTree(),
-                                  n ) ;
+         _mthElemMatchIterator i( e.embeddedObject(), action->getMatchTree(),
+                                  action->getMatchTargetBob(),
+                                  n, TRUE, subFieldIsOp ) ;
          do
          {
             BSONElement next ;
@@ -228,7 +229,8 @@ namespace engine
       else if ( Object == e.type() )
       {
          _mthElemMatchIterator i( e.embeddedObject(), action->getMatchTree(),
-                                  n, FALSE ) ;
+                                  action->getMatchTargetBob(),
+                                  n, FALSE, subFieldIsOp ) ;
          do
          {
             BSONElement next ;
@@ -260,8 +262,9 @@ namespace engine
    static INT32 mthElemMatchGetN( const CHAR *fieldName,
                                   const bson::BSONElement &in,
                                   _mthSAction *action,
-                                  bson::BSONElement &out,
-                                  INT32 n )
+                                  INT32 n,
+                                  BOOLEAN subFieldIsOp,
+                                  bson::BSONElement &out )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHGETN ) ;
@@ -275,7 +278,8 @@ namespace engine
          BSONArrayBuilder arrayBuilder( objBuilder.subarrayStart( fieldName ) ) ;
          _mthElemMatchIterator i( in.embeddedObject(),
                                   action->getMatchTree(),
-                                  n ) ;
+                                  action->getMatchTargetBob(),
+                                  n, TRUE, subFieldIsOp ) ;
          do
          {
             BSONElement next ;
@@ -319,7 +323,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHBUILD ) ;
-      rc = mthElemMatchBuildN( fieldName, e, action, builder, -1 ) ;
+      rc = mthElemMatchBuildN( fieldName, e, action, -1, FALSE, builder ) ;
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHBUILD, rc ) ;
       return rc ;
    }
@@ -332,8 +336,34 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHGET ) ;
-      rc = mthElemMatchGetN( fieldName, in, action, out, -1 ) ;
+      rc = mthElemMatchGetN( fieldName, in, action, -1, FALSE, out ) ;
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHGET, rc ) ;
+      return rc ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHELEMMATCHBUILDSUBISOP, "mthElemMatchBuildSubIsOp" )
+   INT32 mthElemMatchBuildSubIsOp( const CHAR *fieldName,
+                                   const bson::BSONElement &e,
+                                   _mthSAction *action,
+                                   bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHELEMMATCHBUILDSUBISOP ) ;
+      rc = mthElemMatchBuildN( fieldName, e, action, -1, TRUE, builder ) ;
+      PD_TRACE_EXITRC( SDB__MTHELEMMATCHBUILDSUBISOP, rc ) ;
+      return rc ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHELEMMATCHGETSUBISOP, "mthElemMatchGetSubIsOp" )
+   INT32 mthElemMatchGetSubIsOp( const CHAR *fieldName,
+                                 const bson::BSONElement &in,
+                                 _mthSAction *action,
+                                 bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHELEMMATCHGETSUBISOP ) ;
+      rc = mthElemMatchGetN( fieldName, in, action, -1, TRUE, out ) ;
+      PD_TRACE_EXITRC( SDB__MTHELEMMATCHGETSUBISOP, rc ) ;
       return rc ;
    }
 
@@ -345,7 +375,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHONEBUILD ) ;
-      rc = mthElemMatchBuildN( fieldName, e, action, builder, 1 ) ;
+      rc = mthElemMatchBuildN( fieldName, e, action, 1, FALSE, builder ) ;
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHONEBUILD, rc ) ;
       return rc ;
    }
@@ -358,8 +388,34 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHELEMMATCHONEGET ) ;
-      rc = mthElemMatchGetN( fieldName, in, action, out, 1 ) ;
+      rc = mthElemMatchGetN( fieldName, in, action, 1, FALSE, out ) ;
       PD_TRACE_EXITRC( SDB__MTHELEMMATCHONEGET, rc ) ;
+      return rc ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHELEMMATCHONEBUILDSUBISOP, "mthElemMatchOneBuildSubIsOp" )
+   INT32 mthElemMatchOneBuildSubIsOp( const CHAR *fieldName,
+                                      const bson::BSONElement &e,
+                                      _mthSAction *action,
+                                      bson::BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHELEMMATCHONEBUILDSUBISOP ) ;
+      rc = mthElemMatchBuildN( fieldName, e, action, 1, TRUE, builder ) ;
+      PD_TRACE_EXITRC( SDB__MTHELEMMATCHONEBUILDSUBISOP, rc ) ;
+      return rc ;
+   }
+
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHELEMMATCHONEGETSUBISOP, "mthElemMatchOneGetSubIsOp" )
+   INT32 mthElemMatchOneGetSubIsOp( const CHAR *fieldName,
+                                    const bson::BSONElement &in,
+                                    _mthSAction *action,
+                                    bson::BSONElement &out )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHELEMMATCHONEGETSUBISOP ) ;
+      rc = mthElemMatchGetN( fieldName, in, action, 1, TRUE, out ) ;
+      PD_TRACE_EXITRC( SDB__MTHELEMMATCHONEGETSUBISOP, rc ) ;
       return rc ;
    }
 

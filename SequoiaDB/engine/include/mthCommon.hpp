@@ -110,13 +110,13 @@ namespace engine
                   BSONObjBuilder &outBuilder ) ;
 
    INT32 mthAdd( const CHAR *name, const BSONElement &in,
-                 const BSONElement &addend, 
-                 BSONObjBuilder &outBuilder, 
+                 const BSONElement &addend,
+                 BSONObjBuilder &outBuilder,
                  INT32 &flag ) ;
 
    INT32 mthSub( const CHAR *name, const BSONElement &in,
-                 const BSONElement &subtrahead, 
-                 BSONObjBuilder &outBuilder, 
+                 const BSONElement &subtrahead,
+                 BSONObjBuilder &outBuilder,
                  INT32 &flag ) ;
 
    INT32 mthMultiply( const CHAR *name, const BSONElement &in,
@@ -125,8 +125,8 @@ namespace engine
                       INT32 &flag ) ;
 
    INT32 mthDivide( const CHAR *name, const BSONElement &in,
-                    const BSONElement &divisor, 
-                    BSONObjBuilder &outBuilder, 
+                    const BSONElement &divisor,
+                    BSONObjBuilder &outBuilder,
                     INT32 &flag ) ;
 
    INT32 mthType( const CHAR *name, INT32 outType, const BSONElement &in,
@@ -179,6 +179,8 @@ namespace engine
    BOOLEAN mthIsNumber1( const bson::BSONElement &ele ) ;
    BOOLEAN mthIsValidLen( INT32 length ) ;
 
+   INT32 mthCheckIfSubFieldIsOp( const BSONElement &ele,
+                                 BOOLEAN &subFieldIsOp ) ;
 }
 
 #endif //MTHCOMMON_HPP__

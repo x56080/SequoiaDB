@@ -44,14 +44,18 @@ namespace engine
 {
    _mthElemMatchIterator::_mthElemMatchIterator( const bson::BSONObj &obj,
                                                  _mthMatchTree *matcher,
+                                                 bson::BSONObjBuilder *matchTargetBob,
                                                  INT32 n,
-                                                 BOOLEAN isArray )
+                                                 BOOLEAN isArray,
+                                                 BOOLEAN subFieldIsOp )
    :_matcher( matcher ),
     _obj( obj ),
     _i( _obj ),
     _n( n ),
     _matched( 0 ),
-    _isArray( isArray )
+    _isArray( isArray ),
+    _matchTargetBob( matchTargetBob ),
+    _subFieldIsOp( subFieldIsOp )
    {
       SDB_ASSERT( NULL != _matcher, "can not be null" ) ;
    }
@@ -61,26 +65,95 @@ namespace engine
 
    }
 
+   INT32 _mthElemMatchIterator::_buildMatchTarget( const bson::BSONElement &ele,
+                                                   bson::BSONObj &matchTarget,
+                                                   const CHAR* newFieldName )
+   {
+      INT32 rc  = SDB_OK ;
+      _matchTargetBob->reset() ;
+
+      try
+      {
+         if ( NULL == newFieldName )
+         {
+            _matchTargetBob->append( ele ) ;
+         }
+         else
+         {
+            _matchTargetBob->appendAs( ele, newFieldName ) ;
+         }
+
+         matchTarget = _matchTargetBob->done() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG ( PDERROR, "Build $elemMatch or $elemMatchOne match target "
+                  "exception: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _mthElemMatchIterator::next( bson::BSONElement &e )
    {
-      INT32 rc = SDB_OK ;
+      INT32   rc = SDB_OK ;
       e = BSONElement() ;
 
       while ( _i.more() && ( _n < 0 || _matched < _n ) )
       {
          BSONElement ele = _i.next() ;
          BSONObj matchTarget ;
-         if ( _isArray && Object == ele.type() )
+         if ( _isArray )
          {
-            matchTarget = ele.embeddedObject() ;
-         }
-         else if ( !_isArray )
-         {
-            matchTarget = ele.wrap() ;
+            if ( _subFieldIsOp )
+            {
+               rc = _buildMatchTarget( ele, matchTarget, "" ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build $elemMatch or $elemMatchOne"
+                          " match target, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            else
+            {
+               if ( Object == ele.type() )
+               {
+                  matchTarget = ele.embeddedObject() ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
          }
          else
          {
-            continue ;
+            if ( _subFieldIsOp )
+            {
+               rc = _buildMatchTarget( ele, matchTarget, "" ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build $elemMatch or $elemMatchOne"
+                          "match target, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+            else
+            {
+               rc = _buildMatchTarget( ele, matchTarget ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to build $elemMatch or $elemMatchOne"
+                          "match target, rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
          }
 
          BOOLEAN res = FALSE ;

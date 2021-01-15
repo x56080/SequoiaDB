@@ -72,7 +72,7 @@ namespace engine
          _getFunc = getFunc ;
          return ;
       }
-      
+
       OSS_INLINE void setName( const CHAR *name )
       {
          _name = name ;
@@ -134,12 +134,19 @@ namespace engine
          _name = NULL ;
          _attribute = MTH_S_ATTR_NONE ;
          deleteMatchTree() ;
+         _matchTargetBob.reset() ;
          return ;
       }
 
       OSS_INLINE BOOLEAN empty() const
       {
          return !MTH_ATTR_IS_VALID( _attribute ) ;
+      }
+
+      OSS_INLINE BSONObjBuilder *getMatchTargetBob()
+      {
+         _matchTargetBob.reset() ;
+         return &_matchTargetBob ;
       }
 
    public:
@@ -152,19 +159,21 @@ namespace engine
                  bson::BSONElement &out ) ;
 
    private:
-      MTH_SACTION_BUILD _buildFunc ;
-      MTH_SACTION_GET _getFunc ;
+      MTH_SACTION_BUILD  _buildFunc ;
+      MTH_SACTION_GET    _getFunc ;
 
    private:
-      bson::BSONElement _value ;
-      const CHAR *_name ;
-      MTH_S_ATTRIBUTE _attribute ;
-      BOOLEAN     _strictDataMode ;
+      bson::BSONElement  _value ;
+      const CHAR        *_name ;
+      MTH_S_ATTRIBUTE    _attribute ;
+      BOOLEAN            _strictDataMode ;
+      // Must be reset before calling _matchTargetBob
+      BSONObjBuilder     _matchTargetBob ;
 
       /// think about placement new ?
       /// that we can use different child classes.
-      bson::BSONObj _obj ;
-      bson::BSONObj _arg ;
+      bson::BSONObj       _obj ;
+      bson::BSONObj       _arg ;
    } ;
    typedef class _mthSAction mthSAction ;
 }

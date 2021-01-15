@@ -1186,6 +1186,11 @@ namespace engine
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
 
+      private:
+         INT32   _buildMatchTarget( const BSONElement &ele,
+                                    BSONObj &matchTarget,
+                                    const CHAR* newFieldName = NULL ) ;
+
       protected:
          virtual INT32 _init( const CHAR *fieldName,
                               const BSONElement &element ) ;
@@ -1206,6 +1211,11 @@ namespace engine
 
       protected:
          _mthMatchTree *_subTree ;
+
+      private:
+         // Must be reset before calling _matchTargetBob
+         BSONObjBuilder _matchTargetBob ;
+         BOOLEAN        _subFieldIsOp ;
    } ;
 
    class _mthMatchOpNodeRegex : public _mthMatchOpNode

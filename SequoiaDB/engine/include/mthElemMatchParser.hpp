@@ -47,7 +47,6 @@ namespace engine
    public:
       virtual INT32 parse( const bson::BSONElement &e,
                            _mthSAction &action ) const ;
-
    } ;
    typedef class _mthElemMatchParser mthElemMatchParser ;
 }
