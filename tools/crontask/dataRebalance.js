@@ -356,6 +356,12 @@ function getDomainByCL( clName )
    {
       domainName = rc.current().toObj().Domain ;
    }
+   else
+   {
+      printLog( "ERROR", "Collection[" + CLFULLNAME + "]'s collection space[" +
+                         csName+"] doesn't exist" ) ;
+      throw new Error() ;
+   }
 
    return domainName ;
 }
