@@ -84,13 +84,6 @@ namespace engine
    {
    }
 
-   void _coordCmdSnapshotReset::_preSet( pmdEDUCB *cb,
-                                         coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been set with default 1
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
    INT32 _coordCmdSnapshotReset::_preExcute ( MsgHeader * pMsg,
                                               pmdEDUCB * cb,
                                               coordCtrlParam & ctrlParam,
@@ -221,7 +214,8 @@ namespace engine
    void _coordSnapshotTransCurIntr::_preSet( pmdEDUCB *cb,
                                              coordCtrlParam &ctrlParam )
    {
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
 
       ctrlParam._useSpecialNode = TRUE ;
@@ -245,7 +239,8 @@ namespace engine
    void _coordSnapshotTransIntr::_preSet( pmdEDUCB *cb,
                                           coordCtrlParam &ctrlParam )
    {
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
    }
 
@@ -344,13 +339,6 @@ namespace engine
    {
    }
 
-   void _coordCMDSnapshotDataBaseIntr::_preSet( pmdEDUCB *cb,
-                                                coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been selected in constructor of _coordCtrlParam
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
    /*
       _coordCMDSnapshotSystem implement
    */
@@ -436,13 +424,6 @@ namespace engine
    {
    }
 
-   void _coordCMDSnapshotHealthIntr::_preSet( pmdEDUCB *cb,
-                                              coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been selected in constructor of _coordCtrlParam
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
    /*
       _coordCMDSnapshotCollections implement
    */
@@ -481,6 +462,13 @@ namespace engine
    {
    }
 
+   void _coordCMDSnapshotCLIntr::_preSet( pmdEDUCB *cb,
+                                          coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
    /*
       _coordCMDSnapshotSpaces implement
    */
@@ -517,6 +505,13 @@ namespace engine
 
    _coordCMDSnapshotCSIntr::~_coordCMDSnapshotCSIntr()
    {
+   }
+
+   void _coordCMDSnapshotCSIntr::_preSet( pmdEDUCB *cb,
+                                          coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
    /*
@@ -765,6 +760,13 @@ namespace engine
    {
    }
 
+   void _coordCMDSnapshotAccessPlansIntr::_preSet( pmdEDUCB *cb,
+                                                   coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
    /*
       _coordCMDSnapshotConfigs implement
    */
@@ -801,13 +803,6 @@ namespace engine
 
    _coordCMDSnapshotConfigsIntr::~_coordCMDSnapshotConfigsIntr()
    {
-   }
-
-   void _coordCMDSnapshotConfigsIntr::_preSet( pmdEDUCB *cb,
-                                               coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been set with default 1
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
    /*
@@ -847,6 +842,13 @@ namespace engine
 
    _coordCMDSnapshotSvcTasksIntr::~_coordCMDSnapshotSvcTasksIntr()
    {
+   }
+
+   void _coordCMDSnapshotSvcTasksIntr::_preSet( pmdEDUCB *cb,
+                                                coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
    /*
@@ -929,10 +931,8 @@ namespace engine
    void _coordSnapshotQueriesIntr::_preSet( pmdEDUCB *cb,
                                             coordCtrlParam &ctrlParam )
    {
-      // catalog / data has been selected in constructor of _coordCtrlParam
+      ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
-      ctrlParam._role[ SDB_ROLE_DATA ] = 0 ;
    }
 
    /*
@@ -998,6 +998,12 @@ namespace engine
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotLockWaitsIntr,
                                       CMD_NAME_SNAPSHOT_LOCKWAITS_INTR,
                                       TRUE ) ;
+   void _coordCMDSnapshotLockWaitsIntr::_preSet( pmdEDUCB *cb,
+                                                  coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
 
    /*
     * _coordCMDSnapshotIndexStats implement
@@ -1030,5 +1036,12 @@ namespace engine
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexStatsIntr,
                                       CMD_NAME_SNAPSHOT_INDEXSTATS_INTR,
                                       TRUE ) ;
+
+   void _coordCMDSnapshotIndexStatsIntr::_preSet( pmdEDUCB *cb,
+                                                  coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
 }
 

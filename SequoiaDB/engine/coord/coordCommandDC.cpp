@@ -176,7 +176,6 @@ namespace engine
       SET_ROUTEID nodes ;
       ROUTE_RC_MAP faileds ;
       SET_ROUTEID sucNodes ;
-      coordCtrlParam ctrlParam ;
 
       rc = coordGetGroupNodes( _pResource, cb, BSONObj(), NODE_SEL_ALL,
                                groupLst, nodes, NULL, FALSE ) ;

@@ -963,11 +963,6 @@ retry :
       {
          case CMD_SNAPSHOT_COLLECTIONS :
          case CMD_SNAPSHOT_COLLECTIONSPACES :
-         case CMD_SNAPSHOT_CONTEXTS_CURRENT :
-         case CMD_SNAPSHOT_SESSIONS_CURRENT :
-
-         case CMD_LIST_CONTEXTS_CURRENT :
-         case CMD_LIST_SESSIONS_CURRENT :
 
          case CMD_LIST_BACKUPS :
 

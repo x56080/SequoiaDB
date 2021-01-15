@@ -93,7 +93,8 @@ namespace engine
    void _coordListTransCurIntr::_preSet( pmdEDUCB *cb,
                                          coordCtrlParam &ctrlParam )
    {
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
 
       ctrlParam._useSpecialNode = TRUE ;
@@ -117,7 +118,8 @@ namespace engine
    void _coordListTransIntr::_preSet( pmdEDUCB *cb,
                                         coordCtrlParam &ctrlParam )
    {
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
    }
 
@@ -188,6 +190,7 @@ namespace engine
    {
       ctrlParam._filterID = FILTER_ID_HINT ;
       ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+      ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
       ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
    }
@@ -1051,6 +1054,13 @@ namespace engine
 
    _coordCMDListSvcTasksIntr::~_coordCMDListSvcTasksIntr()
    {
+   }
+
+   void _coordCMDListSvcTasksIntr::_preSet( pmdEDUCB *cb,
+                                            coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
 }

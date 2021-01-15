@@ -271,7 +271,8 @@ namespace engine
    void _coordCMDMonIntrBase::_preSet( pmdEDUCB *cb,
                                        coordCtrlParam &ctrlParam )
    {
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 0 ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
    INT32 _coordCMDMonIntrBase::_onLocalMode( INT32 flag )

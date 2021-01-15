@@ -70,6 +70,9 @@ namespace engine
 
       contextID = -1 ;
       ctrlParam._isGlobal = TRUE ;
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
       ctrlParam._filterID = _getGroupMatherIndex() ;
       ctrlParam._emptyFilterSel = _nodeSelWhenNoFilter() ;
 

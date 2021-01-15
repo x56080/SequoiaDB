@@ -87,7 +87,7 @@ namespace engine
          _coordListTransCurIntr() ;
          virtual ~_coordListTransCurIntr() ;
       private:
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordListTransCurIntr coordListTransCurIntr ;
 
@@ -101,7 +101,7 @@ namespace engine
          _coordListTransIntr() ;
          virtual ~_coordListTransIntr() ;
       private:
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordListTransIntr coordListTransIntr ;
 
@@ -571,6 +571,7 @@ namespace engine
       public:
          _coordCMDListSvcTasksIntr() ;
          virtual ~_coordCMDListSvcTasksIntr() ;
+         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDListSvcTasksIntr coordCMDListSvcTasksIntr ;
 

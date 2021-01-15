@@ -87,7 +87,6 @@ namespace engine
          virtual ~_coordCmdSnapshotReset() ;
       private:
          virtual BOOLEAN _useContext() { return FALSE ; }
-         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
 
          virtual INT32   _preExcute ( MsgHeader *pMsg,
                                       pmdEDUCB *cb,
@@ -106,7 +105,7 @@ namespace engine
          _coordSnapshotTransCurIntr() ;
          virtual ~_coordSnapshotTransCurIntr() ;
       private:
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordSnapshotTransCurIntr coordSnapshotTransCurIntr ;
 
@@ -120,7 +119,7 @@ namespace engine
          _coordSnapshotTransIntr() ;
          virtual ~_coordSnapshotTransIntr() ;
       private:
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordSnapshotTransIntr coordSnapshotTransIntr ;
 
@@ -180,7 +179,6 @@ namespace engine
       public:
          _coordCMDSnapshotDataBaseIntr() ;
          virtual ~_coordCMDSnapshotDataBaseIntr() ;
-         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotDataBaseIntr coordCMDSnapshotDataBaseIntr ;
 
@@ -237,7 +235,6 @@ namespace engine
       public:
          _coordCMDSnapshotHealthIntr() ;
          virtual ~_coordCMDSnapshotHealthIntr() ;
-         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotHealthIntr coordCMDSnapshotHealthIntr ;
 
@@ -265,6 +262,7 @@ namespace engine
       public:
          _coordCMDSnapshotCLIntr() ;
          virtual ~_coordCMDSnapshotCLIntr() ;
+         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotCLIntr coordCMDSnapshotCLIntr ;
 
@@ -292,6 +290,7 @@ namespace engine
       public:
          _coordCMDSnapshotCSIntr() ;
          virtual ~_coordCMDSnapshotCSIntr() ;
+         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotCSIntr coordCMDSnapshotCSIntr ;
 
@@ -462,6 +461,7 @@ namespace engine
       public:
          _coordCMDSnapshotAccessPlansIntr () ;
          virtual ~_coordCMDSnapshotAccessPlansIntr () ;
+         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
 
    typedef _coordCMDSnapshotAccessPlansIntr coordCMDSnapshotAccessPlansIntr ;
@@ -490,7 +490,6 @@ namespace engine
       public:
          _coordCMDSnapshotConfigsIntr() ;
          virtual ~_coordCMDSnapshotConfigsIntr() ;
-         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotConfigsIntr coordCMDSnapshotConfigsIntr ;
 
@@ -518,6 +517,7 @@ namespace engine
       public:
          _coordCMDSnapshotSvcTasksIntr() ;
          virtual ~_coordCMDSnapshotSvcTasksIntr() ;
+         void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotSvcTasksIntr coordCMDSnapshotSvcTasksIntr ;
 
@@ -573,7 +573,7 @@ namespace engine
       public:
          _coordSnapshotQueriesIntr() ;
          virtual ~_coordSnapshotQueriesIntr() ;
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordSnapshotQueriesIntr coordSnapshotQueriesIntr ;
 
@@ -628,6 +628,7 @@ namespace engine
       public:
          _coordCMDSnapshotLockWaitsIntr() {}
          virtual ~_coordCMDSnapshotLockWaitsIntr() {}
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotLockWaitsIntr coordCMDSnapshotLockWaitsIntr ;
 
@@ -655,6 +656,7 @@ namespace engine
       public:
          _coordCMDSnapshotIndexStatsIntr() {}
          virtual ~_coordCMDSnapshotIndexStatsIntr() {}
+         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotIndexStatsIntr coordCMDSnapshotIndexStatsIntr ;
 

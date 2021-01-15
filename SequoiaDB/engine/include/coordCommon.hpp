@@ -148,6 +148,7 @@ namespace engine
          ossMemset( (void*)_role, 0, sizeof( _role ) ) ;
          _role[ SDB_ROLE_DATA ] = 1 ;
          _role[ SDB_ROLE_CATALOG ] = 1 ;
+         _role[ SDB_ROLE_COORD ] = 1 ;
          _rawData = FALSE ;
          _parseMask = 0 ;
 
