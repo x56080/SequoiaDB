@@ -2940,9 +2940,9 @@
                         },
                         {
                            "id": 1610358204,
-                           "file": "getDetail",
-                           "cn": "getDetail()",
-                           "en": "getDetail()"
+                           "file": "getDetailObj",
+                           "cn": "getDetailObj()",
+                           "en": "getDetailObj()"
                         },
                         {
                            "id": 1432190881,

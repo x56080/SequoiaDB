@@ -1,8 +1,8 @@
 ##名称##
-getDetail - 获取当前节点信息
+getDetailObj - 获取当前节点信息
 
 ##语法##
-***node.getDetail()***
+***node.getDetailObj()***
 
 ##类别##
 
@@ -10,7 +10,7 @@ SdbNode
 
 ##描述##
 
-获取当前SdbNode节点的基本信息。包括节点所属组,节点启动的服务等。
+获取当前 SdbNode 节点的基本信息。包括节点所属组,节点启动的服务等。
 
 ##参数##
 
@@ -25,8 +25,9 @@ NULL
 
 ##错误##
 
-当抛出异常时,可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+当抛出异常时,可以通过
+[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。
+关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
 
 ##版本##
 
@@ -37,7 +38,7 @@ v3.2.8及以上版本、v3.4.2及以上版本、v5.0.2及以上版本
 * 获取 node 节点的信息
 
 ```lang-javascript
-> node.getDetail()
+> node.getDetailObj()
 {
   "HostName": "localhost",
   "Status": 1,

@@ -1,10 +1,10 @@
 
 ##NAME##
 
-getDetail - Get the detail of current node
+getDetailObj - Get the detail of current node
 
 ##SYNOPSIS##
-***node.getDetail()***
+***node.getDetailObj()***
 
 ##CATEGORY##
 
@@ -28,7 +28,7 @@ message will be printed.
 
 ##ERRORS##
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, refer to [Troubleshooting](manual/faq.md).
+When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
 
 ##VERSION##
 
@@ -39,7 +39,7 @@ v3.2.8 and above, v3.4.2 and above, v5.0.2 and above
 * Retrun the detail of current node
 
 ```lang-javascript
-> node.getDetail()
+> node.getDetailObj()
 {
   "HostName": "localhost",
   "Status": 1,

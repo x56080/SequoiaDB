@@ -870,7 +870,7 @@ SdbNode.prototype.getNodeDetail = function() {
           this._rg.toString() + ")" ;
 }
 
-SdbNode.prototype.getDetail = function() {
+SdbNode.prototype.getDetailObj = function() {
     var rgInfo = this._rg.getDetailObj().toObj();
     var groupInfo = rgInfo.Group;
     for (var i in groupInfo) {
