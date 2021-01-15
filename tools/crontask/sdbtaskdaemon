@@ -321,13 +321,13 @@ cd $cur_path >> /dev/null >&1
 BIN_PATH="${INSTALL_PATH}/bin"
 
 #get conf path
-CONF_PATH="${INSTALL_PATH}/conf/crontask"
-DATA_PATH="${INSTALL_PATH}/conf/crontask/data"
+CONF_PATH="${TASK_PATH}/conf"
+DATA_PATH="${TASK_PATH}/data"
 DAEMON_PID_FILE="${DATA_PATH}/.sdbtaskdaemon.pid"
 LASTRUN_FILE="${DATA_PATH}/.lastrun"
 
 #get log path
-LOG_PATH="${INSTALL_PATH}/conf/log/crontask"
+LOG_PATH="${TASK_PATH}/log"
 
 ####### 3. check user #######
 check_user

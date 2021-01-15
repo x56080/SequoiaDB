@@ -417,10 +417,10 @@ cd $cur_path >> /dev/null >&1
 BIN_PATH="${INSTALL_PATH}/bin"
 
 #get conf path
-CONF_PATH="${INSTALL_PATH}/conf/crontask"
+CONF_PATH="${TASK_PATH}/conf"
 
 #get log path
-LOG_PATH="${INSTALL_PATH}/conf/log/crontask"
+LOG_PATH="${TASK_PATH}/log"
 
 #check user
 check_user
