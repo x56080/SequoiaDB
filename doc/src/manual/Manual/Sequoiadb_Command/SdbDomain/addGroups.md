@@ -1,23 +1,42 @@
+##名称##
+
+addGroups - 在域中新增复制组
 
 ##语法##
 
-***domain.addGroups( \<options\> )***
+**domain.addGroups( \<options\> )**
 
-修改域的属性，为域添加组。
+##类别##
 
-##参数描述##
+SdbDomain
 
-*   `options` ( *Object*，*必填* )
+##描述##
 
-    需要修改的属性列表。
+该函数用于在域中新增复制组。
 
-    1.  `Groups`：新加的复制组。
+   >**Note:**
+   >
+   >新增复制组不影响域中原有集合的数据分布及属性，只对新建的集合有影响。
 
-        格式：`Groups : [ 'data1', 'data2' ]`
+
+##参数##
+
+| 参数名 	|  类型 	| 描述 									 | 是否必填 |
+| ----------| ----------| ---------------------------------------| ------ 	|
+| options 	| object | 设定复制组的参数 	                     | 是 		|
+
+options 选项：
+
+| 属性名 	| 类型 										| 描述 		|
+| ------ 	| ----------------------------------------- | ------ 	|
+| Groups  	| string/array                      		| 新增的复制组 |
+
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息。可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息，通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -25,18 +44,34 @@
 | ------ | ------------ | --------------------- |
 | -154   | 分区组不存在 | 使用列表查看分区组是否存在 |
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
-* 首先创建一个域，包含两个复制组，开启自动切分
+创建一个域，包含两个复制组，开启自动切分
 
 ```lang-javascript
-> var domain = db.createDomain( 'mydomain', ['data1', 'data2'], { AutoSplit: true } )
+> var domain = db.createDomain( 'mydomain', ['group1', 'group2'], { AutoSplit: true } )
 ```
 
-* 从域中添加另一个复制组 data3
+* 在域中新增复制组 group3
 
-```lang-javascript
-> domain.addGroups( { Groups: ['data3'] } )
-```
+   ```lang-javascript
+   > domain.addGroups( { Groups: ['group3'] } )
+   ```
+
+* 在域中新增复制组 group4 和 group5
+
+   ```lang-javascript
+   > domain.addGroups( { Groups: ['group4','group5'] } )
+   ```  
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

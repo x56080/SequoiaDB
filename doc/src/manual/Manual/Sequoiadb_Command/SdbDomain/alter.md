@@ -1,34 +1,43 @@
+##名称##
+
+alter - 修改域的属性
 
 ##语法##
 
-***domain.alter( \<options\> )***
+**domain.alter( \<options\> )**
 
-修改域的属性。
+##类别##
 
-请参考 [domain.setAttributes\(\)](manual/Manual/Sequoiadb_Command/SdbDomain/setAttributes.md)
+SdbDomain
 
-##参数描述##
+##描述##
 
-*   `options` ( *Object*，*必填* )
+该函数用于修改域的属性。
 
-    需要修改的属性列表。
+   >**Note:**
+   >
+   > - 删除复制组前必须保证组内不包含任何数据，否则操作将失败。
+   > - 更改 AutoSplit 不会对已存在的集合及集合空间产生影响。
 
-    1.  `Groups`：包含的复制组。
+##参数##
 
-        格式：`Groups : [ 'data1', 'data2' ]`
+options ( *object，必填* )
 
-    2.  `AutoSplit`：自动切分。
+需要修改的属性列表
 
-        格式：`AutoSplit : true | false`
+-  Groups（string/array）：域将包含的所有复制组
 
-> **Note:**
->
-> * 删除复制组前必须保证其不包含任何数据。
-> * AutoSplit 的更改不对之前创建的集合和集合空间产生影响。
+   格式：`Groups:['group1','group2']`
+
+-  AutoSplit（boolean）：域是否自动切分
+
+   格式：`AutoSplit:true|false`
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息。可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息，通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
@@ -38,20 +47,24 @@
 | -215   | 域已经在     | 使用listDomains()查看域是否存在 |
 | -256   | 域已被使用   | 使用listCollections()查看域是否存在集合 |
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
 * 首先创建一个域，包含两个复制组，开启自动切分
 
 ```lang-javascript
-> var domain = db.createDomain( 'mydomain', ['data1', 'data2'], { AutoSplit: true } )
+> var domain = db.createDomain( 'mydomain', ['group1', 'group2'], { AutoSplit: true } )
 ```
 
-* 从域中删除一个复制组 data2，添加另一个复制组 data3，最后域中包含 data1 和 data3 两个复制组
+* 从域中删除一个复制组 group2，添加另一个复制组 group3，最后域中包含 group1 和 group3 两个复制组
 
 ```lang-javascript
-> domain.alter( { Groups: ['data1', 'data3'] } )
+> domain.alter( { Groups: ['group1', 'group3'] } )
 ```
 
 * 首先创建一个域，包含一个复制组，复制组中包含表 sample.employee。
@@ -65,5 +78,11 @@
 ```lang-javascript
 > domain.alter( { Groups: ['group2'] } )
 (nofile):0 uncaught exception: -256
-Domain is not empty
+Domain has been used
 ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md
