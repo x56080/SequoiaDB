@@ -411,7 +411,7 @@ class ObjMgr:
             self.__info.append(tmp)
         return 0
 
-    def __validate(self):
+    def __setup_password(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
             print("[ERROR] Configuration file {} dose not " \
@@ -423,7 +423,7 @@ class ObjMgr:
         try:
             pwd_type = int(self.get_passwd_type(global_parser))
             if 0 != pwd_type and 1 != pwd_type:
-                print("[ERROR] 'password_type' in configuration file {} " \
+                print("[ERROR] 'w_type' in configuration file {} " \
                       "is invalid".format(file))
                 return 1
             if 0 == pwd_type:
@@ -432,50 +432,16 @@ class ObjMgr:
                 global_parser.set(KW_MONITOR, KW_PASSWD_TYPE, 1)
                 global_parser.write(open(file, 'w'))
         except ValueError:
-            print("[ERROR] 'password_type' in configuration file {} " \
+            print("[ERROR] 'w_type' in configuration file {} " \
                   "must be integer".format(file))
             return 1
         except ConfigParser.NoOptionError:
             pass
             
-        try:
-            use_ssl = self.get_use_ssl(global_parser).lower()
-            if 'false' != use_ssl and 'true' != use_ssl:
-                print("[ERROR] 'ssl' in configuration file {} " \
-                      "is invalid".format(file))
-                return 1
-        except ConfigParser.NoOptionError:
-            pass
-
-        try:
-            delete_file = self.get_is_del_file(global_parser).lower()
-            if 'false' != delete_file and 'true' != delete_file:
-                print("[ERROR] 'delete' in configuration file {} " \
-                      "is invalid".format(file))
-                return 1
-        except ConfigParser.NoOptionError:
-            pass
-
-        try:
-            insert_num = int(self.get_insert_num(global_parser))
-            if 0 > insert_num:
-                print("[ERROR] 'insertnum' in configuration file {} " \
-                      "is invalid".format(file))
-                return 1
-        except ValueError:
-            print("[ERROR] 'insert_num' in configuration file {} " \
-                  "must be integer".format(file))
-            return 1
-        except ConfigParser.NoOptionError:
-            pass
-
         return 0
 
     def __add_obj(self):
         audit_path = []
-        rc = self.__validate()
-        if 0 != rc:
-            return rc
         if self.__log_type == LOG_TYPE_SDB:
             rc = self.__parse_sdb_info()
         else:
@@ -612,6 +578,10 @@ class ObjMgr:
         return 0
         
     def __start_obj(self):
+        rc = self.__setup_password()
+        if 0 != rc:
+            return rc
+
         node_num = 0
         pid = 0
         all_port = []
