@@ -65,7 +65,7 @@ namespace engine
       class iterator
       {
       public:
-         iterator( _utilArray<T,stackSize> &t )
+         iterator( const _utilArray<T,stackSize> &t )
          :_t( &t ),
           _now( 0 )
          {
@@ -90,7 +90,7 @@ namespace engine
          }
 
       private:
-         _utilArray<T,stackSize> *_t ;
+         const _utilArray<T,stackSize> *_t ;
          UINT32 _now ;
       } ;
 
@@ -229,7 +229,7 @@ namespace engine
          goto done ;
       }
 
-   private:
+   protected:
       T _staticBuf[ stackSize ] ;
       T *_dynamicBuf ;
       UINT32 _bufSize ;

@@ -42,6 +42,7 @@
 #include "dmsStorageBase.hpp"
 #include "dmsExtent.hpp"
 #include "dpsLogWrapper.hpp"
+#include "dpsOp2Record.hpp"
 #include "dmsCompress.hpp"
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
@@ -1078,7 +1079,9 @@ namespace engine
                                              const BSONObj &newObj,
                                              _pmdEDUCB *cb,
                                              IDmsOprHandler *pHandler,
-                                             utilUpdateResult *pResult ) = 0 ;
+                                             utilUpdateResult *pResult,
+                                             dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray ) = 0 ;
 
          virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,
@@ -1214,7 +1217,8 @@ namespace engine
                                         const dmsRecordID &rid,
                                         pmdEDUCB * cb,
                                         IDmsOprHandler *pOprHandle,
-                                        utilWriteResult *insertResult ) ;
+                                        utilWriteResult *insertResult,
+                                        dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 
       //private:
       protected:

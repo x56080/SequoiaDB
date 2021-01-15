@@ -105,14 +105,14 @@ TEST(logWrapperTest, recordInsert_1)
    ACTIVE_THREAD(&wrapper)
    string name("recordInsert.collection");
    BSONObj obj;
+   dpsUnqIdxHashArray unqIdxHashArray ;
    CRE_OBJ(obj)
 
    dpsMergeInfo mergeInfo ;
    dpsLogRecord &record = mergeInfo.getMergeBlock().record() ;
    dpsRecordTransInfo transInfo ;
    rc = dpsInsert2Record( name.c_str(),
-                          obj,
-                          transInfo,
+                          obj, unqIdxHashArray, transInfo,
                           record ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
 

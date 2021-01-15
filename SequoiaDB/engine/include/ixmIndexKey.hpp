@@ -447,14 +447,16 @@ namespace engine
                       BSONObj &keys,
                       BSONElement *pArrEle = NULL,
                       BOOLEAN keepKeyName = FALSE,
-                      BOOLEAN ignoreUndefined = FALSE ) ;
+                      BOOLEAN ignoreUndefined = FALSE,
+                      BOOLEAN *pAllUndefined = NULL ) ;
       // get key set from object
       // for array key, generate all possible values from array
       INT32 getKeys ( const BSONObj &obj,
                       BSONObjSet &keySet,
                       BSONElement *pArrEle = NULL,
                       BOOLEAN keepKeyName = FALSE,
-                      BOOLEAN ignoreUndefined = FALSE ) ;
+                      BOOLEAN ignoreUndefined = FALSE,
+                      BOOLEAN *pAllUndefined = NULL ) ;
 
       static BOOLEAN validateKeyDef ( const BSONObj &keyDef ) ;
 
@@ -477,7 +479,7 @@ namespace engine
       void _release() ;
 
       // implement of get keys
-      INT32 _getKeys( _ixmKeyGenBase *keyGen ) ;
+      INT32 _getKeys( _ixmKeyGenBase *keyGen, BOOLEAN &allUndefined ) ;
 
       // extract keys from object
       INT32 _extractKeys( const BSONObj &obj,

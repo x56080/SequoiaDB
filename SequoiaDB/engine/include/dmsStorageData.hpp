@@ -171,7 +171,9 @@ namespace engine
                                    const BSONObj &newObj,
                                    _pmdEDUCB *cb,
                                    IDmsOprHandler *pHandler,
-                                   utilUpdateResult *pResult ) ;
+                                   utilUpdateResult *pResult,
+                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                                   dpsUnqIdxHashArray *pOldUnqIdxHashArray ) ;
 
       // must hold mb exclusive lock
       // set or restore global transID for record ( and the 

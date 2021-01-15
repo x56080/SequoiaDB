@@ -41,6 +41,7 @@
 
 #include "dmsStorageBase.hpp"
 #include "dpsLogWrapper.hpp"
+#include "dpsOp2Record.hpp"
 #include "dmsPageMap.hpp"
 #include "utilResult.hpp"
 #include "utilList.hpp"
@@ -189,7 +190,8 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-                                  utilWriteResult *pResult = NULL ) ;
+                                  utilWriteResult *pResult = NULL,
+                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
          // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
@@ -197,14 +199,17 @@ namespace engine
                                   const dmsRecordID &rid, _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
-                                  utilWriteResult *pResult = NULL ) ;
+                                  utilWriteResult *pResult = NULL,
+                                  dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
+                                  dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
 
          // Caller must hold mb exclusive lock
          INT32    indexesDelete ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-                                  BOOLEAN isUndo = FALSE ) ;
+                                  BOOLEAN isUndo = FALSE,
+                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
          INT32    truncateIndexes ( _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
@@ -271,7 +276,8 @@ namespace engine
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
                                  BOOLEAN dropDups,
                                  IDmsOprHandler *pOprHandle,
-                                 utilWriteResult *pResult = NULL ) ;
+                                 utilWriteResult *pResult = NULL,
+                                 dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
          INT32    _indexUpdate ( _dmsMBContext *context, INT32 indexID,
                                  _ixmIndexCB *indexCB,
@@ -279,12 +285,15 @@ namespace engine
                                  const dmsRecordID &rid, _pmdEDUCB *cb,
                                  BOOLEAN isRollback,
                                  IDmsOprHandler *pOprHandle,
-                                 utilWriteResult *pResult = NULL ) ;
+                                 utilWriteResult *pResult = NULL,
+                                 dpsUnqIdxHashArray *pUnqIdxHashArray = NULL,
+                                 dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
 
          INT32    _indexDelete ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb,
-                                 IDmsOprHandler *pOprHandle ) ;
+                                 IDmsOprHandler *pOprHandle,
+                                 dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
                                        BSONObj &record ) ;

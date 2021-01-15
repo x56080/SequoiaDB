@@ -247,14 +247,15 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_GETKEY, "_ixmIndexCB::getKeysFromObject" )
    INT32 _ixmIndexCB::getKeysFromObject ( const BSONObj &obj,
-                                          BSONObjSet &keys ) const
+                                          BSONObjSet &keys,
+                                          BOOLEAN *pAllUndefined ) const
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( _isInitialized,
                    "index details must be initialized first" ) ;
       PD_TRACE_ENTRY ( SDB__IXMINXCB_GETKEY );
       ixmIndexKeyGen keyGen(this) ;
-      rc = keyGen.getKeys ( obj, keys ) ;
+      rc = keyGen.getKeys ( obj, keys, NULL, FALSE, FALSE, pAllUndefined ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to generate key from object, rc: %d", rc ) ;

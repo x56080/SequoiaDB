@@ -229,7 +229,8 @@ namespace engine
                            UINT32 &bucketID,
                            UINT32 &clHash,
                            utilCLUniqueID &clUniqueID,
-                           UINT32 &waitBucketID ) ;
+                           UINT32 &waitBucketID,
+                           DPS_LSN_OFFSET &waitLSN ) ;
 
       INT32 _calcDataBucketID( dpsLogRecordHeader *recordHeader,
                                _clsBucket *pBucket,
@@ -237,7 +238,8 @@ namespace engine
                                UINT32 &bucketID,
                                UINT32 &clHash,
                                utilCLUniqueID &clUniqueID,
-                               UINT32 &waitBucketID ) ;
+                               UINT32 &waitBucketID,
+                               DPS_LSN_OFFSET &waitLSN ) ;
 
       INT32 _calcLobBucketID( dpsLogRecordHeader *recordHeader,
                               _clsBucket *pBucket,

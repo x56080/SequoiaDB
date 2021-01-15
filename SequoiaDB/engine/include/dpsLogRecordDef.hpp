@@ -66,14 +66,17 @@ namespace engine
       // time component of logical time for global transaction
       DPS_LOG_PUBLIC_TRANS_TIME = 208,
       // time error component of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209
+      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209,
+
+      DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
+      DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211
    } ;
 
 /// number in public can not be used in definition !
 
    enum DPS_LOG_INSERT
    {
-      DPS_LOG_INSERT_OBJ = 1,
+      DPS_LOG_INSERT_OBJ = 1
    } ;
 
    enum DPS_LOG_UPDATE
@@ -89,7 +92,7 @@ namespace engine
 
    enum DPS_LOG_DELETE
    {
-      DPS_LOG_DELETE_OLDOBJ = 1,
+      DPS_LOG_DELETE_OLDOBJ = 1
    } ;
 
    enum DPS_LOG_POP

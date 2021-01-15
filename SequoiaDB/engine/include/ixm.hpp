@@ -469,7 +469,9 @@ namespace engine
          only when it's a "multikey" array.
          keys will be left empty if key not found in the object.
       */
-      INT32 getKeysFromObject ( const BSONObj &obj, BSONObjSet &keys ) const ;
+      INT32 getKeysFromObject ( const BSONObj &obj,
+                                BSONObjSet &keys,
+                                BOOLEAN *pAllUndefined = NULL ) const ;
 
       /* get the key pattern for this object.
          e.g., { lastname:1, firstname:1 }
