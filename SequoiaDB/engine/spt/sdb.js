@@ -903,14 +903,15 @@ SdbReplicaGroup.prototype.getDetail = function() {
 }
 
 SdbReplicaGroup.prototype.getDetailObj = function() {
-   var obj = this._conn.list( SDB_LIST_GROUPS,
-                              {GroupName: this._name } ).next() ;
-   if (undefined == obj)
+   var cursor = this._conn.list( SDB_LIST_GROUPS,
+                              {GroupName: this._name } ) ;
+   if ( undefined == cursor )
    {
-      setLastError( SDB_CLS_GRP_NOT_EXIST ) ;
       setLastErrMsg( getErr( SDB_CLS_GRP_NOT_EXIST ) ) ;
       throw SDB_CLS_GRP_NOT_EXIST ;
    }
+   var obj = cursor.next() ;
+   cursor.close() ;
    return obj ;
 }
 // end SdbReplicaGroup

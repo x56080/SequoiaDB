@@ -3066,12 +3066,6 @@
                            "en": "detachNode()"
                         },
                         {
-                           "id": 1432190869,
-                           "file": "getDetail",
-                           "cn": "getDetail()",
-                           "en": "getDetail()"
-                        },
-                        {
                            "id": 1601192934,
                            "file": "getDetailObj",
                            "cn": "getDetailObj()",
