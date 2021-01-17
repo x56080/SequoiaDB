@@ -21,6 +21,8 @@ testCommonFiles = [
 ]
 
 testFiles = [ 
+   [ "./lob/lob23377.cpp" ],
+   [ "./lob/lob23411.cpp" ],
    [ "./datasource/DS_connTest9505.cpp" ],
    [ "./datasource/DS_invalidArgTest9524.cpp" ],
    [ "./datasource/DS_invalidConnTest9528.cpp" ],
