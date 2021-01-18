@@ -4023,7 +4023,7 @@ class TestBucketObject(S3TestBase):
     # @attr('versioning')
     def test_object_raw_get_x_amz_expires_version(self):
         bucket_name = get_new_bucket()
-        client = get_alt_client()
+        client = get_client()
         client.put_bucket_versioning(Bucket=bucket_name,VersioningConfiguration={'Status': 'Enabled'})
         key = 'foo'
         num_versions = 5
