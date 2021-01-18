@@ -277,6 +277,10 @@ class ObjMgr:
         default_port = 0
         if self.__install_dir:
             version_file = os.path.join(self.__install_dir, VERSION_FILE_NAME)
+            if not os.path.exists(version_file):
+                print("[ERROR] --path '{}' is not the installation directory " \
+                      "for {}".format(self.__install_dir, self.__log_type))
+                return 1
             with open(version_file, 'r') as f:
                 buf = f.read()
             if self.__log_type not in buf.lower():
@@ -309,7 +313,7 @@ class ObjMgr:
                     install_dir = install_dir[idx:idx+1]
                 except ValueError:
                     print("[ERROR] INSTNAME:[{}] does not " \
-                          "exists".format(self.__instance_name))
+                          "exist".format(self.__instance_name))
                     return 1
         else:
             prefix_name = ""
@@ -371,17 +375,18 @@ class ObjMgr:
                         data_dir.append(all_data_dir_in_install_dir[i][idx])
                     except ValueError:
                         continue
-                    if len(install_dir) == 0:
-                        print("[ERROR] INSTNAME:[{}] is not " \
-                              "exists".format(self.__instance_name))
-                        return 1
-                    elif len(install_dir) > 1:
-                        print("[INFO] There are {} install dir containing " \
-                              "inst '{}', which are {}. Please use --path " \
-                              "to specify the dir you want to " \
-                              "add".format(len(install_dir),
-                              self.__instance_name, install_dir))
-                        return 0
+
+                if len(install_dir) == 0:
+                    print("[ERROR] INSTNAME:[{}] does not " \
+                          "exist".format(self.__instance_name))
+                    return 1
+                elif len(install_dir) > 1:
+                    print("[INFO] There are {} install dir containing " \
+                          "inst '{}', which are {}. Please use --path " \
+                          "to specify the dir you want to " \
+                          "add".format(len(install_dir),
+                          self.__instance_name, install_dir))
+                    return 0
                     
         #read auto.cnf for port and auditpath
         parser = ConfigParser.ConfigParser()
@@ -481,9 +486,10 @@ class ObjMgr:
     def __del_obj(self):
         del_dir = os.path.join(MY_CONF_PATH, self.__log_type)
         if not os.path.exists(del_dir):
-            print("[INFO] Audit object({}) is not " \
-                  "exists".format(self.__log_type))
+            print("[INFO] Audit object({}) doesn't exist".format(self.__log_type))
             return 0
+
+        has_matched = False
         for file in os.listdir(del_dir):
             cur_path = os.path.join(del_dir, file)
             if not os.path.isdir(cur_path):
@@ -494,6 +500,7 @@ class ObjMgr:
             matched = self.__filter_obj(cur_config_file)
             if not matched:
                 continue
+            has_matched = True
             pid_file = os.path.join(cur_path, PID_FILE_NAME)
             if os.path.exists(pid_file):
                 with open(pid_file, 'r') as f:
@@ -509,8 +516,17 @@ class ObjMgr:
                               "failed".format(file, self.__log_type))
                         continue
             shutil.rmtree(cur_path)
-            print("Deleted node({}) of {} " \
-                  "successfully".format(file, self.__log_type))
+            print("Deleted node({}) of {} successfully".format(file, self.__log_type))
+
+        if not has_matched:
+            if self.__instance_name:
+                print("[INFO] Instance '{}' doesn't exist".format(self.__instance_name))
+            elif self.__install_dir:
+                print("[INFO] No nodes found in the path '{}'".format(self.__install_dir))
+            else:
+                print("[INFO] No nodes found")
+            return 0
+
         if 0 == len(os.listdir(del_dir)):
             shutil.rmtree(del_dir)
         return 0
