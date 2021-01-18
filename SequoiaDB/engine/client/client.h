@@ -2888,7 +2888,8 @@ SDB_EXPORT INT32 sdbGetLobId( sdbLobHandle lobHandle,
     \brief create a large object or open a large object to read or write.
     \param [in] cHandle The collection handle
     \param [in] oid The large object id, if mode is SDB_LOB_CREATEONLY, the oid can be NULL
-    \param [in] mode The open mode: SDB_LOB_CREATEONLY/SDB_LOB_READ/SDB_LOB_WRITE
+    \param [in] mode The open mode: SDB_LOB_CREATEONLY,SDB_LOB_READ,SDB_LOB_WRITE,SDB_LOB_SHAREREAD,
+                                    SDB_LOB_WRITE | SDB_LOB_SHAREREAD
     \param [out] lobHandle The handle of object
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
