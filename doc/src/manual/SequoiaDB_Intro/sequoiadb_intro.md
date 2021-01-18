@@ -32,9 +32,9 @@ SequoiaDB 巨杉数据库可以为用户带来如下价值：
 使用场景
 ----
 SequoiaDB 巨杉数据库拥有三大类应用场景，用户可参考[应用场景][usecase]页面获得更多信息。
-+ [联机交易][onlinetransaction]
-+ [数据中台][mid-end]
-+ [内容管理][contentmanagement]
++ [分布式在线交易业务][onlinetransaction]
++ [企业数据中台][mid-end]
++ [内容管理平台][contentmanagement]
 
 
 [^_^]:

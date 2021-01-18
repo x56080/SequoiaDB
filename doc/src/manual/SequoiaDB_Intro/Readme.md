@@ -69,9 +69,9 @@ SequoiaDB 巨杉数据库社区版使用 [AGPL-3.0][licensing] 协议授权。
 [quick_deployment]:manual/Deployment/standalone_deployment.md
 [cluster_deployment]:manual/Deployment/cluster_deployment.md
 [docker_deployment]:manual/Quick_Start/docker_deployment.md
-[mysql_development]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Development/engine_download.md
+[mysql_development]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Readme.md
 [json_development]:manual/Database_Instance/Json_Instance/Development/JavaScript.md
-[object_development]:manual/Database_Instance/Object_Instance/S3_Instance/Development/Readme.md
+[object_development]:manual/Database_Instance/Object_Instance/Readme.md
 [shell_development]:manual/Manual/Sequoiadb_Command/location.md
 [monitoring]:manual/Distributed_Engine/Maintainance/Monitoring/Readme.md
 [expand]:manual/Distributed_Engine/Maintainance/Expand/Readme.md

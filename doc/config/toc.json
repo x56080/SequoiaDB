@@ -47,7 +47,7 @@
             {
                "id": 1562752047,
                "file": "docker_deployment",
-               "cn": "Docker部署",
+               "cn": "容器模式部署",
                "en": "Docker Deployment"
             }
          ]
@@ -61,7 +61,7 @@
             {
                "id": 1461056740,
                "file": "env_requirement",
-               "cn": "软硬件配置需求",
+               "cn": "软硬件配置要求",
                "en": "Server Software and Hardware Requirements"
             },
             {
