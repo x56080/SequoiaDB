@@ -67,7 +67,7 @@ sdbtaskctl 是管理定时任务的工具，用于创建、删除和查看定时
 
 4、使用
 
-* 切换至工具目录下
+* 切换至安装路径的工具目录下
   cd /opt/sequoiadb/tools/crontask
 
 * 运行守护进程
@@ -86,6 +86,6 @@ sdbtaskctl 是管理定时任务的工具，用于创建、删除和查看定时
   vi sdbtaskdaemon.log
 
 * 从任务日志中查看具体任务 task1 的执行情况
-  vi /opt/sequoiadb/conf/log/crontask/task1.log
+  vi log/task1.log
 
 
