@@ -3,6 +3,7 @@ var tmpSdbReplicaGroup = {
    createNode: SdbReplicaGroup.prototype.createNode,
    detachNode: SdbReplicaGroup.prototype.detachNode,
    getDetail: SdbReplicaGroup.prototype.getDetail,
+   getDetailObj: SdbReplicaGroup.prototype.getDetailObj,
    getMaster: SdbReplicaGroup.prototype.getMaster,
    getNode: SdbReplicaGroup.prototype.getNode,
    getSlave: SdbReplicaGroup.prototype.getSlave,
@@ -21,6 +22,7 @@ SdbReplicaGroup.prototype.attachNode=function(){try{return tmpSdbReplicaGroup.at
 SdbReplicaGroup.prototype.createNode=function(){try{return tmpSdbReplicaGroup.createNode.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.detachNode=function(){try{return tmpSdbReplicaGroup.detachNode.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.getDetail=function(){try{return tmpSdbReplicaGroup.getDetail.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbReplicaGroup.prototype.getDetailObj=function(){try{return tmpSdbReplicaGroup.getDetailObj.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.getMaster=function(){try{return tmpSdbReplicaGroup.getMaster.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.getNode=function(){try{return tmpSdbReplicaGroup.getNode.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbReplicaGroup.prototype.getSlave=function(){try{return tmpSdbReplicaGroup.getSlave.apply(this,arguments);}catch(e){throw new Error(e);}};

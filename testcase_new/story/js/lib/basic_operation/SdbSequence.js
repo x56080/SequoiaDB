@@ -3,6 +3,7 @@ var tmpSdbSequence = {
    getCurrentValue: SdbSequence.prototype.getCurrentValue,
    getNextValue: SdbSequence.prototype.getNextValue,
    help: SdbSequence.prototype.help,
+   restart: SdbSequence.prototype.restart,
    setAttributes: SdbSequence.prototype.setAttributes,
    setCurrentValue: SdbSequence.prototype.setCurrentValue,
    toString: SdbSequence.prototype.toString
@@ -15,6 +16,7 @@ SdbSequence.prototype.fetch=function(){try{return tmpSdbSequence.fetch.apply(thi
 SdbSequence.prototype.getCurrentValue=function(){try{return tmpSdbSequence.getCurrentValue.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbSequence.prototype.getNextValue=function(){try{return tmpSdbSequence.getNextValue.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbSequence.prototype.help=function(){try{return tmpSdbSequence.help.apply(this,arguments);}catch(e){throw new Error(e);}};
+SdbSequence.prototype.restart=function(){try{return tmpSdbSequence.restart.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbSequence.prototype.setAttributes=function(){try{return tmpSdbSequence.setAttributes.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbSequence.prototype.setCurrentValue=function(){try{return tmpSdbSequence.setCurrentValue.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbSequence.prototype.toString=function(){try{return tmpSdbSequence.toString.apply(this,arguments);}catch(e){throw new Error(e);}};

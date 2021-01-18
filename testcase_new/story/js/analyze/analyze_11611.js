@@ -266,17 +266,9 @@ function test ()
    checkAnalyzeInvalidResult( { Collection: csName + ".non_exist_cl" }, expectErrCode );
 
    //check analyze not exist cs and cl
-   var expectErrCode_alone = SDB_DMS_CS_NOTEXIST;
-   var expectErrCode_cluster = SDB_DMS_NOTEXIST;
+   var expectErrCode = SDB_DMS_CS_NOTEXIST;
    var cs_null = "non_exist_cl.non_exist_cl"
-   if( commIsStandalone( db ) )
-   {
-      checkAnalyzeInvalidResult( { Collection: cs_null }, expectErrCode_alone );
-   }
-   else
-   {
-      checkAnalyzeInvalidResult( { Collection: cs_null }, expectErrCode_cluster );
-   }
+   checkAnalyzeInvalidResult( { Collection: cs_null }, expectErrCode );
 
    db1.close();
    commDropCS( db, csName, true, "drop CS in the end" );
