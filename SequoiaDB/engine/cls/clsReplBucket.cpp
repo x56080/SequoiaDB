@@ -297,6 +297,7 @@ namespace engine
       _maxReplSync= 0 ;
       _maxSubmitOffset = 0 ;
       _submitRC   = SDB_OK ;
+      _ntyQueue   = NULL ;
 
       _emptyEvent.signal() ;
       _allEmptyEvent.signal() ;
@@ -521,7 +522,10 @@ namespace engine
       SAFE_OSS_FREE( _lastOldUnqIdxBkt ) ;
       _lastUnqIdxSize = 0 ;
 
-      SAFE_OSS_DELETE( _ntyQueue ) ;
+      if ( NULL != _ntyQueue )
+      {
+         SAFE_OSS_DELETE( _ntyQueue ) ;
+      }
       _queueBuffer.finiBuffer() ;
 
       _memPool.final() ;

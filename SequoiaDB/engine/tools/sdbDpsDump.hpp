@@ -334,9 +334,6 @@ public:
    static INT32   toFile( OSSFILE& out, const CHAR *buffer);
 
 private:
-
-   BOOLEAN     _validCheck( const po::variables_map &vm ) ;
-
    INT32       _analysisMeta(map<UINT32, string > &mapFiles) ;
 
    INT32       _metaFilter( const CHAR *filename, INT32 index,
