@@ -2456,7 +2456,7 @@ done:
       // --mongroupmask
       rdxString( pEX, PMD_OPTION_MON_GROUP_MASK, _monGroupMaskStr,
                  sizeof (_monGroupMaskStr), FALSE, PMD_CFG_CHANGE_RUN,
-                 "") ;
+                 PMD_MON_GROUP_MASK_DEFT_STR) ;
 
       // --monhistevent
       rdxUInt( pEX, PMD_OPTION_MON_HIST_EVENT, _monHistEvent, FALSE,

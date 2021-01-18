@@ -484,6 +484,9 @@ namespace engine
    #define PMD_SVC_MASK_HTTP_STR         "HTTP"
    #define PMD_SVC_MASK_ALL_STR          "ALL"
    #define PMD_SVC_MASK_NONE_STR         "NONE"
+
+
+   #define PMD_MON_GROUP_MASK_DEFT_STR   "all:off"
 }
 
 #endif // PMD_DEF_HPP__
