@@ -578,18 +578,11 @@ INT32 _dpsDumper::initialize( INT32 argc, CHAR** argv,
       FILTER_OPTIONS
    DPS_FILTER_ADD_OPTIONS_END
 
-   rc = utilReadCommandLine( argc, argv, desc, vm ) ;
+   rc = utilReadCommandLine( argc, argv, desc, vm, FALSE ) ;
    if ( SDB_OK != rc )
    {
-      std::cout << "Failed to parse command line" << std::endl ;
-      goto error ;
-   }
-
-   if( !_validCheck( vm ) )
-   {
-      std::cout << "Invalid arguments" << std::endl ;
+      std::cout << "Failed to parse command line, rc: " << rc << std::endl ;
       displayArgs( desc ) ;
-      rc = SDB_INVALIDARG ;
       goto error ;
    }
 
@@ -931,27 +924,6 @@ INT32 _dpsDumper::postLoaded( engine::PMD_CFG_STEP step )
 INT32 _dpsDumper::preSaving()
 {
    return SDB_OK ;
-}
-
-BOOLEAN _dpsDumper::_validCheck( const po::variables_map &vm )
-{
-   BOOLEAN valid = FALSE ;
-
-   if(   vm.count( DPS_DUMP_HELP )
-      || vm.count( DPS_DUMP_VER )
-      || vm.count( DPS_DUMP_TYPE )
-      || vm.count( DPS_DUMP_NAME )
-      || vm.count( DPS_DUMP_META )
-      || vm.count( DPS_DUMP_LSN )
-      || vm.count( DPS_DUMP_TRANS )
-      || vm.count( DPS_DUMP_SOURCE )
-      || vm.count( DPS_DUMP_OUTPUT )
-      || vm.count( DPS_DUMP_LAST ) )
-   {
-      valid = TRUE ;
-   }
-
-   return valid ;
 }
 
 INT32 _dpsDumper::_analysisMeta( map<UINT32, string > &mapFiles )

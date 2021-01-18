@@ -3142,10 +3142,10 @@ INT32 _sdbCi::init( INT32 argc, CHAR **argv,
       INSPECT_OPTIONS
    INSPECT_ADD_OPTIONS_END
 
-   rc = utilReadCommandLine( argc, argv, desc, vm ) ;
+   rc = utilReadCommandLine( argc, argv, desc, vm, FALSE ) ;
    if ( SDB_OK != rc )
    {
-      std::cout << "Invalid parameters" << std::endl ;
+      std::cout << "Invalid parameters, rc: " << rc << std::endl ;
       displayArgs( desc ) ;
       goto error ;
    }
@@ -3177,7 +3177,7 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    BOOLEAN startupFileOpened = FALSE ;
    BOOLEAN startupFileLocked = FALSE ;
 
-   if ( vm.empty() || vm.count( CONSISTENCY_INSPECT_HELP ) )
+   if ( vm.count( CONSISTENCY_INSPECT_HELP ) )
    {
       std::cout << "This tool is used to inspect data among nodes in each "
                 << "group. It will scan all records."
