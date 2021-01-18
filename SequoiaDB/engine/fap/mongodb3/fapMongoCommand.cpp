@@ -1165,8 +1165,12 @@ INT32 _mongoCollectionCommand::init( const _mongoMessage *pMsg,
    {
       BSONObjBuilder sdbMsgObjBob( _obj.objsize() ) ;
       rc = mongoDecimal2SdbDecimal( _obj, sdbMsgObjBob ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to convert mongo msg to sdb msg: %d", rc ) ;
+      if ( rc )
+      {
+         ctx.setError( rc, "Invalid decimal" ) ;
+         PD_LOG( PDERROR, "Failed to convert mongo msg to sdb msg: %d", rc ) ;
+         goto error ;
+      }
       _obj = sdbMsgObjBob.obj() ;
    }
 

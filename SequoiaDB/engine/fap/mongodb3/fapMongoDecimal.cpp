@@ -41,6 +41,7 @@
 #include "../../thirdparty/intelDecimal/LIBRARY/src/bid_conf.h"
 #include "../../thirdparty/intelDecimal/LIBRARY/src/bid_functions.h"
 #endif
+#include "pd.hpp"
 
 namespace fap
 {
@@ -59,9 +60,206 @@ namespace fap
 #define FAP_MONGO_INF_STR                "Inf"
 #define FAP_MONGO_NAN_STR                "Nan"
 
-// 42 = 1( mantissa sign ) + 34( mantissa ) + 1( 'E' or 'e' ) +
+#define FAP_MONGO_DECIAML_STR_E_STR      "E"
+#define FAP_MONGO_DECIAML_STR_E_CHAR     'E'
+
+// 42 = 1( mantissa sign ) + 34( mantissa ) + 1( 'E' ) +
 //      1( exponent sign ) + 4( exponent ) + 1( '\0' )
-#define FAP_MONGO_DECIAML_STR_MAX_SIZE   42
+#define FAP_MONGO_DECIAML_BID_STR_MAX_SIZE   42
+
+// 43 = 1( mantissa sign ) + 35( mantissa ) + 1( 'E' ) +
+//      1( exponent sign ) + 4( exponent ) + 1( '\0' )
+#define FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE   43
+
+   static INT32 isNeedConvertToScientificNotation( const CHAR* inputStr,
+                                                   BOOLEAN &isNeed )
+   {
+      INT32  rc = SDB_OK ;
+      UINT32 scale = 0 ;
+      const CHAR* p = NULL ;
+      isNeed = FALSE ;
+
+      SDB_ASSERT( inputStr != NULL , "Input str can't be NULL!" ) ;
+
+      // srcStr is a string converted by IntelDecimal. Only 'E' is included in
+      // the string. So we don't need to deal with the case of 'e'.
+      p = ossStrrchr( inputStr, FAP_MONGO_DECIAML_STR_E_CHAR ) ;
+      if ( NULL == p )
+      {
+         // srcStr may be -15950735424
+         goto done ;
+      }
+
+      // eg: srcStr = "-15950735424E-1010", p = "E-1010"
+      if ( ossStrlen( p ) <= 2 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", inputStr, rc ) ;
+         goto error ;
+      }
+
+      scale = ossAtoi( p + 2 ) ;
+      if ( scale > 1000 )
+      {
+         if ( '+' == *( p + 1 ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid decimal scale: %d. It must be less "
+                    "than 1000, rc: %d", scale, rc ) ;
+            goto error ;
+         }
+         else if ( '-' == *( p + 1 ) )
+         {
+            isNeed = TRUE ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid exponent sign: %c, rc: %d",
+                    *( p + 1 ), rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   static INT32 convertToScientificNotation( const CHAR* inputStr,
+                                             UINT32 inputStrSize,
+                                             CHAR* outputStr,
+                                             UINT32 outputStrSize )
+   {
+      // eg:
+      // -15950735424E-1010 == -1.5950735424E-1000
+      // But in SequoiaDB, -15950735424E-1010 is invalid, because the scale of
+      // decimal is more than 1000
+      // So we should convert it to -1.5950735424E-1000
+
+      INT32 rc = SDB_OK ;
+      CHAR  srcStrBuf[ FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ] = { 0 } ;
+      CHAR* p = NULL ;
+      CHAR* nextPtr = NULL ;
+      UINT32 scale = 0 ;
+      UINT32 newScale = 0 ;
+
+      SDB_ASSERT( inputStr != NULL , "Input str can't be NULL!" ) ;
+      SDB_ASSERT( outputStr != NULL , "Output str can't be NULL!" ) ;
+
+      // srcStr doesn't include decimal point( like: -15950735424E-1010 )
+      // outputStr includes decimal point( like: -1.5950735424E-1000 )
+      // so the maximum length of mantissa in srcStr is 34 and
+      // the maximum length of mantissa in outputStr is 35
+      if ( FAP_MONGO_DECIAML_BID_STR_MAX_SIZE != inputStrSize )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "The size of input str is %d, but it must be %d"
+                 " rc: %d", inputStrSize, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE,
+                 rc ) ;
+         goto error ;
+      }
+
+      if ( FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE != outputStrSize )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "The size of output str is %d, but it must be %d"
+                 " rc: %d", inputStrSize,
+                 FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE,
+                 rc ) ;
+         goto error ;
+      }
+
+      ossMemcpy( srcStrBuf, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+
+      p = ossStrtok( srcStrBuf, FAP_MONGO_DECIAML_STR_E_STR, &nextPtr ) ;
+      if ( NULL == p )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid decimal str: %s, rc: %d", srcStrBuf, rc ) ;
+         goto error ;
+      }
+
+      if ( '\0' == nextPtr[0] )
+      {
+         // srcStr may be -15950735424
+         ossMemcpy( outputStr, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+         outputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
+         goto done ;
+      }
+
+      // eg: -15950735424E-1010, p = "-15950735424", nextPtr = "-1010"
+      if ( ossStrlen( nextPtr ) <= 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid decimal exponent: %s, rc: %d", inputStr, rc ) ;
+         goto error ;
+      }
+
+      scale = ossAtoi( nextPtr + 1 ) ;
+      if ( scale <= 1000 )
+      {
+         ossMemcpy( outputStr, inputStr, FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ) ;
+         outputStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = '\0' ;
+         goto done ;
+      }
+      else
+      {
+         if ( '+' == *nextPtr )
+         {
+            // newScale = scale + ossStrlen( p+2 ) ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid decimal scale: %d. It must be less "
+                    "than 1000, rc: %d", scale, rc ) ;
+            goto error ;
+         }
+         else if ( '-' == *nextPtr )
+         {
+            if ( ossStrlen( p ) < 2 )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid decimal mantissa: %s, rc: %d",
+                       inputStr, rc ) ;
+               goto error ;
+            }
+            // eg: -1E-1010, p = -1
+            else if ( 2 == ossStrlen( p ) )
+            {
+               newScale = scale ;
+            }
+            else
+            {
+               newScale = scale - ossStrlen( p+2 ) ;
+            }
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid exponent sign: %c, rc: %d",
+                    *nextPtr, rc ) ;
+            goto error ;
+         }
+      }
+
+      if ( newScale > 1000 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid decimal scale: %d. It must be less "
+                 "than 1000, rc: %d", scale, rc ) ;
+         goto error ;
+      }
+
+      // '+' or '-' + mantissa + 'E' + '+' or '-' + exponent
+      ossSnprintf( outputStr, FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE,
+                   "%c%c.%sE%c%d",
+                   *p, *(p+1), p+2, *nextPtr, newScale ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
    static INT32 isSdbRecordHasDecimal( const BSONObj &sdbRecord,
                                        BOOLEAN &hasDecimal )
@@ -93,14 +291,11 @@ namespace fap
             }
          }
       }
-      catch( std::bad_alloc )
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      catch( std::exception )
-      {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Determine whether there is deciaml in the "
+                 "record exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -264,14 +459,11 @@ namespace fap
             }
          }
       }
-      catch( std::bad_alloc )
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      catch( std::exception )
-      {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Convert sdb decimal to mongo decimal "
+                 "exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -337,14 +529,11 @@ namespace fap
             }
          }
       }
-      catch( std::bad_alloc )
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      catch( std::exception )
-      {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Convert sdb decimal to mongo decimal "
+                 "exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -393,11 +582,13 @@ namespace fap
 #if defined( _ARMLIN64 )
                // ARM64 doesn't support decimal in fap
                rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "ARM64 doesn't support decimal in fap"
+                       ", rc: %d", rc ) ;
                goto error ;
 #else
                UINT32 signalingFlags = 0 ;
                BID_UINT128 dec128 ;
-               CHAR decimalStr[FAP_MONGO_DECIAML_STR_MAX_SIZE] = { 0 } ;
+               CHAR decimalStr[ FAP_MONGO_DECIAML_BID_STR_MAX_SIZE ] = { 0 } ;
                BOOLEAN appendSucc = FALSE ;
 
                ossMemcpy( &dec128, ele.value(), FAP_MONGO_DECIAMLOID_SIZE ) ;
@@ -413,12 +604,39 @@ namespace fap
                }
                else
                {
-                  appendSucc = sdbMsgObjBob.appendDecimal( ele.fieldName(),
-                                                           decimalStr ) ;
+                  BOOLEAN isNeed = FALSE ;
+                  rc = isNeedConvertToScientificNotation( decimalStr, isNeed ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+
+                  if ( isNeed )
+                  {
+                     CHAR decimalStrNew[
+                     FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE ] = { 0 } ;
+
+                     rc = convertToScientificNotation( decimalStr,
+                          FAP_MONGO_DECIAML_BID_STR_MAX_SIZE,
+                          decimalStrNew,
+                          FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE ) ;
+                     if ( rc )
+                     {
+                        goto error ;
+                     }
+                     appendSucc = sdbMsgObjBob.appendDecimal( ele.fieldName(),
+                                                              decimalStrNew ) ;
+                  }
+                  else
+                  {
+                     appendSucc = sdbMsgObjBob.appendDecimal( ele.fieldName(),
+                                                              decimalStr ) ;
+                  }
                }
                if ( !appendSucc )
                {
                   rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Failed to append decimal, rc: %d", rc ) ;
                   goto error ;
                }
 #endif
@@ -429,14 +647,11 @@ namespace fap
             }
          }
       }
-      catch( std::bad_alloc )
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      catch( std::exception )
-      {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Convert mongo decimal to sdb decimal "
+                 "exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 
@@ -482,12 +697,14 @@ namespace fap
 #if defined( _ARMLIN64 )
                // ARM64 doesn't support decimal in fap
                rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "ARM64 doesn't support decimal in fap"
+                       ", rc: %d", rc ) ;
                goto error ;
 #else
                bsonDecimal decimalObj ;
                UINT32 signalingFlags = 0 ;
                BID_UINT128 dec128 ;
-               CHAR decimalStr[FAP_MONGO_DECIAML_STR_MAX_SIZE] = { 0 } ;
+               CHAR decimalStr[FAP_MONGO_DECIAML_BID_STR_MAX_SIZE] = { 0 } ;
 
                ossMemcpy( &dec128, ele.value(), FAP_MONGO_DECIAMLOID_SIZE ) ;
                bid128_to_string( decimalStr, dec128, &signalingFlags ) ;
@@ -501,12 +718,41 @@ namespace fap
                }
                else
                {
-                  rc = decimalObj.fromString( decimalStr ) ;
+                  BOOLEAN isNeed = FALSE ;
+                  rc = isNeedConvertToScientificNotation( decimalStr, isNeed ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+
+                  if ( isNeed )
+                  {
+                     CHAR decimalStrNew[
+                     FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE ] = { 0 } ;
+
+                     rc = convertToScientificNotation( decimalStr,
+                          FAP_MONGO_DECIAML_BID_STR_MAX_SIZE,
+                          decimalStrNew,
+                          FAP_MONGO_DECIMAL_SCIENTIFIC_NOTATION_STR_MAX_SIZE ) ;
+                     if ( rc )
+                     {
+                        goto error ;
+                     }
+                     rc = decimalObj.fromString( decimalStrNew ) ;
+                  }
+                  else
+                  {
+                     rc = decimalObj.fromString( decimalStr ) ;
+                  }
                }
+
                if ( rc )
                {
+                  PD_LOG( PDERROR, "Failed to convert decimal str to "
+                          "decimal obj, rc: %d", rc ) ;
                   goto error ;
                }
+
                sdbMsgObjBab.append( decimalObj ) ;
 #endif
             }
@@ -516,14 +762,11 @@ namespace fap
             }
          }
       }
-      catch( std::bad_alloc )
+      catch( std::exception &e )
       {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      catch( std::exception )
-      {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Convert mongo decimal to sdb decimal "
+                 "exception: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
 

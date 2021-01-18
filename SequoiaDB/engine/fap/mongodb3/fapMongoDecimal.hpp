@@ -36,7 +36,7 @@
 
 *******************************************************************************/
 
-#include "ossUtil.h"
+#include "ossUtil.hpp"
 #include "../../bson/bson.hpp"
 #include "mongodef.hpp"
 
