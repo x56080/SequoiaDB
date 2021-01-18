@@ -663,7 +663,6 @@ class ObjMgr:
                     print("[ERROR] Failed to start exporter({}). Please " \
                           "verify log '{}'".format(all_port[i],
                           os.path.join(node_path, LOG_FILE_NAME)))
-                    os.remove(pid_file)
                 else:
                     if pid in exist_pid:
                         continue
