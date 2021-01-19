@@ -1063,6 +1063,12 @@
                ]
             },
             {
+               "id": 1610960736,
+               "file": "hot_spare",
+               "cn": "热备节点",
+               "en": "Hot Spare"
+            },
+            {
                "id": 1432190667,
                "dir": "monitoring",
                "cn": "监控",
