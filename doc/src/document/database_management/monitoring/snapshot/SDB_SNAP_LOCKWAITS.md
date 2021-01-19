@@ -1,10 +1,10 @@
 ##描述##
 
-锁等待快照 SDB_SNAP_LOCKWAITS 列出数据库中正在发生的锁等待信息。
+锁等待快照可以列出数据库中正在发生的锁等待信息。当 [mongroupmask](database_management/database_configuration/configuration_parameters.md) 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该锁后被归入历史锁等待信息。用户可以通过指定 [viewHistory](reference/Sequoiadb_command/AuxiliaryObjects/SdbSnapshotOption.md) 选项，查看历史锁等待信息。
 
-也可以通过"viewHistory"快照选项查看历史锁等待信息, 当等待的线程拿到该锁时，该次等待记录会被归入历史锁等待信息。
-
-每一个数据节点上正在进行的每一个锁等待为一条记录。
+>**Note:**
+>
+> 每一个数据节点上正在进行的每一个锁等待为一条记录。
 
 ##标示##
 
@@ -29,77 +29,53 @@ SDB_SNAP_LOCKWAITS
 
 ##示例##
 
-即时锁等待信息示例。
+- 查看即时锁等待信息
 
-```
-> db.snapshot(SDB_SNAP_LOCKWAITS)
-{
-  "NodeName": "yang-VirtualBox:11870",
-  "WaiterTID": 23853,
-  "RequiredMode": "X",
-  "CSID": 4,
-  "CLID": 7,
-  "ExtentID": 838,
-  "Offset": 53396,
-  "StartTimestamp": "2020-06-13-02.52.38.470191",
-  "TransLockWaitTime": 18.815,
-  "LatestOwner": 23532,
-  "LatestOwnerMode": "X",
-  "NumOwner": 1
-}
-...
-...
->
-```
+   ```lang-javascript
+   > db.snapshot(SDB_SNAP_LOCKWAITS)
+   ```
 
-历史锁等待信息示例。
+   输出结果如下：
 
-```
-> db.snapshot(SDB_SNAP_LOCKWAITS, new SdbSnapshotOption().options({"viewHistory":true}))
-{
-  "NodeName": "yang-VirtualBox:11870",
-  "WaiterTID": 13602,
-  "RequiredMode": "X",
-  "CSID": 3,
-  "CLID": 7,
-  "ExtentID": 483,
-  "Offset": 57688,
-  "StartTimestamp": "2020-06-12-04.04.01.300151",
-  "TransLockWaitTime": 14.05,
-  "LatestOwner": 10307,
-  "LatestOwnerMode": "X",
-  "NumOwner": 1
-}
-{
-  "NodeName": "yang-VirtualBox:11870",
-  "WaiterTID": 13603,
-  "RequiredMode": "X",
-  "CSID": 3,
-  "CLID": 8,
-  "ExtentID": 486,
-  "Offset": 48884,
-  "StartTimestamp": "2020-06-12-04.04.01.173701",
-  "TransLockWaitTime": 14.94,
-  "LatestOwner": 13635,
-  "LatestOwnerMode": "X",
-  "NumOwner": 1
-}
-{
-  "NodeName": "yang-VirtualBox:11870",
-  "WaiterTID": 10398,
-  "RequiredMode": "X",
-  "CSID": 3,
-  "CLID": 7,
-  "ExtentID": 483,
-  "Offset": 45476,
-  "StartTimestamp": "2020-06-12-04.04.01.018260",
-  "TransLockWaitTime": 83.337,
-  "LatestOwner": 12051,
-  "LatestOwnerMode": "X",
-  "NumOwner": 1
-}
-...
-...
->
-```
+   ```lang-json
+   {
+     "NodeName": "sdbserver:11870",
+     "WaiterTID": 23853,
+     "RequiredMode": "X",
+     "CSID": 4,
+     "CLID": 7,
+     "ExtentID": 838,
+     "Offset": 53396,
+     "StartTimestamp": "2020-06-13-02.52.38.470191",
+     "TransLockWaitTime": 18.815,
+     "LatestOwner": 23532,
+     "LatestOwnerMode": "X",
+     "NumOwner": 1
+   }
+   ```
 
+
+- 查看历史锁等待信息
+
+   ```lang-javascript
+   > db.snapshot(SDB_SNAP_LOCKWAITS, new SdbSnapshotOption().options({"viewHistory":true}))
+   ```
+
+   输出结果如下：
+
+   ```lang-json
+   {
+     "NodeName": "sdbserver:11870",
+     "WaiterTID": 13602,
+     "RequiredMode": "X",
+     "CSID": 3,
+     "CLID": 7,
+     "ExtentID": 483,
+     "Offset": 57688,
+     "StartTimestamp": "2020-06-12-04.04.01.300151",
+     "TransLockWaitTime": 14.05,
+     "LatestOwner": 10307,
+     "LatestOwnerMode": "X",
+     "NumOwner": 1
+   }
+   ```
