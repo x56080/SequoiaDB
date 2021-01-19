@@ -196,6 +196,73 @@ function List_local()
     return $count
 }
 
+getSpaceStr(){
+    local ret=""
+    local j=0
+    for((; j<=$1;j++))do
+        printf -v ret "$ret%s" " "
+    done
+    echo "$ret"
+}
+
+isStrEmpty(){
+    local trimmed=$1
+    local trimmed=${trimmed%%}
+    local trimmed=${trimmed##}
+    if [ ${#trimmed} -gt 0 ];then
+        return 1
+    else
+        return 0
+    fi
+}
+
+getMaxSpaceSize(){
+    local spaceLength=()
+    local line
+    local isHeader=0
+    while read line
+    do
+        isStrEmpty $line
+        if [ $? -ne 0 ];then
+            local ARR=($line)
+            local i=0
+            for((;i<${#ARR[@]};i++))do
+                local tmp=`expr $i + 1`
+                if [ ${#spaceLength[@]} -ge $tmp ];then
+                    if [ ${spaceLength[$i]} -lt ${#ARR[$i]} ];then
+                        spaceLength[$i]=${#ARR[$i]}
+                    fi
+                else
+                    spaceLength[$i]=${#ARR[$i]}
+                fi
+            done
+            isHeader=1
+        fi
+    done < $1
+    echo ${spaceLength[*]}
+}
+
+formateTable(){
+    local spaceLength=(`getMaxSpaceSize $1`)
+    local newContent=""
+    local line
+    while read line
+    do
+        local ARR=($line)
+        for((i=0;i<${#ARR[@]};i++))do
+            local spaceLen=`expr ${spaceLength[$i]} - ${#ARR[$i]} + 1`
+            local spaceStr=`getSpaceStr $spaceLen`
+            printf -v newContent "$newContent${ARR[$i]}$spaceStr"
+        done
+        printf -v newContent "%s\n" "$newContent"
+    done < $1
+    if [ ${#newContent} -gt 0 ];then
+        echo "${newContent%?}"
+    else
+        echo  "$newContent"
+    fi
+}
+
 
 slong=""
 mode="run"
@@ -248,9 +315,8 @@ if [[ "$mode" == "run" || "$mode" == "local" ]]; then
     fi    
     count=`echo $?` 
     
-    cat /tmp/11.$$ | column -t >> /tmp/111.$$
-    cat /tmp/22.$$ | column -t >> /tmp/222.$$
-    
+    formateTable /tmp/11.$$ >> /tmp/111.$$
+    formateTable /tmp/22.$$ >> /tmp/222.$$ 
     param=()
     param_count=0
     while read line
