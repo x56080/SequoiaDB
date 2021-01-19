@@ -290,7 +290,6 @@ namespace engine
          netRouteAgent                          _netAgent ;
          MsgRouteID                             _myNodeID ;
 
-         pmdKRCB*                               _pKrcb ;
          SDB_DMSCB*                             _pDmsCB ;
          SDB_RTNCB*                             _pRtnCB ;
          pmdEDUCB                               *_pEDUCB ;
