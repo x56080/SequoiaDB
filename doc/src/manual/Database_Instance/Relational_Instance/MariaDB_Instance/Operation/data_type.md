@@ -1,4 +1,4 @@
-﻿
+
 MariaDB 支持多种 SQL 数据类型：数值类型、date 类型、time 类型和字符串类型等。
 
 从 MariaDB 实例到 SequoiaDB 巨杉数据库的 JSON 对象实例之间的数据类型映射关系为：
@@ -35,5 +35,5 @@ MariaDB 支持多种 SQL 数据类型：数值类型、date 类型、time 类型
 | ENUM       | int32        |                                              |
 | SET        | int32        |                                              |
 | JSON       | string       |                                              |
-| GEOMETRY   | 不支持       |                                              |
+| GEOMETRY   | Binary       | 不支持索引（spatial/non-spatial 索引）       |
 | NULL       | -            | 不存储                                       |

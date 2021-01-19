@@ -10,7 +10,7 @@
 
 - 用户建表时默认创建 SequoiaDB 分区表。若需要在分区表建立新的唯一索引，则唯一索引必须包含其分区键，如需更改创建分区表的配置可参考[配置说明][config]。
 
-- MariaDB 实例不支持在 BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB 和 JSON 类型的字段上创建索引。
+- MariaDB 实例不支持在 BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB、JSON 和 GEOMETRY 类型的字段上创建索引。
 
 - MariaDB 实例不支持对接独立模式的 SequoiaDB。
 
