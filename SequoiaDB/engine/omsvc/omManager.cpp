@@ -80,7 +80,6 @@ namespace engine
 
       _isInitTable         = FALSE ;
 
-      _pKrcb               = NULL ;
       _pDmsCB              = NULL ;
       _pRtnCB              = NULL ;
       _pEDUCB              = NULL ;
@@ -113,19 +112,20 @@ namespace engine
 
    INT32 _omManager::init ()
    {
-      INT32 rc           = SDB_OK ;
+      INT32 rc = SDB_OK ;
+      pmdKRCB* pKrcb = NULL ;
 
       //set bson to string for js format
       BSONObj::setJSCompatibility( TRUE ) ;
 
       // create collection space and collection
-      _pKrcb  = pmdGetKRCB() ;
-      _pDmsCB = _pKrcb->getDMSCB() ;
-      _pRtnCB = _pKrcb->getRTNCB() ;
+      pKrcb   = pmdGetKRCB() ;
+      _pDmsCB = pKrcb->getDMSCB() ;
+      _pRtnCB = pKrcb->getRTNCB() ;
 
-      _pKrcb->regEventHandler( this ) ;
+      pKrcb->regEventHandler( this ) ;
 
-      _pmdOptionsMgr *pOptMgr = _pKrcb->getOptionCB() ;
+      _pmdOptionsMgr *pOptMgr = pKrcb->getOptionCB() ;
 
       // get options
       _wwwRootPath = pmdGetOptionCB()->getWWWPath() ;
@@ -146,21 +146,21 @@ namespace engine
       pmdSetNodeID( _myNodeID ) ;
 
       _myNodeID.columns.serviceID = MSG_ROUTE_OM_SERVICE ;
-      _netAgent.updateRoute( _myNodeID, _pKrcb->getHostName(),
+      _netAgent.updateRoute( _myNodeID, pKrcb->getHostName(),
                              pOptMgr->getOMService() ) ;
       rc = _netAgent.listen( _myNodeID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Create listen failed:host=%s,port=%s",
-                  _pKrcb->getHostName(), pOptMgr->getOMService() ) ;
+                  pKrcb->getHostName(), pOptMgr->getOMService() ) ;
          goto error ;
       }
       _netAgent.setLocalID( _myNodeID ) ;
 
       PD_LOG ( PDEVENT, "Create listen success:host=%s,port=%s",
-               _pKrcb->getHostName(), pOptMgr->getOMService() ) ;
+               pKrcb->getHostName(), pOptMgr->getOMService() ) ;
 
-      _pKrcb->setBusinessOK( TRUE ) ;
+      pKrcb->setBusinessOK( TRUE ) ;
 
    done:
       return rc;
@@ -1361,7 +1361,7 @@ namespace engine
 
    INT32 _omManager::fini ()
    {
-      _pKrcb->unregEventHandler( this ) ;
+      pmdGetKRCB()->unregEventHandler( this ) ;
       _rsManager.fini() ;
       omGetStrategyMgr()->fini() ;
 
