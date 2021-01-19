@@ -1,4 +1,4 @@
-以下操作均在 PostgreSQL Shell 环境下执行。
+用户安装好 PostgreSQL 实例组件后，可直接通过 PostgreSQL Shell 使用标准的 SQL 语言访问 SequoiaDB 巨杉数据库。
 
 ##连接PostgreSQL实例组件与存储引擎##
 
@@ -8,44 +8,26 @@
    sample=# create extension sdb_fdw;
    ```
 
-2. 配置与 SequoiaDB 连接参数
+2. 配置 SequoiaDB 连接参数
 
    ```lang-sql
    sample=# create server sdb_server foreign data wrapper sdb_fdw options( address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferedinstance 'A', transaction 'off' );
    ```
    
-   - user：数据库用户名
-   - password：数据库密码
-   - address：协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串
-   - service：协调节点 serviceName
-   - preferedinstance：设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值
-   - preferedinstancemode：设置 SequoiaDB 的连接属性 preferedinstance 的选择模式
-   - sessiontimeout：设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100'
-   - transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on
-   - cipher：设置是否使用密文模式输入密码，默认为 off，开启为 on，关于密文模式的介绍可参考[密码管理](database_management/security/system_security.md)
-   - token：设置加密令牌
-   - cipherfile：设置密文文件路径，默认为 `~/sequoiadb/passwd`
-   
-   >**Note：** 
+   >**Note:**
    >
-   > 如果没有配置数据库密码验证，可以忽略 user 与 password 字段。
+   > 详细参数说明可参考 [SequoiaDB 连接参数说明][connectpara]。。
 
-3. 关联 SequoiaDB 的集合空间与集合
+3. 关联 SequoiaDB 集合空间与集合
 
    ```lang-sql
    sample=# create foreign table test (name text, id numeric) server sdb_server options ( collectionspace 'sample', collection 'employee', decimal 'on' );
    ```
 
-   - collectionspace：SequoiaDB 中已存在的集合空间
-   - collection：SequoiaDB 中已存在的集合
-   - decimal：是否对接 SequoiaDB 的 decimal 字段，默认为 off
-   - pushdownsort：是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off
-   - pushdownlimit：是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题
-   
    >**Note:**
    >
-   > * 用户所指定的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
-   > * 默认情况下，表的字段映射到 SequoiaDB 中为小写字符，如果强制指定字段为大写字符，可参考[使用须知](connector/postgresql/connection.md#使用须知)。
+   > - 在 PostgreSQL 中建立相应的映射表关联 SequoiaDB 集合时，需要确保映射表的字段名与集合的字段名大小写一致，且映射表的字段类型与集合的字段类型一致；否则，将查询不到相关数据。
+   > - 详细参数说明可参考 [关联 SequoiaDB 的集合空间与集合参数说明][collectionpara]。
 
 
 4. 更新表的统计信息
@@ -96,21 +78,19 @@
    sample=# \q
    ```
 
-##使用须知##
+## PostgreSQL与SequoiaDB数据类型映射关系
 
-**数据类型的对应关系**
-
-| PostgreSQL	     | API              | 注意事项                                      |
+| PostgreSQL	    | API        | 注意事项                                      |
 | ----------------- | ---------------- | --------------------------------------------- |
-| smallint          | int              | 当 API 中的值超过 smallint 范围时会发生截断   |
-| integer           | int              |                                               |
-| bigint            | long             |                                               |
-| serial            | int              |                                               |
-| bigserial         | long             |                                               |
+| smallint	        | int32              | 当 API 中的值超过smallint范围时会发生截断 |
+| integer        	| int32              |                                               |
+| bigint        	| int64             |                                               |
+| serial           	| int32              |                                               |
+| bigserial      	| int64             |                                               |
 | real              | double           | 存在精度问题，SequoiaDB 存储时不是完全一致    |
 | double precision  | double           |                                               |
-| numeric           | decimal / string | 在创建外表时，指定选项 decimal 为 'on', numeric 映射对应 decimal ，否则对应 string   |
-| decimal           | decimal / string | 在创建外表时，指定选项 decimal 为 'on', decimal 映射对应 decimal ，否则对应 string   |
+| numeric           | decimal/string | 在创建外表时，指定选项 decimal 为 'on', numeric 映射对应 decimal ，否则对应 string   |
+| decimal           | decimal/string | 在创建外表时，指定选项 decimal 为 'on', decimal 映射对应 decimal ，否则对应 string   |
 | text              | string           |                                               |
 | char              | string           |                                               |
 | varchar           | string           |                                               |
@@ -121,204 +101,147 @@
 | boolean           | boolean          |                                               |
 | text              | null             |                                               |
 
-**注意事项**
+## 关联SequoiaDB连接参数说明
 
-* 注意字符的大小写
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ------   | ------ | ------ |
+| user   | string   | 数据库用户名 | 否 |
+| password | string | 数据库密码 | 否 |
+| address | string | 协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串 | 是 |
+| service | string | 协调节点 serviceName | 是 |
+| preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值 | 否 |
+| preferedinstancemode | string | 设置 SequoiaDB 的连接属性 preferedinstance 的选择模式 | 否 |
+| sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
+| transaction | string | 设置 SequoiaDB 是否开启事务，默认为 off，开启为 on | 否 |
+| cipher | string | 设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理][system_security] | 否 |
+| token | string | 设置加密令牌 | 否 |
+| cipherfile | string | 设置加密文件，默认为 `~/sequoiadb/passwd` | 否 |
 
-   SequoiaDB 中的集合空间、集合和字段名均对字母的大小写敏感。
+>**Note:** 
+>
+> 如果用户没有配置数据库密码验证，可以忽略 user 与 password 字段。
 
-   * 集合空间、集合名大写
 
-      假设 SequoiaDB 中存在集合空间 SAMPLE 和集合 EMPLOYEE，在 PostgreSQL 中建立相应的映射表
+## 关联SequoiaDB集合空间与集合参数说明
 
-      ```lang-sql
-      sample=# create foreign table sdb_upcase_cs_cl ( name text ) server sdb_server options ( collectionspace 'SAMPLE', collection 'EMPLOYEE' ) ;
-      ```
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ------   | ------ | ------ |
+| collectionspace | string | SequoiaDB 中已存在的集合空间 | 是 |
+| collection | string | SequoiaDB 中已存在的集合 | 是 |
+| decimal | string | 是否对接 SequoiaDB 的 decimal 字段，默认为 off | 否 |
+| pushdownsort | string | 是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off | 否 |
+| pushdownlimit | string | 是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题 | 否 |
 
-   * 字段名大写
+>**Note:**
+>
+> 用户所指定的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
 
-      假设 SequoiaDB 中存在集合空间 sample 和集合 employee，且保存如下记录：
+## 调整PostgreSQL配置文件
 
-      ```lang-json
-      {
-          "_id": 
-         {
-            "$oid":"53a2a0e100e75e2c53000006"
-         },
-         "NAME": "test"
-      }
-      ```
+1. 查看 PostgreSQL Shell 中默认的配置
 
-      在 PostgreSQL 中建立相应的映射表
-
-      ```lang-sql
-      sample=# create foreign table sdb_upcase_field ( "NAME" text ) server sdb_server options ( collectionspace 'sample', collection 'employee' ) ;
-      ```
-
-      执行查询命令
-
-      ```lang-sql
-      sample=# select * from sdb_upcase_field;
-      ```
-      
-      输出结果： 
-       
-      ```lang-text
-      NAME
-      ------
-      test
-      (1 rows)
-      ```
-
-* 映射 SequoiaDB 中的数据类型
-
-   假设 SequoiaDB 中存在 sample 集合空间，employee 集合，且保存如下记录：
-
-   ```lang-json
-   {
-      "_id": {
-         "$oid":"53a2de926b4715450a000001"
-      },
-      "name": [
-         1,
-         2,
-         3
-      ],
-      "id": 123
-   }
+   ```lang-ini
+   sample=#\set
+   AUTOCOMMIT = 'on'
+   PROMPT1 = '%/%R%# '
+   PROMPT2 = '%/%R%# '
+   PROMPT3 = '>> '
+   VERBOSITY = 'default'
+   VERSION = 'PostgreSQL 9.3.4 on x86_64-unknown-linux-gnu, compiled by gcc (SUSE Linux) 4.3.4 [gcc-4_3-branch revision 152973], 64-bit'
+   DBNAME = 'sample'
+   USER = 'sdbadmin'
+   PORT = '5432'
+   ENCODING = 'UTF8'
    ```
 
-   在 PostgreSQL 中建立相应的映射表
+2. 调整 PostgreSQL Shell 查询时每次获取记录数
 
    ```lang-sql
-   sample=# create foreign table employeetest ( name int[], id int ) server sdb_server options ( collectionspace 'sample', collection 'employee' ) ;
+   sample=#\set FETCH_COUNT 100
    ```
 
-   执行查询命令
+   >**Note:**
+   >
+   > 调整配置后，每次获取记录数达到 100 时立即返回记录，然后再继续获取。
 
-   ```lang-sql
-   sample=# select * from employeetest;
-   ```
+   用户直接在 PostgreSQL Shell 中修改配置，只能在当前 PostgreSQL Shell 中生效。如果希望配置永久生效，则需要通过配置文件修改相关配置。修改步骤如下：
 
-   输出结果：
+   - 获取配置文件路径
 
-   ```lang-text
-   name    | id
-   --------+-----
-   {1,2,3} | 123
-   ```
+     ```lang-bash
+     $ /opt/postgresql/bin/pg_config --sysconfdir
+     ```
 
-* 连接 SequoiaDB 协调节点错误
+     输出结果如下：
 
-   如果 PostgreSQL 连接的 SequoiaDB 协调节点重启，导致查询时报错如下信息：
+     ```lang-bash
+     $ /opt/postgresql/etc
+     ```
 
-   ```lang-sql
-   ERROR: Unable to get collection "sample.employee", rc = -15
-   HINT: Make sure the collectionspace and collection exist on the remote database
-   ```
+     如果显示目录不存在，则需要手动创建
 
-   解决方法：
+     ```lang-bash
+     $ mkdir -p /opt/postgresql/etc
+     ```
 
-   退出 PostgreSQL Shell
+   - 将需要修改的参数写入配置文件中
 
-   ```lang-sql
-   sample=# \q
-   ```
-
-   重新进入 PostgreSQL Shell
-
-   ```lang-bash
-   $ bin/psql -p 5432 sample
-   ```
-
-##调整PostgreSQL配置##
-
-查看 PostgreSQL Shell 中默认的配置
-
-```lang-ini
-sample=#\set
-AUTOCOMMIT = 'on'
-PROMPT1 = '%/%R%# '
-PROMPT2 = '%/%R%# '
-PROMPT3 = '>> '
-VERBOSITY = 'default'
-VERSION = 'PostgreSQL 9.3.4 on x86_64-unknown-linux-gnu, compiled by gcc (SUSE Linux) 4.3.4 [gcc-4_3-branch revision 152973], 64-bit'
-DBNAME = 'sample'
-USER = 'sdbadmin'
-PORT = '5432'
-ENCODING = 'UTF8'
-```
-
-- 调整 PostgreSQL Shell 查询时，每次获取的记录数
-
-   用户可以通过在 PostgreSQL Shell 或配置文件中修改该配置。
-
-   - 通过 PostgreSQL Shell 修改
-
-     调整为 PostgreSQL Shell 每次获取 100 条记录立即返回记录，然后再继续获取
-
-     ```lang-ini
-     sample=#\set FETCH_COUNT 100
+     ```lang-bash
+     $ echo "\\set FETCH_COUNT 100" >> /opt/postgresql/etc
      ```
 
      > **Note:**
      >
-     > 直接在 PostgreSQL Shell 中修改配置，只能在当前 PostgreSQL Shell 中生效，重新登录 PostgreSQL Shell 需要重新设置。
+     > 用户修改配置后需要重启 psql 使配置生效。
 
-   - 通过配置文件修改
+3. 编辑 `/opt/postgresql/data/postgresql.conf` 文件，将如下 PostgreSQL Shell 的日志级别：
 
-       1. 查看 PostgreSQL 配置文件路径
+   ```lang-ini
+   client_min_messages = notice
+   ```
 
-         ```lang-bash
-         $ /opt/postgresql/bin/pg_config --sysconfdir
-         ```
+   改为：
 
-         输出路径如下：
+   ```lang-ini
+   client_min_messages = debug1
+   ```
 
-         ```lang-bash
-         /opt/postgresql/etc
-         ```
+4. 编辑 `/opt/postgresql/data/postgresql.conf` 文件，将如下 pg 引擎的日志级别：
 
-         如果显示目录不存在，则需要使用 root 权限手动创建
+   ```lang-ini
+   log_min_messages = warning
+   ```
 
-         ```lang-bash
-         # mkdir -p /opt/postgresql/etc
-         ```
+   改为：
 
-       2. 将需要修改的参数写入配置文件中
+   ```lang-ini
+   log_min_messages = debug1
+   ```
 
-         ```lang-bash
-         $ echo "\\set FETCH_COUNT 100" >> /opt/postgresql/etc
-         ```
+常见问题处理
+----
 
-         > **Note:**
-         >
-         > 修改配置后需要重启 PostgreSQL 使配置生效
+如果 PostgreSQL 连接的 SequoiaDB 协调节点重启，在查询时报错
 
-- 调整 PostgreSQL Shell 的日志级别
+```lang-sql
+ERROR: Unable to get collection "sample.employee", rc = -15
+HINT: Make sure the collectionspace and collection exist on the remote database
+```
 
-   1. 编辑 `/opt/postgresql/data/postgresql.conf` 文件
+解决方法：
 
-     ```lang-ini
-     $ vi /opt/postgresql/data/postgresql.conf
-     ```
+重新进入 PostgreSQL Shell
 
-   2. 将 `client_min_messages = notice` 修改为如下值：
+ ```lang-bash
+sample=# \q
+$ bin/psql -p 5432 sample
+ ```
 
-     ```lang-ini
-     client_min_messages = debug1
-     ```
+[^_^]:
 
-- 调整 PostgreSQL 引擎的日志级别
+    本文使用到的所有连接及引用。
 
-   1. 编辑 `/opt/postgresql/data/postgresql.conf` 文件
-
-     ```lang-ini
-     $ vi /opt/postgresql/data/postgresql.conf
-     ```
-
-   2. 将 `log_min_messages = warning` 修改为如下值：
-
-     ```lang-ini
-     log_min_messages = debug1
-     ```
+[preferedinstance]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md
+[connectpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#SequoiaDB连接参数说明
+[collectionpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#关联SequoiaDB集合空间与集合参数说明

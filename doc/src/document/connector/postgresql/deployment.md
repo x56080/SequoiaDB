@@ -133,7 +133,7 @@ PostgreSQL 运行用户：sdbadmin:sdbadmin_group
  从 postgresql 目录（默认为 `/opt/sequoiasql/postgresql` ）中拷贝 sdb_fdw.so 文件到 PostgreSQL 的 lib 目录，并添加软链接。
 
  ```lang-bash
- $ cp -f /opt/sequoiadb/postgresql/sdb_fdw.so_2.2_23000 ${PGLIBDIR}
+ $ cp -f /opt/sequoiasql/postgresql/lib/sdb_fdw.so_2.2_23000 ${PGLIBDIR}
  $ cd ${PGLIBDIR}
  $ ln -s sdb_fdw.so_2.2_23000 sdb_fdw.so
  ```
