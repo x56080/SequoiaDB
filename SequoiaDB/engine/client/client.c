@@ -10407,10 +10407,18 @@ static INT32 _sdbCreateLob1( sdbCollectionHandle cHandle,
       rc = SDB_SYS ;
       goto error ;
    }
-   bType = bson_find( &bsonItr, &obj, FIELD_NAME_LOB_OID) ;
-   if ( BSON_OID == bType )
+
+   if ( NULL != oid )
    {
-      ossMemcpy( lobStruct->_oid, bson_iterator_oid( &bsonItr ), 12 );
+      ossMemcpy( lobStruct->_oid, oid, 12 );
+   }
+   else
+   {
+      bType = bson_find( &bsonItr, &obj, FIELD_NAME_LOB_OID) ;
+      if ( BSON_OID == bType )
+      {
+         ossMemcpy( lobStruct->_oid, bson_iterator_oid( &bsonItr ), 12 );
+      }
    }
 
    *lobHandle = (sdbLobHandle)lobStruct ;
