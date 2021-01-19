@@ -10471,7 +10471,14 @@ static INT32 _sdbCreateLob( sdbCollectionHandle cHandle,
    else
    {
       // deal with old version server. oid should be generate in client side
-      bson_oid_gen ( &oidObj ) ;
+      if ( NULL == oid )
+      {
+         bson_oid_gen ( &oidObj ) ;
+      }
+      else
+      {
+         oidObj = *oid ;
+      }
       rc = _sdbCreateLob1( cHandle, &oidObj, lobHandle, NULL) ;
    }
 

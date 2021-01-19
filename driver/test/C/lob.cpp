@@ -219,10 +219,13 @@ TEST(lob,lob_createLob_test)
    sdbConnectionHandle db            = 0 ;
    sdbCollectionHandle cl            = 0 ;
    bson_oid_t oid ;
+   bson_oid_t oid1 ;
+   bson_oid_t oid2 ;
    sdbLobHandle lob1                 = 0 ;
    sdbLobHandle lob2                 = 0 ;
    sdbLobHandle lob3                 = 0 ;
    sdbLobHandle lob4                 = 0 ;
+   sdbLobHandle lob5                 = 0 ;
    CHAR * pTimeStamp                 = NULL;
    sdbCursorHandle cursor            = 0;
    
@@ -238,24 +241,26 @@ TEST(lob,lob_createLob_test)
 
 
   // case 1, use bson_oid_gen()
-   bson_oid_gen( &oid );
-   //rc = sdbCreateLob(cl, &oid, &lob1);
-   rc = sdbOpenLob(cl, &oid, SDB_LOB_CREATEONLY, &lob1);
+   bson_oid_gen( &oid1 );
+   rc = sdbOpenLob(cl, &oid1, SDB_LOB_CREATEONLY, &lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
 
    bson_oid_t lob_oid1 ;
    rc = sdbGetLobId(lob1, &lob_oid1) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   CHECK_MSG("%s%d\n","oid = ", oid) ;
-   CHECK_MSG("%s%d\n","lob_oid1 = ", lob_oid1) ;
 
-   ASSERT_STREQ(oid.bytes,lob_oid1.bytes);
+   ASSERT_STREQ(oid1.bytes,lob_oid1.bytes);
    rc = sdbCloseLob(&lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
-   rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob1);
+   rc = sdbOpenLob(cl, &oid1, SDB_LOB_READ, &lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbCloseLob(&lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbOpenLob(cl, &lob_oid1, SDB_LOB_READ, &lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseLob(&lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
 
    // case 2, oid is NULL 
    //rc = sdbCreateLob(cl, NULL, &lob2);
@@ -274,30 +279,34 @@ TEST(lob,lob_createLob_test)
    rc = sdbCloseLob(&lob2);
    ASSERT_EQ( SDB_OK, rc ) ;
 
+   // case 3, use bson_oid_gen()
+    bson_oid_gen( &oid2 );
+    rc = sdbOpenLob(cl, &oid2, SDB_LOB_CREATEONLY, &lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // case 3, use sdbCreateLobID to gen oid  
+    bson_oid_t lob_oid2 ;
+    rc = sdbGetLobId(lob3, &lob_oid2) ;
+    ASSERT_EQ( SDB_OK, rc ) ;
+
+    ASSERT_STREQ(oid2.bytes,lob_oid2.bytes);
+    rc = sdbCloseLob(&lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
+    rc = sdbOpenLob(cl, &oid2, SDB_LOB_READ, &lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
+    rc = sdbCloseLob(&lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
+    rc = sdbOpenLob(cl, &lob_oid2, SDB_LOB_READ, &lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
+    rc = sdbCloseLob(&lob3);
+    ASSERT_EQ( SDB_OK, rc ) ;
+
+
+   // case 4, use sdbCreateLobID to gen oid
    pTimeStamp = "2019-07-23-18.04.07" ;
    rc = sdbCreateLobID1(cl,pTimeStamp, &oid );
    ASSERT_EQ( SDB_OK, rc ) ;
 
    //rc = sdbCreateLob(cl, &oid , &lob3);
-   rc = sdbOpenLob(cl, &oid, SDB_LOB_CREATEONLY, &lob3);
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   rc = sdbCloseLob(&lob3);
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob3);
-   ASSERT_EQ( SDB_OK, rc ) ;
-   rc = sdbCloseLob(&lob3);
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-
-   // case 4, use sdbCreateLobID to gen oid 
-   rc = sdbCreateLobID(cl, &oid );
-   ASSERT_EQ( SDB_OK, rc ) ;
-
-   //rc = sdbCreateLob(cl, &oid , &lob4);
    rc = sdbOpenLob(cl, &oid, SDB_LOB_CREATEONLY, &lob4);
    ASSERT_EQ( SDB_OK, rc ) ;
 
@@ -306,8 +315,25 @@ TEST(lob,lob_createLob_test)
 
    rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob4);
    ASSERT_EQ( SDB_OK, rc ) ;
-
    rc = sdbCloseLob(&lob4);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+
+   // case 5, use sdbCreateLobID to gen oid
+   rc = sdbCreateLobID(cl, &oid );
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   //rc = sdbCreateLob(cl, &oid , &lob4);
+   rc = sdbOpenLob(cl, &oid, SDB_LOB_CREATEONLY, &lob5);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbCloseLob(&lob5);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbOpenLob(cl, &oid, SDB_LOB_READ, &lob5);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
+   rc = sdbCloseLob(&lob5);
    ASSERT_EQ( SDB_OK, rc ) ;
 
    // display had create Lob
