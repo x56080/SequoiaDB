@@ -286,7 +286,7 @@ namespace engine
     _lastOldUnqIdxLSN( NULL ),
     _lastOldUnqIdxBkt( NULL ),
     _unqIdxBitmap( 0 ),
-    _lastCompletedLSN( DPS_INVALID_LSN_OFFSET )
+    _lastExpectLSN( DPS_INVALID_LSN_OFFSET )
    {
       _pDPSCB     = NULL ;
       _pMonDBCB   = NULL ;
@@ -1706,7 +1706,7 @@ namespace engine
             _lastOldUnqIdxBkt[ i ] = -1 ;
          }
       }
-      _lastCompletedLSN = DPS_INVALID_LSN_OFFSET ;
+      _lastExpectLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    DPS_LSN_OFFSET _clsBucket::checkUnqIdxWaitLSN(
@@ -1757,16 +1757,16 @@ namespace engine
       if ( DPS_INVALID_LSN_OFFSET != waitLSN )
       {
          // check if wait LSN already completed
-         if ( DPS_INVALID_LSN_OFFSET != _lastCompletedLSN &&
-              waitLSN <= _lastCompletedLSN )
+         if ( DPS_INVALID_LSN_OFFSET != _lastExpectLSN &&
+              waitLSN < _lastExpectLSN )
          {
             waitLSN =  DPS_INVALID_LSN_OFFSET ;
          }
          else
          {
-            _lastCompletedLSN = completeLSN( FALSE ).offset ;
-            if ( DPS_INVALID_LSN_OFFSET != _lastCompletedLSN  &&
-                 waitLSN <= _lastCompletedLSN )
+            _lastExpectLSN = completeLSN( FALSE ).offset ;
+            if ( DPS_INVALID_LSN_OFFSET != _lastExpectLSN  &&
+                 waitLSN < _lastExpectLSN )
             {
                waitLSN = DPS_INVALID_LSN_OFFSET ;
             }

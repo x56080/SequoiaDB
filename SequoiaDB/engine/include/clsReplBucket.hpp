@@ -340,8 +340,8 @@ namespace engine
          // a bitmap to remember which hash key is already tested
          utilBitmap           _unqIdxBitmap ;
 
-         // cache for last completed LSN
-         DPS_LSN_OFFSET       _lastCompletedLSN ;
+         // cache for last expect LSN
+         DPS_LSN_OFFSET       _lastExpectLSN ;
    } ;
    typedef _clsBucket clsBucket ;
 
