@@ -26,6 +26,7 @@
 #define GENERAL_VER_DOC_FILE        10
 #define GENERAL_VER_PYTHON_FILE     10
 #define GENERAL_VER_BUILD_FILE      10
+#define GENERAL_VER_CRONTASK_FILE   10
 
 #define GENERAL_JS_CODE_FILE        20
 
@@ -76,5 +77,6 @@
 #define DOCUMENT_PATH   DOC_PATH"src/manual/"
 #define CLIENT_PATH     "../../client/"
 #define SAMPLES_PATH    "../../conf/samples/"
+#define TOOLS_PATH      "../../tools/"
 
 #endif

@@ -392,6 +392,7 @@ srcFiles = [
    "version/versionGenForDoc.cpp",
    "version/versionGenForPython.cpp",
    "version/versionGenForBuild.cpp",
+   "version/versionGenForCrontask.cpp",
 ]
 
 autogen = env.Program( "autogen", srcFiles )

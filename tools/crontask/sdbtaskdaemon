@@ -11,17 +11,26 @@ function print_log()
    printf "%s [%s][%d]: %s\n" "$date" "$log_level" "$pid" "$log"
 }
 
+function show_version()
+{
+   echo "sdbtaskdaemon: "$DB_VERSION
+   echo "Release: "$RELEASE
+   echo "Git version: "$GIT_VERSION
+   echo $BUILD_TIME
+}
+
 function show_help()
 {
    local exit_code=$1
 
-   echo "SequoiaDB Timing Task Daemon."
+   echo "SequoiaDB Cron Task Daemon."
    echo ""
    echo "Uage: "
    echo "  sdbtaskdaemon               start the daemon"
    echo "  sdbtaskdaemon --stop        shut the daemon down"
    echo "  sdbtaskdaemon --status      check daemon exist or not"
    echo "  sdbtaskdaemon --help        print help message"
+   echo "  sdbtaskdaemon --version     print version information"
    echo ""
    echo "Example: "
    echo "  Start daemon by: \"setsid ./sdbtaskdaemon >> ./sdbtaskdaemon.log 2>&1\""
@@ -250,7 +259,7 @@ function check_user()
 
 function parse_parameter()
 {
-   ARGS=`getopt -o h --long help,stop,status -n 'sdbtaskdaemon' -- "$@"`
+   ARGS=`getopt -o h --long help,version,stop,status -n 'sdbtaskdaemon' -- "$@"`
    ret=$?
    test $ret -ne 0 && exit $ret
 
@@ -267,6 +276,9 @@ function parse_parameter()
                           ;;
          --stop )         has_stop_para=true
                           shift
+                          ;;
+         --version )      show_version
+                          exit 0
                           ;;
          -h | --help )    show_help
                           exit 0
@@ -297,6 +309,12 @@ function parse_parameter()
 }
 
 ###################### main entry ########################
+
+# The autogen will replace the following 4 values.
+DB_VERSION="x.x.x"
+RELEASE="0"
+GIT_VERSION="xxxxxxxxxx"
+BUILD_TIME="0000-00-00-00.00.00"
 
 ####### 1. parse paramter #######
 MODE=""

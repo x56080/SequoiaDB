@@ -80,6 +80,14 @@ function print_error()
    echo "[ERROR]: $log" >&2
 }
 
+function show_version()
+{
+   echo "sdbtaskctl: "$DB_VERSION
+   echo "Release: "$RELEASE
+   echo "Git version: "$GIT_VERSION
+   echo $BUILD_TIME
+}
+
 function check_user()
 {
    #### load system configure file
@@ -301,10 +309,11 @@ function build_help()
    echo "  -b arg             begin timestamp, format: 'HH:mm'"
    echo "  -f arg             frequency of task performed, can be 'daily' or 'once'"
    echo "  -h, --help         print help message"
+   echo "  --version          print version information"
    echo ""
    echo "Rebalance options:"
    echo "  -l arg             collection full name, such as 'foo.bar'"
-   echo "  -u arg             rebalance unit, default: 100MB"
+   echo "  -u arg             rebalance unit, unit: MB, default: 100"
    echo ""
    echo "Shrink options:"
    echo "  --hosts arg        hostname list to shrink, separated by ',',such as: 'hostname1,hostname2,hostname3'"
@@ -314,10 +323,21 @@ function build_help()
    echo "  ./sdbtaskctl create task2 -t shrink -b 23:00 -f once --hosts host1,host2,host3"
    echo ""
 }
+
+##################################
+#    main entry
+##################################
+
+#The autogen will replace the following 4 values.
+DB_VERSION="x.x.x"
+RELEASE="0"
+GIT_VERSION="xxxxxxxxxx"
+BUILD_TIME="0000-00-00-00.00.00"
+
 #Parse command line parameters
 test $# -eq 0 && { build_help && exit 64; }
 
-ARGS=`getopt -o ht:b:l:f:u: --long help,hosts: -n 'sdbtaskctl' -- "$@"`
+ARGS=`getopt -o ht:b:l:f:u: --long help,version,hosts: -n 'sdbtaskctl' -- "$@"`
 ret=$?
 test $ret -ne 0 && exit $ret
 
@@ -352,6 +372,9 @@ do
                     ;;
       --hosts )     HOST_LIST=$2
                     shift 2
+                    ;;
+      --version )   show_version
+                    exit 0
                     ;;
       -h | --help ) build_help
                     exit 0
@@ -395,10 +418,6 @@ if [ "$*" != "" ]; then
    echo 'Try "sdbtaskctl --help" for more information.'
    exit 64
 fi
-
-##################################
-#    main entry
-##################################
 
 #get task path, eg: /opt/sequoiadb/tools/crontask
 dir_name=`dirname $0`
