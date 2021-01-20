@@ -4,141 +4,104 @@
 .hy
 .SH NAME
 .PP
-listReplicaGroups \- List replica groups.
+listReplicaGroups \- Enumerate replication group information
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.listReplicaGroups()\f[]\f[]
+\f[B]db.listReplicaGroups()\f[]
 .SH CATEGORY
 .PP
-Sequoiadb
-.SH "DESCRIPTION"
-
-.sp 2
-List replica groups.
-.SH "Examples"
-
-.sp 2
-Return the information of every replica group:
-.sp 2
-> db.listReplicaGroups()
-.br
-Return: {
-.br
-  "Group": [
-.br
-    {
-.br
-      "dbpath": "/opt/sequoiadb/data/11800",
-.br
-      "HostName": "vmsvr2-suse-x64",
-.br
-      "Service": [
-.br
-        {
-.br
-          "Type": 0,
-.br
-          "Name": "11800"
-.br
-        },
-.br
-        {
-.br
-          "Type": 1,
-.br
-          "Name": "11801"
-.br
-        },
-.br
-        {
-.br
-          "Type": 2,
-.br
-          "Name": "11802"
-.br
-        },
-.br
-        {
-.br
-          "Type": 3,
-.br
-          "Name": "11803"
-.br
-        }
-.br
-      ],
-.br
-      "NodeID": 1000
-.br
-    },
-.br
-    {
-.br
-      "dbpath": "/opt/sequoiadb/data/11850",
-.br
-      "HostName": "vmsvr2-suse-x64",
-.br
-      "Service": [
-.br
-        {
-.br
-          "Type": 0,
-.br
-          "Name": "11850"
-.br
-        },
-.br
-        {
-.br
-          "Type": 1,
-.br
-          "Name": "11851"
-.br
-        },
-.br
-        {
-.br
-          "Type": 2,
-.br
-          "Name": "11852"
-.br
-        },
-.br
-        {
-.br
-          "Type": 3,
-.br
-          "Name": "11853"
-.br
-        }
-.br
-      ],
-.br
-      "NodeID": 1001
-.br
-    }
-.br
-  ],
-.br
-  "GroupID": 1001,
-.br
-  "GroupName": "group",
-.br
-  "PrimaryNode": 1001,
-.br
-  "Role": 0,
-.br
-  "Status": 1,
-.br
-  "Version": 5,
-.br
-  "_id": {
-.br
-    "$oid": "517b2fc33d7e6f820fc0eb57"
-.br
-  }
-.br
-  }
-.sp 2
-This replica group has 2 nodes: 11800 and 11850. Node 11850 is
-the master node.
+Sdb
+.SH DESCRIPTION
+.PP
+This function is used to enumerate replication group information.
+.SH PARAMETERS
+.PP
+None
+.SH RETURN VALUE
+.PP
+When the function executes successfully, it will return a detailed list of
+collections through the cursor.Users can refer to $LIST_GROUP to get the
+returned field information.
+.SH ERRORS
+.PP
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
+.SH EXAMPLES
+.IP \[bu] 2
+Return all replication group information
+.RS 2
+.IP
+.nf
+\f[C]
+>\ db.listReplicaGroups()
+{
+"Group":\ 
+[
+\ \ {
+\ \ \ \ "dbpath":\ "/opt/sequoiadb/data/11800",
+\ \ \ \ "HostName":\ "vmsvr2\-suse\-x64",
+\ \ \ \ "Service":\ [
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 0,
+\ \ \ \ \ \ \ \ "Name":\ "11800"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 1,
+\ \ \ \ \ \ \ \ "Name":\ "11801"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 2,
+\ \ \ \ \ \ \ \ "Name":\ "11802"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 3,
+\ \ \ \ \ \ \ \ "Name":\ "11803"
+\ \ \ \ \ \ }
+\ \ \ \ ],
+\ \ \ \ "NodeID":\ 1000
+\ \ },
+\ \ {
+\ \ \ \ "dbpath":\ "/opt/sequoiadb/data/11850",
+\ \ \ \ "HostName":\ "vmsvr2\-suse\-x64",
+\ \ \ \ "Service":\ [
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 0,
+\ \ \ \ \ \ \ \ "Name":\ "11850"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 1,
+\ \ \ \ \ \ \ \ "Name":\ "11851"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 2,
+\ \ \ \ \ \ \ \ "Name":\ "11852"
+\ \ \ \ \ \ },
+\ \ \ \ \ \ {
+\ \ \ \ \ \ \ \ "Type":\ 3,
+\ \ \ \ \ \ \ \ "Name":\ "11853"
+\ \ \ \ \ \ }
+\ \ \ \ ],
+\ \ \ \ "NodeID":\ 1001
+\ \ }
+],
+"GroupID":\ 1001,
+"GroupName":\ "group",
+"PrimaryNode":\ 1001,
+"Role":\ 0,
+"Status":\ 1,
+"Version":\ 5,
+"_id":\ {
+\ \ "$oid":\ "517b2fc33d7e6f820fc0eb57"
+\ \ }
+}
+\f[]
+.fi
+.PP
+This replication group has two nodes: 11800 and 11850, of which 11850 is the
+master node.
+For replication Group details,refer to Copy List.
+.RE

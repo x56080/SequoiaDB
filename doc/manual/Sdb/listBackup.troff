@@ -3,19 +3,19 @@
 .\"
 .TH "listBackup" "1" "" "SequoiaDB User Manuals" ""
 .hy
-.SH NAME
+.SH 名称
 .PP
-listBackup \- Enumerate database backup
-.SH SYNOPSIS
+listBackup \- 枚举数据库备份
+.SH 语法
 .PP
 \f[B]db.listBackup( [options], [cond], [sel], [sort] )\f[]
-.SH CATEGORY
+.SH 类别
 .PP
 Sdb
-.SH DESCRIPTION
+.SH 描述
 .PP
-This function is used to enumerate the backups in the current database.
-.SH PARAMETERS
+该函数用于在当前数据库中枚举数据库备份。
+.SH 参数
 .PP
 .TS
 tab(@);
@@ -23,13 +23,13 @@ l l l l l.
 T{
 0
 T}@T{
-Name
+参数名
 T}@T{
-Type
+参数类型
 T}@T{
-Description
+描述
 T}@T{
-Required or Not
+是否必填
 T}
 _
 T{
@@ -37,24 +37,24 @@ T{
 T}@T{
 options
 T}@T{
-Json
+Json 对象
 T}@T{
-Specify the backup name,
+指定备份名、复
 T}@T{
-Not
+否
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-replication group,path
+制组、路径等参
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-and other parameters.
+数
 T}@T{
 T}
 T{
@@ -62,35 +62,28 @@ T{
 T}@T{
 cond
 T}@T{
-Json
+Json 对象
 T}@T{
-Backup filter
+备份过滤条件
 T}@T{
-Not
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-conditions.
-T}@T{
+否
 T}
 T{
 3
 T}@T{
 sel
 T}@T{
-Json
+Json 对象
 T}@T{
-Select the field for
+选择备份输出的
 T}@T{
-Not
+否
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-backup output.
+字段
 T}@T{
 T}
 T{
@@ -98,36 +91,35 @@ T{
 T}@T{
 sort
 T}@T{
-Json
+Json 对象
 T}@T{
-Sort the returned
+对返回的记录按
 T}@T{
-Not
+否
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-records by the selected
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-field.
-1 is ascending
+选定的字段排序。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-and \-1 is descending.
+1为升序；\-1为降
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+序。
 T}@T{
 T}
 .TE
-.SS Options format
+.SS Options格式
 .PP
 .TS
 tab(@);
@@ -135,11 +127,11 @@ l l l l.
 T{
 0
 T}@T{
-Name
+参数名
 T}@T{
-Description
+描述
 T}@T{
-format
+格式
 T}
 _
 T{
@@ -147,21 +139,21 @@ T{
 T}@T{
 GroupID
 T}@T{
-Specify the backup copy
+指定备份的复制
 T}@T{
-GroupID:1000 or GroupID
+GroupID:1000 或
 T}
 T{
 T}@T{
 T}@T{
-group ID,the default
+组 ID，缺省为所
 T}@T{
-:[1000, 1001]
+GroupID:[1000, 1001]
 T}
 T{
 T}@T{
 T}@T{
-is all copy group.
+有复制组
 T}@T{
 T}
 T{
@@ -169,49 +161,37 @@ T{
 T}@T{
 GroupName
 T}@T{
-Specify the name of
+指定备份的复制
 T}@T{
-GroupName:"data1" or
+GroupName:"data1" 或
 T}
 T{
 T}@T{
 T}@T{
-backup copy group,the
+组名，缺省为所
 T}@T{
 GroupName:["data1", "
 T}
 T{
 T}@T{
 T}@T{
-default is all the copy
+有复制组
 T}@T{
 data2"]
-T}
-T{
-T}@T{
-T}@T{
-groups.
-T}@T{
 T}
 T{
 3
 T}@T{
 Name
 T}@T{
-Specify the backup name,
+指定备份名称，
 T}@T{
 Name:"backup\-2014\-1\-1"
 T}
 T{
 T}@T{
 T}@T{
-the default is all
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-backups.
+缺省为所有备份
 T}@T{
 T}
 T{
@@ -219,105 +199,93 @@ T{
 T}@T{
 Path
 T}@T{
-Specify the backup path.
+指定备份路径，
 T}@T{
 Path:"/opt/sequoiadb/
 T}
 T{
 T}@T{
 T}@T{
-The default is the
+缺省为配置参数
 T}@T{
 backup/%g"
 T}
 T{
 T}@T{
 T}@T{
-backup path specified
+指定的备份路径。
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-by the configuration
+该路径支持通配
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-parameter.The path
+符（%g/%G: group name,
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-supports wildcards（%g
+%h/%H: host name, %s/%
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-/%G: group name, %h/%H:
+S:service name）。当
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-host name, %s/%S:
+在协调节点上执
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-service name）.When
+行命令使用该参
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-using this parameter to
+数时，需要使用
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-execute commands on
+通配符，以避免
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-the coordination node,
+所有的节点往同
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-wildcards are required
+一个路径下进行
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-to avoid all nodes
+操作而导致未知IO
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-operating under the
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-same path and causing
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-unknow IO errors.
+错误。
 T}@T{
 T}
 T{
@@ -325,92 +293,62 @@ T{
 T}@T{
 IsSubDir
 T}@T{
-Whether the path
+上述 Path 参数所
 T}@T{
 IsSubDir:false
 T}
 T{
 T}@T{
 T}@T{
-configured by the above
+配置的路径是否
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-Path parameter is the
+为配置参数指定
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-subdirectory of the
+的备份路径的子
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-backup path specified
+目录，如果为true，
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-by the configuration
+则真实的备份目
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-prarameter.if it is
+录为：" 配置参数
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-true,the real backup
+中指定的备份目
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-specified by the
+录 / \f[C]Path\f[]目录 "；
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-configuration parameter,
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-if true,the real real
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-backup directory is : "
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-The backup directory
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-in the parameter / \f[C]||\ |||Path\f[]catalog ";Default
-T}@T{
-T}
-T{
-T}@T{
-T}@T{
-is false.
+缺省为 false
 T}@T{
 T}
 T{
@@ -418,20 +356,26 @@ T{
 T}@T{
 Prefix
 T}@T{
-Backup prefix,Support
+备份前缀名，支
 T}@T{
 Prefix:"%g_bk_"
 T}
 T{
 T}@T{
 T}@T{
-wildcard(%g,%G,%h,%H,%s,
+持通配符（%g,%G,%h,
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
-%S),Default is null.
+%H,%s,%S），缺省为
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+空
 T}@T{
 T}
 T{
@@ -439,37 +383,33 @@ T{
 T}@T{
 Detail
 T}@T{
-Whether Show Details,
+是否显示详细信
 T}@T{
 Detail: true
 T}
 T{
 T}@T{
 T}@T{
-Default is false.
+息，缺省为 false
 T}@T{
 T}
 .TE
-.SH RETURN VALUE
+.SH 返回值
 .PP
-When the function executes successfully, it will return a detailed list of
-collections through the cursor.Users can refer to $LIST_BACKUP to get the
-returned field information.
+函数执行成功时，将返回游标对象。通过游标对象获取的结果字段说明可查看
+$LIST_BACKUP
 .PP
-When the function fails, an exception will be thrown and an error message will
-be printed.
-.SH ERRORS
+函数执行失败时，将抛异常并输出错误信息。
+.SH 错误
 .PP
-When the exception happens，use getLastErrMsg() to get the error message or use
-getLastError() to get the error code.
-For more details, refer to Troubleshooting.
-.SH VERSION
+当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
+获取错误码。更多错误处理可以参考常见错误处理指南。
+.SH 版本
 .PP
-v2.0 and above
-.SH EXAMPLES
+v2.0 及以上版本
+.SH 示例
 .IP \[bu] 2
-View all backup information under the backup path specified by the database
-configuration parameter
+查看数据库配置参数指定的备份路径下的所有备份信息
 .RS 2
 .IP
 .nf
@@ -494,9 +434,9 @@ configuration parameter
 .fi
 .RE
 .IP \[bu] 2
-View backup information in other paths
+查看其它路径下的备份信息
 .PP
-Backup data nodes to other paths
+备份数据节点到其它路径
 .IP
 .nf
 \f[C]
@@ -507,8 +447,8 @@ Backup data nodes to other paths
 \f[]
 .fi
 .PP
-Connect coord to view backup information and specify the Path parameter when
-listBackup,otherwise the backup information cannot be found in the default path.
+连接 coord 查看备份信息，listBackup 时需要指定 Path
+参数，否则在默认路径下查找不到备份信息
 .IP
 .nf
 \f[C]

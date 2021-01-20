@@ -1,6 +1,6 @@
 ##NAME##
 
-listDomains - Enumerate domains.
+listDomains - Enumerate domains
 
 ##SYNOPSIS##
 
@@ -24,13 +24,17 @@ Enumerate all user-created domains in the system.
 
 ##RETURN VALUE##
 
-On success, return the cursor object.
+When the function executes successfully, it will return a detailed list of collections through the cursor.
 
-On error, exception will be thrown.  Users can get the error message by [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) or get the error code by [getLastError()](reference/Sequoiadb_command/Global/getLastError.md).  For error handling, refer to the common [troubleshooting](troubleshooting/general/general_guide.md).
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-For common errors, refer to [error code](troubleshooting/general/general_guide.md).
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][error_guide].
+
+##VERSION##
+
+v2.0 and above
 
 ##EXAMPLES##
 
@@ -59,3 +63,9 @@ For common errors, refer to [error code](troubleshooting/general/general_guide.m
   ]
 }
 ```
+
+[^_^]:
+     links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

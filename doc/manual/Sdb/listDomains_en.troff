@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-listDomains \- Enumerate domains.
+listDomains \- Enumerate domains
 .SH SYNOPSIS
 .PP
 \f[B]db.listDomain( [cond], [sel], [sort] )\f[]
@@ -127,15 +127,19 @@ T}
 .TE
 .SH RETURN VALUE
 .PP
-On success, return the cursor object.
+When the function executes successfully, it will return a detailed list of
+collections through the cursor.
 .PP
-On error, exception will be thrown.
-Users can get the error message by getLastErrMsg() or get the error code by
-getLastError().
-For error handling, refer to the common troubleshooting.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-For common errors, refer to error code.
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v2.0 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Enumerate all user\-created domains in the system.

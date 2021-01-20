@@ -1,9 +1,20 @@
+
+##名称##
+
+list - 枚举列表
+
 ##语法##
-***db.list( \<listType\>, [cond], [sel], [sort] )***
+**db.list( \<listType\>, [cond], [sel], [sort] )**
 
-枚举列表，列表是一种轻量级得到当前系统状态的命令。查看更多有关[列表信息](manual/Manual/List/list.md)。
+##类别##
 
-##参数描述##
+Sdb
+
+##描述##
+
+该函数用于枚举列表。列表是一种轻量级的得到当前系统状态的命令。
+
+##参数##
 
 | 参数名   | 参数类型    | 描述   													| 是否必填 |
 |----------|-------------|----------------------------------------------------------|----------|
@@ -14,16 +25,23 @@
 
 >**Note:**
 
->* listType 字段的值请参考[列表类型](manual/Manual/List/list.md)。
+>* listType 字段的值请参考[列表类型][list_info]。
 >* sel 参数是一个json结构，如：{字段名:字段值}，字段值一般指定为空串。sel中指定的字段名在记录中存在，设置字段值不生效；不存在则返回sel中指定的字段名和字段值。
->* 记录中字段值类型为数组，我们可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
+>* 记录中字段值类型为数组，用户可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
 
 ##返回值##
-返回游标对象，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+
+函数执行成功时，将返回游标对象。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
-常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -83,3 +101,12 @@
 	  ]
 	}
 	```
+
+[^_^]:
+     本文使用的所有引用及链接
+
+[list_info]:manual/Manual/List/list.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md
+
