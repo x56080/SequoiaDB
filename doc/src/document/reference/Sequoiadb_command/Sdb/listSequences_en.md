@@ -1,3 +1,5 @@
+
+
 ##NAME##
 
 listSequences - Show the sequences name of the current database.
@@ -16,7 +18,7 @@ Show the sequences name of the current database.
 
 >**Note:**
 
->db.listSequences() can only show the sequences name. If you want to show detail information of the sequences, please refer to [db.snapshot( SDB_SNAP_SEQUENCES )](database_management/monitoring/snapshot/SDB_SNAP_SEQUENCES.md).
+>db.listSequences() can only show the sequences name. If you want to show detail information of the sequences, please refer to [db.snapshot( SDB_SNAP_SEQUENCES )](manual/Manual/Snapshot/SDB_SNAP_SEQUENCES.md).
 
 ##PARAMETERS##
 
@@ -30,7 +32,7 @@ On error, exception will be thrown.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](troubleshooting/general/general_guide.md).
+When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, please  reference to [Troubleshooting](manual/faq.md).
 
 ##EXAMPLES##
 

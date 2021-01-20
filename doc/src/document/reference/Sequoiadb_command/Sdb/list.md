@@ -1,9 +1,20 @@
+
+##名称##
+
+list - 枚举列表
+
 ##语法##
-***db.list( \<listType\>, [cond], [sel], [sort] )***
+**db.list( \<listType\>, [cond], [sel], [sort] )**
 
-枚举列表，列表是一种轻量级得到当前系统状态的命令。查看更多有关[列表信息](database_management/monitoring/list/list.md)。
+##类别##
 
-##参数描述##
+Sdb
+
+##描述##
+
+该函数用于枚举列表。列表是一种轻量级的得到当前系统状态的命令。
+
+##参数##
 
 | 参数名   | 参数类型    | 描述   													| 是否必填 |
 |----------|-------------|----------------------------------------------------------|----------|
@@ -16,14 +27,21 @@
 
 >* listType 字段的值请参考[列表类型](database_management/monitoring/list/list.md)。
 >* sel 参数是一个json结构，如：{字段名:字段值}，字段值一般指定为空串。sel中指定的字段名在记录中存在，设置字段值不生效；不存在则返回sel中指定的字段名和字段值。
->* 记录中字段值类型为数组，我们可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
+>* 记录中字段值类型为数组，用户可以在sel中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
 
 ##返回值##
-返回游标对象，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
+
+函数执行成功时，将返回游标对象。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
-常见错误可参考[错误码](reference/Sequoiadb_error_code.md)。
+
+当异常抛出时，可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息或通过 [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) 获取错误码。更多错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -47,7 +65,7 @@
 	> db.list( SDB_LIST_STORAGEUNITS )
     {
       "NodeName": "ubuntu-200-043:11830",
-      "Name": "foo",
+      "Name": "sample",
       "UniqueID": 61,
       "ID": 4094,
       "LogicalID": 186,
@@ -65,7 +83,7 @@
 	```lang-javascript
 	> db.list( SDB_LIST_STORAGEUNITS, { "LogicalID": { $gt: 1 } }, { Name: "", ID: "" }, { Name: 1 } )
 	{
-	  "Name": "foo",
+	  "Name": "sample",
 	  "ID": 4094
 	}
 	```

@@ -14,10 +14,11 @@ Sdb
 .SH DESCRIPTION
 .PP
 Show the sequences name of the current database.
-.TE
-
+.RS
+.PP
 \f[B]Note:\f[]
 .RE
+.RS
 .PP
 db.listSequences() can only show the sequences name.
 If you want to show detail information of the sequences, please refer to
@@ -33,9 +34,9 @@ On success, return the sequences name of the current database.
 On error, exception will be thrown.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
+When exception happens, use getLastError() to get the error code and use
 getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+For more details, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
 Show the sequences name of the current database.
