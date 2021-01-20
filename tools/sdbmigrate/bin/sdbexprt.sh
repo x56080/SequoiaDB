@@ -5,7 +5,7 @@ TOOL_PATH=$(cd `dirname $0`; pwd)
 # import common functions
 source ${TOOL_PATH}/common.sh
 
-export_result_file="${CUR_PATH}/sdbexprt.result"
+export_result_file="${CUR_PATH}/sdbexport.result"
 export_tmp_file="${CUR_PATH}/$$.tmp"
 export_tool="sdbexprt"
 TMP_FIFO_FILE_1="${CUR_PATH}/$$.1.fifo"
@@ -23,7 +23,7 @@ opt_list=("-h" "--help" "-V" "--version" "--debug" "-s" "--hostname" "-p" "--svc
 "--type" "--withid" "--fields" "--ssl" "--floatfmt" "--replace" "-c" "--csname" "-l" "--clname" 
 "--select" "--filter" "--sort" "--skip" "--limit" "--cscl" "--excludecscl" "--strict" "-a" "--delchar" 
 "-e" "--delfield" "--included" "--includebinary" "--includeregex" "--force" "--kicknull" "--checkdelimeter" 
-"--conf" "--dir" "--jobs" "--file")
+"--conf" "--dir" "-j" "--jobs" "--file")
 
 opt_hostname=""
 opt_svcname=""
@@ -69,6 +69,18 @@ opt_general_params=""
 export_cmd_list=()
 cl_params_list=()
 
+
+function dealHostsParam()
+{
+   local value=(${1//,/ })
+   if [ "$value" = "" ]; then
+       return 0
+   fi
+   local tmp=(${value//:/ })
+   opt_hostname=${tmp[0]}
+   opt_svcname=${tmp[1]}
+}
+
 function getParamValue()
 {
     local value
@@ -79,8 +91,7 @@ function getParamValue()
     case $1 in
         -s | --hostname     ) repeatCheck "$1" "$opt_hostname";       opt_hostname=$value       ;;
         -p | --svcname      ) repeatCheck "$1" "$opt_svcname";        opt_svcname=$value        ;;
-        --hosts             ) repeatCheck "$1" "$opt_hostname:$opt_svcname";
-                              opt_hostname=${value%%:*};              opt_svcname=${value##*:}  ;;
+        --hosts             ) repeatCheck "$1" "$opt_hostname$opt_svcname"; dealHostsParam $value ;;
         -u | --user         ) repeatCheck "$1" "$opt_user";           opt_user=$value           ;;
         -w | --password     ) repeatCheck "$1" "$opt_password";       opt_password=$value       ;;
         --cipher            ) repeatCheck "$1" "$opt_cipher";         opt_cipher=$value         ;;
@@ -113,7 +124,7 @@ function getParamValue()
         --kicknull          ) repeatCheck "$1" "$opt_kicknull";       opt_kicknull=$value       ;;
         --checkdelimeter    ) repeatCheck "$1" "$opt_checkdelimeter"; opt_checkdelimeter=$value ;;
         --conf              ) repeatCheck "$1" "$opt_conf_file";      opt_conf_file=$value      ;;
-        --jobs              ) repeatCheck "$1" "$opt_jobs";           opt_jobs=$value           ;;
+        -j | --jobs         ) repeatCheck "$1" "$opt_jobs";           getJobsParam $value       ;;
         # general params, like ssl
         *                   ) opt_general_params="${opt_general_params} $1 $value"              ;;
     esac
@@ -135,6 +146,8 @@ function dealParamArr()
             -h | --help    ) helpInfo                          ;;
             -V | --version ) version "$export_tool"            ;;
             --debug        ) opt_debug="true"; shift; continue ;;
+            --replace      ) opt_general_params="$opt_general_params $opt";
+                             shift; continue                   ;;
         esac
 
         while [ "$2" != "" ]; do
@@ -211,13 +224,12 @@ function checkParams()
 function helpInfo()
 {
     $export_tool "--help" | sed '/--dir /d' | sed '/--conf /d' | sed '/--genconf /d' | sed '/--genfields /,+2 d'
-    echo "  --conf arg             The configuration file for the collection and "
+    echo "  --conf arg             the configuration file for the collection and "
     echo "                         collectionspace                               "
     echo "Output Options:                                                        "
-    echo "  --dir arg              The directory where the data was exported     "
+    echo "  --dir arg              the directory where the data was exported     "
     echo "Other Options:                                                         "
-    echo "  --jobs arg             The number of concurrent exports              "
-    echo "  --compress arg         Whether to turn on compression, default false "
+    echo "  -j [ --jobs ] arg      the number of concurrent exports              "
     exit 0
 }
 
@@ -282,7 +294,7 @@ function parseGeneralParams()
     cl_kicknull=$(appendParam        '--kicknull'       "$cl_kicknull"       "$opt_kicknull")
     cl_checkdelimeter=$(appendParam  '--checkdelimeter' "$cl_checkdelimeter" "$opt_checkdelimeter")
 
-    cl_params=$(arrToStr "$cl_ssl" "$cl_replace" "$cl_delrecord" "$cl_filelimit" "$cl_withid" "$cl_floatfmt" "$cl_strict" "$cl_delchar" "$cl_delfield" "$cl_included" "$cl_includebinary" "$cl_includeregex" "$cl_force" "$cl_kicknull" "$cl_checkdelimeter")
+    cl_params=$(arrToStr "$cl_delrecord" "$cl_filelimit" "$cl_withid" "$cl_floatfmt" "$cl_strict" "$cl_delchar" "$cl_delfield" "$cl_included" "$cl_includebinary" "$cl_includeregex" "$cl_force" "$cl_kicknull" "$cl_checkdelimeter")
     echo "$cl_params"
 }
 
@@ -355,7 +367,6 @@ function buildCLParams()
     fi
 
     if [ "$opt_jobs" = "" ]; then
-
         if [ -d "$cl_dir" ]; then
             cl_file=$(jionPath $cl_dir $cl_full_name.$cl_type)
         else
@@ -676,14 +687,14 @@ function genResultHead()
     total_num=$[total_num+num]
     success_num=$(sed -n '/Exported successfully with [1-9][0-9]* successful collections/p' "$export_tmp_file" | wc -l)
     faile_num=$[total_num-success_num]
-    local consume_time=$(countTimeD "$start_time" "$end_time")
+    local spend_time=$(countTimeD "$start_time" "$end_time")
     local str_1="========== Export result =========="
     local str_2="Exported count   : $total_num"
     local str_3="Successful count : $success_num"
     local str_4="Failed count     : $faile_num"
     local str_5="Start time       : $start_time"
     local str_6="End time         : $end_time"
-    local str_7="Consume time     : $consume_time"
+    local str_7="Spend time       : $spend_time"
     local str_8=""
     local str_9="---------- Export detail ----------"
     sed -i "1i$str_1\n$str_2\n$str_3\n$str_4\n$str_5\n$str_6\n$str_7\n$str_8\n$str_9" $export_tmp_file
@@ -704,6 +715,24 @@ function addResultBody()
             echo >&7
         }
     fi
+}
+
+function getJobsParam()
+{
+   local rc=0
+   opt_jobs="$1"
+   if [ "$opt_jobs" = "" ]; then
+      opt_jobs=1
+   fi
+   expr $opt_jobs + 0 &> /dev/null
+   if [ $? -ne 0 ]; then
+      echo "[ERROR] Invalid --jobs value: $opt_jobs"
+      exit 1
+   fi
+   if [ $opt_jobs -le 0 ]; then
+      echo "[ERROR] Invalid --jobs value: $opt_jobs"
+      exit 1
+   fi
 }
 
 function exec_cmd()
@@ -740,9 +769,6 @@ function exportData()
     echo >&7
     buildExportCmd
 
-    if [ "$opt_jobs" = "" ]; then
-        opt_jobs=1
-    fi
     for ((i=0; i<$opt_jobs; i++)); do
         echo >&6
     done

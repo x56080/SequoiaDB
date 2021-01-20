@@ -6,7 +6,7 @@ TOOL_PATH=$(cd `dirname $0`; pwd)
 # import common functions
 source ${TOOL_PATH}/common.sh
 
-import_result_file="${CUR_PATH}/sdbimprt.result"
+import_result_file="${CUR_PATH}/sdbimport.result"
 import_tool="sdbimprt"
 
 # result file info
@@ -161,8 +161,8 @@ function checkParams()
 function helpInfo()
 {
     $import_tool --help
-    echo "CS/CL conf Options:                                                     "
-    echo "  --conf arg             The configuration file for the collection and  "
+    echo "Configure-file Options:                                                 "
+    echo "  --conf arg             the configuration file for the collection and  "
     echo "                         collectionspace, cannot be used in conjunction "
     echo "                         with --csname,--clname                         "
     exit 0
@@ -503,13 +503,13 @@ function findInfo()
 function judgeResult()
 {
     local msg="$1"
-    findInfo "failed to parse fields" "$msg"
+    findInfo "Failed to parse fields" "$msg"
     if [ $? = 0 ]; then
         return 1
     fi
-    local parse_faile=$(findInfo "parse failure" "$msg")
-    local sharding_faile=$(findInfo "sharding failure" "$msg")
-    local import_faile=$(findInfo "import failure" "$msg")
+    local parse_faile=$(findInfo "Parsed failure" "$msg")
+    local sharding_faile=$(findInfo "Sharding failure" "$msg")
+    local import_faile=$(findInfo "Imported failure" "$msg")
 
    if [ "$parse_faile" = "0" -a "$sharding_faile" = "0" -a "$import_faile" = "0" ]; then
        return 0
@@ -521,14 +521,14 @@ function judgeResult()
 function genResultHead()
 {
     faile_num=$[total_num-success_num]
-    local consume_time=$(countTimeD "$start_time" "$end_time")
+    local spend_time=$(countTimeD "$start_time" "$end_time")
     local str_1="========== Import result =========="
     local str_2="Imported count   : $total_num"
     local str_3="Successful count : $success_num"
     local str_4="Failed count     : $faile_num"
     local str_5="Start time       : $start_time"
     local str_6="End time         : $end_time"
-    local str_7="Consume time     : $consume_time"
+    local str_7="Spend time       : $spend_time"
 
     result_head="$str_1\n$str_2\n$str_3\n$str_4\n$str_5\n$str_6\n$str_7\n"
 }
