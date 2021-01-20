@@ -16,6 +16,7 @@ CS_BASIC_SECTION="collectionspace"
 ITEM_NUM="number"
 SDB_SHELL="sdb"
 CONN_STR="var db = new Sdb();"
+CONN_ADD="$DEFAULT_HOSTNAME:$DEFAULT_SVCNAME"
 
 FILE_MAX_SIZE=5120 # 5MB
 
@@ -178,6 +179,7 @@ function setConnectParam()
     else
         CONN_STR="var user = new CipherUser('$username').token('$token').cipherFile('$cipherfile'); var db = new Sdb('$hostname',$svcname,user);"
     fi
+    CONN_ADD="$hostname:$svcname"
 }
 
 function getCLList()
@@ -186,12 +188,26 @@ function getCLList()
     local rc=0
 
     if [ "$cs_name" != "" ]; then
-        get_cl_str="var cursor = db.snapshot(5,{Name:'$cs_name'}); while(cursor.next()){var obj = cursor.current().toObj().Collection; for(var i=0;i<obj.length;i++){println(obj[i].Name)}}"
+        get_cl_str="var cursor = db.snapshot(SDB_SNAP_COLLECTIONSPACES, {Name:'$cs_name'});
+                    while(cursor.next()){
+                        var obj = cursor.current().toObj().Collection;
+                        for(var i=0;i<obj.length;i++){
+                            println(obj[i].Name)
+                        }
+                    }
+                    cursor.close();"
     else
-        get_cl_str="var cursor = db.snapshot(5); while(cursor.next()){var obj = cursor.current().toObj().Collection; for(var i=0;i<obj.length;i++){println(obj[i].Name)}}"
+        get_cl_str="var cursor = db.snapshot(SDB_SNAP_COLLECTIONSPACES);
+                    while(cursor.next()){
+                        var obj = cursor.current().toObj().Collection;
+                        for(var i=0;i<obj.length;i++){
+                            println(obj[i].Name)
+                        }
+                    }
+                    cursor.close();"
     fi
 
-    cl_list=`$sdb -s "$CONN_STR $get_cl_str"`
+    cl_list=`$sdb -s "$CONN_STR $get_cl_str db.close();"`
     rc=$?
     echo "${cl_list[@]}"
     return $rc
@@ -207,9 +223,45 @@ function getNodeList()
         return 1
     fi
 
-    get_node_str="var cursor = db.snapshot(4,{Name:'$cl_name'}); while(cursor.next()){var obj = cursor.current().toObj().Details;for(var i=0;i<obj.length;i++){println(obj[i].Group[0].NodeName)}}"
+    get_node_str="var nodeArr = new Array();
+                  var cursor = db.snapshot(SDB_SNAP_HEALTH);
+                  if (cursor.size() < 2){
+                      var clInfoArr = db.snapshot(SDB_SNAP_COLLECTIONS,{Name: '$cl_name'});
+                      if (clInfoArr.size() > 0){
+                          nodeArr.push('$CONN_ADD');
+                      }
+                      clInfoArr.close();
+                  } else{
+                      var clInfoArr = db.snapshot(SDB_SNAP_CATALOG,{Name: '$cl_name'});
+                      while(clInfoArr.next()){
+                          var obj = clInfoArr.current().toObj().CataInfo;
+                          var isMainCL = clInfoArr.current().toObj().IsMainCL;
+                          if (isMainCL == true)
+                          {
+                              nodeArr.push('$CONN_ADD');
+                              break;
+                          }
+                          for(var i=0;i<obj.length;i++){
+                              var rg = db.getRG(obj[i].GroupName);
+                              var rgInfo = rg.getDetail().current().toObj().Group;
+                              if ( rgInfo.length > 0 )
+                              {
+                                  var host = rgInfo[0].HostName;
+                                  var svcname = rgInfo[0].Service[0].Name;
+                                  nodeArr.push(host+':'+svcname);
+                              }
+                          }
+                      }
+                      clInfoArr.close();
+                  }
+                  cursor.close();
+                  for (var i=0; i<nodeArr.length; i++){
+                      if (nodeArr.indexOf(nodeArr[i]) == i){
+                          println(nodeArr[i]);
+                      }
+                  }"
 
-    node_list=`$sdb -s "$CONN_STR $get_node_str"`
+    node_list=`$sdb -s "$CONN_STR $get_node_str db.close();"`
     rc=$?
     echo "${node_list[@]}"
     return $rc
