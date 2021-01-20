@@ -163,7 +163,7 @@ class client(object):
     USER = ""
     PSW = ""
 
-    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False):
+    def __init__(self, host=None, service=None, user=None, psw=None, ssl=False, **kwargs):
         """initialize when product a object.
 
            it will try to connect to SequoiaDB using host and port given,
@@ -171,20 +171,25 @@ class client(object):
            user and password are "".
 
         Parameters:
-           Name       Type      Info:
-           host       str       The hostname or IP address of SequoiaDB server.
-                                      If None, "localhost" will be used.
-           service    str/int   The service name or port number of SequoiaDB server.
-                                      If None, "11810" will be used.
-           user       str       The user name to access to SequoiaDB server.
-                                      If None, "" will be used.
-           psw        str       The user password to access to SequoiaDB server.
-                                      If None, "" will be used.
-           ssl        bool      Decide whether to use ssl or not, default is False.
+           Name         Type      Info:
+           host         str       The hostname or IP address of SequoiaDB server.
+                                          If None, "localhost" will be used.
+           service      str/int   The service name or port number of SequoiaDB server.
+                                          If None, "11810" will be used.
+           user         str       The user name to access to SequoiaDB server.
+                                          If None, "" will be used.
+           psw          str       The user password to access to SequoiaDB server.
+                                          If None, "" will be used.
+           ssl          bool      Decide whether to use ssl or not, default is False.
+           **kwargs               Useful options are below:
+           -  auto_conn bool      Decide whether to automatically connect SequoiaDB database,
+                                          default is True.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         self.__connected = False
+        self._client = None
+
         if host is None:
             self.__host = self.HOST
         elif isinstance(host, str_type):
@@ -220,13 +225,20 @@ class client(object):
         else:
             raise SDBTypeError("ssl must be an instance of bool")
 
+        if "auto_conn" in kwargs:
+            auto_conn = kwargs.get("auto_conn")
+        else:
+            auto_conn = True
+        if not isinstance(auto_conn, bool):
+            raise SDBTypeError("auto_conn must be an instance of bool")
+
         try:
             self._client = sdb.sdb_create_client(self.__ssl)
         except SystemError:
             raise SDBSystemError(SDB_OOM, "Failed to alloc client")
 
-        # try to connect with default user and password
-        self.connect(self.__host, self.__service, user=_user, password=_psw)
+        if auto_conn :
+            self.connect(self.__host, self.__service, user=_user, password=_psw)
 
     def __del__(self):
         """release resource when del called.
@@ -963,7 +975,7 @@ class client(object):
         if not isinstance(group_name, str_type):
             raise SDBTypeError("group name must be an instance of str_type")
 
-        result = replicagroup(self._client)
+        result = replicagroup(self._client, ssl = self.__ssl)
         try:
             rc = sdb.sdb_get_replica_group_by_name(self._client, group_name,
                                                    result._group)
@@ -988,7 +1000,7 @@ class client(object):
         if not isinstance(group_id, int):
             raise SDBTypeError("group id must be an instance of int")
 
-        result = replicagroup(self._client)
+        result = replicagroup(self._client, ssl = self.__ssl)
         try:
             rc = sdb.sdb_get_replica_group_by_id(self._client, group_id, result._group)
             raise_if_error(rc, "Failed to get specified group: %d" % group_id)
@@ -1032,7 +1044,7 @@ class client(object):
         if not isinstance(group_name, str_type):
             raise SDBTypeError("group name must be an instance of str_type")
 
-        replica_group = replicagroup(self._client)
+        replica_group = replicagroup(self._client, ssl = self.__ssl)
         try:
             rc = sdb.sdb_create_replica_group(self._client, group_name,
                                               replica_group._group)

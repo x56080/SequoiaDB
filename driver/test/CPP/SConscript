@@ -71,6 +71,10 @@ testFiles16 = [
          "indexCover.cpp"
 ]
 
+testFiles17 = [
+         "node.cpp"
+]
+
 # compile common lib
 gtestall = env.StaticLibrary('gtest', gtestFiles)
 gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
@@ -92,6 +96,7 @@ rg = dllBuildEnv.Program("rg", [testFiles13, gtestMainObj, testCommonFiles])
 datasource = dllBuildEnv.Program("datasource", [testFiles14, gtestMainObj, testCommonFiles])
 clVerCheck = dllBuildEnv.Program("clVerCheck", [testFiles15, gtestMainObj, testCommonFiles])
 indexCover = dllBuildEnv.Program("indexCover", [testFiles16, gtestMainObj, testCommonFiles])
+node = dllBuildEnv.Program("node", [testFiles17, gtestMainObj, testCommonFiles])
 
 # static compile
 # dll compile
@@ -111,6 +116,7 @@ rg.static = staticBuildEnv.Program("rg.static", [testFiles13, gtestMainObj, test
 datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gtestMainObj, testCommonFiles])
 clVerCheck.static = staticBuildEnv.Program("clVerCheck.static", [testFiles15, gtestMainObj, testCommonFiles])
 indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles16, gtestMainObj, testCommonFiles])
+node.static = staticBuildEnv.Program("node.static", [testFiles17, gtestMainObj, testCommonFiles])
 
 #env.Install( '#/build_test',[collection,collectionspace,cursor,query,
 #                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, rg, dc ] )
@@ -122,11 +128,11 @@ indexCover.static = staticBuildEnv.Program("indexCover.static", [testFiles16, gt
 # dll compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection,collectionspace,cursor,query,
                              sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource,
-                             clVerCheck, indexCover ] )
+                             clVerCheck, indexCover, node ] )
 
 # static compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection.static, collectionspace.static, cursor.static, query.static,
                              sdb.static, cppbson.static, debug.static, domain.static, lob.static,
                              selectQuery.static, procedure.static, datasource.static, clVerCheck,
-                             indexCover] )
+                             indexCover, node.static] )
 

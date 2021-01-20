@@ -30,6 +30,55 @@ TEST(sdb,connect)
    connection.disconnect() ;
 }
 
+TEST(sdb,connect_with_usrname_and_pwd)
+{
+   sdb db1 ;
+   sdb db2 ;
+   sdb db3 ;
+   // initialize local variables
+   const CHAR *pHostName                    = HOST ;
+   const CHAR *pPort                        = SERVER ;
+   const CHAR *pUsr                         = USER ;
+   const CHAR *pPasswd                      = PASSWD ;
+   INT32 rc                                 = SDB_OK ;
+   INT32 normalMaxSz                        = 256 ;
+   INT32 length                             = 300 ;
+   CHAR *usrName = new CHAR[length + 1]() ;
+   CHAR *pwd = new CHAR[length + 1]() ;
+
+   // case 1, normal usrname and pwd
+   rc = db1.connect( pHostName, pPort, pUsr, pPasswd ) ;
+   ASSERT_EQ( SDB_OK, rc ) ;
+   db1.disconnect() ;
+
+   // case 2, max_sz usrname and pwd
+   for ( INT32 i = 0; i < normalMaxSz; i++ )
+   {
+      usrName[i] = 'a' ;
+      pwd[i] = 'a' ;
+   }
+   rc = db2.connect( pHostName, pPort, usrName, pwd ) ;
+   if ( rc != SDB_OK )
+   {
+      ASSERT_EQ( SDB_AUTH_AUTHORITY_FORBIDDEN, rc ) ;
+   }
+   db2.disconnect() ;
+
+   // case 3, username and pwd longer than normal
+   for ( INT32 i = normalMaxSz; i < length; i++ )
+   {
+      usrName[i] = 'a' ;
+      pwd[i] = 'a' ;
+   }
+   rc = db3.connect( pHostName, pPort, usrName, pwd ) ;
+   ASSERT_EQ( SDB_INVALIDARG, rc ) ;
+   db3.disconnect() ;
+
+   delete[] usrName ;
+   delete[] pwd ;
+}
+
+
 TEST(sdb,connect_with_serval_addr)
 {
    sdb connection ;

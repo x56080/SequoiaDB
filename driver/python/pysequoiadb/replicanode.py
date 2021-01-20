@@ -21,7 +21,7 @@ except:
     raise Exception("Cannot find extension: sdb")
 
 import pysequoiadb
-from pysequoiadb.error import (SDBSystemError, raise_if_error)
+from pysequoiadb.error import (SDBSystemError, SDBTypeError, raise_if_error)
 from pysequoiadb.errcode import SDB_OOM
 
 
@@ -53,13 +53,20 @@ class replicanode(object):
               and order-sensitive
     """
 
-    def __init__(self, client):
+    def __init__(self, client, **kwargs):
         """constructor of replica node
 
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
         self._client = client
+        self.__ssl = False
+
+        if "ssl" in kwargs:
+            ssl = kwargs.get("ssl")
+            if not isinstance(ssl, bool):
+                raise SDBTypeError("ssl must be an instance of bool")
+            self.__ssl = ssl
         try:
             self._node = sdb.create_node()
         except SystemError:
@@ -88,7 +95,11 @@ class replicanode(object):
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        return pysequoiadb.client(self.get_hostname(), self.get_servicename())
+        conn_obj = pysequoiadb.client(self.get_hostname(), self.get_servicename(),
+                                 None, None, self.__ssl, auto_conn = False)
+        rc = sdb.nd_connect(self._node, conn_obj._client)
+        raise_if_error(rc, "Failed to connect to the current node")
+        return conn_obj
 
     def get_status(self):
         """Get status of the current node

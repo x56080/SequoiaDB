@@ -3977,13 +3977,14 @@ do                                                            \
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      connection = new (std::nothrow) _sdbImpl () ;
+      connection = new (std::nothrow) _sdbImpl ( this->_connection->_useSSL ) ;
       if ( !connection )
       {
          rc = SDB_OOM ;
          goto error ;
       }
-      rc = connection->connect ( _hostName, _serviceName ) ;
+
+      rc = connection->connect ( _hostName, _serviceName, this->_connection->_userName, this->_connection->_passwd ) ;
       if ( rc )
       {
          goto error ;
@@ -8118,6 +8119,13 @@ do                                                            \
          pPW = pPasswd ;
       }
 
+      if ( CLIENT_USER_NAME_SZ < ossStrlen( pUN ) ||
+           CLIENT_USER_PASSWORD_SZ < ossStrlen( pPW ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       rc = _connect( pHostName, port ) ;
       if ( SDB_OK != rc )
       {
@@ -8180,6 +8188,14 @@ do                                                            \
       {
          goto error ;
       }
+
+   ossStrncpy( this->_userName, pUN,
+                sizeof( this->_userName ) - 1 ) ;
+   ossStrncpy( this->_passwd, pPW,
+                sizeof( this->_passwd ) - 1 ) ;
+   this->_userName[ CLIENT_USER_NAME_SZ ] ='\0' ;
+   this->_passwd[ CLIENT_USER_PASSWORD_SZ ] ='\0' ;
+
 
    done :
       return rc ;

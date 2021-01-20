@@ -35,6 +35,8 @@ namespace sdbclient
 #define CLIENT_DOMAIN_NAMESZ               127
 #define CLIENT_DC_NAMESZ                   127
 #define CLIENT_CL_FULLNAME_SZ              ( CLIENT_COLLECTION_NAMESZ + CLIENT_CS_NAMESZ + 1 )
+#define CLIENT_USER_NAME_SZ                256
+#define CLIENT_USER_PASSWORD_SZ            256
 
    class _sdbCollectionSpaceImpl ;
    class _sdbCollectionImpl ;
@@ -1271,6 +1273,9 @@ namespace sdbclient
       ossTimestamp             _lastAliveTime ;
 
       BOOLEAN                  _isOldVersionLobServer ;
+
+      CHAR                     _userName [ CLIENT_USER_NAME_SZ + 1 ] ;
+      CHAR                     _passwd [ CLIENT_USER_PASSWORD_SZ + 1 ] ;
 
       void _disconnect () ;
       void _setErrorBuffer( const CHAR *pBuf, INT32 bufSize ) ;
