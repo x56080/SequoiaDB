@@ -26,12 +26,13 @@
 |Field      |string |-          |自增字段名，必须是可见字符，不能以“$”或空白字符起始；支持嵌套字段；在创建自增字段时指定，指定后不可更改|
 |Increment  |int32  |1          |序列每次增加的间隔，可以为正整数或负整数；正数表示正序，负数表示逆序；不能为 0|
 |StartValue |int64  |1          |序列的起始值，正序时，默认值为 1；逆序时，默认值为 -1|
-|CurrentValue|int64 |-          |序列的当前值，可以在[序列快照][snapshot_sequence]中查看；不能创建时指定|
+|CurrentValue|int64 |-          |序列的当前值，创建时不能指定，可以在[序列快照][snapshot_sequence]中查看|
 |MinValue   |int64  |1          |序列的最小值，正序时，默认值为 1；逆序时，默认值为 -2^63 |
 |MaxValue   |int64  |2^63 -1    |序列的最大值，正序时，默认值为 2^63 -1；逆序时，默认值为 -1|
 |CacheSize  |int32  |1000       |编目节点每次缓存的序列值的数量，取值须大于 0|
 |AcquireSize|int32  |1000       |协调节点每次获取的序列值的数量，取值须大于 0，且小于等于 CacheSize|
 |Cycled     |boolean   |false      |序列值达到最大值或最小值时是否允许循环|
+|CycledCount|int32  |-          |序列已循环次数，只读属性，可以在[序列快照][snapshot_sequence]中查看|
 |Generated  |string |"default"  |自增字段生成方式，取值为“always”、“default”、“strict”<br>“always”：表示自增字段总是由服务端生成，忽略客户端的设置<br>“default”：表示缺省时生成，允许客户端的设置 <br>“strict”：则在允许客户端设置的同时增加类型检测，类型不为数值时报错|
 
 实现原理
