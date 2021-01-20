@@ -135,7 +135,10 @@ function rebalance()
 
    var remainGroupMap = new UtilMap() ;
 
-   /// 1. get remain groups by domain
+   /// 1. check collection exist or not
+   checkCLExist( CLFULLNAME ) ;
+
+   /// 2. get remain groups by domain
    var domainName = getDomainByCL( CLFULLNAME ) ;
    if ( domainName == null )
    {
@@ -151,7 +154,7 @@ function rebalance()
       throw new Error() ;
    }
 
-   /// 2. get sharding type
+   /// 3. get sharding type
    var rc = db.snapshot( SDB_SNAP_CATALOG, { Name: CLFULLNAME } ) ;
    if ( !rc.next() )
    {
@@ -160,7 +163,7 @@ function rebalance()
    }
    var shardingType = rc.current().toObj().ShardingType ;
 
-   /// 3. collection's data rebalance
+   /// 4. collection's data rebalance
    if ( shardingType == undefined )
    {
       printLog( "ERROR", "Collection[" + CLFULLNAME + "] is not sharding" ) ;
@@ -342,6 +345,42 @@ function getGroupsByHostlist( remainGroup, extraGroup )
    }
 }
 
+function checkCLExist( clName )
+{
+   var tmp = clName.split( "." ) ;
+   var csName = tmp[0] ;
+   var clShortName = tmp[1] ;
+
+   if ( csName == null      || csName == "" ||
+        clShortName == null || clShortName == "" )
+   {
+      printLog( "ERROR", "Collection name[" + clName + "] is invalid" ) ;
+      throw new Error() ;
+   }
+
+   try
+   {
+      db.getCS( csName ).getCL( clShortName ) ;
+   }
+   catch( e )
+   {
+      if ( -34 == e )
+      {
+         printLog( "ERROR", "Collection space[" + csName + "] doesn't exist" ) ;
+         throw new Error() ;
+      }
+      else if ( -23 == e )
+      {
+         printLog( "ERROR", "Collection[" + clName + "] doesn't exist" ) ;
+         throw new Error() ;
+      }
+      else
+      {
+         throw new Error() ;
+      }
+   }
+}
+
 // @return domain name
 function getDomainByCL( clName )
 {
@@ -358,8 +397,7 @@ function getDomainByCL( clName )
    }
    else
    {
-      printLog( "ERROR", "Collection[" + CLFULLNAME + "]'s collection space[" +
-                         csName+"] doesn't exist" ) ;
+      printLog( "ERROR", "Collection space[" + csName + "] doesn't exist" ) ;
       throw new Error() ;
    }
 
