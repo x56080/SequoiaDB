@@ -860,11 +860,43 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       // 1. ensure path valid
+      // Attempt to make the directory
       rc = ossMkdir( _metaHeader._path ) ;
-      if ( rc && SDB_FE != rc )
+      if ( SDB_PERM == rc )
+      {
+         // ossMkdir may return SDB_PERM if mkdir succeeded but chmod failed.
+         // This can happen when there are userid issues on the system. A
+         // common scenario for this issue is when a mounted network disk
+         // userids are wrong.
+         PD_LOG( PDWARNING, "Failed to set permissions on backup dir[%s]",
+                 _metaHeader._path ) ;
+      }
+      // SDB_FE means the dir exists, which is ok
+      else if ( rc && SDB_FE != rc )
       {
          PD_LOG( PDERROR, "Create backup dir[%s] failed, rc: %d",
                  _metaHeader._path, rc ) ;
+         goto error ;
+      }
+      // Verify read/write access to the backup directory
+      rc = ossAccess( _metaHeader._path, OSS_MODE_READWRITE ) ;
+      if ( rc )
+      {
+         if ( SDB_PERM == rc )
+         {
+            PD_LOG( PDERROR, "No read/write privileges on the backup dir[%s]",
+                    _metaHeader._path ) ;
+         }
+         else if ( SDB_FNE == rc )
+         {
+            PD_LOG( PDERROR, "Failed to create backup dir[%s]",
+                    _metaHeader._path ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Checking access to backup dir[%s] failed, rc: %d",
+                    _metaHeader._path, rc ) ;
+         }
          goto error ;
       }
       rc = SDB_OK ;
