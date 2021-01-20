@@ -31,6 +31,8 @@ testCommonFiles = [
 clientStaticLibFile = join( client_lib_dir, 'libstaticsdbc.a' )
 
 testFiles = [
+   [ "./lob/lob_23433.cpp" ],
+   [ "./lob/lob_23434.cpp" ],
    [ "./concurrent/concurrentCl.cpp" ],
    [ "./concurrent/concurrentCs.cpp" ],
    [ "./concurrent/concurrentCursor.cpp" ],
