@@ -198,7 +198,7 @@ public class AllDataType22419 extends MongodbTestBase {
 
         try {
             cl.insertOne( new Document( "decimalFiled1001",
-                    Decimal128.parse( "1.5677788E-1000" ) ) );
+                    Decimal128.parse( "1.5677788E-1001" ) ) );
             Assert.fail( "exp fail but act success!!!" );
         } catch ( MongoCommandException e ) {
             if ( e.getErrorCode() != -6 ) {
