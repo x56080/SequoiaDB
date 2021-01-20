@@ -1067,6 +1067,8 @@ class LogExporter:
 
 def run_task(args, work_path):
     """ Start exporter worker """
+    global log_exporter
+
     #ensure cl exists
     connect = SdbConnect(args)
     connect.ensure_cl()
@@ -1095,10 +1097,10 @@ def __quit():
         log_exporter.connect.write_row(self.__records)
         log_exporter.stat_mgr.update_stat()
         logger.info('Exit')
-    except (Exception, ValueError, NameError) as e:
+    except (Exception, ValueError) as e:
         try:
             logger.error('Exception {} occurred during exiting'.format(e))
-        except (Exception, NameError) as err:
+        except (Exception) as err:
             print('Exception {} occurred during exiting'.format(e))
     sys.exit()
 
@@ -1111,7 +1113,6 @@ def sig_quit(signum, frame):
 
 def main():
     global logger
-    global log_exporter
 
     work_path = os.getcwd()
 
@@ -1163,6 +1164,7 @@ def main():
 
 
 logger = None
+log_exporter = None
 
 if __name__ == '__main__':
     rc = main()
