@@ -60,6 +60,7 @@ SDB_SNAP_QUERIES
 ##示例##
 
 - 查看协调节点的查询信息
+
    ```lang-javascript
    > db.snapshot(SDB_SNAP_QUERIES)
    ```
@@ -67,14 +68,13 @@ SDB_SNAP_QUERIES
    输出结果如下：
 
    ```lang-json
-
    {
      "NodeID": [
        2,
        4
      ],
      "StartTimestamp": "2020-06-12-11.33.14.019931",
-     "EndTimestamp": "1970-01-01-08.00.00.000000",
+     "EndTimestamp": "2020-06-12-11.33.14.359351",
      "TID": 10832,
      "OpType": "QUERY",
      "Name": "sbtest1.sbtest2",
@@ -107,7 +107,7 @@ SDB_SNAP_QUERIES
        1002
      ],
      "StartTimestamp": "2020-06-12-11.29.44.906939",
-     "EndTimestamp": "1970-01-01-08.00.00.000000",
+     "EndTimestamp": "2020-06-12-11.29.45.409923",
      "TID": 10850,
      "OpType": "QUERY",
      "Name": "$snapshot queries",
@@ -143,7 +143,7 @@ SDB_SNAP_QUERIES
        4
      ],
      "StartTimestamp": "2020-06-12-11.02.27.429347",
-     "EndTimestamp": "1970-01-01-08.00.00.000000",
+     "EndTimestamp": "2020-06-12-11.02.27.904392",
      "TID": 10107,
      "OpType": "QUERY",
      "Name": "sbtest1.sbtest6",
