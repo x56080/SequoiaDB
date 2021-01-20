@@ -16,7 +16,7 @@
    
    >**Note:**
    >
-   > 详细参数说明可参考 [SequoiaDB 连接参数说明][connectpara]。。
+   > 详细参数说明可参考 [关联 SequoiaDB 连接参数说明](connector/postgresql/connection.md#关联SequoiaDB连接参数说明)。
 
 3. 关联 SequoiaDB 集合空间与集合
 
@@ -27,7 +27,7 @@
    >**Note:**
    >
    > - 在 PostgreSQL 中建立相应的映射表关联 SequoiaDB 集合时，需要确保映射表的字段名与集合的字段名大小写一致，且映射表的字段类型与集合的字段类型一致；否则，将查询不到相关数据。
-   > - 详细参数说明可参考 [关联 SequoiaDB 的集合空间与集合参数说明][collectionpara]。
+   > - 详细参数说明可参考 [关联 SequoiaDB 集合空间与集合参数说明](connector/postgresql/connection.md#关联SequoiaDB集合空间与集合参数说明)。
 
 
 4. 更新表的统计信息
@@ -109,11 +109,11 @@
 | password | string | 数据库密码 | 否 |
 | address | string | 协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串 | 是 |
 | service | string | 协调节点 serviceName | 是 |
-| preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值 | 否 |
+| preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance](reference/Sequoiadb_command/Sdb/setSessionAttr.md) 取值 | 否 |
 | preferedinstancemode | string | 设置 SequoiaDB 的连接属性 preferedinstance 的选择模式 | 否 |
 | sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
 | transaction | string | 设置 SequoiaDB 是否开启事务，默认为 off，开启为 on | 否 |
-| cipher | string | 设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理][system_security] | 否 |
+| cipher | string | 设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理](database_management/security/system_security.md) | 否 |
 | token | string | 设置加密令牌 | 否 |
 | cipherfile | string | 设置加密文件，默认为 `~/sequoiadb/passwd` | 否 |
 
@@ -236,12 +236,3 @@ HINT: Make sure the collectionspace and collection exist on the remote database
 sample=# \q
 $ bin/psql -p 5432 sample
  ```
-
-[^_^]:
-
-    本文使用到的所有连接及引用。
-
-[preferedinstance]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
-[system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md
-[connectpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#SequoiaDB连接参数说明
-[collectionpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#关联SequoiaDB集合空间与集合参数说明
