@@ -110,7 +110,7 @@ def string_to_bool(str):
         return True
     else:
         return False
-    
+
 class CryptoUtil:
     def __init__(self):
         pass
@@ -685,19 +685,6 @@ class LogExporter:
         else:
             return suffix.isdigit()
 
-    def quit(self, signum, frame):
-        work_path = os.getcwd()
-        pid_file = os.path.join(work_path, PID_FILE_NAME)
-        if os.path.exists(pid_file):
-            os.remove(pid_file)
-        try:
-            self.connect.write_row(self.__records)
-            self.stat_mgr.update_stat()
-        except (Exception, ValueError) as e:
-            logger.error('Exception: {}, failed to flush logs'.format(e))
-        logger.info('Exit')
-        sys.exit()
-
     def __get_audit_file_list(self, reverse_order):
         audit_list = []
         audit_path = self.__audit_path
@@ -1080,34 +1067,49 @@ class LogExporter:
 
 def run_task(args, work_path):
     """ Start exporter worker """
+    global log_exporter
 
     #ensure cl exists
     connect = SdbConnect(args)
     connect.ensure_cl()
 
+    #init status file
+    stat_file = os.path.join(work_path, STATUS_FILE_NAME)
+    stat_mgr = StatMgr(stat_file)
     try:
-        #init status file
-        stat_file = os.path.join(work_path, STATUS_FILE_NAME)
-        stat_mgr = StatMgr(stat_file)
-        try:
-            stat_mgr.load_stat()
-        except Exception, err:
-            logger.error('Load status failed: {}'.format(err))
-            raise
-            
-        #init log reporter
-        log_exporter = LogExporter(args, stat_mgr, args.get_log_type(), connect)
-
-        # Signal handler, make it write records and write status file
-        # when ctrl + c is pressed.
-        signal.signal(signal.SIGINT, log_exporter.quit)
-        signal.signal(signal.SIGTERM, log_exporter.quit)
-
-        #run log reporter
-        log_exporter.run()
-    except Exception as error:
-        logger.error('Run task failed:' + str(error))
+        stat_mgr.load_stat()
+    except Exception, err:
+        logger.error('Failed to load status: {}'.format(err))
         raise
+
+    #init log reporter
+    log_exporter = LogExporter(args, stat_mgr, args.get_log_type(), connect)
+
+    #run log reporter
+    log_exporter.run()
+
+def __quit():
+    try:
+        work_path = os.getcwd()
+        pid_file = os.path.join(work_path, PID_FILE_NAME)
+        if os.path.exists(pid_file):
+            os.remove(pid_file)
+        log_exporter.connect.write_row(self.__records)
+        log_exporter.stat_mgr.update_stat()
+        logger.info('Exit')
+    except (Exception, ValueError) as e:
+        try:
+            logger.error('Exception {} occurred during exiting'.format(e))
+        except (Exception) as err:
+            print('Exception {} occurred during exiting'.format(e))
+    sys.exit()
+
+def sig_quit(signum, frame):
+    try:
+        logger.info('Received signal[{}] and quit'.format(signum))
+    except (Exception) as err:
+        print('Received signal[{}] and quit'.format(signum))
+    __quit()
 
 def main():
     global logger
@@ -1147,12 +1149,22 @@ def main():
         pid = str(os.getpid())
         f.write(pid)
 
+    # Signal handler, make it write records and write status file
+    # when ctrl + c is pressed.
+    signal.signal(signal.SIGINT, sig_quit)
+    signal.signal(signal.SIGTERM, sig_quit)
+
     # run
-    run_task(optMgr.args, work_path)
+    try:
+        run_task(optMgr.args, work_path)
+    except Exception as error:
+        logger.error('Failed to run task:' + str(error))
+    __quit()
 
 
 
 logger = None
+log_exporter = None
 
 if __name__ == '__main__':
     rc = main()
