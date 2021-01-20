@@ -43,13 +43,16 @@ QUERY_FLG_FOR_UPDATE = 0x00010000
 
 UPDATE_FLG_KEEP_SHARDINGKEY = QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE
 UPDATE_FLG_UPDATE_ONE = 0x00000002
+UPDATE_FLG_RETURNNUM = 0x00000004
 
 DELETE_FLG_DELETE_ONE = 0x00000002
+DELETE_FLG_RETURNNUM = 0x00000004
 
 INSERT_FLG_DEFAULT = 0x00000000
 INSERT_FLG_CONTONDUP = 0x00000001
-INSERT_FLG_RETURN_OID = 0x10000000
+INSERT_FLG_RETURNNUM = 0x00000002
 INSERT_FLG_REPLACEONDUP = 0x00000004
+INSERT_FLG_RETURN_OID = 0x10000000
 
 class collection(object):
     """Collection for SequoiaDB
@@ -293,20 +296,19 @@ class collection(object):
            flag        int        See Info as below.
            records     list/tuple The list of inserted records.
         Return values:
-           Empty dict: when flag is not equal INSERT_FLG_RETURN_OID, will return a empty dict, eg: { }.
-           Dict which contains the field "_id": when flag "INSERT_FLG_RETURN_OID" is set, return all the values of "_id"
-           field in a dict. eg: { '_id': [ObjectId('5d514a25c764c60acb58de38'), ObjectId('5d514a25c764c60acb58de39')]}.
+            A dict object containing the insert details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
            The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it can
            choose the follow values:
-             INSERT_FLG_DEFAULT : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
-                 key duplicate error.
-             INSERT_FLG_CONTONDUP : If the record hit index key duplicate error, database will skip it.
-             INSERT_FLG_RETURN_OID : Return the value of "_id" field in the record.
+             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
+                                               key duplicate error.
+             INSERT_FLG_CONTONDUP    : If the record hit index key duplicate error, database will skip it.
+             INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
-                 the inserting new record and then go on inserting.
+                                               the inserting new record and then go on inserting.
+             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -352,20 +354,19 @@ class collection(object):
             record    dict    The inserted record.
             flag      int     See Info as below.
          Return values:
-           Empty dict: when flag is not equal INSERT_FLG_RETURN_OID, will return a empty dict, eg: { }.
-           Dict which contains the field "_id": when flag "INSERT_FLG_RETURN_OID" is set, return all the values of "_id"
-           field in a dict. eg:{ '_id': ObjectId('5d5149ade3071dce3692e93b') }.
+            A dict object containing the insert details.
          Exceptions:
             pysequoiadb.error.SDBBaseError
          Info:
            The flag to control the behavior of inserting. The value of flag default to be INSERT_FLG_DEFAULT, and it can
            choose the follow values:
-             INSERT_FLG_DEFAULT : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
-                 key duplicate error.
-             INSERT_FLG_CONTONDUP : If the record hit index key duplicate error, database will skip it.
-             INSERT_FLG_RETURN_OID : Return the value of "_id" field in the record.
+             INSERT_FLG_DEFAULT      : While INSERT_FLG_DEFAULT is set, database will stop inserting when the record hit index
+                                               key duplicate error.
+             INSERT_FLG_CONTONDUP    : If the record hit index key duplicate error, database will skip it.
+             INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing record by
-                 the inserting new record and then go on inserting.
+                                               the inserting new record and then go on inserting.
+             INSERT_FLG_RETURNNUM    : The flag represent whether insert return detail result.
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
@@ -391,6 +392,8 @@ class collection(object):
            - hint      dict     The hint, automatically match the optimal hint
                                         if not provided.
            - flags     int      See Info as below.
+        Return values:
+            A dict object containing the update details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
@@ -398,7 +401,8 @@ class collection(object):
              UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
-                                                   matched records
+                                                   matched records.
+             UPDATE_FLG_RETURNNUM        : The flag represent whether update return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -425,8 +429,11 @@ class collection(object):
             else:
                 flags = kwargs.get("flags")
 
-        rc = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint, flags)
+        rc, bson_string = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint, flags)
         raise_if_error(rc, "Failed to update")
+        result, size = bson._bson_to_dict(bson_string, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return result
 
     def upsert(self, rule, **kwargs):
         """Update the matching documents in current collection, insert if
@@ -443,6 +450,8 @@ class collection(object):
            - setOnInsert dict  The setOnInsert assigns the specified values
                                        to the fields when insert.
            - flags       int   See Info as below.
+        Return values:
+            A dict object containing the upsert details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
@@ -450,7 +459,8 @@ class collection(object):
              UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
                                                    update or upsert.
              UPDATE_FLG_UPDATE_ONE       : The flag represent whether to update only one matched record or all
-                                                   matched records
+                                                   matched records.
+             UPDATE_FLG_RETURNNUM        : The flag represent whether upsert return detail result.
         Note:
            When flag is set to 0, it won't work to update the "ShardingKey" field, but the
            other fields take effect.
@@ -482,9 +492,12 @@ class collection(object):
             else:
                 flags = kwargs.get("flags")
 
-        rc = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint,
+        rc,bson_string = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint,
                            bson_setOnInsert, flags)
         raise_if_error(rc, "Failed to update")
+        result, size = bson._bson_to_dict(bson_string, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return result
 
     def save(self, doc):
         """Upsert the record using the main key '_id' of the record.
@@ -492,6 +505,8 @@ class collection(object):
         Parameters:
            Name          Type  Info:
            doc           dict  The updating rule.
+        Return values:
+            A dict object containing the saving details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Note:
@@ -518,12 +533,15 @@ class collection(object):
            - hint      dict  The hint, automatically match the optimal hint
                                      if not provided.
            - flags     int   See Info as below.
+        Return values:
+            A dict object containing the deletion details.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         Info:
            The delete flags, default to be 0, it can choose the follow values:
              DELETE_FLG_DELETE_ONE : The flag represent whether to delete only one matched record
-                                             or all matched records
+                                             or all matched records.
+             DELETE_FLG_RETURNNUM  : The flag represent whether delete return detail result.
         """
         bson_condition = None
         bson_hint = None
@@ -544,8 +562,11 @@ class collection(object):
             else:
                flags = kwargs.get("flags")
 
-        rc = sdb.cl_delete(self._cl, bson_condition, bson_hint, flags)
+        rc, bson_string = sdb.cl_delete(self._cl, bson_condition, bson_hint, flags)
         raise_if_error(rc, "Failed to delete")
+        result, size = bson._bson_to_dict(bson_string, dict, False,
+                                          bson.OLD_UUID_SUBTYPE, True)
+        return result
 
     def query(self, **kwargs):
         """Get the matching documents in current collection.
