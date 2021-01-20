@@ -15,94 +15,76 @@
    ```lang-bash
    $ bin/psql -p 5432 sample
    ```
-1. 加载 SequoiaDB 连接驱动
+3. 加载 SequoiaDB 连接驱动
 
 	```lang-sql
 	sample=# create extension sdb_fdw;
 	```
 
-2. 配置与 SequoiaDB 连接参数
+4. 配置 SequoiaDB 连接参数
 
-	```lang-sql
+    ```lang-sql
 	sample=# create server sdb_server foreign data wrapper sdb_fdw options(address '127.0.0.1', service '11810', user 'sdbUserName', password 'sdbPassword', preferedinstance 'A', transaction 'off');
-	```
+    ```
 
-    - user：数据库用户名
-    - password：数据库密码
-    - address：协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串
-    - service：协调节点 serviceName
-    - preferedinstance：设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值
-    - preferedinstancemode：设置 SequoiaDB 的连接属性 preferedinstance 的选择模式
-    - sessiontimeout：设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100'
-    - transaction：设置 SequoiaDB 是否开启事务，默认为 off，开启为 on
-    - cipher：设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理][system_security]
-    - token：设置加密令牌
-    - cipherfile：设置加密文件，默认为 `~/sequoiadb/passwd`
+    >**Note:**
+    >
+    > 详细参数说明可参考 [关联 SequoiaDB 连接参数说明][connectpara]。
 
-	>**Note:** 
-	>
-	> 如果用户没有配置数据库密码验证，可以忽略 user 与 password 字段。
+5. 关联 SequoiaDB 集合空间与集合
 
-3. 关联 SequoiaDB 的集合空间与集合
+    ```lang-sql
+    sample=# create foreign table test (name text, id numeric) server sdb_server options ( collectionspace 'sample', collection 'employee', decimal 'on' ) ;
+    ```
 
-  ```lang-sql
-  sample=# create foreign table test (name text, id numeric) server sdb_server options ( collectionspace 'sample', collection 'employee', decimal 'on' ) ;
-  ```
+    >**Note:**
+    >
+    > - 在 PostgreSQL 中建立相应的映射表关联 SequoiaDB 集合时，需要确保映射表的字段名与集合的字段名大小写一致，且映射表的字段类型与集合的字段类型一致；否则，将查询不到相关数据。
+    > - 详细参数说明可参考 [关联 SequoiaDB 集合空间与集合参数说明][collectionpara]。
 
-   - collectionspace：SequoiaDB 中已存在的集合空间
-   - collection：SequoiaDB 中已存在的集合
-   - decimal：是否对接 SequoiaDB 的 decimal 字段，默认为 off
-   - pushdownsort：是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off
-   - pushdownlimit：是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题
-
-  >**Note:**
-  >
-  > * 用户所指定的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
-  > * 默认情况下，表的字段映射到 SequoiaDB 中为小写字符，如果强制指定字段为大写字符，可参考[注意事项][attention]。
-
-4. 更新表的统计信息
+6. 更新表的统计信息
 
 	```lang-sql
 	sample=# analyze test;
 	```
 
-5. 查询
+7. 查询
 
 	```lang-sql
 	sample=# select * from test;
 	```
 
-6. 写入数据
+8. 写入数据
 
 	```lang-sql
 	sample=# insert into test values('one',3);
 	```
 
-7. 更改数据
+9. 更改数据
 
 	```lang-sql
 	sample=# update test set id=9 where name='one';
 	```
 
-8. 查看所有的表(show tables;)
+10. 查看所有的表(show tables;)
 
 	```lang-sql
 	sample=# \d
 	```
 
-9. 查看表的描述信息
+11. 查看表的描述信息
 
 	```lang-sql
 	sample=# \d test
 	```
 
-10. 删除表的映射关系
+12. 删除表的映射关系
 
 	```lang-sql
 	sample=# drop foreign table test;
 	```
 
-11. 退出 PostgreSQL Shell 环境
+13. 退出 PostgreSQL Shell 环境
 
 	```lang-sql
 	sample=# \q
@@ -131,72 +113,46 @@
 | boolean           | boolean          |                                               |
 | text              | null             |                                               |
 
-## 注意事项
 
-- **对字母大小写敏感**
 
- SequoiaDB 中的集合空间、集合和字段名均对字母的大小写敏感。
+## 关联SequoiaDB连接参数说明
 
-   - 假设 SequoiaDB 中存在集合空间 sample 和集合 employee，在 PostgreSQL 中建立相应的映射表
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ------   | ------ | ------ |
+| user   | string   | 数据库用户名 | 否 |
+| password | string | 数据库密码 | 否 |
+| address | string | 协调节点地址，需要填写多个协调节点地址时，格式为：'ip1:port1,ip2:port2,ip3:port3'，service 字段可填写任意一个非空字符串 | 是 |
+| service | string | 协调节点 serviceName | 是 |
+| preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值 | 否 |
+| preferedinstancemode | string | 设置 SequoiaDB 的连接属性 preferedinstance 的选择模式 | 否 |
+| sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
+| transaction | string | 设置 SequoiaDB 是否开启事务，默认为 off，开启为 on | 否 |
+| cipher | string | 设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理][system_security] | 否 |
+| token | string | 设置加密令牌 | 否 |
+| cipherfile | string | 设置加密文件，默认为 `~/sequoiadb/passwd` | 否 |
 
-     ```lang-sql
-     sample=# create foreign table sdb_upcase_cs_cl (name text) server sdb_server options ( collectionspace 'sample', collection 'employee' ) ;
-     ```
+>**Note:** 
+>
+> 如果用户没有配置数据库密码验证，可以忽略 user 与 password 字段。
 
-  - 假设 SequoiaDB 中存在集合空间 sample 和集合 employee，且集合保存如下数据：
 
-     ```lang-json
-     {
-       "_id": {
-         "$oid":"53a2a0e100e75e2c53000006"
-         },
-       "NAME": "test"
-     }
-     ```
+## 关联SequoiaDB集合空间与集合参数说明
 
-     在 PostgreSQL 中建立相应的映射表
+| 参数名 | 类型 | 描述 | 是否必填 |
+| ------ | ------   | ------ | ------ |
+| collectionspace | string | SequoiaDB 中已存在的集合空间 | 是 |
+| collection | string | SequoiaDB 中已存在的集合 | 是 |
+| decimal | string | 是否对接 SequoiaDB 的 decimal 字段，默认为 off | 否 |
+| pushdownsort | string | 是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off | 否 |
+| pushdownlimit | string | 是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题 | 否 |
 
-     ```lang-sql
-     sample=# create foreign table sdb_upcase_field ("NAME" text) server sdb_server options ( collectionspace 'sample', collection 'employee' ) ;
-     ```
+>**Note:**
+>
+> 用户所指定的集合空间与集合必须已经存在于 SequoiaDB，否则查询出错。
 
-     查询映射表数据
 
-     ```lang-sql
-     sample=# select * from sdb_upcase_field;
-     ```
+## 调整PostgreSQL配置文件
 
-- **映射 SequoiaDB 中的数据类型**
-
- 假设 SequoiaDB 中存在集合空间 sample 和集合 employee，且集合保存如下记录：
-   ```lang-json
-   {
-       "_id": {
-       "$oid":"53a2de926b4715450a000001"
-       },
-       "name": [
-       1,
-       2,
-       3
-       ],
-       "id": 123
-   }
-   ```
-
- 在 PostgreSQL 中建立相应的映射表
-
-   ```lang-sql
-   sample=# create foreign table employeetest (name int[], id int) server sdb_server options ( collectionspace 'sample', collection 'employee' ) ;
-   ```
-
- 查询映射表数据
-
-   ```lang-sql
-   sample=# select * from employeetest;
-   ```
-
-调整PostgreSQL配置文件
-----
 1. 查看 PostgreSQL Shell 中默认的配置
 
    ```lang-ini
@@ -277,6 +233,7 @@
    log_min_messages = debug1
    ```
 
+
 常见问题处理
 ----
 
@@ -300,6 +257,8 @@ $ bin/psql -p 5432 sample
 [^_^]:
 
     本文使用到的所有连接及引用。
+
 [preferedinstance]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
-[attention]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#注意事项
 [system_security]:manual/Distributed_Engine/Maintainance/Security/system_security.md
+[connectpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#关联SequoiaDB连接参数说明
+[collectionpara]:manual/Database_Instance/Relational_Instance/PostgreSQL_Instance/Operation/connection.md#关联SequoiaDB集合空间与集合参数说明
