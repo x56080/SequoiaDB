@@ -103,8 +103,8 @@ function dealParamArr()
         if [ "$?" = 0 ]; then
             opt=$1
         else
-           shift
-           continue
+            echo "[ERROR] Unknown option: $1"
+            exit 1
         fi
         case $opt in
             -h | --help    ) helpInfo                            ;;
