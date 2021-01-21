@@ -4,39 +4,36 @@
 .hy
 .SH NAME
 .PP
-listSequences \- Show the sequences name of the current database.
+listSequences \- Enumerate sequences information
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.listSequences()\f[]\f[]
+\f[B]db.listSequences()\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-Show the sequences name of the current database.
-.RS
-.PP
-\f[B]Note:\f[]
-.RE
-.RS
-.PP
-db.listSequences() can only show the sequences name.
-If you want to show detail information of the sequences, please refer to
-db.snapshot( SDB_SNAP_SEQUENCES ).
-.RE
+This function is used to enumerate the sequence information of the current
+database.
 .SH PARAMETERS
 .PP
-NULL
+None
 .SH RETURN VALUE
 .PP
-On success, return the sequences name of the current database.
+When the function executes successfully, it will return a detailed list of
+collections through the cursor.Users can refer to $LIST_SEQUENCES to get the
+returned field information.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-When exception happens, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more details, please reference to Troubleshooting.
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v3.2 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Show the sequences name of the current database.

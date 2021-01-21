@@ -25,7 +25,7 @@ This function is used to enumerate all background tasks in the database.
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return a detailed list of collections through the cursor.
+When the function executes successfully, it will return a detailed list of collections through the cursor.Users can refer to [SYSTASKS collection][SYSTASKS] to get the returned field information.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -50,3 +50,4 @@ v2.0 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_guide]:manual/faq.md
+[SYSTASKS]:manual/Manual/Catalog_Table/SYSTASKS.md
