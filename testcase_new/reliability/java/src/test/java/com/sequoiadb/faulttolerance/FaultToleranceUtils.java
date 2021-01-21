@@ -9,7 +9,6 @@ import org.testng.Assert;
 
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.commlib.NodeWrapper;
 import com.sequoiadb.commlib.SdbTestBase;
 import com.sequoiadb.exception.BaseException;
 
@@ -40,16 +39,6 @@ public class FaultToleranceUtils {
         } finally {
             sdb.close();
         }
-    }
-
-    public static String getNodeFTStatus( Sequoiadb sdb, NodeWrapper nodes ) {
-        DBCursor cursor = sdb.getSnapshot(
-                Sequoiadb.SDB_SNAP_DATABASE, "{ 'RawData': true, 'NodeName': '"
-                        + nodes.connect().toString() + "' }",
-                "{ 'FTStatus': '' }", null );
-        String ftStatus = cursor.getNext().get( "FTStatus" ).toString();
-        cursor.close();
-        return ftStatus;
     }
 
     public static String getNodeFTStatus( Sequoiadb db, String nodeName ) {
