@@ -39,7 +39,8 @@ public class TestLob22772 extends SdbTestBase {
             sdb.dropCollectionSpace( csName );
         }
         cs = sdb.createCollectionSpace( csName );
-        cl = cs.createCollection( clName );
+        cl = cs.createCollection( clName,
+                new BasicBSONObject( "ReplSize", 0 ) );
         DBLob lob = cl.createLob();
         oid = lob.getID();
         lob.close();
