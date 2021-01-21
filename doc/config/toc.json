@@ -146,6 +146,12 @@
                                  "en": "High Availability"
                               },
                               {
+                                 "id": 1608537490,
+                                 "file": "instance_group",
+                                 "cn": "实例组",
+                                 "en": "Instance Group"
+                              },
+                              {
                                  "id": 1595583537,
                                  "file": "sdb_mysql_ctl",
                                  "cn": "实例管理工具",
@@ -252,6 +258,12 @@
                                  "file": "ha",
                                  "cn": "高可用",
                                  "en": "High Availability"
+                              },
+                              {
+                                 "id": 1608537553,
+                                 "file": "instance_group",
+                                 "cn": "实例组",
+                                 "en": "Instance Group"
                               },
                               {
                                  "id": 1595583874,
