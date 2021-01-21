@@ -73,7 +73,7 @@ public class faulttolerance22208 extends SdbTestBase {
         updateConf( ftmask );
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() throws ReliabilityException, InterruptedException {
         GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         List< NodeWrapper > nodes = dataGroup.getNodes();
@@ -201,10 +201,14 @@ public class faulttolerance22208 extends SdbTestBase {
                 boolean isSlowNode = false;
 
                 do {
+                    NodeWrapper node1 = nodes.get( 0 );
+                    NodeWrapper node2 = nodes.get( 1 );
+                    String NodeName1 = node1.hostName() + ":" + node1.svcName();
+                    String NodeName2 = node2.hostName() + ":" + node2.svcName();
                     String ftStatus1 = FaultToleranceUtils.getNodeFTStatus( db,
-                            nodes.get( 0 ) );
+                            NodeName1 );
                     String ftStatus2 = FaultToleranceUtils.getNodeFTStatus( db,
-                            nodes.get( 1 ) );
+                            NodeName2 );
                     if ( ftStatus1.equals( ftmask )
                             && ftStatus2.equals( ftmask ) ) {
                         isSlowNode = true;

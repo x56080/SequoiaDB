@@ -129,9 +129,10 @@ public class Faulttolerance22203 extends SdbTestBase {
                     "" )) {
                 DBCollection cl = sdb.getCollectionSpace( csName )
                         .getCollection( clName + "_1" );
+                String nodeName = nodes.hostName() + ":" + nodes.svcName();
                 for ( int i = 0; i < 1000; i++ ) {
                     String ftStatus = FaultToleranceUtils.getNodeFTStatus( sdb,
-                            nodes );
+                            nodeName );
                     if ( ftStatus.equals( ftmask ) ) {
                         break;
                     }
