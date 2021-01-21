@@ -73,7 +73,7 @@ public class faulttolerance22208 extends SdbTestBase {
         updateConf( ftmask );
     }
 
-    @Test
+    @Test(enabled = false)
     public void test() throws ReliabilityException, InterruptedException {
         GroupWrapper dataGroup = groupMgr.getGroupByName( groupName );
         List< NodeWrapper > nodes = dataGroup.getNodes();
