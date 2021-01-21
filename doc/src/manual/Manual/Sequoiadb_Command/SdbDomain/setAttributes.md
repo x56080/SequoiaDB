@@ -45,8 +45,8 @@ options ( *object，必填* )
 | 错误码 | 可能的原因   | 解决方法              |
 | ------ | ------------ | --------------------- |
 | -154   | 分区组不存在 | 使用列表查看分区组是否存在 |
-| -215   | 域已经在     | 使用listDomains()查看域是否存在 |
-| -256   | 域已被使用   | 使用listCollections()查看域是否存在集合 |
+| -214   | 域不存在 | 使用 db.listDomains() 查看域是否存在 |
+| -256   | 域已被使用   | 使用 domain.listCollectionSpaces() 查看域是否存在集合空间 |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
 
