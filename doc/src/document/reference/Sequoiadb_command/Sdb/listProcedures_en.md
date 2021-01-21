@@ -23,7 +23,7 @@ This function is used to enumerate all stored procedure functions.
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return a detailed list of collections through the cursor.
+When the function executes successfully, it will return a detailed list of collections through the cursor.Users can refer to [STOREPROCEDURES collection](infrastructure/catalog_node/STOREPROCEDURES.md) to get the returned field information.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 

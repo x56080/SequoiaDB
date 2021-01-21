@@ -24,7 +24,7 @@ Enumerate all user-created domains in the system.
 
 ##RETURN VALUE##
 
-When the function executes successfully, it will return a detailed list of collections through the cursor.
+When the function executes successfully, it will return a detailed list of collections through the cursor.Users can refer to [SYSDOMAINS colletion](infrastructure/catalog_node/SYSDOMAINS.md) to get the returned field information.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 

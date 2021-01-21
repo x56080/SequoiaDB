@@ -116,7 +116,8 @@ T}
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it will return a detailed list of
-collections through the cursor.
+collections through the cursor.Users can refer to SYSTASKS collection to get the
+returned field information.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.

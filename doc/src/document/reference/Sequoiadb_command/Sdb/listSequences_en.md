@@ -1,46 +1,39 @@
-
-
 ##NAME##
 
-listSequences - Show the sequences name of the current database.
+listSequences - Enumerate sequences information
 
 ##SYNOPSIS##
 
-***db.listSequences()***
+**db.listSequences()**
 
 ##CATEGORY##
 
-Sdb
 
 ##DESCRIPTION##
 
-Show the sequences name of the current database.
-
->**Note:**
-
->db.listSequences() can only show the sequences name. If you want to show detail information of the sequences, please refer to [db.snapshot( SDB_SNAP_SEQUENCES )](manual/Manual/Snapshot/SDB_SNAP_SEQUENCES.md).
+This function is used to enumerate the sequence information of the current database.
 
 ##PARAMETERS##
 
-NULL
+None
 
 ##RETURN VALUE##
 
-On success, return the sequences name of the current database.
+When the function executes successfully, it will return a detailed list of collections through the cursor.Users can refer to [$LIST_SEQUENCES](reference/SQL_grammar/monitoring/LIST_SEQUENCES.md) to get the returned field information.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
 When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, please  reference to [Troubleshooting](manual/faq.md).
 
+##VERSION##
+
+v3.2 and above
+
 ##EXAMPLES##
 
-* Show the sequences name of the current database.
-
-```lang-javascript
-> db.listSequences()
-{
+   ```
   "Name": "SYS_8589934593_id_SEQ"
 }
-```
+   ```
