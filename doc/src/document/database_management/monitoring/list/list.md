@@ -16,6 +16,7 @@
 | [SDB_LIST_SEQUENCES](database_management/monitoring/list/SDB_LIST_SEQUENCES.md) | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
 | [SDB_LIST_USERS](database_management/monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
 | [SDB_LIST_BACKUPS](database_management/monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 备份列表列出当前数据库的备份信息 |
+| [SDB_LIST_DATASOURCES](database_management/monitoring/list/SDB_LIST_DATASOURCES.md) | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
 
 >   **Note:**
 >

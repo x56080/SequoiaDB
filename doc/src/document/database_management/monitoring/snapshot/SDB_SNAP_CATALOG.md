@@ -39,6 +39,8 @@ SDB_SNAP_CATALOG
 | AutoIncrement.Generated   | 字符串 | 自增字段生成方式       |
 | AutoIncrement.SequenceName| 字符串 | 自增字段对应序列名     |
 | AutoIncrement.SequenceID  | 长整型 | 自增字段对应序列ID     |
+| DataSourceID      | 整型   | 数据源 ID                     |
+| Mapping           | 字符串 | 在[数据源](infrastructure/datasource.md)中所映射的集合名称    |
 
 ##示例##
 1.普通集合
@@ -154,4 +156,30 @@ SDB_SNAP_CATALOG
   "Version": 2,
 }
 
+```
+
+4.使用数据源的集合
+
+```lang-javascript
+> db.snapshot( SDB_SNAP_CATALOG )
+{
+  "_id": {
+    "$oid": "5ffc313972e60c4d9be30c4f"
+  },
+  "Name": "sample2.employee",
+  "UniqueID": 8589934593,
+  "Version": 1,
+  "Attribute": 1,
+  "AttributeDesc": "Compressed",
+  "CompressionType": 1,
+  "CompressionTypeDesc": "lzw",
+  "CataInfo": [
+    {
+      "GroupID": -2147483647,
+      "GroupName": "DataSource"
+    }
+  ],
+  "DataSourceID": 1,
+  "Mapping": "sample2.employee"
+}
 ```

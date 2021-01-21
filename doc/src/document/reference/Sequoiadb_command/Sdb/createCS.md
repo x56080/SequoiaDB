@@ -10,13 +10,15 @@
 | name | string | 集合空间名，同一个数据库对象中，集合空间名必须唯一。 | 是 |
 | options | Json | Json对象，集合空间可选属性。 | 否 |
 
- 1. **options 格式**
+**options 格式**
 
- | 属性名 | 描述 | 格式 |
- | ------ | ------ | ------ |
- | PageSize | 数据页/索引页大小。单位为字节，默认值65536。 | PageSize: \<int32\> |
- | Domain | 所属域。默认值系统域 SYSDOMAIN，SYSDOMAIN 包含所有的复制组。 | Domain: \<string\> |
- | LobPageSize | Lob数据页大小。单位为字节，默认值262144。 | LobPageSize: \<int32\> |
+| 属性名 | 描述 | 格式 |
+| ------ | ------ | ------ |
+| PageSize | 数据页/索引页大小。单位为字节，默认值65536。 | PageSize: \<int32\> |
+| Domain | 所属域。默认值系统域 SYSDOMAIN，SYSDOMAIN 包含所有的复制组。 | Domain: \<string\> |
+| LobPageSize | Lob数据页大小。单位为字节，默认值262144。 | LobPageSize: \<int32\> |
+| DataSource  | 所使用的数据源名称   | DataSource: \<string\>  |
+| Mapping     | 所映射的集合空间名称 | Mapping: \<string\> |
 
 > **Note:**
 >
@@ -27,6 +29,7 @@
 > * 所属域必须已经存在，且不能指定为系统域 SYSDOMAIN。
 > * 为兼容较早版本接口，db.createCS( \<name\>, [PageSize] ) 同样可以工作。
 > * LobPageSize只能选填0，4096，8192，16384，32768，65536，131072，262144，524288之一，0即为默认值262144。
+> * DataSource 和 Mapping 参数的具体使用场景可参考[数据源](infrastructure/datasource.md)。
 
 ##返回值##
 

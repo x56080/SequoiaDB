@@ -759,6 +759,12 @@
                      "file": "SEQUENCES",
                      "cn": "SEQUENCES 集合",
                      "en": "SEQUENCES"
+                  },
+                  {
+                     "id": 1610373493,
+                     "file": "SYSDATASOURCES",
+                     "cn": "SYSDATASOURCES 集合",
+                     "en": "SYSDATASOURCES"
                   }
                ]
             },
@@ -805,6 +811,12 @@
                      "en": "R/W Splitting"
                   }
                ]
+            },
+            {
+               "id": 1610373324,
+               "file": "datasource",
+               "cn": "数据源",
+               "en": "Data Source"
             },
             {
                "id": 1432190642,
@@ -1303,6 +1315,12 @@
                            "file": "SDB_LIST_BACKUPS",
                            "cn": "备份列表",
                            "en": "SDB_LIST_BACKUPS"
+                        },
+                        {
+                           "id": 1611158407,
+                           "file": "SDB_LIST_DATASOURCES",
+                           "cn": "数据源列表",
+                           "en": "SDB_LIST_DATASOURCES"
                         }
                      ]
                   },
@@ -2087,6 +2105,12 @@
                            "en": "createCS()"
                         },
                         {
+                           "id": 1610376288,
+                           "file": "createDataSource",
+                           "cn": "createDataSource()",
+                           "en": "createDataSource()"
+                        },
+                        {
                            "id": 1432190774,
                            "file": "createDomain",
                            "cn": "createDomain()",
@@ -2121,6 +2145,12 @@
                            "file": "dropCS",
                            "cn": "dropCS()",
                            "en": "dropCS()"
+                        },
+                        {
+                           "id": 1610376333,
+                           "file": "dropDataSource",
+                           "cn": "dropDataSource()",
+                           "en": "dropDataSource()"
                         },
                         {
                            "id": 1432190779,
@@ -2189,6 +2219,12 @@
                            "en": "getCS()"
                         },
                         {
+                           "id": 1610377717,
+                           "file": "getDataSource",
+                           "cn": "getDataSource()",
+                           "en": "getDataSource()"
+                        },
+                        {
                            "id": 1432190790,
                            "file": "getDomain",
                            "cn": "getDomain()",
@@ -2241,6 +2277,12 @@
                            "file": "listCollectionSpaces",
                            "cn": "listCollectionSpaces()",
                            "en": "listCollectionSpaces()"
+                        },
+                        {
+                           "id": 1610377810,
+                           "file": "listDataSources",
+                           "cn": "listDataSources()",
+                           "en": "listDataSources()"
                         },
                         {
                            "id": 1432190797,
@@ -3023,6 +3065,20 @@
                            "file": "listGroups",
                            "cn": "listGroups()",
                            "en": "listGroups()"
+                        }
+                     ]
+                  },
+                  {
+                     "id": 1610376080,
+                     "dir": "SdbDataSource",
+                     "cn": "SdbDataSource",
+                     "en": "SdbDataSource",
+                     "contents": [
+                        {
+                           "id": 1610376142,
+                           "file": "alter",
+                           "cn": "alter()",
+                           "en": "alter()"
                         }
                      ]
                   },
@@ -5039,6 +5095,12 @@
                            "file": "LIST_BACKUP",
                            "cn": "$LIST_BACKUP",
                            "en": "$LIST_BACKUP"
+                        },
+                        {
+                           "id": 1611220898,
+                           "file": "LIST_DATASOURCE",
+                           "cn": "$LIST_DATASOURCE",
+                           "en": "$LIST_DATASOURCE"
                         }
                      ]
                   },
