@@ -28,19 +28,25 @@ import socket
 import datetime
 import operator
 import optparse
-import ConfigParser
 import logging.config
 import pysequoiadb
+try:
+    import ConfigParser as ConfigParser
+except Exception:
+    import configparser as ConfigParser
 from getpass import getpass
 from pysequoiadb import client
 from collections import OrderedDict
 from pysequoiadb.collection import INSERT_FLG_CONTONDUP
 from pysequoiadb.errcode import *
-from pysequoiadb.error import (SDBTypeError,
-                               SDBBaseError)
+from pysequoiadb.error import (SDBTypeError, SDBBaseError)
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+try:
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except NameError:
+    import importlib,sys
+    importlib.reload(sys)
 
 DESCRIPTION = '''%prog is a sdbaudit exporter server.'''
 
@@ -1078,7 +1084,7 @@ def run_task(args, work_path):
     stat_mgr = StatMgr(stat_file)
     try:
         stat_mgr.load_stat()
-    except Exception, err:
+    except Exception as err:
         logger.error('Failed to load status: {}'.format(err))
         raise
 

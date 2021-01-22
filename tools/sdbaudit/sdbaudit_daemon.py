@@ -24,8 +24,12 @@ import signal
 import optparse
 from sdbaudit_exprt import pid_exist
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+try:
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except NameError:
+    import importlib,sys
+    importlib.reload(sys)
 
 DESCRIPTION = '''%prog is a daemon for sdbaudit_exprt.'''
 
@@ -55,7 +59,7 @@ class Daemon:
             pid = os.fork()
             if pid > 0:
                 sys.exit(0)
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write('fork child process failed.')
             sys.exit(1)
         os.chdir('/')
@@ -63,9 +67,9 @@ class Daemon:
         os.umask(0)
         sys.stdout.flush()
         sys.stderr.flush()
-        si = file(self.stdin, 'r')
-        so = file(self.stdout, 'a+')
-        se = file(self.stderr, 'a+', 0)
+        si = open(self.stdin, 'r')
+        so = open(self.stdout, 'a+')
+        se = open(self.stderr, 'a+')
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
