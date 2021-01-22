@@ -65,7 +65,7 @@ tools/
 
 3. 将上述审计插件 `server_audit.so` 文件复制到 MySQL 安装目录中的 `lib/plugin` 目录下，并赋予 MySQL 运行用户的可执行权限
 
-4.  创建审计日志存储目录，如下以端口为 3316 的 MySQL 实例为例，创建 `auditlog` 目录：
+4. 创建审计日志存储目录，如下以端口为 3316 的 MySQL 实例为例，创建 `auditlog` 目录：
 
    ```lang-bash
    $ mkdir database/3316/auditlog
@@ -87,7 +87,7 @@ tools/
    # 开启审计
    server_audit_logging=ON
    # 审计日志路径及文件名
-   server_audit_file_path=/opt/sequoiasql/mysql/database/auditlog/server_audit.log
+   server_audit_file_path=/opt/sequoiasql/mysql/database/3316/auditlog/server_audit.log
    # 强制日志文件轮转，保持配置为 OFF 即可
    server_audit_file_rotate_now=OFF
    # 审计日志文件大小阈值，默认 10MB，超过该大小时将进行轮转，单位为byte
