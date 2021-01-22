@@ -953,7 +953,9 @@ namespace engine
                                matcher, dummyObj, cb, csMetaRecord ) ;
             if ( SDB_DMS_EOC == rc )
             {
-               rc = SDB_DMS_CS_NOTEXIST ;
+               // For compatible reason, return SDB_DMS_NOTEXIST instead of
+               // SDB_DMS_CS_NOTEXIST.
+               rc = SDB_DMS_NOTEXIST ;
                goto error ;
             }
             else if ( rc )

@@ -521,6 +521,10 @@ namespace engine
    INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
                                   BSONObj &obj, pmdEDUCB *cb ) ;
 
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta = NULL ) ;
+
    INT32 catBuildCatalogByPureMappingCS( const CHAR *clFullName,
                                          const BSONObj &csMetaData,
                                          BSONObj &catalog, pmdEDUCB *cb ) ;

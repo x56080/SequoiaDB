@@ -1276,7 +1276,7 @@ namespace engine
                       "failed[%d]", rc ) ;
          if ( !exist )
          {
-            rc = SDB_INVALIDARG ;
+            rc = SDB_DMS_CS_NOTEXIST ;
             PD_LOG( PDERROR, "Collection space[%s] dose not exist",
                     _targetName.c_str() ) ;
             goto error ;
@@ -2606,14 +2606,14 @@ namespace engine
                       "Failed to get field [%s], rc: %d",
                       CAT_COLLECTION_NAME, rc ) ;
 
-         // Check if the collection space is using data source. If yes, it can't
+         // Check if the collection is using data source. If yes, it can't
          // be modified.
          rc = catCheckCollectionExist( _targetName.c_str(), exist, meta, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Check collection existence failed[%d]",
                       rc ) ;
          if ( !exist )
          {
-            rc = SDB_INVALIDARG ;
+            rc = SDB_DMS_NOTEXIST ;
             PD_LOG( PDERROR, "Collection[%s] dose not exist",
                     _targetName.c_str() ) ;
             goto error ;

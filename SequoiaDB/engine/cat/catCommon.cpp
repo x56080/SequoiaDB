@@ -3226,14 +3226,33 @@ namespace engine
                PD_LOG( PDWARNING,
                        "Collection[%s]'s space does not exist, rc: %d",
                        clName.c_str(), rc ) ;
+               goto error ;
             }
             else
             {
-               rc = SDB_DMS_NOTEXIST ;
-               PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
-                       clName.c_str(), rc ) ;
+               // If the cs exists, and the collection is not found, check if
+               // the cs is using data source.
+               BOOLEAN inMappingCS = FALSE ;
+               BSONObj csMetaRecord ;
+               rc = catCheckCLInPureMappingCS( clName.c_str(), cb,
+                                               inMappingCS, &csMetaRecord ) ;
+               PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+               if ( !inMappingCS )
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                          clName.c_str(), rc ) ;
+                  goto error ;
+               }
+               // It's a pure mapping cs, let's build a catalog record for the
+               // collection.
+               rc = catBuildCatalogByPureMappingCS( clName.c_str(),
+                                                    csMetaRecord,
+                                                    boCollection, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
             }
-            goto error ;
          }
 
          // Lock sub-collection
@@ -5763,6 +5782,59 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CATCHECKDATASRUOCEEXIST, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKCLINPUREMAPPINGCS, "catCheckCLInPureMappingCS" )
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKCLINPUREMAPPINGCS ) ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      const CHAR *dot = ossStrchr( clFullName, '.' ) ;
+      ossStrncpy( csName, clFullName, dot - clFullName ) ;
+
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObj csMetaRecord ;
+         BSONObj cataInfo ;
+         BSONObj matcher = BSON( FIELD_NAME_NAME << csName ) ;
+
+         rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummyObj, matcher,
+                            dummyObj, cb, csMetaRecord ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            inMappingCS = FALSE ;
+            rc = SDB_OK ;
+            goto done ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get collection space[%s] metadata from "
+                             "SYSCOLLECTIONSPACES failed[%d]", csName, rc ) ;
+            goto error ;
+         }
+
+         inMappingCS = csMetaRecord.hasField( FIELD_NAME_DATASOURCE_ID ) ;
+         if ( csMeta )
+         {
+            *csMeta = csMetaRecord.getOwned() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKCLINPUREMAPPINGCS, rc ) ;
       return rc ;
    error:
       goto done ;

@@ -245,7 +245,7 @@ namespace engine
       INT32 _setCSCLUniqueID( string csName, const BSONObj& boCollections,
                               UINT32 csUniqueID ) ;
 
-      INT32 _checkPureMappingCS( const CHAR *clFullName, MsgOpReply *reply ) ;
+      INT32 _checkPureMappingCS( const CHAR *clFullName, MsgOpReply *&reply ) ;
 
    private:
       sdbCatalogueCB       *_pCatCB;

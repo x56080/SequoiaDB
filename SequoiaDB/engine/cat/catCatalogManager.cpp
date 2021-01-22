@@ -314,60 +314,43 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKPUREMAPPINGCS, "catCatalogueManager::_checkPureMappingCS" )
    INT32 catCatalogueManager::_checkPureMappingCS( const CHAR *clFullName,
-                                                   MsgOpReply *reply )
+                                                   MsgOpReply *&reply )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKPUREMAPPINGCS ) ;
-      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-      const CHAR *dot = ossStrchr( clFullName, '.' ) ;
-      ossStrncpy( csName, clFullName, dot - clFullName ) ;
+      BOOLEAN inMappingCS = FALSE ;
+      INT32 buffSize = 0 ;
 
       try
       {
-         BSONObj dummyObj ;
-         BSONObj csMetaRecord ;
          BSONObj cataInfo ;
-         BSONObj matcher = BSON( FIELD_NAME_NAME << csName ) ;
+         BSONObj csMetaRecord ;
 
-         rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummyObj, matcher,
-                            dummyObj, _pEduCB, csMetaRecord ) ;
-         if ( SDB_DMS_EOC == rc )
+         rc = catCheckCLInPureMappingCS( clFullName, _pEduCB, inMappingCS,
+                                         &csMetaRecord ) ;
+         PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
+                      "collection[%s] failed[%d]", clFullName, rc ) ;
+         if ( !inMappingCS )
          {
-            rc = SDB_DMS_CS_NOTEXIST ;
-            goto error ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Get collection space[%s] metadata from "
-                    "SYSCOLLECTIONSPACES failed[%d]", csName, rc ) ;
-            goto error ;
+            // Not in a pure mapping cs, it's a normal collection space.
+            goto done ;
          }
 
-         {
-            INT32 buffSize = 0 ;
-            BSONElement ele = csMetaRecord.getField( FIELD_NAME_DATASOURCE_ID ) ;
-            if ( ele.eoo() )
-            {
-               // No datasource id field, it's a normal collection space.
-               goto done ;
-            }
+         rc = catBuildCatalogByPureMappingCS( clFullName, csMetaRecord,
+                                              cataInfo, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
+                                   "collection[%s] failed[%d]", clFullName, rc ) ;
 
-            rc = catBuildCatalogByPureMappingCS( clFullName, csMetaRecord,
-                                                 cataInfo, _pEduCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
-                         "collection[%s] failed[%d]", clFullName, rc ) ;
-
-            rc = rtnReallocBuffer( (CHAR **)&reply, &buffSize,
-                                   sizeof(MsgOpReply) + cataInfo.objsize(),
-                                   SDB_PAGE_SIZE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Reallocate reply buffer failed[%d]",
-                         rc ) ;
-            ossMemcpy( (CHAR *)reply + sizeof(MsgOpReply),
-                       cataInfo.objdata(), cataInfo.objsize() ) ;
-            reply->header.messageLength += cataInfo.objsize() ;
-            reply->numReturned = 1 ;
-            reply->flags = SDB_OK ;
-         }
+         rc = rtnReallocBuffer( (CHAR **)&reply, &buffSize,
+                                sizeof(MsgOpReply) + cataInfo.objsize(),
+                                SDB_PAGE_SIZE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Reallocate reply buffer failed[%d]",
+                      rc ) ;
+         ossMemcpy( (CHAR *)reply + sizeof(MsgOpReply),
+                    cataInfo.objdata(), cataInfo.objsize() ) ;
+         reply->header.messageLength += cataInfo.objsize() ;
+         reply->numReturned = 1 ;
+         reply->flags = SDB_OK ;
       }
       catch ( std::exception &e )
       {
@@ -461,10 +444,12 @@ namespace engine
                }
                else
                {
+                  // If the cs exists, and the collection is not found, check if
+                  // the cs is using data source.
                   const CHAR *clName = matcher.firstElement().valuestr() ;
                   rc = _checkPureMappingCS( clName, pReply ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Check mapping info of collection[%s] "
-                                            "failed[%d]", clName, rc ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Check mapping info of "
+                               "collection[%s] failed[%d]", clName, rc ) ;
                   if ( 0 == pReply->numReturned )
                   {
                      rc = SDB_DMS_NOTEXIST ;
@@ -1137,7 +1122,7 @@ namespace engine
                       ele.type() ) ;
             UINT32 len = ossStrlen( ele.valuestr() ) ;
             PD_CHECK( len > 0 && len <= DATASOURCE_MAX_NAME_SZ, SDB_INVALIDARG,
-                      error, PDERROR, "Length of data source naame should be "
+                      error, PDERROR, "Length of data source name should be "
                       "greater than 0 and less than %u",
                       DATASOURCE_MAX_NAME_SZ ) ;
             csInfo._pDataSourceName = ele.valuestr() ;

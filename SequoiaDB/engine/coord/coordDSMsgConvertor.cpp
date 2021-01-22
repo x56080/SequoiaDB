@@ -1355,7 +1355,7 @@ namespace engine
                    rc, msg2String( msg ).c_str() ) ;
 
 #ifdef _DEBUG
-      PD_LOG( PDEVENT, "Before convert, the message info is: query: %s, "
+      PD_LOG( PDDEBUG, "Before convert, the message info is: query: %s, "
               "selector: %s, order: %s, hint: %s",
               query ? BSONObj(query).toString().c_str() : "",
               selector ? BSONObj(selector).toString().c_str() : "",
