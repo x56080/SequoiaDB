@@ -1,5 +1,15 @@
 package com.sequoias3.delimiter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketVersioningConfiguration;
@@ -17,15 +27,6 @@ import com.sequoias3.commlibs3.S3TestBase;
 import com.sequoias3.commlibs3.TestTools;
 import com.sequoias3.commlibs3.s3utils.DelimiterUtils;
 import com.sequoias3.commlibs3.s3utils.ObjectUtils;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Description seqDB-18199 :: 更新对象过程中db端节点异常
@@ -168,7 +169,7 @@ public class UpdateObjectWithKillCoord18199 extends S3TestBase {
                     + currentVersionId;
             ObjectUtils.inputStream2File( object.getObjectContent(),
                     downloadPath );
-            Assert.assertEquals( TestTools.getMD5( new File( downloadPath ) ),
+            Assert.assertEquals( TestTools.getMD5( downloadPath ),
                     expMd5 );
         }
     }
