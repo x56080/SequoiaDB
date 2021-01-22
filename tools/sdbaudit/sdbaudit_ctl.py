@@ -25,12 +25,20 @@ import socket
 import shutil
 import signal
 import optparse
-import ConfigParser
 from sdbaudit_exprt import CryptoUtil, pid_exist
 from subprocess import Popen, PIPE
+try:
+    import ConfigParser as ConfigParser
+except Exception:
+    import configparser as ConfigParser
+    import chardet
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+try:
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except NameError:
+    import importlib,sys
+    importlib.reload(sys)
 
 DESCRIPTION = "%prog is a utility to initialize, start, stop, or control a " \
               "sdbaudit server."
@@ -254,11 +262,13 @@ class ObjMgr:
             print("[ERROR] --path '{}' is not installation directory for " \
                   "{}".format(self.__install_dir, self.__log_type))
             return 1
+
         buf = p.stdout.read()
-        svc_name = [x.replace(' ', '') for x in re.findall(r'svcname[^\r\n]+',
-                                                           buf)]
-        audit_path = [x.replace(' ', '') for x in re.findall(r'auditpath[^\r\n]+',
-                                                             buf)]
+        if str != type(buf):
+            encode_type = chardet.detect(buf)
+            buf = buf.decode(encode_type['encoding'])
+        svc_name = [x.replace(' ', '') for x in re.findall(r'svcname[^\r\n]+', buf)]
+        audit_path = [x.replace(' ', '') for x in re.findall(r'auditpath[^\r\n]+', buf)]
         role = [x.replace(' ', '') for x in re.findall(r'role[^\r\n]+', buf)]
         for i in range(len(svc_name)):
             tmp = {}
@@ -297,8 +307,14 @@ class ObjMgr:
             line = p.stdout.readline()
             while line:
                 if os.path.isdir(line.split()[1]):
-                    inst_name.append(line.split()[0])
-                    data_dir.append(line.split()[1])
+                    tmp_name = line.split()[0]
+                    tmp_dir = line.split()[1]
+                    if str != type(tmp_name):
+                        encode_type = chardet.detect(tmp_name)
+                        tmp_name = tmp_name.decode(encode_type['encoding'])
+                        tmp_dir = tmp_dir.decode(encode_type['encoding'])
+                    inst_name.append(tmp_name)
+                    data_dir.append(tmp_dir)
                     install_dir.append(self.__install_dir)
                 line = p.stdout.readline()
 
@@ -349,10 +365,16 @@ class ObjMgr:
                 line = p.stdout.readline()
                 while line:
                     if os.path.isdir(line.split()[1]):
-                        inst_name.append(line.split()[0])
-                        tmp_list1.append(line.split()[0])
-                        data_dir.append(line.split()[1])
-                        tmp_list2.append(line.split()[1])
+                        tmp_name = line.split()[0]
+                        tmp_dir = line.split()[1]
+                        if str != type(tmp_name):
+                            encode_type = chardet.detect(tmp_name)
+                            tmp_name = tmp_name.decode(encode_type['encoding'])
+                            tmp_dir = tmp_dir.decode(encode_type['encoding'])
+                        inst_name.append(tmp_name)
+                        tmp_list1.append(tmp_name)
+                        data_dir.append(tmp_dir)
+                        tmp_list2.append(tmp_dir)
                         install_dir.append(dir)
                     line = p.stdout.readline()
                 all_inst_name_in_install_dir.append(tmp_list1)
@@ -383,14 +405,14 @@ class ObjMgr:
                 elif len(install_dir) > 1:
                     print("[INFO] There are {} install dir containing " \
                           "inst '{}', which are {}. Please use --path " \
-                          "to specify the dir you want to " \
+                          "to specify the directory you want to " \
                           "add".format(len(install_dir),
                           self.__instance_name, install_dir))
-                    return 0
+                    return 1
                     
         #read auto.cnf for port and auditpath
-        parser = ConfigParser.ConfigParser()
         for i in range(len(data_dir)):
+            parser = ConfigParser.ConfigParser()
             auto_cnf = os.path.join(data_dir[i], 'auto.cnf')
             parser.read(auto_cnf)
             section = 'mysqld'
