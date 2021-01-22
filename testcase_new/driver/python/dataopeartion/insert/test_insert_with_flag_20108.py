@@ -6,7 +6,7 @@
 from dataopeartion.insert.commlib import *
 from lib import testlib
 from pysequoiadb.error import (SDBBaseError)
-from pysequoiadb.collection import (INSERT_FLG_DEFAULT, INSERT_FLG_CONTONDUP, INSERT_FLG_RETURN_OID, INSERT_FLG_REPLACEONDUP)
+from pysequoiadb.collection import (INSERT_FLG_DEFAULT, INSERT_FLG_CONTONDUP, INSERT_FLG_RETURN_OID, INSERT_FLG_REPLACEONDUP, INSERT_FLG_RETURNNUM)
 from bson import ObjectId
 
 class TestInsertWithFlag20108(testlib.SdbTestBase):
@@ -24,7 +24,7 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
       # insert data with default flag
       record = {"a": 1, "b": 1}
       ret_value = self.cl.insert_with_flag(record)
-      
+
       # query data and check
       check_Result(self.cl, {"a": 1}, [record], False)
       self.assertEqual({}, ret_value)
@@ -63,6 +63,14 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
       # query data and check
       check_Result(self.cl, {"a":1}, [record3], False)
       self.assertEqual({}, ret_value)
+
+      # insert data with INSERT_FLG_RETURNNUM 
+      record4 = {"a": 3, "b": 3}
+      ret_value = self.cl.insert_with_flag(record4, INSERT_FLG_RETURNNUM)
+
+      # query data and check
+      check_Result(self.cl, {"a":3}, [record4], False)
+      self.assertEqual({"DuplicatedNum": 0, "InsertedNum": 1}, ret_value)
       
    def tearDown(self):
       if self.should_clean_env():
