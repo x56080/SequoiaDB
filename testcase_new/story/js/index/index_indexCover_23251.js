@@ -6,6 +6,7 @@
  * @LastEditors   : Xiaoni Huang
  ******************************************************************************/
 testConf.clName = CHANGEDPREFIX + "_cl_23250";
+testConf.clOpt = { "ReplSize": -1 };
 
 main( test );
 function test ( testPara )
