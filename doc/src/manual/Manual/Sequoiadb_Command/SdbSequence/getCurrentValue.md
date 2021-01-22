@@ -6,6 +6,10 @@ getCurrentValue - 获取序列的当前值
 
 **sequence.getCurrentValue\(\)**
 
+##类别##
+
+SdbSequence
+
 ##描述##
 
 当用户需要知道序列进度时，可以使用该函数用获取序列的当前值。

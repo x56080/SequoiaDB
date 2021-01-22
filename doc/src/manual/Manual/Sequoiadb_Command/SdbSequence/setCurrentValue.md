@@ -6,6 +6,10 @@ setCurrentValue - 设置序列的当前值
 
 **sequence.setCurrentValue\(\<value\>\)**
 
+##类别##
+
+SdbSequence
+
 ##描述##
 
 该函数用于设置序列的当前值，从而调整序列的进度。对于递增序列，设置的当前值只能增大，不能减小；对于递减序列，则相反。该特性可以避免序列生成重复值，如需反向设置，可以使用 [restart()][restart] 函数。

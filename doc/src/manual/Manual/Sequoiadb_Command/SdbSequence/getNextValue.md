@@ -6,6 +6,10 @@ getNextValue - 获取序列的下一个值
 
 **sequence.getNextValue\(\)**
 
+##类别##
+
+SdbSequence
+
 ##描述##
 
 该函数用于是获取当前序列的下一个值。通常该值能保证唯一，可以用于做 ID 标识等用途。

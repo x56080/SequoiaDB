@@ -8,6 +8,9 @@ restart \- 使序列从指定值开始重新计数
 .SH 语法
 .PP
 \f[B]sequence.restart(<value>)\f[]
+.SH 类别
+.PP
+SdbSequence
 .SH 描述
 .PP
 该函数可以使序列从指定值开始重新计数。指定的起始值可以是序列最小值至最大值范围内的任意值。

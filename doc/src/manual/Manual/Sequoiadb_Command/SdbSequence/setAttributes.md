@@ -6,6 +6,10 @@ setAttributes - 修改序列的属性
 
 **sequence.setAttributes\(\<options\>\)**
 
+##类别##
+
+SdbSequence
+
 ##描述##
 
 该函数用于修改序列的当前值、起始值、最小值、最大值等属性。
