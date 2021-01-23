@@ -2,6 +2,7 @@
 decription: the data group add node                
 *@author:     wangwenjing
 ***********************************************************/
+
 function createNodeOfDataGroup ( dataGroup )
 {
    var hostName = getHostNameOfLocal();
@@ -70,4 +71,4 @@ function main ()
    }
 }
 
-main();
+/**main();  暂时屏蔽**/
