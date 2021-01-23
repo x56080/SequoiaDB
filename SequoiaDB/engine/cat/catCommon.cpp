@@ -3212,7 +3212,8 @@ namespace engine
       try
       {
          BOOLEAN isExist = FALSE ;
-         rc = catCheckCollectionExist( clName.c_str(), isExist, boCollection, cb ) ;
+         rc = catCheckCollectionExist( clName.c_str(), isExist,
+                                       boCollection, cb ) ;
          PD_RC_CHECK( rc, PDWARNING,
                       "Failed to get info of collection [%s], rc: %d",
                       clName.c_str(), rc ) ;
@@ -3220,15 +3221,7 @@ namespace engine
          if ( !isExist )
          {
             rc = catCheckCSExist( clName.c_str(), cb, isExist ) ;
-            if ( SDB_OK == rc && !isExist )
-            {
-               rc = SDB_DMS_CS_NOTEXIST ;
-               PD_LOG( PDWARNING,
-                       "Collection[%s]'s space does not exist, rc: %d",
-                       clName.c_str(), rc ) ;
-               goto error ;
-            }
-            else
+            if ( isExist )
             {
                // If the cs exists, and the collection is not found, check if
                // the cs is using data source.
@@ -3252,6 +3245,21 @@ namespace engine
                                                     boCollection, cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
                             "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               rc = SDB_DMS_CS_NOTEXIST ;
+               PD_LOG( PDWARNING,
+                       "Collection[%s]'s space does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_DMS_NOTEXIST ;
+               PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+               goto error ;
             }
          }
 
@@ -5796,6 +5804,10 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCHECKCLINPUREMAPPINGCS ) ;
       CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
       const CHAR *dot = ossStrchr( clFullName, '.' ) ;
+      SDB_ASSERT( dot, "Not a full name" ) ; ;
+      SDB_ASSERT( ( ( dot - clFullName ) > 0 ) &&
+                  ( ( dot - clFullName ) <= DMS_COLLECTION_SPACE_NAME_SZ ),
+                  "cs name is invalid" ) ;
       ossStrncpy( csName, clFullName, dot - clFullName ) ;
 
       try

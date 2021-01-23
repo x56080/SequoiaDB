@@ -435,14 +435,7 @@ namespace engine
                BOOLEAN csExist = FALSE ;
 
                rc = catCheckCSExist( collection, _pEduCB, csExist ) ;
-               if ( SDB_OK == rc && !csExist )
-               {
-                  rc = SDB_DMS_CS_NOTEXIST ;
-                  PD_LOG( PDWARNING,
-                          "Collection[%s]'s space does not exist, rc: %d",
-                          collection, rc ) ;
-               }
-               else
+               if ( csExist )
                {
                   // If the cs exists, and the collection is not found, check if
                   // the cs is using data source.
@@ -457,6 +450,21 @@ namespace engine
                              collection, rc ) ;
                      goto error ;
                   }
+               }
+               else if ( SDB_OK == rc )
+               {
+                  rc = SDB_DMS_CS_NOTEXIST ;
+                  PD_LOG( PDWARNING,
+                          "Collection[%s]'s space does not exist, rc: %d",
+                          collection, rc ) ;
+                  goto error ;
+               }
+               else
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                          collection, rc ) ;
+                  goto error ;
                }
             }
             else if ( pReply->numReturned > 1 )
