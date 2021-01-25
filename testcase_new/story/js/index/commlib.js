@@ -130,3 +130,31 @@ function checkRec ( rc, expRecs )
       }
    }
 }
+
+/******************************************************************************
+ * @description: 检查集合中索引是否打开NotArray
+ * @param {*}
+ * @return {*}
+ ******************************************************************************/
+function checkNotArray ( cl, idxname, expResult )
+{
+   var index = cl.getIndex( idxname );
+   var notArray = index.toObj().IndexDef.NotArray;
+   assert.equal( expResult, notArray );
+}
+
+/******************************************************************************
+ * @description: 检查分析结果是否有索引覆盖
+ * @param {*} explain
+ * @param {*} expResult
+ * @return {*}
+ ******************************************************************************/
+function checkIndexCover ( explain, expResult )
+{
+   while( explain.next() )
+   {
+      var result = explain.current().toObj();
+      var actResult = result.IndexCover;
+      assert.equal( expResult, actResult );
+   }
+}
