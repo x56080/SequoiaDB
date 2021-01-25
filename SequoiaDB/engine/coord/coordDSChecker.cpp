@@ -322,6 +322,8 @@ namespace engine
                                      contextID, 0, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Build getmore message failed[%d]", rc ) ;
 
+            // Release the original event.
+            pmdEduEventRelease( recvEvent, cb ) ;
             rc = connection.syncSend( msg, &recvEvent, cb,
                                       OSS_SOCKET_DFT_TIMEOUT,
                                       COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
@@ -400,6 +402,7 @@ namespace engine
          }
          else
          {
+            pmdEduEventRelease( recvEvent, cb ) ;
             rcTemp = connection.syncSend( msg, &recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
@@ -780,7 +783,9 @@ namespace engine
          {
             rc = msgBuildGetMoreMsg( (CHAR **)&msg, &buffLen, -1, contextID,
                                      0, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Build get more request failed[%d]", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Build get more request failed[%d]",
+                         rc ) ;
+            pmdEduEventRelease( recvEvent, cb ) ;
             rc = connection.syncSend( (MsgHeader *)msg, &recvEvent, cb,
                                       OSS_SOCKET_DFT_TIMEOUT,
                                       COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
@@ -826,6 +831,7 @@ namespace engine
          }
          else
          {
+            pmdEduEventRelease( recvEvent, cb ) ;
             rcTemp = connection.syncSend( msg, &recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
@@ -1028,6 +1034,7 @@ namespace engine
          }
          else
          {
+            pmdEduEventRelease( recvEvent, cb ) ;
             rcTemp = connection.syncSend( msg, &recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
@@ -1168,6 +1175,7 @@ namespace engine
          }
          else
          {
+            pmdEduEventRelease( recvEvent, cb ) ;
             rcTemp = connection.syncSend( msg, &recvEvent, cb,
                                           OSS_SOCKET_DFT_TIMEOUT,
                                           COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
