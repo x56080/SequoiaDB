@@ -1,5 +1,5 @@
 
-锁等待快照可以列出数据库中正在发生的锁等待信息。用户可以通过 viewHistory 快照选项查看历史锁等待信息，当等待的线程拿到该锁时，该次等待记录会被归入历史锁等待信息。
+锁等待快照可以列出数据库中正在发生的锁等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该锁后被归入历史锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史锁等待信息。
 
 >**Note:**
 >
@@ -7,7 +7,7 @@
 
 ##标识##
 
-SDB_SNAP_LOCKWAITS
+SDB_SNAP_LOCKWAITS 
 
 ##字段信息##
 
@@ -38,7 +38,7 @@ SDB_SNAP_LOCKWAITS
 
    ```lang-json
    {
-     "NodeName": "yang-VirtualBox:11870",
+     "NodeName": "sdbserver:11870",
      "WaiterTID": 23853,
      "RequiredMode": "X",
      "CSID": 4,
@@ -63,7 +63,7 @@ SDB_SNAP_LOCKWAITS
 
    ```lang-json
    {
-     "NodeName": "yang-VirtualBox:11870",
+     "NodeName": "sdbserver:11870",
      "WaiterTID": 13602,
      "RequiredMode": "X",
      "CSID": 3,
@@ -76,32 +76,11 @@ SDB_SNAP_LOCKWAITS
      "LatestOwnerMode": "X",
      "NumOwner": 1
    }
-   {
-     "NodeName": "yang-VirtualBox:11870",
-     "WaiterTID": 13603,
-     "RequiredMode": "X",
-     "CSID": 3,
-     "CLID": 8,
-     "ExtentID": 486,
-     "Offset": 48884,
-     "StartTimestamp": "2020-06-12-04.04.01.173701",
-     "TransLockWaitTime": 14.94,
-     "LatestOwner": 13635,
-     "LatestOwnerMode": "X",
-     "NumOwner": 1
-   }
-   {
-     "NodeName": "yang-VirtualBox:11870",
-     "WaiterTID": 10398,
-     "RequiredMode": "X",
-     "CSID": 3,
-     "CLID": 7,
-     "ExtentID": 483,
-     "Offset": 45476,
-     "StartTimestamp": "2020-06-12-04.04.01.018260",
-     "TransLockWaitTime": 83.337,
-     "LatestOwner": 12051,
-     "LatestOwnerMode": "X",
-     "NumOwner": 1
-   }
    ```
+
+
+
+[^_^]:
+    本文使用的所有引用及链接
+[SnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
+[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md

@@ -1,10 +1,11 @@
 
 
-闩锁等待快照可以列出数据库中正在发生的闩锁等待信息。用户可以通过 viewHistory 快照选项查看历史闩锁等待信息，当等待的线程拿到该闩锁时，该次等待记录会被归入历史闩锁等待信息。
+闩锁等待快照可以列出数据库中正在发生的闩锁等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该闩锁后被归入历史闩锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史闩锁等待信息。
 
 >**Note:**
 >
 > 每一个数据节点上正在进行的每一个闩锁等待为一条记录。
+
 
 ##标识##
 
@@ -25,6 +26,7 @@ SDB_SNAP_LATCHWAITS
 | LatestOwnerMode        | string   | 最近获得该闩锁线程所获得的模式，分为 S 共享模式和 X 排他模式两种 |
 | NumOwner               | int32    | 该等待事件发生时，被等待闩锁总共的持有者数量                   |
 
+
 ##示例##
 
 - 查看即时闩锁等待信息
@@ -37,7 +39,7 @@ SDB_SNAP_LATCHWAITS
 
    ```lang-json
    {
-     "NodeName": "yang-VirtualBox:11870",
+     "NodeName": "sdbserver:11870",
      "WaiterTID": 24118,
      "RequiredMode": "S",
      "LatchName": "catGTSMsgHandler jobLatch",
@@ -62,7 +64,7 @@ SDB_SNAP_LATCHWAITS
 
    ```lang-json
    {
-     "NodeName": "yang-VirtualBox:11870",
+     "NodeName": "sdbserver:11870",
      "WaiterTID": 9726,
      "RequiredMode": "X",
      "LatchName": "dpsTransLockManager rwMutex",
@@ -75,4 +77,10 @@ SDB_SNAP_LATCHWAITS
    }
    ```
 
-   上述输出显示系统中之前发生了一次等待事件，线程 9726 从"2020-06-12-04.02.22.096686"开始等待，最终获取"dpsTransLockManager rwMutex"闩锁的 X 排他模式，本次等待耗时 1.172毫秒。
+   上述输出显示系统中之前发生了一次等待事件，线程 9726 从"2020-06-12-04.02.22.096686"开始等待，最终获取"dpsTransLockManager rwMutex"闩锁的 X 排他模式，本次等待耗时 1.172 毫秒。
+
+
+[^_^]:
+    本文使用的所有引用及链接
+[SnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
+[configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
