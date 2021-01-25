@@ -217,6 +217,7 @@ function checkParams()
     paramConflictCheck "--select" "$opt_select"    "--fields"      "$opt_fields"
     paramConflictCheck "--cscl"   "$opt_cscl"      "--csname"      "$opt_csname"
     paramConflictCheck "--cscl"   "$opt_cscl"      "--clname"      "$opt_clname"
+    paramConflictCheck "--cscl"   "$opt_cscl"      "--file"        "$opt_file"
     paramConflictCheck "--file"   "$opt_file"      "--dir"         "$opt_dir"
     paramConflictCheck "--file"   "$opt_file"      "--jobs"        "$opt_jobs"
 }
@@ -349,8 +350,7 @@ function buildCLParams()
     done
 
     if [ "$cl_full_name" = "" ]; then
-        echo "[ERROR] Collection name must be specified"
-        exit 1
+        safe_exit 1 "[ERROR] Collection name must be specified"
     fi
 
     if [ "$cl_dir" = "" ]; then
@@ -359,8 +359,7 @@ function buildCLParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        echo "[ERROR] $cl_general_params"
-        exit 1
+        safe_exit 1 "[ERROR] $cl_general_params"
     fi
     if [ "$cl_type" = "" ]; then
         cl_type="$opt_type"
@@ -389,8 +388,7 @@ function buildCLParams()
 
         cl_node_list=$(getNodeList $cl_full_name)
         if [ $? -ne 0 ]; then
-            echo "[ERROR] ${cl_node_list[@]}"
-            exit 1
+            safe_exit 1 "[ERROR] ${cl_node_list[@]}"
         fi
 
         if [ "${cl_node_list[@]}" = "" ]; then
@@ -463,8 +461,7 @@ function buildCSParams()
         shift
     done
     if [ "$cs_name" = "" ]; then
-        echo "[ERROR] CollectionSpace name must be specified"
-        exit 1
+        safe_exit 1 "[ERROR] CollectionSpace name must be specified"
     fi
 
     if [ "$cl_dir" = "" ]; then
@@ -473,8 +470,7 @@ function buildCSParams()
 
     cl_general_params=$(parseGeneralParams $other_params)
     if [ $? != 0 ]; then
-        echo "[ERROR] $cl_general_params"
-        exit 1
+        safe_exit 1 "[ERROR] $cl_general_params"
     fi
 
     if [ "$cl_type" = "" ]; then
@@ -483,8 +479,7 @@ function buildCSParams()
 
     cl_list_tmp=$(getCLList $cs_name)
     if [ $? -ne 0 ]; then
-        echo "[ERROR] ${cl_list_tmp[@]}"
-        exit 1
+        safe_exit 1 "[ERROR] ${cl_list_tmp[@]}"
     fi
 
     if [ "$cl_list_tmp" = "" ]; then
@@ -502,8 +497,7 @@ function buildCSParams()
         cl_fields_param=$(paresFields $cl_full_name ${fields_list[@]})
         cl_node_list=$(getNodeList $cl_full_name)
         if [ $? -ne 0 ]; then
-            echo "[ERROR] ${cl_node_list[@]}"
-            exit 1
+            safe_exit 1 "[ERROR] ${cl_node_list[@]}"
         fi
 
         if [ "$dir" != "" -a ! -d "$dir" ]; then
@@ -563,10 +557,16 @@ function parseExportConf()
 
     #parse cl param
     cl_num=$(readInIfile $opt_conf_file $CL_SECTION $ITEM_NUM)
+    if [ $? -ne 0 ]; then
+        safe_exit 1 "$cl_num"
+    fi
     if [ "$cl_num" != "" ]; then
         for ((i=1;i<=$cl_num;i++));do
             cl_sct="${CL_BASIC_SECTION}$i"
             cl_param=$(readInIfile $opt_conf_file $cl_sct)
+            if [ $? -ne 0 ]; then
+                 safe_exit 1 "$cl_param"
+            fi
             if [ "$cl_param" = "" ]; then
                 continue
             fi
@@ -576,10 +576,16 @@ function parseExportConf()
 
     #parse cs param
     cs_num=$(readInIfile $opt_conf_file $CS_SECTION $ITEM_NUM)
+    if [ $? -ne 0 ]; then
+        safe_exit 1 "$cs_num"
+    fi
     if [ "$cs_num" != "" ]; then
         for ((i=1;i<=$cs_num;i++));do
             cs_sct="${CS_BASIC_SECTION}$i"
             cs_param=$(readInIfile $opt_conf_file $cs_sct)
+            if [ $? -ne 0 ]; then
+                 safe_exit 1 "$cs_param"
+            fi
             if [ "$cs_param" = "" ]; then
                 continue
             fi
@@ -736,12 +742,27 @@ function exec_cmd()
 {
     local cmd="$@"
     local msg=""
+    local rc=0
 
     msg=$(eval "$cmd")
-    if [ $? != 0 ]; then
-        echo "[ERROR] $msg"
-        exit 1
+    rc=$?
+    if [ $rc != 0 ]; then
+        safe_exit $rc "[ERROR] $msg"
     fi
+}
+
+function safe_exit()
+{
+    local rc=$1
+    shift
+    local msg="$@"
+
+    rm -f $export_tmp_file
+
+    if [ -n "$msg" ]; then
+        echo "$msg"
+    fi
+    exit $rc
 }
 
 function exportData()
@@ -751,8 +772,6 @@ function exportData()
     local cl
     local hosts
     local msg
-    # touch sdbexport.result
-    genResultFile "$export_result_file"
 
     exec_cmd "touch $export_tmp_file"
     exec_cmd "mkfifo $TMP_FIFO_FILE_1 2>&1"
@@ -764,6 +783,7 @@ function exportData()
     rm -f $TMP_FIFO_FILE_2
 
     echo >&7
+
     buildExportCmd
 
     if [ "$opt_jobs" = "" ]; then
@@ -797,10 +817,16 @@ function exportData()
     end_time=$(date +'%Y-%m-%d %H:%M:%S')
     genResultHead
 
-    cat $export_tmp_file >> $export_result_file
-    rm -f $export_tmp_file
+    if [ $total_num -le 0 ]; then
+        echo "[ERROR] No collection or collectionspace need to export!"
+    else
+        # touch sdbexport.result
+        genResultFile "$export_result_file"
+        cat $export_tmp_file >> $export_result_file
+        echo "Exported finish, view the details from file $export_result_file"
+    fi
 
-    echo "Exported finish, view the details from file $export_result_file"
+    safe_exit 0
 }
 
 function main()

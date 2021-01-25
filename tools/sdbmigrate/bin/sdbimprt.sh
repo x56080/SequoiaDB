@@ -432,10 +432,18 @@ function parseImportConf()
     fi
     #parse cl param
     cl_num=$(readInIfile $opt_conf_file $CL_SECTION $ITEM_NUM)
+    if [ $? -ne 0 ]; then
+        echo "$cl_num"
+        exit 1
+    fi
     if [ "$cl_num" != "" ]; then
         for ((i=1;i<=$cl_num;i++));do
             cl_sct="${CL_BASIC_SECTION}$i"
             cl_param=$(readInIfile $opt_conf_file $cl_sct)
+            if [ $? -ne 0 ]; then
+                echo "$cl_param"
+                exit 1
+            fi
             if [ "$cl_param" = "" ]; then
                 continue
             fi
@@ -445,14 +453,22 @@ function parseImportConf()
 
     #parse cs param
     cs_num=$(readInIfile $opt_conf_file $CS_SECTION $ITEM_NUM)
+    if [ $? -ne 0 ]; then
+        echo "$cs_num"
+        exit 1
+    fi
     if [ "$cs_num" != "" ]; then
         for ((i=1;i<=$cs_num;i++));do
-           cs_sct="${CS_BASIC_SECTION}$i"
-           cs_param=$(readInIfile $opt_conf_file $cs_sct)
-           if [ "$cs_param" = "" ]; then
-               continue
-           fi
-           buildCSParams $cs_param
+            cs_sct="${CS_BASIC_SECTION}$i"
+            cs_param=$(readInIfile $opt_conf_file $cs_sct)
+            if [ $? -ne 0 ]; then
+                echo "$cs_param"
+                exit 1
+            fi
+            if [ "$cs_param" = "" ]; then
+                continue
+            fi
+            buildCSParams $cs_param
         done
     fi
 }
@@ -551,8 +567,6 @@ function importData()
     local cl
     local rc=0
     local msg
-    # touch import.result
-    genResultFile "$import_result_file"
 
     buildImportCommand
 
@@ -580,9 +594,15 @@ function importData()
 
     genResultHead
 
-    echo -e "$result_head\n$result_body" >> $import_result_file
-
-    echo "Import finish, view the details from file $import_result_file"
+    if [ $total_num -le 0 ]; then
+        echo "[ERROR] No collection or collectionspace need to import!"
+    else
+        # touch import.result
+        genResultFile "$import_result_file"
+        echo -e "$result_head\n$result_body" >> $import_result_file
+        echo "Import finish, view the details from file $import_result_file"
+    fi
+    exit 0
 }
 
 function main()

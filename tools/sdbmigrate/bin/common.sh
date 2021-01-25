@@ -88,23 +88,37 @@ function readInIfile()
     local option=$3
     local section_value
     local ini_options=()
+    local file_value=""
+    local section_num=0
     if [ "$ini_file" = "" ];then
-        echo "[ERROR]:ini file name cannot be empty!"
-        return 0
+        echo "[ERROR] ini file name cannot be empty!"
+        return 1
     fi
+    if [ ! -f "$ini_file" ]; then
+        echo "[ERROR] No such file: $ini_file"
+        return 1
+    fi
+
+    file_value=`sed -e '/^#/d' ${ini_file}`
     if [ "$section" = "" ];then
-        echo "[ERROR]:section cannot be empty!"
-        return 0
+        echo "[ERROR] Section cannot be empty!"
+        return 1
+    fi
+    section_num=`echo "$file_value" | grep "\[$section\]" | wc -l`
+    if [ $section_num -gt 1 ]; then
+        echo "[ERROR] Repeat section: $section!"
+        return 1
     fi
 
     if [ "${option}" = "" ];then
-        section_value=$(sed -e '/^#/d' ${ini_file} | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/\[/,$d' )
+        section_value=$(echo "$file_value" | awk "/\[${section}\]/{a=1}a==1" | sed -e'1d' -e '/^$/d' -e 's/[ \t]*$//g' -e 's/^[ \t]*//g' -e 's/[ ]/@SDB@/g' -e '/\[/,$d' )
         ini_options=(${section_value})
         echo ${ini_options[@]}
     elif [ "${section}" != "" ] && [ "${option}" != "" ];then
-        item_value=`awk -F '=' "/\[${section}\]/{a=1}a==1" ${ini_file}|sed -e '1d' -e '/^$/d' -e '/^#/d' -e '/^\[.*\]/,$d' -e "/^${option}.*=.*/!d" -e "s/^${option}.*= *//"`
+        item_value=$(echo "$file_value" | awk -F '=' "/\[${section}\]/{a=1}a==1" | sed -e '1d' -e '/^$/d' -e '/^\[.*\]/,$d' -e "/^${option}.*=.*/!d" -e "s/^${option}.*= *//")
         echo "${item_value}"
     fi
+    return 0
 }
 
 # foo.bar to --csname foo --clanme bar
