@@ -80,6 +80,8 @@ namespace engine
    #define RS_BK_ACTION          "action"
    #define RS_BK_RESTORE         "restore"
    #define RS_BK_LIST            "list"
+   #define RS_BK_GET_CONFIG      "getconfig"
+   #define RS_BK_OFFLINE_BUILD   "offlinebuild"
    #define RS_BK_IS_SELF         "isSelf"
    #define RS_BK_SKIP_CONF       "skipconf"
 
@@ -90,9 +92,8 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_INC_ID, ",i"), boost::program_options::value<int>(), "the end increase id for restore, default is -1" ) \
       ( PMD_COMMANDS_STRING (RS_BEGIN_INC_ID, ",b"), boost::program_options::value<int>(), "the begin increase id for restore, default is -1, -1 for auto" ) \
       ( PMD_COMMANDS_STRING (RS_BK_NAME, ",n"), boost::program_options::value<string>(), "backup name" ) \
-      ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list), defalut is restore" ) \
+      ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list/getconfig/offlinebuild), default is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
-      ( PMD_COMMANDS_STRING (RS_BK_SKIP_CONF, ",s"), boost::program_options::value<string>(), "whether skip the config or not in restore, value:true/false, default:false" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
@@ -116,39 +117,6 @@ namespace engine
 
    #define RS_BK_ACTION_NAME_LEN          (20)
 
-
-   BSONObj rsMakeNoneSelfCfg( const BSONObj &obj )
-   {
-      BSONObjBuilder builder ;
-      BSONObjIterator it( obj ) ;
-      while ( it.more() )
-      {
-         BSONElement ele = it.next () ;
-
-         if ( 0 == ossStrcmp( ele.fieldName(), PMD_OPTION_DBPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_IDXPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_LOGPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_LOBPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_LOBMETAPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_ARCHIVE_PATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_CONFPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_DIAGLOGPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_AUDITLOGPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_BKUPPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_WWWPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_DMS_TMPBLKPATH ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_SVCNAME ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_REPLNAME ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_SHARDNAME ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_CATANAME ) ||
-              0 == ossStrcmp( ele.fieldName(), PMD_OPTION_RESTNAME ) )
-         {
-            continue ;
-         }
-         builder.append( ele ) ;
-      }
-      return builder.obj() ;
-   }
 
    /*
       Tool functions :
@@ -282,19 +250,39 @@ namespace engine
          }
          virtual INT32 postLoaded( PMD_CFG_STEP step )
          {
+            if ( TRUE == _skipConf )
+            {
+               std::cerr << "WARNING: option --skipconf is deprecated."
+                         << " Use action=offlinebuild instead" << std::endl;
+            }
             if ( 0 != ossStrcmp( _action, RS_BK_RESTORE ) &&
-                 0 != ossStrcmp( _action, RS_BK_LIST ) )
+                 0 != ossStrcmp( _action, RS_BK_LIST ) &&
+                 0 != ossStrcmp( _action, RS_BK_GET_CONFIG ) &&
+                 0 != ossStrcmp( _action, RS_BK_OFFLINE_BUILD ) )
             {
                std::cerr << "action[ " << _action << " ] not invalid"
                          << std::endl ;
                return SDB_INVALIDARG ;
             }
-            if ( 0 == ossStrcmp( _action, RS_BK_RESTORE ) &&
-                 0 == ossStrlen( _bkName ) )
+
+            if ( 0 == ossStrcmp( _action, RS_BK_LIST ) )
             {
-               std::cerr << "In restore action, bkname can't be empty"
+               ossMkdir( _dialogPath ) ;
+               return SDB_OK;
+            }
+
+            if ( 0 == ossStrlen( _bkName ) )
+            {
+               std::cerr << "In restore action[ " << _action << " ],"
+                         << " bkname can't be empty"
                          << std::endl ;
                return SDB_INVALIDARG ;
+            }
+
+            if ( 0 == ossStrcmp( _action, RS_BK_OFFLINE_BUILD ) )
+            {
+               // offlinebuild does not persist the configuration file
+               _skipConf = TRUE ;
             }
 
             if ( !_isSelf )
@@ -334,6 +322,73 @@ namespace engine
          po::variables_map _vm ;
    } ;
    typedef _rsOptionMgr rsOptionMgr ;
+
+   // Get the base configuration.
+   // The path is from the command line, the parsed backup, or the default.
+   // If a file exists at the path, use it instead of the parsed backup.
+   INT32 getBaseConf( rsOptionMgr &optMgr, const BSONObj &backupConf,
+                      BSONObj &objData )
+   {
+      INT32 rc = SDB_OK ;
+
+      // Get the base config path
+      const CHAR* confPath;
+      if ( optMgr._vm.count( PMD_OPTION_CONFPATH ) )
+      {
+         // specified on the command line
+         confPath = optMgr._cfgPath ;
+      }
+      else if ( backupConf.hasField( PMD_OPTION_CONFPATH ) )
+      {
+         // specified in the backup file conf
+         confPath = backupConf.getField( PMD_OPTION_CONFPATH ).valuestr() ;
+         PD_LOG ( ( getPDLevel() > PDEVENT ? PDEVENT : getPDLevel() ) ,
+                  "Using confPath [%s] from backup image", confPath ) ;
+      }
+      else
+      {
+         // default
+         confPath = pmdGetOptionCB()->getConfPath() ;
+         PD_LOG ( ( getPDLevel() > PDEVENT ? PDEVENT : getPDLevel() ) ,
+                  "Using default confPath [%s]", confPath ) ;
+      }
+
+      BOOLEAN useConfFromFile = TRUE ;
+
+      // Try and parse from the given path
+      CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ; // file path
+      if ( utilBuildFullPath( confPath, PMD_DFT_CONF, OSS_MAX_PATHSIZE,
+                              confFile ) )
+      {
+         useConfFromFile = FALSE ;
+         PD_LOG ( ( getPDLevel() > PDEVENT ? PDEVENT : getPDLevel() ) ,
+                  "Invalid confPath [%s]. Loading conf from backup image.",
+                  confPath ) ;
+      }
+
+      pmdOptionsCB optsFromFile;
+      if ( useConfFromFile &&
+           optsFromFile.initFromFile( confFile, FALSE ) )
+      {
+         useConfFromFile = FALSE ;
+         PD_LOG ( ( getPDLevel() > PDEVENT ? PDEVENT : getPDLevel() ) ,
+                  "Failed to parse conf file [%s]. Loading conf from backup "
+                  "image.",
+                  confPath ) ;
+      }
+
+      // Load the conf
+      if ( useConfFromFile )
+      {
+         rc = optsFromFile.toBSON( objData ) ;
+      }
+      else
+      {
+         objData = backupConf ;
+      }
+
+      return rc ;
+   }
 
    INT32 resolveArguments( INT32 argc, CHAR** argv, rsOptionMgr &rsOptMgr )
    {
@@ -536,6 +591,7 @@ namespace engine
 
       barRSOfflineLogger restoreLogger ;
       rsOptionMgr optMgr ;
+      BSONObj baseConf ;
 
       // 1. read command line first
       rc = resolveArguments( argc, argv, optMgr ) ;
@@ -590,21 +646,30 @@ namespace engine
          goto error ;
       }
 
-      if ( optMgr._isSelf )
+      // load the existing configuration (from path or backup file)
+      rc = getBaseConf( optMgr, restoreLogger.getConf(), baseConf ) ;
+      if ( rc )
       {
-         // restore configs
-         rc = krcb->getOptionCB()->restore ( restoreLogger.getConf(),
-                                             &(optMgr._vm) ) ;
+         std::cerr << "Configuration loader failed: " << rc << std::endl ;
+         goto error ;
       }
-      else
-      {
-         BSONObj newCfgObj = rsMakeNoneSelfCfg( restoreLogger.getConf() ) ;
-         rc = krcb->getOptionCB()->restore ( newCfgObj, &(optMgr._vm) ) ;
-      }
+
+      // load the remaining default configuration parameters
+      rc = krcb->getOptionCB()->restore( baseConf, &(optMgr._vm) );
       if ( rc )
       {
          std::cerr << "Init option cb failed: " << rc << std::endl ;
          goto error ;
+      }
+
+      // only for getconfig
+      if ( 0 == ossStrcmp( optMgr._action, RS_BK_GET_CONFIG ) )
+      {
+         // the final config is now in the krcb
+         string output;
+         rc = krcb->getOptionCB()->toString( output );
+         std::cout << output << std::endl ;
+         return rc ;
       }
 
       // initialize variables
