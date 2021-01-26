@@ -108,7 +108,7 @@ public class CreateAndDropCL10944 extends SdbTestBase {
             try {
                 db1 = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
                 cs1 = db1.getCollectionSpace( csName );
-                String curClName = clName + "_" + random.nextInt( 100000 );
+                String curClName = clName + "_" + Thread.currentThread().getName();
                 dbcl = cs1.createCollection( curClName, options );
                 checkCreateCl( dbcl );
             } catch ( BaseException e ) {
