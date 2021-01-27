@@ -14,13 +14,18 @@ function test ()
       return;
    };
 
+   var coordNames = getCoordNodeNames( db );
+   if( coordNames.length < 3 )
+   {
+      return;
+   };
+
    var sequenceName = 's23205';
    var acquireSize = 100;
    var cacheSize = 1000;
    dropSequence( db, sequenceName );
    var s = db.createSequence( sequenceName, { AcquireSize: acquireSize, CacheSize: cacheSize } );
 
-   var coordNames = getCoordNodeNames( db );
    var coords = [];
    var sequences = [];
    for( var i = 0; i < coordNames.length; i++ )
