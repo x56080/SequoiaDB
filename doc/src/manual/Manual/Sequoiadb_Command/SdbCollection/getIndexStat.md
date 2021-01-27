@@ -32,7 +32,7 @@ Collection
 
 |错误码|错误名|可能发生的原因|解决办法|
 |------|------|--------------|--------|
-|-349  |SDB_IXM_STAT_NOTEXIST|1.索引尚未被统计<br>2.索引不存在|1.通过 [db.analyze()][analyze] 接口收集统计信息<br>2.检查索引是否存在|
+|-356  |SDB_IXM_STAT_NOTEXIST|1.索引尚未被统计<br>2.索引不存在|1.通过 [db.analyze()][analyze] 接口收集统计信息<br>2.检查索引是否存在|
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][faq]。
 

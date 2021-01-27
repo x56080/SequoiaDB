@@ -45,7 +45,6 @@ v3.4.2 及以上版本
 - 将递增序列值设置为更小的值
 
    ```lang-javascript
-   > var sequence = db.createSequence( "IDSequence" )
    > sequence.getCurrentValue()
    1000
    > sequence.setCurrentValue( 500 )

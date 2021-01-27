@@ -82,7 +82,7 @@ v3.4.2 及以上版本
 .IP \[bu] 2
 将递增序列值设置为更小的值
 .PP
-\f[C]lang\-javascript\ \ \ \ >\ var\ sequence\ =\ db.createSequence(\ "IDSequence"\ )\ \ \ \ >\ sequence.getCurrentValue()\ \ \ \ 1000\ \ \ \ >\ sequence.setCurrentValue(\ 500\ )\f[]
+\f[C]lang\-javascript\ \ \ \ >\ sequence.getCurrentValue()\ \ \ \ 1000\ \ \ \ >\ sequence.setCurrentValue(\ 500\ )\f[]
 .PP
 输出错误信息如下：
 .PP

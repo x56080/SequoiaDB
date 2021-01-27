@@ -32,7 +32,7 @@ Frequent exceptions of `getIndexStat()`：
 
 |Error Code|Error Name|Causes|Solution|
 |----------|----------|------|--------|
-|-349      |SDB_IXM_STAT_NOTEXIST|1.Index has not been analyzed; <br>2.Index doesn't exist;|1.Collect statistics by [db.analyze()](reference/Sequoiadb_command/Sdb/analyze.md); <br>2.Check if the index exists;|
+|-356      |SDB_IXM_STAT_NOTEXIST|1.Index has not been analyzed; <br>2.Index doesn't exist;|1.Collect statistics by [db.analyze()](reference/Sequoiadb_command/Sdb/analyze.md); <br>2.Check if the index exists;|
 
 When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
 
