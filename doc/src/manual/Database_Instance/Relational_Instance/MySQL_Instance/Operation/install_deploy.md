@@ -150,9 +150,9 @@
   Total: 1; Run: 1
   ```
 
-##MySQL实例组件开机自启动##
+##MySQL实例组件系统服务##
 
-  MySQL 实例组件的服务 sequoiasql-mysql 是以守护进程 sequoiasql-mysql-daemon 的形式存在的。该服务在启动时，会自动启动相关的实例，在实例进程异常退出时，也会自动重启实例。
+  安装 MySQL 实例组件时，会自动添加 sequoiasql-mysql 系统服务。该服务会在系统启动的时候自动运行。该服务是 MySQL 实例的守护进程。它能在机器启动时，自动启动相关的 MySQL 实例；它能实时重启异常退出的 MySQL 实例进程。
 
 > **Note:**
 >

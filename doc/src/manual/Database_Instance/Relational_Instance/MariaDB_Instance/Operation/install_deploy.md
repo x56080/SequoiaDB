@@ -149,9 +149,9 @@
    Total: 1; Run: 1
    ```
    
-##MariaDB实例组件开机自启动##
+##MariaDB实例组件系统服务##
 
-  MariaDB 实例组件的服务 sequoiasql-mariadb 是以守护进程 sequoiasql-mariadb-daemon 的形式存在的。该服务在启动时，会自动启动相关的实例，在实例进程异常退出时，也会自动重启实例。
+  安装 MariaDB 实例组件时，会自动添加 sequoiasql-mariadb 系统服务。该服务会在系统启动的时候自动运行。该服务是 MariaDB 实例的守护进程。它能在机器启动时，自动启动相关的 MariaDB 实例；它能实时重启异常退出的 MariaDB 实例进程。
   
   >**Note:**
   >

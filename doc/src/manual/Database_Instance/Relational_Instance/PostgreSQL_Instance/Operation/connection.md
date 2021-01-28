@@ -11,10 +11,26 @@
    ```
 
 2. 进入 SequoiaSQL PostgreSQL shell 环境
+ 
+   - 本地连接
 
-   ```lang-bash
-   $ bin/psql -p 5432 sample
-   ```
+     ```lang-bash
+     $ bin/psql -p 5432 sample
+     ```
+
+   - 远程连接
+
+     假设 PostgreSQL 服务器地址为 `sdbserver1:5432`，在客户端可以使用如下方式进行远程连接：
+
+     ```lang-bash
+     $ bin/psql -h sdbserver1 -p 5432 sample
+     ```
+
+     >**Note:**
+     >
+     > - PostgreSQL 默认未授予远程连接的访问权限，所以需要在服务端对客户端 IP 进行访问授权。
+     > - 需确保本地创建的数据库与服务器创建的数据库同名，否则将会连接失败。
+
 3. 加载 SequoiaDB 连接驱动
 
 	```lang-sql
