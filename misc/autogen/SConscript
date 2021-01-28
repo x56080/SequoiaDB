@@ -381,8 +381,8 @@ srcFiles = [
    "trace/traceGenerator.cpp",
    "version/versionGeneratorBase.cpp",
    "version/versionGenForDoc.cpp",
-   "version/versionGenForPython.cpp",
    "version/versionGenForBuild.cpp",
+   "version/versionGenForPython.cpp",
 ]
 
 autogen = env.Program( "autogen", srcFiles )
