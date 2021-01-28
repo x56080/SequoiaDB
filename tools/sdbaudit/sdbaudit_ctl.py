@@ -27,6 +27,7 @@ import signal
 import optparse
 from sdbaudit_exprt import CryptoUtil, pid_exist
 from subprocess import Popen, PIPE
+from version import get_version, get_release, get_git_version, get_build_time
 try:
     import ConfigParser as ConfigParser
 except Exception:
@@ -48,6 +49,7 @@ USAGE = '''%prog add -t <sdb|mysql|mariadb> [--inst=INSTNAME] [--path=INSTALL_DI
        %prog list
        %prog start
        %prog stop
+       %prog --version
        %prog --help'''
 
 KW_SSL = 'ssl'
@@ -110,16 +112,12 @@ class OptionsMgr:
         self.instance_name = None
         self.install_dir = None
 
-#    def __show_version(self):
-#        file = os.path.join(MY_HOME, VERSION_FILE_NAME)
-#        try:
-#            with open(file, 'r') as f:
-#                print(f.read())
-#            sys.exit(0)
-#        except IOError: 
-#            print("[ERROR] Failed to show version. Make ensure the "
-#                  "version.info exists")
-#            sys.exit(1)
+    def __show_version(self):
+        print("sdbaudit: {}".format(get_version())) 
+        print("Release: {}".format(get_release())) 
+        print("Git version: {}".format(get_git_version())) 
+        print(get_build_time())
+        sys.exit(0)
 
     def __add_option(self):
         #Add -t option
@@ -136,9 +134,9 @@ class OptionsMgr:
                                  dest='install_dir', help="installation path. If " \
                                  "not specified, Monitor the audit log files " \
                                  "under the registered path")
-#        #Add --version option
-#        self.__parser.add_option("-v", "--version", action='store_true',
-#                                 dest="version", help="show version")
+        #Add --version option
+        self.__parser.add_option("-v", "--version", action='store_true',
+                                 dest="version", help="show version")
 
     def __parse_option(self):
         self.__add_option()
@@ -176,8 +174,8 @@ class OptionsMgr:
         elif self.operation == '--help' or self.operation == '-h':
             self.__add_option()
             self.__parser.parse_args()
-#        elif self.operation == '--version' or self.operation == '-v':
-#            self.__show_version()
+        elif self.operation == '--version' or self.operation == '-v':
+            self.__show_version()
         else:
             print("[ERROR] Invalid argument: '{}'. Try 'python {} -h' for more " \
                   "information".format(self.operation, sys.argv[0]))

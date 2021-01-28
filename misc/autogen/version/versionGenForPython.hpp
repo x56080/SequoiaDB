@@ -1,9 +1,7 @@
-#ifndef VERSION_GEN_FOR_DRIVER_HPP
-#define VERSION_GEN_FOR_DRIVER_HPP
+#ifndef VERSION_GEN_FOR_PYTHON_HPP
+#define VERSION_GEN_FOR_PYTHON_HPP
 
 #include "versionGeneratorBase.hpp"
-
-#define VERSION_PYTHON_PATH   DRIVER_PATH"python/version.py"
 
 class versionGenForPython : public versionGeneratorBase
 {
@@ -16,13 +14,14 @@ public:
    bool hasNext() ;
    int outputFile( int id, fileOutStream &fout,
                    string &outputPath ) ;
-   const char* name() { return "version for driver" ; }
+   const char* name() { return "version for python" ; }
 
 private:
-   int _genPythonFile( fileOutStream &fout, string &outputPath ) ;
+   void _buildVersion( char *version, char *release,
+                       char *gitVersion, char *time ) ;
 
 private:
-   bool _isFinish ;
+   bool _versionFileDone ;    // version.py
 } ;
 
 #endif

@@ -263,17 +263,6 @@ class OptionsMgr:
         self.__global_parser = None
         self.args = None
 
-#    def __show_version(self):
-#        file = os.path.join(MY_HOME, "version.info")
-#        try:
-#            with open(file, 'r') as f:
-#                print(f.read())
-#            sys.exit(0)
-#        except IOError: 
-#            print("[ERROR] Failed to show version. Make ensure the " \
-#                  "version.info exists")
-#            sys.exit(1)
-
     def __add_option(self):
         #Add -t option
         self.__parser.add_option("-t", "--type", action='store', type="string",
@@ -337,9 +326,6 @@ class OptionsMgr:
         self.__parser.add_option("--nodename", action='store', type='string',
                                  dest="node_name", help="node name, " \
                                  "<hostname>:<svcname>")
-#        #Add --version option
-#        self.__parser.add_option("-v", "--version", action='store_true',
-#                                 dest="version", help="show version")
 
     def __load_global_configs(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
@@ -450,8 +436,6 @@ class OptionsMgr:
     def parse_option(self):
         self.__add_option()
         options,args = self.__parser.parse_args()
-        # if options.version:
-        #     self.__show_version()
         if options.conf_path:
             if not os.path.isfile(options.conf_path):
                 logger.error("configuration path '{}' is not a file".format(options.conf_path))

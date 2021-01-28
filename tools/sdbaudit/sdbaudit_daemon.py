@@ -23,6 +23,7 @@ import time
 import signal
 import optparse
 from sdbaudit_exprt import pid_exist
+from version import get_version, get_release, get_git_version, get_build_time
 
 try:
     reload(sys)
@@ -41,6 +42,7 @@ LOG_TYPE_SDB = 'sdb'
 LOG_TYPE_MARIADB = 'mariadb'
 
 MY_HOME = os.path.abspath(os.path.dirname(__file__))
+VERSION_FILE_NAME = "version.info"
 PID_FILE_NAME = "sdbaudit_daemon.pid"
 EXPPRTER_PID_FILE_NAME = "sdbaudit.pid"
 MY_CONF_PATH = os.path.join(MY_HOME, 'conf')
@@ -121,6 +123,17 @@ class OptionsMgr:
         self.__parser.add_option("--status", action='store_true', dest='status',
                                  help="check if daemon exists")
 
+				#Add --version option
+        self.__parser.add_option("-v", "--version", action='store_true',
+                                 dest="version", help="show version")
+
+    def __show_version(self):
+        print("sdbaudit: {}".format(get_version())) 
+        print("Release: {}".format(get_release())) 
+        print("Git version: {}".format(get_git_version())) 
+        print(get_build_time())
+        sys.exit(0)
+        
     def parse_option(self):
         self.__add_option()
         self.opt,args = self.__parser.parse_args()
@@ -128,6 +141,8 @@ class OptionsMgr:
             print("[ERROR] Invalid argument({}). Try 'python {} -h' for more " \
                   "information".format(args, sys.argv[0]))
             return 1
+        if self.opt.version:
+            self.__show_version()
         return 0
 
 class Worker:

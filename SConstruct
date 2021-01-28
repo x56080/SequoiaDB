@@ -1050,6 +1050,9 @@ if not has_option("noautogen"):
                                    language + " " + silent_opt)
    if autogen_result != 0:
       os._exit( 1 )
+   version_file = 'misc/autogen/version.py'
+   shutil.copyfile(version_file, 'tools/sdbaudit/version.py')
+   shutil.copyfile(version_file, 'driver/python/version.py')
 
 if hasDoc:
    errno = os.system ( 'python doc/build.py --doc' )
