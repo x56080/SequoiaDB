@@ -3314,6 +3314,12 @@
                            "en": "createOM()"
                         },
                         {
+                           "id": 1610949611,
+                           "file": "createStp",
+                           "cn": "createStp()",
+                           "en": "createStp()"
+                        },
+                        {
                            "id": 1580718031,
                            "file": "getAOmaSvcName",
                            "cn": "getAOmaSvcName()",
@@ -3356,6 +3362,12 @@
                            "en": "getOmaInstallInfo()"
                         },
                         {
+                           "id": 1610949612,
+                           "file": "getStp",
+                           "cn": "getStp()",
+                           "en": "getStp()"
+                        },
+                        {
                            "id": 1580718038,
                            "file": "listNodes",
                            "cn": "listNodes()",
@@ -3384,6 +3396,12 @@
                            "file": "removeOM",
                            "cn": "removeOM()",
                            "en": "removeOM()"
+                        },
+                        {
+                           "id": 1610949613,
+                           "file": "removeStp",
+                           "cn": "removeStp()",
+                           "en": "removeStp()"
                         },
                         {
                            "id": 1580718040,
@@ -3428,6 +3446,12 @@
                            "en": "startNode()"
                         },
                         {
+                           "id": 1610949614,
+                           "file": "startStp",
+                           "cn": "startStp()",
+                           "en": "startStp()"
+                        },
+                        {
                            "id": 1432190897,
                            "file": "stopNode",
                            "cn": "stopNode()",
@@ -3444,6 +3468,12 @@
                            "file": "stopNodes",
                            "cn": "stopNodes()",
                            "en": "stopNodes()"
+                        },
+                        {
+                           "id": 1610949615,
+                           "file": "stopStp",
+                           "cn": "stopStp()",
+                           "en": "stopStp()"
                         },
                         {
                            "id": 1580718046,
