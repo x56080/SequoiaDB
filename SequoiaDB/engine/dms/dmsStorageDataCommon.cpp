@@ -3085,6 +3085,10 @@ namespace engine
       BOOLEAN markInsert            = FALSE ;
       dmsTransLockCallback callback( pTransCB, cb ) ;
 
+
+      dpsUnqIdxHashArray unqIdxHashArray ;
+      dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
+
       if ( !isTransSupport() )
       {
          transID = DPS_INVALID_TRANS_ID ;
@@ -3225,8 +3229,26 @@ namespace engine
             _clFullName( context->mb()->_collectionName, fullName,
                          sizeof(fullName) ) ;
 
+            if ( ( !OSS_BIT_TEST( context->mb()->_attributes,
+                                  DMS_MB_ATTR_NOIDINDEX ) ) &&
+                 ( context->mbStat()->_uniqueIdxNum > 1 ) )
+            {
+               // need save 1 value for each unique index ( except for $id
+               // index )
+               // NOTE: for insert, it can without $id index, if it doesn't
+               //       have $id index, the secondary nodes will not replay
+               //       in parallel, so it can without hash array
+               rc = unqIdxHashArray.prepare(
+                                 context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
+                            "unique index [%u], rc: %d",
+                            context->mbStat()->_uniqueIdxNum, rc ) ;
+
+               pUnqIdxHashArray = &unqIdxHashArray ;
+            }
+
             // reserved log-size
-            rc = dpsInsert2Record( fullName, insertObj, transID,
+            rc = dpsInsert2Record( fullName, insertObj, pUnqIdxHashArray, transID,
                                    preTransLsn, relatedLsn, logRecord ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
@@ -3392,7 +3414,7 @@ namespace engine
          rc = _pIdxSU->indexesInsert( context, pExtent->_logicID,
                                       insertObj, foundRID, cb,
                                       dpscb ? &callback : NULL,
-                                      insertResult ) ;
+                                      insertResult, pUnqIdxHashArray ) ;
          if ( rc )
          {
             if ( insertResult &&
@@ -3533,6 +3555,9 @@ namespace engine
       IDmsExtDataHandler *handler   = NULL ;
       BOOLEAN inTrans               = FALSE ;
       BOOLEAN hasWaitLock           = FALSE ;
+
+      dpsUnqIdxHashArray unqIdxHashArray ;
+      dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -3691,9 +3716,24 @@ namespace engine
                   _clFullName( context->mb()->_collectionName, fullName,
                                sizeof(fullName) ) ;
 
+                  if ( context->mbStat()->_uniqueIdxNum > 1 )
+                  {
+                     // need save 1 value for each unique index ( except
+                     // for $id index )
+                     // NOTE: for delete, it can not without $id index, so we
+                     //       can exclude one $id unique index
+                     rc = unqIdxHashArray.prepare(
+                           context->mbStat()->_uniqueIdxNum - 1, FALSE ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash "
+                                  "list for unique index [%u], rc: %d",
+                                  context->mbStat()->_uniqueIdxNum, rc ) ;
+
+                     pUnqIdxHashArray = &unqIdxHashArray ;
+                  }
+
                   // reserved log-size
-                  rc = dpsDelete2Record( fullName, delObject, transID,
-                                         preLsn, relatedLSN,
+                  rc = dpsDelete2Record( fullName, delObject, pUnqIdxHashArray,
+                                         transID, preLsn, relatedLSN,
                                          record ) ;
 
                   if ( SDB_OK != rc )
@@ -3721,7 +3761,8 @@ namespace engine
                // would be kept in the in memory tree under the cover
                rc = _pIdxSU->indexesDelete( context, pExtent->_logicID,
                                             delObject, recordID, cb,
-                                            dpscb ? pHandler : NULL ) ;
+                                            dpscb ? pHandler : NULL,
+                                            pUnqIdxHashArray ) ;
                if ( rc )
                {
                   // if index delete fail, let's continue remove the record
@@ -3878,6 +3919,10 @@ namespace engine
       UINT32 textIdxNum = 0 ;
       IDmsExtDataHandler *handler = NULL ;
 
+      dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
+      dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL ;
+      dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ;
+
       rc = _operationPermChk( DMS_ACCESS_TYPE_UPDATE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed in permission check of update, rc: %d", rc ) ;
@@ -4030,12 +4075,33 @@ namespace engine
                _clFullName( context->mb()->_collectionName, fullName,
                             sizeof(fullName) ) ;
 
+               if ( context->mbStat()->_uniqueIdxNum > 1 )
+               {
+                  // may save 2 keys for update, both new and old keys for
+                  // each unique index ( except for $id index )
+                  // NOTE: for update, it can not without $id index, so we can
+                  //       exclude one $id unique index
+                  rc = newUnqIdxHashArray.prepare(
+                        context->mbStat()->_uniqueIdxNum - 1, TRUE ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
+                               "new unique index [%u], rc: %d",
+                               context->mbStat()->_uniqueIdxNum, rc ) ;
+                  rc = oldUnqIdxHashArray.prepare(
+                        context->mbStat()->_uniqueIdxNum - 1, FALSE ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to prepare hash list for "
+                               "old unique index [%u], rc: %d",
+                               context->mbStat()->_uniqueIdxNum, rc ) ;
+                  pNewUnqIdxHashArray = &newUnqIdxHashArray ;
+                  pOldUnqIdxHashArray = &oldUnqIdxHashArray ;
+               }
+
                // reserved log-size
                rc = dpsUpdate2Record( fullName,
                                       oldMatch, oldChg, newMatch, newChg,
                                       oldShardingKey, newShardingKey,
-                                      transID, preTransLsn, relatedLSN,
-                                      pWriteMod, record ) ;
+                                      pNewUnqIdxHashArray, pOldUnqIdxHashArray,
+                                      transID, preTransLsn,
+                                      relatedLSN, pWriteMod, record ) ;
 
                if ( SDB_OK != rc )
                {
@@ -4061,7 +4127,9 @@ namespace engine
             rc = _extentUpdatedRecord( context, extRW, recordRW,
                                        recordData, newobj, cb,
                                        dpscb ? pHandler : NULL,
-                                       pResult ) ;
+                                       pResult,
+                                       pNewUnqIdxHashArray,
+                                       pOldUnqIdxHashArray ) ;
             if ( rc )
             {
                if ( pResult && pResult->isMaskEnabled( UTIL_RESULT_MASK_ID ) )

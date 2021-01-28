@@ -867,18 +867,25 @@ namespace engine
                                     BSONObj &keys,
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
-                                    BOOLEAN ignoreUndefined )
+                                    BOOLEAN ignoreUndefined,
+                                    BOOLEAN *pAllUndefined )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_IXMINXKEYGEN_GETKEYS_OBJ ) ;
 
+      BOOLEAN allUndefined = FALSE ;
       ixmKeyObjGen keyGen( this, &obj, &keys, keepKeyName, ignoreUndefined,
                            pArrEle ) ;
 
-      rc = _getKeys( &keyGen ) ;
+      rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get keys from object, "
                    "rc: %d", rc ) ;
+
+      if ( NULL != pAllUndefined )
+      {
+         *pAllUndefined = allUndefined ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_IXMINXKEYGEN_GETKEYS_OBJ, rc ) ;
@@ -893,18 +900,25 @@ namespace engine
                                     BSONObjSet &keySet,
                                     BSONElement *pArrEle,
                                     BOOLEAN keepKeyName,
-                                    BOOLEAN ignoreUndefined )
+                                    BOOLEAN ignoreUndefined,
+                                    BOOLEAN *pAllUndefined )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_IXMINXKEYGEN_GETKEYS_SET ) ;
 
+      BOOLEAN allUndefined = FALSE ;
       ixmKeySetGen keyGen( this, &obj, &keySet, keepKeyName, ignoreUndefined,
                            pArrEle ) ;
 
-      rc = _getKeys( &keyGen ) ;
+      rc = _getKeys( &keyGen, allUndefined ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key set from object, "
                    "rc: %d", rc ) ;
+
+      if ( NULL != pAllUndefined )
+      {
+         *pAllUndefined = allUndefined ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB_IXMINXKEYGEN_GETKEYS_SET, rc ) ;
@@ -1058,7 +1072,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXKEYGEN__GETKEYS, "_ixmIndexKeyGen::_getKeys" )
-   INT32 _ixmIndexKeyGen::_getKeys( _ixmKeyGenBase *keyGen )
+   INT32 _ixmIndexKeyGen::_getKeys( _ixmKeyGenBase *keyGen,
+                                    BOOLEAN &allUndefined )
    {
       INT32 rc = SDB_OK ;
 
@@ -1074,7 +1089,6 @@ namespace engine
          SDB_ASSERT( _nFields > 0 && _nFields == _keyFields.size(),
                      "key fields are invalid" ) ;
 
-         BOOLEAN allUndefined = FALSE ;
          BSONElement arrEle ;
          const CHAR *arrEleName = NULL ;
          INT32 arrElePos = -1 ;

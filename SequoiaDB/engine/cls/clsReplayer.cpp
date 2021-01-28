@@ -237,7 +237,8 @@ namespace engine
                                       UINT32 &bucketID,
                                       UINT32 &clHash,
                                       utilCLUniqueID &clUniqueID,
-                                      UINT32 &waitBucketID )
+                                      UINT32 &waitBucketID,
+                                      DPS_LSN_OFFSET &waitLSN )
    {
       INT32 rc = SDB_OK ;
 
@@ -247,6 +248,7 @@ namespace engine
       SDB_ASSERT( NULL != pBucket, "bucket is invalid" ) ;
 
       bucketID = ~0 ;
+      waitLSN = DPS_INVALID_LSN_OFFSET ;
 
       switch( recordHeader->_type )
       {
@@ -256,7 +258,7 @@ namespace engine
          {
             rc = _calcDataBucketID( recordHeader, pBucket, parallaType,
                                     bucketID, clHash, clUniqueID,
-                                    waitBucketID ) ;
+                                    waitBucketID, waitLSN ) ;
             PD_RC_CHECK( rc, PDWARNING, "Failed to calculate bucket ID for "
                          "DATA record type [%u] LSN [%llu], rc: %d",
                          recordHeader->_type, recordHeader->_lsn, rc ) ;
@@ -297,7 +299,8 @@ namespace engine
                                           UINT32 &bucketID,
                                           UINT32 &clHash,
                                           utilCLUniqueID &clUniqueID,
-                                          UINT32 &waitBucketID )
+                                          UINT32 &waitBucketID,
+                                          DPS_LSN_OFFSET &waitLSN )
    {
       INT32 rc = SDB_OK ;
 
@@ -305,16 +308,19 @@ namespace engine
 
       const CHAR *fullname = NULL ;
       BSONObj curObj, waitObj ;
+      dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
 
       switch( recordHeader->_type )
       {
          case LOG_TYPE_DATA_INSERT :
             parallaType = CLS_PARALLA_CL ;
-            rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, curObj ) ;
+            rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, curObj,
+                                   NULL, &newUnqIdxHashArray ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
             parallaType = CLS_PARALLA_CL ;
-            rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, curObj ) ;
+            rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, curObj,
+                                   NULL, &oldUnqIdxHashArray ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
          {
@@ -323,7 +329,9 @@ namespace engine
             parallaType = CLS_PARALLA_CL ;
             rc = dpsRecord2Update( (CHAR *)recordHeader, &fullname,
                                    curObj, oldObj, waitObj, modifier, NULL,
-                                   NULL, NULL, NULL ) ;
+                                   NULL, NULL, NULL,
+                                   &newUnqIdxHashArray,
+                                   &oldUnqIdxHashArray ) ;
             break ;
          }
          default :
@@ -372,6 +380,13 @@ namespace engine
                }
             }
          }
+
+         // check for unique index values
+         waitLSN = pBucket->checkUnqIdxWaitLSN( newUnqIdxHashArray,
+                                                oldUnqIdxHashArray,
+                                                recordHeader->_lsn,
+                                                clHash,
+                                                bucketID ) ;
       }
       else if ( CLS_PARALLA_CL == parallaType )
       {
@@ -667,6 +682,7 @@ namespace engine
       UINT32 clHash = 0 ;
       utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
       UINT32 waitBucketID = ~0 ;
+      DPS_LSN_OFFSET waitLSN = DPS_INVALID_LSN_OFFSET ;
 
       SDB_ASSERT( NULL != recordHeader, "Record is invalid" ) ;
       SDB_ASSERT( NULL != pBucket, "bucket is invalid" ) ;
@@ -674,15 +690,23 @@ namespace engine
       try
       {
          rc = _calcBucketID( recordHeader, pBucket, parallaType, bucketID,
-                             clHash, clUniqueID, waitBucketID ) ;
+                             clHash, clUniqueID, waitBucketID, waitLSN ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to calculate bucket ID, "
                       "rc: %d", rc ) ;
 
          if ( (UINT32)~0 != bucketID )
          {
+#if defined (_DEBUG)
+            if ( DPS_INVALID_LSN_OFFSET != waitLSN )
+            {
+               PD_LOG( PDDEBUG, "Bucket [%u]: push wait for LSN [%llu] for "
+                       "record [%llu]",
+                       bucketID, waitLSN, recordHeader->_lsn ) ;
+            }
+#endif
             rc = pBucket->pushData( bucketID, (CHAR *)recordHeader,
                                     recordHeader->_length, parallaType, clHash,
-                                    clUniqueID ) ;
+                                    clUniqueID, waitLSN ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to push log to bucket, rc: %d",
                          rc ) ;
             if ( (UINT32)~0 != waitBucketID && bucketID != waitBucketID )

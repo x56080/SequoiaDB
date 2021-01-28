@@ -272,7 +272,9 @@ namespace engine
                                           const BSONObj &newObj,
                                           _pmdEDUCB *cb,
                                           IDmsOprHandler *pHandler,
-                                          utilUpdateResult *pResult ) ;
+                                          utilUpdateResult *pResult,
+                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray ) ;
 
       virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                          dmsExtRW &extRW,

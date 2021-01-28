@@ -1809,18 +1809,24 @@ namespace engine
                                          BOOLEAN dupAllowed,
                                          BOOLEAN dropDups,
                                          IDmsOprHandler *pOprHandle,
-                                         utilWriteResult *pResult )
+                                         utilWriteResult *pResult,
+                                         dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
       INT32 rc = SDB_OK ;
       BSONObjSet keySet ;
+      BOOLEAN allUndefined = FALSE ;
 
-      rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     inputObj.toString().c_str() ) ;
       {
          BSONObjSet::iterator it ;
          Ordering order = Ordering::make( indexCB->keyPattern() ) ;
+
+         // only save the first key of new inserted keys for unique
+         // index
+         BOOLEAN hashSaved = FALSE ;
 
          if ( pOprHandle )
          {
@@ -1853,6 +1859,18 @@ namespace engine
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
+
+            // save key as hash values in unique index bitmap
+            // which will be used to replay in secondary nodes
+            if ( NULL != pUnqIdxHashArray &&
+                 !hashSaved &&
+                 indexCB->unique() &&
+                 !indexCB->isIDIndex() &&
+                 ( !allUndefined || indexCB->enforced() ) )
+            {
+               pUnqIdxHashArray->saveKey( *it ) ;
+               hashSaved = TRUE ;
+            }
          }
       }
 
@@ -1869,7 +1887,8 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
-                                          utilWriteResult *pResult )
+                                          utilWriteResult *pResult,
+                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       INT32 rc                     = SDB_OK ;
       INT32 indexID                = 0 ;
@@ -1922,7 +1941,7 @@ namespace engine
          else
          {
             rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-                                dropDups, pOprHandle, pResult ) ;
+                                dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
                           "rc: %d", inputObj.toString().c_str(),
                           indexCB.getDef().toString().c_str(), rc ) ;
@@ -1978,7 +1997,9 @@ namespace engine
                                          pmdEDUCB *cb,
                                          BOOLEAN isRollback,
                                          IDmsOprHandler *pOprHandle,
-                                         utilWriteResult *pResult )
+                                         utilWriteResult *pResult,
+                                         dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                                         dpsUnqIdxHashArray *pOldUnqIdxHashArray )
    {
       INT32 rc             = SDB_OK ;
       BSONObjSet keySetOri ;
@@ -1987,11 +2008,14 @@ namespace engine
       BOOLEAN found        = FALSE ;
       BOOLEAN dupAllowed   = FALSE ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+      BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
-      rc = indexCB->getKeysFromObject( originalObj, keySetOri ) ;
+      rc = indexCB->getKeysFromObject( originalObj,
+                                       keySetOri,
+                                       &oriAllUndefined ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from org object %s",
@@ -2010,7 +2034,9 @@ namespace engine
                      ( cb->isInTransRollback() &&
                            !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
 
-      rc = indexCB->getKeysFromObject ( newObj, keySetNew ) ;
+      rc = indexCB->getKeysFromObject ( newObj,
+                                        keySetNew,
+                                        &newAllUndefined ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from new object %s",
@@ -2045,6 +2071,10 @@ namespace engine
          BSONObjSet::iterator itnew ;
          Ordering order = Ordering::make(indexCB->keyPattern()) ;
 
+         // only save the first key of new updated keys, and the first key of
+         // old updated keys for unique index
+         BOOLEAN oldHashSaved = FALSE, newHashSaved = FALSE ;
+
          itori = keySetOri.begin() ;
          itnew = keySetNew.begin() ;
          while ( keySetOri.end() != itori && keySetNew.end() != itnew )
@@ -2075,6 +2105,19 @@ namespace engine
                            rid._extent, rid._offset, rc ) ;
                   goto error ;
                }
+
+               // save key as hash values in unique index bitmap
+               // which will be used to replay in secondary nodes
+               if ( NULL != pOldUnqIdxHashArray &&
+                    !oldHashSaved &&
+                    indexCB->unique() &&
+                    !indexCB->isIDIndex() &&
+                    ( !oriAllUndefined || indexCB->enforced() ) )
+               {
+                  pOldUnqIdxHashArray->saveKey( *itori ) ;
+                  oldHashSaved = TRUE ;
+               }
+
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
                // during rollback, since the previous change may half-way
                // completed, there could be some keys that has not been
@@ -2123,6 +2166,19 @@ namespace engine
                            rid._extent, rid._offset, rc ) ;
                   goto error ;
                }
+
+               // save key as hash values in unique index bitmap
+               // which will be used to replay in secondary nodes
+               if ( NULL != pNewUnqIdxHashArray &&
+                    !newHashSaved &&
+                    indexCB->unique() &&
+                    !indexCB->isIDIndex() &&
+                    ( !newAllUndefined || indexCB->enforced() ) )
+               {
+                  pNewUnqIdxHashArray->saveKey( *itnew ) ;
+                  newHashSaved = TRUE ;
+               }
+
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
                itnew++ ;
                continue ;
@@ -2145,6 +2201,19 @@ namespace engine
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
+
+            // save key as hash values in unique index bitmap
+            // which will be used to replay in secondary nodes
+            if ( NULL != pOldUnqIdxHashArray &&
+                 !oldHashSaved &&
+                 indexCB->unique() &&
+                 !indexCB->isIDIndex() &&
+                 ( !oriAllUndefined || indexCB->enforced() ) )
+            {
+               pOldUnqIdxHashArray->saveKey( *itori ) ;
+               oldHashSaved = TRUE ;
+            }
+
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
             // during rollback, since the previous change may half-way
             // completed, there could be some keys that has not been
@@ -2194,6 +2263,19 @@ namespace engine
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
+
+            // save key as hash values in unique index bitmap
+            // which will be used to replay in secondary nodes
+            if ( NULL != pNewUnqIdxHashArray &&
+                 !newHashSaved &&
+                 indexCB->unique() &&
+                 !indexCB->isIDIndex() &&
+                 ( !newAllUndefined || indexCB->enforced() ) )
+            {
+               pNewUnqIdxHashArray->saveKey( *itnew ) ;
+               newHashSaved = TRUE ;
+            }
+
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
             itnew++ ;
          }
@@ -2219,7 +2301,9 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isRollback,
                                           IDmsOprHandler *pOprHandle,
-                                          utilWriteResult *pResult )
+                                          utilWriteResult *pResult,
+                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
+                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray )
    {
       INT32 rc                     = SDB_OK ;
       INT32 indexID                = 0 ;
@@ -2266,7 +2350,8 @@ namespace engine
          else
          {
             rc = _indexUpdate ( context, &indexCB, originalObj, newObj,
-                                rid, cb, isRollback, pOprHandle, pResult ) ;
+                                rid, cb, isRollback, pOprHandle, pResult,
+                                pNewUnqIdxHashArray, pOldUnqIdxHashArray ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
                           "rc: %d", newObj.toString().c_str(),
                           indexCB.getDef().toString().c_str(), rc ) ;
@@ -2310,17 +2395,19 @@ namespace engine
                                          BSONObj &inputObj,
                                          const dmsRecordID &rid,
                                          pmdEDUCB * cb,
-                                         IDmsOprHandler *pOprHandle )
+                                         IDmsOprHandler *pOprHandle,
+                                         dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__INDEXDELETE ) ;
       INT32       rc          = SDB_OK ;
       BSONObjSet  keySet ;
       BOOLEAN     result      = FALSE ;
       monAppCB   *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
+      BOOLEAN     allUndefined = FALSE ;
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
-      rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
+      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get keys from object %s",
@@ -2343,6 +2430,9 @@ namespace engine
          BSONObjSet::iterator it ;
          Ordering order = Ordering::make(indexCB->keyPattern()) ;
 
+         // only save the first key of deleted keys for unique index
+         BOOLEAN hashSaved = FALSE ;
+
          // go through each index in the set
          for ( it = keySet.begin() ; it != keySet.end() ; it++ )
          {
@@ -2361,6 +2451,19 @@ namespace engine
                         rid._extent, rid._offset, rc ) ;
                goto error ;
             }
+
+            // save key as hash values in unique index bitmap
+            // which will be used to replay in secondary nodes
+            if ( NULL != pUnqIdxHashArray &&
+                 !hashSaved &&
+                 indexCB->unique() &&
+                 !indexCB->isIDIndex() &&
+                 ( !allUndefined || indexCB->enforced() ) )
+            {
+               pUnqIdxHashArray->saveKey( *it ) ;
+               hashSaved = TRUE ;
+            }
+
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
          }
       }
@@ -2379,7 +2482,8 @@ namespace engine
                                           BSONObj &inputObj,
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
-                                          IDmsOprHandler *pOprHandle )
+                                          IDmsOprHandler *pOprHandle,
+                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       INT32 rc                     = SDB_OK ;
       INT32 indexID                = 0 ;
@@ -2429,7 +2533,7 @@ namespace engine
          else
          {
             rc = _indexDelete ( context, &indexCB, inputObj,
-                                rid, cb, pOprHandle ) ;
+                                rid, cb, pOprHandle, pUnqIdxHashArray ) ;
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to delete object(%s) index(%s), "

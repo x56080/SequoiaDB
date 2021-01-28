@@ -431,6 +431,8 @@ namespace engine
          }
          case LOG_TYPE_DATA_INSERT :
          {
+            dpsUnqIdxHashArray unqIdxHashArray ;
+
             dpsLogRecord::iterator itrName, itrObj ;
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
@@ -472,10 +474,21 @@ namespace engine
                                     "Invalid insert record", e.what() ) ;
                goto done ;
             }
+
+            unqIdxHashArray.parseFromRecord( *this, TRUE ) ;
+            if ( !unqIdxHashArray.empty() )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " NewUnqIdxHash : %s"OSS_NEWLINE,
+                                   unqIdxHashArray.toString().c_str() ) ;
+            }
+
             break ;
          }
          case LOG_TYPE_DATA_UPDATE :
          {
+            dpsUnqIdxHashArray newUnqIdxHashArray, oldUnqIdxHashArray ;
+
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "UPDATE", LOG_TYPE_DATA_UPDATE ) ;
@@ -586,10 +599,29 @@ namespace engine
                                     "Invalid update record", e.what() ) ;
                goto done ;
             }
+
+            newUnqIdxHashArray.parseFromRecord( *this, TRUE ) ;
+            if ( !newUnqIdxHashArray.empty() )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " NewUnqIdxHash : %s"OSS_NEWLINE,
+                                   newUnqIdxHashArray.toString().c_str() ) ;
+            }
+
+            oldUnqIdxHashArray.parseFromRecord( *this, FALSE ) ;
+            if ( !oldUnqIdxHashArray.empty() )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " OldUnqIdxHash : %s"OSS_NEWLINE,
+                                   oldUnqIdxHashArray.toString().c_str() ) ;
+            }
+
             break ;
          }
          case LOG_TYPE_DATA_DELETE :
          {
+            dpsUnqIdxHashArray unqIdxHashArray ;
+
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "DELETE", LOG_TYPE_DATA_DELETE ) ;
@@ -626,6 +658,15 @@ namespace engine
                                     e.what() ) ;
                goto done ;
             }
+
+            unqIdxHashArray.parseFromRecord( *this, FALSE ) ;
+            if ( !unqIdxHashArray.empty() )
+            {
+               len += ossSnprintf( outBuf + len, outSize - len,
+                                   " OldUnqIdxHash : %s"OSS_NEWLINE,
+                                   unqIdxHashArray.toString().c_str() ) ;
+            }
+
             break ;
          }
          case LOG_TYPE_DATA_POP:

@@ -217,7 +217,7 @@ namespace engine
          /*
             -1 : for no found the position
          */
-         OSS_INLINE INT32 nextSetBitPos( UINT32 fromPos = 0 )
+         OSS_INLINE INT32 nextSetBitPos( UINT32 fromPos = 0 ) const
          {
             INT32 pos = -1 ;
 
@@ -296,8 +296,10 @@ namespace engine
          }
 
       protected :
+         // size of bitmap ( in bits )
          UINT32   _size ;
          UINT32   _freeSize ;
+         // size of bitmap buffer ( in bytes )
          UINT32   _bitmapSize ;
          UINT8 *  _bitmap ;
    } ;
