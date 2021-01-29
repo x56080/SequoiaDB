@@ -3876,6 +3876,7 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
       }
    }
 
+   fdw_state->bson_record_addr = sdbCreateBsonRecordAddr() ;
    foreignPrivateList = serializeSdbExecState( fdw_state ) ;
    sdbbson_destroy( &fdw_state->queryDocument ) ;
    sdbbson_destroy( &fdw_state->sortDocument ) ;
@@ -4022,7 +4023,6 @@ static void SdbBeginForeignScan( ForeignScanState *scanState,
                                         fdw_state->transaction ) ;
 
    fdw_state->hCollection = clStat->clHandle ;
-   fdw_state->bson_record_addr = sdbCreateBsonRecordAddr() ;
 
    scanState->fdw_state = ( void* )fdw_state ;
 }
