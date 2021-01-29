@@ -57,7 +57,7 @@ backupTestCase11701.prototype.execTest =
          throw new Error( "removeBackup expect backPath is empty, but real is not" );
       }
    }
-main( test );
+// main( test );
 
 function test ()
 {

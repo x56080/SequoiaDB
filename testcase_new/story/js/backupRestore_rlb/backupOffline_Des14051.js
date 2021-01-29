@@ -3,7 +3,7 @@
 @Modify list :
                2014-6-20  xiaojun Hu  Init
 *******************************************************************************/
-main( test );
+// main( test );
 function test ()
 {
    var alreadStart = false;

@@ -4,7 +4,7 @@
 *@createdate:  2019.7.17
 *@testlinkCase:seqDB-11833
 **************************************/
-main( test );
+// main( test );
 
 function test ()
 {

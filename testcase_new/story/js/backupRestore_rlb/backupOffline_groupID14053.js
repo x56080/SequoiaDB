@@ -4,7 +4,7 @@
                2014-6-20  xiaojun Hu Init
 *******************************************************************************/
 testConf.skipStandAlone = true;
-main( test );
+// main( test );
 
 function test ()
 {
