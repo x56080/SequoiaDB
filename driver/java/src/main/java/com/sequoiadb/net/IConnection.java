@@ -49,4 +49,6 @@ public interface IConnection {
     public ByteBuffer receiveMessage(boolean endianConvert) throws BaseException;
 
     public void shrinkBuffer();
+
+    public int getMaxSendLength();
 }

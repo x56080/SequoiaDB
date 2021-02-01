@@ -52,6 +52,7 @@ public class ConnectionTCPImpl implements IConnection {
     final static private int DEF_BUFFER_LENGTH = 64 * 1024;
     private int REAL_BUFFER_LENGTH;
     private long lastUseTime;
+    private int maxSendLength = 0;
 
     @Override
     public void setEndianConvert(boolean endianConvert) {
@@ -350,6 +351,9 @@ public class ConnectionTCPImpl implements IConnection {
         if (this.isClosed()) {
         	throw new BaseException(SDBError.SDB_NOT_CONNECTED);
         }
+        if (length > maxSendLength) {
+            maxSendLength = length;
+        }
         if (output != null) {
             try {
                 output.write(msg, 0, length);
@@ -368,5 +372,10 @@ public class ConnectionTCPImpl implements IConnection {
             receive_buffer = new byte[DEF_BUFFER_LENGTH];
             REAL_BUFFER_LENGTH = DEF_BUFFER_LENGTH;
         }
+    }
+
+    @Override
+    public int getMaxSendLength() {
+        return maxSendLength;
     }
 }

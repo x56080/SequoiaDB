@@ -70,3 +70,9 @@ If you also want to generate sourcecode and javadoc package, run command:
 ```
 mvn clean package -Prelease
 ```
+
+If you only want to install to local(skip test/javadoc/gpg), run command:
+
+```
+mvn clean install -Prelease -Dmaven.test.skip=true -Dgpg.skip -Dmaven.javadoc.skip=true
+```
