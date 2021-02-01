@@ -14,42 +14,48 @@
 
 全量备份
 ----
-用户可以通过各个数据库驱动程序调用 [backup()][backup_help] 方法来执行 SequoiaDB 的全量备份功能。
 
-### 对整个数据库集群执行全量备份
+###对整个数据库集群执行全量备份##
 
 1. 启动 SDB Shell，并且连接到协调节点
 
-   ```lang-bash
-   $ /opt/sequoiadb/bin/sdb
-   > var db = new Sdb( "localhost", 11810 )
+   ```lang-javascript
+   > var db = new Sdb("localhost",11810)
    ```
 
-2. 对整个数据库集群执行全量备份
+2. 执行全量备份
 
    ```lang-javascript
-   > db.backup( { Name: "backupAll", Description: "backup for all" } )
+   > db.backup({Name:"backupAll",Description:"backup for all"})
    ```
 
-### 对指定数据分区执行全量备份
+   - Name：备份名称
+   - Description：备份描述信息
 
-1. 启动 SDB Shell，连接到协调节点
+   >**Note:**
+   >
+   > 详细参数说明可参考 [backup()][backup_help]。
 
-   ```lang-bash
-   $ /opt/sequoiadb/bin/sdb
-   > var db = new Sdb( "localhost", 11810 )
-   ```
+###对指定复制组执行全量备份###
 
-2. 对指定数据分区执行全量备份
+1. 启动 SDB Shell，并且连接到协调节点
 
    ```lang-javascript
-   > db.backup( { Name: "backupAll_group1", Description: "backup group1", GroupName: "group1" } )
+   > var db = new Sdb("localhost",11810)
    ```
+
+2. 执行全量备份
+
+   ```lang-javascript
+   > db.backup({Name:"backupName",Description:"backup group1",GroupName:"group1"})
+   ```
+
+   GroupName：指定需要备份的复制组名
 
 增量备份
 ----
 
-用户执行增量备份依然采用 [backup()][backup_help] 方法，与全量备份方法唯一区别在于调用 [backup()][backup_help] 方法时，将 EnsureInc 方法设置为 true 。
+用户执行增量备份依然采用 backup() 方法，与全量备份方法唯一区别在于调用 backup() 方法时，将 EnsureInc 选项设置为 true 。
 
 **操作方法**
 
@@ -60,7 +66,7 @@
    > var db = new Sdb( "localhost", 11810 )
    ```
 
-2. 对指定整个数据库集群执行增量备份：
+2. 对指定整个数据库集群执行增量备份
 
    ```lang-javascript
    > db.backup( { Name: "backupAll", Description: "increase backup data", EnsureInc: true } )
