@@ -1487,7 +1487,7 @@ public class SequoiadbDatasourceImpl {
 
     private boolean _connIsValid(ConnItem item, Sequoiadb sdb) {
         // check the max send buffer size
-        if (_dsOpt.getCacheLimit() > 0 && sdb.getConnection().getMaxSendLength() > _dsOpt.getCacheLimit()) {
+        if (_dsOpt.getCacheLimit() > 0 && sdb.getConnection().getCurrentCacheSize() > _dsOpt.getCacheLimit()) {
             return false;
         }
 

@@ -50,5 +50,5 @@ public interface IConnection {
 
     public void shrinkBuffer();
 
-    public int getMaxSendLength();
+    public int getCurrentCacheSize();
 }
