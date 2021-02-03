@@ -4,7 +4,7 @@ renameCL - 修改集合名
 
 ##语法##
 
-***db.collectionspace.renameCL( \<oldname\>, \<newname\> )***
+**db.collectionspace.renameCL( \<oldname\>, \<newname\> )**
 
 ##类别##
 
@@ -28,7 +28,7 @@ Collection Space
 
 ##返回值##
 
-函数执行成功时无返回值。
+函数执行成功时，无返回值。
 
 函数执行失败时，将抛出异常并输出错误信息。
 
@@ -47,8 +47,9 @@ Collection Space
 当异常抛出时，可以通过 [getLastErrObj()](manual/Manual/Sequoiadb_Command/Global/getLastErrObj.md)  或 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。
 更多错误可以参考[常见错误处理指南](manual/faq.md) 。
 
-##版本信息##
-3.0.1及以上版本
+##版本##
+
+v3.0.1 及以上版本
 
 ##示例##
 

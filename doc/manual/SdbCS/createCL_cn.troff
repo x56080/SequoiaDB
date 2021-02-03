@@ -5,16 +5,16 @@
 .hy
 .SH 名称
 .PP
-createCL \- 创建一个新的集合。
+createCL \- 创建一个新的集合
 .SH 语法
 .PP
-\f[B]\f[I]db.collectionspace.createCL(<name>,[options])\f[]\f[]
+\f[B]db.collectionspace.createCL(<name>,[options])\f[]
 .SH 类别
 .PP
 Collection Space
 .SH 描述
 .PP
-在指定集合空间下创建集合（Collection），集合是数据库中存放文档记录的逻辑对象，任何一条文档记录必须属于一个且仅属于一个集合。
+该函数用于在指定集合空间下创建集合（Collection），集合是数据库中存放文档记录的逻辑对象，任何一条文档记录必须属于一个且仅属于一个集合。
 .SH 参数
 .IP \[bu] 2
 \f[C]name\f[] ( \f[I]String\f[]， \f[I]必填\f[] )
@@ -198,9 +198,9 @@ lzw 算法更优。
 .RE
 .SH 返回值
 .PP
-成功：返回一个新的 SdbCollection 对象。
+函数执行成功时，返回一个新的 SdbCollection 对象。
 .PP
-失败：抛出异常。
+函数执行失败时，将抛异常并输出错误信息。
 .SH 错误
 .PP
 \f[C]createCL()\f[]函数常见异常如下：
@@ -313,40 +313,40 @@ T}@T{
 T}
 .TE
 .PP
-当异常抛出时，可以通过getLastError()获取错误码，
-或通过getLastErrMsg()获取错误信息。 可以参考常见错误处理指南了解更多内容。
+当异常抛出时，可以通过 getLastError() 获取错误码， 或通过 getLastErrMsg()
+获取错误信息。 可以参考常见错误处理指南了解更多内容。
 .SH 版本
 .PP
-v1.0及以上版本。
-.SH 例子
+v1.0 及以上版本。
+.SH 示例
 .IP "1." 3
-在集合空间 foo 下创建集合 bar，不指定分区键。
+在集合空间 sample 下创建集合 employee，不指定分区键。
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar"\ )
-localhost:11810.foo.bar
+>\ db.sample.createCL(\ "employee"\ )
+localhost:11810.sample.employee
 Takes\ 0.120450s.
 \f[]
 .fi
 .RE
 .IP "2." 3
-在集合空间 foo 下创建集合 bar。该集合若需要切分数据到其它复制组，将 使用 age
-字段进行 hash 切分；该集合默认开启了数据压缩功能，使用默认的 lzw
+在集合空间 sample 下创建集合 employee。该集合若需要切分数据到其它复制组，将 使用
+age 字段进行 hash 切分；该集合默认开启了数据压缩功能，使用默认的 lzw
 算法压缩数据；写操作作用于该集合时，只需写入主节点即可返回。
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar",{\ ShardingKey:{\ age:\ 1\ },\ ShardingType:\ "hash",\ Partition:\ 4096,\ ReplSize:\ 1\ }\ )
-localhost:11810.foo.bar
+>\ db.sample.createCL(\ "employee",{\ ShardingKey:{\ age:\ 1\ },\ ShardingType:\ "hash",\ Partition:\ 4096,\ ReplSize:\ 1\ }\ )
+localhost:11810.sample.employee
 Takes\ 0.110319s.
 \f[]
 .fi
 .RE
 .IP "3." 3
-在集合空间 foo 下创建集合 bar，开启严格数据类型模式。
+在集合空间 sample 下创建集合 employee，开启严格数据类型模式。
 .nf
 \f[C]
->\ db.foo.createCL(\ "bar",\ {\ StrictDataMode:\ true\ }\ )
-localhost:11810.foo.bar
+>\ db.sample.createCL(\ "employee",\ {\ StrictDataMode:\ true\ }\ )
+localhost:11810.sample.employee
 Takes\ 0.120450s.
 \f[]
 .fi
@@ -355,28 +355,28 @@ Takes\ 0.120450s.
 在主分区集合下使用大对象
 .RS 4
 .IP \[bu] 2
-在集合空间 foo 下创建支持大对象的主分区集合 maincl，同时关联子表 subcl。
+在集合空间 sample 下创建支持大对象的主分区集合 maincl，同时关联子表 subcl。
 .IP
 .nf
 \f[C]
->\ db.foo.createCL("maincl",\ {\ LobShardingKeyFormat:"YYYYMMDD",\ ShardingKey:{\ date:1\ },\ IsMainCL:true,\ ShardingType:"range"\ }\ )
-localhost:11810.foo.maincl
+>\ db.sample.createCL("maincl",\ {\ LobShardingKeyFormat:"YYYYMMDD",\ ShardingKey:{\ date:1\ },\ IsMainCL:true,\ ShardingType:"range"\ }\ )
+localhost:11810.sample.maincl
 Takes\ 0.058532s.
->\ db.foo.createCL("subcl")
-localhost:11810.foo.subcl
+>\ db.sample.createCL("subcl")
+localhost:11810.sample.subcl
 Takes\ 0.294612s.
->\ db.foo.maincl.attachCL(\ "foo.subcl",\ {\ LowBound:\ {\ date:\ "20190701"\ },\ UpBound:\ {\ date:\ "20190801"\ }\ }\ )
+>\ db.sample.maincl.attachCL(\ "sample.subcl",\ {\ LowBound:\ {\ date:\ "20190701"\ },\ UpBound:\ {\ date:\ "20190801"\ }\ }\ )
 Takes\ 0.008561s.
 \f[]
 .fi
 .IP \[bu] 2
-在[20190701, 20190801)之间创建的大对象数据则会落在集合 foo.subcl 中
+在[20190701, 20190801)之间创建的大对象数据则会落在集合 sample.subcl 中
 .IP
 .nf
 \f[C]
 >\ Timestamp()
 Timestamp("2019\-07\-23\-18.04.07.539050")
->\ db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
+>\ db.sample.maincl.putLob(\[aq]/opt/data/test.dat\[aq])
 00005d36dbee370002de8080
 Takes\ 0.246062s.
 \f[]
@@ -386,10 +386,10 @@ Takes\ 0.246062s.
 .IP
 .nf
 \f[C]
->\ db.foo.maincl.createLobID("2019\-07\-23\-18.04.07")
+>\ db.sample.maincl.createLobID("2019\-07\-23\-18.04.07")
 00005d36db97360002de8081
 Takes\ 0.108365s.
->\ db.foo.maincl.putLob(\[aq]/opt/data/test.dat\[aq],\ \[aq]00005d36db97360002de8081\[aq])
+>\ db.sample.maincl.putLob(\[aq]/opt/data/test.dat\[aq],\ \[aq]00005d36db97360002de8081\[aq])
 00005d36db97360002de8081
 Takes\ 0.002216s.
 \f[]
