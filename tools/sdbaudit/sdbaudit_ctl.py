@@ -248,7 +248,7 @@ class ObjMgr:
         if not self.__install_dir:
             conf = os.path.join(REGISTER_CONF_PATH, 'sequoiadb')
             if not os.path.exists(conf):
-                print("[ERROR] Register configuration file in {} is not " \
+                print("[ERROR] Register configuration file in {} does not " \
                       "exists".format(conf))
                 return 1
             with open(conf, 'r') as f:
@@ -259,7 +259,7 @@ class ObjMgr:
         try:
             p = Popen([command, '-t', 'all', '-m', 'local', '--expand'], stdout=PIPE)
         except OSError:
-            print("[ERROR] --path '{}' is not installation directory for " \
+            print("[ERROR] --path '{}' is not the installation directory for " \
                   "{}".format(self.__install_dir, self.__log_type))
             return 1
 
@@ -301,7 +301,7 @@ class ObjMgr:
             try:
                 p = Popen([command, 'listinst'], stdout=PIPE)
             except OSError:
-                print("[ERROR] --path '{}' is not installation directory for " \
+                print("[ERROR] --path '{}' is not the installation directory for " \
                       "{}".format(self.__install_dir, self.__log_type))
                 return 1
             line = p.stdout.readline()
@@ -347,8 +347,8 @@ class ObjMgr:
                     list_conf.append(conf)
 
             if 0 == len(list_conf):
-                print("[INFO] No SQL instance found in " \
-                      "{}".format(REGISTER_CONF_PATH))
+                print("[INFO] Register configuration file in " \
+                      "{} does not exist".format(REGISTER_CONF_PATH))
                 return 1
 
             for conf in list_conf:
@@ -403,9 +403,9 @@ class ObjMgr:
                           "exist".format(self.__instance_name))
                     return 1
                 elif len(install_dir) > 1:
-                    print("[INFO] There are {} install dir containing " \
-                          "inst '{}', which are {}. Please use --path " \
-                          "to specify the directory you want to " \
+                    print("[INFO] There are {} installation directories containing " \
+                          "instance '{}', which are {}. Please use --path " \
+                          "to specify one of the directories you want to " \
                           "add".format(len(install_dir),
                           self.__instance_name, install_dir))
                     return 1
@@ -421,8 +421,8 @@ class ObjMgr:
                 audit_file = parser.get(section, option)
                 audit_path = os.path.dirname(audit_file)
             else:
-                print("[INFO] INSTNAME:[{}] dosen't install audit " \
-                      "plugin.".format(inst_name[i]))
+                print("[WARNING] INSTNAME '{}' doesn't install audit " \
+                      "plugin. Let's skip the instance.".format(inst_name[i]))
                 continue;
             option = 'port'
             if parser.has_option(section, option):
@@ -442,7 +442,7 @@ class ObjMgr:
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
             print("[ERROR] Configuration file {} dose not " \
-                  "exists".format(CONFIG_FILE_NAME))
+                  "exist".format(CONFIG_FILE_NAME))
             return 1
         global_parser = ConfigParser.ConfigParser()
         global_parser.read(file)

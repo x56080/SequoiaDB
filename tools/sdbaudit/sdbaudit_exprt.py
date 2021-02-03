@@ -344,8 +344,8 @@ class OptionsMgr:
     def __load_global_configs(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            logger.error("Configuration file {} dose not " \
-                  "exists".format(CONFIG_FILE_NAME))
+            logger.error("Configuration file {} does not " \
+                  "exist".format(CONFIG_FILE_NAME))
             return 1
         self.__global_parser = ConfigParser.ConfigParser()
         self.__global_parser.read(file)
@@ -376,7 +376,7 @@ class OptionsMgr:
                   "specify.")
             return 1
         elif not os.path.exists(options.audit_path):
-            logger.error("Directory of audit path '{}' is not exists".format(options.audit_path))
+            logger.error("Directory of audit path '{}' does not exist".format(options.audit_path))
             return 1
         elif not os.path.isdir(options.audit_path):
             logger.error("Audit path '{}' must be a directory".format(options.audit_path))
@@ -536,7 +536,7 @@ class StatMgr:
         try:
             if not os.path.exists(self.stat_file):
                 # No status file at all. Treat as fresh start.
-                logger.warn('Status file {} dose not exist. Init it with '
+                logger.warn('Status file {} does not exist. Init it with '
                             'default values'.format(self.stat_file))
                 self.__init_stat_file()
 

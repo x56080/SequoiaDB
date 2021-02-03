@@ -119,7 +119,7 @@ class OptionsMgr:
                                  help="stop the daemon.")
         #Add --status option
         self.__parser.add_option("--status", action='store_true', dest='status',
-                                 help="check daemon exist or not")
+                                 help="check if daemon exists")
 
     def parse_option(self):
         self.__add_option()
