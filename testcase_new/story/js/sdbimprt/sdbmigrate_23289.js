@@ -2,7 +2,7 @@
  * @Description   : seqDB-23289 :: 多库多表并发导出后导入，cl为分区表，数据文件为csv 
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.18
- * @LastEditTime  : 2021.01.19
+ * @LastEditTime  : 2021.02.03
  * @LastEditors   : Yu Fan
  ******************************************************************************/
 var domainName = "domain23289";
@@ -72,7 +72,6 @@ function test ( testPara )
    for( var i = 0; i < csNames.length; i++ )
    {
       commDropCS( db, csNames[i], true );
-      db.createCS( csNames[i] );
    }
    cmd.run( "rm -rf " + tmpFileDir );
 }
