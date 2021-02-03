@@ -1050,6 +1050,9 @@ class LogExporter:
             self.__num_of_records = 0
             self.stat_mgr.update_stat()
 
+    def get_records(self):
+        return self.__records 
+
     def run(self):
         fd = None
         try:
@@ -1100,7 +1103,7 @@ def __quit():
         pid_file = os.path.join(work_path, PID_FILE_NAME)
         if os.path.exists(pid_file):
             os.remove(pid_file)
-        log_exporter.connect.write_row(self.__records)
+        log_exporter.connect.write_row(log_exporter.get_records())
         log_exporter.stat_mgr.update_stat()
         logger.info('Exit')
     except (Exception, ValueError) as e:
