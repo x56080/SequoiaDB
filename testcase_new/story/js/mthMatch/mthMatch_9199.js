@@ -1,9 +1,10 @@
-/************************************
-*@Description: find condition include function and matches,format is illegal; 
-*@author:      zhaoyu
-*@createdate:  2016.11.2
-*@testlinkCase: 
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-9199:find condition include function and matches,format is illegal;
+ * @Author        : zhaoyu
+ * @CreateTime    : 2016.11.02
+ * @LastEditTime  : 2021.02.04
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 main( test );
 function test ()
 {
@@ -17,7 +18,7 @@ function test ()
    var doc = [{ No: 1, a: [1, 2, 3, 4, 5, 6] },
    { No: 2, a: { 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 } },
    { No: 3, a: [4, 5, 6, 7, 8] },
-   { No: 4, a: { 0: 4, 1: 5, 2: 6, 2: 7, 4: 8 } },
+   { No: 4, a: { 0: 4, 1: 5, 2: 6, 3: 7, 4: 8 } },
    { No: 5, a: 1 },
    { No: 6, a: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
    { No: 7, a: [1, 2, 3, 7, 8, 9] },

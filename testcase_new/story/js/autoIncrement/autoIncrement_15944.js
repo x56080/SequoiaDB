@@ -1,9 +1,10 @@
-/***************************************************************************
-@Description : seqDB-15944:集合中存在多自增字段，插入记录
-@Modify list :
-              2018-10-16  zhaoyu  Create
-****************************************************************************/
-
+/******************************************************************************
+ * @Description   : seqDB-15944:集合中存在多自增字段，插入记录
+ * @Author        : zhaoyu
+ * @CreateTime    : 2018.10.16
+ * @LastEditTime  : 2021.02.03
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 main( test );
 function test ()
 {
@@ -18,7 +19,7 @@ function test ()
 
    var dbcl = commCreateCL( db, COMMCSNAME, clName, {
       AutoIncrement: [{ Field: "id1", AcquireSize: 10 },
-      { Field: "id2", AcquireSize: 1, Increment: -1, CacheSize: 10, AcquireSize: 1 }]
+      { Field: "id2", AcquireSize: 1, Increment: -1, CacheSize: 10 }]
    } );
    var expR = [];
    for( var j = 0; j < 100; j++ )

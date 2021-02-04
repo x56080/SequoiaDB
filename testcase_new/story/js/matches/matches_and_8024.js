@@ -1,9 +1,11 @@
-﻿/************************************************************************
-*@Description:   seqDB-8024:使用$and查询，不走索引查询
-                 seqDB-8102:不同字段字段覆盖所有匹配符组合测试
-                    cover all data type
-*@Author:  2016/5/24  xiaoni huang
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-8024:使用$and查询，不走索引查询
+                    seqDB-8102:不同字段字段覆盖所有匹配符组合测试
+ * @Author        : xiaoni huang
+ * @CreateTime    : 2016.05.24
+ * @LastEditTime  : 2021.02.04
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 main( test );
 
 function test ()
@@ -83,14 +85,14 @@ function insertRecs ( cl )
    },
    {
       a: 13, int: -2147483648, null: null, bool: true, string: "test", double: 48.00, array: [2, { c: "test" }],
-      subObj: { "0": { c: "test" } }, oid: { "$oid": "123abcd00ef12358902300ef" },
+      oid: { "$oid": "123abcd00ef12358902300ef" },
       date: { "$date": "2038-01-18" }, timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" },
       long: { "$numberLong": "-9223372036854775808" }, decimal: { "$decimal": "111.001" },
       regex: { "$regex": "^rg", "$options": "i" }, subObj: { "0": { c: "test" } }, str: "test"
    },
    {
       a: 14, int: -2147483648, null: null, bool: true, string: "test", double: 48.00, array: [2, { c: "test" }],
-      subObj: { "0": { c: "test" } }, oid: { "$oid": "123abcd00ef12358902300ef" },
+      oid: { "$oid": "123abcd00ef12358902300ef" },
       date: { "$date": "2038-01-18" }, timestamp: { "$timestamp": "2038-01-18-23.59.59.999999" },
       long: { "$numberLong": "-9223372036854775808" }, decimal: { "$decimal": "111.001" },
       regex: { "$regex": "^rg", "$options": "i" }, subObj: { "0": { c: "test" } }, str: "dhafj", tmp3: 1
