@@ -219,10 +219,6 @@ static SdbExecState *deserializeSdbExecState( List *sdbExecStateList ) ;
 static INT32 sdbAppendConstantValue( sdbbson *bsonObj, const char *keyName,
                                      Const *constant, INT32 isUseDecimal ) ;
 
-
-static UINT64 sdbCreateBsonRecordAddr(  ) ;
-static sdbbson* sdbGetRecordPointer( UINT64 record_addr ) ;
-
 static void sdbGetColumnKeyInfo( SdbExecState *fdw_state ) ;
 
 static bool sdbIsShardingKeyChanged( SdbExecState *fdw_state, sdbbson *oldBson,
@@ -390,7 +386,8 @@ void initSdbExecState( SdbExecState *sdbExecState )
    sdbExecState->hConnection       = SDB_INVALID_HANDLE ;
    sdbExecState->hCollection       = SDB_INVALID_HANDLE ;
 
-   sdbExecState->bson_record_addr  = -1 ;
+   sdbExecState->bson_record_index  = -1 ;
+   sdbExecState->keyAddress = (UINT64)sdbExecState ;
 
    sdbbson_init( &sdbExecState->queryDocument ) ;
    sdbbson_finish( &sdbExecState->queryDocument ) ;
@@ -518,8 +515,11 @@ List *serializeSdbExecState( SdbExecState *fdwState )
    /* isPushDownLimit */
    result = lappend(result, serializeInt(fdwState->isPushDownLimit)) ;
 
-   /* _id_addr */
-   result = lappend( result, serializeUint64( fdwState->bson_record_addr ) ) ;
+   /* record index */
+   result = lappend( result, serializeUint64( fdwState->bson_record_index ) ) ;
+
+   /* record index */
+   result = lappend( result, serializeUint64( fdwState->keyAddress ) ) ;
 
    /* isUseDecimal */
    result = lappend( result, serializeInt( fdwState->isUseDecimal ) ) ;
@@ -652,8 +652,12 @@ SdbExecState *deserializeSdbExecState( List *sdbExecStateList )
    fdwState->isPushDownLimit = (int)DatumGetInt32(((Const *)lfirst(cell))->constvalue) ;
    cell = lnext(cell) ;
 
-   /* _id_addr */
-   fdwState->bson_record_addr = deserializeUint64( lfirst( cell ) ) ;
+   /* record index */
+   fdwState->bson_record_index = deserializeUint64( lfirst( cell ) ) ;
+   cell = lnext( cell ) ;
+
+   /* the SdbExecState's key address */
+   fdwState->keyAddress = deserializeUint64( lfirst( cell ) ) ;
    cell = lnext( cell ) ;
 
    /* isUseDecimal */
@@ -939,21 +943,6 @@ done:
    return rc ;
 error:
    goto done ;
-}
-
-UINT64 sdbCreateBsonRecordAddr(  )
-{
-   UINT64 id = 0 ;
-   SdbRecordCache *cache = SdbGetRecordCache() ;
-   SdbAllocRecord( cache, &id ) ;
-
-   return id ;
-}
-
-sdbbson *sdbGetRecordPointer( UINT64 record_addr )
-{
-   SdbRecordCache *cache = SdbGetRecordCache() ;
-   return SdbGetRecord( cache, record_addr ) ;
 }
 
 void sdbGetColumnKeyInfo( SdbExecState *fdw_state )
@@ -3333,11 +3322,9 @@ void sdbFreeScanState( SdbExecState *executionState, bool deleteShared )
    executionState->hCollection = SDB_INVALID_HANDLE ;
    if ( deleteShared )
    {
-      if ( -1 != executionState->bson_record_addr )
+      if ( -1 != executionState->bson_record_index )
       {
-         SdbReleaseRecord( SdbGetRecordCache(),
-                           executionState->bson_record_addr ) ;
-         executionState->bson_record_addr = -1 ;
+         sdbReleaseRecord( sdbGetRecordCache(), executionState ) ;
       }
    }
    /* do not free connection since it's in pool */
@@ -3876,7 +3863,6 @@ static ForeignScan *SdbGetForeignPlan( PlannerInfo *root,
       }
    }
 
-   fdw_state->bson_record_addr = sdbCreateBsonRecordAddr() ;
    foreignPrivateList = serializeSdbExecState( fdw_state ) ;
    sdbbson_destroy( &fdw_state->queryDocument ) ;
    sdbbson_destroy( &fdw_state->sortDocument ) ;
@@ -3961,10 +3947,9 @@ static void SdbExplainForeignScan( ForeignScanState *scanState,
       ExplainPropertyText("  Limit", explainInfo->data, explainState) ;
    }
 
-   if ( -1 != fdw_state->bson_record_addr )
+   if ( -1 != fdw_state->bson_record_index )
    {
-      SdbReleaseRecord( SdbGetRecordCache(), fdw_state->bson_record_addr ) ;
-      fdw_state->bson_record_addr = -1 ;
+      sdbReleaseRecord( sdbGetRecordCache(), fdw_state ) ;
    }
 
    pfree( fdw_state ) ;
@@ -3982,7 +3967,6 @@ static void SdbBeginForeignScan( ForeignScanState *scanState,
    HTAB *columnMappingHash   = NULL ;
    List *fdw_state_list      = NIL ;
    SdbExecState *fdw_state   = NULL ;
-   SdbStatisticsCache *cache = NULL ;
    const SdbCLStatistics *clStat = NULL ;
 
    /* do not begin real scan if it's explain only */
@@ -3992,7 +3976,6 @@ static void SdbBeginForeignScan( ForeignScanState *scanState,
    }
 
    foreignTableId = RelationGetRelid( scanState->ss.ss_currentRelation ) ;
-   cache = SdbGetStatisticsCache() ;
    clStat = SdbGetCLStatFromCache( foreignTableId ) ;
 
    /* deserialize fdw*/
@@ -4023,6 +4006,11 @@ static void SdbBeginForeignScan( ForeignScanState *scanState,
                                         fdw_state->transaction ) ;
 
    fdw_state->hCollection = clStat->clHandle ;
+
+   if ( NULL == sdbAllocRecord( sdbGetRecordCache(), fdw_state ) )
+   {
+      elog( ERROR, "Failed to allocate record") ;
+   }
 
    scanState->fdw_state = ( void* )fdw_state ;
 }
@@ -4062,7 +4050,7 @@ static TupleTableSlot * SdbIterateForeignScan( ForeignScanState *scanState )
       }
    }
 
-   recordObj = sdbGetRecordPointer( executionState->bson_record_addr ) ;
+   recordObj = sdbGetRecord( sdbGetRecordCache(), executionState ) ;
    sdbbson_destroy( recordObj ) ;
    sdbbson_init( recordObj ) ;
    /* if there's nothing more to fetch, we return empty slot to represent
@@ -4754,7 +4742,7 @@ TupleTableSlot *SdbExecForeignDelete( EState *estate, ResultRelInfo *rinfo,
    SdbExecState *fdw_state = ( SdbExecState * )rinfo->ri_FdwState ;
 
    sdbbson_init( &sdbbsonCondition ) ;
-   original = sdbGetRecordPointer( fdw_state->bson_record_addr ) ;
+   original = sdbGetRecord( sdbGetRecordCache(), fdw_state ) ;
    for ( i = 0 ; i < fdw_state->key_num ; i++ )
    {
       sdbbson_iterator ite ;
@@ -4819,7 +4807,7 @@ TupleTableSlot *SdbExecForeignUpdate( EState *estate, ResultRelInfo *rinfo,
    sdbbson_finish( &sdbbsonTempValue ) ;
 
    sdbbson_init( &sdbbsonCondition ) ;
-   original = sdbGetRecordPointer( fdw_state->bson_record_addr ) ;
+   original = sdbGetRecord( sdbGetRecordCache(), fdw_state ) ;
    for ( i = 0 ; i < fdw_state->key_num ; i++ )
    {
       sdbbson_iterator ite ;
@@ -5177,7 +5165,7 @@ void _PG_init (  )
    SdbInitCLStatisticsCache( SdbGetStatisticsCache() ) ;
    /* we may lose the the pointer of record if it is temporary, so we must
       keep it in global */
-   SdbInitRecordCache() ;
+   sdbInitRecordCache() ;
    RegisterXactCallback( SdbFdwXactCallback, NULL ) ;
 }
 
@@ -5186,5 +5174,5 @@ void _PG_fini (  )
    //sdbJoinInterruptThread() ;
    SdbFiniCLStatisticsCache( SdbGetStatisticsCache() ) ;
    sdbUninitConnectionPool (  ) ;
-   SdbFiniRecordCache() ;
+   sdbFiniRecordCache() ;
 }
