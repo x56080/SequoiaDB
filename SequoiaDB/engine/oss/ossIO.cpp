@@ -596,6 +596,10 @@ INT32 ossChown( const CHAR* pPathName, OSSUID uid, OSSGID gid )
  * Return
  * SDB_OK
  * SDB_PERM
+ * SDB_INTERRUPT
+ * SDB_INVALIDARG
+ * SDB_OOM
+ * SDB_NOSPC
  * SDB_IO
  */
  // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSMKDIR, "ossMkdir" )
@@ -687,7 +691,25 @@ INT32 ossMkdir ( const CHAR* pPathName, UINT32 iPermission )
       {
          PD_LOG( PDERROR, "Create directory[%s] failed, errno: %d",
                  pPathName, e.code().value() ) ;
-         rc = SDB_IO ;
+
+         switch ( e.code().value() )
+         {
+         case EINTR:
+            rc = SDB_INTERRUPT ;
+            break ;
+         case EINVAL:
+            rc = SDB_INVALIDARG ;
+            break ;
+         case ENOMEM:
+            rc = SDB_OOM ;
+            break;
+         case ENOSPC :
+            rc = SDB_NOSPC ;
+            break ;
+         default:
+            rc = SDB_IO ;
+            break ;
+         }
       }
       goto error ;
    }
