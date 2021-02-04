@@ -1,10 +1,12 @@
 /******************************************************************************
-@Description : 1. Test db.listDomains(<name>,[option]), specify name list.
-               2. Test insert/update/find/remove operation.
-               3. Test create four domains.
-@Modify list :
-               2014-6-18  xiaojun Hu  Init
-******************************************************************************/
+ * @Description   : 1. Test db.listDomains(<name>,[option]), specify name list.
+                    2. Test insert/update/find/remove operation.
+                    3. Test create four domains.
+ * @Author        : xiaojun Hu
+ * @CreateTime    : 2014.06.18
+ * @LastEditTime  : 2021.02.04
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
 function test ()
@@ -25,17 +27,18 @@ function test ()
    }
 
    // Inspect the specify domain
-   for( var j = 0; j <= domNames.length; ++j )
+   for( var j = 0; j < domNames.length; ++j )
    {
+      var flag = false; // 确认是否存在特定域
       var listDom = db.listDomains( { "Name": domNames[j] } ).current().toObj()["Name"];
-      if( listDom == domNames[j] )
+      if( listDom === domNames[j] )
       {
-         break;
-      } else
-      {
-         throw new Error( "ErrDomains" );
+         flag = true;
       }
+      assert.equal( flag, true, "ErrDomains" );
    }
+
+
 
    for( var i = 0; i < domNames.length; ++i )
    {

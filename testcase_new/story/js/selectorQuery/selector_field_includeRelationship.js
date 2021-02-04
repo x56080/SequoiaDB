@@ -1,9 +1,11 @@
-/*******************************************************************************
-*@Description : fields have included relations
-*               $elemMatch/$elemMatchOne/$slice/$default/$include
-*@Modify list :
-*               2015-01-29  xiaojun Hu  Change
-*******************************************************************************/
+/******************************************************************************
+ * @Description   : fields have included relations
+*                   $elemMatch/$elemMatchOne/$slice/$default/$include
+ * @Author        : xiaojun Hu
+ * @CreateTime    : 2015.01.29
+ * @LastEditTime  : 2021.02.04
+ * @LastEditors   : Lai Xuan
+ ******************************************************************************/
 
 main( test );
 
@@ -34,8 +36,7 @@ function test ()
       "ExtraField2.nest1.nest2.nest3": { "$include": 1 },
       "ExtraField2.nest1.nest2": { "$include": 1 },
       "ExtraField2.nest1": { "$include": 1 },
-      "ExtraField2": { "$include": 1 },
-      "Group.NodeID": { "$include": 1 }
+      "ExtraField2": { "$include": 1 }
    };
    var ret = selMainQuery( cl, condObj, selObj );
    // verify
@@ -65,8 +66,7 @@ function test ()
       "ExtraField2.nest1.nest2.nest3": { "$include": 0 },
       "ExtraField2.nest1.nest2": { "$include": 0 },
       "ExtraField2.nest1": { "$include": 0 },
-      "ExtraField2": { "$include": 0 },
-      "Group.NodeID": { "$include": 0 }
+      "ExtraField2": { "$include": 0 }
    };
    var ret = selMainQuery( cl, condObj, selObj );
    // verify
@@ -92,8 +92,7 @@ function test ()
       "ExtraField2.nest1.nest2.nest3": { "$default": 0 },
       "ExtraField2.nest1.nest2": { "$default": 0 },
       "ExtraField2.nest1": { "$default": 0 },
-      "ExtraField2": { "$default": 0 },
-      "Group.NodeID": { "$default": 0 }
+      "ExtraField2": { "$default": 0 }
    };
    var ret = selMainQuery( cl, condObj, selObj );
    // verify
