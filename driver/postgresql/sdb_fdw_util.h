@@ -110,6 +110,7 @@ Var *getRealVar( Expr *arg ) ;
 typedef struct
 {
    sdbbson *record ;
+   UINT64 key ;
    BOOLEAN isUsed ;
 } SdbRecordItem ;
 
@@ -122,13 +123,13 @@ typedef struct
    SdbRecordItem recordArray[ SDB_MAX_RECORD_SIZE ] ;
 } SdbRecordCache ;
 
-void SdbInitRecordCache() ;
-void SdbFiniRecordCache() ;
+void sdbInitRecordCache() ;
+void sdbFiniRecordCache() ;
 
-SdbRecordCache *SdbGetRecordCache() ;
-sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID ) ;
-sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID ) ;
-void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID ) ;
+SdbRecordCache *sdbGetRecordCache() ;
+sdbbson *sdbAllocRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state ) ;
+sdbbson *sdbGetRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state ) ;
+void sdbReleaseRecord( SdbRecordCache *recordCache, SdbExecState *fdw_state ) ;
 
 
 #ifdef SDB_USE_OWN_POSTGRES

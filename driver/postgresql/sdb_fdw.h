@@ -204,8 +204,10 @@ struct SdbExecState
    /* foreign table's rowcount */
    SINT64 row_count;
 
-   /* record the fetch column's bson address */
-   UINT64 bson_record_addr;
+   /* the bson record's index in SdbRecordCache */
+   UINT64 bson_record_index ;
+   /* the SdbExecState's key address */
+   UINT64 keyAddress ;
 
    /* save the key column name to identify the specify column(0 for _id, others for the sharding key) */
    int key_num;
