@@ -170,6 +170,7 @@
 #define FIELD_NAME_NODEWAITTIME              "RemoteNodeWaitTime"
 #define FIELD_NAME_STARTTIMESTAMP            "StartTimestamp"
 #define FIELD_NAME_ENDTIMESTAMP              "EndTimestamp"
+#define VALUE_NAME_EMPTYENDTIMESTAMP         "--"
 #define FIELD_NAME_TOTALNUMCONNECTS          "TotalNumConnects"
 #define FIELD_NAME_TOTALDATAREAD             "TotalDataRead"
 #define FIELD_NAME_TOTALINDEXREAD            "TotalIndexRead"
