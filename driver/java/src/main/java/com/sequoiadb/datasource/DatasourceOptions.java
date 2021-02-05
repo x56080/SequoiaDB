@@ -61,7 +61,7 @@ public class DatasourceOptions implements Cloneable {
     private List<Object> _preferedInstance = null;
     private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
-    private int _cacheLimit = 1048576; // 1M
+    private int _cacheLimit = 131072; // 128k
 
     /**
      * @fn Object clone()
@@ -275,7 +275,7 @@ public class DatasourceOptions implements Cloneable {
     /**
      * @fn void setCacheLimit(int limitBytes)
      * @brief Set the cache size limit of the session. 0 means not set the limit for the session cache size.
-     *         Default to be 1048576 bytes(1MB). When the cache size of the session reaches the limit, the
+     *         Default to be 131072 bytes(128 KB). When the cache size of the session reaches the limit, the
      *         session will be destroyed after the connection release to pool.
      * @param limitBytes The cache size limit of the session in bytes.
      */
