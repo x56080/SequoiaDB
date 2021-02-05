@@ -2138,16 +2138,6 @@ namespace engine
       BOOLEAN isParameterized = needCache &&
                                 planKey.getCacheLevel() >= OPT_PLAN_PARAMETERIZED ;
 
-      INT64 accessPlanID = _accessPlanIdGenerator.fetch() ;
-
-      PD_CHECK( accessPlanID >= 0, SDB_SYS, error, PDERROR,
-                "Access Plan ID exceeds limit" ) ;
-
-      accessPlanID = _accessPlanIdGenerator.inc() ;
-
-      PD_CHECK( accessPlanID >= 0, SDB_SYS, error, PDERROR,
-                "Access Plan ID exceeds limit" ) ;
-
       if ( isParameterized )
       {
          pPlan = SDB_OSS_NEW optParamAccessPlan( planKey,
@@ -2160,8 +2150,6 @@ namespace engine
       }
       PD_CHECK( NULL != pPlan, SDB_OOM, error, PDERROR,
                 "Not able to allocate memory for new plan" ) ;
-
-      pPlan->setAccessPlanID( accessPlanID ) ;
 
       rc = pPlan->getKeyOwned() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key of access plan owned, "

@@ -394,6 +394,12 @@ namespace engine
                                  const optQueryActivity &queryActivity,
                                  const rtnParamList &parameters ) ;
 
+         // acquire access plan ID
+         INT64 acquireAccessPlanID()
+         {
+            return _accessPlanIdGenerator.inc() ;
+         }
+
       public :
          // For _IDmsEventHandler
          virtual INT32 onCreateCS ( IDmsEventHolder *pEventHolder,
