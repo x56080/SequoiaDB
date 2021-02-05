@@ -248,8 +248,8 @@ class ObjMgr:
         if not self.__install_dir:
             conf = os.path.join(REGISTER_CONF_PATH, 'sequoiadb')
             if not os.path.exists(conf):
-                print("[ERROR] Register configuration file in {} does not " \
-                      "exists".format(conf))
+                print("[ERROR] Register configuration file '{}' does not " \
+                      "exist".format(conf))
                 return 1
             with open(conf, 'r') as f:
                 content = f.read()
@@ -347,8 +347,9 @@ class ObjMgr:
                     list_conf.append(conf)
 
             if 0 == len(list_conf):
-                print("[INFO] Register configuration file in " \
-                      "{} does not exist".format(REGISTER_CONF_PATH))
+                default_conf = os.path.join(REGISTER_CONF_PATH, prefix_name)
+                print("[ERROR] Register configuration file " \
+                      "'{}' does not exist".format(default_conf))
                 return 1
 
             for conf in list_conf:
@@ -441,8 +442,8 @@ class ObjMgr:
     def __setup_password(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            print("[ERROR] Configuration file {} dose not " \
-                  "exist".format(CONFIG_FILE_NAME))
+            print("[ERROR] Configuration file '{}' dose not " \
+                  "exist".format(file))
             return 1
         global_parser = ConfigParser.ConfigParser()
         global_parser.read(file)
@@ -450,7 +451,7 @@ class ObjMgr:
         try:
             pwd_type = int(self.get_passwd_type(global_parser))
             if 0 != pwd_type and 1 != pwd_type:
-                print("[ERROR] 'w_type' in configuration file {} " \
+                print("[ERROR] 'w_type' in configuration file '{}' " \
                       "is invalid".format(file))
                 return 1
             if 0 == pwd_type:
@@ -459,7 +460,7 @@ class ObjMgr:
                 global_parser.set(KW_MONITOR, KW_PASSWD_TYPE, 1)
                 global_parser.write(open(file, 'w'))
         except ValueError:
-            print("[ERROR] 'w_type' in configuration file {} " \
+            print("[ERROR] 'w_type' in configuration file '{}' " \
                   "must be integer".format(file))
             return 1
         except ConfigParser.NoOptionError:
