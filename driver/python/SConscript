@@ -3,7 +3,7 @@ Import("path")
 Import("curPath")
 Import("guess_os")
 Import("py3")
-Import("version")
+Import("get_version")
 
 import os
 import sys
@@ -171,7 +171,7 @@ if guess_os == "win32":
 else:
     suffix = ".tar.gz"
 
-package_name = "pysequoiadb-" + version + "-" + py_version + suffix
+package_name = "pysequoiadb-" + get_version() + "-" + py_version + suffix
 
 
 def zipPackage(target, source):
