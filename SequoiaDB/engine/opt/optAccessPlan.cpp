@@ -62,7 +62,6 @@ namespace engine
      _mthMatchTreeStackHolder(),
      _mthMatchRuntimeHolder(),
      _key( planKey ),
-     _accessPlanID( -1 ),
      _isInitialized( FALSE ),
      _isInvalid( FALSE ),
      _hintFailed( FALSE ),
@@ -72,6 +71,9 @@ namespace engine
      _scanPath( &_planAllocator )
    {
       getMatchTree()->setMatchConfig( config ) ;
+
+      // acquire access plan ID
+      _accessPlanID = sdbGetRTNCB()->getAPM()->acquireAccessPlanID() ;
    }
 
    _optAccessPlan::~_optAccessPlan ()
