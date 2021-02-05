@@ -1,9 +1,10 @@
-/************************************
-*@Description: 修改cs名后，执行数据增删改查操作---//review 1:描述和实际执行步骤不相符
-*@author:      luweikang
-*@createdate:  2018.10.12
-*@testlinkCase:seqDB-16102
-**************************************/
+/******************************************************************************
+ * @Description   : seqDB-16102 修改cs名后，执行数据增删改查操作---//review 1:描述和实际执行步骤不相符
+ * @Author        : luweikang
+ * @CreateTime    : 2018.10.12
+ * @LastEditTime  : 2021.02.02
+ * @LastEditors   : Yi Pan
+ ******************************************************************************/
 
 main( test );
 
@@ -22,7 +23,15 @@ function test ()
    //insert 1000 data
    insertData( cl, 1000 );
 
+   var oldcl = db.getCS( oldcsName ).getCL( clName );
+
    db.renameCS( oldcsName, newcsName );
+
+   //SEQUOIADBMAINSTREAM-6431补充测试点
+   assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
+   {
+      oldcl.createIndex( "test", { a: 1 } );
+   } );
 
    checkRenameCSResult( oldcsName, newcsName, 1 );
 
