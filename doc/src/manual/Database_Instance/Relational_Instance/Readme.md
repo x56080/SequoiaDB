@@ -7,8 +7,8 @@ SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型
 本章将主要介绍四种关系型数据库实例的操作与开发，帮助用户学习如何创建不同类型的数据库实例，并实现应用程序从传统数据库进行无缝迁移，大幅度降低应用程序开发者的学习成本。
 
 ||MySQL实例|PostgreSQL实例|SparkSQL实例|MariaDB实例|
-|----|----|----|----|----|
-|操作|[安装部署][setup]<br>[使用][usage]<br>[配置][config]<br>[高可用][ha]<br>[实例管理工具][sdb_mysql_ctl]<br>[分区][partition]<br>[数据类型映射表][data_type]<br>[注意事项][attention]<br>[错误码][error_code]<br>[升级][upgrade]<br>[卸载][uninstall]|[安装部署][install]<br>[连接][connect]<br>[SQL 实例与 JSON 对象映射表][mapping]<br>[卸载][un]|[安装部署][deploy]<br>[连接][spark_conn]<br>[使用][use]|[安装部署][deploy_maria]<br>[使用][connection]<br>[配置][marria_config]<br>[高可用][ha]<br>[实例管理工具][sdb_maria_ctl]<br>[数据类型映射表][maria_datatype]<br>[注意事项][maria_atten]<br>[错误码][maria_error]<br>[升级][upgrade_maria]<br>[卸载][maria_uninstall]|
+|----|----|----|----|----| mariadb
+|操作|[安装部署][setup]<br>[使用][usage]<br>[配置][config]<br>[高可用][mysql_ha]<br>[实例组][mysql_instance_group]<br>[实例管理工具][sdb_mysql_ctl]<br>[分区][partition]<br>[数据类型映射表][data_type]<br>[注意事项][attention]<br>[错误码][error_code]<br>[升级][upgrade]<br>[卸载][uninstall]|[安装部署][install]<br>[连接][connect]<br>[SQL 实例与 JSON 对象映射表][mapping]<br>[卸载][un]|[安装部署][deploy]<br>[连接][spark_conn]<br>[使用][use]|[安装部署][deploy_maria]<br>[使用][connection]<br>[配置][maria_config]<br>[高可用][maria_ha]<br>[实例组][maria_instance_group]<br>[实例管理工具][sdb_maria_ctl]<br>[数据类型映射表][maria_datatype]<br>[注意事项][maria_atten]<br>[错误码][maria_error]<br>[升级][upgrade_maria]<br>[卸载][maria_uninstall]|
 |开发|[MySQL 驱动下载][engine_download]<br>[JDBC 驱动][JDBC]<br>[ODBC 驱动][ODBC]|[PostgreSQL 驱动下载][engine]<br>[JDBC][JD]<br>[ODBC][OD]|[Spark 驱动下载][download]<br>[JDBC][BC]|
 
 
@@ -16,7 +16,8 @@ SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
 [setup]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/install_deploy.md
 [service]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/sequoiasql_mysql.md
-[ha]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/ha.md
+[mysql_ha]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/ha.md
+[mysql_instance_group]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/instance_group.md
 [upgrade]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/upgrade.md
 [usage]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/connection.md
 [config]: manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/config.md
@@ -40,11 +41,12 @@ SequoiaDB 支持创建 MySQL、MariaDB、PostgreSQL 和 SparkSQL 四种关系型
 [download]:manual/Database_Instance/Relational_Instance/SparkSQL_Instance/Development/engine_download.md
 [BC]:manual/Database_Instance/Relational_Instance/SparkSQL_Instance/Development/JDBC.md
 [deploy_maria]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/install_deploy.md
-[ha]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/ha.md
+[maria_ha]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/ha.md
+[maria_instance_group]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/instance_group.md
 [upgrade_maria]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/upgrade.md
 [connection]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/connection.md
 [maria_atten]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/attention.md
-[marria_config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md
+[maria_config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md
 [maria_datatype]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/data_type.md
 [maria_error]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/error_code.md
 [sdb_maria_ctl]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/sdb_maria_ctl.md

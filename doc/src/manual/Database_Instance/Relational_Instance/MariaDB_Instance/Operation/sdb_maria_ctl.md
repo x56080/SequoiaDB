@@ -21,7 +21,7 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
                
 ##使用说明##
 
-运行 sdb_maria_ctl 的用户必须与安装 SequoiaSQL-MariaDB 时指定的用户一致。
+运行 sdb_maria_ctl 工具时，应使用数据库管理用户（安装 SequoiaSQL-MariaDB 时指定，默认为 sdbadmin）权限。
 
 **管理实例**
 
