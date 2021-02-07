@@ -229,6 +229,9 @@ namespace engine
    typedef ossPoolVector<string>       CLS_SUBCL_LIST ;
    typedef CLS_SUBCL_LIST::iterator    CLS_SUBCL_LIST_IT ;
 
+   typedef _utilStringMap<UINT32>                  CLS_SUBCL2ORDER_MAP ;
+   typedef _utilMap<UINT32, UINT32>                CLS_ORDER2SUBCLIDX_MAP ;
+
    /*
       _clsCatalogSet define
    */
@@ -303,6 +306,7 @@ namespace engine
          INT32             updateCatSet ( const BSONObj &catSet,
                                           UINT32 groupID = 0,
                                           BOOLEAN allowUpdateID = TRUE ) ;
+         INT32             prepareSubCLOrder() ;
          BSONObj           toCataInfoBson () ;
          INT32             split ( const BSONObj &splitKey,
                                    const BSONObj &splitEndKey,
@@ -322,9 +326,14 @@ namespace engine
          UINT32            getAttribute() const { return _attribute ; }
 
          BOOLEAN           isMainCL() const ;
-         INT32             getSubCLList( CLS_SUBCL_LIST &subCLLst,
-                                         CLS_SUBCL_SORT_TYPE sortType =
-                                         SUBCL_SORT_BY_ID ) ;
+         INT32             getSubCLList(
+                              CLS_SUBCL_LIST &subCLLst,
+                              CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
+         // sort sub-collections by bounds
+         // return a map from sorted orders to index in subCLList
+         INT32             sortSubCL( CLS_SUBCL_LIST &subCLList,
+                                      CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap ) ;
+         BOOLEAN           isSortSubCLPrepared() const ;
          BOOLEAN           isContainSubCL( const string &subCLName ) const ;
          INT32             getSubCLCount () const ;
          const string&     getMainCLName() const ;
@@ -441,6 +450,7 @@ namespace engine
          BOOLEAN           _saveName ;
          UINT32            _attribute ;
          std::multimap<UINT32, std::string> _subCLList ;
+         CLS_SUBCL2ORDER_MAP _subCLOrderMap ;
 
          clsAutoIncSet     _autoIncSet ;
 

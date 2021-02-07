@@ -969,6 +969,7 @@ namespace engine
       _vecGroupID.clear() ;
       _groupCount = 0 ;
       _subCLList.clear() ;
+      _subCLOrderMap.clear() ;
 
       _isWholeRange = TRUE ;
       _w = 1 ;
@@ -2390,6 +2391,48 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCT_PREPARESUBCLORDER, "_clsCatalogSet::prepareSubCLOrder" )
+   INT32 _clsCatalogSet::prepareSubCLOrder()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSCT_PREPARESUBCLORDER ) ;
+
+      // check if it is main-collection or has no sub-collections
+      if ( !_isMainCL || _mapItems.empty() )
+      {
+         goto done ;
+      }
+
+      try
+      {
+         UINT32 index = 0 ;
+         for ( MAP_CAT_ITEM_IT iter = _mapItems.begin() ;
+               iter != _mapItems.end() ;
+               ++ iter, ++ index )
+         {
+            _subCLOrderMap.insert(
+                  make_pair( iter->second->_subCLName.c_str(), index ) ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to save sub-collection by order, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSCT_PREPARESUBCLORDER, rc ) ;
+      return rc ;
+
+   error:
+      // clear uncompleted map
+      _subCLOrderMap.clear() ;
+      goto done ;
+   }
+
    _clsCatalogSet *_clsCatalogSet::next ()
    {
       return _next ;
@@ -2502,6 +2545,56 @@ namespace engine
          return SDB_OOM ;
       }
       return SDB_OK;
+   }
+
+   INT32 _clsCatalogSet::sortSubCL( CLS_SUBCL_LIST &subCLList,
+                                    CLS_ORDER2SUBCLIDX_MAP &subCLIdxMap )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _subCLOrderMap.empty() )
+      {
+         rc = SDB_CLS_NO_CATALOG_INFO ;
+         goto error ;
+      }
+
+      try
+      {
+         UINT32 index = 0 ;
+         for ( CLS_SUBCL_LIST_IT iter = subCLList.begin() ;
+               iter != subCLList.end() ;
+               ++ iter )
+         {
+            CLS_SUBCL2ORDER_MAP::iterator iterOrder =
+                  _subCLOrderMap.find( iter->c_str() ) ;
+            if ( iterOrder == _subCLOrderMap.end() )
+            {
+               rc = SDB_CLS_NO_CATALOG_INFO ;
+               goto error ;
+            }
+            // order -> index in subCL list
+            subCLIdxMap[ iterOrder->second ] = index ++ ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to sort sub-collections, "
+                 "occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      subCLIdxMap.clear() ;
+      goto done ;
+   }
+
+   BOOLEAN _clsCatalogSet::isSortSubCLPrepared() const
+   {
+      return !_subCLOrderMap.empty() ;
    }
 
    BOOLEAN _clsCatalogSet::isContainSubCL( const string &subCLName ) const
@@ -3601,6 +3694,17 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Update catalogSet[%s] failed[rc:%d]",
                      clName.c_str(), rc ) ;
+            clear( clName.c_str() ) ;
+            // catSet is gone by clear()
+            // go away without setting return pointer
+            goto error ;
+         }
+
+         rc = catSet->prepareSubCLOrder() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to prepare sub-collection [%s], rc: %d",
+                    clName.c_str(), rc ) ;
             clear( clName.c_str() ) ;
             // catSet is gone by clear()
             // go away without setting return pointer

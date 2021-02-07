@@ -435,18 +435,40 @@ namespace engine
 
          INT32 _updateVCS( const CHAR *fullName, const BSONObj &updator ) ;
 
-         INT32 _getSubCLList( const BSONObj &matcher,
-                              const CHAR *pCollectionName,
-                              BOOLEAN isWrite,
-                              BSONObj &boNewMatcher,
-                              CLS_SUBCL_LIST &strSubCLList ) ;
+         // get and check all sub-collections
+         INT32 _getAndChkAllSubCL( const CHAR *pCollectionName,
+                                   BOOLEAN isWrite,
+                                   CLS_SUBCL_LIST &subCLList,
+                                   CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
 
+         // get and check sub-collections specified by matcher
+         INT32 _getAndChkSubCL( const BSONObj &matcher,
+                                const CHAR *pCollectionName,
+                                BOOLEAN isWrite,
+                                BOOLEAN isAllowEmptyList,
+                                BSONObj &boNewMatcher,
+                                CLS_SUBCL_LIST &strSubCLList,
+                                BOOLEAN *pIncludeShardingOrder ) ;
+
+         // prepare sub-collection list from query matcher
+         INT32 _prepareSubCLList( const BSONObj &matcher,
+                                  BSONObj &boNewMatcher,
+                                  CLS_SUBCL_LIST &subCLList ) ;
+         // get sub-collection list by sharding order
+         INT32 _getSubCLOrder( const CHAR *pCollectionName,
+                               BOOLEAN &includeShardingOrder,
+                               CLS_SUBCL_LIST &subCLList ) ;
+
+         // check sub-collections ( write operators, version, etc )
+         INT32 _checkSubCLList( const CHAR *pCollectionName,
+                                const CLS_SUBCL_LIST &subCLList,
+                                BOOLEAN isWrite,
+                                BOOLEAN isAllowEmptyList ) ;
+
+         // get sub-collection list
          INT32 _getSubCLList( const CHAR *pCollectionName,
-                              BOOLEAN isWrite,
-                              CLS_SUBCL_LIST &subCLList ) ;
-
-         INT32 _sortSubCLListByBound( const CHAR *pCollectionName,
-                                      CLS_SUBCL_LIST &strSubCLList ) ;
+                              CLS_SUBCL_LIST &subCLList,
+                              CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
 
          INT32 _truncateMainCL( const CHAR *fullName ) ;
 
