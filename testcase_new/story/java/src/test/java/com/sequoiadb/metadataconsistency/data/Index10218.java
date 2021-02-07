@@ -1,21 +1,19 @@
 package com.sequoiadb.metadataconsistency.data;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -100,8 +98,6 @@ public class Index10218 extends SdbTestBase {
                 String name = idxName;
                 Random i = new Random();
                 clDB.dropIndex( name + i.nextInt( 42 ) );
-            } catch ( NullPointerException e ) {
-
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -47 // -47:Index name does not exist

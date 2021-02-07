@@ -1,21 +1,19 @@
 package com.sequoiadb.metadataconsistency.data;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Random;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.AfterClass;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.metadataconsistency.data.MetaDataUtils;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
 
@@ -113,8 +111,6 @@ public class SubCL10189 extends SdbTestBase {
 
                     MetaDataUtils.insertData( db, csName, mCLName );
                 }
-            } catch ( NullPointerException e ) {
-
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -23 && eCode != -34 && eCode != -147 ) {
