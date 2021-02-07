@@ -110,6 +110,8 @@ namespace engine
       _dropDups = FALSE ;
       _isIDIndex = FALSE ;
       _nameExtData = NULL ;
+      _createTime = 0 ;
+      _rebuildTime = 0 ;
       _fieldInitedFlag = 0 ;
 
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr ( extentID,
@@ -540,24 +542,30 @@ namespace engine
       // index CB should be initialized
       SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
 
-      UINT64 createTime = 0LL ;
-
-      // get create time from BSON
-      try
+      if( !CREATE_TIME_IS_INITED() )
       {
-         BSONElement element = _infoObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
-         if ( NumberLong == element.type() )
+         // get create time from BSON
+         try
          {
-            createTime = element.numberLong() ;
+            BSONElement element = _infoObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
+            if ( NumberLong == element.type() )
+            {
+               _createTime = element.numberLong() ;
+            }
+            else
+            {
+               _createTime = 0LL ;
+            }
+            SET_CREATE_TIME_INITED() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
+                     IXM_FIELD_NAME_CREATETIME, e.what() ) ;
          }
       }
-      catch ( exception &e )
-      {
-         PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
-                  IXM_FIELD_NAME_CREATETIME, e.what() ) ;
-      }
 
-      return createTime ;
+      return _createTime ;
    }
 
    UINT64 _ixmIndexCB::getRebuildTime() const
@@ -567,24 +575,30 @@ namespace engine
       // index CB should be initialized
       SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
 
-      UINT64 rebuildTime = 0LL ;
-
-      // get rebuild time from BSON
-      try
+      if ( !REBUILD_TIME_IS_INITED() )
       {
-         BSONElement element = _infoObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
-         if ( NumberLong == element.type() )
+         // get rebuild time from BSON
+         try
          {
-            rebuildTime = element.numberLong() ;
+            BSONElement element = _infoObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+            if ( NumberLong == element.type() )
+            {
+               _rebuildTime = element.numberLong() ;
+            }
+            else
+            {
+               _rebuildTime = 0LL ;
+            }
+            SET_REBUILD_TIME_INITED() ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
+                     IXM_FIELD_NAME_REBUILDTIME, e.what() ) ;
          }
       }
-      catch ( exception &e )
-      {
-         PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
-                  IXM_FIELD_NAME_REBUILDTIME, e.what() ) ;
-      }
 
-      return rebuildTime ;
+      return _rebuildTime ;
    }
 
    INT32 _ixmIndexCB::updateRebuildTime( UINT64 rebuildTime )
@@ -598,6 +612,9 @@ namespace engine
          rc = updateDef( rebuildObject.firstElement() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update definition of index, "
                       "rc: %d", rc ) ;
+
+         _rebuildTime = rebuildTime ;
+         SET_REBUILD_TIME_INITED() ;
       }
       catch ( exception &e )
       {
