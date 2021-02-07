@@ -121,8 +121,6 @@ public class SubCL10200 extends SdbTestBase {
                         .getCollection( mCLName1 );
 
                 clDB.detachCollection( sCSName + "." + sCLName );
-            } catch ( NullPointerException e ) {
-
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
                 if ( eCode != -23 ) {
