@@ -1,8 +1,10 @@
 import os
+from os.path import join
 
 Import("stpEnv")
 Import("linux")
 Import("linux64")
+Import("sqlite_dir")
 
 bsonFiles = [
       "bson/bsonobj.cpp",
@@ -178,6 +180,10 @@ utilFiles = [
       "util/utilIniParserEx.cpp"
       ]
 
+utilSQLiteFiles = [
+      "util/utilSQLiteDB.cpp"
+      ]
+
 ssh2Files = [
       "ssh2/agent.c",
       "ssh2/channel.c",
@@ -225,6 +231,10 @@ clientCFiles = [
       "client/client.c",
       "client/common.c",
       "client/network.c"
+      ]
+
+sqliteFiles = [
+      join( sqlite_dir, "sqlite3.c" )
       ]
 
 stpCommonFiles = [
@@ -292,6 +302,8 @@ stpEnv.StaticLibrary('pmd', pmdFiles)
 stpEnv.StaticLibrary('pmdMT', pmdMTFiles)
 # Utilities
 stpEnv.StaticLibrary('util', utilFiles)
+# SQLite
+stpEnv.StaticLibrary('utilSQLite', utilSQLiteFiles)
 # Message
 stpEnv.StaticLibrary('msg', msgFiles)
 # Network
@@ -302,6 +314,8 @@ stpEnv.StaticLibrary('ssh2', ssh2Files)
 stpEnv.StaticLibrary('clsRepl', clsReplFiles)
 # Client Driver
 stpEnv.StaticLibrary('clientc', clientCFiles)
+# sqlite
+stpEnv.StaticLibrary('sqlite', sqliteFiles)
 # Serial Time Protocol
 stpEnv.StaticLibrary('stp', stpFiles)
 # STP common
@@ -317,7 +331,7 @@ stp = stpEnv.Program(
       stpMainFiles,
       LIBDEPS = [ "pd", "oss", "msg", "bson", "util", "net", "pmd",
                   "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp", "stpTool",
-                  "stpCommon" ],
+                  "stpCommon", "utilSQLite", "sqlite" ],
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 

@@ -1225,16 +1225,13 @@ namespace engine
       try
       {
          BSONObj temp = BSONObj( option ) ;
-         BSONObj timestampObject ;
          BSONElement element ;
 
-         _options = temp.getOwned() ;
-
          // parse logical time
-         element = _options.getField( STP_FIELD_NAME_LOGICAL_TIME ) ;
+         element = temp.getField( STP_FIELD_NAME_LOGICAL_TIME ) ;
          if ( EOO != element.type() )
          {
-            rc = _parseLTime( element ) ;
+            rc = _logicalTime.fromBSONElement( element, FALSE, _simpleMode ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
                          rc ) ;
 
@@ -1242,10 +1239,10 @@ namespace engine
          }
 
          // parse real time
-         element = _options.getField( STP_FIELD_NAME_REAL_TIME ) ;
+         element = temp.getField( STP_FIELD_NAME_REAL_TIME ) ;
          if ( EOO != element.type() )
          {
-            rc = _parseRTime( element ) ;
+            rc = _realTime.fromBSONElement( element, TRUE, _simpleMode ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
                          rc ) ;
 
@@ -1287,107 +1284,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPCONVTIMECMD_INITIALIZE, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__PARSELTIME, "_stpConvTimeCMD::_parseLTime" )
-   INT32 _stpConvTimeCMD::_parseLTime( const BSONElement &element )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__PARSELTIME ) ;
-
-      try
-      {
-         PD_CHECK( Object == element.type() ||
-                   element.isNumber(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get field [%s] from option, "
-                   "it is not an object or number",
-                   STP_FIELD_NAME_LOGICAL_TIME ) ;
-
-         if ( Object == element.type() )
-         {
-            rc = _logicalTime.fromBSON( element.embeddedObject() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
-                         rc ) ;
-         }
-         else
-         {
-            _logicalTime.fromMicroSecond(
-                  (UINT64)( element.numberLong() ) ) ;
-            _simpleMode = TRUE ;
-         }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to parse logical time, occur exception: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__PARSELTIME, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__PARSERTIME, "_stpConvTimeCMD::_parseRTime" )
-   INT32 _stpConvTimeCMD::_parseRTime( const BSONElement &element )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__STPCONVTIMECMD__PARSERTIME ) ;
-
-      try
-      {
-         PD_CHECK( Object == element.type() ||
-                   Timestamp == element.type() ||
-                   Date == element.type() ||
-                   element.isNumber(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to get field [%s] from option, "
-                   "it is not an object, timestamp or number",
-                   STP_FIELD_NAME_REAL_TIME ) ;
-
-         if ( Object == element.type() )
-         {
-            rc = _realTime.fromBSON( element.embeddedObject() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
-                         rc ) ;
-         }
-         else if ( Timestamp == element.type() ||
-                   Date == element.type() )
-         {
-            rc = _realTime.fromBSONTimestamp( element ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time , rc: %d",
-                         rc ) ;
-
-            _simpleMode = TRUE ;
-         }
-         else
-         {
-            _realTime.fromMicroSecond(
-                  (UINT64)( element.numberLong() ) ) ;
-            _simpleMode = TRUE ;
-         }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to parse real time, occur exception: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__PARSERTIME, rc ) ;
       return rc ;
 
    error:
@@ -1449,6 +1345,7 @@ namespace engine
    error:
       goto done ;
    }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__STPCONVTIMECMD__BUILDLTIME, "_stpConvTimeCMD::_buildLTime" )
    INT32 _stpConvTimeCMD::_buildLTime( BSONObjBuilder &builder )
    {
@@ -1509,6 +1406,185 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__STPCONVTIMECMD__BUILDRTIME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   /*
+      _stpGetTimeMapCMD implement
+    */
+   IMPLEMENT_STP_CMD_AUTO_REGISTER( _stpGetTimeMapCMD )
+
+   _stpGetTimeMapCMD::_stpGetTimeMapCMD( STPCB *stpCB )
+   : stpCommand( stpCB ),
+     _hasLogicalTime( FALSE ),
+     _hasRealTime( FALSE ),
+     _recordCount( 20 )
+   {
+   }
+
+   _stpGetTimeMapCMD::~_stpGetTimeMapCMD()
+   {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMEMAPCMD_INITIALIZE, "_stpGetTimeMapCMD::initialize" )
+   INT32 _stpGetTimeMapCMD::initialize( const CHAR *option )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPGETTIMEMAPCMD_INITIALIZE ) ;
+
+      try
+      {
+         BOOLEAN simpleMode = FALSE ;
+         BSONObj temp = BSONObj( option ) ;
+         BSONElement element ;
+
+         // parse logical time
+         element = temp.getField( STP_FIELD_NAME_LOGICAL_TIME ) ;
+         if ( EOO != element.type() )
+         {
+            rc = _beginLogicalTime.fromBSONElement( element,
+                                                    FALSE,
+                                                    simpleMode ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse logical time, rc: %d",
+                         rc ) ;
+
+            _hasLogicalTime = TRUE ;
+         }
+
+         // parse real time
+         element = temp.getField( STP_FIELD_NAME_REAL_TIME ) ;
+         if ( EOO != element.type() )
+         {
+            rc = _beginRealTime.fromBSONElement( element,
+                                                 TRUE,
+                                                 simpleMode ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse real time, rc: %d",
+                         rc ) ;
+
+            _hasRealTime = TRUE ;
+         }
+
+         // parse count
+         element = temp.getField( STP_FIELD_NAME_COUNT ) ;
+         if ( EOO != element.type() )
+         {
+            _recordCount = (UINT32)( element.numberInt() ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse options, occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      if ( _hasLogicalTime && _hasRealTime )
+      {
+         PD_LOG( PDERROR, "Failed to parse options, could not have both "
+                 "logical time and real time" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__STPGETTIMEMAPCMD_INITIALIZE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__STPGETTIMEMAPCMD_DOIT, "_stpGetTimeMapCMD::doit" )
+   INT32 _stpGetTimeMapCMD::doit( stpSession *session,
+                                  MsgHeader *message,
+                                  BSONObj &result,
+                                  BOOLEAN &finished )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__STPGETTIMEMAPCMD_DOIT ) ;
+
+      STP_TIMEMAP_RECLIST recordList ;
+      stpTimeMapManager *timeMapManager =
+            _stpCB->getMetaManager()->getTimeMapManager() ;
+
+      if ( _hasLogicalTime )
+      {
+         rc = timeMapManager->getRecordsAfterLTime( _beginLogicalTime,
+                                                    TRUE,
+                                                    _recordCount,
+                                                    recordList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get records after "
+                      "logical time [%llu], rc: %d",
+                      _beginLogicalTime.toMicroSecond(), rc ) ;
+      }
+      else if ( _hasRealTime )
+      {
+         rc = timeMapManager->getRecordsAfterRTime( _beginRealTime,
+                                                    TRUE,
+                                                    _recordCount,
+                                                    recordList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get records after "
+                      "real time [%llu], rc: %d",
+                      _beginRealTime.toMicroSecond(), rc ) ;
+      }
+      else
+      {
+         rc = timeMapManager->getLastRecords( _recordCount, recordList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get latest records, rc: %d",
+                      rc ) ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         BSONArrayBuilder subBuilder(
+               builder.subarrayStart( STP_FIELD_NAME_TIMEMAP ) ) ;
+
+         for ( STP_TIMEMAP_RECLIST::reverse_iterator iter =
+                                                      recordList.rbegin() ;
+               iter != recordList.rend() ;
+               ++ iter )
+         {
+            const stpTimeMapRecord &record = *iter ;
+            stpHPTime logicalTime, realTime ;
+
+            logicalTime.fromMicroSecond( record.getLogicalTime() ) ;
+            realTime.fromMicroSecond( record.getRealTime() ) ;
+
+            BSONObjBuilder objBuilder( subBuilder.subobjStart() ) ;
+
+            // build logical time
+            objBuilder.append( STP_FIELD_NAME_LOGICAL_TIME,
+                               (INT64)( logicalTime.toMicroSecond() ) ) ;
+            // build real time
+            rc = realTime.toBSONTimestamp( objBuilder,
+                                           STP_FIELD_NAME_REAL_TIME ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build result with "
+                         "real time, rc: %d", rc ) ;
+
+            objBuilder.doneFast() ;
+         }
+
+         subBuilder.doneFast() ;
+         result = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build result for command [%s], "
+                 "occurred unexpected error: %s", getName(), e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      finished = TRUE ;
+      PD_TRACE_EXITRC( SDB__STPGETTIMEMAPCMD_DOIT, rc ) ;
       return rc ;
 
    error:

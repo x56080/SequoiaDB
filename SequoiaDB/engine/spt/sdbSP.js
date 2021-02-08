@@ -957,7 +957,15 @@ Stp.prototype.convLogicalTimeToRealTime = function( logicalTime ) {
       throw SDB_INVALIDARG ;
    }
    var option = { "LogicalTime" : logicalTime } ;
-   return this._runCommand(  "stp conv time", option ) ;
+   return this._runCommand( "stp conv time", option ) ;
+}
+
+Stp.prototype.getTimeMap = function( option ) {
+   if ( undefined === option )
+   {
+      option = {} ;
+   }
+   return this._runCommand( "stp get time map", option ) ;
 }
 
 // end Stp

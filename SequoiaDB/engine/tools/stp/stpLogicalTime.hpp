@@ -397,6 +397,62 @@ namespace engine
          goto done ;
       }
 
+      // parse time from BSON element
+      OSS_INLINE INT32 fromBSONElement( const bson::BSONElement &element,
+                                        BOOLEAN isRealTime,
+                                        BOOLEAN &isSimpleMode )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !( ( bson::Object == element.type() ) ||
+                    ( isRealTime && bson::Timestamp == element.type() ) ||
+                    ( isRealTime && bson::Date == element.type() ) ||
+                    ( element.isNumber() ) ) )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( bson::Object == element.type() )
+            {
+               rc = fromBSON( element.embeddedObject() ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+            }
+            else if ( bson::Timestamp == element.type() ||
+                      bson::Date == element.type() )
+            {
+               rc = fromBSONTimestamp( element ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
+               isSimpleMode = TRUE ;
+            }
+            else
+            {
+               fromMicroSecond( (UINT64)( element.numberLong() ) ) ;
+               isSimpleMode = TRUE ;
+            }
+         }
+         catch ( std::exception &e )
+         {
+            (void)e ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
       // sample time from system by different mode
       OSS_INLINE void sample( STP_SAMPLE_TIME_MODE mode )
       {

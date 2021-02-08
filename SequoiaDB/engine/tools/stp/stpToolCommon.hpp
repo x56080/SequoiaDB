@@ -88,6 +88,8 @@ namespace engine
    #define STP_PID_FILE_NAME        STP_NAME".pid"
    // name of meta file of STP ( store meta LSN )
    #define STP_META_FILE_NAME       STP_NAME".meta"
+   // name of sqlite database file of STP time mapping
+   #define STP_TIMEMAP_DB_FILE_NAME STP_NAME".timemap.db"
 
    // user and password for STP service sessions
    #define STP_USER                 "STP_ADMIN"
@@ -144,6 +146,8 @@ namespace engine
    #define STP_OPTION_DAEMON           "daemon"
    // test mode
    #define STP_OPTION_TESTMODE         "testmode"
+   // max time map size
+   #define STP_OPTION_MAXTIMEMAPSIZE   "maxtimemapsize"
 
    // default STP port ( service name ) is 9622
    #define STP_DEF_PORT                ( 9622 )
@@ -455,6 +459,8 @@ namespace engine
    #define STP_FIELD_NAME_DELAY              "Delay"
    #define STP_FIELD_NAME_TYPE               FIELD_NAME_TYPE
    #define STP_FIELD_NAME_REELECT_TIMEOUT    FIELD_NAME_REELECTION_TIMEOUT
+   #define STP_FIELD_NAME_COUNT              FIELD_NAME_COUNT
+   #define STP_FIELD_NAME_TIMEMAP            "TimeMap"
 
    // default timeout to reelect, 30 seconds
    #define STP_REELECT_DFT_TIMEOUT ( 30 )

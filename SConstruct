@@ -57,6 +57,7 @@ driver_dir = join(db_dir,'driver')
 java_dir = join(root_dir,'java')
 fuse_dir = join(thirdparty_dir, 'fuse')
 fuse_lib_dir = join(fuse_dir, 'lib')
+sqlite_dir = join( thirdparty_dir, "sqlite" )
 # --- options ----
 
 options = {}
@@ -854,6 +855,7 @@ fmpEnv = env.Clone() ;
 
 stpEnv = None
 stpEnv = env.Clone();
+stpEnv.Append( CPPPATH = [ sqlite_dir ] )
 
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
@@ -990,6 +992,8 @@ Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
+Export("sqlite_dir")
+
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux
 # ossVer_Autogen.h is NOT in SVN, we have to generate this file by scons before

@@ -277,7 +277,7 @@ namespace engine
       setMetaData( metaData ) ;
 
       // initialize time mapping manager
-      rc = _timeMapMgr.initialize() ;
+      rc = _timeMapMgr.initialize( _options->getMaxTimeMapSize() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize time mapping "
                    "manager, rc: %d", rc ) ;
 
