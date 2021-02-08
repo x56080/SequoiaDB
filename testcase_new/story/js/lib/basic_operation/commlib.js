@@ -22,6 +22,7 @@ import( "./SdbCS.js" );
 import( "./SdbCollection.js" );
 import( "./SdbCursor.js" );
 import( "./SdbDC.js" );
+import( "./SdbDataSource.js" );
 import( "./SdbDate.js" );
 import( "./SdbDomain.js" );
 import( "./SdbNode.js" );
