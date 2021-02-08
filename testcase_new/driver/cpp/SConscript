@@ -189,6 +189,7 @@ testFiles = [
    [ "./alter/alterdomain_15163.cpp" ],
    [ "./alter/altercs_15166.cpp" ],
    [ "./alter/altercl_15168.cpp" ],
+   [ "./alter/getCSCL23278.cpp" ],
    [ "./datatype/timestamptest_15861.cpp" ],
    [ "./paramVerify/snapshotTest15759.cpp" ],
    [ "./lob/lobIsEof15671.cpp" ],
