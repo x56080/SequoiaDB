@@ -148,6 +148,9 @@ class rtnPITRollbackManager : public _rtnRollbackManager
    BOOLEAN _isRecordTransactional();
    BOOLEAN _isLogFileDone();
    BOOLEAN _isTargetTimeReached(INT32 *rc);
+
+   // Terminates existing transactions and waits for them to finish
+   INT32 _drainTrans();
 };
 
 } // namespace engine
