@@ -80,7 +80,7 @@ namespace engine
 
       OSS_INLINE virtual EDU_TYPES eduType() const
       {
-         return EDU_TYPE_STP_SESSION ;
+         return EDU_TYPE_STP_SERVICE_SESSION ;
       }
 
       // get thread ID
