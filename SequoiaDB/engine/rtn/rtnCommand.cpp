@@ -5262,6 +5262,19 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPREP_DOIT, &rc);
+
+      // Only allowed if global transactions and mvcc (data node only) are on
+      if ( !cb->isGlobTransOn() || !sdbGetTransCB()->isGlobTransOn() ||
+           ( SDB_ROLE_DATA == pmdGetDBRole() &&
+             !pmdGetKRCB()->getOptionCB()->mvccOn() ) )
+      {
+         PD_LOG( PDERROR, "Failed to prepare for restore, which is "
+                          "only supported when mvccOn and is true and "
+                          "global transactions are enabled" ) ;
+         rc = SDB_INVALIDARG ;
+         return rc;
+      }
+
       if (SDB_ROLE_COORD == pmdGetDBRole())
       {
          pmdGetKRCB()->setDBRestoring(true);

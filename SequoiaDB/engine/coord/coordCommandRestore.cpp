@@ -905,6 +905,13 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    }
    if ((rc = _setRestoreInProgress(TRUE)))
    {
+      // Error, unset RestoreInProgress
+      if (SDB_INVALIDARG == rc)
+      {
+         PD_LOG_MSG(PDERROR, "Node(s) have mvccon or globtranson disabled");
+      }
+      PD_LOG(PDERROR, "restorePrepare failed. Aborting.");
+      _setRestoreInProgress(FALSE); // ignore the rc
       return rc;
    }
    PD_LOG(PDEVENT, "restorePrepare completed successfully");
