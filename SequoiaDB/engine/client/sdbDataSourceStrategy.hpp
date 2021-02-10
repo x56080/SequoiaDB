@@ -38,10 +38,10 @@
 #define SDB_DATA_SOURCE_STRATEGY_HPP_
 
 #include "ossTypes.h"
+#include "ossLatch.hpp"
 #include <vector>
 #include <map>
 #include <set>
-#include "ossLatch.hpp"
 #include <string>
 #include "client.hpp"
 

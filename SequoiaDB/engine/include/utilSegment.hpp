@@ -40,11 +40,11 @@
 #ifndef UTIL_SEGMENT_HPP__
 #define UTIL_SEGMENT_HPP__
 
-#include <vector>
 #include "ossLatch.hpp"
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 #include "ossAtomic.hpp"
+#include <vector>
 
 typedef UINT32 UTIL_OBJIDX ;
 #define UTIL_INVALID_OBJ_INDEX   (( UTIL_OBJIDX )( -1 ))

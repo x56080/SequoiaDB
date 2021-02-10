@@ -20,16 +20,15 @@
 #ifndef RTN_ROLLBACK_MANAGER_HPP__
 #define RTN_ROLLBACK_MANAGER_HPP__
 
-#include <string>
-
+#include "ossTypes.hpp"
+#include "ossMemPool.hpp"
 #include "clsReplayer.hpp"
 #include "dpsDef.hpp"
 #include "dpsLogRecord.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsTransID.hpp"
-#include "ossMemPool.hpp"
-#include "ossTypes.hpp"
 #include "stpLogicalTime.hpp"
+#include <string>
 
 namespace engine
 {

@@ -20,14 +20,14 @@
 #ifndef COORD_COMMAND_RESTORE_HPP__
 #define COORD_COMMAND_RESTORE_HPP__
 
-#include <vector>
 
+#include "ossTypes.hpp"
+#include "ossMemPool.hpp"
 #include "coordCommandBase.hpp"
 #include "coordFactory.hpp"
 #include "coordTransOperator.hpp"
 #include "msg.h"
-#include "ossMemPool.hpp"
-#include "ossTypes.hpp"
+#include <vector>
 
 #include "../bson/bson.h"
 

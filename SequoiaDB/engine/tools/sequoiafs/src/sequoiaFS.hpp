@@ -42,15 +42,7 @@
 
 #define _XOPEN_SOURCE 500
 
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<vector>
-#include<libgen.h>
 #include "core.h"
-#include<fuse.h>
-#include<time.h>
-//#include<linux/stat.h>
 #include "fuse_lowlevel.h"
 #include "ossUtil.h"
 #include "ossProc.hpp"
@@ -63,6 +55,15 @@
 #include "sequoiaFSOptionMgr.hpp"
 #include "sdbDataSourceComm.hpp"
 #include "sdbDataSource.hpp"
+
+#include<iostream>
+#include<fstream>
+#include<string>
+#include<vector>
+#include<libgen.h>
+#include<fuse.h>
+#include<time.h>
+//#include<linux/stat.h>
 
 #include<arpa/inet.h>
 #include<sys/socket.h>

@@ -37,9 +37,9 @@
 *******************************************************************************/
 #ifndef OSSIO_HPP_
 #define OSSIO_HPP_
+#include "ossTypes.hpp"
 #include "core.hpp"
 #include "oss.hpp"
-#include "ossTypes.hpp"
 #include "ossLatch.hpp"
 
 #define  OSS_FILE_BLOCK    4096

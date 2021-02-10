@@ -22,6 +22,9 @@ Import("fuse_lib_dir")
 Import("usemdocml")
 Import("usefuse")
 Import("intel_decimal_lib_dir")
+Import("rocksdb_lib_dir")
+Import("zstd_lib_dir")
+Import("bzip2_lib_dir")
 
 
 ERROR = 1
@@ -627,18 +630,119 @@ class IntelDecimalLibCompiler(CompilerBase):
            elif 'win32' == self.platform:
               shutil.copy(os.path.join(self.src_root, 'LIBRARY/libbid.lib'),
                           self._get_lib_archive_dir())
- 
+
+
+class RocksDBCompiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "rocksdb", src_root)
+
+    def _get_lib_archive_dir(self):
+        return rocksdb_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        compCmd =  'export CC=gcc ; export cc=gcc ; export CXX=g++ ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        if debugBuild:
+           mkCmd = ' DEBUG_LEVEL=2 make static_lib '
+           # if gflags is installed and want to build debuggable lib,
+           # tools, and rocksdb built-in testing programs, then
+           # mkCmd = ' make dbg '
+        else:
+           mkCmd = ' DEBUG_LEVEL=0 make static_lib '
+
+        self.append_cmd( compCmd,  mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           if debugBuild:
+              libs = ['librocksdb_debug.a']
+           else:
+              libs = ['librocksdb.a']
+        return libs
+
+    def archive(self):
+        if debugBuild:
+           shutil.copy(os.path.join(self.src_root, 'librocksdb_debug.a'),
+                       self._get_lib_archive_dir())
+        else:
+           shutil.copy(os.path.join(self.src_root, 'librocksdb.a'),
+                       self._get_lib_archive_dir())
+
+
+class zstdCompiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "zstd", src_root)
+
+    def _get_lib_archive_dir(self):
+        return zstd_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        compCmd =  'export CC=gcc ; export cc=gcc ; export CXX=g++ ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        mkCmd = ' CPPFLAGS=-DZSTD_MULTITHREAD make '
+
+        self.append_cmd( compCmd,  mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           libs = ['libzstd.a']
+        return libs
+
+    def archive(self):
+        shutil.copy(os.path.join(self.src_root, 'lib/libzstd.a'),
+                    self._get_lib_archive_dir())
+
+
+class bzip2Compiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "bzip2", src_root)
+
+    def _get_lib_archive_dir(self):
+        return bzip2_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        compCmd =  'export CC=gcc ; export cc=gcc ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        mkCmd = ' make '
+
+        self.append_cmd( compCmd,  mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           libs = ['libbz2.a']
+        return libs
+
+    def archive(self):
+        shutil.copy(os.path.join(self.src_root, 'libbz2.a'),
+                    self._get_lib_archive_dir())
+
+
 components = []
 
 snappy_compiler = SnappyCompiler('snappy')
 lz4_compiler = LZ4Compiler('lz4')
 zlib_compiler = ZlibCompiler('zlib')
 intelDecimal_compiler = IntelDecimalLibCompiler('intelDecimal')
+rocksdb_compiler = RocksDBCompiler( 'rocksdb' )
+zstd_compiler = zstdCompiler( 'zstd' )
+bzip2_compiler = bzip2Compiler( 'bzip2' )
 
 components.append(snappy_compiler)
 components.append(lz4_compiler)
 components.append(zlib_compiler)
 components.append(intelDecimal_compiler)
+components.append(rocksdb_compiler)
+components.append(zstd_compiler)
+components.append(bzip2_compiler)
 
 if usemdocml:
     mdocml_compiler = MdocmlCompiler('mdocml')

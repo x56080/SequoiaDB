@@ -20,11 +20,9 @@
 #ifndef UTIL_BSON_HPP__
 #define UTIL_BSON_HPP__
 
-#include <string>
-
 #include <ossTypes.h>
-
 #include <../bson/bson.h>
+#include <string>
 
 namespace engine {
 

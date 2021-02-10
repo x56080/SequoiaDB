@@ -342,6 +342,120 @@ Linux64:
         whereis libfuse.a
         cp ./lib/.libs/libfuse.a ./lib/linux64/release/libfuse.a
         
+    bzip2 1.0.8
+       bzip2 can be download from https://sourceware.org/bzip2/
+       More comprehensive documentation can be found under thirdparty/bzip2/ directory.
+
+       How to build, simply type 'make', this builds the library libbz2.a
+       and then the programs bzip2 and bzip2recover. For more details, please
+       reference bzip2/README and bzip2/Makefile.
+
+       # simply build the libbz2.a, bzip2 and bzip2recover
+           cd bzip2
+           make
+           cp libbz2.a ./lib/linux64/release/
+
+    zstd 1.4.8
+        Website:     https://facebook.github.io/zstd/
+        Repository:  https://github.com/facebook/zstd
+
+        How to build, simply type 'make'. Please check zstd/README.md
+        for more details.
+
+        # simply build `zstd` binary, and `libzstd` dynamic and static libraries
+        cd zstd
+        CPPFLAGS=-DZSTD_MULTITHREAD make
+        cp lib/libzstd.a ./lib/linux64/release/
+
+    rocksdb 6.14.6
+        Website:    https://rocksdb.org
+        Repository: https://github.com/facebook/rocksdb/
+
+        Following are simple build steps on linux. Please reference
+        rocksdb/INSTALL.md and rocksdb/Makefile for more details.
+
+        #
+        # Rocksdb Compiling Prerequisites:
+        #
+        # All platforms
+        #   Java: OpenJDK 1.7+ (required only for RocksJava)
+        #   Tools:
+        #       curl (recommended; required only for RocksJava)
+        #   Libraries:
+        #       gflags 2.0+ (required for testing and benchmark code)
+        #       zlib 1.2.8+ (optional)
+        #       bzip2 1.0.6+ (optional)
+        #       lz4 r131+ (optional)
+        #       snappy 1.1.3+ (optional)
+        #       zstandard 0.5.1+ (optional)
+        #
+        # Linux
+        #   Architecture: x86 / x86_64 / arm64 / ppc64le / s390x
+        #   C/C++ Compiler: GCC 4.8+ or Clang
+        #   Tools:
+        #       GNU Make or CMake 3.14.5+
+        #   Build and install gflags from source code:
+        #      cd /opt/
+        #      git clone https://github.com/gflags/gflags.git
+        #      cd gflags
+        #      cmake ./CMakeLists.txt
+        #      sudo make install
+        #   Install required libs:
+        #      sudo apt-get install libsnappy-dev
+        #      sudo apt-get install libbz2-dev
+        #      sudo apt-get install libzstd-dev
+        #      sudo apt-get install zlib1g-dev
+        #      sudo apt-get install libbz2-dev
+        #
+        # Windows
+        #   Architecture: x86_64
+        #   OS: Windows 7+
+        #   C/C++ Compiler: Microsoft Visual Studio 2015+
+        #   Java: OpenJDK 1.7+ (required only for RocksJava)
+        #   Tools:
+        #       CMake 3.14.5+
+        #
+
+        # example compile steps on Linux
+          cd rocksdb
+          export CC=gcc
+          export cc=gcc
+          export CPATH=/usr/local/include:$CPATH
+          export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH
+          export DEBUG_LEVEL=0
+
+          # modify Makefile
+          # SDB requires compile flag, -fPIC, add following
+          # line after line CXXFLAGS += ${EXTRA_CXXFLAGS}
+          CXXFLAGS += $(PLATFORM_SHARED_CFLAGS)
+
+          # clean up
+          make clean
+
+          # for making static lib in release mode
+          make static_lib
+          cp  ./librocksdb.a /lib/linux64/release
+
+          # for making shared lib in release mode
+          make shared_lib
+          mv  ./librocksdb.so* ./lib/linux64/release
+
+          # for making debug lib, tools and test programs
+          # if gflags is installed
+          make dbg
+
+          # for making debug lib only, i.e., without installing gflags
+          # nor building the rocksdb built-in test programs, you will need
+          # to update the Makefile by changine the line DEBUG_LEVEL=0 to
+          # DEBUG_LEVEL?=0 in static_lib setting, like following:
+             ifeq ($(MAKECMDGOALS),static_lib)
+                 #DEBUG_LEVEL=0
+                 DEBUG_LEVEL?=0
+                 LIB_MODE=static
+             endif
+          # then, making debuggable lib with DEBUG_LEVEL=2, for example
+          DEBUG_LEVEL=2 make static_lib
+        
 ARM64:
     Building Prerequisites:
         g++ 4.6.3

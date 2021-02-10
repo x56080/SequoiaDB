@@ -57,6 +57,12 @@ driver_dir = join(db_dir,'driver')
 java_dir = join(root_dir,'java')
 fuse_dir = join(thirdparty_dir, 'fuse')
 fuse_lib_dir = join(fuse_dir, 'lib')
+rocksdb_dir = join(thirdparty_dir, 'rocksdb')
+rocksdb_lib_dir = join(rocksdb_dir, 'lib')
+zstd_dir = join(thirdparty_dir, 'zstd')
+zstd_lib_dir = join(zstd_dir, 'lib')
+bzip2_dir = join(thirdparty_dir, 'bzip2')
+bzip2_lib_dir = join(bzip2_dir, 'lib')
 # --- options ----
 
 options = {}
@@ -357,7 +363,7 @@ env = Environment( BUILD_DIR=variantDir,
                    PYSYSPLATFORM=os.sys.platform,
                    )
 if guess_os == "linux":
-    env.Append( CXXFLAGS=" -std=c++98 " )
+    env.Append( CXXFLAGS=" -std=c++11 " )
 
 libdeps.setup_environment( env )
 
@@ -540,6 +546,7 @@ env.Append(
 CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(engine_dir,'tools/stp'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
          join(snappy_dir,'include'),join(gtest_dir,'include'),
+         join(rocksdb_dir,'include'),join(zstd_dir,'lib'),bzip2_dir,
          pcre_dir, boost_dir, ssh2_dir, hdfsJniPath,
          hdfsJniMdPath] )
 
@@ -555,8 +562,12 @@ if guess_os is not None:
     lz4_lib_dir = join(lz4_lib_dir, platform_dir, build_dir)
     snappy_lib_dir = join(snappy_lib_dir, platform_dir, build_dir)
     intel_decimal_lib_dir = join(intel_decimal_lib_dir, platform_dir, build_dir)
+    rocksdb_lib_dir = join(rocksdb_lib_dir, platform_dir, build_dir)
+    zstd_lib_dir = join(zstd_lib_dir, platform_dir, build_dir)
+    bzip2_lib_dir = join(bzip2_lib_dir, platform_dir, build_dir)
     env.Append(EXTRALIBPATH=[boost_lib_dir, ssl_lib_dir, zlib_lib_dir,
-                             lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir])
+                             lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir,
+                             rocksdb_lib_dir, zstd_lib_dir,bzip2_lib_dir])
     # use project-related spidermonkey library
     if usesm:
         env.Append(CPPPATH=join(sm_lib_dir, platform_dir, 'include'))
@@ -636,6 +647,15 @@ if guess_os == "linux":
     zlib_lib = join(zlib_lib_dir, 'libzlib.a')
     lz4_lib = join(lz4_lib_dir, 'liblz4.a')
     snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
+    # rocksdb
+    if debugBuild :
+       rocksdb_lib = join(rocksdb_lib_dir,'librocksdb_debug.a')
+    else :
+       rocksdb_lib = join(rocksdb_lib_dir,'librocksdb.a')
+    # zstd
+    zstd_lib = join(zstd_lib_dir,'libzstd.a')
+    # bzip2
+    bzip2_lib = join(bzip2_lib_dir, 'libbz2.a')
 
     nix = True
 
@@ -990,6 +1010,12 @@ Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
+Export("rocksdb_lib")
+Export("zstd_lib")
+Export("bzip2_lib")
+Export("rocksdb_lib_dir")
+Export("zstd_lib_dir")
+Export("bzip2_lib_dir")
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux
 # ossVer_Autogen.h is NOT in SVN, we have to generate this file by scons before
@@ -1034,7 +1060,7 @@ else:
 print("Begin to build thirdparty...")
 thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
                          "ssl_lib_dir", "zlib_lib_dir", "lz4_lib_dir", "snappy_lib_dir",
-                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir"], duplicate=False)
+                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir", "rocksdb_lib_dir", "zstd_lib_dir", "bzip2_lib_dir"], duplicate=False)
 
 if not has_option("noautogen"):
    language = get_option ( "language" )

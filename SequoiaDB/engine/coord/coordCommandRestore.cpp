@@ -17,20 +17,17 @@
 
 *******************************************************************************/
 
-#include "coordCommandRestore.hpp"
-
-#include <vector>
-
+#include "ossTypes.hpp"
+#include "ossMemPool.hpp"
 #include "catDef.hpp"
 #include "coordCommandBase.hpp"
+#include "coordCommandRestore.hpp"
 #include "coordContext.hpp"
 #include "coordFactory.hpp"
 #include "coordTrace.hpp"
 #include "coordTransOperator.hpp"
 #include "msg.h"
 #include "msgDef.h"
-#include "ossMemPool.hpp"
-#include "ossTypes.hpp"
 #include "pdTrace.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
@@ -38,6 +35,7 @@
 #include "stpAgent.hpp"
 #include "stpLogicalTime.hpp"
 #include "utilBSON.hpp"
+#include <vector>
 
 using bson::BSONElement;
 using bson::BSONObj;

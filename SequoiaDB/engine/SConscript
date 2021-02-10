@@ -20,6 +20,9 @@ Import("hasTool")
 Import("zlib_lib")
 Import("lz4_lib")
 Import("snappy_lib")
+Import("rocksdb_lib")
+Import("zstd_lib")
+Import("bzip2_lib")
 
 def add_exe( v ):
     return "${PROGPREFIX}%s${PROGSUFFIX}" % v
@@ -928,6 +931,12 @@ env.StaticLibrary('omsvc', omsvcFiles)
 #stp
 env.StaticLibrary('stpagent', stpAgentFiles)
 env.StaticLibrary('stpclient', stpClientFiles)
+#rocksdb
+env.StaticLibrary('rocksdb', rocksdb_lib)
+#zstd
+env.StaticLibrary('zstd', zstd_lib)
+#bzip2
+env.StaticLibrary('bzip2', bzip2_lib)
 
 #gtest main
 #dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
