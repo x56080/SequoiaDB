@@ -254,7 +254,8 @@ namespace engine
                                         BOOLEAN *isMainCL = NULL,
                                         INT16 *w = NULL,
                                         CHAR *mainCLName = NULL,
-                                        utilCLUniqueID *clUniqueID = NULL ) ;
+                                        utilCLUniqueID *clUniqueID = NULL,
+                                        BOOLEAN *repairCheck = NULL ) ;
 
          /// valid: replSize == NULL and clientW != NULL
          ///        replSize != NULL and clientW == NULL
@@ -268,7 +269,8 @@ namespace engine
                                 BOOLEAN *isMainCL = NULL,
                                 INT16 *w = NULL,
                                 CHAR *mainCLName = NULL,
-                                utilCLUniqueID *clUniqueID = NULL ) ;
+                                utilCLUniqueID *clUniqueID = NULL,
+                                BOOLEAN *repairCheck = NULL ) ;
 
          INT32   _reply ( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
 

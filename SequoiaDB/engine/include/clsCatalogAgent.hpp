@@ -355,6 +355,8 @@ namespace engine
 
          UTIL_COMPRESSOR_TYPE getCompressType() const { return _compressType ; }
 
+         BOOLEAN isRepairCheck() const { return _repairCheck ; }
+
          INT64    getMaxSize() const { return _maxSize ; }
          INT64    getMaxRecNum() const { return _maxRecNum ; }
          BOOLEAN  getOverWrite() const { return _overwrite ; }
@@ -467,6 +469,7 @@ namespace engine
          INT64             _maxSize ;
          INT64             _maxRecNum ;
          BOOLEAN           _overwrite ;
+         BOOLEAN           _repairCheck ;
 
          _clsCataGIndexGroup _gIndexGroup ;
    };

@@ -650,6 +650,13 @@ namespace engine
          }
       }
 
+      if ( localTask->containRepairCheckArgument() )
+      {
+         PD_CHECK( !cataSet.isMainCL(), SDB_MAIN_CL_OP_ERR, error, PDERROR,
+                   "%s can't be altered in maincl(%s), rc: %d",
+                   FIELD_NAME_REPARECHECK, cataSet.name(), rc ) ;
+      }
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKSETATTR, rc ) ;
       return rc ;
@@ -1361,6 +1368,19 @@ namespace engine
       {
          setBuilder.appendBool( CAT_DOMAIN_AUTO_REBALANCE,
                                 localTask->isAutoRebalance() ) ;
+      }
+
+      if ( localTask->testArgumentMask( UTIL_CL_REPAIRCHECK_FIELD ) )
+      {
+         if ( localTask->getRepairCheckArgument().isRepairCheck() )
+         {
+            setBuilder.appendBool( CAT_REPAIRCHECK,
+                         localTask->getRepairCheckArgument().isRepairCheck() ) ;
+         }
+         else
+         {
+            unsetBuilder.append( CAT_REPAIRCHECK, 1 ) ;
+         }
       }
 
    done :

@@ -100,6 +100,7 @@
 #define FIELD_NAME_COMPRESSIONTYPE           "CompressionType"
 #define FIELD_NAME_STRICTDATAMODE            "StrictDataMode"
 #define FIELD_NAME_COMPRESSIONTYPE_DESC      "CompressionTypeDesc"
+#define FIELD_NAME_REPARECHECK               "RepairCheck"
 #define VALUE_NAME_SNAPPY                    "snappy"
 #define VALUE_NAME_LZW                       "lzw"
 #define VALUE_NAME_LZ4                       "lz4"

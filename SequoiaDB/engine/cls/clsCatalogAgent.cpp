@@ -717,6 +717,7 @@ namespace engine
       _maxRecNum = 0 ;
       _overwrite = FALSE ;
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
+      _repairCheck = FALSE ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -2047,6 +2048,24 @@ namespace engine
                     CAT_LOBSHARDINGKEYFORMAT_NAME, ele.valuestr(), rc ) ;
             goto error ;
          }
+      }
+
+      // repaircheck
+      ele = catSet.getField( CAT_REPAIRCHECK ) ;
+      if ( ele.eoo() )
+      {
+         _repairCheck = FALSE ;
+      }
+      else if ( Bool == ele.type() )
+      {
+         _repairCheck = ele.boolean() ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Catalog [%s] type error, type: %d" ,
+                 CAT_REPAIRCHECK, ele.type() ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
 
       // auto increment parse
