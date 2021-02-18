@@ -1,0 +1,95 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = lcBucket.h
+
+   Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_LC_BUCKET_H_
+#define VESSEL_LC_BUCKET_H_
+
+#include "vessel/phyExtentID.h"
+#include "vessel/lcExtentTagHolder.h"
+#include "ossLatch.hpp"
+
+#include <map>
+
+namespace engine
+{
+namespace vessel
+{
+   class extentStorageUnit;
+   
+   class lcBucket : public SDBObject
+   {
+      public:
+         lcBucket();
+         ~lcBucket();
+
+      public:
+         INT32 ensureTagAndIncUsage(const PHY_EXTENT_ID &id,
+                                    UINT32 diskPageSize,
+                                    UINT32 cachePageSize,
+                                    _ossSpinSLatch *latch,
+                                    extentStorageUnit *su,
+                                    UINT32 minRecycleCount,
+                                    lcExtentTagHolder &holder);
+
+         INT32 getTagAndIncUsage(const PHY_EXTENT_ID &id,
+                                 _ossSpinSLatch *latch,
+                                 lcExtentTagHolder &holder);
+
+         INT32 releaseRemovedTag(_ossSpinSLatch *latch,
+                                 lcExtentTag *tag);
+
+         INT32 releaseRemovedTags(SHARED_MUTEX *latch,
+                                  UINT32 num,
+                                  lcExtentTag *tags);
+      private:                           
+         INT32 insertTag(const PHY_EXTENT_ID &id,
+                         UINT32 pageNum,
+                         UINT32 pageSize,
+                         ossValuePtr diskPage,
+                         UINT32 minRecycleCount,
+                         lcExtentTagHolder &holder);
+
+         lcExtentTag *recycleTag(UINT32 minRecycleCount);
+                                                
+      private:
+         std::multimap<GLOBAL_PAGE_ID, lcExtentTag*> _tags;
+   };
+} /// end of namespace vessel
+} /// end of namespace engine
+
+#endif

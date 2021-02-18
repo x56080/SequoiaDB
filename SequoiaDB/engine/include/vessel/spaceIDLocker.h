@@ -1,0 +1,70 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+   Source File Name = spaceIDLocker.h
+
+   Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+******************************************************************************/
+
+#ifndef VESSEL_SPACE_ID_LOCKER_H_
+#define VESSEL_SPACE_ID_LOCKER_H_
+
+#include "vessel/vesselDef.h"
+#include "ossLatch.hpp"
+
+namespace engine
+{  
+namespace vessel
+{
+   class spaceIDLocker : public SDBObject
+   {
+      public:
+         spaceIDLocker();
+         ~spaceIDLocker();
+
+      public:
+         INT32 setup(UINT32 count);
+         INT32 teardown();
+         void lock(SPACE_ID sid, OSS_LATCH_MODE mode);
+         BOOLEAN lock(SPACE_ID sid, OSS_LATCH_MODE mode, INT32 millis);
+         BOOLEAN tryLock(SPACE_ID sid, OSS_LATCH_MODE mode);
+         void unlock(SPACE_ID sid, OSS_LATCH_MODE mode);
+
+      private:
+         UINT32 _size;
+         ossSpinSLatch *_mutexVec;
+   };//class spaceIDLocker
+}//namespace vessel
+}//namespace engine
+
+#endif//VESSEL_SPACE_ID_LOCKER_H_
