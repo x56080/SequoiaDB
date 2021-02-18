@@ -48,10 +48,6 @@ namespace engine
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,
       DPS_LOG_PUBLIC_FULLNAME = 201,         // cl full name
-
-      // transaction ID
-      // V0: whole transaction ID
-      // V1: serial number with global transaction tag
       DPS_LOG_PUBLIC_TRANSID = 202,
       DPS_LOG_PUBLIC_PRETRANS = 203,
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
@@ -70,13 +66,18 @@ namespace engine
 
       DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
       DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211
+
+      ///vessel only
+      DPS_LOG_PUBLIC_VESSEL_GPID = 212,
+      DPS_LOG_PUBLIC_VESSEL_FULLID = 213,
+      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 214,
    } ;
 
 /// number in public can not be used in definition !
 
    enum DPS_LOG_INSERT
    {
-      DPS_LOG_INSERT_OBJ = 1
+      DPS_LOG_INSERT_OBJ = 1,
    } ;
 
    enum DPS_LOG_UPDATE
@@ -92,7 +93,7 @@ namespace engine
 
    enum DPS_LOG_DELETE
    {
-      DPS_LOG_DELETE_OLDOBJ = 1
+      DPS_LOG_DELETE_OLDOBJ = 1,
    } ;
 
    enum DPS_LOG_POP
@@ -107,7 +108,9 @@ namespace engine
       DPS_LOG_CSCRT_PAGESIZE = 2,
       DPS_LOG_CSCRT_LOBPAGESZ = 3,
       DPS_LOG_CSCRT_CSTYPE = 4,
-      DPS_LOG_CSCRT_CSUNIQUEID = 5
+      DPS_LOG_CSCRT_CSUNIQUEID = 5,
+      DPS_LOG_CSCRT_VESSEL_CSCRT_OPTIONS = 6,
+      DPS_LOG_CSCRT_VESSEL_SPACE_ID = 7,
    } ;
 
    enum DPS_LOG_CSDEL
@@ -126,7 +129,9 @@ namespace engine
       DPS_LOG_CLCRT_ATTRIBUTE = 1,
       DPS_LOG_CLCRT_COMPRESS_TYPE = 2,
       DPS_LOG_CLCRT_EXT_OPTIONS = 3,
-      DPS_LOG_CLCRT_CLUNIQUEID
+      DPS_LOG_CLCRT_CLUNIQUEID = 4,
+      DPS_LOG_CLCRT_VESSEL_CS_NAME = 5,
+      DPS_LOG_CLCRT_VESSEL_CL_RECORD = 6,
    } ;
 
    enum DPS_LOG_CLDEL
@@ -218,6 +223,21 @@ namespace engine
       DPS_LOG_ADDUNIQUEID_CLINFO
    } ;
 
+   enum DPS_LOG_VESSEL_SMP_ALLOCATE
+   {
+      //DPS_LOG_PUBLIC_VESSEL_GPID
+      DPS_LOG_VESSEL_SMP_ALLOCATE_PAGE_TYPE = 1,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_LPID = 2,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_PID = 3,
+   };
+
+   enum DPS_LOG_VESSEL_IMP_REMAP
+   {
+      //DPS_LOG_PUBLIC_VESSEL_GPID
+      DPS_LOG_VESSEL_IMP_REMAP_LPID = 1,
+      DPS_LOG_VESSEL_IMP_REMAP_OLD_SLOT = 2,
+      DPS_LOG_VESSEL_IMP_REMAP_NEW_SLOT = 3,
+   };//enum DPS_LOG_VESSEL_NEW_PAGE
 }
 
 #endif

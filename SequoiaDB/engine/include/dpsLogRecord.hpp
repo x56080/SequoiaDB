@@ -57,8 +57,9 @@ namespace engine
        _length( 0 ),
        _version( DPS_INVALID_LSN_VERSION ),
        _type( LOG_TYPE_DUMMY ),
-       _reserved1( 0 ),
-       _reserved2( 0 )
+       _flags(0),
+       _opListLSN(DPS_INVALID_LSN_OFFSET),
+       _pad( 0 )
       {
 
       }
@@ -69,8 +70,9 @@ namespace engine
        _length( header._length ),
        _version( header._version ),
        _type( header._type ),
-       _reserved1( header._reserved1),
-       _reserved2( header._reserved2 )
+       _flags( header._flags),
+       _opListLSN( header._opListLSN),
+       _pad(header._pad)
       {
 
       }
@@ -84,8 +86,8 @@ namespace engine
          _length = header._length ;
          _version = header._version ;
          _type = header._type ;
-         _reserved1 = header._reserved1 ;
-         _reserved2 = header._reserved2 ;
+         _flags = header._flags ;
+         _opListLSN = header._opListLSN ;
          return *this ;
       }
 
@@ -96,8 +98,9 @@ namespace engine
          _length = 0 ;
          _version = DPS_INVALID_LSN_VERSION ;
          _type = LOG_TYPE_DUMMY ;
-         _reserved1 = 0 ;
-         _reserved2 = 0 ;
+         _flags = 0 ;
+         _opListLSN = DPS_INVALID_LSN_OFFSET;
+         _pad = 0;
       }
 
    public:
@@ -112,11 +115,18 @@ namespace engine
       // 0x18 - 0x19
       UINT16 _type;
       // 0x1A - 0x1B
-      UINT16 _reserved1 ;
-      // 0x1C - 0x1F
-      UINT32 _reserved2 ;
+      UINT16 _flags;
+      // 0x1C - 0x24
+      DPS_LSN_OFFSET _opListLSN;
+      // 0x25 - 0x28
+      UINT32 _pad;
    } ;
    typedef class _dpsLogRecordHeader dpsLogRecordHeader ;
+
+   OSS_INLINE void setFlags(dpsLogRecordHeader &head, UINT32 flags)
+   {
+      OSS_BIT_SET(head._flags, flags);
+   }
 
 #pragma pack(1)
    class _dpsRecordEle
