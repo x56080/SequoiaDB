@@ -867,6 +867,65 @@ selectorTestFiles= [
 utilBSONTestFiles = [
       "test/utilBSONTest.cpp"
       ]
+	  
+#vessel
+vesselFiles = [
+      "vessel/cache/lcExtentTag.cpp",
+      "vessel/cache/liteCache.cpp",
+      "vessel/cache/lcBucket.cpp",
+      "vessel/cache/lcBuckets.cpp",
+      "vessel/cache/lcDirtyList.cpp",
+      "vessel/cache/lcFreeList.cpp",
+      "vessel/cache/lcLRUList.cpp",
+      "vessel/cache/liteCacheTuple.cpp",
+      "vessel/cache/lcChunkPageArray.cpp",
+      "vessel/cache/lcCacheChunk.cpp",
+      "vessel/storage/extentSUContainer.cpp",
+      "vessel/storage/extentStorageFile.cpp",
+      "vessel/storage/dataExtentIDMapFile.cpp",
+      "vessel/storage/extentStorageUnit.cpp",
+      "vessel/storage/dataExtentFile.cpp",
+      "vessel/storage/storageFileName.cpp",
+      "vessel/storage/storageFileUtil.cpp",
+      "vessel/handlers/createCSHandler.cpp",
+      "vessel/handlers/createCLHandler.cpp",
+      "vessel/handlers/requestHandler.cpp",
+      "vessel/handlers/listCollectionSpaceHandler.cpp",
+      "vessel/handlers/listCollectionsHandler.cpp",
+      "vessel/inMemBitMap.cpp",
+      "vessel/controlFile.cpp",
+      "vessel/spaceIDLocker.cpp",
+      "vessel/objectContainer.cpp",
+      "vessel/collectionSpace.cpp",
+      "vessel/vesselImpl.cpp",
+      "vessel/pageAccessor.cpp",
+      "vessel/csgpAccessor.cpp",
+      "vessel/requestContext.cpp",
+      "vessel/lpidContext.cpp",
+      "vessel/collectionMap.cpp",
+      "vessel/collection.cpp",
+      "vessel/smpAccessor.cpp",
+      "vessel/impAccessor.cpp",
+      "vessel/crpAccessor.cpp",
+      "vessel/utils/redoLogUtil.cpp",
+      "vessel/spaceManagementPage.cpp",
+      "vessel/collectionRecordPage.cpp",
+      "vessel/idMapPage.cpp",
+      "vessel/collectionSpaceGlobalPage.cpp",
+      "vessel/ICursor.cpp",
+      "vessel/cursorObject.cpp",
+      "vessel/diskIOJob.cpp",
+      "vessel/diskIOTask.cpp"
+]
+
+#vessel unit test
+vesselTestFiles = [
+      "test/vessel/vessel_cftest.cpp",
+      "test/vessel/vessel_sbm_test.cpp",
+      "test/vessel/vessel_test.cpp",
+      "test/vessel/collectionmap_test.cpp",
+      "test/vessel/cursor_test.cpp"
+]
 
 #BSON
 env.StaticLibrary('bson', bsonFiles)
@@ -937,6 +996,8 @@ env.StaticLibrary('rocksdb', rocksdb_lib)
 env.StaticLibrary('zstd', zstd_lib)
 #bzip2
 env.StaticLibrary('bzip2', bzip2_lib)
+#vessel
+env.StaticLibrary('vessel', vesselFiles)
 
 #gtest main
 #dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
@@ -949,6 +1010,7 @@ sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
 #spdtest = env.Object('spdtest', gtestMainFile)
 selectortest = env.Object('selectortest', gtestMainFile)
+vesseltest = env.Object('vesseltest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -1079,6 +1141,10 @@ if hasTestcase:
    utilBSONTest = env.Program("utilBSONTest", utilBSONTestFiles,
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+		  
+   vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "vessel"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
 if hasTool:
@@ -1125,6 +1191,7 @@ if hasTestcase:
 #   env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
    env.Install( '#/tests', selectorTest )
+   env.Install( '#/tests', vesselTest )
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )
