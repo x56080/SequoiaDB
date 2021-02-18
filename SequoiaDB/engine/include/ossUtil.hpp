@@ -1238,5 +1238,78 @@ class ossSignalShield
 
 INT32 ossException2RC( std::exception *pe ) ;
 
+OSS_INLINE INT32 ossGetLowestBit1From32Bits(UINT32 n)
+{
+   INT32 r = 0;
+   if ( 0 == (n &0xffffffff))
+   {
+      return -1;
+   }
+   if (0 == (n & 0xffff))
+   {
+      n >>= 16;
+      r += 16;
+   }
+   if (0 == (n & 0xff))
+   {
+      n >>= 8;
+      r += 8;
+   }
+   if (0 == (n & 0x0f))
+   {
+      n >>= 4;
+      r += 4;
+   }
+   if (0 == (n & 0x03))
+   {
+      n >>= 2;
+      r += 2;
+   }
+   if (0 == (n & 0x01))
+   {
+      r += 1;
+   }
+   return r;
+}
+
+OSS_INLINE INT32 ossGetLowestBit1From64Bits(UINT64 n)
+{
+   INT32 r = 0;
+   if ( 0 == (n & OSS_UINT64_MAX))
+   {
+      return -1;
+   }
+   if (0 == (n & 0xffffffffull))
+   {
+      n >>= 32;
+      r += 32;
+   }
+   if (0 == (n & 0xffffull))
+   {
+      n >>= 16;
+      r += 16;
+   }
+   if (0 == (n & 0xffull))
+   {
+      n >>= 8;
+      r += 8;
+   }
+   if (0 == (n & 0x0full))
+   {
+      n >>= 4;
+      r += 4;
+   }
+   if (0 == (n & 0x03ull))
+   {
+      n >>= 2;
+      r += 2;
+   }
+   if (0 == (n & 0x01ull))
+   {
+      r += 1;
+   }
+   return r;
+}
+
 #endif  //OSSUTIL_HPP_
 
