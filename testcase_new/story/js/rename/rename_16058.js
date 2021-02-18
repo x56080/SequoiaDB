@@ -68,7 +68,7 @@ function checkDatas ( csName, newCLName, expRecordNums, groupsInfo )
          if( sdb !== undefined )
          {
             sdb.close();
-            sdb == undefined;
+            sdb = undefined;
          }
       }
    }

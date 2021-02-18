@@ -26,7 +26,7 @@ function test ( testPara )
    { a: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, b: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" }, c: { $binary: "aGVsbG8gd29ybGQ=", $type: "1" } },
    { a: { $regex: "^z", $options: "i" }, b: { $regex: "^z", $options: "i" }, c: { $regex: "^z", $options: "i" } },
    { a: { name: "hanmeimei" }, b: { name: "hanmeimei" }, c: { name: "hanmeimei" } },
-   { a: ["b", 0], b: ["b", 0], a: ["b", 0] },
+   { a: ["b", 0], b: ["b", 0], c: ["b", 0] },
    { a: null, b: null, c: null }];
    testPara.testCL.insert( doc1 );
 

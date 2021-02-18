@@ -19,7 +19,7 @@ function test ()
    cl.createAutoIncrement( { Field: "id2", CacheSize: 1, AcquireSize: 1, Increment: 1, StartValue: 100 } );
 
    // 检查自增字段属性是否正确
-   var clUniqueID = getCLID( db,  COMMCSNAME, clName );
+   var clUniqueID = getCLID( db, COMMCSNAME, clName );
    var sequenceName_1 = "SYS_" + clUniqueID + "_id1_SEQ";
    var sequenceName_2 = "SYS_" + clUniqueID + "_id2_SEQ";
    var expSequenceObj_1 = { CacheSize: 1, AcquireSize: 1, Increment: -1, StartValue: -100, CurrentValue: -100, "MaxValue": -1, "MinValue": { "$numberLong": "-9223372036854775808" } };

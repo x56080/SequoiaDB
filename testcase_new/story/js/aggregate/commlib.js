@@ -13,8 +13,8 @@ function compareObj ( lobj, robj, ignoreId )
    if( typeof ( lobj ) === "object" &&
       typeof ( robj ) === "object" )
    {
-      if( lobj === null && robj === null ) return true;
-      if( lobj.constructor !== robj.constructor ) return false;
+      if( lobj == null && robj == null ) return true;
+      if( lobj == null || robj == null || lobj.constructor !== robj.constructor ) return false;
       var _idNum = 0;
       for( key in lobj )
       {

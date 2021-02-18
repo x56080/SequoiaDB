@@ -55,7 +55,7 @@ function test ()
 
    var cur = varCL.find( { "_id": { $numberLong: "9223372036854775807" } } );
    if( !commCompareObject( lobj5, cur.next().toObj() ) )
-      new Error( "lobj5: " + lobj5 + "\ncur.next().toObj(): " + cur.current().toObj() );
+      throw new Error( "lobj5: " + lobj5 + "\ncur.next().toObj(): " + cur.current().toObj() );
 
    var cur = varCL.find( { "_id": 12.123 } );
    if( !commCompareObject( lobj6, cur.next().toObj() ) )

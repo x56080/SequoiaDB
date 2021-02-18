@@ -16,7 +16,7 @@ function checkResult ( real, expect )
 
    for( var key in expect )
    {
-      if( undefined === typeof ( real[key] ) )
+      if( null == real[key] )
       {
          return false;
       }
@@ -27,8 +27,8 @@ function checkResult ( real, expect )
       }
    }
 
-   if( undefined !== typeof ( real["Indexes"] ) &&
-      undefined !== typeof ( real["TotalIndexPages"] ) )
+   if( undefined != typeof ( real["Indexes"] ) &&
+      undefined != typeof ( real["TotalIndexPages"] ) )
    {
       return real.Indexes * 2 === real.TotalIndexPages;
    }

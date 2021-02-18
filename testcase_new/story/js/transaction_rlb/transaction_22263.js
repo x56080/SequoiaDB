@@ -39,11 +39,9 @@ function test( testPara )
       
       db.transRollback();
       checkReelect( groupName, slaveHostName, slaveServiceName );
-      commCheckBusinessStatus( db, 180, true );
-     
-      var cl = db.getCS(COMMCSNAME).getCL(testConf.clName);
-      var cursor = cl.find();
-      commCompareResults( cursor, [] );     
+      commCheckBusinessStatus( db, 180, true );      
+      checkInsertResult(testConf.clName);
+      
    }
    finally
    {

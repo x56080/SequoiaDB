@@ -10,6 +10,7 @@ var tmpStp = {
    getSyncHistory: Stp.prototype.getSyncHistory,
    getSyncStatus: Stp.prototype.getSyncStatus,
    getTime: Stp.prototype.getTime,
+   getTimeMap: Stp.prototype.getTimeMap,
    getTimeUS: Stp.prototype.getTimeUS,
    help: Stp.prototype.help,
    reelect: Stp.prototype.reelect,
@@ -34,6 +35,7 @@ Stp.prototype.getSyncClients=function(){try{return tmpStp.getSyncClients.apply(t
 Stp.prototype.getSyncHistory=function(){try{return tmpStp.getSyncHistory.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.getSyncStatus=function(){try{return tmpStp.getSyncStatus.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.getTime=function(){try{return tmpStp.getTime.apply(this,arguments);}catch(e){throw new Error(e);}};
+Stp.prototype.getTimeMap=function(){try{return tmpStp.getTimeMap.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.getTimeUS=function(){try{return tmpStp.getTimeUS.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.help=function(){try{return tmpStp.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 Stp.prototype.reelect=function(){try{return tmpStp.reelect.apply(this,arguments);}catch(e){throw new Error(e);}};
