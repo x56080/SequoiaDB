@@ -1694,13 +1694,48 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
          INT32 _parseOpts(const BSONObj &matcher);
          INT32 _parseTimestamp(const BSONObj &matcher);
-         INT32 _parseTestOpts(const BSONObj &matcher);
          INT32 _parseTransID(const BSONObj &matcher);
       private:
          INT64 _timestamp;
-         BOOLEAN _testOnly;
-         BOOLEAN _skipTest;
          DPS_TRANS_ID _transID;
+   };
+
+   /**
+   Node handler for db.restoreCheck()
+
+   Performs the checks before a user can call db.restoreToTime(). Given a
+   target time, it checks that there is sufficient log space to undo the
+   records to restore to the target time. The check enters the point-in-time
+   rollback log scanning loop and sums up the log space. The reachable time is
+   cached so for future calls to restoreCheck. The cache is invalidated by
+   db.restoreToTime() because it uses up log space. The cache is cleared by
+   db.restoreAbort().
+   See coordCMDRestoreCheck for the corresponding coordinator class.
+   */
+   class _rtnRestoreCheck : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestoreCheck () ;
+         virtual ~_rtnRestoreCheck () ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN      writable () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         INT32 _parseTime(const BSONObj &matcher);
+         INT32 _runTest(_pmdEDUCB *cb, UINT64 *limit);
+      private:
+         UINT64 _time;
    };
 
    /*

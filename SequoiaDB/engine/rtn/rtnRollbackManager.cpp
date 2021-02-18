@@ -19,8 +19,6 @@
 
 #include "rtnRollbackManager.hpp"
 
-#include <string>
-
 #include "dpsLogWrapper.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsOp2Record.hpp"
@@ -188,11 +186,21 @@ INT32 _rtnRollbackManager::_undo()
 rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
                                              const DPS_TRANS_ID &transID)
     : _rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
-      _transID(transID)
+      _rollbackRecCount(0), _logLimitTime(0), _transID(transID)
 {
    // Set the target time from the input message
    _targetTime = stpLogicalTimeUS();
    _targetTime.setTime(targetTime);
+}
+
+INT32 rtnPITRollbackManager::countRollbackRecords()
+{
+   return _rollbackRecCount;
+}
+
+UINT64 rtnPITRollbackManager::getLogLimitTime()
+{
+   return _logLimitTime;
 }
 
 // PIT rollback starts the end of the log and reads every record. It is also
@@ -315,7 +323,7 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
       // This transaction committed at/before the target so skip it
       return rc;
    }
-   if (_isTransInUndoTransSet())
+   if (_isTransInUndoTransMap())
    {
       // This transaction is already marked for undo, this must be a pre-commit
       SDB_ASSERT(record.isPreCommit(),
@@ -323,7 +331,17 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
                  "undo transaction set");
       return SDB_OK;
    }
-   _undoTransSet.insert(_recordTransID);
+
+   try
+   {
+      _undoTransMap.insert(std::make_pair<DPS_TRANS_ID, stpLogicalTimeUS>(
+          _recordTransID, recordTransTime));
+   }
+   catch (std::exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to insert into map (exception: %s)", e.what());
+      return (rc = SDB_SYS);
+   }
    return rc;
 }
 
@@ -334,7 +352,7 @@ INT32 rtnPITRollbackManager::_processBeginRecord()
    PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_BEGINREC, &rc);
    // All records for this transaction have been processed. Remove this
    // transaction from the set of transactions to undo.
-   _undoTransSet.erase(_recordTransID);
+   _undoTransMap.erase(_recordTransID);
    return rc;
 }
 
@@ -405,7 +423,7 @@ INT32 rtnPITRollbackManager::_checkExitCondition()
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_CHECKEXIT, &rc);
-   if (_undoTransSet.empty() &&
+   if (_undoTransMap.empty() &&
        _isLogFileDone() &&
        _isTargetTimeReached(&rc))
    {
@@ -429,7 +447,7 @@ BOOLEAN rtnPITRollbackManager::_shouldUndo(const dpsLogRecord &record)
       // Commit records don't contain any data to undo
       return FALSE;
    }
-   if (!_isTransInUndoTransSet())
+   if (!_isTransInUndoTransMap())
    {
       // This record is not from a transaction being undone
       return FALSE;
@@ -449,6 +467,12 @@ INT32 rtnPITRollbackManager::_canUndo(const dpsLogRecord &record)
    if (logSpaceRequired > _remainingLogSpace)
    {
       PD_LOG(PDERROR, "Not enough log space for rollback");
+      if ((rc = _setLogLimit()))
+      {
+         // Unhandled error
+         return rc;
+      }
+      // Handled error
       return (rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE);
    }
    else
@@ -456,12 +480,41 @@ INT32 rtnPITRollbackManager::_canUndo(const dpsLogRecord &record)
       // Reduce the remaining space by the amount required
       _remainingLogSpace -= logSpaceRequired;
    }
+   _rollbackRecCount += 1;
    return rc;
 }
 
-BOOLEAN rtnPITRollbackManager::_isTransInUndoTransSet()
+// PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_LOGLIMIT, "rtnPITRollbackManager::_setLogLimit" )
+INT32 rtnPITRollbackManager::_setLogLimit()
 {
-   return _undoTransSet.find(_recordTransID) != _undoTransSet.end();
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_LOGLIMIT, &rc);
+   // Find the max commit time still outstanding
+   // Do not confuse the "second" member of a map pair with the "_seconds" of
+   // a time object
+   for (UNDO_TRANS_MAP::const_iterator it = _undoTransMap.begin();
+        it != _undoTransMap.end(); ++it)
+   {
+      _logLimitTime = OSS_MAX(_logLimitTime, it->second.getUpperTime());
+   }
+   // Also check the summary
+   UINT64 summMaxCommitTime;
+   if ((rc = _transCB->getMaxCommitTimeBefore(_cursor, summMaxCommitTime)))
+   {
+      PD_LOG(PDERROR, "Failed to calculate log limit");
+      return (rc = SDB_SYS);
+   }
+   // Set the member var to the max time + 1 to set all outstanding commits out
+   // of range
+   _logLimitTime = OSS_MAX(_logLimitTime, summMaxCommitTime + 1);
+   PD_LOG(PDINFO, "Log limit reached at global time [%llu]",
+          _logLimitTime);
+   return rc;
+}
+
+BOOLEAN rtnPITRollbackManager::_isTransInUndoTransMap()
+{
+   return _undoTransMap.find(_recordTransID) != _undoTransMap.end();
 }
 
 BOOLEAN rtnPITRollbackManager::_isRecordTransactional()

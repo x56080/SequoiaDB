@@ -102,10 +102,17 @@ class _rtnRollbackManager : public SDBObject
 /// rollback, it may or may not undo each record it reads.
 class rtnPITRollbackManager : public _rtnRollbackManager
 {
+   typedef ossPoolMap<DPS_TRANS_ID, stpLogicalTimeUS> UNDO_TRANS_MAP;
  public:
    rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime,
                          const DPS_TRANS_ID &transID);
    virtual ~rtnPITRollbackManager(){};
+
+   // Number of new log records written by this rollback
+   INT32 countRollbackRecords();
+
+   // Get the timestamp when the log limit was reached
+   UINT64 getLogLimitTime();
 
  protected:
    // Target consistency point
@@ -116,13 +123,15 @@ class rtnPITRollbackManager : public _rtnRollbackManager
    // needs to be higher than what is in the log and the node is locked during
    // this process so no other transactions can happen.
    stpLogicalTimeUS _rollbackTime;
-   // Set of transIDs for transactions that need to be undone
+   // Map of transIDs:commit time for transactions that need to be undone
    // DPS_TRANS_ID implements 'operator <' so it can be used in a set
-   ossPoolSet<DPS_TRANS_ID> _undoTransSet;
+   UNDO_TRANS_MAP _undoTransMap;
    // Current record transaction ID
    DPS_TRANS_ID _recordTransID;
    BOOLEAN _continue;
    UINT64 _remainingLogSpace;
+   INT32 _rollbackRecCount;
+   UINT64 _logLimitTime;
    // The global transaction ID from the coordinator
    DPS_TRANS_ID _transID;
 
@@ -140,11 +149,12 @@ class rtnPITRollbackManager : public _rtnRollbackManager
    INT32 _processCommitRecord(const dpsLogRecord &record);
    INT32 _processBeginRecord();
    INT32 _exitConditionCheck();
+   INT32 _setLogLimit();
 
    virtual BOOLEAN _shouldUndo(const dpsLogRecord &record);
    virtual INT32 _canUndo(const dpsLogRecord &record);
 
-   BOOLEAN _isTransInUndoTransSet();
+   BOOLEAN _isTransInUndoTransMap();
    BOOLEAN _isRecordTransactional();
    BOOLEAN _isLogFileDone();
    BOOLEAN _isTargetTimeReached(INT32 *rc);

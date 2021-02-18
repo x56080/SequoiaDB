@@ -11408,6 +11408,27 @@ do                                                            \
                            &options ) ;
    }
 
+   INT32 _sdbImpl::restoreCheck( BSONObj &result, const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      sdbCursor cursor;
+      if ((rc = _runCommand(CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK, &options,
+                            NULL, NULL, NULL, 0, 0, 0, -1, &cursor.pCursor)))
+      {
+         return rc;
+      }
+      if ((rc = cursor.next(result)))
+      {
+         if (SDB_DMS_EOC != rc)
+         {
+            return rc;
+         }
+         rc = SDB_OK;
+      }
+      // cursor is cleaned up in ~sdbCursor
+      return rc;
+   }
+
    INT32 _sdbImpl::restoreAbort( const BSONObj &options )
    {
       return _runCommand ( CMD_ADMIN_PREFIX CMD_NAME_RESTORE_ABORT,

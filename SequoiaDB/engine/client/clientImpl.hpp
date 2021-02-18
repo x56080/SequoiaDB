@@ -1848,6 +1848,8 @@ namespace sdbclient
                               BOOLEAN getOwned = FALSE ) const ;
 
       INT32 restoreToTime( const bson::BSONObj &options = _sdbStaticObject ) ;
+      INT32 restoreCheck( bson::BSONObj &result,
+                          const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject ) ;
       INT32 restorePrepare( const bson::BSONObj &options = _sdbStaticObject ) ;
 

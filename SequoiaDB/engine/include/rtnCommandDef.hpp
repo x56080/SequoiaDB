@@ -125,6 +125,7 @@ namespace engine
 #define NAME_RESTORE_TO_TIME                 CMD_NAME_RESTORE_TO_TIME
 #define NAME_RESTORE_ABORT                   CMD_NAME_RESTORE_ABORT
 #define NAME_RESTORE_PREPARE                 CMD_NAME_RESTORE_PREPARE
+#define NAME_RESTORE_CHECK                   CMD_NAME_RESTORE_CHECK
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -309,6 +310,9 @@ namespace engine
       CMD_CREATE_SEQUENCE                    = 260,
       CMD_DROP_SEQUENCE                      = 261,
       CMD_ALTER_SEQUENCE                     = 262,
+
+      CMD_RESTORE_CHECK                      = 263,
+
       CMD_UNKNOW                             = 65535
    };
 

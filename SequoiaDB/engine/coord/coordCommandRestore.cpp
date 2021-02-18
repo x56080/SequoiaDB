@@ -19,6 +19,7 @@
 
 #include "coordCommandRestore.hpp"
 
+#include <algorithm>
 #include <vector>
 
 #include "catDef.hpp"
@@ -31,6 +32,7 @@
 #include "msgDef.h"
 #include "ossMemPool.hpp"
 #include "ossTypes.hpp"
+#include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "pmd.hpp"
 #include "rtn.hpp"
@@ -68,6 +70,42 @@ INT32 convRealToLogicalTime(const engine::stpHPTime &input, UINT64 *output)
    return rc;
 }
 
+// Uses STP to convert a global logical time to a real time in string format
+INT32 convLogicalTimeToRealTime(UINT64 input, ossPoolString *output)
+{
+   INT32 rc = SDB_OK;
+   // Convert to logical time
+   engine::stpAgent agent;
+   engine::stpClient client;
+   if ((rc = agent.checkAvailable()) || (rc = agent.getClient(client)))
+   {
+      PD_LOG(PDERROR, "Error initializing stp client");
+      return rc;
+   }
+   ossTimestamp realTime;
+   if ((rc = client.convLogicalTimeToRealTime(input, realTime)))
+   {
+      PD_LOG(PDERROR, "Failed to convert logical time to timestamp");
+      return rc;
+   }
+   CHAR strTime[OSS_TIMESTAMP_STRING_LEN + 1] = {0};
+   ossTimestampToString(realTime, strTime);
+   *output = strTime;
+   return rc;
+}
+
+// Returns the string from convLogicalTimeToRealTime
+// If the calls to stp fail, returns an empty string
+ossPoolString printLogicalTimeToRealTime(UINT64 input)
+{
+   ossPoolString res;
+   if (convLogicalTimeToRealTime(input, &res))
+   {
+      return "";
+   }
+   return res;
+}
+
 // Extract the query from a message object
 INT32 extractQuery(MsgHeader *pMsg, BSONObj *query)
 {
@@ -102,6 +140,76 @@ INT32 timeFromStr(const ossPoolString &input, engine::stpHPTime *timestamp)
       return rc;
    }
    *timestamp = engine::stpHPTime(sec, usec * 1000);
+   return rc;
+}
+
+// Get the Time option. If Time is 0 then time is DPS_INVALID_TRANS_TIME and
+// the latest consistency point will be used.
+INT32 _parseTime(const BSONObj &query, UINT64 *t)
+{
+   using namespace engine;
+   INT32 rc = SDB_OK;
+   // Time option is required
+   if (!query.hasElement(FIELD_NAME_TIME)) {
+      PD_LOG_MSG(PDERROR, "Option %s required", FIELD_NAME_TIME);
+      return (rc = SDB_INVALIDARG);
+   }
+   bson::BSONElement ele = query.getField(FIELD_NAME_TIME);
+   stpHPTime timestamp;
+   // Get the timestamp. TIME can be int, string, or timestamp.
+   if (ele.isNumber())
+   {
+      // If TIME is an integer it is the timestamp in epoch seconds
+      UINT64 secs;
+      if ((rc = util::fromBsonObj(query, FIELD_NAME_TIME, &secs)))
+      {
+         // Already checked it was a number, the only reason this would fail is
+         // if it is a negative number
+         PD_LOG_MSG(PDERROR, "Time cannot be negative");
+         return rc;
+      }
+      if (0 == secs)
+      {
+         // Use latest consistency point
+         PD_LOG(PDINFO, "Restoring to latest consistency point");
+         *t = DPS_INVALID_TRANS_TIME;
+         return rc;
+      }
+      timeFromInt(secs, &timestamp);
+   }
+   else if (ele.type() == bson::String)
+   {
+      // If TIME is a string it is a timestamp
+      ossPoolString timestamp_string;
+      util::fromBsonObj(query, FIELD_NAME_TIME, &timestamp_string);
+      if ((rc = timeFromStr(timestamp_string, &timestamp)))
+      {
+         PD_LOG_MSG(PDERROR, "Error parsing [%s] as a timestamp",
+                    timestamp_string.c_str());
+         return rc;
+      }
+   }
+   else if (ele.type() == bson::Timestamp)
+   {
+      // Try and parse as BSON Timestamp
+      if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
+      {
+         PD_LOG_MSG(PDERROR, "Error parsing timestamp object");
+         return rc;
+      }
+   }
+   else
+   {
+      PD_LOG_MSG(PDERROR, "Unsupported type [%d] for argument %s", ele.type(),
+                 FIELD_NAME_TIME);
+      return (rc = SDB_INVALIDARG);
+   }
+   if ((rc = convRealToLogicalTime(timestamp, t)))
+   {
+      PD_LOG_MSG(PDERROR, "Stp error converting timestamp");
+      return rc;
+   }
+   PD_LOG(PDINFO, "Restore target time [%llu]", *t);
    return rc;
 }
 
@@ -418,7 +526,7 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
    }
    // Run the query
    if ((rc = executeOnDataGroup(msg.header, _cb, groups, TRUE, NULL, NULL,
-                                &(context.ptr), NULL)))
+                                &(context.ptr), _buf)))
    {
       PD_LOG(PDERROR, "Execute on data groups failed");
       return rc;
@@ -438,8 +546,8 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
    if (results->size() != groups.size())
    {
       PD_LOG(PDERROR, "The number of results [%u] does not match the number of "
-                      "groups [%u]");
-      return SDB_SYS;
+                      "groups [%u]", results->size(), groups.size());
+      return (rc = SDB_SYS);
    }
    return rc;
 }
@@ -486,22 +594,27 @@ INT32 coordCMDRestoreToTime::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_EXE, &rc);
-   UINT64 targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
+   _targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
    _pMsg = pMsg;
    _cb = cb;
-   _optTestOnly = FALSE;
-   _optSkipTest = FALSE;
-   if ((rc = _parseRequest(&targetTime)))
+   _buf = buf;
+
+   if ((rc = _parseRequest()))
    {
       return rc;
    }
 
-   if ((rc = _checkStateAndRestore(targetTime)))
+   if ((rc = _checkRestore()))
    {
       return rc;
    }
 
-   if (!_optTestOnly && (rc = _setRestoreInProgress(FALSE)))
+   if ((rc = _doRestore()))
+   {
+      return rc;
+   }
+
+   if ((rc = _setRestoreInProgress(FALSE)))
    {
       return rc;
    }
@@ -511,7 +624,7 @@ INT32 coordCMDRestoreToTime::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 
 // Parse the client's request, extracting the targetTime if given
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSE, "coordCMDRestoreToTime::_parseRequest" )
-INT32 coordCMDRestoreToTime::_parseRequest(UINT64 *targetTime)
+INT32 coordCMDRestoreToTime::_parseRequest()
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSE, &rc);
@@ -522,13 +635,8 @@ INT32 coordCMDRestoreToTime::_parseRequest(UINT64 *targetTime)
       PD_LOG(PDERROR, "Extract user query failed");
       return rc;
    }
-   // Get the value of the GlobalTime option. Value is not required, in which
-   // case restore will be to the latest consistency point.
-   // Same with option Time.
-   // Also get the bools TestOnly and SkipTest (both optional).
-   if ((rc = _parseTime(query, targetTime)) ||
-       (rc = fromBsonObj(query, FIELD_NAME_TEST_ONLY, &_optTestOnly, FALSE)) ||
-       (rc = fromBsonObj(query, FIELD_NAME_SKIP_TEST, &_optSkipTest, FALSE)))
+   // Get the value of the Time option. Value is required.
+   if ((rc = _parseTime(query, &_targetTime)))
    {
       PD_LOG(PDERROR, "User query invalid");
       return rc;
@@ -536,84 +644,195 @@ INT32 coordCMDRestoreToTime::_parseRequest(UINT64 *targetTime)
    return rc;
 }
 
-// Get the TIME option and set the targetTime. If TIME is 0 then targetTime is
-// DPS_INVALID_TRANS_TIME and the latest consistency point will be used.
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSETIME, "coordCMDRestoreToTime::_parseTime" )
-INT32 coordCMDRestoreToTime::_parseTime(const BSONObj &query,
-                                        UINT64 *targetTime)
+// Run restoreCheck for the given time
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_CHECK, "coordCMDRestoreToTime::_checkRestore" )
+INT32 coordCMDRestoreToTime::_checkRestore()
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSETIME, &rc);
-   // TIME option is required
-   if (!query.hasElement(FIELD_NAME_TIME)) {
-      PD_LOG_MSG(PDERROR, "Option %s required", FIELD_NAME_TIME);
-      return (rc = SDB_INVALIDARG);
-   }
-   bson::BSONElement ele = query.getField(FIELD_NAME_TIME);
-   stpHPTime timestamp;
-   // Get the timestamp. TIME can be int, string, or timestamp.
-   if (ele.type() == bson::NumberInt || ele.type() == bson::NumberLong)
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_CHECK, &rc);
+
+   // Run restoreCheck
+   _Operator op(&rc, CMD_NAME_RESTORE_CHECK); // Auto-cleaning
+   if (rc)
    {
-      // If TIME is an integer it is the timestamp in epoch seconds
-      UINT64 secs;
-      if ((rc = fromBsonObj(query, FIELD_NAME_TIME, &secs)))
-      {
-         // Already checked it was a number, the only reason this would fail is
-         // if it is a negative number
-         PD_LOG_MSG(PDERROR, "Time cannot be negative");
-         return rc;
-      }
-      if (0 == secs)
-      {
-         // Use latest consistency point
-         PD_LOG(PDINFO, "Restoring to latest consistency point");
-         *targetTime = DPS_INVALID_TRANS_TIME;
-         return rc;
-      }
-      timeFromInt(secs, &timestamp);
+      return rc;
    }
-   else if (ele.type() == bson::String)
+   BSONObj query;
+   if ((rc = extractQuery(_pMsg, &query)))
    {
-      // If TIME is a string it is a timestamp
-      ossPoolString timestamp_string;
-      fromBsonObj(query, FIELD_NAME_TIME, &timestamp_string);
-      if ((rc = timeFromStr(timestamp_string, &timestamp)))
-      {
-         PD_LOG_MSG(PDERROR, "Error parsing [%s] as a timestamp",
-                    timestamp_string.c_str());
-         return rc;
-      }
+      PD_LOG(PDERROR, "Extract user query failed");
+      return rc;
    }
-   else if (ele.type() == bson::Timestamp)
+   _QueryMsg msg(&rc, _cb, CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK,
+                 MSG_BS_QUERY_REQ, query);
+   if (rc)
    {
-      // Try and parse as BSON Timestamp
-      if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
-      {
-         PD_LOG_MSG(PDERROR, "Error parsing timestamp object");
-         return rc;
-      }
+      return rc;
    }
-   else
+   if ((rc = op.ptr->init(_pResource, _cb, getTimeout())))
    {
-      PD_LOG_MSG(PDERROR, "Unsupported type [%d] for argument %s", ele.type(),
-                 FIELD_NAME_TIME);
-      return (rc = SDB_INVALIDARG);
+      PD_LOG(PDERROR, "Failed to init operator");
+      return rc;
    }
-   if ((rc = convRealToLogicalTime(timestamp, targetTime)))
+   INT64 contextID;
+   if ((rc = op.ptr->execute(msg.header, _cb, contextID, _buf)))
+   {
+      PD_LOG(PDWARNING, "Failed to execute operator");
+      return rc;
+   }
+
+   // Parse the result of restoreCheck
+   BSONObj result = BSONObj(_buf->data());
+   ossPoolString strtime;
+   stpHPTime hptime;
+   if ((rc = util::fromBsonObj(result, FIELD_NAME_TIME, &strtime)) ||
+       (rc = timeFromStr(strtime, &hptime)))
+   {
+      PD_LOG_MSG(PDERROR,
+                 "Error extracting timestamp from restoreCheck response");
+      return (rc = SDB_SYS);
+   }
+   if ((rc = convRealToLogicalTime(hptime, &_targetTime)))
    {
       PD_LOG_MSG(PDERROR, "Stp error converting timestamp");
       return rc;
    }
-   PD_LOG(PDINFO, "Restoring to global time [%llu]", *targetTime);
    return rc;
 }
 
-// Check that the cluster is awaiting restore and coordinate the operation
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_CHECK, "coordCMDRestoreToTime::_checkStateAndRestore" )
-INT32 coordCMDRestoreToTime::_checkStateAndRestore(UINT64 targetTime)
+// Build the query and perform restoreToTime() on all of the data groups
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_DO, "coordCMDRestoreToTime::_doRestore" )
+INT32 coordCMDRestoreToTime::_doRestore()
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_CHECK, &rc);
+   PD_TRACER_BEGIN(COORD_RESTOREPIT_DO, &rc);
+   BSONObj query;
+
+   // Start the transaction
+   coordTransHandler trans(_cb, _pResource);
+   if ((rc = trans.getRc()))
+   {
+      PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
+      return rc;
+   }
+
+   // Build the query
+   try
+   {
+      BSONObjBuilder builder;
+      builder.append(FIELD_NAME_GLOBAL_TIME, (INT64)_targetTime);
+      builder.append(FIELD_NAME_TRANSACTION_ID_SN,
+                     (INT64)(_cb->getTransID().getGlobSN()));
+      builder.append(FIELD_NAME_TRANSACTION_ID_NODEID,
+                     (INT32)(_cb->getTransID().getNodeID()));
+      query = builder.obj();
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to create query");
+      return (rc = SDB_OOM);
+   }
+
+   // Call restoreToTime on the groups
+   if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ,
+                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME, query,
+                              NULL)))
+   {
+      PD_LOG(PDERROR, "One or more nodes failed restoreToTime");
+      // trans will perform rollback (in its destructor) because commit wasn't
+      // called
+      return rc;
+   }
+
+   if ((rc = trans.commit()))
+   {
+      PD_LOG(PDERROR, "Failed to commit restoreToTime");
+      return rc;
+   }
+   return rc;
+}
+
+/*
+   coordCMDRestoreCheck definitions
+*/
+COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreCheck,
+                                  CMD_NAME_RESTORE_CHECK, TRUE);
+
+// Entrypoint for restoreCheck() on the coordinator
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_EXE, "coordCMDRestoreCheck::execute" )
+INT32 coordCMDRestoreCheck::execute(MsgHeader *pMsg, pmdEDUCB *cb,
+                                    INT64 &contextID, rtnContextBuf *buf)
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_EXE, &rc);
+   _targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
+   _pMsg = pMsg;
+   _cb = cb;
+   _buf = buf;
+
+   if ((rc = _parseRequest()))
+   {
+      return rc;
+   }
+
+   if ((rc = _checkClusterState()))
+   {
+      return rc;
+   }
+
+   if ((rc = _getWindow()))
+   {
+      return rc;
+   }
+
+   if ((rc = _setTime()))
+   {
+      return rc;
+   }
+
+   if ((rc = _runCheckOnNodes()))
+   {
+      return rc;
+   }
+
+   if ((rc = _summarize()))
+   {
+      return rc;
+   }
+
+   PD_LOG(PDEVENT, "restoreCheck [Time:%llu] completed successfully",
+          _targetTime);
+   return rc;
+}
+
+// Parse the client's request, extracting the targetTime
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_PARSE, "coordCMDRestoreCheck::_parseRequest" )
+INT32 coordCMDRestoreCheck::_parseRequest()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_PARSE, &rc);
+   // Parse the request message
+   BSONObj query;
+   if ((rc = extractQuery(_pMsg, &query)))
+   {
+      PD_LOG(PDERROR, "Extract user query failed");
+      return rc;
+   }
+   // Get the value of the Time option. Value is required.
+   if ((rc = _parseTime(query, &_targetTime)))
+   {
+      PD_LOG(PDERROR, "User query invalid");
+      return rc;
+   }
+   return rc;
+}
+
+// Check that the cluster is awaiting restore
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_CHECKSTATE, "coordCMDRestoreCheck::_checkClusterState" )
+INT32 coordCMDRestoreCheck::_checkClusterState()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_CHECKSTATE, &rc);
    BOOLEAN inProgress;
    if ((rc = _checkRestoreInProgress(&inProgress)))
    {
@@ -624,37 +843,16 @@ INT32 coordCMDRestoreToTime::_checkStateAndRestore(UINT64 targetTime)
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
       return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
    }
-   if ((rc = _coordinateRestore(targetTime)))
-   {
-      return rc;
-   }
    return rc;
 }
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_COORDRES, "coordCMDRestoreToTime::_coordinateRestore" )
-INT32 coordCMDRestoreToTime::_coordinateRestore(UINT64 targetTime)
+// Query each data group for their restore window and calculate the global vals
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_GETWINDOW, "coordCMDRestoreCheck::_getWindow" )
+INT32 coordCMDRestoreCheck::_getWindow()
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_COORDRES, &rc);
-   UINT64 minTime = DPS_INVALID_TRANS_TIME;
-   UINT64 maxTime = DPS_INVALID_TRANS_TIME;
-   if ((rc = _getGlobalRestoreWindow(&minTime, &maxTime)))
-   {
-      return rc;
-   }
-   return (rc = _restoreWithWindows(targetTime, minTime, maxTime));
-}
-
-// Query the primary of each data group for their restore window and set the
-// min/max times
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_GETWINDOWS, "coordCMDRestoreToTime::_getGlobalRestoreWindow" )
-INT32 coordCMDRestoreToTime::_getGlobalRestoreWindow(UINT64 *minTime,
-                                                     UINT64 *maxTime)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_GETWINDOWS, &rc);
+   PD_TRACER_BEGIN(COORD_RESTORECHK_GETWINDOW, &rc);
    OBJ_VEC results;
-   PD_LOG(PDINFO, "Gathering restore windows");
    // Query the nodes for the database snapshot
    if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ,
                               CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE,
@@ -664,182 +862,145 @@ INT32 coordCMDRestoreToTime::_getGlobalRestoreWindow(UINT64 *minTime,
       return rc;
    }
 
-   return (rc = _getMinMaxWindowFromResponses(results, minTime, maxTime));
+   return (rc = _calcWindow(results));
 }
 
-// Get the greatest min and least max values from the node query results
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_PARSEWINDOWS, "coordCMDRestoreToTime::_getMinMaxWindowFromResponses" )
-INT32 coordCMDRestoreToTime::_getMinMaxWindowFromResponses(
-    const OBJ_VEC &responses, UINT64 *minTime, UINT64 *maxTime)
+// Calculate the greatest min and least max values from the node query results
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_CALCWINDOW, "coordCMDRestoreCheck::_calcWindow" )
+INT32 coordCMDRestoreCheck::_calcWindow(const OBJ_VEC &responses)
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_PARSEWINDOWS, &rc);
+   PD_TRACER_BEGIN(COORD_RESTORECHK_CALCWINDOW, &rc);
    // Start at the extremes
-   *minTime = 0;
-   *maxTime = -1;
+   _minTime = 0;
+   _maxTime = -1;
    for (OBJ_VEC::const_iterator it = responses.begin(); it != responses.end();
         ++it)
    {
-      // Extract {TransInfo:{MinRecoverableTime:..., MaxTransCommitTime:...}}
-      BSONObj obj;
-      if ((rc = fromBsonObj(*it, FIELD_NAME_TRANS_INFO, &obj)))
+      // Extract {TransInfo:{MinRecoverableTime, MaxTransCommitTime}}
+      BSONObj transInfo; // subobject
+      UINT64 nodeMinTime, nodeMaxTime;
+      if ((rc = fromBsonObj(*it, FIELD_NAME_TRANS_INFO, &transInfo)) ||
+          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+                            &nodeMinTime)) ||
+          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MAX_COMMIT_TIME,
+                            &nodeMaxTime)))
       {
          // This should never happen
          PD_LOG(PDERROR, "Failed to extract message from node [rc=%d]", rc);
          return (rc = SDB_SYS);
       }
-      // Get the MinRecoverableTime and MaxTransCommitTime values
-      UINT64 tmpMin, tmpMax;
-      if ((rc = fromBsonObj(obj, FIELD_NAME_TRANS_MIN_RECOVER_TIME, &tmpMin)) ||
-          (rc = fromBsonObj(obj, FIELD_NAME_TRANS_MAX_COMMIT_TIME, &tmpMax)))
-      {
-         PD_LOG(PDERROR, "Invalid database snapshot result [rc=%d]", rc);
-         return (rc = SDB_SYS);
-      }
-      *minTime = tmpMin > (*minTime) ? tmpMin : *minTime; // new greatest min
-      *maxTime = tmpMax < (*maxTime) ? tmpMax : *maxTime; // new least max
+      // get the greatest min and least max
+      _minTime = OSS_MAX(_minTime, nodeMinTime);
+      _maxTime = OSS_MIN(_maxTime, nodeMaxTime);
    }
-   PD_LOG(PDINFO, "Global consistency window [%llu, %llu]", *minTime, *maxTime);
-   if ((*minTime) > (*maxTime))
+   PD_LOG(PDINFO, "Restore window [%llu, %llu]", _minTime, _maxTime);
+   return rc;
+}
+
+// Set the time based on user input and global window
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_SETTIME, "coordCMDRestoreCheck::_setTime" )
+INT32 coordCMDRestoreCheck::_setTime()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_SETTIME, &rc);
+   if (_minTime > _maxTime)
    {
-      PD_LOG(PDERROR, "No valid global consistency points [%llu > %llu]",
-             *minTime, *maxTime);
+      PD_LOG_MSG(PDERROR, "No valid global consistency points");
+      PD_LOG(PDERROR, "MinRecoveryTime [%llu] > MaxCommitTime [%llu]", _minTime,
+             _maxTime);
       return (rc = SDB_RESTORE_NO_CONSISTENT_PIT);
    }
-   return rc;
-}
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_RESTORE, "coordCMDRestoreToTime::_restoreWithWindows" )
-INT32 coordCMDRestoreToTime::_restoreWithWindows(UINT64 targetTime,
-                                                 UINT64 minTime, UINT64 maxTime)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_RESTORE, &rc);
-   if ((rc = _setTargetTime(minTime, maxTime, &targetTime)))
+   if (DPS_INVALID_TRANS_TIME == _targetTime)
    {
+      PD_LOG(PDINFO, "Restoring to latest consistency point");
+      _targetTime = _maxTime;
       return rc;
    }
-   // Perform the test run (unless SkipTest)
-   if (!_optSkipTest && (rc = _generateQueryAndRestore(targetTime, TRUE)))
-   {
-      PD_LOG(PDERROR, "Failed the restore test run. Aborting.");
-      return rc;
-   }
-   // Perform the real run (unless TestOnly)
-   if (!_optTestOnly && (rc = _generateQueryAndRestore(targetTime, FALSE)))
-   {
-      PD_LOG(PDERROR, "Failed during restore to point-in-time on nodes.");
-      return rc;
-   }
-   return rc;
-}
 
-// Determine the target consistency point - whether the user provided value fits
-// in the global min/max or the max value as a default
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_TARGETTIME, "coordCMDRestoreToTime::_setTargetTime" )
-INT32 coordCMDRestoreToTime::_setTargetTime(UINT64 minTime, UINT64 maxTime,
-                                            UINT64 *targetTime)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_TARGETTIME, &rc);
-   if (DPS_INVALID_TRANS_TIME == *targetTime)
-   {
-      // No user input so use the latest consistency point
-      *targetTime = maxTime;
-   }
-   else if ((*targetTime) < minTime || (*targetTime) > maxTime)
+   if (_targetTime < _minTime || _targetTime > _maxTime)
    {
       PD_LOG_MSG(PDERROR,
-                 "Target time [%llu] is outside of the valid consistency "
-                 "window [%llu:%llu]",
-                 *targetTime, minTime, maxTime);
+                 "Target time out of available consistency window [target: %s, "
+                 "min:%s, max:%s]",
+                 printLogicalTimeToRealTime(_targetTime).c_str(),
+                 printLogicalTimeToRealTime(_minTime).c_str(),
+                 printLogicalTimeToRealTime(_maxTime).c_str());
       return (rc = SDB_INVALIDARG);
    }
+
+   // Given _targetTime is valid
    return rc;
 }
 
-// Build the query and perform restoreToTime() on all of the data groups
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_DO, "coordCMDRestoreToTime::_generateQueryAndRestore" )
-INT32 coordCMDRestoreToTime::_generateQueryAndRestore(UINT64 targetTime,
-                                                      BOOLEAN test)
+// Perform restoreCheck() on all groups
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_RUNCHK, "coordCMDRestoreCheck::_runCheckOnNodes" )
+INT32 coordCMDRestoreCheck::_runCheckOnNodes()
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_DO, &rc);
-   PD_TRACER(1, PD_PACK_INT(test));
+   PD_TRACER_BEGIN(COORD_RESTORECHK_RUNCHK, &rc);
    BSONObj query;
-   if (test)
-   {
-      if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
-          (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
-                                 CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME,
-                                 query, NULL)))
-      {
-         PD_LOG(PDERROR, "One or more nodes failed restoreToTime test");
-         return rc;
-      }
-      return rc;
-   }
-   // Start the transaction
-   coordTransHandler trans(_cb, _pResource);
-   if ((rc = trans.getRc()))
-   {
-      PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
-      return rc;
-   }
-   if ((rc = _buildRestoreQuery(targetTime, test, &query)) ||
-       (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
-                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME, query,
-                              NULL)))
-   {
-      PD_LOG(PDERROR, "One or more nodes failed restoreToTime");
-      // trans will perform rollback (in its destructor) because commit wasn't
-      // called
-      return rc;
-   }
-   if ((rc = trans.commit()))
-   {
-      PD_LOG(PDERROR, "Failed to commit restoreToTime");
-      return rc;
-   }
-   return rc;
-}
 
-// Build the message query for the restoreToTime command
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_BUILDQUERY, "coordCMDRestoreToTime::_buildRestoreQuery" )
-INT32 coordCMDRestoreToTime::_buildRestoreQuery(UINT64 targetTime, BOOLEAN test,
-                                                BSONObj *query)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTOREPIT_BUILDQUERY, &rc);
-   // The command is a query-type message on the "$restore to pit" collection.
-   // The query body is a {"GlobalTime": "123"} where 123 is the time.
    try
    {
-      BSONObjBuilder builder;
-      builder.append(FIELD_NAME_GLOBAL_TIME, (INT64)targetTime);
-      if (test)
-      {
-         // The test run to check that the operation would succeed.
-         // Adds the field "TestOnly: 1"
-         builder.append(FIELD_NAME_TEST_ONLY, TRUE);
-      }
-      else
-      {
-         // The real run that performs the restore.
-         // Adds the field "SkipTest: 1" and the transaction info
-         builder.append(FIELD_NAME_SKIP_TEST, TRUE);
-         builder.append(FIELD_NAME_TRANSACTION_ID_SN,
-                        (INT64)(_cb->getTransID().getGlobSN()));
-         builder.append(FIELD_NAME_TRANSACTION_ID_NODEID,
-                        (INT32)(_cb->getTransID().getNodeID()));
-      }
-      *query = builder.obj();
+      query = BSON(FIELD_NAME_GLOBAL_TIME << (SINT64)_targetTime);
    }
    catch (exception &e)
    {
       PD_LOG(PDERROR, "Failed to create query");
       return (rc = SDB_OOM);
    }
+
+   if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ,
+                              CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK, query)))
+   {
+      PD_LOG(PDERROR, "One or more nodes failed restoreCheck");
+      return rc;
+   }
+
+   return rc;
+}
+
+// Summarize the check results
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_SUMMARIZE, "coordCMDRestoreCheck::_summarize" )
+INT32 coordCMDRestoreCheck::_summarize()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_SUMMARIZE, &rc);
+   /* Summary:
+         {
+            Time: TIMESTAMP,
+            MaxCommitTime: TIMESTAMP,
+            MinRecoveryTime: TIMESTAMP,
+         }
+   */
+   ossPoolString targetTime, minTime, maxTime, logLimitTime;
+   if ((rc = convLogicalTimeToRealTime(_targetTime, &targetTime)) ||
+       (rc = convLogicalTimeToRealTime(_minTime, &minTime)) ||
+       (rc = convLogicalTimeToRealTime(_maxTime, &maxTime)))
+   {
+      PD_LOG(PDERROR, "Time conversion error");
+      return rc;
+   }
+
+   try
+   {
+      bson::BSONObjBuilder bb;
+      bb.append(FIELD_NAME_TIME, targetTime);
+      bb.append(FIELD_NAME_TRANS_MIN_RECOVER_TIME, minTime);
+      bb.append(FIELD_NAME_TRANS_MAX_COMMIT_TIME, maxTime);
+      _summary = bb.obj();
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "BSON summary failed");
+      return (rc = SDB_OOM);
+   }
+
+   // return summary to client
+   *_buf = rtnContextBuf(_summary);
+
    return rc;
 }
 

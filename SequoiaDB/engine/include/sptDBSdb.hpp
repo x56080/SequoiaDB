@@ -294,6 +294,10 @@ namespace engine
                      BSONObj &detail ) ;
 
       INT32 restoreToTime( const _sptArguments &arg,
+                           _sptReturnVal &rval,
+                           bson::BSONObj &detail ) ;
+
+      INT32 restoreCheck( const _sptArguments &arg,
                           _sptReturnVal &rval,
                           bson::BSONObj &detail ) ;
 

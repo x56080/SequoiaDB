@@ -1061,6 +1061,22 @@ namespace engine
                                       const dmsRecordID *recordID,
                                       DPS_TRANS_ID &transID ) ;
 
+      // Rollback log limit cache. Used by _rtnRestoreCheck. The rollback
+      // manager is given a target rollback time and simulates rolling back
+      // everything newer. As it scans the log it sums up the space needed for
+      // rollback log records and checks against the available log space. If
+      // the log space is filled before the target time is reached, the limit
+      // is recorded. This allows for skipping the check on subsequent runs.
+
+      // Set the rollback log limit cache
+      void setLogLimitTime( UINT64 tim, UINT64 lim ) ;
+
+      // Reset the values for the rollback log limit cache
+      void clearLogLimitTime() ;
+
+      // Get the rollback log limit for the target time
+      UINT64 getLogLimitTime( UINT64 tim ) ;
+
    protected:
       // initialize transaction maps
       void _initTransMaps() ;
@@ -1316,6 +1332,10 @@ namespace engine
 
       // global transaction service agent
       _dpsGTSAgent *       _gtsAgent ;
+
+      // Rollback log limit cache values - time checked, time limit
+      UINT64               _rollbackLogTime ;
+      UINT64               _rollbackLogLimit ;
    } ;
 
    /*

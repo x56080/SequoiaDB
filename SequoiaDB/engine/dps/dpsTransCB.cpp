@@ -86,7 +86,9 @@ namespace engine
     _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
-    _gtsAgent( NULL )
+    _gtsAgent( NULL ),
+    _rollbackLogTime( DPS_MAX_TRANSID_SN ),
+    _rollbackLogLimit( DPS_MAX_TRANSID_SN )
    {
       _TransIDH16          = DPS_INVALID_TRANSID_NODEID ;
       _isOn                = FALSE ;
@@ -3892,6 +3894,32 @@ namespace engine
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
                   "must unregister in main thread" ) ;
       _gtsAgent = NULL ;
+   }
+
+   // Set the rollback log limit cache
+   void dpsTransCB::setLogLimitTime( UINT64 tim, UINT64 lim )
+   {
+      _rollbackLogTime  = tim ;
+      _rollbackLogLimit = lim ;
+   }
+
+   // Reset the values for the rollback log limit cache
+   void dpsTransCB::clearLogLimitTime()
+   {
+      _rollbackLogTime  = DPS_MAX_TRANSID_SN ;
+      _rollbackLogLimit = DPS_MAX_TRANSID_SN ;
+   }
+
+   // Get the rollback log limit for the target time
+   UINT64 dpsTransCB::getLogLimitTime( UINT64 tim )
+   {
+      if ( _rollbackLogTime <= tim )
+      {
+         // Cache only valid if the cached Time is earlier than the input,
+         // indicating a previous scan went further than this one
+         return _rollbackLogLimit ;
+      }
+      return DPS_MAX_TRANSID_SN ;
    }
 
    /*

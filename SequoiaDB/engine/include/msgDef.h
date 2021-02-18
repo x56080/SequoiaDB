@@ -404,8 +404,6 @@
 #define FIELD_NAME_TIME                      "Time"
 #define FIELD_NAME_GLOBAL_TIME               "GlobalTime"
 #define FIELD_NAME_GLOBAL_TRANS              "GlobalTrans"
-#define FIELD_NAME_TEST_ONLY                 "TestOnly"
-#define FIELD_NAME_SKIP_TEST                 "SkipTest"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
@@ -771,6 +769,7 @@
 #define CMD_NAME_GET_INDEX_STAT              CMD_NAME_PREFIX_GET "index statistic"
 #define CMD_NAME_PREFIX_RESTORE              "restore "
 #define CMD_NAME_RESTORE_TO_TIME             CMD_NAME_PREFIX_RESTORE "to time"
+#define CMD_NAME_RESTORE_CHECK               CMD_NAME_PREFIX_RESTORE "check"
 #define CMD_NAME_RESTORE_ABORT               CMD_NAME_PREFIX_RESTORE "abort"
 #define CMD_NAME_RESTORE_PREPARE             CMD_NAME_PREFIX_RESTORE "prepare"
 

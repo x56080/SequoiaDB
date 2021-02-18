@@ -5065,8 +5065,6 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_INIT, &rc);
-      _testOnly = FALSE;
-      _skipTest = FALSE;
       _timestamp = -1;
       if ((rc = _parseOpts(BSONObj(pMatcherBuff))))
       {
@@ -5079,7 +5077,6 @@ error:
    {
       INT32 rc = SDB_OK;
       if ((rc = _parseTimestamp(matcher)) ||
-          (rc = _parseTestOpts(matcher)) ||
           (rc = _parseTransID(matcher)))
       {
          return rc;
@@ -5096,27 +5093,6 @@ error:
           (_timestamp < 0))
       {
          PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
-         return (rc = SDB_INVALIDARG);
-      }
-      return rc;
-   }
-
-   INT32 _rtnRestoreToTime::_parseTestOpts(const BSONObj &matcher)
-   {
-      INT32 rc = SDB_OK;
-      // Check for the optional run type modifiers
-      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TEST_ONLY, &_testOnly,
-                                  FALSE)) ||
-          (rc = util::fromBsonObj(matcher, FIELD_NAME_SKIP_TEST, &_skipTest,
-                                  FALSE)))
-      {
-         PD_LOG(PDERROR, "Invalid args %s/%s", FIELD_NAME_TEST_ONLY,
-                FIELD_NAME_SKIP_TEST);
-         return rc;
-      }
-      if (_testOnly && _skipTest)
-      {
-         PD_LOG(PDERROR, "Cannot perform a test only and skip test");
          return (rc = SDB_INVALIDARG);
       }
       return rc;
@@ -5164,28 +5140,129 @@ error:
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
       // restoreToTime on a data node is a type of rollback
-      if (!_skipTest)
+      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp,
+                                            _transID);
+      if ((rc = rollbackManager.execute()))
       {
-         rtnPITRollbackManager rollbackTester(cb, (UINT64)_timestamp, _transID);
-         if ((rc = rollbackTester.test()))
+         PD_LOG(PDERROR,
+                "Failed to rollback during restore to point-in-time");
+         if (rollbackManager.countRollbackRecords() > 0)
          {
-            PD_LOG(
-                PDERROR,
-                "Failed checks for rollback during restore to point-in-time");
+            // If any records were written then the cache is no longer valid
+            sdbGetTransCB()->clearLogLimitTime();
+         }
+         return rc;
+      }
+      return rc;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreCheck)
+   _rtnRestoreCheck::_rtnRestoreCheck ()
+   {
+   }
+
+   _rtnRestoreCheck::~_rtnRestoreCheck ()
+   {
+   }
+
+   const CHAR *_rtnRestoreCheck::name()
+   {
+      return NAME_RESTORE_CHECK ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreCheck::type()
+   {
+      return CMD_RESTORE_CHECK;
+   }
+
+   BOOLEAN _rtnRestoreCheck::writable()
+   {
+      return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_INIT, "_rtnRestoreCheck::init" )
+   INT32 _rtnRestoreCheck::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_INIT, &rc);
+      _time = -1;
+      if ((rc = _parseTime(BSONObj(pMatcherBuff))))
+      {
+         return rc;
+      }
+      return rc;
+   }
+
+   INT32 _rtnRestoreCheck::_parseTime(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      // Get the GlobalTime option
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME, &_time)) ||
+          (_time < 0))
+      {
+         PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+         return (rc = SDB_INVALIDARG);
+      }
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_DOIT, "_rtnRestoreCheck::doit" )
+   INT32 _rtnRestoreCheck::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_DOIT, &rc);
+
+      // Check the cache first
+      UINT64 limit = sdbGetTransCB()->getLogLimitTime(_time);
+
+      // Max SN means invalid cached value
+      if (DPS_MAX_TRANSID_SN == limit)
+      {
+         if ((rc = _runTest(cb, &limit)) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+         {
             return rc;
          }
       }
-      if (!_testOnly)
+      else if (limit > _time)
       {
-         rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp,
-                                               _transID);
-         if ((rc = rollbackManager.execute()))
-         {
-            PD_LOG(PDERROR,
-                   "Failed to rollback during restore to point-in-time");
-            return rc;
-         }
+         // Limited by log space
+         rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE;
       }
+
+      if (SDB_DPS_LOG_FILE_OUT_OF_SIZE == rc)
+      {
+         PD_LOG_MSG(PDERROR, "Restore cannot reach %llu, limited to %llu",
+                    _time, limit);
+         return rc;
+      }
+
+      // Check succeeded - target time is reachable
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_RUNTEST, "_rtnRestoreCheck::_runTest" )
+   INT32 _rtnRestoreCheck::_runTest(_pmdEDUCB *cb, UINT64 *limit)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_RUNTEST, &rc);
+      
+      // restoreCheck on a data node is a type of rollback test
+      rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
+      if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+      {
+         PD_LOG(PDERROR, "Failed rollback test");
+         return rc;
+      }
+      *limit = rollbackTester.getLogLimitTime();
+      // cache the log limit
+      sdbGetTransCB()->setLogLimitTime(_time, *limit);
       return rc;
    }
 
@@ -5223,6 +5300,10 @@ error:
                                   INT16 w , INT64 *pContextID )
    {
       pmdGetKRCB()->setDBRestoring(false);
+      if (SDB_ROLE_DATA == pmdGetDBRole())
+      {
+         sdbGetTransCB()->clearLogLimitTime();
+      }
       return SDB_OK ;
    }
 

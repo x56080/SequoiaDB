@@ -125,6 +125,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToTime )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreCheck )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreAbort )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepare )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createSequence )
@@ -192,6 +193,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "updateConf", updateConfig )
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
       JS_ADD_MEMBER_FUNC( "restoreToTime", restoreToTime )
+      JS_ADD_MEMBER_FUNC( "restoreCheck", restoreCheck )
       JS_ADD_MEMBER_FUNC( "restoreAbort", restoreAbort )
       JS_ADD_MEMBER_FUNC( "restorePrepare", restorePrepare )
       JS_ADD_MEMBER_FUNC( "createSequence", createSequence )
@@ -2958,8 +2960,8 @@ namespace engine
    }
 
    INT32 _sptDBSdb::restoreToTime( const _sptArguments &arg,
-                                  _sptReturnVal &rval,
-                                  bson::BSONObj &detail )
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
       string ts ;
@@ -2979,6 +2981,43 @@ namespace engine
       }
 
       return rc ;
+   }
+
+   INT32 _sptDBSdb::restoreCheck( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      bson::BSONObj options;
+      if ((rc = arg.getBsonobj(0, options)) && SDB_OUT_OF_BOUND != rc)
+      {
+         detail = BSON(SPT_ERR << "Options must be obj");
+         return rc;
+      }
+
+      bson::BSONObj result;
+      if ((rc = _sptSdb.restoreCheck(result, options)))
+      {
+         detail = BSON(SPT_ERR << "Failed restore check");
+         return rc;
+      }
+
+      sptBsonobj *sptResult = SDB_OSS_NEW sptBsonobj(result);
+      if (NULL == sptResult)
+      {
+         detail = BSON(SPT_ERR << "Failed to new sptBsonobj obj");
+         return (rc = SDB_OOM);
+      }
+
+      if ((rc = rval.setUsrObjectVal<sptBsonobj>(sptResult)))
+      {
+         detail = BSON(SPT_ERR << "Failed to set ret obj");
+         SAFE_OSS_DELETE(sptResult);
+         return rc;
+      }
+
+      return rc;
    }
 
    INT32 _sptDBSdb::restoreAbort( const _sptArguments &arg,
