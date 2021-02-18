@@ -1,5 +1,5 @@
 /******************************************************************************
- * @Description   : seqDB-23231 ::字段存在数组数据，创建复合索引指定NotArray:true/false 
+ * @Description   : seqDB-23231:字段存在数组数据，创建复合索引指定NotArray:true/false
  * @Author        : Yu Fan
  * @CreateTime    : 2021.01.08
  * @LastEditTime  : 2021.01.11

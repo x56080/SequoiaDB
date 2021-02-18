@@ -80,6 +80,7 @@ function checkResult ( cl, findRecsArray, dataType, indexName )
          "[ScanType:" + rc["ScanType"] + ",IndexName:" + rc["IndexName"] + "]" );
    }
 
+
    //compare scanType
    var rc = cl.find( { b: { $ne: null } } ).sort( { a: 1 } ).explain().current().toObj();
    if( rc["ScanType"] !== "tbscan" )

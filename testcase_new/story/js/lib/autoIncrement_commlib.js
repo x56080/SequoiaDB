@@ -218,14 +218,8 @@ function checkSequence ( db, sequenceName, expObj )
    if( expObj.Cycled == undefined ) { expObj.Cycled = false; }
    if( expObj.CurrentValue == undefined ) { expObj.CurrentValue = 1; }
 
-   var sequenceObj = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } ).next().toObj();
-   delete sequenceObj._id;
-   delete sequenceObj.Version;
-   delete sequenceObj.Initial;
-   delete sequenceObj.Internal;
-   delete sequenceObj.Name;
-   delete sequenceObj.SequenceID
-   delete sequenceObj.ID
+   var selObj = { Increment: null, StartValue: null, MinValue: null, MaxValue: null, CacheSize: null, AcquireSize: null, Cycled: null, CurrentValue: null };
+   var sequenceObj = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName }, selObj ).next().toObj();
 
    var tmpActObj = sortJsonKeys( sequenceObj );
    var tmpExpObj = sortJsonKeys( expObj );

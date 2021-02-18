@@ -130,7 +130,7 @@ function checkNodeCnt ( csName, clName, rgName, insertRecsNum )
 function checkCompressedRate ( noCSName, lzwCSName, expectRate )
 {
 
-   if( expectRate = undefined ) { expectRate == 1.0 };
+   if( expectRate == null ) { expectRate = 1.0 };
 
    var noCSInfo = db.snapshot( 5, { Name: noCSName } ).current().toObj();
    var lzwCSInfo = db.snapshot( 5, { Name: lzwCSName } ).current().toObj();

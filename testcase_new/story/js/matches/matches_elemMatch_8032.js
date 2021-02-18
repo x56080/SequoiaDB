@@ -51,6 +51,7 @@ function checkResult ( findRecsArray, rawData )
    var actLen = findRecsArray.length;
    assert.equal( actLen, expLen );
 
+
    //compare records
    var actB = findRecsArray[0]["b"].toString();
    var expB = rawData[2]["b"].toString();

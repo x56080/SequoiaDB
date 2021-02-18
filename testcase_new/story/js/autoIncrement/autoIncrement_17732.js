@@ -80,7 +80,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { id: 1 } );
-   checkRec( rc, expRecs.sort( compare( "id" ) ) );
+   expRecs.sort( compare( "id" ) );
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

@@ -32,7 +32,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    assert.tryThrow( SDB_AUTOINCREMENT_FIELD_NOT_EXIST, function()
    {
@@ -50,7 +51,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) )
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

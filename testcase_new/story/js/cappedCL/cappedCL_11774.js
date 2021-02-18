@@ -18,10 +18,17 @@ function test ()
       dbcl.insert( data );
    }
 
+    //get size of each record
+    var recordSize = recordHeader;
+    if ( recordSize % 4 != 0 ) 
+    {   
+        recordSize = recordSize + ( 4 - recordSize % 4 );
+    }
+
    //check find and count
    var expectResult = [{ "_id": 0, "a": 1 },
-   { "_id": 56, "a": 1 },
-   { "_id": 112, "a": 1 }];
+   { "_id": recordSize, "a": 1 },
+   { "_id": recordSize * 2, "a": 1 }];
    var sortConf = { _id: 1 };
    checkRecords( dbcl, null, null, sortConf, null, null, expectResult );
 
@@ -51,7 +58,7 @@ function test ()
    var expectIDs = [];
    for( var i = 0; i < expectCount; i++ )
    {
-      expectIDs.push( i * 56 );
+      expectIDs.push( i * recordSize );
    }
    checkLogicalID( dbcl, null, null, sortConf, null, null, expectIDs );
 

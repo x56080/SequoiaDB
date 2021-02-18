@@ -69,7 +69,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { a: 1 } );
-   checkRec( rc, expRecs.sort( compare( "a" ) ) );
+   expRecs.sort( compare( "a" ) );
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

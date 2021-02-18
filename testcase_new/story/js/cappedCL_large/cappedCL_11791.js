@@ -18,17 +18,22 @@ function test ()
    var dbcl = commCreateCL( db, csName, clName, clOption, true, true );
 
    //插入定长记录刚好占用一个块大小
-   var recordNum = 33;
    var recordLength = 986839;
+   var recordSize = recordLength + recordHeader;
+   if ( recordSize % 4 != 0 ) 
+   {   
+      recordSize = recordSize + ( 4 - recordSize % 4 );
+   }   
+    
+   var recordNum = Math.floor( 33554396 / recordSize );
    var string = "a";
    var insertRecords = insertFixedLengthDatas( dbcl, recordNum, recordLength, string );
 
    //检查id
-   var recordHead = 57;
    var expectIDs = [];
    for( var i = 0; i < recordNum; i++ )
    {
-      expectIDs.push( i * ( recordLength + recordHead ) );
+      expectIDs.push( i * recordSize );
    }
    checkLogicalID( dbcl, null, null, { _id: 1 }, null, null, expectIDs );
 
@@ -43,7 +48,7 @@ function test ()
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, lastExpRec );
 
    //逆向pop块尾的记录并插入同样大小的记录
-   var logicalID = ( recordLength + recordHead ) * ( recordNum - 1 );//块大小-块头大小
+   var logicalID = recordSize * ( recordNum - 1 );//块大小-块头大小
    dbcl.pop( { LogicalID: logicalID, Direction: -1 } );
    var expRecs = insertFixedLengthDatas( dbcl, 1, recordLength, string );
 
@@ -57,6 +62,13 @@ function test ()
    var shortLength = 3;
    var expRecs = insertFixedLengthDatas( dbcl, 1, shortLength, string );
 
+   //获取短记录的记录大小
+   var shortRecordSize = shortLength + recordHeader;
+   if ( shortRecordSize % 4 != 0 ) 
+   {   
+       shortRecordSize = shortRecordSize + ( 4 - shortRecordSize % 4 );
+   }   
+
    checkLogicalID( dbcl, null, null, { _id: -1 }, 1, null, expectID );
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, expRecs );
 
@@ -64,6 +76,12 @@ function test ()
    dbcl.pop( { LogicalID: logicalID, Direction: -1 } );
    var longLength = 1000003;
    var expRecs = insertFixedLengthDatas( dbcl, 1, longLength, string );
+
+   var longRecordSize = longLength + recordHeader;
+   if ( longRecordSize % 4 != 0 )
+   {           
+       longRecordSize = longRecordSize + ( 4 - longRecordSize % 4 );
+   } 
 
    checkLogicalID( dbcl, null, null, { _id: -1 }, 1, null, expectID );
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, expRecs );
@@ -82,7 +100,7 @@ function test ()
 
    //比较插入后的最后一条记录
    var expectID = [];
-   var lastExpID = ( recordNum - 1 ) * ( recordHead + recordLength );
+   var lastExpID = ( recordNum - 1 ) * recordSize;
    expectID.push( lastExpID );
    var lastExpRec = [];
    lastExpRec.push( expRecs[popNum - 1] );
@@ -102,7 +120,7 @@ function test ()
 
    //比较插入后的最后一条记录
    var expectID = [];
-   var lastExpID = logicalID[0] + ( recordNum - popNum - 1 ) * ( recordHead + shortLength );
+   var lastExpID = logicalID[0] + ( recordNum - popNum - 1 ) * shortRecordSize;
    expectID.push( lastExpID );
    var lastExpRec = [];
    lastExpRec.push( expRecs[popNum - 1] );
@@ -121,7 +139,7 @@ function test ()
    checkRecords( dbcl, null, null, { _id: 1 }, 1, popNum, firstExpRec );
 
    //比较插入后的最后一条记录
-   var lastExpID = logicalID[0] + ( recordNum - popNum - 1 ) * ( recordHead + longLength );
+   var lastExpID = logicalID[0] + ( recordNum - popNum - 1 ) * longRecordSize;
    var expectID = [];
    expectID.push( lastExpID );
    var lastExpRec = [];
@@ -144,7 +162,7 @@ function test ()
 
    //比较插入后的最后一条记录
    var expectID = [];
-   var lastExpID = firstExpID + ( recordNum - 1 ) * ( recordHead + shortLength );
+   var lastExpID = firstExpID + ( recordNum - 1 ) * shortRecordSize;
    expectID.push( lastExpID );
    var lastExpRec = [];
    lastExpRec.push( expRecs[recordNum - 1] );
@@ -166,7 +184,7 @@ function test ()
 
    //比较插入后的最后一条记录
    var expectID = [];
-   var lastExpID = firstExpID + ( recordNum - 1 ) * ( recordHead + longLength );
+   var lastExpID = firstExpID + ( recordNum - 1 ) * longRecordSize;
    expectID.push( lastExpID );
    var lastExpRec = [];
    lastExpRec.push( expRecs[recordNum - 1] );
@@ -181,7 +199,7 @@ function test ()
    var expectIDs = [];
    for( var i = 0; i < recordNum; i++ )
    {
-      expectIDs.push( i * ( recordLength + recordHead ) );
+      expectIDs.push( i * recordSize );
    }
    checkLogicalID( dbcl, null, null, { _id: 1 }, null, null, expectIDs );
 
@@ -214,7 +232,7 @@ function test ()
 
    //比较插入后的第一条记录
    var expectID = [];
-   var firstExpID = blockSec + ( recordHead + recordLength );
+   var firstExpID = blockSec + recordSize;
    expectID.push( firstExpID );
    var firstExpRec = [];
    firstExpRec.push( expRecs[0] );
@@ -223,7 +241,7 @@ function test ()
 
    //比较插入后的最后一条记录
    var expectID = [];
-   var lastExpID = firstExpID + popNum * ( recordHead + recordLength );
+   var lastExpID = firstExpID + popNum * recordSize;
    expectID.push( lastExpID );
    var lastExpRec = [];
    lastExpRec.push( expRecs[popNum] );
@@ -236,7 +254,7 @@ function test ()
    var expRecs = insertFixedLengthDatas( dbcl, 1, recordLength, string );
 
    var expectID = [];
-   expectID.push( lastExpID + recordHead + recordLength );
+   expectID.push( lastExpID + recordSize );
    checkLogicalID( dbcl, null, null, { _id: -1 }, 1, null, expectID );
    checkRecords( dbcl, null, null, { _id: -1 }, 1, null, expRecs );
 

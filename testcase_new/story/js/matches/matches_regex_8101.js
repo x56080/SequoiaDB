@@ -83,6 +83,7 @@ function checkResult ( cl, findRecsArray, rawData, indexName )
    var actLen = findRecsArray.length;
    assert.equal( actLen, expLen );
 
+
    //compare resulst for each find
    for( i = 0; i < findRecsArray.length; i++ )
    {

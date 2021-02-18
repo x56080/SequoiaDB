@@ -79,3 +79,4 @@ function idxQueryCheck ( cl, queryCond, verifyNum, idxName )
    */
    assert.equal( verifyNum, queryObj.ReturnNum );
 }
+

@@ -1,1 +1,1 @@
-﻿import( "../lib/subcl_commlib.js" );
+import( "../lib/subcl_commlib.js" );

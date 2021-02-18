@@ -74,7 +74,7 @@ function checkEnv ( db, testConf )
 
 function buildDomainContainGroups ()
 {
-   if( testConf.DomainUseGroupNum === undefined ) { testConf.DomainUseGroupNum === testPara.groups.length }
+   if( testConf.DomainUseGroupNum == undefined ) { testConf.DomainUseGroupNum = testPara.groups.length }
    var dmGroupNames = [];
    for( var i = 0; i < testPara.groups.length; ++i )
    {

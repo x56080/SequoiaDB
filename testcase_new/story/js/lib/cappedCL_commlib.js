@@ -4,6 +4,8 @@ import( "../lib/main.js" );
 commMakeDir( "localhost", WORKDIR );
 // create cappedCS
 commCreateCS( db, COMMCAPPEDCSNAME, true, "", { Capped: true } );
+// the header size of each record
+var recordHeader = 55;
 
 /************************************
 *@Description: check count

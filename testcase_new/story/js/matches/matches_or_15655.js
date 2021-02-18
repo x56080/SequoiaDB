@@ -53,3 +53,5 @@ function test ()
 
    commDropCL( db, csName, clName, false );
 }
+
+

@@ -30,12 +30,13 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    //alter attributes and check
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CurrentValue: 10 } } );
 
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    var currentValue = cursor.current().toObj().CurrentValue;
@@ -55,12 +56,13 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    //alter attributes and check
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CurrentValue: 4000 } } );
 
-   var clID = getCLID( db,  COMMCSNAME, clName );
+   var clID = getCLID( db, COMMCSNAME, clName );
    var sequenceName = "SYS_" + clID + "_id1_SEQ";
    var cursor = db.snapshot( SDB_SNAP_SEQUENCES, { Name: sequenceName } );
    var currentValue = cursor.current().toObj().CurrentValue;
@@ -81,7 +83,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    //alter attributes
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CurrentValue: { "$numberLong": "9223372036854775807" } } } );
@@ -93,7 +96,8 @@ function test ()
    } );
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) );
+   checkRec( rc, expRecs );
 
    //alter attributes
    dbcl.setAttributes( { AutoIncrement: { Field: "id1", CurrentValue: 4 } } );
@@ -110,7 +114,8 @@ function test ()
    }
 
    var rc = dbcl.find().sort( { "id1": 1 } );
-   checkRec( rc, expRecs.sort( compare( "id1" ) ) );
+   expRecs.sort( compare( "id1" ) )
+   checkRec( rc, expRecs );
 
    commDropCL( db, COMMCSNAME, clName );
 }

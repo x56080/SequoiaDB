@@ -47,6 +47,13 @@ function test ()
    }
    dbcl.insert( doc );
 
+   //get size of each record
+   var recordSize = recordHeader;
+   if ( recordSize % 4 != 0 ) 
+   {   
+       recordSize = recordSize + ( 4 - recordSize % 4 );
+   }   
+
    //check count
    checkCount( dbcl, {}, 100200 );
 
@@ -83,7 +90,7 @@ function test ()
    checkLogicalID( dbcl, existsObj, null, { _id: 1 }, null, null, expLogicalIDs );
 
    //$or
-   var orObj = { $or: [{ _id: { $lt: 56 } }, { a: { $gt: 100000 } }] }
+   var orObj = { $or: [{ _id: { $lt: recordSize } }, { a: { $gt: 100000 } }] }
    var results = allResults.slice( 0, 1 ).concat( allResults.slice( 100101 ) );
    var expectIDs = expLogicalIDs.slice( 0, 1 ).concat( expLogicalIDs.slice( 100101 ) );
    checkQueryResult( dbcl, orObj, null, { _id: 1 }, results );
@@ -108,7 +115,7 @@ function getExpectLogicalIDs ( stringLength, recordNums )
 {
    var expLogicalIDs = [];
 
-   var recordLength = stringLength + 55;
+   var recordLength = stringLength + recordHeader;
    if( recordLength % 4 !== 0 )
    {
       recordLength = recordLength + ( 4 - recordLength % 4 );

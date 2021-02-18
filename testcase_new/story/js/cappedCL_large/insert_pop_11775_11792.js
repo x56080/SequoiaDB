@@ -26,16 +26,26 @@ function test ()
    db2.setSessionAttr( { PreferedInstance: "s" } );
    var dbclSlave = db2.getCS( csName ).getCL( clName );
 
-   //多次循环插入使扩文件
    var repeatNum = 30;
+   var stringLength = 969;
+   //获取每条记录的大小
+   var recordSize = stringLength + recordHeader;
+   if ( recordSize % 4 != 0 ) 
+   {   
+      recordSize = recordSize + ( 4 - recordSize % 4 );
+   }   
+   
+   //循环插入                          
    for( var i = 0; i < repeatNum; i++ )
    {
       //插入1个块的记录
-      insertNum = 32767;
-      stringLength = 969;
-      var recordHead = 55;
+      insertNum = Math.floor( 33554396 / recordSize );
       var expectRecords = insertFixedLengthDatas( dbcl, insertNum, stringLength, "a" );
    }
+   println( "--insert data success!" );
+  
+   //获取每个块塞满记录后所剩余的空间
+   var remainSize = 33554396 - recordSize * insertNum;
 
    //计算多个块内的预期的_id值
    var expIDs = [];
@@ -45,11 +55,11 @@ function test ()
       for( var j = 0; j < insertNum; j++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 988;
+      var expID = expID + remainSize;
    }
 
    //检查主备节点一致
@@ -77,11 +87,11 @@ function test ()
       for( var j = 0; j < insertNum; j++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 988;
+      var expID = expID + remainSize;
    }
 
    //检查主备节点一致
@@ -109,11 +119,11 @@ function test ()
       for( var j = 0; j < insertNum; j++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 988;
+      var expID = expID + remainSize;
    }
 
    //检查主备节点一致
@@ -141,11 +151,11 @@ function test ()
       for( var j = 0; j < insertNum; j++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 988;
+      var expID = expID + remainSize;
    }
 
    //检查主备节点一致
@@ -156,7 +166,7 @@ function test ()
    checkLogicalID( dbclSlave, null, null, { _id: 1 }, -1, 0, expIDs );
 
    //检查记录数
-   expectCount = expectCount - 32767;
+   expectCount = expectCount - insertNum;
    checkCount( dbcl, null, expectCount );
 
    //正向pop 3个块
@@ -172,11 +182,11 @@ function test ()
       for( var j = 0; j < insertNum; j++ )
       {
          expIDs.push( expID );
-         expID = expID + stringLength + recordHead;
+         expID = expID + recordSize;
       }
 
       //跨块时，加上块尾的空隙
-      var expID = expID + 988;
+      var expID = expID + remainSize;
    }
 
    //检查主备节点一致

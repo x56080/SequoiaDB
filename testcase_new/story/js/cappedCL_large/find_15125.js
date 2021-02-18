@@ -47,6 +47,14 @@ function test ()
    }
    dbcl.insert( doc );
 
+
+   //get size of each record
+   var recordSize = recordHeader;
+   if ( recordSize % 4 != 0 ) 
+   {
+      recordSize = recordSize + ( 4 - recordSize % 4 );
+   }
+
    //check count
    checkCount( dbcl, {}, 100200 );
 
@@ -70,28 +78,28 @@ function test ()
    }
 
    //$gt、$lt
-   var gtObj = { _id: { $gt: 0, $lt: 5600 } };
+   var gtObj = { _id: { $gt: 0, $lt: recordSize * 100 } };
    checkQueryResult( dbcl, gtObj, null, { _id: 1 }, allResults.slice( 1, 100 ) )
    checkLogicalID( dbcl, gtObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 1, 100 ) );
 
    //$gte、$lte
-   var gteObj = { _id: { $gte: 0, $lte: 5600 } };
+   var gteObj = { _id: { $gte: 0, $lte: recordSize * 100 } };
    checkQueryResult( dbcl, gteObj, null, { _id: 1 }, allResults.slice( 0, 101 ) )
    checkLogicalID( dbcl, gteObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 0, 101 ) );
 
    //$et
-   var etObj = { _id: { $et: 56 } }
+   var etObj = { _id: { $et: recordSize } }
    checkQueryResult( dbcl, etObj, null, { _id: 1 }, [{ "a": 1 }] );
    checkLogicalID( dbcl, etObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 1, 2 ) );
 
    //$$in
    var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { "income": { "$lt": 10000 } }] }
-   var inObj = { _id: { $in: [0, 56] } }
+   var inObj = { _id: { $in: [0, recordSize] } }
    checkQueryResult( dbcl, inObj, null, { _id: 1 }, allResults.slice( 0, 2 ) );
    checkLogicalID( dbcl, inObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 0, 2 ) );
 
    //$ne、$nin
-   var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { _id: { $nin: [56, 112] } }] };
+   var neinObj = { "$and": [{ "_id": { "$ne": 0 } }, { _id: { $nin: [recordSize, recordSize * 2] } }] };
    checkQueryResult( dbcl, neinObj, null, { _id: 1 }, allResults.slice( 3 ) );
    checkLogicalID( dbcl, neinObj, null, { _id: 1 }, null, null, expLogicalIDs.slice( 3 ) );
 
@@ -123,7 +131,7 @@ function getExpectLogicalIDs ( stringLength, recordNums )
 {
    var expLogicalIDs = [];
 
-   var recordLength = stringLength + 55;
+   var recordLength = stringLength + recordHeader;
    if( recordLength % 4 !== 0 )
    {
       recordLength = recordLength + ( 4 - recordLength % 4 );

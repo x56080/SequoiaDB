@@ -30,7 +30,6 @@ function test ()
    var minLength = 1;
    var maxLength = 16 * 1024;
    var expIDs = [];
-   var recordHead = 55;
    var expID = 0;
    var nextExpID = 0;
    //var preExpID = 0;
@@ -51,7 +50,7 @@ function test ()
          var stringLength = Math.ceil( minLength + Math.random() * ( maxLength - minLength ) );
 
          //计算不定长度记录的预期_id值
-         var recordLength = stringLength + recordHead;
+         var recordLength = stringLength + recordHeader;
          if( recordLength % 4 !== 0 )
          {
             recordLength += ( 4 - recordLength % 4 );

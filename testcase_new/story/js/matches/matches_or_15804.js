@@ -62,3 +62,9 @@ function checkResult ( varCL )
    { a: 45, b: -45, c: 0 }, { a: 46, b: -46, c: 0 }, { a: 47, b: -47, c: 0 }, { a: 48, b: -48, c: 0 }, { a: 49, b: -49, c: 0 },];
    checkRec( cur, expFindResult );
 }
+
+
+
+
+
+

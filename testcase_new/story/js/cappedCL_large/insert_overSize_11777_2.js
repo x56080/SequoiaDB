@@ -8,9 +8,8 @@
 var minLength = 1;
 var maxLength = 16 * 1024;
 var range = maxLength - minLength;
-var recordHead = 55;
 var stringLength = 1;
-var recordLength = stringLength + recordHead;
+var recordLength = stringLength + recordHeader;
 
 //预期结果定义
 var expIDs = [];
@@ -161,7 +160,7 @@ function insertDataOverSize ( dbcl )
       stringLength = Math.ceil( minLength + Math.random() * range );
 
       //计算不定长度记录的预期_id值
-      recordLength = stringLength + recordHead;
+      recordLength = stringLength + recordHeader;
       if( recordLength % 4 !== 0 )
       {
          recordLength += ( 4 - recordLength % 4 );

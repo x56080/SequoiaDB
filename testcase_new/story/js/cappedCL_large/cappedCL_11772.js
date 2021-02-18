@@ -45,7 +45,7 @@ function checkId ( dbcl, bigStr, recordNum )
    var cursor = dbcl.find( null, { '_id': "" } ).sort( { "_id": -1 } ).limit( 1 );
    var actID = cursor.next().toObj()._id;
 
-   var len = fourByte( 55 + bigStr.length );
+   var len = fourByte( recordHeader + bigStr.length );
    var blank = 33554396 % len;
    var countLen = len * recordNum;
    var one = Math.floor( 33554396 / len );
