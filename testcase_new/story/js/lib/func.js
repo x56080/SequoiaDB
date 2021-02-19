@@ -380,12 +380,12 @@ function commDropIndex ( cl, indexName, ignoreNotExist )
 @author Jianhui Xu
 @parameter
    exist     {boolean}  :  默认为 true，检测索引存在
-   timeout   {number}   :  默认为 30，检测超时时间
+   timeout   {number}   :  默认为 60，检测超时时间
 ******************************************************************************/
 function commCheckIndexConsistency ( cl, indexName, exist, timeout )
 {
    if( exist == undefined ) { exist = true; }
-   if( timeout == undefined ) { timeout = 30; }
+   if( timeout == undefined ) { timeout = 60; }
    commCheckType( exist, "boolean" );
    commCheckType( timeout, "number" );
 
