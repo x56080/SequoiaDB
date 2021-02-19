@@ -1306,7 +1306,6 @@ namespace engine
       {
          INT32 replayRC = SDB_OK ;
          dpsLogRecordHeader *header = (dpsLogRecordHeader *)itr;
-         SDB_ASSERT( 0 == header->_reserved1, "impossible" ) ;
 
          if ( !_replayer.isDPSEnabled() )
          {
