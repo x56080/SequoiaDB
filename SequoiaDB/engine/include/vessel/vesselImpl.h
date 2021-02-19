@@ -87,6 +87,11 @@ namespace vessel
                                        IQueryFilter *filter,
                                        ICursor *cursor);
 
+         virtual INT32 openCollection(ISession *session,
+                                      UINT32 csLogicalID,
+                                      UINT32 clLogicalID,
+                                      collectionObject *obj);
+
       public:
          virtual INT32 pushMoreToCursor(ISession * session,
                                         cursorObject *cursor);
@@ -95,6 +100,12 @@ namespace vessel
          INT32 initObjectContainer(ISession *session);
 
          INT32 flushWholeDirtyList(requestContext *context);
+
+         INT32 testCollection(requestContext *context,
+                              UINT32 cslid,
+                              UINT32 cllid,
+                              SPACE_ID &sid,
+                              CL_MB_ID &mid);
 
       private:
          BOOLEAN _open;

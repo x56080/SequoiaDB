@@ -53,6 +53,7 @@ namespace vessel
    class IQueryFilter;
    class cursorObject;
    class ICursor;
+   class collectionObject;
 
    class vessel
    {
@@ -105,6 +106,12 @@ namespace vessel
                                        UINT32 csLogicalID,
                                        IQueryFilter *filter,
                                        ICursor *cursor) = 0;
+
+         ///obj's mem managed by user
+         virtual INT32 openCollection(ISession *session,
+                                      UINT32 csLogicalID,
+                                      UINT32 clLogicalID,
+                                      collectionObject *obj) = 0;
 
       public: /// for cursors
          virtual INT32 pushMoreToCursor(ISession * session,

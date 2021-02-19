@@ -914,6 +914,7 @@ vesselFiles = [
       "vessel/collectionSpaceGlobalPage.cpp",
       "vessel/ICursor.cpp",
       "vessel/cursorObject.cpp",
+	  "vessel/collectionObject.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp"
 ]

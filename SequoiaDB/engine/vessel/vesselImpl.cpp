@@ -49,6 +49,7 @@
 #include "vessel/listCLCursor.h"
 #include "vessel/ICursor.h"
 #include "vessel/diskIOJob.h"
+#include "vessel/collectionObject.h"
 
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -370,6 +371,58 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::openCollection(ISession *session,
+                                    UINT32 csLogicalID,
+                                    UINT32 clLogicalID,
+                                    collectionObject *obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != obj && !obj->isOpen(), "can not be invalid");
+      requestContext context;
+      SPACE_ID sid = INVALID_SPACE_ID;
+      CL_MB_ID mid = INVALID_CL_MB_ID;
+
+      if (OSS_UNLIKELY(NULL == session ||
+                       DMS_INVALID_LOGICCSID == csLogicalID ||
+                       DMS_INVALID_LOGICCLID == clLogicalID ||
+                       NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(session, &_env, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = testCollection(&context, csLogicalID, clLogicalID,
+                          sid, mid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      context.close();
+
+      rc = obj->open(this, csLogicalID, clLogicalID, sid, mid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      context.close();
+      goto done;
+   }
+
    INT32 vesselImpl::pushMoreToCursor(ISession *session,
                                       cursorObject *cursor)
    {
@@ -523,6 +576,19 @@ namespace vessel
       return rc;
    error:
       job.abort();
+      goto done;
+   }
+
+   INT32 vesselImpl::testCollection(requestContext *context,
+                                    UINT32 cslid,
+                                    UINT32 cllid,
+                                    SPACE_ID &sid,
+                                    CL_MB_ID &mid)
+   {
+      INT32 rc = SDB_OK;
+   done:
+      return rc;
+   error:
       goto done;
    }
 } // namespace vessel

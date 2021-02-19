@@ -62,23 +62,17 @@ namespace vessel
          INT32 teardown();
          BOOLEAN csExists(const CHAR *name, UINT32 logicalID);
 
-         INT32 getSpaceIDFromIndex(const CHAR *name, SPACE_ID &sid);
-         INT32 getSpaceIDFromIndex(UINT32 logicalID, SPACE_ID &sid);
-
-         /// returns the first element whose id is considered to go after logicalID.
-         /// when logicalID is invalid, return first element in index.
-         INT32 getSpaceIDByUpperBound(UINT32 logicalID, SPACE_ID &sid);
-
-         /// after we get a space id from index,
-         /// cs may be modified/dropped.
-         /// user must check name and logical id again.
-         INT32 getCSUnderIDLocked(requestContext *context,
-                                  collectionSpace **obj);
-
          INT32 getCSByLogicalID(requestContext *context,
                                 UINT32 logicalID,
                                 OSS_LATCH_MODE mode,
                                 collectionSpace **obj);
+
+         /// returns the first cs whose id is considered to go after logicalID.
+         /// when logicalID is invalid, return first cs in index.
+         INT32 getCSByUpperBoundLogicalID(requestContext *context,
+                                          UINT32 logicalID,
+                                          OSS_LATCH_MODE mode,
+                                          collectionSpace **obj);
 
          INT32 allocateCSObj(requestContext *context,
                              const CHAR *name,
@@ -96,6 +90,14 @@ namespace vessel
          UINT32 getNameCountInIndex();
 
       private:
+          /// after we get a space id from index,
+         /// cs may be dropped or recreated.
+         /// user must check name or logical id again.
+         INT32 getCSUnderIDLocked(requestContext *context,
+                                  collectionSpace **obj);
+         INT32 upperBoundLogicalID(UINT32 logicalID, UINT32 &next);
+         INT32 getSpaceIDFromIndex(const CHAR *name, SPACE_ID &sid);
+         INT32 getSpaceIDFromIndex(UINT32 logicalID, SPACE_ID &sid);
          INT32 addToIndex(const CHAR *name, UINT32 logicalID, SPACE_ID sid);
          void eraseFromIndex(const CHAR *name, UINT32 logicalID);
 
@@ -115,7 +117,7 @@ namespace vessel
          {
             _csSlot():cs(NULL){}
             collectionSpace *cs;
-            OSS_INLINE BOOLEAN free()const
+            OSS_INLINE BOOLEAN isFree()const
             {
                return NULL == cs;
             }

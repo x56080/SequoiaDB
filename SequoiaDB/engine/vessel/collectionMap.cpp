@@ -211,6 +211,42 @@ namespace vessel
    INT32 collectionMap::releaseMBID(CL_MB_ID mbID)
    {
       INT32 rc = SDB_OK;
+      UINT32 pageID = mbID / CL_MAP_TUPLE_COUNT_PER_PAGE;
+      UINT32 count = pageID + 1;
+      UINT32 pos = mbID % CL_MAP_TUPLE_COUNT_PER_PAGE;
+      UINT64 bit = 1ull << pos;
+      PAGE_MAP::iterator itr;
+      _collectionCachePage *page = NULL;
+      BOOLEAN moveToNotFull = FALSE;
+
+      ossScopedLock(&_mutex, EXCLUSIVE);
+      if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_pageCount < count))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      itr = _pageMap.find(pageID);
+      if (_pageMap.end() == itr)
+      {
+         PD_LOG(PDERROR, "mb id not allocated:%d", mbID);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      
+      page = itr->second;
+      SDB_ASSERT(!OSS_BIT_TEST(page->bitMap, bit), "impossible");
+      moveToNotFull = (0 == page->bitMap);
+      OSS_BIT_SET(page->bitMap, bit);
+      if (moveToNotFull)
+      {
+         _notFullPages[pageID] = page;
+      }
    done:
       return rc;
    error:
@@ -235,7 +271,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!holder.free()))
+      else if (OSS_UNLIKELY(!holder.isFree()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -277,7 +313,7 @@ namespace vessel
 
    INT32 collectionMap::destoryCLObject(collectionHolder &holder)
    {
-      if (holder.free())
+      if (holder.isFree())
       {
          goto done;
       }
@@ -343,7 +379,8 @@ namespace vessel
    }
 
    INT32 collectionMap::upperBound(UINT32 logicalID,
-                                   CL_MB_ID &mbID,
+                                   CL_MB_ID &nextMB,
+                                   UINT32 &nextLogicalID,
                                    collectionHolder **holder)
    {
       INT32 rc = SDB_OK;
@@ -359,7 +396,8 @@ namespace vessel
          }
          else
          {
-            mbID = _idIndex.begin()->second;
+            nextLogicalID = _idIndex.begin()->first;
+            nextMB = _idIndex.begin()->second;
          }
       }
       else
@@ -370,10 +408,11 @@ namespace vessel
             rc = SDB_DMS_NOTEXIST;
             goto error;
          }
-         mbID = itr->second;
+         nextLogicalID = itr->first;
+         nextMB = itr->second;
       }
 
-      rc = getHolder(mbID, tmp);
+      rc = getHolder(nextMB, tmp);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "logaical id[%d} exists index, but no holder exists");
@@ -388,7 +427,12 @@ namespace vessel
    done:
       return rc;
    error:
-      mbID = INVALID_CL_MB_ID;
+      nextMB = INVALID_CL_MB_ID;
+      nextLogicalID = DMS_INVALID_LOGICCLID;
+      if (NULL != holder)
+      {
+         *holder = NULL;
+      }
       goto done;
    }
 

@@ -83,7 +83,7 @@ namespace vessel
          _idIndex.clear();
          for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
          {
-            if (!_csVec[i].free())
+            if (!_csVec[i].isFree())
             {
                SDB_OSS_DEL _csVec[i].cs;
                _csVec[i].cs = NULL;
@@ -131,6 +131,42 @@ namespace vessel
       goto done;
    }
 
+   INT32 objectContainer::upperBoundLogicalID(UINT32 logicalID, UINT32 &next)
+   {
+      INT32 rc = SDB_OK;
+      ossScopedLock(&_mutex, SHARED);
+      if (DMS_INVALID_LOGICCSID == logicalID)
+      {
+         if (_idIndex.empty())
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
+         else
+         {
+            next = _idIndex.begin()->first;
+         }
+      }
+      else
+      {
+         ID_INDEX::const_iterator itr = _idIndex.upper_bound(logicalID);
+         if (_idIndex.end() == itr)
+         {
+            rc = SDB_DMS_CS_NOTEXIST;
+            goto error;
+         }
+         else
+         {
+            next = itr->first;
+         }
+      }
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 objectContainer::getSpaceIDFromIndex(const CHAR *name, SPACE_ID &sid)
    {
       INT32 rc = SDB_OK;
@@ -156,41 +192,6 @@ namespace vessel
       goto done;
    }
 
-   INT32 objectContainer::getSpaceIDByUpperBound(UINT32 logicalID, SPACE_ID &sid)
-   {
-      INT32 rc = SDB_OK;
-      ossScopedLock(&_mutex, SHARED);
-      if (DMS_INVALID_LOGICCSID == logicalID)
-      {
-         if (_idIndex.empty())
-         {
-            rc = SDB_DMS_CS_NOTEXIST;
-            goto error;
-         }
-         else
-         {
-            sid = _idIndex.begin()->second;
-         }
-      }
-      else
-      {
-         ID_INDEX::const_iterator itr = _idIndex.upper_bound(logicalID);
-         if (_idIndex.end() == itr)
-         {
-            rc = SDB_DMS_CS_NOTEXIST;
-            goto error;
-         }
-         else
-         {
-            sid = itr->second;
-         }
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
    INT32 objectContainer::getCSByLogicalID(requestContext *context,
                                            UINT32 logicalID,
@@ -202,7 +203,12 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       BOOLEAN locked = FALSE;
   
-      if (OSS_UNLIKELY(context->getSpaceIDLocked()))
+      if (OSS_UNLIKELY(NULL == context || NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(context->getSpaceIDLocked()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -227,17 +233,70 @@ namespace vessel
          goto error;
       }
 
-      /// logical cs id can not be modified.
-      /// if space id is not free, obj's logical id should be same to
-      /// input logical id.
-      SDB_ASSERT(logicalID == (*obj)->getLogicalID(), "must be same");
+      /// collection space may be dropped and recreated after we get space id from index.
+      /// we must check logical id again.
+      if (logicalID != (*obj)->getLogicalID())
+      {
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+
    done:
       return rc;
    error:
       if (locked)
       {
          context->unlockSpaceID();
+         *obj = NULL;
       }
+      goto done;
+   }
+
+   INT32 objectContainer::getCSByUpperBoundLogicalID(requestContext *context,
+                                                     UINT32 logicalID,
+                                                     OSS_LATCH_MODE mode,
+                                                     collectionSpace **obj)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 nextLogicalID = DMS_INVALID_LOGICCLID;
+      SDB_ASSERT(NULL != context, "can not be null");
+  
+      if (OSS_UNLIKELY(NULL == context || NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(context->getSpaceIDLocked()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      do
+      {
+         rc = upperBoundLogicalID(logicalID, nextLogicalID);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         rc = getCSByLogicalID(context, nextLogicalID, mode, obj);
+         /// collection space dropped.
+         if (SDB_DMS_CS_NOTEXIST == rc)
+         {
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         break;
+      } while (TRUE);
+
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -258,7 +317,7 @@ namespace vessel
       }
 
       sid = context->getSpaceID();
-      if (_csVec[sid].free())
+      if (_csVec[sid].isFree())
       {
          rc = SDB_DMS_CS_NOTEXIST;
          goto error;
@@ -296,7 +355,7 @@ namespace vessel
       }
 
       sid = context->getSpaceID();
-      if (!_csVec[sid].free())
+      if (!_csVec[sid].isFree())
       {
          PD_LOG(PDERROR, "space id is not free:%d", sid);
          rc = SDB_INVALIDARG;
@@ -349,7 +408,7 @@ namespace vessel
       }
 
       sid = su->getSpaceID();
-      if (!_csVec[sid].free())
+      if (!_csVec[sid].isFree())
       {
          PD_LOG(PDERROR, "space id:%d is not free", sid);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -419,7 +478,7 @@ namespace vessel
       }
 
       sid = context->getSpaceID();
-      if (_csVec[sid].free())
+      if (_csVec[sid].isFree())
       {
          rc = SDB_INVALIDARG;
          goto error;

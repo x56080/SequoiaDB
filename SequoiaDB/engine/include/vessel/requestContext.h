@@ -149,8 +149,8 @@ namespace vessel
          INT32 attachMB(CL_MB_ID mbID, ossSpinSLatch *clLatch);
          INT32 detachMB();
 
-         INT32 lockMB(OSS_LATCH_MODE mode);
-         INT32 tryLockMB(SPACE_ID sid, CL_MB_ID mid, OSS_LATCH_MODE mode, BOOLEAN &locked);
+         INT32 lockMB(CL_MB_ID mbID, ossSpinSLatch *clLatch, OSS_LATCH_MODE mode);
+         INT32 tryLockMB(CL_MB_ID mid, ossSpinSLatch *clLatch, OSS_LATCH_MODE mode, BOOLEAN &locked);
          INT32 unlockMB();
 
          OSS_INLINE BOOLEAN mbLocked()const
@@ -185,6 +185,7 @@ namespace vessel
             _mbIDLockMode = SHARED;
             _mbIDLocked = FALSE;
             _clLatch = NULL;
+            _bufAllocated = 0;
             return;
          }
 

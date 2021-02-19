@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCollectionsHandler.cpp
+   Source File Name = collectionObject.h
 
    Descriptive Name =
 
@@ -36,52 +36,52 @@
 
 ******************************************************************************/
 
-#include "vessel/listCollectionsHandler.h"
-#include "pdTrace.hpp"
-#include "vessel/listCLCursor.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/collectionSpace.h"
-#include "vessel/slice.h"
-#include "vessel/extentStorageUnit.h"
+#ifndef VESSEL_COLLECTION_OBJECT_H_
+#define VESSEL_COLLECTION_OBJECT_H_
+
+#include "vessel/vesselDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 listCollectionsHandler::doit(listCLCursor *cursor)
+   class vessel;
+
+   class collectionObject : public SDBObject
    {
-      INT32 rc = SDB_OK;
-      collectionSpace *obj = NULL;
-      SDB_ASSERT(NULL != cursor, "can not be null");
-      objectContainer *container = NULL;
+      public:
+         OSS_INLINE collectionObject():
+         _db(NULL),
+         _cslid(DMS_INVALID_LOGICCSID),
+         _sid(INVALID_SPACE_ID),
+         _cllid(DMS_INVALID_LOGICCLID),
+         _mbid(INVALID_CL_MB_ID)
+         {}
 
-      if (OSS_UNLIKELY(NULL == cursor || !cursor->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+         OSS_INLINE ~collectionObject(){}
 
-      container = &(getEnv()->objContainer);
-      rc = container->getCSByLogicalID(getContext(),
-                                       cursor->getCSLogicalID(),
-                                       SHARED,
-                                       &obj);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      public:
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return NULL != _db;
+         }
 
-      rc = obj->listCollections(getContext(), cursor);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
-   done:
-      getContext()->unlockSpaceID();
-      return rc;
-   error:
-      goto done;
-   }
+         INT32 open(vessel *db,
+                    UINT32 cslid,
+                    UINT32 cllid,
+                    SPACE_ID sid,
+                    CL_MB_ID mbid);
+
+         INT32 close();
+      private:
+         vessel *_db;
+         UINT32 _cslid;
+         SPACE_ID _sid;
+         UINT32 _cllid;
+         CL_MB_ID _mbid;
+         
+   };//class collectionObject
 }//namespace vessel
 }//namespace engine
+
+#endif//VESSEL_COLLECTION_OBJECT_H_

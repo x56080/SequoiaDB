@@ -46,6 +46,7 @@
 #include "vessel/stoargeUnitDef.h"
 #include "vessel/strSlice.h"
 #include "vessel/inMemBitMap.h"
+#include "vessel/listCollectionSpaceDef.h"
 #include "vessel/listCollectionsDef.h"
 
 namespace engine
@@ -110,6 +111,9 @@ namespace vessel
          INT32 listCollections(requestContext *context,
                                listCLCursor *cursor);
 
+         INT32 dump(requestContext *context,
+                    listCollectionSpaceRecord &record);
+
       private:///init functions when start up
          INT32 initMetaRecordFromDisk(requestContext *context,
                                       extentStorageUnit *su);
@@ -122,7 +126,6 @@ namespace vessel
                                               extentStorageUnit *su);
 
       private:
-         SPACE_ID _spaceID;
          csMetaRecord _recordInMem;
          collectionMap _collectionMap;
          extentStorageUnit *_su;

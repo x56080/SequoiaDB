@@ -80,6 +80,7 @@ namespace vessel
          INT32 getNext(ISession *session, slice &content);
          
          INT32 push(const slice &content);
+         INT32 push(UINT32 len, const CHAR *data);
          INT32 pushEnd();
 
          OSS_INLINE IQueryFilter *getFilter()
@@ -97,15 +98,15 @@ namespace vessel
 
       private:
          INT32 extendBuf(UINT32 deltaSize);
-         INT32 allocateSpaceForPushing(const slice &content);
+         INT32 allocateSpaceForPushing(UINT32 dataLen);
 
          OSS_INLINE UINT32 getFreeBufSize()const
          {
             return _bufSize - _usedBufSize;
          }
-         OSS_INLINE UINT32 getRealBufSizeOfSlice(const slice &s)const
+         OSS_INLINE UINT32 getRealBufSizeOfSlice(UINT32 dataLen)const
          {
-            return sizeof(UINT32) + s.len();
+            return sizeof(UINT32) + dataLen;
          }
 
       private:

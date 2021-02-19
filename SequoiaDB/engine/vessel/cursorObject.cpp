@@ -196,7 +196,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 cursorObject::push(const slice &content)
+   INT32 cursorObject::push(UINT32 len, const CHAR *data)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
@@ -204,22 +204,22 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!content.valid()))
+      else if (OSS_UNLIKELY(0 == len || NULL == data))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = allocateSpaceForPushing(content);
+      rc = allocateSpaceForPushing(len);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      *((UINT32 *)(_buf + _usedBufSize)) = content.len();
+      *((UINT32 *)(_buf + _usedBufSize)) = len;
       _usedBufSize += sizeof(UINT32);
-      ossMemcpy(_buf + _usedBufSize, content.data(), content.len());
-      _usedBufSize += content.len();
+      ossMemcpy(_buf + _usedBufSize, data, len);
+      _usedBufSize += len;
       ++_totalSliceInBuf;
       if (NULL == _nextSlice)
       {
@@ -231,13 +231,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 cursorObject::allocateSpaceForPushing(const slice &content)
+   INT32 cursorObject::push(const slice &content)
+   {
+      return push(content.len(), content.data());
+   }
+
+   INT32 cursorObject::allocateSpaceForPushing(UINT32 dataLen)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(content.valid(), "must be valid");
       SDB_ASSERT(isOpen(), "must be open");
       UINT32 freeBufSize = getFreeBufSize();
-      UINT32 needSize = getRealBufSizeOfSlice(content);
+      UINT32 needSize = getRealBufSizeOfSlice(dataLen);
       UINT32 extendingSize = 0;
       
       if (needSize <= freeBufSize)

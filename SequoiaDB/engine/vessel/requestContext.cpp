@@ -172,71 +172,38 @@ namespace vessel
       goto done;
    }
 
-   INT32 requestContext::attachMB(CL_MB_ID mbID, ossSpinSLatch *clLatch)
+   INT32 requestContext::lockMB(CL_MB_ID mbID,
+                                ossSpinSLatch *clLatch,
+                                OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID || NULL == clLatch))
+      if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID ||
+                       NULL == clLatch))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (INVALID_CL_MB_ID != _mbID || NULL != _clLatch)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _mbID = mbID;
-      _clLatch = clLatch;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 requestContext::detachMB()
-   {
-      INT32 rc = SDB_OK;
-      if (INVALID_CL_MB_ID == _mbID || NULL == _clLatch)
+      else if (OSS_UNLIKELY(!getSpaceIDLocked()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
       else if (mbLocked())
       {
-         unlockMB();
-      }
-
-      _mbID = INVALID_CL_MB_ID;
-      _clLatch = NULL;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 requestContext::lockMB(OSS_LATCH_MODE mode)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!getSpaceIDLocked()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (INVALID_CL_MB_ID == _mbID || NULL == _clLatch)
-      {
          rc = SDB_INVALIDARG;
          goto error;
       }
       else if (SHARED == mode)
       {
-         _clLatch->get_shared();
+         clLatch->get_shared();
       }
       else
       {
-         _clLatch->get();
+         clLatch->get();
       }
 
+      _mbID = mbID;
+      _clLatch = clLatch;
       _mbIDLocked = TRUE;
       _mbIDLockMode = mode;
       
@@ -249,12 +216,7 @@ namespace vessel
    INT32 requestContext::unlockMB()
    {
       INT32 rc = SDB_OK;
-      if (INVALID_CL_MB_ID == _mbID || NULL == _clLatch)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!mbLocked())
+      if (!mbLocked())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -268,6 +230,8 @@ namespace vessel
          _clLatch->release();
       }
 
+      _mbID = INVALID_CL_MB_ID;
+      _clLatch = NULL;
       _mbIDLocked = FALSE;
       _mbIDLockMode = SHARED;
       

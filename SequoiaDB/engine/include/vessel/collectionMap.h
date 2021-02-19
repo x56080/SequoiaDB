@@ -86,7 +86,7 @@ namespace vessel
                   return _cl;
                }
 
-               OSS_INLINE BOOLEAN free()const
+               OSS_INLINE BOOLEAN isFree()const
                {
                   return NULL == _cl;
                }
@@ -138,7 +138,8 @@ namespace vessel
          INT32 releaseMBID(CL_MB_ID mbID);
 
          INT32 upperBound(UINT32 logicalID,
-                          CL_MB_ID &mbID,
+                          CL_MB_ID &nextMB,
+                          UINT32 &nextLogicalID,
                           collectionHolder **holder);
 
          /// must get collection exclusive lock first
@@ -149,6 +150,7 @@ namespace vessel
                               collectionSpace *cs,
                               collectionHolder &holder);
 
+         /// must get collection exclusive lock first
          INT32 destoryCLObject(collectionHolder &holder);
 
          INT32 initObjWhenStartup(collectionSpace *cs,

@@ -52,10 +52,11 @@ namespace vessel
    INT32 listCollectionSpaceHandler::doit(listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      SPACE_ID sid = INVALID_SPACE_ID;
       collectionSpace *obj = NULL;
       SDB_ASSERT(NULL != cursor, "can not be null");
-      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      UINT32 loop = 0;
+      static const UINT32 quitCheckLoop = 16;
+      listCollectionSpaceRecord record;
 
       if (OSS_UNLIKELY(!cursor->isOpen()))
       {
@@ -65,14 +66,19 @@ namespace vessel
 
       do
       {
-         if (getSession()->quit())
+         if (quitCheckLoop == ++loop)
          {
-            rc = SDB_APP_INTERRUPT;
-            goto error;
+            if (getSession()->quit())
+            {
+               rc = SDB_APP_INTERRUPT;
+               goto error;
+            }
+            loop = 0;
          }
          
-         logicalID = cursor->getLogicalID();
-         rc = getEnv()->objContainer.getSpaceIDByUpperBound(logicalID, sid);
+         rc = getEnv()->objContainer.getCSByUpperBoundLogicalID(getContext(),
+                                                                cursor->getLogicalID(),
+                                                                SHARED, &obj);
          if (SDB_DMS_CS_NOTEXIST == rc)
          {
             rc = SDB_OK;
@@ -84,17 +90,20 @@ namespace vessel
             goto error;
          }
          
-         rc = getContext()->lockSpaceID(sid, SHARED);
+         rc = obj->dump(getContext(), record);
          if (SDB_OK != rc)
          {
             goto error;
          }
 
-         rc = getEnv()->objContainer.getCSUnderIDLocked(getContext(), &obj);
-         if (SDB_DMS_CS_NOTEXIST == rc)
+         getContext()->unlockSpaceID();
+         obj = NULL;
+
+         rc = cursor->push(sizeof(listCollectionSpaceRecord), (const CHAR *)(&record));
+         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
          {
-            getContext()->unlockSpaceID();
-            continue;
+            rc = SDB_OK;
+            break;
          }
          else if (SDB_OK != rc)
          {
@@ -102,49 +111,16 @@ namespace vessel
          }
          else
          {
-            UINT32 pageSize = 0;
-            UINT32 pageCountPerSeg = 0;
-            obj->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &pageCountPerSeg, NULL);
-            UINT32 logicalID = obj->getLogicalID();
-            listCollectionSpaceRecord record;
-            record.version = obj->getVersion();
-            ossStrncpy(record.name, obj->getCSName(), DMS_COLLECTION_SPACE_NAME_SZ);
-            record.logicalID = logicalID;
-            record.spaceID = obj->getSpaceID();
-            record.status = obj->getStatus();
-            record.flags = obj->getFlags();
-            record.dataPageSize = pageSize;
-            record.dataPageCountPerSeg = pageCountPerSeg;
-            obj->getSU()->getCoreArgs(SPACE_TYPE_IDX_D, &pageSize, &pageCountPerSeg, NULL);
-            record.idxPageSize = pageSize;
-            record.idxPageCountPerSeg = pageCountPerSeg;
-            slice content(sizeof(record), (const CHAR *)(&record));
-            
-            getContext()->unlockSpaceID();
-
-            rc = cursor->push(content);
-            if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
-            {
-               rc = SDB_OK;
-               break;
-            }
-            else if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            else
-            {
-               cursor->setLogicalID(logicalID);
-               continue;
-            }
+            cursor->setLogicalID(record.logicalID);
+            continue;
          }
          
       } while (TRUE);
       
    done:
-      getContext()->unlockSpaceID();
       return rc;
    error:
+      getContext()->unlockSpaceID();
       goto done;
    }
 }//namespace vessel
