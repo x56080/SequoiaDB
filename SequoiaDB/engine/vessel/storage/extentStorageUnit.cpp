@@ -138,8 +138,24 @@ namespace vessel
             *maxSegCountPerFile = head->data.maxSegmentCountPerFile;
          }
       }
+      else if (SPACE_TYPE_IDX_D == type)
+      {
+         if (NULL != pageSize)
+         {
+            *pageSize = head->index.pageSize;
+         }
+         if (NULL != maxPageCountPerSeg)
+         {
+            *maxPageCountPerSeg = head->index.maxPageCountPerSeg;
+         }
+         if (NULL != maxSegCountPerFile)
+         {
+            *maxSegCountPerFile = head->index.maxSegmentCountPerFile;
+         }
+      }
       else
       {
+         SDB_ASSERT(FALSE, "todo");
          rc = SDB_INVALIDARG;
          goto error;
       }
