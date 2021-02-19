@@ -140,6 +140,11 @@ class test_vessel : public vessel
                                        UINT32 csLogicalID,
                                        IQueryFilter *filter,
                                        ICursor *cursor){return SDB_OK;} 
+
+         virtual INT32 openCollection(ISession *session,
+                                      UINT32 csLogicalID,
+                                      UINT32 clLogicalID,
+                                      collectionObject *obj) {return SDB_OK;}
 };
 
 
