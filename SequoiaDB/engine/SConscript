@@ -1143,7 +1143,7 @@ if hasTestcase:
           _LIBDEPS='$_LIBDEPS_OBJS' )
 		  
    vesselTest = env.Program("vesselTest", [ vesselTestFiles, vesseltest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "vessel"],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest",snappy_lib,"cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc", "stpagent", "stpclient", "vessel"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
