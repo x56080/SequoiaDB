@@ -52,7 +52,7 @@
 
 ## 示例##
 
-* 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint 参数的内容。如下操作更新集合 bar 下的 age 字段，使用 [$inc][inc] 将 age 字段的值增加1。
+* 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint 参数的内容。如下操作更新集合 employee 下的 age 字段，使用 [$inc][inc] 将 age 字段的值增加1。
 
  ```lang-javascript
  > db.sample.employee.update( { $inc: { age: 1 } } )
@@ -64,7 +64,7 @@
  > db.sample.employee.update( { $unset: { age: "" } }, { age: { $exists: 1 }, name: { $exists: 0 } } )
  ```
 
-* 按访问计划更新记录，假设集合中存在指定的索引名。如下操作使用索引名为 testIndex 的索引访问集合 bar 中 age 字段值大于20的记录，将这些记录的 age 字段名加1。
+* 按访问计划更新记录，假设集合中存在指定的索引名。如下操作使用索引名为 testIndex 的索引访问集合 employee 中 age 字段值大于20的记录，将这些记录的 age 字段名加1。
 
  ```lang-javascript
  > db.sample.employee.update( { $inc: { age: 1 } }, { age: { $gt: 20 } }, { "": "testIndex" } )
@@ -95,7 +95,7 @@
  }
  Takes 0.038184s.
  >
- > db.foo.bar.find()
+ > db.sample.employee.find()
  {
    "_id": {
      "$oid": "5c6f660ce700db6048677154"

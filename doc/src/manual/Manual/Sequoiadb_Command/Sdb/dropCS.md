@@ -55,7 +55,7 @@ v1.0及以上版本。
 
 ##例子##
 
-1. 删除名为 foo 的集合空间，假定 sample 已存在
+1. 删除名为 sample 的集合空间，假定 sample 已存在
 
     ```lang-javascript
     > db.dropCS("sample")

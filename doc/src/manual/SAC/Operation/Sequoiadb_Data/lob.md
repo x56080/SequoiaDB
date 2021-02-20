@@ -1,5 +1,5 @@
 
-1. 已存在集合 foo.bar
+1. 已存在集合 sample.employee
 ![Lob][lob_1]
 
 2. 使用 coord 节点的主机，运行 SDB Shell 
@@ -17,7 +17,7 @@
 4. 导入 Lob
 
    ```lang-javascript
-   > db.foo.bar.putLob( '/opt/pic.jpg' )
+   > db.sample.employee.putLob( '/opt/pic.jpg' )
    ```
 
    输出 Lob 的 OID：

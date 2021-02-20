@@ -83,7 +83,7 @@
    "InsertedNum": 0
  }
  >
- > db.foo.bar.find()
+ > db.sample.employee.find()
  {
       "_id": {
       "$oid": "516a76a1c9565daf06030000"

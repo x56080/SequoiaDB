@@ -46,13 +46,13 @@
 * 删除集合所有记录
 
  ```lang-javascript
- > db.foo.bar.remove()
+ > db.sample.employee.remove()
  ```
 
 * 按访问计划删除匹配 cond 条件的记录，如下操作按照索引名为“myIndex”的索引遍历集合中的记录，在遍历得到的记录中删除符合条件 age 字段值大于等于20的记录。
 
  ```lang-javascript
- > db.foo.bar.remove( { age: { $gte: 20 } }, { "": "myIndex" } )
+ > db.sample.employee.remove( { age: { $gte: 20 } }, { "": "myIndex" } )
  ```
 
 

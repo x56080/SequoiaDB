@@ -92,15 +92,15 @@ v2.10及以上版本。
 1. 创建一个普通集合，然后将该集合修改为分区集合：
 
     ```lang-javascript
-    > db.foo.createCL('bar')
-    > db.foo.bar.enableSharding( { ShardingKey: { a: 1 }, ShardingType: "hash" } )
+    > db.sample.createCL('employee')
+    > db.sample.employee.enableSharding( { ShardingKey: { a: 1 }, ShardingType: "hash" } )
     ```
 
 2. 创建一个普通集合，然后将该集合修改为分区集合，并且自动切分：
 
     ```lang-javascript
-    > db.foo.createCL('bar')
-    > db.foo.bar.enableSharding( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
+    > db.sample.createCL('employee')
+    > db.sample.employee.enableSharding( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
     ```
 
 

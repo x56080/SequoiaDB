@@ -128,29 +128,29 @@ v1.12及以上版本。
 1. 创建一个普通集合，然后将该集合修改为分区集合。
 
     ```lang-javascript
-    > db.foo.createCL('bar')
-    > db.foo.bar.alter( { ShardingKey: { a: 1 }, ShardingType: "hash" } )
+    > db.sample.createCL('employee')
+    > db.sample.employee.alter( { ShardingKey: { a: 1 }, ShardingType: "hash" } )
     ```
 
 2. 创建一个普通集合，然后将该集合修改为分区集合，并且自动切分：
 
     ```lang-javascript
-    > db.foo.createCL('bar')
-    > db.foo.bar.alter( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
+    > db.sample.createCL('employee')
+    > db.sample.employee.alter( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
     ```
 
 3. 创建一个普通集合，然后将该集合修改为lzw压缩
 
     ```lang-javascript
-    > db.foo.createCL('bar')
-    > db.foo.bar.alter( { CompressionType:'snappy' } )
+    > db.sample.createCL('employee')
+    > db.sample.employee.alter( { CompressionType:'snappy' } )
     ```
 
 4. 创建一个有自增字段的集合，修改其自增起始值
 
     ```lang-javascript
-    > db.foo.createCL( 'bar', { AutoIncrement: { Field: "studentID" } } )
-    > db.foo.bar.alter( { AutoIncrement: { Field: "studentID", StartValue: 2017140000 } } )
+    > db.sample.createCL( 'employee', { AutoIncrement: { Field: "studentID" } } )
+    > db.sample.employee.alter( { AutoIncrement: { Field: "studentID", StartValue: 2017140000 } } )
     ```
 
 

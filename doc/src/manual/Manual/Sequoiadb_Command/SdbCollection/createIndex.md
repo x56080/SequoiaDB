@@ -68,10 +68,10 @@
  Takes 0.002531s.
  ```
 
-* 在集合 bar 中的 address 及 tags 字段上建立[全文索引][text_index]，用于对这两个字段进行全文检索。
+* 在集合 employee 中的 address 及 tags 字段上建立[全文索引][text_index]，用于对这两个字段进行全文检索。
 
  ```lang-javascript
- > db.foo.bar.createIndex( "addr_tags", { address: "text", tags: "text" } )
+ > db.sample.employee.createIndex( "addr_tags", { address: "text", tags: "text" } )
  ```
 
 * 集合 employee 创建索引，并且索引字段不允许为数组 。

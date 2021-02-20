@@ -113,28 +113,28 @@ v2.10及以上版本
 - 创建一个普通集合后将该集合修改为分区集合
 
     ```lang-javascript
-    > db.sample.createCL('bar')
+    > db.sample.createCL('employee')
     > db.sample.employee.setAttributes( { ShardingKey: { a: 1 }, ShardingType: "hash" } )
     ```
 
 - 创建一个普通集合后将该集合修改为分区集合，并且自动切分
 
     ```lang-javascript
-    > db.sample.createCL('bar')
+    > db.sample.createCL('employee')
     > db.sample.employee.setAttributes( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
     ```
 
 - 创建一个普通集合后将该集合修改为 snappy 压缩
 
     ```lang-javascript
-    > db.sample.createCL('bar')
+    > db.sample.createCL('employee')
     > db.sample.employee.setAttributes( { CompressionType: 'snappy' } )
     ```
 
 - 创建一个有自增字段的集合后修改其自增起始值
 
     ```lang-javascript
-    > db.sample.createCL( 'bar', { AutoIncrement: { Field: "studentID" } } )
+    > db.sample.createCL( 'employee', { AutoIncrement: { Field: "studentID" } } )
     > db.sample.employee.setAttributes( { AutoIncrement: { Field: "studentID", StartValue: 2017140000 } } )
     ```
 

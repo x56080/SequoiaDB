@@ -32,16 +32,16 @@
 
 ## 挂载集合
 
-1. 创建一个垂直分区的集合 foo.main，分区键输入 name
+1. 创建一个垂直分区的集合 sample.main，分区键输入 name
 ![挂载集合][attach_cl_2]
 
-2. 创建一个普通集合 foo.bar，该集合可以是水平范围分区也可以是水平散列分区
+2. 创建一个普通集合 sample.employee，该集合可以是水平范围分区也可以是水平散列分区
 ![挂载集合][attach_cl_3]
 
 3. 创建完成
 ![挂载集合][attach_cl_4]
 
-4. 点击 **挂载集合** 按钮，集合选垂直分区 foo.main，分区选 foo.bar，分区范围字段名输入 main 的分区键，范围取 1~100，点击 **确定** 按钮
+4. 点击 **挂载集合** 按钮，集合选垂直分区 sample.main，分区选 sample.employee，分区范围字段名输入 main 的分区键，范围取 1~100，点击 **确定** 按钮
 ![挂载集合][attach_cl_5]
 
    > **Note:**  
@@ -50,21 +50,21 @@
 5. 挂载完成
 ![挂载集合][attach_cl_6]
 
-6. 点击集合列中的集合名 foo.main，在集合属性【Partitions】点击 **显示** 按钮查看范围
+6. 点击集合列中的集合名 sample.main，在集合属性【Partitions】点击 **显示** 按钮查看范围
 ![挂载集合][attach_cl_7]
 
 ## 分离集合
 
-1. 存在垂直分区的集合 foo.main 和普通集合 foo.bar，并且把 foo.bar 挂载到 foo.main
+1. 存在垂直分区的集合 sample.main 和普通集合 sample.employee，并且把 sample.employee 挂载到 sample.main
 ![分离集合][detach_cl_1]
 
-2. 点击 **分离集合** 按钮，集合选垂直分区 foo.main，分区选 foo.bar，点击 **确定** 按钮
+2. 点击 **分离集合** 按钮，集合选垂直分区 sample.main，分区选 sample.employee，点击 **确定** 按钮
 ![分离集合][detach_cl_2]
 
 3. 分离完成
 ![分离集合][detach_cl_3]
 
-4. 点击集合列中的集合名 foo.main，在集合属性【Partitions】点击 **显示** 按钮查看是否分离成功
+4. 点击集合列中的集合名 sample.main，在集合属性【Partitions】点击 **显示** 按钮查看是否分离成功
 ![分离集合][detach_cl_4]
 
 切分数据
