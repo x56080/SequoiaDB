@@ -1755,7 +1755,7 @@ class client(object):
                                 AutoSplit: If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
                                            the data of this collection will be split(hash split) into all the groups in this domain automatically.
                                            However, it won't automatically split data into those groups which were add into this domain later.
-                                           eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit: true" }
+                                           eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit": True }
         Return values:
            The created domain object.
         Exceptions:
