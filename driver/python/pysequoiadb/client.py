@@ -1606,14 +1606,14 @@ class client(object):
         if not isinstance(task_id, long_type):
             raise SDBTypeError("task id must be an instance of list")
 
-        async = 0
+        async_flag = 0
         if isinstance(is_async, bool):
             if is_async:
-                async = 1
+                async_flag = 1
         else:
             raise SDBTypeError("size of tasks must be an instance of int")
 
-        rc = sdb.sdb_cancel_task(self._client, task_id, async)
+        rc = sdb.sdb_cancel_task(self._client, task_id, async_flag)
         raise_if_error(rc, "Failed to cancel task")
 
     def set_session_attri(self, options):
