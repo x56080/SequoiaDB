@@ -144,7 +144,14 @@ class test_vessel : public vessel
          virtual INT32 openCollection(ISession *session,
                                       UINT32 csLogicalID,
                                       UINT32 clLogicalID,
+                                      const openCLOptions &options,
                                       collectionObject *obj) {return SDB_OK;}
+
+         public:
+            virtual INT32 insert(ISession *session,
+                              const collectionHandle *handle,
+                              const slice &record,
+                              const insertOptions &options) {return SDB_OK;}
 };
 
 

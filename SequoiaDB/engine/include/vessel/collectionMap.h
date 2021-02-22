@@ -142,6 +142,13 @@ namespace vessel
                           UINT32 &nextLogicalID,
                           collectionHolder **holder);
 
+         INT32 getCollection(UINT32 logicalID,
+                             CL_MB_ID &mbid,
+                             collectionHolder **holder);
+
+         INT32 getCollection(CL_MB_ID mbid,
+                             collectionHolder **holder);
+
          /// must get collection exclusive lock first
          INT32 createCLObject(const strSlice &clName,
                               UINT32 logicalID,

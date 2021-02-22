@@ -436,6 +436,68 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionMap::getCollection(UINT32 logicalID,
+                                      CL_MB_ID &mbid,
+                                      collectionHolder **holder)
+   {
+      INT32 rc = SDB_OK;
+      collectionHolder *tmp = NULL;
+      ID_INDEX::const_iterator itr;
+      ossScopedLock(&_mutex, SHARED);
+
+      if (OSS_UNLIKELY(DMS_INVALID_LOGICCLID == logicalID ||
+                       NULL == holder))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      itr = _idIndex.find(logicalID);
+      if (_idIndex.end() == itr)
+      {
+         rc = SDB_DMS_NOTEXIST;
+         goto error;
+      }
+
+      rc = getHolder(itr->second, tmp);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "logaical id[%d} exists index, but no holder exists");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      mbid = itr->second;
+      *holder = tmp;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionMap::getCollection(CL_MB_ID mbid,
+                                      collectionHolder **holder)
+   {
+      INT32 rc = SDB_OK;
+      ossScopedLock(&_mutex, SHARED);
+      if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbid ||
+                       NULL == holder))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getHolder(mbid, *holder);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 
    INT32 collectionMap::allocateNewPage()
    {

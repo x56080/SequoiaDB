@@ -49,8 +49,6 @@ namespace engine
 {
 namespace vessel
 {
-#pragma pack(2)
-
    const UINT16 COLLECTION_RECORD_VERSION = 1;
    const UINT16 COLLECTION_RECORD_INVALID_VERSION = 0;
    
@@ -62,15 +60,17 @@ namespace vessel
       logicalCSID(DMS_INVALID_LOGICCSID),
       logicalCLID(DMS_INVALID_LOGICCLID),
       mbID(INVALID_CL_MB_ID),
+      maxSGCount(0),
       flags(0),
       nextPageSequence(0),
       firstLvl0Page(INVALID_PAGE_ID),
-      maxStripingGroup(0),
       compressionType(CL_COMPRESSION_TYPE_NONE),
       compressionAlgrithm(CL_COMPRESSION_ALGRITHM_LZW),
+      _pad2(0),
       compressionDic(INVALID_PAGE_ID),
       nonUniqueIndexCount(0),
       uniqueIndexCount(0),
+      _pad3(0),
       nextIndexID(0)
       {
          ossMemset(name, 0, sizeof(name));
@@ -84,15 +84,17 @@ namespace vessel
          logicalCSID = DMS_INVALID_LOGICCSID;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
+         maxSGCount = 0;
          flags = 0;
          nextPageSequence = 0;
          firstLvl0Page = INVALID_PAGE_ID;
-         maxStripingGroup = 0;
          compressionType = CL_COMPRESSION_TYPE_NONE;
          compressionAlgrithm = CL_COMPRESSION_ALGRITHM_LZW;
+         _pad2 = 0;
          compressionDic = INVALID_PAGE_ID;
          nonUniqueIndexCount = 0;
          uniqueIndexCount = 0;
+         _pad3 = 0;
          nextIndexID = 0;
          ossMemset(name, 0, sizeof(name));
          ossMemset(indexSlots, 0xff, sizeof(indexSlots));
@@ -103,23 +105,25 @@ namespace vessel
       UINT32 logicalCSID;
       UINT32 logicalCLID;
       CL_MB_ID mbID;
-      CHAR name[DMS_COLLECTION_NAME_SZ + 1];
+      UINT16 maxSGCount;
       UINT32 flags;
       UINT32 nextPageSequence;
       PAGE_ID firstLvl0Page;
-      UINT32 maxStripingGroup;
 
       /// compression begin
       UINT8 compressionType;
       UINT8 compressionAlgrithm;
+      UINT16 _pad2;
       PAGE_ID compressionDic;
       /// compression end
 
       /// index begin
       UINT8 nonUniqueIndexCount;
       UINT8 uniqueIndexCount;
+      UINT16 _pad3;
       UINT32 nextIndexID;
       PAGE_ID indexSlots[DMS_COLLECTION_MAX_INDEX];
+      CHAR name[DMS_COLLECTION_NAME_SZ + 1];
          /// index end
    };//class collectionRecord
    const UINT32 COLLECTION_RECORD_LEN = sizeof(collectionRecord);
@@ -134,7 +138,6 @@ namespace vessel
       CHAR pad[1024 - COLLECTION_RECORD_LEN];
    };//class collectionRecordOnDisk
    const UINT32 COLLECTION_DISK_RECORD_LEN = sizeof(collectionRecordOnDisk);
-#pragma pack()
 
    struct collectionRecordPageHead
    {

@@ -892,6 +892,7 @@ vesselFiles = [
       "vessel/handlers/requestHandler.cpp",
       "vessel/handlers/listCollectionSpaceHandler.cpp",
       "vessel/handlers/listCollectionsHandler.cpp",
+	  "vessel/handlers/insertHandler.cpp",
       "vessel/inMemBitMap.cpp",
       "vessel/controlFile.cpp",
       "vessel/spaceIDLocker.cpp",

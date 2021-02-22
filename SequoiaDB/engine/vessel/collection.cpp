@@ -102,7 +102,7 @@ namespace vessel
       _record.logicalCLID = logicalID;
       _record.logicalCSID = _collectionSpace->getLogicalID();
       _record.mbID = mbID;
-      _record.maxStripingGroup = options.maxStripingGroupCount;
+      _record.maxSGCount = options.maxStripingGroupCount;
       _record.compressionType = options.compressionType;
       if (CL_COMPRESSION_TYPE_NONE != options.compressionType)
       {
@@ -218,6 +218,7 @@ namespace vessel
       record.csLogicalID = _record.logicalCSID;
       record.spaceID = _collectionSpace->getSpaceID();
       record.mbID = _record.mbID;
+      record.maxSGCount = _record.maxSGCount;
       ossMemcpy(record.name, _record.name, ossStrlen(_record.name) + 1);
    done:
       return rc;

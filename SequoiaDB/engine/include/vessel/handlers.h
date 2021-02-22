@@ -43,5 +43,6 @@
 #include "vessel/listCollectionSpaceHandler.h"
 #include "vessel/listCollectionsHandler.h"
 #include "vessel/createCLHandler.h"
+#include "vessel/insertHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

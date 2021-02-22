@@ -113,6 +113,17 @@ namespace vessel
 
          INT32 dump(requestContext *context,
                     listCollectionSpaceRecord &record);
+      public:
+         INT32 getCollectionByLogicalID(requestContext *context,
+                                        UINT32 logicalID,
+                                        OSS_LATCH_MODE mode,
+                                        collection **obj);
+
+         INT32 getCollectionByMBID(requestContext *context,
+                                   CL_MB_ID mbID,
+                                   UINT32 logicalID,
+                                   OSS_LATCH_MODE mode,
+                                   collection **obj);
 
       private:///init functions when start up
          INT32 initMetaRecordFromDisk(requestContext *context,

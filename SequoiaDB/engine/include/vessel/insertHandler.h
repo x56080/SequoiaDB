@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCollectionsDef.h
+   Source File Name = insertHandler.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,42 +33,30 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LIST_COLLECTIONS_DEF_H_
-#define VESSEL_LIST_COLLECTIONS_DEF_H_
+#ifndef VESSEL_INSERT_HANDLER_H_
+#define VESSEL_INSERT_HANDLER_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/requestHandler.h"
+#include "vessel/slice.h"
+#include "vessel/vesselOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCollectionsRecord : public SDBObject
+   class collectionHandle;
+   class insertHandler : public requestHandler
    {
       public:
-         listCollectionsRecord():
-         version(0),
-         logicalID(DMS_INVALID_LOGICCLID),
-         csLogicalID(DMS_INVALID_LOGICCSID),
-         spaceID(INVALID_SPACE_ID),
-         mbID(INVALID_CL_MB_ID),
-         maxSGCount(0)
-         {
-            ossMemset(name, 0, sizeof(name));
-         }
-
-         ~listCollectionsRecord()
-         {}
+         insertHandler(){}
+         virtual ~insertHandler(){}
 
       public:
-         UINT32 version;
-         CHAR name[DMS_COLLECTION_NAME_SZ+1];
-         UINT32 logicalID;
-         UINT32 csLogicalID;
-         SPACE_ID spaceID;
-         CL_MB_ID mbID;
-         UINT16 maxSGCount;
-   };//class listCollectionsRecord
-}
-}
+         INT32 doit(const collectionHandle *handle,
+                    const slice &record,
+                    const insertOptions &options);
+   };//class insertHandler
+}//namespace vessel
+}//namespace engine
 
-#endif//VESSEL_LIST_COLLECTION_SPACE_DEF_H_
+#endif//VESSEL_INSERT_HANDLER_H_

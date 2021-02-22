@@ -374,6 +374,7 @@ namespace vessel
    INT32 vesselImpl::openCollection(ISession *session,
                                     UINT32 csLogicalID,
                                     UINT32 clLogicalID,
+                                    const openCLOptions &options,
                                     collectionObject *obj)
    {
       INT32 rc = SDB_OK;
@@ -381,6 +382,7 @@ namespace vessel
       requestContext context;
       SPACE_ID sid = INVALID_SPACE_ID;
       CL_MB_ID mid = INVALID_CL_MB_ID;
+      SDB_ASSERT(NULL != obj && !obj->isOpen(), "impossible");
 
       if (OSS_UNLIKELY(NULL == session ||
                        DMS_INVALID_LOGICCSID == csLogicalID ||
@@ -396,30 +398,77 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(session, &_env, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      if (!options.notest)
       {
-         goto error;
-      }
+         rc = context.open(session, &_env, &_outerResource);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
 
-      rc = testCollection(&context, csLogicalID, clLogicalID,
-                          sid, mid);
-      if (SDB_OK != rc)
+         rc = testCollection(&context,
+                             csLogicalID,
+                             clLogicalID,
+                             sid, mid);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         context.close();
+
+         rc = obj->open(this, csLogicalID, clLogicalID, sid, mid);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+      }
+      else
       {
-         goto error;
-      }
-
-      context.close();
-
-      rc = obj->open(this, csLogicalID, clLogicalID, sid, mid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+         rc = obj->open(this, csLogicalID, clLogicalID);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+      }      
    done:
       return rc;
    error:
       context.close();
+      goto done;
+   }
+
+   INT32 vesselImpl::insert(ISession *session,
+                            const collectionHandle *handle,
+                            const slice &record,
+                            const insertOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      insertHandler handler;
+      if (OSS_UNLIKELY(NULL == session ||
+                       NULL == handle ||
+                       !handle->valid() ||
+                       !record.valid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = handler.setup(&_env, session, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = handler.doit(handle, record, options);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      handler.teardown();
+      return rc;
+   error:
       goto done;
    }
 
@@ -586,6 +635,7 @@ namespace vessel
                                     CL_MB_ID &mid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(FALSE, "todo");
    done:
       return rc;
    error:

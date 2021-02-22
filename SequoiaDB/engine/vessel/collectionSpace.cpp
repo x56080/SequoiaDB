@@ -375,6 +375,106 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpace::getCollectionByLogicalID(requestContext *context,
+                                                   UINT32 logicalID,
+                                                   OSS_LATCH_MODE mode,
+                                                   collection **obj)
+   {
+      INT32 rc = SDB_OK;
+      collectionMap::collectionHolder *holder = NULL;
+      CL_MB_ID mbid = INVALID_CL_MB_ID;
+      BOOLEAN locked = FALSE;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->getSpaceIDLocked() ||
+                       getSpaceID() != context->getSpaceID() ||
+                       DMS_INVALID_LOGICCLID == logicalID ||
+                       NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _collectionMap.getCollection(logicalID, mbid, &holder);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = context->lockMB(mbid, holder->getMutex(), mode);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      locked = TRUE;
+
+      if (logicalID != holder->getCollection()->getLogicalID())
+      {
+         rc = SDB_DMS_NOTEXIST;
+         goto error;
+      }
+
+      *obj = holder->getCollection();
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockMB();
+      }
+      goto done;
+   }
+
+   INT32 collectionSpace::getCollectionByMBID(requestContext *context,
+                                              CL_MB_ID mbID,
+                                              UINT32 logicalID,
+                                              OSS_LATCH_MODE mode,
+                                              collection **obj)
+   {
+      INT32 rc = SDB_OK;
+      collectionMap::collectionHolder *holder = NULL;
+      BOOLEAN locked = FALSE;
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_CL_MB_ID == mbID ||
+                       !context->getSpaceIDLocked() ||
+                       getSpaceID() != context->getSpaceID() ||
+                       NULL == obj))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = _collectionMap.getCollection(mbID, &holder);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = context->lockMB(mbID, holder->getMutex(), mode);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      locked = TRUE;
+
+      if (DMS_INVALID_LOGICCLID != logicalID &&
+          holder->getCollection()->getLogicalID() != logicalID)
+      {
+         rc = SDB_DMS_NOTEXIST;
+         goto error;
+      }
+
+      *obj = holder->getCollection();
+   done:
+      return rc;
+   error:
+      if (locked)
+      {
+         context->unlockMB();
+      }
+      goto done;
+   }
+
    INT32 collectionSpace::initMetaRecordFromDisk(requestContext *context,
                                                  extentStorageUnit *su)
    {

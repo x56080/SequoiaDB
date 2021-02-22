@@ -96,6 +96,10 @@ namespace vessel
          INT32 dump(requestContext *context,
                     listCollectionsRecord &record);
 
+         INT32 insert(requestContext *context,
+                      const slice &record,
+                      const insertOptions &options);
+
       private:
          INT32 ensureCLRecordPageAllocated(requestContext *context,
                                            PAGE_ID lpid,

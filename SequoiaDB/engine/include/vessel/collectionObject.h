@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -40,25 +37,29 @@
 #define VESSEL_COLLECTION_OBJECT_H_
 
 #include "vessel/vesselDef.h"
+#include "vessel/vesselOptions.h"
+#include "vessel/collectionHandle.h"
 
 namespace engine
 {
 namespace vessel
 {
    class vessel;
+   class ISession;
+
+   
 
    class collectionObject : public SDBObject
    {
       public:
          OSS_INLINE collectionObject():
-         _db(NULL),
-         _cslid(DMS_INVALID_LOGICCSID),
-         _sid(INVALID_SPACE_ID),
-         _cllid(DMS_INVALID_LOGICCLID),
-         _mbid(INVALID_CL_MB_ID)
+         _db(NULL)
          {}
 
-         OSS_INLINE ~collectionObject(){}
+         OSS_INLINE ~collectionObject()
+         {
+            _db = NULL;
+         }
 
       public:
          OSS_INLINE BOOLEAN isOpen()const
@@ -68,17 +69,22 @@ namespace vessel
 
          INT32 open(vessel *db,
                     UINT32 cslid,
+                    UINT32 cllid);
+
+         INT32 open(vessel *db,
+                    UINT32 cslid,
                     UINT32 cllid,
                     SPACE_ID sid,
                     CL_MB_ID mbid);
 
          INT32 close();
+
+         INT32 insert(ISession *session,
+                      const slice &record,
+                      const insertOptions &options);
       private:
          vessel *_db;
-         UINT32 _cslid;
-         SPACE_ID _sid;
-         UINT32 _cllid;
-         CL_MB_ID _mbid;
+         collectionHandle _handle;
          
    };//class collectionObject
 }//namespace vessel

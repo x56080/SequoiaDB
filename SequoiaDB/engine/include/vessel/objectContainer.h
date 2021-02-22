@@ -67,8 +67,14 @@ namespace vessel
                                 OSS_LATCH_MODE mode,
                                 collectionSpace **obj);
 
+         /// if logicalID set as valid value,
+         /// will return error when the actual id of the object does not match the parameter
+         INT32 getCSByLockedSpaceID(requestContext *context,
+                                    UINT32 logicalID, 
+                                    collectionSpace **obj);
+
          /// returns the first cs whose id is considered to go after logicalID.
-         /// when logicalID is invalid, return first cs in index.
+         /// when logicalID is invalid, return first cs in id index.
          INT32 getCSByUpperBoundLogicalID(requestContext *context,
                                           UINT32 logicalID,
                                           OSS_LATCH_MODE mode,
@@ -84,8 +90,6 @@ namespace vessel
                                         collectionSpace **obj);
 
          INT32 releaseCSObj(requestContext *context);
-
-         
 
          UINT32 getNameCountInIndex();
 

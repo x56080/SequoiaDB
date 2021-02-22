@@ -252,6 +252,29 @@ namespace vessel
       goto done;
    }
 
+   INT32 objectContainer::getCSByLockedSpaceID(requestContext *context,
+                                               UINT32 logicalID, 
+                                               collectionSpace **obj)
+   {
+      INT32 rc = SDB_OK;
+      rc = getCSUnderIDLocked(context, obj);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      else if (DMS_INVALID_LOGICCSID != logicalID &&
+               logicalID != (*obj)->getLogicalID())
+      {
+         *obj = NULL;
+         rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 objectContainer::getCSByUpperBoundLogicalID(requestContext *context,
                                                      UINT32 logicalID,
                                                      OSS_LATCH_MODE mode,

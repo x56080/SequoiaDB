@@ -236,6 +236,20 @@ namespace vessel
 
    }; // class dropCLOptions;
 
+   class openCLOptions : public SDBObject
+   {
+      public:
+         OSS_INLINE openCLOptions():
+         notest(TRUE)
+         {}
+
+         OSS_INLINE ~openCLOptions()
+         {}
+
+      public:
+         BOOLEAN notest;/// do not test if collection exists until first accessing.
+   };
+
    class indexOptions
    {}; // class indexOptions
 
@@ -246,7 +260,7 @@ namespace vessel
 
    class alterIndexOptions
    {
-
+      
    }; // class alterIndexOptions
 
    class dropIndexOptions
@@ -254,9 +268,15 @@ namespace vessel
 
    }; // class dropIndexOptions
 
-   class insertOptions
+   class insertOptions : public SDBObject
    {
+      public:
+         OSS_INLINE insertOptions()
+         {}
 
+         OSS_INLINE ~insertOptions()
+         {}
+      public:
    }; /// end of class insertOptions
 
    class updateOptions

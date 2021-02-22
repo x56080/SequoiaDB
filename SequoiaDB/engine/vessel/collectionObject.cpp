@@ -66,10 +66,34 @@ namespace vessel
       }
 
       _db = db;
-      _cslid = cslid;
-      _cllid = cllid;
-      _sid = sid;
-      _mbid = mbid;
+      _handle.setLogicalID(cslid, cllid);
+      _handle.setSlotID(sid, mbid);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionObject::open(vessel *db,
+                                 UINT32 cslid,
+                                 UINT32 cllid)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(NULL == db ||
+                       DMS_INVALID_LOGICCSID == cslid ||
+                       DMS_INVALID_LOGICCLID == cllid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isOpen())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _db = db;
+      _handle.setLogicalID(cslid, cllid);
    done:
       return rc;
    error:
@@ -78,10 +102,7 @@ namespace vessel
 
    INT32 collectionObject::close()
    {
-      _cslid = DMS_INVALID_LOGICCSID;
-      _cllid = DMS_INVALID_LOGICCLID;
-      _sid = INVALID_SPACE_ID;
-      _mbid = INVALID_CL_MB_ID;
+      _handle.reset();
       _db = NULL;
       return SDB_OK;
    }

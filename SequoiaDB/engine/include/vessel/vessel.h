@@ -54,6 +54,7 @@ namespace vessel
    class cursorObject;
    class ICursor;
    class collectionObject;
+   class collectionHandle;
 
    class vessel
    {
@@ -111,11 +112,17 @@ namespace vessel
          virtual INT32 openCollection(ISession *session,
                                       UINT32 csLogicalID,
                                       UINT32 clLogicalID,
+                                      const openCLOptions &options,
                                       collectionObject *obj) = 0;
 
       public: /// for cursors
          virtual INT32 pushMoreToCursor(ISession * session,
                                         cursorObject *cursor) = 0;
+
+         virtual INT32 insert(ISession *session,
+                              const collectionHandle *handle,
+                              const slice &record,
+                              const insertOptions &options) = 0;
 /*
          virtual INT32 createCollection(ISession *session,
                                         const clNameOrID &noi,
@@ -159,15 +166,7 @@ namespace vessel
 
          virtual INT32 closeCollection(COLLECTION_HANDLE handle);
 
-         virtual INT32 insert(ISession *session,
-                              COLLECTION_HANDLE handle,
-                              const slice &record,
-                              const insertOptions &options) = 0;
-
-         virtual INT32 insert(ISession *session,
-                              const clNameOrID &noi,
-                              const slice &record,
-                              const insertOptions &options) = 0;
+         
 
          virtual INT32 resetScan(ISession *session,
                                  COLLECTION_HANDLE handle,

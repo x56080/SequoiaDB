@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = listCollectionsDef.h
+   Source File Name = indexDefPage.h
 
    Descriptive Name =
 
@@ -36,42 +36,42 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LIST_COLLECTIONS_DEF_H_
-#define VESSEL_LIST_COLLECTIONS_DEF_H_
+#ifndef VESSEL_INDEX_DEF_PAGE_H_
+#define VESSEL_INDEX_DEF_PAGE_H_
 
 #include "vessel/vesselDef.h"
+#include "vessel/extentDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCollectionsRecord : public SDBObject
+   const static INVALID_INDEX_RECORD_VERSION = 0;
+   const static INDEX_RECORD_VERSION_1 = 1;
+   const static MAX_INDEX_NAME_LEN = 64;
+
+   const static INDEX_DEF_FLAG_UNIQUE = 1;
+   const static INDEX_DEF_FLAG_ENFORECE = 2;
+   const static INDEX_DEF_FLAG_NOT_NULL = 4;
+
+   struct indexDefRecord
    {
-      public:
-         listCollectionsRecord():
-         version(0),
-         logicalID(DMS_INVALID_LOGICCLID),
-         csLogicalID(DMS_INVALID_LOGICCSID),
-         spaceID(INVALID_SPACE_ID),
-         mbID(INVALID_CL_MB_ID),
-         maxSGCount(0)
-         {
-            ossMemset(name, 0, sizeof(name));
-         }
+      UINT16 version;
+      UINT16 type;
+      UINT32 indexLogicalID;
+      UINT32 clLogicalID;
+      UINT32 flags;
+      UINT32 ordering;
+      UINT32 fieldsCount;
 
-         ~listCollectionsRecord()
-         {}
+      /// valid only when type is btree
+      UINT32 btreeFlags;
+      PAGE_ID btreeRoot;
 
-      public:
-         UINT32 version;
-         CHAR name[DMS_COLLECTION_NAME_SZ+1];
-         UINT32 logicalID;
-         UINT32 csLogicalID;
-         SPACE_ID spaceID;
-         CL_MB_ID mbID;
-         UINT16 maxSGCount;
-   };//class listCollectionsRecord
-}
-}
+      CHAR name[MAX_INDEX_NAME_LEN];
+      UINT32 keyPatternLen;
+   };//struct indexDefRecord
+}//namespace vessel
+}//namespace engine
 
-#endif//VESSEL_LIST_COLLECTION_SPACE_DEF_H_
+#endif//VESSEL_INDEX_DEF_PAGE_H_

@@ -90,11 +90,17 @@ namespace vessel
          virtual INT32 openCollection(ISession *session,
                                       UINT32 csLogicalID,
                                       UINT32 clLogicalID,
+                                      const openCLOptions &options,
                                       collectionObject *obj);
 
       public:
          virtual INT32 pushMoreToCursor(ISession * session,
                                         cursorObject *cursor);
+
+         virtual INT32 insert(ISession *session,
+                              const collectionHandle *handle,
+                              const slice &record,
+                              const insertOptions &options);
       private:
 
          INT32 initObjectContainer(ISession *session);
