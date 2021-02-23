@@ -2921,6 +2921,14 @@
             <cn>索引键的任意一个字段都不允许为数组</cn>
          </description>
       </code>
+      
+      <code>
+         <name>SDB_ERROR_RESERVED_365</name> <!-- SDB_TASK_ROLLBACK -->
+         <description>
+            <en>Reserved</en> <!-- Task has been rolled back -->
+            <cn>保留</cn> <!-- 任务被回滚 -->
+         </description>
+      </code>
 
    </codelist>
 </rclist>
