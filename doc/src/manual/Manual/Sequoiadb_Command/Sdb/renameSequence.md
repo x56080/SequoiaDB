@@ -6,6 +6,10 @@ renameSequence - 修改序列名
 
 **db.renameSequence\(\<oldname\>, \<newname\>\)**
 
+##类别##
+
+Sdb
+
 ##描述##
 
 该函数用于对当前数据库中已存在的序列进行重命名。

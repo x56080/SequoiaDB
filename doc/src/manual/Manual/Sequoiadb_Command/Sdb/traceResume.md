@@ -1,7 +1,10 @@
+##名称##
+
+traceResume - 重新开启断点跟踪程序
 
 ##语法##
 
-***db.traceResume()***
+**db.traceResume()**
 
 ##类别##
 
@@ -9,7 +12,7 @@ Sdb
 
 ##描述##
 
-重新开启断点跟踪程序。 db.traceOn() 指定断点开启数据库引擎程序跟踪功能，当被跟踪的模块遇到断点被阻塞， db.traceResume() 可以唤醒被跟踪的模块。
+该函数用于重新开启断点跟踪程序。 db.traceOn() 指定断点开启数据库引擎程序跟踪功能，当被跟踪的模块遇到断点被阻塞， db.traceResume() 可以唤醒被跟踪的模块。
 
 ##参数##
 
@@ -17,13 +20,17 @@ Sdb
 
 ##返回值##
 
-无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。
+函数执行成功时，无返回值。
 
-关于错误处理可以参考[常见错误处理指南](manual/faq.md) 。
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -52,3 +59,11 @@ Sdb
 	```lang-javascript
 	> data.traceStatus()
 	```
+
+[^_^]:
+     本文使用的所有引用及链接
+
+[list_info]:manual/Manual/List/list.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

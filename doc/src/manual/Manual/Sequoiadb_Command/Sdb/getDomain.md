@@ -1,10 +1,19 @@
+##名称##
+
+getDomain - 获取指定域。
 
 ##语法##
-***db.getDomain( \<name\> )***
+**db.getDomain( \<name\> )**
 
-获取指定域。
+##类别##
 
-##参数描述##
+Sdb
+
+##描述##
+
+该函数用于获取指定域。
+
+##参数##
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
@@ -16,7 +25,17 @@
 
 ##返回值##
 
-返回指定域的引用，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md) 。
+函数执行成功时，将返回一个 SdbDomain  类型的对象。
+
+函数执行失败时，将抛异常并输出错误信息。
+
+##错误##
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -25,3 +44,11 @@
  ```lang-javascript
  > var domain = db.getDomain( 'mydomain' )
  ```
+
+[^_^]:
+     本文使用的所有引用及链接
+
+[list_info]:manual/Manual/List/list.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

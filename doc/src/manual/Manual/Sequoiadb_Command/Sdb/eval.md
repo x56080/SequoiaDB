@@ -1,10 +1,20 @@
+##名称##
+
+eval - 调用存储过程
 
 ##语法##
-***db.eval( \<code\> )***
 
-根据需要填入 JavaScript 语句。同时可以在语句中调用已经创建好的存储过程。
+**db.eval( \<code\> )**
 
-##参数描述##
+##类别##
+
+Sdb
+
+##描述##
+
+该函数用于在语句中调用已经创建好的存储过程。用户可根据需要填入 JavaScript 语句。
+
+##参数##
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | ------ | ------ | ------ |
@@ -28,6 +38,14 @@
 
 （6） 全局 db 使用方式与 [createProcedure()](manual/Manual/Sequoiadb_Command/Sdb/createProcedure.md) 相同。
 
+##错误##
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
+
 ##示例##
 
 * 在eval() 方法中调用存储过程函数 sum
@@ -47,8 +65,8 @@
 * 在 eval() 方法中填写 JavaScript 语句
 
  ```lang-javascript
- > var rc = db.eval( "db.sample.employee" )
- > rc.find()
+ > var ret = db.eval( "db.sample.employee" )
+ > ret.find()
  {
    "_id": {
      "$oid": "5248d3867159ae144a000000"
@@ -62,3 +80,11 @@
    "a": 2
  }...
  ```
+
+[^_^]:
+     本文使用的所有引用及链接
+
+[list_info]:manual/Manual/List/list.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

@@ -6,6 +6,10 @@ dropSequence - 删除指定的序列
 
 **db.dropSequence\(\<name\>\)**
 
+##类别##
+
+Sdb
+
 ##描述##
 
 该函数用于在当前数据库中删除指定的序列。

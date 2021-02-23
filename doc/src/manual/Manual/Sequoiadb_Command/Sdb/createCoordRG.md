@@ -1,12 +1,36 @@
+##名称##
+
+createCoordRG - 创建协调复制组
 
 ##语法##
-***db.createCoordRG()***
 
-创建协调复制组。
+**db.createCoordRG()**
+
+##类别##
+
+Sdb
+
+##描述##
+
+该函数用于创建协调复制组。
+
+##参数##
+
+无
 
 ##返回值##
 
-返回协调复制组的引用，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md) 。
+函数执行成功时，无返回值。
+
+函数执行失败时，将抛异常并输出错误信息。
+
+##错误##
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+##版本##
+
+v2.0 及以上版本
 
 ##示例##
 
@@ -15,3 +39,11 @@
  ```lang-javascript
  > db.createCoordRG()
  ```
+
+[^_^]:
+     本文使用的所有引用及链接
+
+[list_info]:manual/Manual/List/list.md
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md
