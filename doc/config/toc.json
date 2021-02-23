@@ -1386,6 +1386,12 @@
                            "en": "Command Line Tool"
                         },
                         {
+                           "id": 1613633034,
+                           "file": "sdblist",
+                           "cn": "本地集群检查工具",
+                           "en": "Local Cluster Check Tool"
+                        },
+                        {
                            "id": 1479195620,
                            "file": "sdbimprt",
                            "cn": "数据导入工具",
