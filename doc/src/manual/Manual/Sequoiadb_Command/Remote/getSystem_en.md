@@ -1,11 +1,11 @@
 
 ##NAME##
 
-getSystem - Create a remote System object..
+getSystem - Create a remote System object
 
 ##SYNOPSIS##
 
-***remoteObj.getSystem()***
+**remoteObj.getSystem()**
 
 ##CATEGORY##
 
@@ -13,21 +13,25 @@ Remote
 
 ##DESCRIPTION##
 
-Open a file or create a new file.
+This function is used to open a file or create a new file.
 
 ##PARAMETERS##
 
-NULL
+None
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully,  it will return a System object. 
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md)  and use [getLastErrMsg()](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](manual/Manual/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](manual/faq.md).
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][error_guide].
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLES##
 
@@ -42,3 +46,9 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_command/Glob
 ```lang-javascript
 > var system = remoteObj.getSystem()
 ```
+
+[^_^]:
+     links
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

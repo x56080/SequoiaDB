@@ -4,29 +4,33 @@
 .hy
 .SH NAME
 .PP
-getSystem \- Create a remote System object..
+getSystem \- Create a remote System object
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]remoteObj.getSystem()\f[]\f[]
+\f[B]remoteObj.getSystem()\f[]
 .SH CATEGORY
 .PP
 Remote
 .SH DESCRIPTION
 .PP
-Open a file or create a new file.
+This function is used to open a file or create a new file.
 .SH PARAMETERS
 .PP
-NULL
+None
 .SH RETURN VALUE
 .PP
-On success, return void.
+When the function executes successfully, it will return a System object.
 .PP
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will
+be printed.
 .SH ERRORS
 .PP
-when exception happen, use getLastError() to get the error code and use
-getLastErrMsg() to get error message.
-For more detial, please reference to Troubleshooting.
+When the exception happens，use getLastErrMsg() to get the error message or use
+getLastError() to get the error code.
+For more details, refer to Troubleshooting.
+.SH VERSION
+.PP
+v3.2 and above
 .SH EXAMPLES
 .IP \[bu] 2
 Create a remote object.
