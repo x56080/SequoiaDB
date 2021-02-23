@@ -1,10 +1,10 @@
 ##NAME##
 
-getSystem - Create a remote System object..
+getSystem - Create a remote System object
 
 ##SYNOPSIS##
 
-***remoteObj.getSystem()***
+**remoteObj.getSystem()**
 
 ##CATEGORY##
 
@@ -12,21 +12,25 @@ Remote
 
 ##DESCRIPTION##
 
-Open a file or create a new file.
+This function is used to open a file or create a new file.
 
 ##PARAMETERS##
 
-NULL
+None
 
 ##RETURN VALUE##
 
-On success, return void.
+When the function executes successfully, it will return a System object.
 
-On error, exception will be thrown.
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
-when exception happen, use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the [error code](reference/Sequoiadb_error_code.md)  and use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get [error message](reference/Sequoiadb_command/Global/getLastErrMsg.md). For more detial, please  reference to [Troubleshooting](troubleshooting/general/general_guide.md).
+When the exception happens，use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error message or use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error code.For more detials, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+
+##VERSION##
+
+v3.2 and above
 
 ##EXAMPLES##
 

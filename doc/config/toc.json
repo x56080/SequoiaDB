@@ -3565,6 +3565,12 @@
                            "en": "getInfo()"
                         },
                         {
+                           "id": 1612515563,
+                           "file": "getSystem",
+                           "cn": "getSystem()",
+                           "en": "getSystem()"
+                        },
+                        {
                            "id": 1557121270,
                            "file": "Remote",
                            "cn": "Remote()",

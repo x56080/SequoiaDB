@@ -1,6 +1,10 @@
+##名称##
+
+getSystem - 新建一个远程 System 对象
+
 ##语法##
 
-***getSystem()***
+**remoteObj.getSystem()**
 
 ##类别##
 
@@ -8,7 +12,7 @@ Remote
 
 ##描述##
 
-新建一个远程 System 对象。
+该函数用于新建一个远程 System 对象。
 
 ##参数##
 
@@ -16,25 +20,29 @@ Remote
 
 ##返回值##
 
-无返回值。
+函数执行成功时，将返回一个 System 对象。
+
+函数执行失败时，将抛异常并输出错误信息。
 
 ##错误##
 
-如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
+当异常抛出时，可以通过 [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) 获取错误信息或通过[getLastError()](reference/Sequoiadb_command/Global/getLastError.md)获取错误码。
+更多错误处理可以参考[常见错误处理指南](troubleshooting/general/general_guide.md)。
 
-常见错误可参考[错误码](reference/Sequoiadb_error_code.md)。
+##版本##
+
+v3.2 及以上版本
 
 ##示例##
 
 * 新建一个远程连接对象。
 
-  ```lang-javascript
-  > var remoteObj = new Remote( "192.168.20.71", 11790 )
-  ```
+```lang-javascript
+> var remoteObj = new Remote( "192.168.20.71", 11790 )
+```
 
 * 新建一个远程 System 对象
 
-  ```lang-javascript
-  > var system = remoteObj.getSystem()
-  ```
+```lang-javascript
+> var system = remoteObj.getSystem()
+```
