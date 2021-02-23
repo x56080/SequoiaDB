@@ -29,9 +29,9 @@ protected:
       testBase::SetUp() ;
       INT32 rc = SDB_OK ;
       csName = "cs_23278" ;
-	  csName1 = "cs_23278_1";
+      csName1 = "cs_23278_1";
       clName = "cl_23278" ;
-	  clName1 = "cl_23278_1" ;
+      clName1 = "cl_23278_1" ;
       rc = db.createCollectionSpace( csName, SDB_PAGESIZE_4K, cs ) ;
       ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
       rc = cs.createCollection( clName, cl ) ;
@@ -59,43 +59,43 @@ TEST_F( getCSTest23278, getCS23278 )
 
    INT32 rc = SDB_OK ;
 
+   // false: check not exists
    sdbCollectionSpace cs1 ;
    rc = db.getCollectionSpace( csName1,cs1,false );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cs" ;
 
+   // false: check exists
    sdbCollectionSpace cs2 ;
-   rc = db.getCollectionSpace( csName,cs2,true );
+   rc = db.getCollectionSpace( csName,cs2,false );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cs" ;
 
+   // true: check exists
    sdbCollectionSpace cs3 ;
-   rc = db.getCollectionSpace( csName1,cs3,true );
-   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) << "fail to get cs" ;
-
-   sdbCollectionSpace cs4 ;
-   rc = db.getCollectionSpace( csName1,cs4 );
-   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) << "fail to get cs" ;
-
-   sdbCollectionSpace cs5 ;
-   rc = db.getCollectionSpace( csName,cs5 );
+   rc = db.getCollectionSpace( csName,cs3,true );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cs" ;
 
+   // true: check not exists
+   sdbCollectionSpace cs4 ;
+   rc = db.getCollectionSpace( csName1,cs4,true );
+   ASSERT_EQ( SDB_DMS_CS_NOTEXIST, rc ) << "fail to get cs" ;
+
+   // false: check not exists
    sdbCollection cl1 ;
-   rc = cs5.getCollection( clName1,cl1,false );
+   rc = cs3.getCollection( clName1,cl1,false );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cl" ;
 
+   // false: check exists
    sdbCollection cl2 ;
-   rc = cs5.getCollection( clName,cl2,false );
+   rc = cs3.getCollection( clName,cl2,false );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cl" ;
 
+   // true: check exists
    sdbCollection cl3 ;
-   rc = cs5.getCollection( clName1,cl3,true );
-   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) << "fail to get cl" ;
-
-   sdbCollection cl4 ;
-   rc = cs5.getCollection( clName1,cl4 );
-   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) << "fail to get cl" ;
-
-   sdbCollection cl5 ;
-   rc = cs5.getCollection( clName,cl5);
+   rc = cs3.getCollection( clName,cl3,true );
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cl" ;
+
+   // true: check not exists
+   sdbCollection cl4 ;
+   rc = cs3.getCollection( clName1,cl4 );
+   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) << "fail to get cl" ;
 }
