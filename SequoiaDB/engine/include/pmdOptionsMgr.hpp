@@ -308,6 +308,8 @@ namespace engine
 
          UINT32 getChangeID () const { return _changeID ; }
 
+         BOOLEAN hasAutoAdjust() const { return _hasAutoAdjust ; }
+
       public:
          /*
             Parse address line(192.168.20.106:5000,192.168.30.102:1000...) to
@@ -410,6 +412,7 @@ namespace engine
 
          MAP_K2V                             _mapKeyValue ;
          MAP_K2V                             _mapColdKeyValue ;
+         BOOLEAN                             _hasAutoAdjust ;
       protected:
          ossSpinXLatch                       _mutex ;
 
