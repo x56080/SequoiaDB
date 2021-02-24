@@ -1643,6 +1643,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1657,6 +1658,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1692,6 +1694,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1706,6 +1709,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1741,6 +1745,7 @@ done:
          if ( autoAdjust )
          {
             value = minV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1755,6 +1760,7 @@ done:
          if ( autoAdjust )
          {
             value = maxV ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -1791,6 +1797,7 @@ done:
          if ( autoAdjust )
          {
             pValue[ maxChar ] = 0 ;
+            _hasAutoAdjust = TRUE ;
          }
          else
          {
@@ -2559,6 +2566,7 @@ done:
          std::cerr << PMD_OPTION_FT_MASK << "value error, use default"
                    << endl ;
          _ftMask = PMD_FT_MASK_DFT ;
+         _invalidConfNum++ ;
       }
 
       // mon group mask check
@@ -3169,7 +3177,7 @@ done:
          _addToFieldMap( PMD_OPTION_CONFPATH, _krcbConfPath, TRUE, FALSE ) ;
       }
 
-      if( 0 != _invalidConfNum )
+      if( 0 != _invalidConfNum || hasAutoAdjust() )
       {
          rc = reflush2File() ;
          if ( rc )
