@@ -8857,7 +8857,7 @@ do                                                            \
       _sock->quickAck() ;
 
       ossEndianConvertIf4 ( length, realLen, _endianConvert ) ;
-      if ( (UINT32)realLen < sizeof(MsgOpReply) )
+      if ( realLen < (INT32)sizeof(MsgOpReply) )
       {
          rc = SDB_NET_BROKEN_MSG ;
          goto error ;
