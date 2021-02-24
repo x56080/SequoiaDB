@@ -15,8 +15,8 @@
  *
  */
 /**
+ * SequoiaDB Data Source.
  * @package com.sequoiadb.datasource;
- * @brief SequoiaDB Data Source
  * @author tanzhaobo
  */
 package com.sequoiadb.datasource;
@@ -39,8 +39,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * @class SequoiadbDatasourceImpl
- * @brief The implements for SequoiaDB data source
+ * The implements for SequoiaDB data source.
  * @since v1.12.6 & v2.2
  */
 public class SequoiadbDatasourceImpl {
@@ -406,9 +405,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn SequoiadbDatasourceImpl(List<String> urls, String username, String password,
-     *ConfigOptions nwOpt, DatasourceOptions dsOpt)
-     * @brief constructor.
+     * Constructor.
      * @param urls the addresses of coord nodes, can't be null or empty,
      *        e.g."ubuntu1:11810","ubuntu2:11810",...
      * @param username the user name for logging sequoiadb
@@ -436,9 +433,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn SequoiadbDatasourceImpl(String url, String username, String password,
-     *DatasourceOptions dsOpt)
-     * @brief Constructor.
+     * Constructor.
      * @param url the address of coord, can't be empty or null, e.g."ubuntu1:11810"
      * @param username the user name for logging sequoiadb
      * @param password the password for logging sequoiadb
@@ -455,8 +450,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn int getIdleConnNum()
-     * @brief Get the current idle connection amount.
+     * Get the current idle connection amount.
      */
     public int getIdleConnNum() {
         if (_idleConnPool == null)
@@ -466,8 +460,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn int getUsedConnNum()
-     * @brief Get the current used connection amount.
+     * Get the current used connection amount.
      */
     public int getUsedConnNum() {
         if (_usedConnPool == null)
@@ -477,29 +470,26 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn int getNormalAddrNum()
-     * @brief Get the current normal address amount.
+     * Get the current normal address amount.
      */
     public int getNormalAddrNum() {
         return _normalAddrs.size();
     }
     
     /**
-     * @fn int getAbnormalAddrNum()
-     * @brief Get the current abnormal address amount.
+     * Get the current abnormal address amount.
      */
     public int getAbnormalAddrNum() {
         return _abnormalAddrs.size();
     }
 
     /**
-     * @fn int getLocalAddrNum()
-     * @brief Get the amount of local coord node address .
+     * Get the amount of local coord node address .
      * @return the amount of local coord node address
      * @note this API works only when the pool is enabled and the connect
      *       strategy is ConnectStrategy.LOCAL,
      *       otherwise, return 0.
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @since v1.12.6 & v2.2
      */
     public int getLocalAddrNum() {
@@ -507,10 +497,9 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void addCoord(String url)
-     * @brief Add coord address.
+     * Add coord address.
      * @param url The address in format "192.168.20.168:11810"
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void addCoord(String url) throws BaseException {
         Lock wlock = _rwLock.writeLock();
@@ -547,8 +536,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void removeCoord(String url)
-     * @brief Remove coord address.
+     * Remove coord address.
      * @since v1.12.6 & v2.2
      */
     public void removeCoord(String url) throws BaseException {
@@ -577,8 +565,7 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn DatasourceOptions getDatasourceOptions()
-     * @brief Get a copy of the connection pool options
+     * Get a copy of the connection pool options.
      * @return a copy of the connection pool options
      * @throws BaseException
      * @since v1.12.6 & v2.2
@@ -596,10 +583,9 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void updateDatasourceOptions(DatasourceOptions dsOpt)
-     * @brief Update connection pool options.
+     * Update connection pool options.
      * @return dsOpt the newly connection pool for update
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @since v1.12.6 & v2.2
      */
     public void updateDatasourceOptions(DatasourceOptions dsOpt) throws BaseException {
@@ -681,11 +667,10 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void enableDatasource()
-     * @brief Enable data source.
+     * Enable data source.
      * @note When maxCount is 0, set it to be the default value(500).
      * @return void
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @exception InterruptedException
      * @since v1.12.6 & v2.2
      */
@@ -710,10 +695,9 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void disableDatasource()
-     * @brief Disable data source.
+     * Disable data source.
      * @return void
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @exception InterruptedException
      * @note After disable data source, the pool will not manage
      *       the connections again. When a getting request comes,
@@ -745,11 +729,9 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn Sequoiadb getConnection()
-     * @brief Get a connection from current connection pool.
-     * @param timeout the time for waiting for connection in millisecond. 0 for waiting until a connection is available.
+     * Get a connection from current connection pool.
      * @return Sequoiadb the connection for using
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @exception InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      * @note When the pool runs out, a request will wait up to 5 seconds. When time is up, if the pool
      * 		 still has no idle connection, it throws BaseException with the type of "SDB_DRIVER_DS_RUNOUT".
@@ -759,11 +741,10 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn Sequoiadb getConnection(long timeout)
-     * @brief Get a connection from current connection pool.
+     * Get a connection from current connection pool.
      * @param timeout the time for waiting for connection in millisecond. 0 for waiting until a connection is available.
      * @return Sequoiadb the connection for using
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      *            when connection pool run out, throws BaseException with the type of "SDB_DRIVER_DS_RUNOUT"
      * @exception InterruptedException Actually, nothing happen. Throw this for compatibility reason.
      * @since v1.12.6 & v2.2
@@ -917,13 +898,12 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void releaseConnection(Sequoiadb sdb)
-     * @brief Put the connection back to the connection pool.
+     * Put the connection back to the connection pool.
      * @param sdb the connection to come back, can't be null
      * @note When the data source is enable, we can't double release
      *       one connection, and we can't offer a connection which is
      *       not belong to the pool.
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @since v1.12.6 & v2.2
      */
     public void releaseConnection(Sequoiadb sdb) throws BaseException {
@@ -1001,23 +981,20 @@ public class SequoiadbDatasourceImpl {
     }
 
     /**
-     * @fn void close(Sequoiadb sdb)
-     * @brief Put the connection back to the connection pool.
+     * Put the connection back to the connection pool.
      * @param sdb the connection to come back, can't be null
      * @note When the data source is enable, we can't double release
      *       one connection, and we can't offer a connection which is
      *       not belong to the pool.
-     * @exception com.sequoiadb.Exception.BaseException
+     * @exception com.sequoiadb.exception.BaseException
      * @deprecated
-     * @see releaseConnection, use releaseConnection instead
      */
     public void close(Sequoiadb sdb) throws BaseException {
         releaseConnection(sdb);
     }
 
     /**
-     * @fn void close()
-     * @brief clean all resources of current connection pool
+     * Clean all resources of current connection pool.
      */
     public void close() {
         Lock wlock = _rwLock.writeLock();

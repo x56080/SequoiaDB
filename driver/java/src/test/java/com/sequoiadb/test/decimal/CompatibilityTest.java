@@ -23,8 +23,7 @@ import java.util.regex.Pattern;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author tanzhaobo
- * @brief 测试加入BSONDecimal之后：
+ * 测试加入BSONDecimal之后：
  * 1、Java驱动涉及解析BSON的接口是否会受到加入BSONDecimal的影响；
  * 2、由Java驱动插入的BSON能否在其它驱动成功解析；
  * 3、在其它驱动插入的BSON能否在Java驱动中成功解析。

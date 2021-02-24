@@ -82,7 +82,7 @@ public class Bug_JIRA_ {
             BSONObject cond = new BasicBSONObject("a", random.nextInt(range));
             try {
                 BSONObject obj = cl.queryOne(cond, null, null, null, -1);
-                System.out.println("obj is: " + obj.toString());
+//                System.out.println("obj is: " + obj.toString());
             } catch (BaseException e) {
                 Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
             }

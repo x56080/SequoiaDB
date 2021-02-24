@@ -33,8 +33,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * @class ReplicaGroup
- * @brief Database operation interfaces of replica group.
+ * Database operation interfaces of replica group.
  */
 public class ReplicaGroup {
     private String name;
@@ -44,27 +43,24 @@ public class ReplicaGroup {
 
 
     /**
-     * @return the current replica group's Sequoiadb
-     * @fn Sequoiadb getSequoiadb()
-     * @brief Get current replica group's Sequoiadb.
+     * Get current replica group's Sequoiadb.
+     * @return the current replica group's Sequoiadb.
      */
     public Sequoiadb getSequoiadb() {
         return sequoiadb;
     }
 
     /**
+     * Get current replica group's id.
      * @return the current replica group's id
-     * @fn int getId()
-     * @brief Get current replica group's id.
      */
     public int getId() {
         return id;
     }
 
     /**
-     * @return the current replica group's name
-     * @fn String getGroupName()
-     * @brief Get current replica group's name.
+     * Get current replica group's name.
+     * @return the current replica group's name.
      */
     public String getGroupName() {
         return name;
@@ -89,11 +85,10 @@ public class ReplicaGroup {
     }
 
     /**
+     * Get the amount of the nodes with the specified status.
      * @param status Node.NodeStatus
-     * @return the amount of the nodes with the specified status
+     * @return the amount of the nodes with the specified status.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn int getNodeNum(Node.NodeStatus status)
-     * @brief Get the amount of the nodes with the specified status.
      */
     public int getNodeNum(Node.NodeStatus status) throws BaseException {
         BSONObject group = sequoiadb.getDetailById(id);
@@ -111,20 +106,18 @@ public class ReplicaGroup {
     }
 
     /**
-     * @return the detail info
+     * Get detail info of current replicaGroup.
+     * @return the detail info.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn BSONObject getDetail()
-     * @brief Get detail info of current replicaGoup
      */
     public BSONObject getDetail() throws BaseException {
         return sequoiadb.getDetailById(id);
     }
 
     /**
-     * @return the master node
+     * Get the master node of current replica group.
+     * @return the master node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node getMaster()
-     * @brief Get the master node of current replica group.
      */
     public Node getMaster() throws BaseException {
         // get information of nodes from catalog
@@ -188,10 +181,9 @@ public class ReplicaGroup {
     }
 
     /**
-     * @return the slave node
+     * Get the random slave of current replica group.
+     * @return the slave node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node getSlave()
-     * @brief Get the random slave of current replica group.
      */
     public Node getSlave() throws BaseException {
         List<Integer> list = new ArrayList<Integer>();
@@ -331,9 +323,8 @@ public class ReplicaGroup {
     }
 
     /**
-     * @fn boolean isNodeExist(String nodeName)
-     * @brief whether the specified node exists in current group or not
-     * @param nodeName the name of the node. e.g. "192.168.20.165:20000"
+     * Whether the specified node exists in current group or not.
+     * @param nodeName the name of the node. e.g. "192.168.20.165:20000".
      * @return true or false
      */
     public boolean isNodeExist(String nodeName) {
@@ -346,11 +337,10 @@ public class ReplicaGroup {
     }
 
     /**
-     * @fn boolean isNodeExist(String hostName, int port)
-     * @brief whether the specified node exists in current group or not
-     * @param hostName the hostname of the node
-     * @param port the port of the node
-     * @return true or false
+     * Whether the specified node exists in current group or not.
+     * @param hostName the hostname of the node.
+     * @param port the port of the node.
+     * @return true or false.
      */
     public boolean isNodeExist(String hostName, int port) {
         try {
@@ -362,11 +352,10 @@ public class ReplicaGroup {
     }
 
     /**
-     * @param nodeName The name of the node
-     * @return the specified node
+     * Get node by node's name (IP:PORT).
+     * @param nodeName The name of the node.
+     * @return the specified node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node getNode(String nodeName)
-     * @brief Get node by node's name (IP:PORT).
      */
     public Node getNode(String nodeName) throws BaseException {
         // check arguemnt
@@ -390,12 +379,11 @@ public class ReplicaGroup {
     }
 
     /**
+     * Get node by hostName and port.
      * @param hostName host name
      * @param port     port
-     * @return the Node object
+     * @return the Node object.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node getNode(String hostName, int port)
-     * @brief Get node by hostName and port.
      */
     public Node getNode(String hostName, int port) throws BaseException {
         Node node = getNodeByMetaInfo(hostName, port);
@@ -418,7 +406,7 @@ public class ReplicaGroup {
      *                               node. This option has no default value. User
      *                               should specify its value explicitly.</li>
      *                </ul>
-     * @return the attach Node object
+     * @return the attach Node object.
      * @throws BaseException If error happens.
      */
     public Node attachNode(String hostName, int port,
@@ -498,15 +486,13 @@ public class ReplicaGroup {
     }
 
     /**
+     * Create node.
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
      * @param configure configuration for this operation
      * @return the created Node object
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Node createNode(String hostName, int port, String dbPath,
-     * Map<String, String> configure)
-     * @brief Create node.
      * @deprecated we have override this api by passing a "BSONObject" instead of a "Map"
      */
     public Node createNode(String hostName, int port, String dbPath,
@@ -538,8 +524,7 @@ public class ReplicaGroup {
     }
 
     /**
-     * @fn Node createNode(String hostName, int port, String dbPath, BSONObject configure)
-     * @brief Create node.
+     * Create node.
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
@@ -576,8 +561,7 @@ public class ReplicaGroup {
     }
 
     /**
-     * @fn Node createNode(String hostName, int port, String dbPath)
-     * @brief Create node.
+     * Create node.
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
@@ -589,13 +573,11 @@ public class ReplicaGroup {
     }
 
     /**
+     * Remove node.
      * @param hostName  host name
      * @param port      port
      * @param configure configuration for this operation
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void removeNode(String hostName, int port,
-     * BSONObject configure)
-     * @brief Remove node.
      */
     public void removeNode(String hostName, int port,
                            BSONObject configure) throws BaseException {
@@ -623,10 +605,9 @@ public class ReplicaGroup {
     }
 
     /**
+     * Start current replica group.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void start()
-     * @brief Start current replica group.
      */
     public void start() throws BaseException {
         BSONObject groupName = new BasicBSONObject();
@@ -640,10 +621,9 @@ public class ReplicaGroup {
     }
 
     /**
+     * Stop current replica group.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void stop()
-     * @brief Stop current replica group.
      */
     public void stop() throws BaseException {
         BSONObject groupName = new BasicBSONObject();
@@ -657,9 +637,8 @@ public class ReplicaGroup {
     }
 
     /**
+     * Judge whether current replicaGroup is catalog replica group or not.
      * @return true is while false is not
-     * @fn boolean isCatalog()
-     * @brief Judge whether current replicaGroup is catalog replica group or not.
      */
     public boolean isCatalog() {
         return isCataRG;

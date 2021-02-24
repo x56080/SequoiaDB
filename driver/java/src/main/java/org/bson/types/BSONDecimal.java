@@ -115,17 +115,15 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     public static final int DECIMAL_HEADER_SIZE = 12;
 	
     /**
-	 * @fn String getValue()
-	 * @brief get the value of decimal
-	 * @return the value of decimal
+	 * Get the value of decimal.
+	 * @return the value of decimal.
 	 */
 	public String getValue() {
 		return _value;
 	}
 
 	/**
-	 * @fn int getPrecision()
-	 * @brief get the precision of decimal
+	 * Get the precision of decimal
 	 * @note  When user specify precision, the range of it is [1, 1000]. When user did not specify 
      * 	precision, it will be set to -1. That means the precision is determined 
      * 	by database. For decimal, database allow 131072 digits before decimal point and 16383 digits
@@ -138,8 +136,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn int getScale()
-	 * @brief get the scale of the decimal
+	 * Get the scale of the decimal.
 	 * @note When user specify scale, the range of it is [0, precision]. 
      * 	When user did not specify scale, it will be set to -1. 
      * 	That means the scale is determined 
@@ -248,8 +245,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn BSONDecimal(BigDecimal value)
-	 * @brief transform a BigDecimal object to a BSONDecimal object.
+	 * Transform a BigDecimal object to a BSONDecimal object.
 	 * @param value
 	 *            a BigDecimal to be transformed
 	 * @throws IllegalArgumentException  
@@ -279,9 +275,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn BSONDecimal_notdisplay(int size, int typemod, 
-     *		short signscale, short weight, short[] digits)
-     * @brief Constructor for decoder.
+	 * Constructor for decoder.
 	 * @param size 
 	 * 		total size of this decimal(4+4+2+2+digits.Length).
 	 * @param typemod
@@ -340,8 +334,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 	
 	/**
-	 * @fn BigDecimal toBigDecimal()
-	 * @brief transform to BigDecimal object
+	 * Transform to BigDecimal object
 	 * @note The meaning of "precision" and "scale" defined in BSONDecimal are
 	 *       different from that defined in BigDecimal.
 	 *       <p>
@@ -391,8 +384,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn boolean isMax()
-	 * @brief Whether current decimal object represents a positive infinite value
+	 * Whether current decimal object represents a positive infinite value
 	 * @return true or false
 	 */
 	public boolean isMax() {
@@ -400,8 +392,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn boolean isMin()
-	 * @brief Whether current decimal object represents a negative infinite value
+	 * Whether current decimal object represents a negative infinite value
 	 * @return true or false
 	 */
 	public boolean isMin() {
@@ -409,8 +400,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
 	/**
-	 * @fn boolean isNan()
-	 * @brief Whether current decimal object represents a not a number value
+	 * Whether current decimal object represents a not a number value
 	 * @return true or false
 	 */
 	public boolean isNan() {
@@ -418,8 +408,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 
     /**
-     * @fn     int compareTo(BSONDecimal val)
-     * @brief  Compares this BSONDecimal with the specified
+     * Compares this BSONDecimal with the specified
      *         BSONDecimal.  Two BSONDecimal objects that are
      *         equal in value(this method does not consider precision and scale, 
      *         so 2.0 and 2.00 are considered equal by this method).  
@@ -429,7 +418,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
      *         The suggested idiom for performing these comparisons is:
      *         (x.compareTo(y) <<i>op</i>> 0), where <<i>op</i>> is 
      *         one of the six comparison operators.
-     * @param  val BSONDecimal to which this BSONDecimal is
+     * @param  other BSONDecimal to which this BSONDecimal is
      *         to be compared.
      * @return -1, 0, or 1 as this BSONDecimal is numerically 
      *         less than, equal to, or greater than val.
@@ -441,8 +430,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	}
 	
     /**
-     * @fn     boolean equals(Object x)
-     * @brief  Compares this BSONDecimal with the specified
+     * Compares this BSONDecimal with the specified
      *         Object for equality.  Like compareTo(BSONDecimal), this method considers two
      *         BigDecimal objects equal only if they are equal in
      *         value, and does not compare the precision and scale (thus 
@@ -451,8 +439,8 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
      * @return true if and only if the specified Object is a
      *         BSONDecimal whose value is equal to this
      *         BSONDecimal's.
-     * @see    compareTo(BSONDecimal)
-     * @see    hashCode
+     * @see    #compareTo(BSONDecimal)
+     * @see    #hashCode
      */
     @Override
     public boolean equals(Object x) {
@@ -470,13 +458,12 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     }
 	
     /**
-     * @fn     int hashCode()
-     * @brief  Returns the hash code for this BSONDecimal.  
+     * Returns the hash code for this BSONDecimal.
      *         Two BSONDecimal objects that are numerically equal
      *         (like 2.0 and 2.00) will generally 
      *         have the same hash code.
      * @return hash code for this BSONDecimal.
-     * @see    equals(Object)
+     * @see    #equals(Object)
      */
     @Override
     public int hashCode(){
@@ -497,8 +484,7 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     }
     
     /**
-     * @fn String toString()
-     * @brief the string value of this object
+     * The string value of this object
      * @return the string value of this object
      */
     @Override

@@ -15,8 +15,8 @@
  *
  */
 /**
+ * SequoiaDB Driver for Java.
  * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
  * @author Jacky Zhang
  */
 package com.sequoiadb.base;
@@ -34,16 +34,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @class CollectionSpace
- * @brief Database operation interfaces of collection space.
+ * Database operation interfaces of collection space.
  */
 public class CollectionSpace {
     private String name;
     private Sequoiadb sequoiadb;
 
     /**
-     * @fn String getName()
-     * @brief Return the name of current collection space.
+     * Get the name of current collection space.
      * @return The collection space name
      */
     public String getName() {
@@ -51,8 +49,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn Sequoiadb getSequoiadb()
-     * @brief Return the Sequoiadb instance of current collection space belong to.
+     * Get the Sequoiadb instance of current collection space belong to.
      * @return Sequoiadb object
      */
     public Sequoiadb getSequoiadb() {
@@ -60,8 +57,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn CollectionSpace(Sequoiadb sequoiadb, String name)
-     * @brief Constructor
+     * Constructor.
      * @param sequoiadb
      *            Sequoiadb handle
      * @param name
@@ -73,8 +69,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn DBCollection getCollection(String collectionName)
-     * @brief Get the named collection
+     * Get the named collection.
      * @param collectionName
      *            The collection name
      * @return the object of the specified collection, or an exception when the collection does not exist.
@@ -98,8 +93,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn boolean isCollectionExist(String colName)
-     * @brief Verify the existence of collection in current collection space
+     * Verify the existence of collection in current collection space.
      * @param colName
      *            The collection name
      * @return True if collection existed or False if not existed
@@ -125,8 +119,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn List<String> getCollectionNames()
-     * @brief Get all the collection names of current collection space
+     * Get all the collection names of current collection space.
      * @return A list of collection names
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -144,8 +137,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn DBCollection createCollection(String collectionName)
-     * @brief Create the named collection in current collection space
+     * Create the named collection in current collection space.
      * @param collectionName
      *            The collection name
      * @return the newly created object of collection
@@ -156,9 +148,7 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn DBCollection createCollection(String collectionName, BSONObject
-     *     options)
-     * @brief Create collection by options
+     * Create collection by options.
      * @param collectionName
      *           The collection name
      * @param options
@@ -189,20 +179,18 @@ public class CollectionSpace {
     }
 
     /**
-     * @fn void drop()
-     * @brief Drop current collectionSpace
+     * Drop current collectionSpace.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      * @deprecated the method will be deprecated in version 2.x, use Sequoiadb.dropCollectionSpace instead
-     * @see com.sequoiadb.base.Sequoiadb.dropCollectionSpace
+     * @see com.sequoiadb.base.Sequoiadb#dropCollectionSpace
      */
     public void drop() throws BaseException {
         sequoiadb.dropCollectionSpace(this.name);
     }
 
     /**
-     * @fn void dropCollection(String collectionName)
-     * @brief Remove the named collection of current collection space
+     * Remove the named collection of current collection space.
      * @param collectionName
      *            The collection name
      * @exception com.sequoiadb.exception.BaseException

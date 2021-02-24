@@ -710,8 +710,7 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 
 
 	/**
-	 * @fn <T> T as(Class<T> cls)
-	 * @brief an instance of the class "cls", only for BasicBSONObject
+	 * An instance of the class "cls", only for BasicBSONObject
 	 * @param cls
 	 *            target class object
 	 * @return the instance of the class

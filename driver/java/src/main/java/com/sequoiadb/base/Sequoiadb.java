@@ -15,8 +15,8 @@
  *
  */
 /**
+ * SequoiaDB Driver for Java.
  * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
  * @author Jacky Zhang
  */
 package com.sequoiadb.base;
@@ -42,8 +42,7 @@ import java.nio.ByteOrder;
 import java.util.*;
 
 /**
- * @class Sequoiadb
- * @brief Database operation interfaces of admin.
+ * Database operation interfaces of admin.
  */
 public class Sequoiadb {
     private ServerAddress serverAddress;
@@ -183,9 +182,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn initClient(ClientOptions options)
-     * @brief Initialize the configuration options for client.
-     * @param options the configuration options for client
+     * Initialize the configuration options for client.
+     * @param options the configuration options for client.
      * @return void
      */
     public static void initClient(ClientOptions options) {
@@ -194,8 +192,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn IConnection getConnection()
-     * @brief Get the current connection to remote server.
+     * Get the current connection to remote server.
      * @return IConnection
      */
     public IConnection getConnection() {
@@ -203,8 +200,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ServerAddress getServerAddress()
-     * @brief Get the address of remote server.
+     * Get the address of remote server.
      * @return ServerAddress
      */
     public ServerAddress getServerAddress() {
@@ -212,6 +208,7 @@ public class Sequoiadb {
     }
 
     /**
+     * Get host name of SequoiaDB server.
      * @return Host name of SequoiaDB server.
      */
     public String getHost() {
@@ -219,6 +216,7 @@ public class Sequoiadb {
     }
 
     /**
+     * Get service port of SequoiaDB server.
      * @return Service port of SequoiaDB server.
      */
     public int getPort() {
@@ -226,29 +224,26 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void setServerAddress(ServerAddress serverAddress)
-     * @brief Set the address of remote server.
+     * Set the address of remote server.
      * @param serverAddress
-     *            the serverAddress object of remote server
+     *            the serverAddress object of remote server.
      */
     public void setServerAddress(ServerAddress serverAddress) {
         this.serverAddress = serverAddress;
     }
 
     /**
-     * @fn boolean isEndianConvert()
-     * @brief Judge the endian of the physical computer
-     * @return Big-Endian for true while Little-Endian for false
+     * Judge the endian of the physical computer.
+     * @return Big-Endian for true while Little-Endian for false.
      */
     public boolean isEndianConvert() {
         return endianConvert;
     }
 
     /**
-     * @fn Sequoiadb(String username, String password)
-     * @brief Constructor. The server address is "127.0.0.1 : 11810".
-     * @param username the user's name of the account
-     * @param password the password of the account
+     * Constructor. The server address is "127.0.0.1 : 11810".
+     * @param username the user's name of the account.
+     * @param password the password of the account.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
      *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table
@@ -265,12 +260,11 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb(String connString, String username, String password)
-     * @brief Constructor.
+     * Constructor.
      * @param connString
-     *            remote server address "IP : Port" or "IP"(port is 50000)
-     * @param username the user's name of the account
-     * @param password the password of the account
+     *            remote server address "IP : Port" or "IP"(port is 50000).
+     * @param username the user's name of the account.
+     * @param password the password of the account.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
      *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table
@@ -281,17 +275,15 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb(String connString, String username,
-     *String password, ConfigOptions options)
-     * @brief Constructor.
+     * Constructor.
      * @param connString
-     *            remote server address "IP : Port" or "IP"(port is 11810)
-     * @param username the user's name of the account
-     * @param password the password of the account
-     * @param options the options for connection
+     *            remote server address "IP : Port" or "IP"(port is 11810).
+     * @param username the user's name of the account.
+     * @param password the password of the account.
+     * @param options the options for connection.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
-     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table
+     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table.
      */
     public Sequoiadb(String connString, String username, String password,
                      ConfigOptions options) throws BaseException {
@@ -312,16 +304,14 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb(List<String> connStrings, String username, String password,
-     *ConfigOptions options)
-     * @brief Constructor, use a random valid address to connect to database.
-     * @param connStrings The array of the coord's address
-     * @param username the user's name of the account
-     * @param password the password  of the account
-     * @param options the options for connection
+     * Constructor, use a random valid address to connect to database.
+     * @param connStrings The array of the coord's address.
+     * @param username the user's name of the account.
+     * @param password the password  of the account.
+     * @param options the options for connection.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
-     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table in local computer
+     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table in local computer.
      */
     public Sequoiadb(List<String> connStrings, String username, String password,
                      ConfigOptions options) throws BaseException {
@@ -373,15 +363,14 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb(String addr, int port, String username, String password)
-     * @brief Constructor.
-     * @param addr the address of coord
-     * @param port the port of coord
-     * @param username the user's name of the account
-     * @param password the password  of the account
+     * Constructor.
+     * @param addr the address of coord.
+     * @param port the port of coord.
+     * @param username the user's name of the account.
+     * @param password the password  of the account.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
-     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table
+     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table.
      */
     public Sequoiadb(String addr, int port, String username, String password)
             throws BaseException {
@@ -403,16 +392,14 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb(String addr, int port, String username,
-     *String password, ConfigOptions options)
-     * @brief Constructor.
-     * @param addr the address of coord
-     * @param port the port of coord
-     * @param username the user's name of the account
-     * @param password the password of the account
+     * Constructor.
+     * @param addr the address of coord.
+     * @param port the port of coord.
+     * @param username the user's name of the account.
+     * @param password the password of the account.
      * @exception com.sequoiadb.exception.BaseException
      *            "SDB_NETWORK" means network error,
-     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table
+     *            "SDB_INVALIDARG" means wrong address or the address don't map to the hosts table.
      */
     public Sequoiadb(String addr, int port,
                      String username, String password,
@@ -434,8 +421,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn auth()
-     * @brief authentication
+     * Authentication.
      */
     private void auth() {
         endianConvert = requestSysInfo();
@@ -457,12 +443,11 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void createUser(String username, String password)
-     * @brief Add an user in current database.
+     * Add an user in current database.
      * @param username
-     *            The connection user name
+     *            The connection user name.
      * @param password
-     *            The connection password
+     *            The connection password.
      */
     public void createUser(String username, String password) throws BaseException {
         if (username == null || password == null) {
@@ -485,12 +470,11 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void removeUser(String username, String password)
-     * @brief Remove the spacified user from current database.
+     * Remove the spacified user from current database.
      * @param username
-     *            The connection user name
+     *            The connection user name.
      * @param password
-     *            The connection password
+     *            The connection password.
      */
     public void removeUser(String username, String password) throws BaseException {
         byte[] request = SDBMessageHelper.buildAuthMsg(username, password,
@@ -510,8 +494,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void disconnect()
-     * @brief Disconnect from the remote server.
+     * Disconnect from the remote server.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -529,8 +512,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void releaseResource()
-     * @brief Release the resource of the connection.
+     * Release the resource of the connection.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      * @since v1.2.6 && v2.2
@@ -542,9 +524,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isClosed()
-     * @brief Whether the socket has been closed or not.
-     * @return return true when the socket has been
+     * Whether the socket has been closed or not.
+     * @return return true when the socket has been.
      * @since v1.2.6 && v2.2
      */
     public boolean isClosed() {
@@ -554,9 +535,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isValid()
-     * @brief Send a test message to database to test whether the connection is valid or not.
-     * @return if the connection is valid, return true
+     * Send a test message to database to test whether the connection is valid or not.
+     * @return if the connection is valid, return true.
      * @exception com.sequoiadb.exception.BaseException
      */
     public boolean isValid() throws BaseException {
@@ -573,10 +553,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void changeConnectionOptions(ConfigOptions opts)
-     * @brief Change the connection options.
+     * Change the connection options.
      * @param opts
-     *            The connection options
+     *            The connection options.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void changeConnectionOptions(ConfigOptions opts)
@@ -586,11 +565,10 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn CollectionSpace createCollectionSpace(String collectionSpaceName)
-     * @brief Create the named collection space with default SDB_PAGESIZE_4K.
+     * Create the named collection space with default SDB_PAGESIZE_4K.
      * @param csName
-     *            The collection space name
-     * @return the newly created collection space object
+     *            The collection space name.
+     * @return the newly created collection space object.
      * @exception com.sequoiadb.exception.BaseException
      */
     public CollectionSpace createCollectionSpace(String csName)
@@ -599,9 +577,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn CollectionSpace createCollectionSpace(String collectionSpaceName, int pageSize)
-     * @brief Create collection space.
-     * @param csName The name of collection space
+     * Create collection space.
+     * @param csName The name of collection space.
      * @param pageSize The Page Size as below:
      * <ul>
      * <li> SDB_PAGESIZE_4K
@@ -611,7 +588,7 @@ public class Sequoiadb {
      * <li> SDB_PAGESIZE_64K
      * <li> SDB_PAGESIZE_DEFAULT
      * </ul>
-     * @return the newly created collection space object
+     * @return the newly created collection space object.
      * @exception com.sequoiadb.exception.BaseException
      */
     public CollectionSpace createCollectionSpace(String csName, int pageSize)
@@ -622,13 +599,12 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn CollectionSpace createCollectionSpace(String csName, BSONObject options)
-     * @brief Create collection space.
-     * @param csName The name of collection space
+     * Create collection space.
+     * @param csName The name of collection space.
      * @param options Contains configuration informations for create collection space. The options are as below:
      * <ul>
-     * <li>PageSize    : Assign how large the page size is for the collection created in this collection space, default to be 64K
-     * <li>Domain    : Assign which domain does current collection space belong to, it will belongs to the system domain if not assign this option
+     * <li>PageSize    : Assign how large the page size is for the collection created in this collection space, default to be 64K.
+     * <li>Domain    : Assign which domain does current collection space belong to, it will belongs to the system domain if not assign this option.
      * </ul>
      * @return the newly created collection space object
      * @exception com.sequoiadb.exception.BaseException
@@ -648,10 +624,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void dropCollectionSpace(String collectionSpaceName)
-     * @brief Remove the named collection space.
+     * Remove the named collection space.
      * @param csName
-     *            The collection space name
+     *            The collection space name.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void dropCollectionSpace(String csName) throws BaseException {
@@ -771,14 +746,13 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void sync(BSONObject options)
-     * @brief sync the database
+     * Sync the database.
      * @param options The control options:(can be null)
      *                <ul>
      *                <li>
      *                    Deep:int
     Flush with deep mode or not. 1 in default.
-    0 for non-deep mode,1 for deep mode,-1 means use the configuration with server
+    0 for non-deep mode,1 for deep mode,-1 means use the configuration with server.
      *                </li>
      *                <li>
      *                    Block:boolean
@@ -813,8 +787,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void sync()
-     * @brief sync the whole database
+     * Sync the whole database.
      * @throws BaseException
      * @since 2.8
      */
@@ -823,8 +796,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn CollectionSpace getCollectionSpace(String csName)
-     * @brief Get the named collection space.
+     * Get the named collection space.
      * @param csName
      *            The collection space name.
      * @return the object of the specified collection space, or an exception when the collection space does not exist.
@@ -847,11 +819,10 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isCollectionSpaceExist(String csName)
-     * @brief Verify the existence of collection space.
+     * Verify the existence of collection space.
      * @param csName
-     *            The collecion space name
-     * @return True if existed or False if not existed
+     *            The collecion space name.
+     * @return True if existed or False if not existed.
      * @exception com.sequoiadb.exception.BaseException
      */
     public boolean isCollectionSpaceExist(String csName) throws BaseException {
@@ -874,9 +845,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listCollectionSpaces()
-     * @brief Get all the collecionspaces.
-     * @return cursor of all collecionspace names
+     * Get all the collecionspaces.
+     * @return cursor of all collecionspace names.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor listCollectionSpaces() throws BaseException {
@@ -885,9 +855,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ArrayList<String> getCollectionSpaceNames()
-     * @brief Get all the collecion space names
-     * @return A list of all collecion space names
+     * Get all the collecion space names.
+     * @return A list of all collecion space names.
      * @exception com.sequoiadb.exception.BaseException
      */
     public ArrayList<String> getCollectionSpaceNames() throws BaseException {
@@ -907,9 +876,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listCollections()
-     * @brief Get all the collections
-     * @return dbCursor of all collecions
+     * Get all the collections.
+     * @return dbCursor of all collecions.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor listCollections() throws BaseException {
@@ -918,9 +886,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ArrayList<String> getCollectionNames()
-     * @brief Get all the collection names
-     * @return A list of all collecion names
+     * Get all the collection names.
+     * @return A list of all collecion names.
      * @exception com.sequoiadb.exception.BaseException
      */
     public ArrayList<String> getCollectionNames() throws BaseException {
@@ -940,9 +907,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn List<BSONObject> getStorageUnits()
-     * @brief Get all the storage units
-     * @return A list of all storage units
+     * Get all the storage units.
+     * @return A list of all storage units.
      * @exception com.sequoiadb.exception.BaseException
      */
     public ArrayList<String> getStorageUnits() throws BaseException {
@@ -963,8 +929,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void resetSnapshot()
-     * @brief Reset the snapshot.
+     * Reset the snapshot.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -973,6 +938,7 @@ public class Sequoiadb {
     }
 
     /**
+     * Reset the snapshot.
      * @param options The control options:(can be null)
      *                <ul>
      *                <li>
@@ -1003,8 +969,6 @@ public class Sequoiadb {
      *                </ul>
      * @return void
      * @throws BaseException If error happens.
-     * @fn void resetSnapshot(BSONObject options)
-     * @brief Reset the snapshot.
      */
     public void resetSnapshot(BSONObject options) throws BaseException {
         String commandString = SequoiadbConstants.SNAP_CMD + " "
@@ -1018,9 +982,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy, BSONObject hint,
-     *                      long skipRows, long returnRows)
-     * @brief Get the informations of specified type.
+     * Get the informations of specified type.
      * @param listType The list type as below:
      *                 <dl>
      *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS   : Get all contexts list
@@ -1052,9 +1014,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getList(int listType, BSONObject query, BSONObject selector,
-    BSONObject orderBy)
-     * @brief Get the informations of specified type.
+     * Get the informations of specified type.
      * @param listType The list type as below:
      *                 <dl>
      *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS   : Get all contexts list
@@ -1082,13 +1042,12 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void flushConfigure(BSONObject param)
-     * @brief Flush the options to configuration file
+     * Flush the options to configuration file.
      * @param param
      *            The param of flush, pass {"Global":true} or {"Global":false}
      *            In cluster environment, passing {"Global":true} will flush data's and catalog's configuration file,
      *            while passing {"Global":false} will flush coord's configuration file
-     *            In stand-alone environment, both them have the same behaviour
+     *            In stand-alone environment, both them have the same behaviour.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void flushConfigure(BSONObject param) throws BaseException {
@@ -1100,8 +1059,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void execUpdate(String sql)
-     * @brief Execute sql in database.
+     * Execute sql in database.
      * @param sql the SQL command.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1125,10 +1083,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor exec(String sql)
-     * @brief Execute sql in database.
-     * @param sql the SQL command
-     * @return the DBCursor of the result
+     * Execute sql in database.
+     * @param sql the SQL command.
+     * @return the DBCursor of the result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor exec(String sql) throws BaseException {
@@ -1156,9 +1113,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getSnapshot(int snapType, String matcher, String selector,
-     *     String orderBy)
-     * @brief Get snapshot of the database.
+     * Get snapshot of the database.
      * @param snapType The snapshot types are as below:
      *                 <dl>
      *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
@@ -1173,10 +1128,10 @@ public class Sequoiadb {
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS           : Get the snapshot of all the transactions
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT        : Get the snapshot of current transactions
      *                 </dl>
-     * @param matcher  the matching rule, match all the documents if null
-     * @param selector the selective rule, return the whole document if null
-     * @param orderBy  the ordered rule, never sort if null
-     * @return the DBCursor instance of the result
+     * @param matcher  the matching rule, match all the documents if null.
+     * @param selector the selective rule, return the whole document if null.
+     * @param orderBy  the ordered rule, never sort if null.
+     * @return the DBCursor instance of the result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor getSnapshot(int snapType, String matcher, String selector,
@@ -1195,10 +1150,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getSnapshot(int snapType, BSONObject matcher,
-     *                           BSONObject selector, BSONObject orderBy, BSONObject hint,
-     *                           long skipRows, long returnRows)
-     * @brief Get snapshot of the database.
+     * Get snapshot of the database.
      * @param snapType The snapshot types are as below:
      *                 <dl>
      *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
@@ -1213,13 +1165,13 @@ public class Sequoiadb {
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS        : Get snapshot of transactions in current session
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT           : Get snapshot of all the transactions
      *                 </dl>
-     * @param matcher  the matching rule, match all the documents if null
-     * @param selector the selective rule, return the whole document if null
-     * @param orderBy  the ordered rule, never sort if null
+     * @param matcher  the matching rule, match all the documents if null.
+     * @param selector the selective rule, return the whole document if null.
+     * @param orderBy  the ordered rule, never sort if null.
      * @param hint     Reserved.
      * @param skipRows   Reserved.
      * @param returnRows Reserved.
-     * @return the DBCursor instance of the result
+     * @return the DBCursor instance of the result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor getSnapshot(int snapType, BSONObject matcher,
@@ -1283,9 +1235,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor getSnapshot(int snapType, BSONObject matcher, BSONObject
-     *     selector, BSONObject orderBy)
-     * @brief Get snapshot of the database.
+     * Get snapshot of the database.
      * @param snapType The snapshot types are as below:
      *                 <dl>
      *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS   : Get all contexts' snapshot
@@ -1300,10 +1250,10 @@ public class Sequoiadb {
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS        : Get snapshot of transactions in current session
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT           : Get snapshot of all the transactions
      *                 </dl>
-     * @param matcher  the matching rule, match all the documents if null
-     * @param selector the selective rule, return the whole document if null
-     * @param orderBy  the ordered rule, never sort if null
-     * @return the DBCursor instance of the result
+     * @param matcher  the matching rule, match all the documents if null.
+     * @param selector the selective rule, return the whole document if null.
+     * @param orderBy  the ordered rule, never sort if null.
+     * @return the DBCursor instance of the result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor getSnapshot(int snapType, BSONObject matcher,
@@ -1312,8 +1262,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void beginTransaction()
-     * @brief Begin the transaction.
+     * Begin the transaction.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1335,8 +1284,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void commit()
-     * @brief Commit the transaction.
+     * Commit the transaction.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1358,8 +1306,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void rollback()
-     * @brief Rollback the transaction.
+     * Rollback the transaction.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1381,9 +1328,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void crtJSProcedure ( String code )
-     * @brief Create a store procedure.
-     * @param code The code of store procedure
+     * Create a store procedure.
+     * @param code The code of store procedure.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void crtJSProcedure(String code) throws BaseException {
@@ -1407,9 +1353,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void rmProcedure ( String name )
-     * @brief Remove a store procedure.
-     * @param name The name of store procedure to be removed
+     * Remove a store procedure.
+     * @param name The name of store procedure to be removed.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void rmProcedure(String name) throws BaseException {
@@ -1430,9 +1375,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listProcedures ( BSONObject condition )
-     * @brief List the store procedures.
-     * @param condition The condition of list eg: {"name":"sum"}. return all if null
+     * List the store procedures.
+     * @param condition The condition of list eg: {"name":"sum"}. return all if null.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor listProcedures(BSONObject condition) throws BaseException {
@@ -1441,9 +1385,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Sequoiadb.SptEvalResult evalJS ( String code )
-     * @brief Eval javascript code.
-     * @param code The javasript code
+     * Eval javascript code.
+     * @param code The javasript code.
      * @return The result of the eval operation, including the return value type,
      *         the return data and the error message. If succeed to eval, error message is null,
      *         and we can extract the eval result from the return cursor and return type,
@@ -1488,8 +1431,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void backupOffline ( BSONObject options )
-     * @brief Backup the whole database or specifed replica group.
+     * Backup the whole database or specifed replica group.
      * @param options Contains a series of backup configuration infomations. 
      *        Backup the whole cluster if null. The "options" contains 5 options as below. 
      *        All the elements in options are optional. 
@@ -1524,9 +1466,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listBackup ( BSONObject options, BSONObject matcher,
-    BSONObject selector, BSONObject orderBy )
-     * @brief List the backups.
+     * List the backups.
      * @param options  Contains configuration information for listing backups, list all the backups in the default backup path if null.
      *                 The "options" contains several options as below. All the elements in options are optional.
      *                 eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
@@ -1539,9 +1479,9 @@ public class Sequoiadb {
      *                 <li>Prefix      : Specified the prefix name of the backups, support for using wildcards("%g","%G","%h","%H","%s","%s"),such as: Prefix:"%g_bk_", default to not using wildcards.
      *                 <li>Detail      : Display the detail of the backups or not, default to be false.
      *                 </ul>
-     * @param matcher The matching rule, return all the documents if null
-     * @param selector The selective rule, return the whole document if null
-     * @param orderBy The ordered rule, never sort if null
+     * @param matcher The matching rule, return all the documents if null.
+     * @param selector The selective rule, return the whole document if null.
+     * @param orderBy The ordered rule, never sort if null.
      * @return the DBCursor of the backup or null while having no backup infonation. 
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1568,8 +1508,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void removeBackup ( BSONObject options )
-     * @brief Remove the backups.
+     * Remove the backups.
      * @param options Contains configuration information for removing backups, remove all the backups in the default backup path if null.
      *                The "options" contains several options as below. All the elements in options are optional.
      *                eg: {"GroupName":["rgName1", "rgName2"], "Path":"/opt/sequoiadb/backup", "Name":"backupName"}
@@ -1595,12 +1534,10 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listTasks ( BSONObject matcher, BSONObject selector,
-     *		                    BSONObject orderBy, BSONObject hint )
-     * @brief List the tasks.
-     * @param matcher The matching rule, return all the documents if null
-     * @param selector The selective rule, return the whole document if null
-     * @param orderBy The ordered rule, never sort if null
+     * List the tasks.
+     * @param matcher The matching rule, return all the documents if null.
+     * @param selector The selective rule, return the whole document if null.
+     * @param orderBy The ordered rule, never sort if null.
      * @param hint
      *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
      *            using index "ageIndex" to scan data(index scan); 
@@ -1629,9 +1566,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor waitTasks (long[] taskIDs)
-     * @brief Wait the tasks to finish.
-     * @param taskIDs The array of task id
+     * Wait the tasks to finish.
+     * @param taskIDs The array of task id.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void waitTasks(long[] taskIDs) throws BaseException {
@@ -1658,9 +1594,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor cancelTask ( long taskID, boolean isAsync )
-     * @brief Cancel the specified task.
-     * @param taskID The task id
+     * Cancel the specified task.
+     * @param taskID The task id.
      * @param isAsync The operation "cancel task" is async or not,
      *                "true" for async, "false" for sync. Default sync.
      * @exception com.sequoiadb.exception.BaseException
@@ -1698,8 +1633,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void setSessionAttr( BSONObject options )
-     * @brief Set the attributes of the current session.
+     * Set the attributes of the current session.
      * @param options The configuration options for the current session.The options are as below:
      *                <ul>
      *                <li>PreferedInstance : Preferred instance for read request in the current session. Could be single value in "M", "m", "S", "s", "A", "a", 1-255, or BSON Array to include multiple values. e.g. { "PreferedInstance" : [ 1, 7 ] }.
@@ -1766,8 +1700,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn BSONObject getSessionAttr()
-     * @brief Get the attributes of the current session.
+     * Get the attributes of the current session.
      * @return the BSONObject of the session attribute.
      * @exception com.sequoiadb.exception.BaseException
      * @since 2.8.5
@@ -1794,8 +1727,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void closeAllCursors()
-     * @brief Close all the cursors created in current connection, we can't use those cursors to get
+     * Close all the cursors created in current connection, we can't use those cursors to get
      *        data again.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
@@ -1808,8 +1740,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listReplicaGroups()
-     * @brief List all the replica group.
+     * List all the replica group.
      * @return information of all replica groups.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1819,10 +1750,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isDomainExist(String domainName)
-     * @brief Verify the existence of domain.
-     * @param domainName the name of domain
-     * @return True if existed or False if not existed
+     * Verify the existence of domain.
+     * @param domainName the name of domain.
+     * @return True if existed or False if not existed.
      * @exception com.sequoiadb.exception.BaseException
      */
     public boolean isDomainExist(String domainName) throws BaseException {
@@ -1844,9 +1774,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Domain createDomain(String domainName, BSONObject options)
-     * @brief Create a domain.
-     * @param domainName The name of the creating domain
+     * Create a domain.
+     * @param domainName The name of the creating domain.
      * @param options The options for the domain. The options are as below:
      * <ul>
      * <li>Groups    : the list of the replica groups' names which the domain is going to contain.
@@ -1885,9 +1814,8 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void dropDomain(String domainName)
-     * @brief Drop a domain.
-     * @param domainName the name of the domain
+     * Drop a domain.
+     * @param domainName the name of the domain.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void dropDomain(String domainName) throws BaseException {
@@ -1907,12 +1835,11 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn Domain getDomain(String domainName)
-     * @brief Get the specified domain.
-     * @param domainName the name of the domain
-     * @return the Domain instance
+     * Get the specified domain.
+     * @param domainName the name of the domain.
+     * @return the Domain instance.
      * @exception com.sequoiadb.exception.BaseException
-     *            If the domain not exit, throw BaseException with the error type "SDB_CAT_DOMAIN_NOT_EXIST"
+     *            If the domain not exit, throw BaseException with the error type "SDB_CAT_DOMAIN_NOT_EXIST".
      */
     public Domain getDomain(String domainName)
             throws BaseException {
@@ -1924,12 +1851,10 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBCursor listDomains(BSONObject matcher, BSONObject selector,
-    BSONObject orderBy, BSONObject hint)
-     * @brief List domains.
-     * @param matcher the matching rule, return all the documents if null
-     * @param selector the selective rule, return the whole document if null
-     * @param orderBy the ordered rule, never sort if null
+     * List domains.
+     * @param matcher the matching rule, return all the documents if null.
+     * @param selector the selective rule, return the whole document if null.
+     * @param orderBy the ordered rule, never sort if null.
      * @param hint
      *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
      *            using index "ageIndex" to scan data(index scan); 
@@ -1943,8 +1868,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ArrayList<String> getReplicaGroupNames()
-     * @brief Get all the replica groups' name.
+     * Get all the replica groups' name.
      * @return A list of all the replica groups' names.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1965,8 +1889,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn List<String> getReplicaGroupsInfo()
-     * @brief Get the infomations of the replica groups.
+     * Get the infomations of the replica groups.
      * @return A list of informations of the replica groups.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -1987,10 +1910,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isReplicaGroupExist(String rgName)
-     * @brief whether the replica group exists in the database or not
-     * @param rgName replica group's name
-     * @return true or false
+     * Whether the replica group exists in the database or not.
+     * @param rgName replica group's name.
+     * @return true or false.
      */
     public boolean isRelicaGroupExist(String rgName) {
         BSONObject rg = getDetailByName(rgName);
@@ -2002,10 +1924,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn boolean isReplicaGroupExist(int rgId)
-     * @brief whether the replica group exists in the database or not
-     * @param rgId id of replica group
-     * @return true or false
+     * Whether the replica group exists in the database or not.
+     * @param rgId id of replica group.
+     * @return true or false.
      */
     public boolean isReplicaGroupExist(int rgId) {
         BSONObject rg = getDetailById(rgId);
@@ -2017,10 +1938,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ReplicaGroup getReplicaGroup(String rgName)
-     * @brief Get replica group by name.
+     * Get replica group by name.
      * @param rgName
-     *            replica group's name
+     *            replica group's name.
      * @return A replica group object or null for not exit.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -2035,10 +1955,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ReplicaGroup getReplicaGroup(int rgId)
-     * @brief Get replica group by id.
+     * Get replica group by id.
      * @param rgId
-     *            replica group id
+     *            replica group id.
      * @return A replica group object or null for not exit.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -2052,10 +1971,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn ReplicaGroup createReplicaGroup(String rgName)
-     * @brief Create replica group by name.
+     * Create replica group by name.
      * @param rgName
-     *            replica group's name
+     *            replica group's name.
      * @return A replica group object.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -2073,10 +1991,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void removeReplicaGroup(String rgName)
-     * @brief Remove replica group by name.
+     * Remove replica group by name.
      * @param rgName
-     *            replica group's name
+     *            replica group's name.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void removeReplicaGroup(String rgName)
@@ -2096,10 +2013,9 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void activateReplicaGroup(String rgName)
-     * @brief Active replica group by name.
+     * Active replica group by name.
      * @param rgName
-     *            replica group name
+     *            replica group name.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void activateReplicaGroup(String rgName)
@@ -2115,17 +2031,15 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn void createReplicaCataGroup(String hostName, int port, String dbPath,
-     *     BSONObject configuration)
-     * @brief Create the replica Catalog group with the given options.
+     * Create the replica Catalog group with the given options.
      * @param hostName
-     *            The host name
+     *            The host name.
      * @param port
-     *            The port
+     *            The port.
      * @param dbPath
-     *            The database path
+     *            The database path.
      * @param configure
-     *            The configure options
+     *            The configure options.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void createReplicaCataGroup(String hostName, int port,
@@ -2498,8 +2412,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @class SptEvalResult
-     * @brief Class for executing stored procedure result.
+     * Class for executing stored procedure result.
      */
     public static class SptEvalResult {
         private SptReturnType returnType;
@@ -2507,8 +2420,7 @@ public class Sequoiadb {
         private DBCursor cursor;
 
         /**
-         * @fn SptEvalResult ()
-         * @brief Constructor.
+         * Constructor.
          */
         public SptEvalResult() {
             returnType = null;
@@ -2517,40 +2429,36 @@ public class Sequoiadb {
         }
 
         /**
-         * @fn setReturnType ()
-         * @brief Set return type.
+         * Set return type.
          */
         public void setReturnType(SptReturnType returnType) {
             this.returnType = returnType;
         }
 
         /**
-         * @fn SptReturnType getReturnType ()
-         * @brief Get return type.
+         * Get return type.
+         * @return The type of the return object.
          */
         public SptReturnType getReturnType() {
             return returnType;
         }
 
         /**
-         * @fn setErrMsg ()
-         * @brief Set error type.
+         * Set error type.
          */
         public void setErrMsg(BSONObject errmsg) {
             this.errmsg = errmsg;
         }
 
         /**
-         * @fn BSONObject getErrMsg ()
-         * @brief Get error type.
+         * Get error type.
          */
         public BSONObject getErrMsg() {
             return errmsg;
         }
 
         /**
-         * @fn setCursor ()
-         * @brief Set result cursor.
+         * Set result cursor.
          */
         public void setCursor(DBCursor cursor) {
             if (this.cursor != null) {
@@ -2560,8 +2468,7 @@ public class Sequoiadb {
         }
 
         /**
-         * @fn DBCursor getCursor ()
-         * @brief Get result cursor.
+         * Get result cursor.
          */
         public DBCursor getCursor() {
             return cursor;
@@ -2603,8 +2510,7 @@ public class Sequoiadb {
     }
 
     /**
-     * @fn DBDataCenter getDataCenter()
-     * @brief get the datacenter
+     * Get the data center.
      * @return DBDataCenter
      * @exception com.sequoiadb.exception.BaseException
      */

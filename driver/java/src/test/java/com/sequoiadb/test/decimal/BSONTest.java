@@ -18,8 +18,7 @@ import java.math.BigDecimal;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author tanzhaobo
- * @brief 测试在嵌套情况下，BSONDecial类型的表现
+ * 测试在嵌套情况下，BSONDecial类型的表现
  */
 public class BSONTest {
 

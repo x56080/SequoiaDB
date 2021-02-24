@@ -21,8 +21,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author tanzhaobo
- * @brief 测试对外的BSONDecimal类型的对外接口
+ * 测试对外的BSONDecimal类型的对外接口
  */
 public class BSONDecimalTest {
 

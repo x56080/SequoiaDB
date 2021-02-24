@@ -20,8 +20,7 @@ import java.util.Random;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author tanzhaobo
- * @brief 测试数据正确性
+ * 测试数据正确性
  */
 public class CorrectnessTest {
 

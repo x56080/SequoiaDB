@@ -13,13 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * SequoiaDB Driver for Java
  * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author YouBin Lin
- */
-/**
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
  * @author YouBin Lin
  */
 
@@ -36,60 +31,52 @@ import org.bson.BasicBSONObject;
 import java.nio.ByteBuffer;
 
 /**
- * @class DBDataCenter
- * @brief Operation interfaces of DBDataCenter.
+ * Operation interfaces of DBDataCenter.
  */
 public interface DBDataCenter {
     /**
-     * @fn String getName()
-     * @brief get the DataCenter's Name
+     * Get the DataCenter's Name.
      * @return the Name of DataCenter
      */
     public String getName();
 
     /**
-     * @fn BSONObject getDetail()
-     * @brief get the detail of DataCenter
+     * Get the detail of DataCenter.
      * @return the detail of DataCenter
      * @exception com.sequoiadb.exception.BaseException
      */
     public BSONObject getDetail();
 
     /**
-     * @fn void activate()
-     * @brief activate the DataCenter
+     * Activate the DataCenter.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void activate();
 
     /**
-     * @fn void deactivate()
-     * @brief deactivate the DataCenter
+     * Deactivate the DataCenter.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void deactivate();
 
     /**
-     * @fn void disableReadonly()
-     * @brief disable the DataCenter's read only mode.
+     * Disable the DataCenter's read only mode.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void disableReadonly();
 
     /**
-     * @fn void enableReadonly()
-     * @brief enable the DataCenter's read only mode.
+     * Enable the DataCenter's read only mode.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void enableReadonly();
 
     /**
-     * @fn void createImage(String cataAddrList)
-     * @brief create image
+     * Create image.
      * @param       cataAddrList Catalog address list of remote data center.
      *              e.g. "192.168.20.165:30003"
      *              e.g. "192.168.20.165:30003,192.168.20.166:30003" 
@@ -99,32 +86,28 @@ public interface DBDataCenter {
     public void createImage(String cataAddrList);
 
     /**
-     * @fn void removeImage()
-     * @brief remove image
+     * Remove image.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void removeImage();
 
     /**
-     * @fn void enableImage()
-     * @brief enable image
+     * Enable image.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void enableImage();
 
     /**
-     * @fn void disableImage()
-     * @brief disable image
+     * Disable image.
      * @return void
      * @exception com.sequoiadb.exception.BaseException
      */
     public void disableImage();
 
     /**
-     * @fn void attachGroups(BSONObject groupInfo)
-     * @brief attach specified groups to data center
+     * Attach specified groups to data center.
      * @param       groupInfo The information of groups to attach, 
      *              e.g. {Groups:[["a", "a"], ["b", "b"]]}
      * @return void
@@ -133,8 +116,7 @@ public interface DBDataCenter {
     public void attachGroups(BSONObject groupInfo);
 
     /**
-     * @fn void detachGroups(BSONObject groupInfo)
-     * @brief detach specified groups from data center
+     * Detach specified groups from data center.
      * @param       groupInfo The information of groups to detach, 
      *              e.g. {Groups:[["a", "a"], ["b", "b"]]}
      *              if groupInfo is empty, that suggest to detach all groups

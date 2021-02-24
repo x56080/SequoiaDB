@@ -28,8 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @class DBCursor
- * @brief Database operation interfaces of cursor.
+ * Database operation interfaces of cursor.
  */
 public class DBCursor {
     private long reqId;
@@ -108,10 +107,9 @@ public class DBCursor {
     }
 
     /**
+     * Judge whether the next document exists or not.
      * @return true for next data exists while false for not
      * @throws com.sequoiadb.exception.BaseException
-     * @fn boolean hasNext()
-     * @brief Judge whether the next document exists or not.
      */
     public boolean hasNext() throws BaseException {
         if (connection == null)
@@ -132,8 +130,7 @@ public class DBCursor {
     }
 
     /*
-     * @fn boolean hasNextRaw()
-     * @brief Judge whether next raw data exists.
+     * Judge whether next raw data exists.
      * @return true for next raw data exists while false for not
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -156,13 +153,12 @@ public class DBCursor {
     }
 
     /**
+     * Get next document.
      * @return the next date or null if the cursor is empty
-     * or the cursor is closed
+     * or the cursor is closed.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn BSONObject getNext()
-     * @brief Get next document.
      * @note calling this function after the cursor have been closed
-     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST"
+     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST".
      */
     public BSONObject getNext() throws BaseException {
         if (connection == null)
@@ -179,13 +175,12 @@ public class DBCursor {
     }
 
     /**
+     * Get raw date of next record.
      * @return a byte array of raw date of next record or null
-     * if the cursor is empty
+     * if the cursor is empty.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn byte[] getNextRaw()
-     * @brief Get raw date of next record.
      * @note calling this function after the cursor have been closed
-     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST"
+     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST".
      */
     public byte[] getNextRaw() throws BaseException {
         if (connection == null)
@@ -202,12 +197,11 @@ public class DBCursor {
     }
 
     /**
-     * @return the current date or null if the cursor is empty
+     * Get current document.
+     * @return the current date or null if the cursor is empty.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn BSONObject getCurrent()
-     * @brief Get current document.
      * @note calling this function after the cursor have been closed
-     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST"
+     * will throw BaseException "SDB_RTN_CONTEXT_NOTEXIST".
      */
     public BSONObject getCurrent() throws BaseException {
         if (connection == null)
@@ -220,12 +214,11 @@ public class DBCursor {
     }
 
     /**
-     * @fn void updateCurrent(BSONObject modifier, BSONObject hint)
-     * @brief update current document.
+     * Update current document.
      * @param modifier
-     *            the modify rule
+     *            the modify rule.
      * @param hint
-     *            update by hint
+     *            update by hint.
      * @exception com.sequoiadb.exception.BaseException
      */
     /*
@@ -241,8 +234,7 @@ public class DBCursor {
 	}*/
 
 	/*
-	 * @fn void deleteCurrent()
-	 * @brief delete current data in DB
+	 * Delete current data in DB.
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	/*
@@ -257,10 +249,9 @@ public class DBCursor {
 	*/
 
     /**
+     * Close the cursor.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void close()
-     * @brief Close the cursor.
      */
     public void close() throws BaseException {
         killCursor();

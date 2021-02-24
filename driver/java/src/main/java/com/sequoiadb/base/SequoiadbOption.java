@@ -13,23 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * The options for setting data source
  * @package com.sequoiadb.base;
- * @brief The options for setting data source
  * @author tanzhaobo
  */
-/**
- * @package com.sequoiadb.base;
- * @brief The options for setting data source
- * @author tanzhaobo
- */
+
 package com.sequoiadb.base;
 
 import com.sequoiadb.datasource.DatasourceOptions;
 
 
 /**
- * @class DatasourceOptions
- * @brief The options for setting data source
+ * The options for setting data source.
  * @deprecated
  */
 public class SequoiadbOption extends DatasourceOptions {

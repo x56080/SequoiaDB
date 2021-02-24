@@ -13,13 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * SequoiaDB Driver for Java
  * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author YouBin Lin
- */
-/**
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
  * @author YouBin Lin
  */
 
@@ -42,61 +37,55 @@ import java.nio.ByteOrder;
 import java.util.List;
 
 /**
- * @class DBLob
- * @brief Operation interfaces of DBLob.
+ * Operation interfaces of DBLob.
  */
 public interface DBLob {
     /**
+     * Change the position from the beginning of lob.
      * @memberof SDB_LOB_SEEK_SET 0
-     * @brief Change the position from the beginning of lob 
      */
     public final static int SDB_LOB_SEEK_SET = 0;
 
     /**
+     * Change the position from the current position of lob.
      * @memberof SDB_LOB_SEEK_CUR 1
-     * @brief Change the position from the current position of lob 
      */
     public final static int SDB_LOB_SEEK_CUR = 1;
 
     /**
+     * Change the position from the end of lob.
      * @memberof SDB_LOB_SEEK_END 2
-     * @brief Change the position from the end of lob 
      */
     public final static int SDB_LOB_SEEK_END = 2;
 
     /**
-     * @fn ObjectId getID()
-     * @brief get the lob's id
+     * Get the lob's id.
      * @return the lob's id
      */
     public ObjectId getID();
 
     /**
-     * @fn long getSize()
-     * @brief get the size of lob
+     * Get the size of lob.
      * @return the lob's size
      */
     public long getSize();
 
     /**
-     * @fn long getCreateTime()
-     * @brief get the create time of lob
+     * Get the create time of lob.
      * @return the lob's create time
      */
     public long getCreateTime();
 
     /**
-     * @fn void write( InputStream in )
-     * @brief Writes bytes from the input stream to this lob.
+     * Writes bytes from the input stream to this lob.
      * @param       in   the input stream.
      * @exception com.sequoiadb.exception.BaseException
-     * @note user need to close the input stream
+     * @note user need to close the input stream.
      */
     public void write(InputStream in) throws BaseException;
 
     /**
-     * @fn void write( byte[] b )
-     * @brief Writes <code>b.length</code> bytes from the specified
+     * Writes <code>b.length</code> bytes from the specified
      *              byte array to this lob. 
      * @param       b   the data.
      * @exception com.sequoiadb.exception.BaseException
@@ -104,8 +93,7 @@ public interface DBLob {
     public void write(byte[] b) throws BaseException;
 
     /**
-     * @fn void write( byte[] b, int off, int len )
-     * @brief Writes <code>len</code> bytes from the specified
+     * Writes <code>len</code> bytes from the specified
      *              byte array starting at offset <code>off</code> to this lob. 
      * @param       b   the data.
      * @param       off the start offset in the data.
@@ -115,17 +103,15 @@ public interface DBLob {
     public void write(byte[] b, int off, int len) throws BaseException;
 
     /**
-     * @fn void read( OutputStream out )
-     * @brief Reads the content to the output stream.
+     * Reads the content to the output stream.
      * @param       out   the output stream.
      * @exception com.sequoiadb.exception.BaseException
-     * @note user need to close the output stream
+     * @note user need to close the output stream.
      */
     public void read(OutputStream out) throws BaseException;
 
     /**
-     * @fn int read( byte[] b )
-     * @brief Reads up to <code>b.length</code> bytes of data from this lob into
+     * Reads up to <code>b.length</code> bytes of data from this lob into
      *              an array of bytes. 
      * @param       b   the buffer into which the data is read.
      * @return the total number of bytes read into the buffer, or <code>-1</code> if
@@ -136,8 +122,7 @@ public interface DBLob {
     public int read(byte[] b) throws BaseException;
 
     /**
-     * @fn int read( byte[] b, int off, int len )
-     * @brief Reads up to <code>len</code> bytes of data from this lob into
+     * Reads up to <code>len</code> bytes of data from this lob into
      *              an array of bytes.
      * @param       b   the buffer into which the data is read.
      * @param       off the start offset in the destination array <code>b</code>.
@@ -150,8 +135,7 @@ public interface DBLob {
     public int read(byte[] b, int off, int len) throws BaseException;
 
     /**
-     * @fn seek(long size, int seekType)
-     * @brief change the read position of the lob. The new position is
+     * Change the read position of the lob. The new position is
      *              obtained by adding size to the position specified by 
      *              seekType. If seekType is set to SDB_LOB_SEEK_SET, 
      *              SDB_LOB_SEEK_CUR, or SDB_LOB_SEEK_END, the offset is 
@@ -159,14 +143,12 @@ public interface DBLob {
      *              of lob, or the end of lob.
      * @param       size the adding size.
      * @param       seekType  SDB_LOB_SEEK_SET/SDB_LOB_SEEK_CUR/SDB_LOB_SEEK_END
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void seek(long size, int seekType) throws BaseException;
 
     /**
-     * @fn close()
-     * @brief close the lob
-     * @param       null
+     * Close the lob.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void close() throws BaseException;
@@ -206,8 +188,7 @@ class DBLobConcrete implements DBLob {
     private ByteBuffer _writeBuff =  null;
 
     /**
-     * @fn DBLob(DBCollection cl)
-     * @brief Constructor
+     * Constructor.
      * @param       cl   The instance of DBCollection 
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -221,27 +202,24 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn open()
-     * @brief create a lob, lob's id will auto generate in this function
-     * @exception com.sequoiadb.exception.BaseException.
+     * Create a lob, lob's id will auto generate in this function.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void open() {
         open(null, SDB_LOB_CREATEONLY);
     }
 
     /**
-     * @fn open(ObjectId id)
-     * @brief open an exist lob with id
+     * Open an exist lob with id.
      * @param       id   the lob's id
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void open(ObjectId id) {
         open(id, SDB_LOB_READ);
     }
 
     /**
-     * @fn open(ObjectId id, int mode)
-     * @brief open an exist lob, or create a lob
+     * Open an exist lob, or create a lob.
      * @param       id   the lob's id
      * @param       mode available mode is SDB_LOB_CREATEONLY or SDB_LOB_READ.
      *              SDB_LOB_CREATEONLY 
@@ -249,7 +227,7 @@ class DBLobConcrete implements DBLob {
      *                  be generated in this function;
      *              SDB_LOB_READ
      *                  read an exist lob
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void open(ObjectId id, int mode) throws BaseException {
         if (_isOpen) {
@@ -335,8 +313,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn getID()
-     * @brief get the lob's id
+     * Get the lob's id.
      * @return the lob's id
      */
     public ObjectId getID() {
@@ -344,8 +321,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn getSize()
-     * @brief get the size of lob
+     * Get the size of lob.
      * @return the lob's size
      */
     public long getSize() {
@@ -353,8 +329,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn getCreateTime()
-     * @brief get the create time of lob
+     * Get the create time of lob.
      * @return the lob's create time
      */
     public long getCreateTime() {
@@ -362,8 +337,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn close()
-     * @brief close the lob
+     * Close the lob.
      * @exception com.sequoiadb.exception.BaseException
      */
     public void close() throws BaseException {
@@ -390,8 +364,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn void write( InputStream in )
-     * @brief Writes bytes from the input stream to this lob.
+     * Writes bytes from the input stream to this lob.
      * @param       in   the input stream.
      * @exception com.sequoiadb.exception.BaseException
      */
@@ -418,19 +391,17 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn void write( byte[] b )
-     * @brief Writes <code>b.length</code> bytes from the specified
+     * Writes <code>b.length</code> bytes from the specified.
      *              byte array to this lob. 
      * @param       b   the data.
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void write(byte[] b) throws BaseException {
         write(b, 0, b.length);
     }
 
     /**
-     * @fn void write( byte[] b, int off, int len )
-     * @brief Writes <code>len</code> bytes from the specified
+     * Writes <code>len</code> bytes from the specified
      *              byte array starting at offset <code>off</code> to this lob. 
      * @param       b   the data.
      * @param       off the start offset in the data.
@@ -471,11 +442,10 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn void read( OutputStream out )
-     * @brief Reads data from this
+     * Reads data from this.
      *              lob into the output stream. 
      * @param       out the output stream.
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     @Override
     public void read(OutputStream out) throws BaseException {
@@ -501,23 +471,21 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn read(byte[] b)
-     * @brief Reads up to <code>b.length</code> bytes of data from this
+     * Reads up to <code>b.length</code> bytes of data from this
      *              lob into an array of bytes. 
      * @param       b   the buffer into which the data is read.
      * @return the total number of bytes read into the buffer, or
      *              <code>-1</code> if there is no more data because the end of
      *              the file has been reached, or <code>0<code> if 
      *              <code>b.length</code> is Zero.
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public int read(byte[] b) throws BaseException {
         return read(b, 0, b.length);
     }
 
     /**
-     * @fn int read( byte[] b, int off, int len )
-     * @brief Reads up to <code>len</code> bytes of data from this lob into
+     * Reads up to <code>len</code> bytes of data from this lob into
      *              an array of bytes.
      * @param       b   the buffer into which the data is read.
      * @param       off the start offset in the destination array <code>b</code>.
@@ -555,8 +523,7 @@ class DBLobConcrete implements DBLob {
     }
 
     /**
-     * @fn seek(long size, int seekType)
-     * @brief change the read position of the lob. The new position is
+     * Change the read position of the lob. The new position is
      *              obtained by adding <code>size</code> to the position 
      *              specified by <code>seekType</code>. If <code>seekType</code> 
      *              is set to SDB_LOB_SEEK_SET, SDB_LOB_SEEK_CUR, or SDB_LOB_SEEK_END, 
@@ -564,7 +531,7 @@ class DBLobConcrete implements DBLob {
      *              position of lob, or the end of lob.
      * @param       size the adding size.
      * @param       seekType  SDB_LOB_SEEK_SET/SDB_LOB_SEEK_CUR/SDB_LOB_SEEK_END
-     * @exception com.sequoiadb.exception.BaseException.
+     * @exception com.sequoiadb.exception.BaseException
      */
     public void seek(long size, int seekType) throws BaseException {
         if (!_isOpen) {

@@ -414,8 +414,7 @@ public class BSON {
     // setting display mode
     private static boolean _compatible = false;
 	/**
-	 * @fn void setJSCompatibility(boolean compatible)
-	 * @brief When "compatible" is true, the content of BasicBSONObject method "toString" is show 
+	 * When "compatible" is true, the content of BasicBSONObject method "toString" is show
 	 *        absolutely the same with which is show in sdb shell.
 	 * @param compatible true or false, default to be false;
 	 * 
@@ -441,10 +440,9 @@ public class BSON {
 	}
 	
 	/**
-	 * @fn boolean getJSCompatibility()
-	 * @brief Get whether the display mode of BSON is the same with that in sdb shell or not.
+	 * Get whether the display mode of BSON is the same with that in sdb shell or not.
 	 * @return true or false.
-	 * @see setJSCompatibility
+	 * @see #setJSCompatibility
 	 */
 	public static boolean getJSCompatibility() {
 		return _compatible;

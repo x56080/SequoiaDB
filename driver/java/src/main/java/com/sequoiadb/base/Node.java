@@ -25,9 +25,7 @@ import org.bson.BasicBSONObject;
 import java.nio.ByteBuffer;
 
 /**
- * @class Node
- * @brief Database operation interfaces of node.This class takes the place of class "replicaNode".
- * @note We use concept "node" instead of "replica node",
+ * Database operation interfaces of node.This class takes the place of class "replicaNode". We use concept "node" instead of "replica node",
  * and change the class name "ReplicaNode" to "Node".
  */
 public class Node {
@@ -78,38 +76,34 @@ public class Node {
     }
 
     /**
+     * Get current node's id.
      * @return Current node's id.
-     * @fn int getNodeId()
-     * @brief Get current node's id.
      */
     public int getNodeId() {
         return id;
     }
 
     /**
+     * Get current node's parent replica group.
      * @return Current node's parent replica group.
-     * @fn ReplicaGroup getReplicaGroup()
-     * @brief Get current node's parent replica group.
      */
     public ReplicaGroup getReplicaGroup() {
         return rg;
     }
 
     /**
+     * Disconnect from current node.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void disconnect()
-     * @brief Disconnect from current node.
      */
     public void disconnect() throws BaseException {
         ddb.disconnect();
     }
 
     /**
+     * Connect to current node with the same username and password of coordination node.
      * @return The Sequoiadb object of current node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Sequoiadb connect ()
-     * @brief Connect to current node with the same username and password of coordination node.
      */
     public Sequoiadb connect() throws BaseException {
         ddb = new Sequoiadb(hostName, port, rg.getSequoiadb().getUserName(),
@@ -118,12 +112,11 @@ public class Node {
     }
 
     /**
+     * Connect to current node with username and password.
      * @param username user name
      * @param password pass word
      * @return The Sequoiadb object of current node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn Sequoiadb connect(String username, String password)
-     * @brief Connect to current node with username and password.
      */
     public Sequoiadb connect(String username, String password) throws BaseException {
         ddb = new Sequoiadb(hostName, port, username, password);
@@ -131,10 +124,9 @@ public class Node {
     }
 
     /**
+     * Get the Sequoiadb of current node.
      * @return The Sequoiadb object of current node or null for having not
      * connected to the current node yet.
-     * @fn Sequoiadb getSdb()
-     * @brief Get the Sequoiadb of current node.
      * @see Node#connect()
      * @see Node#connect(String, String)
      */
@@ -143,37 +135,33 @@ public class Node {
     }
 
     /**
+     * Get the hostname of current node.
      * @return Hostname of current node.
-     * @fn String getHostName()
-     * @brief Get the hostname of current node.
      */
     public String getHostName() {
         return hostName;
     }
 
     /**
+     * Get the port of current node.
      * @return The port of current node.
-     * @fn int getPort()
-     * @brief Get the port of current node.
      */
     public int getPort() {
         return port;
     }
 
     /**
+     * Get the name of current node.
      * @return The name of current node.
-     * @fn String getNodeName()
-     * @brief Get the name of current node.
      */
     public String getNodeName() {
         return nodeName;
     }
 
     /**
+     * Get the status of current node.
      * @return The status of current node.
      * @throws com.sequoiadb.exception.BaseException
-     * @fn NodeStatus getStatus()
-     * @brief Get the status of current node.
      */
     public NodeStatus getStatus() throws BaseException {
         BSONObject obj = new BasicBSONObject();
@@ -196,20 +184,18 @@ public class Node {
     }
 
     /**
+     * Start current node in database.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void start()
-     * @brief Start current node in database.
      */
     public void start() throws BaseException {
         startStop(true);
     }
 
     /**
+     * Stop current node in database.
      * @return void
      * @throws com.sequoiadb.exception.BaseException
-     * @fn void stop()
-     * @brief Stop current node in database.
      */
     public void stop() throws BaseException {
         startStop(false);

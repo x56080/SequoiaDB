@@ -55,10 +55,9 @@ class UsedConnectionPool implements IConnectionPool {
     }
 
     /**
+     * Poll a connection out from the pool according to the offered ConnItem.
      * @return a connection or null for no connection in that ConnItem
-     * @throws
-     * @fn Sequoiadb poll(ConnItem item)
-     * @brief Poll a connection out from the pool according to the offered ConnItem.
+     * @throws com.sequoiadb.exception.BaseException
      */
     @Override
     public synchronized Sequoiadb poll(ConnItem item) {
@@ -71,10 +70,9 @@ class UsedConnectionPool implements IConnectionPool {
     }
 
     /**
+     * Insert a connection into the pool.
      * @return void.
-     * @throws
-     * @fn void insert(ConnItem pos, Sequoiadb sdb)
-     * @brief Insert a connection into the pool.
+     * @throws com.sequoiadb.exception.BaseException
      */
     @Override
     public synchronized void insert(ConnItem item, Sequoiadb sdb) {
@@ -82,9 +80,8 @@ class UsedConnectionPool implements IConnectionPool {
     }
 
     /**
-     * @return the iterator
-     * @fn Iterator<ConnItem> getConnItemIterator()
-     * @brief Return a iterator for the item of the items of the idle connections.
+     * Return a iterator for the item of the items of the idle connections.
+     * @return The iterator.
      */
     @Override
     public synchronized Iterator<Pair> getIterator() {
@@ -92,9 +89,8 @@ class UsedConnectionPool implements IConnectionPool {
     }
 
     /**
-     * @return the count of idle connections
-     * @fn int count()
-     * @brief Return the count of idle connections in idle container.
+     * Return the count of idle connections in idle container.
+     * @return the count of idle connections.
      */
     @Override
     public synchronized int count() {

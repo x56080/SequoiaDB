@@ -252,8 +252,7 @@ public class BasicBSONList extends ArrayList<Object> implements BSONObject {
 	}
 
 	/**
-	 * @fn <T> T as_notdisplay(Class<T> cls)
-	 * @brief Returns an instance of the class "cls" only for BasicBsonObject
+	 * Returns an instance of the class "cls" only for BasicBsonObject
 	 * 
 	 * @param cls
 	 * @return the instance of the class

@@ -12,16 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
- * @author Tanzhaobo
  */
 /**
- * @package com.sequoiadb.base;
- * @brief SequoiaDB Driver for Java
+ * SequoiaDB Driver for Java.
+ * @package com.sequoiadb.base
  * @author Tanzhaobo
  */
+
 package com.sequoiadb.base;
 
 import com.sequoiadb.exception.BaseException;
@@ -30,38 +27,34 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
 /**
- * @class Domain
- * @brief Database operation interfaces of Sequoiadb domain.
+ * Database operation interfaces of Sequoiadb domain.
  */
 public class Domain {
     private String name;
     private Sequoiadb sequoiadb;
 
     /**
-     * @fn String getName()
-     * @brief Return the name of current domain.
-     * @return The name of current domain
+     * Return the name of current domain.
+     * @return The name of current domain.
      */
     public String getName() {
         return name;
     }
 
     /**
-     * @fn Sequoiadb getSequoiadb()
-     * @brief Return the Sequoiadb connection instance of current domain belong to.
-     * @return Sequoiadb connection instance
+     * Return the Sequoiadb connection instance of current domain belong to.
+     * @return Sequoiadb connection instance.
      */
     public Sequoiadb getSequoiadb() {
         return sequoiadb;
     }
 
     /**
-     * @fn Domain(Sequoiadb sequoiadb, String name)
-     * @brief Constructor
+     * Constructor.
      * @param sequoiadb
-     *            Sequoiadb connection instance
+     *            Sequoiadb connection instance.
      * @param name
-     *            the name for the created domain
+     *            the name for the created domain.
      */
     Domain(Sequoiadb sequoiadb, String name) {
         this.name = name;
@@ -69,8 +62,7 @@ public class Domain {
     }
 
     /**
-     * @fn void alterDomain(BSONObject options)
-     * @brief Alter the current domain.
+     * Alter the current domain.
      * @param options the options user wants to alter:
      *<ul>
      *<li>Groups:    The list of replica groups' names which the domain is going to contain.
@@ -104,9 +96,8 @@ public class Domain {
     }
 
     /**
-     * @fn DBCursor listCSInDomain()
-     * @brief List all the collection spaces in current domain.
-     * @return the cursor of result
+     * List all the collection spaces in current domain.
+     * @return the cursor of result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor listCSInDomain() throws BaseException {
@@ -114,9 +105,8 @@ public class Domain {
     }
 
     /**
-     * @fn DBCursor listCLInDomain()
-     * @brief List all the collections in current domain.
-     * @return the cursor of result
+     * List all the collections in current domain.
+     * @return the cursor of result.
      * @exception com.sequoiadb.exception.BaseException
      */
     public DBCursor listCLInDomain() throws BaseException {

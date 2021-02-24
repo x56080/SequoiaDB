@@ -5,8 +5,7 @@ import org.bson.types.BSONDecimal;
 import org.junit.*;
 
 /**
- * @author tanzhaobo
- * @brief 测试Decimal公共的函数
+ * 测试Decimal公共的函数
  */
 public class DecimalCommonTest {
 
