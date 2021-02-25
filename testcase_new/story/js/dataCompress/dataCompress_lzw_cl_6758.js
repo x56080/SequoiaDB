@@ -1,5 +1,5 @@
 ﻿/******************************************************************************
- * @Description   : seqDB-6658:findAndRemove删除记录
+ * @Description   : seqDB-6758:开启压缩，创建CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
  * @LastEditTime  : 2021.02.23
@@ -7,7 +7,7 @@
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
-testConf.clName = CHANGEDPREFIX + "_cl_6658";
+testConf.clName = CHANGEDPREFIX + "_cl_6758";
 testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
 
 main( test );
@@ -18,17 +18,18 @@ function test ( testPara )
    var clName = testConf.clName;
    var cl = testPara.testCL;
    var insertRecsNum = 800000;
-   var checkRecsNum = 10;
+   var checkRecsNum = 3;
 
-   // insert  
-   insertRecs2( cl, insertRecsNum );
+   // 检查编目集合属性
+   var clInfo = db.snapshot( 8, { Name: csName + "." + clName } ).toArray();
+   var details = JSON.parse( clInfo[0] );
+   assert.equal( details.Attribute, 1, "clInfo = " + JSON.stringify( clInfo ) );
+   assert.equal( details.AttributeDesc, "Compressed", "clInfo = " + JSON.stringify( clInfo ) );
+   assert.equal( details.CompressionType, 1, "clInfo = " + JSON.stringify( clInfo ) );
+   assert.equal( details.CompressionTypeDesc, "lzw", "clInfo = " + JSON.stringify( clInfo ) );
 
-   // findAndRemove
-   var rc = cl.find( {
-      $and: [{ INNER_NO: { $gte: 200000 } },
-      { IVC_NAME: { $et: "电子银行业务回单(付款)" } }]
-   } ).remove();
-   while( rc.next() );
+   // 插入数据
+   insertRecs1( cl, insertRecsNum );
 
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
@@ -48,26 +49,13 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
          var nodeCL = nodeDB.getCS( csName ).getCL( clName );
          // 检查数据总数
          var recsCnt = nodeCL.count();
-         assert.equal( recsCnt, 200000 );
+         assert.equal( recsCnt, insertRecsNum );
          // 随机检查n条记录正确性
          for( j = 0; j < checkRecsNum; j++ )
          {
             var i = parseInt( Math.random() * insertRecsNum );
-            var recsCnt = nodeCL.find( {
-               INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
-               IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行"
-            } ).count();
-            if( i < 200000 )
-            {
-               // 检查未被删除的记录
-               var expctCnt = 1;
-            }
-            else
-            {
-               // 检查被删除的记录
-               var expctCnt = 0;
-            }
-            assert.equal( recsCnt, expctCnt );
+            var recsCnt = nodeCL.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
+            assert.equal( recsCnt, 1 );
          }
       }
       finally 

@@ -1,53 +1,104 @@
-﻿/************************************************************************
-@Description:    seqDB-6961:批量插入覆盖所有支持的数据类型_st.compress.07.004
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 get random data types
-         3 get random value of mult data types
-         4 insert, the records is random data types and values ;
-         5 check records, get random records, then compare the records;
-           check records for each node in the group;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/3/23   XiaoNi Huang init
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-6961:批量插入覆盖所有支持的数据类型
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.24
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.useSrcGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_6961";
+testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-   var rgName = getDataGroupsName()[0];
-   var dtNumber = 80000;  //records number of single data type
-   var checkRecsNum = 2; //get random 3 records
+   var rgName = testPara.srcGroupName;
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
+   var dtNumber = 100000;
+   var checkRecsNum = 3;
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
-
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-
+   // insert  
    var tmpTypes = ["int", "long", "float", "OID", "bool", "date", "timestamp",
       "binary", "regex", "object", "array", "null", "string"];
-   var dataTypes = getRdmType( tmpTypes );    //random data type
-   var dataValues = getRdmValue( dataTypes );  //random value
-   insertRecs( noCL, noCSName, noCLName, dtNumber, dataTypes, dataValues );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, dtNumber, dataTypes, dataValues );
+   // 构造随机类型和值
+   var dataTypes = getRdmType( tmpTypes );
+   var dataValues = getRdmValue( dataTypes );
+   insertRecs( cl, dtNumber, dataTypes, dataValues );
 
-   var totalNum = dtNumber * dataTypes.length;
-   checkRecs( lzwCL, dtNumber, checkRecsNum, dataTypes, dataValues );
-   checkNodeCnt( lzwCSName, lzwCLName, rgName, totalNum );
-   checkCompressedRate( noCSName, lzwCSName );
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, false );
+   checkRecsByDataNode( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum );
+}
 
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
+function insertRecs ( cl, dtNumber, dataTypes, dataValues )
+{
+   var i = 0;
+   var h = 0;
+   while( i < dataValues.length )
+   {
+      for( k = 0; k < dtNumber; k += 50000 )
+      {
+         var doc = [];
+         for( j = 0 + k; j < 50000 + k; j++ )
+         {
+            doc.push( { a: j + h, dataType: dataTypes[i], typeValue: dataValues[i] } )
+         };
+         cl.insert( doc );
+      }
+      h = h + dtNumber;
+      i++;
+   }
+}
+
+function checkRecsByDataNode ( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum )
+{
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
+   {
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
+      {
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, dtNumber * dataTypes.length );
+         // 随机检查n条记录正确性
+         var h = 0;
+         for( i = 0; i < dataTypes.length; i++ )
+         {
+            for( j = 0; j < checkRecsNum; j++ )
+            {
+               var k = Math.random() * dtNumber + h;
+               k = parseInt( k, 10 );  //10: decimal system
+               if( dataTypes[i] === "regex" )
+               {
+                  var recsCnt = nodeCL.find( {
+                     a: k, dataType: dataTypes[i],
+                     typeValue: { $et: dataValues[i] }
+                  } ).count();
+               }
+               else
+               {
+                  var recsCnt = nodeCL.find( {
+                     a: k, dataType: dataTypes[i],
+                     typeValue: dataValues[i]
+                  } ).count();
+               }
+               assert.equal( recsCnt, 1 );
+            }
+            h = h + dtNumber;
+         }
+      }
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
+      }
+   }
 }
 
 function getRdmType ( tmpTypes )
@@ -79,55 +130,4 @@ function getRdmValue ( dataTypes )
    }
 
    return dataValues;
-}
-
-function insertRecs ( cl, csName, clName, dtNumber, dataTypes, dataValues )
-{
-
-   var i = 0;
-   var h = 0;
-   while( i < dataValues.length )
-   {
-
-      for( k = 0; k < dtNumber; k += 40000 )
-      {
-         var doc = [];
-         for( j = 0 + k; j < 40000 + k; j++ )
-         {
-            doc.push( { a: j + h, dataType: dataTypes[i], typeValue: dataValues[i] } )
-         };
-         cl.insert( doc );
-      }
-
-      h = h + dtNumber;
-      i++;
-   }
-}
-
-function checkRecs ( cl, dtNumber, checkRecsNum, dataTypes, dataValues )
-{
-
-   //get random records, compare the records
-   var h = 0;
-   for( i = 0; i < dataTypes.length; i++ )
-   {
-
-      for( j = 0; j < checkRecsNum; j++ )
-      {
-         var k = Math.random() * dtNumber + h;
-         k = parseInt( k, 10 );  //10: decimal system
-         if( dataTypes[i] === "regex" )
-         {
-            var recsCnt = cl.find( { a: k, dataType: dataTypes[i], typeValue: { $et: dataValues[i] } } ).count();
-         }
-         else
-         {
-            var recsCnt = cl.find( { a: k, dataType: dataTypes[i], typeValue: dataValues[i] } ).count();
-         }
-         var expctCnt = 1;
-         assert.equal( recsCnt, expctCnt );
-      }
-
-      h = h + dtNumber;
-   }
 }
