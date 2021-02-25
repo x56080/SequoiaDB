@@ -1,59 +1,42 @@
-﻿/************************************************************************
-@Description:  seqDB-9322:插入记录包含大量重复子串，且重复子串长度>255个字节
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 insert:
-                 random string, and substr is repeat
-         3 check records, get random records, then compare the records;
-           check records for each node in the group;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/8/16   XiaoNi Huang init
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-9322:插入记录包含大量重复子串，且重复子串长度>255个字节
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.useSrcGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_9322";
+testConf.clOpt = { Compressed: true, CompressionType: "lzw", ReplSize: 0 };
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-
-   var rgName = getDataGroupsName()[0];
-   var insertRecsNum = 300000;  //total number
+   var rgName = testPara.srcGroupName;
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
+   var insertRecsNum = 300000;
    var checkRecsNum = 3;
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
-
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-
-   //get random data
+   // 构造随机数据
    var str1 = getRandomStr1();
    var str2 = getRandomStr2();
    var str3 = getRandomStr3();
-   insertRecs( noCL, noCLName, insertRecsNum, str1, str2, str3 );
-   insertRecs( lzwCL, lzwCLName, insertRecsNum, str1, str2, str3 );
 
-   checkRecs( noCL, lzwCL, insertRecsNum, checkRecsNum );
-   checkNodeCnt( lzwCSName, lzwCLName, rgName, insertRecsNum );
-   checkCompressedRate( noCSName, lzwCSName );
+   // 插入数据
+   insertRecs( cl, insertRecsNum, str1, str2, str3 );
 
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, true );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
 }
 
 function getRandomStr1 () 
 {
    //str e.g: "000000000000.1111111111....."
-
    var data = ["0", "1", "2", "3", "4", "0", "5", "6", "7", "8", "9", "0"];
-
    var str1 = "";
    var tmpC1 = Math.floor( Math.random() * data.length );
    var str1 = "";
@@ -68,41 +51,35 @@ function getRandomStr1 ()
    {
       str2 += data[tmpC2];
    }
-
    var str = str1 + "." + str2;
+
    return str;
 }
 
 function getRandomStr2 () 
 {
    //str e.g: "12345555adbccccc......."
-
    var data = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c"];
    var str = "";
-
    for( var i = 0; i < 300; i++ )
    {
       var c = Math.floor( Math.random() * data.length );
       str += data[c];
    }
-
    return str;
 }
 
 function getRandomStr3 () 
 {
    //str e.g: "123455$%$%455adbccccc....."
-
    var strLen = getRandomInt( 254, 300 );
    var str = "";
-
    for( var i = 0; i < strLen; i++ )
    {
       var ascii = getRandomInt( 48, 127 ); // '0' -- '~'
       var c = String.fromCharCode( ascii );
       str += c;
    }
-
    return str;
 }
 
@@ -113,9 +90,8 @@ function getRandomInt ( min, max )
    return value;
 }
 
-function insertRecs ( cl, clName, insertRecsNum, str1, str2, str3 )
+function insertRecs ( cl, insertRecsNum, str1, str2, str3 )
 {
-
    for( k = 0; k < insertRecsNum; k += 50000 )
    {
       var doc = [];
@@ -127,20 +103,31 @@ function insertRecs ( cl, clName, insertRecsNum, str1, str2, str3 )
    };
 }
 
-function checkRecs ( noCL, lzwCL, insertRecsNum, checkRecsNum )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
 {
-
-   for( j = 0; j < checkRecsNum; j++ )
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
    {
-      var i = parseInt( Math.random() * insertRecsNum );
-
-      var noFindRc = noCL.find( { "num": i }, { _id: { $include: 0 } } ).current().toObj();
-      var noRecs = JSON.stringify( noFindRc );
-
-      var lzwFindRc = lzwCL.find( { "num": i }, { _id: { $include: 0 } } ).current().toObj();
-      var lzwRecs = JSON.stringify( lzwFindRc );
-
-      assert.equal( noRecs, lzwRecs );
-
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
+      {
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, insertRecsNum );
+         // 随机检查n条记录正确性
+         for( j = 0; j < checkRecsNum; j++ )
+         {
+            var i = parseInt( Math.random() * insertRecsNum );
+            var recsCnt = nodeCL.find( { "num": i } ).count();
+            assert.equal( recsCnt, 1 );
+         }
+      }
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
+      }
    }
 }

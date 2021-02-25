@@ -1,123 +1,72 @@
-﻿/************************************************************************
-@Description:     seqDB-6666:range百分比切分，分区键为多个字段_st.compress.03.025
-@input:    
-         1 create CL[Compressed:false] ;
-           create CL[Compressed: true, CompressionType: "lzw"] ;
-         2 insert({INNER_NO:i,SA_ACCT_NO:i,EVT_ID:"lwy20120702"+i,IVC_NAME: "电子银行业务回单(付款)",OPEN_BRANCH_NAME:"中国民生银行福州闽江支行"}) ;
-         3 split( rgName, targetRgName, 50 ) ;
-         4 check attribute of CL[lzw];
-           check records, get random records, then compare the records;
-           check compressed rate. 
-@output:   successfull
-@Author:   
-           2016/3/23   XiaoNi Huang init
-@remarks:  alter cl, Failed to check attribute, jira: 1628
-************************************************************************/
+﻿/******************************************************************************
+ * @Description   : seqDB-6666:range百分比切分，分区键为多个字段
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
+testConf.skipStandAlone = true;
+testConf.skipOneGroup = true;
+testConf.useSrcGroup = true;
+testConf.useDstGroup = true;
+testConf.clName = CHANGEDPREFIX + "_cl_6666";
+testConf.clOpt = {
+   ShardingKey: { INNER_NO: 1 }, ShardingType: "range",
+   Compressed: true, CompressionType: "lzw", ReplSize: 0
+};
+
 main( test );
-
-function test ()
+function test ( testPara )
 {
-   if( commIsStandalone( db ) )
-   {
-      return;
-   }
-   if( commGetGroupsNum( db ) < 2 )
-   {
-      return;
-   }
+   var srcRgName = testPara.srcGroupName;
+   var dstRgName = testPara.dstGroupNames[0];
+   var csName = COMMCSNAME;
+   var clName = testConf.clName;
+   var cl = testPara.testCL;
+   var insertRecsNum = 1600000;
+   var checkRecsNum = 3;
 
-   db.setSessionAttr( { PreferedInstance: "M" } );
+   // 插入数据并切分
+   insertRecs2( cl, insertRecsNum );
+   cl.split( srcRgName, dstRgName, 50 );
 
-   var noCSName = COMMCSNAME + "_no";
-   var lzwCSName = COMMCSNAME + "_lzw";
-   var noCLName = COMMCLNAME + "_no";
-   var lzwCLName = COMMCLNAME + "_lzw";
-   var rgName = getDataGroupsName()[0];
-   var rgName2 = getDataGroupsName()[1];
-   var insertRecsNum = 800000;
-   var checkRecsNum = 3; //get random 3 records
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( srcRgName, csName, clName, true );
+   checkRecsByDataNode( srcRgName, csName, clName, insertRecsNum, 0, checkRecsNum );
 
-   commDropCS( db, noCSName, true, "Failed to drop CS[" + noCSName + "]." );
-   commDropCS( db, lzwCSName, true, "Failed to drop CS[" + lzwCSName + "]." );
-
-   commCreateCS( db, noCSName, false, "Failed to create CS[" + noCSName + "]." );
-   commCreateCS( db, lzwCSName, false, "Failed to create CS[" + lzwCSName + "]." );
-
-   var noCL = createCL( noCSName, noCLName, rgName, false );
-   var lzwCL = createCL( lzwCSName, lzwCLName, rgName, true, "lzw" );
-   alterCL( noCL, noCSName, noCLName );
-   alterCL( lzwCL, lzwCSName, lzwCLName );
-
-   insertRecs( noCL, noCSName, noCLName, insertRecsNum );
-   insertRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum );
-
-   splitRecs( noCL, noCSName, noCLName, rgName, rgName2 );
-   splitRecs( lzwCL, lzwCSName, lzwCLName, rgName, rgName2 );
-
-   //checkAttributeOfCL( lzwCSName, lzwCLName, true, "lzw" );
-   checkRecs( lzwCL, lzwCSName, lzwCLName, insertRecsNum, checkRecsNum, rgName, rgName2 );
-   checkCompressedRate( noCSName, lzwCSName );
-
-   clearCS( db, noCSName );
-   clearCS( db, lzwCSName );
+   checkLzwAttributeByDataNode( dstRgName, csName, clName, true );
+   checkRecsByDataNode( dstRgName, csName, clName, insertRecsNum, insertRecsNum / 2, checkRecsNum );
 }
 
-function alterCL ( cl, csName, clName )
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, min, checkRecsNum )
 {
-
-   cl.alter( { ShardingKey: { INNER_NO: 1 }, ShardingType: "range" } );
-}
-
-function insertRecs ( cl, csName, clName, insertRecsNum )
-{
-
-   for( k = 0; k < insertRecsNum; k += 50000 )
+   var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
+   while( rc.next() )
    {
-      var doc = [];
-      for( i = 0 + k; i < 50000 + k; i++ )
+      var nodeName = rc.current().toObj()["NodeName"];
+      var nodeDB = null;
+      try
       {
-         doc.push( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } )
-      };
-      cl.insert( doc );
+         nodeDB = new Sdb( nodeName );
+         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+         // 检查数据总数
+         var recsCnt = nodeCL.count();
+         assert.equal( recsCnt, insertRecsNum / 2 );
+         // 随机检查n条记录正确性
+         for( j = 0; j < checkRecsNum; j++ )
+         {
+            var i = parseInt( Math.random() * ( insertRecsNum / 2 ) ) + min;
+            var recsCnt = nodeCL.find( {
+               INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i,
+               IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行"
+            } ).count();
+            var expctCnt = 1;
+            assert.equal( recsCnt, expctCnt );
+         }
+      }
+      finally 
+      {
+         if( nodeDB != null ) nodeDB.close();
+      }
    }
-}
-
-function splitRecs ( cl, csName, clName, rgName, rgName2 )
-{
-
-   cl.split( rgName, rgName2, 50 );
-}
-
-function checkRecs ( cl, csName, clName, insertRecsNum, checkRecsNum, rgName, rgName2 )
-{
-
-   //get random records, compare the records
-
-   for( j = 0; j < checkRecsNum; j++ )
-   {
-      var i = parseInt( Math.random() * insertRecsNum );
-
-      var recsCnt = cl.find( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } ).count();
-      var expctCnt = 1;
-      assert.equal( recsCnt, expctCnt );
-   }
-
-   //check count of records in the groups
-   var groups = new Array;
-   var groups = [rgName, rgName2];
-   var tmpCnt = new Array;
-   var totalCnt = 0;
-   for( i = 0; i < groups.length; i++ )
-   {
-      var node = db.getRG( groups[i] ).getMaster().toString();
-      var nodeDB = new Sdb( node );
-      var recsCnt = nodeDB.getCS( csName ).getCL( clName ).count();
-      tmpCnt.push( parseInt( recsCnt ) );
-      totalCnt = tmpCnt[i] + totalCnt;
-
-      nodeDB.close();
-   }
-
-   assert.equal( totalCnt, insertRecsNum );
-
 }

@@ -1,180 +1,70 @@
+/******************************************************************************
+ * @Description   : 数据压缩公共方法
+ * @Author        : XiaoNi Huang
+ * @CreateTime    : 2016.03.23
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+ ******************************************************************************/
 import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
 
-/* ****************************************************
-@description: get name of dataRG
-@parameter: 
-@return: 
-         groupNameArray
-**************************************************** */
-function getDataGroupsName ()
-{
-   var tmpArray = commGetGroups( db );
-   var groupNameArray = new Array;
-   for( i = 0; i < tmpArray.length; i++ )
-   {
-      groupNameArray.push( tmpArray[i][0].GroupName );
-   }
-   return groupNameArray;
-}
-
-/* ****************************************************
-@description: createCL
-@parameter:
-            compressed: true/false
-            compreType: "lzw"/"snappy"
-@return: 
-      cl, eg: "localhost:11810.cs.cl"
-@Msg: 设置集合ReplSize为0是因为用例中有检查所有节点数据，需要保持主备节点一致
-**************************************************** */
-function createCL ( csName, clName, rgName, compressed, compreType )
+function insertRecs1 ( cl, insertRecsNum )
 {
 
-   if( compressed == false )
+   for( k = 0; k < insertRecsNum; k += 50000 )
    {
-      var options = { Group: rgName, ReplSize: 0, Compressed: false };
-   }
-   else if( compressed == true )
-   {
-      var options = { Group: rgName, ReplSize: 0, Compressed: true, CompressionType: compreType };
-   }
-
-   var cl = commCreateCL( db, csName, clName, options, true, true );
-
-   return cl;
-}
-
-/* ****************************************************
-@description: check attribute of CL
-@parameter:
-            csName: name of CS
-            clName: name of CL
-            compressed: true or false
-            compreType: "lzw" or "snappy"
-@return: 
-**************************************************** */
-function checkAttributeOfCL ( csName, clName, compressed, compreType )
-{
-
-   //check attribute of cl
-   var clInfo = db.snapshot( 8, { Name: csName + "." + clName } ).current().toObj();
-
-   var Attribute = clInfo["Attribute"];
-   var AttributeDesc = clInfo["AttributeDesc"];
-   var CompressionType = clInfo["CompressionType"];
-   var CompressionTypeDesc = clInfo["CompressionTypeDesc"];
-
-   if( compressed == false )
-   {
-      if( Attribute !== 0 || AttributeDesc !== "" )
+      var doc = [];
+      for( i = 0 + k; i < 50000 + k; i++ )
       {
-         throw new Error( "Failed to check attribute of cl fail,[checkResult]" +
-            '[Attribute: 0, AttributeDesc: ""]' +
-            '[Attribute: ' + Attribute + ', AttributeDesc: "' + AttributeDesc + '"]' );
-      }
-   }
-   else if( compressed == true )
-   {
-      if( compreType == "snappy" )
-      {
-         var tmpCmprt = 0;
-      }
-      else if( compreType == "lzw" )
-      {
-         var tmpCmprt = 1;
-      }
-      if( Attribute !== 1 || AttributeDesc !== "Compressed"
-         || CompressionType !== tmpCmprt || CompressionTypeDesc !== compreType )
-      {
-         throw new Error( "Failed to check attribute of cl fail,[checkResult]" +
-            '[Attribute: 1, AttributeDesc: "Compressed", CompressionType: ' + tmpCmprt
-            + ', CompressionTypeDesc: "' + compreType + '"]' +
-            '[Attribute: ' + Attribute + ', AttributeDesc: "' + AttributeDesc
-            + '", CompressionType: ' + CompressionType + ', CompressionTypeDesc: "' + CompressionTypeDesc + '"]' );
-      }
+         doc.push( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } )
+      };
+      cl.insert( doc );
    }
 }
 
-/* ****************************************************
-@description: check count of records for each node
-@parameter:
-            csName: name of CS
-            clName: name of CL
-            rgName: data RG
-            insertRecsNum: number of records
-@return: 
-**************************************************** */
-function checkNodeCnt ( csName, clName, rgName, insertRecsNum )
+function insertRecs2 ( cl, insertRecsNum )
 {
+   for( k = 0; k < insertRecsNum; k += 50000 )
+   {
+      var doc = [];
+      for( i = 0 + k; i < 50000 + k; i++ )
+      {
+         doc.push( { INNER_NO: i, SA_ACCT_NO: i, EVT_ID: "lwy20120702" + i, IVC_NAME: "电子银行业务回单(付款)", OPEN_BRANCH_NAME: "中国民生银行福州闽江支行" } )
+      };
+      cl.insert( doc );
+   }
+}
 
-   var i = 0;
+function checkLzwAttributeByDataNode ( rgName, csName, clName, isCheckCompRatio )
+{
+   if( typeof ( isCheckCompRatio ) == "undefined" ) { isCheckCompRatio = false; }
+
    var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
    while( rc.next() )
    {
-      i++;
       var nodeName = rc.current().toObj()["NodeName"];
-
-      var nodeDB = new Sdb( nodeName );
-      var recsCnt = nodeDB.getCS( csName ).getCL( clName ).count();
-
-      assert.equal( recsCnt, insertRecsNum );
-   }
-}
-
-/* ****************************************************
-@description: check compressed rate of CL
-@parameter:
-            name of CS
-@return: 
-**************************************************** */
-function checkCompressedRate ( noCSName, lzwCSName, expectRate )
-{
-
-   if( expectRate == null ) { expectRate = 1.0 };
-
-   var noCSInfo = db.snapshot( 5, { Name: noCSName } ).current().toObj();
-   var lzwCSInfo = db.snapshot( 5, { Name: lzwCSName } ).current().toObj();
-   var noUsedSize = noCSInfo["TotalSize"] - noCSInfo["FreeSize"];
-   var lzwUsedSize = lzwCSInfo["TotalSize"] - lzwCSInfo["FreeSize"];
-   //Unit of TotalSize/FreeSize: B
-
-   // noUsedSize:lzwUsedSize >= 1:0.8
-   var compRate = lzwUsedSize / noUsedSize;
-   if( compRate >= expectRate )
-   {
-      throw new Error( "Failed to check compressed rate. fail,[checkCompressedRate]" + "compRate <= " + expectRate + ", " + "compRate = " + compRate );
-   }
-}
-
-/* ****************************************************
-@description: 用例结束时删除集合空间有可能遇到压缩线程在检查数据，
-              会导致删除集合空间报-147，重试删除
-@parameter:
-            name of CS
-@author:    luweikang 
-**************************************************** */
-function clearCS ( db, csName )
-{
-   var times = 0;
-   do
-   {
+      var nodeDB = null;
       try
       {
-         db.dropCS( csName );
-         break;
+         nodeDB = new Sdb( nodeName );
+         var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
+         var details = JSON.parse( clInfo[0] ).Details[0];
+         assert.equal( details.Attribute, "Compressed", "clInfo = " + JSON.stringify( clInfo ) );
+         assert.equal( details.CompressionType, "lzw", "clInfo = " + JSON.stringify( clInfo ) );
+         assert.equal( details.DictionaryCreated, true, "clInfo = " + JSON.stringify( clInfo ) );
+         // 数据有压缩时检查压缩率 < 1
+         if( isCheckCompRatio )
+         {
+            if( details.CurrentCompressionRatio >= 1 )
+            {
+               throw new Error( "Expected compression ratio < 1, actually = " + details.CurrentCompressionRatio
+                  + ", clInfo = " + JSON.stringify( clInfo ) );
+            }
+         }
       }
-      catch( e )
+      finally 
       {
-         if( e.message == SDB_LOCK_FAILED && times < 60 )
-         {
-            times++;
-            sleep( 1000 );
-         }
-         else
-         {
-            throw e;
-         }
+         if( nodeDB != null ) nodeDB.close();
       }
    }
-   while( true )
 }
