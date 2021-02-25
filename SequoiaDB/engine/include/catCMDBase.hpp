@@ -115,6 +115,50 @@ namespace engine
 
    };
 
+   class _catWriteCMDBase : public _catCMDBase
+   {
+   public:
+      _catWriteCMDBase() {}
+      virtual ~_catWriteCMDBase() {}
+
+      // If this command can only be executed on primary node, we need check
+      // primary
+      virtual BOOLEAN needCheckPrimary()
+      {
+         return TRUE ;
+      }
+
+      // If this command can't be executed when DC is readonly, we need check
+      // DC status
+      virtual BOOLEAN needCheckDCStatus()
+      {
+         return TRUE ;
+      }
+   } ;
+   typedef _catWriteCMDBase catWriteCMDBase ;
+
+   class _catReadCMDBase : public _catCMDBase
+   {
+   public:
+      _catReadCMDBase() {}
+      virtual ~_catReadCMDBase() {}
+
+      // If this command can only be executed on primary node, we need check
+      // primary
+      virtual BOOLEAN needCheckPrimary()
+      {
+         return FALSE ;
+      }
+
+      // If this command can't be executed when DC is readonly, we need check
+      // DC status
+      virtual BOOLEAN needCheckDCStatus()
+      {
+         return FALSE ;
+      }
+   } ;
+   typedef _catReadCMDBase catReadCMDBase ;
+
    _catCmdBuilder * getCatCmdBuilder () ;
 
 }

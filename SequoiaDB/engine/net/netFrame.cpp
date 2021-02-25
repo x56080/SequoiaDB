@@ -224,7 +224,8 @@ namespace engine
    /*
       _netFrame implement
    */
-   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute )
+   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute,
+                         const NET_HANDLE &beginID )
    : _protocolMask( NET_FRAME_MASK_EMPTY ),
      _pRoute( pRoute ),
      // this might have bad-alloc issue in initialize phase
@@ -235,7 +236,7 @@ namespace engine
      _handler( handler ),
      _mtx( MON_LATCH_NETFRAME_MTX ),
      _acceptor( _mainSuitPtr->getIOService() ),
-     _handle( NET_HANDLE_BEGIN ),
+     _handle( beginID ),
      _timerID( NET_INVALID_TIMER_ID ),
      _netOut( 0 ),
      _netIn( 0 ),
@@ -853,29 +854,45 @@ namespace engine
          goto error ;
       }
 
-      rc = eh->syncConnect( hostName, serviceName ) ;
-      if ( SDB_OK != rc )
       {
-         goto error ;
+         rc = eh->syncConnect( hostName, serviceName ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         eh->id( id ) ;
+
+         /// add to map
+         // addRoute will take latch inside the function
+         _addRoute( eh ) ;
+         _mtx.get() ;
+         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
+         _mtx.release() ;
+
+         if ( pHandle )
+         {
+            *pHandle = eh->handle() ;
+         }
+
+         // Keep eh->asyncRead after handleConnect callback. As for data source
+         // connection, the system information check and authentication is done
+         // in the callback. They are done in sync way. So async read should be
+         // started after that, otherwise, sysinfo/auth reply message will be
+         // caught by the async read, and the sync waiting will get nothing.
+         // Refer to _coordDataSourceMsgHandler::_authenticate.
+         rc = _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
+         if ( rc )
+         {
+            _erase( eh->handle() ) ;
+            eh->close() ;
+            *pHandle = NET_INVALID_HANDLE ;
+
+            PD_LOG( PDERROR, "Handlee connected failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         eh->asyncRead() ;
       }
-
-      eh->id( id ) ;
-      eh->asyncRead() ;
-
-      /// add to map
-      // addRoute will take latch inside the function
-      _addRoute( eh ) ;
-      _mtx.get() ;
-      _opposite.insert( make_pair( eh->handle(), eh ) ) ;
-      _mtx.release() ;
-
-      if ( pHandle )
-      {
-         *pHandle = eh->handle() ;
-      }
-
-      // callback: handleConnect
-      _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNNCCONN, rc );

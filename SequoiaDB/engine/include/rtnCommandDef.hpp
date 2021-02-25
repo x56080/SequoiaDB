@@ -143,6 +143,7 @@ namespace engine
 #define NAME_LIST_DOMAINS                    CMD_NAME_LIST_DOMAINS
 #define NAME_LIST_GROUPS                     CMD_NAME_LIST_GROUPS
 #define NAME_LIST_PROCEDURES                 CMD_NAME_LIST_PROCEDURES
+#define NAME_LIST_DATASOURCES                CMD_NAME_LIST_DATASOURCES
 #define NAME_CREATE_PROCEDURE                CMD_NAME_CRT_PROCEDURE
 #define NAME_REMOVE_PROCEDURE                CMD_NAME_RM_PROCEDURE
 #define NAME_LIST_CS_IN_DOMAIN               CMD_NAME_LIST_CS_IN_DOMAIN
@@ -161,6 +162,7 @@ namespace engine
 #define NAME_CREATE_SEQUENCE                 CMD_NAME_CREATE_SEQUENCE
 #define NAME_DROP_SEQUENCE                   CMD_NAME_DROP_SEQUENCE
 #define NAME_ALTER_SEQUENCE                  CMD_NAME_ALTER_SEQUENCE
+#define NAME_INVALIDATE_DATASOURCE_CACHE     CMD_NAME_INVALIDATE_DATASOURCE_CACHE
    /*
       Command Type Define
    */
@@ -213,6 +215,7 @@ namespace engine
       CMD_RENAME_COLLECTION                  = 60,
       CMD_RENAME_COLLECTIONSPACE             = 61,
       CMD_LIST_SEQUENCES                     = 62,
+      CMD_LIST_DATASOURCES                   = 63,
 
       CMD_REORG_OFFLINE                      = 70,
       CMD_REORG_ONLINE                       = 71,
@@ -303,16 +306,16 @@ namespace engine
       CMD_SNAPSHOT_LOCKWAITS                 = 255,
       CMD_SNAPSHOT_INDEXSTATS                = 256,
 
-      CMD_RESTORE_TO_TIME                    = 257,
-      CMD_RESTORE_ABORT                      = 258,
-      CMD_RESTORE_PREPARE                    = 259,
+      CMD_INVALIDATE_DATASOURCE_CACHE        = 257,
 
       CMD_CREATE_SEQUENCE                    = 260,
       CMD_DROP_SEQUENCE                      = 261,
       CMD_ALTER_SEQUENCE                     = 262,
 
       CMD_RESTORE_CHECK                      = 263,
-
+      CMD_RESTORE_TO_TIME                    = 264,
+      CMD_RESTORE_ABORT                      = 265,
+      CMD_RESTORE_PREPARE                    = 266,
       CMD_UNKNOW                             = 65535
    };
 

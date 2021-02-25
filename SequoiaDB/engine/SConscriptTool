@@ -348,7 +348,8 @@ sptFiles = [
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
-      "spt/db/sptDBSequence.cpp"
+      "spt/db/sptDBSequence.cpp",
+      "spt/db/sptDBDataSource.cpp"
       ]
 
 ssh2Files = [
@@ -390,8 +391,8 @@ clientCppFiles = [
       "client/clientcpp.cpp",
       "client/common.c",
       "client/network.c",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
+      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolComm.cpp",
       "client/sdbDataSourceStrategy.cpp",
       "client/sdbDataSourceWorker.cpp",
       "bson/bsonobj.cpp",

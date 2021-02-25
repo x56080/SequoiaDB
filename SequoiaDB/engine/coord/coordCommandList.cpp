@@ -1063,5 +1063,34 @@ namespace engine
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSources,
+                                      CMD_NAME_LIST_DATASOURCES,
+                                      TRUE ) ;
+   _coordCMDListDataSources::_coordCMDListDataSources()
+   {
+   }
+
+   _coordCMDListDataSources::~_coordCMDListDataSources()
+   {
+   }
+
+   INT32 _coordCMDListDataSources::_preProcess( rtnQueryOptions &queryOpt,
+                                                string &clName,
+                                                BSONObj &outSelector )
+   {
+      clName = CAT_DATASOURCE_COLLECTION ;
+      return SDB_OK ;
+   }
+
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSourceIntr,
+                                      CMD_NAME_LIST_DATASOURCE_INTR,
+                                      TRUE ) ;
+   _coordCMDListDataSourceIntr::_coordCMDListDataSourceIntr()
+   {
+   }
+
+   _coordCMDListDataSourceIntr::~_coordCMDListDataSourceIntr()
+   {
+   }
 }
 

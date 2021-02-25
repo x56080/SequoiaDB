@@ -93,6 +93,14 @@ namespace engine
                        pmdEDUCB *cb,
                        BSONObj &obj ) ;
 
+   INT32 catGetOneObjByOrder( const CHAR * collectionName,
+                              const BSONObj & selector,
+                              const BSONObj & matcher,
+                              const BSONObj & order,
+                              const BSONObj & hint,
+                              pmdEDUCB * cb,
+                              BSONObj & obj ) ;
+
    /* Query and get count of objects */
    INT32 catGetObjectCount ( const CHAR * collectionName,
                              const BSONObj & selector,
@@ -321,6 +329,10 @@ namespace engine
    INT32 catCheckRelinkCollection ( const BSONObj &boCollection,
                                     string &mainCLName ) ;
 
+   INT32 catCheckLinkMultiDSCollection( const BSONObj &boMainCL,
+                                        const BSONObj &boSubCL,
+                                        pmdEDUCB *cb ) ;
+
    /* Get group list from collection */
    INT32 catGetCollectionGroups ( const BSONObj &boCollection,
                                   vector<UINT32> &groupIDList,
@@ -536,6 +548,17 @@ namespace engine
                                        INT16 w ) ;
    string catGetSeqName4AutoIncFld( const utilCLUniqueID id,
                                     const CHAR* fldName ) ;
+
+   INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
+                                  BSONObj &obj, pmdEDUCB *cb ) ;
+
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta = NULL ) ;
+
+   INT32 catBuildCatalogByPureMappingCS( const CHAR *clFullName,
+                                         const BSONObj &csMetaData,
+                                         BSONObj &catalog, pmdEDUCB *cb ) ;
 }
 
 #endif //CAT_COMMON_HPP__

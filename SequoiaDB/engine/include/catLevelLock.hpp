@@ -65,7 +65,6 @@ namespace engine
       CAT_LOCK_NODE        = 2,  // for group,node
       CAT_LOCK_DOMAIN      = 3,  // for domain
       CAT_LOCK_SHARDING    = 4,  // for sharding
-
       CAT_LOCK_MAX
    } ;
 

@@ -379,6 +379,67 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETONEOBJBYORDER, "catGetOneObjByOrder" )
+   INT32 catGetOneObjByOrder( const CHAR * collectionName,
+                              const BSONObj & selector,
+                              const BSONObj & matcher,
+                              const BSONObj & order,
+                              const BSONObj & hint,
+                              pmdEDUCB * cb,
+                              BSONObj & obj )
+   {
+      INT32 rc                = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATGETONEOBJBYORDER ) ;
+
+      SINT64 contextID        = -1 ;
+      pmdKRCB *pKRCB          = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB        = pKRCB->getDMSCB() ;
+      SDB_RTNCB *rtnCB        = pKRCB->getRTNCB() ;
+
+      rtnContextBuf buffObj ;
+
+      // query
+      rc = rtnQuery( collectionName, selector, matcher, order, hint,
+                     0, cb, 0, 1, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to query from %s, rc: %d",
+                   collectionName, rc ) ;
+
+      // get more
+      rc = rtnGetMore( contextID, 1, buffObj, cb, rtnCB ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+         }
+         goto error ;
+      }
+
+      // copy obj
+      try
+      {
+         BSONObj resultObj( buffObj.data() ) ;
+         obj = resultObj.copy() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         buffObj.release() ;
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATGETONEOBJBYORDER, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETOBJCOUNT, "catGetObjectCount" )
    INT32 catGetObjectCount ( const CHAR * collectionName,
                              const BSONObj & selector,
@@ -3198,6 +3259,68 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKLINKMULTIDSCOLLECTION, "catCheckLinkMultiDSCollection" )
+   INT32 catCheckLinkMultiDSCollection( const BSONObj &boMainCL,
+                                        const BSONObj &boSubCL,
+                                        pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKLINKMULTIDSCOLLECTION ) ;
+
+      try
+      {
+         BSONObj subObj ;
+         BSONObj subCLObj ;
+         BSONElement cataEle ;
+         BSONElement myIDEle = boSubCL.getField( FIELD_NAME_DATASOURCE_ID ) ;
+         if ( myIDEle.eoo() )
+         {
+            // If no data source id field in the metadata, it's a local
+            // collection.
+            goto done ;
+         }
+
+         cataEle = boMainCL.getField( FIELD_NAME_CATALOGINFO ) ;
+         {
+            const CHAR *subCLName = NULL ;
+            BSONElement idEle ;
+            BSONObjIterator itr( cataEle.embeddedObject() ) ;
+            // Check the field 'DataSourceID' in each sub cl metadata record.
+            // If it exists and its value is the same with the current cl,
+            // return error.
+            while ( itr.more() )
+            {
+               subObj = itr.next().Obj() ;
+               subCLName = subObj.getStringField( FIELD_NAME_SUBCLNAME ) ;
+               rc = catGetCollection( subCLName, subCLObj, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get collection[%s] metadata "
+                            "failed[%d]", subCLName, rc ) ;
+               idEle = subCLObj.getField( FIELD_NAME_DATASOURCE_ID ) ;
+               if ( !idEle.eoo() && idEle.valuesEqual( myIDEle ) )
+               {
+                  rc = SDB_OPTION_NOT_SUPPORT ;
+                  PD_LOG_MSG( PDERROR, "Main collection can not attach more "
+                              "then one sub collection mapping to the same "
+                              "data source[%d]", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKLINKMULTIDSCOLLECTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCOLLECTIONGROUPS, "catGetCollectionGroups" )
    INT32 catGetCollectionGroups ( const BSONObj &boCollection,
                                   vector<UINT32> &groupIDList,
@@ -3354,7 +3477,8 @@ namespace engine
       try
       {
          BOOLEAN isExist = FALSE ;
-         rc = catCheckCollectionExist( clName.c_str(), isExist, boCollection, cb ) ;
+         rc = catCheckCollectionExist( clName.c_str(), isExist,
+                                       boCollection, cb ) ;
          PD_RC_CHECK( rc, PDWARNING,
                       "Failed to get info of collection [%s], rc: %d",
                       clName.c_str(), rc ) ;
@@ -3362,20 +3486,46 @@ namespace engine
          if ( !isExist )
          {
             rc = catCheckCSExist( clName.c_str(), cb, isExist ) ;
-            if ( SDB_OK == rc && !isExist )
+            if ( isExist )
+            {
+               // If the cs exists, and the collection is not found, check if
+               // the cs is using data source.
+               BOOLEAN inMappingCS = FALSE ;
+               BSONObj csMetaRecord ;
+               rc = catCheckCLInPureMappingCS( clName.c_str(), cb,
+                                               inMappingCS, &csMetaRecord ) ;
+               PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+               if ( !inMappingCS )
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                          clName.c_str(), rc ) ;
+                  goto error ;
+               }
+               // It's a pure mapping cs, let's build a catalog record for the
+               // collection.
+               rc = catBuildCatalogByPureMappingCS( clName.c_str(),
+                                                    csMetaRecord,
+                                                    boCollection, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+            }
+            else if ( SDB_OK == rc )
             {
                rc = SDB_DMS_CS_NOTEXIST ;
                PD_LOG( PDWARNING,
                        "Collection[%s]'s space does not exist, rc: %d",
                        clName.c_str(), rc ) ;
+               goto error ;
             }
             else
             {
                rc = SDB_DMS_NOTEXIST ;
                PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
                        clName.c_str(), rc ) ;
+               goto error ;
             }
-            goto error ;
          }
 
          // Lock sub-collection
@@ -3516,6 +3666,12 @@ namespace engine
       {
          string groupName ;
          UINT32 groupID = groupIDList[idx] ;
+
+         if ( SDB_IS_DSID( groupID ) )
+         {
+            // Do nothing for data source groups.
+            continue ;
+         }
 
          rc = catGroupID2Name( groupID, groupName, cb ) ;
          PD_RC_CHECK( rc, PDWARNING,
@@ -4568,6 +4724,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCHECKANDBUILDCATARECORD ) ;
+      const CHAR *origMapping = NULL ;
 
       clInfo.reset() ;
 
@@ -4917,6 +5074,31 @@ namespace engine
                                           boCollection.getField( CAT_AUTOINCREMENT ) ) ;
             fieldMask |= UTIL_CL_AUTOINC_FIELD ;
          }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_DATASOURCE ) )
+         {
+            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                      PDWARNING, "Field [%s] type [%d] error",
+                      FIELD_NAME_DATASOURCE, eleTmp.type() ) ;
+            BOOLEAN exist = FALSE ;
+            BSONObj obj ;
+            const CHAR *dsName = eleTmp.valuestrsafe() ;
+            rc = catCheckDataSourceExist( dsName, exist, obj,
+                                          pmdGetThreadEDUCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check data source[%s] existence "
+                         "failed[%d]", dsName, rc ) ;
+            PD_CHECK( exist, SDB_CAT_DATASOURCE_NOTEXIST, error, PDERROR,
+                      "Data source[%s] dose not exist", dsName ) ;
+            clInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_MAPPING ) )
+         {
+            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                      PDWARNING, "Field [%s] type [%d] error",
+                      FIELD_NAME_MAPPING, eleTmp.type() ) ;
+            origMapping = eleTmp.valuestr() ;
+            PD_CHECK( ossStrlen(origMapping) > 0, SDB_INVALIDARG, error,
+                      PDERROR, "Mapping value is invalid" ) ;
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDWARNING,
@@ -5063,6 +5245,38 @@ namespace engine
                     "MainCL",
                     CAT_SHARDINGKEY_NAME ) ;
             rc = SDB_INVALIDARG ;
+         }
+      }
+
+      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+      {
+         if ( origMapping )
+         {
+            const CHAR *dotPtr = ossStrchr( origMapping, '.' ) ;
+            if ( dotPtr )
+            {
+               // Full name mapping
+               ossStrncpy( clInfo._fullMapping, origMapping,
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+            }
+            else
+            {
+               // Short name mapping, need to append the collection space name.
+               dotPtr = ossStrchr( clInfo._pCLName, '.' ) ;
+               SDB_ASSERT( dotPtr, "No dot found in colleciton name" ) ;
+               UINT16 csNameLen = dotPtr - clInfo._pCLName ;
+               ossStrncpy( clInfo._fullMapping, clInfo._pCLName, csNameLen ) ;
+               clInfo._fullMapping[ csNameLen ] = '.' ;
+               ossStrncpy( clInfo._fullMapping + csNameLen + 1, origMapping,
+                           DMS_COLLECTION_FULL_NAME_SZ - csNameLen - 1 ) ;
+            }
+         }
+         else
+         {
+            // Mapping is not specified explicitly. Use name of the collection
+            // as the mapping name.
+            ossStrncpy( clInfo._fullMapping, clInfo._pCLName,
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
          }
       }
 
@@ -5353,11 +5567,18 @@ namespace engine
          UINT32 grpID = CAT_INVALID_GROUPID ;
          std::string grpName ;
 
-         PD_CHECK( grpIDLst.size() == 1,
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "Must has only one group specified" ) ;
+         if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
+         {
+            PD_CHECK( grpIDLst.size() == 1,
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Must has only one group specified" ) ;
+            grpID = grpIDLst[0] ;
+         }
+         else
+         {
+            grpID = SDB_DSID_2_GROUPID( clInfo._dsUID ) ;
+         }
 
-         grpID = grpIDLst[0] ;
          cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
 
          /// Get SYS groups for SYS collections
@@ -5448,6 +5669,15 @@ namespace engine
       {
          builder.append( CAT_LOBSHARDINGKEYFORMAT_NAME,
                          clInfo._lobShardingKeyFormat ) ;
+      }
+
+      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+      {
+         builder.append( FIELD_NAME_DATASOURCE_ID, clInfo._dsUID ) ;
+         if ( ossStrlen( clInfo._fullMapping ) > 0 )
+         {
+            builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
+         }
       }
 
       catRecord = builder.obj () ;
@@ -5956,5 +6186,164 @@ namespace engine
 
       return seqOptBuilder.obj() ;
    }
-}
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKDATASRUOCEEXIST, "catCheckDataSourceExist" )
+   INT32 catCheckDataSourceExist( const CHAR *dsName, BOOLEAN &exist,
+                                  BSONObj &obj, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKDATASRUOCEEXIST ) ;
+      SDB_ASSERT( dsName, "Data source name is NULL" ) ;
+
+      exist = FALSE ;
+
+      try
+      {
+         BSONObj matcher ;
+         BSONObj dummyObj ;
+         matcher = BSON( FIELD_NAME_NAME << dsName ) ;
+         rc = catGetOneObj( CAT_DATASOURCE_COLLECTION, dummyObj, matcher,
+                            dummyObj, cb, obj ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            exist = FALSE ;
+            rc = SDB_OK ;
+         }
+         else if ( SDB_OK == rc )
+         {
+            exist = TRUE ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Get metadata of data source[%s] failed[%d]",
+                    dsName, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKDATASRUOCEEXIST, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKCLINPUREMAPPINGCS, "catCheckCLInPureMappingCS" )
+   INT32 catCheckCLInPureMappingCS( const CHAR *clFullName,
+                                    pmdEDUCB *cb, BOOLEAN &inMappingCS,
+                                    BSONObj *csMeta )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKCLINPUREMAPPINGCS ) ;
+      CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+      const CHAR *dot = ossStrchr( clFullName, '.' ) ;
+      SDB_ASSERT( dot, "Not a full name" ) ; ;
+      SDB_ASSERT( ( ( dot - clFullName ) > 0 ) &&
+                  ( ( dot - clFullName ) <= DMS_COLLECTION_SPACE_NAME_SZ ),
+                  "cs name is invalid" ) ;
+      ossStrncpy( csName, clFullName, dot - clFullName ) ;
+
+      try
+      {
+         BSONObj dummyObj ;
+         BSONObj csMetaRecord ;
+         BSONObj cataInfo ;
+         BSONObj matcher = BSON( FIELD_NAME_NAME << csName ) ;
+
+         rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummyObj, matcher,
+                            dummyObj, cb, csMetaRecord ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            inMappingCS = FALSE ;
+            rc = SDB_OK ;
+            goto done ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get collection space[%s] metadata from "
+                             "SYSCOLLECTIONSPACES failed[%d]", csName, rc ) ;
+            goto error ;
+         }
+
+         inMappingCS = csMetaRecord.hasField( FIELD_NAME_DATASOURCE_ID ) ;
+         if ( csMeta )
+         {
+            *csMeta = csMetaRecord.getOwned() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKCLINPUREMAPPINGCS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDCATALOGBYPUREMAPPINGCS, "catBuildCatalogByPureMappingCS" )
+   INT32 catBuildCatalogByPureMappingCS( const CHAR *clFullName,
+                                         const BSONObj &csMetaData,
+                                         BSONObj &catalog, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATBUILDCATALOGBYPUREMAPPINGCS ) ;
+      const CHAR *clShortName = ossStrchr( clFullName, '.' ) + 1 ;
+
+      try
+      {
+         UTIL_DS_UID dsID = UTIL_INVALID_DS_UID ;
+         BSONElement ele = csMetaData.getField( FIELD_NAME_DATASOURCE_ID ) ;
+
+         dsID = ele.numberInt() ;
+         SDB_ASSERT( UTIL_INVALID_DS_UID != dsID,
+                     "Data source id is invalid" ) ;
+         if ( UTIL_INVALID_DS_UID != dsID )
+         {
+            UINT32 mask = UTIL_CL_NAME_FIELD ;
+            const CHAR *csMapping =
+                  csMetaData.getStringField( FIELD_NAME_MAPPING ) ;
+            vector<UINT32> grpList ;
+            map<string, UINT32> splitList ;
+
+            SDB_ASSERT( csMapping, "cs mapping is NULL" ) ;
+            catCollectionInfo clInfo ;
+            CHAR mappingName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            ossSnprintf( mappingName, DMS_COLLECTION_FULL_NAME_SZ,
+                         "%s.%s", csMapping, clShortName ) ;
+            clInfo._pCLName = clFullName ;
+            ossStrncpy( clInfo._fullMapping, mappingName,
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+            grpList.push_back( SDB_DSID_2_GROUPID( dsID ) ) ;
+            clInfo._dsUID = dsID ;
+
+            rc = catBuildCatalogRecord( cb, clInfo, mask, 0, grpList,
+                                        splitList, catalog, 1 ) ;
+            PD_RC_CHECK( rc, PDERROR, "Build catalogue record for collection"
+                                      "[%s] failed[%d]", clFullName, rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATBUILDCATALOGBYPUREMAPPINGCS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+}

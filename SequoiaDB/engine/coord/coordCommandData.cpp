@@ -47,6 +47,8 @@
 #include "coordTrace.hpp"
 #include "coordSequenceAgent.hpp"
 #include "clsResourceContainer.hpp"
+#include "coordDSChecker.hpp"
+#include "coordCommandWithLocation.hpp"
 
 using namespace bson;
 
@@ -1058,6 +1060,40 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_CMD_TESTCL_EXE ) ;
+
+      contextID  = -1 ;
+
+      // In early versions, test collection is done by a list command. Now we
+      // first try with test command. If it failed with error of unknow nessage
+      // (maybe the catalogue is old version), then try in the old way.
+      rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         if ( SDB_INVALIDARG == rc )
+         {
+            rc = _testByListCmd( pMsg, cb, contextID, buf ) ;
+         }
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_CMD_TESTCL_EXE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD_TESTCL__TESTBYLISTCMD, "_coordCMDTestCollection::_testByListCmd" )
+   INT32 _coordCMDTestCollection::_testByListCmd( MsgHeader *pMsg,
+                                                  pmdEDUCB *cb,
+                                                  INT64 &contextID,
+                                                  rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_CMD_TESTCL__TESTBYLISTCMD ) ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
       coordCommandFactory *pFactory = coordGetFactory() ;
       coordOperator *pOperator = NULL ;
@@ -1067,7 +1103,7 @@ namespace engine
       CHAR *pQuery = NULL ;
       const CHAR *pCLName = NULL ;
 
-      contextID                        = -1 ;
+      contextID = -1 ;
 
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
@@ -1150,7 +1186,7 @@ namespace engine
       {
          pFactory->release( pOperator ) ;
       }
-      PD_TRACE_EXITRC ( COORD_CMD_TESTCL_EXE, rc ) ;
+      PD_TRACE_EXITRC ( COORD_CMD_TESTCL__TESTBYLISTCMD, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1537,6 +1573,8 @@ namespace engine
       {
          BSONObj boQuery ;
          BSONElement ele ;
+         BSONElement dsEle ;
+         BSONElement mappingEle ;
          const CHAR *pCSName = NULL ;
 
          _printDebug ( (const CHAR*)pMsg, getName() ) ;
@@ -1557,6 +1595,65 @@ namespace engine
             goto error ;
          }
          pCSName = ele.valuestr() ;
+
+         // Check if 'DataSource' and 'Mapping' options are specified. If yes,
+         // need to check if the target collectionspaces exists on data source
+         // or not.
+         dsEle = boQuery.getField( FIELD_NAME_DATASOURCE ) ;
+         mappingEle = boQuery.getField( FIELD_NAME_MAPPING ) ;
+         if ( dsEle.eoo() )
+         {
+            if ( !mappingEle.eoo() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Mapping could not be used with out data "
+                           "source[%d]", rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            BOOLEAN exist = FALSE ;
+            const CHAR *dsName = dsEle.valuestr() ;
+            const CHAR *mappingCSName = mappingEle.eoo() ?
+                  pCSName : mappingEle.valuestr() ;
+            UINT8 expectArgNum = mappingEle.eoo() ? 1 : 2 ;
+
+            // The client may add the default page size field in the option,
+            // event when the user does not set it explicitly in the command.
+            // The default page size set by the client is 0, which means using
+            // the default value of the server.
+            // The query may be in the format:
+            // { Name: <csName>, DataSource: "ds1", PageSize: 0 }
+            BSONElement pageSizeEle = boQuery.getField( FIELD_NAME_PAGE_SIZE ) ;
+            if ( !pageSizeEle.eoo() && ( 0 == pageSizeEle.numberInt() ) )
+            {
+               ++expectArgNum ;
+            }
+            if ( boQuery.hasField( FIELD_NAME_NAME ) )
+            {
+               ++expectArgNum ;
+            }
+            if ( boQuery.nFields() > expectArgNum )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Other options are not allowed to use "
+                           "together with data source[%d]", rc ) ;
+               goto error ;
+            }
+
+            rc = _testCSOnDataSource( dsName, mappingCSName, exist, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Test collection space[%s] on data "
+                         "source[%s] failed[%d]",
+                         mappingCSName, dsName, rc  ) ;
+            if ( !exist )
+            {
+               rc = SDB_DMS_CS_NOTEXIST ;
+               PD_LOG_MSG( PDERROR, "Mapping collection space[%s] does not "
+                           "exist on data source[%s]", mappingCSName, dsName ) ;
+               goto error ;
+            }
+         }
 
          pCreateReq->header.opCode = MSG_CAT_CREATE_COLLECTION_SPACE_REQ ;
          // execute create collection on catalog
@@ -1582,6 +1679,44 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( COORD_CREATECS_EXE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDCreateCollectionSpace::_testCSOnDataSource( const CHAR *dsName,
+                                                              const CHAR *csName,
+                                                              BOOLEAN &exist,
+                                                              pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         utilAddrPair address ;
+         BSONObj dummyObj ;
+         BSONObj query = BSON( FIELD_NAME_NAME << csName ) ;
+         CoordDataSourcePtr dsPtr ;
+         coordDSCSChecker csChecker ;
+
+         rc = _pResource->getDSManager()->getOrUpdateDataSource( dsName,
+                                                                 dsPtr,
+                                                                 cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get information of data source[%s] "
+                      "failed[%d]", dsName, rc ) ;
+
+         rc = csChecker.check( dsPtr, csName, cb, exist ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check existence of collection space[%s] on "
+                      "data source[%s] failed[%d]", csName, dsName, rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
       return rc ;
    error:
       goto done ;
@@ -1796,6 +1931,7 @@ namespace engine
                                                      pmdEDUCB * cb,
                                                      coordCMDArguments *pArgs )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCS_DOCOMPLETE ) ;
 
       vector< string > subCLSet ;
@@ -1809,8 +1945,52 @@ namespace engine
          ++it ;
       }
 
+      try
+      {
+         BOOLEAN dsRelated = FALSE ;   // If any objects related with this cs
+                                       // are using data source. If yes, need
+                                       // to invalidate cache by cs name on all
+                                       // coordinators.
+         CoordGroupList::const_iterator itr = pArgs->_groupList.begin() ;
+         // Check the group list returned by catalogue. If any one is a data
+         // source group, need to broadcast the invalidation message.
+         for ( ; itr != pArgs->_groupList.end(); ++itr )
+         {
+            if ( SDB_IS_DSID( itr->first ) )
+            {
+               dsRelated = TRUE ;
+               break ;
+            }
+         }
+         if ( dsRelated )
+         {
+            BSONObj option = BSON( FIELD_NAME_ROLE << "Coord" <<
+                                   FIELD_NAME_TYPE << VALUE_NAME_CATALOG <<
+                                   FIELD_NAME_NAME << pArgs->_targetName.c_str() ) ;
+            rc = coordInvalidateCache( _pResource, option, cb ) ;
+            if ( rc )
+            {
+               // For invalidate cache failure, report warning in the log, but
+               // don't interrupt the current operation.
+               PD_LOG( PDWARNING, "Execute invalidate catalogue cache for "
+                       "collection space %s failed[%d]",
+                       pArgs->_targetName.c_str(), rc ) ;
+               rc = SDB_OK ;
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e )  ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXIT ( COORD_DROPCS_DOCOMPLETE ) ;
-      return SDB_OK ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -1951,6 +2131,23 @@ namespace engine
          BOOLEAN isMainCL = FALSE ;
          BOOLEAN isCapped = FALSE ;
          BOOLEAN isCompressed = FALSE ;
+         const CHAR *dataSourceName = NULL ;
+         const CHAR *mappingName = NULL ;
+         UINT8 dsArgNum = 0 ;
+
+         rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_DATASOURCE,
+                                   &dataSourceName ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_DATASOURCE, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
          rc = rtnGetSTDStringElement( pArgs->_boQuery, CAT_COLLECTION_NAME,
                                       pArgs->_targetName ) ;
@@ -1968,6 +2165,56 @@ namespace engine
                     getName() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
+         }
+
+         rc = rtnGetStringElement( pArgs->_boQuery, FIELD_NAME_MAPPING,
+                                   &mappingName ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            if ( dataSourceName )
+            {
+               // Field 'DataSource' is given, but not field 'Mapping'. In this
+               // case, mapping to the collection with the same name of the
+               // original collection.
+               mappingName = pArgs->_targetName.c_str() ;
+            }
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
+                    FIELD_NAME_MAPPING, getName(), rc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         else if ( !dataSourceName )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Mapping could not be used without data "
+                                 "source[%d]", rc ) ;
+            goto error ;
+         }
+
+         if ( dataSourceName )
+         {
+            ++dsArgNum ;
+            if ( mappingName )
+            {
+               ++dsArgNum ;
+            }
+
+            if ( pArgs->_boQuery.hasField( FIELD_NAME_NAME ) )
+            {
+               ++dsArgNum ;
+            }
+
+            if ( pArgs->_boQuery.nFields() > dsArgNum )
+            {
+               rc = SDB_OPERATION_INCOMPATIBLE ;
+               PD_LOG_MSG( PDERROR, "Other options are not allowed to use "
+                                    "together with data source[%d]", rc ) ;
+               goto error ;
+            }
          }
 
          rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_CAPPED,
@@ -2054,6 +2301,37 @@ namespace engine
                PD_LOG( PDERROR, "Get field[%s] failed on command[%s], rc: %d",
                        FIELD_NAME_SHARDTYPE_HASH, getName(), rc ) ;
                rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+
+         // Validate collection on data source, if any.
+         if ( dataSourceName )
+         {
+            BOOLEAN exist = FALSE ;
+            // If there is no dot in the mapping name, it's a short collection
+            // name. We should get the full name to test on data source.
+            CHAR fullMappingName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            SDB_ASSERT( mappingName, "Mapping should not be null" ) ;
+            if ( NULL == ossStrstr( mappingName, "." ) )
+            {
+               string csName =
+                     pArgs->_targetName.substr( 0,
+                                                pArgs->_targetName.find( "." ) ) ;
+               ossSnprintf( fullMappingName, DMS_COLLECTION_FULL_NAME_SZ,
+                            "%s.%s", csName.c_str(), mappingName ) ;
+               mappingName = fullMappingName ;
+            }
+
+            rc = _testCLOnDataSource( dataSourceName, mappingName, exist,
+                                      pmdGetThreadEDUCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Test collection[%s] on data source[%s] "
+                         "failed[%d]", mappingName, dataSourceName, rc ) ;
+            if ( !exist )
+            {
+               rc = SDB_DMS_NOTEXIST ;
+               PD_LOG_MSG( PDERROR, "Mapping collection[%s] does not exist on "
+                           "data source[%s]", mappingName, dataSourceName ) ;
                goto error ;
             }
          }
@@ -2184,6 +2462,44 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_CREATECL_ROLLBACKONDATA, rc ) ;
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 _coordCMDCreateCollection::_testCLOnDataSource( const CHAR *dsName,
+                                                         const CHAR *clName,
+                                                         BOOLEAN &exist,
+                                                         pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         CoordDataSourcePtr dsPtr ;
+         coordDSCLChecker clChecker ;
+         utilAddrPair address ;
+         BSONObj dummyObj ;
+         BSONObj query = BSON( FIELD_NAME_NAME << clName ) ;
+
+         rc = _pResource->getDSManager()->getOrUpdateDataSource( dsName,
+                                                                 dsPtr,
+                                                                 cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get information of data source[%s] "
+                      "failed[%d]", dsName, rc ) ;
+
+         rc = clChecker.check( dsPtr, clName, cb, exist ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check existence of collection[%s] on data "
+                      "source[%s] failed[%d]", clName, dsName, rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 
@@ -2407,11 +2723,40 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCL_DOCOMPLETE ) ;
 
-      if ( getCataPtr().get() )
+      CoordCataInfoPtr cataPtr = getCataPtr() ;
+      if ( cataPtr.get() )
       {
          rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to invalidate sequence cache, rc: %d", rc ) ;
+         if ( UTIL_INVALID_DS_UID != cataPtr->getDataSourceID() )
+         {
+            // It's a collection which is using the data source. Need to notify
+            // other coordinators to cleanup the catalogue cache of the
+            // collection.
+            try
+            {
+               BSONObj option = BSON( FIELD_NAME_ROLE << "Coord" <<
+                                      FIELD_NAME_TYPE << VALUE_NAME_CATALOG <<
+                                      FIELD_NAME_NAME << cataPtr->getName() ) ;
+               rc = coordInvalidateCache( _pResource, option, cb ) ;
+               if ( rc )
+               {
+                  // For invalidation error, report warning in the log, but
+                  // don't interrupt the current operation.
+                  PD_LOG( PDWARNING, "Execute invalidate catalogue cache for "
+                          "collection %s failed[%d]",
+                          cataPtr->getName(), rc ) ;
+                  rc = SDB_OK ;
+               }
+            }
+            catch ( std::exception &e )
+            {
+               rc = ossException2RC( &e )  ;
+               PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+               goto error ;
+            }
+         }
       }
 
       _pResource->removeCataInfoWithMain( pArgs->_targetName.c_str() ) ;
@@ -2618,7 +2963,6 @@ namespace engine
       PD_TRACE_ENTRY( COORD_ALTERCL_DOCOMPLETE ) ;
 
       const CHAR * collection = pArgs->_targetName.c_str() ;
-      CoordCataInfoPtr cataPtr ;
 
       rc = _coordDataCMDAlter::_doComplete( pMsg, cb, pArgs ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to do complete on collection [%s], "

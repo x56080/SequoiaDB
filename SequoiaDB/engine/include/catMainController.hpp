@@ -239,7 +239,7 @@ namespace engine
       BOOLEAN           _isDelayed ;
       BOOLEAN           _delayWithoutSync ;
       UINT64            _lastCheckDelayTick ;
-
+      BSONObj           _clMetaRecord ;
    } ;
 
 }

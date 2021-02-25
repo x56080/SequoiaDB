@@ -55,6 +55,7 @@
 using namespace std ;
 using namespace bson ;
 
+#define SDB_MD5_VALUE_BUF_LEN  (SDB_MD5_DIGEST_LENGTH * 2 + 1)
 #define LOB_ALIGNED_LEN 524288
 
 namespace sdbclient
@@ -7288,6 +7289,215 @@ do                                                            \
       goto done ;
    }
 
+   _sdbDataSourceImpl::_sdbDataSourceImpl()
+   : _connection( NULL ),
+     _pSendBuffer ( NULL ),
+     _sendBufferSize ( 0 ) ,
+     _pReceiveBuffer ( NULL ) ,
+     _receiveBufferSize ( 0 )
+   {
+      ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
+   }
+
+   _sdbDataSourceImpl::_sdbDataSourceImpl( const CHAR *pDataSourceName )
+   : _connection( NULL ),
+     _pSendBuffer ( NULL ),
+     _sendBufferSize ( 0 ) ,
+     _pReceiveBuffer ( NULL ) ,
+     _receiveBufferSize ( 0 )
+   {
+      _setName( pDataSourceName ) ;
+   }
+
+   _sdbDataSourceImpl::~_sdbDataSourceImpl()
+   {
+      if ( _connection )
+      {
+         _connection->_unregDataSource( this ) ;
+      }
+      if ( _pSendBuffer )
+      {
+         SDB_OSS_FREE( _pSendBuffer ) ;
+      }
+      if ( _pReceiveBuffer )
+      {
+         SDB_OSS_FREE( _pReceiveBuffer ) ;
+      }
+   }
+
+   void _sdbDataSourceImpl::_setConnection( _sdb *connection )
+   {
+      _connection = (_sdbImpl *)connection ;
+      _connection->_regDataSource( this ) ;
+
+   }
+
+   INT32 _sdbDataSourceImpl::_setName( const CHAR *pDataSourceName )
+   {
+      INT32 rc = SDB_OK ;
+      if ( ossStrlen( pDataSourceName ) > CLIENT_DATASOURCE_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      ossMemset( _dataSourceName, 0, sizeof( _dataSourceName ) ) ;
+      ossStrncpy( _dataSourceName, pDataSourceName, CLIENT_DATASOURCE_NAMESZ ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbDataSourceImpl::_appendOptions( BSONObjBuilder &builder,
+                                             const BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONElement ele = options.getField( FIELD_NAME_PASSWD ) ;
+         if ( ele.eoo() || isMd5String( ele.valuestrsafe() ) )
+         {
+            builder.append( FIELD_NAME_OPTIONS, options ) ;
+         }
+         else
+         {
+            BSONObjIterator itr( options ) ;
+            BSONObjBuilder
+               subBuilder( builder.subobjStart( FIELD_NAME_OPTIONS ) ) ;
+            while ( itr.more() )
+            {
+               BSONElement ele = itr.next() ;
+               if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PASSWD ) )
+               {
+                  CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+                  rc = md5Encrypt( ele.valuestrsafe(), md5,
+                                   SDB_MD5_VALUE_BUF_LEN ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+                  subBuilder.append( FIELD_NAME_PASSWD, md5 ) ;
+               }
+               else
+               {
+                  subBuilder.append( ele ) ;
+               }
+            }
+            subBuilder.done() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbDataSourceImpl::alterDataSource( const BSONObj& options )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      BSONElement ele ;
+      BSONObj newObj ;
+      const CHAR *newName = NULL ;
+
+      if ( !_connection || ( 0 == ossStrlen( _dataSourceName ) ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         // If the user change the name of the data source, the name in this
+         // object needs to be updated.
+         BSONElement nameEle = options.getField( FIELD_NAME_NAME ) ;
+         if ( !nameEle.eoo() )
+         {
+            if ( String != nameEle.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            newName = nameEle.valuestr() ;
+            if ( 0 == ossStrlen( newName ) )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+
+         if ( !options.hasField( FIELD_NAME_ALTER ) )
+         {
+            bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
+            rc = _appendOptions( bob, options ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
+         else
+         {
+            bob.append( FIELD_NAME_ALTER_TYPE, SDB_CATALOG_DATASOURCE ) ;
+            bob.append( FIELD_NAME_VERSION, SDB_ALTER_VERSION ) ;
+            bob.append( FIELD_NAME_NAME, _dataSourceName ) ;
+            if ( Object == ele.type() || Array == ele.type() )
+            {
+               bob.append( ele ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            ele = options.getField( FIELD_NAME_OPTIONS ) ;
+            if ( Object == ele.type() )
+            {
+               bob.append( ele ) ;
+            }
+            else if ( EOO != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+         newObj = bob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_ALTER_DATASOURCE,
+                                     &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( newName && ( 0 != ossStrcmp( _dataSourceName, newName ) ) )
+      {
+         ossStrncpy( _dataSourceName, newName, CLIENT_DATASOURCE_NAMESZ ) ;
+         _dataSourceName[ ossStrlen(newName) ] = '\0' ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    /*
     * sdbImpl
     * SequoiaDB Connection Implementation
@@ -7377,6 +7587,12 @@ do                                                            \
       for ( it = copySet.begin(); it != copySet.end(); ++it )
       {
          ((_sdbSequenceImpl*)(*it))->_dropConnection () ;
+      }
+      // release data sources
+      copySet = _dataSources ;
+      for ( it = copySet.begin(); it != copySet.end(); ++it )
+      {
+         ((_sdbDataSourceImpl*)(*it))->_dropConnection() ;
       }
       if ( NULL != _tb )
       {
@@ -7539,6 +7755,13 @@ do                                                            \
       unlock () ;
    }
 
+   void _sdbImpl::_regDataSource( _sdbDataSourceImpl *dataSource )
+   {
+      lock() ;
+      _dataSources.insert( (ossValuePtr)dataSource ) ;
+      unlock() ;
+   }
+
    void _sdbImpl::_unregCursor ( _sdbCursorImpl *cursor )
    {
       lock () ;
@@ -7593,6 +7816,13 @@ do                                                            \
       lock () ;
       _lobs.erase ( (ossValuePtr)lob ) ;
       unlock () ;
+   }
+
+   void _sdbImpl::_unregDataSource( _sdbDataSourceImpl *dataSource )
+   {
+      lock() ;
+      _dataSources.erase( (ossValuePtr)dataSource ) ;
+      unlock() ;
    }
 
    void _sdbImpl::_unregSequence ( _sdbSequenceImpl *sequence )
@@ -8702,6 +8932,9 @@ do                                                            \
       case SDB_LIST_BACKUPS:
          p = CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS ;
          break ;
+      case SDB_LIST_DATASOURCES:
+         p = CMD_ADMIN_PREFIX CMD_NAME_LIST_DATASOURCES ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -8857,7 +9090,7 @@ do                                                            \
       _sock->quickAck() ;
 
       ossEndianConvertIf4 ( length, realLen, _endianConvert ) ;
-      if ( realLen < (INT32)sizeof(MsgOpReply) )
+      if ( (UINT32)realLen < sizeof(MsgOpReply) )
       {
          rc = SDB_NET_BROKEN_MSG ;
          goto error ;
@@ -11400,6 +11633,199 @@ do                                                            \
       return rc ;
    error :
       goto done ;
+   }
+
+   INT32 _sdbImpl::createDataSource( const CHAR *pDataSourceName,
+                                     const CHAR *addresses,
+                                     const CHAR *user,
+                                     const CHAR *password,
+                                     const CHAR *type,
+                                     const bson::BSONObj *options,
+                                     _sdbDataSource **dataSource )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj newObj ;
+
+      if ( !pDataSourceName || !*pDataSourceName || !addresses ||
+           ( user && !password ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder bob ;
+         bob.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         bob.append( FIELD_NAME_ADDRESS, addresses ) ;
+         if ( user )
+         {
+            bob.append( FIELD_NAME_USER, user ) ;
+            if ( isMd5String( password ) )
+            {
+               bob.append( FIELD_NAME_PASSWD, password ) ;
+            }
+            else
+            {
+               CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+               rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+               bob.append( FIELD_NAME_PASSWD, md5 ) ;
+            }
+         }
+         if ( type )
+         {
+            bob.append( FIELD_NAME_TYPE, type ) ;
+         }
+         if ( options )
+         {
+            bob.appendElementsUnique( *options ) ;
+         }
+         newObj = bob.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_CREATE_DATASOURCE, &newObj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( dataSource && *dataSource )
+      {
+         delete *dataSource ;
+         *dataSource = NULL ;
+      }
+
+      if ( dataSource )
+      {
+         *dataSource = ( _sdbDataSource *)( new(std::nothrow) sdbDataSourceImpl() ) ;
+         if ( !*dataSource )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::dropDataSource(const CHAR *pDataSourceName)
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj obj ;
+      BSONObjBuilder builder ;
+
+      if ( !pDataSourceName ||
+           ossStrlen( pDataSourceName ) > CLIENT_COLLECTION_NAMESZ )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         builder.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         obj = builder.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+      rc = _runCommand( CMD_ADMIN_PREFIX CMD_NAME_DROP_DATASOURCE, &obj ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::getDataSource( const CHAR *pDataSourceName,
+                                  _sdbDataSource **dataSource )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj condition ;
+      BSONObjBuilder ob ;
+      BSONObj result ;
+      sdbCursor cursor ;
+
+      if ( !pDataSourceName ||
+           ossStrlen( pDataSourceName) > CLIENT_DATASOURCE_NAMESZ ||
+           !dataSource )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         ob.append( FIELD_NAME_NAME, pDataSourceName ) ;
+         condition = ob.done() ;
+      }
+      catch( const std::exception& )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      rc = getList( &cursor.pCursor, SDB_LIST_DATASOURCES, condition ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = cursor.next( result ) ;
+      if ( SDB_OK == rc )
+      {
+         *dataSource = (_sdbDataSource*)( new(std::nothrow) sdbDataSourceImpl() ) ;
+         if ( !(*dataSource) )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ((sdbDataSourceImpl*)*dataSource)->_setConnection( this ) ;
+         ((sdbDataSourceImpl*)*dataSource)->_setName( pDataSourceName ) ;
+      }
+      else if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_CAT_DATASOURCE_NOTEXIST ;
+         goto error ;
+      }
+      else
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbImpl::listDataSources( _sdbCursor **cursor,
+                                    const BSONObj &condition,
+                                    const BSONObj &selector,
+                                    const BSONObj &orderBy,
+                                    const BSONObj &hint )
+   {
+      return getList( cursor, SDB_LIST_DATASOURCES,
+                      condition, selector, orderBy, hint ) ;
    }
 
    INT32 _sdbImpl::restoreToTime( const BSONObj &options )

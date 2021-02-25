@@ -59,6 +59,7 @@ const SDB_LIST_SVCTASKS            = 14 ;
 const SDB_LIST_SEQUENCES           = 15 ;
 const SDB_LIST_USERS               = 16 ;
 const SDB_LIST_BACKUPS             = 17 ;
+const SDB_LIST_DATASOURCES         = 22 ;
 
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 0x10000000 ;
@@ -2057,3 +2058,10 @@ CipherUser.prototype.toString = function()
 }
 
 // end CipherUser
+
+SdbDataSource.prototype.help = function()
+{
+    println() ;
+    println( '   --Instance methods for class "SdbDataSource"' ) ;
+    println( '   alter(<options>)         - Alter data source options' ) ;
+}

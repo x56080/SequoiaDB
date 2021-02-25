@@ -61,8 +61,8 @@
 #include "pd.hpp"
 #include "pmdDef.hpp"
 #include "sequoiaFSOptionMgr.hpp"
-#include "sdbDataSourceComm.hpp"
-#include "sdbDataSource.hpp"
+#include "sdbConnectionPoolComm.hpp"
+#include "sdbConnectionPool.hpp"
 
 #include<arpa/inet.h>
 #include<sys/socket.h>
@@ -247,7 +247,7 @@ namespace sequoiafs
                   CHAR *name, INT64 pid, BOOLEAN *is_dir);
    private:
       sdbDataSourceConf conf;
-      sdbDataSource ds;
+      sdbConnectionPool ds ;
       string _csName;
       string _clName;
       string _sysDirMetaCSName;

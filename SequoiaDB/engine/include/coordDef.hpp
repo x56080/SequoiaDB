@@ -104,6 +104,8 @@ namespace engine
 
    /*
       _CoordCataInfo define
+      Meta data cache for one collection on coordinator. By this you can know
+      which groups this collection is on.
    */
    class _CoordCataInfo : public SDBObject
    {
@@ -224,12 +226,20 @@ namespace engine
          INT32 rc = _catlogSet.updateCatSet ( boRecord, 0 ) ;
          if ( SDB_OK == rc )
          {
-            UINT32 groupID = 0 ;
-            VEC_GROUP_ID *vecGroup = _catlogSet.getAllGroupID() ;
-            for ( UINT32 index = 0 ; index < vecGroup->size() ; ++index )
+            try
             {
-               groupID = (*vecGroup)[index] ;
-               _groupLst[groupID] = groupID ;
+               UINT32 groupID = 0 ;
+               VEC_GROUP_ID *vecGroup = _catlogSet.getAllGroupID() ;
+               for ( UINT32 index = 0 ; index < vecGroup->size() ; ++index )
+               {
+                  groupID = (*vecGroup)[index] ;
+                  _groupLst[groupID] = groupID ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_OOM ;
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             }
          }
          return rc ;
@@ -323,6 +333,16 @@ namespace engine
          return _catlogSet.getGlobalIndexes( globalIndexes ) ;
       }
 
+      INT64 getDataSourceID() const
+      {
+         return _catlogSet.getDataSourceID() ;
+      }
+
+      const string& getMappingName() const
+      {
+         return _catlogSet.getMappingName() ;
+      }
+
    private:
       // if the catalogue-info is update, build a new one, don't modify the old
       _CoordCataInfo()
@@ -338,7 +358,6 @@ namespace engine
 
    typedef boost::shared_ptr< CoordCataInfo >            CoordCataInfoPtr ;
    typedef ossPoolMap< std::string, CoordCataInfoPtr >   CoordCataMap ;
-
 }
 
 #endif // COORDDEF_HPP__

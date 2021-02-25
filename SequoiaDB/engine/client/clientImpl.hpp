@@ -37,6 +37,7 @@ namespace sdbclient
 #define CLIENT_CL_FULLNAME_SZ              ( CLIENT_COLLECTION_NAMESZ + CLIENT_CS_NAMESZ + 1 )
 #define CLIENT_USER_NAME_SZ                256
 #define CLIENT_USER_PASSWORD_SZ            256
+#define CLIENT_DATASOURCE_NAMESZ           127
 
    class _sdbCollectionSpaceImpl ;
    class _sdbCollectionImpl ;
@@ -1222,6 +1223,49 @@ namespace sdbclient
    } ;
    typedef class _sdbSequenceImpl sdbSequenceImpl ;
 
+   class _sdbDataSourceImpl : public _sdbDataSource
+   {
+   private:
+      _sdbDataSourceImpl( const _sdbDataSourceImpl& other ) ;
+      _sdbDataSourceImpl& operator=( const _sdbDataSourceImpl& ) ;
+
+#if defined CLIENT_THREAD_SAFE
+      ossSpinSLatch            _mutex ;
+#endif
+
+      _sdbImpl          *_connection ;
+      CHAR              *_pSendBuffer ;
+      INT32              _sendBufferSize ;
+      CHAR              *_pReceiveBuffer ;
+      INT32              _receiveBufferSize ;
+      CHAR               _dataSourceName[ CLIENT_DATASOURCE_NAMESZ + 1 ] ;
+
+      void _setConnection( _sdb *connection ) ;
+      void _dropConnection()
+      {
+         _connection = NULL ;
+      }
+
+      INT32 _setName( const CHAR *pDataSourceName ) ;
+
+      INT32 _appendOptions( BSONObjBuilder &builder, const BSONObj &options ) ;
+
+      friend class _sdbImpl ;
+
+   public:
+      _sdbDataSourceImpl() ;
+      _sdbDataSourceImpl( const CHAR *pDataSourceName ) ;
+      ~_sdbDataSourceImpl() ;
+
+      INT32 alterDataSource( const bson::BSONObj &options = _sdbStaticObject ) ;
+      const CHAR *getDSName()
+      {
+         return _dataSourceName ;
+      }
+   } ;
+
+   typedef _sdbDataSourceImpl sdbDataSourceImpl ;
+
    /*
       _sdbImpl
    */
@@ -1257,6 +1301,7 @@ namespace sdbclient
       std::set<ossValuePtr>    _dataCenters ;
       std::set<ossValuePtr>    _lobs ;
       std::set<ossValuePtr>    _sequences ;
+      std::set<ossValuePtr>    _dataSources ;
       hashTable               *_tb ;
       // If the authVersion is 0, we use MD5 authentication.
       // And if the authVersion is 1, we use SCRAM-SHA256 authentication.
@@ -1327,6 +1372,7 @@ namespace sdbclient
       void _regDataCenter ( _sdbDataCenterImpl *dc ) ;
       void _regLob ( _sdbLobImpl *lob ) ;
       void _regSequence ( _sdbSequenceImpl *sequence ) ;
+      void _regDataSource( _sdbDataSourceImpl *dataSource ) ;
       void _unregCursor ( _sdbCursorImpl *cursor ) ;
       void _unregCollection ( _sdbCollectionImpl *collection ) ;
       void _unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
@@ -1336,6 +1382,7 @@ namespace sdbclient
       void _unregDataCenter ( _sdbDataCenterImpl *dc ) ;
       void _unregLob ( _sdbLobImpl *lob ) ;
       void _unregSequence ( _sdbSequenceImpl *sequence ) ;
+      void _unregDataSource( _sdbDataSourceImpl *dataSource ) ;
 
       hashTable* _getCachedContainer() const ;
 
@@ -1376,6 +1423,7 @@ namespace sdbclient
       friend class _sdbDataCenterImpl ;
       friend class _sdbLobImpl ;
       friend class _sdbSequenceImpl ;
+      friend class _sdbDataSourceImpl ;
    public :
       _sdbImpl ( BOOLEAN useSSL = FALSE ) ;
       ~_sdbImpl () ;
@@ -1883,6 +1931,42 @@ namespace sdbclient
 
       INT32 dropSequence( const CHAR *pSequenceName ) ;
 
+      INT32 createDataSource( const CHAR *pDataSourceName,
+                              const CHAR *addresses,
+                              const CHAR *user = NULL,
+                              const CHAR *password = NULL,
+                              const CHAR *type = NULL,
+                              const bson::BSONObj *options = NULL,
+                              _sdbDataSource **dataSource = NULL ) ;
+
+      INT32 dropDataSource( const CHAR *pDataSourceName ) ;
+
+      INT32 getDataSource( const CHAR *pDataSourceName,
+                           _sdbDataSource **dataSource ) ;
+
+      INT32 getDataSource( const CHAR *pDataSourceName,
+                           sdbDataSource &dataSource )
+      {
+         RELEASE_INNER_HANDLE( dataSource.pDataSource ) ;
+         return getDataSource( pDataSourceName, &dataSource.pDataSource ) ;
+      }
+
+      INT32 listDataSources( _sdbCursor **cursor,
+                             const bson::BSONObj &condition = _sdbStaticObject,
+                             const bson::BSONObj &selector = _sdbStaticObject,
+                             const bson::BSONObj &orderBy = _sdbStaticObject,
+                             const bson::BSONObj &hint = _sdbStaticObject ) ;
+
+      INT32 listDataSources( sdbCursor &cursor,
+                             const bson::BSONObj &condition = _sdbStaticObject,
+                             const bson::BSONObj &selector = _sdbStaticObject,
+                             const bson::BSONObj &orderBy = _sdbStaticObject,
+                             const bson::BSONObj &hint = _sdbStaticObject )
+      {
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return listDataSources( &cursor.pCursor, condition, selector,
+                                 orderBy, hint ) ;
+      }
    } ;
    typedef class _sdbImpl sdbImpl ;
 }

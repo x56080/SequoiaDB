@@ -15,9 +15,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceComm.cpp
+   Source File Name = sdbConnectionPoolComm.cpp
 
-   Descriptive Name = SDB Data Source Common Source File
+   Descriptive Name = SDB Connection Pool Common Source File
 
    When/how to use: this program may be used on sequoiadb data source function.
 
@@ -34,13 +34,13 @@
 
 *******************************************************************************/
 
-#include "sdbDataSourceComm.hpp"
+#include "sdbConnectionPoolComm.hpp"
 #include "ossErr.h"
 
 namespace sdbclient
 {
    //set user info
-   void sdbDataSourceConf::setUserInfo( 
+   void sdbDataSourceConf::setUserInfo(
       const std::string &username,
       const std::string &passwd )
    {
@@ -49,7 +49,7 @@ namespace sdbclient
    }
 
    // set connection number info
-   void sdbDataSourceConf::setConnCntInfo( 
+   void sdbDataSourceConf::setConnCntInfo(
       INT32 initCnt,
       INT32 deltaIncCnt,
       INT32 maxIdleCnt,
@@ -62,25 +62,25 @@ namespace sdbclient
    }
 
    // set idle connection interval
-   void sdbDataSourceConf::setCheckIntervalInfo( 
-      INT32 interval, 
+   void sdbDataSourceConf::setCheckIntervalInfo(
+      INT32 interval,
       INT32 aliveTime /*= 0*/ )
    {
       _checkInterval = interval ;
       _keepAliveTimeout = aliveTime ;
    }
-   
+
    BOOLEAN sdbDataSourceConf::isValid()
    {
       BOOLEAN ret = TRUE ;
-      
+
       // check count info
-      if ( (0 >= _maxCount) || (0 >= _maxIdleCount) || 
+      if ( (0 >= _maxCount) || (0 >= _maxIdleCount) ||
          (0 >= _deltaIncCount) || (0 > _initConnCount) )
       {
          goto error ;
       }
-      if ( ( 0 >= _checkInterval ) || ( 0 > _keepAliveTimeout ) || 
+      if ( ( 0 >= _checkInterval ) || ( 0 > _keepAliveTimeout ) ||
          ( 0 > _syncCoordInterval ) )
       {
          goto error;
@@ -91,11 +91,11 @@ namespace sdbclient
       }
       if ( _deltaIncCount > _maxIdleCount )
       {
-         _deltaIncCount = _maxIdleCount ;    // TODO: why ?需求讨论后决定这样做
+         _deltaIncCount = _maxIdleCount ;
       }
       if ( _initConnCount> _maxIdleCount )
       {
-         _initConnCount = _maxIdleCount ;    // TODO: why ?同上
+         _initConnCount = _maxIdleCount ;
       }
       // check idle connection interval
       if ( (0 != _keepAliveTimeout) && (_keepAliveTimeout < _checkInterval) )
@@ -106,7 +106,7 @@ namespace sdbclient
       {
          goto error ;
       }
-      
+
    done :
       return ret  ;
    error :

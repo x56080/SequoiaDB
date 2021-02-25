@@ -35,8 +35,8 @@ if windows:
 # files
 clientCPPFiles = [
       "client/clientcpp.cpp",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
+      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolComm.cpp",
       "client/sdbDataSourceStrategy.cpp",
       "client/sdbDataSourceWorker.cpp"
       ]
@@ -132,8 +132,8 @@ elif windows:
 #Header files
 clientCppEnv.Install( '#/client/include/', "client/client.hpp" )
 # sdbDataSource files
-clientCppEnv.Install( '#/client/include/', "client/sdbDataSource.hpp")
-clientCppEnv.Install( '#/client/include/', "client/sdbDataSourceComm.hpp")
+clientCppEnv.Install( '#/client/include/', "client/sdbConnectionPool.hpp")
+clientCppEnv.Install( '#/client/include/', "client/sdbConnectionPoolComm.hpp")
 clientCppEnv.Install( '#/client/include/', "include/ossLatch.hpp")
 clientCppEnv.Install( '#/client/include/', "include/oss.h")
 clientCppEnv.Install( '#/client/include/', "include/oss.hpp")

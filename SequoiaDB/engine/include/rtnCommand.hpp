@@ -527,6 +527,16 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_SEQUENCE ; }
    } ;
 
+   class _rtnListDataSources : public _rtnCoordOnly
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+      public:
+         _rtnListDataSources() {}
+         virtual ~_rtnListDataSources() {}
+         virtual const CHAR *name () { return NAME_LIST_DATASOURCES ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_LIST_DATASOURCES ; }
+   } ;
+
    class _rtnBackup : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()

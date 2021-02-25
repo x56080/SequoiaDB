@@ -112,6 +112,11 @@
 #define VALUE_NAME_SVCTASKS                  "svctasks"
 #define VALIE_NAME_COLLECTIONS               "collections"
 #define VALUE_NAME_ALL                       "all"
+#define VALUE_NAME_NONE                      "none"
+#define VALUE_NAME_CATALOG                   "catalog"
+#define VALUE_NAME_GROUP                     "group"
+#define VALUE_NAME_STRATEGY                  "strategy"
+#define VALUE_NAME_DATASOURCE                "datasource"
 #define FIELD_NAME_ISMAINCL                  "IsMainCL"
 #define FIELD_NAME_MAINCLNAME                "MainCLName"
 #define FIELD_NAME_SUBCLNAME                 "SubCLName"
@@ -206,6 +211,7 @@
 #define FIELD_NAME_SYSCPU                    "SysCPU"
 #define FIELD_NAME_CONNECTTIMESTAMP          "ConnectTimestamp"
 #define FIELD_NAME_USER                      "User"
+#define FIELD_NAME_PASSWD                    "Password"
 #define FIELD_NAME_SYS                       "Sys"
 #define FIELD_NAME_IDLE                      "Idle"
 #define FIELD_NAME_OTHER                     "Other"
@@ -401,6 +407,11 @@
 #define VALUE_NAME_MAIN                      "main"
 #define VALUE_NAME_SUB                       "sub"
 #define VALUE_NAME_BOTH                      "both"
+#define VALUE_NAME_SEQUOIADB                 "SequoiaDB"
+#define VALUE_NAME_READ                      "Read"
+#define VALUE_NAME_WRITE                     "Write"
+#define VALUE_NAME_LOW                       "Low"
+#define VALUE_NAME_HIGH                      "High"
 #define FIELD_NAME_TIME                      "Time"
 #define FIELD_NAME_GLOBAL_TIME               "GlobalTime"
 #define FIELD_NAME_GLOBAL_TRANS              "GlobalTrans"
@@ -610,6 +621,10 @@
 #define FIELD_NAME_ANALYZE_NUM               "SampleNum"
 #define FIELD_NAME_ANALYZE_PERCENT           "SamplePercent"
 
+#define FIELD_NAME_DATASOURCE                "DataSource"
+#define FIELD_NAME_DATASOURCE_ID             "DataSourceID"
+#define FIELD_NAME_MAPPING                   "Mapping"
+
 #define FIELD_OP_VALUE_UPDATE                "update"
 #define FIELD_OP_VALUE_REMOVE                "remove"
 
@@ -621,6 +636,13 @@
 #define FIELD_NAME_PARAM                     "$param"
 #define FIELD_NAME_CTYPE                     "$ctype"
 #define FIELD_NAME_PARAMETERS                "Parameters"
+
+#define FIELD_NAME_DSVERSION                 "DSVersion"
+#define FIELD_NAME_ACCESSMODE                "AccessMode"
+#define FIELD_NAME_ACCESSMODE_DESC           "AccessModeDesc"
+#define FIELD_NAME_ERRORCTLLEVEL             "ErrorControlLevel"
+#define FIELD_NAME_ERRORFILTERMASK           "ErrorFilterMask"
+#define FIELD_NAME_ERRORFILTERMASK_DESC      "ErrorFilterMaskDesc"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -686,6 +708,7 @@
 #define CMD_NAME_LIST_TRANSACTIONS_CUR       CMD_NAME_PREFIX_LIST "transactions current"
 #define CMD_NAME_LIST_SVCTASKS               CMD_NAME_PREFIX_LIST "service tasks"
 #define CMD_NAME_LIST_SEQUENCES              CMD_NAME_PREFIX_LIST "sequences"
+#define CMD_NAME_LIST_DATASOURCES            CMD_NAME_PREFIX_LIST "datasources"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -751,6 +774,7 @@
 #define CMD_NAME_GETSESS_ATTR                CMD_NAME_PREFIX_GET "session attribute"
 #define CMD_NAME_INVALIDATE_CACHE            "invalidate cache"
 #define CMD_NAME_INVALIDATE_SEQUENCE_CACHE   "invalidate sequence cache"
+#define CMD_NAME_INVALIDATE_DATASOURCE_CACHE "invalidate datasource cache"
 #define CMD_NAME_FORCE_SESSION               "force session"
 #define CMD_NAME_LIST_LOBS                   CMD_NAME_PREFIX_LIST "lobs"
 #define CMD_NAME_ALTER_DC                    "alter dc"
@@ -772,7 +796,17 @@
 #define CMD_NAME_RESTORE_CHECK               CMD_NAME_PREFIX_RESTORE "check"
 #define CMD_NAME_RESTORE_ABORT               CMD_NAME_PREFIX_RESTORE "abort"
 #define CMD_NAME_RESTORE_PREPARE             CMD_NAME_PREFIX_RESTORE "prepare"
+#define CMD_NAME_GET_CL_DETAIL               CMD_NAME_PREFIX_GET "collection detail"
+#define CMD_NAME_GET_INDEX_STAT              CMD_NAME_PREFIX_GET "index statistic"
+#define CMD_NAME_CREATE_DATASOURCE           "create datasource"
+#define CMD_NAME_DROP_DATASOURCE             "drop datasource"
+#define CMD_NAME_ALTER_DATASOURCE            "alter datasource"
 
+/**
+ * NOTE:
+ * As the following names are used as table names in build-in SQL, so they
+ * should be singular. For any new added names, DON'T add 's' to them.
+ */
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"
 #define CMD_NAME_SNAPSHOT_COLLECTION_INTR    "SNAPSHOT_CL"
@@ -810,6 +844,7 @@
 #define CMD_NAME_LIST_DOMAIN_INTR            "LIST_DOMAIN"
 #define CMD_NAME_LIST_SVCTASKS_INTR          "LIST_SVCTASKS"
 #define CMD_NAME_LIST_SEQUENCES_INTR         "LIST_SEQUENCES"
+#define CMD_NAME_LIST_DATASOURCE_INTR        "LIST_DATASOURCE"
 
 #define SYS_VIRTUAL_CS                       "SYS_VCS"
 #define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )
@@ -996,6 +1031,7 @@ enum SDB_LOB_MODE
 #define SDB_CATALOG_GROUP     "group"
 #define SDB_CATALOG_NODE      "node"
 #define SDB_CATALOG_SEQ       "sequence"
+#define SDB_CATALOG_DATASOURCE "data source"
 #define SDB_CATALOG_UNKNOWN   "unknown"
 
 #define SDB_CATALOG_CL_ID_INDEX     "id index"

@@ -1141,6 +1141,12 @@ namespace engine
                continue ;
             }
 
+            tmpSocket.disableNagle() ;
+            // set keep alive
+            tmpSocket.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
+                                    OSS_SOCKET_KEEP_INTERVAL,
+                                    OSS_SOCKET_KEEP_CONTER ) ;
+
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
             if ( NULL != buffer && bufferSize > 0 )

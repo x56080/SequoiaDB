@@ -261,7 +261,8 @@ namespace engine
                     "failed, rc: %d", inMsg.opCode(),
                     routeID2String( routeID ).c_str(), rcTmp ) ;
          }
-         else if ( rcTmp && !options.isIgnored( rcTmp ) )
+         else if ( rcTmp && !options.isIgnored( rcTmp ) &&
+                   !pSub->canErrFilterOut( rcTmp ) )
          {
             if ( pCtrl->canRetry( rcTmp, routeID, primaryID,
                                   isReadOnly(), TRUE ) )
@@ -333,6 +334,8 @@ namespace engine
       {
          options._groupLst.clear() ;
 
+         // If the collection is on external datasource, just do one that
+         // data source.
          rc = cataSel.getGroupLst( cb, result._sucGroupLst,
                                    options._groupLst, &objMatch ) ;
          if ( rc )

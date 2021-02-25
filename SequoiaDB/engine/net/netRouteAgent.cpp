@@ -42,10 +42,10 @@
 
 namespace engine
 {
-   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler ):
-                                   _frame( handler, &_route )
+   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler,
+                                   const NET_HANDLE &beginID )
+   :_frame( handler, &_route, beginID )
    {
-
    }
 
    // this updateRoute only change the old routeID to new one. It does NOT

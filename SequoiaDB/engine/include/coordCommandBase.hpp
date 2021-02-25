@@ -50,6 +50,8 @@ namespace engine
 
    /*
       _coordCommandBase define
+      Provide the basic functions to operate on different object, such as a
+      collection, a data group, and so on.
    */
    class _coordCommandBase : public _coordOperator
    {

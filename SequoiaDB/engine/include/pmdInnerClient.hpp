@@ -92,6 +92,21 @@ namespace engine
          virtual const CHAR*  getFromIPAddr() const ;
          virtual UINT16       getFromPort() const ;
 
+         virtual const MsgHeader *getInMsg() const
+         {
+            return _inMsg ;
+         }
+
+         virtual void registerInMsg( const MsgHeader *msg )
+         {
+            _inMsg = msg ;
+         }
+
+         virtual void unregisterInMsg()
+         {
+            _inMsg = NULL ;
+         }
+
       public:
          _netRouteAgent*      getNetAgent() { return _pRTAgent ; }
 
@@ -115,6 +130,7 @@ namespace engine
          CHAR                 _fromIP[ PMD_IPADDR_LEN + 1 ] ;
          UINT16               _fromPort ;
 
+         const MsgHeader *    _inMsg ;
    } ;
    typedef _pmdInnerClient pmdInnerClient ;
 

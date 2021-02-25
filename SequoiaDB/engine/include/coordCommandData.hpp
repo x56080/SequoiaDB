@@ -126,6 +126,14 @@ namespace engine
 
       protected:
          INT32 _dropCL( const CHAR *clName, pmdEDUCB *cb ) ;
+
+         virtual INT32 _preprocessMsg( MsgHeader *pOrigMsg,
+                                       pmdEDUCB *cb,
+                                       coordCMDArguments *pArgs,
+                                       MsgHeader **ppNewMsg )
+         {
+            return SDB_OK ;
+         }
    } ;
    typedef _coordDataCMD2Phase coordDataCMD2Phase ;
 
@@ -319,6 +327,9 @@ namespace engine
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
                                 rtnContextBuf *buf ) ;
+      private:
+         INT32 _testByListCmd( MsgHeader *pMsg, pmdEDUCB *cb,
+                               INT64 &contextID, rtnContextBuf *buf ) ;
    } ;
    typedef _coordCMDTestCollection coordCMDTestCollection ;
 
@@ -389,6 +400,9 @@ namespace engine
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
                                 rtnContextBuf *buf ) ;
+      private:
+         INT32 _testCSOnDataSource( const CHAR *dsName, const CHAR *csName,
+                                    BOOLEAN &exist, pmdEDUCB *cb ) ;
    } ;
    typedef _coordCMDCreateCollectionSpace coordCMDCreateCollectionSpace ;
 
@@ -557,6 +571,17 @@ namespace engine
             update catalog info before send command to Data Groups
          */
          virtual BOOLEAN _flagUpdateBeforeData () { return TRUE ; }
+
+         /**
+          * Test if the collection exists on data source.
+          * @param dsName Data source name
+          * @param clName Full name of the collection
+          * @param exist Test resul
+          * @param cb Thread control block
+          * @return
+          */
+         INT32 _testCLOnDataSource( const CHAR *dsName, const CHAR *clName,
+                                    BOOLEAN &exist, pmdEDUCB *cb ) ;
 
    } ;
    typedef _coordCMDCreateCollection coordCMDCreateCollection ;

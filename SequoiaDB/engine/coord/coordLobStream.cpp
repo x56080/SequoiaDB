@@ -252,6 +252,7 @@ namespace engine
          PD_LOG( PDERROR, "failed to get meta group:%d", rc ) ;
          goto error ;
       }
+
       // get group info
       rc = _pResource->getOrUpdateGroupInfo( _metaGroup, _metaGroupInfo,
                                              cb ) ;
@@ -532,8 +533,11 @@ namespace engine
          else if ( RETRY_TAG_NULL == tag )
          {
             SDB_ASSERT( 1 == _results.size(), "impossible" ) ;
-            reply = _results.empty() ? NULL :
-                     (MsgOpReply*)((*_results.begin())._Data ) ;
+
+            PD_CHECK( 1 == _results.size(), SDB_SYS, error, PDERROR,
+                      "Failed to get result, no result returned" ) ;
+
+            reply = (MsgOpReply*)((*_results.begin())._Data ) ;
             break ;
          }
       } while ( TRUE ) ;
@@ -895,6 +899,7 @@ namespace engine
          _clearMsgData() ;
          INT32 tag = RETRY_TAG_NULL ;
          header.version = _cataInfo->getVersion() ;
+         header.header.opCode = opCode ;
          rc = _getLobGroupID( getOID(), tuple.tuple.columns.sequence,
                               groupID ) ;
          if ( SDB_OK != rc )
@@ -1407,7 +1412,7 @@ namespace engine
          }
          else if ( got )
          {
-            if ( _getMeta()._version <  DMS_LOB_META_MERGE_DATA_VERSION &&
+            if ( _getMeta()._version < DMS_LOB_META_MERGE_DATA_VERSION &&
                  0 == curTuple->columns.sequence )
             {
                PD_LOG( PDERROR, "we should not get sequence 0" ) ;
@@ -1415,12 +1420,15 @@ namespace engine
                goto error ;
             }
 
-            rc = _getPool().push( data, curTuple->columns.len,
-                                  RTN_LOB_GET_OFFSET_OF_LOB(
-                                         pageSz,
-                                         curTuple->columns.sequence,
-                                         curTuple->columns.offset,
-                                         _getMeta()._version >= DMS_LOB_META_MERGE_DATA_VERSION ) ) ;
+            rc = _getPool().push(
+                  data,
+                  curTuple->columns.len,
+                  RTN_LOB_GET_OFFSET_OF_LOB(
+                        pageSz,
+                        curTuple->columns.sequence,
+                        curTuple->columns.offset,
+                        _getMeta()._version >= DMS_LOB_META_MERGE_DATA_VERSION ) ) ;
+
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to push data to pool:%d", rc ) ;
@@ -1648,6 +1656,11 @@ namespace engine
    INT32 _coordLobStream::_close( _pmdEDUCB *cb )
    {
       return _closeSubStreams( cb, FALSE ) ;
+   }
+
+   BOOLEAN _coordLobStream::_canCache() const
+   {
+      return SDB_IS_DSID( _metaGroup ) ? FALSE : TRUE ;
    }
 
    //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_ROLLBACK, "_coordLobStream::_rollback" )
@@ -2589,16 +2602,16 @@ namespace engine
    }
 
    void _coordLobStream::_add2Subs( UINT32 groupID,
-                                     SINT64 contextID,
-                                     MsgRouteID id )
+                                    SINT64 contextID,
+                                    MsgRouteID id )
    {
       SDB_ASSERT( 0 == _subs.count( groupID ), "impossible" ) ;
       // throw exception outside to make sure contextID is closed( disconnect )
       _subs[groupID] = subStream( contextID, id ) ;
-      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u"
-           "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
-           groupID, id.columns.groupID,
-           id.columns.nodeID, contextID ) ;
+      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u,"
+              "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
+              groupID, id.columns.groupID,
+              id.columns.nodeID, contextID ) ;
    }
 
    INT32 _coordLobStream::_ensureEmptyPageBuf( INT32 pageSize )

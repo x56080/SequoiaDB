@@ -46,6 +46,7 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
     _logarithmic( 0 ),
     _mergeMeta( FALSE ),
     _metaPageDataCached( FALSE ),
+    _dataCached( FALSE ),
     _curOffset( 0 ),
     _pool( NULL ),
     _cachedSz( 0 ),
@@ -88,7 +89,8 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
 
    INT32 _rtnLobWindow::init( INT32 pageSize,
                               BOOLEAN mergeMeta,
-                              BOOLEAN metaPageDataCached )
+                              BOOLEAN metaPageDataCached,
+                              BOOLEAN dataCached )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( DMS_DO_NOT_CREATE_LOB < pageSize,
@@ -117,6 +119,7 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
       _pageSize = pageSize ;
       _mergeMeta = mergeMeta ;
       _metaPageDataCached = metaPageDataCached ;
+      _dataCached = dataCached ;
 
    done:
       return rc ;
@@ -252,9 +255,10 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
                                                                _pageSize ) ;
       UINT32 curPageRemainSize = _pageSize - curOffsetInPage ;
 
-      if ( 0 == _cachedSz )
+      if ( 0 == _cachedSz && _dataCached )
       {
-         if ( curPageRemainSize <= _writeData.tuple.columns.len && !_writeData.empty() )
+         if ( ( curPageRemainSize <= _writeData.tuple.columns.len ) &&
+              ( !_writeData.empty() ) )
          {
             SDB_ASSERT( _curOffset == _writeData.tuple.columns.offset, "incorrect offset" ) ;
             t.columns.len = curPageRemainSize ;
@@ -279,6 +283,22 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          {
             /// cache data
             goto done ;
+         }
+      }
+      else if ( !_dataCached )
+      {
+         if ( !_writeData.empty() )
+         {
+            t.columns.len = _writeData.tuple.columns.len ;
+            t.columns.offset = curOffsetInPage ;
+            t.columns.sequence = RTN_LOB_GET_SEQUENCE( _curOffset,
+                                                       _mergeMeta,
+                                                       _logarithmic ) ;
+            tuple.data = _writeData.data ;
+            _curOffset += t.columns.len ;
+            _writeData.clear() ;
+            hasNext = TRUE ;
+            _cachedSz = 0 ;
          }
       }
       else if ( curPageRemainSize == (UINT32)_cachedSz )

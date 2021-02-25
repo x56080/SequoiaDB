@@ -6,7 +6,7 @@
  *              2019-09-05
  *************************************************************/
 #include <client.hpp>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
 #include "DS_common.hpp"
@@ -17,7 +17,7 @@ using namespace std ;
 class memTest9578 : public testBase
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
    string url ;
 

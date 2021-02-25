@@ -40,7 +40,7 @@
  *               2019-09-05
  *********************************************************************/
 #include <gtest/gtest.h>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <iostream>
 #include "impWorker.hpp"
 #include "DS_thread.hpp"
@@ -56,7 +56,7 @@ using namespace std ;
 class threadTest9535 : public testBase
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
    Worker* workers[ ThreadNum ] ;
    string url ;

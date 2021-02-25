@@ -917,7 +917,7 @@ typedef struct _MsgOpAggregate
 /// read on secondary node( use only in secondary )
 #define FLG_LOBREAD_SECONDARY             0x00000008
 
-/// when it is open reg |MsgOpLob|bsonobj|
+/// when it is open req |MsgOpLob|bsonobj|
 /// when it is open res |MsgOpReply|bsonobj|
 /// when it is put req |MsgOpLob|_MsgLobTuple|data|
 /// when it is put res |MsgOpReply|

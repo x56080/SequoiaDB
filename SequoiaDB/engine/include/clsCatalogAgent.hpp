@@ -380,6 +380,10 @@ namespace engine
          INT32 getGlobalIndexSize() ;
          INT32 getGlobalIndexes( CLS_GINDEX_LIST &globalIndexes ) ;
 
+
+         UINT32         getDataSourceID() const ;
+         const string&  getMappingName() const ;
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -472,6 +476,9 @@ namespace engine
          BOOLEAN           _repairCheck ;
 
          _clsCataGIndexGroup _gIndexGroup ;
+
+         UTIL_DS_UID       _dataSourceID ;
+         string            _mapping ;
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 

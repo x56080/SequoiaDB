@@ -267,10 +267,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDCONNECT, "_pmdAsyncMsgHandler::handleConnect" )
-   void _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                            _MsgRouteID id,
-                                            BOOLEAN isPositive,
-                                            netUserDataHolder *userDataHolder )
+   INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
+                                             _MsgRouteID id,
+                                             BOOLEAN isPositive,
+                                             netUserDataHolder *userDataHolder )
    {
       PD_TRACE_ENTRY( SDB__PMDMSGHND_HNDCONNECT ) ;
 
@@ -308,7 +308,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__PMDMSGHND_HNDCLOSE ) ;
    }
 
-   void _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
+   INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
                                             _MsgRouteID id,
                                             BOOLEAN isPositive )
    {

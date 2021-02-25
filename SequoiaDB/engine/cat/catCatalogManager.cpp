@@ -43,7 +43,6 @@
 #include "catCatalogManager.hpp"
 #include "rtnPredicate.hpp"
 #include "msgMessage.hpp"
-#include "ixmIndexKey.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
 #include "catCommon.hpp"
@@ -314,6 +313,60 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKPUREMAPPINGCS, "catCatalogueManager::_checkPureMappingCS" )
+   INT32 catCatalogueManager::_checkPureMappingCS( const CHAR *clFullName,
+                                                   MsgOpReply *&reply )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATALOGMGR__CHECKPUREMAPPINGCS ) ;
+      BOOLEAN inMappingCS = FALSE ;
+      INT32 buffSize = 0 ;
+
+      try
+      {
+         BSONObj cataInfo ;
+         BSONObj csMetaRecord ;
+
+         rc = catCheckCLInPureMappingCS( clFullName, _pEduCB, inMappingCS,
+                                         &csMetaRecord ) ;
+         PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
+                      "collection[%s] failed[%d]", clFullName, rc ) ;
+         if ( !inMappingCS )
+         {
+            // Not in a pure mapping cs, it's a normal collection space.
+            goto done ;
+         }
+
+         rc = catBuildCatalogByPureMappingCS( clFullName, csMetaRecord,
+                                              cataInfo, _pEduCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
+                                   "collection[%s] failed[%d]", clFullName, rc ) ;
+
+         rc = rtnReallocBuffer( (CHAR **)&reply, &buffSize,
+                                sizeof(MsgOpReply) + cataInfo.objsize(),
+                                SDB_PAGE_SIZE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Reallocate reply buffer failed[%d]",
+                      rc ) ;
+         ossMemcpy( (CHAR *)reply + sizeof(MsgOpReply),
+                    cataInfo.objdata(), cataInfo.objsize() ) ;
+         reply->header.messageLength += cataInfo.objsize() ;
+         reply->numReturned = 1 ;
+         reply->flags = SDB_OK ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKPUREMAPPINGCS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // this function is for catalog collection check
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_QUERYCATALOG, "catCatalogueManager::processQueryCatalogue" )
    INT32 catCatalogueManager::processQueryCatalogue ( const NET_HANDLE &handle,
@@ -383,20 +436,37 @@ namespace engine
                BOOLEAN csExist = FALSE ;
 
                rc = catCheckCSExist( collection, _pEduCB, csExist ) ;
-               if ( SDB_OK == rc && !csExist )
+               if ( csExist )
+               {
+                  // If the cs exists, and the collection is not found, check if
+                  // the cs is using data source.
+                  const CHAR *clName = matcher.firstElement().valuestr() ;
+                  rc = _checkPureMappingCS( clName, pReply ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Check mapping info of "
+                               "collection[%s] failed[%d]", clName, rc ) ;
+                  if ( 0 == pReply->numReturned )
+                  {
+                     rc = SDB_DMS_NOTEXIST ;
+                     PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                             collection, rc ) ;
+                     goto error ;
+                  }
+               }
+               else if ( SDB_OK == rc )
                {
                   rc = SDB_DMS_CS_NOTEXIST ;
                   PD_LOG( PDWARNING,
                           "Collection[%s]'s space does not exist, rc: %d",
                           collection, rc ) ;
+                  goto error ;
                }
                else
                {
                   rc = SDB_DMS_NOTEXIST ;
                   PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
                           collection, rc ) ;
+                  goto error ;
                }
-               goto error ;
             }
             else if ( pReply->numReturned > 1 )
             {
@@ -1100,6 +1170,31 @@ namespace engine
                            DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
             ++expected ;
          }
+         // Data source option
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATASOURCE ) )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] type[%d] error", FIELD_NAME_DATASOURCE,
+                      ele.type() ) ;
+            UINT32 len = ossStrlen( ele.valuestr() ) ;
+            PD_CHECK( len > 0 && len <= DATASOURCE_MAX_NAME_SZ, SDB_INVALIDARG,
+                      error, PDERROR, "Length of data source name should be "
+                      "greater than 0 and less than %u",
+                      DATASOURCE_MAX_NAME_SZ ) ;
+            csInfo._pDataSourceName = ele.valuestr() ;
+            ++expected ;
+         }
+         // Data source mapping option
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MAPPING ) )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] type[%d] error", FIELD_NAME_MAPPING,
+                      ele.type() ) ;
+            PD_CHECK( ossStrlen( ele.valuestr() ) > 1, SDB_INVALIDARG, error,
+                      PDERROR, "Length of mapping should be greater than 0" ) ;
+            csInfo._pDataSourceMapping = ele.valuestr() ;
+            ++expected ;
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,
@@ -1113,6 +1208,23 @@ namespace engine
 
       PD_CHECK( infoObj.nFields() == expected, SDB_INVALIDARG, error, PDERROR,
                 "unexpected fields exsit." ) ;
+
+      if ( csInfo._pDataSourceMapping )
+      {
+         if ( !csInfo._pDataSourceName )
+         {
+            // Mapping cannot be set without data source.
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Data source name should be specified when using "
+                             "mapping option[%d]", rc ) ;
+            goto error ;
+         }
+      }
+      else if ( csInfo._pDataSourceName )
+      {
+         // If data source mapping is not set, map to the same collection space.
+         csInfo._pDataSourceMapping = csInfo._pCSName ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR__CHECKCSOBJ, rc ) ;
@@ -1186,6 +1298,33 @@ namespace engine
                 SDB_DMS_CS_EXIST, error, PDERROR,
                 "Collection space [%s] is already existed",
                 csName ) ;
+
+      if ( csInfo._pDataSourceName )
+      {
+         BOOLEAN exist = FALSE ;
+         try
+         {
+            BSONObj obj ;
+            rc = catCheckDataSourceExist( csInfo._pDataSourceName,
+                                          exist, obj, _pEduCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check existence of data source[%s] "
+                         "failed[%d]", csInfo._pDataSourceName, rc ) ;
+            PD_CHECK( TRUE == exist, SDB_CAT_DATASOURCE_NOTEXIST, error,
+                      PDERROR, "Data source[%s] dose not exist",
+                      csInfo._pDataSourceName ) ;
+
+            // Get the data source unique id. It will be stored in the metadata
+            // of the collection space.
+            csInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Exception occurred when getting information of "
+                    "data source[%s]: %s", csInfo._pDataSourceName, e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
 
       // Lock collection space
       PD_CHECK( lockMgr.tryLockCollectionSpace( csName, EXCLUSIVE ),
@@ -1890,6 +2029,26 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl name, rc: %d", rc ) ;
          rc = catGetCollection( clName, boCollection, _pEduCB ) ;
+         if ( SDB_DMS_NOTEXIST == rc )
+         {
+            // Check if it's in a pure mapping collection space. If yes, return
+            // success directly.
+            BOOLEAN exist = FALSE ;
+            BSONObj csMeta ;
+            const CHAR *fullName = clName.c_str() ;
+            CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+            const CHAR *dot = ossStrchr( fullName, '.' ) ;
+            ossStrncpy( csName, fullName, dot - fullName ) ;
+            rc = catCheckSpaceExist( csName, exist, csMeta, _pEduCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check collection space[%s] existence "
+                         "failed[%d]", csName, rc ) ;
+            if ( csMeta.hasField( FIELD_NAME_DATASOURCE ) )
+            {
+               // The collection is in a pure mapping collection space. Nothing
+               // needs to be done locally.
+               goto done ;
+            }
+         }
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get cl info, rc: %d", rc ) ;
 

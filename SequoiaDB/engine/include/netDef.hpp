@@ -58,6 +58,7 @@ namespace engine
 
    const NET_HANDLE NET_INVALID_HANDLE = 0L ;
 
+   #define NET_MIN_HANDLE        ( 1 )
    #define NET_HANDLE_BEGIN      ( 1 )
 
    typedef UINT32 NET_GROUP_ID ;

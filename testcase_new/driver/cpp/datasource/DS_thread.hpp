@@ -7,7 +7,7 @@
 
 #include "impWorker.hpp"
 #include "arguments.hpp"
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -26,15 +26,15 @@ false表明线程结束后不删除参数指针，构造后调用start/waitstop方法
 class DsArgs : public WorkerArgs
 {
 private:
-	sdbDataSource& _ds ;			// sdbDataSource成员，使用引用防止DsArgs构造函数调用sdbDataSource的私有构造函数
+	sdbConnectionPool& _ds ;			// sdbDataSource成员，使用引用防止DsArgs构造函数调用sdbDataSource的私有构造函数
 	vector<sdb*> conn_vec ;	// connection数组，存放getConnection后获得的连接，方便后续调用releaseConnection时传入
 public:
-	DsArgs( sdbDataSource& ds ):_ds( ds ) {}
-	DsArgs( sdbDataSource& ds, vector<sdb*>& vec )
+	DsArgs( sdbConnectionPool& ds ):_ds( ds ) {}
+	DsArgs( sdbConnectionPool& ds, vector<sdb*>& vec )
 			:_ds( ds ), conn_vec( vec ) {}
 	~DsArgs() {}
 
-	sdbDataSource& getDs() { return _ds ; }
+	sdbConnectionPool& getDs() { return _ds ; }
 	vector<sdb*>& getConnVec() { return conn_vec ; }
 } ;
 

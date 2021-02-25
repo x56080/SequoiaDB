@@ -15,9 +15,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Source File Name = sdbDataSourceComm.hpp
+   Source File Name = sdbConnectionPoolComm.hpp
 
-   Descriptive Name = SDB Data Source Common Include Header
+   Descriptive Name = SDB Connection Pool Common Include Header
 
    When/how to use: this program may be used on sequoiadb data source function.
 
@@ -34,12 +34,12 @@
 
 *******************************************************************************/
 
-/** \file sdbDataSourceComm.hpp
-    \brief C++ sdb data source configure 
+/** \file sdbConnectionPoolComm.hpp
+    \brief C++ sdb data source configure
 */
 
-#ifndef SDB_DATA_SOURCE_COMM_HPP_
-#define SDB_DATA_SOURCE_COMM_HPP_
+#ifndef SDB_CONNECTIONPOOL_COMM_HPP_
+#define SDB_CONNECTIONPOOL_COMM_HPP_
 
 #include "ossTypes.h"
 #include <string>
@@ -118,8 +118,8 @@ namespace sdbclient
          \param [in] username The user name
          \param [in] passwd The password
       */
-      void setUserInfo( 
-         const string &username, 
+      void setUserInfo(
+         const string &username,
          const string &passwd ) ;
       /** \fn string getUserName()
          \brief Get user name
@@ -142,30 +142,30 @@ namespace sdbclient
          \param [in] maxIdleCnt The max idle connection number
          \param [in] maxCnt The max connection number
       */
-      void setConnCntInfo( 
+      void setConnCntInfo(
          INT32 initCnt,
          INT32 deltaIncCnt,
          INT32 maxIdleCnt,
          INT32 maxCnt ) ;
-      
+
       /** \fn INT32 getInitConnCount()
          \brief Get the initial connection number
          \retval INT32 The initial connection number
       */
       INT32 getInitConnCount() const { return _initConnCount ; }
-      
+
       /** \fn INT32 getDeltaIncCount()
          \brief Get the increment of connection each time
          \retval UINT32 The increment of connection each time
       */
       INT32 getDeltaIncCount() const { return _deltaIncCount ; }
-      
+
       /** \fn INT32 getMaxIdleCount()
          \brief Get the max idle connection number
          \retval INT32 The max idle connection number
       */
       INT32 getMaxIdleCount() const { return _maxIdleCount ; }
-      
+
       /** \fn INT32 getMaxCount()
          \brief Get the max connection number
          \retval INT32 The max connection number
@@ -173,71 +173,71 @@ namespace sdbclient
       INT32 getMaxCount() const { return _maxCount ; }
 
       /** \fn void setCheckIntervalInfo(INT32 interval, INT32 aliveTime = 0)
-         \brief Set the interval time of check idle connection. And set the 
-         time in millisecond for abandoning a connection which keep alive 
+         \brief Set the interval time of check idle connection. And set the
+         time in millisecond for abandoning a connection which keep alive
          time is up.
-         \param [in] interval The interval time in millisecond of check idle 
+         \param [in] interval The interval time in millisecond of check idle
          connection
-         \param [in] aliveTime If a connection has not be 
-         used(send and receive) for a long time(longer than "aliveTime"), 
-         the pool will not let it come back. The pool will also clean 
-         this kind of idle connections in the pool periodically. This value 
-         default to be 0ms. means not care about how long 
+         \param [in] aliveTime If a connection has not be
+         used(send and receive) for a long time(longer than "aliveTime"),
+         the pool will not let it come back. The pool will also clean
+         this kind of idle connections in the pool periodically. This value
+         default to be 0ms. means not care about how long
          does a connection have not be used(send and receive).
          \note When "aliveTime" is not set to 0, it's better to set it
-         greater than "interval" triple over. Besides, 
+         greater than "interval" triple over. Besides,
          unless you know what you need, never enable this option.
       */
       void setCheckIntervalInfo( INT32 interval, INT32 aliveTime = 0 ) ;
-      
+
       /** \fn INT32 getCheckInterval()
          \brief Get the interval time in millisecond of check idle connection
          \retval INT32 the interval time in millisecond of check idle connection
       */
       INT32 getCheckInterval() const { return _checkInterval ; }
-      
+
       /** \fn INT32 getKeepAliveTimeout()
          \brief Get the keep alive time
          \retval INT32 the keep alive time in millisecond
       */
       INT32 getKeepAliveTimeout() const { return _keepAliveTimeout ; }
-     
+
       /** \fn void setSyncCoordInterval (INT64 interval)
          \brief Set the interval time in seconds of synchronize coord node
-         \param [in] interval The interval time in millisecond of synchronize coord 
+         \param [in] interval The interval time in millisecond of synchronize coord
          node
       */
-      void setSyncCoordInterval ( INT32 interval ) 
+      void setSyncCoordInterval ( INT32 interval )
       {
-         _syncCoordInterval = interval ; 
+         _syncCoordInterval = interval ;
       }
-      /** \fn INT32 getSyncCoordInterval() const 
+      /** \fn INT32 getSyncCoordInterval() const
          \brief Get the interval time in seconds of synchronize coord node
          \retval INT32 the interval time in seconds of synchronize coord node
       */
       INT32 getSyncCoordInterval() const { return _syncCoordInterval ; }
 
       /** \fn void setValidateConnection(BOOLEAN bCheck)
-         \brief Set whether to check the validation of a connection when it's 
+         \brief Set whether to check the validation of a connection when it's
          given out
-         \param [in] bCheck If TURE check the validation, else not check the 
+         \param [in] bCheck If TURE check the validation, else not check the
          validation
       */
-      void setValidateConnection( BOOLEAN bCheck ) 
+      void setValidateConnection( BOOLEAN bCheck )
       {
-         _validateConnection = bCheck ; 
+         _validateConnection = bCheck ;
       }
-      
+
       /** \fn BOOLEAN getValidateConnection() const
-         \brief Get whether to check the validation of a connection when it's 
+         \brief Get whether to check the validation of a connection when it's
          given out
-         \retval BOOLEAN if TRUE check the validation, else not check the 
+         \retval BOOLEAN if TRUE check the validation, else not check the
          validation
       */
       BOOLEAN getValidateConnection() const { return _validateConnection ; }
 
       /** \fn void setConnectStrategy(DATASOURCE_STRATEGY strategy)
-         \brief Set the strategy of sdbDataSource
+         \brief Set the strategy of sdbConnectionPool
          \param [in] strategy The enum of strategy:
          DS_STY_SERIAL, DS_STY_RANDOM, DS_STY_LOCAL, DS_STY_BALANCE
       */
@@ -246,12 +246,12 @@ namespace sdbclient
          _connectStrategy = strategy ;
       }
       /** \fn DATASOURCE_STRATEGY getConnectStrategy()
-         \brief Get the strategy of sdbDataSource
-         \retval DATASOURCE_STRATEGY The strategy of sdbDataSource
+         \brief Get the strategy of sdbConnectionPool
+         \retval DATASOURCE_STRATEGY The strategy of sdbConnectionPool
       */
-      DATASOURCE_STRATEGY getConnectStrategy() const 
+      DATASOURCE_STRATEGY getConnectStrategy() const
       {
-         return _connectStrategy ; 
+         return _connectStrategy ;
       }
 
       /** \fn void setUseSSL( BOOLEAN useSSL )
@@ -267,14 +267,14 @@ namespace sdbclient
          \retval BOOLEAN Return use SSL or not
       */
       BOOLEAN getUseSSL() const { return _useSSL ; }
-      
+
 
       /** \fn BOOLEAN isValid()
          \brief Check whether sdbDataSourceConf is valid
          \retval BOOLEAN The validation of sdbDataSourceConf
       */
       BOOLEAN isValid() ;
-      
+
    } ;
 }
-#endif
+#endif /* SDB_CONNECTIONPOOL_COMM_HPP_ */

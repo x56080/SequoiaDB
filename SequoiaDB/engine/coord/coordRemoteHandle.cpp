@@ -413,6 +413,11 @@ namespace engine
       goto done ;
    }
 
+   /**
+    * Actions before create a connection with a remote node. For nodes in the
+    * same cluster, sesion init is done. For a node of data source, it's not
+    * needed.
+    */
    INT32 _coordRemoteHandlerBase::onSendConnect( _pmdSubSession *pSub,
                                                  const MsgHeader *pReq,
                                                  BOOLEAN isFirst )
@@ -421,16 +426,19 @@ namespace engine
       coordRemoteHandleStatus *pStatus = NULL ;
       pStatus = ( coordRemoteHandleStatus* )pSub->getUDFData() ;
 
-      if ( INIT_V0 == _initType || isNoReplyMsg( pReq->opCode ) )
+      if ( pSub->sessionInitRequired() )
       {
-         rc = _onSendConnectOld( pSub ) ;
-      }
-      else
-      {
-         rc = _buildPacketWithSessionInit( pSub->parent(), pSub, FALSE ) ;
-         if ( SDB_OK == rc )
+         if ( INIT_V0 == _initType || isNoReplyMsg( pReq->opCode ) )
          {
-            pStatus->_initFinished = FALSE ;
+            rc = _onSendConnectOld( pSub ) ;
+         }
+         else
+         {
+            rc = _buildPacketWithSessionInit( pSub->parent(), pSub, FALSE ) ;
+            if ( SDB_OK == rc )
+            {
+               pStatus->_initFinished = FALSE ;
+            }
          }
       }
       return rc ;

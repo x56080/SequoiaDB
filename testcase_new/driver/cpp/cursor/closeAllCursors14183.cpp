@@ -8,8 +8,8 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <client.hpp>
-#include <sdbDataSource.hpp>
-#include <sdbDataSourceComm.hpp>
+#include <sdbConnectionPool.hpp>
+#include <sdbConnectionPoolComm.hpp>
 #include <stdlib.h>
 #include "testcommon.hpp"
 #include "arguments.hpp"
@@ -110,7 +110,7 @@ TEST_F( closeAllCursorsTest14183, datasourceConn )
 {
    INT32 rc = SDB_OK ;
 
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
 
    conf.setUserInfo( user, passwd ) ;

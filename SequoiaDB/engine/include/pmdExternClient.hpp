@@ -89,6 +89,21 @@ namespace engine
 
          void                 setAuthed( BOOLEAN authed ) ;
 
+         virtual const MsgHeader *getInMsg() const
+         {
+            return _inMsg ;
+         }
+
+         virtual void registerInMsg( const MsgHeader *msg )
+         {
+            _inMsg = msg ;
+         }
+
+         virtual void unregisterInMsg()
+         {
+            _inMsg = NULL ;
+         }
+
       public:
          ossSocket*           getSocket() { return _pSocket ; }
 
@@ -117,6 +132,7 @@ namespace engine
          CHAR                 _fromIP[ PMD_IPADDR_LEN + 1 ] ;
          CHAR                 _clientName[ PMD_CLIENTNAME_LEN + 1 ] ;
 
+         const MsgHeader *    _inMsg ;
    } ;
    typedef _pmdExternClient pmdExternClient ;
 

@@ -247,7 +247,10 @@ namespace engine
       rc = _lw.init( _lobPageSz,
                      _meta._version >= DMS_LOB_META_MERGE_DATA_VERSION ?
                      TRUE : FALSE,
-                     SDB_HAS_LOBWRITE_MODE(mode) ? FALSE : TRUE ) ;
+                     _canCache() ?
+                           ( SDB_LOB_MODE_WRITE == mode ? FALSE : TRUE ) :
+                           FALSE,
+                     _canCache() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to init stream window, rc:%d", rc ) ;

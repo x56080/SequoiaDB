@@ -75,7 +75,8 @@ namespace engine
    INT32 msgBuildAuthMsg( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *username,
                           const CHAR *password,
-                          UINT64 reqID )
+                          UINT64 reqID,
+                          IExecutor *cb )
    {
       INT32 rc = SDB_OK ;
       INT32 msgLen = 0 ;
@@ -91,7 +92,7 @@ namespace engine
 
       msgLen = sizeof( MsgAuthentication ) + obj.objsize() ;
 
-      rc = msgCheckBuffer( ppBuffer, bufferSize, msgLen) ;
+      rc = msgCheckBuffer( ppBuffer, bufferSize, msgLen, cb ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to check buffer, rc: %d", rc ) ;

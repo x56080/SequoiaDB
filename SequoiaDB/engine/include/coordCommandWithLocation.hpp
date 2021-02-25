@@ -252,6 +252,8 @@ namespace engine
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
 
+   INT32 coordInvalidateCache( coordResource *resource, const BSONObj &option,
+                               pmdEDUCB *cb ) ;
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

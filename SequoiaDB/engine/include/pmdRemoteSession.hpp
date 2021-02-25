@@ -43,6 +43,7 @@
 
 #include "ossMemPool.hpp"
 #include "../bson/bson.h"
+#include "pmdRemoteConnection.hpp"
 
 using namespace bson ;
 using namespace std ;
@@ -55,6 +56,36 @@ namespace engine
    class _pmdRemoteSessionSite ;
    class _pmdSubSession ;
    class _pmdEDUCB ;
+
+   /*
+      _IRemoteMsgConvertor define
+   */
+   class _IRemoteMsgConvertor : public SDBObject
+   {
+      public:
+         _IRemoteMsgConvertor() {}
+         virtual ~_IRemoteMsgConvertor() {}
+
+      public:
+         virtual INT32 filter( _pmdSubSession *pSub,
+                               _pmdEDUCB *cb,
+                               BOOLEAN &ignore,
+                               UINT32 &oprMask ) = 0 ;
+
+         virtual INT32 checkPermission( _pmdSubSession *pSub,
+                                        UINT32 oprMask,
+                                        _pmdEDUCB *cb ) = 0 ;
+
+         virtual INT32 convert( _pmdSubSession *pSub,
+                                _pmdEDUCB *cb ) = 0 ;
+
+         virtual INT32 convertReply( _pmdSubSession *pSub,
+                                     _pmdEDUCB *cb,
+                                     const pmdEDUEvent &orgEvent,
+                                     pmdEDUEvent &newEvent,
+                                     BOOLEAN &hasConvert ) = 0 ;
+   } ;
+   typedef _IRemoteMsgConvertor IRemoteMsgConvertor ;
 
    /*
       _IRemoteSessionHandler define
@@ -116,6 +147,8 @@ namespace engine
 
    /*
       _IRemoteSiteHandle define
+      User may use self defined message queue, instead of the queue of the
+      thread.
    */
    class _IRemoteSiteHandle : public utilPooledObject
    {
@@ -157,6 +190,30 @@ namespace engine
    } ;
    typedef _IRemoteMgrHandle IRemoteMgrHandle ;
 
+   /*
+      _IRemoteMgrControl define
+   */
+   class _IRemoteMgrControl : public SDBObject
+   {
+      public:
+         _IRemoteMgrControl() {}
+         virtual ~_IRemoteMgrControl() {}
+
+      public:
+         virtual void   checkSubSession( const MsgRouteID &routeID,
+                                         netRouteAgent **ppAgent,
+                                         IRemoteMsgConvertor **ppMsgConvertor,
+                                         BOOLEAN &isExternConn ) = 0 ;
+
+         virtual BOOLEAN canErrFilterOut( _pmdSubSession *pSub,
+                                          const MsgHeader *pOrgMsg,
+                                          INT32 err ) = 0 ;
+
+         virtual BOOLEAN canSwitchOtherNode( INT32 err ) = 0 ;
+
+   } ;
+   typedef _IRemoteMgrControl IRemoteMgrControl ;
+
    #define PMD_SUBSESSION_UDF_DATA_LEN          ( 24 )
    /*
       _pmdSubSession define
@@ -171,7 +228,7 @@ namespace engine
          ~_pmdSubSession() ;
 
          _pmdRemoteSession* parent() { return _parent ; }
-
+         pmdRemoteConnection* getConnection() ;
          // Req Msg
          void        setReqMsg( MsgHeader *pReqMsg,
                                 pmdEDUMemTypes memType = PMD_EDU_MEM_NONE ) ;
@@ -214,18 +271,33 @@ namespace engine
          BOOLEAN     hasReply() const { return _event._Data ? TRUE : FALSE ; }
          BOOLEAN     hasStop() const { return _hasStop ; }
          void        clearSend() { _isSend = FALSE ; }
-         NET_HANDLE  getHandle() const { return _handle ; }
+         NET_HANDLE  getHandle() const { return _connection.getNetHandle() ; }
          INT32       getOrgReqOpCode() const { return _reqOpCode ; }
          INT32       getOrgRspOpCode() const { return _orgRspOpCode ; }
+
+         BOOLEAN     sessionInitRequired() const ;
+
+         INT32       preProcessMsg( _pmdEDUCB *cb, BOOLEAN &isIgnored ) ;
 
          // control
          void        resetForResend() ;
 
+         BOOLEAN     canErrFilterOut( INT32 returnCode ) ;
+         BOOLEAN     canSwitchOtherNode( INT32 returnCode ) ;
+
       protected:
          void        setParent( _pmdRemoteSession *parent ) { _parent = parent ; }
-         void        setNodeID( UINT64 nodeID ) { _nodeID.value = nodeID ; }
+         void        setNodeID( UINT64 nodeID )
+         {
+            _nodeID.value = nodeID ;
+         }
          void        setReqID( UINT64 reqID ) { _reqID = reqID ; }
          void        setSendResult( BOOLEAN isSend ) ;
+         /**
+          * Invoked when a reply message is received by the frame. Currently
+          * only copy the message into local buffer.
+          * @param event
+          */
          void        processEvent( pmdEDUEvent &event ) ;
          void        setStop( BOOLEAN isStop ) { _hasStop = isStop ; }
 
@@ -257,9 +329,12 @@ namespace engine
          BOOLEAN                    _hasStop ;
          NET_HANDLE                 _handle ;
          INT32                      _addPos ;
+         pmdRemoteConnection        _connection ;
+         IRemoteMsgConvertor        *_pMsgConvertor ;
    } ;
    typedef _pmdSubSession pmdSubSession ;
 
+   // Node ID and sub session mapping
    typedef ossPoolMap< UINT64, pmdSubSession >     MAP_SUB_SESSION ;
    typedef MAP_SUB_SESSION::iterator               MAP_SUB_SESSION_IT ;
 
@@ -315,7 +390,9 @@ namespace engine
    typedef _pmdSubSessionItr pmdSubSessionItr ;
 
    /*
-      _pmdRemoteSession define
+    * Remote session is used to communicate with one or more remote nodes. It
+    * may contain one or more sub sessions. It can send message to some or
+    * all sub sessions, and get the reply by traverse the sub sessions.
    */
    class _pmdRemoteSession : public SDBObject
    {
@@ -333,6 +410,8 @@ namespace engine
          _pmdEDUCB* getEDUCB() { return _pEDUCB ; }
          UINT64     sessionID() const { return _sessionID ; }
          UINT64     getUserData() const { return _userData ; }
+
+         _pmdRemoteSessionSite* getSite() { return _pSite ; }
 
          void setTimeout( INT64 timeout ) ;
          void setUserData( UINT64 userData ) { _userData = userData ; }
@@ -429,24 +508,39 @@ namespace engine
 
       protected:
          MAP_SUB_SESSION               _mapSubSession ;
+         /*
+          * The remote session sites contains one or more remote sessions,
+          * and they share the same message queue. When they wait on the same
+          * queue, one remote session may find the reply of sub session of
+          * another remote session. In that case, the sub session pointer
+          * will be append to its real parent remote session's pending list.
+          */
          MAP_SUB_SESSIONPTR            _mapPendingSubSession ;
+
+         // Rmote session handler for this remote session.
          IRemoteSessionHandler         *_pHandle ;
          _pmdRemoteSessionSite         *_pSite ;
          netRouteAgent                 *_pAgent ;
          _pmdEDUCB                     *_pEDUCB ;
+         // Sub sessions of this remote session have changed. It's used to count
+         // sub session number which have not replied yet.
          BOOLEAN                       _sessionChange ;
          UINT64                        _sessionID ;
          INT64                         _milliTimeout ; // ms
          INT64                         _milliTimeoutHard ;  // ms
          INT64                         _totalWaitTime ;  // ms
          UINT64                        _userData ;
-
    } ;
    typedef _pmdRemoteSession pmdRemoteSession ;
 
    #define PMD_SITE_NODEID_BUFF_SIZE      ( 128 )
    /*
-      _pmdRemoteSessionSite define
+    * _pmdRemoteSessionSite define
+    * One remote session site is for one session, eg: agent session on
+    * coordinator. It may contain several remote sessions, if you execute
+    * multiple operations in one session. One remote session may contain several
+    * sub sessions, if the remote session needs to send messages to multiple
+    *  nodes.
    */
    class _pmdRemoteSessionSite : public _IRemoteSite
    {
@@ -471,6 +565,7 @@ namespace engine
       private:
          void setEduCB( _pmdEDUCB *cb ) { _pEDUCB = cb ; }
          void setRouteAgent( netRouteAgent *pAgent ) { _pAgent = pAgent ; }
+         void setMgrCtrl( IRemoteMgrControl *pCtrl ) { _pCtrl = pCtrl ; }
 
          void     handleClose( const NET_HANDLE &handle,
                                const _MsgRouteID &id ) ;
@@ -478,6 +573,7 @@ namespace engine
       public:
          virtual  UINT64   getUserData() const { return _userData ; }
          void              setUserData( UINT64 data ) { _userData = data ; }
+         IRemoteMgrControl* getMgrControl() { return _pCtrl ; }
 
       public:
          virtual ~_pmdRemoteSessionSite() ;
@@ -528,8 +624,17 @@ namespace engine
          void     removeAssitNode( INT32 *pos, UINT16 nodeID ) ;
          BOOLEAN  existNode( UINT16 nodeID ) ;
 
+         void     _initRemoteConnection( pmdRemoteConnection *pConnection,
+                                         UINT64 nodeID,
+                                         NET_HANDLE handle ) ;
       private:
+         // RequestID and sub session pointer mapping. By this we can find
+         // the sub session by the request ID in the message. It contains all
+         // sub sessions of all remote session in this site.
          MAP_SUB_SESSIONPTR   _mapReq2SubSession ;
+         // Remote node id and net event handler map. Item will be added when
+         // the first connection to that node is created by sending message
+         // with the sub session.
          MAP_NODE2NET         _mapNode2Net ;
          _pmdEDUCB            *_pEDUCB ;
          netRouteAgent        *_pAgent ;
@@ -549,6 +654,8 @@ namespace engine
          UINT64               _userData ;
 
          MAP_NODE_2_VERSION   _mapNode2Ver ;
+         IRemoteMgrControl    *_pCtrl ;
+
    } ;
    typedef _pmdRemoteSessionSite pmdRemoteSessionSite ;
 
@@ -565,7 +672,8 @@ namespace engine
          ~_pmdRemoteSessionMgr() ;
 
          INT32       init( netRouteAgent *pAgent,
-                           IRemoteMgrHandle *pHandle = NULL ) ;
+                           IRemoteMgrHandle *pHandle = NULL,
+                           IRemoteMgrControl *pCtrl = NULL ) ;
          INT32       fini() ;
 
          netRouteAgent*          getAgent() ;
@@ -598,10 +706,10 @@ namespace engine
 
       private:
          IRemoteMgrHandle           *_pHandle ;
+         IRemoteMgrControl          *_pCtrl ;
          netRouteAgent              *_pAgent ;
          MAP_TID_2_EDU              _mapTID2EDU ;
          ossSpinSLatch              _edusLatch ;
-
    } ;
    typedef _pmdRemoteSessionMgr pmdRemoteSessionMgr ;
 

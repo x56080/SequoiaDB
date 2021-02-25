@@ -48,6 +48,7 @@
 #include "rtn.hpp"
 #include "coordOmProxy.hpp"
 #include "coordSequenceAgent.hpp"
+#include "coordDataSource.hpp"
 #include "coordGTSAgent.hpp"
 #include "../bson/bson.h"
 #include "utilArray.hpp"
@@ -92,6 +93,7 @@ namespace engine
       _pOmProxy = NULL ;
       _pOmStrategyAgent = NULL ;
       _pSequenceAgent = NULL ;
+      _pDataSourceMgr = NULL ;
       _pGTSAgent = NULL ;
    }
 
@@ -100,7 +102,8 @@ namespace engine
    }
 
    INT32 _coordResource::init( _netRouteAgent *pAgent,
-                               pmdOptionsCB *pOptionsCB )
+                               pmdOptionsCB *pOptionsCB,
+                               _coordDataSourceMgr *pDSMgr )
    {
       INT32 rc = SDB_OK ;
       CoordGroupInfo *pCataGroup = NULL ;
@@ -115,6 +118,7 @@ namespace engine
       }
       _pAgent = pAgent ;
       _pOptionsCB = pOptionsCB ;
+      _pDataSourceMgr = pDSMgr ;
 
       pCataGroup = SDB_OSS_NEW CoordGroupInfo( CAT_CATALOG_GROUPID ) ;
       if ( !pCataGroup )
@@ -590,6 +594,16 @@ namespace engine
       {
          groupPtr = getOmGroupInfo() ;
       }
+      else if ( SDB_IS_DSID( groupID ) )
+      {
+         CoordDataSourcePtr dsPtr ;
+         rc = _pDataSourceMgr->getDataSource( SDB_GROUPID_2_DSID( groupID ),
+                                              dsPtr ) ;
+         if ( SDB_OK == rc )
+         {
+            groupPtr = dsPtr->getGroupInfo() ;
+         }
+      }
       else
       {
          MAP_GROUP_INFO_IT it  ;
@@ -712,6 +726,16 @@ namespace engine
       else if ( OM_GROUPID == groupID )
       {
          rc = updateOmGroupInfo( groupPtr, cb ) ;
+      }
+      else if ( SDB_IS_DSID( groupID ) )
+      {
+         CoordDataSourcePtr dsPtr ;
+         rc = _pDataSourceMgr->updateDataSource( SDB_GROUPID_2_DSID( groupID ),
+                                                 dsPtr, cb ) ;
+         if ( SDB_OK == rc )
+         {
+            groupPtr = dsPtr->getGroupInfo() ;
+         }
       }
       else
       {
@@ -1271,6 +1295,7 @@ namespace engine
       goto done ;
    }
 
+   // Parse and update group info
    INT32 _coordResource::_processGroupContextReply( INT64 &contextID,
                                                     GROUP_VEC &vecGroupPtr,
                                                     _pmdEDUCB *cb )
@@ -1833,10 +1858,32 @@ namespace engine
       }
    }
 
-   void _coordResource::invalidateCataInfo()
+   void _coordResource::invalidateDataSourceInfo( const CHAR *name )
+   {
+      if ( _pDataSourceMgr )
+      {
+         if ( name )
+         {
+            _pDataSourceMgr->removeDataSource( name ) ;
+         }
+         else
+         {
+            _pDataSourceMgr->clear() ;
+         }
+      }
+   }
+
+   void _coordResource::invalidateCataInfo( const CHAR *clFullName )
    {
       _cataMutex.get() ;
-      _mapCataInfo.clear() ;
+      if ( clFullName )
+      {
+         _mapCataInfo.erase( clFullName ) ;
+      }
+      else
+      {
+         _mapCataInfo.clear() ;
+      }
       _cataMutex.release() ;
    }
 
@@ -2386,4 +2433,3 @@ namespace engine
    }
 
 }
-

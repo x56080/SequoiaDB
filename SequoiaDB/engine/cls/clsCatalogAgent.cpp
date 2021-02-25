@@ -718,6 +718,7 @@ namespace engine
       _overwrite = FALSE ;
       _lobShardingKeyFormat = SDB_TIME_INVALID ;
       _repairCheck = FALSE ;
+      _dataSourceID = UTIL_INVALID_DS_UID ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -2290,6 +2291,32 @@ namespace engine
                    "Failed to initialize key generator" ) ;
       }
 
+      ele = catSet.getField( FIELD_NAME_DATASOURCE_ID ) ;
+      if ( ele.eoo() )
+      {
+         _dataSourceID = UTIL_INVALID_DS_UID ;
+      }
+      else if ( ele.type() != NumberInt )
+      {
+         rc = SDB_CAT_CORRUPTION ;
+         PD_LOG( PDERROR, "Catalog [%s] type error, type: %d",
+                 FIELD_NAME_DATASOURCE_ID, ele.type() ) ;
+      }
+      else
+      {
+         _dataSourceID = ele.Int() ;
+      }
+
+      ele = catSet.getField( FIELD_NAME_MAPPING ) ;
+      if ( ele.type() == String )
+      {
+         _mapping = ele.str() ;
+      }
+      else
+      {
+         _mapping.clear() ;
+      }
+
       //need to update map and also the vector, usually CATALOGINFO field is
       //required, however for data node we didn't pass range from catalog in
       //order to reduce network traffic. Therefore if we do not find cataloginfo
@@ -3270,6 +3297,16 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   UINT32 _clsCatalogSet::getDataSourceID() const
+   {
+      return _dataSourceID ;
+   }
+
+   const string& _clsCatalogSet::getMappingName() const
+   {
+      return _mapping ;
    }
 
    INT32 _clsCatalogSet::findSubCLNames( const BSONObj &matcher,

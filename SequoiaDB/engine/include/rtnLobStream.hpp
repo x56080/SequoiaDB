@@ -249,6 +249,11 @@ namespace engine
 
       virtual INT32 _getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail ) = 0 ;
 
+      virtual BOOLEAN _canCache() const
+      {
+         return TRUE ;
+      }
+
    private:
       INT32 _readFromPool( UINT32 len,
                            _rtnContextBase *context,

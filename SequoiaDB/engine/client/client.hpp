@@ -4626,6 +4626,59 @@ namespace sdbclient
       }
    } ;
 
+   class DLLEXPORT _sdbDataSource
+   {
+   private:
+      _sdbDataSource( const _sdbDataSource& other ) ;
+      _sdbDataSource& operator=( const _sdbDataSource& ) ;
+   public:
+      _sdbDataSource() {}
+      virtual ~_sdbDataSource() {}
+
+      virtual INT32 alterDataSource( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual const CHAR *getDSName() = 0 ;
+   } ;
+
+   class DLLEXPORT sdbDataSource
+   {
+   private:
+      sdbDataSource( const sdbDataSource& ) ;
+      sdbDataSource& operator=(const sdbDataSource& ) ;
+   public:
+      _sdbDataSource *pDataSource ;
+
+      sdbDataSource()
+      {
+         pDataSource = NULL ;
+      }
+
+      ~sdbDataSource()
+      {
+         if ( pDataSource )
+         {
+            delete pDataSource ;
+         }
+      }
+
+      INT32 alterDataSource( const bson::BSONObj &options )
+      {
+         if ( !pDataSource )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDataSource->alterDataSource( options ) ;
+      }
+
+      const CHAR *getDSName()
+      {
+         if ( !pDataSource )
+         {
+            return NULL ;
+         }
+         return pDataSource->getDSName() ;
+      }
+   } ;
+
    class DLLEXPORT _sdb
    {
    private :
@@ -5027,6 +5080,34 @@ namespace sdbclient
                                     const CHAR *pNewName ) = 0 ;
 
       virtual INT32 dropSequence( const CHAR *pSequenceName ) = 0 ;
+
+      virtual INT32 createDataSource( const CHAR *pDataSourceName,
+                                      const CHAR *addresses,
+                                      const CHAR *user = NULL,
+                                      const CHAR *password = NULL,
+                                      const CHAR *type = NULL,
+                                      const bson::BSONObj *options = NULL,
+                                      _sdbDataSource **dataSource = NULL
+                                      ) = 0 ;
+
+      virtual INT32 dropDataSource( const CHAR *pDataSourceName ) = 0 ;
+
+      virtual INT32 getDataSource( const CHAR *pDataSourceName,
+                                   _sdbDataSource **dataSource ) = 0 ;
+
+      virtual INT32 getDataSource( const CHAR *pDataSourceName,
+                                   sdbDataSource &dataSource ) = 0 ;
+
+      virtual INT32 listDataSources( _sdbCursor** cursor,
+                                     const bson::BSONObj &condition = _sdbStaticObject,
+                                     const bson::BSONObj &selector = _sdbStaticObject,
+                                     const bson::BSONObj &orderBy = _sdbStaticObject,
+                                     const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
+      virtual INT32 listDataSources( sdbCursor& cursor,
+                                     const bson::BSONObj &condition = _sdbStaticObject,
+                                     const bson::BSONObj &selector = _sdbStaticObject,
+                                     const bson::BSONObj &orderBy = _sdbStaticObject,
+                                     const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -7474,6 +7555,79 @@ namespace sdbclient
             return SDB_NOT_CONNECTED ;
          }
          return pSDB->dropSequence( pSequenceName ) ;
+      }
+      INT32 createDataSource( const CHAR *pDataSourceName,
+                              const CHAR *addresses,
+                              const CHAR *user = NULL,
+                              const CHAR *password = NULL,
+                              const CHAR *type = NULL,
+                              const bson::BSONObj *options = NULL,
+                              _sdbDataSource **dataSource = NULL )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->createDataSource( pDataSourceName, addresses, user,
+                                        password, type, options, dataSource ) ;
+      }
+
+      INT32 dropDataSource( const CHAR *pDataSourceName )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->dropDataSource( pDataSourceName ) ;
+      }
+
+      INT32 getDataSource( const CHAR *pDataSourceName,
+                           _sdbDataSource **dataSource )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->getDataSource( pDataSourceName, dataSource ) ;
+      }
+
+      INT32 getDataSource( const CHAR *pDataSourceName,
+                           sdbDataSource &dataSource )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( dataSource.pDataSource ) ;
+         return pSDB->getDataSource( pDataSourceName, dataSource ) ;
+      }
+
+
+      INT32 listDataSources( _sdbCursor** cursor,
+                             const bson::BSONObj &condition = _sdbStaticObject,
+                             const bson::BSONObj &selector = _sdbStaticObject,
+                             const bson::BSONObj &orderBy = _sdbStaticObject,
+                             const bson::BSONObj &hint = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pSDB->listDataSources( cursor, condition, selector, orderBy, hint ) ;
+      }
+
+      INT32 listDataSources( sdbCursor& cursor,
+                             const bson::BSONObj &condition = _sdbStaticObject,
+                             const bson::BSONObj &selector = _sdbStaticObject,
+                             const bson::BSONObj &orderBy = _sdbStaticObject,
+                             const bson::BSONObj &hint = _sdbStaticObject )
+      {
+         if ( !pSDB )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         RELEASE_INNER_HANDLE( cursor.pCursor ) ;
+         return pSDB->listDataSources( cursor, condition, selector, orderBy, hint ) ;
       }
    } ;
 

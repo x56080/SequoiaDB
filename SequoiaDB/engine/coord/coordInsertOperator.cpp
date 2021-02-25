@@ -266,6 +266,8 @@ namespace engine
 
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
+      // Find out which groups is the collection sharded. And later the message
+      // will only be transfered to these groups.
       rc = cataSel.bind( _pResource, pCollectionName, cb, FALSE, TRUE ) ;
       if ( rc )
       {
@@ -276,6 +278,7 @@ namespace engine
       orgMsgLen = pMsg->messageLength ;
 
    retry:
+      // It may be a main or normal collection.
       cataPtr = cataSel.getCataPtr() ;
       if ( cataPtr->hasAutoIncrement() )
       {
@@ -407,6 +410,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       MsgOpInsert *pInsertMsg = ( MsgOpInsert* )inMsg.msg() ;
+      // From version to collection name in MsgOpInsert message, the header
+      // excluded.
       netIOV fixed( ( CHAR*)inMsg.msg() + sizeof( MsgHeader ),
                     ossRoundUpToMultipleX ( offsetof(MsgOpInsert, name) +
                                             pInsertMsg->nameLength + 1, 4 ) -

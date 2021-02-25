@@ -1714,6 +1714,9 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    case SDB_LIST_BACKUPS:
       p = CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS ;
       break ;
+   case SDB_LIST_DATASOURCES:
+      p = CMD_ADMIN_PREFIX CMD_NAME_LIST_DATASOURCES ;
+      break ;
    default :
       rc = SDB_INVALIDARG ;
       goto error ;

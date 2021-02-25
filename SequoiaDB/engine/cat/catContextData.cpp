@@ -948,6 +948,22 @@ namespace engine
                pUnlinkCS->addIgnoreRC( SDB_INVALID_MAIN_CL ) ;
             }
 
+            if ( _groupList.size() == 0 )
+            {
+               // If group size is 0, there are two possibilities:
+               // (1) No collection is in the collection space.
+               // (2) The collection space is using data source.
+               // For the second scenario, we need to provide a group for it.
+               BSONElement dsEle =
+                     pDropCSTask->getDataObj().getField( FIELD_NAME_DATASOURCE_ID ) ;
+               if ( !dsEle.eoo() )
+               {
+                  UTIL_DS_UID dsID = dsEle.numberInt() ;
+                  SDB_ASSERT( UTIL_INVALID_DS_UID != dsID,
+                              "Data source is invalid" ) ;
+                  _groupList.push_back( SDB_DSID_2_GROUPID( dsID ) ) ;
+               }
+            }
          }
          else if ( !ele.eoo() )
          {
@@ -959,8 +975,8 @@ namespace engine
       }
       catch( std::exception &e )
       {
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
          goto error ;
       }
 
@@ -1367,14 +1383,38 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCS_PARSEQUERY ) ;
 
+      BOOLEAN exist = FALSE ;
+
       SDB_ASSERT( MSG_CAT_ALTER_CS_REQ == _cmdType, "Wrong command type" ) ;
 
       try
       {
+         BSONObj meta ;
          rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_SPACE_NAME,
                                       _targetName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       CAT_COLLECTION_SPACE_NAME, rc ) ;
+
+         // Check if the collection space is using data source. If yes, it can't
+         // be modified.
+         rc = catCheckSpaceExist( _targetName.c_str(), exist, meta, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check collection space existence "
+                      "failed[%d]", rc ) ;
+         if ( !exist )
+         {
+            rc = SDB_DMS_CS_NOTEXIST ;
+            PD_LOG( PDERROR, "Collection space[%s] dose not exist",
+                    _targetName.c_str() ) ;
+            goto error ;
+         }
+
+         if ( meta.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "Not allowed to alter a collection space "
+                        "which is using data source[%d]", rc ) ;
+            goto error ;
+         }
 
          rc = _alterJob.initialize( _targetName.c_str(),
                                     RTN_ALTER_COLLECTION_SPACE,
@@ -1626,6 +1666,21 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection space [%s], rc: %d",
                    szSpace, rc ) ;
+      {
+         // Check if the collection space is mapping to another collection
+         // space on a data source(pure mapping collection space). If yes, it's
+         // not allowed to create collection in this collection space.
+         BSONElement dsEle = boSpace.getField( FIELD_NAME_DATASOURCE_ID ) ;
+         // For compatible reason, need to check if dsEle is eoo.
+         if ( !dsEle.eoo() &&
+              ( UTIL_INVALID_DS_UID != (UINT32)dsEle.numberInt() ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG( PDERROR, "Can not create collection on a data source "
+                    "mapping collection space[%s]", szSpace ) ;
+            goto error ;
+         }
+      }
 
       // here we do not care what the values are
       // we care how many records in the specified collection space
@@ -1737,10 +1792,13 @@ namespace engine
                    "Failed to choose groups for new collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      rc = catLockGroups( _groupList, cb, _lockMgr, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to lock groups, rc: %d",
-                   rc ) ;
+      if ( UTIL_INVALID_DS_UID == _clInfo._dsUID )
+      {
+         rc = catLockGroups( _groupList, cb, _lockMgr, SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to lock groups, rc: %d",
+                      rc ) ;
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATECL_CHECK_INT, rc ) ;
@@ -1885,7 +1943,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups for auto-split "
                       "collection, rc: %d", rc ) ;
       }
-      else
+      else if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
       {
          rc = _chooseCLGroupDefault( domainObj, csObj, clInfo._assignType,
                                      cb, groupIDList ) ;
@@ -1893,10 +1951,13 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
-      rc = catCheckGroupsByID( groupIDList ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to assign group for collection [%s], rc: %d",
-                   clInfo._pCLName, rc ) ;
+      if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
+      {
+         rc = catCheckGroupsByID( groupIDList ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to assign group for collection [%s], rc: %d",
+                      clInfo._pCLName, rc ) ;
+      }
 
       if ( clInfo._isMainCL )
       {
@@ -2660,16 +2721,40 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXALTERCL_PARSEQUERY ) ;
 
+      BOOLEAN exist = FALSE ;
+
       SDB_ASSERT( MSG_CAT_ALTER_COLLECTION_REQ == _cmdType,
                   "Wrong command type" ) ;
 
       try
       {
+         BSONObj meta ;
          rc = rtnGetSTDStringElement( _boQuery, CAT_COLLECTION_NAME,
                                       _targetName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field [%s], rc: %d",
                       CAT_COLLECTION_NAME, rc ) ;
+
+         // Check if the collection is using data source. If yes, it can't
+         // be modified.
+         rc = catCheckCollectionExist( _targetName.c_str(), exist, meta, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Check collection existence failed[%d]",
+                      rc ) ;
+         if ( !exist )
+         {
+            rc = SDB_DMS_NOTEXIST ;
+            PD_LOG( PDERROR, "Collection[%s] dose not exist",
+                    _targetName.c_str() ) ;
+            goto error ;
+         }
+
+         if ( meta.hasField( FIELD_NAME_DATASOURCE_ID ) )
+         {
+            rc = SDB_OPERATION_INCOMPATIBLE ;
+            PD_LOG_MSG( PDERROR, "Not allowed to alter a collection which is "
+                        "using data source[%d]", rc ) ;
+            goto error ;
+         }
 
          rc = _alterJob.initialize( _targetName.c_str(), RTN_ALTER_COLLECTION,
                                     _boQuery ) ;
@@ -3451,6 +3536,12 @@ namespace engine
                    "Duplicate attach collection partition [%s], "
                    "its partitioned-collection is %s",
                    _subCLName.c_str(), tmpMainCLName.c_str() ) ;
+
+      // Check if multiple collections on data source are being linked to the
+      // main collection. Currently this is not supported.
+      rc = catCheckLinkMultiDSCollection( _boTarget, _boSubCL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check multiple collections on data source "
+                   "attached to main collection failed[%d]", rc ) ;
 
       /// Lock groups of sub-collection
       rc = catGetAndLockCollectionGroups( _boSubCL,

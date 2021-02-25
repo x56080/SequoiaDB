@@ -4,7 +4,7 @@
  * @Modify:      Liangxw
  *               2019-09-05
  **************************************************************/
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
 #include "DS_common.hpp"
@@ -15,7 +15,7 @@ using namespace sdbclient ;
 class invalidArgTest9528 : public testing::Test
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
 
    void SetUp()

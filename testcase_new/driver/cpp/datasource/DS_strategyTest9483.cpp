@@ -22,7 +22,7 @@
  *               2019-09-05
  *****************************************************************************************/
 #include <gtest/gtest.h>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <iostream>
 #include "DS_common.hpp"
 
@@ -34,7 +34,7 @@ using namespace sdbclient ;
 class strategyTest9483 : public testBase
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
    string url ;
    string url1 ;

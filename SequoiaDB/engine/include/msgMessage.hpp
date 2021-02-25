@@ -228,9 +228,6 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
                          CHAR **ppQuery, CHAR **ppFieldSelector,
                          CHAR **ppOrderBy, CHAR **ppHint ) ;
 
-INT32 msgExtractQueryCommand ( CHAR *pBuffer, SINT32 packetSize, CHAR **ppCommand,
-                               SINT32 &len );
-
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
@@ -475,6 +472,16 @@ INT32 msgExtractCreateLobIDRequest( const CHAR *pBuffer, const MsgOpLob **header
 INT32 msgExtractReadResult( const MsgOpReply *header,
                             const MsgLobTuple **begin,
                             UINT32 *tupleSz ) ;
+
+INT32 msgBuildInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                  const BSONObj &boQuery, UINT64 reqID,
+                                  engine::IExecutor *cb ) ;
+
+INT32 msgBuildDataSourceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                                            const BSONObj &boQuery,
+                                            UINT64 reqID,
+                                            engine::IExecutor *cb = NULL ) ;
+
 
 #endif // MSGMESSAGE_HPP_
 

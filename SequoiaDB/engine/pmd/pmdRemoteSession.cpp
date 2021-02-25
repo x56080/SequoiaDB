@@ -36,8 +36,6 @@
 #include "msgMessage.hpp"
 #include "pmdTrace.h"
 
-#include "../bson/bson.h"
-
 using namespace bson ;
 
 namespace engine
@@ -66,6 +64,7 @@ namespace engine
       _hasStop          = FALSE ;
       _handle           = NET_INVALID_HANDLE ;
       _addPos           = -1 ;
+      _pMsgConvertor    = NULL ;
    }
 
    _pmdSubSession::~_pmdSubSession()
@@ -174,6 +173,68 @@ namespace engine
       }
    }
 
+   BOOLEAN _pmdSubSession::sessionInitRequired() const
+   {
+      // For communication with a node in the same cluster, session init is
+      // required. But it's not required for a node in extern data
+      return !_connection.isExtern() ;
+   }
+
+   INT32 _pmdSubSession::preProcessMsg( pmdEDUCB *cb, BOOLEAN &isIgnored )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT( _pReqMsg, "Request message is not set" ) ;
+
+      _reqID = cb->incCurRequestID() ;
+      _pReqMsg->requestID = getReqID() ;
+      _pReqMsg->TID = cb->getTID() ;
+      _reqOpCode = _pReqMsg->opCode ;
+      _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
+
+      isIgnored = FALSE ;
+
+      if ( _pMsgConvertor )
+      {
+         UINT32 oprType = 0 ;
+         // Step 1: Check if the message should be sent or ignored.
+         rc = _pMsgConvertor->filter( this, cb, isIgnored, oprType ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Filter message failed, rc: %d", rc ) ;
+            goto error ;
+         }
+         else if ( isIgnored )
+         {
+            // If the message should be filtered out, clear this subsession.
+            // Nothing will be sent.
+            resetForResend() ;
+            goto done ;
+         }
+
+         // Step 2: Permission check.
+         rc = _pMsgConvertor->checkPermission( this, oprType, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Check operation permission failed, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         // Step 3: Convert the meassge
+         rc = _pMsgConvertor->convert( this, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Convert message failed, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    void _pmdSubSession::resetForResend()
    {
       clearSend() ;
@@ -181,9 +242,61 @@ namespace engine
       clearProcessInfo() ;
    }
 
+   BOOLEAN _pmdSubSession::canErrFilterOut( INT32 returnCode )
+   {
+      pmdEDUCB *cb = parent()->getEDUCB() ;
+      pmdRemoteSessionSite *pSite = parent()->getSite() ;
+      IRemoteMgrControl *pCtrl = pSite->getMgrControl() ;
+
+      if ( pCtrl )
+      {
+         const MsgHeader *pOrgMsg = NULL ;
+         ISession *pSession = NULL ;
+         IClient *pClient = NULL ;
+
+         if ( cb )
+         {
+            pSession = cb->getSession() ;
+            if ( pSession )
+            {
+               pClient = pSession->getClient() ;
+               if ( pClient )
+               {
+                  pOrgMsg = pClient->getInMsg() ;
+               }
+            }
+         }
+
+         return pCtrl->canErrFilterOut( this, pOrgMsg, returnCode ) ;
+      }
+
+      return FALSE ;
+   }
+
+   BOOLEAN _pmdSubSession::canSwitchOtherNode( INT32 returnCode )
+   {
+      pmdRemoteSessionSite *pSite = parent()->getSite() ;
+      IRemoteMgrControl *pCtrl = pSite->getMgrControl() ;
+
+      if ( pCtrl )
+      {
+         return pCtrl->canSwitchOtherNode( returnCode ) ;
+      }
+      return TRUE ;
+   }
+
    void _pmdSubSession::processEvent( pmdEDUEvent &event )
    {
       MsgHeader *pRsp = ( MsgHeader* )event._Data ;
+
+      // If the connection is for extern node, the route id in the reply
+      // will be the real node id of the coordinator node in the data source.
+      // But locally we use a different node id for it. So we need to change
+      // it here.
+      if ( _connection.isExtern() )
+      {
+         pRsp->routeID.value = _nodeID.value ;
+      }
 
       clearReplyInfo() ;
 
@@ -205,11 +318,38 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to alloc memory[size: %d]",
                     pRsp->messageLength ) ;
+            _event._Data = event._Data ;
          }
       }
       else
       {
          event._dataMemType = PMD_EDU_MEM_NONE ;
+      }
+
+      if ( _pMsgConvertor )
+      {
+         INT32 rc = SDB_OK ;
+         pmdEDUEvent newEvent ;
+         BOOLEAN hasConvert = FALSE ;
+
+         rc = _pMsgConvertor->convertReply( this, parent()->getEDUCB(),
+                                            _event, newEvent,
+                                            hasConvert ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Convert reply failed, rc: %d", rc ) ;
+         }
+
+         if ( hasConvert )
+         {
+            if ( _event._Data && PMD_EDU_MEM_NONE != _event._dataMemType )
+            {
+               pmdEduEventRelease( _event, _parent->getEDUCB() ) ;
+            }
+            _event.reset() ;
+
+            _event = newEvent ;
+         }
       }
 
       /// reset reply opCode
@@ -219,6 +359,11 @@ namespace engine
          _orgRspOpCode = pRsp->opCode ;
          pRsp->opCode = MAKE_REPLY_TYPE( _reqOpCode ) ;
       }
+   }
+
+   pmdRemoteConnection* _pmdSubSession::getConnection()
+   {
+      return &_connection ;
    }
 
    /*
@@ -612,7 +757,22 @@ namespace engine
       {
          subSession.setNodeID( nodeID ) ;
          subSession.setParent( this ) ;
-         subSession._handle = _pSite->getNodeNet( nodeID ) ;
+
+         netRouteAgent *pAgent = NULL ;
+         BOOLEAN isExternConn = FALSE ;
+         IRemoteMgrControl *pCtrl = _pSite->getMgrControl() ;
+
+         if ( pCtrl )
+         {
+            pCtrl->checkSubSession( subSession.getNodeID(),
+                                    &pAgent,
+                                    &(subSession._pMsgConvertor),
+                                    isExternConn ) ;
+         }
+         subSession.getConnection()->init( ( pAgent ? pAgent : _pAgent ),
+                                           isExternConn,
+                                           subSession.getNodeID(),
+                                           _pSite->getNodeNet( nodeID ) ) ;
       }
       return &subSession ;
    }
@@ -869,8 +1029,11 @@ namespace engine
       UINT64 oldReqID = 0 ;
       INT32 oldAddPos = 0 ;
       BOOLEAN hasSend = FALSE ;
+      BOOLEAN isIngored = FALSE ;
       monClassQuery *monQuery = getEDUCB()->getMonQueryCB() ;
       ossTick startTimer ;
+      pmdRemoteConnection *connection = NULL ;
+
       if ( monQuery )
       {
          startTimer.sample() ;
@@ -901,11 +1064,17 @@ namespace engine
 
       oldReqID = pSub->getReqID() ;
       oldAddPos = *pSub->getAddPos() ;
-      pSub->setReqID( _pEDUCB->incCurRequestID() ) ;
-      pSub->getReqMsg()->requestID = pSub->getReqID() ;
-      pSub->getReqMsg()->routeID.value = MSG_INVALID_ROUTEID ;
-      pSub->getReqMsg()->TID = _pEDUCB->getTID() ;
-      pSub->_reqOpCode = GET_REQUEST_TYPE( pSub->getReqMsg()->opCode ) ;
+
+      // Preprocess the message, to decide the action: return error, skip, or
+      // send.
+      rc = pSub->preProcessMsg( _pEDUCB, isIngored ) ;
+      PD_RC_CHECK( rc, PDERROR, "Preprocessing message failed, rc: %d", rc ) ;
+      if ( isIngored )
+      {
+         // The message should be skipped.
+         goto done ;
+      }
+
       // add to assit node
       *pSub->getAddPos() = _pSite->addAssitNode(
          pSub->getNodeID().columns.nodeID ) ;
@@ -920,8 +1089,9 @@ namespace engine
          }
       }
 
+      connection = pSub->getConnection() ;
       // first connect
-      if ( NET_INVALID_HANDLE == pSub->getHandle() && _pHandle )
+      if ( !connection->isConnected() && _pHandle )
       {
          rc = _pHandle->onSendConnect( pSub, pSub->getReqMsg(), TRUE ) ;
          if ( rc )
@@ -933,21 +1103,19 @@ namespace engine
          }
       }
 
-      // send by net handle
-      if ( NET_INVALID_HANDLE != pSub->getHandle() )
+      if ( connection->isConnected() )
       {
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
-            rc = _pAgent->syncSendv( pSub->getHandle(), pSub->getReqMsg(),
-                                     *(pSub->getIODatas()) ) ;
+            rc = connection->syncSendv( pSub->getReqMsg(),
+                                        *(pSub->getIODatas()) ) ;
          }
          else
          {
-            rc = _pAgent->syncSend( pSub->getHandle(), pSub->getReqMsg(),
-                                    NULL, 0 ) ;
+            rc = connection->syncSend( (void*)pSub->getReqMsg() ) ;
          }
 
          if ( SDB_OK == rc )
@@ -984,20 +1152,23 @@ namespace engine
       // send by route id
       if ( !hasSend )
       {
+         if ( !connection->isConnected() )
+         {
+            rc = connection->connect() ;
+            PD_RC_CHECK( rc, PDERROR, "Establish connection failed[%d]", rc ) ;
+         }
+
          // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
                                                pSub->getIODataLen() ;
-            rc = _pAgent->syncSendv( pSub->getNodeID(), pSub->getReqMsg(),
-                                     *(pSub->getIODatas()),
-                                     &(pSub->_handle) ) ;
+            rc = connection->syncSendv( pSub->getReqMsg(),
+                                        *(pSub->getIODatas()) ) ;
          }
          else
          {
-            rc = _pAgent->syncSend( pSub->getNodeID(),
-                                    (void*)pSub->getReqMsg(),
-                                    &(pSub->_handle) ) ;
+            rc = connection->syncSend( (void*)pSub->getReqMsg() ) ;
          }
 
          PD_RC_CHECK( rc, PDERROR, "Session[%s] send msg to node[%s] failed, "
@@ -1026,7 +1197,8 @@ namespace engine
       }
       _sessionChange = TRUE ;
       pSub->setSendResult( TRUE ) ;
-      // add to request map
+      // add to request map, the the framework will wait for reply of this
+      // subsession.
       _pSite->addSubSession( pSub ) ;
 
    done:
@@ -1105,7 +1277,15 @@ namespace engine
 
       while ( totalUnReplyNum > 0 || _mapPendingSubSession.size() > 0 )
       {
-         // if pending sessions is not empty
+         // Pending sub session stands for sub sessions whose replies have been
+         // received by another remote session. That session finds the reply is
+         // not for sub session of itself, so appends it to the pending list of
+         // the real remote session. Check the logic in
+         // _pmdRemoteSessionSite::processEvent.
+         // We are sure the sub sessions in the pending list belong to this
+         // remote session, so just add them into the sub session map, and
+         // count them into reply number. And the event has been processed
+         // already during that period, so no need to process again here.
          if ( _mapPendingSubSession.size() > 0 )
          {
             MAP_SUB_SESSIONPTR_IT itPending = _mapPendingSubSession.begin() ;
@@ -1147,6 +1327,9 @@ namespace engine
                       _milliTimeout : OSS_ONE_SEC ;
          }
 
+         // Wait on the user specified message queue, or the queue in the
+         // thread. The message will be pushed into the queue in
+         // _pmdRemoteSessionMgr::pushMessage.
          if ( pSiteHandle )
          {
             gotEvent = pSiteHandle->waitEvent( event, timeout ) ;
@@ -1303,7 +1486,7 @@ namespace engine
       pMsg->routeID.value = MSG_INVALID_ROUTEID ;
       pMsg->TID = _pEDUCB->getTID() ;
 
-      rc = _pAgent->syncSend( pSub->getHandle(), (void*)pMsg ) ;
+      rc = pSub->getConnection()->syncSend( (void*)pMsg ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING, "Session[%s] send msg to node[%s] failed, "
@@ -1342,6 +1525,7 @@ namespace engine
       _curPos = -1 ;
 
       _userData = 0 ;
+      _pCtrl    = NULL ;
    }
 
    _pmdRemoteSessionSite::~_pmdRemoteSessionSite()
@@ -1369,6 +1553,7 @@ namespace engine
 
    void _pmdRemoteSessionSite::addNodeNet( UINT64 nodeID, NET_HANDLE handle )
    {
+      SDB_ASSERT( NET_INVALID_HANDLE != handle, "net handle is invalid" ) ;
       _mapNode2Net[ nodeID ] = handle ;
    }
 
@@ -1530,6 +1715,32 @@ namespace engine
       return ;
    }
 
+   void _pmdRemoteSessionSite::_initRemoteConnection( pmdRemoteConnection *pConnection,
+                                                      UINT64 nodeID,
+                                                      NET_HANDLE handle )
+   {
+      netRouteAgent *pAgent = NULL ;
+      IRemoteMsgConvertor *pMsgConvertor = NULL ;
+      BOOLEAN isExternConn = FALSE ;
+      MsgRouteID routeID ;
+
+      routeID.value = nodeID ;
+
+      if ( _pCtrl )
+      {
+         _pCtrl->checkSubSession( routeID, &pAgent,
+                                  &pMsgConvertor,
+                                  isExternConn ) ;
+      }
+
+      if ( !pAgent )
+      {
+         pAgent = _pAgent ;
+      }
+
+      pConnection->init( pAgent, isExternConn, routeID, handle ) ;
+   }
+
    void _pmdRemoteSessionSite::interruptAllSubSession()
    {
       MsgHeader interruptMsg ;
@@ -1542,7 +1753,10 @@ namespace engine
       MAP_NODE2NET::iterator it = _mapNode2Net.begin() ;
       while ( it != _mapNode2Net.end() )
       {
-         _pAgent->syncSend( it->second, (void*)&interruptMsg ) ;
+         pmdRemoteConnection subConn ;
+         _initRemoteConnection( &subConn, it->first, it->second ) ;
+         /// ignore result
+         subConn.syncSend( (void*)&interruptMsg ) ;
          ++it ;
       }
    }
@@ -1559,7 +1773,12 @@ namespace engine
       MAP_NODE2NET::iterator it = _mapNode2Net.begin() ;
       while ( it != _mapNode2Net.end() )
       {
-         _pAgent->syncSend( it->second, (void*)&disconnectMsg ) ;
+         pmdRemoteConnection subConn ;
+         _initRemoteConnection( &subConn, it->first, it->second ) ;
+         /// ignore result
+         subConn.syncSend( (void*)&disconnectMsg ) ;
+         /// should disconnect connection
+         subConn.disconnect() ;
          ++it ;
       }
    }
@@ -1600,6 +1819,9 @@ namespace engine
       _mapNode2Ver[ nodeID ] = ver ;
    }
 
+   /**
+    * Called by remote session when it receives some reply.
+    */
    INT32 _pmdRemoteSessionSite::processEvent( pmdEDUEvent &event,
                                               MAP_SUB_SESSION &mapSessions,
                                               pmdSubSession **ppSub,
@@ -1631,9 +1853,14 @@ namespace engine
       // if is MSG_BS_DISCONNECT, the remote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )
       {
-         MAP_SUB_SESSIONPTR disSubs ;
+         MAP_SUB_SESSIONPTR disSubs ;  // Disconnected sub sessions.
 
          itPtr = _mapReq2SubSession.begin() ;
+         // There may be multiple connections between the coordinator and
+         // data node. If one connection is broken, all sub sessions which
+         // are using this connection should handle the event. For example,
+         // roll back transactions on these sub session, because transaction
+         // can not switch connection.
          while ( itPtr != _mapReq2SubSession.end() )
          {
             if ( requestID < itPtr->first )
@@ -1644,8 +1871,14 @@ namespace engine
                       itPtr->second->getHandle() == handle )
             {
                pSubSession = itPtr->second ;
+               // Copy the message into the sub session, and set some flags.
                pSubSession->processEvent( event ) ;
                pSubSession->setNeedToDel( FALSE ) ;
+               // Check if it's the reply of one sub session in the current
+               // remote session. If yes, set it into the output parameter.
+               // If not, add it to its real parent(remote session)'s pending
+               // list. In that case, the real remote session knows that the
+               // reply of this sub session is received.
                if ( !*ppSub && ( it = mapSessions.find( nodeID ) ) !=
                     mapSessions.end() && &(it->second) == pSubSession )
                {
@@ -1655,11 +1888,16 @@ namespace engine
                {
                   pSubSession->parent()->addPending( pSubSession ) ;
                }
-               // remove from request id map
+               // remove from request id map after receiving the reply of the
+               // request.
                _mapReq2SubSession.erase( itPtr++ ) ;
                removeAssitNode( pSubSession->getAddPos(),
                                 pSubSession->getNodeID().columns.nodeID ) ;
 
+               // If remote session handler is set, need to invoke the
+               // callback functions to handle the disconnection event for
+               // all these sub sessions, no matter it belongs to this remote
+               // session or not.
                if ( pHandle )
                {
                   disSubs[ pSubSession->getNodeIDUInt() ] = pSubSession ;
@@ -1669,7 +1907,8 @@ namespace engine
             ++itPtr ;
          }
 
-         // callback
+         // Invoke callback function for all the sub sessions which have been
+         // disconnected.
          if ( pHandle && !disSubs.empty() )
          {
             MAP_SUB_SESSIONPTR_IT disSubPtr = disSubs.begin() ;
@@ -1677,6 +1916,7 @@ namespace engine
             {
                pSubSession = disSubPtr->second ;
                ++disSubPtr ;
+               // Currently the pending flag has no effect ?
                if ( pSubSession == *ppSub )
                {
                   pHandle->onReply( pSubSession->parent(), ppSub,
@@ -1699,6 +1939,8 @@ namespace engine
       }
       else
       {
+         // By the request ID in the message that we know which subsession the
+         // reply belongs to.
          itPtr = _mapReq2SubSession.find( requestID ) ;
          if ( itPtr != _mapReq2SubSession.end() )
          {
@@ -1715,7 +1957,8 @@ namespace engine
             {
                pSubSession->parent()->addPending( pSubSession ) ;
             }
-            // remove from request id map
+            // The reply of the sub session is received, so remove it from
+            // the request id map.
             _mapReq2SubSession.erase( itPtr ) ;
             removeAssitNode( pSubSession->getAddPos(),
                              pSubSession->getNodeID().columns.nodeID ) ;
@@ -1842,6 +2085,7 @@ namespace engine
    {
       _pHandle= NULL ;
       _pAgent = NULL ;
+      _pCtrl  = NULL ;
    }
 
    _pmdRemoteSessionMgr::~_pmdRemoteSessionMgr()
@@ -1852,7 +2096,8 @@ namespace engine
    }
 
    INT32 _pmdRemoteSessionMgr::init( netRouteAgent * pAgent,
-                                     IRemoteMgrHandle *pHandle )
+                                     IRemoteMgrHandle *pHandle,
+                                     IRemoteMgrControl *pCtrl )
    {
       if ( !pAgent )
       {
@@ -1860,6 +2105,7 @@ namespace engine
       }
       _pAgent = pAgent ;
       _pHandle = pHandle ;
+      _pCtrl = pCtrl ;
 
       return SDB_OK ;
    }
@@ -1877,6 +2123,7 @@ namespace engine
       pmdRemoteSessionSite &site = _mapTID2EDU[ cb->getTID() ] ;
       site.setEduCB( cb ) ;
       site.setRouteAgent( _pAgent ) ;
+      site.setMgrCtrl( _pCtrl ) ;
       cb->attachRemoteSite( &site ) ;
 
       if ( _pHandle )
@@ -1977,7 +2224,9 @@ namespace engine
             // copy data
             ossMemcpy( pNewBuff, pMsg, pMsg->messageLength ) ;
             pNewBuff[ pMsg->messageLength ] = 0 ;
-            // push to edu queue
+            // If a remote session site handler is set, it contains a seperated
+            // message queue. In this case, push the message into that queue.
+            // Otherwise, push it to the edu queue.
             if ( pSiteHandle )
             {
                pSiteHandle->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
@@ -2100,6 +2349,5 @@ namespace engine
       }
       return num ;
    }
-
 }
 

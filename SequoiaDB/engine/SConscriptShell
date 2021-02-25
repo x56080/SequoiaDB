@@ -76,7 +76,8 @@ sptFiles = [
       "spt/db/sptDBTraceOption.cpp",
       "spt/db/sptDBUser.cpp",
       "spt/db/sptDBCipherUser.cpp",
-      "spt/db/sptDBSequence.cpp"
+      "spt/db/sptDBSequence.cpp",
+      "spt/db/sptDBDataSource.cpp"
       ]
 
 ossFiles = [
@@ -146,7 +147,7 @@ utilFiles = [
       "client/timestampParse.c",
       "client/timestampTm.c",
       "client/timestampValid.c",
-      "bson/md5.c",      
+      "bson/md5.c",
       "util/utilCipher.c",
       "util/utilTypeCast.c",
       "util/utilIniParser.c",
@@ -175,8 +176,8 @@ clientCFiles = [
 
 clientcppFiles = [
       "client/clientcpp.cpp",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
+      "client/sdbConnectionPool.cpp",
+      "client/sdbConnectionPoolComm.cpp",
       "client/sdbDataSourceStrategy.cpp",
       "client/sdbDataSourceWorker.cpp"
       ]
@@ -218,8 +219,8 @@ pmdFiles = [
 
 monFiles = [
       "mon/monLatch.cpp"
-      ]   
-      
+      ]
+
 #Client Driver
 shellEnv.StaticLibrary('clientc', clientCFiles)
 shellEnv.StaticLibrary('clientcpp', clientcppFiles)

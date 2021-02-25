@@ -78,7 +78,7 @@ namespace engine
          virtual ~_coordQueryOperator() ;
 
          virtual BOOLEAN needRollback() const ;
- 
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,

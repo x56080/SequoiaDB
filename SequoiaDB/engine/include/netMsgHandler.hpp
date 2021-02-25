@@ -80,11 +80,12 @@ namespace engine
         // - userDataHolder: holder of user data, pass user data to handle
         //                   session, may create user data of type specified
         //                   by handle session
-        virtual void    handleConnect( const NET_HANDLE &handle,
-                                       _MsgRouteID id,
-                                       BOOLEAN isPositive,
-                                       netUserDataHolder *userDataHolder )
+        virtual INT32 handleConnect( const NET_HANDLE &handle,
+                                     _MsgRouteID id,
+                                     BOOLEAN isPositive,
+                                     netUserDataHolder *userDataHolder )
         {
+           return SDB_OK ;
         }
 
         // callback on before sending message

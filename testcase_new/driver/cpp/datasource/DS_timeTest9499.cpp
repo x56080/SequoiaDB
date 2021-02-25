@@ -12,7 +12,7 @@
  *               2019-09-04
  *********************************************************************************/
 #include <gtest/gtest.h>
-#include <sdbDataSource.hpp>
+#include <sdbConnectionPool.hpp>
 #include <iostream>
 #include <vector>
 #include "DS_common.hpp"
@@ -23,7 +23,7 @@ using namespace sdbclient ;
 class timeTest9499 : public testBase
 {
 protected:
-   sdbDataSource ds ;
+   sdbConnectionPool ds ;
    sdbDataSourceConf conf ;
    string url ;
 
