@@ -576,6 +576,7 @@ namespace engine
       _result = SDB_OK ;
       _changeID = 0 ;
       _pConfigHander = NULL ;
+      _hasAutoAdjust = FALSE ;
    }
    _pmdCfgRecord::~_pmdCfgRecord ()
    {
