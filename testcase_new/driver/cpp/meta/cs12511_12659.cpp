@@ -54,7 +54,9 @@ TEST_F( csTest12511, csOpr12511 )
    BSONObj obj ;
    while( !cursor.next( obj ) )
    {
-      const CHAR* name = obj.getField( "Name" ).String().c_str() ;
+      string str = obj.getField( "Name" ).String() ;
+      CHAR name[str.size()] ;
+      strcpy( name, str.c_str() ) ;
       if( strcmp( name, csName ) == 0 )
       {
          found = TRUE ;

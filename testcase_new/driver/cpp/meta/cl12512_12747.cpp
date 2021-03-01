@@ -71,8 +71,10 @@ TEST_F( clTest12512, clOpr12512 )
    BOOLEAN found = FALSE ;
    BSONObj obj ;
    while( !cursor.next(obj) )
-   {
-      const char* tmp = obj.getField( "Name" ).String().c_str() ;
+   {  
+      string str = obj.getField( "Name" ).String() ;
+      CHAR tmp[ str.size() ] ;
+      strcpy( tmp, str.c_str() ) ;
       if( strcmp( tmp, clFullName ) == 0 )
       {
          found = TRUE ;
