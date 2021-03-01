@@ -59,7 +59,9 @@ TEST_F( traceTest14678, trace )
    ASSERT_EQ( num, components.size() ) << "fail to check components num" ;
    for( INT32 i = 0;i < num;i++ )
    {
-      const CHAR* mask = components[i].String().c_str() ;
+      string str = components[i].String() ;
+      CHAR mask[str.size()] ;
+      strcpy( mask, str.c_str()) ;
       ASSERT_STREQ( masks[i], mask ) << "fail to check component" ;
    }
    rc = cursor.close() ;
