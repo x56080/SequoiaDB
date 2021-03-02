@@ -4,6 +4,7 @@ import com.sequoiadb.base.*;
 import com.sequoiadb.datasource.*;
 import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.Helper;
 import org.bson.BSONObject;
@@ -294,6 +295,201 @@ public class SequoiadbDatasourceTest {
         for (int i = 0; i < connNum; i++) {
             datasource.releaseConnection(dbs[i]);
         }
+        datasource.close();
+
+    }
+
+    /*
+    * check:
+    * 1. datasource keep the idle connection num or not
+    * */
+    @Test
+    @Ignore
+    public void jira_6721_features1() {
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        dsOpt.setCheckInterval(10 * 1000);
+        SequoiadbDatasource datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+        Sequoiadb sdb = null;
+        int sleepTime = 240 * 1000;
+        try {
+            try {
+                sdb = datasource.getConnection();
+            } finally {
+                datasource.releaseConnection(sdb);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        while (sleepTime > 0) {
+            int interval = 5 * 1000;
+            try {
+                Thread.sleep(interval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                    ", dsOpt.getMinIdleCount(): " + dsOpt.getMinIdleCount(),datasource.getIdleConnNum() >= dsOpt.getMinIdleCount());
+            sleepTime -= interval;
+        }
+        Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                ", dsOpt.getMaxIdleCount(): " + dsOpt.getMaxIdleCount(),datasource.getIdleConnNum() <= dsOpt.getMaxIdleCount());
+    }
+
+    /*
+     * check:
+     * 1. cacheLimit works or not
+     * 2. background thread create connection or not(minIdleCount == maxIdleCount)
+     * */
+    @Test
+    @Ignore
+    public void jira_6721_features2() {
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        dsOpt.setCheckInterval(10 * 1000);
+        dsOpt.setCacheLimit(10);
+        SequoiadbDatasource datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+        List<Sequoiadb> sdbList = new ArrayList<Sequoiadb>();
+        int sleepTime = 240 * 1000;
+        try {
+            int i = 0;
+            try {
+                while(i < dsOpt.getMaxCount()) {
+                    sdbList.add(datasource.getConnection());
+                    i++;
+                }
+            } finally {
+                while (sdbList.size() > 0) {
+                    datasource.releaseConnection(sdbList.get(0));
+                    sdbList.remove(0);
+                }
+            }
+            Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum(),
+                    datasource.getIdleConnNum() == 0);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        while (sleepTime > 0) {
+            int interval = 15 * 1000;
+            try {
+                Thread.sleep(interval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                    ", dsOpt.getMinIdleCount(): " + dsOpt.getMinIdleCount(),datasource.getIdleConnNum() >= dsOpt.getMinIdleCount());
+            sleepTime -= interval;
+        }
+        Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                ", dsOpt.getMaxIdleCount(): " + dsOpt.getMaxIdleCount(),datasource.getIdleConnNum() <= dsOpt.getMaxIdleCount());
+    }
+
+    /*
+     * check:
+     * 1. cacheLimit works or not
+     * 2. background thread create connection or not(minIdleCount != maxIdleCount)
+     * */
+    @Test
+    @Ignore
+    public void jira_6721_features3() {
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        dsOpt.setCheckInterval(10 * 1000);
+        dsOpt.setCacheLimit(10);
+        dsOpt.setMaxIdleCount(20);
+        dsOpt.setMinIdleCount(10);
+        SequoiadbDatasource datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+        List<Sequoiadb> sdbList = new ArrayList<Sequoiadb>();
+        int sleepTime = 240 * 1000;
+        try {
+            int i = 0;
+            try {
+                while(i < dsOpt.getMaxCount()) {
+                    sdbList.add(datasource.getConnection());
+                    i++;
+                }
+            } finally {
+                while (sdbList.size() > 0) {
+                    datasource.releaseConnection(sdbList.get(0));
+                    sdbList.remove(0);
+                }
+            }
+            Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum(),
+                    datasource.getIdleConnNum() == 0);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+        while (sleepTime > 0) {
+            int interval = 15 * 1000;
+            try {
+                Thread.sleep(interval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                    ", dsOpt.getMinIdleCount(): " + dsOpt.getMinIdleCount(),datasource.getIdleConnNum() >= dsOpt.getMinIdleCount());
+            sleepTime -= interval;
+        }
+        Assert.assertTrue("datasource.getIdleConnNum(): " + datasource.getIdleConnNum() +
+                ", dsOpt.getMaxIdleCount(): " + dsOpt.getMaxIdleCount(),datasource.getIdleConnNum() <= dsOpt.getMaxIdleCount());
+    }
+
+    /*
+    * test:
+    * 1. minIdleCount
+    * */
+    @Test
+    public void jira_6721_features4() {
+        SequoiadbDatasource datasource;
+        DatasourceOptions dsOpt = new DatasourceOptions();
+        dsOpt.setCheckInterval(10 * 1000);
+        dsOpt.setCacheLimit(10);
+
+        // case 1: less than 0
+        try {
+            dsOpt.setMinIdleCount(11);
+            datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+            Assert.fail();
+        } catch (BaseException e) {
+            Assert.assertEquals(e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode());
+        }
+
+        // case 2: max than maxIdleCount
+        try {
+            dsOpt.setMinIdleCount(11);
+            datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+            Assert.fail();
+        } catch (BaseException e) {
+            Assert.assertEquals(e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode());
+        }
+
+
+        // case 3: max than maxCount
+        try {
+            dsOpt.setMinIdleCount(501);
+            dsOpt.setMaxIdleCount(501);
+            datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+            Assert.fail();
+        } catch (BaseException e) {
+            Assert.assertEquals(e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode());
+        }
+
+        // case 4: equal to 0
+        dsOpt.setMinIdleCount(0);
+        dsOpt.setMaxIdleCount(10);
+        datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+        datasource.close();
+
+        // case 5: equal to maxIdleCount
+        dsOpt.setMinIdleCount(100);
+        dsOpt.setMaxIdleCount(100);
+        datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
+        datasource.close();
+
+        // case 6: equal to maxCount
+        dsOpt.setMinIdleCount(500);
+        dsOpt.setMaxIdleCount(500);
+        datasource = new SequoiadbDatasource(coords, "", "", null, dsOpt);
         datasource.close();
 
     }
