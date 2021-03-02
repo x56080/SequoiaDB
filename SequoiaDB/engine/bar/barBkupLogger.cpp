@@ -3406,7 +3406,7 @@ namespace engine
 
             PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
             std::cout << "Setting DC to restore-in-progress..." << std::endl ;
-            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORING, TRUE, cb, 1,
+            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORE, TRUE, cb, 1,
                                         _pDMSCB, _pDPSCB)) != SDB_OK)
             {
                PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;

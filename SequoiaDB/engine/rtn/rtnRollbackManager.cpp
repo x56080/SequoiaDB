@@ -19,6 +19,7 @@
 
 #include "rtnRollbackManager.hpp"
 
+#include "dmsCB.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsOp2Record.hpp"
@@ -38,7 +39,8 @@ namespace engine
 //
 
 _rtnRollbackManager::_rtnRollbackManager(pmdEDUCB *cb)
-    : _cb(cb), _dpsCB(pmdGetKRCB()->getDPSCB()), _transCB(sdbGetTransCB()),
+    : _cb(cb), _dmsCB(pmdGetKRCB()->getDMSCB()),
+      _dpsCB(pmdGetKRCB()->getDPSCB()), _transCB(sdbGetTransCB()),
       _cursor(DPS_INVALID_LSN_OFFSET),
       _mb(dpsMessageBlock(DPS_MSG_BLOCK_DEF_LEN)), _replayer(TRUE),
       _testOnly(FALSE)
@@ -186,11 +188,20 @@ INT32 _rtnRollbackManager::_undo()
 rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
                                              const DPS_TRANS_ID &transID)
     : _rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
-      _rollbackRecCount(0), _logLimitTime(0), _transID(transID)
+      _rollbackRecCount(0), _logLimitTime(0), _transID(transID),
+      _dmsLocked(FALSE)
 {
    // Set the target time from the input message
    _targetTime = stpLogicalTimeUS();
    _targetTime.setTime(targetTime);
+}
+
+rtnPITRollbackManager::~rtnPITRollbackManager()
+{
+   if(_dmsLocked)
+   {
+      _dmsCB->restoreDown(_cb);
+   }
 }
 
 INT32 rtnPITRollbackManager::countRollbackRecords()
@@ -213,6 +224,13 @@ INT32 rtnPITRollbackManager::_init()
    PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_INIT, &rc);
    PD_LOG(PDEVENT, "Starting rollback to point-in-time [%llu]. Test only [%d]",
           _targetTime.getTime(), _testOnly);
+
+   if ((rc = _dmsCB->registerRestore(_cb)))
+   {
+      PD_LOG(PDERROR, "Failed to lock the storage engine.");
+      return rc;
+   }
+   _dmsLocked = TRUE;
 
    if ((rc = _drainTrans()))
    {

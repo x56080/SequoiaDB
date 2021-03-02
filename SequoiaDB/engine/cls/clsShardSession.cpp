@@ -2214,6 +2214,13 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkRestoring() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
+         goto error ;
+      }
+
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pUpdate->version,
@@ -2341,6 +2348,13 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkRestoring() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
+         goto error ;
+      }
+
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName,
@@ -2446,6 +2460,13 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING, "failed to check write status:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _checkRestoring() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
          goto error ;
       }
 
@@ -2569,6 +2590,13 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDWARNING, "failed to check write status:%d", rc ) ;
+               goto error ;
+            }
+
+            rc = _checkRestoring() ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
                goto error ;
             }
 
@@ -2760,6 +2788,19 @@ namespace engine
                PD_LOG( PDWARNING, "failed to check write status:%d", rc ) ;
                goto error ;
             }
+
+            // Only restore commands are allowed if in restoring state
+            if ( ( rc = _checkRestoring() ) && 
+                 ( SDB_RESTORE_IN_PROGRESS != rc ||
+                   !( CMD_RESTORE_TO_TIME == pCommand->type() ||
+                      CMD_RESTORE_ABORT   == pCommand->type() ||
+                      CMD_RESTORE_PREPARE == pCommand->type() ||
+                      CMD_RESTORE_CHECK   == pCommand->type() ) ) )
+            {
+               PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
+               goto error ;
+            }
+            rc = SDB_OK ; // reset in case it was set above
 
             if ( CMD_TRUNCATE == pCommand->type()
                  || CMD_CREATE_INDEX == pCommand->type() )
@@ -3117,6 +3158,13 @@ namespace engine
          goto error ;
       }
 
+      rc = _checkRestoring() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDINFO, "Failed to check restoring status, rc: %d", rc ) ;
+         goto error ;
+      }
+
       if ( msg->messageLength == sizeof( MsgOpTransBegin_V0 ) )
       {
          // version 0
@@ -3406,6 +3454,13 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDINFO, "Failed to check rollback status, rc: %d", rc ) ;
+               goto done ;
+            }
+            rc = _checkRestoring() ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDINFO, "Failed to check restoring status, rc: %d",
+                       rc ) ;
                goto done ;
             }
             // NOTE: auto-commit global transaction will generate
@@ -6506,6 +6561,19 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKRESTORING, "_clsShdSession::_checkRestoring" )
+   INT32 _clsShdSession::_checkRestoring()
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__CLSSHDSESS__CKRESTORING, &rc);
+
+      if (_pShdMgr->getDCMgr()->getDCBaseInfo()->isRestoring())
+      {
+         return (rc = SDB_RESTORE_IN_PROGRESS);
+      }
+      return rc;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKWRITESTATUS, "_clsShdSession::_checkWriteStatus" )
    INT32 _clsShdSession::_checkWriteStatus()
    {
@@ -6667,8 +6735,8 @@ namespace engine
       }
       else if ( eduCB()->isTransaction() )
       {
-         rc = _checkRollbackStatus() ;
-         if ( rc )
+         if ( (rc = _checkRollbackStatus()) ||
+              (rc = _checkRestoring()) )
          {
             goto error ;
          }

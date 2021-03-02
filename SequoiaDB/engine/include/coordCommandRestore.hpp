@@ -46,15 +46,12 @@ class _coordCMDRestore : public _coordCommandBase
 
    INT32 _checkRestoreInProgress(BOOLEAN *inProgress);
    INT32 _setRestoreInProgress(BOOLEAN enable);
-   INT32 _setRestoreInProgressNodes(BOOLEAN enable, BOOLEAN coord,
-                                    BOOLEAN data);
+   INT32 _setRestoreInProgressNodes(BOOLEAN enable);
    INT32 _queryCataDCBase(bson::BSONObj *result);
    INT32 _alterDC(const bson::BSONObj &query);
    INT32 _queryDataGroups(MSG_TYPE opCode, const ossPoolString &clName,
                           const bson::BSONObj &query,
                           OBJ_VEC *results = NULL);
-   INT32 _cmdCoords(MSG_TYPE opCode, const ossPoolString &clName,
-                    const BSONObj &query);
 
  protected:
    MsgHeader *_pMsg;

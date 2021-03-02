@@ -694,7 +694,11 @@ namespace engine
                 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
                                     _pAction ) ||
                 0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) ||
-                0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, _pAction ) )
+                0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, _pAction ) ||
+                0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING,
+                                    _pAction ) ||
+                0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING,
+                                    _pAction ) )
       {
          return FALSE ;
       }
@@ -763,6 +767,12 @@ namespace engine
       {
          pInfo->setReadonly( FALSE ) ;
          pmdGetKRCB()->setDBReadonly( FALSE ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING,
+                                    _pAction ) )
+      {
+         pInfo->setRestoring( TRUE ) ;
+         pmdGetKRCB()->setDBRestoring( TRUE ) ;
       }
       else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING,
                                     _pAction ) )

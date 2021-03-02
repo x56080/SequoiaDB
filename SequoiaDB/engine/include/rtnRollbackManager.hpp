@@ -37,6 +37,7 @@ namespace engine
 class _dpsLogWrapper;
 class dpsTransCB;
 class _pmdEDUCB;
+class _SDB_DMSCB;
 
 /// Rollback operation management class.
 ///
@@ -46,7 +47,7 @@ class _rtnRollbackManager : public SDBObject
 {
  public:
    _rtnRollbackManager(_pmdEDUCB *cb);
-   virtual ~_rtnRollbackManager(){};
+   virtual ~_rtnRollbackManager() {};
 
    // Perform the rollback
    INT32 execute();
@@ -56,6 +57,7 @@ class _rtnRollbackManager : public SDBObject
 
  protected:
    _pmdEDUCB *_cb;
+   _SDB_DMSCB *_dmsCB;
    _dpsLogWrapper *_dpsCB;
    dpsTransCB *_transCB;
    DPS_LSN_OFFSET _cursor;
@@ -106,7 +108,7 @@ class rtnPITRollbackManager : public _rtnRollbackManager
  public:
    rtnPITRollbackManager(_pmdEDUCB *cb, UINT64 targetTime,
                          const DPS_TRANS_ID &transID);
-   virtual ~rtnPITRollbackManager(){};
+   ~rtnPITRollbackManager();
 
    // Number of new log records written by this rollback
    INT32 countRollbackRecords();
@@ -134,6 +136,8 @@ class rtnPITRollbackManager : public _rtnRollbackManager
    UINT64 _logLimitTime;
    // The global transaction ID from the coordinator
    DPS_TRANS_ID _transID;
+   // Has DMS been locked?
+   BOOLEAN _dmsLocked;
 
    virtual INT32 _init();
    virtual void _abort();

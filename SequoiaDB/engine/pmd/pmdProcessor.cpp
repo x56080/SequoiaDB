@@ -1696,11 +1696,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
-      pmdRestorePendingChecker restorePendingChecker( msg ) ;
+      //pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
-      if ( !restorePendingChecker.isOpAllowed() )
+      //if ( !restorePendingChecker.isOpAllowed() )
+      if ( FALSE )
       {
          rc = SDB_RESTORE_IN_PROGRESS ;
          goto error ;

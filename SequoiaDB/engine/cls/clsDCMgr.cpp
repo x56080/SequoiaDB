@@ -148,7 +148,7 @@ namespace engine
          goto error ;
       }
 
-      e = obj.getField( FIELD_NAME_RESTORING ) ;
+      e = obj.getField( FIELD_NAME_RESTORE ) ;
       if ( e.eoo() )
       {
          _restoring = FALSE ;

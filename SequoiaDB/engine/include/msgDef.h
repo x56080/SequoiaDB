@@ -378,7 +378,7 @@
 #define FIELD_NAME_IMAGE                     "Image"
 #define FIELD_NAME_ACTIVATED                 "Activated"
 #define FIELD_NAME_READONLY                  "Readonly"
-#define FIELD_NAME_RESTORING                 "RestoreInProgress"
+#define FIELD_NAME_RESTORE                   "Restore"
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
 #define FIELD_NAME_GLOBALID                  "GlobalID"

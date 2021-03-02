@@ -661,7 +661,7 @@ retry :
             BSONObj objDCInfo( ( const CHAR* )pMsg + sizeof( MsgOpReply ) +
                                ossAlign4( (UINT32)msgObject.objsize() ) ) ;
             BOOLEAN restoring = FALSE ;
-            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORING ) ;
+            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORE ) ;
             if ( !rbEle.eoo() )
             {
                restoring = rbEle.Bool() ;

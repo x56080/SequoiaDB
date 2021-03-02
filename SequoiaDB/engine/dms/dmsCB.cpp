@@ -1467,6 +1467,31 @@ namespace engine
       unblockWrite( cb ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_REGRESTORE, "_SDB_DMSCB::registerRestore" )
+   INT32 _SDB_DMSCB::registerRestore(_pmdEDUCB *cb)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__SDB_DMSCB_REGRESTORE, &rc);
+
+      _stateMtx.get();
+      if (DMS_STATE_NORMAL != _dmsCBState)
+      {
+         _stateMtx.release();
+         PD_LOG(PDERROR, "Unable to lock storage for restore");
+         return (rc = SDB_DMS_STATE_NOT_COMPATIBLE);
+      }
+      _dmsCBState = DMS_STATE_RESTORE;
+      _stateMtx.release();
+      return rc;
+   }
+
+   void _SDB_DMSCB::restoreDown(_pmdEDUCB *cb)
+   {
+      _stateMtx.get();
+      _dmsCBState = DMS_STATE_NORMAL;
+      _stateMtx.release();
+   }
+
    INT32 _SDB_DMSCB::idToSUAndLock ( utilCSUniqueID csUniqueID,
                                      dmsStorageUnitID &suID,
                                      _dmsStorageUnit **su,

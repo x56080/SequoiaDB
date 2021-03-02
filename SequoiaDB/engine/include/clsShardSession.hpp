@@ -488,6 +488,8 @@ namespace engine
 
          INT32 _checkRollbackStatus() ;
 
+         INT32 _checkRestoring() ;
+
          INT32 _checkReplStatus() ;
 
          INT32 _checkClusterActive( MsgHeader *msg ) ;

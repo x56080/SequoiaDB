@@ -1240,12 +1240,12 @@ namespace engine
       if ( !pBaseInfo->isRestoring() )
       {
          // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE,
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE,
                                       _pEduCB, _majoritySize(), _pDmsCB,
                                       _pDpsCB )))
          {
             // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE, _pEduCB, 1,
+            catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE, _pEduCB, 1,
                                _pDmsCB, _pDpsCB ) ;
             return rc;
          }
@@ -1276,12 +1276,12 @@ namespace engine
       if ( pBaseInfo->isRestoring() )
       {
          // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORING, FALSE,
+         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE,
                                       _pEduCB, _majoritySize(), _pDmsCB,
                                       _pDpsCB )))
          {
             // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORING, TRUE, _pEduCB, 1,
+            catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE, _pEduCB, 1,
                                _pDmsCB, _pDpsCB ) ;
             return rc;
          }
@@ -1435,7 +1435,7 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-                         FIELD_NAME_RESTORING << false ) ;
+                         FIELD_NAME_RESTORE << false ) ;
          rc = rtnInsert( CAT_SYSDCBASE_COLLECTION_NAME, infoObj, 1, 0,
                          _pEduCB, _pDmsCB, _pDpsCB, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "Insert global info[%s] to collection[%s] "

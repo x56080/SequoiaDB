@@ -110,7 +110,7 @@ namespace engine
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
-         INT32         addAllGroups( pmdEDUCB *cb ) ;
+         INT32         addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite = FALSE) ;
 
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,

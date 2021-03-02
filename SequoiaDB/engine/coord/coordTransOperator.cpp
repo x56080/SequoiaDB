@@ -417,7 +417,7 @@ namespace engine
    // Add all groups to the transaction map. Normal transaction operations only
    // add nodes/groups when their data is touched. This function is for the
    // special case where all nodes are included by default.
-   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb )
+   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite )
    {
       INT32 rc = SDB_OK ;
       CoordGroupList groups;
@@ -432,7 +432,7 @@ namespace engine
       {
          CoordGroupInfoPtr groupPtr;
          _pResource->getGroupInfo(it->first, groupPtr);
-         _groupSession.getPropSite()->addTransNode(groupPtr->primary());
+         _groupSession.getPropSite()->addTransNode(groupPtr->primary(), TRUE);
       }
       return rc;
    }
@@ -1325,7 +1325,7 @@ namespace engine
       }
       // Add all groups to the trans map so they get included in subsequent
       // commit/rollback operations
-      if (allGroups && (_rc = opr.addAllGroups(_cb)))
+      if (allGroups && (_rc = opr.addAllGroups(_cb, TRUE)))
       {
          return;
       }

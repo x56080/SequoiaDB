@@ -132,6 +132,7 @@ namespace engine
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING, pAction ) )
       {
          _executeByNodes( pMsg, cb, allgroups, pAction, buf ) ;

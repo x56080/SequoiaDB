@@ -5141,8 +5141,7 @@ error:
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
       // restoreToTime on a data node is a type of rollback
-      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp,
-                                            _transID);
+      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp, _transID);
       if ((rc = rollbackManager.execute()))
       {
          PD_LOG(PDERROR,
@@ -5300,7 +5299,6 @@ error:
                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                   INT16 w , INT64 *pContextID )
    {
-      pmdGetKRCB()->setDBRestoring(false);
       if (SDB_ROLE_DATA == pmdGetDBRole())
       {
          sdbGetTransCB()->clearLogLimitTime();
@@ -5347,30 +5345,23 @@ error:
 
       // Only allowed if global transactions and mvcc (data node only) are on
       if ( !cb->isGlobTransOn() || !sdbGetTransCB()->isGlobTransOn() ||
-           ( SDB_ROLE_DATA == pmdGetDBRole() &&
-             !pmdGetKRCB()->getOptionCB()->mvccOn() ) )
+           !pmdGetKRCB()->getOptionCB()->mvccOn() )
       {
          PD_LOG( PDERROR, "Failed to prepare for restore, which is "
                           "only supported when mvccOn and is true and "
                           "global transactions are enabled" ) ;
-         rc = SDB_INVALIDARG ;
+         rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
          return rc;
       }
 
-      if (SDB_ROLE_COORD == pmdGetDBRole())
+      stpLogicalTimeUS t;
+      if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
       {
-         pmdGetKRCB()->setDBRestoring(true);
+         PD_LOG(PDERROR, "Error getting time");
+         return rc;
       }
-      if (SDB_ROLE_DATA == pmdGetDBRole())
-      {
-         stpLogicalTimeUS t;
-         if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
-         {
-            PD_LOG(PDERROR, "Error getting time");
-            return rc;
-         }
-         sdbGetTransCB()->updateRestoreWindow(t.getTime());
-      }
+      sdbGetTransCB()->updateRestoreWindow(t.getTime());
+
       return rc;
    }
 }

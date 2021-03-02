@@ -351,29 +351,22 @@ INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORE_CHECK, &rc);
-   // Check the local cache
-   *inProgress = pmdGetKRCB()->isDBRestoring();
    // Check the DC
    BSONObj document;
    if ((rc = _queryCataDCBase(&document)))
    {
       PD_LOG(PDERROR, "Failed to get [%s] status from catalog",
-             FIELD_NAME_RESTORING);
+             FIELD_NAME_RESTORE);
       return rc; // System error
    }
-   BSONElement field = document.getField(FIELD_NAME_RESTORING);
+   BSONElement field = document.getField(FIELD_NAME_RESTORE);
    if (field.eoo())
    {
       PD_LOG(PDERROR, "Missing field [%s] in document from catalog",
-             FIELD_NAME_RESTORING);
+             FIELD_NAME_RESTORE);
       return (rc = SDB_SYS);
    }
-   if (*inProgress != field.trueValue())
-   {
-      PD_LOG(PDERROR, "[%s] status mismatch between DC and cache",
-             FIELD_NAME_RESTORING);
-      return (rc = SDB_SYS);
-   }
+   *inProgress = field.trueValue();
    return rc;
 }
 
@@ -386,7 +379,7 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
    PD_TRACER_BEGIN(COORD_RESTORE_SET, &rc);
    PD_TRACER(1, PD_PACK_INT(enable));
    BSONObj query;
-   PD_LOG(PDINFO, "Setting cluster state [%s] = [%d]", FIELD_NAME_RESTORING,
+   PD_LOG(PDINFO, "Setting cluster state [%s] = [%d]", FIELD_NAME_RESTORE,
           enable);
    // Update the DC
    try
@@ -411,7 +404,7 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
       return rc;
    }
    // Update the coord and data nodes
-   if ((rc = _setRestoreInProgressNodes(enable, TRUE, TRUE)))
+   if ((rc = _setRestoreInProgressNodes(enable)))
    {
       return rc;
    }
@@ -419,21 +412,14 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
 }
 
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SETNODES, "_coordCMDRestore::_setRestoreInProgressNodes" )
-INT32 _coordCMDRestore::_setRestoreInProgressNodes(BOOLEAN enable,
-                                                   BOOLEAN coord, BOOLEAN data)
+INT32 _coordCMDRestore::_setRestoreInProgressNodes(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORE_SETNODES, &rc);
    const ossPoolString command =
        enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
-   if (coord && (rc = _cmdCoords(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
-                                 BSONObj())))
-   {
-      PD_LOG(PDERROR, "Failed to update status on coord nodes");
-      return rc;
-   }
-   if (data && (rc = _queryDataGroups(MSG_BS_QUERY_REQ,
-                                      CMD_ADMIN_PREFIX + command, BSONObj())))
+   if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
+                              BSONObj())))
    {
       PD_LOG(PDERROR, "Failed to update status on data nodes");
       return rc;
@@ -548,35 +534,6 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
       PD_LOG(PDERROR, "The number of results [%u] does not match the number of "
                       "groups [%u]", results->size(), groups.size());
       return (rc = SDB_SYS);
-   }
-   return rc;
-}
-
-// Run the given command on the coord nodes
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_CMDCOORDS, "_coordCMDRestore::_cmdCoords" )
-INT32 _coordCMDRestore::_cmdCoords(MSG_TYPE opCode, const ossPoolString &clName,
-                                   const BSONObj &query)
-{
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTORE_CMDCOORDS, &rc);
-   CoordGroupList groups;
-   _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
-   if (rc)
-   {
-      return rc;
-   }
-
-   // Run on all nodes in the coordinator group only
-   INT32 tmpRole[SDB_ROLE_MAX] = {0};
-   tmpRole[SDB_ROLE_COORD] = 1;
-   coordCtrlParam ctrlParam;
-   ctrlParam.resetRole();
-   ctrlParam.setParseRole(tmpRole);
-   ROUTE_RC_MAP failedNodes;
-   if ((rc = executeOnNodes(msg.header, _cb, ctrlParam, 0, failedNodes)))
-   {
-      PD_LOG(PDERROR, "Execute on coord group failed");
-      return rc;
    }
    return rc;
 }
@@ -840,7 +797,7 @@ INT32 coordCMDRestoreCheck::_checkClusterState()
    }
    if (!inProgress)
    {
-      PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
+      PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORE);
       return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
    }
    return rc;
@@ -1027,7 +984,7 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    if (!inProgress)
    {
       // Treat as a warning only, not an error
-      PD_LOG(PDWARNING, "Cluster is not in [%s] state", FIELD_NAME_RESTORING);
+      PD_LOG(PDWARNING, "Cluster is not in [%s] state", FIELD_NAME_RESTORE);
       return rc;
    }
    if ((rc = _setRestoreInProgress(FALSE)))
@@ -1061,7 +1018,7 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    if (inProgress)
    {
       // Treat as a warning only, not an error
-      PD_LOG(PDWARNING, "Cluster already in [%s] state", FIELD_NAME_RESTORING);
+      PD_LOG(PDWARNING, "Cluster already in [%s] state", FIELD_NAME_RESTORE);
       return rc;
    }
    if ((rc = _setRestoreInProgress(TRUE)))

@@ -103,6 +103,7 @@ namespace engine
    #define DMS_STATE_READONLY          1
    #define DMS_STATE_ONLINE_BACKUP     2
    #define DMS_STATE_FULLSYNC          3
+   #define DMS_STATE_RESTORE           4
 
    /*
       OTHER DEFINE
@@ -465,6 +466,9 @@ namespace engine
 
       INT32 registerFullSync( _pmdEDUCB *cb ) ;
       void  fullSyncDown( _pmdEDUCB *cb ) ;
+
+      INT32 registerRestore( _pmdEDUCB *cb ) ;
+      void  restoreDown( _pmdEDUCB *cb ) ;
 
       OSS_INLINE UINT8 getCBState () const
       {

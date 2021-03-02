@@ -1744,7 +1744,8 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
          INT32 _parseTime(const BSONObj &matcher);
          INT32 _runTest(_pmdEDUCB *cb, UINT64 *limit);
-      private:
+
+       private:
          UINT64 _time;
    };
 
