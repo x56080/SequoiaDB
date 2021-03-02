@@ -169,7 +169,7 @@ namespace engine
       }
    }
 
-   INT32 _pmdRemoteConnection::syncSend( void *header )
+   INT32 _pmdRemoteConnection::syncSend( MsgHeader *header )
    {
       INT32 rc = SDB_OK ;
 
@@ -181,11 +181,11 @@ namespace engine
 
       if ( NET_INVALID_HANDLE != _handle )
       {
-         rc = _routeAgent->syncSend( _handle, header ) ;
+         rc = _routeAgent->syncSend( _handle, header, NULL, 0 ) ;
       }
       else
       {
-         rc = _routeAgent->syncSend( _routeID, header, &_handle ) ;
+         rc = _routeAgent->syncSend( _routeID, header, NULL, 0, &_handle ) ;
       }
 
       if ( rc )

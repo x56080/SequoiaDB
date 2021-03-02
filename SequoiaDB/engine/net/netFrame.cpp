@@ -1337,7 +1337,7 @@ namespace engine
                               UINT32 bodyLen,
                               NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL") ;
+      SDB_ASSERT( NULL != header, "should not be NULL") ;
       SDB_ASSERT( MSG_INVALID_ROUTEID != id.value,
                   "id.value should not be zero" ) ;
       INT32 rc = SDB_OK ;
@@ -1364,6 +1364,14 @@ namespace engine
          header->routeID = _local ;
       }
       eh->mtx().get() ;
+
+      rc = onSendMsg( eh, eh->id(), header ) ;
+      if ( SDB_OK != rc )
+      {
+         eh->mtx().release() ;
+         goto error ;
+      }
+
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -1376,14 +1384,23 @@ namespace engine
          goto error ;
       }
       _netOut.add( headLen ) ;
-      rc = eh->syncSend( body, bodyLen ) ;
-      eh->mtx().release() ;
-      if ( SDB_OK != rc )
+
+      if ( NULL != body )
       {
-         eh->close() ;
-         goto error ;
+         rc = eh->syncSend( body, bodyLen ) ;
+         eh->mtx().release() ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         _netOut.add( bodyLen ) ;
       }
-      _netOut.add( bodyLen ) ;
+      else
+      {
+         eh->mtx().release() ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND4, rc );
       return rc ;

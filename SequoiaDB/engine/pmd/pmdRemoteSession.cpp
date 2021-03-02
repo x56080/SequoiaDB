@@ -1115,7 +1115,7 @@ namespace engine
          }
          else
          {
-            rc = connection->syncSend( (void*)pSub->getReqMsg() ) ;
+            rc = connection->syncSend( pSub->getReqMsg() ) ;
          }
 
          if ( SDB_OK == rc )
@@ -1168,7 +1168,7 @@ namespace engine
          }
          else
          {
-            rc = connection->syncSend( (void*)pSub->getReqMsg() ) ;
+            rc = connection->syncSend( pSub->getReqMsg() ) ;
          }
 
          PD_RC_CHECK( rc, PDERROR, "Session[%s] send msg to node[%s] failed, "
@@ -1486,7 +1486,7 @@ namespace engine
       pMsg->routeID.value = MSG_INVALID_ROUTEID ;
       pMsg->TID = _pEDUCB->getTID() ;
 
-      rc = pSub->getConnection()->syncSend( (void*)pMsg ) ;
+      rc = pSub->getConnection()->syncSend( pMsg ) ;
       if ( rc )
       {
          PD_LOG( PDWARNING, "Session[%s] send msg to node[%s] failed, "
@@ -1756,7 +1756,7 @@ namespace engine
          pmdRemoteConnection subConn ;
          _initRemoteConnection( &subConn, it->first, it->second ) ;
          /// ignore result
-         subConn.syncSend( (void*)&interruptMsg ) ;
+         subConn.syncSend( &interruptMsg ) ;
          ++it ;
       }
    }
@@ -1776,7 +1776,7 @@ namespace engine
          pmdRemoteConnection subConn ;
          _initRemoteConnection( &subConn, it->first, it->second ) ;
          /// ignore result
-         subConn.syncSend( (void*)&disconnectMsg ) ;
+         subConn.syncSend( &disconnectMsg ) ;
          /// should disconnect connection
          subConn.disconnect() ;
          ++it ;
