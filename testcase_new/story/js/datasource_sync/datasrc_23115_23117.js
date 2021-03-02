@@ -7,27 +7,36 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-try
-{
-   main( test );
-}
-finally
-{
-   try
-   {
-      datasrcDB.dropUsr( userName, passwd );
-   }
-   finally
-   {
-      datasrcDB.close();
-   }
-}
+
+// try
+// {
+//    main( test );
+// }
+// finally
+// {
+//    try
+//    {
+//       datasrcDB.dropUsr( userName, passwd );
+//    }
+//    catch( e )
+//    {
+//       if( e != SDB_AUTH_USER_NOT_EXIST )
+//       {
+//          throw new Error( e );
+//       }
+//    }
+//    finally
+//    {
+//       datasrcDB.close();
+//    }
+// }
 
 function test ()
 {
    var type = "SequoiaDB";
 
-   datasrcDB.createUsr( userName, passwd );
+   createUsrAndPasswd( datasrcDB );
+
    var coordArr = getCoordUrl( datasrcDB );
    var dataSrcSize = 1;
    var dataSrcName = createDataSrcName( dataSrcSize );

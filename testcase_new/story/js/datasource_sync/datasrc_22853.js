@@ -6,43 +6,45 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-try
-{
-   main( test );
-}
-finally
-{
-   try
-   {
-      datasrcDB.dropUsr( "test", "test" );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_NOT_EXIST )
-      {
-         throw new Error( e );
-      }
-   }
-   try
-   {
-      datasrcDB.dropUsr( userName, passwd );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_NOT_EXIST )
-      {
-         throw new Error( e );
-      }
-   }
-   finally
-   {
-      datasrcDB.close();
-   }
-}
+
+// try
+// {
+//    main( test );
+// }
+// finally
+// {
+//    try
+//    {
+//       datasrcDB.dropUsr( "test", "test" );
+//    }
+//    catch( e )
+//    {
+//       if( e != SDB_AUTH_USER_NOT_EXIST )
+//       {
+//          throw new Error( e );
+//       }
+//    }
+//    try
+//    {
+//       datasrcDB.dropUsr( userName, passwd );
+//    }
+//    catch( e )
+//    {
+//       if( e != SDB_AUTH_USER_NOT_EXIST )
+//       {
+//          throw new Error( e );
+//       }
+//    }
+//    finally
+//    {
+//       datasrcDB.close();
+//    }
+// }
 
 function test ()
 {
-   datasrcDB.createUsr( userName, passwd );
+   createUsrAndPasswd( datasrcDB );
+
    var csName = "cs_22853";
    var clName = "cl_22853";
    var srcCSName = "datasrcCS_22853";
