@@ -136,52 +136,96 @@
 
 ####关闭防火墙 (需要管理员权限)####
 
-- **配置方法**
+**配置方法**
 
-  - 对于 SUSE:
+  - 对于 SUSE 11，执行如下命令：
 
-     	执行如下命令
+     ```lang-bash
+     # SuSEfirewall2 stop    # 临时关闭防火墙
+     # chkconfig SuSEfirewall2_init off    # 设置开机禁用防火墙
+     # chkconfig SuSEfirewall2_setup off
+	 ```
 
-         ```lang-javascript
-         $ SuSEfirewall2 stop
-         $ chkconfig SuSEfirewall2_init off
-         $ chkconfig SuSEfirewall2_setup off
-	       ```
+  - 对于 SUSE 12，执行如下命令：
 
-  - 对于 RedHat：
+     ```lang-bash
+     # systemctl stop SuSEfirewall2.service    # 临时关闭防火墙
+     # systemctl disable SuSEfirewall2.service    # 设置开机禁用防火墙
+	 ```
 
-		执行如下命令
+  - 对于 Red Hat 6/CentOS 6 及以下系统：
 
-         ```lang-javascript
-         $ service iptables stop
-         $ chkconfig iptables off
-         ```
+	 执行如下命令
+
+     ```lang-bash
+     # service iptables stop    # 临时关闭防火墙
+     # chkconfig iptables off    # 设置开机禁用防火墙
+     ```
+  - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
+
+	 执行如下命令
+
+     ```lang-bash
+     # systemctl stop firewalld.service    # 临时关闭防火墙
+     # systemctl disable firewalld.service    # 设置开机禁用防火墙
+     ```
   - 对于 Ubuntu：
 
-     	执行如下命令
+     执行如下命令
 
-         ```lang-javascript
-         $ ufw disable
-         ```
-
-- **验证方法**
-
-  - 对于 SUSE
-
-     ```lang-javascript
-     $ chkconfig -list | grep fire
+     ```lang-bash
+     # ufw disable
      ```
 
-  - 对于 RedHat:
+**验证方法**
 
-     ```lang-javascript
-     $ service iptables status
+  - 对于 SUSE 11：
+ 
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # chkconfig -list | grep fire
+     SuSEfirewall2_init       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
+     SuSEfirewall2_setup      	0:off	1:off	2:off	3:off	4:off	5:off	6:off
      ```
 
-  - 对于 Ubuntu:
+  - 对于 SUSE 12：
 
-     ```lang-javascript
-     $ ufw status
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # systemctl status SuSEfirewall2.service
+     ● SuSEfirewall2.service - SuSEfirewall2 phase 2
+           Loaded: loaded (/usr/lib/systemd/system/SuSEfirewall2.service; disabled; vendor preset: disabled)
+           Active: inactive (dead)
+     ```
+
+  - 对于 Red Hat 6/CentOS 6 及以下系统：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # chkconfig --list iptables
+     iptables       	0:off	1:off	2:off	3:off	4:off	5:off	6:off
+     ```
+  - 对于 Red Hat 7/Red Hat 8 和 CentOS 7/CentOS 8：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # systemctl status firewalld.service
+     ● firewalld.service - firewalld - dynamic firewall daemon
+           Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+           Active: inactive (dead)
+             Docs: man:firewalld(1)
+     ```
+  - 对于 Ubuntu：
+
+     执行命令，若打印以下信息，说明关闭防火墙成功
+
+     ```lang-bash
+     # ufw status
+     Status: inactive
      ```
 
 >**Note:**
