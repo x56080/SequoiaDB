@@ -6,15 +6,22 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-dropUsrAndPasswd( datasrcDB, function()
+try
 {
-   main( test );
-} );
+   dropUsrAndPasswd( datasrcDB, function() 
+   {
+      main( test );
+   } );
+}
+finally
+{
+   datasrcDB.close();
+}
+
 
 function test ()
 {
-   createUsrAndPasswd( datasrcDB );
-
+   datasrcDB.createUsr( userName, passwd );
    var csName = "cs_22853";
    var clName = "cl_22853";
    var srcCSName = "datasrcCS_22853";

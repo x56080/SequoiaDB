@@ -7,16 +7,22 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-dropUsrAndPasswd( datasrcDB, function() 
+try
 {
-   main( test );
-} );
+   dropUsrAndPasswd( datasrcDB, function() 
+   {
+      main( test );
+   } );
+}
+finally
+{
+   datasrcDB.close();
+}
 
 function test ()
 {
 
-   createUsrAndPasswd( datasrcDB );
-
+   datasrcDB.createUsr( userName, passwd );
    var coordArr = getCoordUrl( datasrcDB );
    var dataSrcSize = 1;
    var dataSrcName = createDataSrcName( dataSrcSize );

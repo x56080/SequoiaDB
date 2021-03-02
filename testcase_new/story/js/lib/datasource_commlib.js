@@ -106,20 +106,14 @@ function getCoordUrl ( sdb )
    return coordUrls;
 }
 
-
-function createUsrAndPasswd ( db )
+function getUser ( db )
 {
-   try
-   {
-      db.createUsr( userName, passwd );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_ALREADY_EXIST )
-      {
-         throw e;
-      }
-   }
+   var cataGroup = db.getCataRG();
+   var catalog = cataGroup.getMaster().connect();
+   var cur = catalog.getCS( "SYSAUTH" ).getCL( "SYSUSRS" ).find();
+   var user = cur.current().toObj().User;
+   catalog.close();
+   return user;
 }
 
 function dropUsrAndPasswd ( db, func )
@@ -130,32 +124,7 @@ function dropUsrAndPasswd ( db, func )
    }
    finally
    {
-      try
-      {
-         db.dropUsr( "test", "test" );
-      }
-      catch( e )
-      {
-         if( e != SDB_AUTH_USER_NOT_EXIST )
-         {
-            throw new Error( e );
-         }
-      }
-      try
-      {
-         db.dropUsr( userName, passwd );
-      }
-      catch( e )
-      {
-         if( e != SDB_AUTH_USER_NOT_EXIST )
-         {
-            throw new Error( e );
-         }
-      }
-      finally
-      {
-         db.close();
-      }
+      var user = getUser( db );
+      db.dropUsr( user, user );
    }
-
 }
