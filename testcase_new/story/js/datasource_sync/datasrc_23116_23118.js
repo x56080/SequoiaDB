@@ -7,7 +7,6 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-
 // try
 // {
 //    main( test );
@@ -18,13 +17,6 @@ testConf.skipStandAlone = true;
 //    {
 //       datasrcDB.dropUsr( userName, passwd );
 //    }
-//    catch( e )
-//    {
-//       if( e != SDB_AUTH_USER_NOT_EXIST )
-//       {
-//          throw new Error( e );
-//       }
-//    }
 //    finally
 //    {
 //       datasrcDB.close();
@@ -33,9 +25,7 @@ testConf.skipStandAlone = true;
 
 function test ()
 {
-
-   createUsrAndPasswd( datasrcDB );
-
+   datasrcDB.createUsr( userName, passwd );
    var coordArr = getCoordUrl( datasrcDB );
    var dataSrcSize = 1;
    var dataSrcName = createDataSrcName( dataSrcSize );
