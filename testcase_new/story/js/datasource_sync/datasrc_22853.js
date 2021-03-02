@@ -8,16 +8,37 @@
 testConf.skipStandAlone = true;
 try
 {
-   dropUsrAndPasswd( datasrcDB, function() 
-   {
-      main( test );
-   } );
+   main( test );
 }
 finally
 {
-   datasrcDB.close();
+   try
+   {
+      datasrcDB.dropUsr( "test", "test" );
+   }
+   catch( e )
+   {
+      if( e != SDB_AUTH_USER_NOT_EXIST )
+      {
+         throw new Error( e );
+      }
+   }
+   try
+   {
+      datasrcDB.dropUsr( userName, passwd );
+   }
+   catch( e )
+   {
+      if( e != SDB_AUTH_USER_NOT_EXIST )
+      {
+         throw new Error( e );
+      }
+   }
+   finally
+   {
+      datasrcDB.close();
+   }
 }
-
 
 function test ()
 {

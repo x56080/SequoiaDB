@@ -9,19 +9,22 @@
 testConf.skipStandAlone = true;
 try
 {
-   dropUsrAndPasswd( datasrcDB, function() 
-   {
-      main( test );
-   } );
+   main( test );
 }
 finally
 {
-   datasrcDB.close();
+   try
+   {
+      datasrcDB.dropUsr( userName, passwd );
+   }
+   finally
+   {
+      datasrcDB.close();
+   }
 }
 
 function test ()
 {
-
    datasrcDB.createUsr( userName, passwd );
    var coordArr = getCoordUrl( datasrcDB );
    var dataSrcSize = 1;

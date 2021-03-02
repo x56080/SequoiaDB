@@ -105,26 +105,3 @@ function getCoordUrl ( sdb )
    }
    return coordUrls;
 }
-
-function getUser ( db )
-{
-   var cataGroup = db.getCataRG();
-   var catalog = cataGroup.getMaster().connect();
-   var cur = catalog.getCS( "SYSAUTH" ).getCL( "SYSUSRS" ).find();
-   var user = cur.current().toObj().User;
-   catalog.close();
-   return user;
-}
-
-function dropUsrAndPasswd ( db, func )
-{
-   try
-   {
-      func();
-   }
-   finally
-   {
-      var user = getUser( db );
-      db.dropUsr( user, user );
-   }
-}
