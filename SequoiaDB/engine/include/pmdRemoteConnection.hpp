@@ -73,7 +73,7 @@ namespace engine
          /*
             Send failed, will set handle to invalid.
          */
-         INT32 syncSend( void *header ) ;
+         INT32 syncSend( MsgHeader *header ) ;
          INT32 syncSend( MsgHeader *header, void *body, UINT32 bodyLen ) ;
          INT32 syncSendv( MsgHeader *header, const netIOVec &iov ) ;
 

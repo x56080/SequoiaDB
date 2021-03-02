@@ -1093,7 +1093,6 @@ namespace engine
                               UINT32 bodyLen )
    {
       SDB_ASSERT( NULL != header, "header should not be NULL") ;
-      SDB_ASSERT( NULL != body, "body should not be NULL") ;
       SDB_ASSERT( NET_INVALID_HANDLE != handle,
                   "handle should not be invalid" ) ;
       INT32 rc = SDB_OK ;
@@ -1127,14 +1126,23 @@ namespace engine
          goto error ;
       }
       _netOut.add( headLen ) ;
-      rc = eh->syncSend( body, bodyLen ) ;
-      eh->mtx().release() ;
-      if ( SDB_OK != rc )
+
+      if ( NULL != body )
       {
-         eh->close() ;
-         goto error ;
+         rc = eh->syncSend( body, bodyLen ) ;
+         eh->mtx().release() ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         _netOut.add( bodyLen ) ;
       }
-      _netOut.add( bodyLen ) ;
+      else
+      {
+         eh->mtx().release() ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND3, rc );
       return rc ;
@@ -1218,7 +1226,7 @@ namespace engine
                               UINT32 bodyLen,
                               NET_HANDLE *pHandle )
    {
-      SDB_ASSERT( NULL != header && NULL != body, "should not be NULL") ;
+      SDB_ASSERT( NULL != header, "should not be NULL") ;
       SDB_ASSERT( MSG_INVALID_ROUTEID != id.value,
                   "id.value should not be zero" ) ;
       INT32 rc = SDB_OK ;
@@ -1257,14 +1265,23 @@ namespace engine
          goto error ;
       }
       _netOut.add( headLen ) ;
-      rc = eh->syncSend( body, bodyLen ) ;
-      eh->mtx().release() ;
-      if ( SDB_OK != rc )
+
+      if ( NULL != body )
       {
-         eh->close() ;
-         goto error ;
+         rc = eh->syncSend( body, bodyLen ) ;
+         eh->mtx().release() ;
+         if ( SDB_OK != rc )
+         {
+            eh->close() ;
+            goto error ;
+         }
+         _netOut.add( bodyLen ) ;
       }
-      _netOut.add( bodyLen ) ;
+      else
+      {
+         eh->mtx().release() ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__NETFRAME_SYNCSEND4, rc );
       return rc ;
