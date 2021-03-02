@@ -106,3 +106,56 @@ function getCoordUrl ( sdb )
    return coordUrls;
 }
 
+
+function createUsrAndPasswd ( db )
+{
+   try
+   {
+      db.createUsr( userName, passwd );
+   }
+   catch( e )
+   {
+      if( e != SDB_AUTH_USER_ALREADY_EXIST )
+      {
+         throw e;
+      }
+   }
+}
+
+function dropUsrAndPasswd ( db, func )
+{
+   try
+   {
+      func();
+   }
+   finally
+   {
+      try
+      {
+         db.dropUsr( "test", "test" );
+      }
+      catch( e )
+      {
+         if( e != SDB_AUTH_USER_NOT_EXIST )
+         {
+            throw new Error( e );
+         }
+      }
+      try
+      {
+         db.dropUsr( userName, passwd );
+      }
+      catch( e )
+      {
+         if( e != SDB_AUTH_USER_NOT_EXIST )
+         {
+            throw new Error( e );
+         }
+      }
+      finally
+      {
+         db.close();
+      }
+   }
+
+}

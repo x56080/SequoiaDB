@@ -2,44 +2,14 @@
  * @Description   : seqDB-22853:修改数据源用户名和密码
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.01
+ * @LastEditTime  : 2021.03.02
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-
-try
+dropUsrAndPasswd( datasrcDB, function()
 {
    main( test );
-}
-finally
-{
-   try
-   {
-      datasrcDB.dropUsr( "test", "test" );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_NOT_EXIST )
-      {
-         throw new Error( e );
-      }
-   }
-   try
-   {
-      datasrcDB.dropUsr( userName, passwd );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_NOT_EXIST )
-      {
-         throw new Error( e );
-      }
-   }
-   finally
-   {
-      datasrcDB.close();
-   }
-}
+} );
 
 function test ()
 {

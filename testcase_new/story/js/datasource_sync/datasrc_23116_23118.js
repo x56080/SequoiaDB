@@ -3,33 +3,14 @@
  *                  seqDB-23118:getDataSource接口参数验证 
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.01
+ * @LastEditTime  : 2021.03.02
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
-
-try
+dropUsrAndPasswd( datasrcDB, function() 
 {
    main( test );
-}
-finally
-{
-   try
-   {
-      datasrcDB.dropUsr( userName, passwd );
-   }
-   catch( e )
-   {
-      if( e != SDB_AUTH_USER_NOT_EXIST )
-      {
-         throw new Error( e );
-      }
-   }
-   finally
-   {
-      datasrcDB.close();
-   }
-}
+} );
 
 function test ()
 {
