@@ -76,12 +76,16 @@ if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 //ES全文索引前缀，与工程名相关
 if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
+//数据源端主机名，CI默认传入localhost
+if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
+//数据源端端口号，CI默认传入11810
+if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
 
 // CHANGEDPREFIX = local_test
 
 var cmd = new Cmd();
 var hostname = cmd.run( "hostname" ).split( "\n" )[0];
-hostname = hostname.replace(/-/g,"_");
+hostname = hostname.replace( /-/g, "_" );
 var COMMCSNAME = CHANGEDPREFIX + "_" + hostname + "_cs";
 var COMMCLNAME = CHANGEDPREFIX + "_cl";
 var COMMDUMMYCLNAME = "test_dummy_cl";
