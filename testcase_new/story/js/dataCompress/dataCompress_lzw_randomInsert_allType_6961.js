@@ -2,7 +2,7 @@
  * @Description   : seqDB-6961:批量插入覆盖所有支持的数据类型
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.24
+ * @LastEditTime  : 2021.03.03
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -29,8 +29,7 @@ function test ( testPara )
    insertRecs( cl, dtNumber, dataTypes, dataValues );
 
    // 检查结果，检查组内每个节点数据正确性
-   checkLzwAttributeByDataNode( rgName, csName, clName, false );
-   checkRecsByDataNode( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum );
+   checkResult( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum );
 }
 
 function insertRecs ( cl, dtNumber, dataTypes, dataValues )
@@ -53,7 +52,7 @@ function insertRecs ( cl, dtNumber, dataTypes, dataValues )
    }
 }
 
-function checkRecsByDataNode ( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum )
+function checkResult ( rgName, csName, clName, dtNumber, dataTypes, dataValues, checkRecsNum )
 {
    var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
    while( rc.next() )
@@ -64,9 +63,17 @@ function checkRecsByDataNode ( rgName, csName, clName, dtNumber, dataTypes, data
       {
          nodeDB = new Sdb( nodeName );
          var nodeCL = nodeDB.getCS( csName ).getCL( clName );
+
+         // 检查集合属性
+         var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
+         var details = JSON.parse( clInfo[0] ).Details[0];
+         assert.equal( details.Attribute, "Compressed", "clInfo = " + JSON.stringify( clInfo ) );
+         assert.equal( details.CompressionType, "lzw", "clInfo = " + JSON.stringify( clInfo ) );
+
          // 检查数据总数
          var recsCnt = nodeCL.count();
          assert.equal( recsCnt, dtNumber * dataTypes.length );
+
          // 随机检查n条记录正确性
          var h = 0;
          for( i = 0; i < dataTypes.length; i++ )

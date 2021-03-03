@@ -2,7 +2,7 @@
  * @Description   : seqDB-6758:开启压缩，创建CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.02.23
+ * @LastEditTime  : 2021.03.03
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -17,7 +17,7 @@ function test ( testPara )
    var csName = COMMCSNAME;
    var clName = testConf.clName;
    var cl = testPara.testCL;
-   var insertRecsNum = 800000;
+   var insertRecsNum = 1200000;
    var checkRecsNum = 3;
 
    // 检查编目集合属性
