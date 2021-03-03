@@ -2798,7 +2798,7 @@ namespace engine
       goto done ;
    }
 
-   #define CAT_TASKID_MAX 0x7FFFFFFFFFFFFFFF
+   #define CAT_TASKID_MAX DMS_DUMMY_CATTASKID_MIN
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKID, "catGetAndIncTaskID" )
    INT32 catGetAndIncTaskID( pmdEDUCB *cb, INT16 w, UINT64& taskID )

@@ -423,6 +423,66 @@ namespace engine
    }
 
    /*
+      _rtnCleanupIdxStatusJob implement
+   */
+
+   #define RTN_CLEAN_IDXSTAT_INTERVAL ( 3600 * 1000000L ) // us, 1 hours
+
+   const CHAR* _rtnCleanupIdxStatusJob::name () const
+   {
+      return "Cleanup_Expired_IndexStatus" ;
+   }
+
+   INT32 _rtnCleanupIdxStatusJob::doit( IExecutor *pExe,
+                                        UTIL_LJOB_DO_RESULT &result,
+                                        UINT64 &sleepTime )
+   {
+      if ( PMD_IS_DB_DOWN() || ((pmdEDUCB*)pExe)->isForced() )
+      {
+         result = UTIL_LJOB_DO_FINISH ;
+      }
+      else
+      {
+         sleepTime = RTN_CLEAN_IDXSTAT_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+
+         PD_LOG( PDDEBUG, "Start job[%s]", name() ) ;
+
+         SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+         dmsIdxTaskStatusMgr *pIdxStatMgr = rtnCB->getIdxStatusMgr() ;
+
+         pIdxStatMgr->cleanOutOfDate( pmdIsPrimary() ) ;
+      }
+
+      return SDB_OK ;
+   }
+
+   INT32 rtnStartCleanupIdxStatusJob()
+   {
+      INT32 rc = SDB_OK ;
+
+      _rtnCleanupIdxStatusJob *job = SDB_OSS_NEW _rtnCleanupIdxStatusJob() ;
+      PD_CHECK( job, SDB_OOM, error, PDERROR,
+                "Failed to allocate rtnCleanupIdxStatusJob" ) ;
+
+      rc = job->submit( TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to submit job[%s], rc: %d",
+                 job->name(), rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDINFO, "Submit job[%s] done", job->name() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
       _rtnIndexJobHolder implement
     */
    _rtnIndexJobHolder::_rtnIndexJobHolder()
@@ -771,6 +831,28 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSTARTLOADJOB, "rtnStartLoadJob" )
+   INT32 rtnStartLoadJob()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNSTARTLOADJOB );
+      rtnLoadJob *loadJob = SDB_OSS_NEW rtnLoadJob() ;
+      if ( NULL == loadJob )
+      {
+         PD_LOG ( PDERROR, "Failed to alloc memory for loadJob" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      rc = rtnGetJobMgr()->startJob( loadJob, RTN_JOB_MUTEX_NONE, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to start load job, rc: %d", rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_RTNSTARTLOADJOB, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    /*
       _rtnRebuildJob implement
    */
@@ -827,28 +909,6 @@ namespace engine
          _pFunc( rc ) ;
       }
       return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSTARTLOADJOB, "rtnStartLoadJob" )
-   INT32 rtnStartLoadJob()
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNSTARTLOADJOB );
-      rtnLoadJob *loadJob = SDB_OSS_NEW rtnLoadJob() ;
-      if ( NULL == loadJob )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc memory for loadJob" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      rc = rtnGetJobMgr()->startJob( loadJob, RTN_JOB_MUTEX_NONE, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start load job, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_RTNSTARTLOADJOB, rc );
-      return rc ;
-   error :
-      goto done ;
    }
 
    INT32 rtnStartRebuildJob( RTN_ON_REBUILD_DONE_FUNC pFunc )

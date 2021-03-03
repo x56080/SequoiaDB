@@ -41,7 +41,6 @@
 #include "dmsCB.hpp"
 #include "rtnIxmKeySorter.hpp"
 #include "rtnBackgroundJob.hpp"
-
 #include "pmdController.hpp"
 
 using namespace std;
@@ -133,7 +132,20 @@ namespace engine
 
    INT32 _SDB_RTNCB::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
+      {
+         rc = rtnStartCleanupIdxStatusJob() ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to start clean up index status job" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _SDB_RTNCB::deactive ()

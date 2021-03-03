@@ -40,6 +40,7 @@
 #include "dms.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsCB.hpp"
+#include "dmsIdxTaskStatus.hpp"
 #include <string>
 
 #include "../bson/bsonobj.h"
@@ -131,6 +132,24 @@ namespace engine
    rtnIndexJobHolder *rtnGetIndexJobHolder() ;
 
    /*
+      _rtnCleanupIdxStatusJob define
+   */
+   class _rtnCleanupIdxStatusJob : public _utilLightJob
+   {
+      public:
+         _rtnCleanupIdxStatusJob() {}
+         virtual ~_rtnCleanupIdxStatusJob() {}
+
+      public:
+         virtual const CHAR* name() const ;
+         virtual INT32 doit( IExecutor *pExe, UTIL_LJOB_DO_RESULT &result,
+                             UINT64 &sleepTime ) ;
+   };
+   typedef _rtnCleanupIdxStatusJob rtnCleanupIdxStatusJob ;
+
+   INT32 rtnStartCleanupIdxStatusJob() ;
+
+   /*
       _rtnLoadJob define
    */
    class _rtnLoadJob : public _rtnBaseJob
@@ -146,6 +165,8 @@ namespace engine
          virtual INT32 doit () ;
    };
    typedef _rtnLoadJob rtnLoadJob ;
+
+   INT32 rtnStartLoadJob() ;
 
    typedef void (*RTN_ON_REBUILD_DONE_FUNC)( INT32 rc ) ;
    /*
@@ -169,10 +190,6 @@ namespace engine
    } ;
    typedef _rtnRebuildJob rtnRebuildJob ;
 
-   /*
-      Global function define
-   */
-   INT32    rtnStartLoadJob() ;
    INT32    rtnStartRebuildJob( RTN_ON_REBUILD_DONE_FUNC pFunc = NULL ) ;
 
 }

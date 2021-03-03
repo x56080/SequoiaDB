@@ -55,6 +55,7 @@
 #include "ossMemPool.hpp"
 #include "rtnLocalTaskMgr.hpp"
 #include "rtnRemoteMessenger.hpp"
+#include "dmsIdxTaskStatus.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -74,6 +75,8 @@ namespace engine
       optAccessPlanManager _accessPlanManager ;
 
       _rtnLobAccessManager _lobAccessManager ;
+
+      dmsIdxTaskStatusMgr  _idxStatusManager ;
 
       // The following members are used for communication with search engine
       // adapter when do text searching. Search engine adapter use the shard
@@ -221,6 +224,10 @@ namespace engine
          return _pLTMgr ;
       }
 
+      OSS_INLINE dmsIdxTaskStatusMgr* getIdxStatusMgr()
+      {
+         return &_idxStatusManager ;
+      }
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

@@ -2769,7 +2769,7 @@
             <cn>鉴权模式不兼容</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_DMS_UNQIUEID_UPGRADE</name>
          <description>
@@ -2923,10 +2923,10 @@
       </code>
       
       <code>
-         <name>SDB_ERROR_RESERVED_365</name> <!-- SDB_TASK_ROLLBACK -->
+         <name>SDB_TASK_ROLLBACK</name>
          <description>
-            <en>Reserved</en> <!-- Task has been rolled back -->
-            <cn>保留</cn> <!-- 任务被回滚 -->
+            <en>Task has been rolled back</en>
+            <cn>任务被回滚</cn>
          </description>
       </code>
 
