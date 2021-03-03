@@ -31,6 +31,7 @@ from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb.domain import domain
 from pysequoiadb.replicagroup import (replicagroup, SDB_COORD_GROUP_NAME, SDB_CATALOG_GROUP_NAME)
+from pysequoiadb.sequence import sequence
 from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, SDBError, raise_if_error)
 from pysequoiadb.errcode import *
 
@@ -1999,3 +2000,100 @@ class client(object):
 
         rc = sdb.sdb_force_stepup(self._client, bson_options)
         raise_if_error(rc, "Failed to force step up")
+
+    def create_sequence(self, sequence_name, options=None):
+        """Create the sequence with specified options.
+
+        Parameters:
+            Name             Type    Info
+            sequence_name    str     The name of sequence.
+            options          dict    The options for create sequence:
+            - StartValue     int     The start value of sequence
+            - MinValue       int     The minimum value of sequence
+            - MaxValue       int     The maxmun value of sequence
+            - Increment      int     The increment value of sequence
+            - CacheSize      int     The cache size of sequence
+            - AcquireSize    int     The acquire size of sequence
+            - Cycled         bool    The cycled flag of sequence
+        Return values:
+           A sequence object
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        bson_options = None
+        if options is not None:
+            if not isinstance(options, dict):
+                raise SDBTypeError("options must be an instance of dict")
+            bson_options = bson.BSON.encode(options)
+
+        sequence_obj = sequence()
+        try:
+            if bson_options is None:
+                rc = sdb.sdb_create_sequence(self._client, sequence_name, sequence_obj._seq)
+            else:
+                rc = sdb.sdb_create_sequence_use_opt(self._client, sequence_name,
+                                                     bson_options, sequence_obj._seq)
+            raise_if_error(rc, "Failed to create sequence: %s" % sequence_name)
+        except SDBBaseError:
+            del sequence_obj
+            raise
+        return sequence_obj
+
+    def drop_sequence(self, sequence_name):
+        """Drop the specified sequence.
+
+        Parameters:
+            Name             Type     Info
+            sequence_name    str      The name of sequence.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        rc = sdb.sdb_drop_sequence(self._client, sequence_name)
+        raise_if_error(rc, "Failed to drop sequence: %s" % sequence_name)
+
+    def get_sequence(self, sequence_name):
+        """Get the named sequence.
+
+        Parameters:
+            Name             Type     Info
+            sequence_name    str      The name of sequence.
+        Return values:
+           A sequence object
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(sequence_name, str_type):
+            raise SDBTypeError("sequence name must be an instance of str")
+
+        sequence_obj = sequence()
+        try:
+            rc = sdb.sdb_get_sequence(self._client, sequence_name, sequence_obj._seq)
+            raise_if_error(rc, "Failed to get sequence: %s" % sequence_name)
+        except SDBBaseError:
+            del sequence_obj
+            raise
+        return sequence_obj
+
+    def rename_sequence(self, old_name, new_name):
+        """Rename sequence.
+
+        Parameters:
+            Name        Type     Info
+            old_name    str      The old name of sequence.
+            new_name    str      The new name of sequence.
+        Exceptions:
+           pysequoiadb.error.SDBBaseError
+        """
+        if not isinstance(old_name, str_type) :
+            raise SDBTypeError("Old sequence name must be an instance of str")
+        if not isinstance(new_name, str_type) :
+            raise SDBTypeError("New sequence name must be an instance of str")
+
+        rc = sdb.sdb_rename_sequence(self._client, old_name, new_name)
+        raise_if_error(rc, "Failed to rename sequence, old name: %s, new name: %s" %(old_name, new_name))

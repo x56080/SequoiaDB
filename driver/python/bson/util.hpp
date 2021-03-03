@@ -120,6 +120,9 @@
 #define MAKE_RETURN_INT_INT_PYSTRING_SIZE( ret_value, type_value, c_string, c_stringsize ) \
    ( PyObject * )Py_BuildValue( "(i,i,s#)", ret_value, type_value, c_string, c_stringsize )
 
+#define MAKE_RETURN_INT_LONG_INT_INT( ret_value, long_value1, int_value2, int_value3 ) \
+   ( PyObject * )Py_BuildValue( "(i,l,i,i)", ret_value, long_value1, int_value2, int_value3 )
+
 #define MAKE_RETURN_INT_INT_INT_INT_STRING( verion, sub_verion, fixed, release, build)\
    ( PyObject * )Py_BuildValue( "(i,i,i,i,s)", version, sub_version, fixed, release, build )
 

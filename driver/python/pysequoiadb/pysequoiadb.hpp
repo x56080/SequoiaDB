@@ -64,6 +64,11 @@ __METHOD_DECLARE(sdb_force_session) ;
 __METHOD_DECLARE(sdb_reload_config) ;
 __METHOD_DECLARE(sdb_set_pdlevel) ;
 __METHOD_DECLARE(sdb_force_stepup) ;
+__METHOD_DECLARE(sdb_create_sequence) ;
+__METHOD_DECLARE(sdb_create_sequence_use_opt) ;
+__METHOD_DECLARE(sdb_drop_sequence) ;
+__METHOD_DECLARE(sdb_get_sequence) ;
+__METHOD_DECLARE(sdb_rename_sequence) ;
 
 ///< collection space
 __METHOD_DECLARE(create_cs) ;
@@ -188,4 +193,14 @@ __METHOD_DECLARE(dc_deactivate) ;
 __METHOD_DECLARE(dc_enable_read_only) ;
 __METHOD_DECLARE(dc_disable_read_only) ;
 __METHOD_DECLARE(dc_get_detail) ;
+
+///< sequence
+__METHOD_DECLARE(create_seq) ;
+__METHOD_DECLARE(release_seq) ;
+__METHOD_DECLARE(seq_fetch) ;
+__METHOD_DECLARE(seq_get_current_value) ;
+__METHOD_DECLARE(seq_get_next_value) ;
+__METHOD_DECLARE(seq_restart) ;
+__METHOD_DECLARE(seq_set_attributes) ;
+__METHOD_DECLARE(seq_set_current_value) ;
 #endif

@@ -1700,6 +1700,157 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
+__METHOD_IMP(sdb_create_sequence)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *obj                = NULL ;
+   PYOBJECT *seq_obj            = NULL ;
+   const CHAR *seq_name         = NULL ;
+   sdb *client                  = NULL ;
+   sdbSequence *seq             = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OsO", &obj, &seq_name, &seq_obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+   CAST_PYOBJECT_TO_COBJECT( seq_obj, sdbSequence, seq ) ;
+
+   rc = client->createSequence( seq_name, *seq ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(sdb_create_sequence_use_opt)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *bson_options       = NULL ;
+   PYOBJECT *obj                = NULL ;
+   PYOBJECT *seq_obj            = NULL ;
+   const CHAR *seq_name         = NULL ;
+   sdb *client                  = NULL ;
+   sdbSequence *seq             = NULL ;
+   const bson::BSONObj *options = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OsOO", &obj, &seq_name, &bson_options,
+                            &seq_obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+   CAST_PYOBJECT_TO_COBJECT( seq_obj, sdbSequence, seq ) ;
+   CAST_PYBSON_TO_CPPBSON( bson_options, options ) ;
+
+   rc = client->createSequence( seq_name, *options, *seq ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   DELETE_CPPOBJECT( options ) ;
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(sdb_drop_sequence)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *obj                = NULL ;
+   const CHAR *seq_name         = NULL ;
+   sdb *client                  = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &seq_name ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+
+   rc = client->dropSequence( seq_name ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(sdb_get_sequence)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *obj                = NULL ;
+   PYOBJECT *seq_obj            = NULL ;
+   const CHAR *seq_name         = NULL ;
+   sdb *client                  = NULL ;
+   sdbSequence *seq             = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OsO", &obj, &seq_name, &seq_obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+   CAST_PYOBJECT_TO_COBJECT( seq_obj, sdbSequence, seq ) ;
+
+   rc = client->getSequence( seq_name, *seq ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(sdb_rename_sequence)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *obj                = NULL ;
+   PYOBJECT *seq_obj            = NULL ;
+   const CHAR *old_name         = NULL ;
+   const CHAR *new_name         = NULL ;
+   sdb *client                  = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Oss", &obj, &old_name, &new_name ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
+
+   rc = client->renameSequence( old_name, new_name ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
 ///< implement collection space
 __METHOD_IMP(create_cs)
 {
@@ -2918,11 +3069,6 @@ done:
 error:
    goto done ;
 }
-
-
-
-
-
 
 __METHOD_IMP(cl_create_lob_id)
 {
@@ -5120,6 +5266,209 @@ error :
    goto done ;
 }
 
+///< implement sequence
+__METHOD_IMP(create_seq)
+{
+   sdbSequence *sequence = NULL ;
+   if ( !PARSE_PYTHON_ARGS(args, "") )
+   {
+      return NULL ;
+   }
+
+   NEW_CPPOBJECT( sequence, sdbSequence ) ;
+   if ( NULL == sequence )
+   {
+      return NULL ;
+   }
+
+   return MAKE_PYOBJECT( sequence ) ;
+}
+
+__METHOD_IMP(release_seq)
+{
+   INT32 rc              = SDB_OK ;
+   PYOBJECT *obj         = NULL ;
+   sdbSequence *sequence = NULL;
+
+   if ( !PARSE_PYTHON_ARGS(args, "O", &obj))
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT(obj, sdbSequence, sequence) ;
+   DELETE_CPPOBJECT(sequence) ;
+done:
+   return MAKE_RETURN_INT(rc) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_fetch)
+{
+   INT32 rc              = SDB_OK ;
+   INT32 fetchNum        = 0 ;
+   INT64 nextValue       = 0 ;
+   INT32 returnNum       = 0 ;
+   INT32 increment       = 0 ;
+   PYOBJECT *obj         = NULL ;
+   sdbSequence *sequence = NULL;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Ol", &obj, &fetchNum ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+
+   rc = sequence->fetch( fetchNum, nextValue, returnNum, increment ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+done:
+   return MAKE_RETURN_INT_LONG_INT_INT( rc, nextValue, returnNum, increment ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_get_current_value)
+{
+   INT32 rc              = SDB_OK ;
+   INT64 retValue        = 0 ;
+   PYOBJECT *obj         = NULL ;
+   sdbSequence *sequence = NULL;
+
+   if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+
+   rc = sequence->getCurrentValue( retValue ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT_LONG( rc, retValue ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_get_next_value)
+{
+   INT32 rc              = SDB_OK ;
+   INT64 retValue        = 0 ;
+   PYOBJECT *obj         = NULL ;
+   sdbSequence *sequence = NULL;
+
+   if ( !PARSE_PYTHON_ARGS( args, "O", &obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+
+   rc = sequence->getNextValue( retValue ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   return MAKE_RETURN_INT_LONG( rc, retValue ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_restart)
+{
+   INT32 rc               = SDB_OK ;
+   INT64 startValue       = 0 ;
+   PYOBJECT *obj          = NULL ;
+   sdbSequence *sequence  = NULL;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Ol", &obj, &startValue ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+
+   rc = sequence->restart( startValue ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+done:
+   return MAKE_RETURN_INT(rc) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_set_attributes)
+{
+   INT32 rc                     = SDB_OK ;
+   PYOBJECT *bson_options       = NULL ;
+   PYOBJECT *obj                = NULL ;
+   sdbSequence *sequence        = NULL ;
+   const bson::BSONObj *options = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &bson_options ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+   CAST_PYBSON_TO_CPPBSON( bson_options, options ) ;
+
+   rc = sequence->setAttributes( *options ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+
+done:
+   DELETE_CPPOBJECT( options ) ;
+   return MAKE_RETURN_INT( rc ) ;
+error:
+   goto done ;
+}
+
+__METHOD_IMP(seq_set_current_value)
+{
+   INT32 rc              = SDB_OK ;
+   INT64 value           = 0 ;
+   PYOBJECT *obj         = NULL ;
+   sdbSequence *sequence = NULL;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Ol", &obj, &value ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( obj, sdbSequence, sequence ) ;
+
+   rc = sequence->setCurrentValue( value ) ;
+   if ( rc )
+   {
+      goto done ;
+   }
+done:
+   return MAKE_RETURN_INT(rc) ;
+error:
+   goto done ;
+}
+
 static PyMethodDef sequoiadb_methods[] = {
    /** client */
    {"sdb_create_client",               sdb_create_client,               METH_VARARGS},
@@ -5182,6 +5531,11 @@ static PyMethodDef sequoiadb_methods[] = {
    {"sdb_reload_config",               sdb_reload_config,               METH_VARARGS},
    {"sdb_set_pdlevel",                 sdb_set_pdlevel,                 METH_VARARGS},
    {"sdb_force_stepup",                sdb_force_stepup,                METH_VARARGS},
+   {"sdb_create_sequence",             sdb_create_sequence,             METH_VARARGS},
+   {"sdb_create_sequence_use_opt",     sdb_create_sequence_use_opt,     METH_VARARGS},
+   {"sdb_drop_sequence",               sdb_drop_sequence,               METH_VARARGS},
+   {"sdb_get_sequence",                sdb_get_sequence,                METH_VARARGS},
+   {"sdb_rename_sequence",             sdb_rename_sequence,             METH_VARARGS},
 
    /** cs */
    {"create_cs",                       create_cs,                       METH_VARARGS},
@@ -5323,6 +5677,16 @@ static PyMethodDef sequoiadb_methods[] = {
    {"dc_enable_read_only",             dc_enable_read_only,             METH_VARARGS},
    {"dc_disable_read_only",            dc_disable_read_only,            METH_VARARGS},
    {"dc_get_detail",                   dc_get_detail,                   METH_VARARGS},
+
+   /** sequence */
+   {"create_seq",                      create_seq,                      METH_VARARGS},
+   {"release_seq",                     release_seq,                     METH_VARARGS},
+   {"seq_fetch",                       seq_fetch,                       METH_VARARGS},
+   {"seq_get_current_value",           seq_get_current_value,           METH_VARARGS},
+   {"seq_get_next_value",              seq_get_next_value,              METH_VARARGS},
+   {"seq_restart",                     seq_restart,                     METH_VARARGS},
+   {"seq_set_attributes",              seq_set_attributes,              METH_VARARGS},
+   {"seq_set_current_value",           seq_set_current_value,           METH_VARARGS},
    {NULL, NULL}
 };
 
