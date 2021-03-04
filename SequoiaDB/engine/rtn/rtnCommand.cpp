@@ -5034,6 +5034,8 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToTime)
    _rtnRestoreToTime::_rtnRestoreToTime ()
+      : _timestamp(-1),
+        _transID()
    {
    }
 
@@ -5066,21 +5068,20 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_INIT, &rc);
-      _timestamp = -1;
-      if ((rc = _parseOpts(BSONObj(pMatcherBuff))))
+      try
       {
-         return rc;
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         if ((rc = _parseTimestamp(matcher)) ||
+             (rc = _parseTransID(matcher)))
+         {
+            PD_LOG(PDERROR, "Error parsing options [rc=%s]", rc);
+            return rc;
+         }
       }
-      return rc;
-   }
-
-   INT32 _rtnRestoreToTime::_parseOpts(const BSONObj &matcher)
-   {
-      INT32 rc = SDB_OK;
-      if ((rc = _parseTimestamp(matcher)) ||
-          (rc = _parseTransID(matcher)))
+      catch ( std::exception &e )
       {
-         return rc;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
       }
       return rc;
    }
@@ -5105,31 +5106,16 @@ error:
       // User may call this directly on a node and transID would not be set
       INT64 transID;
       INT32 transNodeID;
-      if (SDB_OK == (rc = util::fromBsonObj(
-                         matcher, FIELD_NAME_TRANSACTION_ID_SN, &transID)))
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_SN,
+                                  &transID)) ||
+          (rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
+                                  &transNodeID)))
       {
-         // If we get the transID, everything else must succeed
-         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
-                                     &transNodeID)))
-         {
-            // Trans ID is sent internally only so this is a system error
-            PD_LOG(PDERROR, "Missing or invalid %s [rc=%d]",
-                   FIELD_NAME_TRANSACTION_ID_NODEID, rc);
-            return (rc = SDB_SYS);
-         }
-         _transID = DPS_TRANS_ID(transID, transNodeID);
-      }
-      else if (SDB_FIELD_NOT_EXIST == rc)
-      {
-         // No transID given, this is a direct call from the client
-         rc = SDB_OK;
-      }
-      else
-      {
-         // A bad transID
-         PD_LOG(PDERROR, "Invalid %s", FIELD_NAME_TRANSACTION_ID_SN);
+         // Trans ID is sent internally only so this is a system error
+         PD_LOG(PDERROR, "Invalid trans ID [rc=%d]", rc);
          return (rc = SDB_SYS);
       }
+      _transID = DPS_TRANS_ID(transID, transNodeID);
       return rc;
    }
 
@@ -5145,7 +5131,8 @@ error:
       if ((rc = rollbackManager.execute()))
       {
          PD_LOG(PDERROR,
-                "Failed to rollback during restore to point-in-time");
+                "Failed to rollback during restore to point-in-time [rc=%d]",
+                rc);
          if (rollbackManager.countRollbackRecords() > 0)
          {
             // If any records were written then the cache is no longer valid
@@ -5158,6 +5145,7 @@ error:
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreCheck)
    _rtnRestoreCheck::_rtnRestoreCheck ()
+      : _time(-1)
    {
    }
 
@@ -5190,23 +5178,21 @@ error:
    {
       INT32 rc = SDB_OK;
       PD_TRACER_BEGIN(SDB__RTNRESTORECHK_INIT, &rc);
-      _time = -1;
-      if ((rc = _parseTime(BSONObj(pMatcherBuff))))
+      try
       {
-         return rc;
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         // Get the GlobalTime option
+         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME, &_time)) ||
+             (_time < 0))
+         {
+            PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+            return (rc = SDB_INVALIDARG);
+         }
       }
-      return rc;
-   }
-
-   INT32 _rtnRestoreCheck::_parseTime(const BSONObj &matcher)
-   {
-      INT32 rc = SDB_OK;
-      // Get the GlobalTime option
-      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME, &_time)) ||
-          (_time < 0))
+      catch ( std::exception &e )
       {
-         PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
-         return (rc = SDB_INVALIDARG);
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
       }
       return rc;
    }
@@ -5227,6 +5213,7 @@ error:
       {
          if ((rc = _runTest(cb, &limit)) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
          {
+            PD_LOG(PDERROR, "Error during restoreCheck test run [rc=%d]", rc);
             return rc;
          }
       }
@@ -5257,7 +5244,7 @@ error:
       rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
       if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
       {
-         PD_LOG(PDERROR, "Failed rollback test");
+         PD_LOG(PDERROR, "Failed rollback test [rc=%d]", rc);
          return rc;
       }
       *limit = rollbackTester.getLogLimitTime();

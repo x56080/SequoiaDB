@@ -56,12 +56,13 @@ INT32 _rtnRollbackManager::execute()
    // Do setup work.
    if ((rc = _init()))
    {
+      PD_LOG(PDERROR, "Failed to inti rollback manager [rc=%d]", rc);
       return rc;
    }
    // Call the main loop
    if ((rc = _readLogAndRollback()))
    {
-      PD_LOG(PDERROR, "Error during rollback loop");
+      PD_LOG(PDERROR, "Error during rollback loop [rc=%d]", rc);
       // Encountered an error. Do cleanup work.
       _abort();
       return rc;
@@ -80,7 +81,7 @@ INT32 _rtnRollbackManager::test()
    _testOnly = TRUE;
    if ((rc = execute()))
    {
-      PD_LOG(PDERROR, "Rollback test failed during execute");
+      PD_LOG(PDERROR, "Rollback test failed during execute [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -113,7 +114,7 @@ INT32 _rtnRollbackManager::_readLogAndRollback()
           (rc = _nextRecord(record)))
       {
          // Error case
-         PD_LOG(PDERROR, "Rollback failed at LSN [%llu]", _cursor);
+         PD_LOG(PDERROR, "Rollback failed at LSN [%llu] [rc=%d]", _cursor, rc);
          return rc;
       }
    }
@@ -134,7 +135,7 @@ INT32 _rtnRollbackManager::_getRecord(dpsLogRecord *record)
    if ((rc = _dpsCB->search(dpsLsn, &_mb)) ||
        (rc = record->load(_mb.offset(0))))
    {
-      PD_LOG(PDERROR, "Get record failed (LSN %llu)", _cursor);
+      PD_LOG(PDERROR, "Get record failed [LSN:%llu] [rc=%d]", _cursor, rc);
       return rc;
    }
    return rc;
@@ -149,14 +150,18 @@ INT32 _rtnRollbackManager::_rollback(const dpsLogRecord &record,
    PD_TRACER_BEGIN(RTN_ROLLBACKMGR_ROLLBACK, &rc);
    // Determine if the record should and can be undone
    // It is an error if it should be undone but it cannot be undone
-   if (!_shouldUndo(record) ||
-       (rc = _canUndo(record)))
+   if (!_shouldUndo(record))
    {
+      return rc; // not an error
+   }
+   if ((rc = _canUndo(record)))
+   {
+      PD_LOG(PDERROR, "Cannot undo record [rc=%d]", rc);
       return rc;
    }
    if ((rc = _undo()))
    {
-      PD_LOG(PDERROR, "failed to undo record");
+      PD_LOG(PDERROR, "Failed to undo record [rc=%d]", rc);
       return rc;
    }
    *undone = TRUE;
@@ -175,7 +180,7 @@ INT32 _rtnRollbackManager::_undo()
    if (!_testOnly &&
        (rc = _replayer.rollback((dpsLogRecordHeader *)_mb.offset(0), _cb)))
    {
-      PD_LOG(PDERROR, "Replayer failed to rollback record");
+      PD_LOG(PDERROR, "Replayer failed to rollback record [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -187,7 +192,8 @@ INT32 _rtnRollbackManager::_undo()
 
 rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
                                              const DPS_TRANS_ID &transID)
-    : _rtnRollbackManager(cb), _continue(TRUE), _remainingLogSpace(0),
+    : _rtnRollbackManager(cb), _rollbackTime(), _undoTransMap(),
+      _recordTransID(), _continue(TRUE), _remainingLogSpace(0),
       _rollbackRecCount(0), _logLimitTime(0), _transID(transID),
       _dmsLocked(FALSE)
 {
@@ -235,7 +241,7 @@ INT32 rtnPITRollbackManager::_init()
    if ((rc = _drainTrans()))
    {
       PD_LOG(PDERROR, "Failed to terminate all existing transactions. Unsafe "
-                      "to continue rollback.");
+                      "to continue rollback. [rc=%d]", rc);
       return rc;
    }
 
@@ -250,36 +256,30 @@ INT32 rtnPITRollbackManager::_init()
       // Need to be wrapped in a transaction. The coord would have passed in a
       // transID if this is a global transaction. Otherwise, assume this is a
       // local restoreToTime operation (not recommended!!!).
-      if (_transID.isValid())
+      if (!_transID.isValid())
       {
-         // Global transaction
-         stpLogicalTimeUS beginTime;
-         beginTime.setTime(_transID.getLogicalTime());
-         // Use the global transaction ID from the coordinator. Note that there
-         // are no corresponding rtnTransCommit/rtnTransRollback calls for
-         // global transactions in this class. This is because while all three
-         // are driven from the coord, the transBegin message is normally
-         // packaged with the first real operation of the transaction.
-         // restoreToTime is a special case - the transID in the message body is
-         // the only indication that a global transaction has begun - so call
-         // rtnTransBegin now. rtnTransCommit and rtnTransRollback will be
-         // driven by messages from the coord.
-         if ((rc = rtnTransBegin(_cb, FALSE, TRUE, _transID, beginTime)))
-         {
-            PD_LOG(PDERROR,
-                   "Failed to begin global transaction for restoreToTime [%s]",
-                   dpsTransIDToString(_transID).c_str());
-            return rc;
-         }
+         PD_LOG(PDERROR, "Invalid transID for restore operation");
+         return (rc = SDB_SYS);
       }
-      else
+      // Global transaction
+      stpLogicalTimeUS beginTime;
+      beginTime.setTime(_transID.getLogicalTime());
+      // Use the global transaction ID from the coordinator. Note that there
+      // are no corresponding rtnTransCommit/rtnTransRollback calls for
+      // global transactions in this class. This is because while all three
+      // are driven from the coord, the transBegin message is normally
+      // packaged with the first real operation of the transaction.
+      // restoreToTime is a special case - the transID in the message body is
+      // the only indication that a global transaction has begun - so call
+      // rtnTransBegin now. rtnTransCommit and rtnTransRollback will be
+      // driven by messages from the coord.
+      if ((rc = rtnTransBegin(_cb, FALSE, TRUE, _transID, beginTime)))
       {
-         // Local transaction
-         if ((rc = rtnTransBegin(_cb, FALSE, FALSE)))
-         {
-            PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
-            return rc;
-         }
+         PD_LOG(PDERROR,
+                "Failed to begin global transaction for restoreToTime "
+                "[id=%s] [rc=%d]",
+                dpsTransIDToString(_transID).c_str(), rc);
+         return rc;
       }
    }
 
@@ -290,31 +290,13 @@ INT32 rtnPITRollbackManager::_init()
 // PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_ABORT, "rtnPITRollbackManager::_abort" )
 void rtnPITRollbackManager::_abort()
 {
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_ABORT, &rc);
-   // A global tranasaction abort would be driven from the coordinator.
-   if (!_testOnly && !_cb->getTransID().isGlobTrans())
-   {
-      // Local transaction. Perform rollback.
-      rtnTransRollback(_cb, _dpsCB);
-   }
 }
 
 // Perform success case cleanup
 // PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_FINISH, "rtnPITRollbackManager::_finish" )
 INT32 rtnPITRollbackManager::_finish()
 {
-   INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_FINISH, &rc);
-   // A global tranasaction commit would be driven from the coordinator.
-   if (!_testOnly && !_cb->getTransID().isGlobTrans() &&
-       // Local transaction. Perform commit.
-       (rc = rtnTransCommit(_cb, _dpsCB)))
-   {
-      PD_LOG(PDERROR, "Failed to commit transaction commit for restoreToTime");
-      return rc;
-   }
-   return rc;
+   return SDB_OK;
 }
 
 // PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_COMMITREC, "rtnPITRollbackManager::_processCommitRecord" )
@@ -327,27 +309,19 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
    if ((rc =
             dpsGetTransTimeFromRecord(record, _recordTransID, recordTransTime)))
    {
-      PD_LOG(PDERROR, "Failed to get transaction time from record");
+      PD_LOG(PDERROR, "Failed to get transaction time from record [rc=%d]", rc);
       return rc;
    }
    if (recordTransTime.getTime() > _rollbackTime.getTime())
    {
       // this is the max time (so far), so use it for the new trx time
       _rollbackTime.setTime(recordTransTime.getTime() + 1);
-      _rollbackTime.setTimeError(1);
+      _rollbackTime.setTimeError(_cb->getTransTimeError());
    }
    if (!(recordTransTime.getTime() > _targetTime.getTime()))
    {
       // This transaction committed at/before the target so skip it
       return rc;
-   }
-   if (_isTransInUndoTransMap())
-   {
-      // This transaction is already marked for undo, this must be a pre-commit
-      SDB_ASSERT(record.isPreCommit(),
-                 "Found a final commit record for a transaction already in the "
-                 "undo transaction set");
-      return SDB_OK;
    }
 
    try
@@ -357,8 +331,9 @@ INT32 rtnPITRollbackManager::_processCommitRecord(const dpsLogRecord &record)
    }
    catch (std::exception &e)
    {
-      PD_LOG(PDERROR, "Failed to insert into map (exception: %s)", e.what());
-      return (rc = SDB_SYS);
+      PD_LOG(PDERROR, "Failed to insert into map [exception=%s]",
+             e.what());
+      return (rc = SDB_OOM);
    }
    return rc;
 }
@@ -409,6 +384,7 @@ INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
       // Finished an entire transaction
       if ((rc = _processBeginRecord()))
       {
+         PD_LOG(PDERROR, "Error processing begin record [rc=%d]", rc);
          return rc;
       }
    }
@@ -423,6 +399,7 @@ INT32 rtnPITRollbackManager::_nextRecord(const dpsLogRecord &record)
    PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_NEXT, &rc);
    if ((rc = _checkExitCondition()))
    {
+      PD_LOG(PDERROR, "Error checking exit condition [rc=%d]", rc);
       return rc;
    }
    if (_continue)
@@ -478,16 +455,19 @@ INT32 rtnPITRollbackManager::_canUndo(const dpsLogRecord &record)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(RTN_PITROLLBACKMGR_CANUNDO, &rc);
-   // Log space required is double the record being undone: the undo record
-   // itself and enough space for the redo in case the PIT rollback fails and
-   // the transaction is rolled back
-   UINT64 logSpaceRequired = 2 * record.head()._length;
+   // Log space required is double the record being undone: the reverse record
+   // to undo the transaction and enough space for the undo of the reverse
+   // record, in case the PIT rollback fails and the transaction is rolled back.
+   // The undo record also has an additional header.
+   UINT64 logSpaceRequired =
+       2 * record.head()._length + DPS_TRANS_LOG_UNDO_DELTA;
    if (logSpaceRequired > _remainingLogSpace)
    {
       PD_LOG(PDERROR, "Not enough log space for rollback");
       if ((rc = _setLogLimit()))
       {
          // Unhandled error
+         PD_LOG(PDERROR, "Error setting log limit [rc=%d]", rc);
          return rc;
       }
       // Handled error
@@ -519,7 +499,7 @@ INT32 rtnPITRollbackManager::_setLogLimit()
    UINT64 summMaxCommitTime;
    if ((rc = _transCB->getMaxCommitTimeBefore(_cursor, summMaxCommitTime)))
    {
-      PD_LOG(PDERROR, "Failed to calculate log limit");
+      PD_LOG(PDERROR, "Failed to calculate log limit [rc=%d]", rc);
       return (rc = SDB_SYS);
    }
    // Set the member var to the max time + 1 to set all outstanding commits out

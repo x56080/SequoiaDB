@@ -57,13 +57,14 @@ INT32 convRealToLogicalTime(const engine::stpHPTime &input, UINT64 *output)
    engine::stpClient client;
    if ((rc = agent.checkAvailable()) || (rc = agent.getClient(client)))
    {
-      PD_LOG(PDERROR, "Error initializing stp client");
+      PD_LOG(PDERROR, "Error initializing stp client [rc=%d]", rc);
       return rc;
    }
    engine::stpHPTime logicalTime;
    if ((rc = client.convRealTimeToLogicalTime(input, logicalTime)))
    {
-      PD_LOG(PDERROR, "Failed to convert timestamp to logical time");
+      PD_LOG(PDERROR, "Failed to convert timestamp to logical time [rc=%d]",
+             rc);
       return rc;
    }
    *output = logicalTime.toMicroSecond();
@@ -79,13 +80,14 @@ INT32 convLogicalTimeToRealTime(UINT64 input, ossPoolString *output)
    engine::stpClient client;
    if ((rc = agent.checkAvailable()) || (rc = agent.getClient(client)))
    {
-      PD_LOG(PDERROR, "Error initializing stp client");
+      PD_LOG(PDERROR, "Error initializing stp client [rc=%d]", rc);
       return rc;
    }
    ossTimestamp realTime;
    if ((rc = client.convLogicalTimeToRealTime(input, realTime)))
    {
-      PD_LOG(PDERROR, "Failed to convert logical time to timestamp");
+      PD_LOG(PDERROR, "Failed to convert logical time to timestamp [rc=%d]",
+             rc);
       return rc;
    }
    CHAR strTime[OSS_TIMESTAMP_STRING_LEN + 1] = {0};
@@ -114,6 +116,7 @@ INT32 extractQuery(MsgHeader *pMsg, BSONObj *query)
    if ((rc = msgExtractQuery((CHAR *)pMsg, NULL, NULL, NULL, NULL, &pQuery,
                              NULL, NULL, NULL)))
    {
+      PD_LOG(PDERROR, "Error extracting query [rc=%d]", rc);
       return rc;
    }
    // Using an existing buffer, does not copy, so no need to try/catch
@@ -137,6 +140,7 @@ INT32 timeFromStr(const ossPoolString &input, engine::stpHPTime *timestamp)
    UINT64 usec = 0;
    if ((rc = engine::utilStr2TimeT(input.c_str(), sec, &usec)))
    {
+      PD_LOG(PDERROR, "utilStr2TimeT failed [rc=%d]", rc);
       return rc;
    }
    *timestamp = engine::stpHPTime(sec, usec * 1000);
@@ -184,8 +188,8 @@ INT32 _parseTime(const BSONObj &query, UINT64 *t)
       util::fromBsonObj(query, FIELD_NAME_TIME, &timestamp_string);
       if ((rc = timeFromStr(timestamp_string, &timestamp)))
       {
-         PD_LOG_MSG(PDERROR, "Error parsing [%s] as a timestamp",
-                    timestamp_string.c_str());
+         PD_LOG_MSG(PDERROR, "Error parsing [%s] as a timestamp [rc=%d]",
+                    timestamp_string.c_str(), rc);
          return rc;
       }
    }
@@ -194,7 +198,7 @@ INT32 _parseTime(const BSONObj &query, UINT64 *t)
       // Try and parse as BSON Timestamp
       if ((rc = timestamp.fromBSONTimestamp(query.getField(FIELD_NAME_TIME))))
       {
-         PD_LOG_MSG(PDERROR, "Error parsing timestamp object");
+         PD_LOG_MSG(PDERROR, "Error parsing timestamp object [rc=%d]", rc);
          return rc;
       }
    }
@@ -206,7 +210,7 @@ INT32 _parseTime(const BSONObj &query, UINT64 *t)
    }
    if ((rc = convRealToLogicalTime(timestamp, t)))
    {
-      PD_LOG_MSG(PDERROR, "Stp error converting timestamp");
+      PD_LOG_MSG(PDERROR, "Stp error converting timestamp [rc=%d]", rc);
       return rc;
    }
    PD_LOG(PDINFO, "Restore target time [%llu]", *t);
@@ -231,7 +235,7 @@ INT32 gatherQueryResults(engine::pmdEDUCB *cb,
       }
       else if (rc)
       {
-         PD_LOG(PDERROR, "Get more results failed");
+         PD_LOG(PDERROR, "Get more results failed [rc=%d]", rc);
          return rc;
       }
       try
@@ -279,7 +283,7 @@ class _QueryMsg
                                   &query, NULL, NULL, NULL, cb)))
       {
          _release();
-         PD_LOG(PDERROR, "Msg build failed");
+         PD_LOG(PDERROR, "Msg build failed [rc=%d]", *rc);
          return;
       }
       header = (MsgHeader *)_buff;
@@ -327,7 +331,7 @@ class _Operator
       if ((*rc = engine::coordGetFactory()->create(cmdName.c_str(), ptr)))
       {
          _release();
-         PD_LOG(PDERROR, "Failed to create operator");
+         PD_LOG(PDERROR, "Failed to create operator [rc=%d]", *rc);
          return;
       }
    };
@@ -345,6 +349,8 @@ using namespace util;
    _coordCMDRestore definitions
 */
 
+_coordCMDRestore::_coordCMDRestore() : _pMsg(NULL), _cb(NULL), _buf(NULL) {}
+
 // Check the status of the cluster
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_CHECK, "_coordCMDRestore::_checkRestoreInProgress" )
 INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
@@ -355,8 +361,8 @@ INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
    BSONObj document;
    if ((rc = _queryCataDCBase(&document)))
    {
-      PD_LOG(PDERROR, "Failed to get [%s] status from catalog",
-             FIELD_NAME_RESTORE);
+      PD_LOG(PDERROR, "Failed to get [%s] status from catalog [rc=%d]",
+             FIELD_NAME_RESTORE, rc);
       return rc; // System error
    }
    BSONElement field = document.getField(FIELD_NAME_RESTORE);
@@ -400,28 +406,29 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
    }
    if ((rc = _alterDC(query))) // this will update cata and data
    {
-      PD_LOG(PDERROR, "Failed to update DC state across nodes");
+      PD_LOG(PDERROR, "Failed to update DC state across nodes [rc=%d]", rc);
       return rc;
    }
    // Update the coord and data nodes
-   if ((rc = _setRestoreInProgressNodes(enable)))
+   if ((rc = _updateNodesState(enable)))
    {
+      PD_LOG(PDERROR, "Error setting restore state on nodes [rc=%d]", rc);
       return rc;
    }
    return rc;
 }
 
-// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_SETNODES, "_coordCMDRestore::_setRestoreInProgressNodes" )
-INT32 _coordCMDRestore::_setRestoreInProgressNodes(BOOLEAN enable)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_UPDATENODES, "_coordCMDRestore::_updateNodesState" )
+INT32 _coordCMDRestore::_updateNodesState(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
-   PD_TRACER_BEGIN(COORD_RESTORE_SETNODES, &rc);
+   PD_TRACER_BEGIN(COORD_RESTORE_UPDATENODES, &rc);
    const ossPoolString command =
        enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
    if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
                               BSONObj())))
    {
-      PD_LOG(PDERROR, "Failed to update status on data nodes");
+      PD_LOG(PDERROR, "Failed to update status on data nodes [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -442,7 +449,7 @@ INT32 _coordCMDRestore::_queryCataDCBase(BSONObj *result)
    // Perform the query
    if ((rc = queryOnCataAndPushToVec(queryOpt, _cb, results, &buf)))
    {
-      PD_LOG(PDERROR, "Failed during catalog query");
+      PD_LOG(PDERROR, "Failed during catalog query [rc=%d]", rc);
       return rc;
    }
    // Extract the result. Note that SYSINFO.SYSDCBASE only contains one doc.
@@ -467,23 +474,25 @@ INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
    _Operator op(&rc, CMD_NAME_ALTER_DC); // Auto-cleaning
    if (rc)
    {
+      PD_LOG(PDERROR, "Error creating operator [rc=%d]", rc);
       return rc;
    }
    _QueryMsg msg(&rc, _cb, CMD_ADMIN_PREFIX CMD_NAME_ALTER_DC,
                  MSG_CAT_ALTER_IMAGE_REQ, query);
    if (rc)
    {
+      PD_LOG(PDERROR, "Error creating query [rc=%d]", rc);
       return rc;
    }
    if ((rc = op.ptr->init(_pResource, _cb, getTimeout())))
    {
-      PD_LOG(PDERROR, "Failed to init operator");
+      PD_LOG(PDERROR, "Failed to init operator [rc=%d]", rc);
       return rc;
    }
    INT64 contextID;
    if ((rc = op.ptr->execute(msg.header, _cb, contextID, NULL)))
    {
-      PD_LOG(PDWARNING, "Failed to execute operator");
+      PD_LOG(PDWARNING, "Failed to execute operator [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -502,19 +511,20 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
    _QueryMsg msg(&rc, _cb, clName, opCode, query); // Auto-cleaning
    if (rc)
    {
+      PD_LOG(PDERROR, "Error creating query [rc=%d]", rc);
       return rc;
    }
    // Get the groups list
    if ((rc = _pResource->updateGroupList(groups, _cb, NULL, TRUE, TRUE, FALSE)))
    {
-      PD_LOG(PDERROR, "Get data groups failed");
+      PD_LOG(PDERROR, "Get data groups failed [rc=%d]", rc);
       return rc;
    }
    // Run the query
    if ((rc = executeOnDataGroup(msg.header, _cb, groups, TRUE, NULL, NULL,
                                 &(context.ptr), _buf)))
    {
-      PD_LOG(PDERROR, "Execute on data groups failed");
+      PD_LOG(PDERROR, "Execute on data groups failed [rc=%d]", rc);
       return rc;
    }
    if (!results)
@@ -525,7 +535,7 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
    // Get the results
    if ((rc = gatherQueryResults(_cb, context.ptr, results)))
    {
-      PD_LOG(PDERROR, "Failed to gather query results");
+      PD_LOG(PDERROR, "Failed to gather query results [rc=%d]", rc);
       return rc;
    }
    // Check the number of results is correct
@@ -544,6 +554,11 @@ INT32 _coordCMDRestore::_queryDataGroups(MSG_TYPE opCode,
 COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreToTime,
                                   CMD_NAME_RESTORE_TO_TIME, FALSE);
 
+coordCMDRestoreToTime::coordCMDRestoreToTime()
+    : _targetTime(DPS_INVALID_TRANS_TIME)
+{
+}
+
 // Entrypoint for restoreToTime() on the coordinator
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPIT_EXE, "coordCMDRestoreToTime::execute" )
 INT32 coordCMDRestoreToTime::execute(MsgHeader *pMsg, pmdEDUCB *cb,
@@ -551,28 +566,31 @@ INT32 coordCMDRestoreToTime::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPIT_EXE, &rc);
-   _targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
    _pMsg = pMsg;
    _cb = cb;
    _buf = buf;
 
    if ((rc = _parseRequest()))
    {
+      PD_LOG(PDERROR, "Error parsing request [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _checkRestore()))
    {
+      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _doRestore()))
    {
+      PD_LOG(PDERROR, "Error running restore [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _setRestoreInProgress(FALSE)))
    {
+      PD_LOG(PDERROR, "Error setting restore state [rc=%d]", rc);
       return rc;
    }
    PD_LOG(PDEVENT, "restoreToTime completed successfully");
@@ -589,13 +607,13 @@ INT32 coordCMDRestoreToTime::_parseRequest()
    BSONObj query;
    if ((rc = extractQuery(_pMsg, &query)))
    {
-      PD_LOG(PDERROR, "Extract user query failed");
+      PD_LOG(PDERROR, "Extract user query failed [rc=%d]", rc);
       return rc;
    }
    // Get the value of the Time option. Value is required.
    if ((rc = _parseTime(query, &_targetTime)))
    {
-      PD_LOG(PDERROR, "User query invalid");
+      PD_LOG(PDERROR, "User query invalid [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -612,42 +630,52 @@ INT32 coordCMDRestoreToTime::_checkRestore()
    _Operator op(&rc, CMD_NAME_RESTORE_CHECK); // Auto-cleaning
    if (rc)
    {
+      PD_LOG(PDERROR, "Error creating operator [rc=%d]", rc);
       return rc;
    }
    BSONObj query;
    if ((rc = extractQuery(_pMsg, &query)))
    {
-      PD_LOG(PDERROR, "Extract user query failed");
+      PD_LOG(PDERROR, "Extract user query failed [rc=%d]", rc);
       return rc;
    }
    _QueryMsg msg(&rc, _cb, CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK,
                  MSG_BS_QUERY_REQ, query);
    if (rc)
    {
+      PD_LOG(PDERROR, "Error creating query [rc=%d]", rc);
       return rc;
    }
    if ((rc = op.ptr->init(_pResource, _cb, getTimeout())))
    {
-      PD_LOG(PDERROR, "Failed to init operator");
+      PD_LOG(PDERROR, "Failed to init operator [rc=%d]", rc);
       return rc;
    }
    INT64 contextID;
    if ((rc = op.ptr->execute(msg.header, _cb, contextID, _buf)))
    {
-      PD_LOG(PDWARNING, "Failed to execute operator");
+      PD_LOG(PDERROR, "Failed to execute operator [rc=%d]", rc);
       return rc;
    }
 
    // Parse the result of restoreCheck
-   BSONObj result = BSONObj(_buf->data());
    ossPoolString strtime;
    stpHPTime hptime;
-   if ((rc = util::fromBsonObj(result, FIELD_NAME_TIME, &strtime)) ||
-       (rc = timeFromStr(strtime, &hptime)))
+   try
    {
-      PD_LOG_MSG(PDERROR,
-                 "Error extracting timestamp from restoreCheck response");
-      return (rc = SDB_SYS);
+      BSONObj result = BSONObj(_buf->data());
+      if ((rc = util::fromBsonObj(result, FIELD_NAME_TIME, &strtime)) ||
+          (rc = timeFromStr(strtime, &hptime)))
+      {
+         PD_LOG_MSG(PDERROR,
+                    "Error extracting timestamp from restoreCheck response");
+         return (rc = SDB_SYS);
+      }
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Failed to create result object");
+      return (rc = SDB_OOM);
    }
    if ((rc = convRealToLogicalTime(hptime, &_targetTime)))
    {
@@ -669,7 +697,8 @@ INT32 coordCMDRestoreToTime::_doRestore()
    coordTransHandler trans(_cb, _pResource);
    if ((rc = trans.getRc()))
    {
-      PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime");
+      PD_LOG(PDERROR, "Failed to begin transaction for restoreToTime [rc=%d]",
+             rc);
       return rc;
    }
 
@@ -695,7 +724,7 @@ INT32 coordCMDRestoreToTime::_doRestore()
                               CMD_ADMIN_PREFIX CMD_NAME_RESTORE_TO_TIME, query,
                               NULL)))
    {
-      PD_LOG(PDERROR, "One or more nodes failed restoreToTime");
+      PD_LOG(PDERROR, "One or more nodes failed restoreToTime [rc=%d]", rc);
       // trans will perform rollback (in its destructor) because commit wasn't
       // called
       return rc;
@@ -703,7 +732,7 @@ INT32 coordCMDRestoreToTime::_doRestore()
 
    if ((rc = trans.commit()))
    {
-      PD_LOG(PDERROR, "Failed to commit restoreToTime");
+      PD_LOG(PDERROR, "Failed to commit restoreToTime [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -715,6 +744,11 @@ INT32 coordCMDRestoreToTime::_doRestore()
 COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreCheck,
                                   CMD_NAME_RESTORE_CHECK, TRUE);
 
+coordCMDRestoreCheck::coordCMDRestoreCheck()
+    : _targetTime(DPS_INVALID_TRANS_TIME), _minTime(0), _maxTime(-1), _summary()
+{
+}
+
 // Entrypoint for restoreCheck() on the coordinator
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_EXE, "coordCMDRestoreCheck::execute" )
 INT32 coordCMDRestoreCheck::execute(MsgHeader *pMsg, pmdEDUCB *cb,
@@ -722,38 +756,49 @@ INT32 coordCMDRestoreCheck::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORECHK_EXE, &rc);
-   _targetTime = DPS_INVALID_TRANS_TIME; // Global time to restore to
    _pMsg = pMsg;
    _cb = cb;
    _buf = buf;
 
    if ((rc = _parseRequest()))
    {
+      PD_LOG(PDERROR, "Error parsing request [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _checkClusterState()))
    {
+      PD_LOG(PDERROR, "Error checking cluster state [rc=%d]", rc);
+      return rc;
+   }
+
+   if ((rc = _checkSession()))
+   {
+      PD_LOG(PDERROR, "Error checking session [rc=%d]");
       return rc;
    }
 
    if ((rc = _getWindow()))
    {
+      PD_LOG(PDERROR, "Error getting window [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _setTime()))
    {
+      PD_LOG(PDERROR, "Error setting time [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _runCheckOnNodes()))
    {
+      PD_LOG(PDERROR, "Error running check on nodes [rc=%d]", rc);
       return rc;
    }
 
    if ((rc = _summarize()))
    {
+      PD_LOG(PDERROR, "Error summarizing results [rc=%d]", rc);
       return rc;
    }
 
@@ -772,13 +817,13 @@ INT32 coordCMDRestoreCheck::_parseRequest()
    BSONObj query;
    if ((rc = extractQuery(_pMsg, &query)))
    {
-      PD_LOG(PDERROR, "Extract user query failed");
+      PD_LOG(PDERROR, "Extract user query failed [rc=%d]", rc);
       return rc;
    }
    // Get the value of the Time option. Value is required.
    if ((rc = _parseTime(query, &_targetTime)))
    {
-      PD_LOG(PDERROR, "User query invalid");
+      PD_LOG(PDERROR, "User query invalid [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -793,12 +838,27 @@ INT32 coordCMDRestoreCheck::_checkClusterState()
    BOOLEAN inProgress;
    if ((rc = _checkRestoreInProgress(&inProgress)))
    {
+      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
       return rc;
    }
    if (!inProgress)
    {
       PD_LOG(PDERROR, "Cluster is not in [%s] state", FIELD_NAME_RESTORE);
       return (rc = SDB_RESTORE_NOT_IN_PROGRESS);
+   }
+   return rc;
+}
+
+// Check that the current session is not in a transaction
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_CHECKSESSION, "coordCMDRestoreCheck::_checkSession" )
+INT32 coordCMDRestoreCheck::_checkSession()
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_CHECKSESSION, &rc);
+   if (_cb->isTransaction())
+   {
+      PD_LOG(PDERROR, "Current session in a transaction, aborting");
+      return (rc = SDB_OPERATION_INCOMPATIBLE);
    }
    return rc;
 }
@@ -815,7 +875,8 @@ INT32 coordCMDRestoreCheck::_getWindow()
                               CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE,
                               BSONObj(), &results)))
    {
-      PD_LOG(PDERROR, "Query to collect windows from data groups failed");
+      PD_LOG(PDERROR,
+             "Query to collect windows from data groups failed [rc=%d]", rc);
       return rc;
    }
 
@@ -905,14 +966,14 @@ INT32 coordCMDRestoreCheck::_runCheckOnNodes()
    }
    catch (exception &e)
    {
-      PD_LOG(PDERROR, "Failed to create query");
+      PD_LOG(PDERROR, "Exception when creating query [%s]", e.what());
       return (rc = SDB_OOM);
    }
 
    if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ,
                               CMD_ADMIN_PREFIX CMD_NAME_RESTORE_CHECK, query)))
    {
-      PD_LOG(PDERROR, "One or more nodes failed restoreCheck");
+      PD_LOG(PDERROR, "One or more nodes failed restoreCheck [rc=%d]", rc);
       return rc;
    }
 
@@ -937,7 +998,7 @@ INT32 coordCMDRestoreCheck::_summarize()
        (rc = convLogicalTimeToRealTime(_minTime, &minTime)) ||
        (rc = convLogicalTimeToRealTime(_maxTime, &maxTime)))
    {
-      PD_LOG(PDERROR, "Time conversion error");
+      PD_LOG(PDERROR, "Time conversion error [rc=%d]", rc);
       return rc;
    }
 
@@ -951,7 +1012,7 @@ INT32 coordCMDRestoreCheck::_summarize()
    }
    catch (exception &e)
    {
-      PD_LOG(PDERROR, "BSON summary failed");
+      PD_LOG(PDERROR, "Exception when creating summary [%s]", e.what());
       return (rc = SDB_OOM);
    }
 
@@ -979,6 +1040,7 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    _cb = cb;
    if ((rc = _checkRestoreInProgress(&inProgress)))
    {
+      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
       return rc;
    }
    if (!inProgress)
@@ -989,6 +1051,7 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    }
    if ((rc = _setRestoreInProgress(FALSE)))
    {
+      PD_LOG(PDERROR, "Error setting restore state [rc=%d]", rc);
       return rc;
    }
    PD_LOG(PDEVENT, "restoreAbort completed successfully");
@@ -1013,6 +1076,7 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    _cb = cb;
    if ((rc = _checkRestoreInProgress(&inProgress)))
    {
+      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
       return rc;
    }
    if (inProgress)
@@ -1028,7 +1092,7 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
       {
          PD_LOG_MSG(PDERROR, "Node(s) have mvccon or globtranson disabled");
       }
-      PD_LOG(PDERROR, "restorePrepare failed. Aborting.");
+      PD_LOG(PDERROR, "restorePrepare failed. Aborting. [rc=%d]", rc);
       _setRestoreInProgress(FALSE); // ignore the rc
       return rc;
    }

@@ -1702,7 +1702,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
-         INT32 _parseOpts(const BSONObj &matcher);
          INT32 _parseTimestamp(const BSONObj &matcher);
          INT32 _parseTransID(const BSONObj &matcher);
       private:
@@ -1742,7 +1741,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
-         INT32 _parseTime(const BSONObj &matcher);
          INT32 _runTest(_pmdEDUCB *cb, UINT64 *limit);
 
        private:

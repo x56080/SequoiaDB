@@ -1321,6 +1321,7 @@ namespace engine
       if ((_rc = opr.init(_pResource, _cb)) ||
           (_rc = opr.execute(&msg, _cb, contextID, &buf)))
       {
+         PD_LOG(PDERROR, "Transaction begin operation failed [rc=%d]", _rc);
          return;
       }
       // Add all groups to the trans map so they get included in subsequent
@@ -1344,8 +1345,12 @@ namespace engine
          MsgHeader msg;
          coordTransRollback opr;
          // Perform coordTransRollback()
-         opr.init(_pResource, _cb);
-         opr.execute(&msg, _cb, contextID, &buf);
+         if ((_rc = opr.init(_pResource, _cb)) ||
+             (_rc = opr.execute(&msg, _cb, contextID, &buf)))
+         {
+            PD_LOG(PDERROR, "Transaction rollback operation failed [rc=%d]",
+                   _rc);
+         }
       }
    }
 
@@ -1367,6 +1372,7 @@ namespace engine
       if ((_rc = opr.init(_pResource, _cb)) ||
           (_rc = opr.execute(&msg, _cb, contextID, &buf)))
       {
+         PD_LOG(PDERROR, "Transaction commit operation failed [rc=%d]", _rc);
          return _rc;
       }
       _committed = TRUE;

@@ -41,12 +41,15 @@ namespace engine
 */
 class _coordCMDRestore : public _coordCommandBase
 {
+ public:
+   _coordCMDRestore();
+
  protected:
    typedef std::vector<bson::BSONObj> OBJ_VEC;
 
    INT32 _checkRestoreInProgress(BOOLEAN *inProgress);
    INT32 _setRestoreInProgress(BOOLEAN enable);
-   INT32 _setRestoreInProgressNodes(BOOLEAN enable);
+   INT32 _updateNodesState(BOOLEAN enable);
    INT32 _queryCataDCBase(bson::BSONObj *result);
    INT32 _alterDC(const bson::BSONObj &query);
    INT32 _queryDataGroups(MSG_TYPE opCode, const ossPoolString &clName,
@@ -70,8 +73,7 @@ class coordCMDRestoreToTime : public _coordCMDRestore
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestoreToTime(){};
-   virtual ~coordCMDRestoreToTime(){};
+   coordCMDRestoreToTime();
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
@@ -91,13 +93,12 @@ class coordCMDRestoreToTime : public _coordCMDRestore
    The cluster must be in RestoreInProgress state.
    Performs restoreCheck() on data nodes and returns the valid window.
 */
-class coordCMDRestoreCheck : public _coordCMDRestore, public _coordAggrCmdBase
+class coordCMDRestoreCheck : public _coordCMDRestore
 {
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestoreCheck(){};
-   virtual ~coordCMDRestoreCheck(){};
+   coordCMDRestoreCheck();
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
@@ -105,6 +106,7 @@ class coordCMDRestoreCheck : public _coordCMDRestore, public _coordAggrCmdBase
  protected:
    INT32 _parseRequest();
    INT32 _checkClusterState();
+   INT32 _checkSession();
    INT32 _getWindow();
    INT32 _calcWindow(const OBJ_VEC &responses);
    INT32 _setTime();
@@ -129,8 +131,6 @@ class coordCMDRestoreAbort : public _coordCMDRestore
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestoreAbort(){};
-   virtual ~coordCMDRestoreAbort(){};
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
@@ -147,8 +147,6 @@ class coordCMDRestorePrepare : public _coordCMDRestore
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
-   coordCMDRestorePrepare(){};
-   virtual ~coordCMDRestorePrepare(){};
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);
