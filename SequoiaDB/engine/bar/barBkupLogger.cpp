@@ -2141,6 +2141,7 @@ namespace engine
 
       _isDoRestoring       = FALSE ;
       _skipConf            = FALSE ;
+      _isGlobal            = FALSE ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -2383,6 +2384,9 @@ namespace engine
       // 4. load config
       rc = _loadConf() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load config, rc: %d", rc ) ;
+
+      // Is this a global backup that is being restored?
+      _isGlobal = _metaHeader._global & BAR_BACKUP_GLOBAL_BKP ;
 
       // 5. reset
       _reset() ;
@@ -3378,7 +3382,7 @@ namespace engine
                       rc ) ;
       }
 
-      if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+      if ( _isGlobal )
       {
          if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
          {

@@ -655,7 +655,13 @@ namespace engine
 
          BOOLEAN                       _skipConf ;
          BOOLEAN                       _isDoRestoring ;
+         BOOLEAN                       _isGlobal ;
 
+      public:
+         void overrideIsGlobal ( BOOLEAN isGlobal )
+         {
+            _isGlobal = isGlobal ;
+         }
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;
 
