@@ -48,6 +48,7 @@
 | [$LIST_BACKUP][LIST_BACKUP] | [SDB_LIST_BACKUPS][SDB_LIST_BACKUPS] | 备份列表 | 备份列表列出当前数据库的备份信息 |
 | [$LIST_SVCTASKS][LIST_SVCTASKS]  | [SDB_LIST_SVCTASKS][SDB_LIST_SVCTASKS] | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
 | [$LIST_USER][LIST_USER] | [SDB_LIST_USERS][SDB_LIST_USERS] | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
+| [$LIST_DATASOURCE][LIST_DATASOURCE] | [SDB_LIST_DATASOURCES][SDB_LIST_DATASOURCES] | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
 
 ##SQL到SequoiaDB映射表##
 
@@ -250,6 +251,8 @@ SdbSnapshotOption[.cond(<cond>)]
 [SDB_LIST_SVCTASKS]:manual/Manual/List/SDB_LIST_SVCTASKS.md
 [LIST_USER]:manual/Manual/SQL_Grammar/Monitoring/LIST_USER.md
 [SDB_LIST_USERS]:manual/Manual/List/SDB_LIST_USERS.md
+[LIST_DATASOURCE]:manual/Manual/SQL_Grammar/Monitoring/LIST_DATASOURCE.md
+[SDB_LIST_DATASOURCES]:manual/Manual/List/SDB_LIST_DATASOURCES.md
 
 [snapshot]:manual/Manual/Sequoiadb_Command/Sdb/snapshot.md
 [SdbSnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md

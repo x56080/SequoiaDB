@@ -1,106 +1,127 @@
-##名称##
+## 名称
 
 createCL - 创建一个新的集合
 
-##语法##
+## 语法
 
 **db.collectionspace.createCL(\<name\>,[options])**
 
-##类别##
+## 类别
 
 Collection Space
 
-##描述##
+## 描述
 
 该函数用于在指定集合空间下创建集合（Collection），集合是数据库中存放文档记录的逻辑对象，任何一条文档记录必须属于一个且仅属于一个集合。
 
-##参数##
+## 参数
 
-* `name` ( *String*， *必填* )
+* name（ *string*， *必填* ）
 
-    集合名，在同一个集合空间中，集合名必须唯一。
+    集合名，在同一个集合空间中，集合名必须唯一
 
 
-* `options` ( *Object*， *选填* )
+* options（ *object*， *选填* ）
 
-    在创建集合时，可以通过`options`参数设置集合的其他属性，如指定集合的分区键，是否以压缩的形式插入数据等。可组合使用 `options` 的如下选项：
+    在创建集合时，可以通过 options 参数设置集合的其他属性，如指定集合的分区键，是否以压缩的形式插入数据等。可组合使用 options 的如下选项：
 
-    1. `ShardingKey` ( *Object* )：分区键。
+    1. ShardingKey（object）：分区键
 
         格式：`ShardingKey:{<字段1> : <1|-1>,[<字段2> : <1|-1>, ...]}`
 
-    2. `ShardingType` ( *String* )：分区方式。默认为 hash 分区。其可选取值如下：
+    2. ShardingType（string）：分区方式，默认为 hash 分区
+ 
+       其可选取值如下：
 
-        * "hash"：hash 分区。
-        * "range"：范围分区。
+        * "hash"：hash 分区
+        * "range"：范围分区
 
         格式：`ShardingType:"hash"|"range"`
 
-    3. `Partition` ( *Int32* )：分区数。仅当选择 hash 分区时填写，代表了 hash 分区的个数。其值必须是2的幂。范围在[2\^3，2\^20]。默认为4096。
+    3. Partition（number）：分区数，仅当选择 hash 分区时填写，代表了 hash 分区的个数，默认为 4096
+
+        该参数值必须是2的幂，范围在[2\^3，2\^20]。
 
         格式：`Partition: <分区数>`
 
-    4. `ReplSize` ( *Int32* )：写操作需同步的副本数。默认值为1。其可选取值如下：
+    4. ReplSize（number）：写操作需同步的副本数，默认值为1
 
-        * -1：表示写请求需同步到该复制组若干活跃的节点之后，数据库写操作才返回应答给客户端。
-        * 0：表示写请求需同步到该复制组的所有节点之后，数据库写操作才返回应答给客户端。
-        * 1 - 7：表示写请求需同步到该复制组指定数量个节点之后，数据库写操作才返回应答给客户端。
+        其可选取值如下：
+
+        * -1：表示写请求需同步到该复制组若干活跃的节点之后，数据库写操作才返回应答给客户端
+        * 0：表示写请求需同步到该复制组的所有节点之后，数据库写操作才返回应答给客户端
+        * 1 - 7：表示写请求需同步到该复制组指定数量个节点之后，数据库写操作才返回应答给客户端
 
         格式：`ReplSize: <num>`
 
-    5. `Compressed` ( *Bool* )：标示新集合是否开启数据压缩功能。默认为 true。
+    5. Compressed（boolean）：新集合是否开启数据压缩功能，默认为 true
 
         格式：`Compressed:true|false`
 
-    6. `CompressionType` ( *String* )：压缩算法类型。默认为 lzw 算法。其可选取值如下：
+    6. CompressionType（string）：压缩算法类型，默认为 lzw 算法
 
-        * "snappy"：使用 snappy 算法压缩。
-        * "lzw"：使用 lzw 算法压缩。
+        其可选取值如下：
+
+        * "snappy"：使用 snappy 算法压缩
+        * "lzw"：使用 lzw 算法压缩
 
         格式：`CompressionType:"snappy"|"lzw"`
 
-    7. `IsMainCL` ( *Bool* )：标示新集合是否为主分区集合（主表），默认为 false。
+    7. IsMainCL（boolean）：新集合是否为主分区集合（主表），默认为 false
 
         格式：`IsMainCL:true|false`
 
-    8. `AutoSplit` ( *Bool* )：标示新集合是否开启自动切分功能，默认为 false。
+    8. AutoSplit（boolean）：新集合是否开启自动切分功能，默认为 false。
 
         格式：`AutoSplit:true|false`
 
-    9. `Group` ( *String* )：指定新集合将被创建到哪个复制组。
+    9. Group（string）：指定新集合将被创建到哪个复制组
 
         格式：`Group:<group name>`
 
-    10. `AutoIndexId` ( *Bool* )：标示新集合是否自动使用_id字段创建名字为"$id"的唯一索引，默认为 true。
+    10. AutoIndexId（boolean）：新集合是否自动使用 _id 字段创建名字为"$id"的唯一索引，默认为 true
  
         格式：`AutoIndexId:true|false`
 
-    11. `EnsureShardingIndex` ( *Bool* )：标示集合是否自动使用ShardingKey包含的字段创建名字为"$shard"的索引，默认为true。
+    11. EnsureShardingIndex（boolean）：集合是否自动使用 ShardingKey 包含的字段创建名字为"$shard"的索引，默认为 true
 
         格式：`EnsureShardingIndex:true|false`
 
-    12. `StrictDataMode` ( *Bool* )：标示对该集合的操作是否开启严格数据类型模式，默认为false(不开启)。严格数据模式的开启标示对数值操作存在以下限制：
+    12. StrictDataMode（boolean）：对该集合的操作是否开启严格数据类型模式，默认为 false，不开启
+
+        严格数据模式的开启标示对数值操作存在以下限制：
 
         * 运算过程不改数据类型；
         * 数值运算出现溢出时直接报错，错误码 SDB_VALUE_OVERFLOW；
 
       	格式：`StrictDataMode:true|false`
 
-    13. `AutoIncrement` ( *Object* )：自增字段
+    13. AutoIncrement（object）：自增字段
 
         格式：`AutoIncrement:{Field: <字段>, ...}` 或 `AutoIncrement:[ {Field: <字段1>, ...}, {Field: <字段2>, ...}, ... ]`
 
-        例子：`AutoIncrement: { Field: "userID", Generated: "always" }`
+        示例：`AutoIncrement: { Field: "userID", Generated: "always" }`
 
-        * 参数详情请参考[自增字段介绍][sequence]
+        参数详情可参考[自增字段介绍][sequence]
         
-    14. `LobShardingKeyFormat` ( *String* )：指定大对象生成主分区集合切分键键值的格式。目前支持将大对象ID中的时间属性转换成如下字符串形式：
+    14. LobShardingKeyFormat（string）：指定大对象生成主分区集合切分键键值的格式
+
+        目前支持将大对象ID中的时间属性转换成如下字符串形式：
     
-        * "YYYYMMDD"：将大对象ID的时间属性转换为年月日的字符串形式，如"20190701"。
-        * "YYYYMM"：将大对象ID的时间属性转换为年月的字符串形式，如"201907"。
-        * "YYYY"：将大对象ID的时间属性转换为年的字符串形式，如"2019"。
+        * "YYYYMMDD"：将大对象ID的时间属性转换为年月日的字符串形式，如"20190701"
+        * "YYYYMM"：将大对象ID的时间属性转换为年月的字符串形式，如"201907"
+        * "YYYY"：将大对象ID的时间属性转换为年的字符串形式，如"2019"
     
         格式：`LobShardingKeyFormat:"YYYYMMDD"|"YYYYMM"|"YYYY"`
+
+
+    15. DataSource（string）：指定所使用的数据源名称
+
+        格式：`{DataSource: "ds1"}`
+
+    16. Mapping（string）：所映射的集合名称
+
+        格式：`{Mapping: "bar"}`
 
 > **Note:**
 >
@@ -124,14 +145,15 @@ Collection Space
 >     1. 当从主分区集合写入数据时，`ReplSize`、`AutoIncrement` 属性会沿用主分区集合的属性值。
 >     2. 当从子分区集合写入数据时，`ReplSize`、`AutoIncrement` 属性会沿用子分区集合的属性值。
 >     3. 集合的其他属性，如 `ShardingKey`、`Compressed`、`AutoIndexId` 等，子分区集合会使用自己的属性值而不是沿用主分区集合对应的属性值。
+> * DataSource 和 Mapping 参数的具体使用场景可参考[数据源][datasource]。
 
-##返回值##
+## 返回值
  
 函数执行成功时，返回一个新的 SdbCollection 对象。
 
 函数执行失败时，将抛异常并输出错误信息。
 
-##错误##
+## 错误
 
 `createCL()`函数常见异常如下：
 
@@ -146,11 +168,11 @@ Collection Space
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
 可以参考[常见错误处理指南][faq]了解更多内容。
 
-##版本##
+## 版本
 
 v1.0 及以上版本。
 
-##示例##
+## 示例
 
 1. 在集合空间 sample 下创建集合 employee，不指定分区键。
 
@@ -218,6 +240,7 @@ v1.0 及以上版本。
 [sequoiadb_limitation]:manual/Manual/sequoiadb_limitation.md
 [createCS]:manual/Manual/Sequoiadb_Command/Sdb/createCS.md
 [domain]:manual/Distributed_Engine/Architecture/domain.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

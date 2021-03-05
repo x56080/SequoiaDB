@@ -1,5 +1,5 @@
 
-##描述##
+## 描述
 
 编目信息快照 $SNAPSHOT_CATA 列出当前数据库中所有集合的编目信息，每个集合一条记录。
 
@@ -7,16 +7,16 @@
 >
 >   该快照只能在协调节点执行。
 
-##标识##
+## 标识
 
 $SNAPSHOT_CATA
 
-##字段信息##
+## 字段信息
 
 | 字段名              | 类型   | 描述                         |
 | ------------------- | ------ | ---------------------------- |
 | Name                | string | 集合完整名                   |
-| UniqueID            | int64  | 集合的UniqueID，在集群上全局唯一 |
+| UniqueID            | int64  | 集合的 UniqueID，在集群上全局唯一 |
 | EnsureShardingIndex | boolean | 是否自动为分区键字段创建索引 |
 | ReplSize            | int32   | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
 | ShardingKey         | object | 数据分区类型：<br>- range：数据按分区键值的范围进行分区存储<br>- hash：数据按分区键的哈希值进行分区存储 |
@@ -40,8 +40,10 @@ $SNAPSHOT_CATA
 | AutoIncrement.Generated | string | 自增字段生成方式         |
 | AutoIncrement.SequenceName | string | 自增字段对应序列名    |
 | AutoIncrement.SequenceID | int64  | 自增字段对应序列ID      |
+| DataSourceID      | int32  | 数据源 ID                      |
+| Mapping           | string | 在[数据源][datasource]中所映射的集合名称    |
 
-##示例##
+## 示例
 
 - 查看普通集合的编目信息快照
 
@@ -170,42 +172,40 @@ $SNAPSHOT_CATA
      "ShardingType": "range",
      "Version": 2,
    }
-   ```   ```lang-javascript
-   > db.exec( "select * from $SNAPSHOT_CATA" )
    ```
-   
-   输出结果如下：
-   
-   ```lang-json
-   {
-     "_id": {
-       "$oid": "5e426b88e86d05a0a03e69c9"
-     }
-     "Name": "year_2019.month",
-     "UniqueID": 4294967298,
-     "Attribute": 1,
-     "AttributeDesc": "Compressed",
-     "CataInfo": [
-       {
-         "ID": 1,
-         "SubCLName": "year_2019.month_07",
-         "LowBound": {
-           "date": "20190701"
-         },
-         "UpBound": {
-           "date": "20190801"
-         }
-       }
-     ],
-     "CompressionType": 1,
-     "CompressionTypeDesc": "lzw",
-     "EnsureShardingIndex": true,
-     "IsMainCL": true,
-     "LobShardingKeyFormat": "YYYYMMDD",
-     "ShardingKey": {
-       "date": 1
-     },
-     "ShardingType": "range",
-     "Version": 2,
-   }
-   ```
+
+- 查看使用数据源的集合对应的编目信息快照
+
+    ```lang-javascript
+    > db.snapshot( SDB_SNAP_CATALOG )
+    ```
+
+    输出结果如下：
+
+    ```lang-json
+    {
+      "_id": {
+        "$oid": "5ffc313972e60c4d9be30c4f"
+      },
+      "Name": "sample2.employee",
+      "UniqueID": 8589934593,
+      "Version": 1,
+      "Attribute": 1,
+      "AttributeDesc": "Compressed",
+      "CompressionType": 1,
+      "CompressionTypeDesc": "lzw",
+      "CataInfo": [
+        {
+          "GroupID": -2147483647,
+          "GroupName": "DataSource"
+        }
+      ],
+      "DataSourceID": 1,
+      "Mapping": "sample2.employee"
+    }
+    ```
+
+
+[^_^]:
+    本文使用的所有引用及链接
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md

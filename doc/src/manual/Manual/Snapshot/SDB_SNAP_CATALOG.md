@@ -13,15 +13,14 @@
 编目信息快照可以列出所有集合的编目信息。
 
 > **Note:**  
+>
 > 该快照只能在协调节点执行。
 
-标识
-----
+## 标识
 
 SDB_SNAP_CATALOG
 
-字段信息
----
+## 字段信息
 
 | 字段名              | 类型   | 描述                         |
 | ------------------- | ------ | ---------------------------- |
@@ -50,133 +49,170 @@ SDB_SNAP_CATALOG
 | AutoIncrement.Generated   | string | 自增字段生成方式       |
 | AutoIncrement.SequenceName| string | 自增字段对应序列名     |
 | AutoIncrement.SequenceID  | int64 | 自增字段对应序列 ID     |
+| DataSourceID      | int32  | 数据源 ID                      |
+| Mapping           | string | 在[数据源][datasource]中所映射的集合名称    |
 
-##示例##
+## 示例
 
-- 查看普通集合编目信息快照
+- 查看普通集合的编目信息快照
 
- ```lang-javascript
- > db.snapshot( SDB_SNAP_CATALOG )
- ```
-
- 输出结果如下：
-  
- ```lang-json
- {
-   "_id": {
-     "$oid": "5e4245f9e86d05a0a03e69c8"
-   },
-   "Name": "sample.employee",
-   "UniqueID": 4294967297,
-   "Version": 1,
-   "Attribute": 1,
-   "AttributeDesc": "Compressed",
-   "CompressionType": 1,
-   "CompressionTypeDesc": "lzw",
-   "CataInfo": [
-     {
-       "GroupID": 1000,
-       "GroupName": "group1"
-      }
-     ]
- }
- ```
-
-- 查看水平分区集合编目信息快照
-
- ```lang-javascript
- > db.snapshot( SDB_SNAP_CATALOG )
- ```
-
- 输出结果如下：
-
- ```lang-json
- {
-   "_id": {
-     "$oid": "5247a2bc60080822db1cfba2"
-   },
-   "Name": "sample.employee",
-   "UniqueID": 261993005057,
-   "Version": 1,
-   "Attribute": 0,
-   "AttributeDesc": "",
-   "AutoIncrement": [
-     {
-       "SequenceName": "SYS_261993005057_studentID_SEQ",
-       "Field": "studentID",
-       "Generated": "default",
-       "SequenceID": 4
-     }
-   ],
-   "CompressionType": 0,
-   "CompressionTypeDesc": "snappy",
-   "ReplSize": 1,
-   "ShardingKey": {
-     "age": 1
-   },
-   "EnsureShardingIndex": true,
-   "ShardingType": "hash",
-   "Partition": 4096,
-   "InternalV": 3,
-   "CataInfo": [
-     {
-       "ID": 0,
-       "GroupID": 1000,
-       "GroupName": "group1",
-       "LowBound": {
-         "": {
-           "$minKey": 1
+    ```lang-javascript
+    > db.snapshot( SDB_SNAP_CATALOG )
+    ```
+    
+    输出结果如下：
+     
+    ```lang-json
+    {
+      "_id": {
+        "$oid": "5e4245f9e86d05a0a03e69c8"
+      },
+      "Name": "sample.employee",
+      "UniqueID": 4294967297,
+      "Version": 1,
+      "Attribute": 1,
+      "AttributeDesc": "Compressed",
+      "CompressionType": 1,
+      "CompressionTypeDesc": "lzw",
+      "CataInfo": [
+        {
+          "GroupID": 1000,
+          "GroupName": "group1"
          }
-       },
-       "UpBound": {
-         "": {
-           "$maxKey": 1
+        ]
+    }
+    ```
+
+- 查看水平分区集合的编目信息快照
+
+    ```lang-javascript
+    > db.snapshot( SDB_SNAP_CATALOG )
+    ```
+    
+    输出结果如下：
+    
+    ```lang-json
+    {
+      "_id": {
+        "$oid": "5247a2bc60080822db1cfba2"
+      },
+      "Name": "sample.employee",
+      "UniqueID": 261993005057,
+      "Version": 1,
+      "Attribute": 0,
+      "AttributeDesc": "",
+      "AutoIncrement": [
+        {
+          "SequenceName": "SYS_261993005057_studentID_SEQ",
+          "Field": "studentID",
+          "Generated": "default",
+          "SequenceID": 4
+        }
+      ],
+      "CompressionType": 0,
+      "CompressionTypeDesc": "snappy",
+      "ReplSize": 1,
+      "ShardingKey": {
+        "age": 1
+      },
+      "EnsureShardingIndex": true,
+      "ShardingType": "hash",
+      "Partition": 4096,
+      "InternalV": 3,
+      "CataInfo": [
+        {
+          "ID": 0,
+          "GroupID": 1000,
+          "GroupName": "group1",
+          "LowBound": {
+            "": {
+              "$minKey": 1
+            }
+          },
+          "UpBound": {
+            "": {
+              "$maxKey": 1
+             }
+           }
+         }
+        ]
+      "AutoSplit": ture,
+    }
+    ```
+
+- 查看垂直分区集合的编目信息快照
+
+    ```lang-javascript
+    > db.snapshot( SDB_SNAP_CATALOG )
+    ```
+    
+    输出结果如下：
+    
+    ```lang-json
+    {
+      "_id": {
+        "$oid": "5e426b88e86d05a0a03e69c9"
+      }
+      "Name": "year_2019.month",
+      "UniqueID": 4294967298,
+      "Attribute": 1,
+      "AttributeDesc": "Compressed",
+      "CataInfo": [
+        {
+          "ID": 1,
+          "SubCLName": "year_2019.month_07",
+          "LowBound": {
+            "date": "20190701"
+          },
+          "UpBound": {
+            "date": "20190801"
           }
         }
-      }
-     ]
-   "AutoSplit": ture,
- }
- ```
+      ],
+      "CompressionType": 1,
+      "CompressionTypeDesc": "lzw",
+      "EnsureShardingIndex": true,
+      "IsMainCL": true,
+      "LobShardingKeyFormat": "YYYYMMDD",
+      "ShardingKey": {
+        "date": 1
+        },
+      "ShardingType": "range",
+      "Version": 2,
+    }
+    ```
 
-- 查看垂直分区集合编目信息快照
+- 查看使用数据源的集合对应的编目信息快照
 
- ```lang-javascript
- > db.snapshot( SDB_SNAP_CATALOG )
- ```
+    ```lang-javascript
+    > db.snapshot( SDB_SNAP_CATALOG )
+    ```
 
- 输出结果如下：
+    输出结果如下：
 
- ```lang-json
- {
-   "_id": {
-     "$oid": "5e426b88e86d05a0a03e69c9"
-   }
-   "Name": "year_2019.month",
-   "UniqueID": 4294967298,
-   "Attribute": 1,
-   "AttributeDesc": "Compressed",
-   "CataInfo": [
-     {
-       "ID": 1,
-       "SubCLName": "year_2019.month_07",
-       "LowBound": {
-         "date": "20190701"
-       },
-       "UpBound": {
-         "date": "20190801"
-       }
-     }
-   ],
-   "CompressionType": 1,
-   "CompressionTypeDesc": "lzw",
-   "EnsureShardingIndex": true,
-   "IsMainCL": true,
-   "LobShardingKeyFormat": "YYYYMMDD",
-   "ShardingKey": {
-     "date": 1
-     },
-   "ShardingType": "range",
-   "Version": 2,
- }
- ```
+    ```lang-json
+    {
+      "_id": {
+        "$oid": "5ffc313972e60c4d9be30c4f"
+      },
+      "Name": "sample2.employee",
+      "UniqueID": 8589934593,
+      "Version": 1,
+      "Attribute": 1,
+      "AttributeDesc": "Compressed",
+      "CompressionType": 1,
+      "CompressionTypeDesc": "lzw",
+      "CataInfo": [
+        {
+          "GroupID": -2147483647,
+          "GroupName": "DataSource"
+        }
+      ],
+      "DataSourceID": 1,
+      "Mapping": "sample2.employee"
+    }
+    ```
+
+[^_^]:
+    本文使用的所有引用及链接
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md
