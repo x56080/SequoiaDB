@@ -29,7 +29,7 @@
             <a class="linkButton" ng-style="{true:{'font-weight':'bold','color':'#FF7547'}}[showType == 'cs'&&csID == csInfo.i]" ng-click="showCSInfo(csInfo.i)">{{csInfo.Name}}</a>
          </div>
          <div class="Ellipsis" table-key="TotalRecords">{{csInfo.TotalRecords}}</div>
-         <div class="Ellipsis" table-key="TotalSize">{{csInfo.TotalSize}}</div>
+         <div class="Ellipsis" table-key="TotalSize">{{csInfo.TotalSizeFmt}}</div>
          <div class="Ellipsis" table-key="clNum">{{csInfo.clNum}}</div>
          <div class="Ellipsis" table-key="GroupName.length">{{csInfo.GroupName.length}}</div>
       </div>

@@ -309,7 +309,7 @@ _DataDatabaseIndex.getCSInfo = function( $scope, SdbRest ){
 
                   //全部保留2位小数，增加单位（这是给列表用的, 汇总信息）
                   $.each( $scope.csList, function( index, csInfo ){
-                     csInfo['TotalSize']               = dataSizeFmt( csInfo['TotalSize'], 'MB' ) ;
+                     csInfo['TotalSizeFmt']            = dataSizeFmt( csInfo['TotalSize'], 'MB' ) ;
 
                      csInfo['Info']['PageSize']        = dataSizeFmt( csInfo['Info']['PageSize'], 'KB' ) ;
                      csInfo['Info']['LobPageSize']     = dataSizeFmt( csInfo['Info']['LobPageSize'], 'KB' ) ;
@@ -324,7 +324,7 @@ _DataDatabaseIndex.getCSInfo = function( $scope, SdbRest ){
                      csInfo['Info']['FreeSize']        = dataSizeFmt( csInfo['Info']['FreeSize'], 'MB' ) ;
                      csInfo['Info']['MaxDataCapSize']  = dataSizeFmt( csInfo['Info']['MaxDataCapSize'], 'GB' ) ;
                      csInfo['Info']['MaxIndexCapSize'] = dataSizeFmt( csInfo['Info']['MaxIndexCapSize'], 'GB' ) ;
-                      csInfo['Info']['MaxLobCapSize']   = dataSizeFmt( csInfo['Info']['MaxLobCapSize'], 'GB' ) ;
+                     csInfo['Info']['MaxLobCapSize']   = dataSizeFmt( csInfo['Info']['MaxLobCapSize'], 'GB' ) ;
                   } ) ;
                }
 
@@ -381,6 +381,7 @@ _DataDatabaseIndex.getCSInfo = function( $scope, SdbRest ){
 
                $scope.showCSInfo( 0 ) ;
                $scope.$apply() ;
+
                $scope.CsTable['body'] = $scope.csList ;
                $.each( $scope.CsTable['body'], function( index ){
                   $scope.CsTable['body'][index]['i'] = index ;
