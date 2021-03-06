@@ -25,6 +25,7 @@
 [addtoset]:manual/Manual/Operator/Update_Operator/addtoset.md
 [pop]:manual/Manual/Operator/Update_Operator/pop.md
 [pull]:manual/Manual/Operator/Update_Operator/pull.md
+[pull_by]:manual/Manual/Operator/Update_Operator/pull_by.md
 [pull_all]:manual/Manual/Operator/Update_Operator/pull_all.md
 [pull_all_by]:manual/Manual/Operator/Update_Operator/pull_all_by.md
 [push]:manual/Manual/Operator/Update_Operator/push.md
