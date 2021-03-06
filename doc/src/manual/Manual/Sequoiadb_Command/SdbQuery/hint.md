@@ -1,17 +1,20 @@
+## 名称
 
-##语法##
+hint - 按指定的索引遍历结果集
 
-***query.hint( \<hint\> )***
+## 语法
 
-##类别##
+**query.hint( \<hint\> )**
+
+## 类别
 
 SdbQuery
 
-##描述##
+## 描述
 
 按指定的索引遍历结果集。
 
-##参数##
+## 参数
 
 | 参数名 | 参数类型 | 默认值 | 描述                       | 是否必填 |
 | ------ | -------- | ------ | -------------------------- | -------- |
@@ -23,18 +26,22 @@ SdbQuery
 > 3. v3.0开始，数据库在选择索引时，会基于数据和索引的统计模型进行综合分析，最终会选择一个最恰当的索引使用。所以，从v3.0开始，当使用hint()指定多个索引时，数据库将能够选择最合适当前查询的索引。
 
 
-##返回值##
+## 返回值
 
 返回查询结果集的游标。
 
-##错误##
+## 错误
 
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
 关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
-##示例##
+## 版本
+
+v2.0 及以上版本。
+
+## 示例
 
 * 强制要求查询走表扫描。
 

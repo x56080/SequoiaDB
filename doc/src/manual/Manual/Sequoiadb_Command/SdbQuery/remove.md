@@ -1,13 +1,16 @@
+## 名称
 
-##语法##
+remove - 删除查询后的结果集
 
-***query.remove()***
+## 语法
 
-##类别##
+**query.remove()**
+
+## 类别
 
 SdbQuery
 
-##描述##
+## 描述
 
 删除查询后的结果集。
 
@@ -19,22 +22,26 @@ SdbQuery
 
 > 3. 在集群中与 query.limit() 或 query.skip() 同时使用时，要保证查询条件会在单个节点或单个子表上执行。
 
-##参数##
+## 参数
 
 无
 
-##返回值##
+## 返回值
 
 返回删除的结果集的游标。
 
-##错误##
+## 错误
 
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
 关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
-##示例##
+## 版本
+
+v2.0 及以上版本。
+
+## 示例
 
 * 查询集合 employee 下 age 字段值大于 10 的记录，并将符合条件的记录删除。
 
