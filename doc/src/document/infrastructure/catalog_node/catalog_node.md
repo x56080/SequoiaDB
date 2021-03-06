@@ -15,6 +15,7 @@
   | [SYSDOMAINS](infrastructure/catalog_node/SYSDOMAINS.md) | 保存了该集群中所有用户域的信息 |
   | [SYSNODES](infrastructure/catalog_node/SYSNODES.md) | 保存了该集群中所有的逻辑节点与复制组信息 |
   | [SYSTASKS](infrastructure/catalog_node/SYSTASKS.md) | 保存了该集群中所有正在运行的后台任务信息 |
+  | [SYSDATASOURCES](infrastructure/catalog_node/SYSDATASOURCES.md) | 保存了该集群中所有数据源的元数据信息 |
 
 - **SYSAUTH：** 系统认证集合空间，包含一个用户集合，保存当前系统中所有的用户信息
 

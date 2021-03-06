@@ -46,6 +46,7 @@
 | [$LIST_BACKUP](reference/SQL_grammar/monitoring/LIST_BACKUP.md) | [SDB_LIST_BACKUPS](database_management/monitoring/list/SDB_LIST_BACKUPS.md) | 备份列表 | 备份列表列出当前数据库的备份信息 |
 | [$LIST_SVCTASKS](reference/SQL_grammar/monitoring/LIST_SVCTASKS.md) | [SDB_LIST_SVCTASKS](database_management/monitoring/list/SDB_LIST_SVCTASKS.md) | 服务任务列表 | 服务任务列表列出当前数据库节点中所有的服务任务 |
 | [$LIST_USER](reference/SQL_grammar/monitoring/LIST_USER.md) | [SDB_LIST_USERS](database_management/monitoring/list/SDB_LIST_USERS.md) | 用户列表 | 用户列表列出当前集群中的所有用户信息 |
+| [$LIST_DATASOURCE](reference/SQL_grammar/monitoring/LIST_DATASOURCE.md) | [SDB_LIST_DATASOURCES](database_management/monitoring/list/SDB_LIST_DATASOURCES.md) | 数据源列表 | 数据源列表列出当前数据库中所有数据源的元数据信息 |
 
 ##SQL到SequoiaDB映射表##
 
