@@ -12,6 +12,10 @@ MariaDB 实例组是由若干 MariaDB 实例组成的一个无状态的集群，
 + 日志回放：从 SequoiaDB 获取元数据操作日志，并在本地回放，回放操作不下发到 SequoiaDB。
 + 元数据全量同步：实例组功能允许新增 SQL 实例加入实例组。新增的 SQL 实例第一次启动时，需要从实例组中选取一个可用的 SQL 实例进行元数据全量同步操作。全量同步完成后，需要启动新增实例。如果实例组内没有实例，则直接启动新增实例。
 
+> **Note：**
+>
+> 用户在使用实例组功能时，需确保 SequoiaDB 事务功能已开启（即通过[配置快照][sdb_snap_configs]查看 transactionon 为 true）。
+
 ## 实例组配置参数 ##
 
 **server_ha_inst_group_name**
@@ -370,3 +374,4 @@ ha_inst_group_clear 工具用于清除实例组或者实例的配置信息。
     本文使用到的所有连接及引用。
 [instance_group]:images/Database_Instance/Relational_Instance/MySQL_Instance/Operation/instance_group.png
 [sdb_maria_ctl]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/sdb_maria_ctl.md
+[sdb_snap_configs]:manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md
