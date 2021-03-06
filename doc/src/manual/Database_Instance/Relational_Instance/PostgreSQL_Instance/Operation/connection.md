@@ -45,7 +45,7 @@
 
     >**Note:**
     >
-    > 详细参数说明可参考 [关联 SequoiaDB 连接参数说明][connectpara]。
+    > 详细参数说明可参考[关联 SequoiaDB 连接参数说明][connectpara]。
 
 5. 关联 SequoiaDB 集合空间与集合
 
@@ -56,7 +56,7 @@
     >**Note:**
     >
     > - 在 PostgreSQL 中建立相应的映射表关联 SequoiaDB 集合时，需要确保映射表的字段名与集合的字段名大小写一致，且映射表的字段类型与集合的字段类型一致；否则，将查询不到相关数据。
-    > - 详细参数说明可参考 [关联 SequoiaDB 集合空间与集合参数说明][collectionpara]。
+    > - 详细参数说明可参考[关联 SequoiaDB 集合空间与集合参数说明][collectionpara]。
 
 6. 更新表的统计信息
 
@@ -110,15 +110,15 @@
 
 | PostgreSQL	    | API        | 注意事项                                      |
 | ----------------- | ---------------- | --------------------------------------------- |
-| smallint	        | int32              | 当 API 中的值超过smallint范围时会发生截断 |
+| smallint	        | int32              | 当 API 中的值超过 smallint 范围时会发生截断 |
 | integer        	| int32              |                                               |
 | bigint        	| int64             |                                               |
 | serial           	| int32              |                                               |
 | bigserial      	| int64             |                                               |
 | real              | double           | 存在精度问题，SequoiaDB 存储时不是完全一致    |
 | double precision  | double           |                                               |
-| numeric           | decimal/string | 在创建外表时，指定选项 decimal 为 'on', numeric 映射对应 decimal ，否则对应 string   |
-| decimal           | decimal/string | 在创建外表时，指定选项 decimal 为 'on', decimal 映射对应 decimal ，否则对应 string   |
+| numeric           | decimal/string | 在创建外表时，指定选项 decimal 为'on', numeric 映射对应 decimal ，否则对应 string   |
+| decimal           | decimal/string | 在创建外表时，指定选项 decimal 为'on', decimal 映射对应 decimal ，否则对应 string   |
 | text              | string           |                                               |
 | char              | string           |                                               |
 | varchar           | string           |                                               |
@@ -142,8 +142,8 @@
 | preferedinstance | string | 设置 SequoiaDB 的连接属性，多个属性以逗号分隔，如：preferedinstance '1,2,A'，详细配置可参考 [preferedinstance][preferedinstance] 取值 | 否 |
 | preferedinstancemode | string | 设置 SequoiaDB 的连接属性 preferedinstance 的选择模式 | 否 |
 | sessiontimeout | string | 设置 SequoiaDB 的连接属性会话超时时间，如：sessiontimeout '100' | 否 |
-| transaction | string | 设置 SequoiaDB 是否开启事务，默认为 off，开启为 on | 否 |
-| cipher | string | 设置是否使用加密文件输入密码，默认为 off，开启为 on；密文模式的介绍可参考[密码管理][system_security] | 否 |
+| transaction | string | 设置 SequoiaDB 与 PostgreSQL 之间的操作是否使用事务，默认为'off'，开启为'on' | 否 | 
+| cipher | string | 设置是否使用加密文件输入密码，默认为'off'，开启为'on'<br> 密文模式的介绍可参考[密码管理][system_security] | 否 |
 | token | string | 设置加密令牌 | 否 |
 | cipherfile | string | 设置加密文件，默认为 `~/sequoiadb/passwd` | 否 |
 
@@ -158,9 +158,9 @@
 | ------ | ------   | ------ | ------ |
 | collectionspace | string | SequoiaDB 中已存在的集合空间 | 是 |
 | collection | string | SequoiaDB 中已存在的集合 | 是 |
-| decimal | string | 是否对接 SequoiaDB 的 decimal 字段，默认为 off | 否 |
-| pushdownsort | string | 是否下压排序条件到 SequoiaDB，默认为 on，关闭为 off | 否 |
-| pushdownlimit | string | 是否下压 limit 和 offset 条件到 SequoiaDB，默认为 on。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题 | 否 |
+| decimal | string | 是否对接 SequoiaDB 的 decimal 字段，默认为'off' | 否 |
+| pushdownsort | string | 是否下压排序条件到 SequoiaDB，默认为'on'，关闭为'off' | 否 |
+| pushdownlimit | string | 是否下压 limit 和 offset 条件到 SequoiaDB，默认为'on'。开启 pushdownlimit 时，必须同时开启 pushdownsort ，否则可能会造成结果非预期的问题 | 否 |
 
 >**Note:**
 >
