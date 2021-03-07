@@ -80,6 +80,10 @@ namespace engine
    #define MON_DUMP_DFT_BUILDER_SZ  ( 1024 )
    #define MON_DUMP_BUFF_STAT_SZ    ( 128 )
 
+   #define MON_CL_DETAIL_VERSION_NULL ( 0 )
+   #define MON_CL_DETAIL_VERSION_V1 ( 1 )
+   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V1
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
                                  UINT32 size,
@@ -1612,7 +1616,259 @@ namespace engine
       return rc ;
    }
 
-   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
+   INT32 _monDetailObj2InfoV1( const BSONObj &obj, detailedInfo &info )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         BSONObjIterator iter( obj ) ;
+
+         // NodeName
+         BSONElement ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_NODE_NAME ),
+                     "Unexcepted field here" ) ;
+
+         // GroupName
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_GROUPNAME ),
+                     "Unexcepted field here" ) ;
+
+         // InternalV
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION ),
+                     "Unexcepted field here" ) ;
+         SDB_ASSERT( 1 == ele.numberInt(), "Wrong protocal version" ) ;
+
+         // ID
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ID ),
+                     "Unexcepted field here" ) ;
+         info._blockID = (UINT16) ele.Int() ;
+
+         // LogicalID
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOGICAL_ID ),
+                     "Unexcepted field here" ) ;
+         info._logicID = ele.Int() ;
+
+         // Sequence
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SEQUENCE ),
+                     "Unexcepted field here" ) ;
+
+         // Indexes
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INDEXES ),
+                     "Unexcepted field here" ) ;
+         info._numIndexes = ele.Int() ;
+
+         // Status
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_STATUS ),
+                     "Unexcepted field here" ) ;
+
+         // Attributes
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_ATTRIBUTE ),
+                     "Unexcepted field here" ) ;
+
+         // CompressionType
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COMPRESSIONTYPE ),
+                     "Unexcepted field here" ) ;
+
+         // DictionaryCreated
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_CREATED ),
+                     "Unexcepted field here" ) ;
+         info._dictCreated = ele.Bool() ;
+
+         // DictionaryVersion
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DICT_VERSION ),
+                     "Unexcepted field here" ) ;
+
+         // PageSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PAGE_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._pageSize = ele.Int() ;
+
+         // LobPageSize
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_PAGE_SIZE ),
+                     "Unexcepted field here" ) ;
+         info._lobPageSize = ele.Int() ;
+
+         // TotalRecords
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_RECORDS ),
+                     "Unexcepted field here" ) ;
+         info._totalRecords = ele.Long() ;
+
+         // TotalLobs
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOBS ),
+                     "Unexcepted field here" ) ;
+         info._totalLobs = ele.Long() ;
+
+         // TotalDataPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalDataPages = ele.Int() ;
+
+         // TotalIndexPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalIndexPages = ele.Int() ;
+
+         // TotalLobPages
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_LOB_PAGES ),
+                     "Unexcepted field here" ) ;
+         info._totalLobPages = ele.Int() ;
+
+         // TotalDataFreeSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DATA_FREESPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalDataFreeSpace = ele.Long() ;
+
+         // TotalIndexFreeSpace
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_FREESPACE ),
+                     "Unexcepted field here" ) ;
+         info._totalIndexFreeSpace = ele.Long() ;
+
+         // CurrentCompressionRatio
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_CURR_COMPRESS_RATIO ),
+                     "Unexcepted field here" ) ;
+         info._currCompressRatio = (UINT32)(ele.Double() * 100.0) ;
+
+         // DataCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._dataCommitLSN = ele.Long() ;
+
+         // IndexCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._idxCommitLSN = ele.Long() ;
+
+         // LobCommitLSN
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMIT_LSN ),
+                     "Unexcepted field here" ) ;
+         info._lobCommitLSN = ele.Long() ;
+
+         // DataCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATA_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._dataIsValid = ele.Bool() ;
+
+         // IndexCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_IDX_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._idxIsValid = ele.Bool() ;
+
+         // LobCommitted
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_LOB_COMMITTED ),
+                     "Unexcepted field here" ) ;
+         info._lobIsValid = ele.Bool() ;
+
+         // TotalDataRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDataRead = ele.Long() ;
+
+         // TotalIndexRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIndexRead = ele.Long() ;
+
+         // TotalDataWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDATAWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDataWrite = ele.Long() ;
+
+         // TotalIndexWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINDEXWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIndexWrite = ele.Long() ;
+
+         // TotalUpdate
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALUPDATE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalUpdate = ele.Long() ;
+
+         // TotalDelete
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALDELETE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalDelete = ele.Long() ;
+
+         // TotalInsert
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALINSERT ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalInsert = ele.Long() ;
+
+         // TotalSelect
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALSELECT ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalSelect = ele.Long() ;
+
+         // TotalRead
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALREAD ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalRead = ele.Long() ;
+
+         // TotalWrite
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALWRITE ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalWrite = ele.Long() ;
+
+         // TotalTbScan
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALTBSCAN ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalTbScan = ele.Long() ;
+
+         // TotalIxScan
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTALIXSCAN ),
+                     "Unexcepted field here" ) ;
+         info._crudCB._totalIxScan = ele.Long() ;
+
+         ele = iter.next() ;
+         SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_RESETTIMESTAMP ),
+                     "Unexcepted field here" ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Failed to parse detail obj, exception: %s", e.what() ) ;
+      }
+      return rc ;
+   }
+
+   INT32 _monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
    {
       INT32 rc = SDB_OK ;
       BSONElement ele ;
@@ -1785,15 +2041,51 @@ namespace engine
             // ignore _flag _attribute _dictVersion _compressType _maxGlobTransID
          }
       }
-      catch ( bson::assertion &ba )
+      catch ( std::exception &e )
       {
-         rc = SDB_INVALIDARG ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Failed to parse detail bson object. "
                  "Field[%s] has a wrong type. Detail: %s",
-                 ele.fieldName(), ba.what() ) ;
+                 ele.fieldName(), e.what() ) ;
       }
       return rc ;
    }
+
+   INT32 monDetailObj2Info( const BSONObj &obj, detailedInfo &info )
+   {
+      /*
+         Generally, we parse BSON object by searching the field one by one.
+         However, as the fields order is always fixed, using strcmp to
+         search a field is unnecessary and with high cost. Therefore, we use
+         the internal version to mark the fields order. Once the version is
+         ensured, we just sequential traverse the BSON without any strcmp.
+      */
+      INT32 rc = SDB_OK ;
+      INT32 internal_version = MON_CL_DETAIL_VERSION_NULL ;
+      try
+      {
+         BSONElement ele = obj.getField( FIELD_NAME_INTERNAL_VERSION ) ;
+         if ( ele.isNumber() )
+         {
+            internal_version = ele.numberInt() ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         internal_version = MON_CL_DETAIL_VERSION_NULL ;
+      }
+
+      if ( MON_CL_DETAIL_VERSION_V1 == internal_version )
+      {
+         rc = _monDetailObj2InfoV1( obj, info ) ;
+      }
+      else
+      {
+         rc = _monDetailObj2Info( obj, info ) ;
+      }
+      return rc ;
+   }
+
 
    INT32 monDetailInfo2Obj( const detailedInfo &info,
                            INT32 sequence,
@@ -1805,6 +2097,7 @@ namespace engine
       CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
       try
       {
+         ob.append ( FIELD_NAME_INTERNAL_VERSION, MON_CL_DETAIL_CURRENT_V ) ;
          ob.append ( FIELD_NAME_ID, info._blockID ) ;
          ob.append ( FIELD_NAME_LOGICAL_ID, info._logicID ) ;
          ob.append ( FIELD_NAME_SEQUENCE, sequence ) ;
