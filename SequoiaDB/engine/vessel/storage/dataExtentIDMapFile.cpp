@@ -40,7 +40,7 @@
 #include "ossLikely.hpp"
 #include "vessel/extentDef.h"
 #include "vessel/vesselOptions.h"
-#include "vessel/stoargeUnitDef.h"
+#include "vessel/storageUnitDef.h"
 #include "vessel/spaceManagementPage.h"
 
 namespace engine

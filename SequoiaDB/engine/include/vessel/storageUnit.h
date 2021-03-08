@@ -39,7 +39,7 @@
 #include "dms.hpp"
 #include "vessel/vesselDef.h"
 #include "vessel/extentStorageFile.h"
-#include "vessel/stoargeUnitDef.h"
+#include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
 #include "vessel/vesselOptions.h"
 #include <vector>

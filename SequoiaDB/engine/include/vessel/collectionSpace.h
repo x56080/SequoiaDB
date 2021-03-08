@@ -43,7 +43,7 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/collectionSpaceGlobalPage.h"
 #include "vessel/collectionAllocator.h"
-#include "vessel/stoargeUnitDef.h"
+#include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
 #include "vessel/inMemBitMap.h"
 #include "vessel/listCollectionSpaceDef.h"
