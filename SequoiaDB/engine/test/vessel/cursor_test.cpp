@@ -36,10 +36,10 @@
 
 ******************************************************************************/
 
-#include "vessel/cursorObject.h"
+#include "vessel/cursorKernal.h"
 #include "vessel/ISession.h"
 #include "vessel/vesselDef.h"
-#include "vessel/vessel.h"
+#include "vessel/vesselImpl.h"
 
 #include "gtest/gtest.h"
 
@@ -82,7 +82,7 @@ class test_session : public ISession
       UINT32 _id;
 };
 
-class test_cursor : public cursorObject
+class test_cursor : public cursorKernal
 {
    public:
       test_cursor(){}
@@ -95,63 +95,15 @@ class test_cursor : public cursorObject
       }
 };
 
-class test_vessel : public vessel
+class test_vessel : public vesselImpl
 {
    public:
-   virtual BOOLEAN isOpen() {return SDB_OK;}
-         virtual INT32 setup(const outerResource &resource) {return SDB_OK;}
-         
-         virtual INT32 open(ISession *session, const openDBOptions &options) {return SDB_OK;}
-
-         
-         virtual INT32 close(ISession *session, const closeDBOptions &options) {return SDB_OK;}
-         
-
-         virtual INT32 createCollectionSpace(ISession *session,
-                                             const CHAR *name,
-                                             const createCSOptions &options) {return SDB_OK;}
-
-         virtual INT32 fastGetCollectionSpaceCount(ISession *session,
-                                                   UINT32 &count) {return SDB_OK;}
-
-         virtual INT32 listCollectionSpace(ISession *session,
-                                           IQueryFilter *filter,
-                                           ICursor *cursor) {return SDB_OK;}
-
-          virtual INT32 dropCollectionSpace(ISession *session,
-                                           const CHAR *name,
-                                           UINT32 logicalID,
-                                           const dropCSOptions &options)  {return SDB_OK;}
-
          virtual INT32 pushMoreToCursor(ISession * session,
-                                        cursorObject *cursor)
+                                        cursorKernal *cursor)
          {
             cursor->pushEnd();
             return SDB_OK;
          }
-
-         virtual INT32 createCollection(ISession *session,
-                                        UINT32 csLogicalID,
-                                        const CHAR *clName,
-                                        UINT32 clLogicalID,
-                                        const createCLOptions &options){return SDB_OK;}
-
-         virtual INT32 listCollections(ISession *session,
-                                       UINT32 csLogicalID,
-                                       IQueryFilter *filter,
-                                       ICursor *cursor){return SDB_OK;} 
-
-         virtual INT32 openCollection(ISession *session,
-                                      UINT32 csLogicalID,
-                                      UINT32 clLogicalID,
-                                      const openCLOptions &options,
-                                      collectionObject *obj) {return SDB_OK;}
-
-         public:
-            virtual INT32 insert(ISession *session,
-                              const collectionHandle *handle,
-                              const slice &record,
-                              const insertOptions &options) {return SDB_OK;}
 };
 
 

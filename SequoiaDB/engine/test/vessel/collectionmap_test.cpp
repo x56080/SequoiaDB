@@ -36,38 +36,40 @@
 
 ******************************************************************************/
 
-#include "vessel/collectionMap.h"
+#include "vessel/collectionAllocator.h"
 #include <gtest/gtest.h>
 
 using namespace engine::vessel;
 
-TEST(collectionmap, test1)
+TEST(collectionallocator, test1)
 {
-   collectionMap clMap;
+   collectionAllocator allocator;
+   collectionAllocator::collectionHolder *holder = NULL;
    CL_MB_ID mbID = INVALID_CL_MB_ID;
    INT32 rc = SDB_OK;
    for (UINT32 i = 0; i < 1000; ++i)
    {
-      rc = clMap.allocateMBID(mbID, NULL);
+      rc = allocator.allocateNewMB(mbID, &holder);
       ASSERT_EQ(SDB_OK, rc);
       ASSERT_EQ(i, mbID);
    }
-   clMap.teardown();
+   allocator.fini();
 }
 
-TEST(collectionmap, test2)
+TEST(collectionallocator, test2)
 {
-   collectionMap clMap;
+   collectionAllocator allocator;
+   collectionAllocator::collectionHolder *holder = NULL;
    CL_MB_ID mbID = INVALID_CL_MB_ID;
    INT32 rc = SDB_OK;
    for (UINT32 i = 0; i < 1000; ++i)
    {
-      rc = clMap.occupyMBID(i, NULL);
+      rc = allocator.occupyMB(i, NULL);
       ASSERT_EQ(SDB_OK, rc);
    }
 
-   rc = clMap.allocateMBID(mbID, NULL);
+   rc = allocator.allocateNewMB(mbID, NULL);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(1000, mbID);
-   clMap.teardown();
+   allocator.fini();
 }

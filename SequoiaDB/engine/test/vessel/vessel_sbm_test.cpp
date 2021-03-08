@@ -47,7 +47,7 @@ TEST(sbmtest, test1)
    UINT32 freeBound = 0;
    UINT32 offset = 0;
 
-   rc = bitmap.setup(bitCount, freeBound);
+   rc = bitmap.init(bitCount, freeBound);
    ASSERT_EQ(SDB_OK, rc);
    rc = bitmap.allocateBits(1, &offset);
    ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
@@ -65,7 +65,7 @@ TEST(sbmtest, test1)
    rc = bitmap.allocateBits(1, &offset);
    ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
 
-   rc = bitmap.teardown();
+   rc = bitmap.fini();
    ASSERT_EQ(SDB_OK, rc);
 }
 
@@ -79,7 +79,7 @@ TEST(sbmtest, test2)
    UINT32 buf[freeBound];
    UINT32 loop = bitCount / freeBound;
 
-   rc = bitmap.setup(bitCount, freeBound);
+   rc = bitmap.init(bitCount, freeBound);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = bitmap.allocateNewBitPage();
@@ -104,7 +104,7 @@ TEST(sbmtest, test2)
       ASSERT_EQ(loop * 8 + i, buf[i]);
    }
 
-   bitmap.teardown();
+   bitmap.fini();
 }
 
 TEST(sbmtest, test3)
@@ -115,7 +115,7 @@ TEST(sbmtest, test3)
    UINT32 offset = 0;
    const UINT32 freeBound = 0;
 
-   rc = bitmap.setup(bitCount, freeBound);
+   rc = bitmap.init(bitCount, freeBound);
    ASSERT_EQ(SDB_OK, rc);
 
 
@@ -134,5 +134,5 @@ TEST(sbmtest, test3)
       ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
    }
 
-   bitmap.teardown();
+   bitmap.fini();
 }
