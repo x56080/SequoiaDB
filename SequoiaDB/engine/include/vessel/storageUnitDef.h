@@ -51,7 +51,7 @@ namespace vessel
    {
       createSUOptions():
       sid(INVALID_SPACE_ID),
-      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID)
+      uniqueID(UTIL_INVALID_CS_UNIQUE_ID)
       {}
 
       SPACE_ID sid;

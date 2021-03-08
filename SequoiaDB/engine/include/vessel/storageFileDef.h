@@ -146,7 +146,7 @@ namespace vessel
       secretValue(0),
       flags(0),
       spaceID(INVALID_SPACE_ID),
-      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
+      uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
       spaceType(INVALID_SPACE_TYPE),
       sequence(0),
       pageSize(0),

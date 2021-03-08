@@ -50,7 +50,7 @@ namespace vessel
       public:
          listCollectionSpaceRecord():
          version(0),
-         uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
+         uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
          spaceID(INVALID_SPACE_ID),
          status(0),
          flags(0),

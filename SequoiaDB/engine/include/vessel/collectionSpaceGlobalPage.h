@@ -77,7 +77,7 @@ namespace vessel
       version(INALID_CMR_VERSION),
       status(0),
       flags(0),
-      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
+      uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
       maxCLLogicalID(DMS_INVALID_LOGICCLID)
       {
          ossMemset(name, 0, sizeof(name));
@@ -98,7 +98,7 @@ namespace vessel
          version = INALID_CMR_VERSION;
          status = 0;
          flags = 0;
-         uniqueID = UTIL_INVLIAD_CS_UNIQUE_ID;
+         uniqueID = UTIL_INVALID_CS_UNIQUE_ID;
          maxCLLogicalID = DMS_INVALID_LOGICCLID;
          ossMemset(name, 0, sizeof(name));
       }
