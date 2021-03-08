@@ -98,6 +98,8 @@ class test_cursor : public cursorKernal
 class test_vessel : public vesselImpl
 {
    public:
+	    test_vessel(){}
+		virtual ~test_vessel(){}
          virtual INT32 pushMoreToCursor(ISession * session,
                                         cursorKernal *cursor)
          {
