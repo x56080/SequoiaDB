@@ -2061,8 +2061,8 @@
       <code>
          <name>SDB_DOMAIN_IS_OCCUPIED</name>
          <description>
-            <en>Domain is not empty</en>
-            <cn>域非空</cn>
+            <en>Domain has been used</en>
+            <cn>域已被使用</cn>
          </description>
       </code>
 
@@ -2467,7 +2467,7 @@
             <cn>达到最大或最小限制</cn>
          </description>
       </code>
-	  <code>
+      <code>
          <name>SDB_DS_NOT_ENABLE</name>
          <description>
             <en>data source is not enabled yet</en>
@@ -2769,7 +2769,7 @@
             <cn>鉴权模式不兼容</cn>
          </description>
       </code>
-      
+
       <code>
          <name>SDB_DMS_UNQIUEID_UPGRADE</name>
          <description>
@@ -2795,6 +2795,62 @@
       </code>
 
       <code>
+         <name>SDB_ERROR_RESERVED_349</name> <!-- STP_NOT_AVAILABLE -->
+         <description>
+            <en>Reserved</en> <!-- SequoiaDB Time Protocol node is not available -->
+            <cn>保留</cn> <!-- 时间服务不可用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_350</name> <!-- STP_SYNC_FAILED -->
+         <description>
+            <en>Reserved</en> <!-- Serial Time Protocol node failed to synchronize -->
+            <cn>保留</cn> <!-- 时间服务同步失败 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_351</name> <!-- STP_TIME_AHEAD_AFTER_SYNC -->
+         <description>
+            <en>Reserved</en> <!-- Time of Serial Time Protocol node is ahead of the source after synchronization -->
+            <cn>保留</cn> <!-- 时间服务同步后本地时间太快 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_352</name> <!-- STP_SYNC_BUSY -->
+         <description>
+            <en>Reserved</en> <!-- Serial Time Protocol node is busy synchronizing -->
+            <cn>保留</cn> <!-- 时间服务正在同步 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_353</name> <!-- SDB_GLOB_TRANS_NOT_AVAILABLE -->
+         <description>
+            <en>Reserved</en> <!-- Global transaction is not available -->
+            <cn>保留</cn> <!-- 全局事务不可用 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_354</name> <!-- SDB_GLOB_LOWTRAN_UNKNOWN -->
+         <description>
+            <en>Reserved</en> <!-- Global LowTran is unknown -->
+            <cn>保留</cn> <!-- 全局事务最早正在执行的事务 ID 未知 -->
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_ERROR_RESERVED_355</name> <!-- SDB_GLOB_TRANS_NOT_SYNC -->
+         <description>
+            <en>Reserved</en> <!-- Global transaction times of nodes are not synchronized -->
+            <cn>保留</cn> <!-- 节点间的全局逻辑时间不同步 -->
+         </description>
+      </code>
+
+      <code>
          <name>SDB_IXM_STAT_NOTEXIST</name>
          <description>
             <en>Index statistics do not exist</en>
@@ -2803,188 +2859,140 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_INTERNAL_ERR</name>
+         <name>SDB_CLIENT_CATA_VER_OLD</name>
          <description>
-            <en>An internal error of vessel has occurred</en>
-            <cn>发生了一个内部错误</cn>
+            <en>sdb client cata version old</en>
+            <cn>驱动端编目版本过旧</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_LC_DIRTY_LIST_FLUSHING</name>
+         <name>SDB_ERROR_RESERVED_358</name> <!-- SDB_RESTORE_IN_PROGRESS -->
          <description>
-            <en>There is a flushing task running now</en>
-            <cn>刷新脏页链表的任务正在运行</cn>
+            <en>Reserved</en> <!-- Database in restore-in-progress state -->
+            <cn>保留</cn> <!-- 数据库处于恢复中状态 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL</name>
+         <name>SDB_ERROR_RESERVED_359</name> <!-- SDB_RESTORE_NOT_IN_PROGRESS -->
          <description>
-            <en>Not enough pages in free list</en>
-            <cn>空闲链表中的内存页不足</cn>
+            <en>Reserved</en> <!-- Database is not in restore-in-progress state -->
+            <cn>保留</cn> <!-- 数据库不处于恢复中状态 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
+         <name>SDB_ERROR_RESERVED_360</name> <!-- SDB_RESTORE_NO_CONSISTENT_PIT -->
          <description>
-            <en>forbidden operation because of holding wrong type latch</en>
-            <cn>由于没有持有对应的锁类型，操作被禁止</cn>
+            <en>Reserved</en> <!-- No valid consistency point for point-in-time restore -->
+            <cn>保留</cn> <!-- 按时间还原没有一致的有效时间点 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_LC_NOT_IN_POOL</name>
+         <name>SDB_SEQUENCE_VALUE_USED</name>
          <description>
-            <en>Extent does not exist in lite cache</en>
-            <cn>数据块不在缓存中</cn>
+            <en>Sequence value has been used</en>
+            <cn>序列值已经被使用</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_INVALID_VESSEL_FILE</name>
+         <name>SDB_SEQUENCE_NEVER_USED</name>
          <description>
-            <en>invalid file</en>
-            <cn>非法的文件</cn>
+            <en>Sequence has never been used</en>
+            <cn>序列尚未被使用</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_CF_INVALID_SEQUENCE</name>
+         <name>SDB_SEQUENCE_OUT_OF_CACHE</name>
          <description>
-            <en>invalid sequence of control file</en>
-            <cn>非法的控制文件序号</cn>
+            <en>Out of sequence cache</en>
+            <cn>超出序列缓存</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_CRASHED_WHEN_CREATING</name>
+         <name>SDB_IXM_KEY_NOT_SUPPORT_ARRAY</name>
          <description>
-            <en>crashing happend when creating file</en>
-            <cn>创建文件时发生了异常崩溃</cn>
+            <en>Any field of index key cannot be array</en>
+            <cn>索引键的任意一个字段都不允许为数组</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_INVALID_PTR_OFFSET</name>
+         <name>SDB_TASK_ROLLBACK</name>
          <description>
-            <en>invalid pointer offset of disk page</en>
-            <cn>非法的数据块指针偏移</cn>
+            <en>Task has been rolled back</en>
+            <cn>任务被回滚</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_PAGE_NOT_EXISTS</name>
+         <name>SDB_ERROR_RESERVED_366</name> <!--Not used-->
          <description>
-            <en>page does not exist</en>
-            <cn>数据页不存在</cn>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_FS_UPPER_LIMIT</name>
+         <name>SDB_ERROR_RESERVED_367</name> <!--Not used-->
          <description>
-            <en>the space of file reaches the upper limit</en>
-            <cn>文件空间达到上限</cn>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_SMP_UPPER_LIMIT</name>
+         <name>SDB_ERROR_RESERVED_368</name> <!--Not used-->
          <description>
-            <en>the capacity of space management page reaches the upper limit</en>
-            <cn>空间管理页中的总容量达到上限</cn>
+            <en>Reserved</en> <!--Not used-->
+            <cn>保留</cn> <!--Not used-->
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_SMP_NO_FREE</name>
+         <name>SDB_CAT_DATASOURCE_EXIST</name>
          <description>
-            <en>no free page in space management page</en>
-            <cn>空间管理页中没有空闲页存在</cn>
+            <en>Data source already exists</en>
+            <cn>数据源已存在</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_PAGE_CRASHED</name>
+         <name>SDB_CAT_DATASOURCE_NOTEXIST</name>
          <description>
-            <en>data page is crashed</en>
-            <cn>数据页损坏</cn>
+            <en>Data source dose not exist</en>
+            <cn>数据源不存在</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_END_OF_CURSOR</name>
+         <name>SDB_CAT_DATASOURCE_INUSE</name>
          <description>
-            <en>hit the end of cursor</en>
-            <cn>到达游标的结尾处</cn>
+            <en>Data source is being used</en>
+            <cn>数据源在使用中</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_CURSOR_NO_SPACE</name>
+         <name>SDB_COORD_DATASOURCE_PERM_DENIED</name>
          <description>
-            <en>not enough space in cursor buf</en>
-            <cn>游标缓存空间不足</cn>
+            <en>Data source permission denied</en>
+            <cn>数据源权限错误</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_VESSEL_OUT_OF_RESOURCE</name>
+         <name>SDB_COORD_DATASOURCE_TRANS_FORBIDDEN</name>
          <description>
-            <en>some request is out of resource</en>
-            <cn>处理请求所需资源不足</cn>
+            <en>Transaction is not allowed on data source</en>
+            <cn>事务中不能操作数据源</cn>
          </description>
       </code>
 
-      <code>
-         <name>SDB_VESSEL_LOGICAL_PAGE_UNMAPPED</name>
-         <description>
-            <en>logical page has not been mapped</en>
-            <cn>逻辑数据页尚未映射到物理数据页</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_LC_LRU_SCAN_HIT_MAX</name>
-         <description>
-            <en>evicting from lru list hit the max steps</en>
-            <cn>从LRU列表中淘汰页达到最大搜索步长</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_STRIPING_NOT_FOUND</name>
-         <description>
-            <en>target striping not found</en>
-            <cn>目标分区不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_SG_NOT_FOUND</name>
-         <description>
-            <en>target striping group not found</en>
-            <cn>目标分区组不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_OP_ON_MBID_BANNED</name>
-         <description>
-            <en>operation on mbid is banned by allocator</en>
-            <cn>在该集合序列的操作被集合管理器禁止</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
-         <description>
-            <en>page is readonly because of in the snapshot</en>
-            <cn>数据页在快照范围内无法进行写操作</cn>
-         </description>
-      </code>
-      
    </codelist>
 </rclist>
