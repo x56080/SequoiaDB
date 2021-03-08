@@ -12,5 +12,5 @@ function test ()
 {
    var clName = CHANGEDPREFIX + "_cl_23602";
    var cs = commCreateCS( db, COMMCSNAME, true );
-   assert.tryThrow( -6, function() { cs.createCL( clName, { "RepairCheck": true } ) } );
+   assert.tryThrow( SDB_INVALIDARG, function() { cs.createCL( clName, { "RepairCheck": true } ) } );
 }

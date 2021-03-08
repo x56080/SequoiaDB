@@ -11,29 +11,14 @@ testConf.clName = CHANGEDPREFIX + "_cl_23604";
 main( test );
 function test ( testPara )
 {
-   var lobPath1 = "./lob_" + 23604;
+   var lobPath1 = WORKDIR + "/lob_23603";
    var lobPath2 = lobPath1 + "_2";
    var cl = testPara.testCL;
    var cmd = new Cmd();
 
    // 清理环境
-   try
-   {
-      cmd.run( "rm " + lobPath1 );
-   }
-   catch( e )
-   {
-      // 允许文件不存在
-   }
-
-   try
-   {
-      cmd.run( "rm " + lobPath2 );
-   }
-   catch( e )
-   {
-      // 允许文件不存在
-   }
+   cmd.run( "rm -rf " + lobPath1 );
+   cmd.run( "rm -rf " + lobPath2 );
 
    // 准备数据
    cl.insert( { "a": 1 }, { "a": 2 } );
@@ -72,6 +57,6 @@ function test ( testPara )
    cl.truncateLob( oid, 0 );
 
    // 清理环境
-   cmd.run( "rm " + lobPath1 );
-   cmd.run( "rm " + lobPath2 );
+   cmd.run( "rm -rf " + lobPath1 );
+   cmd.run( "rm -rf " + lobPath2 );
 }

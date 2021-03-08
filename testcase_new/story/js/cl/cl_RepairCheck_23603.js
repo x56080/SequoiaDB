@@ -11,42 +11,27 @@ testConf.clName = CHANGEDPREFIX + "_cl_23603";
 main( test );
 function test ( testPara )
 {
-   var lobPath1 = "./lob_" + 23603;
+   var lobPath1 = WORKDIR + "/lob_23603";
    var lobPath2 = lobPath1 + "_2";
    var cl = testPara.testCL;
    var cmd = new Cmd();
 
    // 清理环境
-   try
-   {
-      cmd.run( "rm " + lobPath1 );
-   }
-   catch( e )
-   {
-      // 允许文件不存在
-   }
-
-   try
-   {
-      cmd.run( "rm " + lobPath2 );
-   }
-   catch( e )
-   {
-      // 允许文件不存在
-   }
+   cmd.run( "rm -rf " + lobPath1 );
+   cmd.run( "rm -rf " + lobPath2 );
 
    // 准备数据
    cl.insert( { "a": 1 }, { "a": 2 } );
    cl.alter( { "RepairCheck": true } );
 
    // 被禁用的操作（insert/update/upsert/remove）
-   assert.tryThrow( -315, function() { cl.insert( { "a": 3 } ) } );
-   assert.tryThrow( -315, function() { cl.update( { "$set": { "b": 3 } }, { "a": 1 } ) } );
-   assert.tryThrow( -315, function() { cl.upsert( { "$set": { "c": 4 } }, { "a": 4 } ) } );
-   assert.tryThrow( -315, function() { cl.remove( { "a": 2 } ) } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.insert( { "a": 3 } ) } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.update( { "$set": { "b": 3 } }, { "a": 1 } ) } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.upsert( { "$set": { "c": 4 } }, { "a": 4 } ) } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.remove( { "a": 2 } ) } );
 
-   assert.tryThrow( -315, function() { cl.find( {} ).update( { "$set": { "b": 5 } } ).toArray() } );
-   assert.tryThrow( -315, function() { cl.find( {} ).remove().toArray() } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.find( {} ).update( { "$set": { "b": 5 } } ).toArray() } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.find( {} ).remove().toArray() } );
 
    // 不被禁用的操作
    // 结构化数据操作
@@ -70,6 +55,6 @@ function test ( testPara )
    cl.truncateLob( oid, 0 );
 
    // 清理环境
-   cmd.run( "rm " + lobPath1 );
-   cmd.run( "rm " + lobPath2 );
+   cmd.run( "rm -rf " + lobPath1 );
+   cmd.run( "rm -rf " + lobPath2 );
 }
