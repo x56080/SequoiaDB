@@ -2993,6 +2993,190 @@
             <cn>事务中不能操作数据源</cn>
          </description>
       </code>
+	  
+	  <code>
+         <name>SDB_VESSEL_INTERNAL_ERR</name>
+         <description>
+            <en>An internal error of vessel has occurred</en>
+            <cn>发生了一个内部错误</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_LC_DIRTY_LIST_FLUSHING</name>
+         <description>
+            <en>There is a flushing task running now</en>
+            <cn>刷新脏页链表的任务正在运行</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL</name>
+         <description>
+            <en>Not enough pages in free list</en>
+            <cn>空闲链表中的内存页不足</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
+         <description>
+            <en>forbidden operation because of holding wrong type latch</en>
+            <cn>由于没有持有对应的锁类型，操作被禁止</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_LC_NOT_IN_POOL</name>
+         <description>
+            <en>Extent does not exist in lite cache</en>
+            <cn>数据块不在缓存中</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_INVALID_VESSEL_FILE</name>
+         <description>
+            <en>invalid file</en>
+            <cn>非法的文件</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_CF_INVALID_SEQUENCE</name>
+         <description>
+            <en>invalid sequence of control file</en>
+            <cn>非法的控制文件序号</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_CRASHED_WHEN_CREATING</name>
+         <description>
+            <en>crashing happend when creating file</en>
+            <cn>创建文件时发生了异常崩溃</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_INVALID_PTR_OFFSET</name>
+         <description>
+            <en>invalid pointer offset of disk page</en>
+            <cn>非法的数据块指针偏移</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_PAGE_NOT_EXISTS</name>
+         <description>
+            <en>page does not exist</en>
+            <cn>数据页不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FS_UPPER_LIMIT</name>
+         <description>
+            <en>the space of file reaches the upper limit</en>
+            <cn>文件空间达到上限</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_SMP_UPPER_LIMIT</name>
+         <description>
+            <en>the capacity of space management page reaches the upper limit</en>
+            <cn>空间管理页中的总容量达到上限</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_SMP_NO_FREE</name>
+         <description>
+            <en>no free page in space management page</en>
+            <cn>空间管理页中没有空闲页存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_PAGE_CRASHED</name>
+         <description>
+            <en>data page is crashed</en>
+            <cn>数据页损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_END_OF_CURSOR</name>
+         <description>
+            <en>hit the end of cursor</en>
+            <cn>到达游标的结尾处</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_CURSOR_NO_SPACE</name>
+         <description>
+            <en>not enough space in cursor buf</en>
+            <cn>游标缓存空间不足</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_OUT_OF_RESOURCE</name>
+         <description>
+            <en>some request is out of resource</en>
+            <cn>处理请求所需资源不足</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_LOGICAL_PAGE_UNMAPPED</name>
+         <description>
+            <en>logical page has not been mapped</en>
+            <cn>逻辑数据页尚未映射到物理数据页</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_LC_LRU_SCAN_HIT_MAX</name>
+         <description>
+            <en>evicting from lru list hit the max steps</en>
+            <cn>从LRU列表中淘汰页达到最大搜索步长</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_STRIPING_NOT_FOUND</name>
+         <description>
+            <en>target striping not found</en>
+            <cn>目标分区不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_SG_NOT_FOUND</name>
+         <description>
+            <en>target striping group not found</en>
+            <cn>目标分区组不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_OP_ON_MBID_BANNED</name>
+         <description>
+            <en>operation on mbid is banned by allocator</en>
+            <cn>在该集合序列的操作被集合管理器禁止</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
+         <description>
+            <en>page is readonly because of in the snapshot</en>
+            <cn>数据页在快照范围内无法进行写操作</cn>
+         </description>
+      </code>
 
    </codelist>
 </rclist>
