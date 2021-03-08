@@ -2769,7 +2769,7 @@
             <cn>鉴权模式不兼容</cn>
          </description>
       </code>
-
+      
       <code>
          <name>SDB_DMS_UNQIUEID_UPGRADE</name>
          <description>
@@ -2795,58 +2795,58 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_349</name> <!-- STP_NOT_AVAILABLE -->
+         <name>STP_NOT_AVAILABLE</name>
          <description>
-            <en>Reserved</en> <!-- SequoiaDB Time Protocol node is not available -->
-            <cn>保留</cn> <!-- 时间服务不可用 -->
+            <en>SequoiaDB Time Protocol node is not available</en>
+            <cn>时间服务不可用</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_350</name> <!-- STP_SYNC_FAILED -->
+         <name>STP_SYNC_FAILED</name>
          <description>
-            <en>Reserved</en> <!-- Serial Time Protocol node failed to synchronize -->
-            <cn>保留</cn> <!-- 时间服务同步失败 -->
+            <en>Serial Time Protocol node failed to synchronize</en>
+            <cn>时间服务同步失败</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_351</name> <!-- STP_TIME_AHEAD_AFTER_SYNC -->
+         <name>STP_TIME_AHEAD_AFTER_SYNC</name>
          <description>
-            <en>Reserved</en> <!-- Time of Serial Time Protocol node is ahead of the source after synchronization -->
-            <cn>保留</cn> <!-- 时间服务同步后本地时间太快 -->
+            <en>Time of Serial Time Protocol node is ahead of the source after synchronization</en>
+            <cn>时间服务同步后本地时间太快</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_352</name> <!-- STP_SYNC_BUSY -->
+         <name>STP_SYNC_BUSY</name>
          <description>
-            <en>Reserved</en> <!-- Serial Time Protocol node is busy synchronizing -->
-            <cn>保留</cn> <!-- 时间服务正在同步 -->
+            <en>Serial Time Protocol node is busy synchronizing</en>
+            <cn>时间服务正在同步</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_353</name> <!-- SDB_GLOB_TRANS_NOT_AVAILABLE -->
+         <name>SDB_GLOB_TRANS_NOT_AVAILABLE</name>
          <description>
-            <en>Reserved</en> <!-- Global transaction is not available -->
-            <cn>保留</cn> <!-- 全局事务不可用 -->
+            <en>Global transaction is not available</en>
+            <cn>全局事务不可用</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_354</name> <!-- SDB_GLOB_LOWTRAN_UNKNOWN -->
+         <name>SDB_GLOB_LOWTRAN_UNKNOWN</name>
          <description>
-            <en>Reserved</en> <!-- Global LowTran is unknown -->
-            <cn>保留</cn> <!-- 全局事务最早正在执行的事务 ID 未知 -->
+            <en>Global LowTran is unknown</en>
+            <cn>全局事务最早正在执行的事务 ID 未知</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_355</name> <!-- SDB_GLOB_TRANS_NOT_SYNC -->
+         <name>SDB_GLOB_TRANS_NOT_SYNC</name>
          <description>
-            <en>Reserved</en> <!-- Global transaction times of nodes are not synchronized -->
-            <cn>保留</cn> <!-- 节点间的全局逻辑时间不同步 -->
+            <en>Global transaction times of nodes are not synchronized</en>
+            <cn>节点间的全局逻辑时间不同步</cn>
          </description>
       </code>
 
@@ -2867,26 +2867,26 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_358</name> <!-- SDB_RESTORE_IN_PROGRESS -->
+         <name>SDB_RESTORE_IN_PROGRESS</name>
          <description>
-            <en>Reserved</en> <!-- Database in restore-in-progress state -->
-            <cn>保留</cn> <!-- 数据库处于恢复中状态 -->
+            <en>Database is in restore-in-progress state</en>
+            <cn>数据库处于恢复中状态</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_359</name> <!-- SDB_RESTORE_NOT_IN_PROGRESS -->
+         <name>SDB_RESTORE_NOT_IN_PROGRESS</name>
          <description>
-            <en>Reserved</en> <!-- Database is not in restore-in-progress state -->
-            <cn>保留</cn> <!-- 数据库不处于恢复中状态 -->
+            <en>Database is not in restore-in-progress state</en>
+            <cn>数据库不处于恢复中状态</cn>
          </description>
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_360</name> <!-- SDB_RESTORE_NO_CONSISTENT_PIT -->
+         <name>SDB_RESTORE_NO_CONSISTENT_PIT</name>
          <description>
-            <en>Reserved</en> <!-- No valid consistency point for point-in-time restore -->
-            <cn>保留</cn> <!-- 按时间还原没有一致的有效时间点 -->
+            <en>No valid consistency point for point-in-time restore</en>
+            <cn>按时间还原没有一致的有效时间点</cn>
          </description>
       </code>
 
@@ -2921,12 +2921,12 @@
             <cn>索引键的任意一个字段都不允许为数组</cn>
          </description>
       </code>
-
+      
       <code>
-         <name>SDB_TASK_ROLLBACK</name>
+         <name>SDB_ERROR_RESERVED_365</name> <!-- SDB_TASK_ROLLBACK -->
          <description>
-            <en>Task has been rolled back</en>
-            <cn>任务被回滚</cn>
+            <en>Reserved</en> <!-- Task has been rolled back -->
+            <cn>保留</cn> <!-- 任务被回滚 -->
          </description>
       </code>
 
