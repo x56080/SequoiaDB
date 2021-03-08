@@ -440,7 +440,7 @@ class ObjMgr:
     def __setup_password(self):
         file = os.path.join(MY_CONF_PATH, CONFIG_FILE_NAME)
         if not os.path.exists(file):
-            print("[ERROR] Configuration file '{}' dose not " \
+            print("[ERROR] Configuration file '{}' does not " \
                   "exist".format(file))
             return 1
         global_parser = ConfigParser.ConfigParser()
