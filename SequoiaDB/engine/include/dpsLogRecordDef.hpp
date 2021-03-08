@@ -53,24 +53,12 @@ namespace engine
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
                                              // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205,
-      // real time of record ( related to --logtimeon option )
       DPS_LOG_PUBLIC_TIME = 206,
 
-      // global transaction components
-      // node ID component for transaction ID of V1
-      DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
-      // time component of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME = 208,
-      // time error component of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209,
-
-      DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
-      DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211,
-
       ///vessel only
-      DPS_LOG_PUBLIC_VESSEL_GPID = 212,
-      DPS_LOG_PUBLIC_VESSEL_FULLID = 213,
-      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 214,
+      DPS_LOG_PUBLIC_VESSEL_GPID = 207,
+      DPS_LOG_PUBLIC_VESSEL_FULLID = 208,
+      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 209,
    } ;
 
 /// number in public can not be used in definition !
@@ -227,17 +215,30 @@ namespace engine
    {
       //DPS_LOG_PUBLIC_VESSEL_GPID
       DPS_LOG_VESSEL_SMP_ALLOCATE_PAGE_TYPE = 1,
-      DPS_LOG_VESSEL_SMP_ALLOCATE_LPID = 2,
-      DPS_LOG_VESSEL_SMP_ALLOCATE_PID = 3,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_PAGE_CNT = 2,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_LPIDS = 3,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_PIDS = 4,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_EXT_ARGS = 5,
+      DPS_LOG_VESSEL_SMP_ALLOCATE_FREE = 6,
    };
 
    enum DPS_LOG_VESSEL_IMP_REMAP
    {
       //DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_IMP_REMAP_LPID = 1,
-      DPS_LOG_VESSEL_IMP_REMAP_OLD_SLOT = 2,
-      DPS_LOG_VESSEL_IMP_REMAP_NEW_SLOT = 3,
-   };//enum DPS_LOG_VESSEL_NEW_PAGE
+      DPS_LOG_VESSEL_IMP_REMAP_COUNT = 1,
+      DPS_LOG_VESSEL_IMP_REMAP_SNAP = 2,
+      DPS_LOG_VESSEL_IMP_REMAP_LPIDS = 3,
+      DPS_LOG_VESSEL_IMP_REMAP_PIDS = 4,
+      DPS_LOG_VESSEL_IMP_REMAP_FREE = 5,
+      DPS_LOG_VESSEL_IMP_REMAP_OLD = 6,
+   };//enum DPS_LOG_VESSEL_NEW_PAGE2
+
+   enum DPS_LOG_VESSEL_CSGP_UPDATE
+   {
+      //DPS_LOG_PUBLIC_VESSEL_GPID
+      DPS_LOG_VESSEL_CSGP_UPDATE_RECORD = 1,
+      DPS_LOG_VESSEL_CSGP_UPDATE_TYPE = 2,
+   };
 }
 
 #endif
