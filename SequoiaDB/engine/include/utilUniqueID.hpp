@@ -60,7 +60,7 @@ namespace engine
    /// id will be 0. In addition, system cs/cl unique id is 0.
    #define UTIL_UNIQUEID_NULL        0
    
-   #define UTIL_INVALID_CS_UNIQUE_ID 0xFFFFFFFF  UTIL_INVLIAD_CS_UNIQUE_ID
+   #define UTIL_INVALID_CS_UNIQUE_ID 0xFFFFFFFF
    #define UTIL_INVALID_CL_INNER_ID  0xFFFFFFFF
 
    /// Directly connect data node, then create cs/cl
