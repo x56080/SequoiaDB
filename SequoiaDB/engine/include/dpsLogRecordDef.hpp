@@ -48,24 +48,40 @@ namespace engine
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,
       DPS_LOG_PUBLIC_FULLNAME = 201,         // cl full name
+
+      // transaction ID
+      // V0: whole transaction ID
+      // V1: serial number with global transaction tag
       DPS_LOG_PUBLIC_TRANSID = 202,
       DPS_LOG_PUBLIC_PRETRANS = 203,
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
                                              // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205,
+      // real time of record ( related to --logtimeon option )
       DPS_LOG_PUBLIC_TIME = 206,
 
-      ///vessel only
-      DPS_LOG_PUBLIC_VESSEL_GPID = 207,
-      DPS_LOG_PUBLIC_VESSEL_FULLID = 208,
-      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 209,
+      // global transaction components
+      // node ID component for transaction ID of V1
+      DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
+      // time component of logical time for global transaction
+      DPS_LOG_PUBLIC_TRANS_TIME = 208,
+      // time error component of logical time for global transaction
+      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209,
+
+      DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
+      DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211,
+	  
+	  ///vessel only
+      DPS_LOG_PUBLIC_VESSEL_GPID = 212,
+      DPS_LOG_PUBLIC_VESSEL_FULLID = 213,
+      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 214,
    } ;
 
 /// number in public can not be used in definition !
 
    enum DPS_LOG_INSERT
    {
-      DPS_LOG_INSERT_OBJ = 1,
+      DPS_LOG_INSERT_OBJ = 1
    } ;
 
    enum DPS_LOG_UPDATE
@@ -81,7 +97,7 @@ namespace engine
 
    enum DPS_LOG_DELETE
    {
-      DPS_LOG_DELETE_OLDOBJ = 1,
+      DPS_LOG_DELETE_OLDOBJ = 1
    } ;
 
    enum DPS_LOG_POP
@@ -97,7 +113,7 @@ namespace engine
       DPS_LOG_CSCRT_LOBPAGESZ = 3,
       DPS_LOG_CSCRT_CSTYPE = 4,
       DPS_LOG_CSCRT_CSUNIQUEID = 5,
-      DPS_LOG_CSCRT_VESSEL_CSCRT_OPTIONS = 6,
+	  DPS_LOG_CSCRT_VESSEL_CSCRT_OPTIONS = 6,
       DPS_LOG_CSCRT_VESSEL_SPACE_ID = 7,
    } ;
 
@@ -118,7 +134,7 @@ namespace engine
       DPS_LOG_CLCRT_COMPRESS_TYPE = 2,
       DPS_LOG_CLCRT_EXT_OPTIONS = 3,
       DPS_LOG_CLCRT_CLUNIQUEID = 4,
-      DPS_LOG_CLCRT_VESSEL_CS_NAME = 5,
+	  DPS_LOG_CLCRT_VESSEL_CS_NAME = 5,
       DPS_LOG_CLCRT_VESSEL_CL_RECORD = 6,
    } ;
 
