@@ -5,6 +5,7 @@
  * @LastEditTime  : 2021.03.08
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
+testConf.skipStandAlone = true;
 testConf.clName = CHANGEDPREFIX + "_cl_23603";
 
 main( test );
