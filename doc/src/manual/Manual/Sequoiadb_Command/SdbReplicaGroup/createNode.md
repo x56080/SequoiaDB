@@ -1,10 +1,20 @@
-##语法##
+## 名称
 
-***rg.createNode( \<host\>, \<service\>, \<dbpath\>, \[config] )***
+createNode - 在当前复制组中创建节点
+
+## 语法
+
+**rg.createNode( \<host\>, \<service\>, \<dbpath\>, \[config] )**
+
+## 类别
+
+SdbReplicaGroup
+
+## 描述
 
 在当前复制组中创建节点。
 
-##参数描述##
+## 参数
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
@@ -17,11 +27,11 @@
 > rg.createNode() 方法的定义格式有四个参数：host，service，dbpath，config，如上表所示，host，dbpath 为字符串类型，Service 类型支持 int 或 string ，必填；最后一个是 Json 对象，选填。  
 > 格式：( "<主机名>", "<端口号>", "<节点路径>, "[ { <configParam>: value, ... } ] )
 
-##返回值##
+## 返回值
 
 无返回值，出错抛异常，并输出错误信息。可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息，通过 [getLastError()][getLastError] 获取错误码。关于错误处理可以参考[常见错误处理指南][faq]。
 
-##错误##
+## 错误
 
 错误信息记录在节点诊断日志（diaglog）中，可参考[错误码][error_code]。
 
@@ -32,7 +42,11 @@
 | -157     | 节点配置冲突 | 执行 netstat 命令检查节点端口是否已被占用。 |
 | -3       | 权限错误     | 检查节点路径是否正确，路径权限是否正确。 |
 
-##示例##
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 在复制组 group1 中创建一个 "hostname1:11830" 的节点，指定日志文件大小为64MB
 

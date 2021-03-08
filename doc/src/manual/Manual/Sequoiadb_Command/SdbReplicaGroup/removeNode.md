@@ -1,10 +1,20 @@
+## 名称
 
-##语法##
-***rg.removeNode( \<host\>, \<service\>, [options] )***
+removeNode - 删除当前复制组中的指定节点
+
+## 语法
+
+**rg.removeNode( \<host\>, \<service\>, [options] )**
+
+## 类别
+
+SdbReplicaGroup
+
+## 描述
 
 删除当前复制组中的指定节点。
 
-##参数描述##
+## 参数
 
 | 参数名  | 参数类型   | 描述           | 是否必填 |
 |---------|------------|----------------|----------|
@@ -12,17 +22,17 @@
 | service | int/string | 节点端口号。   | 是       |
 | options | Json 对象 | 可选项，详见如下options选项说明。 | 否 |
 
-##options选项##
+options 选项：
 
 | 参数名  |  参数类型  |  描述                        |  默认值 |
 | ------- | ---------- | ---------------------------- | ------- |
 | Enforced | bool      | 是否强制删除节点。           |  false  |
 
-##返回值##
+## 返回值
 
 无返回值，出错抛异常，并输出错误信息。可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息，通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
 
-##错误##
+## 错误
 
 | 错误码 | 可能的原因 | 解决方法 |
 | ------ | ------ | ------ |
@@ -32,7 +42,11 @@
 
 [错误码](manual/Manual/Sequoiadb_error_code.md)
 
-## 示例##
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 删除 group1 复制组中节点
 
