@@ -2061,8 +2061,8 @@
       <code>
          <name>SDB_DOMAIN_IS_OCCUPIED</name>
          <description>
-            <en>Domain has been used</en>
-            <cn>域已被使用</cn>
+            <en>Domain is not empty</en>
+            <cn>域非空</cn>
          </description>
       </code>
 
@@ -2795,130 +2795,10 @@
       </code>
 
       <code>
-         <name>STP_NOT_AVAILABLE</name>
-         <description>
-            <en>SequoiaDB Time Protocol node is not available</en>
-            <cn>时间服务不可用</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>STP_SYNC_FAILED</name>
-         <description>
-            <en>Serial Time Protocol node failed to synchronize</en>
-            <cn>时间服务同步失败</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>STP_TIME_AHEAD_AFTER_SYNC</name>
-         <description>
-            <en>Time of Serial Time Protocol node is ahead of the source after synchronization</en>
-            <cn>时间服务同步后本地时间太快</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>STP_SYNC_BUSY</name>
-         <description>
-            <en>Serial Time Protocol node is busy synchronizing</en>
-            <cn>时间服务正在同步</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_GLOB_TRANS_NOT_AVAILABLE</name>
-         <description>
-            <en>Global transaction is not available</en>
-            <cn>全局事务不可用</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_GLOB_LOWTRAN_UNKNOWN</name>
-         <description>
-            <en>Global LowTran is unknown</en>
-            <cn>全局事务最早正在执行的事务 ID 未知</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_GLOB_TRANS_NOT_SYNC</name>
-         <description>
-            <en>Global transaction times of nodes are not synchronized</en>
-            <cn>节点间的全局逻辑时间不同步</cn>
-         </description>
-      </code>
-
-      <code>
          <name>SDB_IXM_STAT_NOTEXIST</name>
          <description>
             <en>Index statistics do not exist</en>
             <cn>索引统计信息不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_CLIENT_CATA_VER_OLD</name>
-         <description>
-            <en>sdb client cata version old</en>
-            <cn>驱动端编目版本过旧</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_RESTORE_IN_PROGRESS</name>
-         <description>
-            <en>Database is in restore-in-progress state</en>
-            <cn>数据库处于恢复中状态</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_RESTORE_NOT_IN_PROGRESS</name>
-         <description>
-            <en>Database is not in restore-in-progress state</en>
-            <cn>数据库不处于恢复中状态</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_RESTORE_NO_CONSISTENT_PIT</name>
-         <description>
-            <en>No valid consistency point for point-in-time restore</en>
-            <cn>按时间还原没有一致的有效时间点</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_SEQUENCE_VALUE_USED</name>
-         <description>
-            <en>Sequence value has been used</en>
-            <cn>序列值已经被使用</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_SEQUENCE_NEVER_USED</name>
-         <description>
-            <en>Sequence has never been used</en>
-            <cn>序列尚未被使用</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_SEQUENCE_OUT_OF_CACHE</name>
-         <description>
-            <en>Out of sequence cache</en>
-            <cn>超出序列缓存</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_IXM_KEY_NOT_SUPPORT_ARRAY</name>
-         <description>
-            <en>Any field of index key cannot be array</en>
-            <cn>索引键的任意一个字段都不允许为数组</cn>
          </description>
       </code>
 
@@ -3035,14 +2915,6 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_INVALID_PAGE_CONTENT</name>
-         <description>
-            <en>the content of page is invalid</en>
-            <cn>非法的数据页内容</cn>
-         </description>
-      </code>
-
-      <code>
          <name>SDB_VESSEL_END_OF_CURSOR</name>
          <description>
             <en>hit the end of cursor</en>
@@ -3067,14 +2939,6 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_VIRTUAL_PAGE_NOT_INIT</name>
-         <description>
-            <en>virtual page has not been initialized</en>
-            <cn>虚拟数据页没有被初始化</cn>
-         </description>
-      </code>
-
-      <code>
          <name>SDB_VESSEL_LOGICAL_PAGE_UNMAPPED</name>
          <description>
             <en>logical page has not been mapped</en>
@@ -3087,6 +2951,38 @@
          <description>
             <en>evicting from lru list hit the max steps</en>
             <cn>从LRU列表中淘汰页达到最大搜索步长</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_STRIPING_NOT_FOUND</name>
+         <description>
+            <en>target striping not found</en>
+            <cn>目标分区不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_SG_NOT_FOUND</name>
+         <description>
+            <en>target striping group not found</en>
+            <cn>目标分区组不存在</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_OP_ON_MBID_BANNED</name>
+         <description>
+            <en>operation on mbid is banned by allocator</en>
+            <cn>在该集合序列的操作被集合管理器禁止</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
+         <description>
+            <en>page is readonly because of in the snapshot</en>
+            <cn>数据页在快照范围内无法进行写操作</cn>
          </description>
       </code>
       

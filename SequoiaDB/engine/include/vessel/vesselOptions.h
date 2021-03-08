@@ -166,7 +166,6 @@ namespace vessel
    {
       public:
          OSS_INLINE createCSOptions():
-         logicalID(DMS_INVALID_LOGICCSID),
          flags(0),
          dataPageSize(DMS_PAGE_SIZE32K),
          dataPageCountPerSegment(4096),
@@ -187,7 +186,6 @@ namespace vessel
             OSS_BIT_SET(flags, 0x01);
          }
 
-         UINT32 logicalID;
          UINT32 flags;
          UINT32 dataPageSize;
          UINT32 dataPageCountPerSegment;
@@ -212,15 +210,26 @@ namespace vessel
    class createCLOptions
    {
       public:
-      createCLOptions():
+      OSS_INLINE createCLOptions():
       type(COLLECTION_TYPE_NORMAL),
-      maxStripingGroupCount(0),
+      maxStripingGroupCount(1),
       compressionType(CL_COMPRESSION_TYPE_NONE),
       compressionAlgrithm(CL_COMPRESSION_ALGRITHM_LZ4)
       {}
 
+      OSS_INLINE ~createCLOptions(){}
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return COLLECTION_TYPE_NORMAL == type &&
+                0 < maxStripingGroupCount &&
+                compressionType <= CL_COMPRESSION_TYPE_MAX &&
+                compressionAlgrithm <= CL_COMPRESSION_ALGRITHM_MAX;
+      }
+
+      public:
       UINT16 type;
-      UINT32 maxStripingGroupCount;
+      UINT16 maxStripingGroupCount;
       CL_COMPRESSION_TYPE compressionType;
       CL_COMPRESSION_ALGRITHM compressionAlgrithm;
 
@@ -239,15 +248,13 @@ namespace vessel
    class openCLOptions : public SDBObject
    {
       public:
-         OSS_INLINE openCLOptions():
-         notest(TRUE)
+         OSS_INLINE openCLOptions()
          {}
 
          OSS_INLINE ~openCLOptions()
          {}
 
       public:
-         BOOLEAN notest;/// do not test if collection exists until first accessing.
    };
 
    class indexOptions

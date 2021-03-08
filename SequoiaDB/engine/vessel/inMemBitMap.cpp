@@ -52,10 +52,10 @@ namespace vessel
 
    inMemBitMap::_inMemBitPage::~_inMemBitPage()
    {
-      teardown();
+      fini();
    }
 
-   INT32 inMemBitMap::_inMemBitPage::teardown()
+   INT32 inMemBitMap::_inMemBitPage::fini()
    {
       _pageID = -1;
       _size = 0;
@@ -66,7 +66,7 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::setup(INT32 pageID,
+   INT32 inMemBitMap::_inMemBitPage::init(INT32 pageID,
                                            UINT32 size,
                                            BOOLEAN noFree,
                                            UINT32 occupied)
@@ -152,11 +152,11 @@ namespace vessel
    done:
       return rc;
    error:
-      teardown();
+      fini();
       goto done;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::setup(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf)
+   INT32 inMemBitMap::_inMemBitPage::init(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _bitsBuf, "must be null");
@@ -342,10 +342,10 @@ namespace vessel
 
    inMemBitMap::~inMemBitMap()
    {
-      teardown();
+      fini();
    }
 
-   INT32 inMemBitMap::setup(UINT32 bitCountInPage, UINT32 freeBound)
+   INT32 inMemBitMap::init(UINT32 bitCountInPage, UINT32 freeBound)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(0 == bitCountInPage))
@@ -373,7 +373,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitMap::teardown()
+   INT32 inMemBitMap::fini()
    {
       INT32 rc = SDB_OK;
 
@@ -429,7 +429,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->setup(_pageCount, _bitCountInPage, FALSE, occupied);
+      rc = page->init(_pageCount, _bitCountInPage, FALSE, occupied);
       if (SDB_OK != rc)
       {
          goto error;
@@ -811,7 +811,7 @@ namespace vessel
             goto error;
          }
 
-         rc = page->setup(pageID, size, free, firstFree, buffer);
+         rc = page->init(pageID, size, free, firstFree, buffer);
          if (SDB_OK != rc)
          {
             SDB_OSS_DEL page;
@@ -838,7 +838,7 @@ namespace vessel
       }
       if (rollback)
       {
-         teardown();
+         fini();
       }
       goto done;
    }
@@ -971,7 +971,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->setup(pageID, _bitCountInPage, TRUE);
+      rc = page->init(pageID, _bitCountInPage, TRUE);
       if (SDB_OK != rc)
       {
          goto error;

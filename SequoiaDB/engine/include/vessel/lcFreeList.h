@@ -73,8 +73,8 @@ namespace vessel
          }
 
       public:
-         INT32 setup(const liteCacheOptions::freeListOptions &options);
-         INT32 teardown();
+         INT32 init(const liteCacheOptions::freeListOptions &options);
+         INT32 fini();
 
          UINT32 getFreePageCount();
 

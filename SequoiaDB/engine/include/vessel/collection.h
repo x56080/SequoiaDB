@@ -52,7 +52,6 @@ namespace engine
 namespace vessel
 {
    class collectionSpace;
-   class extentStorageUnit;
    class requestContext;
    
    class collection: public SDBObject
@@ -74,23 +73,27 @@ namespace vessel
          {
             return _record.mbID;
          }
+         OSS_INLINE utilCLInnerID getInnerID()const
+         {
+            return _record.innerID;
+         }
          OSS_INLINE const collectionRecord &getRecord()const
          {
             return _record;
          }
 
-         /// setup when creating.
-         INT32 setup(const strSlice &clName,
-                     UINT32 logicalID,
-                     CL_MB_ID mbID,
-                     const createCLOptions &options,
-                     collectionSpace *cs);
+         INT32 create(requestContext *context,
+                      const strSlice &clName,
+                      utilCLInnerID innerID,
+                      UINT32 logicalID,
+                      collectionSpace *cs,
+                      const createCLOptions &options);
 
-         /// setup when startup
-         INT32 setup(const collectionRecord &record,
-                     collectionSpace *cs);
+         /// init when startup
+         INT32 initWhenOpen(const collectionRecord &record,
+                            collectionSpace *cs);
 
-         INT32 saveOnDiskWhenCreating(requestContext *context);
+         void fini();
 
       public:
          INT32 dump(requestContext *context,
@@ -101,6 +104,8 @@ namespace vessel
                       const insertOptions &options);
 
       private:
+         INT32 saveOnDiskWhenCreating(requestContext *context);
+
          INT32 ensureCLRecordPageAllocated(requestContext *context,
                                            PAGE_ID lpid,
                                            PAGE_ID &pid);
@@ -113,21 +118,11 @@ namespace vessel
                                        PAGE_ID lpid,
                                        PAGE_ID &pid);
 
-         INT32 allocateCLRecordPageOnSMP(requestContext *context,
-                                         PAGE_ID lpid,
-                                         PAGE_ID pid,
-                                         DPS_LSN_OFFSET &oplist);
-
-         INT32 releaseCLRecordPageOnSMP(requestContext *context,
-                                        PAGE_ID pid,
-                                        const DPS_LSN_OFFSET *oplist);
-
          INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID pid);
       private:
          ossSpinSLatch _recordLatch;
          collectionRecord _record;
          collectionSpace *_collectionSpace;
-         extentStorageUnit *_su;
    };//class collection
 }//namespace vessel
 }//namespace engine

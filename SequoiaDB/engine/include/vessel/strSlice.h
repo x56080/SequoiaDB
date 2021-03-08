@@ -65,6 +65,16 @@ namespace vessel
          _str(str)
          {}
 
+         OSS_INLINE explicit strSlice(const CHAR *str):
+         _strLen(0),
+         _str(str)
+         {
+            if (NULL != str)
+            {
+               _strLen = ossStrlen(str);
+            }
+         }
+
          OSS_INLINE ~strSlice()
          {
             _strLen = 0;

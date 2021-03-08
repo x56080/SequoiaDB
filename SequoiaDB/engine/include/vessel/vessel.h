@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,8 +38,10 @@
 
 #include "vessel/vesselDef.h"
 #include "vessel/vesselOptions.h"
-#include "vessel/clNameOrID.h"
 #include "vessel/strSlice.h"
+#include "utilUniqueID.hpp"
+#include "vessel/cursorHandler.h"
+#include "vessel/collectionHandler.h"
 
 namespace engine
 {
@@ -51,10 +50,6 @@ namespace vessel
    class ISession;
    class outerResource;
    class IQueryFilter;
-   class cursorObject;
-   class ICursor;
-   class collectionObject;
-   class collectionHandle;
 
    class vessel
    {
@@ -64,7 +59,7 @@ namespace vessel
 
       public:
          virtual BOOLEAN isOpen() = 0;
-         virtual INT32 setup(const outerResource &resource) = 0;
+         virtual INT32 initOuterResource(const outerResource &resource) = 0;
          virtual INT32 open(ISession *session, const openDBOptions &options) = 0;
 
          
@@ -73,18 +68,17 @@ namespace vessel
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
+                                             utilCSUniqueID uniqueID, 
                                              const createCSOptions &options) = 0;
 
-         /// creating/deleting cs may cause the result to be inaccurate
-         virtual INT32 fastGetCollectionSpaceCount(ISession *session,
-                                                   UINT32 &count) = 0;
-
-         
          /// cursor's mem managed by user.
          /// filter's mem managed by user.
          virtual INT32 listCollectionSpace(ISession *session,
                                            IQueryFilter *filter,
-                                           ICursor *cursor) = 0;
+                                           cursorHandler &cursor) = 0;
+
+         virtual INT32 getCollectionSpaceCount(ISession *session,
+                                               UINT32 &count) = 0;
 /*
          virtual INT32 alterCollectionSpace(ISession *session,
                                             const CHAR *name,
@@ -98,31 +92,26 @@ namespace vessel
                                            const dropCSOptions &options) = 0;
 
          virtual INT32 createCollection(ISession *session,
-                                        UINT32 csLogicalID,
+                                        const CHAR *csName,
                                         const CHAR* clName,
-                                        UINT32 clLogicalID,
+                                        utilCLInnerID innerID,
                                         const createCLOptions &options) = 0;
 
          virtual INT32 listCollections(ISession *session,
-                                       UINT32 csLogicalID,
+                                       const CHAR *csName,
                                        IQueryFilter *filter,
-                                       ICursor *cursor) = 0;
+                                       cursorHandler &cursor) = 0;
+
+         virtual INT32 getCollectionCount(ISession *session,
+                                          const CHAR *csName,
+                                          UINT32 &count) = 0;
 
          ///obj's mem managed by user
          virtual INT32 openCollection(ISession *session,
-                                      UINT32 csLogicalID,
-                                      UINT32 clLogicalID,
+                                      const CHAR *csName,
+                                      const CHAR *clName,
                                       const openCLOptions &options,
-                                      collectionObject *obj) = 0;
-
-      public: /// for cursors
-         virtual INT32 pushMoreToCursor(ISession * session,
-                                        cursorObject *cursor) = 0;
-
-         virtual INT32 insert(ISession *session,
-                              const collectionHandle *handle,
-                              const slice &record,
-                              const insertOptions &options) = 0;
+                                      collectionHandler &handler) = 0;
 /*
          virtual INT32 createCollection(ISession *session,
                                         const clNameOrID &noi,

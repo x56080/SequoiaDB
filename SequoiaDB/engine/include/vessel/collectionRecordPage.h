@@ -57,7 +57,7 @@ namespace vessel
       collectionRecord():
       version(COLLECTION_RECORD_INVALID_VERSION),
       type(INVALID_COLLECTION_TYPE),
-      logicalCSID(DMS_INVALID_LOGICCSID),
+      innerID(UTIL_INVALID_CL_INNER_ID),
       logicalCLID(DMS_INVALID_LOGICCLID),
       mbID(INVALID_CL_MB_ID),
       maxSGCount(0),
@@ -81,7 +81,7 @@ namespace vessel
       {
          version = COLLECTION_RECORD_INVALID_VERSION;
          type = INVALID_COLLECTION_TYPE;
-         logicalCSID = DMS_INVALID_LOGICCSID;
+         innerID = UTIL_INVALID_CL_INNER_ID;
          logicalCLID = DMS_INVALID_LOGICCLID;
          mbID = INVALID_CL_MB_ID;
          maxSGCount = 0;
@@ -102,7 +102,7 @@ namespace vessel
 
       UINT16 version;
       UINT16 type;
-      UINT32 logicalCSID;
+      UINT32 innerID;
       UINT32 logicalCLID;
       CL_MB_ID mbID;
       UINT16 maxSGCount;

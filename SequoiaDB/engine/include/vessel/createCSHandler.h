@@ -42,6 +42,7 @@
 #include "vessel/requestHandler.h"
 #include "vessel/requestContext.h"
 #include "vessel/vesselOptions.h"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
@@ -54,11 +55,12 @@ namespace vessel
          virtual ~createCSHandler();
 
       public:
-         INT32 run(const CHAR *name,
-                   const createCSOptions &options);
+         INT32 doit(const CHAR *name,
+                    utilCSUniqueID uniqueID,
+                    const createCSOptions &options);
 
       private:
-         INT32 validateOptions(const CHAR *name,
+         INT32 validateOptions(const strSlice &name,
                                const createCSOptions &options);
 
    };//class createCSHandler

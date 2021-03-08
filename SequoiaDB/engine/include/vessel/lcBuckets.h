@@ -45,7 +45,7 @@ namespace engine
 {
 namespace vessel
 {
-   class extentStorageUnit;
+   class storageUnit;
    
 
    class lcBuckets : public SDBObject
@@ -55,16 +55,16 @@ namespace vessel
          ~lcBuckets();
 
       public:
-         INT32 setup(UINT32 bucketCount,
+         INT32 init(UINT32 bucketCount,
                      UINT32 latchCount,
                      UINT32 minRecycleCount);
 
-         INT32 teardown();
+         INT32 fini();
 
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     UINT32 diskPageSize,
                                     UINT32 cachePageSize,
-                                    extentStorageUnit *su,
+                                    storageUnit *su,
                                     lcExtentTagHolder &holder);
 
          INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,

@@ -44,12 +44,10 @@
 #include "vessel/ISession.h"
 #include "vessel/handlers.h"
 #include "vessel/IQueryFilter.h"
-#include "vessel/cursorObject.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/listCLCursor.h"
-#include "vessel/ICursor.h"
 #include "vessel/diskIOJob.h"
-#include "vessel/collectionObject.h"
+#include "vessel/cursorKernal.h"
 
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -72,7 +70,7 @@ namespace vessel
 
    }
 
-   INT32 vesselImpl::setup(const outerResource &outer)
+   INT32 vesselImpl::initOuterResource(const outerResource &outer)
    {
       _outerResource = outer;
       return SDB_OK;
@@ -98,31 +96,20 @@ namespace vessel
       }
 
       _env.options = options;
-      rc = _env.spaceLocker.setup(MAX_SPACE_COUNT);
+      rc = _env.spaceLocker.init(MAX_SPACE_COUNT);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _env.suContainer.open(&context, FALSE);
+      rc = _env.csContainer.open(&context);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to open space container:%d", rc);
          goto error;
       }
 
-      rc = _env.objContainer.setup();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initObjectContainer(session);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = _env.cache.setup(options.cacheOptions, &(_env.suContainer));
+      rc = _env.cache.init(options.cacheOptions, &(_env.csContainer));
       if (SDB_OK != rc)
       {
          goto error;
@@ -151,10 +138,9 @@ namespace vessel
             goto error;
          }
          rc = flushWholeDirtyList(&context);
-         _env.cache.teardown();
-         _env.objContainer.teardown();
-         _env.suContainer.close(&context);
-         _env.spaceLocker.teardown();
+         _env.cache.fini();
+         _env.csContainer.close(&context);
+         _env.spaceLocker.fini();
          _env.options = openDBOptions();
          _open = FALSE;
          context.close();
@@ -165,30 +151,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::fastGetCollectionSpaceCount(ISession *session,
-                                                 UINT32 &count)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      count = _env.objContainer.getNameCountInIndex();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 vesselImpl::listCollectionSpace(ISession *session,
                                          IQueryFilter *filter,
-                                         ICursor *cursor)
+                                         cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
       listCSCursor *listCursor = NULL;
-      if (OSS_UNLIKELY(NULL == session || NULL == cursor))
+      if (OSS_UNLIKELY(NULL == session))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -212,11 +181,8 @@ namespace vessel
       {
          goto error;
       }
-      rc = cursor->setOpenedCursorObj(listCursor);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      
+      cursor = cursorHandler(listCursor);
       listCursor = NULL;
    done:
       return rc;
@@ -225,8 +191,26 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::getCollectionSpaceCount(ISession *session,
+                                             UINT32 &count)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      count = _env.csContainer.getCSCount();
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::createCollectionSpace(ISession *session,
                                            const CHAR *name,
+                                           utilCSUniqueID uniqueID,
                                            const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
@@ -245,20 +229,20 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.setup(&_env, session, &_outerResource);
+      rc = handler.init(&_env, session, &_outerResource);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = handler.run(name, options);
+      rc = handler.doit(name, uniqueID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
    done:
-      handler.teardown();
+      handler.fini();
       return rc;
    error:
       goto done;
@@ -291,10 +275,10 @@ namespace vessel
    }
 
    INT32 vesselImpl::createCollection(ISession *session,
-                                      UINT32 csLogicalID,
-                                      const CHAR* clName,
-                                      UINT32 clLogicalID,
-                                      const createCLOptions &options)
+                                        const CHAR *csName,
+                                        const CHAR* clName,
+                                        utilCLInnerID innerID,
+                                        const createCLOptions &options)
    {
       INT32 rc = SDB_OK;
       createCLHandler handler;
@@ -305,33 +289,37 @@ namespace vessel
          goto error;
       }
 
-      rc = handler.setup(&_env, session, &_outerResource);
+      rc = handler.init(&_env, session, &_outerResource);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = handler.doit(csLogicalID, clName, clLogicalID, options);
+      rc = handler.doit(strSlice(csName), strSlice(clName), innerID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
    done:
-      handler.teardown();
+      handler.fini();
       return rc;
    error:
       goto done;
    }
 
    INT32 vesselImpl::listCollections(ISession *session,
-                                     UINT32 csLogicalID,
+                                     const CHAR *csName,
                                      IQueryFilter *filter,
-                                     ICursor *cursor)
+                                     cursorHandler &cursor)
    {
       INT32 rc = SDB_OK;
       listCLCursor *listCursor = NULL;
-      if (OSS_UNLIKELY(NULL == session || NULL == cursor))
+      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      SPACE_ID sid = INVALID_SPACE_ID;
+      requestContext context;
+
+      if (OSS_UNLIKELY(NULL == session || NULL == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -339,6 +327,19 @@ namespace vessel
       else if (OSS_UNLIKELY(!isOpen()))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(session, &_env, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = _env.csContainer.testCS(&context, strSlice(csName),
+                                   DMS_INVALID_LOGICCLID, logicalID, sid);
+      if (SDB_OK != rc)
+      {
          goto error;
       }
 
@@ -350,44 +351,32 @@ namespace vessel
          goto error;
       }
 
-      listCursor->setLogicalCSID(csLogicalID);
       rc = listCursor->open(this, filter, NULL);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cursor->setOpenedCursorObj(listCursor);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
+      listCursor->setCollectionSpace(logicalID, sid);
+
+      cursor = cursorHandler(listCursor);
 
       listCursor = NULL;
    done:
+      context.close();
       return rc;
    error:
       SAFE_OSS_DELETE(listCursor);
       goto done;
    }
 
-   INT32 vesselImpl::openCollection(ISession *session,
-                                    UINT32 csLogicalID,
-                                    UINT32 clLogicalID,
-                                    const openCLOptions &options,
-                                    collectionObject *obj)
+   INT32 vesselImpl::getCollectionCount(ISession *session,
+                                        const CHAR *csName,
+                                        UINT32 &count)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != obj && !obj->isOpen(), "can not be invalid");
       requestContext context;
-      SPACE_ID sid = INVALID_SPACE_ID;
-      CL_MB_ID mid = INVALID_CL_MB_ID;
-      SDB_ASSERT(NULL != obj && !obj->isOpen(), "impossible");
-
-      if (OSS_UNLIKELY(NULL == session ||
-                       DMS_INVALID_LOGICCSID == csLogicalID ||
-                       DMS_INVALID_LOGICCLID == clLogicalID ||
-                       NULL == obj))
+      if (OSS_UNLIKELY(NULL == session || NULL == csName))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -398,82 +387,65 @@ namespace vessel
          goto error;
       }
 
-      if (!options.notest)
-      {
-         rc = context.open(session, &_env, &_outerResource);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-
-         rc = testCollection(&context,
-                             csLogicalID,
-                             clLogicalID,
-                             sid, mid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         context.close();
-
-         rc = obj->open(this, csLogicalID, clLogicalID, sid, mid);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-      }
-      else
-      {
-         rc = obj->open(this, csLogicalID, clLogicalID);
-         if (OSS_UNLIKELY(SDB_OK != rc))
-         {
-            goto error;
-         }
-      }      
-   done:
-      return rc;
-   error:
-      context.close();
-      goto done;
-   }
-
-   INT32 vesselImpl::insert(ISession *session,
-                            const collectionHandle *handle,
-                            const slice &record,
-                            const insertOptions &options)
-   {
-      INT32 rc = SDB_OK;
-      insertHandler handler;
-      if (OSS_UNLIKELY(NULL == session ||
-                       NULL == handle ||
-                       !handle->valid() ||
-                       !record.valid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = handler.setup(&_env, session, &_outerResource);
-      if (OSS_UNLIKELY(SDB_OK != rc))
+      rc = context.open(session, &_env, &_outerResource);
+      if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = handler.doit(handle, record, options);
+      rc = _env.csContainer.getCLCount(&context, csName, count);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      handler.teardown();
       return rc;
    error:
       goto done;
    }
 
+   INT32 vesselImpl::openCollection(ISession *session,
+                                    const CHAR *csName,
+                                    const CHAR *clName,
+                                    const openCLOptions &options,
+                                    collectionHandler &handler)
+   {
+      INT32 rc = SDB_OK;
+      openCLHandler h;
+      
+      if (OSS_UNLIKELY(NULL == session ||
+                       NULL == csName ||
+                       NULL == clName))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = h.init(&_env, session, &_outerResource);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = h.doit(strSlice(csName), strSlice(clName), options, handler);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+
    INT32 vesselImpl::pushMoreToCursor(ISession *session,
-                                      cursorObject *cursor)
+                                      cursorKernal *cursor)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL == session ||
@@ -490,7 +462,7 @@ namespace vessel
       case CURSOR_TYPE_LIST_COLLECTION_SPACE:
       {
          listCollectionSpaceHandler handler;
-         rc = handler.setup(&_env, session, &_outerResource);
+         rc = handler.init(&_env, session, &_outerResource);
          if (SDB_OK != rc)
          {
             goto error;
@@ -502,12 +474,14 @@ namespace vessel
             goto error;
          }
 
+         handler.fini();
+
          break;
       }
       case CURSOR_TYPE_LIST_COLLECTION:
       {
          listCollectionsHandler handler;
-         rc = handler.setup(&_env, session, &_outerResource);
+         rc = handler.init(&_env, session, &_outerResource);
          if (SDB_OK != rc)
          {
             goto error;
@@ -518,6 +492,8 @@ namespace vessel
          {
             goto error;
          }
+
+         handler.fini();
          break;
       }
       default:
@@ -525,50 +501,6 @@ namespace vessel
          goto error;
       }
    done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 vesselImpl::initObjectContainer(ISession *session)
-   {
-      INT32 rc = SDB_OK;
-      extentStorageUnit *su = NULL;
-      requestContext context;
-      SPACE_ID sid = _env.suContainer.getFirstSpaceIDWhenStartup();
-
-      rc = context.open(session, &_env, &_outerResource);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      while (INVALID_SPACE_ID != sid)
-      {
-         collectionSpace *obj = NULL;
-         /// unnecessary locking, but some code path require space id locked.
-         rc = context.lockSpaceID(sid, SHARED);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         su = _env.suContainer.getNextSUWhenStartup(sid);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         rc = _env.objContainer.allocateCSObjWhenStartup(&context, su, &obj);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         context.unlockSpaceID();
-      }
-   done:
-      context.unlockSpaceID();
       return rc;
    error:
       goto done;
@@ -628,18 +560,5 @@ namespace vessel
       goto done;
    }
 
-   INT32 vesselImpl::testCollection(requestContext *context,
-                                    UINT32 cslid,
-                                    UINT32 cllid,
-                                    SPACE_ID &sid,
-                                    CL_MB_ID &mid)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 } // namespace vessel
 } // namespace engine

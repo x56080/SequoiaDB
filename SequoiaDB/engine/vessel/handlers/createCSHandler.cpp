@@ -59,95 +59,38 @@ namespace vessel
 
    }
 
-   INT32 createCSHandler::run(const CHAR *name,
-                              const createCSOptions &options)
+   INT32 createCSHandler::doit(const CHAR *name,
+                               utilCSUniqueID uniqueID,
+                               const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "can not be null");
       SPACE_ID sid = INVALID_SPACE_ID;
-      objectContainer *objContainer = NULL;
-      extentSUContainer *suContainer = NULL;
-      collectionSpace *obj = NULL;
-      extentStorageUnit *su = NULL;
-      IRedoLogger *logger = NULL;
-      objContainer = &(getEnv()->objContainer);
-      suContainer = &(getEnv()->suContainer);
-      logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      CS_CONTAINER &cc = getContext()->getEnv()->csContainer;
       dpsLogRecord lr;
-      createSUOptions suOptions;
-      static const UINT64 maxFileSize = 0x04ull * 1024 * 1024 * 1024;
+      strSlice nameSlice;
 
-      rc = validateOptions(name, options);
+      if (OSS_UNLIKELY(NULL == name))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      nameSlice.reset(name);
+      rc = validateOptions(nameSlice, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      if (objContainer->csExists(name, options.logicalID))
-      {
-         LOG_ERR_AND_REPORT(getContext(), rc, "collection space already exists:%s, %d", name, options.logicalID);
-         rc = SDB_DMS_CS_EXIST;
-         goto error;
-      }
-
-      rc = suContainer->allocateSpaceID(sid);
-      if (SDB_DMS_SU_OUTRANGE == rc)
-      {
-         LOG_ERR_AND_REPORT(getContext(), rc, "the count of collection space has already hit the max value");
-         goto error;
-      }
-      else if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to allocate space id:%d", rc);
-         goto error;
-      }
-
-      rc = getContext()->lockSpaceID(sid, EXCLUSIVE);
+      rc = cc.createCS(getContext(), nameSlice, uniqueID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      /// cs with same name may be created. whatever, just return error.
-      rc = objContainer->allocateCSObj(getContext(), name,
-                                       options.logicalID, &obj);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      suOptions.sid = sid;
-      suOptions.csName.reset(name);
-      suOptions.csOptions = &options;
-
-      suOptions.metaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.metaArgs.maxPageCountPerSeg = 32;
-      suOptions.metaArgs.maxSegmentCountPerFile = 4096;
-
-      suOptions.dataArgs.pageSize = options.dataPageSize;
-      suOptions.dataArgs.maxPageCountPerSeg = options.dataPageCountPerSegment;
-      suOptions.dataArgs.maxSegmentCountPerFile = maxFileSize / options.dataPageSize /options.dataPageCountPerSegment;
-
-      suOptions.idxMetaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.idxMetaArgs.maxPageCountPerSeg = 32;
-      suOptions.idxMetaArgs.maxSegmentCountPerFile = 4096;
-
-      suOptions.idxArgs.pageSize = options.idxPageSize;
-      suOptions.idxArgs.maxPageCountPerSeg = options.idxPageCountPerSegment;
-      suOptions.idxArgs.maxSegmentCountPerFile = maxFileSize / options.idxPageSize / options.idxPageCountPerSegment;
-
-      rc = suContainer->createSU(getContext(), suOptions, &su);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = obj->setup(getContext(), su);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initCreateCSLogRecord(name, &sid, &options, lr);
+      rc = initCreateCSLogRecord(name, &sid, &uniqueID, &options, lr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build log:%d", rc);
@@ -160,47 +103,24 @@ namespace vessel
          PD_LOG(PDERROR, "failed to write log:%d", rc);
          goto error;
       }
-
-      getContext()->unlockSpaceID();
    done:
       return rc;
    error:
-      if (NULL != obj)
-      {
-         objContainer->releaseCSObj(getContext());
-      }
-      if (NULL != su)
-      {
-         suContainer->dropSU(getContext(), FALSE);
-      }
-      if (INVALID_SPACE_ID != sid)
-      {
-         getContext()->unlockSpaceID();
-         suContainer->releaseSpaceID(sid);
-      }
-
       goto done;
    }
 
-   INT32 createCSHandler::validateOptions(const CHAR *name, const createCSOptions &options)
+   INT32 createCSHandler::validateOptions(const strSlice &name, const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == name))
+      if (OSS_UNLIKELY(name.empty()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      rc = dmsCheckCSName(name, options.isSystemCS());
+      rc = dmsCheckCSName(name.str(), options.isSystemCS());
       if (SDB_OK != rc)
       {
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid cs name: %s", name);
-         goto error;
-      }
-
-      if (DMS_INVALID_LOGICCSID == options.logicalID)
-      {
-         rc = SDB_INVALIDARG;
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid logical id");
+         LOG_ERR_AND_REPORT(getContext(), rc, "invalid cs name: %s", name.str());
          goto error;
       }
 

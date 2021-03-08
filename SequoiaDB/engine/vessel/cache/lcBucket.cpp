@@ -39,7 +39,7 @@
 #include "vessel/lcBucket.h"
 #include "ossErr.h"
 #include "ossMem.hpp"
-#include "vessel/extentStorageUnit.h"
+#include "vessel/storageUnit.h"
 #include "ossLatch.hpp"
 
 namespace engine
@@ -72,7 +72,7 @@ namespace vessel
                                         UINT32 diskPageSize,
                                         UINT32 cachePageSize,
                                         _ossSpinSLatch *latch,
-                                        extentStorageUnit *su,
+                                        storageUnit *su,
                                         UINT32 minRecycleCount,
                                         lcExtentTagHolder &holder)
    {
@@ -81,7 +81,7 @@ namespace vessel
       ossValuePtr ptr = 0;
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
       SDB_ASSERT(NULL != su, "can not be null");
-      SDB_ASSERT(!su->closed(), "can not be closed");
+      SDB_ASSERT(su->isOpen(), "can not be closed");
       SDB_ASSERT(gpid.space() == su->getSpaceID(), "must be same");
       SDB_ASSERT(0 != diskPageSize && 0 != cachePageSize, "can not be zero");
       SDB_ASSERT(0 == diskPageSize % cachePageSize, "impossible");

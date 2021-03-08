@@ -50,7 +50,7 @@ namespace vessel
       public:
          listCollectionSpaceRecord():
          version(0),
-         logicalID(DMS_INVALID_LOGICCSID),
+         uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
          spaceID(INVALID_SPACE_ID),
          status(0),
          flags(0),
@@ -68,7 +68,7 @@ namespace vessel
       public:
          UINT32 version;
          CHAR name[DMS_COLLECTION_SPACE_NAME_SZ+1];
-         UINT32 logicalID;
+         utilCSUniqueID uniqueID;
          SPACE_ID spaceID;
          UINT32 status;
          UINT32 flags;

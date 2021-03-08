@@ -50,8 +50,9 @@ namespace vessel
       public:
          listCollectionsRecord():
          version(0),
-         logicalID(DMS_INVALID_LOGICCLID),
-         csLogicalID(DMS_INVALID_LOGICCSID),
+         csUniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
+         clInnerID(UTIL_INVALID_CL_INNER_ID),
+         clLogicalID(DMS_INVALID_LOGICCLID),
          spaceID(INVALID_SPACE_ID),
          mbID(INVALID_CL_MB_ID),
          maxSGCount(0)
@@ -65,8 +66,9 @@ namespace vessel
       public:
          UINT32 version;
          CHAR name[DMS_COLLECTION_NAME_SZ+1];
-         UINT32 logicalID;
-         UINT32 csLogicalID;
+         utilCSUniqueID csUniqueID;
+         utilCLInnerID clInnerID;
+         UINT32 clLogicalID;
          SPACE_ID spaceID;
          CL_MB_ID mbID;
          UINT16 maxSGCount;

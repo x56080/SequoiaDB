@@ -42,7 +42,6 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/slice.h"
-#include "vessel/extentStorageUnit.h"
 
 namespace engine
 {
@@ -51,9 +50,13 @@ namespace vessel
    INT32 listCollectionsHandler::doit(listCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(isInitialized(), "can not be null");
       collectionSpace *obj = NULL;
       SDB_ASSERT(NULL != cursor, "can not be null");
-      objectContainer *container = NULL;
+      CS_CONTAINER &cc = getEnv()->csContainer;
+      SPACE_ID sid = INVALID_SPACE_ID;
+      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      BOOLEAN locked = FALSE;
 
       if (OSS_UNLIKELY(NULL == cursor || !cursor->isOpen()))
       {
@@ -61,11 +64,17 @@ namespace vessel
          goto error;
       }
 
-      container = &(getEnv()->objContainer);
-      rc = container->getCSByLogicalID(getContext(),
-                                       cursor->getCSLogicalID(),
-                                       SHARED,
-                                       &obj);
+      sid = cursor->getSpaceID();
+      logicalID = cursor->getCSLogicalID();
+
+      rc = getContext()->lockSpaceID(sid, SHARED);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      locked = TRUE;
+
+      rc = cc.getCSByLockedSpaceID(getContext(), logicalID, &obj);
       if (SDB_OK != rc)
       {
          goto error;
@@ -78,7 +87,10 @@ namespace vessel
       }
       
    done:
-      getContext()->unlockSpaceID();
+      if (locked)
+      {
+         getContext()->unlockSpaceID();
+      }
       return rc;
    error:
       goto done;

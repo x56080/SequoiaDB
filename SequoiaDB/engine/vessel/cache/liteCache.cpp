@@ -40,7 +40,7 @@
 #include "ossErr.h"
 #include "vessel/lcExtentTagHolder.h"
 #include "vessel/vesselDef.h"
-#include "vessel/extentSUContainer.h"
+#include "vessel/collectionSpaceContainer.h"
 #include "vessel/liteCacheDef.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
@@ -55,6 +55,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/diskIOTask.h"
+#include "vessel/storageUnit.h"
 
 namespace engine
 {
@@ -72,10 +73,10 @@ namespace vessel
 
    liteCache::~liteCache()
    {
-      teardown();
+      fini();
    }
 
-   INT32 liteCache::setup(const liteCacheOptions &o, extentSUContainer *container)
+   INT32 liteCache::init(const liteCacheOptions &o, collectionSpaceContainer *container)
    {
       INT32 rc = SDB_OK;
       BOOLEAN rollback = FALSE;
@@ -124,14 +125,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _fl->setup(o.freelist);
+      rc = _fl->init(o.freelist);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup free list:%d", rc);
          goto error;
       }
          
-      rc = _buckets->setup(o.bucket.bucketCount,
+      rc = _buckets->init(o.bucket.bucketCount,
                            o.bucket.bucketLatchCount,
                            o.bucket.minRecycleCount);
       if (SDB_OK != rc)
@@ -140,14 +141,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _dl->setup();
+      rc = _dl->init();
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup dirty list:%d", rc);
          goto error;
       }
 
-      rc = _lru->setup(_buckets, _fl, o.lru);
+      rc = _lru->init(_buckets, _fl, o.lru);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup lru list:%d", rc);
@@ -161,17 +162,17 @@ namespace vessel
    error:
       if (rollback)
       {
-         teardown();
+         fini();
       }
       goto done;
    }
 
-   INT32 liteCache::teardown()
+   INT32 liteCache::fini()
    {
       INT32 rc = SDB_OK;
       if (NULL != _dl)
       {
-         rc = _dl->teardown();
+         rc = _dl->fini();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to teardown dirty list:%d", rc);
@@ -180,7 +181,7 @@ namespace vessel
 
       if (NULL != _lru)
       {
-         rc = _lru->teardown();
+         rc = _lru->fini();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to teardown lru list:%d", rc);
@@ -189,7 +190,7 @@ namespace vessel
 
       if (NULL != _buckets)
       {
-         rc = _buckets->teardown();
+         rc = _buckets->fini();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to teardown _buckets:%d", rc);
@@ -198,7 +199,7 @@ namespace vessel
 
       if (NULL != _fl)
       {
-         rc = _fl->teardown();
+         rc = _fl->fini();
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to teardown free list:%d", rc);
@@ -223,7 +224,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       lcExtentTagHolder holder;
       UINT32 pageSize = 0;
-      extentStorageUnit *su = NULL;
+      storageUnit *su = NULL;
 
       if (OSS_UNLIKELY(gpid.invalid()))
       {
@@ -253,7 +254,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _container->getSUByContext(context, &su);
+      rc = _container->getSUByLockedSpaceID(context, &su);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -608,15 +609,15 @@ namespace vessel
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
       SDB_ASSERT(0 < count, "can not be zero");
 
-      extentStorageUnit *su = NULL;
-      rc = _container->getSUBySpaceID(gpid.space(), &su);
+      storageUnit *su = NULL;
+      rc = _container->getUnlockedSU(gpid.space(), &su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", gpid.space(), rc);
          goto error;
       }
 
-      rc = su->fsync(gpid.type(), gpid.page(), count);
+      rc = su->fsync(gpid.type(), gpid.page(), count, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync disk pages:%d", rc);

@@ -54,10 +54,10 @@ namespace vessel
 
    lcFreeList::~lcFreeList()
    {
-      teardown();
+      fini();
    }
 
-   INT32 lcFreeList::setup(const liteCacheOptions::freeListOptions &options)
+   INT32 lcFreeList::init(const liteCacheOptions::freeListOptions &options)
    {
       INT32 rc = SDB_OK;
       if (0 == options.maxChunkCount ||
@@ -80,11 +80,11 @@ namespace vessel
    done:
       return rc;
    error:
-      teardown();
+      fini();
       goto done;
    }
 
-   INT32 lcFreeList::teardown()
+   INT32 lcFreeList::fini()
    {
       _free.clear();
       if (NULL != _chunks)

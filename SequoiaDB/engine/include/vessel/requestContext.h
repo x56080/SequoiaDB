@@ -171,6 +171,7 @@ namespace vessel
          INT32 lockLpid(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
          INT32 unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
          BOOLEAN testLpidLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
+         BOOLEAN testLpidLocked(SPACE_TYPE type, PAGE_ID lpid);
 
       private:
          OSS_INLINE void reset()

@@ -61,7 +61,9 @@ namespace vessel
    #define SU_FILE_NAME_IDX_SUFFIX "idx"
    #define SU_FILE_NAME_LOB_SUFFIX "lob"
    #define SU_FILE_NAME_CSNAME_SUFFIX "name"
-   #define SU_FILE_NAME_SPACE_SUFFIX "space"
+   #define SU_FILE_NAME_INMEM_BITMAP_SUFFIX "imbm"
+   #define SU_FILE_NAME_FSM_SG_SUFFIX "sg"
+   #define SU_FILE_NAME_FSM_BITMAP_SUFFIX "fsm"
 
    const UINT32 INVALID_FILE_HEAD_VERSION = 0;
 
@@ -120,13 +122,15 @@ namespace vessel
       storageFileOptions():
       dir(NULL),
       name(NULL),
+      secretValue(0),
+      spaceID(INVALID_SPACE_ID),
+      sequence(0),
       args(NULL)
       {}
 
       const CHAR * dir;
       const CHAR *name;
       UINT32 secretValue;
-      UINT32 logicalCS;
       UINT16 spaceID;
       UINT32 sequence;
       const storageCoreArgs *args;
@@ -141,8 +145,8 @@ namespace vessel
       createTime(0),
       secretValue(0),
       flags(0),
-      logicalCSID(DMS_INVALID_LOGICCSID),
       spaceID(INVALID_SPACE_ID),
+      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
       spaceType(INVALID_SPACE_TYPE),
       sequence(0),
       pageSize(0),
@@ -168,8 +172,8 @@ namespace vessel
       UINT64 createTime;
       UINT32 secretValue;
       UINT32 flags;
-      UINT32 logicalCSID;
       UINT32 spaceID;
+      UINT32 uniqueID;
       UINT32 spaceType;
       UINT32 sequence;
       UINT32 pageSize;

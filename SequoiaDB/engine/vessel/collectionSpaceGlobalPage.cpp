@@ -42,32 +42,24 @@ namespace engine
 {
 namespace vessel
 {
-   BOOLEAN metaRecordIsValid(const csMetaRecordOnDisk &record)
+   BOOLEAN metaRecordIsValid(const csMetaRecord &record)
    {
       BOOLEAN r = FALSE;
-      if (CMR_VERSION_1 != record.record.version)
+      if (CMR_VERSION_1 != record.version)
       {
          goto done;
       }
-      else if (0 == record.record.status)
+      else if (0 == record.status)
       {
          goto done;
       }
-      else if (DMS_INVALID_LOGICCSID == record.record.logicalID)
+      else if (!UTIL_IS_VALID_CSUNIQUEID(record.uniqueID))
       {
          goto done;
       }
-      else if (0 != record.record.name[DMS_COLLECTION_SPACE_NAME_SZ])
+      else if (0 != record.name[DMS_COLLECTION_SPACE_NAME_SZ])
       {
          goto done;
-      }
-
-      for (UINT32 i = 0; i < sizeof(record.pad); ++i)
-      {
-         if (0 != record.pad[i])
-         {
-            goto done;
-         }
       }
 
       r = TRUE;

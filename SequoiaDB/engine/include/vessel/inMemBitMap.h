@@ -68,9 +68,9 @@ namespace vessel
                ~_inMemBitPage();
 
             public:
-               INT32 setup(INT32 pageID, UINT32 size, BOOLEAN noFree = FALSE, UINT32 occupied = 0);
-               INT32 setup(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf);
-               INT32 teardown();
+               INT32 init(INT32 pageID, UINT32 size, BOOLEAN noFree = FALSE, UINT32 occupied = 0);
+               INT32 init(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf);
+               INT32 fini();
 
                INT32 allocate(UINT32 count, UINT32 *buf, UINT32 *stillFreeCount = NULL);
                INT32 free(UINT32 count, const UINT32 *buf);
@@ -136,8 +136,8 @@ namespace vessel
          /// it may cause a waste of resource, but can save the io times.
          /// freeBound:
          /// freeBound will be used to quickly skip bit pages with insufficient free count.
-         INT32 setup(UINT32 bitCountInPage, UINT32 freeBound = 0);
-         INT32 teardown();
+         INT32 init(UINT32 bitCountInPage, UINT32 freeBound = 0);
+         INT32 fini();
 
          INT32 allocateNewBitPage(UINT32 occupied=0);
 

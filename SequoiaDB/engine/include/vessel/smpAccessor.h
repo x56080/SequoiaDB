@@ -64,12 +64,25 @@ namespace vessel
             return PAGE_TYPE_SMP;
          }
 
-         INT32 allocateCLRecordPage(PAGE_ID lpid,
-                                    PAGE_ID pid,
-                                    DPS_LSN_OFFSET *oplist);
+         INT32 allocatePages(PAGE_TYPE type,
+                             UINT32 count,
+                             const PAGE_ID *lpids,
+                             const PAGE_ID *pids,
+                             const slice &args,
+                             DPS_LSN_OFFSET *oplist);
 
       private:
+         INT32 validatePidsToBeAllocated(UINT32 count,
+                                         const PAGE_ID *pids);
          INT32 testPageFree(UINT32 bitsSlotNo, UINT32 bitNo, BOOLEAN &free);
+
+         void setPagesFree(spaceManagementPageHead *head,
+                           UINT32 count,
+                           const PAGE_ID *pids);
+         void setPagesNotFree(spaceManagementPageHead *head,
+                              UINT32 count,
+                              const PAGE_ID *pids);
+         INT32 testPagesFree(UINT32 count, const PAGE_ID *pids, BOOLEAN &free);
 
          INT32 setPageNotFree(UINT32 bitsSlotNo, UINT32 bitNo);
          INT32 setPageFree(UINT32 bitsSlotNo, UINT32 bitNo);
@@ -79,14 +92,16 @@ namespace vessel
 
          INT32 prepareSMPAllocateLog(logRecordContext *lrc,
                                      BOOLEAN oplist,
-                                     PAGE_TYPE type,
-                                     PAGE_ID lpid,
-                                     PAGE_ID pid);
+                                     UINT32 count,
+                                     const slice &args);
 
          INT32 commitSMPAllocateLog(logRecordContext *lrc,
-                                     PAGE_TYPE type,
-                                     PAGE_ID lpid,
-                                     PAGE_ID pid);
+                                    PAGE_TYPE type,
+                                    UINT32 count,
+                                    const PAGE_ID *lpids,
+                                    const PAGE_ID *pids,
+                                    UINT32 free,
+                                    const slice &args);
    };//class smpAccessor
 }//namespace vessel
 }//namespace engine

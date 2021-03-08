@@ -42,7 +42,7 @@
 #include "vessel/phyExtentID.h"
 #include "vessel/extentDef.h"
 #include "vessel/liteCacheTuple.h"
-#include "vessel/idMapPage.h"
+#include "vessel/requestContext.h"
 
 namespace engine
 {
@@ -53,8 +53,7 @@ namespace vessel
    const UINT32 PAGE_ACCESSOR_FLAG_NON_READONLY = 0x02;
    const UINT32 PAGE_ACCESSOR_FLAG_INIT_PAGE = 0x04;
 
-   class requestContext;
-   class extentStorageUnit;
+   class storageUnit;
    class logRecordContext;
 
    class pageAccessor : public SDBObject
@@ -100,12 +99,11 @@ namespace vessel
          }
 
       public:
-         /// init and hold lock(if locking mode)
-         INT32 setup(requestContext *context,
+         INT32 init(requestContext *context,
                      SPACE_TYPE type,
                      PAGE_ID pid,
                      UINT32 flags = 0,
-                     extentStorageUnit *su = NULL);
+                     storageUnit *su = NULL);
 
          INT32 setup(requestContext *context,
                      SPACE_TYPE type,
@@ -115,6 +113,14 @@ namespace vessel
                      BOOLEAN pageTypeCheck = TRUE,
                      BOOLEAN readOnly = TRUE);
 
+         INT32 initWithDirectMode(requestContext *context,
+                                 SPACE_TYPE type,
+                                 PAGE_ID pid,
+                                 UINT32 pageSize,
+                                 ossValuePtr ptr,
+                                 BOOLEAN pageTypeCheck = TRUE,
+                                 BOOLEAN readOnly = TRUE);
+
          void abortToWrite();
          INT32 prepareToWrite();
 
@@ -122,6 +128,7 @@ namespace vessel
 
          /// unlock and reset.
          void teardown();
+         void fini();
 
          virtual PAGE_TYPE getPageType()const = 0;
 
@@ -242,7 +249,7 @@ namespace vessel
          UINT32 _status;
          ossValuePtr _ptr;
          liteCacheTuple _lcTuple;
-         extentStorageUnit *_su;
+         storageUnit *_su;
          CHAR *_fullDumpBuf;
    };//class pageAccessor
 }//namespace vessel

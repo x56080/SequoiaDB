@@ -58,7 +58,8 @@ namespace vessel
       UINT32 version;
       UINT32 status;
       UINT32 flags;
-      UINT32 logicalID;
+      UINT32 uniqueID;
+      UINT32 maxCLLogicalID;
       CHAR name[DMS_COLLECTION_SPACE_NAME_SZ + 1];
 
       csMetaRecord &operator=(const csMetaRecord &o)
@@ -66,7 +67,8 @@ namespace vessel
          version = o.version;
          status = o.status;
          flags = o.flags;
-         logicalID = o.logicalID;
+         uniqueID = o.uniqueID;
+         maxCLLogicalID = o.maxCLLogicalID;
          ossMemcpy(name, o.name, sizeof(name));
          return *this;
       }
@@ -75,7 +77,8 @@ namespace vessel
       version(INALID_CMR_VERSION),
       status(0),
       flags(0),
-      logicalID(DMS_INVALID_LOGICCSID)
+      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID),
+      maxCLLogicalID(DMS_INVALID_LOGICCLID)
       {
          ossMemset(name, 0, sizeof(name));
       }
@@ -95,7 +98,8 @@ namespace vessel
          version = INALID_CMR_VERSION;
          status = 0;
          flags = 0;
-         logicalID = DMS_INVALID_LOGICCSID;
+         uniqueID = UTIL_INVLIAD_CS_UNIQUE_ID;
+         maxCLLogicalID = DMS_INVALID_LOGICCLID;
          ossMemset(name, 0, sizeof(name));
       }
    };//struct csMetaRecord
@@ -111,7 +115,7 @@ namespace vessel
       CHAR pad[CS_META_RECORD_ON_DISK_LEN-CS_META_RECORD_LEN];
    }; //struct csMetaRecordOnDisk
 
-   BOOLEAN metaRecordIsValid(const csMetaRecordOnDisk &record);
+   BOOLEAN metaRecordIsValid(const csMetaRecord &record);
 }//namespace vessel
 }//namespace engine
 

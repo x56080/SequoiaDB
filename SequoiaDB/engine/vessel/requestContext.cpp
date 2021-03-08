@@ -103,7 +103,7 @@ namespace vessel
       }
       else
       {
-         buf = (CHAR*)SDB_OSS_MALLOC(size);
+         buf = (CHAR*)SDB_THREAD_ALLOC(size);
       }
       
    done:
@@ -112,13 +112,16 @@ namespace vessel
    
    void requestContext::releaseBuffer(CHAR *buffer, UINT32 size)
    {
-      if (buffer < _staticBuf || (_staticBuf + CONTEXT_DEFAULT_BUFFER_POOL_SIZE) <= buffer)
+      if (OSS_LIKELY(NULL != buffer))
       {
-         SDB_OSS_FREE(buffer);
-      }
-      else if (buffer + size == _staticBuf + _bufAllocated)
-      {
-         _bufAllocated -= size;
+         if (buffer < _staticBuf || (_staticBuf + CONTEXT_DEFAULT_BUFFER_POOL_SIZE) <= buffer)
+         {
+            SDB_THREAD_FREE(buffer);
+         }
+         else if (buffer + size == _staticBuf + _bufAllocated)
+         {
+            _bufAllocated -= size;
+         }
       }
       return;
    }
@@ -285,6 +288,11 @@ namespace vessel
    BOOLEAN requestContext::testLpidLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const
    {
       return _lpidContext.testLockMode(type, lpid, mode);
+   }
+
+   BOOLEAN requestContext::testLpidLocked(SPACE_TYPE type, PAGE_ID lpid)
+   {
+      return _lpidContext.testLocked(type, lpid);
    }
    
 }//namespace vessel

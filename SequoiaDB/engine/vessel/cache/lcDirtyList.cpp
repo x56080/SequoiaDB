@@ -59,7 +59,7 @@ namespace vessel
       
    }
 
-   INT32 lcDirtyList::setup()
+   INT32 lcDirtyList::init()
    {
       INT32 rc = SDB_OK;
    done:
@@ -68,7 +68,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcDirtyList::teardown()
+   INT32 lcDirtyList::fini()
    {
       _size = 0;
       _head = NULL;

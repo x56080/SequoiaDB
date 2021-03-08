@@ -66,7 +66,7 @@ namespace vessel
 
          //INT32 ensurePageAllcated(PAGE_ID pid);
 
-         INT32 allocateNewSegment(PAGE_ID *pid);
+         INT32 allocateNewSegment();
 
          INT32 getSegmentPtr(SEGMENT_ID seg, ossValuePtr &ptr);
 
@@ -88,6 +88,10 @@ namespace vessel
          OSS_INLINE UINT32 getMaxPageCountPerSeg()const
          {
             return _headInMem.maxPageCountPerSeg;
+         }
+         OSS_INLINE UINT32 getPageSize()const
+         {
+            return _headInMem.pageSize;
          }
 
       protected:

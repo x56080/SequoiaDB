@@ -41,6 +41,7 @@
 
 #include "vessel/pageAccessor.h"
 #include "vessel/extentDef.h"
+#include "vessel/idMapPage.h"
 
 namespace engine
 {
@@ -58,30 +59,53 @@ namespace vessel
       public:
          INT32 initPage(PAGE_ID minLpid);
 
+         ///WARNING: will return the current actual stored value,
+         /// regardless of whether the pid is valid
          INT32 getPid(PAGE_ID lpid, PAGE_ID *pid, SNAPSHOT_ID *snapID);
 
-         INT32 remap(PAGE_ID lpid,
-                     PAGE_ID pid,
-                     SNAPSHOT_ID snap,
-                     const DPS_LSN_OFFSET *oplist);
+         /// iterator should begin with invalid page id.
+         /// fetched should begin with 0.
+         INT32 getNextValidPid(PAGE_ID &iterator,
+                               UINT32 &fetched,
+                               PAGE_ID &pid,
+                               SNAPSHOT_ID &snapID,
+                               BOOLEAN &hitTheEnd);
 
-         INT32 getHeadContent(PAGE_ID &minLpid, UINT32 &capacity, UINT32 &free);
-
+         INT32 map(UINT32 count,
+                   const PAGE_ID *lpids,
+                   const PAGE_ID *pids,
+                   SNAPSHOT_ID snap,
+                   const DPS_LSN_OFFSET *oplist);
       private:
+         INT32 validateMap(UINT32 count,
+                           const PAGE_ID *lpids,
+                           const PAGE_ID *pids,
+                           SNAPSHOT_ID snap);
+
          INT32 getSlot(UINT32 slot, idMapSlot &value);
 
          INT32 writeSlot(UINT32 slot, const idMapSlot &value);
-         
-         INT32 prepareRemapLog(logRecordContext *lrc,
-                               const DPS_LSN_OFFSET *oplist,
-                               PAGE_ID lpid,
-                               const idMapSlot &oldSlot,
-                               const idMapSlot &newSlot);
 
-         INT32 commitRemapLog(logRecordContext *lrc,
-                               PAGE_ID lpid,
-                               const idMapSlot &oldSlot,
-                               const idMapSlot &newSlot);
+         void mapLpids(idMapPageHead *head,
+                       UINT32 count,
+                       const PAGE_ID *lpids,
+                       const PAGE_ID *pids,
+                       SNAPSHOT_ID snap);
+         
+         void unmapLpids(idMapPageHead *head,
+                         UINT32 count,
+                         const PAGE_ID *lpids);
+         
+         INT32 prepareMapLog(logRecordContext *lrc,
+                             const DPS_LSN_OFFSET *oplist,
+                             UINT32 count);
+
+         INT32 commitMapLog(logRecordContext *lrc,
+                            UINT32 count,
+                            const PAGE_ID *lpids,
+                            const PAGE_ID *pids,
+                            SNAPSHOT_ID snap,
+                            UINT32 free);
 
       private:
          virtual PAGE_TYPE getPageType()const

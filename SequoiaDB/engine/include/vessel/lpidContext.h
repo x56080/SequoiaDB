@@ -78,6 +78,7 @@ namespace vessel
          INT32 lock(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
          INT32 unlock(SPACE_TYPE type, PAGE_ID lpid);
          BOOLEAN testLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
+         BOOLEAN testLocked(SPACE_TYPE type, PAGE_ID lpid)const;
       private:
          INT32 extendBuf(UINT32 capacity);
 

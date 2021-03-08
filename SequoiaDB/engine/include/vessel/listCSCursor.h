@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,19 +36,18 @@
 #ifndef VESSEL_LIST_CS_CURSOR_H_
 #define VESSEL_LIST_CS_CURSOR_H_
 
-#include "vessel/cursorObject.h"
+#include "vessel/cursorKernal.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCSCursor : public cursorObject
+   class listCSCursor : public cursorKernal
    {
       public:
-         listCSCursor():
-         _lastLogicalID(DMS_INVALID_LOGICCSID)
+         OSS_INLINE listCSCursor()
          {
-
+            ossMemset(_csName, 0, DMS_COLLECTION_SPACE_NAME_SZ + 1);
          }
 
          virtual ~listCSCursor(){}
@@ -62,18 +58,29 @@ namespace vessel
             return CURSOR_TYPE_LIST_COLLECTION_SPACE;
          }
 
-         OSS_INLINE void setLogicalID(UINT32 id)
+         OSS_INLINE void setLastName(const CHAR *name)
          {
-            _lastLogicalID = id;
+            ossStrcpy(_csName, name);
          }
 
-         OSS_INLINE UINT32 getLogicalID()const
+         OSS_INLINE const CHAR *getCSName()const
          {
-            return _lastLogicalID;
+            return _csName;
+         }
+
+         OSS_INLINE void markLIdPushed(UINT32 lid)
+         {
+            _pushedLIds.insert(lid);
+         }
+
+         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
+         {
+            return 0 < _pushedLIds.count(lid);
          }
 
       private:
-         UINT32 _lastLogicalID;
+         CHAR _csName[DMS_COLLECTION_SPACE_NAME_SZ + 1];
+         ossPoolSet<UINT32> _pushedLIds;
    };//class listCSCursor
 }//namespace vessel
 }//namespace engine

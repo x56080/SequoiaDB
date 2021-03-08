@@ -56,9 +56,9 @@ namespace vessel
 
    INT32 initCreateCSLogRecord(const CHAR *name,
                                const SPACE_ID *sid,
+                               const utilCSUniqueID *uniqueID,
                                const createCSOptions *options,
                                dpsLogRecord &lr);
-
    
 }//namespace vessel
 }//namespace engine

@@ -59,11 +59,19 @@ namespace vessel
 
          INT32 readMetaRecord(csMetaRecord &record);
 
+         INT32 allocateCLLogicalID(UINT32 &logicalID);
+
       private:
          virtual PAGE_TYPE getPageType()const
          {
             return PAGE_TYPE_CS_META;
          }
+
+      private:
+         INT32 prepareUpdateMetaLog(logRecordContext *lrc);
+         INT32 commitUpdateMetaLog(logRecordContext *lrc,
+                                   UINT32 type,
+                                   const csMetaRecord &record);
    };//class csgpAccessor
 }//class vessel
 }//class engine

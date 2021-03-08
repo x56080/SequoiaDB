@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,20 +36,21 @@
 #ifndef VESSEL_LIST_CL_CURSOR_H_
 #define VESSEL_LIST_CL_CURSOR_H_
 
-#include "vessel/cursorObject.h"
+#include "vessel/cursorKernal.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class listCLCursor : public cursorObject
+   class listCLCursor : public cursorKernal
    {
       public:
          listCLCursor():
          _csLogicalID(DMS_INVALID_LOGICCSID),
-         _lastCLID(DMS_INVALID_LOGICCLID)
+         _sid(INVALID_SPACE_ID)
          {
-
+            ossMemset(_clName, 0, sizeof(_clName));
          }
 
          virtual ~listCLCursor(){}
@@ -63,9 +61,15 @@ namespace vessel
             return CURSOR_TYPE_LIST_COLLECTION;
          }
 
-         OSS_INLINE void setLogicalCSID(UINT32 id)
+         OSS_INLINE void setCollectionSpace(UINT32 lid, SPACE_ID sid)
          {
-            _csLogicalID = id;
+            _csLogicalID = lid;
+            _sid = sid;
+         }
+
+         OSS_INLINE SPACE_ID getSpaceID()const
+         {
+            return _sid;
          }
 
          OSS_INLINE UINT32 getCSLogicalID()const
@@ -73,19 +77,31 @@ namespace vessel
             return _csLogicalID;
          }
 
-         OSS_INLINE void setLastCLID(UINT32 id)
+         OSS_INLINE void setCLName(const CHAR *name)
          {
-            _lastCLID = id;
+            ossStrcpy(_clName, name);
          }
 
-         OSS_INLINE UINT32 getLastCLID()const
+         OSS_INLINE const CHAR *getCLName()const
          {
-            return _lastCLID;
+            return _clName;
+         }
+
+         OSS_INLINE void markLIdPushed(UINT32 lid)
+         {
+            _pushedLIds.insert(lid);
+         }
+
+         OSS_INLINE BOOLEAN isPushed(UINT32 lid)const
+         {
+            return 0 < _pushedLIds.count(lid);
          }
 
       private:
          UINT32 _csLogicalID;
-         UINT32 _lastCLID;
+         SPACE_ID _sid;
+         CHAR _clName[DMS_COLLECTION_NAME_SZ + 1];
+         ossPoolSet<UINT32> _pushedLIds;
    };//class listCLCursor
 }//namespace vessel
 }//namespace engine

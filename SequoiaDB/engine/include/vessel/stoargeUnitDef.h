@@ -51,12 +51,12 @@ namespace vessel
    {
       createSUOptions():
       sid(INVALID_SPACE_ID),
-      csOptions(NULL)
+      uniqueID(UTIL_INVLIAD_CS_UNIQUE_ID)
       {}
 
       SPACE_ID sid;
+      utilCSUniqueID uniqueID;
       strSlice csName;
-      const createCSOptions *csOptions;
       
       storageCoreArgs dataArgs;
       storageCoreArgs metaArgs;

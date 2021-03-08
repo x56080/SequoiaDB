@@ -39,11 +39,17 @@
 #include "vessel/csgpAccessor.h"
 #include "vessel/collectionSpaceGlobalPage.h"
 #include "pdTrace.hpp"
+#include "vessel/IRedoLogger.h"
+#include "vessel/logRecordContext.h"
+#include "dpsLogRecordDef.hpp"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
 namespace vessel
 {
+   static const UINT32 UPDATE_CS_META_TYPE_LID = 0;
+
    csgpAccessor::csgpAccessor()
    {}
 
@@ -100,22 +106,205 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       const CHAR *ptr = NULL;
-      const csMetaRecordOnDisk *recordPtr = NULL;
-      rc = getReadPtrOfPageBody(0, CS_META_RECORD_ON_DISK_LEN, &ptr);
+      const csMetaRecord *recordPtr = NULL;
+      rc = getReadPtrOfPageBody(0, CS_META_RECORD_LEN, &ptr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      recordPtr = (const csMetaRecordOnDisk *)ptr;
+      recordPtr = (const csMetaRecord *)ptr;
       if (!metaRecordIsValid(*recordPtr))
       {
-         PD_LOG(PDERROR, "page crashed[%d, %d, %d]", getGPID().space(), getGPID().type(), getGPID().page());
-         rc = SDB_VESSEL_INVALID_PAGE_CONTENT;
+         PD_LOG(PDERROR, "page crashed[%s]", getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
 
-      record = recordPtr->record;
+      record = *recordPtr;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 csgpAccessor::allocateCLLogicalID(UINT32 &logicalID)
+   {
+      INT32 rc = SDB_OK;
+      const CHAR *ptr = NULL;
+      const csMetaRecord *recordPtr = NULL;
+      CHAR *wPtr = NULL;
+      csMetaRecord *recordWPtr = NULL;
+      logRecordContext lrc;
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
+      BOOLEAN rollback = FALSE;
+
+      rc = getReadPtrOfPageBody(0, CS_META_RECORD_LEN,  &ptr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      recordPtr = (const csMetaRecord *)ptr;
+      if (!metaRecordIsValid(*recordPtr))
+      {
+         PD_LOG(PDERROR, "page crashed[%s]", getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      if (OSS_UNLIKELY(recordPtr->maxCLLogicalID == (DMS_INVALID_LOGICCLID - 1)))
+      {
+         PD_LOG(PDERROR, "logical id has hit the max value");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = prepareUpdateMetaLog(&lrc);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
+         goto error;
+      }
+
+      lsn = lrc.getLsn();
+
+      rc = prepareToWrite();
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = getWritePtrOfPageBody(0, CS_META_RECORD_LEN, &wPtr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      recordWPtr = (csMetaRecord *)wPtr;
+      logicalID = ++(recordWPtr->maxCLLogicalID);
+
+      rc = commitUpdateMetaLog(&lrc, UPDATE_CS_META_TYPE_LID, *recordWPtr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      pageAccessor::commit(lsn);
+      lrc.close();
+      rollback = FALSE;
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         IRedoLogger *logger = getContext()->getOuterResource()->logger;
+         logger->abort(getContext()->getSession(), &lrc);
+      }
+      if (rollback)
+      {
+         --(recordWPtr->maxCLLogicalID);
+      }
+      if (fullAccessing())
+      {
+         abortToWrite();
+      }
+      logicalID = DMS_INVALID_LOGICCLID;
+      goto done;
+   }
+
+   INT32 csgpAccessor::prepareUpdateMetaLog(logRecordContext *lrc)
+   {
+      INT32 rc = SDB_OK;
+
+      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      dpsLogRecordHeader *head = NULL;
+
+      head = &(lrc->getHead());
+      head->_type = LOG_TYPE_VESSEL_UPDATE_CS_META;
+      OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
+      OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_DDL);
+
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(CS_META_RECORD_LEN);
+      lrc->prepush(sizeof(UINT32));
+      rc = prepareFullDumpLogWhenNecessary(lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      lrc->prepushDone();
+
+      rc = logger->prepare(session, lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 csgpAccessor::commitUpdateMetaLog(logRecordContext *lrc,
+                                           UINT32 type,
+                                           const csMetaRecord &record)
+   {
+      INT32 rc = SDB_OK;
+
+      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(lrc->prepared(), "must be prepared");
+      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_PUBLIC_VESSEL_GPID,
+                                        sizeof(GLOBAL_PAGE_ID),
+                                        &getGPID());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_CSGP_UPDATE_RECORD,
+                                        CS_META_RECORD_LEN,
+                                        &record);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_CSGP_UPDATE_TYPE,
+                                        sizeof(UINT32),
+                                        &type);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      if (lrc->needFullDump())
+      {
+         const CHAR *dumpBuf = getFullDumpBuffer();
+         SDB_ASSERT(NULL != dumpBuf, "can not be null");
+         rc = logger->pushLogRecordElement(session, lrc,
+                                           DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP,
+                                           getPageSize(), dumpBuf);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+      }
+
+      rc = logger->commit(session, lrc);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
    done:
       return rc;
    error:

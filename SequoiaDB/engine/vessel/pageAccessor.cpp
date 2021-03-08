@@ -40,7 +40,7 @@
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/extentStorageUnit.h"
+#include "vessel/storageUnit.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/outerResource.h"
 #include "vessel/IRedoLogger.h"
@@ -63,14 +63,14 @@ namespace vessel
       teardown();
    }
 
-   INT32 pageAccessor::setup(requestContext *context,
+   INT32 pageAccessor::init(requestContext *context,
                              SPACE_TYPE type,
                              PAGE_ID pid,
                              UINT32 flags,
-                             extentStorageUnit *su)
+                             storageUnit *su)
    {
       INT32 rc = SDB_OK;
-      extentStorageUnit *obj = su;
+      storageUnit *obj = su;
       UINT32 size = 0;
       BOOLEAN rollback = FALSE;
 
@@ -102,7 +102,7 @@ namespace vessel
 
       if (NULL == obj)
       {
-         rc = context->getEnv()->suContainer.getSUByContext(context, &obj);
+         rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &obj);
          if (SDB_OK != rc)
          {
             goto error;
@@ -146,13 +146,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::setup(requestContext *context,
-                             SPACE_TYPE type,
-                             PAGE_ID pid,
-                             UINT32 pageSize,
-                             ossValuePtr ptr,
-                             BOOLEAN pageTypeCheck,
-                             BOOLEAN readOnly)
+   INT32 pageAccessor::initWithDirectMode(requestContext *context,
+                                          SPACE_TYPE type,
+                                          PAGE_ID pid,
+                                          UINT32 pageSize,
+                                          ossValuePtr ptr,
+                                          BOOLEAN pageTypeCheck,
+                                          BOOLEAN readOnly)
    {
       INT32 rc = SDB_OK;
       BOOLEAN rollback = FALSE;
@@ -222,6 +222,17 @@ namespace vessel
          teardown();
       }
       goto done;
+   }
+
+   INT32 pageAccessor::setup(requestContext *context,
+                                 SPACE_TYPE type,
+                                 PAGE_ID pid,
+                                 UINT32 pageSize,
+                                 ossValuePtr ptr,
+                                 BOOLEAN pageTypeCheck,
+                                 BOOLEAN readOnly)
+   {
+      return initWithDirectMode(context, type, pid, pageSize, ptr, pageTypeCheck, readOnly);
    }
    
 
@@ -338,6 +349,11 @@ namespace vessel
    }
 
    void pageAccessor::teardown()
+   {
+      return fini();
+   }
+
+   void pageAccessor::fini()
    {
       SDB_ASSERT(!fullAccessing(), "writing prepared but no commit or abort");
       endToAccess();

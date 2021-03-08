@@ -60,9 +60,9 @@ namespace vessel
          ~lcDirtyList();
 
       public:
-         INT32 setup();
+         INT32 init();
 
-         INT32 teardown();
+         INT32 fini();
 
          /// under w lock
          INT32 insert(lcExtentTagHolder &holder);

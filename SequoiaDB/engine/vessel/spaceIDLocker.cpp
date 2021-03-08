@@ -50,10 +50,10 @@ namespace vessel
 
    spaceIDLocker::~spaceIDLocker()
    {
-      teardown();
+      fini();
    }
 
-   INT32 spaceIDLocker::setup(UINT32 count)
+   INT32 spaceIDLocker::init(UINT32 count)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL != _mutexVec))
@@ -85,7 +85,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 spaceIDLocker::teardown()
+   INT32 spaceIDLocker::fini()
    {
       if (NULL != _mutexVec)
       {

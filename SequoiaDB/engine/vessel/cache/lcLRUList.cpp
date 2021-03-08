@@ -69,7 +69,7 @@ namespace vessel
 
    }
 
-   INT32 lcLRUList::setup(lcBuckets *buckets,
+   INT32 lcLRUList::init(lcBuckets *buckets,
                           lcFreeList *fl,
                           const liteCacheOptions::lruOptions &options)
    {
@@ -114,7 +114,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcLRUList::teardown()
+   INT32 lcLRUList::fini()
    {
       _size = 0;
       _coldSize = 0;

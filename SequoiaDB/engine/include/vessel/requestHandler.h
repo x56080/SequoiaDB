@@ -57,29 +57,29 @@ namespace vessel
 
          virtual ~requestHandler()
          {
-            teardown();
+            fini();
          }
 
       public:
-         INT32 setup(instanceEnv *env,
+         INT32 init(instanceEnv *env,
                      ISession *session,
                      outerResource *outer);
 
-         virtual INT32 teardown();
+         virtual INT32 fini();
 
-         OSS_INLINE BOOLEAN initialized()const
+         OSS_INLINE BOOLEAN isInitialized()const
          {
             return _context.isOpen();
          }
       protected:
          OSS_INLINE instanceEnv *getEnv()
          {
-            return initialized() ? _context.getEnv() : NULL;
+            return isInitialized() ? _context.getEnv() : NULL;
          }
 
          OSS_INLINE ISession *getSession()
          {
-            return initialized() ? _context.getSession() : NULL;
+            return isInitialized() ? _context.getSession() : NULL;
          }
 
          OSS_INLINE requestContext *getContext()

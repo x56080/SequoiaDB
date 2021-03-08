@@ -52,9 +52,7 @@ namespace vessel
          virtual ~insertHandler(){}
 
       public:
-         INT32 doit(const collectionHandle *handle,
-                    const slice &record,
-                    const insertOptions &options);
+
    };//class insertHandler
 }//namespace vessel
 }//namespace engine

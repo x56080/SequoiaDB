@@ -62,10 +62,10 @@ namespace vessel
          ~lcLRUList();
 
       public:
-         INT32 setup(lcBuckets *buckets,
+         INT32 init(lcBuckets *buckets,
                      lcFreeList *fl,
                      const liteCacheOptions::lruOptions &options);
-         INT32 teardown();
+         INT32 fini();
 
          /// for user threads
          /// tag under w lock

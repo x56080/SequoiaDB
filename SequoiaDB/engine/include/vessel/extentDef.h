@@ -55,6 +55,8 @@ namespace vessel
    const UINT16 INVALID_PAGE_VERSION = 0;
    const UINT16 PAGE_VERSION_1 = 1;
 
+   const UINT32 PAGE_COUNT_IN_EXTENT = 8;
+
    typedef UINT16 PAGE_TYPE;
    const PAGE_TYPE INVALID_PAGE_TYPE = 65535;
    const PAGE_TYPE PAGE_TYPE_SMP = 0;

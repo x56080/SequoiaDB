@@ -75,12 +75,16 @@ namespace vessel
          virtual INT32 commit(ISession *session,
                               logRecordContext *context) = 0;
 
-         /// do not commit log after commit.
+         /// do not abort log after committing.
          virtual INT32 abort(ISession *session,
                              logRecordContext *context) = 0;
 
          virtual INT32 pushMaxFileLSN(ISession *session,
                                       DPS_LSN_OFFSET lsn) = 0;
+
+         /// 
+         virtual INT32 abortOplist(ISession *session,
+                                   DPS_LSN_OFFSET lsn) = 0;
    };//class IRedoLogger
 }//namespace vessel
 }//namespace engine

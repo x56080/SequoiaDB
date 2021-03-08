@@ -44,5 +44,6 @@
 #include "vessel/listCollectionsHandler.h"
 #include "vessel/createCLHandler.h"
 #include "vessel/insertHandler.h"
+#include "vessel/openCLHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

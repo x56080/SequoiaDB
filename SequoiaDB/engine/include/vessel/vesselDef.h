@@ -40,6 +40,7 @@
 #define VESSEL_VESSEL_DEF_H_
 
 #include "dms.hpp"
+#include "utilUniqueID.hpp"
 #include "vessel/slice.h"
 
 namespace engine
@@ -50,6 +51,7 @@ namespace vessel
    const SPACE_ID INVALID_SPACE_ID = 65535;
    const SPACE_ID MAX_SPACE_ID = 16384;
    const SPACE_ID MAX_SPACE_COUNT = MAX_SPACE_ID + 1;
+   const SPACE_ID MAX_SPACE_SLOT_COUNT = 512;
 
    typedef UINT8 SPACE_TYPE;
    const SPACE_TYPE INVALID_SPACE_TYPE = 255;
@@ -61,8 +63,10 @@ namespace vessel
    const SPACE_TYPE SPACE_TYPE_LOB_DM = 5;
    const SPACE_TYPE SPACE_TYPE_LOB_DD = 7;
    const SPACE_TYPE SPACE_TYPE_NAME = 8;
-   const SPACE_TYPE SPACE_TYPE_SPACE_MAP = 9;
-   const SPACE_TYPE SPACE_TYPE_MAX = SPACE_TYPE_SPACE_MAP;
+   const SPACE_TYPE SPACE_TYPE_INMEM_BIT_MAP = 9;
+   const SPACE_TYPE SPACE_TYPE_FSM_SG = 10;
+   const SPACE_TYPE SPACE_TYPE_FSM_BITMAP = 11;
+   const SPACE_TYPE SPACE_TYPE_MAX = SPACE_TYPE_FSM_BITMAP;
 
    typedef UINT32 SEGMENT_ID;
    const SEGMENT_ID INVALID_SEG_ID = UINT32(-1);
@@ -70,14 +74,12 @@ namespace vessel
    typedef UINT32 SNAPSHOT_ID;
    const SNAPSHOT_ID INVALID_SNAPSHOT_ID = UINT32(-1);
 
-   typedef UINT16 STRIPING_GROUP_ID;
-   const STRIPING_GROUP_ID INVALID_STRIPING_GROUP_ID = 65535;
-   
-   const UINT64 INVALID_CONTEXT_ID = OSS_UINT64_MAX;
-
    typedef UINT16 CL_MB_ID;
    const CL_MB_ID INVALID_CL_MB_ID = 65535;
    const CL_MB_ID MAX_CL_MB_COUNT = 65535;
+
+   typedef UINT16 STRIPING_ID;
+   const STRIPING_ID INVALID_STRIPING_ID = 65535;
 
    enum CURSOR_TYPE
    {

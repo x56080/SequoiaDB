@@ -56,10 +56,10 @@ namespace vessel
 
    lcBuckets::~lcBuckets()
    {
-      teardown();
+      fini();
    }
 
-   INT32 lcBuckets::setup(UINT32 bucketCount,
+   INT32 lcBuckets::init(UINT32 bucketCount,
                           UINT32 latchCount,
                           UINT32 minRecycleCount)
    {
@@ -101,12 +101,12 @@ namespace vessel
    error:
       if (rollback)
       {
-         teardown();
+         fini();
       }
       goto done;
    }
 
-   INT32 lcBuckets::teardown()
+   INT32 lcBuckets::fini()
    {
       if (NULL != _buckets)
       {
@@ -131,7 +131,7 @@ namespace vessel
    INT32 lcBuckets::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                           UINT32 diskPageSize,
                                           UINT32 cachePageSize,
-                                          extentStorageUnit *su,
+                                          storageUnit *su,
                                           lcExtentTagHolder &holder)
    {
       ossSpinSLatch *latch = NULL;

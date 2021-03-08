@@ -49,7 +49,7 @@ namespace engine
 {
 namespace vessel
 {
-   class extentStorageUnit;
+   class storageUnit;
    
    class lcBucket : public SDBObject
    {
@@ -62,7 +62,7 @@ namespace vessel
                                     UINT32 diskPageSize,
                                     UINT32 cachePageSize,
                                     _ossSpinSLatch *latch,
-                                    extentStorageUnit *su,
+                                    storageUnit *su,
                                     UINT32 minRecycleCount,
                                     lcExtentTagHolder &holder);
 

@@ -43,7 +43,7 @@
 #include "vessel/requestContext.h"
 #include "vessel/impAccessor.h"
 #include "vessel/idMapPage.h"
-#include "vessel/extentStorageUnit.h"
+#include "vessel/storageUnit.h"
 #include "dpsLogRecord.hpp"
 #include "vessel/redoLogUtil.h"
 #include "vessel/instanceEnv.h"
@@ -60,8 +60,7 @@ namespace engine
 namespace vessel
 {
    collection::collection():
-   _collectionSpace(NULL),
-   _su(NULL)
+   _collectionSpace(NULL)
    {
       
    }
@@ -71,57 +70,8 @@ namespace vessel
 
    }
 
-   INT32 collection::setup(const strSlice &clName,
-                           UINT32 logicalID,
-                           CL_MB_ID mbID,
-                           const createCLOptions &options,
-                           collectionSpace *cs)
-   {
-      INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
-      if (OSS_UNLIKELY(clName.empty() ||
-                       DMS_INVALID_LOGICCLID == logicalID ||
-                       INVALID_CL_MB_ID == mbID ||
-                       NULL == cs))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(INVALID_CL_MB_ID != _record.mbID))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rollback = TRUE;
-      _collectionSpace = cs;
-      _su = _collectionSpace->getSU();
-      _record.version = COLLECTION_RECORD_VERSION;
-      _record.type = options.type;
-      ossMemcpy(_record.name, clName.str(), clName.strLen() + 1);
-      _record.logicalCLID = logicalID;
-      _record.logicalCSID = _collectionSpace->getLogicalID();
-      _record.mbID = mbID;
-      _record.maxSGCount = options.maxStripingGroupCount;
-      _record.compressionType = options.compressionType;
-      if (CL_COMPRESSION_TYPE_NONE != options.compressionType)
-      {
-         _record.compressionAlgrithm = options.compressionAlgrithm;
-      }
-      rollback = FALSE;
-   done:
-      return rc;
-   error:
-      if (rollback)
-      {
-         _record.reset();
-         _collectionSpace = NULL;
-      }
-      goto done;
-   }
-
-   INT32 collection::setup(const collectionRecord &record,
-                           collectionSpace *cs)
+   INT32 collection::initWhenOpen(const collectionRecord &record,
+                                  collectionSpace *cs)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL == cs))
@@ -142,11 +92,74 @@ namespace vessel
       
       _record = record;
       _collectionSpace = cs;
-      _su = _collectionSpace->getSU();
    done:
       return rc;
    error:
       goto done;
+   }
+
+   INT32 collection::create(requestContext *context,
+                            const strSlice &clName,
+                            utilCLInnerID innerID,
+                            UINT32 logicalID,
+                            collectionSpace *cs,
+                            const createCLOptions &options)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN rollback = FALSE;
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->mbLocked() ||
+                       EXCLUSIVE != context->getMBLockMode() ||
+                       INVALID_CL_MB_ID == context->getMBID() ||
+                       clName.empty() ||
+                       DMS_INVALID_LOGICCLID == logicalID ||
+                       NULL == cs ||
+                       !options.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (NULL != _collectionSpace)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rollback = TRUE;
+      _record.version = COLLECTION_RECORD_VERSION;
+      _record.mbID = context->getMBID();
+      _record.innerID = innerID;
+      _record.type = options.type;
+      _record.logicalCLID = logicalID;
+      ossStrncpy(_record.name, clName.str(), clName.strLen());
+      _record.maxSGCount = options.maxStripingGroupCount;
+      _record.compressionType = options.compressionType;
+      if (CL_COMPRESSION_TYPE_NONE != options.compressionType)
+      {
+         _record.compressionAlgrithm = options.compressionAlgrithm;
+      }
+      _collectionSpace = cs;
+
+      rc = saveOnDiskWhenCreating(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (rollback)
+      {
+         fini();
+      }
+      goto done;
+   }
+
+   void collection::fini()
+   {
+      _record.reset();
+      _collectionSpace = NULL;
+      return;
    }
 
    INT32 collection::saveOnDiskWhenCreating(requestContext *context)
@@ -155,18 +168,12 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(context->getSpaceIDLocked(), "must be locked");
       SDB_ASSERT(context->getSpaceID() == _collectionSpace->getSpaceID(), "must be same");
+      SDB_ASSERT(INVALID_CL_MB_ID != getMBID(), "can not be invlalid");
       PAGE_ID lpid = INVALID_PAGE_ID;
       PAGE_ID pid = INVALID_PAGE_ID;
-      
       lpidLockHelper lh;
 
-      if (OSS_UNLIKELY(INVALID_CL_MB_ID == getMBID()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = _su->getLpidOfClRecord(getMBID(), lpid);
+      rc = _collectionSpace->getLpidOfClRecord(getMBID(), lpid);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get lpid");
@@ -214,12 +221,14 @@ namespace vessel
       SDB_ASSERT(context->getMBID() == _record.mbID, "must be same");
 
       record.version = _record.version;
-      record.logicalID = _record.logicalCLID;
-      record.csLogicalID = _record.logicalCSID;
+      ossMemcpy(record.name, _record.name, ossStrlen(_record.name) + 1);
+      record.csUniqueID = _collectionSpace->getUniqueID();
+      record.clInnerID = _record.innerID;
+      record.clLogicalID = _record.logicalCLID;
       record.spaceID = _collectionSpace->getSpaceID();
       record.mbID = _record.mbID;
       record.maxSGCount = _record.maxSGCount;
-      ossMemcpy(record.name, _record.name, ossStrlen(_record.name) + 1);
+      
    done:
       return rc;
    error:
@@ -231,19 +240,16 @@ namespace vessel
                                                  PAGE_ID &pid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(context->testLpidLockMode(SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE), "must holding lock");
-      SNAPSHOT_ID snap = INVALID_SNAPSHOT_ID;
-      snapshotContainer &snapshot = context->getEnv()->snapContainer;
+      PAGE_ID cow = INVALID_PAGE_ID;
 
-      rc = _su->getDataPhysicalPid(context, lpid, pid, snap);
+      rc = _collectionSpace->getPhyPidInDFile(context, lpid, pid, &cow);
       if (SDB_OK == rc)
       {
-         if (snapshot.contains(snap, _su->getSpaceID()))
-         {
-            SDB_ASSERT(FALSE, "to do");
-         }
+         goto done;
       }
       else if (SDB_VESSEL_LOGICAL_PAGE_UNMAPPED == rc)
       {
@@ -253,8 +259,17 @@ namespace vessel
             goto error;
          }
       }
+      else if (SDB_VESSEL_PAGE_IN_SNAPSHOT == rc)
+      {
+         rc = _collectionSpace->copyOnWritePageInDFile(context, lpid, cow, pid);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
       else
       {
+         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
          goto error;
       }
 
@@ -271,8 +286,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != _su, "can not be null");
-      DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET;
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      SDB_ASSERT(context->testLpidLockMode(SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE), "must holding lock");
 
       rc = preallocateCLRecordPage(context, lpid, pid);
       if (SDB_OK != rc)
@@ -280,20 +295,11 @@ namespace vessel
          goto error;
       }
 
-      rc = allocateCLRecordPageOnSMP(context, lpid, pid, oplist);
+      rc = _collectionSpace->allocateDataPages(context, PAGE_TYPE_COLLECTION_RECORD,
+                                               1, &lpid, &pid, slice());
       if (SDB_OK != rc)
       {
-         goto error;
-      }
-
-      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != oplist, "can not be invalid");
-
-      rc = _su->remapLpid(context, lpid, pid, &oplist);
-      if (SDB_OK != rc)
-      {
-         /// we do not need to rollback lpid mapping.
-         /// just leave it there for next ddl request.
-         releaseCLRecordPageOnSMP(context, pid, &oplist);
+         PD_LOG(PDERROR, "failed to allocate data pages:%d", rc);
          goto error;
       }
    done:
@@ -301,63 +307,9 @@ namespace vessel
    error:
       if (INVALID_PAGE_ID != pid)
       {
-         _su->releaseDataPagesPreallocated(context, 1, &pid);
+         _collectionSpace->releaseDataPagesPreallocated(context, 1, &pid);
          pid = INVALID_PAGE_ID;
       }
-      
-      goto done;
-   }
-
-   INT32 collection::allocateCLRecordPageOnSMP(requestContext *context,
-                                               PAGE_ID lpid,
-                                               PAGE_ID pid,
-                                               DPS_LSN_OFFSET &oplist)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
-      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      PAGE_ID smpPid = INVALID_PAGE_ID;
-      smpAccessor smp;
-
-      rc = _su->getDataSMPPId(pid, smpPid);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = smp.setup(context, SPACE_TYPE_RECORD_D,
-                     smpPid, flags, _su);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = smp.allocateCLRecordPage(lpid, pid, &lsn);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      oplist = lsn;
-   done:
-      smp.teardown();
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collection::releaseCLRecordPageOnSMP(requestContext *context,
-                                              PAGE_ID pid,
-                                              const DPS_LSN_OFFSET *oplist)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(FALSE, "todo");
-   done:
-      return rc;
-   error:
       goto done;
    }
 
@@ -368,21 +320,21 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(NULL != _su, "can not be null");
 
       UINT32 pageSize = 0;
       ossValuePtr pagePtr = 0;
       crpAccessor crp;
+      storageUnit *su = _collectionSpace->getSU();
       
       pid = INVALID_PAGE_ID;
    
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _su->preallocateDataPages(context, 1, &pid);
+      rc = _collectionSpace->preallocatePhyPagesInDFile(context, 1, &pid);
       if (SDB_OK != rc)
       {
          goto error;
@@ -390,14 +342,14 @@ namespace vessel
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_D, pid, pagePtr);
+      rc = su->getPagePtr(SPACE_TYPE_RECORD_D, pid, pagePtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = crp.setup(context, SPACE_TYPE_RECORD_D,
-                     pid, pageSize, pagePtr, FALSE, FALSE);
+      rc = crp.initWithDirectMode(context, SPACE_TYPE_RECORD_D,
+                                  pid, pageSize, pagePtr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
          goto error;
@@ -409,9 +361,9 @@ namespace vessel
          goto error;
       }
 
-      crp.teardown();
+      crp.fini();
 
-      rc = _su->fsync(SPACE_TYPE_RECORD_D, pid, 1, TRUE);
+      rc = su->fsync(SPACE_TYPE_RECORD_D, pid, 1, TRUE);
       if (SDB_OK != rc)
       {
          goto error;
@@ -419,10 +371,10 @@ namespace vessel
    done:
       return rc;
    error:
-      crp.teardown();
+      crp.fini();
       if (INVALID_PAGE_ID != pid)
       {
-         _su->releaseDataPagesPreallocated(context, 1, &pid);
+         _collectionSpace->releaseDataPagesPreallocated(context, 1, &pid);
          pid = INVALID_PAGE_ID;
       }
       goto done;
@@ -433,11 +385,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       crpAccessor accessor;
       UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
-      rc = accessor.setup(context,
+      rc = accessor.init(context,
                           SPACE_TYPE_RECORD_D,
-                          pid, flags, _su);
+                          pid, flags, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup crp accessor:%d", rc);
@@ -450,7 +403,7 @@ namespace vessel
          goto error;
       }
    done:
-      accessor.teardown();
+      accessor.fini();
       return rc;
    error:
       goto done;

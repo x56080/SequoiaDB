@@ -52,6 +52,7 @@ namespace vessel
 {
    INT32 initCreateCSLogRecord(const CHAR *name,
                                const SPACE_ID *sid,
+                               const utilCSUniqueID *uniqueID,
                                const createCSOptions *options,
                                dpsLogRecord &lr)
    {
@@ -71,6 +72,13 @@ namespace vessel
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to push csname to log record:%d", rc);
+         goto error;
+      }
+
+      rc = lr.push(DPS_LOG_CSCRT_CSUNIQUEID, sizeof(utilCSUniqueID), (const CHAR *)uniqueID);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push unique id to log record:%d", rc);
          goto error;
       }
 

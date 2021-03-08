@@ -40,12 +40,11 @@
 #define VESSEL_INSTANCE_ENV_H_
 
 #include "vessel/spaceIDLocker.h"
-#include "vessel/objectContainer.h"
-#include "vessel/extentSUContainer.h"
 #include "vessel/snapshotContainer.h"
 #include "vessel/liteCache.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/checkpointController.h"
+#include "vessel/collectionSpaceContainer.h"
 
 namespace engine
 {
@@ -65,8 +64,7 @@ namespace vessel
          openDBOptions options;
          checkpointController checkpointer;
          spaceIDLocker spaceLocker;
-         objectContainer objContainer;
-         extentSUContainer suContainer;
+         collectionSpaceContainer csContainer;
          snapshotContainer snapContainer;
          liteCache cache;
 

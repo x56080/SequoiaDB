@@ -46,7 +46,7 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 requestHandler::setup(instanceEnv *env,
+   INT32 requestHandler::init(instanceEnv *env,
                                ISession *session,
                                outerResource *resource)
    {
@@ -56,7 +56,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(initialized()))
+      else if (OSS_UNLIKELY(isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -77,7 +77,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 requestHandler::teardown()
+   INT32 requestHandler::fini()
    {
       INT32 rc = SDB_OK;
       if (_context.isOpen())

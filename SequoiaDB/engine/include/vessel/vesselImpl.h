@@ -48,6 +48,7 @@ namespace engine
 namespace vessel
 {
    class requestContext;
+   class cursorKernal;
    
    class vesselImpl : public vessel, SDBObject
    {
@@ -56,19 +57,20 @@ namespace vessel
          virtual ~vesselImpl();
       public:
          virtual BOOLEAN isOpen(){return _open;}
-         virtual INT32 setup(const outerResource &resource);
+         virtual INT32 initOuterResource(const outerResource &resource);
          virtual INT32 open(ISession *session, const openDBOptions &options);
          virtual INT32 close(ISession *session, const closeDBOptions &options);
 
-         virtual INT32 fastGetCollectionSpaceCount(ISession *session,
-                                                   UINT32 &count);
-
          virtual INT32 listCollectionSpace(ISession *session,
                                            IQueryFilter *filter,
-                                           ICursor *cursor);
+                                           cursorHandler &cursor);
+
+         virtual INT32 getCollectionSpaceCount(ISession *session,
+                                               UINT32 &count);
 
          virtual INT32 createCollectionSpace(ISession *session,
                                              const CHAR *name,
+                                             utilCSUniqueID uniqueID,
                                              const createCSOptions &options);
 
          virtual INT32 dropCollectionSpace(ISession *session,
@@ -77,41 +79,35 @@ namespace vessel
                                            const dropCSOptions &options);
 
          virtual INT32 createCollection(ISession *session,
-                                        UINT32 csLogicalID,
+                                        const CHAR *csName,
                                         const CHAR* clName,
-                                        UINT32 clLogicalID,
+                                        utilCLInnerID innerID,
                                         const createCLOptions &options);
                                         
          virtual INT32 listCollections(ISession *session,
-                                       UINT32 csLogicalID,
+                                       const CHAR *csName,
                                        IQueryFilter *filter,
-                                       ICursor *cursor);
+                                       cursorHandler &cursor);
+
+         virtual INT32 getCollectionCount(ISession *session,
+                                          const CHAR *csName,
+                                          UINT32 &count);
 
          virtual INT32 openCollection(ISession *session,
-                                      UINT32 csLogicalID,
-                                      UINT32 clLogicalID,
+                                      const CHAR *csName,
+                                      const CHAR *clName,
                                       const openCLOptions &options,
-                                      collectionObject *obj);
+                                      collectionHandler &handler);
 
       public:
          virtual INT32 pushMoreToCursor(ISession * session,
-                                        cursorObject *cursor);
-
-         virtual INT32 insert(ISession *session,
-                              const collectionHandle *handle,
-                              const slice &record,
-                              const insertOptions &options);
+                                cursorKernal *cursor);
       private:
 
          INT32 initObjectContainer(ISession *session);
 
          INT32 flushWholeDirtyList(requestContext *context);
 
-         INT32 testCollection(requestContext *context,
-                              UINT32 cslid,
-                              UINT32 cllid,
-                              SPACE_ID &sid,
-                              CL_MB_ID &mid);
 
       private:
          BOOLEAN _open;

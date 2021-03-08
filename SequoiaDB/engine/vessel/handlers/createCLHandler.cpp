@@ -38,7 +38,6 @@
 
 #include "vessel/createCLHandler.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/objectContainer.h"
 #include "vessel/collectionSpace.h"
 
 namespace engine
@@ -55,51 +54,70 @@ namespace vessel
 
    }
 
-   INT32 createCLHandler::doit(UINT32 logicalCSID,
-                               const CHAR *clName,
-                               UINT32 logicalCLID,
+   INT32 createCLHandler::doit(const strSlice &csName,
+                               const strSlice &clName,
+                               utilCLInnerID innerID,
                                const createCLOptions &options)
    {
       INT32 rc = SDB_OK;
-      objectContainer *container = &(getContext()->getEnv()->objContainer);
+      SDB_ASSERT(isInitialized(), "can not be null");
+      CS_CONTAINER &cc = getEnv()->csContainer;
       collectionSpace *csObj = NULL;
-      strSlice nameSlice;
-      rc = validateOptions(clName, logicalCLID, options);
+      BOOLEAN locked = FALSE;
+
+      rc = validateOptions(csName, clName, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = container->getCSByLogicalID(getContext(), logicalCSID,
-                                       SHARED, &csObj);
-      if (SDB_DMS_CS_NOTEXIST == rc)
-      {
-         LOG_ERR_AND_REPORT(getContext(), rc, "collection space[%d] does not exists", logicalCSID);
-         goto error;
-      }
-      else if (SDB_OK != rc)
+      rc = cc.getCSByName(getContext(), csName, SHARED, &csObj);
+      if (SDB_OK != rc)
       {
          goto error;
       }
+      locked = TRUE;
 
-      nameSlice.reset(clName);
-      rc = csObj->createCL(getContext(), nameSlice, logicalCLID, options);
+      rc = csObj->createCL(getContext(), clName, innerID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      getContext()->unlockSpaceID();
+      if (locked)
+      {
+         getContext()->unlockSpaceID();
+      }
       return rc;
    error:
       goto done;
    }
 
-   INT32 createCLHandler::validateOptions(const CHAR *name,
-                                          UINT32 logicalCLID,
+   INT32 createCLHandler::validateOptions(const strSlice &csName,
+                                          const strSlice &clName,
                                           const createCLOptions &options)
    {
       INT32 rc = SDB_OK;
+      if (csName.empty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (clName.empty())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (DMS_COLLECTION_NAME_SZ < clName.strLen())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!options.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
    done:
       return rc;
    error:

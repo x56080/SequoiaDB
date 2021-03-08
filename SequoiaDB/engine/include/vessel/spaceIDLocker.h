@@ -53,8 +53,8 @@ namespace vessel
          ~spaceIDLocker();
 
       public:
-         INT32 setup(UINT32 count);
-         INT32 teardown();
+         INT32 init(UINT32 count);
+         INT32 fini();
          void lock(SPACE_ID sid, OSS_LATCH_MODE mode);
          BOOLEAN lock(SPACE_ID sid, OSS_LATCH_MODE mode, INT32 millis);
          BOOLEAN tryLock(SPACE_ID sid, OSS_LATCH_MODE mode);

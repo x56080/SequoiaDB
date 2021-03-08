@@ -149,6 +149,24 @@ namespace vessel
       return r;
    }
 
+   BOOLEAN lpidContext::testLocked(SPACE_TYPE type, PAGE_ID lpid)const
+   {
+      BOOLEAN r = FALSE;
+      for (INT32 i = ((INT32)_size - 1); i >= 0; --i)
+      {
+         const _lpidLockSlot &slot = _slots[i];
+         if (type != slot.type || lpid != slot.lpid)
+         {
+            continue;
+         }
+         r = TRUE;
+         goto done;
+      }
+      
+   done:
+      return r;
+   }
+
    INT32 lpidContext::extendBuf(UINT32 capacity)
    {
       INT32 rc = SDB_OK;

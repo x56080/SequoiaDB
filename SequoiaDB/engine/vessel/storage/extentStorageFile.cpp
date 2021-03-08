@@ -615,13 +615,6 @@ namespace vessel
          goto error;
       }
 
-      if (options.logicalCS == DMS_INVALID_LOGICCSID)
-      {
-         PD_LOG(PDERROR, "invalid logical cs id");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
       if (options.spaceID == INVALID_SPACE_ID)
       {
          PD_LOG(PDERROR, "invalid space id");
@@ -680,7 +673,6 @@ namespace vessel
       head->headChecksum = 0;
       head->createTime = ossGetCurrentMilliseconds();
       head->secretValue = options.secretValue;
-      head->logicalCSID = options.logicalCS;
       head->spaceID = options.spaceID;
       head->spaceType = getSpaceType();
       head->sequence = options.sequence;
@@ -762,7 +754,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::allocateNewSegment(PAGE_ID *newPidInFile)
+   INT32 extentStorageFile::allocateNewSegment()
    {
       INT32 rc = SDB_OK;
       UINT32 extendLen = 0;
@@ -789,10 +781,6 @@ namespace vessel
          goto error;
       }
 
-      if (NULL != newPidInFile)
-      {
-         *newPidInFile = _dataSegmentCount * _headInMem.maxPageCountPerSeg;
-      }
       ++_dataSegmentCount;
    done:
       return rc;
@@ -873,7 +861,9 @@ namespace vessel
          goto error;
       }
 
-      if (suHead->pageSize != DMS_PAGE_SIZE16K &&
+      if (suHead->pageSize != DMS_PAGE_SIZE4K &&
+          suHead->pageSize != DMS_PAGE_SIZE8K &&
+          suHead->pageSize != DMS_PAGE_SIZE16K &&
           suHead->pageSize != DMS_PAGE_SIZE32K &&
           suHead->pageSize != DMS_PAGE_SIZE64K)
       {

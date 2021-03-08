@@ -50,7 +50,6 @@ namespace vessel
 {
 
 class lcBuckets;
-class extentSUContainer;
 class lcLRUList;
 class lcDirtyList;
 class lcFreeList;
@@ -58,6 +57,7 @@ class diskIOJob;
 class diskIOTask;
 class requestContext;
 class ISession;
+class collectionSpaceContainer;
 
 class liteCache : public SDBObject
 {
@@ -69,9 +69,9 @@ class liteCache : public SDBObject
       liteCache(const liteCache &){}
       liteCache &operator=(const liteCache &){return *this;}
    public: /// for normal requests
-      INT32 setup(const liteCacheOptions &o, extentSUContainer *container);
+      INT32 init(const liteCacheOptions &o, collectionSpaceContainer *container);
 
-      INT32 teardown();
+      INT32 fini();
 
       /// inc usage cnt and lock
       INT32 allocate(requestContext *request,
@@ -140,7 +140,7 @@ class liteCache : public SDBObject
 
    private:
       liteCacheOptions _options;
-      extentSUContainer *_container;
+      collectionSpaceContainer *_container;
       lcBuckets *_buckets;
       lcLRUList *_lru;
       lcDirtyList *_dl;
