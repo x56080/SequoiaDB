@@ -1,53 +1,53 @@
-## 名称
+## NAME
 
-snapshot - 获取快照
+snapshot - get snapshot
 
-## 语法
+## SYNOPSIS
 
 **db.snapshot(\<snapType\>,[cond],[sel],[sort])**
 
 **db.snapshot(\<snapType\>,[SdbSnapshotOption])**
 
-## 类别
+## CATEGORY
 
 Sdb
 
-## 描述
+## DESCRIPTION
 
-该函数用于获取指定快照，查看当前系统状态。
+This function is used to get the specified snapshot and view the current system status. 
 
-## 参数
+## PARAMETERS
 
-| 参数名 			| 类型 	| 描述 		| 是否必填 |
-| ------ 			| ------ 	| ------ 	| ------   |
-| snapType 			| macro   	| 需要获取的快照，取值可参考[快照类型][snapshot] | 是 |
-| cond 				| object    | 设置匹配条件以及[命令位置参数][location] 	| 否 |
-| sel 				| object | 选择返回字段名，为 null 时返回所有的字段名 	| 否 |
-| sort 				| object | 对返回的记录按选定的字段排序，取值如下：<br>1：升序<br>-1：降序 | 否 |
-| SdbSnapshotOption	| object | 使用一个对象指定快照查询参数，使用方法可参考 [SdbSnapshotOption][shotOption] | 否 |
+| Name    | Type   | Description    | Required or Not |
+|---------|--------|----------------|-----------------|
+| snapType | macro | The snapshot to be obtained, the value can refer to [Snapshot type][snapshot].| Required 	   |
+| cond     | object     | Match condictions and [position parameter][parameter]. | Not 	   |
+| sel      | object     | Select the returned field name. When it is null, return all field names.         | Not 	   |
+| sort     |  object    | Sort the returned records by the selected field. The values are as follow:<br> 1: ascending <br>-1: descending        | Not 	   |
+| SdbSnapshotOption | object  | Use an object to specify the snapshot query parameters, the usage method can refer to [SdbSnapshotOption][shotOption]. | Not |
 
-> **Note:**
+>**Note:**
 >
->* sel 参数是一个 json 结构，如：{字段名:字段值}，字段值一般指定为空串。sel 中指定的字段名在记录中存在，设置字段值不生效；不存在则返回 sel 中指定的字段名和字段值。
->* 记录中字段值类型为数组，我们可以在 sel 中指定该字段名，用"."操作符加上双引号("")来引用数组元素。
+>* sel parameter is a json structure,like:{Field name:Field value}，The field value is generally specified as an empty string.The field name specified in sel exists in the record,setting the field value does not take effect;return the field name and field value specified in the sel otherwise.
+>* The field value type in the record is an array.User can specify the field name in sel,and use "." operator with double marks ("") to refer to the array elements.
 
-## 返回值
+## RETURN VALUE
 
-函数执行成功时，将返回一个 SdbCursor 类型的对象。
+When the function executes successfully, it will return an object of type SdbCursor.
 
-函数执行失败时，将抛异常并输出错误信息。
+When the function fails, an exception will be thrown and an error message will be printed.
 
-## 错误
+## ERRORS
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
+When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
 
-## 版本
+## VERSION
 
-v2.0 及以上版本
+v2.0 and above
 
-## 示例
+## EXAMPLES
 
-* 指定 snapType 的值为 SDB_SNAP_CONTEXTS 
+* Specify the value of snapType as SDB_LIST_CONTEXTS.
 
     ```lang-javascript
     > db.snapshot( SDB_SNAP_CONTEXTS )
@@ -95,7 +95,7 @@ v2.0 及以上版本
     }
     ```
 
-* 通过组名或组 ID 查询某个复制组的快照信息
+* Query the snapshot information of a replication group by group name or group ID.
 
     ```lang-javascript
     > db.snapshot( SDB_SNAP_CONTEXTS, { GroupName:'data1' } )
@@ -130,7 +130,7 @@ v2.0 及以上版本
     }
     ```
 
-* 通过指定组名、主机名和服务名，或指定组 ID 和节点 ID查询某个节点的快照信息
+* Query the snapshot information of a node by specifying the group name, host name and service name, or specifying the group ID and node ID.
 
     ```lang-javascript
     > db.snapshot( SDB_SNAP_CONTEXTS, { GroupName: 'data1', HostName: "vmsvr1-cent-x64-1", svcname: "11820" } )
@@ -151,7 +151,7 @@ v2.0 及以上版本
     }
     ```
 
-* 通过指定主机名和服务名查询某个节点的快照信息
+* Query the snapshot information of a node by specifying the host name and service name.
 
     ```lang-javascript
     > db.snapshot( SDB_SNAP_CONTEXTS, { HostName: "ubuntu-200-043", svcname: "11820" } )
@@ -172,7 +172,7 @@ v2.0 及以上版本
     }
     ```
 
-* 返回未在 coord 聚集前的原始数据
+* Return the original data before coord aggregation.
 
     ```lang-javascript
     > db.snapshot( SDB_SNAP_DATABASE, { RawData: true } ,{ NodeName: null, GroupName: null, TotalDataRead: null } )
@@ -195,12 +195,11 @@ v2.0 及以上版本
     ```
 
 [^_^]:
-     本文使用的所有引用及链接
+     links
 [snapshot]:manual/Manual/Snapshot/snapshot.md
-[location]:manual/Manual/Sequoiadb_Command/location.md
+[parameter]:manual/Manual/Sequoiadb_Command/location.md
 [shotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/faq.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-
