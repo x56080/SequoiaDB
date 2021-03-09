@@ -127,7 +127,6 @@ INT32 _rtnRollbackManager::_getRecord(dpsLogRecord *record)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(RTN_ROLLBACKMGR_GETRECORD, &rc);
-   PD_TRACER(1, PD_PACK_ULONG(_cursor));
    DPS_LSN dpsLsn;
    dpsLsn.offset = _cursor;
    _mb.clear(); // clean up the tmp storage

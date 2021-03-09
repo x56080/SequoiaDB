@@ -5074,7 +5074,7 @@ error:
          if ((rc = _parseTimestamp(matcher)) ||
              (rc = _parseTransID(matcher)))
          {
-            PD_LOG(PDERROR, "Error parsing options [rc=%s]", rc);
+            PD_LOG(PDERROR, "Error parsing options [rc=%d]", rc);
             return rc;
          }
       }

@@ -383,7 +383,6 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORE_SET, &rc);
-   PD_TRACER(1, PD_PACK_INT(enable));
    BSONObj query;
    PD_LOG(PDINFO, "Setting cluster state [%s] = [%d]", FIELD_NAME_RESTORE,
           enable);
