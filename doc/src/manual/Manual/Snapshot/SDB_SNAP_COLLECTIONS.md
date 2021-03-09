@@ -30,6 +30,7 @@ SDB_SNAP_COLLECTIONS
 | CollectionSpace  | string    | 集合所属集合空间名                |
 | Details.NodeName         | string    | 集合所属节点名，格式为<主机名>:<服务名> |
 | Details.GroupName        | string    | 集合所属复制组名                  |
+| Details.InternalV        | int32     | 集合快照的版本                    |
 | Details.ID                      | int32         | 集合 ID，范围 0~4095，集合空间内唯一                    |
 | Details.LogicalID               | int32         | 集合逻辑 ID                                             |
 | Details.Sequence                | int32         | 序列号                                                  |
@@ -124,6 +125,7 @@ SDB_SNAP_COLLECTIONS
        {
          "NodeName": "hostname:11890",
          "GroupName": "group1",
+         "InternalV": 1,
          "ID": 0,
          "LogicalID": 0,
          "Sequence": 1,
