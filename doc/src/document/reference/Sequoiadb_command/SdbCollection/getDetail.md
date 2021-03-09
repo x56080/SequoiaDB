@@ -42,6 +42,7 @@ v3.2.5 及以上版本、v3.4.1 及以上版本
      {
        "NodeName": "hostname:11920",
        "GroupName": "group1",
+       "InternalV": 1,
        "ID": 1,
        "LogicalID": 1,
        "Sequence": 1,
