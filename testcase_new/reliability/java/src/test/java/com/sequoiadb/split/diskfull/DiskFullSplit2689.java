@@ -3,6 +3,7 @@ package com.sequoiadb.split.diskfull;
 import java.util.List;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -27,7 +28,7 @@ import com.sequoiadb.task.TaskMgr;
 
 /**
  * @FileName:SEQDB-2689 对hash分区组进行范围切分，切分时目标组主节点所在服务器磁盘耗尽
- * @author huangqiaohui
+ * @Author huangqiaohui
  * @version 1.00
  *
  */
@@ -47,31 +48,41 @@ public class DiskFullSplit2689 extends SdbTestBase {
     public void setUp() {
         try {
             commSdb = new Sequoiadb( coordUrl, "", "" );
+
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness( 20 ) ) {
                 throw new SkipException( "checkBusiness return false" );
             }
-            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
 
+            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
             srcGroupName = glist.get( 0 ).getGroupName();
             destGroupName = glist.get( 1 ).getGroupName();
             System.out.println( "split srcRG:" + srcGroupName + " destRG:"
                     + destGroupName );
 
+            // 关闭目标组熔断机制
+            commSdb.updateConfig( new BasicBSONObject( "ftmask", "NONE" ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
+            // 准备数据
             CollectionSpace commCS = commSdb.createCollectionSpace( csName );
             DBCollection cl = commCS.createCollection( clName,
                     ( BSONObject ) JSON.parse(
                             "{ShardingKey:{'sk':1},Partition:4096,ShardingType:'hash',Group:'"
                                     + srcGroupName + "'}" ) );
             insertData( cl, 300 );// 写入待切分的LOB（~300M）
+
             // 调整主机
             fillUpDiskHost = groupMgr.getGroupByName( destGroupName )
                     .getMaster().hostName();
             Utils.reelect( fillUpDiskHost, Utils.CATA_RG_NAME, srcGroupName );
             groupMgr.refresh();
             System.out.println( "fillUpDiskHost:" + fillUpDiskHost );
-
         } catch ( ReliabilityException e ) {
+            // 熔断机制恢复默认值
+            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
             if ( commSdb != null ) {
                 commSdb.close();
             }
@@ -177,6 +188,10 @@ public class DiskFullSplit2689 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
+            // 熔断机制恢复默认值
+            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
             if ( commSdb != null ) {
                 commSdb.close();
             }

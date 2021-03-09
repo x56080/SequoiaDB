@@ -1,5 +1,16 @@
 package com.sequoiadb.split.diskfull;
 
+import java.util.List;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.util.JSON;
+import org.testng.Assert;
+import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -13,16 +24,6 @@ import com.sequoiadb.fault.DiskFull;
 import com.sequoiadb.task.FaultMakeTask;
 import com.sequoiadb.task.OperateTask;
 import com.sequoiadb.task.TaskMgr;
-import org.bson.BSONObject;
-import org.bson.util.JSON;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.Date;
-import java.util.List;
 
 /**
  * @FileName:SEQDB-26701 对range分区组进行百分比切分，切分时目标组主节点所在服务器磁盘耗尽
@@ -45,33 +46,42 @@ public class DiskFullSplit2701 extends SdbTestBase {
     @BeforeClass()
     public void setUp() {
         try {
-
             commSdb = new Sequoiadb( coordUrl, "", "" );
+
             groupMgr = GroupMgr.getInstance();
             if ( !groupMgr.checkBusiness( 20 ) ) {
                 throw new SkipException( "checkBusiness return false" );
             }
-            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
 
+            List< GroupWrapper > glist = groupMgr.getAllDataGroup();
             srcGroupName = glist.get( 0 ).getGroupName();
             destGroupName = glist.get( 1 ).getGroupName();
             System.out.println( "split srcRG:" + srcGroupName + " destRG:"
                     + destGroupName );
 
+            // 关闭源组熔断机制
+            commSdb.updateConfig( new BasicBSONObject( "ftmask", "NONE" ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
+            // 准备数据
             CollectionSpace commCS = commSdb.createCollectionSpace( csName );
             DBCollection cl = commCS.createCollection( clName,
                     ( BSONObject ) JSON.parse(
                             "{ShardingKey:{'sk':1},ShardingType:'range',Group:'"
                                     + srcGroupName + "'}" ) );
             insertData( cl, 0, 5000 );
+
             // 调整主机
             fillUpDiskHost = groupMgr.getGroupByName( destGroupName )
                     .getMaster().hostName();
             Utils.reelect( fillUpDiskHost, Utils.CATA_RG_NAME, srcGroupName );
             groupMgr.refresh();
             System.out.println( "fillUpDiskHost:" + fillUpDiskHost );
-
         } catch ( ReliabilityException e ) {
+            // 熔断机制恢复默认值
+            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
             if ( commSdb != null ) {
                 commSdb.close();
             }
@@ -163,6 +173,10 @@ public class DiskFullSplit2701 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
+            // 熔断机制恢复默认值
+            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
+                    new BasicBSONObject( "GroupName", destGroupName ) );
+
             if ( commSdb != null ) {
                 commSdb.close();
             }
