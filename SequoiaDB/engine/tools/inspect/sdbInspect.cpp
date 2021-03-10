@@ -3310,9 +3310,8 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    rc = ossLockFile( &startupFile, OSS_LOCK_EX ) ;
    if ( SDB_OK != rc )
    {
-      std::cout << "Error: failed to lock startup-file while starting"
-                << ", rc = " << rc << std::endl
-                << "       There's another sdbinspect running in the same dir"
+      std::cout << "Error: sdbinspect can't be executed concurrently "
+                   "in the same directory"
                 << endl ;
       goto error ;
    }
