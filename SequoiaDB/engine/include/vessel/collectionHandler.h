@@ -37,75 +37,67 @@
 #define VESSEL_COLLECTION_HANDLER_H_
 
 #include "vessel/vesselDef.h"
+#include "vessel/collectionHandle.h"
+#include "utilInsertResult.hpp"
+#include "vessel/recordData.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class vesselImpl;
+   class ISession;
+
    class collectionHandler : public SDBObject
    {
       public:
          OSS_INLINE collectionHandler():
-                    _csLogicalID(DMS_INVALID_LOGICCSID),
-                    _clLogicalID(DMS_INVALID_LOGICCLID),
-                    _sid(INVALID_SPACE_ID),
-                    _mbid(INVALID_CL_MB_ID){}
+                    _db(NULL){}
 
-         OSS_INLINE collectionHandler(UINT32 cslid, UINT32 cllid,
-                                      SPACE_ID sid, CL_MB_ID mbid):
-                    _csLogicalID(cslid),
-                    _clLogicalID(cllid),
-                    _sid(sid),
-                    _mbid(mbid){}
+         OSS_INLINE collectionHandler(const collectionHandle &handle,
+                                      vesselImpl *db):
+                    _handle(handle),
+                    _db(db){}
 
          OSS_INLINE collectionHandler(const collectionHandler &o):
-                    _csLogicalID(o._csLogicalID),
-                    _clLogicalID(o._clLogicalID),
-                    _sid(o._sid),
-                    _mbid(o._mbid){}
+                    _handle(o._handle),
+                    _db(o._db){}
 
          OSS_INLINE~collectionHandler()
-         {}
+         {
+            _db = NULL;
+         }
 
          collectionHandler &operator=(const collectionHandler &o)
          {
-            _csLogicalID = o._csLogicalID;
-            _clLogicalID = o._clLogicalID;
-            _sid = o._sid;
-            _mbid = o._mbid;
+            _handle = o._handle;
+            _db = o._db;
             return *this;
          }
 
       public:
-         OSS_INLINE UINT32 getCSLId()const
+         OSS_INLINE BOOLEAN isOpen()const
          {
-            return _csLogicalID;
+            return _handle.valid() && NULL != _db;
          }
-         OSS_INLINE UINT32 getCLLId()const
+         OSS_INLINE void close()
          {
-            return _clLogicalID;
+            _handle.reset();
+            _db = NULL;
+            return;
          }
-         OSS_INLINE SPACE_ID getSpaceID()const
-         {
-            return _sid;
-         }
-         OSS_INLINE CL_MB_ID getMbId()const
-         {
-            return _mbid;
-         }
-         OSS_INLINE BOOLEAN valid()const
-         {
-            return DMS_INVALID_LOGICCSID != _csLogicalID &&
-                   DMS_INVALID_LOGICCLID != _clLogicalID &&
-                   INVALID_SPACE_ID != _sid &&
-                   INVALID_CL_MB_ID != _mbid;
-         }
+
+      public:
+         INT32 insert(ISession *session,
+                      const recordData &record,
+                      const DPS_TRANS_ID &transID,
+                      STRIPING_ID striping,
+                      const insertOptions *options,
+                      utilInsertResult &res);
           
       private:
-         UINT32 _csLogicalID;
-         UINT32 _clLogicalID;
-         SPACE_ID _sid;
-         CL_MB_ID _mbid;
+         collectionHandle _handle;
+         vesselImpl *_db;
    };//class collectionHandler
 }//namespace vessel
 }//namespace engine

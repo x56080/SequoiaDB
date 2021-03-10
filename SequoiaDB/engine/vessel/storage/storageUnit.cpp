@@ -159,6 +159,13 @@ namespace vessel
       goto done;
    }
 
+   UINT32 storageUnit::getFileCount()
+   {
+      SDB_ASSERT(isOpen(), "must be open");
+      ossScopedLock(&_dataFileAccessingMutex, SHARED);
+      return _data.size();
+   }
+
    INT32 storageUnit::getCoreArgs(SPACE_TYPE type,
                                   UINT32 *pageSize,
                                   UINT32 *maxPageCountPerSeg,

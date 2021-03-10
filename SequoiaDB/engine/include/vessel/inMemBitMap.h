@@ -40,6 +40,8 @@
 #define VESSEL_IN_MEM_BIT_MAP_H_
 
 #include "ossLatch.hpp"
+#include "utilPooledObject.hpp"
+#include "ossMemPool.hpp"
 
 #include <map>
 
@@ -48,13 +50,14 @@ namespace engine
 namespace vessel
 {
    class requestContext;
+   struct spaceManagementPageHead;
 
    const UINT32 IMBM_FLAG_KEEP_NONFREE_PAGE = 0x01;
 
    class inMemBitMap : public SDBObject
    {
       private:
-         class _inMemBitPage : public SDBObject
+         class _inMemBitPage : public _utilPooledObject
          {
             public:
                _inMemBitPage():
@@ -125,7 +128,7 @@ namespace vessel
          {
             return _pageCount;
          }
-         OSS_INLINE BOOLEAN isSetup()const
+         OSS_INLINE BOOLEAN isInitialized()const
          {
             return 0 < _bitCountInPage;
          }
@@ -153,6 +156,9 @@ namespace vessel
 
          INT32 loadFromFile(requestContext *context,
                             const CHAR *fullPath);
+
+      public:
+         INT32 mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head);
 
       private:
          INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
@@ -197,7 +203,7 @@ namespace vessel
          /// we will not keep bit pages in mem when it's free count is zero.
          /// _pageCount means total count of page we ever allocated.
          UINT32 _pageCount;
-         typedef std::map<INT32, _inMemBitPage*> _PAGE_MAP;
+         typedef ossPoolMap<INT32, _inMemBitPage*> _PAGE_MAP;
          _PAGE_MAP _pagesWithLowFreeCount;
          _PAGE_MAP _pagesWithHighFreeCount;
    };//class inMemBitMap

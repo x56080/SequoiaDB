@@ -267,6 +267,35 @@ namespace vessel
       goto done;
    }
 
+   INT32 smpAccessor::dumpSMP(UINT32 bufferSize,
+                              CHAR *buffer)
+   {
+      INT32 rc = SDB_OK;
+      const CHAR *ptr = NULL;
+      if (OSS_UNLIKELY(NULL == buffer))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (bufferSize < getPageBodySize())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = readPageBody(0, getPageBodySize(), buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to dump smp:%d", rc);
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 
    INT32 smpAccessor::setPageNotFree(UINT32 bitsSlotNo, UINT32 bitNo)
    {

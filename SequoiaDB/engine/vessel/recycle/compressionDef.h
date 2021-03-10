@@ -16,9 +16,12 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = compressionDef.h
 
    Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -33,35 +36,34 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
-
-#include "vessel/requestHandler.h"
-#include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "vessel/vesselDef.h"
+#ifndef VESSEL_COMPRESSION_DEF_H_
+#define VESSEL_COMPRESSION_DEF_H_
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions;
-   class insertHandler : public requestHandler
+   enum CL_COMPRESSION_TYPE
    {
-      public:
-         insertHandler(){}
-         virtual ~insertHandler(){}
+      CL_COMPRESSION_TYPE_NONE = 0,
+      CL_COMPRESSION_TYPE_GLOBAL_DIC = 1,
+      CL_COMPRESSION_TYPE_PAGE_DIC = 2, 
+      CL_COMPRESSION_TYPE_MAX = CL_COMPRESSION_TYPE_PAGE_DIC,
+   };
 
-      public:
-         INT32 doit(const collectionHandle &handle,
-                    const recordData &record,
-                    const DPS_TRANS_ID &transID,
-                    STRIPING_ID striping,
-                    const insertOptions *options,
-                    utilInsertResult &res);
+   enum CL_COMPRESSION_ALGRITHM
+   {
+      CL_COMPRESSION_ALGRITHM_LZW = 0,
+      CL_COMPRESSION_ALGRITHM_LZ4 = 1,
+      CL_COMPRESSION_ALGRITHM_MAX = CL_COMPRESSION_ALGRITHM_LZ4,
+   };
 
-   };//class insertHandler
+   enum CL_COMPRESSION_LEVEL
+   {
+      CL_COMPRESSION_LEVEL_MIN = 0,
+      CL_COMPRESSION_LEVEL_MAX = 9,
+   };
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INSERT_HANDLER_H_
+#endif//VESSEL_COMPRESSION_DEF_H_

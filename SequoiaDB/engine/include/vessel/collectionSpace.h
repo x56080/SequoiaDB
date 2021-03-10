@@ -260,7 +260,8 @@ namespace vessel
 
          INT32 initParamsInMem();
 
-         INT32 initInMemBitMapsWhenCreating();
+         INT32 initInMemSMPBitMap();
+         INT32 initInMemSMPBitMapFromDisk(requestContext *context);
 
       private:
          struct comp

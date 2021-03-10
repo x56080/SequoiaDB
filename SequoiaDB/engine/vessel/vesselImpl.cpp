@@ -506,6 +506,39 @@ namespace vessel
       goto done;
    }
 
+   INT32 vesselImpl::insert(ISession *session,
+                            const collectionHandle &handle,
+                            const recordData &record,
+                            const DPS_TRANS_ID &transID,
+                            STRIPING_ID striping,
+                            const insertOptions *options,
+                            utilInsertResult &res)
+   {
+      INT32 rc = SDB_OK;
+      insertHandler handler;
+      if (OSS_UNLIKELY(NULL == session))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = handler.init(&_env, session, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init handler:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 vesselImpl::flushWholeDirtyList(requestContext *context)
    {
       INT32 rc = SDB_OK;

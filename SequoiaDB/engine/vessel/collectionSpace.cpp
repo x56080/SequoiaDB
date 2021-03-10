@@ -151,7 +151,7 @@ namespace vessel
          goto error;
       }
 
-      rc = initInMemBitMapsWhenCreating();
+      rc = initInMemSMPBitMap();
       if (SDB_OK != rc)
       {
          goto error;
@@ -843,6 +843,16 @@ namespace vessel
       {
          rc = SDB_INVALIDARG;
          goto error;
+      }
+
+      if (!_inMemDataSMP.isInitialized())
+      {
+         rc = initInMemSMPBitMapFromDisk(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init in memory bit map:%d", rc);
+            goto error;
+         }
       }
 
       do
@@ -1838,7 +1848,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::initInMemBitMapsWhenCreating()
+   INT32 collectionSpace::initInMemSMPBitMap()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
@@ -1869,6 +1879,85 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collectionSpace::initInMemSMPBitMapFromDisk(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _su, "can not be null");
+      SDB_ASSERT(0 < _maxPageCountPerDataFile, "can not be zero");
+      UINT32 smpCount = 0;
+      UINT32 pageSize = 0;
+      CHAR *buffer = NULL;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      ossScopedLock lock(&_creatingDataFileLatch);
+      if (_inMemDataSMP.isInitialized())
+      {
+         goto done;
+      }
+
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to get core args:%d", rc);
+         goto error;
+      }
+
+      buffer = context->allocateBuffer(pageSize);
+      if (NULL == buffer)
+      {
+         PD_LOG(PDERROR, "failed to allcoate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = initInMemSMPBitMap();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init in memory smp bitmap:%d", rc);
+         goto error;
+      }
+
+      smpCount = _su->getFileCount();
+      pid = SMP_PAGE_ID;
+      for (UINT32 i = 0; i < smpCount; ++i)
+      {
+         smpAccessor accessor;
+         rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _su);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init smp accessor:%d", rc);
+            goto error;
+         }
+
+         rc = accessor.dumpSMP(pageSize, buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to dump smp[%d], rc:%d", pid, rc);
+            goto error;
+         }
+
+         accessor.fini();
+
+         rc = _inMemDataSMP.mapNewBitPage(i, (const spaceManagementPageHead *)buffer);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to map smp to inmem bitmap, pid[%d], rc:%d", pid, rc);
+            goto error;
+         }
+
+         pid += _maxPageCountPerDataFile;
+      }
+   done:
+      if (NULL != buffer)
+      {
+         context->releaseBuffer(buffer, pageSize);
+      }
+      return rc;
+   error:
+      _inMemDataSMP.fini();
       goto done;
    }
 }//namespace vessel

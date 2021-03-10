@@ -45,6 +45,7 @@ namespace engine
 {
 namespace vessel
 {
+#pragma pack(4)
    const PAGE_ID SYSTEM_MAP_PAGE_ID = 2;
 
    const UINT16 CURRENT_ID_MAP_PAGE_VERSION = 1;
@@ -54,7 +55,7 @@ namespace vessel
       UINT32 capacity;
       UINT32 free;
       UINT32 flags;
-      PAGE_ID minLpid;
+      UINT32 minLpid;
       UINT64 pad;
    };// struct idMapPageHead
 
@@ -70,7 +71,7 @@ namespace vessel
          return INVALID_PAGE_ID == page;
       }
    };// struct idMapExtentSlot
-
+#pragma pack()
    INT32 getCapacityOfIMP(UINT32 pageSize, UINT32 &capacity);
 }//namespace vessel
 }//namespace engine

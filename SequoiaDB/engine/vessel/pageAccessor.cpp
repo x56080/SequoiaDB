@@ -536,7 +536,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::initCommonPageHeadAndTail()
+   INT32 pageAccessor::initCommonPageHeadAndTail(PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       pageHead *head = NULL;
@@ -564,7 +564,7 @@ namespace vessel
       head->flags = 0;
       head->setInUsed();
       head->size = _size;
-      head->pageID = _gpid.page();
+      head->pageID = INVALID_PAGE_ID == lpid ? _gpid.page() : lpid;
       head->lsn = DPS_INVALID_LSN_OFFSET;
       head->pad = 0;
       head->pad2 = 0;

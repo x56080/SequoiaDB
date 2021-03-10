@@ -45,6 +45,7 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/recordID.h"
 #include "vessel/listCollectionsDef.h"
+#include "vessel/recordData.h"
 
 namespace engine
 {
@@ -100,8 +101,11 @@ namespace vessel
                     listCollectionsRecord &record);
 
          INT32 insert(requestContext *context,
-                      const slice &record,
-                      const insertOptions &options);
+                      const recordData &record,
+                      const DPS_TRANS_ID &transID,
+                      STRIPING_ID striping,
+                      const insertOptions &options,
+                      utilInsertResult &res);
 
       private:
          INT32 saveOnDiskWhenCreating(requestContext *context);

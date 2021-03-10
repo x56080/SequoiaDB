@@ -42,6 +42,8 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "vessel/requestContext.h"
+#include "vessel/spaceManagementPage.h"
+#include "vessel/bitMapUtils.h"
 
 namespace engine
 {
@@ -61,7 +63,8 @@ namespace vessel
       _size = 0;
       _free = 0;
       _firstFreeBits = -1;
-      SAFE_OSS_FREE(_bitsBuf);
+      SDB_THREAD_FREE(_bitsBuf);
+      _bitsBuf = NULL;
 
       return SDB_OK;
    }
@@ -99,7 +102,7 @@ namespace vessel
 
       bufSize = ossAlign32(size) / BIT_COUNT_PER_BYTE;
 
-      _bitsBuf = (UINT32 *)SDB_OSS_MALLOC(bufSize);
+      _bitsBuf = (UINT32 *)SDB_THREAD_ALLOC(bufSize);
       if (NULL == _bitsBuf)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -163,7 +166,7 @@ namespace vessel
       SDB_ASSERT(0 < size, "can not be 0");
       UINT32 bufSize = ossAlign32(size) / BIT_COUNT_PER_BYTE;
 
-      _bitsBuf = (UINT32 *)SDB_OSS_MALLOC(bufSize);
+      _bitsBuf = (UINT32 *)SDB_THREAD_ALLOC(bufSize);
       if (NULL == _bitsBuf)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -561,6 +564,84 @@ namespace vessel
       _mutex.release();
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 inMemBitMap::mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head)
+   {
+      INT32 rc = SDB_OK;
+      _inMemBitPage *page = NULL;
+      const CHAR *bits = NULL;
+      UINT32 bitsCount = 0;
+      UINT32 firstFree = 0;
+      ossScopedLock lock(&_mutex);
+
+      if (OSS_UNLIKELY(NULL == head))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isInitialized())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (_pageCount != bitPageID)
+      {
+         PD_LOG(PDERROR, "spmp to be mapping should order by it's page id");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (head->capacity != _bitCountInPage)
+      {
+         PD_LOG(PDERROR, "capacity should be same");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (0 == head->free)
+      {
+         ++_pageCount;
+         goto done;
+      }
+
+      bits = (const CHAR *)head + SMP_HEAD_LEN;
+      bitsCount = head->capacity >> 5; /// divied by 32
+
+      if (!findFirstFreeFromBitMap32(bitsCount, (const UINT32 *)bits, firstFree))
+      {
+         PD_LOG(PDERROR, "non-zero free count in head but not found in bitmap");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      page = SDB_OSS_NEW _inMemBitPage();
+      if (NULL == page)
+      {
+         PD_LOG(PDERROR, "failed to alloate mem");
+         goto error;
+      }
+
+      rc = page->init(bitPageID, bitsCount, head->free, (INT32)firstFree, bits);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (head->free < _freeBound)
+      {
+         _pagesWithLowFreeCount[bitPageID] = page;
+      }
+      else
+      {
+         _pagesWithHighFreeCount[bitPageID] = page;
+      }
+
+      ++_pageCount;
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(page);
       goto done;
    }
 

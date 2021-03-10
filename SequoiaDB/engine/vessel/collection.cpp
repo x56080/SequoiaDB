@@ -235,6 +235,26 @@ namespace vessel
       goto done;
    }
 
+   INT32 collection::insert(requestContext *context,
+                           const recordData &record,
+                           const DPS_TRANS_ID &transID,
+                           STRIPING_ID striping,
+                           const insertOptions &options,
+                           utilInsertResult &res)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(NULL == context ||
+                       !record.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::ensureCLRecordPageAllocated(requestContext *context,
                                                  PAGE_ID lpid,
                                                  PAGE_ID &pid)

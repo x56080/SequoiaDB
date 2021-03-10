@@ -52,6 +52,7 @@ namespace vessel
    const UINT16 COLLECTION_RECORD_VERSION = 1;
    const UINT16 COLLECTION_RECORD_INVALID_VERSION = 0;
    
+#pragma pack(4)
    struct collectionRecord
    {
       collectionRecord():
@@ -152,6 +153,7 @@ namespace vessel
    const UINT32 COLLECTION_RECORD_PAGE_INVALID_VERSION = 0;
    const UINT32 COLLECTION_RECORD_PAGE_VERSION_1 = 1;
    INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
+#pragma pack()
 
 }//namespace vessel
 }//namespace engine

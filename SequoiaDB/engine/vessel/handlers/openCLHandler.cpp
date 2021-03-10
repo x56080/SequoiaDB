@@ -38,6 +38,7 @@
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
 #include "vessel/collectionHandler.h"
+#include "vessel/spaceIDLockHelper.h"
 
 namespace engine
 {
@@ -66,10 +67,11 @@ namespace vessel
          goto error;
       }
 
-      clHandler = collectionHandler(cs->getLogicalID(),
-                                    cl->getLogicalID(),
-                                    cs->getSpaceID(),
-                                    cl->getMBID());
+      clHandler = collectionHandler(collectionHandle(cs->getLogicalID(),
+                                                     cl->getLogicalID(),
+                                                     cs->getSpaceID(),
+                                                     cl->getMBID()),
+                                    this);
    done:
       if (NULL != cl)
       {

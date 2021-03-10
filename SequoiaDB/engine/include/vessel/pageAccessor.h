@@ -134,7 +134,7 @@ namespace vessel
 
       protected:
          /// WARNING: will overwrite a initialized page head.
-         INT32 initCommonPageHeadAndTail();
+         INT32 initCommonPageHeadAndTail(PAGE_ID lpid=INVALID_PAGE_ID);
 
          INT32 memsetPageBody(CHAR v);
          

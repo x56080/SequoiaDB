@@ -71,6 +71,9 @@ namespace vessel
                              const slice &args,
                              DPS_LSN_OFFSET *oplist);
 
+         INT32 dumpSMP(UINT32 bufferSize,
+                       CHAR *buffer);
+
       private:
          INT32 validatePidsToBeAllocated(UINT32 count,
                                          const PAGE_ID *pids);

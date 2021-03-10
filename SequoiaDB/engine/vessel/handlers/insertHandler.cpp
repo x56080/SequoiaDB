@@ -37,11 +37,78 @@
 #include "vessel/instanceEnv.h"
 #include "vessel/collection.h"
 #include "vessel/collectionSpace.h"
+#include "vessel/recordData.h"
+#include "vessel/spaceIDLockHelper.h"
 
 namespace engine
 {
 namespace vessel
 {
-  
+   INT32 insertHandler::doit(const collectionHandle &handle,
+                              const recordData &record,
+                              const DPS_TRANS_ID &transID,
+                              STRIPING_ID striping,
+                              const insertOptions *options,
+                              utilInsertResult &res)
+   {
+      INT32 rc = SDB_OK;
+      collectionSpace *cs = NULL;
+      collection *cl = NULL;
+      const static insertOptions DEFAULT_OPTIONS;
+      const insertOptions *op = NULL == options ? &DEFAULT_OPTIONS : options;
+
+      if (OSS_UNLIKELY(!handle.valid() ||
+                       !record.isValid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = lhelper.lock(handle.getSpaceID(), SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get shared lock of cs[%d], rc:%d", handle.getSpaceID(), rc);
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.getCSBySpaceID(getContext(),
+                                                handle.getSpaceID(),
+                                                handle.getCSLId(),
+                                                SHARED, &cs);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cs->getCollectionByMBID(getContext(), handle.getMbId(),
+                                   handle.getCLLId(), SHARED, &cl);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = cl->insert(getContext(), record, transID, striping, *op, res);
+      if (SDB_IXM_DUP_KEY == rc)
+      {
+         goto error;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert record into collection:%d", rc);
+         goto error;
+      }
+   done:
+      if (NULL != cl)
+      {
+         getContext()->unlockMB();
+      }
+      if (NULL != cs)
+      {
+         getContext()->unlockSpaceID();
+      }
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

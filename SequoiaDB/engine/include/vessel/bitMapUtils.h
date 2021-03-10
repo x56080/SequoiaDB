@@ -45,6 +45,8 @@ namespace vessel
 {
    void resetBitMap32(UINT32 count, UINT32 *bits, BOOLEAN allFree);
 
+   BOOLEAN findFirstFreeFromBitMap32(UINT32 count, const UINT32 *bits, UINT32 &offset);
+
    BOOLEAN allocateFromBitMap32(UINT32 count, UINT32 *bits, UINT32 &offset);
 
    BOOLEAN setFreeIfNotFree32(UINT32 count, UINT32 *bits, UINT32 offset);

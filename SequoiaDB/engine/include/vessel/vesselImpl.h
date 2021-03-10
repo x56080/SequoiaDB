@@ -102,6 +102,14 @@ namespace vessel
       public:
          virtual INT32 pushMoreToCursor(ISession * session,
                                 cursorKernal *cursor);
+
+         virtual INT32 insert(ISession *session,
+                              const collectionHandle &handle,
+                              const recordData &record,
+                              const DPS_TRANS_ID &transID,
+                              STRIPING_ID striping,
+                              const insertOptions *options,
+                              utilInsertResult &res);
       private:
 
          INT32 initObjectContainer(ISession *session);

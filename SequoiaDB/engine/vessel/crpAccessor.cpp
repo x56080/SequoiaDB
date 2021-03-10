@@ -95,7 +95,7 @@ namespace vessel
          goto error;
       }
 
-      rc = initCommonPageHeadAndTail();
+      rc = initCommonPageHeadAndTail(lpid);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init common head:%d", rc);
@@ -107,9 +107,6 @@ namespace vessel
       {
          goto error;
       }
-
-      /// reset page id as logical id.
-      pageHead->pageID = lpid;
 
       rc = memsetPageBody(0);
       if (SDB_OK != rc)

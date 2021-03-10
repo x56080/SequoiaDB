@@ -80,6 +80,7 @@ namespace vessel
       default:
          e0 = 0;
          e1 = 0;
+         SDB_ASSERT(FALSE, "invalid type");
       }
       return;
    }
@@ -87,6 +88,7 @@ namespace vessel
    typedef UINT16 PAGE_FLAGS;
    const PAGE_FLAGS PAGE_FLAG_IN_USED = 0x01;
 
+#pragma pack(4)
    struct pageHead
    {
       OSS_INLINE pageHead()
@@ -131,15 +133,16 @@ namespace vessel
 
       CHAR eyeCatcher[2];
       UINT16 version;
-      PAGE_TYPE type;
-      PAGE_FLAGS flags;
+      UINT16 type;
+      UINT16 flags;
       UINT32 size;
-      PAGE_ID pageID;
+      UINT32 pageID;
       UINT64 lsn;
       //UINT32 snapshot;
       UINT32 pad;
       UINT64 pad2;
    };// struct pageHead
+#pragma pack()
    const UINT32 PAGE_HEAD_LEN = sizeof(pageHead);
    const UINT32 PAGE_TAIL_LEN = sizeof(UINT64);
 

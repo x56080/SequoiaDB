@@ -53,6 +53,7 @@ namespace vessel
    const UINT32 CS_META_RECORD_ON_DISK_LEN = 1024;
    const PAGE_ID CS_GLOBAL_META_PAGE_ID = 1;
 
+#pragma pack(4)
    struct csMetaRecord
    {
       UINT32 version;
@@ -114,6 +115,8 @@ namespace vessel
       csMetaRecord record;
       CHAR pad[CS_META_RECORD_ON_DISK_LEN-CS_META_RECORD_LEN];
    }; //struct csMetaRecordOnDisk
+
+#pragma pack()
 
    BOOLEAN metaRecordIsValid(const csMetaRecord &record);
 }//namespace vessel

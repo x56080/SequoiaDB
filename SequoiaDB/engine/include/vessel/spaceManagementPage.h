@@ -51,6 +51,7 @@ namespace vessel
                         UINT32 pageCountOfSeg,
                         UINT32 &capacity);
 
+#pragma pack(4)
    struct spaceManagementPageHead
    {
       UINT32 version;
@@ -59,6 +60,7 @@ namespace vessel
       UINT32 free; /// current free page count not in used. free <= capacity.
       UINT64 pad;
    };
+#pragma pack()
 
    const UINT32 INVALID_SMP_VERSION = 0;
    const UINT32 SMP_VERSION_1 = 1;
