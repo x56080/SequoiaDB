@@ -84,7 +84,6 @@ namespace import
       rc = csvParser->parseFields( fields, fieldsLength, isHeaderline ) ;
       if ( rc )
       {
-         std::cout << "Failed to parse fields" << std::endl ;
          PD_LOG( PDERROR, "Failed to parse fields, rc=%d", rc ) ;
          goto error ;
       }

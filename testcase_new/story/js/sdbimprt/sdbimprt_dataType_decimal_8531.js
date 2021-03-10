@@ -39,39 +39,65 @@ function importData ( csName, clName, imprtFile )
       "a decimal(10,10)"];
    for( i = 0; i < decimalFmt.length; i++ )
    {
+      var rt = cmd.run( 'find ./ -maxdepth 1 -name "sdbimport.log"' );
+      var newLogFile = '';
+      if( rt !== '' )  //file is exist
+      {
+         var time = cmd.run( 'date "+%Y-%m-%d-%H:%M:%S"' ).split( "\n" )[0];
+         newLogFile = 'sdbimport.log_' + time;
+         cmd.run( 'mv ./sdbimport.log ./' + newLogFile );
+      }
+
+
       var imprtOption = installDir + 'bin/sdbimprt -s ' + COORDHOSTNAME + ' -p ' + COORDSVCNAME
          + ' -c ' + csName + ' -l ' + clName
          + ' --type csv --fields "' + decimalFmt[i]
          + '" --file ' + imprtFile;
-      var rc = cmd.run( imprtOption );
-      var rcObj = rc.split( "\n" );
+      var rc ;
+
+      try
+      {
+         rc = cmd.run( imprtOption );
+      }
+      catch( e )
+      {
+      }
 
       //check import results
       if( i < decimalFmt.length - 1 )
       {
-         var expParseRecords = "Parsed records: 0";
-         var expParseFailure = "Parsed failure: 0";
-         var expImportedRecords = "Imported records: 0";
-         var actParseRecords = rcObj[1];
-         var actParseFailure = rcObj[2];
-         var actImportedRecords = rcObj[5];
+         var logInfo = cmd.run( 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Invalid decimal type"' ).split( "\n" );
+         var expV = 2;
+         var actV = logInfo.length;
+         if( expV !== actV )
+         {
+            throw new Error( "importData fail,[sdbimprt results]" +
+               "[" + expV + "]" +
+               "[" + actV + "]" );
+         }
+
+         if( rt !== '' )  //file is exist
+         {
+            cmd.run( 'mv ' + newLogFile + ' sdbimport.log' );
+         }
       }
       else
       {
+         var rcObj = rc.split( "\n" );
          var expParseRecords = "Parsed records: 0";
          var expParseFailure = "Parsed failure: 1";
          var expImportedRecords = "Imported records: 0";
          var actParseRecords = rcObj[0];
          var actParseFailure = rcObj[1];
          var actImportedRecords = rcObj[4];
-      }
 
-      if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
-         || expImportedRecords !== actImportedRecords )
-      {
-         throw new Error( "importData fail,[sdbimprt results]" +
-            "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
-            "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
+         if( expParseRecords !== actParseRecords || expParseFailure !== actParseFailure
+            || expImportedRecords !== actImportedRecords )
+         {
+            throw new Error( "importData fail,[sdbimprt results]" +
+               "[" + expParseRecords + ", " + expParseFailure + ", " + expImportedRecords + "]" +
+               "[" + actParseRecords + ", " + actParseFailure + ", " + actImportedRecords + "]" );
+         }
       }
    }
 

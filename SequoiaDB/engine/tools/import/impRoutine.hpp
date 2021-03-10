@@ -68,6 +68,7 @@ namespace import
       INT32 _stopImporter() ;
 
    private:
+      BOOLEAN           _isInit ;
       INT32             _dataQueueNum ;
 
       DataQueue*        _dataQueue ;

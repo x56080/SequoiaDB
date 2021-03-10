@@ -59,7 +59,7 @@ namespace import
       return FALSE;
    }
 
-   INT32 parseFileList(const string& fileList, vector<string>& files)
+   INT32 parseFileList( const string& fileList, vector<string>& files )
    {
       INT32 rc = SDB_OK;
 
@@ -82,10 +82,12 @@ namespace import
                continue;
             }
 
-            if (!fs::exists(file))
+            if ( !fs::exists( file ) )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               std::cerr << "file is not existing, path=" << file.c_str()
+                         << std::endl ;
+               goto error ;
             }
 
             if (fs::is_directory(file))
@@ -116,17 +118,21 @@ namespace import
             }
          }
       }
-      catch(std::exception& e)
+      catch( std::exception& e )
       {
-         rc = SDB_INVALIDARG;
-         PD_LOG(PDERROR, "Unexpected error happened: %s", e.what());
-         goto error;
+         rc = SDB_INVALIDARG ;
+         std::cerr << "Unexpected error happened: " << e.what()
+                   << std::endl ;
+         PD_LOG( PDERROR, "Unexpected error happened: %s", e.what() ) ;
+         goto error ;
       }
 
-      if (files.empty())
+      if ( files.empty() )
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         rc = SDB_INVALIDARG ;
+         std::cerr << "No files to import" << std::endl ;
+         PD_LOG( PDERROR, "No files to import, path=%s", fileList.c_str() ) ;
+         goto error ;
       }
 
    done:
@@ -157,16 +163,19 @@ namespace import
          case 'Y':
             if (hasYear)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate year format, "
+                                "'YYYY' already exists" ) ;
+               goto error ;
             }
 
             if ('Y' != fmt[1] ||
                 'Y' != fmt[2] ||
                 'Y' != fmt[3])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid year format, year should be 'YYYY'" ) ;
+               goto error ;
             }
 
             hasYear = TRUE;
@@ -177,13 +186,15 @@ namespace import
          case 'M':
             if (hasMonth)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate month format, 'MM' already exists" );
+               goto error ;
             }
 
             if ('M' != fmt[1])
             {
                rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Invalid month format, month should be 'MM'" ) ;
                goto error;
             }
 
@@ -195,14 +206,16 @@ namespace import
          case 'D':
             if (hasDay)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate day format, 'DD' already exists" ) ;
+               goto error ;
             }
 
             if ('D' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid day format, day should be 'DD'" ) ;
+               goto error ;
             }
 
             hasDay = TRUE;
@@ -213,14 +226,16 @@ namespace import
          case 'H':
             if (hasHour)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate hour format, 'HH' already exists" ) ;
+               goto error ;
             }
 
             if ('H' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid hour format, hour should be 'HH'" ) ;
+               goto error ;
             }
 
             hasHour = TRUE;
@@ -231,14 +246,18 @@ namespace import
          case 'm':
             if (hasMinute)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate minute format, "
+                                "'mm' already exists" ) ;
+               goto error ;
             }
 
             if ('m' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid minute format, "
+                                "minute should be 'mm'" ) ;
+               goto error ;
             }
 
             hasMinute = TRUE;
@@ -249,14 +268,18 @@ namespace import
          case 's':
             if (hasSecond)
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate second format, "
+                                "'ss' already exists" ) ;
+               goto error ;
             }
 
             if ('s' != fmt[1])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid second format, "
+                                "second should be 'ss'" ) ;
+               goto error ;
             }
 
             hasSecond = TRUE;
@@ -265,17 +288,28 @@ namespace import
             break;
          // millisecond: SSS
          case 'S':
-            if (hasMillisecond || hasMicrosecond)
+            if ( hasMillisecond )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Duplicate millisecond format, "
+                                "'SSS' already exists" ) ;
+               goto error ;
+            }
+            else if ( hasMicrosecond )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Millisecond('SSS') and microsecond('ffffff') "
+                                "can't exist together" ) ;
+               goto error ;
             }
 
             if ('S' != fmt[1] ||
                 'S' != fmt[2])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid millisecond format, "
+                                "second should be 'SSS'" ) ;
+               goto error ;
             }
 
             hasMillisecond = TRUE;
@@ -284,9 +318,18 @@ namespace import
             break;
          // microsecond: ffffff
          case 'f':
-            if (hasMillisecond || hasMicrosecond)
+            if ( hasMillisecond )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Millisecond('SSS') and microsecond('ffffff') "
+                                "can't exist together" ) ;
+               goto error ;
+            }
+            else if ( hasMicrosecond )
             {
                rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "Duplicate microsecond format, "
+                                "'ffffff' already exists" ) ;
                goto error;
             }
 
@@ -296,8 +339,10 @@ namespace import
                 'f' != fmt[4] ||
                 'f' != fmt[5])
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid microsecond format, "
+                                "microsecond should be 'ffffff'" ) ;
+               goto error ;
             }
 
             hasMicrosecond = TRUE;
@@ -320,8 +365,9 @@ namespace import
 
             if ( !isdigit( fmt[2] ) || !isdigit( fmt[3] ) )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid time zone format" ) ;
+               goto error ;
             }
 
             if ( isdigit( fmt[4] ) )
@@ -343,8 +389,11 @@ namespace import
 
             if ( hour * 60 + minute > IMP_UTIL_TIMEZONE_MAX )
             {
-               rc = SDB_INVALIDARG;
-               goto error;
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Invalid time zone, time zone can't "
+                                "greater than %d minutes",
+                       IMP_UTIL_TIMEZONE_MAX ) ;
+               goto error ;
             }
 
             break;
@@ -359,10 +408,11 @@ namespace import
          }
       }
 
-      if (!hasYear)
+      if ( !hasYear )
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid time zone, missing year format" ) ;
+         goto error ;
       }
 
    done:

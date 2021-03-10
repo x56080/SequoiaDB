@@ -81,8 +81,10 @@ int main(int argc, char* argv[])
       {
          PD_LOG(PDERROR, "Routine running failure, rc=%d", rc);
       }
-
-      routine.printStatistics();
+      else
+      {
+         routine.printStatistics() ;
+      }
    }
    catch(std::exception &e)
    {

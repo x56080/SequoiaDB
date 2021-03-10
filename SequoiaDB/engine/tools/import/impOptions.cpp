@@ -562,6 +562,27 @@ namespace import
 
             if ( has(IMP_OPTION_CIPHER) && get<bool>(IMP_OPTION_CIPHER) )
             {
+               BOOLEAN isExist = FALSE ;
+
+               rc = engine::ossFile::exists( _cipherfile, isExist ) ;
+               if ( rc )
+               {
+                  std::cerr << "Failed to access path: " << _cipherfile.c_str()
+                            << std::endl;
+                  PD_LOG( PDERROR, "Failed to access path[%s], rc=%d",
+                          _cipherfile.c_str(), rc ) ;
+                  goto error;
+               }
+               else if ( !isExist )
+               {
+                  rc = SDB_FNE ;
+                  std::cerr << "Cipher file does not exist, path="
+                            << _cipherfile.c_str() << std::endl ;
+                  PD_LOG( PDERROR, "Cipher file does not exist, path=%s",
+                          _cipherfile.c_str() ) ;
+                  goto error;
+               }
+
                rc = passwdTool.getPasswdByCipherFile( _user, _token,
                                                       _cipherfile,
                                                       _password ) ;
@@ -627,10 +648,10 @@ namespace import
          _inputType = INPUT_FILE;
          string fileList = get<string>(IMP_OPTION_FILENAME);
 
-         rc = parseFileList(fileList, _files);
-         if (SDB_OK != rc)
+         rc = parseFileList( fileList, _files ) ;
+         if ( rc )
          {
-            std::cerr << "Invalid option " << IMP_OPTION_FILENAME
+            std::cerr << "Invalid " << IMP_OPTION_FILENAME
                       << std::endl;
             goto error;
          }
@@ -646,19 +667,18 @@ namespace import
          string type = get<string>(IMP_OPTION_TYPE);
          if ("csv" == type)
          {
-            _inputFormat = FORMAT_CSV;
+            _inputFormat = FORMAT_CSV ;
          }
          else if ("json" == type)
          {
-            _inputFormat = FORMAT_JSON;
+            _inputFormat = FORMAT_JSON ;
          }
          else
          {
-            std::cerr << "Invalid value for option " IMP_OPTION_TYPE ": "
-                      << type
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
+            std::cerr << "Invalid argument of [" IMP_OPTION_TYPE "]: " << type
+                      << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
 
@@ -669,9 +689,9 @@ namespace import
          {
             std::cerr << IMP_OPTION_BATCHSIZE " is out of range [1-100000]: "
                       << _batchSize
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
+                      << std::endl ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
 
@@ -726,9 +746,8 @@ namespace import
          _jobs = get<INT32>(IMP_OPTION_JOBS);
          if (_jobs <= 0 || _jobs > 1000)
          {
-            std::cerr << IMP_OPTION_JOBS " is out of range [1, 1000]: "
-                      << _jobs
-                      << std::endl;
+            std::cerr << IMP_OPTION_JOBS " is out of range [1, 1000]: " << _jobs
+                      << std::endl ;
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -759,7 +778,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_stringDelimiterIn, _stringDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELCHAR
+            std::cerr << "Invalid " << IMP_OPTION_DELCHAR
                       << std::endl;
             goto error;
          }
@@ -779,7 +798,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_recordDelimiterIn, _recordDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELRECORD
+            std::cerr << "Invalid " << IMP_OPTION_DELRECORD
                       << std::endl;
             goto error;
          }
@@ -799,7 +818,7 @@ namespace import
          rc = _convertAsciiEscapeChar(_fieldDelimiterIn, _fieldDelimiter);
          if (SDB_OK != rc)
          {
-            std::cerr << "Invalid option " << IMP_OPTION_DELFIELD
+            std::cerr << "Invalid " << IMP_OPTION_DELFIELD
                       << std::endl;
             goto error;
          }

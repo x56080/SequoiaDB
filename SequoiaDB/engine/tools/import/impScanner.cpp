@@ -35,6 +35,7 @@
 #include "impRecordReader.hpp"
 #include "impRecordParser.hpp"
 #include "impCSVRecordParser.hpp"
+#include "impUtil.hpp"
 #include "../util/text.h"
 #include "pd.hpp"
 #include <sstream>
@@ -216,8 +217,8 @@ namespace import
          }
          else if ( rc )
          {
-            printf( "Read record error!"OSS_NEWLINE ) ;
-            PD_LOG( PDERROR, "failed to read record" ) ;
+            std::cerr << "ERROR: Read record error!" << std::endl ;
+            PD_LOG( PDERROR, "Failed to read record" ) ;
             goto error ;
          }
 
@@ -228,7 +229,7 @@ namespace import
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "The headerline is empty" ) ;
-               printf( "ERROR: the headerline is empty"OSS_NEWLINE ) ;
+               std::cerr << "ERROR: The headerline is empty" << std::endl ;
                goto error ;
             }
 
@@ -278,7 +279,7 @@ namespace import
                rc = csvParser->parseFields( record, recordLength, TRUE ) ;
                if ( rc )
                {
-                  std::cout << "Failed to parse fields" << std::endl;
+                  std::cerr << "Failed to parse fields" << std::endl;
                   PD_LOG( PDERROR, "Failed to parse fields, rc = %d", rc ) ;
                   goto error ;
                }
@@ -419,7 +420,6 @@ namespace import
             rc = csvParser->parseFields( str, len, FALSE ) ;
             if ( rc )
             {
-               std::cout << "Failed to parse fields" << std::endl ;
                PD_LOG( PDERROR, "Failed to parse fields, rc=%d", rc ) ;
                goto error ;
             }
