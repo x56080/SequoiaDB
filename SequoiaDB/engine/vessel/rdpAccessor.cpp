@@ -38,6 +38,7 @@
 
 #include "vessel/rdpAccessor.h"
 #include "vessel/recordDataPage.h"
+#include "utilCompression.hpp"
 
 namespace engine
 {
@@ -90,7 +91,7 @@ namespace vessel
 
       head->version = RDP_VERSION;
       head->totalSlotCount = 0;
-      head->recordCount = 0;
+      head->freeSlotCount = 0;
       head->compressionFlags = 0;
       head->compressionDicSlot = RDP_INVALID_COMPRESSION_SLOT;
       head->clLogcalID = logicalID;
@@ -150,11 +151,14 @@ namespace vessel
                              UTIL_COMPRESSOR_TYPE compressionType,
                              const DPS_TRANS_ID &transID,
                              STRIPING_ID striping,
-                             const insertOptions &options)
+                             const insertOptions &options,
+                             recordID *rid)
    {
       INT32 rc = SDB_OK;
       const recordDataPageHead *rHead = NULL;
-      UINT32 alignedRecordSize = ossAlign4(record.getSlice().len());
+      RECORD_SLOT_ID slotID = INVALID_RECORD_SLOT_ID;
+      BOOLEAN needReorg = FALSE;
+
       if (OSS_UNLIKELY(!record.isValid() ||
                         DMS_INVALID_LOGICCLID == _clLogicalID))
       {
@@ -169,11 +173,34 @@ namespace vessel
          goto error;
       }
 
+      if (INVALID_RDP_VERSION == rHead->version)
+      {
+         PD_LOG(PDERROR, "invalid record data page version, gpid:%s", getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
       if (_clLogicalID != rHead->clLogcalID)
       {
          PD_LOG(PDERROR, "target logical id[%d], logical id in head[%d]",
                 _clLogicalID, rHead->clLogcalID);
          rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      if (compressionType != UTIL_COMPRESSOR_LZ4)
+      {
+         rc = insertWithOutInPageCompression(record, compressionType,
+                                             transID, striping, options);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
+      rc = findFreeSlot(rHead, slotID);
+      if (SDB_OK != rc)
+      {
          goto error;
       }
    done:
@@ -182,23 +209,42 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN rdpAccessor::hasEnoughFreeSpace(const recordDataPageHead *head,
-                                           UINT32 recordSize,
-                                           BOOLEAN &needReorg)
+   INT32 rdpAccessor::insertWithOutInPageCompression(const recordDataPageHead *head,
+                                                     const recordData &record,
+                                                     UTIL_COMPRESSOR_TYPE compressionType,
+                                                     const DPS_TRANS_ID &transID,
+                                                     STRIPING_ID striping,
+                                                     const insertOptions &options,
+                                                     recordID *rid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(DMS_INVALID_LOGICCLID != _clLogicalID, "can not be invalid");
+      SDB_ASSERT(!_csName.empty() && !_clName.empty(), "can not be empty");
+      SDB_ASSERT(UTIL_COMPRESSOR_LZ4 != compressionType, "can not be lz4");
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   BOOLEAN rdpAccessor::hasSpaceToInsertNormalRecord(const recordDataPageHead *head,
+                                                     UINT32 originalRecordSize,
+                                                     BOOLEAN &needReorg)
    {
       SDB_ASSERT(NULL != head, "can not be null");
       BOOLEAN r = FALSE;
-      UINT32 size = getMiniFreeSizeOfNormalRecord(recordSize);
+      UINT32 alignedSize = getAlignedSizeOfNormalRecordAndHead(originalRecordSize);
       if (0 == head->freeSlotCount)
       {
-         size += RDP_RSLOT_SIZE;
+         alignedSize += RDP_RSLOT_SIZE;
       }
 
-      if (size <= head->freeSpaceAfterLastSlot)
+      if (alignedSize <= head->freeSpaceAfterLastSlot)
       {
          r = TRUE;
       }
-      else if (size <= head->totalFreeSpace)
+      else if (alignedSize <= head->totalFreeSpace)
       {
          r = TRUE;
          needReorg = TRUE;
@@ -207,24 +253,71 @@ namespace vessel
       return r;
    }
 
-   UINT32 rdpAccessor::getMiniFreeSizeOfNormalRecord(UINT32 recordSize)
+   UINT32 rdpAccessor::getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize)
    {
-      return RDP_NORMAL_RECORD_HEAD_LEN + ossAlign4(recordSize);
+      return RDP_RECORD_HEAD_LEN + ossAlign4(recordSize);
    }
 
-   BOOLEAN rdpAccessor::findFreeSlot(const recordDataPageHead *head,
-                                     UINT16 &slot)
+   INT32 rdpAccessor::findFreeSlot(const recordDataPageHead *head,
+                                     RECORD_SLOT_ID &slotID)
    {
       SDB_ASSERT(NULL != head, "can not be null");
-      BOOLEAN r = FALSE;
-      const recordSlot *firstSlot = NULL;
+      INT32 rc = SDB_OK;
+      recordSlot slot;
+      UINT32 count = head->totalSlotCount;
+
       if (0 == head->freeSlotCount)
       {
          goto done;
       }
 
+      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID <= count))
+      {
+         PD_LOG(PDERROR, "invalid total slot count:%d", count);
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      for (UINT16 i = 0; i < count; ++i)
+      {
+         rc = getSlot(i, slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get record slot[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         if (slot.isFree())
+         {
+            slotID = i;
+            break;
+         }
+      }
+
    done:
-      return r;
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::getSlot(RECORD_SLOT_ID slotID, recordSlot &slot)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != slotID, "can not be invalid");
+      const recordSlot *tmp = NULL;
+      rc = getReadPtrOfPageBody<recordSlot>(RECORD_PAGE_HEAD_LEN + (RDP_RSLOT_SIZE *slotID),
+                                            RDP_RSLOT_SIZE, &tmp);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get record slot[%d], rc:%d", slotID, rc);
+         goto error;
+      }
+
+      slot = *tmp;
+   done:
+      return rc;
+   error:
+      goto done;
    }
 }//namespace vessel
 }//namespace engine

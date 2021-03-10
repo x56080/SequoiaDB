@@ -43,7 +43,7 @@
 #include "vessel/collectionDef.h"
 #include "dms.hpp"
 #include "vessel/extentDef.h"
-#include "vessel/compressionDef.h"
+#include "utilCompression.hpp"
 
 namespace engine
 {
@@ -65,9 +65,9 @@ namespace vessel
       flags(0),
       nextPageSequence(0),
       firstLvl0Page(INVALID_PAGE_ID),
-      compressionType(CL_COMPRESSION_TYPE_NONE),
-      compressionAlgrithm(CL_COMPRESSION_ALGRITHM_LZW),
-      _pad2(0),
+      compressionType(UTIL_COMPRESSOR_INVALID),
+      compressionPad0(0),
+      compressionPad1(0),
       compressionDic(INVALID_PAGE_ID),
       nonUniqueIndexCount(0),
       uniqueIndexCount(0),
@@ -89,9 +89,9 @@ namespace vessel
          flags = 0;
          nextPageSequence = 0;
          firstLvl0Page = INVALID_PAGE_ID;
-         compressionType = CL_COMPRESSION_TYPE_NONE;
-         compressionAlgrithm = CL_COMPRESSION_ALGRITHM_LZW;
-         _pad2 = 0;
+         compressionType = UTIL_COMPRESSOR_INVALID;
+         compressionPad0 = 0;
+         compressionPad1 = 0;
          compressionDic = INVALID_PAGE_ID;
          nonUniqueIndexCount = 0;
          uniqueIndexCount = 0;
@@ -110,11 +110,12 @@ namespace vessel
       UINT32 flags;
       UINT32 nextPageSequence;
       PAGE_ID firstLvl0Page;
+      CHAR name[DMS_COLLECTION_NAME_SZ + 1];
 
       /// compression begin
       UINT8 compressionType;
-      UINT8 compressionAlgrithm;
-      UINT16 _pad2;
+      UINT8 compressionPad0;
+      UINT16 compressionPad1;
       PAGE_ID compressionDic;
       /// compression end
 
@@ -124,8 +125,8 @@ namespace vessel
       UINT16 _pad3;
       UINT32 nextIndexID;
       PAGE_ID indexSlots[DMS_COLLECTION_MAX_INDEX];
-      CHAR name[DMS_COLLECTION_NAME_SZ + 1];
-         /// index end
+      
+      /// index end
    };//class collectionRecord
    const UINT32 COLLECTION_RECORD_LEN = sizeof(collectionRecord);
 

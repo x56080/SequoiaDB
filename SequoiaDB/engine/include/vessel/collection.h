@@ -46,6 +46,7 @@
 #include "vessel/recordID.h"
 #include "vessel/listCollectionsDef.h"
 #include "vessel/recordData.h"
+#include "utilInsertResult.hpp"
 
 namespace engine
 {

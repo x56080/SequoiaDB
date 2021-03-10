@@ -40,6 +40,8 @@
 #include "vessel/slice.h"
 #include "vessel/collectionHandle.h"
 #include "vessel/vesselDef.h"
+#include "vessel/recordData.h"
+#include "utilInsertResult.hpp"
 
 namespace engine
 {
@@ -57,7 +59,7 @@ namespace vessel
                     const recordData &record,
                     const DPS_TRANS_ID &transID,
                     STRIPING_ID striping,
-                    const insertOptions *options,
+                    const insertOptions &options,
                     utilInsertResult &res);
 
    };//class insertHandler

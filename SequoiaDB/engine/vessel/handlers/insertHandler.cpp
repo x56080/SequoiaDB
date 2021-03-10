@@ -48,26 +48,17 @@ namespace vessel
                               const recordData &record,
                               const DPS_TRANS_ID &transID,
                               STRIPING_ID striping,
-                              const insertOptions *options,
+                              const insertOptions &options,
                               utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
-      const static insertOptions DEFAULT_OPTIONS;
-      const insertOptions *op = NULL == options ? &DEFAULT_OPTIONS : options;
 
       if (OSS_UNLIKELY(!handle.valid() ||
                        !record.isValid()))
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = lhelper.lock(handle.getSpaceID(), SHARED);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get shared lock of cs[%d], rc:%d", handle.getSpaceID(), rc);
          goto error;
       }
 
@@ -87,7 +78,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->insert(getContext(), record, transID, striping, *op, res);
+      rc = cl->insert(getContext(), record, transID, striping, options, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;

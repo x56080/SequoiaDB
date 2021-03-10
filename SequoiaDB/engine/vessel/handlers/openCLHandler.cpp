@@ -44,7 +44,8 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 openCLHandler::doit(const strSlice &csName,
+   INT32 openCLHandler::doit(vesselImpl *db,
+                             const strSlice &csName,
                              const strSlice &clName,
                              const openCLOptions &options,
                              collectionHandler &clHandler)
@@ -54,6 +55,12 @@ namespace vessel
       CS_CONTAINER &cc = getEnv()->csContainer;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
+
+      if (OSS_UNLIKELY(NULL== db))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       rc = cc.getCSByName(getContext(), csName, SHARED, &cs);
       if (SDB_OK != rc)
@@ -71,7 +78,7 @@ namespace vessel
                                                      cl->getLogicalID(),
                                                      cs->getSpaceID(),
                                                      cl->getMBID()),
-                                    this);
+                                    db);
    done:
       if (NULL != cl)
       {

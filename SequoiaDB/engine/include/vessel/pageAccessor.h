@@ -146,6 +146,24 @@ namespace vessel
          INT32 readPageBody(UINT32 offset, UINT32 len, CHAR *buf);
          INT32 writePageBody(UINT32 offset, UINT32 len, const CHAR *buf);
 
+      protected:
+         template <typename T>
+         INT32 getReadPtrOfPageBody(UINT32 offset, UINT32 len, const T **ptr)
+         {
+            const CHAR *tmp = NULL;
+            INT32 rc = getReadPtrOfPageBody(offset, len, &tmp);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+
+            *ptr = (const T *)tmp;
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
          template <typename T>
          INT32 getReadableUserHeadPtr(const T **head)
          {

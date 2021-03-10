@@ -45,6 +45,7 @@ namespace engine
 {
 namespace vessel
 {
+   class vesselImpl;
    class openCLHandler : public requestHandler
    {
       public:
@@ -52,7 +53,8 @@ namespace vessel
          virtual ~openCLHandler(){}
 
       public:
-         INT32 doit(const strSlice &csName,
+         INT32 doit(vesselImpl *db,
+                    const strSlice &csName,
                     const strSlice &clName,
                     const openCLOptions &options,
                     collectionHandler &clHandler);

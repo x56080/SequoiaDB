@@ -134,10 +134,6 @@ namespace vessel
       ossStrncpy(_record.name, clName.str(), clName.strLen());
       _record.maxSGCount = options.maxStripingGroupCount;
       _record.compressionType = options.compressionType;
-      if (CL_COMPRESSION_TYPE_NONE != options.compressionType)
-      {
-         _record.compressionAlgrithm = options.compressionAlgrithm;
-      }
       _collectionSpace = cs;
 
       rc = saveOnDiskWhenCreating(context);

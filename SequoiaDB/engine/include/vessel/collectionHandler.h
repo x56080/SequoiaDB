@@ -40,6 +40,7 @@
 #include "vessel/collectionHandle.h"
 #include "utilInsertResult.hpp"
 #include "vessel/recordData.h"
+#include "dpsTransID.hpp"
 
 namespace engine
 {

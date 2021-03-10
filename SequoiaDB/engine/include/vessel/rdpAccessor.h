@@ -42,6 +42,10 @@
 #include "vessel/pageAccessor.h"
 #include "vessel/recordData.h"
 #include "vessel/strSlice.h"
+#include "utilCompression.hpp"
+#include "vessel/vesselOptions.h"
+#include "vessel/recordID.h"
+#include "recordDataPage.h"
 
 namespace engine
 {
@@ -66,16 +70,34 @@ namespace vessel
                       UTIL_COMPRESSOR_TYPE compressionType,
                       const DPS_TRANS_ID &transID,
                       STRIPING_ID striping,
-                      const insertOptions &options);
+                      const insertOptions &options,
+                      recordID *rid);
+
+      private:
+         INT32 insertWithOutInPageCompression(const recordDataPageHead *head,
+                                              const recordData &record,
+                                              UTIL_COMPRESSOR_TYPE compressionType,
+                                              const DPS_TRANS_ID &transID,
+                                              STRIPING_ID striping,
+                                              const insertOptions &options,
+                                              recordID *rid);
+         /// 
+         BOOLEAN hasSpaceToInsertNormalRecord(const recordDataPageHead *head,
+                                              UINT32 originalRecordSize,
+                                              BOOLEAN &needReorg);
 
       private:
          BOOLEAN hasEnoughFreeSpace(const recordDataPageHead *head,
+                                    BOOLEAN allocateNewSlot,
                                     UINT32 recordSize,
                                     BOOLEAN &needReorg);
-         UINT32 getMiniFreeSizeOfNormalRecord(UINT32 recordSize);
+         UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize);
 
-         BOOLEAN findFreeSlot(const recordDataPageHead *head,
-                              UINT16 &slot);
+         INT32 findFreeSlot(const recordDataPageHead *head,
+                            RECORD_SLOT_ID &slotID);
+
+      private:
+         INT32 getSlot(RECORD_SLOT_ID slotID, recordSlot &slot);
       private:
          UINT32 _clLogicalID;
          utilCLUniqueID _uniqueID;

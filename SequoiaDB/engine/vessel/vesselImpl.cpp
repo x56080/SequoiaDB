@@ -432,7 +432,7 @@ namespace vessel
          goto error;
       }
 
-      rc = h.doit(strSlice(csName), strSlice(clName), options, handler);
+      rc = h.doit(this, strSlice(csName), strSlice(clName), options, handler);
       if (SDB_OK != rc)
       {
          goto error;
