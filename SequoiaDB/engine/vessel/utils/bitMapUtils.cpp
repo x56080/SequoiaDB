@@ -53,6 +53,23 @@ namespace vessel
       return;
    }
 
+   BOOLEAN findFirstFreeFromBitMap32(UINT32 count, const UINT32 *bits, UINT32 &offset)
+   {
+      BOOLEAN r = FALSE;
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         INT32 res = ossGetLowestBit1From32Bits(bits[i]);
+         if (0 <= res)
+         {
+            offset = 32 * i + res;
+            r = TRUE;
+            goto done;
+         }
+      }
+   done:
+      return r;
+   }
+
    BOOLEAN allocateFromBitMap32(UINT32 count, UINT32 *bits, UINT32 &offset)
    {
       BOOLEAN r = FALSE;
