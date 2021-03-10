@@ -100,12 +100,14 @@ INT32 insertCommand::convert( msgParser &parser )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
          parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         PD_LOG( PDERROR, "Unsupported command, rc: %d", rc ) ;
          goto error ;
       }
 
       rc = cmd->convert( parser ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -169,12 +171,17 @@ INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
             {
                rc = SDB_OPTION_NOT_SUPPORT ;
                parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+               PD_LOG( PDERROR, "Unsupported command[cl: %s], rc: %d",
+                       packet.fullName.c_str(), rc ) ;
+               goto error ;
             }
 
             sdbMsg.zero() ;
             rc = cmd->buildMsg( parser, sdbMsg ) ;
             if ( SDB_OK != rc )
             {
+               PD_LOG( PDERROR, "Failed to build msg[cl: %s], rc: %d",
+                       packet.fullName.c_str(), rc ) ;
                goto error ;
             }
 
@@ -193,6 +200,8 @@ INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of documents field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
          {
@@ -209,6 +218,8 @@ INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg[cl: %s], rc: %d",
+                    packet.fullName.c_str(), rc ) ;
             goto error ;
          }
 
@@ -226,22 +237,18 @@ INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
          }
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of insert command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of insert command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
    }
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of insert[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -267,11 +274,14 @@ INT32 deleteCommand::convert( msgParser &parser )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
          parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         PD_LOG( PDERROR, "Unsupported command, rc: %d", rc ) ;
+         goto error ;
       }
 
       rc = cmd->convert( parser ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -336,12 +346,17 @@ INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
             {
                rc = SDB_OPTION_NOT_SUPPORT ;
                parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+               PD_LOG( PDERROR, "Unsupported command[cl: %s], rc: %d",
+                       packet.fullName.c_str(), rc ) ;
+               goto error ;
             }
 
             sdbMsg.zero() ;
             rc = cmd->buildMsg( parser, sdbMsg ) ;
             if ( SDB_OK != rc )
             {
+               PD_LOG( PDERROR, "Failed to build msg[cl: %s], rc: %d",
+                       packet.fullName.c_str(), rc ) ;
                goto error ;
             }
 
@@ -355,6 +370,8 @@ INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of deletes field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
 
@@ -380,6 +397,8 @@ INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg[cl: %s], rc: %d",
+                    packet.fullName.c_str(), rc ) ;
             goto error ;
          }
 
@@ -395,22 +414,18 @@ INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          sdbMsg.write( hint, TRUE ) ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of delete command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of delete command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
    }
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of delete[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -436,12 +451,14 @@ INT32 updateCommand::convert( msgParser &parser )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
          parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
-         goto done ;
+         PD_LOG( PDERROR, "Unsupported command, rc: %d", rc ) ;
+         goto error ;
       }
 
       rc = cmd->convert( parser ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -498,6 +515,8 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of updates filed must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
 
@@ -540,7 +559,9 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
-           goto error ;
+            PD_LOG( PDERROR, "Invalid length of msg[cl: %s], rc: %d",
+                    packet.fullName.c_str(), rc ) ;
+            goto error ;
          }
 
          parser.readNextObj( packet.all ) ;
@@ -562,6 +583,8 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          {
             // lack of updator object
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg[cl: %s], rc: %d",
+                    packet.fullName.c_str(), rc ) ;
             goto error ;
          }
          parser.readNextObj( updator ) ;
@@ -579,22 +602,18 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          sdbMsg.write( hint, TRUE ) ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of update command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of update command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
    }
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of update[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -625,6 +644,7 @@ INT32 queryCommand::convert( msgParser &parser )
    if ( !parser.more() )
    {
       rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Invalid length of msg, rc: %d", rc ) ;
       goto error ;
    }
 
@@ -660,28 +680,23 @@ INT32 queryCommand::convert( msgParser &parser )
          {
             rc = SDB_OPTION_NOT_SUPPORT ;
             parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+            PD_LOG( PDERROR, "Unsupported command, rc: %d", rc ) ;
             goto error ;
          }
 
          rc = cmd->convert( parser ) ;
          if ( SDB_OK != rc )
          {
+            PD_LOG( PDERROR, "Failed to convert msg, rc: %d", rc ) ;
             goto error ;
          }
 
          goto done ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Convert query msg exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Convert query msg exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
@@ -743,18 +758,10 @@ INT32 queryCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       cond = getQueryObj( packet.all ) ;
       orderby = getSortObj( packet.all ) ;
       hint = getHintObj( packet.all ) ;
-
-   }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of query command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
    }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of query command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
@@ -766,6 +773,9 @@ INT32 queryCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( orderby, TRUE ) ;
    sdbMsg.write( hint, TRUE ) ;
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of query[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -812,6 +822,9 @@ INT32 getMoreCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    more->contextID = packet.cursorId - 1;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of getMore[cl: %s, contextID: %llu] "
+           "command done", packet.fullName.c_str(), packet.cursorId ) ;
 
    return rc ;
 }
@@ -862,6 +875,8 @@ INT32 killCursorsCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
    sdbMsg.doneLen() ;
 
+   PD_LOG( PDDEBUG, "Build the msg of killCursors command done" ) ;
+
    return rc ;
 }
 
@@ -888,17 +903,12 @@ INT32 getnonceCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       generateNonce( ss ) ;
       bob.append( "nonce", ss.str() ) ;
       sdbMsg.write( bob.obj(), TRUE ) ;
-   }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of getnonce command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
+
+      PD_LOG( PDDEBUG, "Build the msg of getnonce command done" ) ;
    }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of getnonce command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -944,16 +954,9 @@ INT32 authenticateCommand::buildMsg( msgParser &parser,  msgBuffer &sdbMsg )
       obj = BSON( SDB_AUTH_USER << packet.userName.c_str() <<
                   SDB_AUTH_PASSWD << packet.password.c_str() ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of auth command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of auth command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
@@ -961,6 +964,8 @@ INT32 authenticateCommand::buildMsg( msgParser &parser,  msgBuffer &sdbMsg )
 
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of auth command done" ) ;
 
 done:
    return rc ;
@@ -1006,6 +1011,8 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of documents field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
          {
@@ -1031,6 +1038,7 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1057,16 +1065,9 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
                      SDB_AUTH_PASSWD << md5::digestToString( d ).c_str() ) ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of createUser command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of createUser command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1074,6 +1075,8 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
 
    sdbMsg.write( obj, TRUE ) ;
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of createUser command done" ) ;
 
 done:
    return rc ;
@@ -1121,6 +1124,8 @@ INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of deletes field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1146,6 +1151,7 @@ INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1166,22 +1172,17 @@ INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       sdbMsg.write( BSON( SDB_AUTH_USER << pUserName <<
                           SDB_AUTH_PASSWD << packet.password.c_str() ), TRUE ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of dropUser command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of dropUser command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
    }
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of dropUser command done" ) ;
 
 done:
    return rc ;
@@ -1236,6 +1237,8 @@ INT32 listUsersCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
    sdbMsg.doneLen() ;
 
+   PD_LOG( PDDEBUG, "Build the msg of listUsers command done" ) ;
+
    return rc ;
 }
 
@@ -1283,16 +1286,9 @@ INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       obj = BSON( FIELD_NAME_NAME << packet.csName
                                   << FIELD_NAME_PAGE_SIZE << 65536 ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of createCS command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of createCS command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1304,6 +1300,9 @@ INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;  // hint
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of createCS command[cs: %s] done",
+           packet.csName.c_str() ) ;
 
 done:
    return rc ;
@@ -1361,16 +1360,9 @@ INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
       obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of createCL command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of createCL command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1382,6 +1374,9 @@ INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of createCL command[cl: %s] done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -1443,16 +1438,9 @@ INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       query->numToSkip = getFieldInt( packet.all, "skip" ) ;
       query->numToReturn = getFieldInt( packet.all, "limit" ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of listCollections command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of listCollections command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1469,6 +1457,8 @@ INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( hint, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of listCollections command done" ) ;
 
 done:
    return rc ;
@@ -1523,16 +1513,9 @@ INT32 dropCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       packet.fullName += packet.all.getStringField( "drop" ) ;
       obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of dropCL command exception: %s, "
-               "rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of dropCL command exception: %s, "
                "rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1544,6 +1527,9 @@ INT32 dropCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;  // hint
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of dropCL[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -1611,16 +1597,9 @@ INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          query->numToSkip = packet.all.getIntField( "skip" ) ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of count command exception: %s, rc: %d",
-               ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of count command exception: %s, rc: %d",
                ex.what(), rc ) ;
       goto error ;
@@ -1632,6 +1611,9 @@ INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( obj, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of count[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -1676,16 +1658,9 @@ INT32 aggregateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       packet.fullName += "." ;
       packet.fullName += packet.all.getStringField( "aggregate" ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of aggregate command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of aggregate command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1696,6 +1671,9 @@ INT32 aggregateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
    sdbMsg.write( packet.all, TRUE ) ;
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of aggregate[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -1747,16 +1725,9 @@ INT32 dropDatabaseCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    {
       obj = BSON( FIELD_NAME_NAME << packet.csName ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of dropDatabase command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of dropDatabase command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1768,6 +1739,9 @@ INT32 dropDatabaseCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of dropDatabase[cs: %s] command done",
+           packet.csName.c_str() ) ;
 
 done:
    return rc ;
@@ -1833,6 +1807,8 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of indexes field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1854,6 +1830,7 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( !parser.more() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid length of msg, rc: %d", rc ) ;
             goto error ;
          }
          parser.readNextObj( packet.all ) ;
@@ -1873,6 +1850,8 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          if ( bson::Array != e.type() )
          {
             rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The type of documents field must be array, "
+                    "rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1890,16 +1869,9 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
          }
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of createIndexes command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of createIndexes command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1910,6 +1882,9 @@ INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of createIndexes[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -1967,16 +1942,9 @@ INT32 deleteIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() <<
                   FIELD_NAME_INDEX << indexObj ) ;
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of deleteIndexes command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of deleteIndexes command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -1988,6 +1956,9 @@ INT32 deleteIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of deleteIndexes[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -2065,19 +2036,13 @@ INT32 listIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
          parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         PD_LOG( PDERROR, "Unsupported command, rc: %d", rc ) ;
          goto error ;
       }
    }
-   catch( std::bad_alloc &ex )
-   {
-      rc = SDB_OOM ;
-      PD_LOG ( PDERROR, "Build the msg of listIndexes command exception: "
-               "%s, rc: %d", ex.what(), rc ) ;
-      goto error ;
-   }
    catch ( std::exception &ex )
    {
-      rc = SDB_SYS ;
+      rc = ossException2RC( &ex ) ;
       PD_LOG ( PDERROR, "Build the msg of listIndexes command exception: "
                "%s, rc: %d", ex.what(), rc ) ;
       goto error ;
@@ -2089,6 +2054,9 @@ INT32 listIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    sdbMsg.write( obj, TRUE ) ;
 
    sdbMsg.doneLen() ;
+
+   PD_LOG( PDDEBUG, "Build the msg of listIndexes[cl: %s] command done",
+           packet.fullName.c_str() ) ;
 
 done:
    return rc ;
@@ -2164,3 +2132,4 @@ INT32 logoutCommand::doCommand( void *pData )
 {
    return SDB_OK ;
 }
+
