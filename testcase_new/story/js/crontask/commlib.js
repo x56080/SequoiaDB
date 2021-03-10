@@ -4,7 +4,7 @@
  *    shrink任务对主机缩容，CI无法适配（需要有一个主机支持将所有数据缩容到其他主机，对其他用例有影响）
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
- * @LastEditTime  : 2021.03.08
+ * @LastEditTime  : 2021.03.10
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 import( "../lib/basic_operation/commlib.js" );
@@ -69,7 +69,7 @@ function checkResults ( rgName, csName, clName, expCount )
 
       // 检查数据正确性
       // 重试次数，每次暂停1秒钟
-      var retryTimes = 600;
+      var retryTimes = 700;
       var actCount = 0;
       cl = mstDB.getCS( csName ).getCL( clName );
       while( retryTimes-- )
@@ -105,35 +105,34 @@ function createRebalanceTask ( taskName, taskFrequency, clName, rebalanceUnit )
 {
    if( typeof ( rebalanceUnit ) == "undefined" ) { rebalanceUnit = "17"; }
 
-   // 任务开始时间为当前时间，获取当前时间
-   var localDate = cmd.run( "date" );
-   var hmsTime = localDate.split( " " )[4];
-   var hour = hmsTime.slice( 0, 2 );
-   var minutes = hmsTime.slice( 3, 5 );
-   var seconds = hmsTime.slice( 6, 8 );
+   // 任务开始时间为当前时间，获取当前时间（如2021-03-10_09:35:39）
+   var localDate = cmd.run( "date +%Y-%m-%d_%H:%M:%S" );
+   var hmsTime = localDate.split( "_" )[1].split( ":" );//如09,35,39
+   var hour = Number( hmsTime[0] );
+   var minutes = Number( hmsTime[1] );
+   var seconds = Number( hmsTime[2] );
 
    // 任务开始时间，至少从当前时间的下一分钟监听进程才能扫描到并执行任务
-   minutes = Number( minutes ) + 1;
-
+   minutes = minutes + 1;
    // 容错时间，如果时间为23:30:58，及时分钟加1，但是秒钟即满
    // 此时为了保证任务能按时执行，分钟再次加1，此时秒钟不影响任务执行时间（任务开始时间格式为hh:mm）
    var faultTolSeconds = 5;
    // 任务时间为hh:mm，判断当前minutes是否即将加1，如果获取当前时间后minutes加1，则任务可能过了时间不再执行
    // 如果任务即将加1大于60则minutes直接加1，如："23:30:58"，则修改hh:mm为"23:31"
-   if( ( Number( seconds ) + faultTolSeconds ) >= 60 )
+   if( ( seconds + faultTolSeconds ) >= 60 )
    {
-      minutes = Number( minutes ) + 1;
-      // 判断minutes加1后时间如果大于60，则hour直接加1，minutes值为00
-      // 如："22:59"加1分钟变为"22:60"，则纠正hh:mm为"23:00"
-      if( minutes >= 60 )
+      minutes = minutes + 1;
+   }
+   // 判断minutes加1后时间如果大于60，则hour直接加1，minutes值为00
+   // 如："22:59"加1分钟变为"22:60"，则纠正hh:mm为"23:00"
+   if( minutes >= 60 )
+   {
+      hour = hour + 1;
+      minutes = minutes - 60; // 如10:60->11:00, 10:61->11:01
+      // 判断hour加1后是否大于24，如果大于24则修改为"00"，即hh:mm修改为"00:00"
+      if( hour >= 24 )
       {
-         hour = hour + 1;
-         minutes = "00";
-         // 判断hour加1后是否大于24，如果大于24则修改为"00"，即hh:mm修改为"00:00"
-         if( hour >= 24 )
-         {
-            hour = "00";
-         }
+         hour = hour - 24;
       }
    }
    var taskTime = "" + hour + ":" + minutes;
