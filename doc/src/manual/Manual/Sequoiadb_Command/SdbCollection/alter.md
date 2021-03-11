@@ -139,7 +139,7 @@ v1.12及以上版本。
     > db.sample.employee.alter( { ShardingKey: { a: 1 }, ShardingType: "hash", AutoSplit: true } )
     ```
 
-3. 创建一个普通集合，然后将该集合修改为lzw压缩
+3. 创建一个普通集合，然后将该集合修改为snappy压缩
 
     ```lang-javascript
     > db.sample.createCL('employee')
