@@ -149,7 +149,7 @@ function _modifyConfig( PD_LOGGER, command )
 
 function run()
 {
-   var PD_LOGGER = new Logger( "sequoiadb.js" ) ;
+   var PD_LOGGER = new Logger( "sequoiasql-mysql.js" ) ;
    var result = null ;
 
    var command = BUS_JSON[FIELD_COMMAND] ;

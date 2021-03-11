@@ -70,6 +70,18 @@
       <div class="Ellipsis" table-key="Path">{{info['Path']}}</div>
    </div>
 
+   <div style="height:25px;margin-top:20px;" ng-if="MariaDBTable['body'].length > 0">{{autoLanguage("MariaDB")}}</div>
+   <div style="position:relative;" ng-container="{width:'auto',height:MariaDBTableHeight,marginTop:5}" ng-if="MariaDBTable['body'].length > 0" ng-table="MariaDBTable['options']" table-title="MariaDBTable['title']" table-content="info in MariaDBTable['body']">
+      <div table-key="IsUse" style="padding-left:13px;">
+         <span style="cursor:pointer;font-size:115%;" ng-click="onMariaDBChange($index)">
+            <i class="fa" ng-class="{true:'fa-check-square-o',false:'fa-square-o','undefined':'fa-square-o'}[info['IsUse']]"></i>
+         </span>
+      </div>
+      <div class="Ellipsis" table-key="Version">{{info['Version']}}</div>
+      <div class="Ellipsis" table-key="SdbUser">{{info['SdbUser']}}</div>
+      <div class="Ellipsis" table-key="Path">{{info['Path']}}</div>
+   </div>
+
    <div style="height:25px;margin-top:20px;" ng-if="PGTable['body'].length > 0">{{autoLanguage("PostgreSQL")}}</div>
    <div style="position:relative;" ng-container="{width:'auto',height:PGTableHeight,marginTop:5}" ng-if="PGTable['body'].length > 0" ng-table="PGTable['options']" table-title="PGTable['title']" table-content="info in PGTable['body']">
       <div table-key="IsUse" style="padding-left:13px;">

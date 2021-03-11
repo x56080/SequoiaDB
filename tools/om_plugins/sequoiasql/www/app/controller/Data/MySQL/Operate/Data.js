@@ -850,11 +850,19 @@
                      case 'mediumint':
                      case 'tinyint':
                         param = parseInt( param ) ;
+                        if( isNaN( param ) )
+                        {
+                          param = null ;
+                        }
                         break ;
                      case 'float':
                      case 'double':
                      case 'decimal':
                         param = parseFloat( param ) ;
+                        if( isNaN( param ) )
+                        {
+                          param = null ;
+                        }
                         break ;
                   }
                   

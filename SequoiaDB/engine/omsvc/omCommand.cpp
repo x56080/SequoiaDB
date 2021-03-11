@@ -4190,6 +4190,8 @@ checking system firewall for blocked ports" ) ;
                               OM_BSON_FIELD_POSTGRESQL ) ;
          _generateTableField( innerBuilder, OM_HOST_FIELD_MYSQL, *iter,
                               OM_BSON_FIELD_MYSQL ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_MARIADB, *iter,
+                              OM_BSON_FIELD_MARIADB ) ;
          _generateTableField( innerBuilder, OM_HOST_FIELD_MEMORY, *iter,
                               OM_BSON_FIELD_MEMORY ) ;
          _generateTableField( innerBuilder, OM_HOST_FIELD_DISK, *iter,
@@ -5405,6 +5407,11 @@ checking system firewall for blocked ports" ) ;
                            OM_BSON_PORT     << "" ) ;
       }
       else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType )
+      {
+         condition = BSON( OM_BSON_HOSTNAME << "" <<
+                           OM_BSON_PORT     << "" ) ;
+      }
+      else if ( OM_BUSINESS_SEQUOIASQL_MARIADB == _businessType )
       {
          condition = BSON( OM_BSON_HOSTNAME << "" <<
                            OM_BSON_PORT     << "" ) ;
@@ -8840,6 +8847,7 @@ checking system firewall for blocked ports" ) ;
       }
 
       if( OM_BUSINESS_SEQUOIASQL_MYSQL != _businessType &&
+          OM_BUSINESS_SEQUOIASQL_MARIADB != _businessType &&
           OM_BUSINESS_SEQUOIASQL_POSTGRESQL != _businessType )
       {
          _businessName = configInfo.getStringField( OM_BSON_BUSINESS_NAME ) ;
@@ -8906,7 +8914,8 @@ checking system firewall for blocked ports" ) ;
                goto error ;
             }
          }
-         else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType )
+         else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType ||
+                   OM_BUSINESS_SEQUOIASQL_MARIADB == _businessType )
          {
             rc = _checkMySQLCFG( buzInfo ) ;
             if ( rc )
@@ -9454,6 +9463,7 @@ checking system firewall for blocked ports" ) ;
          }
       }
       else if ( OM_BUSINESS_SEQUOIASQL_MYSQL == _businessType ||
+                OM_BUSINESS_SEQUOIASQL_MARIADB == _businessType ||
                 OM_BUSINESS_SEQUOIASQL_POSTGRESQL == _businessType )
       {
          BSONObj buzInfo ;

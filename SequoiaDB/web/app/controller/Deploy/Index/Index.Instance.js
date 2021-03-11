@@ -83,7 +83,8 @@
          $.each( $scope.InstanceList, function ( index, moduleInfo ) {
             if ( clusterName == moduleInfo['ClusterName'] &&
                 ( moduleInfo['BusinessType'] == 'sequoiasql-postgresql' ||
-                  moduleInfo['BusinessType'] == 'sequoiasql-mysql' ) ) {
+                  moduleInfo['BusinessType'] == 'sequoiasql-mysql' ||
+                  moduleInfo['BusinessType'] == 'sequoiasql-mariadb' ) ) {
                if ( $scope.RestartInstanceWindow['config']['inputList'][0]['value'] == null ) {
                   $scope.RestartInstanceWindow['config']['inputList'][0]['value'] = index;
                }
@@ -160,6 +161,10 @@
                {
                   $location.path( '/Deploy/MySQL-Sync' ).search( { 'r': new Date().getTime() } );
                }
+               else if ( $scope.InstanceList[formVal['moduleName']]['BusinessType'] == 'sequoiasql-mariadb' )
+               {
+                  $location.path( '/Deploy/MariaDB-Sync' ).search( { 'r': new Date().getTime() } );
+               }
                else if ( $scope.InstanceList[formVal['moduleName']]['BusinessType'] == 'sequoiasql-postgresql' )
                {
                   $location.path( '/Deploy/PostgreSQL-Sync' ).search( { 'r': new Date().getTime() } );
@@ -183,10 +188,11 @@
                   "value": 'mysql',
                   "valid": [
                      { 'key': 'MySQL', 'value': 'sequoiasql-mysql' },
+                     { 'key': 'MariaDB', 'value': 'sequoiasql-mariadb' },
                      { 'key': 'PostgreSQL', 'value': 'sequoiasql-postgresql' }
                   ],
                   "onChange": function( name, key, value ){
-                     if( value == 'sequoiasql-mysql' )
+                     if( value == 'sequoiasql-mysql' || value == 'sequoiasql-mariadb' )
                      {
                         $scope.AppendInstance['config']['inputList'][3]['required'] = true ;
                         $scope.AppendInstance['config']['inputList'][3]['valid'] = { 'min': 1, 'max': 32 } ;
@@ -309,6 +315,10 @@
                if ( configure['BusinessType'] == 'sequoiasql-mysql' )
                {
                   $location.path( '/Deploy/MYSQL-Discover' ).search( { 'r': new Date().getTime() } );
+               }
+               else if ( configure['BusinessType'] == 'sequoiasql-mariadb' )
+               {
+                  $location.path( '/Deploy/MARIADB-Discover' ).search( { 'r': new Date().getTime() } );
                }
                else if ( configure['BusinessType'] == 'sequoiasql-postgresql' )
                {
@@ -512,6 +522,31 @@
                         businessConf['Property'] = [] ;
                         $rootScope.tempData( 'Deploy', 'ModuleConfig', businessConf ) ;
                         $location.path( '/Deploy/MySQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
+                     }
+                  }
+                  else if( SdbSwap.moduleType[ formVal['moduleType'] ]['BusinessType'] == 'sequoiasql-mariadb' )
+                  {
+                     var checkSqlHost = 0 ;
+                     $.each( SdbSwap.hostList, function( index, hostInfo ){
+                        if( hostInfo['ClusterName'] == $scope.ClusterList[ $scope.CurrentCluster ]['ClusterName'] )
+                        {
+                           $.each( hostInfo['Packages'], function( packIndex, packInfo ){
+                              if( packInfo['Name'] == 'sequoiasql-mariadb' )
+                              {
+                                 ++checkSqlHost ;
+                              }
+                           } ) ;
+                        }
+                     } ) ;
+                     {
+                        var businessConf = {} ;
+                        businessConf['ClusterName'] = $scope.ClusterList[ $scope.CurrentCluster ]['ClusterName'] ;
+                        businessConf['BusinessName'] = formVal['moduleName'] ;
+                        businessConf['BusinessType'] = SdbSwap.moduleType[ formVal['moduleType'] ]['BusinessType'] ;
+                        businessConf['DeployMod'] = '' ;
+                        businessConf['Property'] = [] ;
+                        $rootScope.tempData( 'Deploy', 'ModuleConfig', businessConf ) ;
+                        $location.path( '/Deploy/MariaDB-Mod' ).search( { 'r': new Date().getTime() } ) ;
                      }
                   }
                }
@@ -1068,6 +1103,7 @@
          var disabled = false ;
          var pgsqlModule = 0 ;
          var mysqlModule = 0 ;
+         var mariadbModule = 0 ;
          var sdbModule = 0 ;
          $.each( $scope.ModuleList, function( index, moduleInfo ){
             if( moduleInfo['BusinessType'] == 'sequoiadb' )
@@ -1082,8 +1118,12 @@
             {
                ++mysqlModule ;
             }
+            else if( moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
+            {
+               ++mariadbModule ;
+            }
          } ) ;
-         if( ( pgsqlModule == 0 && mysqlModule == 0 ) || sdbModule == 0 )
+         if( ( pgsqlModule == 0 && mysqlModule == 0 && mariadbModule == 0 ) || sdbModule == 0 )
          {
             createRelationDisabled = true ;
          }
@@ -1381,6 +1421,7 @@
 
          var pgsqlBusList = [] ;
          var mysqlBusList = [] ;
+         var mariadbBusList = [] ;
 
          var typeValid = [] ;
          var fromValid = [] ;
@@ -1457,6 +1498,31 @@
 
                setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
             }
+            else if( value == 'mariadb-sdb' )
+            {
+               //切换配置项
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_auto_partition' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_use_bulk_insert' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_bulk_insert_size' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_replica_size' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_selector_pushdown_threshold' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_alter_table_overhead_threshold' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_debug_log' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_error_level' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_execute_only_in_mysql' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_optimizer_options' ) ;
+               $scope.CreateRelationWindow['config']['advance'].EnableItem( 'sequoiadb_rollback_on_timeout' ) ;
+
+               $scope.CreateRelationWindow['config']['normal'] .DisableItem( 'DbName' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'preferedinstance' ) ;
+               $scope.CreateRelationWindow['config']['advance'].DisableItem( 'transaction' ) ;
+
+               fromValid = mariadbBusList ;
+               
+               var relationName = sprintf( '?_?', fromValid[0]['value'], to ) ;
+
+               setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
+            }
 
             setArrayItemValue( normalInput, 'name', 'From', { 'value': fromValid[0]['value'], 'valid': fromValid } ) ;
          }
@@ -1489,7 +1555,13 @@
             }  
             else if( type == 'mysql-sdb' )
             {
-               var relationName = sprintf( '?_?', value, to ) ;    
+               var relationName = sprintf( '?_?', value, to ) ;
+               
+               setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
+            }
+            else if( type == 'mariadb-sdb' )
+            {
+               var relationName = sprintf( '?_?', value, to ) ;
                
                setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
             }
@@ -1513,7 +1585,11 @@
             }  
             else if( type == 'mysql-sdb' )
             {
-               relationName = sprintf( '?_?', from, to ) ;             
+               relationName = sprintf( '?_?', from, to ) ;
+            }
+            else if( type == 'mariadb-sdb' )
+            {
+               relationName = sprintf( '?_?', from, to ) ;
             }
 
             setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
@@ -1538,7 +1614,11 @@
             }  
             else if( type == 'mysql-sdb' )
             {
-               relationName = sprintf( '?_?', from, value ) ;             
+               relationName = sprintf( '?_?', from, value ) ;
+            }
+            else if( type == 'mariadb-sdb' )
+            {
+               relationName = sprintf( '?_?', from, value ) ;
             }
 
             setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
@@ -1555,6 +1635,10 @@
             {
                mysqlBusList.push( { 'key': moduleInfo['BusinessName'], 'value': moduleInfo['BusinessName'] } ) ;
             }
+            else if( moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
+            {
+               mariadbBusList.push( { 'key': moduleInfo['BusinessName'], 'value': moduleInfo['BusinessName'] } ) ;
+            }
             else if( moduleInfo['BusinessType'] == 'sequoiadb' )
             {
                toValid.push( { 'key': moduleInfo['BusinessName'], 'value': moduleInfo['BusinessName'] } ) ;
@@ -1564,6 +1648,10 @@
          if ( mysqlBusList.length > 0 )
          {
             typeValid.push( { 'key': $scope.autoLanguage( 'MySQL 关联 SequoiaDB' ), 'value': 'mysql-sdb' } ) ;
+         }
+         if ( mariadbBusList.length > 0 )
+         {
+            typeValid.push( { 'key': $scope.autoLanguage( 'MariaDB 关联 SequoiaDB' ), 'value': 'mariadb-sdb' } ) ;
          }
          if ( pgsqlBusList.length > 0 )
          {
@@ -1609,6 +1697,29 @@
          else if ( typeValid[0]['value'] == 'mysql-sdb' )
          {
             fromValid = mysqlBusList ;
+
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_auto_partition',                { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_use_bulk_insert',               { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_bulk_insert_size',              { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_replica_size',                  { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_selector_pushdown_threshold',   { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_alter_table_overhead_threshold',{ 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_debug_log',                     { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_error_level',                   { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_execute_only_in_mysql',         { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_optimizer_options',             { 'enable': true } ) ;
+            setArrayItemValue( advanceInput, 'name', 'sequoiadb_rollback_on_timeout',           { 'enable': true } ) ;
+
+            setArrayItemValue( normalInput,  'name', 'DbName',           { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'preferedinstance', { 'enable': false } ) ;
+            setArrayItemValue( advanceInput, 'name', 'transaction',      { 'enable': false } ) ;
+
+            var relationName = sprintf( '?_?', fromValid[0]['value'], toValid[0]['value'] ) ;
+            setArrayItemValue( normalInput, 'name', 'Name', { 'value': relationName } ) ;
+         }
+         else if ( typeValid[0]['value'] == 'mariadb-sdb' )
+         {
+            fromValid = mariadbBusList ;
 
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_auto_partition',                { 'enable': true } ) ;
             setArrayItemValue( advanceInput, 'name', 'sequoiadb_use_bulk_insert',               { 'enable': true } ) ;
@@ -1686,8 +1797,12 @@
                {
                   options['sequoiadb_conn_addr'] = address ;
                }
+               else if ( formVal1['Type'] == 'mariadb-sdb' )
+               {
+                  options['sequoiadb_conn_addr'] = address ;
+               }
 
-               createRelation( formVal1['Name'], formVal1['From'], formVal1['To'], options ) ;               
+               createRelation( formVal1['Name'], formVal1['From'], formVal1['To'], options ) ;
             }
             else
             {

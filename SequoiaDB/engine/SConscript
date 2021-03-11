@@ -530,6 +530,7 @@ omsvcFiles = [
       "omsvc/omConfigSsqlOlap.cpp",
       "omsvc/omConfigPostgreSQL.cpp",
       "omsvc/omConfigMySQL.cpp",
+      "omsvc/omConfigMariaDB.cpp",
       "omsvc/omSdbAdaptor.cpp",
       "omsvc/omStrategyObserverJob.cpp"
       ]

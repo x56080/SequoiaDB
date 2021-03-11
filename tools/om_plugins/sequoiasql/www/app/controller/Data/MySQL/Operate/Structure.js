@@ -292,7 +292,14 @@
                   }
                   if( typeof( fieldInfo['default'] ) == 'string' )
                   {
-                     subSql += 'DEFAULT ' + sqlEscape( fieldInfo['default'] ) + ' ' ;
+                     if( fieldInfo['null'] == true && fieldInfo['default'].toLowerCase() === 'null' )
+                     {
+                        subSql += 'DEFAULT ' + fieldInfo['default'] + ' ' ;
+                     }
+                     else
+                     {
+                        subSql += 'DEFAULT ' + sqlEscape( fieldInfo['default'] ) + ' ' ;
+                     }
                   }
                   sql += subSql ;
                } ) ;

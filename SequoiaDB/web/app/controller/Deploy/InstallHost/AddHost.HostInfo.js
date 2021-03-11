@@ -12,6 +12,7 @@
       $scope.DiskChart     = { 'percent': 0, 'text': '' } ;
 
       $scope.MySQLTableHeight = 32 ;
+      $scope.MariaDBTableHeight = 32 ;
       $scope.PGTableHeight = 32 ;
       $scope.DiskTableHeight = 32 ;
       $scope.PortTableHeight = 32 ;
@@ -298,6 +299,54 @@
          } ;
       }
 
+
+      //mariadb
+      $scope.MariaDBTable = {
+         'title': {
+            'IsUse':    '',
+            'Version':  $scope.autoLanguage( '版本' ),
+            'SdbUser':  $scope.autoLanguage( '用户' ),
+            'Path':     $scope.autoLanguage( '安装路径' )
+         },
+         'options': {
+            'width': {
+               'IsUse':    '40px',
+               'Version':  '20%',
+               'SdbUser':  '30%',
+               'Path':     '50%'
+            },
+            'max': 10000,
+            'tools': false
+         },
+         'body': []
+      } ;
+
+      function checkMariaDB( mariadbInfo )
+      {
+         if ( mariadbInfo.length > 0 )
+         {
+            $scope.MariaDBTable['body'] = mariadbInfo ;
+            $scope.MariaDBTableHeight = getTableHeight2( mariadbInfo.length ) ;
+         }
+         else
+         {
+            $scope.MariaDBTable['body'] = [] ;
+            $scope.HostInfo['MARIADB'] = {} ;
+         }
+      }
+
+      $scope.onMariaDBLChange = function( index ){
+         $.each( $scope.MariaDBTable['body'], function( index2, info ){
+            $scope.MariaDBTable['body'][index2]['IsUse'] = index == index2 ;
+         } ) ;
+
+         $scope.HostInfo['MARIADB'] = {
+            'Version':  $scope.MariaDBTable['body'][index]['Version'],
+            'SdbUser':  $scope.MariaDBTable['body'][index]['SdbUser'],
+            'Path':     $scope.MariaDBTable['body'][index]['Path']
+         } ;
+      }
+
       //postgresql
       $scope.PGTable = {
          'title': {
@@ -350,6 +399,7 @@
          if( typeof( hostInfo['errno'] ) == 'undefined' || hostInfo['errno'] == 0 )
          {
             checkMySQL( hostInfo['MySQLList'] ) ;
+            checkMariaDB( hostInfo['MariaDBList'] ) ;
             checkPGSQL( hostInfo['PGList'] ) ;
             checkCpu( hostInfo['CPU'] ) ;
             checkMemory( hostInfo['Memory'] ) ;

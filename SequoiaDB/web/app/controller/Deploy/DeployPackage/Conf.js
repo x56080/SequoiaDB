@@ -41,12 +41,17 @@
                "value": 'sequoiasql-mysql',
                "valid": [
                   { 'key': 'SequoiaSQL-MySQL', 'value': 'sequoiasql-mysql' },
+                  { 'key': 'SequoiaSQL-MariaDB', 'value': 'sequoiasql-mariadb' },
                   { 'key': 'SequoiaSQL-PostgreSQL', 'value': 'sequoiasql-postgresql' }
                ],
                "onChange": function( name, key, value ){
                   if( value == 'sequoiasql-mysql' )
                   {
                      $scope.Form['inputList'][2]['value'] = '/opt/sequoiasql/mysql/' ;
+                  }
+                  else if( value == 'sequoiasql-mariadb' )
+                  {
+                     $scope.Form['inputList'][2]['value'] = '/opt/sequoiasql/mariadb/' ;
                   }
                   else
                   {

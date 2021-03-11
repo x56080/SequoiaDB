@@ -8,6 +8,10 @@
       <BusinessDesc>MySQL</BusinessDesc>
    </FILLER>
    <FILLER>
+      <BusinessType>sequoiasql-mariadb</BusinessType>
+      <BusinessDesc>MariaDB</BusinessDesc>
+   </FILLER>
+   <FILLER>
       <BusinessType>sequoiasql-postgresql</BusinessType>
       <BusinessDesc>PostgreSQL</BusinessDesc>
    </FILLER>

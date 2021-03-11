@@ -338,6 +338,12 @@
            resolve: resolveFun( [ './app/controller/Deploy/InstallModule/MySQL/Mod.js' ] )
         }
       },
+      { path: '/Deploy/MariaDB-Mod',
+        options: {
+           templateUrl: './app/template/Deploy/InstallModule/MariaDB/Mod.html',
+           resolve: resolveFun( [ './app/controller/Deploy/InstallModule/MariaDB/Mod.js' ] )
+        }
+      },
       { path: '/Deploy/ZKP-Mod',
         options: {
            templateUrl: './app/template/Deploy/InstallModule/Zookeeper/Mod.html',
@@ -368,6 +374,12 @@
            resolve: resolveFun( [ './app/controller/Deploy/DiscoverModule/MySQL/Index.js' ] )
         }
       },
+      { path: '/Deploy/MARIADB-Discover',
+        options: {
+           templateUrl: './app/template/Deploy/DiscoverModule/MariaDB/Index.html',
+           resolve: resolveFun( [ './app/controller/Deploy/DiscoverModule/MariaDB/Index.js' ] )
+        }
+      },
       { path: '/Deploy/PostgreSQL-Discover',
         options: {
            templateUrl: './app/template/Deploy/DiscoverModule/PostgreSQL/Index.html',
@@ -384,6 +396,12 @@
          options: {
             templateUrl: './app/template/Deploy/SyncModule/MySQL/Index.html',
             resolve: resolveFun( ['./app/controller/Deploy/SyncModule/MySQL/Index.js'] )
+         }
+      },
+      { path: '/Deploy/MariaDB-Sync',
+         options: {
+            templateUrl: './app/template/Deploy/SyncModule/MariaDB/Index.html',
+            resolve: resolveFun( ['./app/controller/Deploy/SyncModule/MariaDB/Index.js'] )
          }
       },
       { path: '/Deploy/PostgreSQL-Sync',

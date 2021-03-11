@@ -137,6 +137,10 @@
                   {
                      moduleInfo['BusinessDesc'] = 'MySQL' ;
                   }
+                  else if( moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
+                  {
+                     moduleInfo['BusinessDesc'] = 'MariaDB' ;
+                  }
                   else if( moduleInfo['BusinessType'] == 'sequoiasql-postgresql' )
                   {
                      moduleInfo['BusinessDesc'] = 'PostgreSQL' ;
@@ -643,6 +647,8 @@
             $location.path( '/Data/SequoiaSQL/PostgreSQL/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'sequoiasql-mysql':
             $location.path( '/Data/SequoiaSQL/MySQL/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
+         case 'sequoiasql-mariadb':
+            $location.path( '/Data/SequoiaSQL/MariaDB/Database/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'hdfs':
             $location.path( '/Data/HDFS-web/Index' ).search( { 'r': new Date().getTime() } ) ; break ;
          case 'spark':
@@ -732,7 +738,10 @@
                      getErrNodes( index2, index ) ;
                   }
 
-                  if( moduleInfo['BusinessType'] == 'sequoiadb' || moduleInfo['BusinessType'] == 'sequoiasql-postgresql' || moduleInfo['BusinessType'] == 'sequoiasql-mysql' )
+                  if( moduleInfo['BusinessType'] == 'sequoiadb' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-postgresql' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-mysql' ||
+                      moduleInfo['BusinessType'] == 'sequoiasql-mariadb' )
                   {
                      SdbSwap.queryAuth( moduleInfo['BusinessName'] ) ;
                   }
