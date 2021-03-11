@@ -56,7 +56,15 @@ namespace vessel
 
    createCSHandler::~createCSHandler()
    {
+      fini();
+   }
 
+   void createCSHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
    }
 
    INT32 createCSHandler::doit(const CHAR *name,

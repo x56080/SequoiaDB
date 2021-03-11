@@ -55,6 +55,7 @@ namespace vessel
 {
    class collectionSpace;
    class requestContext;
+   class insertContext;
    
    class collection: public SDBObject
    {
@@ -79,9 +80,9 @@ namespace vessel
          {
             return _record.innerID;
          }
-         OSS_INLINE const collectionRecord &getRecord()const
+         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
          {
-            return _record;
+            return (UTIL_COMPRESSOR_TYPE)(_record.compressionType);
          }
 
          INT32 create(requestContext *context,
@@ -101,11 +102,7 @@ namespace vessel
          INT32 dump(requestContext *context,
                     listCollectionsRecord &record);
 
-         INT32 insert(requestContext *context,
-                      const recordData &record,
-                      const DPS_TRANS_ID &transID,
-                      STRIPING_ID striping,
-                      const insertOptions &options,
+         INT32 insert(insertContext *context,
                       utilInsertResult &res);
 
       private:

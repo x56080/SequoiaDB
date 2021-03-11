@@ -56,7 +56,8 @@ namespace vessel
    smpAccessor::~smpAccessor()
    {}
 
-   INT32 smpAccessor::initSMP(UINT32 maxSegmentCount,
+   INT32 smpAccessor::initSMP(requestContext *context,
+                              UINT32 maxSegmentCount,
                               UINT32 pageCountOfSeg,
                               UINT32 pageOccupied)
    {
@@ -73,8 +74,12 @@ namespace vessel
                      PAGE_ACCESSOR_FLAG_DIRECT |
                      PAGE_ACCESSOR_FLAG_NON_READONLY;
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-
-      if (OSS_UNLIKELY(0 == maxSegmentCount || 0 == pageCountOfSeg))
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == maxSegmentCount || 0 == pageCountOfSeg))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -92,7 +97,7 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -164,7 +169,7 @@ namespace vessel
          --head->free;
       }
 
-      pageAccessor::commit(DPS_INVALID_LSN_OFFSET);
+      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
    done:
       return rc;
    error:
@@ -175,7 +180,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 smpAccessor::allocatePages(PAGE_TYPE type,
+   INT32 smpAccessor::allocatePages(requestContext *context,
+                                    PAGE_TYPE type,
                                     UINT32 count,
                                     const PAGE_ID *lpids,
                                     const PAGE_ID *pids,
@@ -186,12 +192,13 @@ namespace vessel
       SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
       spaceManagementPageHead *wHead = NULL;
       logRecordContext lrContext;
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = NULL;
       BOOLEAN rollback = FALSE;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
-      ISession *session = getContext()->getSession();
+      ISession *session = NULL;
 
-      if (OSS_UNLIKELY(INVALID_PAGE_TYPE == type ||
+      if (OSS_UNLIKELY(NULL == context ||
+                       INVALID_PAGE_TYPE == type ||
                        0 == count ||
                        NULL == lpids ||
                        NULL == pids))
@@ -200,13 +207,16 @@ namespace vessel
          goto error;
       }
 
+      logger = context->getOuterResource()->logger;
+      session = context->getSession();
+
       rc = validatePidsToBeAllocated(count, pids);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = prepareSMPAllocateLog(&lrContext, NULL != oplist,
+      rc = prepareSMPAllocateLog(context, &lrContext, NULL != oplist,
                                  count, args);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -215,7 +225,7 @@ namespace vessel
 
       lsn = lrContext.getLsn();
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -232,7 +242,7 @@ namespace vessel
       wHead->free -= count;
       rollback = TRUE;
 
-      rc = commitSMPAllocateLog(&lrContext,
+      rc = commitSMPAllocateLog(context, &lrContext,
                                 PAGE_TYPE_COLLECTION_RECORD,
                                 count, lpids, pids, wHead->free, args);
       if (SDB_OK != rc)
@@ -241,7 +251,7 @@ namespace vessel
          goto error;
       }
 
-      pageAccessor::commit(lsn);
+      pageAccessor::commit(context, lsn);
       rollback = FALSE;
       lrContext.close();
       if (NULL != oplist)
@@ -495,16 +505,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 smpAccessor::prepareSMPAllocateLog(logRecordContext *lrc,
+   INT32 smpAccessor::prepareSMPAllocateLog(requestContext *context,
+                                            logRecordContext *lrc,
                                             BOOLEAN oplist,
                                             UINT32 count,
                                             const slice &args)
    {
       INT32 rc = SDB_OK;
-      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != context, "can not be null");
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
@@ -536,7 +548,7 @@ namespace vessel
          lrc->prepush(args.len());
       }
       lrc->prepush(sizeof(UINT32));
-      rc = prepareFullDumpLogWhenNecessary(lrc);
+      rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -559,7 +571,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 smpAccessor::commitSMPAllocateLog(logRecordContext *lrc,
+   INT32 smpAccessor::commitSMPAllocateLog(requestContext *context,
+                                           logRecordContext *lrc,
                                            PAGE_TYPE type,
                                            UINT32 count,
                                            const PAGE_ID *lpids,
@@ -568,14 +581,15 @@ namespace vessel
                                            const slice &args)
    {
       INT32 rc = SDB_OK;
-      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != context, "can not be null");
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
       SDB_ASSERT(INVALID_PAGE_TYPE != type, "can not be invalid");
       SDB_ASSERT(0 != count, "can not be invalid");
       SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
 
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
 
       rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_PUBLIC_VESSEL_GPID,

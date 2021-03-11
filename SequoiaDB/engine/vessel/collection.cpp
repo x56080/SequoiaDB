@@ -54,6 +54,7 @@
 #include "vessel/outerResource.h"
 #include "vessel/lpidLockHelper.h"
 #include "vessel/smpAccessor.h"
+#include "vessel/insertContext.h"
 
 namespace engine
 {
@@ -231,16 +232,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::insert(requestContext *context,
-                           const recordData &record,
-                           const DPS_TRANS_ID &transID,
-                           STRIPING_ID striping,
-                           const insertOptions &options,
-                           utilInsertResult &res)
+   INT32 collection::insert(insertContext *context,
+                            utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL == context ||
-                       !record.isValid()))
+                       !context->isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!context->clInfoIsValid() ||
+                            !context->getRecord().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -371,13 +374,13 @@ namespace vessel
          goto error;
       }
 
-      rc = crp.initPage(lpid);
+      rc = crp.initPage(context, lpid);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      crp.fini();
+      crp.fini(context);
 
       rc = su->fsync(SPACE_TYPE_RECORD_D, pid, 1, TRUE);
       if (SDB_OK != rc)
@@ -387,7 +390,7 @@ namespace vessel
    done:
       return rc;
    error:
-      crp.fini();
+      crp.fini(context);
       if (INVALID_PAGE_ID != pid)
       {
          _collectionSpace->releaseDataPagesPreallocated(context, 1, &pid);
@@ -413,13 +416,13 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.createCL(_collectionSpace->getCSName(), _record);
+      rc = accessor.createCL(context, _collectionSpace->getCSName(), _record);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      accessor.fini();
+      accessor.fini(context);
       return rc;
    error:
       goto done;

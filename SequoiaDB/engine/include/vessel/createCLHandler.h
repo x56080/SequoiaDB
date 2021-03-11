@@ -64,6 +64,8 @@ namespace vessel
                     const strSlice &clName,
                     const createCLOptions &options);
 
+         virtual void fini();
+
       private:
          INT32 validateOptions(const strSlice &csName,
                                const strSlice &clName,
@@ -71,6 +73,15 @@ namespace vessel
          INT32 validateOptions(utilCLUniqueID clUniqueID,
                               const strSlice &clName,
                               const createCLOptions &options);
+
+      protected:
+         virtual requestContext *getContext()
+         {
+            return &_context;
+         }
+
+      private:
+         requestContext _context;
 
    };//class createCLHandler
 }//namespace vessel

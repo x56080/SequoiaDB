@@ -72,13 +72,30 @@ namespace vessel
       goto done;
    }
 
-   INT32 requestContext::close()
+   requestContext::~requestContext()
    {
-      INT32 rc = SDB_OK;
+      SDB_ASSERT(!_mbIDLocked, "should released by user");
+      SDB_ASSERT(!_spaceIDLocked, "should released by user");
+      _close();
+   }
+
+   void requestContext::_close()
+   {
       if (OSS_UNLIKELY(!isOpen()))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
+      }
+
+      if (_mbIDLocked)
+      {
+         if (SHARED == _mbIDLockMode)
+         {
+            _clLatch->release_shared();
+         }
+         else
+         {
+            _clLatch->release();
+         }
       }
 
       if (_spaceIDLocked)
@@ -88,9 +105,7 @@ namespace vessel
 
       reset();
    done:
-      return rc;
-   error:
-      goto done;
+     return;
    }
 
    CHAR *requestContext::allocateBuffer(UINT32 size)

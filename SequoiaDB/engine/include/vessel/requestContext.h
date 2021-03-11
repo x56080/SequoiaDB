@@ -82,9 +82,7 @@ namespace vessel
          _bufAllocated(0)
          {}
 
-         OSS_INLINE virtual ~requestContext()
-         {
-         }
+         virtual ~requestContext();
       private:
          requestContext(const requestContext &)
          {}
@@ -98,7 +96,10 @@ namespace vessel
          INT32 open(ISession *session,
                      instanceEnv *env,
                      outerResource *outer);
-         virtual INT32 close();
+         virtual void close()
+         {
+            _close();
+         }
 
          OSS_INLINE BOOLEAN isOpen()const
          {
@@ -172,6 +173,9 @@ namespace vessel
          INT32 unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
          BOOLEAN testLpidLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
          BOOLEAN testLpidLocked(SPACE_TYPE type, PAGE_ID lpid);
+
+      private:
+         void _close();
 
       private:
          OSS_INLINE void reset()

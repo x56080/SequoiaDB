@@ -51,7 +51,15 @@ namespace vessel
 
    createCLHandler::~createCLHandler()
    {
+      fini();
+   }
 
+   void createCLHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
    }
 
    INT32 createCLHandler::doit(const strSlice &csName,

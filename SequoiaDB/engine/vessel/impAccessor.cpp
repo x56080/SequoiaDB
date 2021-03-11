@@ -60,7 +60,7 @@ namespace vessel
 
    }
 
-   INT32 impAccessor::initPage(PAGE_ID minLpid)
+   INT32 impAccessor::initPage(requestContext *context, PAGE_ID minLpid)
    {
       INT32 rc = SDB_OK;
       idMapPageHead *head = NULL;
@@ -84,7 +84,7 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -121,7 +121,7 @@ namespace vessel
       getWritePtrOfPageBody(ID_MAP_PAGE_HEAD_LEN, totalSlotSize, &ptr);
       ossMemset(ptr, 0xff, totalSlotSize);
 
-      pageAccessor::commit(DPS_INVALID_LSN_OFFSET);
+      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
 
    done:
       return rc;
@@ -370,7 +370,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 impAccessor::map(UINT32 count,
+   INT32 impAccessor::map(requestContext *context,
+                          UINT32 count,
                           const PAGE_ID *lpids,
                           const PAGE_ID *pids,
                           SNAPSHOT_ID snap,
@@ -383,10 +384,16 @@ namespace vessel
       SDB_ASSERT(INVALID_SNAPSHOT_ID != snap, "can not be invalid");
       idMapPageHead *wHead = NULL;
       logRecordContext lrc;
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
-      ISession *session = getContext()->getSession();
+      IRedoLogger *logger = NULL;
+      ISession *session = NULL;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       BOOLEAN rollback = FALSE;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       rc = validateMap(count, lpids, pids, snap);
       if (SDB_OK != rc)
@@ -394,7 +401,10 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareMapLog(&lrc, oplist, count);
+      logger = context->getOuterResource()->logger;
+      session = context->getSession();
+
+      rc = prepareMapLog(context, &lrc, oplist, count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -402,7 +412,7 @@ namespace vessel
 
       lsn = lrc.getLsn();
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -418,13 +428,13 @@ namespace vessel
       wHead->free -= count;
       rollback = TRUE;
 
-      rc = commitMapLog(&lrc, count, lpids, pids, snap, wHead->free);
+      rc = commitMapLog(context, &lrc, count, lpids, pids, snap, wHead->free);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      pageAccessor::commit(lsn);
+      pageAccessor::commit(context, lsn);
       lrc.close();
       rollback = FALSE;
 
@@ -447,15 +457,16 @@ namespace vessel
       goto done;
    }
 
-   INT32 impAccessor::prepareMapLog(logRecordContext *lrc,
+   INT32 impAccessor::prepareMapLog(requestContext *context,
+                                    logRecordContext *lrc,
                                     const DPS_LSN_OFFSET *oplist,
                                     UINT32 count)
    {
       INT32 rc = SDB_OK;
-      ISession *session = getContext()->getSession();
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
@@ -473,7 +484,7 @@ namespace vessel
       lrc->prepush(sizeof(PAGE_ID) * count);
       lrc->prepush(sizeof(PAGE_ID) * count);
       lrc->prepush(sizeof(UINT32));
-      rc = prepareFullDumpLogWhenNecessary(lrc);
+      rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -492,7 +503,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 impAccessor::commitMapLog(logRecordContext *lrc,
+   INT32 impAccessor::commitMapLog(requestContext *context,
+                                   logRecordContext *lrc,
                                    UINT32 count,
                                    const PAGE_ID *lpids,
                                    const PAGE_ID *pids,
@@ -500,10 +512,10 @@ namespace vessel
                                    UINT32 free)
    {
       INT32 rc = SDB_OK;
-      ISession *session = getContext()->getSession();
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
 
       rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_PUBLIC_VESSEL_GPID,

@@ -56,7 +56,8 @@ namespace vessel
    crpAccessor::~crpAccessor()
    {}
 
-   INT32 crpAccessor::initPage(PAGE_ID lpid)
+   INT32 crpAccessor::initPage(requestContext *context,
+                               PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       collectionRecordPageHead *head = NULL;
@@ -67,7 +68,7 @@ namespace vessel
                      PAGE_ACCESSOR_FLAG_INIT_PAGE;
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
 
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
+      if (OSS_UNLIKELY(NULL == context || INVALID_PAGE_ID == lpid))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -89,7 +90,7 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -132,7 +133,7 @@ namespace vessel
          head->bitmap |= 0x01;
       }
 
-      pageAccessor::commit(DPS_INVALID_LSN_OFFSET);
+      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
    done:
       return rc;
    error:
@@ -143,7 +144,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 crpAccessor::createCL(const CHAR *csName,
+   INT32 crpAccessor::createCL(requestContext *context,
+                               const CHAR *csName,
                                const collectionRecord &record)
    {
       INT32 rc = SDB_OK;
@@ -161,7 +163,9 @@ namespace vessel
       strSlice nameSlice;
       nameSlice.reset(csName);
 
-      if (OSS_UNLIKELY(INVALID_CL_MB_ID == mbID))
+      if (OSS_UNLIKELY(NULL == context ||
+                       nameSlice.empty() ||
+                       INVALID_CL_MB_ID == mbID))
       {
          goto error;
       }
@@ -204,7 +208,7 @@ namespace vessel
       fpid.lpid = pHead->pageID;
       
 
-      rc = prepareCreateCLLog(&lrContext,
+      rc = prepareCreateCLLog(context, &lrContext,
                               nameSlice, fpid, record);
       if (SDB_OK != rc)
       {
@@ -213,7 +217,7 @@ namespace vessel
 
       lsn = lrContext.getLsn();
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare writing:%d", rc);
@@ -234,14 +238,14 @@ namespace vessel
          goto error;
       }
  
-      rc = commitCreateCLLog(&lrContext,
+      rc = commitCreateCLLog(context, &lrContext,
                              nameSlice, fpid, record);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      pageAccessor::commit(lsn);
+      pageAccessor::commit(context, lsn);
       lrContext.close();
       rollback = FALSE;
 
@@ -250,8 +254,8 @@ namespace vessel
    error:
       if (lrContext.prepared())
       {
-         IRedoLogger *logger = getContext()->getOuterResource()->logger;
-         logger->abort(getContext()->getSession(), &lrContext);
+         IRedoLogger *logger = context->getOuterResource()->logger;
+         logger->abort(context->getSession(), &lrContext);
       }
       if (rollback)
       {
@@ -354,17 +358,18 @@ namespace vessel
       goto done; 
    }
 
-   INT32 crpAccessor::prepareCreateCLLog(logRecordContext *lrc,
+   INT32 crpAccessor::prepareCreateCLLog(requestContext *context,
+                                         logRecordContext *lrc,
                                          const strSlice &csName,
                                          const GLOBAL_FULL_PAGE_ID &id,
                                          const collectionRecord &record)
    {
       INT32 rc = SDB_OK;
 
-      ISession *session = getContext()->getSession();
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
@@ -374,7 +379,7 @@ namespace vessel
       lrc->prepush(sizeof(GLOBAL_FULL_PAGE_ID));
       lrc->prepush(csName.strLen() + 1);
       lrc->prepush(sizeof(collectionRecord));
-      rc = prepareFullDumpLogWhenNecessary(lrc);
+      rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -392,17 +397,18 @@ namespace vessel
       goto done;
    }
 
-   INT32 crpAccessor::commitCreateCLLog(logRecordContext *lrc,
+   INT32 crpAccessor::commitCreateCLLog(requestContext *context,
+                                        logRecordContext *lrc,
                                         const strSlice &csName,
                                         const GLOBAL_FULL_PAGE_ID &id,
                                         const collectionRecord &record)
    {
       INT32 rc = SDB_OK;
 
-      ISession *session = getContext()->getSession();
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
 
       rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_PUBLIC_VESSEL_FULLID,

@@ -910,6 +910,7 @@ vesselFiles = [
       "vessel/smpAccessor.cpp",
       "vessel/impAccessor.cpp",
       "vessel/crpAccessor.cpp",
+      "vessel/rdpAccessor.cpp",
       "vessel/utils/redoLogUtil.cpp",
       "vessel/utils/bitMapUtils.cpp",
       "vessel/spaceManagementPage.cpp",
@@ -918,7 +919,8 @@ vesselFiles = [
       "vessel/collectionSpaceGlobalPage.cpp",
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
-      "vessel/diskIOTask.cpp"
+      "vessel/diskIOTask.cpp",
+      "vessel/dmlContext.cpp"
 ]
 
 #vessel unit test

@@ -53,9 +53,10 @@ namespace vessel
          crpAccessor();
          virtual ~crpAccessor();
       public:
-         INT32 initPage(PAGE_ID lpid);
+         INT32 initPage(requestContext *context, PAGE_ID lpid);
 
-         INT32 createCL(const CHAR *csName,
+         INT32 createCL(requestContext *context,
+                        const CHAR *csName,
                         const collectionRecord &record);
 
          /// slot: [0, capacity)
@@ -73,12 +74,14 @@ namespace vessel
 
          INT32 readFromSlot(UINT32 slot, collectionRecord &record);
 
-         INT32 prepareCreateCLLog(logRecordContext *lrc,
+         INT32 prepareCreateCLLog(requestContext *context,
+                                  logRecordContext *lrc,
                                   const strSlice &csName,
                                   const GLOBAL_FULL_PAGE_ID &id,
                                   const collectionRecord &record);
 
-         INT32 commitCreateCLLog(logRecordContext *lrc,
+         INT32 commitCreateCLLog(requestContext *context,
+                                 logRecordContext *lrc,
                                  const strSlice &csName,
                                  const GLOBAL_FULL_PAGE_ID &id,
                                  const collectionRecord &record);

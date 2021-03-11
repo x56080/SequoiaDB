@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertHandler.h
+   Source File Name = insertContext.h
 
    Descriptive Name =
 
@@ -33,52 +33,36 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_INSERT_HANDLER_H_
-#define VESSEL_INSERT_HANDLER_H_
+#ifndef SDB_VESSEL_INSERT_CONTEXT_H_
+#define SDB_VESSEL_INSERT_CONTEXT_H_
 
-#include "vessel/requestHandler.h"
-#include "vessel/slice.h"
-#include "vessel/collectionHandle.h"
-#include "vessel/vesselDef.h"
-#include "vessel/recordData.h"
-#include "utilInsertResult.hpp"
-#include "vessel/insertContext.h"
+#include "vessel/dmlContext.h"
+#include "vessel/insertOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertOptions;
-   class insertHandler : public requestHandler
+   class insertContext : public dmlContext
    {
       public:
-         insertHandler(){}
-         virtual ~insertHandler()
-         {
-            fini();
-         }
+         OSS_INLINE insertContext()
+         {}
 
+         virtual ~insertContext(){}
       public:
-         INT32 doit(const collectionHandle &handle,
-                    const recordData &record,
-                    const DPS_TRANS_ID &transID,
-                    STRIPING_ID striping,
-                    const insertOptions *options,
-                    utilInsertResult &res);
-
-         virtual void fini();
-
-      protected:
-         virtual requestContext *getContext()
+         OSS_INLINE const insertOptions &getOptions()const
          {
-            return &_context;
+            return _options;
          }
-
+         OSS_INLINE void setOptions(const insertOptions &o)
+         {
+            _options = o;
+         }
       private:
-         insertContext _context;
-
-   };//class insertHandler
+         insertOptions _options;
+   };//class insertContext
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_INSERT_HANDLER_H_
+#endif//SDB_VESSEL_INSERT_CONTEXT_H_

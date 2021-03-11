@@ -81,7 +81,19 @@ namespace engine
 
    enum DPS_LOG_INSERT
    {
-      DPS_LOG_INSERT_OBJ = 1
+      DPS_LOG_INSERT_OBJ = 1,
+
+   /// vessel only
+      ///DPS_LOG_PUBLIC_FULLNAME
+      ///DPS_LOG_PUBLIC_TRANSID
+      ///DPS_LOG_PUBLIC_TRANSID_NODEID
+      // DPS_LOG_PUBLIC_VESSEL_GPID
+      // DPS_LOG_INSERT_OBJ // exists only when record is compressed.
+      DPS_LOG_INSERT_VESSEL_RID = 2,
+      DPS_LOG_INSERT_VESSEL_UNIQUEID = 3,
+      DPS_LOG_INSERT_VESSEL_PAGE_HEAD = 4,
+      DPS_LOG_INSERT_VESSEL_SLOT = 5,
+      DPS_LOG_INSERT_VESSEL_RECORD_AND_HEAD = 6,
    } ;
 
    enum DPS_LOG_UPDATE

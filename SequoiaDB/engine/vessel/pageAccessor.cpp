@@ -60,7 +60,12 @@ namespace vessel
 
    pageAccessor::~pageAccessor()
    {
-      teardown();
+      SDB_ASSERT(!accessing(), "fini dismissed");
+      if (NULL != _fullDumpBuf)
+      {
+         SDB_THREAD_FREE(_fullDumpBuf);
+         _fullDumpBuf = NULL;
+      }
    }
 
    INT32 pageAccessor::init(requestContext *context,
@@ -123,12 +128,11 @@ namespace vessel
 
       rollback = TRUE;
       _gpid.reset(context->getSpaceID(), type, pid);
-      _context = context;
       _size = size;
       _status = ACCESSOR_STATUS_SETUP;
       _su = obj;
 
-      rc = beginToAccess(flags);
+      rc = beginToAccess(context, flags);
       if (SDB_OK != rc)
       {
          goto error;
@@ -141,7 +145,7 @@ namespace vessel
    error:
       if (rollback)
       {
-         teardown();
+         fini(context);
       }
       goto done;
    }
@@ -196,7 +200,6 @@ namespace vessel
 
       rollback = TRUE;
       _gpid.reset(context->getSpaceID(), type, pid);
-      _context = context;
       _size = pageSize;
       _status = ACCESSOR_STATUS_SETUP;
       _ptr = ptr;
@@ -209,7 +212,7 @@ namespace vessel
       {
          flags |= PAGE_ACCESSOR_FLAG_NON_READONLY;
       }
-      rc = beginToAccess(flags);
+      rc = beginToAccess(context, flags);
       if (SDB_OK != rc)
       {
          goto error;
@@ -219,22 +222,10 @@ namespace vessel
    error:
       if (rollback)
       {
-         teardown();
+         fini(context);
       }
       goto done;
    }
-
-   INT32 pageAccessor::setup(requestContext *context,
-                                 SPACE_TYPE type,
-                                 PAGE_ID pid,
-                                 UINT32 pageSize,
-                                 ossValuePtr ptr,
-                                 BOOLEAN pageTypeCheck,
-                                 BOOLEAN readOnly)
-   {
-      return initWithDirectMode(context, type, pid, pageSize, ptr, pageTypeCheck, readOnly);
-   }
-   
 
    void pageAccessor::abortToWrite()
    {
@@ -246,7 +237,7 @@ namespace vessel
       return;
    }
 
-   INT32 pageAccessor::prepareToWrite()
+   INT32 pageAccessor::prepareToWrite(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ACCESSOR_STATUS_READONLY_ACCESSING == _status, "impossible");
@@ -264,7 +255,7 @@ namespace vessel
 
       if (!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
       {
-         rc = prepareToWriteByCache();
+         rc = prepareToWriteByCache(context);
          if (SDB_OK != rc)
          {
             goto error;
@@ -277,7 +268,7 @@ namespace vessel
       goto done;
    }
 
-   void pageAccessor::endToAccess()
+   void pageAccessor::endToAccess(requestContext *context)
    {
       if (accessing())
       {
@@ -287,7 +278,7 @@ namespace vessel
          }
          else
          {
-            endToAccessByCache();
+            endToAccessByCache(context);
          }
          _status = ACCESSOR_STATUS_SETUP;
       }
@@ -301,18 +292,19 @@ namespace vessel
       return;
    }
 
-   void pageAccessor::endToAccessByCache()
+   void pageAccessor::endToAccessByCache(requestContext *context)
    {
       SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "can not be direct");
-      liteCache &cache = getContext()->getEnv()->cache;
+      liteCache &cache = context->getEnv()->cache;
       if (_lcTuple.valid())
       {
-         cache.release(getContext(), _lcTuple);
+         cache.release(context, _lcTuple);
       }
       return;
    }
 
-   void pageAccessor::commit(DPS_LSN_OFFSET lsn)
+   void pageAccessor::commit(requestContext *context,
+                             DPS_LSN_OFFSET lsn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(fullAccessing(), "must be prepared");
@@ -335,8 +327,8 @@ namespace vessel
 
       if (!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT))
       {
-         liteCache &cache = getContext()->getEnv()->cache;
-         cache.commit(getContext(), lsn, _lcTuple);
+         liteCache &cache = context->getEnv()->cache;
+         cache.commit(context, lsn, _lcTuple);
       }
       else
       {
@@ -348,21 +340,18 @@ namespace vessel
       return;
    }
 
-   void pageAccessor::teardown()
-   {
-      return fini();
-   }
 
-   void pageAccessor::fini()
+   void pageAccessor::fini(requestContext *context)
    {
       SDB_ASSERT(!fullAccessing(), "writing prepared but no commit or abort");
-      endToAccess();
+      endToAccess(context);
 
       if (ACCESSOR_STATUS_INVALID != _status)
       {
          if (NULL != _fullDumpBuf)
          {
-            _context->releaseBuffer(_fullDumpBuf, _size);
+            SDB_THREAD_FREE(_fullDumpBuf);
+            _fullDumpBuf = NULL;
          }
          _gpid.reset();
          _size = 0;
@@ -371,7 +360,6 @@ namespace vessel
          _ptr = 0;
          _su = NULL;
          _fullDumpBuf = NULL;
-         _context = NULL;
       }
 
       return;
@@ -381,7 +369,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       const pageHead *head = NULL;
-      UINT64 tail = 0;--
+      UINT64 tail = 0;
 
       rc = getReadPtrOfHead(&head);
       if (SDB_OK != rc)
@@ -412,7 +400,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::beginToAccess(UINT32 flags)
+   INT32 pageAccessor::beginToAccess(requestContext *context, UINT32 flags)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(ACCESSOR_STATUS_SETUP == _status, "impossible");
@@ -434,7 +422,7 @@ namespace vessel
       }
       else
       {
-         rc = beginToAccessByCache();
+         rc = beginToAccessByCache(context);
          if (SDB_OK != rc)
          {
             goto error;
@@ -481,15 +469,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 pageAccessor::beginToAccessByCache()
+   INT32 pageAccessor::beginToAccessByCache(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_DIRECT), "can not be direct");
       const pageHead *head = NULL;
       liteCacheAllocateOptions options;
       options.readonly = !OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_NON_READONLY);
-      liteCache &cache = getContext()->getEnv()->cache;
-      rc = cache.allocate(getContext(), _gpid, options, _lcTuple);
+      liteCache &cache = context->getEnv()->cache;
+      rc = cache.allocate(context, _gpid, options, _lcTuple);
       if (SDB_OK != rc)
       {
          goto error;
@@ -517,15 +505,15 @@ namespace vessel
       _status = ACCESSOR_STATUS_SETUP;
       if (_lcTuple.valid())
       {
-         cache.release(getContext(), _lcTuple);
+         cache.release(context, _lcTuple);
       }
       goto done;
    }
 
-   INT32 pageAccessor::prepareToWriteByCache()
+   INT32 pageAccessor::prepareToWriteByCache(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      rc = _lcTuple.prepareToWrite(getContext());
+      rc = _lcTuple.prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -840,6 +828,23 @@ namespace vessel
       goto done;
    }
 
+   INT32 pageAccessor::getPidFromDisk(PAGE_ID &pid)
+   {
+      INT32 rc = SDB_OK;
+      const pageHead *head = NULL;
+      rc = getReadPtrOfHead(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read ptr of page head:%d", rc);
+         goto error;
+      }
+      pid = head->pageID;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 pageAccessor::getMMapWritePtrOfPage(UINT32 offset, UINT32 len, CHAR **ptr)
    {
       INT32 rc = SDB_OK;
@@ -923,7 +928,8 @@ namespace vessel
       return ACCESSOR_STATUS_FULL_ACCESSING == _status;
    }
 
-   INT32 pageAccessor::prepareFullDumpLogWhenNecessary(logRecordContext *lrc)
+   INT32 pageAccessor::prepareFullDumpLogWhenNecessary(requestContext *context,
+                                                       logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(accessing(), "must be accessing");
@@ -936,7 +942,7 @@ namespace vessel
 
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       const checkpointController *checkpointer = NULL;
-      const openDBOptions &options = getContext()->getEnv()->options;
+      const openDBOptions &options = context->getEnv()->options;
       if (!options.fullDumpPageLog)
       {
          goto done;
@@ -954,10 +960,10 @@ namespace vessel
       }
       else
       {
-         checkpointer = &(getContext()->getEnv()->checkpointer);
+         checkpointer = &(context->getEnv()->checkpointer);
          if (lsn <= checkpointer->getLastCheckpointLSN())
          {
-            _fullDumpBuf = getContext()->allocateBuffer(_size);
+            _fullDumpBuf = (CHAR*)SDB_THREAD_ALLOC(_size);
             if (NULL == _fullDumpBuf)
             {
                rc = SDB_OOM;

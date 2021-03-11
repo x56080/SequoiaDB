@@ -39,24 +39,38 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/recordData.h"
 #include "vessel/spaceIDLockHelper.h"
+#include "vessel/insertOptions.h"
 
 namespace engine
 {
 namespace vessel
 {
+   void insertHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
+   }
+
    INT32 insertHandler::doit(const collectionHandle &handle,
                               const recordData &record,
                               const DPS_TRANS_ID &transID,
                               STRIPING_ID striping,
-                              const insertOptions &options,
+                              const insertOptions *options,
                               utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
 
-      if (OSS_UNLIKELY(!handle.valid() ||
-                       !record.isValid()))
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!handle.valid() ||
+                            !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -78,7 +92,22 @@ namespace vessel
          goto error;
       }
 
-      rc = cl->insert(getContext(), record, transID, striping, options, res);
+      rc = _context.initCL(cs, cl);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init cl info:%d", rc);
+         goto error;
+      }
+
+      _context.setRecordData(record);
+      _context.setTransID(transID);
+      if (NULL != options)
+      {
+         _context.setOptions(*options);
+      }
+      _context.setStriping(striping);
+
+      rc = cl->insert(&_context, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;

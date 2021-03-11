@@ -55,11 +55,11 @@ namespace vessel
          virtual ~csgpAccessor();
       
       public:
-         INT32 initPage(const csMetaRecord &record);
+         INT32 initPage(requestContext *context, const csMetaRecord &record);
 
          INT32 readMetaRecord(csMetaRecord &record);
 
-         INT32 allocateCLLogicalID(UINT32 &logicalID);
+         INT32 allocateCLLogicalID(requestContext *context, UINT32 &logicalID);
 
       private:
          virtual PAGE_TYPE getPageType()const
@@ -68,8 +68,9 @@ namespace vessel
          }
 
       private:
-         INT32 prepareUpdateMetaLog(logRecordContext *lrc);
-         INT32 commitUpdateMetaLog(logRecordContext *lrc,
+         INT32 prepareUpdateMetaLog(requestContext *context, logRecordContext *lrc);
+         INT32 commitUpdateMetaLog(requestContext *context,
+                                   logRecordContext *lrc,
                                    UINT32 type,
                                    const csMetaRecord &record);
    };//class csgpAccessor

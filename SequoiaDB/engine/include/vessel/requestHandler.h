@@ -54,41 +54,35 @@ namespace vessel
       public:
          OSS_INLINE requestHandler()
          {}
-
          virtual ~requestHandler()
-         {
-            fini();
-         }
+         {}
 
       public:
          INT32 init(instanceEnv *env,
                      ISession *session,
                      outerResource *outer);
 
-         virtual INT32 fini();
+         virtual void fini() = 0;
 
-         OSS_INLINE BOOLEAN isInitialized()const
+         OSS_INLINE BOOLEAN isInitialized()
          {
-            return _context.isOpen();
+            requestContext *context = getContext();
+            return NULL != context && context->isOpen();
          }
       protected:
          OSS_INLINE instanceEnv *getEnv()
          {
-            return isInitialized() ? _context.getEnv() : NULL;
+            return isInitialized() ? getContext()->getEnv() : NULL;
          }
 
          OSS_INLINE ISession *getSession()
          {
-            return isInitialized() ? _context.getSession() : NULL;
+            return isInitialized() ? getContext()->getSession() : NULL;
          }
 
-         OSS_INLINE requestContext *getContext()
-         {
-            return &_context;
-         }
-
-      private:
-         requestContext _context;
+         /// should always return non-null pointer.
+         virtual requestContext *getContext() = 0;
+         
    };//class requestHandler
 }//namespace vessel
 }//namespace engine

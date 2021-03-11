@@ -44,6 +44,14 @@ namespace engine
 {
 namespace vessel
 {
+   void openCLHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
+   }
+
    INT32 openCLHandler::doit(vesselImpl *db,
                              const strSlice &csName,
                              const strSlice &clName,

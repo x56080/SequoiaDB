@@ -51,58 +51,53 @@ namespace engine
 {
 namespace vessel
 {
+   class logRecordContext;
+   class insertContext;
+
    class rdpAccessor : public pageAccessor
    {
       public:
          rdpAccessor();
          virtual ~rdpAccessor();
       public:
-         INT32 initRdp(PAGE_ID lpid,
+         INT32 initRdp(requestContext *context,
+                       PAGE_ID lpid,
                        UINT32 logicalID,
                        UINT32 sequence);
 
-         INT32 setCLInfo(UINT32 logicalID,
-                         utilCLUniqueID uniqueID,
-                         const CHAR *csName,
-                         const CHAR *clName);
-
-         INT32 insert(const recordData &record,
-                      UTIL_COMPRESSOR_TYPE compressionType,
-                      const DPS_TRANS_ID &transID,
-                      STRIPING_ID striping,
-                      const insertOptions &options,
-                      recordID *rid);
+         INT32 insert(insertContext *context);
+      private:
+         INT32 validatePage(UINT32 logicalID);
 
       private:
-         INT32 insertWithOutInPageCompression(const recordDataPageHead *head,
-                                              const recordData &record,
-                                              UTIL_COMPRESSOR_TYPE compressionType,
-                                              const DPS_TRANS_ID &transID,
-                                              STRIPING_ID striping,
-                                              const insertOptions &options,
-                                              recordID *rid);
-         /// 
-         BOOLEAN hasSpaceToInsertNormalRecord(const recordDataPageHead *head,
-                                              UINT32 originalRecordSize,
-                                              BOOLEAN &needReorg);
-
-      private:
-         BOOLEAN hasEnoughFreeSpace(const recordDataPageHead *head,
-                                    BOOLEAN allocateNewSlot,
-                                    UINT32 recordSize,
-                                    BOOLEAN &needReorg);
-         UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize);
-
-         INT32 findFreeSlot(const recordDataPageHead *head,
-                            RECORD_SLOT_ID &slotID);
-
+         INT32 insertWithOutCompression(insertContext *context);
+   
+         BOOLEAN hasSpaceToInsert(const recordDataPageHead *head,
+                                  UINT32 sizeNeeded,
+                                  BOOLEAN &needReorg);
       private:
          INT32 getSlot(RECORD_SLOT_ID slotID, recordSlot &slot);
+         INT32 writeSlot(RECORD_SLOT_ID slotID,
+                         const recordSlot &slot);
+         UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize);
+         INT32 findFreeSlot(const recordDataPageHead *head,
+                            RECORD_SLOT_ID &slotID);
+         UINT32 getNonFreeBeginOffet(const recordDataPageHead *head);
+
+         void updateMinMaxStriping(recordDataPageHead *head,
+                                   STRIPING_ID striping);
+
       private:
-         UINT32 _clLogicalID;
-         utilCLUniqueID _uniqueID;
-         strSlice _csName;
-         strSlice _clName;
+         /// with out compression
+         INT32 prepareInsertWOCLog(insertContext *context,
+                                   logRecordContext *lrc,
+                                   UINT32 rhAndbodySize);
+         INT32 commitInsertWOCLog(insertContext *context,
+                                  logRecordContext *lrc,
+                                  const recordID &rid,
+                                  const recordDataPageHead *head,
+                                  const recordSlot &slot,
+                                  const recordHead *rh);
    };//class rdpAccessor
 }//namespace vessel
 }//namespace engine

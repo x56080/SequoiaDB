@@ -59,9 +59,20 @@ namespace vessel
                     utilCSUniqueID uniqueID,
                     const createCSOptions &options);
 
+         virtual void fini();
+
       private:
          INT32 validateOptions(const strSlice &name,
                                const createCSOptions &options);
+
+      protected:
+         virtual requestContext *getContext()
+         {
+            return &_context;
+         }
+
+      private:
+         requestContext _context;
 
    };//class createCSHandler
 }//namespace vessel

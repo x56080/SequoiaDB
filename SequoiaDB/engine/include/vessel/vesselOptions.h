@@ -43,6 +43,7 @@
 #include "vessel/storageFileDef.h"
 #include "vessel/collectionDef.h"
 #include "utilCompression.hpp"
+#include "vessel/insertOptions.h"
 
 namespace engine
 {
@@ -270,20 +271,7 @@ namespace vessel
 
    }; // class dropIndexOptions
 
-   class insertOptions : public SDBObject
-   {
-      public:
-         OSS_INLINE insertOptions():
-         noCompression(FALSE)
-         {}
-
-         OSS_INLINE ~insertOptions()
-         {}
-      public:
-         /// do not compress record even on compressed collection.
-         BOOLEAN noCompression;
-   }; /// end of class insertOptions
-
+   
    class updateOptions
    {
 

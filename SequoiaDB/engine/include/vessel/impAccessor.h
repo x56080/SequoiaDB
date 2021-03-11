@@ -57,7 +57,7 @@ namespace vessel
          virtual ~impAccessor();
       
       public:
-         INT32 initPage(PAGE_ID minLpid);
+         INT32 initPage(requestContext *context, PAGE_ID minLpid);
 
          ///WARNING: will return the current actual stored value,
          /// regardless of whether the pid is valid
@@ -71,7 +71,8 @@ namespace vessel
                                SNAPSHOT_ID &snapID,
                                BOOLEAN &hitTheEnd);
 
-         INT32 map(UINT32 count,
+         INT32 map(requestContext *context,
+                   UINT32 count,
                    const PAGE_ID *lpids,
                    const PAGE_ID *pids,
                    SNAPSHOT_ID snap,
@@ -96,11 +97,13 @@ namespace vessel
                          UINT32 count,
                          const PAGE_ID *lpids);
          
-         INT32 prepareMapLog(logRecordContext *lrc,
+         INT32 prepareMapLog(requestContext *context,
+                             logRecordContext *lrc,
                              const DPS_LSN_OFFSET *oplist,
                              UINT32 count);
 
-         INT32 commitMapLog(logRecordContext *lrc,
+         INT32 commitMapLog(requestContext *context,
+                            logRecordContext *lrc,
                             UINT32 count,
                             const PAGE_ID *lpids,
                             const PAGE_ID *pids,

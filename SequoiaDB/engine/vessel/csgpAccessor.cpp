@@ -56,7 +56,7 @@ namespace vessel
    csgpAccessor::~csgpAccessor()
    {}
    
-   INT32 csgpAccessor::initPage(const csMetaRecord &record)
+   INT32 csgpAccessor::initPage(requestContext *context, const csMetaRecord &record)
    {
       INT32 rc = SDB_OK;
       CHAR * ptr = NULL;
@@ -65,7 +65,7 @@ namespace vessel
                      PAGE_ACCESSOR_FLAG_INIT_PAGE;
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -91,7 +91,7 @@ namespace vessel
 
       ossMemcpy(ptr, &record, sizeof(csMetaRecord));
 
-      pageAccessor::commit(DPS_INVALID_LSN_OFFSET);
+      pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
    done:
       return rc;
    error:
@@ -128,7 +128,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 csgpAccessor::allocateCLLogicalID(UINT32 &logicalID)
+   INT32 csgpAccessor::allocateCLLogicalID(requestContext *context, UINT32 &logicalID)
    {
       INT32 rc = SDB_OK;
       const CHAR *ptr = NULL;
@@ -160,7 +160,7 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareUpdateMetaLog(&lrc);
+      rc = prepareUpdateMetaLog(context, &lrc);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare redo log:%d", rc);
@@ -169,7 +169,7 @@ namespace vessel
 
       lsn = lrc.getLsn();
 
-      rc = prepareToWrite();
+      rc = prepareToWrite(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -184,13 +184,13 @@ namespace vessel
       recordWPtr = (csMetaRecord *)wPtr;
       logicalID = ++(recordWPtr->maxCLLogicalID);
 
-      rc = commitUpdateMetaLog(&lrc, UPDATE_CS_META_TYPE_LID, *recordWPtr);
+      rc = commitUpdateMetaLog(context, &lrc, UPDATE_CS_META_TYPE_LID, *recordWPtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      pageAccessor::commit(lsn);
+      pageAccessor::commit(context, lsn);
       lrc.close();
       rollback = FALSE;
    done:
@@ -198,8 +198,8 @@ namespace vessel
    error:
       if (lrc.prepared())
       {
-         IRedoLogger *logger = getContext()->getOuterResource()->logger;
-         logger->abort(getContext()->getSession(), &lrc);
+         IRedoLogger *logger = context->getOuterResource()->logger;
+         logger->abort(context->getSession(), &lrc);
       }
       if (rollback)
       {
@@ -213,14 +213,14 @@ namespace vessel
       goto done;
    }
 
-   INT32 csgpAccessor::prepareUpdateMetaLog(logRecordContext *lrc)
+   INT32 csgpAccessor::prepareUpdateMetaLog(requestContext *context, logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
-
-      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != context, "can not be null");
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
@@ -231,7 +231,7 @@ namespace vessel
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
       lrc->prepush(CS_META_RECORD_LEN);
       lrc->prepush(sizeof(UINT32));
-      rc = prepareFullDumpLogWhenNecessary(lrc);
+      rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -249,16 +249,17 @@ namespace vessel
       goto done;
    }
 
-   INT32 csgpAccessor::commitUpdateMetaLog(logRecordContext *lrc,
+   INT32 csgpAccessor::commitUpdateMetaLog(requestContext *context,
+                                           logRecordContext *lrc,
                                            UINT32 type,
                                            const csMetaRecord &record)
    {
       INT32 rc = SDB_OK;
-
-      ISession *session = getContext()->getSession();
+      SDB_ASSERT(NULL != context, "can not be null");
+      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
 
       rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_PUBLIC_VESSEL_GPID,

@@ -48,6 +48,14 @@ namespace engine
 {
 namespace vessel
 {
+   void listCollectionSpaceHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
+   }
+
    INT32 listCollectionSpaceHandler::doit(listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;

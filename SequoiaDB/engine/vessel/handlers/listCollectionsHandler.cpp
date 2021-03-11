@@ -47,6 +47,14 @@ namespace engine
 {
 namespace vessel
 {
+   void listCollectionsHandler::fini()
+   {
+      if (_context.isOpen())
+      {
+         _context.close();
+      }
+   }
+
    INT32 listCollectionsHandler::doit(listCLCursor *cursor)
    {
       INT32 rc = SDB_OK;

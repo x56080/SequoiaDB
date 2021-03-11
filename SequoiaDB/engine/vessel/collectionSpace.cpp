@@ -736,7 +736,7 @@ namespace vessel
          goto error;
       }
    done:
-      imp.fini();
+      imp.fini(context);
       return rc;
    error:
       ppid = INVALID_PAGE_ID;
@@ -816,7 +816,7 @@ namespace vessel
       }
 
    done:
-      imp.fini();
+      imp.fini(context);
       return rc;
    error:
       ppid = INVALID_PAGE_ID;
@@ -1034,13 +1034,13 @@ namespace vessel
          goto error;
       }
 
-      rc = smp.allocatePages(type, count, lpids, pids, args, oplist);
+      rc = smp.allocatePages(context, type, count, lpids, pids, args, oplist);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      smp.fini();
+      smp.fini(context);
       return rc;
    error:
       goto done;
@@ -1090,14 +1090,14 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.map(count, lpids, pids, container.getOnlineID(), oplist);
+      rc = imp.map(context, count, lpids, pids, container.getOnlineID(), oplist);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
    done:
-      imp.fini();
+      imp.fini(context);
       return rc;
    error:
       goto done;
@@ -1209,7 +1209,7 @@ namespace vessel
       }
 
    done:
-      accessor.fini();
+      accessor.fini(context);
       return rc;
    error:
       goto done;
@@ -1239,8 +1239,8 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.setup(context, SPACE_TYPE_RECORD_M, SYSTEM_MAP_PAGE_ID,
-                     pageSize, ptr);
+      rc = imp.initWithDirectMode(context, SPACE_TYPE_RECORD_M, SYSTEM_MAP_PAGE_ID,
+                                  pageSize, ptr);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1268,7 +1268,7 @@ namespace vessel
       } while (TRUE);
    
    done:
-      imp.fini();
+      imp.fini(context);
       return rc;
    error:
       goto done;
@@ -1362,7 +1362,7 @@ namespace vessel
          insertIntoFormalIndex(holder);
       }
    done:
-      crp.teardown();
+      crp.fini(context);
       return rc;
    error:
       goto done;
@@ -1381,13 +1381,13 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.allocateCLLogicalID(lid);
+      rc = accessor.allocateCLLogicalID(context, lid);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      accessor.fini();
+      accessor.fini(context);
       return rc;
    error:
       goto done;
@@ -1470,13 +1470,13 @@ namespace vessel
       }
 
       /// first 3 pages are occupied by system pages.
-      rc = smp.initSMP(maxSegmentCount, maxPageCount, 3);
+      rc = smp.initSMP(context, maxSegmentCount, maxPageCount, 3);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      smp.fini();
+      smp.fini(context);
       return rc;
    error:
       goto done;
@@ -1504,22 +1504,22 @@ namespace vessel
          goto error;
       }
 
-      rc = csgp.setup(context,
-                      SPACE_TYPE_RECORD_M,
-                      CS_GLOBAL_META_PAGE_ID,
-                      pageSize, ptr, FALSE, FALSE);
+      rc = csgp.initWithDirectMode(context,
+                                    SPACE_TYPE_RECORD_M,
+                                    CS_GLOBAL_META_PAGE_ID,
+                                    pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = csgp.initPage(record);
+      rc = csgp.initPage(context, record);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      csgp.teardown();
+      csgp.fini(context);
       return rc;
    error:
       goto done;
@@ -1546,7 +1546,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.setup(context,
+      rc = imp.initWithDirectMode(context,
                      SPACE_TYPE_RECORD_M,
                      SYSTEM_MAP_PAGE_ID,
                      pageSize, ptr, FALSE, FALSE);
@@ -1555,13 +1555,13 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.initPage(0);
+      rc = imp.initPage(context, 0);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      imp.teardown();
+      imp.fini(context);
       return rc;
    error:
       goto done;
@@ -1600,7 +1600,7 @@ namespace vessel
          goto error;
       }
 
-      rc = smp.initSMP(maxSegmentCount, maxPageCount, 1);
+      rc = smp.initSMP(context, maxSegmentCount, maxPageCount, 1);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1613,7 +1613,7 @@ namespace vessel
          goto error;
       }
    done:
-      smp.fini();
+      smp.fini(context);
       return rc;
    error:
       goto done;
@@ -1939,7 +1939,7 @@ namespace vessel
             goto error;
          }
 
-         accessor.fini();
+         accessor.fini(context);
 
          rc = _inMemDataSMP.mapNewBitPage(i, (const spaceManagementPageHead *)buffer);
          if (SDB_OK != rc)

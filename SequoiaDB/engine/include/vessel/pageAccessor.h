@@ -61,7 +61,6 @@ namespace vessel
       public:
          OSS_INLINE pageAccessor():
          _size(0),
-         _context(NULL),
          _flags(0),
          _status(0),
          _ptr(0),
@@ -105,14 +104,6 @@ namespace vessel
                      UINT32 flags = 0,
                      storageUnit *su = NULL);
 
-         INT32 setup(requestContext *context,
-                     SPACE_TYPE type,
-                     PAGE_ID pid,
-                     UINT32 pageSize,
-                     ossValuePtr ptr,
-                     BOOLEAN pageTypeCheck = TRUE,
-                     BOOLEAN readOnly = TRUE);
-
          INT32 initWithDirectMode(requestContext *context,
                                  SPACE_TYPE type,
                                  PAGE_ID pid,
@@ -122,13 +113,11 @@ namespace vessel
                                  BOOLEAN readOnly = TRUE);
 
          void abortToWrite();
-         INT32 prepareToWrite();
+         INT32 prepareToWrite(requestContext *context);
 
-         void commit(DPS_LSN_OFFSET lsn);
+         void commit(requestContext *context, DPS_LSN_OFFSET lsn);
 
-         /// unlock and reset.
-         void teardown();
-         void fini();
+         void fini(requestContext *context);
 
          virtual PAGE_TYPE getPageType()const = 0;
 
@@ -145,19 +134,37 @@ namespace vessel
 
          INT32 readPageBody(UINT32 offset, UINT32 len, CHAR *buf);
          INT32 writePageBody(UINT32 offset, UINT32 len, const CHAR *buf);
+         INT32 getPidFromDisk(PAGE_ID &pid);
 
       protected:
          template <typename T>
-         INT32 getReadPtrOfPageBody(UINT32 offset, UINT32 len, const T **ptr)
+         INT32 getReadPtrOfPageBody(UINT32 offset, const T **ptr)
          {
             const CHAR *tmp = NULL;
-            INT32 rc = getReadPtrOfPageBody(offset, len, &tmp);
+            INT32 rc = getReadPtrOfPageBody(offset, sizeof(T), &tmp);
             if (SDB_OK != rc)
             {
                goto error;
             }
 
             *ptr = (const T *)tmp;
+         done:
+            return rc;
+         error:
+            goto done;
+         }
+
+         template <typename T>
+         INT32 getWritePtrOfPageBody(UINT32 offset, T **ptr)
+         {
+            CHAR *tmp = NULL;
+            INT32 rc = getWritePtrOfPageBody(offset, sizeof(T), &tmp);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+
+            *ptr = (T *)tmp;
          done:
             return rc;
          error:
@@ -222,14 +229,10 @@ namespace vessel
          }
 
       protected:
-         INT32 prepareFullDumpLogWhenNecessary(logRecordContext *lrc);
+         INT32 prepareFullDumpLogWhenNecessary(requestContext *context,
+                                               logRecordContext *lrc);
 
       protected:
-         OSS_INLINE requestContext *getContext()
-         {
-            return _context;
-         }
-
          OSS_INLINE const CHAR *getFullDumpBuffer()const
          {
             return _fullDumpBuf;
@@ -240,15 +243,15 @@ namespace vessel
          INT32 validateMMapPageHeadAndTail();
          BOOLEAN accessing()const;
 
-         INT32 beginToAccess(UINT32 flags);
+         INT32 beginToAccess(requestContext *context, UINT32 flags);
          INT32 beginToAccessByMMap();
-         INT32 beginToAccessByCache();
+         INT32 beginToAccessByCache(requestContext *context);
 
-         INT32 prepareToWriteByCache();
+         INT32 prepareToWriteByCache(requestContext *context);
 
-         void endToAccess();
+         void endToAccess(requestContext *context);
          void endToAccessByMMap();
-         void endToAccessByCache();
+         void endToAccessByCache(requestContext *context);
         
          INT32 getMMapWritePtrOfPage(UINT32 offset, UINT32 len, CHAR **ptr);
          INT32 getMMapReadPtrOfPage(UINT32 offset, UINT32 len, const CHAR **ptr);
@@ -262,7 +265,6 @@ namespace vessel
       private:
          GLOBAL_PAGE_ID _gpid;
          UINT32 _size;
-         requestContext *_context;
          UINT32 _flags;
          UINT32 _status;
          ossValuePtr _ptr;

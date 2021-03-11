@@ -39,7 +39,6 @@
 #ifndef VESSEL_SMP_ACCESSOR_H_
 #define VESSEL_SMP_ACCESSOR_H_
 
-
 #include "vessel/pageAccessor.h"
 
 namespace engine
@@ -55,7 +54,8 @@ namespace vessel
          virtual ~smpAccessor();
 
       public:
-         INT32 initSMP(UINT32 maxSegmentCount,
+         INT32 initSMP(requestContext *context,
+                       UINT32 maxSegmentCount,
                        UINT32 pageCountOfSeg,
                        UINT32 pageOccupied);
 
@@ -64,7 +64,8 @@ namespace vessel
             return PAGE_TYPE_SMP;
          }
 
-         INT32 allocatePages(PAGE_TYPE type,
+         INT32 allocatePages(requestContext *context,
+                             PAGE_TYPE type,
                              UINT32 count,
                              const PAGE_ID *lpids,
                              const PAGE_ID *pids,
@@ -93,12 +94,14 @@ namespace vessel
          INT32 writeBits(UINT32 bitsSlotNo, UINT32 bits);
          INT32 readBits(UINT32 bitsSlotNo, UINT32 &bits);
 
-         INT32 prepareSMPAllocateLog(logRecordContext *lrc,
+         INT32 prepareSMPAllocateLog(requestContext *context,
+                                     logRecordContext *lrc,
                                      BOOLEAN oplist,
                                      UINT32 count,
                                      const slice &args);
 
-         INT32 commitSMPAllocateLog(logRecordContext *lrc,
+         INT32 commitSMPAllocateLog(requestContext *context,
+                                    logRecordContext *lrc,
                                     PAGE_TYPE type,
                                     UINT32 count,
                                     const PAGE_ID *lpids,

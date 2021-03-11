@@ -51,7 +51,9 @@ namespace vessel
                                outerResource *resource)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == env || NULL == session))
+      if (OSS_UNLIKELY(NULL == env ||
+                       NULL == session ||
+                       NULL == resource))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -63,26 +65,9 @@ namespace vessel
       }
       else
       {
-         rc = _context.open(session, env, resource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 requestHandler::fini()
-   {
-      INT32 rc = SDB_OK;
-      if (_context.isOpen())
-      {
-         rc = _context.close();
+         requestContext *context = getContext();
+         SDB_ASSERT(NULL != context, "can not be null");
+         rc = context->open(session, env, resource);
          if (SDB_OK != rc)
          {
             goto error;
