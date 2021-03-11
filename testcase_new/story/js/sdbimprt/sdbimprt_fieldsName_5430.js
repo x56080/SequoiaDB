@@ -33,7 +33,7 @@ function importData ( csName, clName, imprtFile )
 {
 
    //backup sdbimport.log and generate new sdbimport.log
-   var rt = cmd.run( 'find ./ -name "sdbimport.log"' );
+   var rt = cmd.run( 'find ./ -maxdepth 1 -name "sdbimport.log"' );
    var newLogFile = '';
    if( rt !== '' )  //file is exist
    {
@@ -47,7 +47,15 @@ function importData ( csName, clName, imprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --headerline true'
       + ' --file ' + imprtFile;
-   var rc = cmd.run( imprtOption );
+   var rc ;
+
+   try
+   {
+      rc = cmd.run( imprtOption ) ;
+   }
+   catch( e )
+   {
+   }
 
    var rcObj = rc.split( "\n" );
    var expError = "Failed to parse fields";
@@ -65,7 +73,7 @@ function importData ( csName, clName, imprtFile )
    }
 
    //check sdbimport.log
-   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "Duplicate field name: a"' ).split( "\n" );
+   var logInfo = cmd.run( 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Duplicate field name, name=a"' ).split( "\n" );
    var expV = 2;
    var actV = logInfo.length;
    if( expV !== actV )
@@ -80,7 +88,14 @@ function importData ( csName, clName, imprtFile )
       + ' -c ' + csName + ' -l ' + clName
       + ' --type csv --fields "b,b,ctest"'
       + ' --file ' + imprtFile;
-   var rc = cmd.run( imprtOption );
+
+   try
+   {
+      rc = cmd.run( imprtOption ) ;
+   }
+   catch( e )
+   {
+   }
 
    var rcObj = rc.split( "\n" );
    var expError = "Failed to parse fields";
@@ -98,7 +113,7 @@ function importData ( csName, clName, imprtFile )
    }
 
    //check sdbimport.log
-   var logInfo = cmd.run( 'find ./ -name "sdbimport.log" |xargs grep "Duplicate field name: b"' ).split( "\n" );
+   var logInfo = cmd.run( 'find ./ -maxdepth 1 -name "sdbimport.log" |xargs grep "Duplicate field name, name=b"' ).split( "\n" );
    var expV = 2;
    var actV = logInfo.length;
    if( expV !== actV )

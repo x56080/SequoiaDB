@@ -40,7 +40,7 @@ function importData ( csName, clName, imprtFile )
    var rc = cmd.run( imprtOption );
 
    var rcObj = rc.split( "\n" );
-   var expError = "ERROR: the headerline is empty";
+   var expError = "ERROR: The headerline is empty";
    var expParseRecords = "Parsed records: 0";
    var expImportedRecords = "Imported records: 0";
    var actError = rcObj[0];

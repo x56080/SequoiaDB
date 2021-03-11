@@ -78,7 +78,14 @@ function testImprt ( cl, fields, expectResult )
       "--fields '_id int, " + fields +
       "' --file " + filename;
 
-   cmd.run( command );
+   try
+   {
+      cmd.run( command );
+   }
+   catch( e )
+   {
+   }
+
    commCompareResults( cl.find().sort( { "_id": 1 } ), expectResult );
    cl.remove();
 }

@@ -261,7 +261,7 @@ namespace import
                       BOOLEAN strictFieldNum);
       ~CSVRecordParser();
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
-      INT32 parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline );
+      INT32 parseFields( const CHAR* data, INT32 length, BOOLEAN isHeaderline );
       void  printFieldsDef();
 
       void  reset()
