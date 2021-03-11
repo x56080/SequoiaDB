@@ -3604,6 +3604,12 @@
                            "file": "getSyncHistory",
                            "cn": "getSyncHistory()",
                            "en": "getSyncHistory()"
+                        },
+                        {
+                           "id": 1612245520,
+                           "file": "reelect",
+                           "cn": "reelect()",
+                           "en": "reelect()"
                         }
                      ]
                   },
