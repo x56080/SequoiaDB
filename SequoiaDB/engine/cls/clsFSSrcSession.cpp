@@ -3114,6 +3114,9 @@ namespace engine
          }
       }
 
+      // End of split, make it so that restoreToTime cannot go beyond this
+      sdbGetTransCB()->pushRestoreWindow() ;
+
    done:
       PD_TRACE_EXIT ( SDB__CLSSPLSS_HNDEND ) ;
       return SDB_OK ;

@@ -3069,6 +3069,8 @@ namespace engine
       msg.header.TID = CLS_TID( _sessionID ) ;
       _sendTo( _selector.src(), &(msg.header) ) ;
       _timeout = 0 ;
+      // End of split, make it so that restoreToTime cannot go beyond this
+      sdbGetTransCB()->pushRestoreWindow() ;
       PD_TRACE_EXIT ( SDB__CLSSPLDS__LEND );
    }
 
