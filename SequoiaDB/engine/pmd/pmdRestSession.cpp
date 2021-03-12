@@ -1010,7 +1010,25 @@ namespace engine
          { CMD_NAME_UPDATE_CONFIG,
                                  &RestToMSGTransfer::_convertUpdateConfig },
          { CMD_NAME_DELETE_CONFIG,
-                                 &RestToMSGTransfer::_convertDeleteConfig }
+                                 &RestToMSGTransfer::_convertDeleteConfig },
+         { CMD_NAME_LIST_SEQUENCES,
+                                 &RestToMSGTransfer::_convertListSequences },
+         { CMD_NAME_SNAPSHOT_SEQUENCES,
+                                 &RestToMSGTransfer::_convertSnapshotSequences },
+         { CMD_NAME_CREATE_SEQUENCE,
+                                 &RestToMSGTransfer::_convertCreateSequence },
+         { CMD_NAME_DROP_SEQUENCE,
+                                 &RestToMSGTransfer::_convertDropSequence },
+         { REST_CMD_NAME_RENAME_SEQUENCE,
+                                 &RestToMSGTransfer::_convertRenameSequence },
+         { CMD_NAME_GET_SEQ_CURR_VAL,
+                                 &RestToMSGTransfer::_convertGetSequenceCurrentValue },
+         { REST_CMD_NAME_GET_SEQ_NEXT_VAL,
+                                 &RestToMSGTransfer::_convertGetSequenceNextValue },
+         { REST_CMD_NAME_RESTART_SEQUENCE,
+                                 &RestToMSGTransfer::_convertRestartSequence },
+         { REST_CMD_NAME_SET_SEQ_ATTR,
+                                 &RestToMSGTransfer::_convertSetSequenceAttributes }
       } ;
 
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
@@ -4329,6 +4347,370 @@ namespace engine
    done:
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertListSequences( restAdaptor *pAdaptor,
+                                                   restRequest &request,
+                                                   MsgHeader **msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_SEQUENCES ;
+
+      return _convertListBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSnapshotSequences( restAdaptor *pAdaptor,
+                                                       restRequest &request,
+                                                       MsgHeader **msg )
+   {
+      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SEQUENCES ;
+
+      return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
+   }
+
+   INT32 RestToMSGTransfer::_convertCreateSequence( restAdaptor *pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CREATE_SEQUENCE ;
+      string name ;
+      string optionsStr ;
+      BSONObj options ;
+      BSONObj query ;
+      BSONObjBuilder builder ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if ( FALSE == optionsStr.empty() )
+      {
+         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      builder.append( FIELD_NAME_NAME, name ) ;
+      builder.appendElements( options ) ;
+
+      query = builder.obj() ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &query, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertDropSequence( restAdaptor *pAdaptor,
+                                                  restRequest &request,
+                                                  MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_DROP_SEQUENCE ;
+      string name ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << name ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertRenameSequence( restAdaptor *pAdaptor,
+                                                    restRequest &request,
+                                                    MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string newName ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      newName = request.getQuery( FIELD_NAME_NEWNAME ) ;
+      if( newName.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NEWNAME ) ;
+         goto error ;
+      }
+
+      options = BSON(
+            FIELD_NAME_ACTION << CMD_VALUE_NAME_RENAME <<
+            FIELD_NAME_OPTIONS << BSON( FIELD_NAME_NAME << name <<
+                                        FIELD_NAME_NEWNAME << newName ) ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertGetSequenceCurrentValue(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_GET_SEQ_CURR_VAL ;
+      string name ;
+      BSONObj query ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      query = BSON( FIELD_NAME_NAME << name ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
+                             NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertGetSequenceNextValue(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      string name ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      options = BSON( FIELD_NAME_NAME << name << FIELD_NAME_FETCH_NUM << 1 ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, "", 0, 0, 0, -1, &options,
+                             NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     REST_CMD_NAME_GET_SEQ_NEXT_VAL, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+      (*msg)->opCode = MSG_BS_SEQUENCE_FETCH_REQ ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertRestartSequence( restAdaptor *pAdaptor,
+                                                     restRequest &request,
+                                                     MsgHeader **msg )
+   {
+      INT32 rc         = SDB_OK ;
+      INT32 buffSize   = 0 ;
+      INT64 startValue = 0 ;
+      CHAR *pBuff      = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string startValueStr ;
+      BSONObj options ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      startValueStr = request.getQuery( FIELD_NAME_START_VALUE ) ;
+      if ( startValueStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed",
+                     FIELD_NAME_START_VALUE ) ;
+         goto error ;
+      }
+
+      startValue = ossAtoll( startValueStr.c_str() ) ;
+
+      options = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_RESTART <<
+                      FIELD_NAME_OPTIONS <<
+                           BSON( FIELD_NAME_NAME << name <<
+                                 FIELD_NAME_START_VALUE << startValue ) ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertSetSequenceAttributes(
+                                                      restAdaptor *pAdaptor,
+                                                      restRequest &request,
+                                                      MsgHeader **msg )
+   {
+      INT32 rc       = SDB_OK ;
+      INT32 buffSize = 0 ;
+      CHAR *pBuff    = NULL ;
+      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_SEQUENCE ;
+      string name ;
+      string attrStr ;
+      BSONObj options ;
+      BSONObj attr ;
+      BSONObjBuilder optionsBuilder ;
+
+      name = request.getQuery( FIELD_NAME_NAME ) ;
+      if( name.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_NAME ) ;
+         goto error ;
+      }
+
+      attrStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
+      if( attrStr.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get sequence's %s failed", FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      rc = fromjson( attrStr.c_str(), attr, 0 ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                     FIELD_NAME_OPTIONS, attrStr.c_str() ) ;
+         goto error ;
+      }
+
+      if ( attr.hasField( FIELD_NAME_NAME ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Invalid %s, the %s can not be specified in %s",
+                     FIELD_NAME_OPTIONS, FIELD_NAME_NAME, FIELD_NAME_OPTIONS ) ;
+         goto error ;
+      }
+
+      optionsBuilder.append( FIELD_NAME_NAME, name ) ;
+      optionsBuilder.appendElements( attr ) ;
+
+      options = BSON( FIELD_NAME_ACTION << CMD_VALUE_NAME_SETATTR <<
+                      FIELD_NAME_OPTIONS << optionsBuilder.obj() ) ;
+
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
+                             &options, NULL, NULL, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
+                     pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
    error:
       goto done ;
    }
