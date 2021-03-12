@@ -244,8 +244,8 @@ namespace engine
             }
             else
             {
-               if ( 0 == ossStrncmp( name.data(), lastNode->getName().data(),
-                                     OSS_MIN( name.size(), lastNode->getName().size() ) ) )
+               if ( name.size() == lastNode->getName().size() &&
+                    0 == ossStrncmp( name.data(), lastNode->getName().data(), name.size() ) )
                {
                   if( lastNode->isLeaf() )
                   {
