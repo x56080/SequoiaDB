@@ -288,6 +288,10 @@ stpqFiles = [
       "tools/stp/stpq.cpp"
       ]
 
+stplistFiles = [
+      "tools/stp/stplist.cpp"
+      ]
+
 # Runtime
 stpEnv.StaticLibrary('rtnJob', rtnJobFiles)
 # BSON
@@ -357,7 +361,16 @@ stpq = stpEnv.Program(
       _LIBDEPS = '$_LIBDEPS_OBJS'
       )
 
+stplist = stpEnv.Program(
+      "stplist",
+      stplistFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpClient",
+                  "stpCommon", "stpTool", "clientc" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
 stpEnv.Install( '#/bin', stp )
 stpEnv.Install( '#/bin', stpstart )
 stpEnv.Install( '#/bin', stpstop )
 stpEnv.Install( '#/bin', stpq )
+stpEnv.Install( '#/bin', stplist )

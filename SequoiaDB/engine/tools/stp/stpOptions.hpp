@@ -62,6 +62,9 @@ namespace engine
       INT32 initialize( INT32 argc, CHAR **argv, const CHAR *rootPath,
                         BOOLEAN &daemonMode ) ;
 
+      // initialize from file
+      INT32 initFromFile( const CHAR *rootPath ) ;
+
       // save options to config file
       INT32 save() ;
 

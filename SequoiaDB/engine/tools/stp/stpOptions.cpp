@@ -343,6 +343,47 @@ namespace engine
       goto done ;
    }
 
+   INT32 _stpOptions::initFromFile( const CHAR *rootPath )
+   {
+      INT32 rc = SDB_OK ;
+
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vmFile ;
+
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         FILE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      PD_CHECK( NULL != rootPath, SDB_INVALIDARG, error, PDERROR,
+                "Root path is empty" ) ;
+
+      // build 'conf' file path
+      rc = utilBuildFullPath( rootPath, STP_ROOT_PATH, OSS_MAX_PATHSIZE,
+                              _stpPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build local path for root "
+                   "path %s, rc: %d", rootPath, rc ) ;
+
+      // build stp config file path
+      rc = utilBuildFullPath( _stpPath, STP_CFG_FILE_NAME,
+                              OSS_MAX_PATHSIZE, _cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build config path for root "
+                   "path %s, rc: %d", rootPath, rc ) ;
+
+      rc = utilReadConfigureFile( _cfgFileName, desc, vmFile ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to read config file [%s], rc: %d",
+                   _cfgFileName ) ;
+
+      rc = pmdCfgRecord::init( &vmFile, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
    INT32 _stpOptions::save()
    {
       INT32 rc = SDB_OK ;

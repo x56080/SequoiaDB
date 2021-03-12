@@ -701,7 +701,8 @@ namespace engine
                         const CHAR * svcnameFilter,
                         OSSPID pidFilter,
                         INT32 roleFilter,
-                        BOOLEAN allowAloneCM )
+                        BOOLEAN allowAloneCM,
+                        BOOLEAN includeSTP )
    {
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
@@ -772,6 +773,12 @@ namespace engine
          // 2. type
          while ( beginType < SDB_TYPE_MAX )
          {
+            if ( SDB_TYPE_STP == beginType && !includeSTP )
+            {
+               ++beginType ;
+               continue ;
+            }
+
             pStr = ossStrstr( commandLine,
                               utilDBTypeStr( (SDB_TYPE)beginType ) ) ;
             if ( pStr == commandLine &&
@@ -881,7 +888,8 @@ namespace engine
 
    INT32 utilListNodes( UTIL_VEC_NODES & nodes, INT32 typeFilter,
                         const CHAR * svcnameFilter, OSSPID pidFilter,
-                        INT32 roleFilter, BOOLEAN allowAloneCM )
+                        INT32 roleFilter, BOOLEAN allowAloneCM,
+                        BOOLEAN includeSTP )
    {
       INT32 rc = SDB_OK ;
       vector< string > names ;
@@ -917,6 +925,10 @@ namespace engine
             continue ;
          }
          if ( -1 != typeFilter && typeFilter != findNode._type )
+         {
+            continue ;
+         }
+         else if ( SDB_TYPE_STP == findNode._type && !includeSTP )
          {
             continue ;
          }
