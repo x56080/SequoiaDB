@@ -105,6 +105,12 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/NodesSnapshot.js' ] )
          }
       },
+      { path: '/Monitor/SDB-Nodes/NodesHealth',
+        options: {
+           templateUrl: './app/template/Monitor/Sdb/Node/NodesHealth.html',
+           resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/NodesHealth.js' ] )
+         }
+      },
       { path: '/Monitor/SDB-Nodes/NodesSync',
         options: {
            templateUrl: './app/template/Monitor/Sdb/Node/NodesSync.html',

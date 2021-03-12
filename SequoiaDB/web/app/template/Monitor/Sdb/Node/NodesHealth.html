@@ -1,4 +1,4 @@
-﻿<div ng-controller="Monitor.SdbOverview.NodesSync.Ctrl" ng-container="{}">
+﻿<div ng-controller="Monitor.SdbOverview.NodesHealth.Ctrl" ng-container="{}">
    <div style="background:#F4F4F4;" ng-container="{height:57}">
       <div class="nav-new">
          <div class="active" ng-click="GotoNodes()">{{autoLanguage("节点")}}</div>
@@ -24,26 +24,29 @@
             <li>
                <a href="#/Monitor/SDB-Nodes/NodesSnapshot">{{autoLanguage("节点快照")}}</a>
             </li>
-            <li>
+            <li class="active">
                <a href="#/Monitor/SDB-Nodes/NodesHealth">{{autoLanguage("节点健康监测快照")}}</a>
             </li>
-            <li class="active">
+            <li>
                <a href="#/Monitor/SDB-Nodes/NodesSync">{{autoLanguage("节点数据同步")}}</a>
             </li>
          </ul>
       </div>
 
-      <div style="height:30px;margin:10px 0;">
-         <div ng-dropdown="config in SelectorMenu.config" dropdown-callback="SelectorMenu.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SelectorMenu.OnClick($index)"><input type="radio" ng-checked="config.checked" />&nbsp;{{config.field}}</label>
-         </div>
+      <div style="color:#606060;font-size:90%;height:30px;margin:10px 0;">
          <button class="btn btn-default" ng-click="OpenBrushWindows()">
             <span>{{sprintf(autoLanguage("刷新间隔： ? 秒"), IntervalTimeConfig.interval)}}</span>
          </button>&nbsp;
          <button class="btn btn-default" ng-click="RefreshCtrl()">{{RefreshType}}</button>&nbsp;
-         <button class="btn btn-default" ng-click="ShowSelectorMenu($event)">
-            {{autoLanguage("节点显示方式")}}&nbsp;<i class="fa fa-caret-down"></i>
+         <button class="btn btn-default" ng-click="OpenShowFieldDropdown($event)">
+            {{autoLanguage("选择显示列")}}&nbsp;<i class="fa fa-caret-down"></i>
          </button>
+         <div ng-dropdown="config in FieldDropdown.config" dropdown-callback="FieldDropdown.callback">
+            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SaveField()"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.key}}</label>
+         </div>
+         <div ng-dropdown="config in modeDropdown.config" dropdown-event="modeDropdown.event" dropdown-callback="modeDropdown.callback">
+            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="modeDropdown.OnClick($index)"><input type="radio" ng-checked="config.checked" />&nbsp;{{config.key}}</label>
+         </div>
       </div>
 
       <div ng-windows="config as CreateBrush.config" windows-callback="CreateBrush.callback">
@@ -61,17 +64,11 @@
          <div class="Ellipsis" table-key="NodeName">
             <a class="linkButton" ng-click="GotoNode(nodeInfo['HostName'],nodeInfo['ServiceName'])">{{nodeInfo['NodeName']}}</a>
          </div>
-         <div class="Ellipsis" table-key="HostName">
-            <a class="linkButton" ng-click="GotoHostInfo(nodeInfo['HostName'])">{{nodeInfo['HostName']}}</a>
-         </div>
          <div class="Ellipsis" table-key="GroupName">
             <a class="linkButton" ng-click="GotoGroup(nodeInfo['GroupName'])">{{nodeInfo['GroupName']}}</a>
          </div>
-         <div class="Ellipsis" ng-style="{true:{'font-weight':'bold','color':'#D9534F'}}[nodeInfo['IsPrimary']==true]" table-key="$auto">
-            <!--<span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[$autoValue == LastValue[nodeInfo['i']].$auto ? '0' : ( $autoValue > LastValue[nodeInfo['i']].$auto ? '1' : '-1' )]">-->
-            <span>
-               <span>{{$autoValue}}</span>
-            </span>
+         <div class="Ellipsis" table-key="$auto">
+            {{$autoValue}}
          </div>
       </div>
       
