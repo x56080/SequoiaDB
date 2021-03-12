@@ -7,7 +7,7 @@
 .SH "NAME"
 
 .sp 2
-list - Enumerate list.
+list - get list
 .SH "SYNOPSIS"
 
 .sp 2
@@ -25,12 +25,11 @@ Sequoiadb
 .SH "DESCRIPTION"
 
 .sp 2
-Enumerate list. List is a lightweight command to get the current
-system status.
+This function is used to get the specified list and view the current system status. The list is a lightweight command.
 .sp 2
 \fBlistType (Enumeration)\fR
 .br
-       listType, Please refer to List.
+       The list to be obtained, the value can refer to List type.
 .sp 2
 \fBcond (json object)\fR
 .br
@@ -66,9 +65,6 @@ system status.
 
 .sp 2
 \fBNote: \fR
-.sp 2
-   *  For more details on the value of "listType", please refer
-   to List .
 .sp 2
    *  The value of "sel" is in the type of json object. The value
    of field is often specified as a null string. If the

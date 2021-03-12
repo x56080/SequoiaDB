@@ -7,7 +7,7 @@
 .SH "NAME"
 
 .sp 2
-snapshot - It lists snapshots.
+snapshot - get snapshot
 .SH "SYNOPSIS"
 
 .sp 2
@@ -25,12 +25,11 @@ Sequoiadb
 .SH "DESCRIPTION"
 
 .sp 2
-It lists snapshots. Snapshot() is a command used to get the
-current status of system.
+This function is used to get the specified snapshot and view the current system status. 
 .sp 2
 \fBsnapType (list)\fR
 .br
-       Snapshot type.Please refer to Snapshot.
+       The snapshot to be obtained, the value can refer to Snapshot type.
 .sp 2
 \fBcond (json object)\fR
 .br
