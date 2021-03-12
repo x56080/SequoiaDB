@@ -397,18 +397,6 @@ INT32 msgBuildSequenceAcquireMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                   UINT64 reqID, const BSONObj& options,
                                   engine::IExecutor *cb = NULL ) ;
 
-INT32 msgBuildSequenceCreateMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 UINT64 reqID, const BSONObj& options,
-                                 engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceDropMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                               UINT64 reqID, const BSONObj& options,
-                               engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceAlterMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                UINT64 reqID, const BSONObj& options,
-                                engine::IExecutor *cb = NULL ) ;
-
 INT32 msgBuildSequenceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                           const BSONObj &boQuery, UINT64 reqID,
                                           engine::IExecutor *cb = NULL ) ;
