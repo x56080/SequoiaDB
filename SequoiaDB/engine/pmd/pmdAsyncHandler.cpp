@@ -288,7 +288,16 @@ namespace engine
          }
       }
 
+   #if defined ( SDB_ENGINE )
+      if ( NULL != _pRemoteSessionMgr )
+      {
+         _pRemoteSessionMgr->handleConnect( handle, id, isPositive ) ;
+      }
+   #endif
+
       PD_TRACE_EXIT( SDB__PMDMSGHND_HNDCONNECT ) ;
+
+      return SDB_OK ;
    }
 
    // This function will not be used concurrently, so we don't need to latch it
@@ -306,18 +315,6 @@ namespace engine
       }
    #endif
       PD_TRACE_EXIT ( SDB__PMDMSGHND_HNDCLOSE ) ;
-   }
-
-   INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                            _MsgRouteID id,
-                                            BOOLEAN isPositive )
-   {
-   #if defined ( SDB_ENGINE )
-      if ( NULL != _pRemoteSessionMgr )
-      {
-         _pRemoteSessionMgr->handleConnect( handle, id, isPositive ) ;
-      }
-   #endif
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONSTOP, "_pmdAsyncMsgHandler::onStop" )
