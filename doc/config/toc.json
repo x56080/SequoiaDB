@@ -4904,6 +4904,18 @@
                            "en": "$unset"
                         },
                         {
+                           "id": 1614933171,
+                           "file": "bit",
+                           "cn": "$bit",
+                           "en": "$bit"
+                        },
+                        {
+                           "id": 1614933217,
+                           "file": "rename",
+                           "cn": "$rename",
+                           "en": "$rename"
+                        },
+                        {
                            "id": 1432190926,
                            "file": "addtoset",
                            "cn": "$addtoset",
