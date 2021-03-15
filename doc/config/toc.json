@@ -1581,15 +1581,21 @@
                         },
                         {
                            "id": 1432190664,
-                           "file": "regular_bar",
-                           "cn": "数据备份恢复",
-                           "en": "Regular Bar"
+                           "file": "data_backup",
+                           "cn": "数据备份",
+                           "en": "Data Backup"
                         },
                         {
                            "id": 1477552448,
                            "file": "log_archive",
                            "cn": "日志归档",
                            "en": "Log Archive"
+                        },
+                        {
+                           "id": 1432190666,
+                           "file": "data_restore",
+                           "cn": "数据恢复",
+                           "en": "Data Restore"
                         }
                      ]
                   },
