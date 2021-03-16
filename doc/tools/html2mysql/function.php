@@ -16,6 +16,10 @@ function sendStreamFile( $url, $file, $dest )
             'method' => 'POST',
             'header' => 'Content-Type:application/x-www-form-urlencoded',
             'content' => file_get_contents( $file )
+         ),
+         'ssl' => array(
+            'verify_peer' => false,
+            'verify_peer_name' => false
          )
       ) ;
       $url = $url.'?cmd=file&dest='.urlEncode( $dest ) ;
@@ -38,6 +42,10 @@ function sendMkdir( $url, $dest )
       'http' => array(
          'method' => 'POST',
          'header' => 'Content-Type:application/x-www-form-urlencoded'
+      ),
+      'ssl' => array(
+         'verify_peer' => false,
+         'verify_peer_name' => false
       )
    ) ;
    $url = $url.'?cmd=mkdir&dest='.urlEncode( $dest ) ;
@@ -51,10 +59,10 @@ function iterDir( $root, $path, $edition, $type )
 {
    if( $type == 'document' )
    {
-      sendMkdir( 'http://www.sequoiadb.com/cn/receiveImage.php',
+      sendMkdir( 'https://www.sequoiadb.com/cn/receiveImage.php',
                  "./index/Public/Home/$type/$edition" ) ;
    }
-   $ret = sendMkdir( 'http://www.sequoiadb.com/cn/receiveImage.php',
+   $ret = sendMkdir( 'https://www.sequoiadb.com/cn/receiveImage.php',
                      $type == 'document' ? "./index/Public/Home/$type/$edition/api/$path" : "./index/Public/Home/$type/$edition/$path" ) ;
    if( $ret['errno'] != true )
    {
@@ -77,7 +85,7 @@ function iterDir( $root, $path, $edition, $type )
          }
          else
          {
-            $ret = sendStreamFile( 'http://www.sequoiadb.com/cn/receiveImage.php', getOSInfo() == 'linux' ? "$root/$path/$file" : "$root\\$path\\$file",
+            $ret = sendStreamFile( 'https://www.sequoiadb.com/cn/receiveImage.php', getOSInfo() == 'linux' ? "$root/$path/$file" : "$root\\$path\\$file",
                                    $type == 'document' ? "./index/Public/Home/$type/$edition/api/$path/$file" : "./index/Public/Home/$type/$edition/$path/$file" ) ;
             if( $ret['errno'] != true )
             {
