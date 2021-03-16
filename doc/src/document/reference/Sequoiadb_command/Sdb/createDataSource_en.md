@@ -1,0 +1,100 @@
+##NAME##
+
+createDataSource - Create data source
+
+##SYNOPSIS##
+
+**db.createDataSource(\<name\>, \<address\>, [user], [password], [type], [options])**
+
+##CATEGORY##
+
+Sdb
+
+##DESCRIPTION##
+
+This function is used to create a data source to achieve cross-cluster data access.
+
+##PARAMETERS##
+
+- name ( *string，required* )
+
+ The name of data source, which is unique in the same database
+
+- address ( *string，required* )
+
+ "Addresses" are all or some of the cluster coordinator node addresses of SequoiaDB data source. The addresses pointed by the coordinating nodes should be in the same cluster but the number of addresses must not exceed 7 when multiple addresses are configured.
+
+- user ( *string，optional* )
+
+ Name of the data source
+
+- password ( *string，optional* )
+
+ Data source user password
+
+- type ( *string，optional* )
+
+ Data source type, currently only supports SequoiaDB
+
+- options ( *object，optional* )
+
+ Other optional parameters can be set through the options parameter
+
+   1. AccessMode (string): Configure access permissions for the data source, including reading and writing data,default is "ALL".
+
+     The values are as follows:
+    
+        - "READ": Allow read-only operation
+        - "WRITE": Allow write operation
+        - "ALL"or "READ|WRITE": Allow all operations
+        - "NONE": It does not allow any operation
+
+     format: `AccessMode: "READ"`
+
+   2. ErrorFilterMask (string): Configure error filtering for data operations on data sources, default is "NONE".
+
+     The values are as follows:
+    
+        - "READ": Filter data read errors
+        - "WRITE": Filter data write errors
+        - "ALL"or "READ|WRITE": Filter all data read and write errors
+        - "NONE": Do not filter any errors
+
+     format: `ErrorFilterMask: "READ"`
+
+   3. ErrorControlLevel (string): Configure the error level when performing unsupported data operations (such as DDL) on the mapping collection or collection space, default is "High".
+
+     The values are as follows:
+    
+        - "High": Report an error and output an error message
+        - "Low": Ignore unsupported data operations and do not execute
+    
+     format: `ErrorControlLevel: "Low"`
+
+##RETURN VALUE##
+
+When the function executes successfully, it will return a DataSource object.
+
+When the function fails, an exception will be thrown and an error message will be printed.
+
+##ERRORS##
+
+`createDataSource()` Common exceptions of functions are as follows:
+
+| error code | Error type | Possible reason | Solution |
+| ------ | -------- | -------------- | -------- |
+| -369 | SDB_CAT_DATASOURCE_EXIST | The specified data source already exists | Check if there is a data source with the same name |
+
+When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+
+##VERSION##
+
+v3.2.8 and above
+
+##EXAMPLES##
+
+Create a data source named "datasource" that only allows read-only operations
+
+```lang-javascript
+> db.createDataSource("datasource","192.168.20.66:50000","","","SequoiaDB",{AccessMode:"READ"})
+```
