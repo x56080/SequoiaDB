@@ -969,7 +969,7 @@
                   {
                      subSql += ', ' ;
                   }
-                  subSql += fieldInfo['name'] + ' ' + fieldInfo['type'] ;
+                  subSql += '`' +fieldInfo['name'] + '` ' + fieldInfo['type'] ;
                   if( fieldInfo['length'].length > 0 )
                   {
                      switch( fieldInfo['type'] )
@@ -1050,7 +1050,7 @@
                         primaryKey2 += ',' ;
                      }
                      primaryKey += ( '_' + fieldInfo['name'] ) ;
-                     primaryKey2 += fieldInfo['name'] ;
+                     primaryKey2 += '`' + fieldInfo['name'] + '`' ;
                   }
                   else if( fieldInfo['indexType'] == 'unique' )
                   {
@@ -1059,7 +1059,7 @@
                         uniqueCont += ',' ;
                      }
                      uniqueName += ( '_' + fieldInfo['name'] ) ;
-                     uniqueCont += fieldInfo['name'] ;
+                     uniqueCont += '`' + fieldInfo['name'] + '`' ;
                   }
                   else if( fieldInfo['indexType'] == 'index' )
                   {
@@ -1068,7 +1068,7 @@
                         indexCont += ',' ;
                      }
                      indexName += ( '_' + fieldInfo['name'] ) ;
-                     indexCont += fieldInfo['name'] ;
+                     indexCont += '`' + fieldInfo['name'] + '`' ;
                   }
                   if( fieldInfo['null'] == true && fieldInfo['indexType'] != 'primary' )
                   {
@@ -1078,7 +1078,7 @@
                   {
                      subSql += 'NOT NULL' ;
                   }
-                  if( typeof( fieldInfo['default'] ) == 'string' )
+                  if( isString( fieldInfo['default'] ) )
                   {
                      subSql += ' DEFAULT ' + sqlEscape( fieldInfo['default'] ) + ' ' ;
                   }
