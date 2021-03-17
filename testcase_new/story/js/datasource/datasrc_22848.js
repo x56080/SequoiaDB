@@ -33,6 +33,7 @@ function test ()
    alterDataSourceAndCheckResult( dataSrcName, datasrcUrl, csName, clName );
 
    clearDataSource( csName, dataSrcName );
+   datasrcDB.dropCS( srcCSName );
    datasrcDB.close();
 }
 

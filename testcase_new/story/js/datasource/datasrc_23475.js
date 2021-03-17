@@ -1,14 +1,10 @@
 /******************************************************************************
- * @Description   : 
+ * @Description   : seqDB-23475:多个子表使用相同数据源，主表上执行CRUD操作
  * @Author        : Wu Yan
- * @CreateTime    : 2021.03.17
+ * @CreateTime    : 2021.10.20
  * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
-/* *****************************************************************************
-@description:  seqDB-23475:多个子表使用相同数据源，主表上执行CRUD操作
-@author: 2020-10-20 wuyan  Init
-***************************************************************************** */
 testConf.skipStandAlone = true;
 main( test );
 function test ()
@@ -45,9 +41,8 @@ function test ()
    expRecs.sort( sortBy( 'a' ) );
    commCompareResults( cursor, expRecs );
 
-   db.dropCS( csName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( csName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 

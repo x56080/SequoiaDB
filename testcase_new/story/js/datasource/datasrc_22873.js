@@ -14,22 +14,32 @@ function test ()
    var csName = "cs_22873";
    var srcCSName = "datasrcCS_22873";
    commDropCS( datasrcDB, srcCSName );
+   commDropCS( datasrcDB, csName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, srcCLName );
+   commCreateCS( datasrcDB, csName );
+   commCreateCL( datasrcDB, csName, srcCLName );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
+   testDropCS( dataSrcName, csName, srcCSName, srcCLName );
+   testDropCS( dataSrcName, csName, csName, srcCLName );
+
+   db.dropDataSource( dataSrcName );
+   datasrcDB.close();
+}
+
+function testDropCS ( dataSrcName, csName, srcCSName, srcCLName )
+{
    db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
-
    var cl = db.getCS( csName ).getCL( srcCLName );
+   cl.insert( { a: 1 } );
    db.dropCS( csName );
-
    assert.tryThrow( SDB_DMS_CS_NOTEXIST, function()
    {
       db.getCS( csName );
    } );
-
-   datasrcDB.getCS( srcCSName );
+   var count = datasrcDB.getCS( srcCSName ).getCL( srcCLName ).count();
+   assert.equal( 1, count );
    datasrcDB.dropCS( srcCSName );
-   db.dropDataSource( dataSrcName );
-   datasrcDB.close();
 }
+
