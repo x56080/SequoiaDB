@@ -290,9 +290,16 @@
                   {
                      subSql += 'NOT NULL ' ;
                   }
-                  if( typeof( fieldInfo['default'] ) == 'string' )
+                  if( isString( fieldInfo['default'] ) )
                   {
-                     subSql += 'DEFAULT ' + sqlEscape( fieldInfo['default'] ) + ' ' ;
+                     if( fieldInfo['null'] == true && fieldInfo['default'].toLowerCase() === 'null' )
+                     {
+                        subSql += 'DEFAULT ' + fieldInfo['default'] + ' ' ;
+                     }
+                     else
+                     {
+                        subSql += 'DEFAULT ' + sqlEscape( fieldInfo['default'] ) + ' ' ;
+                     }
                   }
                   sql += subSql ;
                } ) ;
@@ -344,7 +351,7 @@
                var isFrist = true ;
                var existList = {} ;
                $.each( formValue['fields'], function( index, field ){
-                  if( typeof( existList[field['field']] ) == 'undefined' )
+                  if( isUndefined( existList[field['field']] ) )
                   {
                      existList[field['field']] = true ;
                      if( isFrist )
@@ -357,7 +364,7 @@
                         if( existList[field['field']] )
                         sql += ',' ;
                      }
-                     sql += field['field'] ;
+                     sql += '`' + field['field'] + '`' ;
                   }
                } ) ;
                sql += ')' ;
@@ -449,7 +456,7 @@
             var isFrist = true ;
             var existList = {} ;
             $.each( formValue['fields'], function( index, field ){
-               if( typeof( existList[field['field']] ) == 'undefined' )
+               if( isUndefined( existList[field['field']] ) )
                {
                   existList[field['field']] = true ;
                   if( isFrist )
@@ -462,7 +469,7 @@
                      if( existList[field['field']] )
                      sql += ',' ;
                   }
-                  sql += field['field'] ;
+                  sql += '`' + field['field'] + '`' ;
                   if( field['length'] > 0 )
                   {
                      sql += '(' + field['length'] + ')' ;
