@@ -2,7 +2,7 @@
  * @Description   : seqDB-22873:源集群上删除cs
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 main( test );
@@ -12,7 +12,6 @@ function test ()
    var dataSrcName = "datasrc22873";
    var csName = "cs_22873";
    var srcCSName = "datasrcCS_22873";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );

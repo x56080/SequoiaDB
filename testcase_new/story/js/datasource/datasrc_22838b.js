@@ -2,7 +2,7 @@
  * @Description   : seqDB-22838:创建数据源，设置访问权限为WRITE
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -13,7 +13,6 @@ function test ()
    var csName = "cs_22838b";
    var srcCSName = "datasrcCS_22838b";
    var clName = "cl_22838b";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    var scs = datasrcDB.createCS( srcCSName );
@@ -34,9 +33,8 @@ function test ()
    crudAndCheckResult( dbcl, sdbcl );
    lobAndCheckResult( dbcl, sdbcl, dsMarjorVersion );
 
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );
-   db.dropCS( csName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 

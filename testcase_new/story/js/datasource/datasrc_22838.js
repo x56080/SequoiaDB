@@ -2,7 +2,7 @@
  * @Description   : seqDB-22838:创建数据源，设置访问权限为READ
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 
@@ -27,26 +27,24 @@ function test ()
    var lobID = sdbcl.putLob( filePath + fileName );
    var docs = [{ a: 1, b: 1 }, { a: 2, b: "tests2" }];
    sdbcl.insert( docs );
-
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { AccessMode: "READ" } );
-   var dsMarjorVersion = getDSMajorVersion( dataSrcName );
+
    //集合级使用数据源
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    crudAndCheckResult( dbcl, docs );
-   lobAndCheckResult( dbcl, dsMarjorVersion, lobID, filePath, fileName, fileMD5 );
+   lobAndCheckResult( dbcl, lobID, filePath, fileName, fileMD5 );
 
    //集合空间级使用数据源
    db.dropCS( csName );
    var cs = db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
    var dbcl = db.getCS( csName ).getCL( clName );
    crudAndCheckResult( dbcl, docs );
-   lobAndCheckResult( dbcl, dsMarjorVersion, lobID, filePath, fileName, fileMD5 );
+   lobAndCheckResult( dbcl, lobID, filePath, fileName, fileMD5 );
 
    deleteTmpFile( filePath );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );
-   db.dropCS( csName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 
@@ -82,7 +80,7 @@ function crudAndCheckResult ( dbcl, docs )
    commCompareResults( cursor, docs );
 }
 
-function lobAndCheckResult ( dbcl, dsMarjorVersion, lobID, filePath, fileName, fileMD5 )
+function lobAndCheckResult ( dbcl, lobID, filePath, fileName, fileMD5 )
 {
    //putLob 
    assert.tryThrow( SDB_COORD_DATASOURCE_PERM_DENIED, function()

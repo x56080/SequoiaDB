@@ -2,7 +2,7 @@
  * @Description   : seqDB-22834 :: 创建包含多个有效地址的数据源
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.09
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -13,7 +13,6 @@ function test ()
    var csName = "cs_22834";
    var clName = "cl_22834";
    var srcCSName = "datasrcCS_22834";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
 
@@ -29,9 +28,8 @@ function test ()
    var cursor = dbcl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
    commCompareResults( cursor, docs );
 
-   db.dropCS( csName );
    datasrcDB.dropCS( srcCSName );
-   db.dropDataSource( dataSrcName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.close();
 }
 

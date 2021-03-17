@@ -2,7 +2,7 @@
  * @Description   : seqDB-22868:使用数据源创建cs，关联数据源集合执行CRUD操作
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 main( test );
@@ -14,7 +14,6 @@ function test ()
    var csName = CHANGEDPREFIX + "cS_22868";
    var srcDataName = "srcData22868";
 
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    commDropCS( db, srcCSName );
    clearDataSource( csName, srcDataName );
@@ -42,6 +41,7 @@ function test ()
    db.dropCS( srcCSName );
    db.dropDataSource( srcDataName );
    datasrcDB.dropCS( srcCSName );
+   datasrcDB.close();
 }
 
 function crudAndCheckResult ( dbcl )

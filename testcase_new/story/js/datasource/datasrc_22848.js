@@ -2,7 +2,7 @@
  * @Description   : seqDB-22848 :: 修改数据源地址为可用地址
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 
@@ -14,12 +14,10 @@ function test ()
    var csName = "cs_22848";
    var srcCSName = "datasrcCS_22848";
    var clName = "cl_22848";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 } } );
-   println( datasrcUrl )
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    db.createCS( csName, { DataSource: dataSrcName, Mapping: srcCSName } );
 
@@ -33,8 +31,8 @@ function test ()
    alterDataSourceAndCheckResult( dataSrcName, datasrcUrl + "," + datasrcUrl, csName, clName );
    //test d: 修改为1个可用地址
    alterDataSourceAndCheckResult( dataSrcName, datasrcUrl, csName, clName );
-   db.dropCS( csName );
-   db.dropDataSource( dataSrcName );
+
+   clearDataSource( csName, dataSrcName );
    datasrcDB.close();
 }
 

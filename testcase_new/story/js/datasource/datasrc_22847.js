@@ -2,7 +2,7 @@
  * @Description   : seqDB-22847 :: 修改数据源名称
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.09
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 main( test );
@@ -16,7 +16,6 @@ function test ()
    var csName1 = "cs_22847c";
    var srcCSName = "datasrcCS_22847";
    var clName = "cl_22847";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    clearDataSource( csName1, dataSrcName1 );
@@ -51,10 +50,8 @@ function alterDataSourceAndCheckResult ( oldName, newName, csName, clName )
    dataSourceObj.alter( { Name: newName } );
 
    var newdataSourceObj = db.getDataSource( newName );
-   if( newName != newdataSourceObj._name )
-   {
-      throw new Error( "act name is " + newdataSourceObj._name );
-   }
+   assert.equal( newName, newdataSourceObj._name );
+
    var dbcl = db.getCS( csName ).getCL( clName );
    var docs = [{ a: 1, b: 1, c: "testc" }, { a: 2, b: [1, "test"], c: "testsgasdgasdg" }, { a: 3, b: 234.3, c: { a: 1 } }, { a: 4, b: 4, c: "testtess4" }];
    dbcl.insert( docs );

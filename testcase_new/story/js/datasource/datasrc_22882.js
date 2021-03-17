@@ -2,11 +2,11 @@
  * @Description   : seqDB-22882:本地子表关联不同数据源，挂载到主表
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
-
-//main( test );需要两个不同数据源
+//需要两个不同数据源，目前CI环境不支持，用例暂时屏蔽
+//main( test );
 function test ()
 {
    var dataSrcName = "datasrc22882";

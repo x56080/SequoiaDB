@@ -2,7 +2,7 @@
  * @Description   : seqDB-22883:源集群上创建分区集合，关联数据源
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -18,7 +18,6 @@ function test ( testPara )
    var mainCLName = "mainCL_22883";
    var subCLName = "subCL_22883";
    var srcGroupName = testPara.srcGroupName;
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
@@ -36,9 +35,8 @@ function test ( testPara )
       cs.createCL( mainCLName, { ShardingKey: { a: 1 }, ShardingType: "range", IsMainCL: true, DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
    } );
 
-   db.dropCS( csName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 

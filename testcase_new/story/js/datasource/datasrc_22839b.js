@@ -1,5 +1,5 @@
 /******************************************************************************
- * @Description   : seqDB-22839 :: 创建数据源，设置多个访问权限 (READ|WRITE)
+ * @Description   : seqDB-22839 :: 创建数据源，设置多个访问权限 (READ|ALL)
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
  * @LastEditTime  : 2021.03.16
@@ -9,16 +9,16 @@ main( test );
 
 function test ()
 {
-   var dataSrcName = "datasrc22839";
-   var csName = "cs_22839";
-   var srcCSName = "datasrcCS_22839";
-   var clName = "cl_22839";
+   var dataSrcName = "datasrc22839b";
+   var csName = "cs_22839b";
+   var srcCSName = "datasrcCS_22839b";
+   var clName = "cl_22839b";
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 } } );
 
-   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { AccessMode: "READ|WRITE" } );
+   db.createDataSource( dataSrcName, datasrcUrl, userName, passwd, "SequoiaDB", { AccessMode: "READ|ALL" } );
    var dsMarjorVersion = getDSMajorVersion( dataSrcName );
    //集合级使用数据源
    var cs = db.createCS( csName );
@@ -32,7 +32,6 @@ function test ()
    var dbcl = db.getCS( csName ).getCL( clName );
    crudAndCheckResult( dbcl );
    lobAndCheckResult( dbcl, dsMarjorVersion );
-
 
    clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );

@@ -2,7 +2,7 @@
  * @Description   : seqDB-22881:使用数据源的集合为子表，挂载到主表
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 main( test );
@@ -13,7 +13,6 @@ function test ()
    var clName = "cl_22881";
    var mainCLName = "mainCL_22881";
    var subCLName = "subCL_22881";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, csName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, csName );
@@ -44,9 +43,8 @@ function test ()
    var count = mainCL.count();
    assert.equal( count, 0 );
 
-   db.dropCS( csName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( csName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 

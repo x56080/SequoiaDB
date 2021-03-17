@@ -2,10 +2,11 @@
  * @Description   :seqDB-22835 :: 创建数据源指定地址中包含异常节点地址 
  * @Author        : Wu Yan
  * @CreateTime    : 2021.02.06
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 testConf.skipStandAlone = true;
+//目前CI环境不支持运行该用例，暂时屏蔽
 //main( test );
 function test ()
 {
@@ -13,7 +14,6 @@ function test ()
    var csName = "cs_22835";
    var clName = "cl_22835";
    var srcCSName = "datasrcCS_22835";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
 
@@ -30,9 +30,8 @@ function test ()
    var cursor = dbcl.find( {}, { "_id": { "$include": 0 } } ).sort( { "a": 1 } );
    commCompareResults( cursor, docs );
 
-   db.dropCS( csName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 

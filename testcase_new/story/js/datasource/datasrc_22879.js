@@ -2,7 +2,7 @@
  * @Description   : seqDB-22879:源集群上创建cl，数据源上不存在映射cl
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.16
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 main( test );
@@ -14,7 +14,6 @@ function test ()
    var clName = "cl_22879";
    var srccsName = "srccs_22879";
    var srcclName = "srccl_22879";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srccsName );
    commDropCS( datasrcDB, csName );
    commDropCS( db, csName );
