@@ -4,22 +4,19 @@
  * @CreateTime    : 2021.01.08
  * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
- ******************************************************************************/s
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
 
 function test ()
 {
    var dataSrcName = "datasrc23563";
-
    var srcCSName = "cs_23563";
    var csName = "cs_23563";
    var clName = "cl_23563";
    var mainCLName = "mainCL_23563";
    var subCLName1 = "subCL_23563a";
    var subCLName2 = "subCL_23563b";
-
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
 
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
@@ -35,9 +32,8 @@ function test ()
    var maincl = createCLAndAttachCL( cs, csName, mainCLName, subCLName1, subCLName2, clName );
    putLobAndCheckResult( maincl, dsMarjorVersion );
 
-   db.dropCS( csName );
+   clearDataSource( csName, dataSrcName );
    datasrcDB.dropCS( srcCSName );
-   db.dropDataSource( dataSrcName );
    datasrcDB.close();
 }
 
