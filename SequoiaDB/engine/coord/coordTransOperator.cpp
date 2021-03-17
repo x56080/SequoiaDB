@@ -1191,7 +1191,8 @@ namespace engine
       SDB_ASSERT( NULL != reply, "reply is invalid" ) ;
 
       if ( ( cb->isGlobTrans() ) &&
-           ( MSG_BS_TRANS_COMMITPRE_RSP == reply->header.opCode ) &&
+           ( MSG_BS_TRANS_COMMITPRE_REQ ==
+                           GET_REQUEST_TYPE( reply->header.opCode ) ) &&
            ( SDB_OK == reply->flags ) &&
            ( 1 <= reply->numReturned ) )
       {

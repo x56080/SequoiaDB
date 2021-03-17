@@ -189,7 +189,7 @@ namespace engine
       _reqID = cb->incCurRequestID() ;
       _pReqMsg->requestID = getReqID() ;
       _pReqMsg->TID = cb->getTID() ;
-      _reqOpCode = _pReqMsg->opCode ;
+      _reqOpCode = GET_REQUEST_TYPE( _pReqMsg->opCode ) ;
       _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
 
       isIgnored = FALSE ;
