@@ -125,7 +125,7 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
  * 从实例组中移除实例
 
-   sdb_mysql_ctl leave \<INSTANCE\> \<-g INST_GROUP_NAME\> [-k INST_GROUP_KEY] [--force]
+   sdb_mysql_ctl leave \<INSTANCE\> \<-g INST_GROUP_NAME\> [--force]
 
    从 sql_group 实例组中移除 inst2 实例
 
