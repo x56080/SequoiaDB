@@ -132,5 +132,10 @@ final class AdminCommand {
     final static String CREATE_NODE = PREFIX + "create node";
     final static String REMOVE_NODE = PREFIX + "remove node";
 
+    final static String CREATE_SEQUENCE = PREFIX + "create sequence";
+    final static String DROP_SEQUENCE = PREFIX + "drop sequence";
+    final static String ALTER_SEQUENCE = PREFIX + "alter sequence";
+    final static String GET_SEQ_CURR_VAL = PREFIX + "get sequence current value";
+
     final static String INVALIDATE_CACHE = PREFIX + "invalidate cache";
 }

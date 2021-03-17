@@ -1988,24 +1988,9 @@ public class Sequoiadb implements Closeable {
      */
     public boolean isDomainExist(String domainName) throws BaseException {
         if (null == domainName || domainName.equals("")) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, domainName);
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Domain name can't be null or empty");
         }
-
-        BSONObject matcher = new BasicBSONObject();
-        matcher.put(SdbConstants.FIELD_NAME_NAME, domainName);
-
-        DBCursor cursor = getList(SDB_LIST_DOMAINS, matcher, null, null);
-        try {
-            if (cursor != null && cursor.hasNext()) {
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
+        return _checkIsExistByList(SDB_LIST_DOMAINS, domainName);
     }
 
     /**
@@ -2379,6 +2364,135 @@ public class Sequoiadb implements Closeable {
         AdminRequest request = new AdminRequest(AdminCommand.INVALIDATE_CACHE, options);
         SdbReply response = requestAndResponse(request);
         throwIfError(response);
+    }
+
+    /**
+     * Create a sequence with default options.
+     *
+     * @param seqName The name of sequence
+     * @return A sequence object of creation
+     */
+    public DBSequence createSequence(String seqName){
+        return createSequence(seqName, null);
+    }
+
+    /**
+     * Create a sequence with default options.
+     *
+     * @param seqName The name of sequence
+     * @param options The options specified by user, details as bellow:
+     *                <ul>
+     *                  <li>StartValue(long) : The start value of sequence
+     *                  <li>MinValue(long)   : The minimum value of sequence
+     *                  <li>MaxValue(long)   : The maxmun value of sequence
+     *                  <li>Increment(int)   : The increment value of sequence
+     *                  <li>CacheSize(int)   : The cache size of sequence
+     *                  <li>AcquireSize(int) : The acquire size of sequence
+     *                  <li>Cycled(boolean)  : The cycled flag of sequence
+     *                </ul>
+     * @return A sequence object of creation
+     */
+    public DBSequence createSequence(String seqName, BSONObject options){
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_NAME, seqName);
+        if (options != null) {
+            obj.putAll(options);
+        }
+        AdminRequest request = new AdminRequest(AdminCommand.CREATE_SEQUENCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+        return new DBSequence(seqName,this);
+    }
+
+    /**
+     * Drop the specified sequence.
+     *
+     * @param seqName The name of sequence
+     */
+    public void dropSequence(String seqName){
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        BSONObject newObj = new BasicBSONObject();
+        newObj.put(SdbConstants.FIELD_NAME_NAME, seqName);
+
+        AdminRequest request = new AdminRequest(AdminCommand.DROP_SEQUENCE, newObj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    /**
+     * Get the specified sequence.
+     *
+     * @param seqName The name of sequence
+     * @return The specified sequence object
+     */
+    public DBSequence getSequence(String seqName){
+        DBSequence sequence = null;
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        if (isSequenceExist(seqName)){
+            sequence = new DBSequence(seqName, this);
+        }
+        return sequence;
+    }
+
+    private boolean isSequenceExist(String seqName) throws BaseException {
+        if (seqName == null || seqName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "Sequence name can't be null or empty");
+        }
+        return _checkIsExistByList(SDB_LIST_SEQUENCES, seqName);
+    }
+
+    /**
+     * Rename sequence.
+     *
+     * @param oldName    The old name of sequence
+     * @param newName The new name of sequence
+     */
+    public void renameSequence(String oldName, String newName){
+        if (oldName == null || oldName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "oldName can't be null or empty");
+        }
+        if (newName == null || newName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "newName can't be null or empty");
+        }
+
+        BSONObject option = new BasicBSONObject();
+        option.put(SdbConstants.FIELD_NAME_NAME, oldName);
+        option.put(SdbConstants.FIELD_NAME_NEWNAME, newName);
+
+        BSONObject obj = new BasicBSONObject();
+        obj.put(SdbConstants.FIELD_NAME_ACTION, SdbConstants.SEQ_OPT_RENAME);
+        obj.put(SdbConstants.FIELD_NAME_OPTIONS, option);
+
+        AdminRequest request = new AdminRequest(AdminCommand.ALTER_SEQUENCE, obj);
+        SdbReply response = requestAndResponse(request);
+        throwIfError(response);
+    }
+
+    private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
+        if (null == targetName || targetName.equals("")) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
+        }
+        BSONObject matcher = new BasicBSONObject();
+        matcher.put(SdbConstants.FIELD_NAME_NAME, targetName);
+        DBCursor cursor = getList(listType, matcher, null, null);
+        try {
+            if (cursor != null && cursor.hasNext()) {
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     private String getListCommand(int listType) {

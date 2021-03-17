@@ -101,6 +101,12 @@ final class SdbConstants {
     final static String FIELD_NAME_LOGICALID = "LogicalID";
     final static String FIELD_NAME_DIRECTION = "Direction";
 
+    final static String FIELD_NAME_ACTION = "Action";
+    final static String FIELD_NAME_FETCH_NUM = "FetchNum";
+    final static String FIELD_NAME_START_VALUE = "StartValue";
+    final static String FIELD_NAME_EXPECT_VALUE = "ExpectValue";
+    final static String FIELD_NAME_CURRENT_VALUE = "CurrentValue";
+
     final static String IXM_NAME = "name";
     final static String IXM_KEY = "key";
     final static String IXM_UNIQUE = "Unique";
@@ -121,4 +127,8 @@ final class SdbConstants {
 
     final static int FLG_UPDATE_UPSERT = 0x00000001;
 
+    final static String SEQ_OPT_SETATTR = "set attributes";
+    final static String SEQ_OPT_SET_CURR_VALUE = "set current value";
+    final static String SEQ_OPT_RENAME = "rename";
+    final static String SEQ_OPT_RESTART = "restart";
 }
