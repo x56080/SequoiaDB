@@ -2089,7 +2089,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       dmsRecord *pNewRecord = NULL ;
-      const dmsRecord *pOldRecord = _recordRW.readPtr( 0 ) ;
       ixmIndexCover &index = _scanner->getIndex() ;
       const BSONObj* keyValue = _scanner->getCurKeyObj() ;
       CHAR* recordPtr = NULL ;
@@ -2122,8 +2121,8 @@ namespace engine
             PD_RC_CHECK( rc, PDWARNING, "Append index field value failed, rc: %d", rc ) ;
          }
 
-         //3. copy header
-         ossMemcpy( recordPtr, (const void*)pOldRecord, DMS_RECORD_METADATA_SZ ) ;
+         //3. reset header
+         ossMemset( recordPtr, 0, DMS_RECORD_METADATA_SZ ) ;
          //4. build body(BSONObj)
          SimpleBSONBuilder builder( recordPtr + DMS_RECORD_METADATA_SZ ) ;
          ixmIndexNode *pTree =  NULL ;
@@ -2136,7 +2135,8 @@ namespace engine
          builder.done() ;
 
          pNewRecord = ( dmsRecord* )recordPtr ;
-         pNewRecord->unsetCompressed() ;
+         pNewRecord->setNormal() ;
+         pNewRecord->resetAttr() ;
          pNewRecord->setSize( DMS_RECORD_METADATA_SZ + builder.len() ) ;
 
          finished = TRUE ;
