@@ -138,7 +138,8 @@ public class UploadPartWithKillCoord18782 extends S3TestBase {
                 putPartList.add( partSize );
                 partEtags.add( uploadPartResult.getPartETag() );
             } catch ( AmazonServiceException e ) {
-                if ( !e.getErrorCode().equals( "GetDBConnectFail" ) ) {
+                // Upload part failed:500
+                if ( e.getStatusCode() != 500 ) {
                     throw e;
                 }
             } catch ( SdkClientException e ) {
