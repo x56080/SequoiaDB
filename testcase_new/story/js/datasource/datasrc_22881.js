@@ -2,9 +2,10 @@
  * @Description   : seqDB-22881:使用数据源的集合为子表，挂载到主表
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 function test ()
 {

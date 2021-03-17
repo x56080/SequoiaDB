@@ -2,9 +2,10 @@
  * @Description   : seqDB-22838:创建数据源，设置访问权限为NONE
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

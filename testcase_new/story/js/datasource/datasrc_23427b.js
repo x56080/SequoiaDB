@@ -2,9 +2,10 @@
  * @Description   : seqDB-23427:创建数据源，设置ErrorControlLevel权限控制
  * @Author        : Wu Yan
  * @CreateTime    : 2021.01.17
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

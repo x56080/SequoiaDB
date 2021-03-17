@@ -2,9 +2,10 @@
  * @Description   : seqDB-22861 :: seqDB-22861:查看数据源列表
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

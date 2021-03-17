@@ -2,9 +2,10 @@
  * @Description   : seqDB-22886:在使用数据源的集合空间下创建使用数据源的多个集合
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

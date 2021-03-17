@@ -2,9 +2,10 @@
  * @Description   : seqDB-22870:使用数据源创建cs，数据源上不存在该cs
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

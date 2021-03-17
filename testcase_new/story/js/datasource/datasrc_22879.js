@@ -2,9 +2,10 @@
  * @Description   : seqDB-22879:源集群上创建cl，数据源上不存在映射cl
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
+testConf.skipStandAlone = true;
 main( test );
 function test ()
 {

@@ -2,10 +2,11 @@
  * @Description   : seqDB-23474 : 多个子表使用不同数据源，主表上执行CRUD操作
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
 //需要多个数据源的环境，目前CI只有一个数据源，暂时屏蔽
+testConf.skipStandAlone = true;
 //main( test );
 function test ()
 {

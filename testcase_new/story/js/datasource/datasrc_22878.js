@@ -2,10 +2,10 @@
  * @Description   : seqDB-22878:源集群上创建/删除使用数据源的cl
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.02.06
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
-
+testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
@@ -13,7 +13,6 @@ function test ()
    var csName = "cs_22878";
    var clName = "cl_22878";
    var srcCSName = "datasrcCS_22878";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    commDropCS( db, srcCSName );
    clearDataSource( csName, dataSrcName );

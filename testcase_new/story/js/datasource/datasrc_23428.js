@@ -1,15 +1,11 @@
 /******************************************************************************
- * @Description   : 
+ * @Description   : seqDB-23428 : 创建数据源，设置ErrorControlLevel忽略错误
  * @Author        : Wu Yan
  * @CreateTime    : 2021.03.09
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
-/* *****************************************************************************
-@description: seqDB-23428 : 创建数据源，设置ErrorControlLevel忽略错误
-@author: 2021-1-17 wuyan  Init
-***************************************************************************** */
-
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()

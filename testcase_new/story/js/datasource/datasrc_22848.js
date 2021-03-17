@@ -2,10 +2,10 @@
  * @Description   : seqDB-22848 :: 修改数据源地址为可用地址
  * @Author        : Wu Yan
  * @CreateTime    : 2020.10.20
- * @LastEditTime  : 2021.03.16
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : Wu Yan
  ******************************************************************************/
-
+testConf.skipStandAlone = true;
 main( test );
 
 function test ()
