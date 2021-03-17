@@ -796,8 +796,6 @@
 #define CMD_NAME_RESTORE_CHECK               CMD_NAME_PREFIX_RESTORE "check"
 #define CMD_NAME_RESTORE_ABORT               CMD_NAME_PREFIX_RESTORE "abort"
 #define CMD_NAME_RESTORE_PREPARE             CMD_NAME_PREFIX_RESTORE "prepare"
-#define CMD_NAME_GET_CL_DETAIL               CMD_NAME_PREFIX_GET "collection detail"
-#define CMD_NAME_GET_INDEX_STAT              CMD_NAME_PREFIX_GET "index statistic"
 #define CMD_NAME_CREATE_DATASOURCE           "create datasource"
 #define CMD_NAME_DROP_DATASOURCE             "drop datasource"
 #define CMD_NAME_ALTER_DATASOURCE            "alter datasource"
