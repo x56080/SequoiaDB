@@ -29,7 +29,8 @@ MySQL 元数据同步工具以 python 脚本的形式随 SequoiaSQL-MySQL 的安
 ```shell
 tools/
 ├── lib
-│   └── server_audit.so
+│   └── release
+│       └── server_audit.so
 └── metaSync
     ├── config.sample
     ├── keywords.py
