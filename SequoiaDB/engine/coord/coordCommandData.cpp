@@ -694,7 +694,7 @@ namespace engine
                                          coordCMDArguments * pArgs )
    {
       INT32 rc = SDB_OK ;
-      CLS_TASK_TYPE type = CLS_TASK_UNKNOW ;
+      CLS_TASK_TYPE type = CLS_TASK_UNKNOWN ;
 
       PD_TRACE_ENTRY( COORD_DATAALTER__DOCOMMIT ) ;
 
@@ -847,7 +847,7 @@ namespace engine
 
       PD_TRACE_ENTRY( COORD_DATAALTER__CHKPOSTTASK ) ;
 
-      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOW ;
+      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOWN ;
 
       try
       {
@@ -3234,7 +3234,7 @@ namespace engine
       CHAR * msgBuff = NULL ;
       INT32 msgSize = 0 ;
       MsgHeader * msgHeader = NULL ;
-      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOW ;
+      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOWN ;
       BSONObj taskDesc ;
       BSONObjBuilder builder ;
       BSONObjBuilder taskBuilder( builder.subobjStart( FIELD_NAME_TASKID ) ) ;

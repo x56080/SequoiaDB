@@ -80,12 +80,12 @@ namespace engine
    #define DMS_TASK_PROGRESS_100 ( 100 ) // 100%
 
    _dmsIdxTaskStatus::_dmsIdxTaskStatus( DMS_TASK_TYPE taskType,
-                                         UINT64 cataTaskID,
-                                         UINT64 dataTaskID,
+                                         UINT64 taskID,
+                                         UINT32 locationID,
                                          UINT64 mainTaskID )
    :_taskType( taskType ),
-    _cataTaskID( cataTaskID ),
-    _dataTaskID( dataTaskID ),
+    _taskID( taskID ),
+    _locationID( locationID ),
     _mainTaskID( mainTaskID ),
     _cataTaskStatus( DMS_TASK_STATUS_RUN ),
     _dataTaskStatus( DMS_TASK_STATUS_RUN ),
@@ -113,8 +113,8 @@ namespace engine
    _dmsIdxTaskStatus& _dmsIdxTaskStatus::operator=( const _dmsIdxTaskStatus &rhs )
    {
       _taskType = rhs._taskType ;
-      _cataTaskID = rhs._cataTaskID ;
-      _dataTaskID = rhs._dataTaskID ;
+      _taskID = rhs._taskID ;
+      _locationID = rhs._locationID ;
       _mainTaskID = rhs._mainTaskID ;
       _cataTaskStatus = rhs._cataTaskStatus ;
       _dataTaskStatus = rhs._dataTaskStatus ;
@@ -230,7 +230,7 @@ namespace engine
       }
       if ( DMS_TASK_MASK_TASKID & mask )
       {
-         builder.append( FIELD_NAME_TASKID, (INT64)_cataTaskID ) ;
+         builder.append( FIELD_NAME_TASKID, (INT64)_taskID ) ;
       }
       if ( DMS_TASK_MASK_STATUS & mask )
       {
@@ -569,8 +569,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSIDXTASKMGR_CRT, "_dmsIdxTaskStatusMgr::createItem" )
    INT32 _dmsIdxTaskStatusMgr::createItem( DMS_TASK_TYPE type,
                                            dmsIdxTaskStatusPtr& statusPtr,
-                                           UINT64 cataTaskID,
-                                           UINT64 dataTaskID,
+                                           UINT64 taskID,
+                                           UINT32 locationID,
                                            UINT64 mainTaskID )
    {
       INT32 rc = SDB_OK ;
@@ -579,9 +579,9 @@ namespace engine
                   "Invalid task type" ) ;
 
       // When it is a standalone node, or data.createIndex(xxx), there is no
-      // cata task id on standalone node. When cataTaskID is invalid, we should
+      // catalog task id on standalone node. When taskID is invalid, we should
       // generate a dummy task id.
-      if ( DMS_INVALID_TASKID == cataTaskID )
+      if ( DMS_INVALID_TASKID == taskID )
       {
          ossScopedLock lock ( &_hwmLatch, EXCLUSIVE ) ;
 
@@ -592,15 +592,15 @@ namespace engine
             _dummyTaskHWM = DMS_DUMMY_CATTASKID_MIN ;
          }
          _dummyTaskHWM++ ;
-         cataTaskID = _dummyTaskHWM ;
+         taskID = _dummyTaskHWM ;
       }
 
       // new status, and add to map
       ossScopedLock lock ( &_mapLatch, EXCLUSIVE ) ;
 
       _dmsIdxTaskStatus* pItem = SDB_OSS_NEW _dmsIdxTaskStatus( type,
-                                                                cataTaskID,
-                                                                dataTaskID,
+                                                                taskID,
+                                                                locationID,
                                                                 mainTaskID ) ;
       if ( NULL == pItem )
       {
@@ -613,7 +613,7 @@ namespace engine
 
       try
       {
-         _mapIdxStatus[cataTaskID] = statusPtr ;
+         _mapIdxStatus[taskID] = statusPtr ;
       }
       catch( std::exception &e )
       {
@@ -629,12 +629,12 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _dmsIdxTaskStatusMgr::findItem( UINT64 cataTaskID,
+   BOOLEAN _dmsIdxTaskStatusMgr::findItem( UINT64 taskID,
                                            dmsIdxTaskStatusPtr& statusPtr )
    {
       ossScopedLock lock ( &_mapLatch, SHARED ) ;
 
-      MAP_IDSTATUS_IT it = _mapIdxStatus.find( cataTaskID ) ;
+      MAP_IDSTATUS_IT it = _mapIdxStatus.find( taskID ) ;
       if ( it == _mapIdxStatus.end() )
       {
          return FALSE ;
@@ -662,7 +662,7 @@ namespace engine
       {
          dmsIdxTaskStatusPtr pIdxTask = it->second ;
          if ( excludeDummy &&
-              DMS_IS_DUMMY_CATTASKID( pIdxTask->cataTaskID() ) )
+              DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
          {
             continue ;
          }
@@ -717,7 +717,7 @@ namespace engine
          {
             dmsIdxTaskStatusPtr pIdxTask = it->second ;
             if ( excludeDummy &&
-                 DMS_IS_DUMMY_CATTASKID( pIdxTask->cataTaskID() ) )
+                 DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
             {
                continue ;
             }
@@ -752,7 +752,7 @@ namespace engine
          BOOLEAN needClean = FALSE ;
          dmsIdxTaskStatusPtr pIdxTask = it->second ;
 
-         if ( DMS_IS_DUMMY_CATTASKID( pIdxTask->cataTaskID() ) )
+         if ( DMS_IS_DUMMY_CATTASKID( pIdxTask->taskID() ) )
          {
             // task was generated by stanalone.createIndex or data.createIndex()
             if ( DMS_TASK_STATUS_FINISH == pIdxTask->status() )

@@ -2038,7 +2038,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATGETTASKCOUNTBYTYPE ) ;
       SDB_ASSERT( NULL != collection, "Collection is invalid" ) ;
-      SDB_ASSERT( CLS_TASK_UNKNOW != type, "Task type is invalid" ) ;
+      SDB_ASSERT( CLS_TASK_UNKNOWN != type, "Task type is invalid" ) ;
 
       BSONObj dummy ;
       BSONObj matcher = BSON( CAT_COLLECTION_NAME << collection  <<
@@ -2238,7 +2238,7 @@ namespace engine
 
    INT32 catRemoveTasksByType ( CLS_TASK_TYPE type, pmdEDUCB * cb, INT16 w )
    {
-      SDB_ASSERT( CLS_TASK_UNKNOW != type, "Task type is invalid" ) ;
+      SDB_ASSERT( CLS_TASK_UNKNOWN != type, "Task type is invalid" ) ;
       BSONObj matcher = BSON( CAT_TASKTYPE_NAME << type ) ;
       return catRemoveTask( matcher, FALSE, cb, w ) ;
    }

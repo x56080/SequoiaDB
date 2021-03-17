@@ -179,10 +179,19 @@ namespace engine
             }
             break ;
          }
-         clsSplitTask tmpTask( CLS_INVALID_TASKID ) ;
+
+         UINT64 taskID = CLS_INVALID_TASKID ;
+         rc = rtnGetNumberLongElement( taskObj, FIELD_NAME_TASKID,
+                                       (INT64&)taskID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Faield to get task ID from obj[%s], rc: %d",
+                      taskObj.toString().c_str(), rc ) ;
+
+         clsSplitTask tmpTask( taskID ) ;
          rc = tmpTask.init( taskObj.objdata() ) ;
          PD_RC_CHECK( rc, PDWARNING, "Init split task failed, rc: %d, obj: "
                       "%s", rc, taskObj.toString().c_str() ) ;
+
          if ( pTask->taskID() == tmpTask.taskID() ||
               pTask->muteXOn( &tmpTask ) || tmpTask.muteXOn( pTask ) )
          {
@@ -756,7 +765,7 @@ namespace engine
 
          BSONObj taskObj ;
          BSONObj cataInfo ;
-         clsSplitTask splitTask( CLS_INVALID_TASKID ) ;
+         clsSplitTask splitTask( taskID ) ;
 
          // NOTE: Check the task status before locking Catalog objects
 

@@ -120,8 +120,8 @@ namespace engine
    {
       public:
          _dmsIdxTaskStatus( DMS_TASK_TYPE taskType,
-                            UINT64 cataTaskID,
-                            UINT64 dataTaskID,
+                            UINT64 taskID,
+                            UINT32 locationID,
                             UINT64 mainTaskID = DMS_INVALID_TASKID ) ;
          _dmsIdxTaskStatus& operator=( const _dmsIdxTaskStatus &rhs ) ;
 
@@ -130,8 +130,8 @@ namespace engine
          DMS_TASK_STATUS status() const     { return _dataTaskStatus ; }
          DMS_TASK_STATUS cataStatus() const { return _cataTaskStatus ; }
 
-         UINT64  cataTaskID() const         { return _cataTaskID ; }
-         UINT64  dataTaskID() const         { return _dataTaskID ; }
+         UINT64  taskID() const             { return _taskID ; }
+         UINT64  locationID() const         { return _locationID ; }
          UINT64  mainTaskID() const         { return _mainTaskID ; }
 
          void    setStatus( DMS_TASK_STATUS status ) ;
@@ -175,8 +175,8 @@ namespace engine
 
       private:
          DMS_TASK_TYPE   _taskType ;
-         UINT64          _cataTaskID ;     // taskID in catalog
-         UINT64          _dataTaskID ;     // taskID in data
+         UINT64          _taskID ;         // taskID in catalog
+         UINT32          _locationID ;     // _locationID in data
          UINT64          _mainTaskID ;     // main taskID
          DMS_TASK_STATUS _cataTaskStatus ;
          DMS_TASK_STATUS _dataTaskStatus ;
@@ -244,11 +244,11 @@ namespace engine
 
          INT32 createItem( DMS_TASK_TYPE type,
                            dmsIdxTaskStatusPtr& statusPtr,
-                           UINT64 cataTaskID = DMS_INVALID_TASKID,
-                           UINT64 dataTaskID = DMS_INVALID_TASKID,
+                           UINT64 taskID = DMS_INVALID_TASKID,
+                           UINT32 locationID = 0,
                            UINT64 mainTaskID = DMS_INVALID_TASKID ) ;
 
-         BOOLEAN findItem( UINT64 cataTaskID,
+         BOOLEAN findItem( UINT64 taskID,
                            dmsIdxTaskStatusPtr& statusPtr ) ;
 
          INT32 dumpInfo( ossPoolMap<UINT64, _dmsIdxTaskStatus>& statusMap,
@@ -262,7 +262,7 @@ namespace engine
          void cleanOutOfDate( BOOLEAN isPrimary ) ;
 
       private:
-         MAP_IDSTATUS  _mapIdxStatus  ; // map< taskID in cata, status >
+         MAP_IDSTATUS  _mapIdxStatus  ; // map< taskID, status >
          ossSpinSLatch _mapLatch ;
 
          UINT64        _dummyTaskHWM ; // high water mark of dummy task id

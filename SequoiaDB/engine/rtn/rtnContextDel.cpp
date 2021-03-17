@@ -47,6 +47,8 @@
 
 namespace engine
 {
+   #define RTN_LOG_TASK_INTERVAL ( 300 )
+
    RTN_CTX_AUTO_REGISTER(_rtnContextDelCS, RTN_CONTEXT_DELCS, "DELCS")
 
    _rtnContextDelCS::_rtnContextDelCS( SINT64 contextID, UINT64 eduID )
@@ -233,9 +235,21 @@ namespace engine
 
       /// wait all collection space's task finished
       cb->writingDB( FALSE ) ;
-      while( pTaskMgr->taskCountByCS( _name ) > 0 )
+
       {
-         pTaskMgr->waitTaskEvent() ;
+         UINT32 waitCnt = 0 ;
+         while( pTaskMgr->taskCountByCS( _name ) > 0 )
+         {
+            pTaskMgr->waitTaskEvent() ;
+            waitCnt ++ ;
+            // Log the task list after waiting over 5 minutes
+            if ( waitCnt > RTN_LOG_TASK_INTERVAL )
+            {
+               PD_LOG( PDDEBUG, "DropCS [%s] is waiting for tasks:\n%s", _name,
+                       pTaskMgr->dumpTasks().c_str() ) ;
+               waitCnt = 0 ;
+            }
+         }
       }
 
    done:
@@ -555,12 +569,12 @@ namespace engine
             pTaskMgr->waitTaskEvent() ;
             waitCnt ++ ;
 
-            // Log the task list after waiting over 10 minutes
-            if ( waitCnt > 600 )
+            // Log the task list after waiting over 5 minutes
+            if ( waitCnt > RTN_LOG_TASK_INTERVAL )
             {
-               PD_LOG( PDDEBUG, "DropCL [%s] is waiting for split tasks:\n%s",
+               PD_LOG( PDDEBUG, "DropCL [%s] is waiting for tasks:\n%s",
                        _collectionName,
-                       pTaskMgr->dumpTasks( CLS_TASK_UNKNOW ).c_str() ) ;
+                       pTaskMgr->dumpTasks().c_str() ) ;
                waitCnt = 0 ;
             }
 

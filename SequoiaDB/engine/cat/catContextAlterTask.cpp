@@ -112,7 +112,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj taskObj ;
-      INT32 type = CLS_TASK_UNKNOW ;
+      INT32 type = CLS_TASK_UNKNOWN ;
 
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK_CLEARPOSTTASK ) ;
       for ( ossPoolList<UINT64>::const_iterator iterTask = _postTasks.begin() ;

@@ -2653,7 +2653,7 @@ namespace engine
       _hasEndRange      = TRUE ;
       _partitionBit     = 0 ;
 
-      _taskID           = 0 ;
+      _locationID       = 0 ;
       _ntyOverTime      = 0 ;
       _getMetaNtyOffset = FALSE ;
       _collectionW      = 1 ;
@@ -3594,10 +3594,11 @@ namespace engine
 
       // add empty split task to start timmer
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( taskMgr->getTaskID() ) ;
-      if ( pTask && SDB_OK == taskMgr->addTask( pTask ) )
+      UINT32 locationID = taskMgr->getLocationID() ;
+      _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( CLS_INVALID_TASKID ) ;
+      if ( pTask && SDB_OK == taskMgr->addTask( pTask, locationID ) )
       {
-         _taskID = pTask->taskID() ;
+         _locationID = locationID ;
       }
       else
       {
@@ -3614,9 +3615,9 @@ namespace engine
 
       // remove the empty split task
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-      if ( 0 != _taskID )
+      if ( 0 != _locationID )
       {
-         taskMgr->removeTask( _taskID ) ;
+         taskMgr->removeTask( _locationID ) ;
       }
 
       if ( _ntyOverTime > 0 )

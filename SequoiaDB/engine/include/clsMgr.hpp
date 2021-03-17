@@ -254,6 +254,7 @@ namespace engine
                                     void *data = NULL ) ;
          INT32  startTaskCheck ( const BSONObj& match ) ;
          INT32  stopTask ( UINT64 taskID ) ;
+         INT32  addTask( UINT64 taskID, UINT32 locationID ) ;
          INT32  removeTask( UINT64 taskID ) ;
 
          _netRouteAgent *getShardRouteAgent () ;
@@ -317,7 +318,7 @@ namespace engine
          VECINNERPARAM                 _vecInnerSessionParam ;
          MAPTASKQUERY                  _mapTaskQuery ;
          UINT64                        _taskID ;
-         map< UINT64, UINT64 >         _mapTaskID ;
+         map< UINT64, UINT32 >         _mapTaskID ; // < taskID, locationID >
          ossSpinSLatch                 _clsLatch ;
 
          UINT64                        _regTimerID ;
