@@ -84,7 +84,7 @@ namespace engine
       _checkTimeExInfo() ;
 
       // set config handler ( handles config change )
-      _options.setConfigHandler( pmdGetKRCB() ) ;
+      _options.setConfigHandler( stpGetConfigHandle() ) ;
 
       // initialize net agent
       rc = _initNetAgent() ;
@@ -607,8 +607,14 @@ namespace engine
 
    STPCB *stpGetSTPCB()
    {
-      static STPCB s_tpCB ;
-      return &s_tpCB ;
+      static STPCB s_stpCB ;
+      return &s_stpCB ;
+   }
+
+   stpConfigHandle *stpGetConfigHandle()
+   {
+      static stpConfigHandle s_configHandle ;
+      return &s_configHandle ;
    }
 
 }

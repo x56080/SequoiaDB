@@ -270,6 +270,35 @@ namespace engine
    // get STP control block
    STPCB *stpGetSTPCB() ;
 
+   /*
+      _stpConfigHandle define
+    */
+   class _stpConfigHandle : public _IConfigHandle
+   {
+   public:
+      _stpConfigHandle() {}
+      virtual ~_stpConfigHandle() {}
+
+      virtual void onConfigChange( UINT32 changeID )
+      {
+         stpGetSTPCB()->onConfigChange() ;
+      }
+
+      virtual void onConfigSave()
+      {
+         stpGetSTPCB()->onConfigSave() ;
+      }
+
+      virtual INT32 onConfigInit()
+      {
+         return SDB_OK ;
+      }
+   } ;
+   typedef class _stpConfigHandle stpConfigHandle ;
+
+   // get STP config handle
+   stpConfigHandle *stpGetConfigHandle() ;
+
 }
 
 #endif // STP_CB_HPP__
