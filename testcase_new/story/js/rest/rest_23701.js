@@ -110,7 +110,7 @@ function clearEnv ()
       db.dropSequence( seq_name );
    } catch( e )
    {
-      if( e != -324 )
+      if( e != SDB_SEQUENCE_NOT_EXIST )
       {
          throw new Error( e );
       }
@@ -121,7 +121,7 @@ function clearEnv ()
       db.dropSequence( seq_name_new );
    } catch( e )
    {
-      if( e != -324 )
+      if( e != SDB_SEQUENCE_NOT_EXIST )
       {
          throw new Error( e );
       }
