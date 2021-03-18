@@ -86,10 +86,10 @@
    do { \
       if ( level <= PDERROR ) \
       { \
-         _pmdEDUCB *cb = pmdGetThreadEDUCB() ; \
-         if ( cb ) \
+         IExecutor *__cb = sdbGetThreadExecutor() ; \
+         if ( __cb ) \
          { \
-            cb->printInfo ( EDU_INFO_ERROR, fmt, ##__VA_ARGS__ ) ; \
+            __cb->printInfo ( EDU_INFO_ERROR, fmt, ##__VA_ARGS__ ) ; \
          } \
       } \
       if ( getPDLevel() >= level ) \

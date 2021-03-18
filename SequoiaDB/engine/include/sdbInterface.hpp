@@ -473,6 +473,9 @@ namespace engine
    } ;
    typedef _IExecutor IExecutor ;
 
+   // interface to get IExecutor of current thread
+   IExecutor *sdbGetThreadExecutor() ;
+
    /*
       _IIOService define
    */

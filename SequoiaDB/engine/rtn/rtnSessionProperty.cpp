@@ -37,7 +37,6 @@
 #include "rtnSessionProperty.hpp"
 #include "dpsTransExecutor.hpp"
 #include "pdTrace.hpp"
-#include "pmdEDU.hpp"
 #include "rtnTrace.hpp"
 #include "msg.hpp"
 #include "msgDef.hpp"
