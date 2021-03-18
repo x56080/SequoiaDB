@@ -68,7 +68,7 @@ function test ( testPara )
    // 删除sequence
    tryCatch( ["cmd=drop sequence", "name=" + seq_name_new], [0] );
    // 获取sequence 下一个值，检查结果
-   tryCatch( ["cmd=get sequence next value", "name=" + seq_name_new], [-324] );
+   tryCatch( ["cmd=get sequence next value", "name=" + seq_name_new], [SDB_SEQUENCE_NOT_EXIST] );
 }
 
 function listSequences ()
