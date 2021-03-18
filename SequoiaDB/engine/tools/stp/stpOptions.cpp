@@ -568,8 +568,10 @@ namespace engine
          rc = ossMkdir( _stpPath ) ;
          if ( rc && SDB_FE != rc )
          {
-            PD_LOG( PDERROR, "Failed to create dir: %s, rc: %d",
-                    _stpPath, rc ) ;
+            cerr << "Failed to create dir " << _stpPath << ", rc: " << rc
+                 << endl ;
+            PD_LOG_MSG( PDERROR, "Failed to create dir: %s, rc: %d",
+                        _stpPath, rc ) ;
             goto error ;
          }
          rc = SDB_OK ;
@@ -577,15 +579,26 @@ namespace engine
 
       // parse port
       rc = ossGetPort( _serviceName, _port ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse port from service name [%s], "
-                   "rc: %d", _serviceName, _port ) ;
+      if ( SDB_OK != rc )
+      {
+         cerr << "Invalid port: " << _serviceName << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse port from service name [%s]",
+                           _serviceName ) ;
+      }
       pmdSetLocalPort( _port ) ;
 
       // parse server list into addresses
       _serverList.clear() ;
-      rc = parseAddressLine( _serverListString, _serverList ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse server list [%s], rc: %d",
-                   _serverListString, rc ) ;
+      rc = parseAddressLine( _serverListString, _serverList, ",", ":",
+                             CLS_REPLSET_MAX_NODE_SIZE ) ;
+      if ( SDB_OK != rc )
+      {
+         cerr << "Invalid serverlist: " << _serverListString << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse server list [%s]",
+                           _serverListString ) ;
+      }
 
       // parse role
       if ( 0 == ossStrcmp( _roleString, STP_ROLE_NAME_CLIENT ) )
@@ -598,8 +611,10 @@ namespace engine
       }
       else
       {
-         PD_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse role, unknown role [%s]", _roleString ) ;
+         cerr << "Invalid role: " << _roleString << endl ;
+         PD_LOG_MSG_CHECK( FALSE, SDB_INVALIDARG, error, PDERROR,
+                           "Failed to parse role, unknown role [%s]",
+                           _roleString ) ;
       }
 
       // reset role

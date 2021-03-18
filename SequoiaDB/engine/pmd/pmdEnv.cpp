@@ -742,4 +742,11 @@ namespace engine
 #endif // _LINUX
    }
 
+   OSS_THREAD_LOCAL IExecutor * __executor = NULL ;
+
+   IExecutor *sdbGetThreadExecutor()
+   {
+      return __executor ;
+   }
+
 }
