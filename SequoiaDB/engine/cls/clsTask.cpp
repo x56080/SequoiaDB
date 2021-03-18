@@ -2120,7 +2120,7 @@ namespace engine
             rc = rtnGetStringElement( groupObj, FIELD_NAME_GROUPNAME,
                                       &groupName ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from obj[%s]",
-                         FIELD_NAME_GROUPNAME, groupObj ) ;
+                         FIELD_NAME_GROUPNAME, groupObj.toString().c_str() ) ;
 
             groupIt = groupInfo.find( groupName ) ;
             if ( groupInfo.end() == groupIt )
