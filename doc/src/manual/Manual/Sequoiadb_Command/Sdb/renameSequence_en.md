@@ -1,20 +1,20 @@
-##NAME##
+## NAME
 
 renameSequence - rename the specified sequence
 
-##SYNOPSIS##
+## SYNOPSIS
 
 **db.renameSequence\(\<oldname\>, \<newname\>\)**
 
-##CATEGORY##
+## CATEGORY
 
 Sdb
 
-##DESCRIPTION##
+## DESCRIPTION
 
 Rename the specified sequence.
 
-##PARAMETERS##
+## PARAMETERS
 
 + oldname ( *string*, *required* )
 
@@ -24,13 +24,13 @@ Rename the specified sequence.
 
     The new name of the sequence.
 
-##RETURN VALUE##
+## RETURN VALUE
 
 When the function executes successfully, return void.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
-##ERRORS##
+## ERRORS
 
 Frequent exceptions of `renameSequence()`:
 
@@ -41,11 +41,11 @@ Frequent exceptions of `renameSequence()`:
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
 
-##VERSION##
+## VERSION
 
 v3.4.2 and above
 
-##EXAMPLES##
+## EXAMPLES
 
 Rename the sequence from 'IDSequence' to 'ID_SEQ'.
 
