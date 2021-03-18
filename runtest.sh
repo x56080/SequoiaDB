@@ -21,6 +21,7 @@ rsrvportend="27000"
 runtest_path=`pwd`
 rsrvnodedir="${runtest_path}/database_runtest/"
 
+# only for all_clean
 runresult=0
 
 csprefix="local_test"
@@ -187,7 +188,8 @@ function procJSFile()
    $sdbRoot/sdb -s "try{ db.msg('Begin testcase[$file]') ; } catch( e ) { } "
    runJSFile "$testFile"
    ret=$?
-#   runresult=$ret
+   # ret == 0 ? runresult : ret
+   runresult=$([ $ret == 0 ] && echo "${runresult}" || echo "${ret}" ) 
    $sdbRoot/sdb -s "try{ db.msg('End testcase[$file]') ; } catch( e ) {} "
    testcaseETimeSec=`date +%s`
    if [ $printOut -eq 1 ] ; then
@@ -209,12 +211,12 @@ function procJSFile()
 
    # run clear for testcase  
    if [ $ret -ne 0 -a $stopWhenFailed -ne 0 ] ; then
-      runresult=$ret
+   #  runresult=$ret
       #runJSFile "${libRoot}/after_usecase.js"
       return 2
    fi
    
-   runresult=0
+   #  runresult=0
    #runJSFile "${libRoot}/after_usecase.js"
 
    if [ $printOut -eq 1 ] ; then

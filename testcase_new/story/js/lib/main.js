@@ -211,6 +211,7 @@ function commonTearDown ( db, testConf )
 
 function main ()
 {
+   var isExecSuccess = false;
    try
    {
       commonSetUp( db, testConf );
@@ -222,6 +223,7 @@ function main ()
             arguments[i]( testPara );
          }
       }
+      isExecSuccess = true;
    }
    catch( e )
    {
@@ -239,6 +241,9 @@ function main ()
    }
    finally
    {
-      commonTearDown( db, testConf );
+      if( isExecSuccess )
+      {
+         commonTearDown( db, testConf );
+      }
    }
 }
