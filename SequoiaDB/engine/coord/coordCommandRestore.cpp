@@ -1034,20 +1034,8 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREABORT_EXE, &rc);
-   BOOLEAN inProgress; // whether RestoreInProgress is already set
    _pMsg = pMsg;
    _cb = cb;
-   if ((rc = _checkRestoreInProgress(&inProgress)))
-   {
-      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
-      return rc;
-   }
-   if (!inProgress)
-   {
-      // Treat as a warning only, not an error
-      PD_LOG(PDWARNING, "Cluster is not in [%s] state", FIELD_NAME_RESTORE);
-      return rc;
-   }
    if ((rc = _setRestoreInProgress(FALSE)))
    {
       PD_LOG(PDERROR, "Error setting restore state [rc=%d]", rc);
@@ -1070,20 +1058,8 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTOREPREPARE_EXE, &rc);
-   BOOLEAN inProgress; // whether RestoreInProgress is already set
    _pMsg = pMsg;
    _cb = cb;
-   if ((rc = _checkRestoreInProgress(&inProgress)))
-   {
-      PD_LOG(PDERROR, "Error checking restore state [rc=%d]", rc);
-      return rc;
-   }
-   if (inProgress)
-   {
-      // Treat as a warning only, not an error
-      PD_LOG(PDWARNING, "Cluster already in [%s] state", FIELD_NAME_RESTORE);
-      return rc;
-   }
    if ((rc = _setRestoreInProgress(TRUE)))
    {
       // Error, unset RestoreInProgress
