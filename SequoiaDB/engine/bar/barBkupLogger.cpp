@@ -3421,22 +3421,26 @@ namespace engine
          // save global backup time to metadata file if needed
          if ( 0LL != _metaHeader._globalBackupTime )
          {
-            UINT64 minTime = 0LL, maxTime = 0LL ;
-            // move max time forward
-            _pTransCB->setMaxTransCommitTime( _metaHeader._globalBackupTime ) ;
+            UINT64 minTime = 0LL, tmp = 0LL, maxTime = 0LL ;
+            if (_isGlobal)
+            {
+               // set the running time to the backup time
+               _pTransCB->setRestorePointTime( _metaHeader._globalBackupTime ) ;
+            }
             // flush to meta file
             _pDPSCB->getLogMgr()->flushTransMeta() ;
             // log a message
-            _pTransCB->getRestoreWindow( minTime, maxTime ) ;
+            _pTransCB->getRestoreWindow( minTime, tmp, maxTime ) ;
             PD_LOG( PDEVENT, "Saved global transaction recoverable window ( "
                     "min: %llu, max: %llu )", minTime, maxTime ) ;
-            std::cout << "Saved global transaction recoverable window ( min: " <<
-                         minTime << ", max: " << maxTime << " )" << std::endl ;
+            std::cout << "Saved global transaction recoverable window ( " <<
+               "min: " << minTime << ", max: " << maxTime << " )" << std::endl ;
          }
          else
          {
-            PD_LOG( PDWARNING, "No bakcup time is given for global backup" ) ;
-            std::cout << "WARNING: No backup time is given for global backup" << std::endl ;
+            PD_LOG( PDWARNING, "No backup time is given for global backup" ) ;
+            std::cout << "WARNING: No backup time is given for global " <<
+               "backup" << std::endl ;
          }
       }
 

@@ -371,8 +371,8 @@ namespace engine
             // restore PIT window
             subTrans.append( FIELD_NAME_TRANS_MIN_RECOVER_TIME,
                              (INT64)( logSummary._minRecoverableTime ) ) ;
-            subTrans.append( FIELD_NAME_TRANS_MAX_COMMIT_TIME,
-                             (INT64)( logSummary._maxTransCommitTime ) ) ;
+            subTrans.append( FIELD_NAME_TRANS_MAX_RECOVER_TIME,
+                             (INT64)( logSummary._restorePointTime ) ) ;
 
             // tree size High water mark
             subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;

@@ -5207,6 +5207,8 @@ error:
 
       // Check the cache first
       UINT64 limit = sdbGetTransCB()->getLogLimitTime(_time);
+      PD_LOG(PDINFO, "For time [%llu] got cached log limit [%llu]", _time,
+             limit);
 
       // Max SN means invalid cached value
       if (DPS_MAX_TRANSID_SN == limit)
@@ -5250,6 +5252,8 @@ error:
       *limit = rollbackTester.getLogLimitTime();
       // cache the log limit
       sdbGetTransCB()->setLogLimitTime(_time, *limit);
+      PD_LOG(PDINFO, "For time [%llu] set new cache log limit [%llu]", _time,
+             *limit);
       return rc;
    }
 
@@ -5288,7 +5292,9 @@ error:
    {
       if (SDB_ROLE_DATA == pmdGetDBRole())
       {
+         // clear the log limit cache and reset the restorePointTime
          sdbGetTransCB()->clearLogLimitTime();
+         sdbGetTransCB()->setRestorePointTime(DPS_INVALID_TRANS_TIME);
       }
       return SDB_OK ;
    }
@@ -5341,15 +5347,34 @@ error:
          return rc;
       }
 
-      stpLogicalTimeUS t;
-      if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
+      // Update the restore point if it is old
+      if (_isOldRestorePoint())
       {
-         PD_LOG(PDERROR, "Error getting time");
-         return rc;
+         stpLogicalTimeUS t;
+         if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
+         {
+            PD_LOG(PDERROR, "Error getting time");
+            return rc;
+         }
+         // Update the running time to now
+         sdbGetTransCB()->setRestorePointTime(t.getTime());
+         PD_LOG(PDEVENT, "New restore point time %llu", t.getTime());
       }
-      sdbGetTransCB()->updateRestoreWindow(t.getTime());
-
       return rc;
+   }
+
+   BOOLEAN _rtnRestorePrepare::_isOldRestorePoint()
+   {
+      UINT64 minRecoverableTime;
+      UINT64 maxCommitTime;
+      UINT64 restorePointTime;
+      sdbGetTransCB()->getRestoreWindow(minRecoverableTime, maxCommitTime,
+                                        restorePointTime);
+      PD_LOG(PDINFO,
+             "Current restore window [min recoverable: %llu, max commit: %llu, "
+             "restore point: %llu]",
+             minRecoverableTime, maxCommitTime, restorePointTime);
+      return (restorePointTime <= maxCommitTime ? TRUE : FALSE);
    }
 }
 

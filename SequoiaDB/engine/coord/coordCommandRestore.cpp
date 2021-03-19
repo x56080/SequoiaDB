@@ -28,6 +28,7 @@
 #include "coordFactory.hpp"
 #include "coordTrace.hpp"
 #include "coordTransOperator.hpp"
+#include "coordUtil.hpp"
 #include "msg.h"
 #include "msgDef.h"
 #include "ossMemPool.hpp"
@@ -251,6 +252,58 @@ INT32 gatherQueryResults(engine::pmdEDUCB *cb,
    return rc;
 }
 
+// Utility funciton to build the warning based on a nodes name/group/window
+INT32 _buildNodeWarning(const bson::BSONObj &response, bson::BSONObj *output)
+{
+   INT32 rc = SDB_OK;
+   using namespace engine::util;
+   BSONObj transInfo;
+   UINT64 nodeMinTime;
+   UINT64 nodeMaxTime;
+   ossPoolString nodeName;
+   ossPoolString groupName;
+   ossPoolString nodeMinTimeStr;
+   ossPoolString nodeMaxTimeStr;
+   if ((rc = fromBsonObj(response, FIELD_NAME_NODE_NAME, &nodeName)) ||
+       (rc = fromBsonObj(response, FIELD_NAME_GROUPNAME, &groupName)) ||
+       (rc = fromBsonObj(response, FIELD_NAME_TRANS_INFO, &transInfo)) ||
+       (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+                            &nodeMinTime)) ||
+       (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MAX_RECOVER_TIME,
+                            &nodeMaxTime)))
+   {
+      // This should never happen
+      PD_LOG(PDERROR, "Failed to parse message from node [msg=%s, rc=%d]",
+             response.toPoolString().c_str(), rc);
+      return (rc = SDB_SYS);
+   }
+   if ((rc = convLogicalTimeToRealTime(nodeMinTime, &nodeMinTimeStr)) ||
+       (rc = convLogicalTimeToRealTime(nodeMaxTime, &nodeMaxTimeStr)))
+   {
+      PD_LOG(PDERROR,
+             "Failed to convert logical time to timestamp [rc=%d]", rc);
+      return rc;
+   }
+   try
+   {
+      bson::BSONObjBuilder builder;
+      builder.append(FIELD_NAME_NODE_NAME, nodeName);
+      builder.append(FIELD_NAME_GROUPNAME, groupName);
+      builder.append(FIELD_NAME_TRANS_MIN_RECOVER_TIME, nodeMinTimeStr);
+      builder.append(FIELD_NAME_TRANS_MAX_RECOVER_TIME, nodeMaxTimeStr);
+      *output = builder.obj();
+      PD_LOG(PDINFO, "Created node warning object %s",
+             output->toPoolString().c_str());
+   }
+   catch (exception &e)
+   {
+      PD_LOG(PDERROR, "Exception when creating node warning [%s]",
+             e.what());
+      return (rc = SDB_OOM);
+   }
+   return rc;
+}
+
 // Class to build a basic query message. Handles the release of the buffer upon
 // destruction instead of leaving the responsibility to the caller.
 class _QueryMsg
@@ -368,11 +421,15 @@ INT32 _coordCMDRestore::_checkRestoreInProgress(BOOLEAN *inProgress)
    BSONElement field = document.getField(FIELD_NAME_RESTORE);
    if (field.eoo())
    {
-      PD_LOG(PDERROR, "Missing field [%s] in document from catalog",
+      PD_LOG(PDWARNING, "Missing field [%s] in document from catalog",
              FIELD_NAME_RESTORE);
-      return (rc = SDB_SYS);
+      *inProgress = FALSE;
    }
-   *inProgress = field.trueValue();
+   else
+   {
+      // found the field
+      *inProgress = field.trueValue();
+   }
    return rc;
 }
 
@@ -417,6 +474,7 @@ INT32 _coordCMDRestore::_setRestoreInProgress(BOOLEAN enable)
    return rc;
 }
 
+// Runs restorePrepare or restoreAbort on all nodes (not just group primaries)
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORE_UPDATENODES, "_coordCMDRestore::_updateNodesState" )
 INT32 _coordCMDRestore::_updateNodesState(BOOLEAN enable)
 {
@@ -424,11 +482,42 @@ INT32 _coordCMDRestore::_updateNodesState(BOOLEAN enable)
    PD_TRACER_BEGIN(COORD_RESTORE_UPDATENODES, &rc);
    const ossPoolString command =
        enable ? CMD_NAME_RESTORE_PREPARE : CMD_NAME_RESTORE_ABORT;
-   if ((rc = _queryDataGroups(MSG_BS_QUERY_REQ, CMD_ADMIN_PREFIX + command,
-                              BSONObj())))
+   _Context context(_cb);                          // Auto-cleaning
+   _QueryMsg msg(&rc, _cb, CMD_ADMIN_PREFIX + command, MSG_BS_QUERY_REQ,
+                 BSONObj()); // Auto-cleaning
+   if (rc)
+   {
+      PD_LOG(PDERROR, "Error creating query [rc=%d]", rc);
+      return rc;
+   }
+   // Get the groups list
+   CoordGroupList groups;
+   if ((rc = _pResource->updateGroupList(groups, _cb, NULL, TRUE, TRUE, FALSE)))
+   {
+      PD_LOG(PDERROR, "Get data groups failed [rc=%d]", rc);
+      return rc;
+   }
+   // Get the nodes list
+   SET_ROUTEID nodes ;
+   rc = coordGetGroupNodes( _pResource, _cb, BSONObj(), NODE_SEL_ALL,
+                            groups, nodes, NULL, FALSE ) ;
+   // Run the query
+   ROUTE_RC_MAP errNodes;
+   SET_ROUTEID sucNodes;
+   if ((rc = executeOnNodes(msg.header, _cb, nodes, errNodes, &sucNodes, NULL,
+                            NULL)))
    {
       PD_LOG(PDERROR, "Failed to update status on data nodes [rc=%d]", rc);
       return rc;
+   }
+   if (!errNodes.empty())
+   {
+      PD_LOG(PDWARNING, "Failed to update status on one or more data nodes");
+      if (_buf)
+      {
+         *_buf = rtnContextBuf(
+             coordBuildErrorObj(_pResource, rc, _cb, &errNodes, sucNodes.size()));
+      }
    }
    return rc;
 }
@@ -489,9 +578,9 @@ INT32 _coordCMDRestore::_alterDC(const BSONObj &query)
       return rc;
    }
    INT64 contextID;
-   if ((rc = op.ptr->execute(msg.header, _cb, contextID, NULL)))
+   if ((rc = op.ptr->execute(msg.header, _cb, contextID, _buf)))
    {
-      PD_LOG(PDWARNING, "Failed to execute operator [rc=%d]", rc);
+      PD_LOG(PDERROR, "Failed to execute operator [rc=%d]", rc);
       return rc;
    }
    return rc;
@@ -744,7 +833,8 @@ COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestoreCheck,
                                   CMD_NAME_RESTORE_CHECK, TRUE);
 
 coordCMDRestoreCheck::coordCMDRestoreCheck()
-    : _targetTime(DPS_INVALID_TRANS_TIME), _minTime(0), _maxTime(-1), _summary()
+    : _targetTime(DPS_INVALID_TRANS_TIME), _minTime(DPS_MIN_TRANS_TIME),
+      _maxTime(DPS_MAX_TRANS_TIME), _summary()
 {
 }
 
@@ -882,34 +972,198 @@ INT32 coordCMDRestoreCheck::_getWindow()
    return (rc = _calcWindow(results));
 }
 
-// Calculate the greatest min and least max values from the node query results
+// Calculate the restore window from the node snapshot results.
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_CALCWINDOW, "coordCMDRestoreCheck::_calcWindow" )
 INT32 coordCMDRestoreCheck::_calcWindow(const OBJ_VEC &responses)
 {
    INT32 rc = SDB_OK;
    PD_TRACER_BEGIN(COORD_RESTORECHK_CALCWINDOW, &rc);
-   // Start at the extremes
-   _minTime = 0;
-   _maxTime = -1;
+   // Must get right side of window first, to warn users of any nodes with a
+   // min that is too high
+   if ((rc = _getWindowRight(responses)) ||
+       (rc = _getWindowLeft(responses)))
+   {
+      PD_LOG(PDERROR, "Failed to get right and left side of window [rc = %d]",
+             rc);
+   }
+   PD_LOG(PDINFO, "Restore window [%llu, %llu]", _minTime, _maxTime);
+   return rc;
+}
+
+// Right side of window is min(MaxRecoverableTime of all nodes)
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_WINDOWRIGHT, "coordCMDRestoreCheck::_getWindowRight" )
+INT32 coordCMDRestoreCheck::_getWindowRight(const OBJ_VEC &responses)
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_WINDOWRIGHT, &rc);
+   OBJ_VEC warningNodes; // nodes that need a later backup
    for (OBJ_VEC::const_iterator it = responses.begin(); it != responses.end();
         ++it)
    {
-      // Extract {TransInfo:{MinRecoverableTime, MaxTransCommitTime}}
+      PD_LOG(PDDEBUG, "Node response: %s", it->toPoolString().c_str());
+      // Extract {TransInfo:{MaxRecoverableTime}}
       BSONObj transInfo; // subobject
-      UINT64 nodeMinTime, nodeMaxTime;
+      UINT64 nodeMaxRecoverableTime;
       if ((rc = fromBsonObj(*it, FIELD_NAME_TRANS_INFO, &transInfo)) ||
-          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MIN_RECOVER_TIME,
-                            &nodeMinTime)) ||
-          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MAX_COMMIT_TIME,
-                            &nodeMaxTime)))
+          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MAX_RECOVER_TIME,
+                            &nodeMaxRecoverableTime)))
       {
-         // This should never happen
-         PD_LOG(PDERROR, "Failed to extract message from node [rc=%d]", rc);
+         // Invalid response
+         PD_LOG(PDERROR, "Failed to parse message from node [msg=%s, rc=%d]",
+                it->toPoolString().c_str(), rc);
          return (rc = SDB_SYS);
       }
-      // get the greatest min and least max
+      // Treat DPS_INVALID_TRANS_TIME as max time - the node hasn't done any
+      // transactional ops
+      if (nodeMaxRecoverableTime == DPS_INVALID_TRANS_TIME)
+      {
+         nodeMaxRecoverableTime = DPS_MAX_TRANS_TIME;
+      }
+      if (nodeMaxRecoverableTime < _targetTime)
+      {
+         // Node needs a later backup
+         INT32 tmprc = SDB_OK;
+         bson::BSONObj warning;
+         if ((tmprc = _buildNodeWarning(*it, &warning)))
+         {
+            PD_LOG(PDERROR, "Failed to build node warning [rc=%d]", tmprc);
+         }
+         warningNodes.push_back(warning);
+      }
+      _maxTime = OSS_MIN(_maxTime, nodeMaxRecoverableTime);
+   }
+   if (!warningNodes.empty())
+   {
+      // One or more nodes need a later backup
+      INT32 tmprc = SDB_OK;
+      ossPoolString msg =
+          "One or more nodes require later backups to reach the target time";
+      bson::BSONObj warningDetails;
+      ossPoolString targetTimeStr;
+      if ((tmprc = convLogicalTimeToRealTime(_targetTime, &targetTimeStr)))
+      {
+         PD_LOG(PDERROR,
+                "Failed to convert logical time to timestamp [rc=%d]", tmprc);
+      }
+      try
+      {
+         bson::BSONObjBuilder builder;
+         builder.append(FIELD_NAME_DETAIL, msg);
+         builder.append(FIELD_NAME_TIME, targetTimeStr);
+         bson::BSONArrayBuilder arrBuilder(
+             builder.subarrayStart(FIELD_NAME_ERROR_NODES));
+         for (OBJ_VEC::iterator it = warningNodes.begin();
+              it != warningNodes.end(); ++it)
+         {
+            arrBuilder.append(*it);
+         }
+         arrBuilder.done();
+         warningDetails = builder.obj();
+      }
+      catch (exception &e)
+      {
+         PD_LOG(PDERROR, "Exception when creating warning summary [%s]",
+                e.what());
+         return (rc = SDB_OOM);
+      }
+      *_buf = rtnContextBuf(warningDetails);
+      PD_LOG_MSG(PDERROR, msg.c_str());
+      return (rc = SDB_INVALIDARG);
+   }
+   return rc;
+}
+
+// PD_TRACE_DECLARE_FUNCTION( COORD_RESTORECHK_WINDOWLEFT, "coordCMDRestoreCheck::_getWindowLeft" )
+INT32 coordCMDRestoreCheck::_getWindowLeft(const OBJ_VEC &responses)
+{
+   INT32 rc = SDB_OK;
+   PD_TRACER_BEGIN(COORD_RESTORECHK_WINDOWLEFT, &rc);
+   BOOLEAN windowIsValid = TRUE;
+   OBJ_VEC warningNodes; // nodes that need an earlier backup
+   // Left side of window is the greatest MinRecoverableTime from all nodes.
+   for (OBJ_VEC::const_iterator it = responses.begin(); it != responses.end();
+        ++it)
+   {
+      // Extract {TransInfo:{MinRecoverableTime}}
+      BSONObj transInfo; // subobject
+      UINT64 nodeMinTime;
+      if ((rc = fromBsonObj(*it, FIELD_NAME_TRANS_INFO, &transInfo)) ||
+          (rc = fromBsonObj(transInfo, FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+                            &nodeMinTime)))
+      {
+         // This should never happen -
+         PD_LOG(PDERROR, "Failed to parse message from node [msg=%s, rc=%d]",
+                it->toPoolString().c_str(), rc);
+         return (rc = SDB_SYS);
+      }
+      if (nodeMinTime > _maxTime || (DPS_INVALID_TRANS_TIME != _targetTime &&
+                                     (_targetTime < nodeMinTime)))
+      {
+         if (nodeMinTime > _maxTime)
+         {
+            // There is no valid window
+            windowIsValid = FALSE;
+         }
+         INT32 tmprc = SDB_OK;
+         bson::BSONObj warning;
+         if ((tmprc = _buildNodeWarning(*it, &warning)))
+         {
+            PD_LOG(PDERROR, "Failed to build node warning [rc=%d]", tmprc);
+         }
+         warningNodes.push_back(warning);
+      }
       _minTime = OSS_MAX(_minTime, nodeMinTime);
-      _maxTime = OSS_MIN(_maxTime, nodeMaxTime);
+   }
+   if (!warningNodes.empty())
+   {
+      // One or more nodes need an earlier backup
+      INT32 tmprc = SDB_OK;
+      ossPoolString msg;
+      if (windowIsValid)
+      {
+         msg = "Some nodes require earlier backups to reach the "
+               "target time";
+         rc = SDB_INVALIDARG;
+      }
+      else
+      {
+         msg = "No available global consistency point";
+         rc = SDB_RESTORE_NO_CONSISTENT_PIT;
+      }
+      bson::BSONObj warningDetails;
+      ossPoolString targetTimeStr;
+      ossPoolString maxTimeStr;
+      if ((tmprc = convLogicalTimeToRealTime(_targetTime, &targetTimeStr)) ||
+          (tmprc = convLogicalTimeToRealTime(_maxTime, &maxTimeStr)))
+      {
+         PD_LOG(PDERROR,
+                "Failed to convert logical time to timestamp [rc=%d]", tmprc);
+      }
+      try
+      {
+         bson::BSONObjBuilder builder;
+         builder.append(FIELD_NAME_DETAIL, msg);
+         builder.append(FIELD_NAME_TIME, targetTimeStr);
+         builder.append(FIELD_NAME_TRANS_MAX_RECOVER_TIME, maxTimeStr);
+         bson::BSONArrayBuilder arrBuilder(
+             builder.subarrayStart(FIELD_NAME_ERROR_NODES));
+         for (OBJ_VEC::iterator it = warningNodes.begin();
+              it != warningNodes.end(); ++it)
+         {
+            arrBuilder.append(*it);
+         }
+         arrBuilder.done();
+         warningDetails = builder.obj();
+      }
+      catch (exception &e)
+      {
+         PD_LOG(PDERROR, "Exception when creating warning summary [%s]",
+                e.what());
+         return (rc = SDB_OOM);
+      }
+      *_buf = rtnContextBuf(warningDetails);
+      PD_LOG_MSG(PDERROR, msg.c_str());
+      return rc;
    }
    PD_LOG(PDINFO, "Restore window [%llu, %llu]", _minTime, _maxTime);
    return rc;
@@ -924,8 +1178,9 @@ INT32 coordCMDRestoreCheck::_setTime()
    if (_minTime > _maxTime)
    {
       PD_LOG_MSG(PDERROR, "No valid global consistency points");
-      PD_LOG(PDERROR, "MinRecoveryTime [%llu] > MaxCommitTime [%llu]", _minTime,
-             _maxTime);
+      PD_LOG(PDERROR, "%s [%llu] > %s [%llu]",
+             FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+             FIELD_NAME_TRANS_MAX_RECOVER_TIME, _minTime, _maxTime);
       return (rc = SDB_RESTORE_NO_CONSISTENT_PIT);
    }
 
@@ -1006,7 +1261,7 @@ INT32 coordCMDRestoreCheck::_summarize()
       bson::BSONObjBuilder bb;
       bb.append(FIELD_NAME_TIME, targetTime);
       bb.append(FIELD_NAME_TRANS_MIN_RECOVER_TIME, minTime);
-      bb.append(FIELD_NAME_TRANS_MAX_COMMIT_TIME, maxTime);
+      bb.append(FIELD_NAME_TRANS_MAX_RECOVER_TIME, maxTime);
       _summary = bb.obj();
    }
    catch (exception &e)
@@ -1051,6 +1306,10 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
 COORD_IMPLEMENT_CMD_AUTO_REGISTER(coordCMDRestorePrepare,
                                   CMD_NAME_RESTORE_PREPARE, FALSE);
 
+coordCMDRestorePrepare::coordCMDRestorePrepare()
+{
+}
+
 // Entrypoint for restorePrepare() on the coordinator
 // PD_TRACE_DECLARE_FUNCTION( COORD_RESTOREPREPARE_EXE, "coordCMDRestorePrepare::execute" )
 INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
@@ -1068,7 +1327,7 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
          PD_LOG_MSG(PDERROR, "Node(s) have mvccon or globtranson disabled");
       }
       PD_LOG(PDERROR, "restorePrepare failed. Aborting. [rc=%d]", rc);
-      _setRestoreInProgress(FALSE); // ignore the rc
+      _setRestoreInProgress(FALSE); // unset
       return rc;
    }
    PD_LOG(PDEVENT, "restorePrepare completed successfully");

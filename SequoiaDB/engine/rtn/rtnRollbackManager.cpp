@@ -194,7 +194,7 @@ rtnPITRollbackManager::rtnPITRollbackManager(pmdEDUCB *cb, UINT64 targetTime,
     : _rtnRollbackManager(cb), _rollbackTime(), _undoTransMap(),
       _recordTransID(), _continue(TRUE), _remainingLogSpace(0),
       _rollbackRecCount(0), _logLimitTime(0), _transID(transID),
-      _dmsLocked(FALSE)
+      _dmsLocked(FALSE), _undoCount(0)
 {
    // Set the target time from the input message
    _targetTime = stpLogicalTimeUS();
@@ -295,6 +295,17 @@ void rtnPITRollbackManager::_abort()
 // PD_TRACE_DECLARE_FUNCTION( RTN_PITROLLBACKMGR_FINISH, "rtnPITRollbackManager::_finish" )
 INT32 rtnPITRollbackManager::_finish()
 {
+   if (_testOnly)
+   {
+      PD_LOG(PDEVENT,
+             "Rollback manager test run identified %llu records for rollback",
+             _undoCount);
+   }
+   else
+   {
+      PD_LOG(PDEVENT, "Rollback manager performed rollback on %llu records",
+             _undoCount);
+   }
    return SDB_OK;
 }
 
@@ -359,7 +370,7 @@ INT32 rtnPITRollbackManager::_preProcess(const dpsLogRecord &record)
    // it is a non-transactional record, in which case the ID will fail its
    // isValid() check later.
    dpsGetTransIDFromRecord(record, _recordTransID);
-   if (record.isCommit())
+   if (record.isCommit() && !record.isPreCommit())
    {
       rc = _processCommitRecord(record);
    }
@@ -378,6 +389,7 @@ INT32 rtnPITRollbackManager::_postProcess(const dpsLogRecord &record,
       // The record was not undone
       return SDB_OK;
    }
+   ++_undoCount;
    if (_recordTransID.isFirstOp())
    {
       // Finished an entire transaction

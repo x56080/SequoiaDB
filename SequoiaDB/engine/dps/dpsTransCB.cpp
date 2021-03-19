@@ -84,6 +84,7 @@ namespace engine
     _maxReadTran( DPS_INVALID_TRANSID_SN ),
     _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
     _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
+    _restorePointTime( DPS_INVALID_TRANS_TIME ),
     _numTransIDConflict( 0LL ),
     _stpAgent(),
     _gtsAgent( NULL ),
@@ -330,7 +331,8 @@ namespace engine
                    "rc: %d", rc ) ;
 
       if ( DPS_INVALID_TRANS_TIME == summary._maxTransCommitTime &&
-           DPS_INVALID_TRANS_TIME == summary._minRecoverableTime )
+           DPS_INVALID_TRANS_TIME == summary._minRecoverableTime &&
+           DPS_INVALID_TRANS_TIME == summary._restorePointTime )
       {
          // summary from meta file is invalid, need get from log file
          summary.reset() ;
@@ -378,6 +380,7 @@ namespace engine
       {
          setMinRecoverableTime( summary._minRecoverableTime ) ;
          setMaxTransCommitTime( summary._maxTransCommitTime ) ;
+         setRestorePointTime( summary._restorePointTime ) ;
       }
 
       PD_LOG( PDEVENT, "Restored log summary [ minRecoverableTime: %llu,"
@@ -1999,7 +2002,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_GETRESTOREWINDOW, "dpsTransCB::getRestoreWindow" )
-   INT32 dpsTransCB::getRestoreWindow( UINT64 &minTime, UINT64 &maxTime )
+   INT32 dpsTransCB::getRestoreWindow( UINT64 &minTime,
+                                       UINT64 &maxTransCommitTime,
+                                       UINT64 &restorePointTime )
    {
       INT32 rc = SDB_OK ;
 
@@ -2010,7 +2015,8 @@ namespace engine
          // CATALOG nodes do not have global transactions, so we need to
          // make the restore window from CATALOG covers full time interval
          minTime = DPS_MIN_TRANS_TIME ;
-         maxTime = DPS_MAX_TRANS_TIME ;
+         maxTransCommitTime = DPS_MAX_TRANS_TIME ;
+         restorePointTime = DPS_MAX_TRANS_TIME ;
       }
       else
       {
@@ -2020,7 +2026,8 @@ namespace engine
          ossScopedLock lock( logMgr->getWriteMutex() ) ;
 
          minTime = _minRecoverableTime ;
-         maxTime = _maxTransCommitTime ;
+         maxTransCommitTime = _maxTransCommitTime ;
+         restorePointTime = _restorePointTime ;
       }
 
       PD_TRACE_EXITRC( SDB_DPSTRANSCB_GETRESTOREWINDOW, rc ) ;

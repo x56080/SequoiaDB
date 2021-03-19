@@ -138,6 +138,8 @@ class rtnPITRollbackManager : public _rtnRollbackManager
    DPS_TRANS_ID _transID;
    // Has DMS been locked?
    BOOLEAN _dmsLocked;
+   // Counter for number of records undone
+   UINT64 _undoCount;
 
    virtual INT32 _init();
    virtual void _abort();

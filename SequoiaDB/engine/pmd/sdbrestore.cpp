@@ -96,7 +96,7 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list/getconfig/offlinebuild), default is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
-      ( RS_BK_GLOBAL, boost::program_options::value<string>(),           "override backup file GlobalTrans flag (true/false)" ) \
+      ( RS_BK_GLOBAL, boost::program_options::value<string>(),           "override backup file GlobalTrans flag (false), default is to use the backup file value" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
       ( PMD_OPTION_LOGPATH, boost::program_options::value<string>(),     "override log file path" )                    \
@@ -654,6 +654,13 @@ namespace engine
 
       if ( optMgr._vm.count( RS_BK_GLOBAL ) )
       {
+         if (optMgr._isGlobal != FALSE)
+         {
+            std::cerr << "Option " << RS_BK_GLOBAL << " only supports false"
+                      << std::endl;
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
          // override the global flag from the backup file
          restoreLogger.overrideIsGlobal( optMgr._isGlobal ) ;
          std::cout << "Overriding global(" << optMgr._isGlobal << ")"

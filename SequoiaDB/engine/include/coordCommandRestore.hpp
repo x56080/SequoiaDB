@@ -109,6 +109,8 @@ class coordCMDRestoreCheck : public _coordCMDRestore
    INT32 _checkSession();
    INT32 _getWindow();
    INT32 _calcWindow(const OBJ_VEC &responses);
+   INT32 _getWindowRight(const OBJ_VEC &responses);
+   INT32 _getWindowLeft(const OBJ_VEC &responses);
    INT32 _setTime();
    INT32 _runCheckOnNodes();
    INT32 _summarize();
@@ -147,6 +149,7 @@ class coordCMDRestorePrepare : public _coordCMDRestore
    COORD_DECLARE_CMD_AUTO_REGISTER();
 
  public:
+   coordCMDRestorePrepare();
    // execute is the entrypoint
    virtual INT32 execute(MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                          rtnContextBuf *buf);

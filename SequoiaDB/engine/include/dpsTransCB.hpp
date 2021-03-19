@@ -631,13 +631,17 @@ namespace engine
       // get restore window for point-in-time restore
       // output :
       // - minTime: minimum global logical time ( in microseconds ) to restore
-      // - maxTime: maximum global logical time ( in microseconds ) to restore
+      // - maxTransCommitTime: maximum global logical time of any commit records
+      // - restorePointTime: logical time of restore point (either backup time
+      //   of image used in the most recent sdbrestore or the time of the latest
+      //   restorePrepare)
       // return :
       // - SDB_OK: succeed
       // NOTE:
       // - currently, the restore window is
-      //   [ minRecoverableTime, maxTransCommitTime ]
-      INT32 getRestoreWindow( UINT64 &minTime, UINT64 &maxTime ) ;
+      //   [ minRecoverableTime, min(maxTransCommitTime, restorePointTime) ]
+      INT32 getRestoreWindow( UINT64 &minTime, UINT64 &maxTransCommitTime,
+                              UINT64 &restorePointTime ) ;
 
       // get max transaction commit time before given LSN
       // input:
@@ -662,9 +666,16 @@ namespace engine
          ossAtomicExchangePtr( &_maxTransCommitTime, maxTransCommitTime ) ;
       }
 
+      // set restore point time (either backup time or restorePrepare time)
+      OSS_INLINE void setRestorePointTime( UINT64 restorePointTime )
+      {
+         ossAtomicExchangePtr( &_restorePointTime, restorePointTime ) ;
+      }
+
       // dump transaction information into log summary
       // - dump minimum recoverable time
       // - dump maximum transaction time
+      // - dump running time
       // input:
       // - inLock: whether call this function under protection of log lock
       //           ( write mutex of DPS log )
@@ -678,6 +689,7 @@ namespace engine
             // in lock, no need to use atomic fetch
             summary._minRecoverableTime = _minRecoverableTime ;
             summary._maxTransCommitTime = _maxTransCommitTime ;
+            summary._restorePointTime = _restorePointTime ;
          }
          else
          {
@@ -686,19 +698,15 @@ namespace engine
                   ossAtomicFetch64( &_minRecoverableTime ) ;
             summary._maxTransCommitTime =
                   ossAtomicFetch64( &_maxTransCommitTime ) ;
+            summary._restorePointTime =
+                  ossAtomicFetch64( &_restorePointTime ) ;
          }
       }
 
       // update restore window
-      // - update minimum recoverable time if needed
       // - update maximum transaction commit time
       OSS_INLINE void updateRestoreWindow( UINT64 transTime )
       {
-         // if minimum recoverable time is invalid, set to given time
-         if ( DPS_INVALID_TRANSID_SN == _minRecoverableTime )
-         {
-            _minRecoverableTime = transTime ;
-         }
          // if maximum transaction commit time is smaller than given time,
          // set to given time
          if ( _maxTransCommitTime < transTime ||
@@ -714,6 +722,7 @@ namespace engine
          // reset to invalid values
          _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
          _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
+         _restorePointTime = DPS_INVALID_TRANS_TIME ;
       }
 
       // push restore window forward
@@ -1315,6 +1324,12 @@ namespace engine
       //   - for secondary node or restore mode, it is updated by main thread
       //     of log replayer
       UINT64               _minRecoverableTime ;
+
+      // restore point time of this node
+      // NOTE:
+      // - set by restorePrepare (to time of command) or by the sdbrestore tool
+      //   (for a global backup)
+      UINT64               _restorePointTime ;
 
       // update event to notify lowTran job to update global lowTran
       ossEvent             _updateLowTranEvent ;

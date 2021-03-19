@@ -222,7 +222,8 @@ namespace engine
                                        "CurLsnLength: %u, "
                                        "MemBeginLsn: %d.%lld, "
                                        "MinRecoverableTime: %llu, "
-                                       "MaxTransCommitTime: %llu ) succeed",
+                                       "MaxTransCommitTime: %llu, "
+                                       "RestorePointTime: %llu ) succeed",
               _content._oldestLSNOffset,
               _content._beginFile,
               _content._workFile,
@@ -232,7 +233,8 @@ namespace engine
               _content._memBeginLsnVer,
               _content._memBeginLsnOffset,
               _content._summary._minRecoverableTime,
-              _content._summary._maxTransCommitTime ) ;
+              _content._summary._maxTransCommitTime,
+              _content._summary._restorePointTime ) ;
 
    done:
       return rc ;
