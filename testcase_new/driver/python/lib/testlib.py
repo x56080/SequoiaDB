@@ -41,10 +41,15 @@ class SdbTestBase(unittest.TestCase):
          msg = "\nexpected: " + str(expected) + "\nactual: " + str(actual)
 
       unittest.TestCase.assertEqual(self, len(expected), len(actual), msg=msg)
+      result = list(expected)
       for x in actual:
-         unittest.TestCase.assertIn(self, x, expected, msg)
+         unittest.TestCase.assertIn(self, x, result, msg)
+         result.remove(x)
+
+      result = list(actual)
       for x in expected:
-         unittest.TestCase.assertIn(self, x, actual, msg)
+         unittest.TestCase.assertIn(self, x, result, msg)
+         result.remove(x)
 
    def should_clean_env(self):
       if not isinstance(self, unittest.TestCase):
