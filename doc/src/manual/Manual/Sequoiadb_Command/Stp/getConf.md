@@ -43,7 +43,6 @@ v5.0 及以上版本
   "port": "9622",
   "serverlist": "server-1:9622",
   "role": "server",
-  "weight": 0,
   "syncinterval": 60,
   "maxtimeerror": 50000,
   "diaglevel": 3

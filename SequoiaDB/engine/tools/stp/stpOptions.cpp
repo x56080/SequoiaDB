@@ -500,7 +500,7 @@ namespace engine
 
       // --weight
       rdxUInt( ex, STP_OPTION_WEIGHT, _weight, FALSE, PMD_CFG_CHANGE_RUN,
-               _weight ) ;
+               _weight, TRUE ) ;
 
       // --syncinterval
       rdxUInt( ex, STP_OPTION_SYNCINTERVAL, _syncInterval, FALSE,

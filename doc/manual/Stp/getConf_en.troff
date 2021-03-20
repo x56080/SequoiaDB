@@ -47,7 +47,6 @@ Get the configuration of the STP node.
 \ \ "port":\ "9622",
 \ \ "serverlist":\ "server\-1:9622",
 \ \ "role":\ "server",
-\ \ "weight":\ 0,
 \ \ "syncinterval":\ 60,
 \ \ "maxtimeerror":\ 50000,
 \ \ "diaglevel":\ 3
