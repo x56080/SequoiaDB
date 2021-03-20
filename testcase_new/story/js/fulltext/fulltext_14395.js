@@ -28,7 +28,7 @@ function test ()
    checkFullSyncToES( COMMCSNAME, clName, textIndexName, 30000 );
 
    //在count命令字中使用全文检索执行查询，覆盖：无记录匹配、部分记录匹配(大于1w条)、记录全匹配(大于1w条)，检查结果
-   var actCount = dbcl.count( { "": { $Text: { "query": { "match": { "content": "movie" } } } } } );
+   var actCount = dbcl.count( { "": { $Text: { "query": { "match": { "content": "movieaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } } } } } );
    checkAllResult( actCount, 0 );
 
    var dbOperator = new DBOperator();
