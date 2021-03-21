@@ -72,6 +72,8 @@ int main(int argc, char* argv[])
       goto done;
    }
 
+   initTimezoneEnv() ;
+
    try
    {
       Routine routine(options);
