@@ -31,6 +31,7 @@
 *******************************************************************************/
 #include "impUtil.hpp"
 #include "utilCommon.hpp"
+#include "utilIniParserEx.hpp"
 #include "pd.hpp"
 #include <algorithm>
 #include <boost/tokenizer.hpp>
@@ -420,5 +421,323 @@ namespace import
    error:
       goto done;
    }
+   
+#if defined (_LINUX)
 
+   #define IMP_UTIL_TIMEZONE_ENV  "TZ"
+   #define IMP_UTIL_TIMEZONE_FILE "/etc/timezone"
+   #define IMP_UTIL_CLOCK_FILE    "/etc/sysconfig/clock"
+   #define IMP_UTIL_TZ_FILE_KEY1  "ZONE"
+   #define IMP_UTIL_TZ_FILE_KEY2  "TIMEZONE"
+   #define IMP_UTIL_BUFFER_MAX_SIZE (5*1024*1024)
+
+   static BOOLEAN _loadTimezoneEnv()
+   {
+      BOOLEAN result = TRUE ;
+      CHAR *pTimezone = NULL ;
+
+      pTimezone = getenv( IMP_UTIL_TIMEZONE_ENV ) ;
+      if ( NULL == pTimezone )
+      {
+         result = FALSE ;
+         PD_LOG( PDDEBUG, "Environment variable %s value is empty",
+                 IMP_UTIL_TIMEZONE_ENV ) ;
+         goto error ;
+      }
+
+      if ( 0 == ossStrlen( pTimezone ) )
+      {
+         result = FALSE ;
+         PD_LOG( PDDEBUG, "Environment variable %s value is empty",
+                 IMP_UTIL_TIMEZONE_ENV ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDINFO, "Environment variable %s value is %s",
+              IMP_UTIL_TIMEZONE_ENV, pTimezone ) ;
+
+   done:
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static INT32 _setImportEnv( const CHAR *timezone )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 length = ossStrlen( timezone ) ;
+      INT32 i = 0 ;
+      INT32 k = 0 ;
+      BOOLEAN hasTimezone = FALSE ;
+      CHAR *pBuffer = NULL ;
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( length + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, length + 1 ) ;
+
+      for( i = 0, k = 0; i < length; ++i )
+      {
+         if ( isspace( timezone[i] ) )
+         {
+            if ( hasTimezone )
+            {
+               break ;
+            }
+            else
+            {
+               continue ;
+            }
+         }
+         else
+         {
+            hasTimezone = TRUE ;
+            pBuffer[k] = timezone[i] ;
+            ++k ;
+         }
+      }
+
+      PD_LOG( PDINFO, "Set the value of the environment variable %s to %s",
+              IMP_UTIL_TIMEZONE_ENV, pBuffer ) ;
+
+      rc = setenv( IMP_UTIL_TIMEZONE_ENV, pBuffer, 1 ) ;
+      tzset() ;
+
+   done:
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _updateTimezoneEnv( const CHAR *content )
+   {
+      INT32 rc       = SDB_OK ;
+      BOOLEAN result = TRUE ;
+      utilIniParserEx ini ;
+
+      if ( NULL == content || 0 == ossStrlen( content ) )
+      {
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ini.parse( content, ossStrlen( content ),
+                      UTIL_INI_HASHMARK|UTIL_INI_EQUALSIGN|
+                      UTIL_INI_SINGLE_QUOMARK|UTIL_INI_DOUBLE_QUOMARK ) ;
+      if ( SDB_OK == rc )
+      {
+         string value ;
+
+         rc = ini.getValue( NULL, IMP_UTIL_TZ_FILE_KEY1, value ) ;
+         if ( SDB_OK == rc )
+         {
+            _setImportEnv( value.c_str() ) ;
+            goto done ;
+         }
+
+         rc = ini.getValue( NULL, IMP_UTIL_TZ_FILE_KEY2, value ) ;
+         if ( SDB_OK == rc )
+         {
+            _setImportEnv( value.c_str() ) ;
+            goto done ;
+         }
+
+         result = FALSE ;
+         goto error ;
+      }
+
+      _setImportEnv( content ) ;
+
+   done:
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _loadTimezoneFile()
+   {
+      INT32 rc        = SDB_OK ;
+      BOOLEAN result  = TRUE ;
+      INT64 fileSize  = 0 ;
+      SINT64 readSize = 0 ;
+      CHAR *pBuffer   = NULL ;
+      OSSFILE file ;
+
+      rc = ossOpen( IMP_UTIL_TIMEZONE_FILE, OSS_READONLY | OSS_SHAREREAD,
+                    0, file ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to open %s, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ossGetFileSize( &file, &fileSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get %s file size, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      if( fileSize > IMP_UTIL_BUFFER_MAX_SIZE )
+      {
+         fileSize = IMP_UTIL_BUFFER_MAX_SIZE ;
+      }
+      else if ( 0 == fileSize )
+      {
+         PD_LOG( PDWARNING, "The %s file is empty", IMP_UTIL_TIMEZONE_FILE ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( fileSize + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         PD_LOG( PDWARNING, "Failed to malloc memory" ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, fileSize + 1 ) ;
+
+      rc = ossReadN( &file, fileSize, pBuffer, readSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to read %s file, rc=%d",
+                 IMP_UTIL_TIMEZONE_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      result = _updateTimezoneEnv( pBuffer ) ;
+
+   done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return result ;
+   error:
+      goto done ;
+   }
+
+   static BOOLEAN _loadClockFile()
+   {
+      INT32 rc        = SDB_OK ;
+      BOOLEAN result  = TRUE ;
+      INT64 fileSize  = 0 ;
+      SINT64 readSize = 0 ;
+      CHAR *pBuffer   = NULL ;
+      OSSFILE file ;
+
+      rc = ossOpen( IMP_UTIL_CLOCK_FILE, OSS_READONLY | OSS_SHAREREAD,
+                    0, file ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to open %s, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      rc = ossGetFileSize( &file, &fileSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to get %s file size, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      if( fileSize > IMP_UTIL_BUFFER_MAX_SIZE )
+      {
+         fileSize = IMP_UTIL_BUFFER_MAX_SIZE ;
+      }
+      else if ( 0 == fileSize )
+      {
+         PD_LOG( PDWARNING, "The %s file is empty", IMP_UTIL_CLOCK_FILE ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      pBuffer = (CHAR *)SDB_OSS_MALLOC( fileSize + 1 ) ;
+      if ( NULL == pBuffer )
+      {
+         PD_LOG( PDWARNING, "Failed to malloc memory" ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      ossMemset( pBuffer, 0, fileSize + 1 ) ;
+
+      rc = ossReadN( &file, fileSize, pBuffer, readSize ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Failed to read %s file, rc=%d",
+                 IMP_UTIL_CLOCK_FILE, rc ) ;
+         result = FALSE ;
+         goto error ;
+      }
+
+      result = _updateTimezoneEnv( pBuffer ) ;
+
+   done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
+      SAFE_OSS_FREE ( pBuffer ) ;
+      return result ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN initTimezoneEnv()
+   {
+      BOOLEAN result = TRUE ;
+
+      if( _loadTimezoneEnv() )
+      {
+         goto done ;
+      }
+
+      if( _loadTimezoneFile() )
+      {
+         goto done ;
+      }
+
+      if( _loadClockFile() )
+      {
+         goto done ;
+      }
+
+      result = FALSE ;
+      std::cout << "Warning: failed to get time zone information." << std::endl
+                << "You can set environment variable TZ to improve "
+                   "import performance." << std::endl ;
+      PD_LOG( PDWARNING, "Failed to get time zone information, "
+                         "you can set environment variable TZ to improve "
+                         "import performance" ) ;
+
+   done:
+      return result ;
+   }
+
+#else
+
+   BOOLEAN initTimezoneEnv()
+   {
+      return TRUE ;
+   }
+
+#endif
 }
