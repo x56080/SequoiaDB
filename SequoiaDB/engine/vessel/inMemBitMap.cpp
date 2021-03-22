@@ -608,7 +608,7 @@ namespace vessel
       bits = (const CHAR *)head + SMP_HEAD_LEN;
       bitsCount = head->capacity >> 5; /// divied by 32
 
-      if (!findFirstFreeFromBitMap32(bitsCount, (const UINT32 *)bits, firstFree))
+      if (!findFirstFreeFromBitMap32(bitsCount, (const UINT32 *)bits, 0, firstFree))
       {
          PD_LOG(PDERROR, "non-zero free count in head but not found in bitmap");
          rc = SDB_VESSEL_INTERNAL_ERR;

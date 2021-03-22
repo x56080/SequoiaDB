@@ -60,7 +60,7 @@ namespace vessel
 
    pageAccessor::~pageAccessor()
    {
-      SDB_ASSERT(!accessing(), "fini dismissed");
+      SDB_ASSERT(!accessing(), "fini lost");
       if (NULL != _fullDumpBuf)
       {
          SDB_THREAD_FREE(_fullDumpBuf);

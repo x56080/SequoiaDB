@@ -68,6 +68,8 @@ namespace vessel
       /// aligned by 4bytes.
       capacityOfPage = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - SMP_HEAD_LEN) & 0xfffffffc;
       capacityOfPage *= 8;
+      capacityOfPage /= pageCountOfSeg;
+      capacityOfPage *= pageCountOfSeg;
 
       if (capacityOfPage < userDefinedCapacity)
       {

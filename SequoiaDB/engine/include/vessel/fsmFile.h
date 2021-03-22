@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = bitMapFile.h
+   Source File Name = fsmFile.h
 
    Descriptive Name =
 
@@ -33,45 +33,57 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_BIT_MAP_FILE_H_
-#define VESSEL_BIT_MAP_FILE_H_
+#ifndef SDB_VESSEL_FSM_FILE_H_
+#define SDB_VESSEL_FSM_FILE_H_
 
 #include "vessel/extentStorageFile.h"
+#include "ossLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class bitMapFile : public extentStorageFile
+   class requestContext;
+
+   class fsmFile : public extentStorageFile
    {
       public:
-         bitMapFile(){}
-         virtual ~bitMapFile(){}
-      
+         fsmFile();
+         virtual ~fsmFile();
+
+      public:
+         INT32 initAfterCreation();
+         INT32 initAfterOpen();
+         INT32 allocateNewPage(PAGE_ID &pid);
+         INT32 releasePages(UINT32 count, const PAGE_ID *pids);
+
       private:
          virtual SPACE_TYPE getSpaceType()const
          {
-            return SPACE_TYPE_FSM_BITMAP;
+            return SPACE_TYPE_FSM;
          }
          virtual const CHAR *getMagicChars()const
          {
-            return "SDBVBITM";
+            return "SDBVFSMF";
          }
 
-         virtual INT32 initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf)
-         {
-            return SDB_VESSEL_INTERNAL_ERR;
-         }
-         virtual INT32 validateUserDefinedHead(const void *head)
-         {
-            return SDB_VESSEL_INTERNAL_ERR;
-         }
-         virtual INT32 afterHeadOpen()
-         {
-            return SDB_OK;
-         }
-   };//class bitMapFile
+         virtual INT32 afterHeadOpen(){return SDB_OK;}
+
+      private:
+         INT32 findFreePageFromSmp(PAGE_ID &pid);
+
+         INT32 allocateFreePageFromSmp(PAGE_ID pid);
+
+         INT32 releasePagesFromSmp(UINT32 count, const PAGE_ID *pids);
+
+         INT32 ensureSpace(PAGE_ID pid);
+
+      private:
+         ossSpinXLatch _latch;
+         INT32 _firstFree;
+
+   };//class fsmFIle
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_FSM_BIT_MAP_FILE_H_
+#endif//SDB_VESSEL_FSM_FILE_H_

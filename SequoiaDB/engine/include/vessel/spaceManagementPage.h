@@ -57,7 +57,7 @@ namespace vessel
       UINT32 version;
       PAGE_ID minPid;
       UINT32 capacity; /// max page count managed by this smp.
-      UINT32 free; /// current free page count not in used. free <= capacity.
+      UINT32 free; /// current free page count be used. free <= capacity.
       UINT64 pad;
    };
 #pragma pack()

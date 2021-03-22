@@ -45,13 +45,49 @@ namespace vessel
 {
    void resetBitMap32(UINT32 count, UINT32 *bits, BOOLEAN allFree);
 
-   BOOLEAN findFirstFreeFromBitMap32(UINT32 count, const UINT32 *bits, UINT32 &offset);
+   BOOLEAN findFirstFreeFromBitMap32(UINT32 totalCount,
+                                     const UINT32 *bits,
+                                     INT32 searchBegin,
+                                     UINT32 &offset);
+
+   BOOLEAN findFirstFreeBitFromBit32(UINT32 bitsCount,
+                                     INT32 beginBits,
+                                     INT32 maxOffset,
+                                     UINT32 *bits,
+                                     BOOLEAN clear,
+                                     UINT32 &offset);
+
+   BOOLEAN findFirstFreeBitsFromBitMap32(UINT32 totalCount,
+                                         const UINT32 *bits,
+                                         INT32 searchBegin,
+                                         INT32 &bitsOffset);
 
    BOOLEAN allocateFromBitMap32(UINT32 count, UINT32 *bits, UINT32 &offset);
 
    BOOLEAN setFreeIfNotFree32(UINT32 count, UINT32 *bits, UINT32 offset);
 
    BOOLEAN setNotFreeIfFree32(UINT32 count, UINT32 *bits, UINT32 offset);
+
+
+   BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
+                                     INT32 beginBits,
+                                     const UINT64 *bits,
+                                     UINT32 &offset);
+
+   BOOLEAN findAndClearFirstFreeBitFromBit64(UINT32 bitsCount,
+                                             INT32 beginBits,
+                                             UINT64 *bits,
+                                             UINT32 &offset);
+
+   /// offset between (low, high]
+   BOOLEAN upperBoundFirstFreeBitFromBit64(UINT32 bitsCount,
+                                           const UINT64 *bits,
+                                           INT32 low,
+                                           INT32 high,
+                                           UINT32 &offset);
+
+   BOOLEAN setNotFreeIfFree64(UINT32 count, UINT64 *bits, UINT32 offset);
+   BOOLEAN setFreeIfNotFree64(UINT32 count, UINT64 *bits, UINT32 offset);
 
 }//namespace vessel
 }//namespace engine

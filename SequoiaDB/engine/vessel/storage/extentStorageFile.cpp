@@ -788,6 +788,35 @@ namespace vessel
       goto done;
    }
 
+   INT32 extentStorageFile::ensureSegmentCount(UINT32 count)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (_headInMem.maxSegmentCountPerFile < count)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      while (count < _dataSegmentCount)
+      {
+         rc = allocateNewSegment();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate new segment, current count:%", _dataSegmentCount);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
    INT32 extentStorageFile::validateHead(const void *head, const storageFileName &fn)
    {

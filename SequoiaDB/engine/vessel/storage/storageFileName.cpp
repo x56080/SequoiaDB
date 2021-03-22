@@ -109,25 +109,6 @@ namespace vessel
                      SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_CSNAME_SUFFIX);
          break;
       }
-      case SPACE_TYPE_INMEM_BIT_MAP:
-      {
-         ossSnprintf(_name, SU_FILE_NAME_LEN + 1, "%s%d.%s.d",
-                     SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_INMEM_BITMAP_SUFFIX,
-                     sequence);
-         break;
-      }
-      case SPACE_TYPE_FSM_SG:
-      {
-         ossSnprintf(_name, SU_FILE_NAME_LEN + 1, "%s%d.%s",
-                     SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_FSM_SG_SUFFIX);
-         break;
-      }
-      case SPACE_TYPE_FSM_BITMAP:
-      {
-         ossSnprintf(_name, SU_FILE_NAME_LEN + 1, "%s%d.%s",
-                     SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_FSM_BITMAP_SUFFIX);
-         break;
-      }
       default:
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "unknown space type%d", type);
@@ -218,16 +199,6 @@ namespace vessel
             _type = SPACE_TYPE_NAME;
             _sequence = 0;
          }
-         else if (0 == columns.at(1).compare(SU_FILE_NAME_FSM_SG_SUFFIX))
-         {
-            _type = SPACE_TYPE_FSM_SG;
-            _sequence = 0;
-         }
-         else if (0 == columns.at(1).compare(SU_FILE_NAME_FSM_BITMAP_SUFFIX))
-         {
-            _type = SPACE_TYPE_FSM_BITMAP;
-            _sequence = 0;
-         }
          else
          {
             rc = SDB_INVALIDARG;
@@ -269,20 +240,6 @@ namespace vessel
             {
                rc = SDB_INVALIDARG;
                goto  error;
-            }
-         }
-         else if (0 == columns.at(1).compare(SU_FILE_NAME_INMEM_BITMAP_SUFFIX))
-         {
-            const std::string &suffix = columns.at(2);
-            if (utilStrIsDigit(suffix))
-            {
-               _type = SPACE_TYPE_INMEM_BIT_MAP;
-               _sequence = ossAtoi(suffix.c_str());
-            }
-            else
-            {
-               rc = SDB_INVALIDARG;
-               goto error;
             }
          }
          else

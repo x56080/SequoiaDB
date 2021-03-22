@@ -886,7 +886,7 @@ vesselFiles = [
       "vessel/storage/dataExtentFile.cpp",
       "vessel/storage/storageFileName.cpp",
       "vessel/storage/storageFileUtil.cpp",
-      "vessel/storage/stripingGroupFile.cpp",
+      "vessel/storage/fsmFile.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
       "vessel/handlers/requestHandler.cpp",
@@ -920,7 +920,12 @@ vesselFiles = [
       "vessel/cursorKernal.cpp",
       "vessel/diskIOJob.cpp",
       "vessel/diskIOTask.cpp",
-      "vessel/dmlContext.cpp"
+      "vessel/dmlContext.cpp",
+      "vessel/diskFreeSpaceMap.cpp",
+      "vessel/freeSpaceMap.cpp",
+      "vessel/freeSpaceMapDef.cpp",
+      "vessel/fsmSizeLvl.cpp",
+      "vessel/fsmCandidateBucket.cpp"
 ]
 
 #vessel unit test

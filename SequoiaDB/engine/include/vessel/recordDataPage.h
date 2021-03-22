@@ -43,6 +43,7 @@
 #include "utilCompression.hpp"
 #include "vessel/vesselDef.h"
 #include "vessel/vesselDef.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
@@ -90,6 +91,7 @@ namespace vessel
          transSN = o.transSN;
          pad0 = o.pad0;
          pad1 = o.pad1;
+         return *this;
       }
 
       UINT16 version;
@@ -276,16 +278,30 @@ namespace vessel
    
 #pragma pack()
 
-   OSS_INLINE BOOLEAN isBigRecord(UINT32 pageSize, UINT32 recordSize)
+   OSS_INLINE UINT32 getMaxFreeSizeOfRdp(UINT32 pageSize)
    {
-      return (ossAlign4(recordSize) +
-              PAGE_HEAD_LEN +
-              PAGE_TAIL_LEN +
-              RDP_RECORD_HEAD_LEN +
-              RDP_RSLOT_SIZE) > pageSize;
-
+      SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
+      const static UINT32 len = PAGE_HEAD_LEN + PAGE_TAIL_LEN + RECORD_PAGE_HEAD_LEN;
+      return pageSize - len;
    }
 
+   OSS_INLINE UINT32 getMaxSizeOfRecordInRdp(UINT32 recordSize)
+   {
+      return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE + ossAlign4(recordSize);
+   }
+
+   OSS_INLINE UINT32 getMinSizeOfRecordInRdp()
+   {
+      return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE;
+   }
+   
+   /// in fact, we may not allocate new slot when insert record.
+   /// but ignore it here.
+   OSS_INLINE BOOLEAN isBigRecordInRdp(UINT32 pageSize, UINT32 recordSize)
+   {
+      SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");
+      return getMaxSizeOfRecordInRdp(recordSize) > getMaxFreeSizeOfRdp(pageSize);
+   }
 }//namespace vessel
 }//namespace engine
 

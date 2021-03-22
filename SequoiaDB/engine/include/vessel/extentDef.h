@@ -77,6 +77,10 @@ namespace vessel
          e0 = 'D';
          e1 = 'P';
          break;
+      case SPACE_TYPE_FSM:
+         e0 = 'F';
+         e1 = 'M';
+         break;
       default:
          e0 = 0;
          e1 = 0;

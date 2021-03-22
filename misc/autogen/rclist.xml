@@ -3178,11 +3178,35 @@
          </description>
       </code>
 	  
-	  <code>
+      <code>
          <name>SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE</name>
          <description>
             <en>not enough free space in data page</en>
             <cn>数据页中剩余空间不足</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FSM_ENTRY_BROKEN</name>
+         <description>
+            <en>the entry of free space map on disk is broken</en>
+            <cn>空间管理索引入口元数据损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FSM_PAGE_BROKEN</name>
+         <description>
+            <en>the page of free space map on disk is broken</en>
+            <cn>空间管理索引页损坏</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_FSM_NO_FREE_SPACE</name>
+         <description>
+            <en>no free space in free space map</en>
+            <cn>空间管理索引中没有足够的空闲空间</cn>
          </description>
       </code>
 

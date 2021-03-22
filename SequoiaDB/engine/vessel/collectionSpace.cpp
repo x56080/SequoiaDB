@@ -56,6 +56,7 @@
 #include "vessel/crpAccessor.h"
 #include "vessel/listCLCursor.h"
 #include "vessel/IRedoLogger.h"
+#include "vessel/fsmFile.h"
 
 namespace engine
 {
@@ -1415,6 +1416,12 @@ namespace vessel
       }
 
       rc = _su->fsync(SPACE_TYPE_RECORD_M, SMP_PAGE_ID, 3, TRUE);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = _su->getFsmFile()->initAfterCreation();
       if (SDB_OK != rc)
       {
          goto error;

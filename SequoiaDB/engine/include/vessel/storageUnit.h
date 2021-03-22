@@ -51,6 +51,7 @@ namespace vessel
    class dataExtentIDMapFile;
    class dataExtentFile;
    class requestContext;
+   class fsmFile;
 
    class storageUnit : public SDBObject
    {
@@ -125,6 +126,11 @@ namespace vessel
          /// WARNING: you should use this interface when init smp failed.
          INT32 removeLastDataFile(requestContext *context);
 
+         OSS_INLINE fsmFile *getFsmFile()
+         {
+            return _fsm;
+         }
+
       private:
          INT32 close();
          BOOLEAN validateSUOptions(const createSUOptions &options);
@@ -162,6 +168,9 @@ namespace vessel
          INT32 removeSUNameFile(const CHAR *dir,
                                 SPACE_ID sid);
 
+         INT32 createFsmFile(const CHAR *dir,
+                             SPACE_ID sid);
+
          INT32 getDataFile(UINT32 fileSequence, dataExtentFile **file);
 
          INT32 crossCheckFilesWhenOpenning();
@@ -189,6 +198,8 @@ namespace vessel
 
          extentStorageFile *_idxMeta;
          std::vector<extentStorageFile *> _idx;
+
+         fsmFile *_fsm;
          
    };//class storageUnit
 }//namespace vessel

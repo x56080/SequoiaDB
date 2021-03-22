@@ -41,6 +41,8 @@
 #include "vessel/dataExtentFile.h"
 #include "utilStr.hpp"
 #include "vessel/storageFileUtil.h"
+#include "vessel/freeSpaceMapDef.h"
+#include "vessel/fsmFile.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -52,7 +54,8 @@ namespace vessel
    storageUnit::storageUnit():
    _status(CLOSED),
    _meta(NULL),
-   _idxMeta(NULL)
+   _idxMeta(NULL),
+   _fsm(NULL)
    {
       ossMemset(_dirName, 0, sizeof(_dirName));
    }
@@ -408,6 +411,13 @@ namespace vessel
          }
       }
       _data.clear();
+
+      if (NULL != _fsm)
+      {
+         _fsm->unlink();
+         SDB_OSS_DEL _fsm;
+         _fsm = NULL;
+      }
 
       path = &(context->getEnv()->options.path);
       rc = utilBuildFullPath(path->dataPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath);
@@ -1343,6 +1353,12 @@ namespace vessel
       {
          goto error;
       }
+
+      rc = createFsmFile(fullPath, options.sid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -1350,6 +1366,7 @@ namespace vessel
       {
          _meta->destroy();
       }
+      removeSUNameFile(fullPath, options.sid);
       goto done;
    }
 
@@ -1566,10 +1583,6 @@ namespace vessel
       {
          break;
       }
-      case SPACE_TYPE_INMEM_BIT_MAP:
-      {
-         break;
-      }
       default:
       {
          PD_LOG(PDERROR, "unknown file type:%d", fn.getType());
@@ -1607,7 +1620,7 @@ namespace vessel
       }
 
       rc = ossOpen(fullPath,
-                  OSS_CREATEONLY | OSS_READWRITE | OSS_EXCLUSIVE,
+                  OSS_REPLACE | OSS_READWRITE | OSS_EXCLUSIVE,
                   OSS_DEFAULTFILE,
                   file);
       if (SDB_OK != rc)
@@ -1677,6 +1690,55 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 storageUnit::createFsmFile(const CHAR *dir,
+                                    SPACE_ID sid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _meta, "can not be null");
+      SDB_ASSERT(NULL == _fsm, "must be null");
+      SDB_ASSERT(NULL != dir &&
+                 INVALID_SPACE_ID != sid, "can not be null");
+      storageFileName fn;
+      storageFileOptions options;
+      const storageFileHead &commonHead = _meta->getCommonHeadInMem();
+      storageCoreArgs args(FSM_PAGE_SIZE,
+                           FSM_PAGE_COUNT_PER_SEG,
+                           FSM_MAX_SEG_COUNT);
+
+      fn.build(SPACE_TYPE_FSM, sid, 0);
+      options.dir = dir;
+      options.name = fn.getName();
+      options.secretValue = commonHead.secretValue;
+      options.spaceID = sid;
+      options.sequence = 0;
+      options.args = &args;
+
+      _fsm = SDB_OSS_NEW fsmFile();
+      if (NULL == _fsm)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+
+      rc = _fsm->create(options, NULL);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create free space map file:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (NULL != _fsm)
+      {
+         _fsm->destroy();
+         SDB_OSS_DEL _fsm;
+         _fsm = NULL;
+      }
       goto done;
    }
 

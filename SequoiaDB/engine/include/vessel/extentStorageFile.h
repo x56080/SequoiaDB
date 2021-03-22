@@ -64,9 +64,9 @@ namespace vessel
          INT32 close();
          BOOLEAN isOpen() const;
 
-         //INT32 ensurePageAllcated(PAGE_ID pid);
-
          INT32 allocateNewSegment();
+
+         INT32 ensureSegmentCount(UINT32 count);
 
          INT32 getSegmentPtr(SEGMENT_ID seg, ossValuePtr &ptr);
 
@@ -107,8 +107,14 @@ namespace vessel
          {
             return FALSE;
          }
-         virtual INT32 initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf) = 0;
-         virtual INT32 validateUserDefinedHead(const void *head) = 0;
+         virtual INT32 initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf)
+         {
+            return SDB_VESSEL_INTERNAL_ERR;
+         }
+         virtual INT32 validateUserDefinedHead(const void *head)
+         {
+            return SDB_VESSEL_INTERNAL_ERR;
+         }
          virtual INT32 afterHeadOpen() = 0;
 
       private:

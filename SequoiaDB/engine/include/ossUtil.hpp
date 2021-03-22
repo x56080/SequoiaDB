@@ -1238,10 +1238,29 @@ class ossSignalShield
 
 INT32 ossException2RC( std::exception *pe ) ;
 
+OSS_INLINE INT32 ossGetLowestBit1From8Bits(UINT8 n)
+{
+   INT32 r = 0;
+   if (0 == n)
+   {
+      return -1;
+   }
+   do
+   {
+      if (0 != (n & 0x01))
+      {
+         break;
+      }
+      n >>= 1;
+      ++r;
+   } while (r < 8);
+   return r; 
+} 
+
 OSS_INLINE INT32 ossGetLowestBit1From32Bits(UINT32 n)
 {
    INT32 r = 0;
-   if ( 0 == (n &0xffffffff))
+   if (0 == n)
    {
       return -1;
    }
@@ -1275,7 +1294,7 @@ OSS_INLINE INT32 ossGetLowestBit1From32Bits(UINT32 n)
 OSS_INLINE INT32 ossGetLowestBit1From64Bits(UINT64 n)
 {
    INT32 r = 0;
-   if ( 0 == (n & OSS_UINT64_MAX))
+   if (0 == n)
    {
       return -1;
    }

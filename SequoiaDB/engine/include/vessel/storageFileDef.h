@@ -55,14 +55,12 @@ namespace vessel
    const UINT32 MAX_SU_DIR_LEN = 15;
    const UINT32 SU_FILE_NAME_LEN = 31;
 
-   #define SU_FILE_NAME_PREFIX "$space_"
+   #define SU_FILE_NAME_PREFIX "_space_"
    const UINT32 SU_NAME_PREFIX_LEN = 7;
    #define SU_FILE_NAME_META_SUFFIX "meta"
    #define SU_FILE_NAME_IDX_SUFFIX "idx"
    #define SU_FILE_NAME_LOB_SUFFIX "lob"
    #define SU_FILE_NAME_CSNAME_SUFFIX "name"
-   #define SU_FILE_NAME_INMEM_BITMAP_SUFFIX "imbm"
-   #define SU_FILE_NAME_FSM_SG_SUFFIX "sg"
    #define SU_FILE_NAME_FSM_BITMAP_SUFFIX "fsm"
 
    const UINT32 INVALID_FILE_HEAD_VERSION = 0;
