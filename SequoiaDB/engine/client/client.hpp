@@ -2568,12 +2568,7 @@ namespace sdbclient
             delete pNode ;
          }
       }
-      /* \fn connect ( _sdb **dbConn )
-          \brief Connect to the current node.
-          \param [out] dbConn The database obj of current connection
-          \retval SDB_OK Operation Success
-          \retval Others Operation Fail
-      */
+
       INT32 connect ( _sdb **dbConn )
       {
          if ( !pNode )
@@ -2588,6 +2583,7 @@ namespace sdbclient
           \param [out] dbConn The database obj of current connection
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
+          \deprecated This function is deprecated
       */
       INT32 connect ( sdb &dbConn )
       {
