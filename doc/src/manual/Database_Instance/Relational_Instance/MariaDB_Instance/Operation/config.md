@@ -14,21 +14,21 @@
 
 - 通过 COMMENT 创建压缩类型为"snappy"的表
 
- ```lang-sql
- MariaDB [db]> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
- ```
+    ```lang-sql
+    MariaDB [db]> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
+    ```
 
 - 指定表自增字段起始值为 1000
 
- ```lang-sql
- MariaDB [db]> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) AUTO_INCREMENT=1000;
- ```
+    ```lang-sql
+    MariaDB [db]> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) AUTO_INCREMENT=1000;
+    ```
 
 ## 自定义表配置
 
-用户在 MariaDB 上创建表时，可以在表选项 COMMENT 中指定关键词 "sequoiadb" ，并在其后添加一个 json 对象用于传入自定义的表配置参数。格式如下：
+用户在 MariaDB 上创建表时，可以在表选项 COMMENT 中指定关键词"sequoiadb" ，并在其后添加一个 json 对象用于传入自定义的表配置参数。格式如下：
 
-```
+```lang-ini
 COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|false>] }"
 ```
 
@@ -44,22 +44,23 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 - 在 SequoiaDB 上创建根据时间进行范围切分的表
 
-   ```lang-sql
-   MariaDB [company]> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
-       -> ENGINE=sequoiadb
-       -> COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
-   ```
+    ```lang-sql
+    MariaDB [company]> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
+        -> ENGINE=sequoiadb
+        -> COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
+    ```
+
 - 在引擎配置项 sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为 false 显式创建普通表
 
-   ```lang-sql
-   MariaDB [company]> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-       -> ENGINE=sequoiadb 
-       -> COMMENT='sequoiadb:{ auto_partition: false }';
-```
+    ```lang-sql
+    MariaDB [company]> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
+        -> ENGINE=sequoiadb 
+        -> COMMENT='sequoiadb:{ auto_partition: false }';
+    ```
 
 ## SequoiaDB引擎配置使用说明
 
-###配置 SequoiaDB 连接与鉴权###
+### 配置 SequoiaDB 连接与鉴权
 
 **sequoiadb_conn_addr** 
 
@@ -104,7 +105,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 >* 以上配置在命令行修改后，均在建立新连接时才生效，不影响旧连接。
 >* 两种密码都配置的情况下，优先使用明文密码。
 
-###配置自动分区功能###
+### 配置自动分区功能
 
 **sequoiadb_auto_partition**
 
@@ -121,7 +122,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 >
 > 自动分区时，主键或唯一索引只在建表时对应分区键，建表后添加、删除主键或唯一索引都不会更改分区键。
 
-###配置默认副本数###
+### 配置默认副本数
 
 **sequoiadb_replica_size** 
 
@@ -132,7 +133,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###配置批量插入###
+### 配置批量插入
 
 **sequoiadb_use_bulk_insert**
 
@@ -152,7 +153,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###配置性能优化参数###
+### 配置性能优化参数
 
 **sequoiadb_selector_pushdown_threshold**
 
@@ -178,7 +179,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
-###配置事务功能###
+### 配置事务功能
 
 **sequoiadb_use_transaction**
 
@@ -217,7 +218,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global, Session
 + 是否支持在线修改生效：是
 
-###配置统计信息分析###
+### 配置统计信息分析
 
 **sequoiadb_stats_mode**
 
@@ -261,7 +262,49 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###其它配置###
+### 配置 SequoiaDB 节点优先级
+
+**sequoiadb_preferred_instance**
+
+该参数可以配置 MariaDB 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferedInstance][setSessionAttr] 参数说明。
+
++ 类型：string
++ 默认值："M"
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_instance_mode**
+
+该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferedInstanceMode][setSessionAttr] 参数说明。
+
++ 类型：string
++ 默认值："random"
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_strict**
+
+该参数可以配置节点选取是否为严格模式。当为严格模式时，节点只能从 sequoiadb_preferred_instance 指定的规则中选取。
+
++ 类型：boolean
++ 默认值：ON
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_period**
+
+该参数可以配置优先节点的有效周期，单位为秒。如果上一次选择的节点在有效周期内，读请求仍使用该节点进行查询；有效周期之后，将根据 sequoiadb_preferred_instance 重新选择。
+
++ 类型：int32
++ 默认值：60
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+> **Note:**
+>
+> 事务模式下，所有操作均在主节点进行。因此上述配置需在无事务模式下修改，否则无效。
+
+### 其它配置
 
 **sequoiadb_alter_table_overhead_threshold**
 
@@ -308,29 +351,29 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 - 通过工具 sdb_maria_ctl 修改配置
 
-   ```lang-bash
-   $ bin/sdb_maria_ctl chconf myinst --sdb-auto-partition=OFF
-   ```
+    ```lang-bash
+    $ bin/sdb_maria_ctl chconf myinst --sdb-auto-partition=OFF
+    ```
 
 - 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
+ 
+    ```lang-ini
+    sequoiadb_auto_partition=OFF
+    ```
 
-   ```lang-ini
-   sequoiadb_auto_partition=OFF
-   ```
-
-   > **Note:** 
-   > 
-   > 修改配置文件后需要重新启动 MariaDB 服务
+    > **Note:** 
+    > 
+    > 修改配置文件后需要重新启动 MariaDB 服务
 
 - 通过 MariaDB 命令行修改
 
-   ```lang-sql
-   MariaDB [company]> SET GLOBAL sequoiadb_auto_partition=OFF;
-   ```
+    ```lang-sql
+    MariaDB [company]> SET GLOBAL sequoiadb_auto_partition=OFF;
+    ```
 
-   > **Note:** 
-   >
-   > 通过命令行方式修改的配置为临时有效，当重启 MariaDB 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。 
+    > **Note:** 
+    >
+    > 通过命令行方式修改的配置为临时有效，当重启 MariaDB 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。 
 
 
 ## MariaDB常用系统配置
@@ -353,10 +396,11 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 
 
 [^_^]:
-    本文使用的所有引用及链接
+    本文使用的所有引用和链接
 [sequence]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md
 [config]:manual/Database_Instance/Relational_Instance/MariaDB_Instance/Operation/config.md#自定义表配置
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md
-[sql_mode]:https://mariadb.com/kb/en/library/sql-mode/
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+[sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html

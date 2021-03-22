@@ -15,16 +15,16 @@
 
 - 分别通过 COMMENT 和 COMPRESSION 创建压缩类型为"snappy"的表（以下两条语句功能完全相同）
 
-   ```lang-sql
-   mysql> CREATE TABLE t1 (id INT) ENGINE=SEQUOIADB COMPRESSION='snappy';
-   mysql> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
-   ```
+    ```lang-sql
+    mysql> CREATE TABLE t1 (id INT) ENGINE=SEQUOIADB COMPRESSION='snappy';
+    mysql> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
+    ```
 
 - 指定表自增字段起始值为 1000
 
-   ```lang-sql
-   mysql> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) AUTO_INCREMENT=1000;
-   ```
+    ```lang-sql
+    mysql> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) AUTO_INCREMENT=1000;
+    ```
 
 ## 自定义表配置
 
@@ -52,73 +52,73 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 
 - 在 SequoiaDB 上创建根据时间进行范围切分的表
 
-   ```lang-sql
-   mysql> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
-          ENGINE=sequoiadb
-          COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
-   ```
+    ```lang-sql
+    mysql> CREATE TABLE business_log(ts TIMESTAMP, level INT, content TEXT, PRIMARY KEY(ts))
+           ENGINE=sequoiadb
+           COMMENT="Sharding table for example, sequoiadb:{ table_options: { ShardingKey: { ts: 1 }, ShardingType: 'range' } }";
+    ```
 
 - 在引擎配置项 sequoiadb_auto_partition 为 ON 时，指定 auto_partition 为 false 显式创建普通表
 
-   ```lang-sql
-   mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-          ENGINE=sequoiadb
-          COMMENT='sequoiadb:{ auto_partition: false }';
-   ```
+    ```lang-sql
+    mysql> CREATE TABLE employee(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
+           ENGINE=sequoiadb
+           COMMENT='sequoiadb:{ auto_partition: false }';
+    ```
 
 - 在 SequoiaDB 上创建压缩类型为"lzw"的表，通过 ALTER TABLE 修改表压缩类型为"snappy"
 
-   ```lang-sql
-   mysql> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
-          ENGINE=sequoiadb
-          COMMENT="sequoiadb:{ auto_partition: true, table_options:{CompressionType : 'lzw'} }";
-
-   mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ auto_partition: true,
-          table_options:{CompressionType : 'snappy'} }";
-   ```
-   > **Note:**
-   >
-   >ALTER TABLE 支持修改表备注（COMMENT）中的自定义注释，以及更改或追加 table_options 中的配置项，不支持修改 auto_partition。
+    ```lang-sql
+    mysql> CREATE TABLE employee2(id INT PRIMARY KEY, name VARCHAR(128) UNIQUE KEY)
+           ENGINE=sequoiadb
+           COMMENT="sequoiadb:{ auto_partition: true, table_options:{CompressionType : 'lzw'} }";
+    
+    mysql> ALTER TABLE employee2 COMMENT="alter table of compress type,sequoiadb:{ auto_partition: true,
+           table_options:{CompressionType : 'snappy'} }";
+    ```
+    > **Note:**
+    >
+    >ALTER TABLE 支持修改表备注（COMMENT）中的自定义注释，以及更改或追加 table_options 中的配置项，不支持修改 auto_partition。
 
 - 为分区指定 hash 切片数 Partition 属性，在表备注中指定 partition_options 等价于在每个分区备注中单独指定 partition_options（以下两个语句效果完全一致）
 
-   ```lang-sql
-   mysql> CREATE TABLE goods (
-       id INT NOT NULL,
-       produced_date DATE,
-       name VARCHAR(100),
-       company VARCHAR(100)
-   )
-   COMMENT 'sequoiadb:{ partition_options: { Partition: 8192 } }'
-   PARTITION BY RANGE COLUMNS (produced_date)
-   SUBPARTITION BY KEY (id)
-   SUBPARTITIONS 2 (
-       PARTITION p0 VALUES LESS THAN ('1990-01-01'),
-       PARTITION p1 VALUES LESS THAN ('2000-01-01'),
-       PARTITION p2 VALUES LESS THAN ('2010-01-01')
-   );
-
-   mysql> CREATE TABLE goods (
-       id INT NOT NULL,
-       produced_date DATE,
-       name VARCHAR(100),
-       company VARCHAR(100)
-   )
-   PARTITION BY RANGE COLUMNS (produced_date)
-   SUBPARTITION BY KEY (id)
-   SUBPARTITIONS 2 (
-       PARTITION p0 VALUES LESS THAN ('1990-01-01')
-           COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }',
-       PARTITION p1 VALUES LESS THAN ('2000-01-01')
-           COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }',
-       PARTITION p2 VALUES LESS THAN ('2010-01-01')
-           COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }'
-   );
-   ```
+    ```lang-sql
+    mysql> CREATE TABLE goods (
+        id INT NOT NULL,
+        produced_date DATE,
+        name VARCHAR(100),
+        company VARCHAR(100)
+    )
+    COMMENT 'sequoiadb:{ partition_options: { Partition: 8192 } }'
+    PARTITION BY RANGE COLUMNS (produced_date)
+    SUBPARTITION BY KEY (id)
+    SUBPARTITIONS 2 (
+        PARTITION p0 VALUES LESS THAN ('1990-01-01'),
+        PARTITION p1 VALUES LESS THAN ('2000-01-01'),
+        PARTITION p2 VALUES LESS THAN ('2010-01-01')
+    );
+    
+    mysql> CREATE TABLE goods (
+        id INT NOT NULL,
+        produced_date DATE,
+        name VARCHAR(100),
+        company VARCHAR(100)
+    )
+    PARTITION BY RANGE COLUMNS (produced_date)
+    SUBPARTITION BY KEY (id)
+    SUBPARTITIONS 2 (
+        PARTITION p0 VALUES LESS THAN ('1990-01-01')
+            COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }',
+        PARTITION p1 VALUES LESS THAN ('2000-01-01')
+            COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }',
+        PARTITION p2 VALUES LESS THAN ('2010-01-01')
+            COMMENT 'sequoiadb:{ "partition_options": { Partition: 8192 } }'
+    );
+    ```
 
 ## SequoiaDB引擎配置使用说明
 
-###配置 SequoiaDB 连接与鉴权###
+### 配置 SequoiaDB 连接与鉴权
 
 **sequoiadb_conn_addr**
 
@@ -161,7 +161,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 >* 以上配置在命令行修改后，均在建立新连接时才生效，不影响旧连接。
 >* 两种密码都配置的情况下，优先使用明文密码。
 
-###配置自动分区功能###
+### 配置自动分区功能
 
 **sequoiadb_auto_partition**
 
@@ -178,7 +178,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 >
 > 自动分区时，主键或唯一索引只在建表时对应分区键，建表后添加、删除主键或唯一索引都不会更改分区键。
 
-###配置默认副本数###
+### 配置默认副本数
 
 **sequoiadb_replica_size**
 
@@ -189,7 +189,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###配置批量插入###
+### 配置批量插入
 
 **sequoiadb_use_bulk_insert**
 
@@ -209,7 +209,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###配置性能优化参数###
+### 配置性能优化参数
 
 **sequoiadb_selector_pushdown_threshold**
 
@@ -234,7 +234,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
-###配置事务功能###
+### 配置事务功能
 
 **sequoiadb_use_transaction**
 
@@ -273,7 +273,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
-###配置统计信息分析###
+### 配置统计信息分析
 
 **sequoiadb_stats_mode**
 
@@ -317,7 +317,49 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-###其它配置###
+### 配置 SequoiaDB 节点优先级
+
+**sequoiadb_preferred_instance**
+
+该参数可以配置 MySQL 会话进行读操作时，优先选择的 SequoiaDB 节点，取值规则可参考 [PreferedInstance][setSessionAttr] 参数说明。
+
++ 类型：string
++ 默认值："M"
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_instance_mode**
+
+该参数可以配置多个节点符合 sequoiadb_preferred_instance 条件时，节点的选择模式，取值可参考 [PreferedInstanceMode][setSessionAttr] 参数说明。
+
++ 类型：string
++ 默认值："random"
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_strict**
+
+该参数可以配置节点选取是否为严格模式。当为严格模式时，节点只能从 sequoiadb_preferred_instance 指定的规则中选取。
+
++ 类型：boolean
++ 默认值：ON
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+**sequoiadb_preferred_period**
+
+该参数可以配置优先节点的有效周期，单位为秒。如果上一次选择的节点在有效周期内，读请求仍使用该节点进行查询；有效周期之后，将根据 sequoiadb_preferred_instance 重新选择。
+
++ 类型：int32
++ 默认值：60
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+
+> **Note:**
+>
+> 事务模式下，所有操作均在主节点进行。因此上述配置需在无事务模式下修改，否则无效。
+
+### 其它配置
 
 **sequoiadb_alter_table_overhead_threshold**
 
@@ -361,29 +403,29 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 
 - 通过工具 sdb_mysql_ctl 修改配置
 
-   ```lang-bash
-   $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
-   ```
+    ```lang-bash
+    $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
+    ```
 
 - 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
 
-   ```lang-ini
-   sequoiadb_auto_partition=OFF
-   ```
+    ```lang-ini
+    sequoiadb_auto_partition=OFF
+    ```
 
-   > **Note:**
-   >
-   > 修改配置文件后需要重新启动 MySQL 服务
+    > **Note:**
+    >
+    > 修改配置文件后需要重新启动 MySQL 服务
 
 - 通过 MySQL 命令行修改
 
-   ```lang-sql
-   mysql> SET GLOBAL sequoiadb_auto_partition=OFF;
-   ```
+    ```lang-sql
+    mysql> SET GLOBAL sequoiadb_auto_partition=OFF;
+    ```
 
-   > **Note:**
-   >
-   > 通过命令行方式修改的配置为临时有效，当重启 MySQL 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。
+    > **Note:**
+    >
+    > 通过命令行方式修改的配置为临时有效，当重启 MySQL 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。
 
 
 ## MySQL常用系统配置
@@ -413,4 +455,5 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 [partition]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/partition.md
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md
+[setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
 [sql_mode]:https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
