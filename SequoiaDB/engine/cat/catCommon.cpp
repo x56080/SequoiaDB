@@ -2292,6 +2292,10 @@ namespace engine
             }
             continue ;
          }
+         if ( 0 == timeStr[0] )
+         {
+            continue ;
+         }
 
          rc = rtnGetNumberLongElement( obj, CAT_TASKID_NAME, (INT64&)taskID ) ;
          if ( rc )
@@ -2315,6 +2319,7 @@ namespace engine
                        taskID, rc ) ;
                continue ;
             }
+            PD_LOG( PDINFO, "Remove expired task[%llu]", taskID ) ;
          }
       }
 
