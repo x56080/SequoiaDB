@@ -3,7 +3,6 @@ package com.sequoiadb.split.diskfull;
 import java.util.List;
 
 import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
 import org.testng.Assert;
 import org.testng.SkipException;
@@ -59,11 +58,10 @@ public class DiskFullSplit2693 extends SdbTestBase {
             System.out.println( "split srcRG:" + srcGroupName + " destRG:"
                     + destGroupName );
 
-            // 关闭源组熔断机制
-            commSdb.updateConfig( new BasicBSONObject( "ftmask", "NONE" ),
-                    new BasicBSONObject( "GroupName", destGroupName ) );
-
             // 准备数据
+            if ( commSdb.isCollectionSpaceExist( csName ) ) {
+                commSdb.dropCollectionSpace( csName );
+            }
             CollectionSpace commCS = commSdb.createCollectionSpace( csName );
             DBCollection cl = commCS.createCollection( clName,
                     ( BSONObject ) JSON.parse(
@@ -78,10 +76,6 @@ public class DiskFullSplit2693 extends SdbTestBase {
             groupMgr.refresh();
             System.out.println( "fillUpDiskHost:" + fillUpDiskHost );
         } catch ( ReliabilityException e ) {
-            // 熔断机制恢复默认值
-            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
-                    new BasicBSONObject( "GroupName", destGroupName ) );
-
             if ( commSdb != null ) {
                 commSdb.close();
             }
@@ -134,12 +128,29 @@ public class DiskFullSplit2693 extends SdbTestBase {
 
     }
 
-    private long checkGroupData( Sequoiadb sdb, String destGroupName ) {
+    private long checkGroupData( Sequoiadb sdb, String destGroupName )
+            throws ReliabilityException {
         Sequoiadb destDataNode = null;
-        DBCursor cursor = null;
         try {
             destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
-                    .connect();// 获得源主节点链接
+                    .connect();
+        } catch ( BaseException e ) {
+            // 受熔断机制影响，前一个用例如果跑的也是磁盘满的场景，可能检查到了NOSPC状态但是还没有到达熔断确认时间
+            // 到下一个用例时，如果也是测试磁盘满的场景，可能会继续检查到熔断NOSPC状态
+            // 如果前后用例加起来的时间刚好到达熔断确认周期，则会触发熔断选主
+            // 当前用例在CI上跑出有受前面磁盘满用例影响导致在当前步骤直连主节点时报-104
+            // 讨论修改方案为：捕获-104，再次检查集群状态通过后再次检查数据正确性
+            if ( e.getErrorCode() == -104 ) {
+                if ( !groupMgr.checkBusinessWithLSNAndDisk( 20 ) ) {
+                    throw new SkipException( "checkBusiness return false" );
+                }
+                destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
+                        .connect();
+            }
+        }
+
+        DBCursor cursor = null;
+        try {
             DBCollection destCL = destDataNode.getCollectionSpace( csName )
                     .getCollection( clName );
             long recCount = destCL.getCount();
@@ -173,10 +184,6 @@ public class DiskFullSplit2693 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() + "\r\n" + Utils.getStackString( e ) );
         } finally {
-            // 熔断机制恢复默认值
-            commSdb.deleteConfig( new BasicBSONObject( "ftmask", 1 ),
-                    new BasicBSONObject( "GroupName", destGroupName ) );
-
             if ( commSdb != null ) {
                 commSdb.close();
             }
