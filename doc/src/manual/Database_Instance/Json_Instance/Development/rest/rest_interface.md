@@ -289,7 +289,7 @@
 | 请求头   | 同通用请求头                              |                 |
 | 请求内容 | cmd：get sequence next value<br>name：序列名 | cmd=get sequence next value&name=IDSequence |
 | 响应头   | 同通用响应头                              |                 |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 },{ "NextValue": 1, "ReturnNum": 1, "Increment": 1 }] |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回序列下一个值<br>}<br>... | [{ "errno": 0 },{ "NextValue": 1, "ReturnNum": 1, "Increment": 1 }] |
 
 ##获取序列当前值##
 
@@ -298,7 +298,7 @@
 | 请求头   | 同通用请求头                              |                 |
 | 请求内容 | cmd：get sequence current value<br>name：序列名 | cmd=get sequence current value&name=IDSequence |
 | 响应头   | 同通用响应头                              |                 |
-| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>} | [{ "errno": 0 },{ "CurrentValue": 1 }] |
+| 响应内容 | {<br>errno: 返回值，0表示成功，其他为失败<br>description: 失败时的错误描述<br>}<br>{<br>返回序列当前值<br>}<br>... | [{ "errno": 0 },{ "CurrentValue": 1 }] |
 
 ##重置序列计数##
 
