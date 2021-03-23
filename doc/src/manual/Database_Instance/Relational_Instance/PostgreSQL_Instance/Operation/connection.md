@@ -108,9 +108,9 @@
 
 ## PostgreSQL与SequoiaDB数据类型映射关系
 
-| PostgreSQL	    | API        | 注意事项                                      |
+| PostgreSQL	    |     SequoiaDB    | 注意事项                                      |
 | ----------------- | ---------------- | --------------------------------------------- |
-| smallint	        | int32              | 当 API 中的值超过 smallint 范围时会发生截断 |
+| smallint	        | int32            | 当类型为 int32 的值长度超过 smallint 的长度范围时，会发生截断 |
 | integer        	| int32              |                                               |
 | bigint        	| int64             |                                               |
 | serial           	| int32              |                                               |
@@ -127,9 +127,6 @@
 | timestamp         | timestamp        |                                               |
 | TYPE[]            | array            | 仅支持一维数组                                |
 | boolean           | boolean          |                                               |
-| text              | null             |                                               |
-
-
 
 ## 关联SequoiaDB连接参数说明
 
