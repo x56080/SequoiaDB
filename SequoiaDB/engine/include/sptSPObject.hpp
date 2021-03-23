@@ -72,6 +72,8 @@ namespace engine
 
       INT32 getFieldNumber( UINT32 &number ) const ;
 
+      INT32 getDesc( const sptObjDesc **pDesc ) const ;
+
    protected:
       INT32 _getTypeOfVal( jsval val, SPT_JS_TYPE &type ) const ;
 

@@ -683,6 +683,12 @@ namespace engine
       goto done ;
    }
 
+   INT32 sptSPObject::getDesc( const sptObjDesc **pDesc ) const
+   {
+      BOOLEAN isSpecialObj = FALSE ;
+      return sptGetObjFactory()->getObjDesc( _cx, _obj, isSpecialObj, pDesc) ;
+   }
+
    INT32 sptSPObject::_getTypeOfVal( jsval val, SPT_JS_TYPE &type ) const
    {
       INT32 rc = SDB_OK ;

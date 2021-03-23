@@ -123,6 +123,7 @@ namespace engine
       const sptObject *pObj = arg.getObject() ;
       sptObjectPtr rgPtr ;
       sptObjectPtr connPtr ;
+      const sptObjDesc *objDesc = NULL ;
       const _sptDBSdb *pSdb = NULL ;
       _sptDBSdb *pRetSdb = NULL ;
 
@@ -168,7 +169,15 @@ namespace engine
          goto error ;
       }
 
-      rc = connPtr->getUserObj( _sptDBSdb::__desc, ( const void** )&pSdb ) ;
+      rc = connPtr->getDesc( &objDesc ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get conn desc obj" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = connPtr->getUserObj( *objDesc, ( const void** )&pSdb ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "Failed to get conn obj" ) ;
