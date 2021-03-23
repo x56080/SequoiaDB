@@ -57,6 +57,35 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
         -> ENGINE=sequoiadb 
         -> COMMENT='sequoiadb:{ auto_partition: false }';
     ```
+## SequoiaDB引擎配置修改方式
+
+配置参数有以下三种修改方式：
+
+- 通过工具 sdb_maria_ctl 修改配置
+
+    ```lang-bash
+    $ bin/sdb_maria_ctl chconf myinst --sdb-auto-partition=OFF
+    ```
+
+- 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
+ 
+    ```lang-ini
+    sequoiadb_auto_partition=OFF
+    ```
+
+    > **Note:** 
+    > 
+    > 修改配置文件后需要重新启动 MariaDB 服务
+
+- 通过 MariaDB 命令行修改
+
+    ```lang-sql
+    MariaDB [company]> SET GLOBAL sequoiadb_auto_partition=OFF;
+    ```
+
+    > **Note:** 
+    >
+    > 通过命令行方式修改的配置为临时有效，当重启 MariaDB 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。 
 
 ## SequoiaDB引擎配置使用说明
 
@@ -344,37 +373,6 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 + 默认值：error
 + 作用范围：Global
 + 是否支持在线修改生效：是
-
-## SequoiaDB引擎配置修改方式
-
-配置参数有以下三种修改方式：
-
-- 通过工具 sdb_maria_ctl 修改配置
-
-    ```lang-bash
-    $ bin/sdb_maria_ctl chconf myinst --sdb-auto-partition=OFF
-    ```
-
-- 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
- 
-    ```lang-ini
-    sequoiadb_auto_partition=OFF
-    ```
-
-    > **Note:** 
-    > 
-    > 修改配置文件后需要重新启动 MariaDB 服务
-
-- 通过 MariaDB 命令行修改
-
-    ```lang-sql
-    MariaDB [company]> SET GLOBAL sequoiadb_auto_partition=OFF;
-    ```
-
-    > **Note:** 
-    >
-    > 通过命令行方式修改的配置为临时有效，当重启 MariaDB 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。 
-
 
 ## MariaDB常用系统配置
 

@@ -116,6 +116,36 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
     );
     ```
 
+## SequoiaDB引擎配置修改方式
+
+配置参数有以下三种修改方式：
+
+- 通过工具 sdb_mysql_ctl 修改配置
+
+    ```lang-bash
+    $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
+    ```
+
+- 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
+
+    ```lang-ini
+    sequoiadb_auto_partition=OFF
+    ```
+
+    > **Note:**
+    >
+    > 修改配置文件后需要重新启动 MySQL 服务
+
+- 通过 MySQL 命令行修改
+
+    ```lang-sql
+    mysql> SET GLOBAL sequoiadb_auto_partition=OFF;
+    ```
+
+    > **Note:**
+    >
+    > 通过命令行方式修改的配置为临时有效，当重启 MySQL 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。
+
 ## SequoiaDB引擎配置使用说明
 
 ### 配置 SequoiaDB 连接与鉴权
@@ -397,35 +427,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 + 作用范围：Global
 + 是否支持在线修改生效：是
 
-## SequoiaDB引擎配置修改方式
 
-配置参数有以下三种修改方式：
-
-- 通过工具 sdb_mysql_ctl 修改配置
-
-    ```lang-bash
-    $ bin/sdb_mysql_ctl chconf myinst --sdb-auto-partition=OFF
-    ```
-
-- 通过实例数据目录下的配置文件 `auto.cnf`，在[mysqld]一栏添加/更改对应配置项
-
-    ```lang-ini
-    sequoiadb_auto_partition=OFF
-    ```
-
-    > **Note:**
-    >
-    > 修改配置文件后需要重新启动 MySQL 服务
-
-- 通过 MySQL 命令行修改
-
-    ```lang-sql
-    mysql> SET GLOBAL sequoiadb_auto_partition=OFF;
-    ```
-
-    > **Note:**
-    >
-    > 通过命令行方式修改的配置为临时有效，当重启 MySQL 服务后配置将失效，若需要配置永久生效则必须通过配置文件的方式修改。
 
 
 ## MySQL常用系统配置
