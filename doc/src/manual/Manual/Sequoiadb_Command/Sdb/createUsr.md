@@ -35,10 +35,10 @@ Sdb
 | AuditMask | String     | 用户审计日志配置掩码，取值列表：ACCESS、CLUSTER、SYSTEM、DML、DDL、DCL、DQL、INSERT、DELETE、UPDATE、OTHER；ALL表示全部开启，NONE表示全部不开启；可以使用‘\|’连接多个取值。当某位掩码未配置时，则继承节点相应的配置掩码；也可以通过 ‘!’ 来禁止某位掩码的继承 |
 
 > **Note:**
-
+>
 > * 该接口只能用于集群模式。
-
 > * 当数据库创建了用户，连接数据库必须指定用户名和密码。
+> * 数据库用户名和密码的限制请参考[数据库限制][databast_limite]
 
 ##返回值##
 
@@ -78,10 +78,12 @@ v2.0 及以上版本
 
 
 [^_^]:
-   本文使用的所有引用及链接
+     本文使用的所有引用及链接
+
 [user]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/User.md
 [cipherUser]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/CipherUser.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/faq.md
 [passwd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md
+[databast_limite]:manual/Manual/sequoiadb_limitation.md#数据库
