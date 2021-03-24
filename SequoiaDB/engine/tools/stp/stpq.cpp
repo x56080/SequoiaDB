@@ -1653,7 +1653,7 @@ namespace engine
       {
          return 0 ;
       }
-      return ( SDB_OK != rc ? SDB_SRC_INVALIDARG : 1 ) ;
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
 
    error:
       goto done ;

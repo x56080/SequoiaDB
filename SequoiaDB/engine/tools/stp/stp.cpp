@@ -225,7 +225,11 @@ namespace engine
       pmdDisableSignalEvent() ;
       PD_LOG( PDEVENT, "Stop program, exit code: %d",
               krcb->getShutdownCode() ) ;
-      return rc == SDB_OK ? 0 : 1 ;
+      if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
+      {
+         return 0 ;
+      }
+      return SDB_OK == rc ? 0 : utilRC2ShellRC( rc ) ;
 
    error:
       goto done ;
