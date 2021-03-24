@@ -40,7 +40,7 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT32 MAX_FAILURE_COUNT = 16;
+   const UINT32 MAX_FAILURE_COUNT = 8;
 
    fsmCandidateBucket::fsmCandidateBucket():
    _reqCnt(0)
@@ -53,33 +53,23 @@ namespace vessel
 
    }
 
-   void fsmCandidateBucket::upsert(ossSpinLatch *latch,
-                                   const fsmCandidate &candidate,
-                                   BOOLEAN setFillBack,
-                                   fsmCandidate *replaced)
+   BOOLEAN fsmCandidateBucket::upsert(const fsmCandidate &candidate,
+                                      fsmCandidate *replaced)
    {
       SDB_ASSERT(candidate.isValid(), "can not be invalid");
-      UINT32 toBeEvited = 0;
-      UINT16 minFree = 0xFFFF;
-
-      if (NULL != replaced)
-      {
-         replaced->reset();
-      }
-      
-      ossSpinGuard guard(latch);
+      UINT16 minFree = candidate.free;
+      BOOLEAN r = FALSE;
+      _bucketCandidate *toBeEvited = NULL;
 
       for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
       {
-         fsmCandidate &c = _candidates[i];
+         _bucketCandidate &c = _candidates[i];
          if (!c.isValid())
          {
-            c = fsmCandidate(candidate.seq, candidate.lpid,
-                             candidate.free);
-            if (setFillBack)
-            {
-               c.setFillBackFlag();
-            }
+            c.reset(candidate.seq,
+                    candidate.lpid,
+                    candidate.free);
+            r = TRUE;
             if (NULL != replaced)
             {
                replaced->reset();
@@ -88,52 +78,54 @@ namespace vessel
          }
          else if (c.free < minFree)
          {
-            toBeEvited = i;
-            minFree = _candidates[i].free;
+            toBeEvited = &c;
+            minFree = c.free;
          }
+      }
+
+      if (NULL == toBeEvited)
+      {
+         goto done;
       }
 
       if (NULL != replaced)
       {
-         *replaced = _candidates[toBeEvited];
+         replaced->reset();
+         replaced->seq = toBeEvited->seq;
+         replaced->lpid = toBeEvited->lpid;
+         replaced->free = toBeEvited->free;
       }
 
-      _candidates[toBeEvited] = fsmCandidate(candidate.seq,
-                                             candidate.lpid,
-                                             candidate.free);
-      if (setFillBack)
-      {
-         _candidates[toBeEvited].setFillBackFlag();
-      }
+      toBeEvited->reset(candidate.seq,
+                       candidate.lpid,
+                       candidate.free);
+      r = TRUE;
    done:
-      return;
+      return r;
    }
 
-   BOOLEAN fsmCandidateBucket::findAndAutoRemoving(ossSpinLatch *latch,
-                                                   UINT16 needSize,
+   BOOLEAN fsmCandidateBucket::findAndAutoRemoving(UINT16 size,
                                                    UINT16 minFreeSize,
                                                    fsmCandidate &candidate)
    {
       BOOLEAN r = FALSE;
-      INT32 where = -1;
-      ossSpinGuard guard(latch);
       UINT32 seed = _reqCnt++;
+      SDB_ASSERT(4 == FSM_CANDIDATE_BUCKET_CAPACITY, "impossible");
 
       for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
       {
          UINT32 index = (seed + i) & 0x3;/// mod 4
-         fsmCandidate &c = _candidates[i];
+         _bucketCandidate &c = _candidates[i];
          if (c.isValid())
          {
-            if (needSize <= c.free)
+            if (size <= c.free)
             {
-               candidate = c;
-               c.free -= needSize;
+               candidate = fsmCandidate(c.seq, c.lpid, c.free);
+               c.free -= size;
                if (c.free < minFreeSize)
                {
                   remove(index);
                }
-               c.clearFillBackFlag();
                r = TRUE;
                break;
             }
@@ -144,38 +136,147 @@ namespace vessel
          }
       }
 
+      return r;
+   }
+
+   BOOLEAN fsmCandidateBucket::tryToInc(CL_PAGE_SEQ seq,
+                                        PAGE_ID lpid,
+                                        UINT16 maxFreeSize,
+                                        UINT16 newFreeSize,
+                                        UINT16 delta)
+   {
+      BOOLEAN r = FALSE;
+      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      {
+         _bucketCandidate &c = _candidates[i];
+         if (!c.isValid() || seq != c.seq)
+         {
+            continue;
+         }
+
+         r = TRUE;
+
+         if (maxFreeSize < (c.free + delta))
+         {
+            c.free = newFreeSize < maxFreeSize ? newFreeSize : maxFreeSize;
+         }
+         else
+         {
+            c.free += maxFreeSize;
+         }
+
+         if (INVALID_PAGE_ID == c.lpid &&
+             INVALID_PAGE_ID != c.lpid)
+         {
+            c.lpid = lpid;
+         }
+      }
    done:
       return r;
    }
 
-   void fsmCandidateBucket::guaranteeNotFull(ossSpinLatch *latch)
+   BOOLEAN fsmCandidateBucket::tryToDec(CL_PAGE_SEQ seq,
+                                        PAGE_ID lpid,
+                                        UINT16 minFreeSize,
+                                        UINT16 newFreeSize,
+                                        UINT16 delta)
    {
-      UINT32 toBeEvited = 0;
-      UINT16 minFree = 0xFFFF; 
-      ossSpinGuard guard(latch);
+      BOOLEAN r = FALSE;
       for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
       {
-         fsmCandidate &c = _candidates[i];
-         if (!c.isValid())
+         _bucketCandidate &c = _candidates[i];
+         if (!c.isValid() || seq != c.seq)
          {
-            goto done;
+            continue;
          }
-         else if (c.free < minFree)
+
+         r = TRUE;
+
+         if (newFreeSize < minFreeSize)
          {
-            toBeEvited = i;
-            minFree = c.free;
+            remove(i);
+         }
+         else if (delta < c.free)
+         {
+            c.free -= delta;
+            if (c.free < minFreeSize)
+            {
+               remove(i);
+            }
+            else if (INVALID_PAGE_ID == c.lpid &&
+                     INVALID_PAGE_ID != c.lpid)
+            {
+               c.lpid = lpid;
+            }
+         }
+         else
+         {
+            c.free = newFreeSize;
+            if (INVALID_PAGE_ID == c.lpid &&
+                     INVALID_PAGE_ID != c.lpid)
+            {
+               c.lpid = lpid;
+            }
+         }         
+      }
+   done:
+      return r;
+   }
+
+   BOOLEAN fsmCandidateBucket::fillback(CL_PAGE_SEQ seq,
+                                        PAGE_ID lpid,
+                                        BOOLEAN failure)
+   {
+      BOOLEAN r = FALSE;
+      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      {
+         _bucketCandidate &c = _candidates[i];
+         if (!c.isValid() || seq != c.seq)
+         {
+            continue;
+         }
+
+         r = TRUE;
+
+         if (failure)
+         {
+            if (MAX_FAILURE_COUNT <= c.incAndGetFaulureCnt())
+            {
+               remove(i);
+               goto done;
+            }
+         }
+
+         if (INVALID_PAGE_ID == c.lpid)
+         {
+            c.lpid = lpid;
          }
       }
-
-      remove(toBeEvited);
    done:
+      return r;
+   }
+
+   void fsmCandidateBucket::dump(fsmCandidate *candidates,
+                                 UINT32 &count)const
+   {
+      UINT32 cnt = 0;
+      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      {
+         const _bucketCandidate &c = _candidates[i];
+         if (!c.isValid())
+         {
+            continue;
+         }
+
+         candidates[cnt++] = fsmCandidate(c.seq, c.lpid, c.free);
+      }
+      count = cnt;
       return;
    }
 
-   UINT32 fsmCandidateBucket::getSize(ossSpinLatch *latch)const
+   UINT32 fsmCandidateBucket::getSize()const
    {
       UINT32 size = 0;
-      ossSpinGuard guard(latch);
       for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
       {
          if (_candidates[i].isValid())

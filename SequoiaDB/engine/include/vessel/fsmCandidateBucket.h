@@ -49,6 +49,7 @@ namespace vessel
 {
    static const UINT32 FSM_CANDIDATE_BUCKET_CAPACITY = 4;
 
+#pragma pack(4)
    class fsmCandidateBucket : public SDBObject
    {
       public:
@@ -57,46 +58,117 @@ namespace vessel
 
       public:
          OSS_INLINE UINT32 getCapacity()const;
-
-         /// no-latch allowed.
          OSS_INLINE UINT64 getReqCnt()const;
-
-         OSS_INLINE BOOLEAN isFull(ossSpinLatch *latch)const;
-         OSS_INLINE BOOLEAN isEmpty(ossSpinLatch *latch)const;
+         OSS_INLINE BOOLEAN isEmpty()const;
+         OSS_INLINE UINT32 getFreeSize()const;
       public:
-         /// we can save 8Bytes in one bucket if 
-         /// not store latch's pointer as member.
-         void upsert(ossSpinLatch *latch,
-                     const fsmCandidate &candidate,
-                     BOOLEAN setFillBack=TRUE,
-                     fsmCandidate *replaced=NULL);
+         BOOLEAN upsert(const fsmCandidate &candidate,
+                        fsmCandidate *replaced=NULL);
 
-         BOOLEAN findAndAutoRemoving(ossSpinLatch *latch,
-                                     UINT16 needSize,
+         BOOLEAN findAndAutoRemoving(UINT16 size,
                                      UINT16 minFreeSize,
                                      fsmCandidate &candidate);
 
-         void guaranteeNotFull(ossSpinLatch *latch);
+         UINT32 getSize()const;
 
-         UINT32 getSize(ossSpinLatch *latch)const;
+         BOOLEAN tryToInc(CL_PAGE_SEQ seq,
+                          PAGE_ID lpid,
+                          UINT16 maxFreeSize,
+                          UINT16 newFreeSize,
+                          UINT16 delta);
+
+         BOOLEAN tryToDec(CL_PAGE_SEQ seq,
+                          PAGE_ID lpid,
+                          UINT16 minFreeSize,
+                          UINT16 newFreeSize,
+                          UINT16 delta);
+
+         BOOLEAN fillback(CL_PAGE_SEQ seq,
+                          PAGE_ID lpid,
+                          BOOLEAN failure);
+
+         void dump(fsmCandidate *candidates, UINT32 &count)const;
 
       private:
          OSS_INLINE void remove(UINT32 i);
 
       private:
+         struct _bucketCandidate
+         {
+            OSS_INLINE _bucketCandidate():
+            seq(INVALID_CL_PAGE_SEQ),
+            lpid(INVALID_PAGE_ID),
+            free(0),
+            failureCnt(0),
+            flags(0){}
+   
+            OSS_INLINE ~_bucketCandidate(){}
+            OSS_INLINE _bucketCandidate(const _bucketCandidate &o):
+            seq(o.seq),
+            lpid(o.lpid),
+            free(o.free),
+            failureCnt(o.failureCnt),
+            flags(o.flags){}
+
+            OSS_INLINE _bucketCandidate &operator=(const _bucketCandidate &o)
+            {
+               seq = o.seq;
+               lpid = o.lpid;
+               free = o.free;
+               failureCnt = o.failureCnt;
+               flags = o.flags;
+               return *this;
+            }
+
+            OSS_INLINE void reset()
+            {
+               seq = INVALID_CL_PAGE_SEQ;
+               lpid = INVALID_PAGE_ID;
+               free = 0;
+               failureCnt = 0;
+               flags = 0;
+               return;
+            }
+
+            OSS_INLINE void reset(CL_PAGE_SEQ s,
+                                  PAGE_ID l,
+                                  UINT16 f)
+            {
+               seq = s;
+               lpid = l;
+               free = f;
+               failureCnt = 0;
+               flags = 0;
+               return;
+            }
+
+            OSS_INLINE UINT8 incAndGetFaulureCnt()
+            {
+               return ++failureCnt;
+            }
+
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return INVALID_CL_PAGE_SEQ != seq;
+            }
+
+            CL_PAGE_SEQ seq;
+            PAGE_ID lpid;
+            UINT16 free;
+            UINT8 failureCnt;
+            UINT8 flags;
+         };//struct _bucketCandidate
+
+      private:
          /// we should always keep searching done in one cpu cache line.
-         fsmCandidate _candidates[FSM_CANDIDATE_BUCKET_CAPACITY];
+         _bucketCandidate _candidates[FSM_CANDIDATE_BUCKET_CAPACITY];
          UINT64 _reqCnt;
    };//class fsmCandidateBucket
+#pragma pack()
 
-   OSS_INLINE BOOLEAN fsmCandidateBucket::isFull(ossSpinLatch *latch)const
+   OSS_INLINE BOOLEAN fsmCandidateBucket::isEmpty()const
    {
-      return FSM_CANDIDATE_BUCKET_CAPACITY == getSize(latch);
-   }
-
-   OSS_INLINE BOOLEAN fsmCandidateBucket::isEmpty(ossSpinLatch *latch)const
-   {
-      return 0 == getSize(latch);
+      return 0 == getSize();
    }
 
    OSS_INLINE UINT32 fsmCandidateBucket::getCapacity()const
@@ -107,6 +179,11 @@ namespace vessel
    OSS_INLINE UINT64 fsmCandidateBucket::getReqCnt()const
    {
       return _reqCnt;
+   }
+
+   OSS_INLINE UINT32 fsmCandidateBucket::getFreeSize()const
+   {
+      return FSM_CANDIDATE_BUCKET_CAPACITY - getSize();
    }
 
    OSS_INLINE void fsmCandidateBucket::remove(UINT32 i)

@@ -61,7 +61,7 @@ namespace vessel
    #define SU_FILE_NAME_IDX_SUFFIX "idx"
    #define SU_FILE_NAME_LOB_SUFFIX "lob"
    #define SU_FILE_NAME_CSNAME_SUFFIX "name"
-   #define SU_FILE_NAME_FSM_BITMAP_SUFFIX "fsm"
+   #define SU_FILE_NAME_FSM_SUFFIX "fsm"
 
    const UINT32 INVALID_FILE_HEAD_VERSION = 0;
 

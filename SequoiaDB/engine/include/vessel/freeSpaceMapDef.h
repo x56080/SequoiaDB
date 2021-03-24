@@ -50,7 +50,7 @@ namespace vessel
    const static UINT32 FSM_SUB_BITMAP_COUNT = 8;
    const static UINT16 FSM_PAGE_VERSION = 1;
    const static UINT32 FSM_SMP_PID = 0;
-   const static UINT32 FSM_PAGE_MAP_CAPAITY = 2046;
+   const static UINT32 FSM_PAGE_MAP_CAPAITY = 1364;
 
    const static UINT32 FSM_PAGE_SIZE = 32768;
    const static UINT32 FSM_PAGE_COUNT_PER_SEG = 64;
@@ -61,43 +61,91 @@ namespace vessel
 
    const static UINT32 FSM_SEQ_RANGE_IN_SUB_PAGE = FSM_BITMAP_BITS_COUNT * 64;
    const static UINT32 FSM_SEQ_RANGE_IN_PAGE = FSM_SEQ_RANGE_IN_SUB_PAGE * FSM_SUB_BITMAP_COUNT;
-   
 
+   const static INT32 FSM_SPACE_LVL_INVALID = -1;
+   const static INT32 FSM_SPACE_LVL0 = 0;
+   const static INT32 FSM_SPACE_LVL1 = 1;
+   const static INT32 FSM_SPACE_LVL2 = 2;
+   const static INT32 FSM_SPACE_LVL3 = 3;
+   const static INT32 FSM_SPACE_LVL_MIN = FSM_SPACE_LVL0;
+   const static INT32 FSM_SPACE_LVL_MAX = FSM_SPACE_LVL3;
+   const static UINT32 FSM_SPACE_LVL_COUNT = FSM_SPACE_LVL_MAX + 1;
+
+   const static UINT32 FSM_LVL_DELTA_COUNT = 16;
+
+   const static UINT32 FSM_32KB_LVL1 = 8192;
+   const static UINT32 FSM_32KB_LVL2 = 16384;
+   const static UINT32 FSM_32KB_LVL3 = 24576;
+
+   const static UINT32 FSM_32KB_LVL3_DELTA_RANGE = (DMS_PAGE_SIZE32K - FSM_32KB_LVL3) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_32KB_LVL2_DELTA_RANGE = (FSM_32KB_LVL3 - FSM_32KB_LVL2) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_32KB_LVL1_DELTA_RANGE = (FSM_32KB_LVL2 - FSM_32KB_LVL1) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_32KB_LVL0_DELTA_RANGE = FSM_32KB_LVL1 / FSM_LVL_DELTA_COUNT;
+
+
+   const static UINT32 FSM_64KB_LVL1 = FSM_32KB_LVL1 << 1;
+   const static UINT32 FSM_64KB_LVL2 = FSM_32KB_LVL2 << 1;
+   const static UINT32 FSM_64KB_LVL3 = FSM_32KB_LVL3 << 1;
+
+   const static UINT32 FSM_64KB_LVL3_DELTA_RANGE = (DMS_PAGE_SIZE64K - FSM_64KB_LVL3) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_64KB_LVL2_DELTA_RANGE = (FSM_64KB_LVL3 - FSM_64KB_LVL2) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_64KB_LVL1_DELTA_RANGE = (FSM_64KB_LVL2 - FSM_64KB_LVL1) / FSM_LVL_DELTA_COUNT;
+   const static UINT32 FSM_64KB_LVL0_DELTA_RANGE = FSM_64KB_LVL1 / FSM_LVL_DELTA_COUNT;
 #pragma pack(4)
    struct fsmStats
    {
       OSS_INLINE fsmStats():
-      totalPageCount(0),
-      lvl1(0),
-      lvl2(0),
-      lvl3(0),
-      lvl4(0){}
+      totalPageCount(0)
+      {
+         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            lvln[i] = 0;
+         }
+      }
+
       OSS_INLINE ~fsmStats(){}
       OSS_INLINE fsmStats &operator=(const fsmStats &o)
       {
          totalPageCount = o.totalPageCount;
-         lvl1 = o.lvl1;
-         lvl2 = o.lvl2;
-         lvl3 = o.lvl3;
-         lvl4 = o.lvl4;
+         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            lvln[i] = o.lvln[i];
+         }
          return *this;
       }
       OSS_INLINE void reset()
       {
-         lvl1 = 0;
-         lvl2 = 0;
-         lvl3 = 0;
-         lvl4 = 0;
+         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            lvln[i] = 0;
+         }
          totalPageCount = 0;
          return;
+      }
+      OSS_INLINE void merge(const fsmStats &o)
+      {
+         totalPageCount += o.totalPageCount;
+         for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
+         {
+            lvln[i] += o.lvln[i];
+         }
+         return;
+      }
+      OSS_INLINE INT32 getLvl(UINT32 i)
+      {
+         return i < FSM_SPACE_LVL_COUNT ? lvln[i] : -1;
+      }
+      OSS_INLINE void decLvl(UINT32 i)
+      {
+         if (i < FSM_SPACE_LVL_COUNT)
+         {
+            --lvln[i];
+         }
       }
 
    public:
       UINT32 totalPageCount;
-      INT32 lvl1;
-      INT32 lvl2;
-      INT32 lvl3;
-      INT32 lvl4;
+      INT32 lvln[FSM_SPACE_LVL_COUNT];
    };// struct fsmStats
 
    struct fsmPageHead
@@ -118,38 +166,33 @@ namespace vessel
          return INVALID_PAGE_ID != pid;
       }
       UINT32 pid;
-      UINT16 flags;
-      UINT16 count;
-      UINT16 lvl1Count;
-      UINT16 lvl2Count;
-      UINT16 lvl3Count;
-      UINT16 lvl4Count;
+      fsmStats stat;
    };//struct fsmPageMapSlot
 
    struct fsmPageMapPage
    {
       fsmPageHead head;
-      UINT32 flags;
       UINT16 count;
-      UINT16 pad;
+      UINT16 flags;
+      UINT32 pad;
       fsmPageMapSlot pages[FSM_PAGE_MAP_CAPAITY];
    };//struct fsmPageMapPage
    const static UINT32 FSM_PMAP_PAGE_SIZE = sizeof(fsmPageMapPage);
 
    struct fsmBitMapSubPage
    {
+      OSS_INLINE UINT64 *getBits(UINT32 lvl)
+      {
+         return &(lvln[FSM_BITMAP_BITS_COUNT * lvl]);
+      }
+      OSS_INLINE UINT32 getBitsCount()const
+      {
+         return FSM_BITMAP_BITS_COUNT;
+      }
       fsmPageHead head;
-      UINT16 flags;
-      UINT16 count;
-      UINT16 lvl1Cnt;
-      UINT16 lvl2Cnt;
-      UINT16 lvl3Cnt;
-      UINT16 lvl4Cnt;
-      CHAR pad[92];
-      UINT64 lvl1[FSM_BITMAP_BITS_COUNT];
-      UINT64 lvl2[FSM_BITMAP_BITS_COUNT];
-      UINT64 lvl3[FSM_BITMAP_BITS_COUNT];
-      UINT64 lvl4[FSM_BITMAP_BITS_COUNT];
+      fsmStats stat;
+      CHAR pad[84];
+      UINT64 lvln[FSM_BITMAP_BITS_COUNT * 4];
       UINT64 deltas[FSM_BITMAP_BITS_COUNT * 4];
    };//struct fsmBitMapSubPage
 
@@ -187,8 +230,11 @@ namespace vessel
    };//struct fsmCLEntry
    static const UINT32 FSM_CL_ENTRY_SIZE = sizeof(fsmCLEntry);
 
-   const static UINT8 FSM_CANDIDATE_FLAG_FILL_BACK = 0x01;
+   const static UINT32 FSM_ENTRY_SLOT_COUNT = FSM_PAGE_SIZE / FSM_CL_ENTRY_SIZE;
+   const static UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
 
+
+   static const UINT8 FSM_CANDIDATE_FLAG_FILLBACK = 0x01;
    class fsmCandidate : public SDBObject
    {
       public:
@@ -197,13 +243,16 @@ namespace vessel
          lpid(INVALID_PAGE_ID),
          free(0),
          flags(0),
-         failureCnt(0){}
+         bucket(-1){}
 
          OSS_INLINE fsmCandidate(CL_PAGE_SEQ s,
                                  PAGE_ID l,
                                  UINT16 f):
-         seq(s), lpid(l), free(f), flags(0), failureCnt(0){}
-
+         seq(s),
+         lpid(l),
+         free(f),
+         flags(0),
+         bucket(-1){}
 
          OSS_INLINE ~fsmCandidate(){}
 
@@ -212,7 +261,7 @@ namespace vessel
          lpid(o.lpid),
          free(o.free),
          flags(o.flags),
-         failureCnt(o.failureCnt){}
+         bucket(o.bucket){}
 
          OSS_INLINE fsmCandidate &operator=(const fsmCandidate &o)
          {
@@ -220,7 +269,7 @@ namespace vessel
             lpid = o.lpid;
             free = o.free;
             flags = o.flags;
-            failureCnt = o.failureCnt;
+            bucket = o.bucket;
             return *this;
          }
 
@@ -230,7 +279,7 @@ namespace vessel
             lpid = INVALID_PAGE_ID;
             free = 0;
             flags = 0;
-            failureCnt = 0;
+            bucket = -1;
             return;
          }
 
@@ -238,67 +287,45 @@ namespace vessel
          {
             return INVALID_CL_PAGE_SEQ != seq;
          }
-         OSS_INLINE UINT8 incAndGetFaulureCnt()
+
+         OSS_INLINE BOOLEAN testFillBackFlag()const
          {
-            return ++failureCnt;
+            return OSS_BIT_TEST(flags, FSM_CANDIDATE_FLAG_FILLBACK);
          }
-         OSS_INLINE void setFillBackFlag()
+         OSS_INLINE void setFillBack()
          {
-            OSS_BIT_SET(flags, FSM_CANDIDATE_FLAG_FILL_BACK);
+            OSS_BIT_SET(flags, FSM_CANDIDATE_FLAG_FILLBACK);
          }
-         OSS_INLINE void clearFillBackFlag()
+         OSS_INLINE void clearFillBack()
          {
-            if (isFillBack())
-            {
-               OSS_BIT_CLEAR(flags, FSM_CANDIDATE_FLAG_FILL_BACK);
-            }
+            OSS_BIT_CLEAR(flags, FSM_CANDIDATE_FLAG_FILLBACK);
          }
-         OSS_INLINE BOOLEAN isFillBack()const
+
+         OSS_INLINE void setBucketNo(INT8 bucketNo)
          {
-            OSS_BIT_TEST(flags, FSM_CANDIDATE_FLAG_FILL_BACK);
+            bucket = bucketNo;
+            return;
+         }
+         OSS_INLINE BOOLEAN hasBucketNo()const
+         {
+            return 0 <= bucket;
+         }
+         OSS_INLINE void resetBucket()
+         {
+            bucket = -1;
          }
       public:
          CL_PAGE_SEQ seq;
          PAGE_ID lpid;
          UINT16 free;
          UINT8 flags;
-         UINT8 failureCnt;
+         INT8 bucket;
    };//class fsmCandidate
    
 #pragma pack()
    
 
-   const static UINT32 FSM_ENTRY_SLOT_COUNT = FSM_PAGE_SIZE / FSM_CL_ENTRY_SIZE;
-   const static UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
-
-   const static UINT32 FSM_SPACE_LVL_INVALID = 0;
-   const static UINT32 FSM_SPACE_LVL1 = 1;
-   const static UINT32 FSM_SPACE_LVL2 = 2;
-   const static UINT32 FSM_SPACE_LVL3 = 3;
-   const static UINT32 FSM_SPACE_LVL4 = 4;
-   const static UINT32 FSM_SPACE_LVL_MIN = FSM_SPACE_LVL1;
-   const static UINT32 FSM_SPACE_LVL_MAX = FSM_SPACE_LVL4;
-
-   const static UINT32 FSM_LVL_DELTA_COUNT = 16;
-
-   const static UINT32 FSM_32KB_LVL2 = 8192;
-   const static UINT32 FSM_32KB_LVL3 = 16384;
-   const static UINT32 FSM_32KB_LVL4 = 24576;
-
-   const static UINT32 FSM_32KB_LVL4_DELTA_RANGE = (DMS_PAGE_SIZE32K - FSM_32KB_LVL4) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL3_DELTA_RANGE = (FSM_32KB_LVL4 - FSM_32KB_LVL3) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL2_DELTA_RANGE = (FSM_32KB_LVL3 - FSM_32KB_LVL2) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_32KB_LVL1_DELTA_RANGE = FSM_32KB_LVL2 / FSM_LVL_DELTA_COUNT;
-
-
-   const static UINT32 FSM_64KB_LVL2 = FSM_32KB_LVL2 << 1;
-   const static UINT32 FSM_64KB_LVL3 = FSM_32KB_LVL3 << 1;
-   const static UINT32 FSM_64KB_LVL4 = FSM_32KB_LVL4 << 1;
-
-   const static UINT32 FSM_64KB_LVL4_DELTA_RANGE = (DMS_PAGE_SIZE64K - FSM_64KB_LVL4) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL3_DELTA_RANGE = (FSM_64KB_LVL4 - FSM_64KB_LVL3) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL2_DELTA_RANGE = (FSM_64KB_LVL3 - FSM_64KB_LVL2) / FSM_LVL_DELTA_COUNT;
-   const static UINT32 FSM_64KB_LVL1_DELTA_RANGE = FSM_64KB_LVL2 / FSM_LVL_DELTA_COUNT;
+   
 
    
    
@@ -318,10 +345,11 @@ namespace vessel
 
    BOOLEAN isWorthToScanDisk(UINT32 needLvl,
                              UINT32 totalCnt,
+                             INT32 lvl0,
                              INT32 lvl1,
                              INT32 lvl2,
                              INT32 lvl3,
-                             INT32 lvl4);
+                             const FLOAT32 *minPercent=NULL);
 }//namespace vessel
 }//namespace engine
 

@@ -377,5 +377,82 @@ namespace vessel
    done:
       return r;
    }
+
+   BOOLEAN testBitIsFree(UINT32 count, const UINT64 *bits, UINT32 offset)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
+      UINT64 bit = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      const UINT64 *bitsSlot = NULL;
+      if (slot < count)
+      {
+         bitsSlot = &(bits[slot]);
+         r = OSS_BIT_TEST(*bitsSlot, bit);
+      }
+      return r;
+   }
+
+   BOOLEAN setNotFreeWithCAS64(UINT32 count, UINT64 *bits,
+                               UINT32 offset, UINT32 maxLoop)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      mask = ~mask;
+      volatile UINT64 *bitsSlot = NULL;
+      UINT64 expected = 0;
+      UINT64 disired = 0;
+      UINT32 loop = 0;
+
+      if (slot < count)
+      {
+         bitsSlot = &(bits[slot]);
+         expected = *bitsSlot;
+         disired = expected & mask;
+         while (!ossCompareAndSwap64(bitsSlot, expected, disired))
+         {
+            if (maxLoop <= ++loop)
+            {
+               break;
+            }
+
+            expected = *bitsSlot;
+            disired = expected & mask;
+         }
+      }
+   done:
+      return r;
+   }
+
+   BOOLEAN setFreeWithCAS64(UINT32 count, UINT64 *bits,
+                            UINT32 offset, UINT32 maxLoop)
+   {
+      BOOLEAN r = FALSE;
+      UINT32 slot = offset >> BM_UTIL_BITWISE_64;
+      UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
+      volatile UINT64 *bitsSlot = NULL;
+      UINT64 expected = 0;
+      UINT64 disired = 0;
+      UINT32 loop = 0;
+
+      if (slot < count)
+      {
+         bitsSlot = &(bits[slot]);
+         expected = *bitsSlot;
+         disired = expected | mask;
+         while (!ossCompareAndSwap64(bitsSlot, expected, disired))
+         {
+            if (maxLoop <= ++loop)
+            {
+               break;
+            }
+
+            expected = *bitsSlot;
+            disired = expected | mask;
+         }
+      }
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine

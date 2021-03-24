@@ -803,7 +803,7 @@ namespace vessel
          goto error;
       }
 
-      while (count < _dataSegmentCount)
+      while (_dataSegmentCount < count)
       {
          rc = allocateNewSegment();
          if (SDB_OK != rc)

@@ -61,6 +61,10 @@ namespace vessel
             _delta = o._delta;
             return *this;
          }
+         OSS_INLINE BOOLEAN operator==(const fsmSizeLvl &o)const
+         {
+            return _lvl == o._lvl && _delta == o._delta;
+         }
 
       public:
          OSS_INLINE void reset()
@@ -84,7 +88,7 @@ namespace vessel
          }
 
 
-         void reset(UINT16 lvl, UINT16 delta);
+         void reset(INT16 lvl, UINT16 delta);
          void initUnder32KBPage(UINT16 size);
          void initUnder64KBPage(UINT16 size);
          void init(UINT32 pageSize, UINT32 size);
@@ -93,7 +97,7 @@ namespace vessel
          UINT32 getMinFreeSize(UINT32 pageSize)const;
 
       private:
-         UINT16 _lvl;
+         INT16 _lvl;
          UINT16 _delta;
    };
 }//namespace vessel

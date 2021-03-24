@@ -925,7 +925,8 @@ vesselFiles = [
       "vessel/freeSpaceMap.cpp",
       "vessel/freeSpaceMapDef.cpp",
       "vessel/fsmSizeLvl.cpp",
-      "vessel/fsmCandidateBucket.cpp"
+      "vessel/fsmCandidateBucket.cpp",
+      "vessel/fsmCandidateBuckets.cpp"
 ]
 
 #vessel unit test
@@ -935,7 +936,8 @@ vesselTestFiles = [
       "test/vessel/collectionmap_test.cpp",
       "test/vessel/cursor_test.cpp",
       "test/vessel/cs_ddl_test.cpp",
-      "test/vessel/cl_ddl_test.cpp"
+      "test/vessel/cl_ddl_test.cpp",
+      "test/vessel/fsm_test.cpp"
 ]
 
 #BSON

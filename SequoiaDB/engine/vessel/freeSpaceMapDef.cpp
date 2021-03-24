@@ -43,37 +43,37 @@ namespace vessel
 
    BOOLEAN isWorthToScanDisk(UINT32 needLvl,
                              UINT32 totalCnt,
+                             INT32 lvl0,
                              INT32 lvl1,
                              INT32 lvl2,
                              INT32 lvl3,
-                             INT32 lvl4)
+                             const FLOAT32 *minPercent)
    {
       BOOLEAN r = FALSE;
       FLOAT32 cnt = 0;
       FLOAT32 percent = 0.0;
+      FLOAT32 min = NULL == minPercent ? WORTH_TO_SCAN_PERCENT : *minPercent;
       if (0 == totalCnt)
       {
          goto done;
       }
       switch (needLvl)
       {
+      case FSM_SPACE_LVL0:
+         if (0 < lvl0) {cnt += lvl0;}
       case FSM_SPACE_LVL1:
-         cnt += lvl1;
+         if (0 < lvl1) {cnt += lvl1;}
       case FSM_SPACE_LVL2:
-         cnt += lvl2;
+         if (0 < lvl2) {cnt += lvl2;}
       case FSM_SPACE_LVL3:
-         cnt += lvl3;
-      case FSM_SPACE_LVL4:
-         cnt += lvl4;
+         if (0 < lvl3) {cnt += lvl3;}
          break;
       default:
          break;
       }
    
       percent = cnt / totalCnt;
-      r = (0 < cnt) && 
-          (totalCnt <= FSM_SEQ_RANGE_IN_SUB_PAGE || WORTH_TO_SCAN_PERCENT <= percent);
-
+      r = min <= percent;
    done:
       return r;
    }

@@ -40,7 +40,7 @@
 #include "ossLikely.hpp"
 #include "vessel/freeSpaceMapDef.h"
 #include "ossMemPool.hpp"
-#include "ossSpinLatch.hpp"
+#include "vessel/fsmCandidateBuckets.h"
 
 namespace engine
 {
@@ -60,14 +60,14 @@ namespace vessel
       public:
          BOOLEAN isOpen()const
          {
-            return 0 == _pageSize;
+            return 0 != _pageSize;
          }
 
          INT32 create(fsmFile *file,
                      CL_MB_ID mbID,
                      UINT32 logicalID,
                      UINT32 bodySize,
-                     UINT32 reservedSize,
+                     UINT32 minFreeSize,
                      BOOLEAN bucketMode = FALSE,
                      STRIPING_ID min=INVALID_STRIPING_ID,
                      STRIPING_ID max=INVALID_STRIPING_ID);
@@ -91,15 +91,32 @@ namespace vessel
          /// order: bucket -> new page pool -> disk map
          INT32 findInWholeMap(STRIPING_ID striping,
                               UINT32 originalRecordSize,
+                              BOOLEAN skipBucket,
                               fsmCandidate &candidate);
 
          ///count should alwasy be eight now.
-         INT32 addNewPagesAndFind(CL_PAGE_SEQ firstSeq,
-                                  PAGE_ID firstLpid,
-                                  UINT32 count,
-                                  STRIPING_ID striping,
-                                  UINT32 originalRecordSize,
-                                  fsmCandidate &candidate);
+         INT32 addNewPages(CL_PAGE_SEQ firstSeq,
+                           const PAGE_ID *lpids,
+                           UINT32 count);
+
+         INT32 fillback(CL_PAGE_SEQ seq,
+                        PAGE_ID lpid,
+                        UINT32 bucketNo,
+                        BOOLEAN failure);
+
+         /// reorg page.
+         INT32 incPageFreeSize(CL_PAGE_SEQ sequence,
+                               PAGE_ID lpid,
+                               STRIPING_ID minStriping,
+                               UINT16 newFreeSize,
+                               UINT16 delta);
+
+         /// deleting record.
+         INT32 decPageFreeSize(CL_PAGE_SEQ sequence,
+                               PAGE_ID lpid,
+                               STRIPING_ID minStriping,
+                               UINT16 newFreeSize,
+                               UINT16 delta);
 
       private:
          struct _pageSAndL
@@ -131,28 +148,31 @@ namespace vessel
          typedef ossPoolList<_pageSAndL> _NEW_PAGE_POOL;
 
       private:
-         fsmCandidateBucket *getBucket(STRIPING_ID striping, UINT32 *bucketNo);
+         UINT32 getBucketNo(STRIPING_ID striping);
 
          BOOLEAN findFromBucket(UINT32 bucketNo,
-                                fsmCandidateBucket *bucket,
                                 UINT32 size,
                                 fsmCandidate &candidate);
 
-         UINT32 estimateMaxUpdatingCount(fsmCandidateBucket *bucket);
+         UINT32 estimateMaxUpdatingCount(UINT32 bucketNo);
 
          /// WARNING: should always do finding in bucket first.
          BOOLEAN findPageFromPoolAndUpdateBucket(UINT32 bucketNo,
-                                                 fsmCandidateBucket *bucket,
                                                  UINT16 size,
                                                  fsmCandidate &candidate);
 
          /// WARNING: should always do finding in pool first.
          INT32 findPageFromDiskMapAndUpdateBucket(UINT32 bucketNo,
-                                                  fsmCandidateBucket *bucket,
                                                   UINT16 size,
                                                   fsmCandidate &candidate);
       private:
          void fini();
+         void addNewPagesToPool(UINT32 count,
+                                CL_PAGE_SEQ seq,
+                                const PAGE_ID *lpids);
+         void savePagesInPool();
+         void savePagesInBuckets();
+ 
          
       private:
          STRIPING_ID _minStriping;
@@ -161,12 +181,10 @@ namespace vessel
          UINT32 _maxFreeSize;
          UINT32 _minFreeSize;
          UINT32 _bucketCount;
-         fsmCandidateBucket *_buckets;
-         ossSpinLatch _fastLatch;
-         
+         fsmCandidateBuckets _buckets;
+
          ossSpinSLatch _latch;
          _NEW_PAGE_POOL _newPagePool;
-         fsmStats _diskStats;
          diskFreeSpaceMap _dfsm;
    };//class freeSpaceMap
 }//namespace vessel

@@ -64,16 +64,7 @@ namespace vessel
          goto done;
       }
       
-      if (FSM_32KB_LVL4 < size)
-      {
-         _lvl = FSM_SPACE_LVL4;
-         _delta = (size - FSM_32KB_LVL4) / FSM_32KB_LVL4_DELTA_RANGE;
-         if (FSM_LVL_DELTA_COUNT == _delta)
-         {
-            --_delta;
-         }
-      }
-      else if (FSM_32KB_LVL3 < size)
+      if (FSM_32KB_LVL3 < size)
       {
          _lvl = FSM_SPACE_LVL3;
          _delta = (size - FSM_32KB_LVL3) / FSM_32KB_LVL3_DELTA_RANGE;
@@ -91,10 +82,19 @@ namespace vessel
             --_delta;
          }
       }
-      else
+      else if (FSM_32KB_LVL1 < size)
       {
          _lvl = FSM_SPACE_LVL1;
-         _delta = size / FSM_32KB_LVL1_DELTA_RANGE;
+         _delta = (size - FSM_32KB_LVL1) / FSM_32KB_LVL1_DELTA_RANGE;
+         if (FSM_LVL_DELTA_COUNT == _delta)
+         {
+            --_delta;
+         }
+      }
+      else
+      {
+         _lvl = FSM_SPACE_LVL0;
+         _delta = size / FSM_32KB_LVL0_DELTA_RANGE;
          if (FSM_LVL_DELTA_COUNT == _delta)
          {
             --_delta;
@@ -108,16 +108,7 @@ namespace vessel
    {
       reset();
       
-      if (FSM_64KB_LVL4 < size)
-      {
-         _lvl = FSM_SPACE_LVL4;
-         _delta = (size - FSM_64KB_LVL4) / FSM_64KB_LVL4_DELTA_RANGE;
-         if (FSM_LVL_DELTA_COUNT == _delta)
-         {
-            --_delta;
-         }
-      }
-      else if (FSM_64KB_LVL3 < size)
+      if (FSM_64KB_LVL3 < size)
       {
          _lvl = FSM_SPACE_LVL3;
          _delta = (size - FSM_64KB_LVL3) / FSM_64KB_LVL3_DELTA_RANGE;
@@ -135,20 +126,29 @@ namespace vessel
             --_delta;
          }
       }
-      else
+      else if (FSM_64KB_LVL1 < size)
       {
          _lvl = FSM_SPACE_LVL1;
-         _delta = size / FSM_64KB_LVL1_DELTA_RANGE;
+         _delta = (size - FSM_64KB_LVL1) / FSM_64KB_LVL1_DELTA_RANGE;
          if (FSM_LVL_DELTA_COUNT == _delta)
          {
             --_delta;
          }
       }
-   done:
+      else
+      {
+         _lvl = FSM_SPACE_LVL0;
+         _delta = size / FSM_64KB_LVL0_DELTA_RANGE;
+         if (FSM_LVL_DELTA_COUNT == _delta)
+         {
+            --_delta;
+         }
+      }
+
       return;
    }
 
-   void fsmSizeLvl::reset(UINT16 lvl, UINT16 delta)
+   void fsmSizeLvl::reset(INT16 lvl, UINT16 delta)
    {
       SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
       if (FSM_SPACE_LVL_MAX < lvl ||
@@ -201,8 +201,13 @@ namespace vessel
       }
       else if (DMS_PAGE_SIZE32K == pageSize)
       {
-         if (FSM_SPACE_LVL1 == _lvl)
+         if (FSM_SPACE_LVL0 == _lvl)
          {
+            deltaRange = FSM_32KB_LVL0_DELTA_RANGE;
+         }
+         else if (FSM_SPACE_LVL1 == _lvl)
+         {
+            lvlSize = FSM_32KB_LVL1;
             deltaRange = FSM_32KB_LVL1_DELTA_RANGE;
          }
          else if (FSM_SPACE_LVL2 == _lvl)
@@ -215,16 +220,16 @@ namespace vessel
             lvlSize = FSM_32KB_LVL3;
             deltaRange = FSM_32KB_LVL3_DELTA_RANGE;
          }
-         else if (FSM_SPACE_LVL4 == _lvl)
-         {
-            lvlSize = FSM_32KB_LVL4;
-            deltaRange = FSM_32KB_LVL4_DELTA_RANGE;
-         }
       }
       else if (DMS_PAGE_SIZE64K == pageSize)
       {
-         if (FSM_SPACE_LVL1 == _lvl)
+         if (FSM_SPACE_LVL0 == _lvl)
          {
+            deltaRange = FSM_64KB_LVL0_DELTA_RANGE;
+         }
+         else if (FSM_SPACE_LVL1 == _lvl)
+         {
+            lvlSize = FSM_64KB_LVL1;
             deltaRange = FSM_64KB_LVL1_DELTA_RANGE;
          }
          else if (FSM_SPACE_LVL2 == _lvl)
@@ -236,11 +241,6 @@ namespace vessel
          {
             lvlSize = FSM_64KB_LVL3;
             deltaRange = FSM_64KB_LVL3_DELTA_RANGE;
-         }
-         else if (FSM_SPACE_LVL4 == _lvl)
-         {
-            lvlSize = FSM_64KB_LVL4;
-            deltaRange = FSM_64KB_LVL4_DELTA_RANGE;
          }
       }
 

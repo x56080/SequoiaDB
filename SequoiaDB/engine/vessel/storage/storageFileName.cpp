@@ -109,6 +109,12 @@ namespace vessel
                      SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_CSNAME_SUFFIX);
          break;
       }
+      case SPACE_TYPE_FSM:
+      {
+         ossSnprintf(_name, SU_FILE_NAME_LEN + 1, "%s%d.%s",
+                     SU_FILE_NAME_PREFIX, space, SU_FILE_NAME_FSM_SUFFIX);
+         break;
+      }
       default:
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "unknown space type%d", type);

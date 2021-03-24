@@ -87,7 +87,13 @@ namespace vessel
                                            UINT32 &offset);
 
    BOOLEAN setNotFreeIfFree64(UINT32 count, UINT64 *bits, UINT32 offset);
+   BOOLEAN setNotFreeWithCAS64(UINT32 count, UINT64 *bits,
+                               UINT32 offset, UINT32 maxLoop);
+   BOOLEAN setFreeWithCAS64(UINT32 count, UINT64 *bits,
+                            UINT32 offset, UINT32 maxLoop);
    BOOLEAN setFreeIfNotFree64(UINT32 count, UINT64 *bits, UINT32 offset);
+   BOOLEAN testBitIsFree(UINT32 count, const UINT64 *bits,
+                         UINT32 offset);
 
 }//namespace vessel
 }//namespace engine

@@ -3210,5 +3210,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_CAS_BUSY</name>
+         <description>
+            <en>the loop count of cas hits the max value</en>
+            <cn>原子更新数据时尝试的次数达到最大值</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>
