@@ -13,8 +13,11 @@ sdbRoot="bin"
 coordsvcname="50000"
 essvcname="9200"
 catasvcname="30000"
+stpsvcname="9622"
+
 coordhostname="localhost"
 eshostname="localhost"
+stphostname="localhost"
 
 rsrvportbegin="26000"
 rsrvportend="27000"
@@ -75,6 +78,8 @@ function showHelpInfo()
    echo " -c cataport    : 指定测试的CATALOG节点服务名，默认为30000"
    echo " -eh eshost     : 指定es环境主机名或ip，默认是localhost"
    echo " -en essvcname  : 指定es环境节点服务名，默认为9200"
+   echo " -sh stphostname: 指定stp环境主机名或ip，默认是localhost"
+   echo " -sn stpsvcname : 指定stp环境节点服务名，默认是9622"
    echo " -s1            : 指定预留的RSRVPORTBEGIN端口号，默认为26000"
    echo " -s2            : 指定预留的RSRVPORTEND端口号，默认为27000"
    echo " -sp            : 指定用预留端口创建节点的路径RSRVNODEDIR，默认为 当前路径/database_runtest/"
@@ -126,7 +131,7 @@ function runJSFile()
    local file=$1
    
    result=0
-   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
+   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var STPSVCNAME=${stpsvcname}; var STPHOSTNAME='${stphostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
 #   runresult=0
    if [ $printOut -eq 1 -o $# -gt 1 ] ; then
       echo "CMD: $lastCmdStr"
@@ -332,6 +337,12 @@ function analyPara()
                          ;;
          -en )           shift
                          essvcname="$1"
+                         ;;
+         -sh )           shift
+                         stphostname="$1"
+                         ;;
+         -sn )           shift
+                         stpsvcname="$1"
                          ;;
          -print )        printOut=1
                          ;;
@@ -539,6 +550,8 @@ echo "COORDSVCNAME  : $coordsvcname"
 echo "COORDHOSTNAME : $coordhostname"
 echo "ESSVCNAME     : $essvcname"
 echo "ESHOSTNAME    : $eshostname"
+echo "STPSVCNAME    : $stpsvcname"
+echo "STPHOSTNAME   : $stphostname"
 echo "RSRVPORTBEGIN : $rsrvportbegin"
 echo "RSRVPORTEND   : $rsrvportend"
 echo "RSRVNODEDIR   : $rsrvnodedir"
