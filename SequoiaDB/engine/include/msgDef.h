@@ -567,6 +567,7 @@
 
 #define FIELD_OP_VALUE_KEEP                  "keep"
 #define FIELD_OP_VALUE_REPLACE               "replace"
+#define FIELD_OP_VALUE_SET                   "set"
 
 // For parameters
 // Used internal: { $param : paramIndex, $ctype : canonicalType }

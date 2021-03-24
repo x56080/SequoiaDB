@@ -105,13 +105,15 @@ namespace engine
       INT32       _kickKey( const CoordCataInfoPtr &cataInfo,
                             const BSONObj &updator,
                             BSONObj &newUpdator,
-                            BOOLEAN &hasShardingKey,
-                            BOOLEAN &isChanged,
+                            const BSONObj &matcher,
+                            BOOLEAN &shardingKeyChanged,
+                            BOOLEAN &hasKeepAutoInc,
                             BOOLEAN ignoreAutoInc = FALSE ) ;
 
       INT32       _kickShardingKey( const string &collectionName,
                                     const BSONObj &updator,
                                     BSONObj &newUpdator,
+                                    const BSONObj &matcher,
                                     BOOLEAN &isChanged,
                                     _pmdEDUCB *cb,
                                     BOOLEAN keepShardingKey ) ;
@@ -126,6 +128,9 @@ namespace engine
                                      _pmdEDUCB *cb ) ;
 
       BOOLEAN     _isKey( const CHAR *pField, BSONObj &boKey ) ;
+
+      BOOLEAN     _isShardingKeyChange( const BSONElement &beField,
+                                        const BSONObj &matcher ) ;
 
    private:
       typedef ossPoolMap< UINT32, BOOLEAN > SiteIDSet ;
