@@ -150,12 +150,14 @@ public class DiskFullSplit2689 extends SdbTestBase {
             // 如果前后用例加起来的时间刚好到达熔断确认周期，则会触发熔断选主
             // 当前用例在CI上跑出有受前面磁盘满用例影响导致在当前步骤直连主节点时报-104
             // 讨论修改方案为：捕获-104，再次检查集群状态通过后再次检查数据正确性
-            if ( e.getErrorCode() == -104 ) {
+            if ( e.getErrorCode() == -104 || e.getErrorCode() == -71 ) {
                 if ( !groupMgr.checkBusinessWithLSNAndDisk( 20 ) ) {
-                    throw new SkipException( "checkBusiness return false" );
+                    throw new ReliabilityException( "再次检查集群状态失败" );
                 }
                 destDataNode = sdb.getReplicaGroup( destGroupName ).getMaster()
                         .connect();
+            } else {
+                throw e;
             }
         }
 
