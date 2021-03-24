@@ -323,7 +323,10 @@ namespace engine
             // file or dir not exist
             PD_LOG( PDWARNING, "Failed to read missing configurations [%s], "
                     "use default configurations", _cfgFileName ) ;
+            rc = SDB_OK ;
          }
+         PD_RC_CHECK( rc, PDERROR, "Failed to read configurations [%s], "
+                      "rc: %d", _cfgFileName, rc ) ;
       }
 
       // remove options should no saved into config file
