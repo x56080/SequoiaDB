@@ -21,7 +21,7 @@ Sdb
 | 参数名   | 类型 | 默认值  | 描述 | 是否必填 |
 | -------- | -------- | ------- | ---- | -------- |
 | bufferSize     | number  | ---      | 开启追踪的文件大小，单位为兆字节，取值范围为[1,1024] | 是 |
-| strComp        | string    | 所有模块 | 指定模块               | 否 |
+| strComp        | string    | 所有模块 | 指定模块，可选模块请参考 [component][component]    | 否 |
 | strBreakPoint  | string    | ---      | 在指定函数处打断点进行跟踪（最多可指定 10 个断点） | 否 |
 | tids           | array     | 所有线程 | 指定单个或多个线程 tid（最多可指定 10 个线程号） | 否 |
 | SdbTraceOption | SdbTraceOption | ---      | 使用一个对象来指定监控参数，使用方法可参考 [SdbTraceOption][TraceOption] | 否 |
@@ -122,3 +122,4 @@ v1.0 及以上版本
 [traceResume]:manual/Manual/Sequoiadb_Command/Sdb/traceResume.md
 [traceOff]:manual/Manual/Sequoiadb_Command/Sdb/traceOff.md
 [traceFmt]:manual/Manual/Sequoiadb_Command/Global/traceFmt.md
+[component]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbTraceOption.md#方法
