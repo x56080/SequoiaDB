@@ -65,7 +65,7 @@ namespace vessel
       SDB_ASSERT(FSM_PAGE_SIZE == head.pageSize, "must be same");
       ossValuePtr ptr = 0;
       UINT32 offset = 0;
-      UINT32 totalBitsCount = FSM_PAGE_SIZE >> 2; /// divided by 4
+      UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
 
       rc = ensureSegmentCount(1);
       if (SDB_OK != rc)
@@ -81,7 +81,7 @@ namespace vessel
          goto error;
       }
 
-      ossMemset((CHAR *)ptr, 0xFF, head.pageSize);
+      ossMemset((CHAR *)ptr, 0xFF, FSM_PAGE_SIZE);
 
       /// first page is smp, can not be allocated.
       if (!findAndClearFirstFreeBitFromBit64(totalBitsCount, -1, (UINT64*)ptr, offset))
@@ -110,7 +110,7 @@ namespace vessel
             goto error;
          }
 
-         ossMemset((CHAR *)ptr, 0xFF, FSM_PAGE_SIZE);
+         ossMemset((CHAR *)tmpPtr, 0xFF, FSM_PAGE_SIZE);
       }
 
       fsync(FSM_SMP_PID, 1 + FSM_ENTRY_PAGE_COUNT, TRUE);
@@ -125,7 +125,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      const storageFileHead &head = getCommonHeadInMem();
       ossValuePtr ptr = 0;
       UINT32 offset = 0;
       UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8

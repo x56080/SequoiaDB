@@ -298,7 +298,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
-      SDB_ASSERT(beginBits < bitsCount, "searchBegin out of range");
       UINT32 i = 0 < beginBits ? beginBits : 0;
       for (; i < bitsCount; ++i)
       {
@@ -324,7 +323,6 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
-      SDB_ASSERT(beginBits < bitsCount, "searchBegin out of range");
       UINT32 i = 0 < beginBits ? beginBits : 0;
       for (; i < bitsCount; ++i)
       {

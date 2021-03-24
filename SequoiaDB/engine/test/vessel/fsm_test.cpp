@@ -88,9 +88,31 @@ TEST_F(fsm_ddl_test, test1)
    ASSERT_EQ(SDB_OK, rc);
    rc = file.initAfterCreation();
    ASSERT_EQ(SDB_OK, rc);
+   v::fsmCandidate candidate;
 
    rc = fsm.create(&file, 0, 0, DMS_PAGE_SIZE32K, 0, TRUE, 0, 4095);
    ASSERT_EQ(SDB_OK, rc);
 
+   rc = fsm.fastFind(0, 1233, candidate);
+   ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
+   rc = fsm.findInWholeMap(0, 1233, FALSE, candidate);
+   ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
+
+   PAGE_ID lpids[8];
+   for (UINT32 i = 0; i < 8; ++i)
+   {
+      lpids[i] = i;
+   }
+
+   rc = fsm.addNewPages(0, lpids, 8);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = fsm.findInWholeMap(0, 1233, TRUE, candidate);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(candidate.seq, 0);
+   ASSERT_EQ(candidate.lpid, 0);
+   ASSERT_EQ(candidate.free, 32676);
+
    fsm.close();
+   file.close();
 }
