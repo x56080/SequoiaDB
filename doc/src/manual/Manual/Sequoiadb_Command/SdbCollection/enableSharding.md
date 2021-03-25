@@ -1,20 +1,20 @@
-##名称##
+## 名称
 
-enableSharding - 修改集合的属性开启分区属性。
+enableSharding - 修改集合的属性开启分区属性
 
-##语法##
+## 语法
 
 **db.collectionspace.collection.enableSharding(\<options\>)**
 
-##类别##
+## 类别
 
-Collection
+SdbCollection
 
-##描述##
+## 描述
 
-修改集合的属性开启分区属性。
+该函数用于修改集合的属性开启分区属性。
 
-##参数##
+## 参数
 
 * `options` ( *Object*， *必填* )
 
@@ -65,13 +65,13 @@ Collection
 	* 分区集合不能修改与分区相关的属性。
     * EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等时有效
 
-##返回值##
+## 返回值
 
-成功：无。  
+函数执行成功时，无返回值。
 
-失败：抛出异常。
+函数执行失败时，将抛异常并输出错误信息。
 
-##错误##
+## 错误
 
 `enableSharding()`函数常见异常如下：
 
@@ -83,11 +83,11 @@ Collection
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。
 可以参考[常见错误处理指南][faq]了解更多内容。
 
-##版本##
+## 版本
 
-v2.10及以上版本。
+v2.10 及以上版本。
 
-##示例##
+## 示例
 
 1. 创建一个普通集合，然后将该集合修改为分区集合：
 

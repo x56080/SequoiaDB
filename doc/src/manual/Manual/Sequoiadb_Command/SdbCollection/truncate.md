@@ -1,25 +1,42 @@
-##语法##
-***db.collectionspace.collection.truncate\(\)***
+## 名称
 
-truncate 会删除集合内所有数据（包括普通文档和 LOB 数据），但不会影响其元数据。与 remove 需要按照条件筛选目标不同，truncate 会直接释放数据页，在清空集合（尤其是大数据量下）数据时效率比 remove 更加高效。
+truncate - 删除集合内所有数据
+
+## 语法
+
+**db.collectionspace.collection.truncate\(\)**
+
+## 类别
+
+SdbCollection
+
+## 描述
+
+该函数用于删除集合内所有数据（包括普通文档和 LOB 数据），但不会影响其元数据。与 remove 需要按照条件筛选目标不同，truncate 会直接释放数据页，在清空集合（尤其是大数据量下）数据时效率比 remove 更加高效。
 
 > **Note:** 
 > 
 > 如有自增字段，truncate后字段序列值将会重置。
 
-##参数描述##
+## 参数
 
 无
 
-##返回值##
+## 返回值
 
-无返回值，出错抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误信息码。
+函数执行成功时，无返回值。
 
-##错误##
+函数执行失败时，将抛异常并输出错误信息。
 
-[错误码](manual/Manual/Sequoiadb_error_code.md)
+## 错误
 
-##示例##
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 * 我们在集合 sample.employee 中插入了普通数据和 LOB 数据。通过快照查看其数据页使用情况：
 
@@ -84,3 +101,9 @@ truncate 会删除集合内所有数据（包括普通文档和 LOB 数据），
       ]
     }
  ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md

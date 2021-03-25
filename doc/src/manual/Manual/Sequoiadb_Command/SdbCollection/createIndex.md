@@ -1,12 +1,22 @@
+## 名称
 
-##语法##
-***db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[isUnique\],\[enforced\],\[sortBufferSize\])***
+createIndex - 创建索引
 
-***db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[options\])***
+## 语法
 
-为集合创建[索引][index]，提高查询速度。
+**db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[isUnique\],\[enforced\],\[sortBufferSize\])**
 
-##参数描述##
+**db.collectionspace.collection.createIndex\(\<name\>,\<indexDef\>,\[options\])**
+
+## 类别
+
+SdbCollection
+
+## 描述
+
+该函数用于为集合创建[索引][index]，提高查询速度。
+
+## 参数
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -17,7 +27,7 @@
 | sortBufferSize | int | 创建索引时使用的排序缓存的大小，单位为MB。取值为0时表示不使用排序缓存。默认为64。| 否 |
 | options | Json 对象 | 可选项，详见 options 选项说明。| 否 |
 
-##options 选项##
+options 选项：
 
 | 属性名          | 参数类型 | 描述                | 默认值 |
 | --------------- | -------- | ------------------- | ------ |
@@ -34,57 +44,63 @@
 > * 在集合记录数据量较大时（大于1000万条记录）适当增大排序缓存大小可以提高创建索引的速度。
 > * 对于全文索引，参数 isUnique、enforced 及 sortBufferSize 无意义。
 
-##返回值##
+## 返回值
 
-无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误信息码。
+函数执行成功时，无返回值。
 
-##错误##
+函数执行失败时，将抛异常并输出错误信息。
 
-[错误码][error_code]
+## 错误
 
-##示例##
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 * 在集合 employee 下为字段名 age 创建名为 ageIndex 的唯一索引，记录按 age 字段值的升序排序。
 
- ```lang-javascript
- > db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
- ```
+    ```lang-javascript
+    > db.sample.employee.createIndex( "ageIndex", { age: 1 }, true )
+    ```
 
 * 集合 employee 创建唯一索引，并且索引字段不允许为 null 或者不存在 。
 
- ```lang-javascript
- > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
- >
- > // b 字段为 null，插入索引时报错
- > db.sample.employee.insert( { a: 1, b: null } )
- sdb.js:625 uncaught exception: -339
- Any field of index key should exist and cannot be null
- Takes 0.002531s.
- > 
- > // b 字段不存在，插入索引时报错
- > db.sample.employee.insert( { a: 1 } )
- sdb.js:625 uncaught exception: -339
- Any field of index key should exist and cannot be null
- Takes 0.002531s.
- ```
+    ```lang-javascript
+    > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { Unique: true, NotNull: true } )
+    >
+    > // b 字段为 null，插入索引时报错
+    > db.sample.employee.insert( { a: 1, b: null } )
+    sdb.js:625 uncaught exception: -339
+    Any field of index key should exist and cannot be null
+    Takes 0.002531s.
+    > 
+    > // b 字段不存在，插入索引时报错
+    > db.sample.employee.insert( { a: 1 } )
+    sdb.js:625 uncaught exception: -339
+    Any field of index key should exist and cannot be null
+    Takes 0.002531s.
+    ```
 
 * 在集合 employee 中的 address 及 tags 字段上建立[全文索引][text_index]，用于对这两个字段进行全文检索。
 
- ```lang-javascript
- > db.sample.employee.createIndex( "addr_tags", { address: "text", tags: "text" } )
- ```
+    ```lang-javascript
+    > db.sample.employee.createIndex( "addr_tags", { address: "text", tags: "text" } )
+    ```
 
 * 集合 employee 创建索引，并且索引字段不允许为数组 。
 
- ```lang-javascript
- > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
- >
- > // a字段为数组，插入索引时报错
- > db.sample.employee.insert( { a: [1],b: 10 } )
- sdb.js:645 uncaught exception: -364
- Any field of index key cannot be array
- Takes 0.001760s.
- ```
+    ```lang-javascript
+    > db.sample.employee.createIndex( "ab", { a: 1, b: 1 }, { NotArray: true} )
+    >
+    > // a字段为数组，插入索引时报错
+    > db.sample.employee.insert( { a: [1],b: 10 } )
+    sdb.js:645 uncaught exception: -364
+    Any field of index key cannot be array
+    Takes 0.001760s.
+    ```
 
 
 [^_^]:
@@ -96,3 +112,4 @@
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+[error_guide]:manual/faq.md

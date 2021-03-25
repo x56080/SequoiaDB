@@ -34,7 +34,7 @@ Frequent exceptions of `getIndexStat()`：
 |----------|----------|------|--------|
 |-356      |SDB_IXM_STAT_NOTEXIST|1.Index has not been analyzed; <br>2.Index doesn't exist;|1.Collect statistics by [db.analyze()](reference/Sequoiadb_command/Sdb/analyze.md); <br>2.Check if the index exists;|
 
-When the exception happens, use [getLastErrMsg()](reference/Sequoiadb_command/Global/getLastErrMsg.md) to get the error message or use [getLastError()](reference/Sequoiadb_command/Global/getLastError.md) to get the error code. For more details, refer to [Troubleshooting](troubleshooting/general/general_guide.md).
+When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
 
 ##VERSION##
 
@@ -47,3 +47,9 @@ v3.4.2 and above
    ```
    > db.sample.employee.getIndexStat( "ageIndex" )
    ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md

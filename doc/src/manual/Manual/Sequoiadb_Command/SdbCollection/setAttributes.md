@@ -1,20 +1,20 @@
-##名称##
+## 名称
 
 setAttributes - 修改集合的属性
 
-##语法##
+## 语法
 
 **db.collectionspace.collection.setAttributes(\<options\>)**
 
-##类别##
+## 类别
 
-Collection
+SdbCollection
 
-##描述##
+## 描述
 
-当集合的属性不符合预期时，用户可以使用该函数修改集合的属性。
+该函数用于当集合的属性不符合预期时，用户可以使用该函数修改集合的属性。
 
-##参数##
+## 参数
 
 options ( *object*， *必填* )
 
@@ -87,13 +87,13 @@ options ( *object*， *必填* )
 > * 分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
 > * EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等。
 
-##返回值##
+## 返回值
 
 函数执行成功时，无返回值。
 
 函数执行失败时，将抛出异常并输出错误信息。
 
-##错误##
+## 错误
 
 `setAttributes()` 函数常见异常如下：
 
@@ -104,11 +104,11 @@ options ( *object*， *必填* )
 当异常抛出时，可以通过 [getLastError()][getLastError] 获取错误码， 
 或通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息。更多错误处理可以参考[常见错误处理指南][faq]了解更多内容。
 
-##版本##
+## 版本
 
-v2.10及以上版本
+v2.10 及以上版本
 
-##示例##
+## 示例
 
 - 创建一个普通集合后将该集合修改为分区集合
 

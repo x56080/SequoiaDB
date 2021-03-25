@@ -1,9 +1,20 @@
-##语法##
-***db.collectionspace.collection.update\(\<rule\>, \[cond\], \[hint\], \[options\]\)***
+## 名称
 
-更新集合记录。
+update - 更新集合记录
 
-##参数描述##
+## 语法
+
+**db.collectionspace.collection.update\(\<rule\>, \[cond\], \[hint\], \[options\]\)**
+
+## 类别
+
+SdbCollection
+
+## 描述
+
+该函数用于更新集合记录。
+
+## 参数
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
@@ -12,7 +23,7 @@
 | hint   | Json 对象| 指定访问计划。 | 否 |
 | options| Json 对象| 可选项，详见options选项说明。| 否 |
 
-##options选项##
+options 选项：
 
 | 参数名          | 参数类型 | 描述                | 默认值 |
 | --------------- | -------- | ------------------- | ------ |
@@ -28,20 +39,19 @@
 > * `JustOne`为 true 时，只能在单个分区、单个子表上执行。
 
 
-##返回值##
-* 成功返回详细结果信息（BSONObj 对象），结构如下：
+## 返回值
 
- ```lang-json
- {
-		UpdatedNum  : <INT64>  成功更新的记录数，包括匹配但未发生数据变化的记录,
-		ModifiedNum : <INT64>  成功更新且发生数据变化的记录数,
-		InsertedNum : <INT32>  成功插入的记录数，仅在 upsert 下生效
- }
- ```
+* 函数执行成功时，将返回一个 BSONObj 类型的对象。通过该对象获取成功更新的记录数信息，字段说明如下：
 
-* 出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误信息码。错误信息对象包括详细结果信息。
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| UpdatedNum | int64 | 成功更新的记录数，包括匹配但未发生数据变化的记录 |
+| ModifiedNum | int64 | 成功更新且发生数据变化的记录数 |
+| InsertedNum | int64 | 成功插入的记录数 |
 
-##错误##
+* 函数执行失败时，将抛异常并输出错误信息。
+
+## 错误
 
 错误信息记录在节点诊断日志（diaglog）中，可参考[错误码][error_code]。
   
@@ -50,7 +60,13 @@
 | -178     | 分区集合上不支持更新分区键 | KeepShardingKey 设置为 false，不更新分区键 |
 | -345     | JustOne 跨多个分区或者多个子表 | 修改匹配条件，或者不使用 JustOne |
 
-## 示例##
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 * 按指定的更新规则更新集合中所有记录，即设置 rule 参数，不设定 cond 和 hint 参数的内容。如下操作更新集合 employee 下的 age 字段，使用 [$inc][inc] 将 age 字段的值增加1。
 
@@ -125,3 +141,4 @@
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [inc]:manual/Manual/Operator/Update_Operator/inc.md
 [exists]:manual/Manual/Operator/Match_Operator/exists.md
+[error_guide]:manual/faq.md

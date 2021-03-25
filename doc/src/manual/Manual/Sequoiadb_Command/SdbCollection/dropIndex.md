@@ -1,10 +1,20 @@
+## 名称
 
-##语法##
-***db.collectionspace.collection.dropIndex\(\<name\>\)***
+dropIndex - 删除集合中指定的索引
 
-删除集合中指定的[索引][index]。
+## 语法
 
-## 参数描述##
+**db.collectionspace.collection.dropIndex\(\<name\>\)**
+
+## 类别
+
+SdbCollection
+
+## 描述
+
+该函数用于删除集合中指定的[索引][index]。
+
+## 参数
 
 | 参数名 | 参数类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
@@ -15,15 +25,21 @@
 > * 做删除索引操作时，索引名必须在集合中存在。
 > * 索引名不能是空串，含点（.）或者美元符号（$），且长度不超过127B。
 
-##返回值##
+## 返回值
 
-无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误信息码。
+函数执行成功时，无返回值。
 
-##错误##
+函数执行失败时，将抛异常并输出错误信息。
 
-[错误码][error_code]
+## 错误
 
-##示例##
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 * 删除集合 employee 下名为 ageIndex 的索引，假设 ageIndex 已存在。
 
@@ -38,3 +54,4 @@
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
+[error_guide]:manual/faq.md

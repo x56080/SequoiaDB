@@ -1,12 +1,26 @@
-##语法##
-***db.collectionspace.collection.split( \<source group\>, \<target group\>, \<percent\> )***  
-***db.collectionspace.collection.split( \<source group\>, \<target group\>, \<condition\>, [endcondition] )***
+## 名称
 
-在至少存在两个分区组的环境下，将数据记录按指定的条件切分到不同的分区组中，目标分区组必须属于集合空间所属的域。该操作为同步操作，直到数据切分完成才返回。
+split - 切分数据记录
 
-##参数描述##
+## 语法
+
+**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)**
+
+**db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])**
+
+## 类别
+
+SdbCollection
+
+## 描述
+
+该函数用于将源分区组中的数据记录，按指定条件切分到目标分区组中。源分区组与目标分区组必须属于同一个域。
+
+## 参数
+
 ###范围切分###
-db.collectionspace.collection.split( \<source group\>, \<target group\>, \<condition\>, [endcondition] )
+
+db.collectionspace.collection.split(\<source group\>, \<target group\>, \<condition\>, [endcondition])
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -20,7 +34,8 @@ db.collectionspace.collection.split( \<source group\>, \<target group\>, \<condi
 >  2. 如果指定分区键字段为降序时，如：{groupingKey:{<字段1>:&lt;-1&gt;}，condition（或 Partition）中的起始条件中的范围应该大于终止条件中的范围。Hash 分区使用的 Partition（分区数）必须为整型，不能为其他的类型。
 
 ###百分比切分###
-db.collectionspace.collection.split( \<source group\>, \<target group\>, \<percent\> )
+
+db.collectionspace.collection.split(\<source group\>, \<target group\>, \<percent\>)
 
 | 参数名 | 参数类型 | 描述   | 是否必填 |
 | ------ | -------- | ------ | -------- |
@@ -31,17 +46,23 @@ db.collectionspace.collection.split( \<source group\>, \<target group\>, \<perce
 > **Note:**
 >
 >  1. Range分区需要保证源分区组中含有数据，即集合不为空；  
->  2. 百分比不能为0.
+>  2. 百分比不能为0。
 
-##返回值##
+## 返回值
 
-无返回值，出错抛异常，并输出错误信息，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误信息码。
+函数执行成功时，无返回值。
 
-##错误##
+函数执行失败时，将抛异常并输出错误信息。
 
-[错误码][error_code]
+## 错误
 
-##示例##
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v2.0 及以上版本
+
+## 示例
 
 * Hash 分区范围切分
 
@@ -63,7 +84,7 @@ db.collectionspace.collection.split( \<source group\>, \<target group\>, \<perce
 
 
 [^_^]:
-    本文使用的所有引用及链接
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+     本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[error_code]:manual/Manual/Sequoiadb_error_code.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md]:manual/Manual/Sequoiadb_error_code.md
