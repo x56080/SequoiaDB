@@ -51,4 +51,4 @@ v3.2 and above
      links
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

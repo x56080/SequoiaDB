@@ -168,4 +168,4 @@ v2.0 及以上版本
 [getLastErrObj]:manual/Manual/Sequoiadb_Command/Global/getLastErrObj.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

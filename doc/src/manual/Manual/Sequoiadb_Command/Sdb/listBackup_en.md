@@ -108,4 +108,4 @@ v2.0 and above
 [LIST_BACKUP]:manual/Manual/SQL_Grammar/Monitoring/LIST_BACKUP.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

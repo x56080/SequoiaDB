@@ -109,5 +109,5 @@ v2.0 及以上版本
 [LIST_GROUP]:manual/Manual/SQL_Grammar/Monitoring/LIST_GROUP.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md
 [LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md

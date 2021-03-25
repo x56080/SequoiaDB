@@ -83,4 +83,4 @@ v2.0 及以上版本
 [option]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbTraceOption.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

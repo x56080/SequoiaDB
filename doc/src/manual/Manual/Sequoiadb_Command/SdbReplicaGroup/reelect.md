@@ -81,5 +81,5 @@ v2.0 及以上版本
 [Replication]:manual/Distributed_Engine/Architecture/Replication/election.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

@@ -61,5 +61,5 @@ Create a catalog replication group on the host named "hostname1", specify the se
 [configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

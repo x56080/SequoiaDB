@@ -84,6 +84,6 @@ v2.0 及以上版本
 [cipherUser]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/CipherUser.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [passwd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md
 [databast_limite]:manual/Manual/sequoiadb_limitation.md#数据库

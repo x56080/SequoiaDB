@@ -85,5 +85,5 @@ Sdb
      本文使用的所有引用和链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

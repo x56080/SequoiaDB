@@ -60,4 +60,4 @@ v2.8.2 及以上版本增加 `ID` 参数。
 [list_info]:manual/Manual/List/list.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

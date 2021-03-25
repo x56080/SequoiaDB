@@ -70,5 +70,5 @@ v2.0 及以上版本
 [cipherUser]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/CipherUser.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
-[error_guide]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_guide]:manual/FAQ/faq_sdb.md

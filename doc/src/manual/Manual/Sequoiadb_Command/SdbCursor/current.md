@@ -20,6 +20,7 @@ SdbCursor
 
 ## 返回值
 
+关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 函数执行成功时，如果游标有记录返回，返回值为 BSONObj 类型的对象；否则，返回值为 null 类型的对象。
 
 函数执行失败时，将抛异常并输出错误信息。
@@ -61,4 +62,4 @@ Takes 0.003188s.
      本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md

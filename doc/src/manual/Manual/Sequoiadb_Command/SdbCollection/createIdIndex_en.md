@@ -40,7 +40,7 @@ On error, exception will be thrown.
 | -247       | $id index already exists                 |          -               |
 | -291       | an index with the same definition exists | delete conflicting index |
 
-When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, please  reference to [Troubleshooting](manual/faq.md).
+When exception happens, use [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) to get the [error code](manual/Manual/Sequoiadb_error_code.md) and use [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) to get error message. For more details, please  reference to [Troubleshooting](manual/FAQ/faq_sdb.md).
 
 ##EXAMPLES##
 

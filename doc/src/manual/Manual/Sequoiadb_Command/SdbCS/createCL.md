@@ -244,4 +244,4 @@ v1.0 及以上版本。
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

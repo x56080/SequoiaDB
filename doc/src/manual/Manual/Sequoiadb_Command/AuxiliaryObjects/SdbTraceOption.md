@@ -177,5 +177,5 @@
     本文使用的所有引用和链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[general_guide]:manual/faq.md
+[general_guide]:manual/FAQ/faq_sdb.md
 [edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md

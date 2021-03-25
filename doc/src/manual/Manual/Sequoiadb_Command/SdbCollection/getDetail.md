@@ -93,4 +93,4 @@ v3.2.5 及以上版本、v3.4.1 及以上版本
 [SNAPSHOT_CL]:manual/Manual/SQL_Grammar/Monitoring/SNAPSHOT_CL.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md

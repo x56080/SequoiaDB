@@ -58,5 +58,5 @@ v2.0 及以上版本
     本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
-[error_guide]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
+[error_guide]:manual/FAQ/faq_sdb.md

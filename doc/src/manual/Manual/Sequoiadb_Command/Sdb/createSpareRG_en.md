@@ -46,5 +46,5 @@ Create a hot spare group
 [spare]:manual/Distributed_Engine/Maintainance/hot_spare.md
 [getLastErrMsg]:manual/reference/Sequoiadb_command/Global/getLastErrMsg.md
 [getLastError]:manual/reference/Sequoiadb_command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

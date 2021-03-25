@@ -74,5 +74,5 @@ v3.2.8 及以上版本
 [SYSDATASOURCES]:manual/Manual/Catalog_Table/SYSDATASOURCES.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/faq.md
+[faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md

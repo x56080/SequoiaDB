@@ -5954,10 +5954,24 @@
          ]
       },
       {
-         "id": 1478742401,
-         "file": "faq",
-         "cn": "常见问题及解答",
-         "en": "general guide"
+         "id": 1616391478,
+         "dir": "FAQ",
+         "cn": "常见问题及解答（FAQ）",
+         "en": "general guide",
+         "contents":[
+            {
+               "id": 1478742401,
+               "file": "faq_sdb",
+               "cn": "SequoiaDB FAQ",
+               "en": "SequoiaDB FAQ"
+            },
+            {
+               "id": 1616405418,
+               "file": "faq_sql",
+               "cn": "SQL FAQ",
+               "en": "SQL FAQ"
+            }
+         ]
       },
       {
          "id": 1432190607,

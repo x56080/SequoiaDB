@@ -28,7 +28,7 @@ Sdb
 
 （1） 执行成功则按照语句返回结果。可以将返回值直接赋值给另一个变量。如：`var a = db.eval( 'db.sample.employee' ); a.find(); `
 
-（2） 执行失败会返回错误码及错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/faq.md) 。
+（2） 执行失败会返回错误码及错误信息，可以通过 [getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md) 获取错误信息 或 通过 [getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md) 获取错误码。关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md) 。
 
 （3） 在函数执行结束前操作不会返回。中途退出则终止整个执行，但已经执行的代码不会被回滚。
 
@@ -87,4 +87,4 @@ v2.0 及以上版本
 [list_info]:manual/Manual/List/list.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[error_guide]:manual/faq.md
+[error_guide]:manual/FAQ/faq_sdb.md
