@@ -1,3 +1,6 @@
+[^_^]:
+     数据恢复
+
 SequoiaDB 巨杉数据库支持将备份的数据恢复至集群节点或离线库中。
 
 ## 数据恢复工具
@@ -16,17 +19,24 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | --increaseid  | -i   | 需要恢复到第几次增量备份，默认为 -1，表示恢复到最后一次  |
 | --beginincreaseid | -b | 需要从第几次备份开始恢复，默认为 -1，表示由系统自动计算<br>为 0 时，表示从全量备份开始恢复；为 1 时，表示从第一次增量备份开始恢复，以此类推  |
 | --bkname      | -n   | 需要恢复的备份名称 |
-| --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息   |
+| --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
 | --isSelf      |      | 是否将数据恢复至备份源节点，默认为 true，恢复至备份源节点 |
+| --global      |      | 强制关闭备份的全局一致性 <br> 配置该参数时，取值只能为 false，表示强制关闭 |
+
+>**Note:**
+>
+> - 只有当数据库的配置参数 [mvccon][configuration] 和 [globtranson][configuration] 均为 true 时，数据库全局一致性才为开启状态。
+> - 当备份的全局一致性为开启时，如果配置 --global 为 false，数据库集群在恢复后重启，将不会开启恢复模式。因此，重启后数据不保证全局一致性，也无法执行时间点恢复。
 
 ### 配置参数
 
-sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径，用户可根据实际情况选择性配置。如果不指定配置参数，则所有恢复路径为节点配置文件中定义的路径；如果指定了配置参数，则相关恢复路径将使用指定的路径，且指定的配置参数会覆盖配置文件中对应的配置项。
+sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径，用户可根据实际情况选择性配置。如果不指定配置参数，则所有恢复路径为节点配置文件（默认为 `<INSTALL_DIR>/conf/local/<servicename>/sdb.conf`）中定义的路径；如果指定了配置参数，则相关恢复路径将使用指定的路径，且指定的配置参数会覆盖节点配置文件中对应的配置项。
 
 > **Note:**
 >
 > 当 --isSelf 设置为 false 时，用户必须配置 dbpath、confpath 和 svcname 参数，否则执行报错。
+
 
 | 参数名       | 说明          |
 | ------------ | ------------- |
@@ -45,7 +55,6 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
 | --shardname   | 目标节点的分区通讯服务名或端口 |
 | --catalogname | 目标节点的编目通讯服务名或端口 |
 | --httpname    | 目标节点的 REST 服务名或端口 |
-
 
 ## 数据恢复
 
@@ -122,6 +131,25 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
     -rw-r----- 1 sdbadmin sdbadmin_group  50397184 1月  18 13:44 SYSSTAT.1.idx
     ```
 
+## 获取所备份的配置信息
+
+当本地的节点配置文件无法使用时，用户可以使用 sdbrestore 工具，获取指定备份中所备份的节点配置信息，并生成新的节点配置文件。
+
+```lang-bash
+$ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1  -a getconfig > sdb.conf
+```
+
+新的配置文件内容如下：
+
+```lang-ini
+confpath=/opt/sequoiadb/conf/local/11820/
+dbpath=/opt/sequoiadb/database/data/11820
+indexpath=/opt/sequoiadb/database/data/11820
+diagpath=/opt/sequoiadb/database/data/11820/diaglog/
+auditpath=/opt/sequoiadb/database/data/11820/diaglog/
+···
+```
+
 ## 构建离线库
 
 离线库用于存储离线数据。sdbrestore 工具可以将节点全量备份和增量备份的数据，不断合并成一份与节点内数据完全相同的离线数据。用户可以将离线数据存储于离线库中，便于节点故障后，通过离线数据实现快速恢复。
@@ -130,15 +158,20 @@ sdbrestore 工具的配置参数可用于配置备份文件的相关恢复路径
 
 1. 生成离线数据前需要先创建离线库所在目录，且该目录所属用户为数据库管理用户。
 
-2. 使用 11820 节点的备份数据构建该节点的离线库，需要指定 --isSelf false 及相关配置参数，离线库所在路径为  `/opt/backup/11820`
+2. 使用 11820 节点的备份数据构建该节点的离线库，需要指定 -a offlinebuild 及相关配置参数，离线库所在路径为  `/opt/backup/11820`
 
     ```lang-bash
-    $ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1 --isSelf false --dbpath /opt/backup/11820 --confpath /opt/sequoiadb/conf/local/11820/ --svcname 11820 
+    $ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1 -a offlinebuild --dbpath /opt/backup/11820 --confpath /opt/sequoiadb/conf/local/11820/ --svcname 11820 
     ```
+
+    > **Note:**
+    >
+    > 如果数据库中新增了同名的增量备份，用户应重复执行该命令，持续更新离线库中的数据。
 
 ### 使用
 
 当节点 11820 或同组备节点发生故障时，用户可将离线数据直接拷贝至节点 11820 或同组节点的数据文件目录下，以实现数据的快速恢复。
+
 
 
 
