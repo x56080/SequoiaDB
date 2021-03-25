@@ -1,25 +1,42 @@
+## 名称
 
-##语法##
+arrayAccess - 将结果集保存到数组中并获取指定下标的记录
 
-***cursor.arrayAccess( \<index\> )***
+## 语法
 
-***cursor[ \<index\> ]***
+**cursor.arrayAccess(\<index\>)**
 
-先将结果集保存到数组中，然后获取指定下标的记录，下标从 0 开始。
+**cursor[\<index\>]**
 
-##参数描述##
+## 类别
+
+SdbCursor
+
+## 描述
+
+该函数用于从保存结果集的数组中，获取指定下标的记录。
+
+## 参数
 
 *   `index` ( *Number*， *必填* )
 
     要访问的记录的下标。
 
-##返回值##
+## 返回值
 
-返回指定下标的记录，出错抛异常，并输出错误信息，可以通过
-[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
-关于错误处理可以参考[常见错误处理指南](manual/faq.md)。
+函数执行成功时，将返回一条 String 类型的记录。
 
-##示例##
+函数执行失败时，将抛异常并输出错误信息。
+
+## 错误
+
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+
+## 版本
+
+v3.0 及以上版本
+
+## 示例
 
 * 返回数组中下标为 0 的记录
 
@@ -32,3 +49,9 @@
       "a": 9
 }
  ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[error_guide]:manual/faq.md
