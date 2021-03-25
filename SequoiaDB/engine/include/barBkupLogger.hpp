@@ -658,9 +658,9 @@ namespace engine
          BOOLEAN                       _isGlobal ;
 
       public:
-         void overrideIsGlobal ( BOOLEAN isGlobal )
+         void ignoreConsistency()
          {
-            _isGlobal = isGlobal ;
+            _isGlobal = FALSE ;
          }
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;

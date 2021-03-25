@@ -84,7 +84,7 @@ namespace engine
    #define RS_BK_OFFLINE_BUILD   "offlinebuild"
    #define RS_BK_IS_SELF         "isSelf"
    #define RS_BK_SKIP_CONF       "skipconf"
-   #define RS_BK_GLOBAL          "global"
+   #define RS_BK_IGNORECONS      "ignoreconsistency"
 
    #define PMD_RS_OPTIONS  \
       ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
@@ -96,7 +96,7 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list/getconfig/offlinebuild), default is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
-      ( RS_BK_GLOBAL, boost::program_options::value<string>(),           "override backup file GlobalTrans flag (false), default is to use the backup file value" ) \
+      ( RS_BK_IGNORECONS, "ignore the consistency check and skip the restore state after startup" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
       ( PMD_OPTION_LOGPATH, boost::program_options::value<string>(),     "override log file path" )                    \
@@ -216,7 +216,6 @@ namespace engine
             _beginIncID = -1 ;
             _skipConf = FALSE ;
             _isSelf = TRUE ;
-            _isGlobal = FALSE ;
             _diagLevel = (UINT16)PDWARNING ;
 
             ossStrcpy( _dialogPath, PMD_OPTION_DIAG_PATH ) ;
@@ -242,8 +241,6 @@ namespace engine
             rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE,
                          PMD_CFG_CHANGE_FORBIDDEN, FALSE ) ;
             rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE,
-                         PMD_CFG_CHANGE_FORBIDDEN, TRUE ) ;
-            rdxBooleanS( pEX, RS_BK_GLOBAL, _isGlobal, FALSE,
                          PMD_CFG_CHANGE_FORBIDDEN, TRUE ) ;
             rdxInt( pEX, RS_INC_ID, _incID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
             rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
@@ -318,7 +315,6 @@ namespace engine
 
          BOOLEAN           _skipConf ;
          BOOLEAN           _isSelf ;
-         BOOLEAN           _isGlobal ;
          CHAR              _dbPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR              _svcName[ OSS_MAX_SERVICENAME + 1 ] ;
          CHAR              _cfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -652,19 +648,11 @@ namespace engine
          goto error ;
       }
 
-      if ( optMgr._vm.count( RS_BK_GLOBAL ) )
+      if ( optMgr._vm.count( RS_BK_IGNORECONS ) )
       {
-         if (optMgr._isGlobal != FALSE)
-         {
-            std::cerr << "Option " << RS_BK_GLOBAL << " only supports false"
-                      << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         // override the global flag from the backup file
-         restoreLogger.overrideIsGlobal( optMgr._isGlobal ) ;
-         std::cout << "Overriding global(" << optMgr._isGlobal << ")"
-                   << std::endl;
+         // ignore the global flag from the backup file
+         restoreLogger.ignoreConsistency() ;
+         std::cout << "Ignoring consistency check" << std::endl;
       }
 
       // load the existing configuration (from path or backup file)

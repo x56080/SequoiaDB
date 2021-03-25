@@ -22,12 +22,12 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
 | --isSelf      |      | 是否将数据恢复至备份源节点，默认为 true，恢复至备份源节点 |
-| --global      |      | 强制关闭备份的全局一致性 <br> 配置该参数时，取值只能为 false，表示强制关闭 |
+| --ignoreconsistency      |      | 强制忽略全局一致性检查并在重启后跳过全局一致性恢复 |
 
 >**Note:**
 >
 > - 只有当数据库的配置参数 [mvccon][configuration] 和 [globtranson][configuration] 均为 true 时，数据库全局一致性才为开启状态。
-> - 当备份的全局一致性为开启时，如果配置 --global 为 false，数据库集群在恢复后重启，将不会开启恢复模式。因此，重启后数据不保证全局一致性，也无法执行时间点恢复。
+> - 当备份的全局一致性为开启时，如果配置 --ignoreconsistency，数据库集群在恢复后重启，将不会开启恢复模式。因此，重启后数据不保证全局一致性，也无法执行时间点恢复。
 
 ### 配置参数
 
