@@ -48,6 +48,12 @@ using namespace std ;
 namespace engine
 {
 
+#if defined (_WINDOWS)
+   #define STP_EXAMPLE_CONF "\"E:\\Sequoiadb\\conf\\stp\\\""
+#else
+   #define STP_EXAMPLE_CONF "\"/opt/sequoiadb/conf/stp\""
+#endif
+
    // default sharing break time in 7 seconds
    #define STP_OPTION_BREAKTIME_DFT          ( 7000 )
    // default start shift time in 600 seconds
@@ -69,82 +75,85 @@ namespace engine
    #define FILE_OPTIONS \
       ( STP_OPTION_PORT, \
             po::value<string>(), \
-            "STP listening port, default is 9622" ) \
+            "STP listening port, default: 9622" ) \
       ( STP_OPTION_SERVERLIST, \
             po::value<string>(), \
             "STP server list, if not specified, " \
             "will use host name of this machine" ) \
       ( STP_OPTION_ROLE, \
             po::value<string>(), \
-            "STP role, default is \"server\"" ) \
+            "STP role (server/client), " \
+            "default: \"server\"" ) \
       ( STP_OPTION_WEIGHT, \
             po::value<INT32>(), \
-            "STP vote weight, default is 0" ) \
+            "STP vote weight, default: 0" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default is 60" ) \
+            "STP synchronize interval in seconds, default: 60" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000, " \
-            "value range is [ 1000, 10000000 ]" ) \
+            "STP max time error in microseconds, default: 50000, " \
+            "value range: [ 1000, 10000000 ]" ) \
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
-            "default is 20, range is [ 0, 200 ]" ) \
+            "default: 20, value range: [ 0, 200 ]" ) \
       ( STP_OPTION_MAXSYNCPORTS, \
             po::value<INT32>(), \
-            "maximum UDP ports used to synchronize time, default is 1, " \
+            "maximum UDP ports used to synchronize time, default: 1, " \
             "means only use default port to synchronize, the extra ports " \
-            "will start from <port> + 1, maximum is 128" ) \
+            "will start from <port> + 1, range value: [ 1, 128 ]" ) \
       ( STP_OPTION_DEFCLIENTSPERPORT, \
             po::value<INT32>(), \
             "default synchronize clients could be assigned to a " \
-            "synchronize UDP port, default is 10" ) \
+            "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
             "indicates whether to open all synchronize UDP ports during " \
-            "start of STP node, default is false" ) \
+            "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
             "indicates whether to allow synchronize only on system port, " \
-            "default is true" ) \
+            "default: true" ) \
       ( STP_OPTION_DIAGLEVEL, \
             po::value<INT32>(), \
-            "STP dialog level, default is 3" ) \
+            "STP dialog level, default: 3, value range: [ 0 - 5 ]" ) \
       ( STP_OPTION_SHARINGBRK, \
             po::value<INT32>(), \
             "the timeout period for heartbeat in each replica group " \
-            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+            "( in ms ), default: 7000,\n" \
+            "value range: [ 5000, 300000 ]" ) \
       ( STP_OPTION_STARTSHIFTTIME, \
             po::value<INT32>(), \
-            "nodes starting shift time ( in seconds ), " \
-            "default is 600, value range is [ 0, 7200 ]" ) \
+            "nodes starting shift time ( in seconds ),\n" \
+            "default: 600, value range: [ 0, 7200 ]" ) \
       ( STP_OPTION_MAXTIMEMAPSIZE, \
             po::value<INT32>(), \
-            "max number to save time mapping records, " \
-            "default is 525600, 0 means not save, -1 means no limit" ) \
+            "max number to save time mapping records,\n" \
+            "default: 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_TESTMODE, \
             "start STP in test mode" )
 
    #define COMMANDS_OPTIONS \
       ( PMD_COMMANDS_STRING( STP_OPTION_PORT, ",p" ), \
             po::value<string>(), \
-            "STP listening port, default is 9622" ) \
+            "STP listening port, default: 9622" ) \
       ( STP_OPTION_SERVERLIST, \
             po::value<string>(), \
             "STP server list, if not specified, " \
             "will use host name of this machine" ) \
       ( STP_OPTION_ROLE, \
             po::value<string>(), \
-            "STP role, default is server" ) \
+            "STP role (server/client), " \
+            "default: \"server\"" ) \
       ( STP_OPTION_SYNCINTERVAL, \
             po::value<INT32>(), \
-            "STP synchronize interval in seconds, default is 60" ) \
+            "STP synchronize interval in seconds, default: 60" ) \
       ( STP_OPTION_MAXTIMEERROR, \
             po::value<INT32>(), \
-            "STP max time error in microseconds, default is 50000, " \
-            "value range is [ 1000, 10000000 ]" ) \
+            "STP max time error in microseconds, default: 50000, " \
+            "value range: [ 1000, 10000000 ]" ) \
       ( STP_OPTION_DIAGLEVEL, \
             po::value<INT32>(), \
-            "STP dialog level, default is 3" ) \
+            "STP dialog level, default: 3, value range: [ 0 - 5 ]" ) \
       ( STP_OPTION_DAEMON, \
             "Start STP in daemon mode" ) \
       ( PMD_COMMANDS_STRING( STP_OPTION_HELP, ",h" ), \
@@ -153,7 +162,8 @@ namespace engine
             "version" ) \
       ( PMD_COMMANDS_STRING( STP_OPTION_CONFPATH, ",c" ), \
             po::value<string>(), \
-            "STP configuration file path" )
+            "STP configuration file path, \n" \
+            "eg: "STP_EXAMPLE_CONF )
 
    #define COMMANDS_HIDE_OPTIONS \
       ( STP_OPTION_HELPFULL, \
@@ -163,37 +173,38 @@ namespace engine
       ( STP_OPTION_MAXSYNCHIST, \
             po::value<INT32>(), \
             "STP save history records of synchronize for statistics, " \
-            "default is 20, range is [ 0, 200 ]" ) \
+            "default: 20, value range: [ 0, 200 ]" ) \
       ( STP_OPTION_MAXSYNCPORTS, \
             po::value<INT32>(), \
-            "maximum UDP ports used to synchronize time, default is 1, " \
+            "maximum UDP ports used to synchronize time, default: 1, " \
             "means only use default port to synchronize, the extra ports " \
-            "will start from <port> + 1, maximum is 128" ) \
+            "will start from <port> + 1, range value: [ 1, 128 ]" ) \
       ( STP_OPTION_DEFCLIENTSPERPORT, \
             po::value<INT32>(), \
             "default synchronize clients could be assigned to a " \
-            "synchronize UDP port, default is 10" ) \
+            "synchronize UDP port, default: 10" ) \
       ( STP_OPTION_PREOPENPORTS, \
             "indicates whether to open all synchronize UDP ports during " \
-            "start of STP node, default is false" ) \
+            "start of STP node, default: false" ) \
       ( STP_OPTION_SYNCWITHSYSPORT, \
             "indicates whether to allow synchronize only on system port, " \
-            "default is true" ) \
+            "default: true" ) \
       ( STP_OPTION_WEIGHT, \
             po::value<INT32>(), \
-            "STP vote weight, default is 0" ) \
+            "STP vote weight, default: 0" ) \
       ( STP_OPTION_SHARINGBRK, \
             po::value<INT32>(), \
             "the timeout period for heartbeat in each replica group " \
-            "( in ms ), default is 7000, value range is [ 5000, 300000 ]" ) \
+            "( in ms ), default: 7000,\n" \
+            "value range: [ 5000, 300000 ]" ) \
       ( STP_OPTION_STARTSHIFTTIME, \
             po::value<INT32>(), \
-            "nodes starting shift time ( in seconds ), " \
-            "default is 600, value range is [ 0, 7200 ]" ) \
+            "nodes starting shift time ( in seconds ),\n" \
+            "default: 600, value range: [ 0, 7200 ]" ) \
       ( STP_OPTION_MAXTIMEMAPSIZE, \
             po::value<INT32>(), \
-            "max number to save time mapping records, " \
-            "default is 525600, 0 means not save, -1 means no limit" ) \
+            "max number to save time mapping records,\n" \
+            "default: 525600, 0 means not save, -1 means no limit" ) \
       ( STP_OPTION_CURUSER, \
             "use current user to start STP node" )
 
