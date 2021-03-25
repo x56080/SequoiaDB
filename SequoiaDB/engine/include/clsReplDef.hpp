@@ -162,7 +162,10 @@ namespace engine
    /*
       _clsGroupBeat define
     */
-   class _clsGroupBeat : public utilPooledObject
+   // to keep message compatibility, should be derived from the same
+   // parent class of DPS_LSN, compiler will insert 8 bytes padding
+   // before endLsn
+   class _clsGroupBeat : public SDBObject
    {
    public:
       DPS_LSN                 endLsn ;
