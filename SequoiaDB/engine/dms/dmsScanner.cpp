@@ -2407,7 +2407,8 @@ namespace engine
 
          if( _scanner->isIndexCover() &&
              !_recordRW.isDirectMem() &&
-             DMS_IS_READ_OPR( _accessType ) )
+             DMS_IS_READ_OPR( _accessType ) &&
+             !cb->isTransRR() )
          {
             BOOLEAN finished = FALSE ;
             // ignore return value
