@@ -76,6 +76,11 @@ INT32 convRealToLogicalTime(const engine::stpHPTime &input, UINT64 *output)
 INT32 convLogicalTimeToRealTime(UINT64 input, ossPoolString *output)
 {
    INT32 rc = SDB_OK;
+   if (input == 0)
+   {
+      *output = "-";
+      return rc;
+   }
    // Convert to logical time
    engine::stpAgent agent;
    engine::stpClient client;
