@@ -47,7 +47,6 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 FSM_CANDIDATE_BUCKET_CAPACITY = 4;
 
 #pragma pack(4)
    class fsmCandidateBucket : public SDBObject
@@ -57,43 +56,52 @@ namespace vessel
          ~fsmCandidateBucket();
 
       public:
-         OSS_INLINE UINT32 getCapacity()const;
          OSS_INLINE UINT64 getReqCnt()const;
-         OSS_INLINE BOOLEAN isEmpty()const;
-         OSS_INLINE UINT32 getFreeSize()const;
+
       public:
-         BOOLEAN upsert(const fsmCandidate &candidate,
+         INT32 init(UINT32 capacity);
+         void fini();
+
+         BOOLEAN upsert(UINT32 capacity,
+                        const fsmCandidate &candidate,
                         fsmCandidate *replaced=NULL);
 
-         BOOLEAN findAndAutoRemoving(UINT16 size,
+         BOOLEAN findAndAutoRemoving(UINT32 capacity,
+                                     UINT16 size,
                                      UINT16 minFreeSize,
                                      fsmCandidate &candidate);
 
-         UINT32 getSize()const;
+         UINT32 getSize(UINT32 capacity)const;
 
-         BOOLEAN tryToInc(CL_PAGE_SEQ seq,
+         BOOLEAN tryToInc(UINT32 capacity,
+                          CL_PAGE_SEQ seq,
                           PAGE_ID lpid,
                           UINT16 maxFreeSize,
                           UINT16 newFreeSize,
                           UINT16 delta);
 
-         BOOLEAN tryToDec(CL_PAGE_SEQ seq,
+         BOOLEAN tryToDec(UINT32 capacity,
+                          CL_PAGE_SEQ seq,
                           PAGE_ID lpid,
                           UINT16 minFreeSize,
                           UINT16 newFreeSize,
                           UINT16 delta);
 
-         BOOLEAN fillback(CL_PAGE_SEQ seq,
-                          PAGE_ID lpid,
-                          BOOLEAN failure);
+         BOOLEAN updateCandidate(UINT32 capacity,
+                                 CL_PAGE_SEQ seq,
+                                 PAGE_ID lpid,
+                                 UINT16 minFreeSize,
+                                 UINT16 freeSizeFromBucket,
+                                 UINT16 currentFreeSize,
+                                 BOOLEAN failure);
 
-         void dump(fsmCandidate *candidates, UINT32 &count)const;
+         void dump(UINT32 capacity, fsmCandidate *candidates, UINT32 &count)const;
 
       private:
          OSS_INLINE void remove(UINT32 i);
 
       private:
-         struct _bucketCandidate
+         struct _bucketCandidate : public SDBObject
          {
             OSS_INLINE _bucketCandidate():
             seq(INVALID_CL_PAGE_SEQ),
@@ -161,39 +169,18 @@ namespace vessel
 
       private:
          /// we should always keep searching done in one cpu cache line.
-         _bucketCandidate _candidates[FSM_CANDIDATE_BUCKET_CAPACITY];
+         _bucketCandidate *_candidates;
          UINT64 _reqCnt;
    };//class fsmCandidateBucket
 #pragma pack()
-
-   OSS_INLINE BOOLEAN fsmCandidateBucket::isEmpty()const
-   {
-      return 0 == getSize();
-   }
-
-   OSS_INLINE UINT32 fsmCandidateBucket::getCapacity()const
-   {
-      return FSM_CANDIDATE_BUCKET_CAPACITY;
-   }
 
    OSS_INLINE UINT64 fsmCandidateBucket::getReqCnt()const
    {
       return _reqCnt;
    }
-
-   OSS_INLINE UINT32 fsmCandidateBucket::getFreeSize()const
-   {
-      return FSM_CANDIDATE_BUCKET_CAPACITY - getSize();
-   }
-
    OSS_INLINE void fsmCandidateBucket::remove(UINT32 i)
    {
-      if (OSS_LIKELY(i < FSM_CANDIDATE_BUCKET_CAPACITY))
-      {
-         _candidates[i].reset();
-      }
-   done:
-      return;
+      _candidates[i].reset();
    }
 }//namespace vessel
 }//namespace engine

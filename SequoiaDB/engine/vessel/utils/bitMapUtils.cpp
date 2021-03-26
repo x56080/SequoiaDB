@@ -59,7 +59,7 @@ namespace vessel
                                      UINT32 &offset)
    {
       BOOLEAN r = FALSE;
-      SDB_ASSERT(searchBegin < totalCount, "searchBegin out of range");
+      SDB_ASSERT(searchBegin < (INT32)totalCount, "searchBegin out of range");
       UINT32 i = 0;
       if (0 < searchBegin)
       {
@@ -157,7 +157,7 @@ namespace vessel
             break;
          }
       }
-   done:
+   
       return r;
    }
 
@@ -199,7 +199,7 @@ namespace vessel
             r = TRUE;
          }
       }
-   done:
+   
       return r;
    }
 
@@ -230,11 +230,11 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
-      INT32 i = 0;
-      INT32 begin = 0;
-      INT32 loopEnd = bitsCount;
+      UINT32 i = 0;
+      UINT32 begin = 0;
+      UINT32 loopEnd = bitsCount;
       UINT64 lowMask = OSS_UINT64_MAX;
-      INT32 found = -1;
+      UINT32 bitFound = 0;
 
       if (0 <= low)
       {
@@ -262,11 +262,11 @@ namespace vessel
          INT32 res = ossGetLowestBit1From64Bits((bits[i] & lowMask));
          if (0 <= res)
          {
-            found = (i << BM_UTIL_BITWISE_64) + res;
-            if (found <= high)
+            bitFound = (i << BM_UTIL_BITWISE_64) + res;
+            if (high < 0 || bitFound <= (UINT32)high)
             {
                r = TRUE;
-               offset = found;
+               offset = bitFound;
             }
             goto done;
          }
@@ -278,11 +278,11 @@ namespace vessel
          INT32 res = ossGetLowestBit1From64Bits(bits[i]);
          if (0 <= res)
          {
-            found = (i << BM_UTIL_BITWISE_64) + res;
-            if (found <= high)
+            bitFound = (i << BM_UTIL_BITWISE_64) + res;
+            if (high < 0 || bitFound <= (UINT32)high)
             {
                r = TRUE;
-               offset = found;
+               offset = bitFound;
             }
             goto done;
          }
@@ -298,6 +298,7 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(beginBits < (INT32)bitsCount, "impossible");
       UINT32 i = 0 < beginBits ? beginBits : 0;
       for (; i < bitsCount; ++i)
       {
@@ -323,6 +324,7 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != bits, "can not be null");
+      SDB_ASSERT(beginBits < (INT32)bitsCount, "impossible");
       UINT32 i = 0 < beginBits ? beginBits : 0;
       for (; i < bitsCount; ++i)
       {
@@ -397,7 +399,7 @@ namespace vessel
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
       mask = ~mask;
-      volatile UINT64 *bitsSlot = NULL;
+      UINT64 *bitsSlot = NULL;
       UINT64 expected = 0;
       UINT64 disired = 0;
       UINT32 loop = 0;
@@ -411,12 +413,13 @@ namespace vessel
          {
             if (maxLoop <= ++loop)
             {
-               break;
+               goto done;
             }
 
-            expected = *bitsSlot;
+            expected = *((volatile UINT64 *)bitsSlot);
             disired = expected & mask;
          }
+         r = TRUE;
       }
    done:
       return r;
@@ -428,7 +431,7 @@ namespace vessel
       BOOLEAN r = FALSE;
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 mask = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
-      volatile UINT64 *bitsSlot = NULL;
+      UINT64 *bitsSlot = NULL;
       UINT64 expected = 0;
       UINT64 disired = 0;
       UINT32 loop = 0;
@@ -442,12 +445,13 @@ namespace vessel
          {
             if (maxLoop <= ++loop)
             {
-               break;
+               goto done;
             }
 
-            expected = *bitsSlot;
+            expected = *((volatile UINT64 *)bitsSlot);
             disired = expected | mask;
          }
+         r = TRUE;
       }
    done:
       return r;

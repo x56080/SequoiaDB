@@ -41,6 +41,7 @@ namespace vessel
 {
    fsmCandidateBuckets::fsmCandidateBuckets():
    _bucketCount(0),
+   _bucketCapacity(0),
    _buckets(NULL),
    _latchCount(0),
    _latches(NULL)
@@ -55,27 +56,34 @@ namespace vessel
 
    void fsmCandidateBuckets::fini()
    {
-      _bucketCount = 0;
-      if (NULL != _buckets)
+      if (0 != _bucketCount)
       {
-         SDB_OSS_DEL []_buckets;
-         _buckets = NULL;
-      }
-      _latchCount = 0;
-      if (NULL != _latches)
-      {
-         SDB_OSS_DEL []_latches;
-         _latches = NULL;
+         _bucketCount = 0;
+         _bucketCapacity = 0;
+         if (NULL != _buckets)
+         {
+            SDB_OSS_DEL []_buckets;
+            _buckets = NULL;
+         }
+         _latchCount = 0;
+         if (NULL != _latches)
+         {
+            SDB_OSS_DEL []_latches;
+            _latches = NULL;
+         }
       }
       return;
    }
 
-   INT32 fsmCandidateBuckets::init(UINT32 bucketCount, UINT32 latchCount)
+   INT32 fsmCandidateBuckets::init(UINT16 bucketCount,
+                                   UINT16 bucketCapacity,
+                                   UINT32 latchCount)
    {
       INT32 rc = SDB_OK;
       fini();
 
       if (!ossIsPowerOf2(bucketCount) ||
+          !ossIsPowerOf2(bucketCapacity) ||
           !ossIsPowerOf2(latchCount))
       {
          rc = SDB_INVALIDARG;
@@ -89,7 +97,15 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
-      _bucketCount = bucketCount;
+      
+      for (UINT16 i = 0; i < bucketCount; ++i)
+      {
+         rc = _buckets[i].init(bucketCapacity);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
 
       _latches = SDB_OSS_NEW ossSpinLatch[latchCount];
       if (NULL == _latches)
@@ -98,6 +114,9 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
+
+      _bucketCount = bucketCount;
+      _bucketCapacity = bucketCapacity;
       _latchCount = latchCount;
    done:
       return rc;
@@ -121,7 +140,7 @@ namespace vessel
 
       {
       ossSpinGuard guard(getLatch(bucketNo));
-      r = _buckets[bucketNo].upsert(candidate, replaced);
+      r = _buckets[bucketNo].upsert(_bucketCapacity, candidate, replaced);
       }
    done:
       return r;
@@ -143,7 +162,7 @@ namespace vessel
 
       {
       ossSpinGuard guard(getLatch(bucketNo));
-      if (_buckets[bucketNo].findAndAutoRemoving(size, minFreeSize, candidate))
+      if (_buckets[bucketNo].findAndAutoRemoving(_bucketCapacity, size, minFreeSize, candidate))
       {
          candidate.setBucketNo(bucketNo);
          r = TRUE;
@@ -166,7 +185,7 @@ namespace vessel
       {
          UINT32 bucketNo = (bucketBegin + i) & (_bucketCount - 1);
          ossSpinGuard guard(getLatch(bucketNo));
-         if (_buckets[bucketNo].tryToInc(seq, lpid, maxFreeSize, newFreeSize, delta))
+         if (_buckets[bucketNo].tryToInc(_bucketCapacity, seq, lpid, maxFreeSize, newFreeSize, delta))
          {
             r = TRUE;
             goto done;
@@ -189,7 +208,7 @@ namespace vessel
       {
          UINT32 bucketNo = (bucketBegin + i) & (_bucketCount - 1);
          ossSpinGuard guard(getLatch(bucketNo));
-         if (_buckets[bucketNo].tryToDec(seq, lpid, minFreeSize, newFreeSize, delta))
+         if (_buckets[bucketNo].tryToDec(_bucketCapacity, seq, lpid, minFreeSize, newFreeSize, delta))
          {
             r = TRUE;
             goto done;
@@ -199,10 +218,13 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN fsmCandidateBuckets::fillback(UINT32 bucketNo,
-                                         CL_PAGE_SEQ seq,
-                                         PAGE_ID lpid,
-                                         BOOLEAN failure)
+   BOOLEAN fsmCandidateBuckets::updateCandidate(UINT32 bucketNo,
+                                                CL_PAGE_SEQ seq,
+                                                PAGE_ID lpid,
+                                                UINT16 minFreeSize,
+                                                UINT16 freeSizeFromBucket,
+                                                UINT16 currentFreeSize,
+                                                BOOLEAN failure)
    {
       BOOLEAN r = FALSE;
       if (_bucketCount <= bucketNo)
@@ -211,7 +233,9 @@ namespace vessel
       }
       {
       ossSpinGuard guard(getLatch(bucketNo));
-      r = _buckets[bucketNo].fillback(seq, lpid, failure);
+      r = _buckets[bucketNo].updateCandidate(_bucketCapacity, seq, lpid,
+                                             minFreeSize, freeSizeFromBucket,
+                                             currentFreeSize, failure);
       }
    done:
       return r;
@@ -226,7 +250,7 @@ namespace vessel
       }
       {
       ossSpinGuard guard(getLatch(bucketNo));
-      return _buckets[bucketNo].getFreeSize();
+      return _bucketCapacity - _buckets[bucketNo].getSize(_bucketCapacity);
       }
    }
 
@@ -247,7 +271,7 @@ namespace vessel
       SDB_ASSERT(i < _bucketCount, "out of bound");
       SDB_ASSERT(NULL != candidates, "can not be null");
       ossSpinGuard guard(getLatch(i));
-      _buckets[i].dump(candidates, count);
+      _buckets[i].dump(_bucketCapacity, candidates, count);
    }
 }//namespace vessel
 }//namespace engine

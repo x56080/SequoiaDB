@@ -48,6 +48,7 @@ namespace engine
 {
 namespace vessel
 {
+#pragma pack(4)
    class fsmCandidateBuckets : public SDBObject
    {
       public:
@@ -58,7 +59,7 @@ namespace vessel
          OSS_INLINE UINT32 getBucketCount()const;
 
       public:
-         INT32 init(UINT32 bucketCount, UINT32 latchCount);
+         INT32 init(UINT16 bucketCount, UINT16 bucketCapacity, UINT32 latchCount);
          void fini();
 
       public:
@@ -85,26 +86,30 @@ namespace vessel
                                 UINT16 newFreeSize,
                                 UINT16 delta);
 
-         BOOLEAN fillback(UINT32 bucketNo,
-                          CL_PAGE_SEQ seq,
-                          PAGE_ID lpid,
-                          BOOLEAN failure);
+         BOOLEAN updateCandidate(UINT32 bucketNo,
+                                 CL_PAGE_SEQ seq,
+                                 PAGE_ID lpid,
+                                 UINT16 minFreeSize,
+                                 UINT16 freeSizeFromBucket,
+                                 UINT16 currentFreeSize,
+                                 BOOLEAN failure);
 
          UINT32 getFreeSize(UINT32 bucketNo);
          UINT64 getReqCount(UINT32 bucketNo);
 
-         /// candidates buffer size should be FSM_CANDIDATE_BUCKET_CAPACITY
+         /// should ensure candidates buffer size
          void dumpBucket(UINT32 i, fsmCandidate *candidates, UINT32 &count);
       private:
          OSS_INLINE ossSpinLatch *getLatch(UINT32 bucketNo);
-
       private:
-         UINT32 _bucketCount;
+         UINT16 _bucketCount;
+         UINT16 _bucketCapacity;
          fsmCandidateBucket *_buckets;
          UINT32 _latchCount;
          ossSpinLatch *_latches;
 
    };//class fsmCandidateBuckets
+#pragma pack()
 
    OSS_INLINE UINT32 fsmCandidateBuckets::getBucketCount()const
    {

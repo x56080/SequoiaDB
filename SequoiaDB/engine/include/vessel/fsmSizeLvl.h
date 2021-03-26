@@ -42,6 +42,7 @@ namespace engine
 {
 namespace vessel
 {
+#pragma pack(4)
    class fsmSizeLvl : public SDBObject
    {
       public:
@@ -100,6 +101,7 @@ namespace vessel
          INT16 _lvl;
          UINT16 _delta;
    };
+#pragma pack()
 }//namespace vessel
 }//namespace engine
 

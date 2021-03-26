@@ -88,10 +88,9 @@ namespace vessel
                         UINT32 originalRecordSize,
                         fsmCandidate &candidate);
 
-         /// order: bucket -> new page pool -> disk map
          INT32 findInWholeMap(STRIPING_ID striping,
                               UINT32 originalRecordSize,
-                              BOOLEAN skipBucket,
+                              UINT32 flags,/// 0 means all
                               fsmCandidate &candidate);
 
          ///count should alwasy be eight now.
@@ -99,24 +98,32 @@ namespace vessel
                            const PAGE_ID *lpids,
                            UINT32 count);
 
-         INT32 fillback(CL_PAGE_SEQ seq,
-                        PAGE_ID lpid,
-                        UINT32 bucketNo,
-                        BOOLEAN failure);
+         INT32 updateBucket(CL_PAGE_SEQ seq,
+                            PAGE_ID lpid,
+                            UINT32 bucketNo,
+                            UINT16 freeSizeFromBucket,
+                            UINT16 currentFreeSize,
+                            BOOLEAN failure);
 
-         /// reorg page.
+         /// reorg page
          INT32 incPageFreeSize(CL_PAGE_SEQ sequence,
                                PAGE_ID lpid,
                                STRIPING_ID minStriping,
                                UINT16 newFreeSize,
-                               UINT16 delta);
+                               UINT16 delta);/// newFreeSize - delta == oldFreeSize
 
-         /// deleting record.
+         /// in-page moved when update record.
          INT32 decPageFreeSize(CL_PAGE_SEQ sequence,
                                PAGE_ID lpid,
                                STRIPING_ID minStriping,
                                UINT16 newFreeSize,
-                               UINT16 delta);
+                               UINT16 delta);/// newFreeSize + delta == oldFreeSize
+
+      public:
+         static const UINT32 FIND_BUCKET;
+         static const UINT32 FIND_NEW_POOL;
+         static const UINT32 FIND_DISK_MAP;
+         static const UINT32 FIND_ALL;
 
       private:
          struct _pageSAndL
@@ -180,7 +187,8 @@ namespace vessel
          UINT32 _pageSize;
          UINT32 _maxFreeSize;
          UINT32 _minFreeSize;
-         UINT32 _bucketCount;
+         UINT16 _bucketCount;
+         UINT16 _bucketCapacity;
          fsmCandidateBuckets _buckets;
 
          ossSpinSLatch _latch;

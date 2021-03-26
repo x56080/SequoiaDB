@@ -39,20 +39,18 @@ namespace engine
 {
 namespace vessel
 {
-   const static FLOAT32 WORTH_TO_SCAN_PERCENT = 0.05;
-
    BOOLEAN isWorthToScanDisk(UINT32 needLvl,
                              UINT32 totalCnt,
                              INT32 lvl0,
                              INT32 lvl1,
                              INT32 lvl2,
                              INT32 lvl3,
-                             const FLOAT32 *minPercent)
+                             FLOAT32 minPercent)
    {
       BOOLEAN r = FALSE;
       FLOAT32 cnt = 0;
       FLOAT32 percent = 0.0;
-      FLOAT32 min = NULL == minPercent ? WORTH_TO_SCAN_PERCENT : *minPercent;
+
       if (0 == totalCnt)
       {
          goto done;
@@ -73,7 +71,7 @@ namespace vessel
       }
    
       percent = cnt / totalCnt;
-      r = min <= percent;
+      r = minPercent <= percent;
    done:
       return r;
    }

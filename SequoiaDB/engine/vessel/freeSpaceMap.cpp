@@ -39,13 +39,19 @@ namespace engine
 {
 namespace vessel
 {
+   const UINT32 freeSpaceMap::FIND_BUCKET = 0x01;
+   const UINT32 freeSpaceMap::FIND_NEW_POOL = 0x02;
+   const UINT32 freeSpaceMap::FIND_DISK_MAP = 0x04;
+   const UINT32 freeSpaceMap::FIND_ALL = 0x07;
+
    freeSpaceMap::freeSpaceMap():
    _minStriping(INVALID_STRIPING_ID),
    _maxStriping(INVALID_STRIPING_ID),
    _pageSize(0),
    _maxFreeSize(0),
    _minFreeSize(getMinSizeOfRecordInRdp()),
-   _bucketCount(0)
+   _bucketCount(0),
+   _bucketCapacity(0)
    {
       
    }
@@ -63,6 +69,7 @@ namespace vessel
       _maxFreeSize = 0;
       _minFreeSize = getMinSizeOfRecordInRdp();
       _bucketCount = 0;
+      _bucketCapacity = 0;
       
       _buckets.fini();
       _newPagePool.clear();
@@ -131,15 +138,17 @@ namespace vessel
       if (bucketMode)
       {
          _bucketCount = FSM_STRIPING_BUCKET_COUNT;
+         _bucketCapacity = 2;
          latchCount = 4;
       }
       else
       {
          _bucketCount = 1;
+         _bucketCapacity = 8;
          latchCount = 1;
       }
 
-      rc = _buckets.init(_bucketCount, latchCount);
+      rc = _buckets.init(_bucketCount, _bucketCapacity, latchCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init fsm bucket:%d", rc);
@@ -175,8 +184,8 @@ namespace vessel
       if (NULL == file || !file->isOpen() ||
           INVALID_CL_MB_ID == mbID ||
           DMS_INVALID_LOGICCLID == logicalID ||
-          DMS_PAGE_SIZE64K != pageSize ||
-          DMS_PAGE_SIZE32K != pageSize ||
+          (DMS_PAGE_SIZE64K != pageSize && 
+           DMS_PAGE_SIZE32K != pageSize) ||
           pageSize <= alignedMinSize)
       {
          rc = SDB_INVALIDARG;
@@ -205,15 +214,17 @@ namespace vessel
       if (bucketMode)
       {
          _bucketCount = FSM_STRIPING_BUCKET_COUNT;
+         _bucketCapacity = 2;
          latchCount = 4;
       }
       else
       {
          _bucketCount = 1;
+         _bucketCapacity = 8;
          latchCount = 1;
       }
 
-      rc = _buckets.init(_bucketCount, latchCount);
+      rc = _buckets.init(_bucketCount, _bucketCapacity, latchCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init fsm bucket:%d", rc);
@@ -312,14 +323,14 @@ namespace vessel
 
    INT32 freeSpaceMap::findInWholeMap(STRIPING_ID striping,
                                       UINT32 originalRecordSize,
-                                      BOOLEAN skipBucket,
+                                      UINT32 flags,
                                       fsmCandidate &candidate)
    {
       INT32 rc = SDB_OK;
       UINT32 bucketNo = 0;
       UINT32 size = getMaxSizeOfRecordInRdp(originalRecordSize);
       candidate.reset();
-      ossScopedLock guard(&_latch, EXCLUSIVE);
+      UINT32 findingFlags = 0 == flags ? freeSpaceMap::FIND_ALL : flags;
 
       if (!isOpen())
       {
@@ -343,20 +354,29 @@ namespace vessel
       }      
 
       bucketNo = getBucketNo(striping);
-      if (!skipBucket && findFromBucket(bucketNo, size, candidate))
+
+      {
+      ossScopedLock guard(&_latch, EXCLUSIVE);
+      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_BUCKET) &&
+          findFromBucket(bucketNo, size, candidate))
       {
          goto done;
       }
 
-      if (findPageFromPoolAndUpdateBucket(bucketNo, size, candidate))
+      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_NEW_POOL) &&
+          findPageFromPoolAndUpdateBucket(bucketNo, size, candidate))
       {
          goto done;
       }
 
-      rc = findPageFromDiskMapAndUpdateBucket(bucketNo, size, candidate);
-      if (SDB_OK != rc)
+      if (OSS_BIT_TEST(findingFlags, freeSpaceMap::FIND_DISK_MAP))
       {
-         goto error;
+         rc = findPageFromDiskMapAndUpdateBucket(bucketNo, size, candidate);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
       }
    done:
       return rc;
@@ -364,20 +384,27 @@ namespace vessel
       goto done;
    }
 
-   INT32 freeSpaceMap::fillback(CL_PAGE_SEQ seq,
-                                PAGE_ID lpid,
-                                UINT32 bucketNo,
-                                BOOLEAN failure)
+   INT32 freeSpaceMap::updateBucket(CL_PAGE_SEQ seq,
+                                    PAGE_ID lpid,
+                                    UINT32 bucketNo,
+                                    UINT16 freeSizeFromBucket,
+                                    UINT16 currentFreeSize,
+                                    BOOLEAN failure)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == seq ||
-                       INVALID_PAGE_ID == lpid))
+                       INVALID_PAGE_ID == lpid ||
+                       _maxFreeSize < freeSizeFromBucket ||
+                       _maxFreeSize < currentFreeSize ||
+                       _bucketCount <= bucketNo))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _buckets.fillback(bucketNo, seq, lpid, failure);
+      _buckets.updateCandidate(bucketNo, seq, lpid,
+                              _minFreeSize, freeSizeFromBucket,
+                              currentFreeSize, failure);
    done:
       return rc;
    error:
@@ -413,18 +440,17 @@ namespace vessel
          goto error;
       }
 
-      minFreeSize = lvl.getMinFreeSize(_pageSize);
+      minFreeSize = candidateLvl.getMinFreeSize(_pageSize);
       SDB_ASSERT(size <= minFreeSize, "impossible");
 
-      candidate = fsmCandidate(seq, INVALID_PAGE_ID, minFreeSize);
+      candidate = fsmCandidate(seq, INVALID_PAGE_ID, minFreeSize - size);
       if (_minFreeSize <= (minFreeSize - size))
       {
          fsmCandidate c(candidate);
-         c.free -= size;
          if (_buckets.upsert(bucketNo, candidate))
          {
             candidate.setBucketNo(bucketNo);
-            candidate.setFillBack();
+            candidate.setFeedback();
          }
       }
    done:
@@ -455,12 +481,11 @@ namespace vessel
       page = _newPagePool.front();
       _newPagePool.pop_front();
 
-      candidate = fsmCandidate(page.seq, page.lpid, _maxFreeSize);
+      candidate = fsmCandidate(page.seq, page.lpid, _maxFreeSize - size);
 
       if (_minFreeSize <= (_maxFreeSize - size))
       {
          fsmCandidate c(candidate);
-         c.free -= size;
          if (_buckets.upsert(bucketNo, c))
          {
             candidate.setBucketNo(bucketNo);
@@ -488,9 +513,9 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 bucketNo = 0;
-      fsmSizeLvl lvl;
-      ossScopedLock lock(&_latch, SHARED);
-      
+      fsmSizeLvl oldLvl;
+      fsmSizeLvl newLvl;
+
       if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence ||
                         INVALID_PAGE_ID == lpid ||
                         newFreeSize < delta ||
@@ -504,23 +529,34 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      if (INVALID_STRIPING_ID != minStriping)
+      else if (newFreeSize < _minFreeSize)
       {
-         bucketNo = getBucketNo(minStriping);
+         goto done;
       }
 
+      oldLvl.init(_pageSize, newFreeSize - delta);
+      newLvl.init(_pageSize, newFreeSize);
+
+      if (oldLvl.getLvl() == newLvl.getLvl())
+      {
+         goto done;
+      }
+
+      bucketNo = getBucketNo(minStriping);
+
+      {
+      ossScopedLock lock(&_latch, SHARED);
       if (_buckets.tryToIncBucket(sequence, lpid, bucketNo,
                                   _maxFreeSize, newFreeSize, delta))
       {
          goto done;
       }
 
-      lvl.init(_pageSize, newFreeSize);
-      rc = _dfsm.updatePageFreeSizeLvL(sequence, lvl);
+      rc = _dfsm.updatePageFreeSizeLvL(sequence, newLvl);
       if (SDB_OK != rc)
       {
          goto error;
+      }
       }
    done:
       return rc;
@@ -536,8 +572,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 bucketNo = 0;
-      fsmSizeLvl lvl;
-      ossScopedLock lock(&_latch, SHARED);
+      fsmSizeLvl oldLvl;
+      fsmSizeLvl newLvl;
       
       if (OSS_UNLIKELY(INVALID_CL_PAGE_SEQ == sequence ||
                         INVALID_PAGE_ID == lpid ||
@@ -553,22 +589,28 @@ namespace vessel
          goto error;
       }
 
-      if (INVALID_STRIPING_ID != minStriping)
+      oldLvl.init(_pageSize, newFreeSize + delta);
+      newLvl.init(_pageSize, newFreeSize);
+      if (oldLvl.getLvl() == newLvl.getLvl())
       {
-         bucketNo = getBucketNo(minStriping);
+         goto done;
       }
 
+      bucketNo = getBucketNo(minStriping);
+
+      {
+      ossScopedLock lock(&_latch, SHARED);
       if (_buckets.tryToDecBucket(sequence, lpid, bucketNo,
                                   _minFreeSize, newFreeSize, delta))
       {
          goto done;
       }
 
-      lvl.init(_pageSize, newFreeSize);
-      rc = _dfsm.updatePageFreeSizeLvL(sequence, lvl);
+      rc = _dfsm.updatePageFreeSizeLvL(sequence, newLvl);
       if (SDB_OK != rc)
       {
          goto error;
+      }
       }
    done:
       return rc;
@@ -589,12 +631,6 @@ namespace vessel
    UINT32 freeSpaceMap::estimateMaxUpdatingCount(UINT32 bucketNo)
    {
       UINT32 maxPageCount = _buckets.getFreeSize(bucketNo);
-      
-      if (1 < _bucketCount && _buckets.getReqCount(bucketNo) <= 64)
-      {
-         maxPageCount = 1;
-      }
-
       if (0 == maxPageCount)
       {
          maxPageCount = 1;
@@ -608,7 +644,7 @@ namespace vessel
    {
       SDB_ASSERT(1 == _bucketCount || 32 == _bucketCount, "must be 1 or 32");
       UINT32 bucketNo = 0;
-      if (1 == _bucketCount)
+      if (1 == _bucketCount || INVALID_STRIPING_ID == striping)
       {
          return 0;
       }
@@ -664,8 +700,14 @@ namespace vessel
 
    void freeSpaceMap::savePagesInBuckets()
    {
+      SDB_ASSERT(isOpen(), "must be open");
       UINT32 size = _buckets.getBucketCount();
-      fsmCandidate candidates[FSM_CANDIDATE_BUCKET_CAPACITY];
+      fsmCandidate *candidates = SDB_OSS_NEW fsmCandidate[_bucketCapacity];
+      if (NULL == candidates)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         goto done;
+      }
       
       for (UINT32 i = 0; i < size; ++i)
       {
@@ -677,6 +719,11 @@ namespace vessel
             lvl.init(_pageSize, candidates[j].free);
             _dfsm.updatePageFreeSizeLvL(candidates[j].seq, lvl);
          }
+      }
+   done:
+      if (NULL != candidates)
+      {
+         SDB_OSS_DEL []candidates;
       }
       return;
    }

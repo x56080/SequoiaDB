@@ -43,6 +43,7 @@ namespace vessel
    const UINT32 MAX_FAILURE_COUNT = 8;
 
    fsmCandidateBucket::fsmCandidateBucket():
+   _candidates(NULL),
    _reqCnt(0)
    {
 
@@ -50,10 +51,46 @@ namespace vessel
 
    fsmCandidateBucket::~fsmCandidateBucket()
    {
-
+      fini();
    }
 
-   BOOLEAN fsmCandidateBucket::upsert(const fsmCandidate &candidate,
+   INT32 fsmCandidateBucket::init(UINT32 capacity)
+   {
+      INT32 rc = SDB_OK;
+      fini();
+
+      if (0 == capacity || !ossIsPowerOf2(capacity))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _candidates = SDB_OSS_NEW _bucketCandidate[capacity];
+      if (NULL == _candidates)
+      {
+         PD_LOG(PDERROR, "failed to allocate mem");
+         rc = SDB_OOM;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void fsmCandidateBucket::fini()
+   {
+      if (NULL != _candidates)
+      {
+         SDB_OSS_DEL []_candidates;
+         _candidates = NULL;
+      }
+      _reqCnt = 0;
+      return;
+   }
+
+   BOOLEAN fsmCandidateBucket::upsert(UINT32 capacity,
+                                      const fsmCandidate &candidate,
                                       fsmCandidate *replaced)
    {
       SDB_ASSERT(candidate.isValid(), "can not be invalid");
@@ -61,7 +98,7 @@ namespace vessel
       BOOLEAN r = FALSE;
       _bucketCandidate *toBeEvited = NULL;
 
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          _bucketCandidate &c = _candidates[i];
          if (!c.isValid())
@@ -104,24 +141,26 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN fsmCandidateBucket::findAndAutoRemoving(UINT16 size,
+   BOOLEAN fsmCandidateBucket::findAndAutoRemoving(UINT32 capacity,
+                                                   UINT16 size,
                                                    UINT16 minFreeSize,
                                                    fsmCandidate &candidate)
    {
       BOOLEAN r = FALSE;
       UINT32 seed = _reqCnt++;
-      SDB_ASSERT(4 == FSM_CANDIDATE_BUCKET_CAPACITY, "impossible");
+      SDB_ASSERT(ossIsPowerOf2(capacity), "must be power of 2");
 
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
-         UINT32 index = (seed + i) & 0x3;/// mod 4
+         UINT32 index = (seed + i) & (capacity - 1);
          _bucketCandidate &c = _candidates[i];
          if (c.isValid())
          {
             if (size <= c.free)
             {
-               candidate = fsmCandidate(c.seq, c.lpid, c.free);
                c.free -= size;
+               candidate = fsmCandidate(c.seq, c.lpid, c.free);
+               
                if (c.free < minFreeSize)
                {
                   remove(index);
@@ -139,14 +178,16 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN fsmCandidateBucket::tryToInc(CL_PAGE_SEQ seq,
+   BOOLEAN fsmCandidateBucket::tryToInc(UINT32 capacity,
+                                        CL_PAGE_SEQ seq,
                                         PAGE_ID lpid,
                                         UINT16 maxFreeSize,
                                         UINT16 newFreeSize,
                                         UINT16 delta)
    {
       BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      SDB_ASSERT(newFreeSize <= maxFreeSize, "impossible");
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          _bucketCandidate &c = _candidates[i];
          if (!c.isValid() || seq != c.seq)
@@ -156,13 +197,13 @@ namespace vessel
 
          r = TRUE;
 
-         if (maxFreeSize < (c.free + delta))
+         if ((c.free + delta) < newFreeSize)
          {
-            c.free = newFreeSize < maxFreeSize ? newFreeSize : maxFreeSize;
+            c.free += delta;
          }
          else
          {
-            c.free += maxFreeSize;
+            c.free = newFreeSize;
          }
 
          if (INVALID_PAGE_ID == c.lpid &&
@@ -170,19 +211,21 @@ namespace vessel
          {
             c.lpid = lpid;
          }
+         goto done;
       }
    done:
       return r;
    }
 
-   BOOLEAN fsmCandidateBucket::tryToDec(CL_PAGE_SEQ seq,
+   BOOLEAN fsmCandidateBucket::tryToDec(UINT32 capacity,
+                                        CL_PAGE_SEQ seq,
                                         PAGE_ID lpid,
                                         UINT16 minFreeSize,
                                         UINT16 newFreeSize,
                                         UINT16 delta)
    {
       BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          _bucketCandidate &c = _candidates[i];
          if (!c.isValid() || seq != c.seq)
@@ -195,6 +238,12 @@ namespace vessel
          if (newFreeSize < minFreeSize)
          {
             remove(i);
+            goto done;
+         }
+
+         if (newFreeSize < c.free)
+         {
+            c.free = newFreeSize;
          }
          else if (delta < c.free)
          {
@@ -202,33 +251,36 @@ namespace vessel
             if (c.free < minFreeSize)
             {
                remove(i);
-            }
-            else if (INVALID_PAGE_ID == c.lpid &&
-                     INVALID_PAGE_ID != c.lpid)
-            {
-               c.lpid = lpid;
+               goto done;
             }
          }
          else
          {
-            c.free = newFreeSize;
-            if (INVALID_PAGE_ID == c.lpid &&
-                     INVALID_PAGE_ID != c.lpid)
-            {
-               c.lpid = lpid;
-            }
-         }         
+            remove(i);
+            goto done;
+         }
+
+         if (INVALID_PAGE_ID == c.lpid &&
+             INVALID_PAGE_ID != c.lpid)
+         {
+            c.lpid = lpid;
+         }
+         goto done; 
       }
    done:
       return r;
    }
 
-   BOOLEAN fsmCandidateBucket::fillback(CL_PAGE_SEQ seq,
-                                        PAGE_ID lpid,
-                                        BOOLEAN failure)
+   BOOLEAN fsmCandidateBucket::updateCandidate(UINT32 capacity,
+                                               CL_PAGE_SEQ seq,
+                                               PAGE_ID lpid,
+                                               UINT16 minFreeSize,
+                                               UINT16 freeSizeFromBucket,
+                                               UINT16 currentFreeSize,
+                                               BOOLEAN failure)
    {
       BOOLEAN r = FALSE;
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          _bucketCandidate &c = _candidates[i];
          if (!c.isValid() || seq != c.seq)
@@ -246,21 +298,40 @@ namespace vessel
                goto done;
             }
          }
+         
+         if (currentFreeSize < minFreeSize)
+         {
+            remove(i);
+         }
+         else if (currentFreeSize < c.free)
+         {
+            c.free = currentFreeSize;
+         }
+         else if (freeSizeFromBucket == c.free &&
+                  currentFreeSize != c.free)
+         {
+            /// only the first allocating's feedback on this page
+            /// has chance to increase free size.
+            c.free = currentFreeSize;
+         }
 
          if (INVALID_PAGE_ID == c.lpid)
          {
             c.lpid = lpid;
          }
+
+         break;
       }
    done:
       return r;
    }
 
-   void fsmCandidateBucket::dump(fsmCandidate *candidates,
+   void fsmCandidateBucket::dump(UINT32 capacity,
+                                 fsmCandidate *candidates,
                                  UINT32 &count)const
    {
       UINT32 cnt = 0;
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          const _bucketCandidate &c = _candidates[i];
          if (!c.isValid())
@@ -274,10 +345,10 @@ namespace vessel
       return;
    }
 
-   UINT32 fsmCandidateBucket::getSize()const
+   UINT32 fsmCandidateBucket::getSize(UINT32 capacity)const
    {
       UINT32 size = 0;
-      for (UINT32 i = 0; i < FSM_CANDIDATE_BUCKET_CAPACITY; ++i)
+      for (UINT32 i = 0; i < capacity; ++i)
       {
          if (_candidates[i].isValid())
          {

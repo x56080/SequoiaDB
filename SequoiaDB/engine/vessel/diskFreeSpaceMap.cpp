@@ -293,6 +293,7 @@ namespace vessel
       INT32 oldLvl = FSM_SPACE_LVL_INVALID;
       UINT32 oldDelta = 0;
       UINT64 *bits = NULL;
+      old.reset();
 
       /// Usually due to dirty pages not being flushed.
       if (subPage->stat.totalPageCount < (offset +1))
@@ -357,10 +358,11 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "can not be invalid");
+      SDB_ASSERT(FSM_SEQ_RANGE_IN_PAGE <= seq, "impssible");
       fsmPageMapPage *page = NULL;
       fsmPageHead *head = NULL;
       fsmPageMapSlot *slot = NULL;
-      UINT32 slotOffset = seq % FSM_SEQ_RANGE_IN_PAGE;
+      UINT32 slotOffset = ((seq / FSM_SEQ_RANGE_IN_PAGE) - 1) % FSM_PAGE_MAP_CAPAITY;
 
       rc = getPageHead(pid, &head);
       if (SDB_OK != rc)
@@ -545,17 +547,20 @@ namespace vessel
 
    INT32 diskFreeSpaceMap::find(const fsmSizeLvl &lvl,
                                 CL_PAGE_SEQ &seq,
-                                fsmSizeLvl &realLvl)
+                                fsmSizeLvl &realLvl,
+                                FLOAT32 worthToScan)
    {
       INT32 rc = SDB_OK;
-      UINT32 *cursor = NULL;
-      UINT32 begin = 0;
+      UINT16 *cursor = NULL;
+      UINT32 beginPageNo = 0;
+      UINT32 pageNo = 0;
       UINT32 loop = 0;
       UINT32 scanned = 0;
       fsmPageMapSlot *slot = NULL;
       CL_PAGE_SEQ candidate = INVALID_CL_PAGE_SEQ;
       fsmSizeLvl candidateLvl;
       const static UINT32 MAX_SCAN = 8;
+      BOOLEAN r = FALSE;
 
       if (!lvl.isValid())
       {
@@ -572,24 +577,29 @@ namespace vessel
                              _stats.getLvl(FSM_SPACE_LVL0),
                              _stats.getLvl(FSM_SPACE_LVL1),
                              _stats.getLvl(FSM_SPACE_LVL2),
-                             _stats.getLvl(FSM_SPACE_LVL3)))
+                             _stats.getLvl(FSM_SPACE_LVL3),
+                             worthToScan))
       {
          rc = SDB_VESSEL_FSM_NO_FREE_SPACE;
          goto error;
       }
 
       cursor = _cursor.get(lvl.getLvl());
-      begin = *cursor;
+      SDB_ASSERT(8 == FSM_SUB_BITMAP_COUNT, "must be 8");
+      beginPageNo = *cursor >> 3;
 
       do
       {
+         candidate = INVALID_CL_PAGE_SEQ;
          fsmBitMapPage *page = NULL;
-         if (0 != loop++ && begin == *cursor)
+         pageNo = *cursor >> 3;
+
+         if (0 != loop++ && beginPageNo == pageNo)
          {
             break;
          }
 
-         rc = getBitMapPageByPageNo(*cursor, &page, &slot);
+         rc = getBitMapPageByPageNo(pageNo, &page, &slot);
          if (SDB_OUT_OF_BOUND == rc)
          {
             rc = SDB_OK;
@@ -599,7 +609,7 @@ namespace vessel
          else if (SDB_VESSEL_PAGE_CRASHED == rc)
          {
             rc = SDB_OK;
-            ++(*cursor);
+            *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
             continue;
          }
          else if (SDB_OK != rc)
@@ -614,10 +624,11 @@ namespace vessel
                                    slot->stat.getLvl(FSM_SPACE_LVL0),
                                    slot->stat.getLvl(FSM_SPACE_LVL1),
                                    slot->stat.getLvl(FSM_SPACE_LVL2),
-                                   slot->stat.getLvl(FSM_SPACE_LVL3)))
+                                   slot->stat.getLvl(FSM_SPACE_LVL3),
+                                   worthToScan))
             {
                /// do not upate scanned
-               ++(*cursor);
+               *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
                continue;
             }
          }
@@ -628,19 +639,26 @@ namespace vessel
             {
                slot->stat.decLvl(candidateLvl.getLvl());
             }
+
+            *cursor = candidate / FSM_SEQ_RANGE_IN_SUB_PAGE;
+            r = TRUE;
             break;
          }
          else
          {
-            ++(*cursor);
+            *cursor = (pageNo << 3) + FSM_SUB_BITMAP_COUNT;
             ++scanned;
             continue;
          }
       }while(scanned <= MAX_SCAN);
 
-      if (INVALID_CL_PAGE_SEQ != candidate)
+      if (r)
       {
+         SDB_ASSERT(INVALID_CL_PAGE_SEQ != candidate &&
+                    candidateLvl.isValid(), "can not be invalid");
          _stats.decLvl(candidateLvl.getLvl());
+         seq = candidate;
+         realLvl = candidateLvl;
       }
       else
       {
@@ -655,7 +673,7 @@ namespace vessel
    }
 
    BOOLEAN diskFreeSpaceMap::findFromBitMapPage(const fsmSizeLvl &lvl,
-                                                UINT32 pageNo,
+                                                UINT32 subPageNo,
                                                 fsmBitMapPage *page,
                                                 CL_PAGE_SEQ &candidate,
                                                 fsmSizeLvl &realLvl)
@@ -663,14 +681,16 @@ namespace vessel
       BOOLEAN r = FALSE;
       SDB_ASSERT(lvl.isValid() && NULL != page, "can not be invalid");
       UINT32 offset = 0;
-      for (UINT32 i = 0; i < FSM_SUB_BITMAP_COUNT; ++i)
+      UINT32 begin = subPageNo & (FSM_SUB_BITMAP_COUNT - 1);
+      for (UINT32 i = begin; i < FSM_SUB_BITMAP_COUNT; ++i)
       {
          fsmBitMapSubPage &subPage = page->pages[i];
          if (findFromSubBitMapPage(lvl, &subPage, offset, realLvl))
          {
-            candidate = pageNo * FSM_SEQ_RANGE_IN_PAGE +
+            candidate = (subPageNo >> 3) * FSM_SEQ_RANGE_IN_PAGE +
                         i * FSM_SEQ_RANGE_IN_SUB_PAGE +
                         offset;
+            r = TRUE;
             break;
          }
       }
@@ -774,9 +794,9 @@ namespace vessel
    {
       SDB_ASSERT(NULL != deltas, "can not be null");
       SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
-      UINT64 delta = *(deltas + (offset >> 4)); /// divided by 16
-      UINT32 deltaOffset = offset & 0xF; /// mod 16
-      delta = delta >> deltaOffset;
+      UINT64 delta = *(deltas + (offset >> 4)); /// divided by 16. 16 deltas per 64 bits.
+      UINT32 n = (offset & 0xF) << 2; /// (offset mod 16) * 4;
+      delta = delta >> n;
       return delta & 0xF;
       
    }
@@ -808,14 +828,14 @@ namespace vessel
       SDB_ASSERT(FSM_LVL_DELTA_COUNT == 16, "impossible");
       BOOLEAN r = FALSE;
       UINT32 loopCnt = 0;
-      UINT32 n = offset & 0xF;
+      UINT32 n = (offset & 0xF) << 2;/// 64bits has 16 deltas, 4bits each delta.
       UINT64 mask = 0xF;
       mask <<= n;
       mask = ~mask;
 
       UINT64 v = value & 0xF; /// remove invalid bits.
       v <<= n;
-      volatile UINT64 *delta = deltas + (offset >> 4); /// divided by 16
+      UINT64 *delta = deltas + (offset >> 4); /// divided by 16
       UINT64 expected = *delta;
       UINT64 disired = (expected & mask) | v;
 
@@ -826,7 +846,7 @@ namespace vessel
             PD_LOG(PDERROR, "delta cas loop over 64 times");
             goto done;
          }
-         expected = *delta;
+         expected = *((volatile UINT64 *)delta);
          disired = (expected & mask) | v;
       }
       r = TRUE;
@@ -907,7 +927,6 @@ namespace vessel
       SDB_ASSERT(NULL != page, "can not be null");
       INT32 rc = SDB_OK;
       fsmPageHead *head = NULL;
-      PAGE_ID pid = INVALID_PAGE_ID;
       if (_pmapPids.size() <= mapPageNo)
       {
          rc = SDB_OUT_OF_BOUND;
@@ -1152,7 +1171,9 @@ namespace vessel
    PAGE_ID diskFreeSpaceMap::getEntryPid(CL_MB_ID mbID)
    {
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      return mbID / FSM_ENTRY_SLOT_COUNT;
+      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "impossible");
+      /// 1 for smp
+      return (mbID & (FSM_ENTRY_SLOT_COUNT - 1)) + 1;
    }
 
    fsmCLEntry *diskFreeSpaceMap::getEntryFromPagePtr(ossValuePtr ptr,
@@ -1160,9 +1181,9 @@ namespace vessel
    {
       SDB_ASSERT(0 != ptr, "can not be null");
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(4096 == FSM_ENTRY_SLOT_COUNT, "must be 4096");
+      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "must be power of 2");
       fsmCLEntry *slot = (fsmCLEntry *)ptr;
-      return slot + (mbID & 0xfff);/// mod 4096
+      return slot + (mbID & (FSM_ENTRY_SLOT_COUNT - 1));/// mod 4096
    }
 
    INT32 diskFreeSpaceMap::initBitMapPage(PAGE_ID pid)
@@ -1209,8 +1230,8 @@ namespace vessel
          goto error;
       }
 
-      ossMemset(page, 0, FSM_PAGE_SIZE);
       page = (fsmPageMapPage *)ptr;
+      ossMemset(page, 0, FSM_PAGE_SIZE);
       page->head.version = FSM_PAGE_VERSION;
       page->head.type = FSM_PAGE_TYPE_PAGEMAP;
       page->head.flags = 0;

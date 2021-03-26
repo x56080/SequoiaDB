@@ -91,6 +91,7 @@ namespace vessel
    const static UINT32 FSM_64KB_LVL2_DELTA_RANGE = (FSM_64KB_LVL3 - FSM_64KB_LVL2) / FSM_LVL_DELTA_COUNT;
    const static UINT32 FSM_64KB_LVL1_DELTA_RANGE = (FSM_64KB_LVL2 - FSM_64KB_LVL1) / FSM_LVL_DELTA_COUNT;
    const static UINT32 FSM_64KB_LVL0_DELTA_RANGE = FSM_64KB_LVL1 / FSM_LVL_DELTA_COUNT;
+
 #pragma pack(4)
    struct fsmStats
    {
@@ -234,7 +235,7 @@ namespace vessel
    const static UINT32 FSM_ENTRY_PAGE_COUNT = 65536 / FSM_ENTRY_SLOT_COUNT;
 
 
-   static const UINT8 FSM_CANDIDATE_FLAG_FILLBACK = 0x01;
+   static const UINT8 FSM_CANDIDATE_FLAG_FEEDBACK = 0x01;
    class fsmCandidate : public SDBObject
    {
       public:
@@ -288,17 +289,17 @@ namespace vessel
             return INVALID_CL_PAGE_SEQ != seq;
          }
 
-         OSS_INLINE BOOLEAN testFillBackFlag()const
+         OSS_INLINE BOOLEAN testFeedback()const
          {
-            return OSS_BIT_TEST(flags, FSM_CANDIDATE_FLAG_FILLBACK);
+            return OSS_BIT_TEST(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
          }
-         OSS_INLINE void setFillBack()
+         OSS_INLINE void setFeedback()
          {
-            OSS_BIT_SET(flags, FSM_CANDIDATE_FLAG_FILLBACK);
+            OSS_BIT_SET(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
          }
-         OSS_INLINE void clearFillBack()
+         OSS_INLINE void clearFeedback()
          {
-            OSS_BIT_CLEAR(flags, FSM_CANDIDATE_FLAG_FILLBACK);
+            OSS_BIT_CLEAR(flags, FSM_CANDIDATE_FLAG_FEEDBACK);
          }
 
          OSS_INLINE void setBucketNo(INT8 bucketNo)
@@ -349,7 +350,7 @@ namespace vessel
                              INT32 lvl1,
                              INT32 lvl2,
                              INT32 lvl3,
-                             const FLOAT32 *minPercent=NULL);
+                             FLOAT32 minPercent);
 }//namespace vessel
 }//namespace engine
 

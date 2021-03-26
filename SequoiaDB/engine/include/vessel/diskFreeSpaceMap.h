@@ -72,7 +72,8 @@ namespace vessel
 
          INT32 find(const fsmSizeLvl &lvl,
                     CL_PAGE_SEQ &canditate,
-                    fsmSizeLvl &realLvl);
+                    fsmSizeLvl &realLvl,
+                    FLOAT32 worthToScan=0.05);
 
          /// count of pages should always be 8
          INT32 addNewPages(CL_PAGE_SEQ sequence,
@@ -86,7 +87,7 @@ namespace vessel
                                      fsmPageMapSlot **slot);
 
          BOOLEAN findFromBitMapPage(const fsmSizeLvl &lvl,
-                                    UINT32 pageNo,
+                                    UINT32 subPageNo,
                                     fsmBitMapPage *page,
                                     CL_PAGE_SEQ &candidate,
                                     fsmSizeLvl &realLvl);
@@ -114,6 +115,7 @@ namespace vessel
          INT32 getPageHead(PAGE_ID pid, fsmPageHead **head);
          OSS_INLINE UINT32 getPageNo(CL_PAGE_SEQ seq)
          {
+            SDB_ASSERT(INVALID_CL_PAGE_SEQ != seq, "impossible");
             return seq / FSM_SEQ_RANGE_IN_PAGE;
          }
 
@@ -171,20 +173,21 @@ namespace vessel
 
             OSS_INLINE void reset()
             {
-               for (UINT32 i = 0; i < FSM_SPACE_LVL_MAX; ++i)
+               for (UINT32 i = 0; i < FSM_SPACE_LVL_COUNT; ++i)
                {
                   pages[i] = 0;
                }
                return;
             }
 
-            UINT32 *get(UINT32 i)
+            UINT16 *get(UINT32 i)
             {
                return &(pages[i]);
             }
 
-            UINT32 pages[FSM_SPACE_LVL_MAX];
+            UINT16 pages[FSM_SPACE_LVL_COUNT];
          };//struct _scanCursor
+
       private:
          fsmFile *_fsmFile;
          fsmCLEntry _entry;
