@@ -9,14 +9,9 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   testGetConf23643();
-}
-
-function testGetConf23643()
-{
    //1.分别在server/client上执行stp.getConf()获取当前stp节点配置信息
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
-   var clientNode = getStpClientNode(STPHOSTNAME,STPSVCNAME);
+   var primaryNode = getStpPrimaryNode();
+   var clientNode = getStpClientNode();
    var clientHost = clientNode["HostName"];
    var clientPort = clientNode["Service"];
    
@@ -24,23 +19,14 @@ function testGetConf23643()
    var clientStp = new Stp(clientHost, clientPort);
    
    var primaryConf = primaryStp.getConf();
-   var rc = checkeConfInfo(JSON.parse( primaryConf.toString()), "server");
-   if ( !rc )
-   {
-      throw new Error( "Error: stp.getConf in server return conf is not expected!" );
-   }
+   var conf = JSON.parse( primaryConf.toString());
+   checkeConfInfo(conf, "server");
    
    var clientConf = clientStp.getConf();
-   rc = checkeConfInfo(JSON.parse( clientConf.toString()), "client");
-   if ( !rc )
-   {
-      throw new Error( "Error: stp.getConf in client return conf is not expected!" );
-   }
+   conf = JSON.parse( clientConf.toString());
+   checkeConfInfo(conf, "client");
+
    //2.分别在server/client上修改stp节点所有配置项（port除外）该测试点在updaconf接口中验证
-   //primaryStp.updateConf(serverlist:stpConf["serverlist"]+","+clientNode["HostName"]+":"+clientNode["Service"],role:"client",syncinterval:50,maxtimeerror:60000,diaglevel:2);
-   //clientStp.updateConf(serverlist:stpConf["serverlist"]+","+clientNode["HostName"]+":"+clientNode["Service"],role:"server",syncinterval:50,maxtimeerror:60000,diaglevel:2);
-   //println(primaryNode);
-   //执行stp.getConf()获取节点配置信息 
 }
 
 function checkeConfInfo(stpConf, roleType)
@@ -50,7 +36,7 @@ function checkeConfInfo(stpConf, roleType)
    {
       isSuccess = false;
    }
-   var serverGroup = getStpServerNodes(STPHOSTNAME,STPSVCNAME);
+   var serverGroup = getStpServerNodes();
    serverGroup.sort();
    var serverList = stpConf["serverlist"].split(",");
    serverList.sort();
@@ -65,5 +51,8 @@ function checkeConfInfo(stpConf, roleType)
          isSuccess = false;
       }
    }
-   return isSuccess;
+   if ( !isSuccess )
+   {
+      throw new Error( "Error: stp.getConf in " + roleType + " return conf is not expected: " + stpConf );
+   }
 }

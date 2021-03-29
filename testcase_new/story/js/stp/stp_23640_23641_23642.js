@@ -11,9 +11,16 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
+   var primaryNode = getStpPrimaryNode();
+   var spareNode = getStpSpareNode();
+   var spareNodeHost = spareNode[0]["HostName"];
+   var spareNodePort = spareNode[0]["Service"];
+   var clientNode = getStpClientNode();
+   var clientHost = clientNode["HostName"];
+   var clientPort = clientNode["Service"];
    testConnect23640();
-   testTime23641();
-   testTimeUs23642();
+   testTime23641(primaryNode, spareNodeHost, spareNodePort, clientHost, clientPort);
+   testTimeUs23642(primaryNode, spareNodeHost, spareNodePort, clientHost, clientPort);
 }
 
 function testConnect23640()
@@ -37,13 +44,9 @@ function testConnect23640()
    }
 }
 
-function testTime23641()
+function testTime23641(primaryNode, spareNodeHost, spareNodePort, clientHost, clientPort)
 {
    //1.分别在server/client主节点上指定stp.getTime()，获取节点的逻辑时间及TimeError 
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
-   var spareNode = getStpSpareNode(STPHOSTNAME,STPSVCNAME);
-   var spareNodeHost = spareNode[0]["HostName"];
-   var spareNodePort = spareNode[0]["Service"];
    
    var primaryStp = new Stp(primaryNode["HostName"], primaryNode["Service"]);
    var spareStp = new Stp(spareNodeHost, spareNodePort);
@@ -57,9 +60,6 @@ function testTime23641()
    }
    //3.分别在server/client备节点上指定stp.getTime()，获取节点的逻辑时间及TimeError 
    //通过查主再查备再查主，验证逻辑时间正确性 
-   var clientNode = getStpClientNode(STPHOSTNAME,STPSVCNAME);
-   var clientHost = clientNode["HostName"];
-   var clientPort = clientNode["Service"];
    var clientStp = new Stp(clientHost, clientPort);
    var clientTime = clientStp.getTime();
    var primaryTime3 = primaryStp.getTime();
@@ -71,14 +71,9 @@ function testTime23641()
    
 }
 
-function testTimeUs23642()
+function testTimeUs23642(primaryNode, spareNodeHost, spareNodePort, clientHost, clientPort)
 {
    //1.分别在server/client主节点上指定stp.getTimeUS()，获取节点的逻辑时间及TimeError 
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
-   var spareNode = getStpSpareNode(STPHOSTNAME,STPSVCNAME);
-   var spareNodeHost = spareNode[0]["HostName"];
-   var spareNodePort = spareNode[0]["Service"];
-   
    var primaryStp = new Stp(primaryNode["HostName"], primaryNode["Service"]);
    var spareStp = new Stp(spareNodeHost, spareNodePort);
    var primaryTime1 = primaryStp.getTimeUS();
@@ -97,9 +92,6 @@ function testTimeUs23642()
    }
    //3.分别在server/client备节点上指定stp.getTimeUS()，获取节点的逻辑时间及TimeError 
    //通过查主再查备再查主，验证逻辑时间正确性 
-   var clientNode = getStpClientNode(STPHOSTNAME,STPSVCNAME);
-   var clientHost = clientNode["HostName"];
-   var clientPort = clientNode["Service"];
    var clientStp = new Stp(clientHost, clientPort);
    var clientTime = clientStp.getTimeUS();
    var primaryTime3 = primaryStp.getTimeUS();

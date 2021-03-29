@@ -9,13 +9,8 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   testGetServer23645();
-}
-
-function testGetServer23645()
-{
-   var serverGroup = getStpServerNodes(STPHOSTNAME, STPSVCNAME);
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
+   var serverGroup = getStpServerNodes();
+   var primaryNode = getStpPrimaryNode();
    var isSuccess = true
    if (serverGroup.length <= 0)
    {
