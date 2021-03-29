@@ -77,9 +77,9 @@ if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 //STP服务端主机名，CI默认传入localhost
-if( typeof ( STPHOSTNAME ) == "undefined" ) { ESHOSTNAME = 'localhost'; }
+if( typeof ( STPHOSTNAME ) == "undefined" ) { STPHOSTNAME = 'localhost'; }
 //STP服务端端口号，CI默认传入9622
-if( typeof ( STPSVCNAME ) == "undefined" ) { ESSVCNAME = '9622'; }
+if( typeof ( STPSVCNAME ) == "undefined" ) { STPSVCNAME = '9622'; }
 
 // CHANGEDPREFIX = local_test
 var cmd = new Cmd();
