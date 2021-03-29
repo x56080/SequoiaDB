@@ -63,7 +63,8 @@ namespace engine
 
       virtual INT32 handleConnect( const NET_HANDLE &handle,
                                    _MsgRouteID id,
-                                   BOOLEAN isPositive ) ;
+                                   BOOLEAN isPositive,
+                                   netUserDataHolder *userDataHolder ) ;
 
    private:
       _coordDataSourceMgr     *_pDSMgr ;

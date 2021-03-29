@@ -63,7 +63,8 @@ namespace engine
    // is required to send a system info request and do the authentication.
    INT32 _coordDataSourceMsgHandler::handleConnect( const NET_HANDLE& handle,
                                                     _MsgRouteID id,
-                                                    BOOLEAN isPositive )
+                                                    BOOLEAN isPositive,
+                                                    netUserDataHolder *userDataHolder )
    {
       INT32 rc = SDB_OK ;
 
