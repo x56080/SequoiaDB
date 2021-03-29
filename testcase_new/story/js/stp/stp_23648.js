@@ -9,31 +9,25 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   testGetSyncHistory23648();
-}
-
-function testGetSyncHistory23648()
-{
    //1.连接server主节点执行stp.getSyncHistory()查询,自动化不实现切主的情况，清空历史耗时太长，不合适
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
+   var primaryNode = getStpPrimaryNode();
    var primaryStp = new Stp(primaryNode["HostName"], primaryNode["Service"]);
    var primarySyncHistory = primaryStp.getSyncHistory();
    checkSyncHistoryInfo(primarySyncHistory, true);
    
    //2.连接server非主节点执行stp.getSyncHistory()查询
-   var spareNode = getStpSpareNode(STPHOSTNAME,STPSVCNAME);
+   var spareNode = getStpSpareNode();
    var spareNodeHost = spareNode[0]["HostName"];
    var spareNodePort = spareNode[0]["Service"];
    var spareStp = new Stp(spareNodeHost, spareNodePort);
    var spareSyncHistory = spareStp.getSyncHistory();
    checkSyncHistoryInfo(spareSyncHistory, false);
-   
 }
 
 function checkSyncHistoryInfo(info, isPrimary)
 {
    var isSuccess = true;
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
+   var primaryNode = getStpPrimaryNode();
    var syncHistory = JSON.parse( info.toString() );
    if(isPrimary)
    {
@@ -41,10 +35,7 @@ function checkSyncHistoryInfo(info, isPrimary)
       {
          isSuccess = false;
       }
-   }
-   
-   if(!isPrimary)
-   {
+   } else {
       if(syncHistory["SyncSources"][0]["HostName"] != primaryNode["HostName"] || syncHistory["SyncSources"][0]["Service"] != primaryNode["Service"])
       {
          isSuccess = false;
@@ -53,6 +44,6 @@ function checkSyncHistoryInfo(info, isPrimary)
 
    if (!isSuccess)
    {
-      throw new Error( "Error: stp.getSyncHistory return syncHistory is not expected!" );
+      throw new Error( "Error: stp.getSyncHistory return syncHistory is not expected! " + syncHistory["SyncSources"][0]["HostName"]);
    }
 }

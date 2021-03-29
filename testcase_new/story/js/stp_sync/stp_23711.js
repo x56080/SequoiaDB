@@ -7,12 +7,8 @@
  ******************************************************************************/
 testConf.skipStandAlone = true;
 main( test );
-function test ()
-{
-   testReelect23711();
-}
 
-function testReelect23711()
+function test()
 {
    //1.分别连接stp  server主备节点执行reelect,指定Seconds HostName，覆盖默认和非默认值，HostName覆盖主节点、备节点//超时难以实现自动化
    var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
@@ -45,6 +41,7 @@ function testReelect23711()
    {
       var stp = new Stp(STPHOSTNAME,STPSVCNAME);
       stp.reelect({HostName:clientNode["HostName"]});
+      throw new Error( "expect fail but success!");
    }
    catch( e )
    {
@@ -59,6 +56,7 @@ function testReelect23711()
    {
       var stp = new Stp(STPHOSTNAME,STPSVCNAME);
       stp.reelect({HostName:"relect23711"});
+      throw new Error( "expect fail but success!");
    }
    catch( e )
    {
@@ -72,6 +70,7 @@ function testReelect23711()
    try
    {
       stp.reelect({Seconds:"aa"});
+      throw new Error( "expect fail but success!");
    }
    catch( e )
    {

@@ -9,19 +9,14 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   testGetSyncStatus23647();
-}
-
-function testGetSyncStatus23647()
-{
    //1.连接server主节点执行stp.getSyncStatus()查询，检查STP 节点历史同步请求历史信息和当前同步源的同步信息
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
+   var primaryNode = getStpPrimaryNode();
    var primaryStp = new Stp(primaryNode["HostName"], primaryNode["Service"]);
    var primarySyncStatus = primaryStp.getSyncStatus();
    checkSyncStatusInfo(primarySyncStatus, true);
    
    //2.连接server非主节点执行stp.getSyncStatus()查询，检查STP 节点历史同步请求历史信息和当前同步源的同步信息
-   var spareNode = getStpSpareNode(STPHOSTNAME,STPSVCNAME);
+   var spareNode = getStpSpareNode();
    var spareNodeHost = spareNode[0]["HostName"];
    var spareNodePort = spareNode[0]["Service"];
    var spareStp = new Stp(spareNodeHost, spareNodePort);
@@ -29,13 +24,12 @@ function testGetSyncStatus23647()
    checkSyncStatusInfo(spareSyncStatus,false);
    
    //3.连接client执行stp.getSyncStatus()查询，检查STP 节点历史同步请求历史信息和当前同步源的同步信息
-   var clientNode = getStpClientNode(STPHOSTNAME,STPSVCNAME);
+   var clientNode = getStpClientNode();
    var clientHost = clientNode["HostName"];
    var clientPort = clientNode["Service"];
    var clientStp = new Stp(clientHost, clientPort);
    var clientSyncStatus = clientStp.getSyncStatus();
    checkSyncStatusInfo(clientSyncStatus, false);
-   
 }
 
 function checkSyncStatusInfo(info, isPrimary)
@@ -44,15 +38,12 @@ function checkSyncStatusInfo(info, isPrimary)
    var syncStatus = JSON.parse( info.toString() );
    if(isPrimary)
    {
-      if(syncStatus["Role"] != "server" || syncStatus["IsPrimary"] != true)
+      if(syncStatus["Role"] != "server" || syncStatus["IsPrimary"] != true || syncStatus["SyncSource"] != undefined)
       {
          isSuccess = false;
       }
-   }
-   if(!isPrimary)
-   {
-      var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
-      //println(syncStatus);
+   } else {
+      var primaryNode = getStpPrimaryNode();
       if(syncStatus["SyncSource"]["HostName"] != primaryNode["HostName"] || syncStatus["SyncSource"]["Service"] != primaryNode["Service"])
       {
         isSuccess = false;
@@ -62,8 +53,9 @@ function checkSyncStatusInfo(info, isPrimary)
         isSuccess = false;
       }
    }
+   println(syncStatus);
    if (!isSuccess)
    {
-      throw new Error( "Error: stp.getSyncStatus return syncStatus is not expected!" );
+      throw new Error( "Error: stp.getSyncStatus return syncStatus is not expected: " + syncStatus );
    }
 }

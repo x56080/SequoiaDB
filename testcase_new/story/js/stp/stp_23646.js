@@ -10,38 +10,32 @@ testConf.skipStandAlone = true;
 main( test );
 function test ()
 {
-   testGetSyncClients23646();
-}
-
-function testGetSyncClients23646()
-{
    //1.连接server主节点执行stp.getSyncClients()查询，检查STP 节点所在 STP 集群的时间同步信息 
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
+   var primaryNode = getStpPrimaryNode();
    var primaryStp = new Stp(primaryNode["HostName"], primaryNode["Service"]);
    var primarySyncClients = primaryStp.getSyncClients();
-   checkSyncClientsInfo(primarySyncClients);
+   checkSyncClientsInfo(primarySyncClients, primaryNode);
    
    //2.连接server非主节点执行stp.getSyncClients()查询，检查STP 节点所在 STP 集群的时间同步信息 
-   var spareNode = getStpSpareNode(STPHOSTNAME,STPSVCNAME);
+   var spareNode = getStpSpareNode();
    var spareNodeHost = spareNode[0]["HostName"];
    var spareNodePort = spareNode[0]["Service"];
    var spareStp = new Stp(spareNodeHost, spareNodePort);
    var spareSyncClients = spareStp.getSyncClients();
-   checkSyncClientsInfo(spareSyncClients);
+   checkSyncClientsInfo(spareSyncClients, primaryNode);
+   
    //3.连接client执行stp.getSyncClients()查询，检查STP 节点所在 STP 集群的时间同步信息
-   var clientNode = getStpClientNode(STPHOSTNAME,STPSVCNAME);
+   var clientNode = getStpClientNode();
    var clientHost = clientNode["HostName"];
    var clientPort = clientNode["Service"];
    var clientStp = new Stp(clientHost, clientPort);
    var clientSyncClients = clientStp.getSyncClients();
-   checkSyncClientsInfo(clientSyncClients);
-   
+   checkSyncClientsInfo(clientSyncClients, primaryNode);
 }
 
-function checkSyncClientsInfo(info)
+function checkSyncClientsInfo(info, primaryNode)
 {
    var isSuccess = true;
-   var primaryNode = getStpPrimaryNode(STPHOSTNAME,STPSVCNAME);
    var syncClients = JSON.parse( info.toString() );
    if(syncClients["SyncSource"]["HostName"] != primaryNode["HostName"] || syncClients["SyncSource"]["Service"] != primaryNode["Service"])
    {
@@ -53,6 +47,6 @@ function checkSyncClientsInfo(info)
    }
    if (!isSuccess)
    {
-      throw new Error( "Error: stp.getSyncClients return SyncClients is not expected!" );
+      throw new Error( "Error: stp.getSyncClients return SyncClients is not expected: " + syncClients );
    }
 }
