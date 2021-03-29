@@ -238,11 +238,11 @@ namespace engine
             _id[1] = 'i' ;
             _id[2] = 'd' ;
             _id[3] = 0 ;
-            SDB_ASSERT ( sizeof ( _IDToInsert) == 17,
+            SDB_ASSERT ( sizeof ( _IDToInsert ) == 17,
                          "IDToInsert should be 17 bytes" ) ;
          }
       } ;
-      typedef class _IDToInsert _IDToInsert ;
+      typedef class _IDToInsert IDToInsert ;
 #pragma pack()
 
       // raw data for control block extent
@@ -357,41 +357,6 @@ namespace engine
             return ;
          }
          _isInitialized = TRUE ;
-      }
-
-      static BOOLEAN _isValidKey( const bson::BSONObj &obj )
-      {
-         if ( obj.isEmpty() )
-         {
-            return FALSE ;
-         }
-
-         BSONObjIterator i( obj ) ;
-         while ( i.more() )
-         {
-            BSONElement e = i.next() ;
-            const CHAR *fieldName = e.fieldName() ;
-            if ( NULL == fieldName ||
-                 '\0' == fieldName[0] ||
-                 NULL != ossStrchr( fieldName, '$' ) )
-            {
-               return FALSE ;
-            }
-         }
-
-         try
-         {
-            // index key obj shouldn't has more than 32 field
-            Ordering::make ( obj ) ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
-                    e.what(), obj.toString().c_str() ) ;
-            return FALSE ;
-         }
-
-         return TRUE ;
       }
 
       // we want index key generator able to directly access control block
@@ -688,6 +653,41 @@ namespace engine
          goto done ;
       }
 
+      static BOOLEAN isValidKey( const bson::BSONObj &obj )
+      {
+         if ( obj.isEmpty() )
+         {
+            return FALSE ;
+         }
+
+         BSONObjIterator i( obj ) ;
+         while ( i.more() )
+         {
+            BSONElement e = i.next() ;
+            const CHAR *fieldName = e.fieldName() ;
+            if ( NULL == fieldName ||
+                 '\0' == fieldName[0] ||
+                 NULL != ossStrchr( fieldName, '$' ) )
+            {
+               return FALSE ;
+            }
+         }
+
+         try
+         {
+            // index key obj shouldn't has more than 32 field
+            Ordering::make ( obj ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s, index obj: %s",
+                    e.what(), obj.toString().c_str() ) ;
+            return FALSE ;
+         }
+
+         return TRUE ;
+      }
+
       // check whether a given object is valid, usually this is called before
       // creating index
       static BOOLEAN validateKey ( const BSONObj &obj, BOOLEAN isSys = FALSE )
@@ -695,14 +695,24 @@ namespace engine
          INT32 fieldCount = 0 ;
          BOOLEAN isUniq = FALSE ;
          BOOLEAN enforced = FALSE ;
-         // make sure the index def is not too large
-         if ( obj.objsize() + sizeof(_IDToInsert) +
-              IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
-         {
-            return FALSE ;
-         }
+
          // make sure the object contains key and name field, and may include
          // "v", "dropDups", "unique" fields, and not include any other fields
+
+         if ( obj.hasField( DMS_ID_KEY_NAME ) )
+         {
+            fieldCount ++ ;
+         }
+         else
+         {
+            // make sure the index def is not too large
+            if ( obj.objsize() + sizeof(_IDToInsert) +
+                 IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
+            {
+               return FALSE ;
+            }
+         }
+
          UINT16 type = 0 ;
          if ( !generateIndexType( obj, type ) )
          {
@@ -710,33 +720,27 @@ namespace engine
             return FALSE ;
          }
          fieldCount ++ ;
-
-         if ( !_isValidKey( obj.getObjectField( IXM_KEY_FIELD ) ) )
+         if ( !isValidKey( obj.getObjectField( IXM_KEY_FIELD ) ) )
          {
             PD_LOG( PDERROR, "index key is invalid:%s",
                     obj.toString( FALSE, TRUE ).c_str() ) ;
-
             return FALSE ;
          }
 
-         if ( ossStrlen ( obj.getStringField( IXM_NAME_FIELD )) == 0 )
+         INT32 nameLen = ossStrlen( obj.getStringField( IXM_NAME_FIELD ) ) ;
+         if ( nameLen == 0 || nameLen >= IXM_INDEX_NAME_SIZE )
          {
-            // if not have string name field, return FALSE
+            // name field should be string, and can't be too long
             return FALSE ;
          }
          fieldCount ++ ;
          // validate index name, only sys index can start with $
-         if ( SDB_OK != dmsCheckIndexName ( obj.getStringField(IXM_NAME_FIELD),
-                                            isSys ) )
+         if ( SDB_OK != dmsCheckIndexName( obj.getStringField( IXM_NAME_FIELD ),
+                                           isSys ) )
          {
             return FALSE ;
          }
-         // name can't be too long
-         if ( ossStrlen ( obj.getStringField(IXM_NAME_FIELD) )
-              >= IXM_INDEX_NAME_SIZE )
-         {
-            return FALSE ;
-         }
+
          if ( obj.hasField ( IXM_V_FIELD ) )
          {
             fieldCount ++ ;
@@ -753,7 +757,7 @@ namespace engine
             enforced = e.booleanSafe() ;
             fieldCount ++ ;
          }
-         if ( obj.hasField ( IXM_NOTNULL_FIELD ))
+         if ( obj.hasField ( IXM_NOTNULL_FIELD ) )
          {
             fieldCount ++ ;
          }
@@ -761,19 +765,15 @@ namespace engine
          {
             fieldCount ++ ;
          }
-         if ( obj.hasField ( IXM_DROPDUP_FIELD ))
+         if ( obj.hasField ( IXM_DROPDUP_FIELD ) )
          {
             fieldCount ++ ;
          }
-         if ( obj.hasField (DMS_ID_KEY_NAME))
-         {
-            fieldCount ++ ;
-         }
-         if ( obj.hasField( IXM_GLOBAL_FIELD) )
+         if ( obj.hasField( IXM_GLOBAL_FIELD ) )
          {
             fieldCount++ ;
          }
-         if ( obj.hasField(IXM_GLOBAL_OPTION_FIELD) )
+         if ( obj.hasField( IXM_GLOBAL_OPTION_FIELD ) )
          {
             BSONElement ele ;
             BSONObj globalOptions ;
@@ -781,7 +781,7 @@ namespace engine
             ele = obj.getField( IXM_GLOBAL_OPTION_FIELD ) ;
             if ( Object != ele.type() )
             {
-               PD_LOG( PDERROR, "Invalid field(%s) of index(%s):rc=%d",
+               PD_LOG( PDERROR, "Invalid field(%s) of index(%s)",
                        IXM_GLOBAL_OPTION_FIELD, obj.toString().c_str() ) ;
                return FALSE ;
             }
@@ -791,7 +791,7 @@ namespace engine
             ele = globalOptions.getField( FIELD_NAME_CL_UNIQUEID ) ;
             if ( NumberLong != ele.type() )
             {
-               PD_LOG( PDERROR, "Invalid field(%s) of options(%s):rc=%d",
+               PD_LOG( PDERROR, "Invalid field(%s) of options(%s)",
                        FIELD_NAME_CL_UNIQUEID,
                        globalOptions.toString().c_str() ) ;
                return FALSE ;

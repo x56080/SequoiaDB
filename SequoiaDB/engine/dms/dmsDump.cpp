@@ -65,45 +65,6 @@ namespace engine
       ossStrncat( pBuffer, flagStr, bufSize - ossStrlen( pBuffer ) ) ;
    }
 
-   #define DMS_INDEXTYPE_TMP_STR_SZ       63
-
-   string getIndexTypeDesp( UINT16 type )
-   {
-      CHAR szTmp[DMS_INDEXTYPE_TMP_STR_SZ+1] = {0} ;
-      if ( IXM_EXTENT_TYPE_NONE == type )
-      {
-         return "None" ;
-      }
-
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_POSITIVE ) )
-      {
-         ossStrncat( szTmp, "Positive", DMS_INDEXTYPE_TMP_STR_SZ ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_POSITIVE ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_REVERSE ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Reverse" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_REVERSE ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_2D ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "2d" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_2D ) ;
-      }
-      if ( IXM_EXTENT_HAS_TYPE( type, IXM_EXTENT_TYPE_TEXT ) )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Text" ) ;
-         OSS_BIT_CLEAR( type, IXM_EXTENT_TYPE_TEXT ) ;
-      }
-
-      if ( type )
-      {
-         appendString( szTmp, DMS_INDEXTYPE_TMP_STR_SZ, "Unknow" ) ;
-      }
-
-      return szTmp ;
-   }
-
    UINT32 _dmsDump::dumpHeader( void *inBuf, UINT32 inSize,
                                 CHAR *outBuf, UINT32 outSize,
                                 CHAR *addrPrefix, UINT32 options,
@@ -1830,7 +1791,7 @@ namespace engine
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "Scan extent LID : 0x%08x (%d)"OSS_NEWLINE,
                            header->_scanExtLID, header->_scanExtLID ) ;
-      ossStrncpy ( tmpBuff, getIndexTypeDesp(header->_type).c_str(),
+      ossStrncpy ( tmpBuff, ixmGetIndexTypeDesp(header->_type).c_str(),
                    DMS_DUMP_IXM_CB_FLAG_TEXT_LEN ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "     Type       : %d (%s)"OSS_NEWLINE,

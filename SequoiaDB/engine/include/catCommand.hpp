@@ -21,8 +21,7 @@
    Descriptive Name = Catalogue commands.
 
    When/how to use: this program may be used on binary and text-formatted
-   versions of Runtime component. This file contains Runtime code for insert
-   request.
+   versions of runtime component. This file contains catalog command class.
 
    Dependencies: N/A
 
@@ -41,6 +40,9 @@
 #include "catCMDBase.hpp"
 #include "catLevelLock.hpp"
 #include "utilDataSource.hpp"
+#include "IDataSource.hpp"
+#include "rtnContextBuff.hpp"
+#include "clsTask.hpp"
 
 namespace engine
 {
@@ -146,7 +148,7 @@ namespace engine
                   rtnContextBuf &ctxBuf,
                   INT64 &contextID ) ;
 
-      const CHAR* name() ;
+      const CHAR* name() const ;
 
    private:
       catDSInfo _dsInfo ;
@@ -172,7 +174,7 @@ namespace engine
                   rtnContextBuf &ctxBuf,
                   INT64 &contextID ) ;
 
-      const CHAR* name() ;
+      const CHAR* name() const ;
 
    private:
       /**
@@ -209,7 +211,7 @@ namespace engine
                   rtnContextBuf &ctxBuf,
                   INT64 &contextID ) ;
 
-      const CHAR* name() ;
+      const CHAR* name() const ;
 
    private:
       INT32 _getDataSourceMeta( const CHAR *name, BSONObj &record ) ;
@@ -239,13 +241,280 @@ namespace engine
                   rtnContextBuf &ctxBuf,
                   INT64 &contextID ) ;
 
-      const CHAR *name() ;
+      const CHAR *name() const ;
 
    private:
       const CHAR *_name ;
 
    } ;
    typedef _catCMDTestCollection catCMDTestCollection ;
+
+   struct _catCSInfo
+   {
+      const CHAR*       _pCSName ;
+      utilCSUniqueID    _csUniqueID ;
+      utilCLUniqueID    _clUniqueHWM ;
+      INT32             _pageSize ;
+      const CHAR*       _domainName ;
+      INT32             _lobPageSize ;
+      DMS_STORAGE_TYPE  _type ;
+
+      _catCSInfo()
+      {
+         reset() ;
+      }
+
+      void reset()
+      {
+         _pCSName = NULL ;
+         _csUniqueID = UTIL_UNIQUEID_NULL ;
+         _clUniqueHWM = UTIL_UNIQUEID_NULL ;
+         _pageSize = DMS_PAGE_SIZE_DFT ;
+         _domainName = NULL ;
+         _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
+         _type = DMS_STORAGE_NORMAL ;
+      }
+
+      BSONObj toBson()
+      {
+         BSONObjBuilder builder ;
+         builder.append( CAT_COLLECTION_SPACE_NAME, _pCSName ) ;
+         builder.append( CAT_CS_UNIQUEID, _csUniqueID ) ;
+         builder.append( CAT_CS_CLUNIQUEHWM, (INT64)_clUniqueHWM ) ;
+         builder.append( CAT_PAGE_SIZE_NAME, _pageSize ) ;
+         if ( _domainName )
+         {
+            builder.append( CAT_DOMAIN_NAME, _domainName ) ;
+         }
+         builder.append( CAT_LOB_PAGE_SZ_NAME, _lobPageSize ) ;
+         builder.append( CAT_TYPE_NAME, _type ) ;
+         return builder.obj() ;
+      }
+   } ;
+   typedef _catCSInfo catCSInfo ;
+
+   /*
+      _catCMDCreateCS define
+   */
+   class _catCMDCreateCS : public _catCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDCreateCS() ;
+      virtual ~_catCMDCreateCS() {} ;
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          rtnContextBuf &ctxBuf,
+                          INT64 &contextID ) ;
+
+      virtual const CHAR* name() const
+      {
+         return CMD_NAME_CREATE_COLLECTIONSPACE ;
+      }
+      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
+      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
+
+   private:
+      catCSInfo _csInfo ;
+   };
+   typedef _catCMDCreateCS catCMDCreateCS ;
+
+   /*
+      catCMDIndex define
+   */
+   class _catCMDIndexHelper : public _catCMDBase
+   {
+   protected:
+      typedef ossPoolVector<clsIdxTask*>           VEC_TASKS ;
+      typedef ossPoolVector<clsIdxTask*>::iterator VEC_TASKS_IT ;
+
+   public:
+      _catCMDIndexHelper( BOOLEAN sysCall ) ;
+      virtual ~_catCMDIndexHelper() ;
+
+      const CHAR* collectionName() { return _pCollection ; }
+      const CHAR* indexName()      { return _pIndexName ; }
+
+   protected:
+      INT32 _makeReply( UINT64 taskID, rtnContextBuf &ctxBuf ) ;
+
+      INT32 _checkTaskConflict( _pmdEDUCB *cb ) ;
+
+      INT32 _dropGlobalIdxCL( const CHAR* clName,
+                              _pmdEDUCB *cb ) ;
+
+   private:
+      INT32 _checkTaskConflict( const BSONObj& otherIdxObj,
+                                BOOLEAN& conflict ) ;
+   protected:
+      clsCatalogSet*  _pCataSet ;
+
+      const CHAR*     _pCollection ;
+      const CHAR*     _pIndexName ;
+
+      ossPoolSet<ossPoolString>  _groupSet ;
+
+      VEC_TASKS       _vecTasks ;
+
+      BOOLEAN         _sysCall ;
+   };
+   typedef _catCMDIndexHelper catCMDIndexHelper ;
+
+   /*
+      catCMDCreateIndex define
+   */
+
+   class _catCMDCreateIndex : public _catCMDIndexHelper
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDCreateIndex( BOOLEAN sysCall = FALSE ) ;
+      virtual ~_catCMDCreateIndex() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          rtnContextBuf &ctxBuf,
+                          INT64 &contextID ) ;
+      virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb ) ;
+
+      virtual const CHAR* name() const { return CMD_NAME_CREATE_INDEX ; }
+      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
+      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
+
+   protected:
+      INT32 _check( _pmdEDUCB *cb ) ;
+      INT32 _execute( _pmdEDUCB *cb, rtnContextBuf &ctxBuf ) ;
+
+   private:
+      INT32 _buildMainCLTask( _pmdEDUCB *cb, BOOLEAN mainCLRedef ) ;
+      INT32 _buildCLTask( _pmdEDUCB *cb,
+                          const CHAR* collectionName,
+                          UINT64 mainTaskID = CLS_INVALID_TASKID,
+                          UINT64* pTaskID = NULL ) ;
+
+      INT32 _checkGlobalIndex( _pmdEDUCB *cb ) ;
+
+      INT32 _checkUniqueKey( _pmdEDUCB *cb ) ;
+      INT32 _checkUniqueKey( const clsCatalogSet& cataSet,
+                             std::set<UINT32>& checkedKeyIDs ) ;
+
+      INT32 _createGlobalIdxCL( _pmdEDUCB *cb ) ;
+      INT32 _addGlobalInfo2Task() ;
+
+   private:
+      BSONObj         _boIdx ;
+      BSONObj         _key ;
+      INT32           _sortBufSz ;
+      BOOLEAN         _isPrepareStep ;
+
+      // global index
+      BOOLEAN         _isUnique ;
+      BOOLEAN         _isEnforced ;
+      BOOLEAN         _isGlobal ;
+      CHAR            _globalIdxCSName[DMS_COLLECTION_SPACE_NAME_SZ+1] ;
+      CHAR            _globalIdxCLName[DMS_COLLECTION_FULL_NAME_SZ+1] ;
+      utilCLUniqueID  _globalIdxCLUniqID ;
+      string          _domainName ;
+   };
+   typedef _catCMDCreateIndex catCMDCreateIndex ;
+
+   /*
+      catCMDDropIndex define
+   */
+   class _catCMDDropIndex : public _catCMDIndexHelper
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDDropIndex( BOOLEAN sysCall = FALSE ) ;
+      virtual ~_catCMDDropIndex() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          rtnContextBuf &ctxBuf,
+                          INT64 &contextID ) ;
+      virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb ) ;
+
+      virtual const CHAR* name() const { return CMD_NAME_DROP_INDEX ; }
+      virtual BOOLEAN needCheckPrimary() const { return TRUE ; }
+      virtual BOOLEAN needCheckDCStatus() const { return TRUE ; }
+
+   protected:
+      virtual INT32 _check( _pmdEDUCB *cb ) ;
+      virtual INT32 _execute( _pmdEDUCB *cb, rtnContextBuf &ctxBuf ) ;
+
+   private:
+      INT32 _buildMainCLTask( _pmdEDUCB *cb,
+                              BOOLEAN mainCLIdxNotExist ) ;
+      INT32 _buildCLTask( _pmdEDUCB *cb,
+                          const CHAR* collectionName,
+                          UINT64 mainTaskID = CLS_INVALID_TASKID,
+                          UINT64* pTaskID = NULL ) ;
+      INT32 _checkIndexExist( const CHAR* collection,
+                              const CHAR* indexName,
+                              _pmdEDUCB *cb ) ;
+   } ;
+   typedef _catCMDDropIndex catCMDDropIndex ;
+
+   /*
+      catCMDReportTaskProgress define
+   */
+   class _catCMDReportTaskProgress : public _catCMDBase
+   {
+      CAT_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _catCMDReportTaskProgress() {}
+      virtual ~_catCMDReportTaskProgress() {}
+
+      virtual INT32 init( const CHAR *pQuery,
+                          const CHAR *pSelector = NULL,
+                          const CHAR *pOrderBy = NULL,
+                          const CHAR *pHint = NULL,
+                          INT32 flags = 0,
+                          INT64 numToSkip = 0,
+                          INT64 numToReturn = -1 ) ;
+      virtual INT32 doit( _pmdEDUCB *cb,
+                          rtnContextBuf &ctxBuf,
+                          INT64 &contextID ) ;
+
+      virtual const CHAR* name() const
+      {
+         return CMD_NAME_REPORT_TASK_PROGRESS ;
+      }
+      virtual BOOLEAN needCheckPrimary() const  { return TRUE ; }
+      virtual BOOLEAN needCheckDCStatus() const { return FALSE ; }
+
+   private:
+      INT32 _updateTaskProgress( UINT64 taskID,
+                                 _pmdEDUCB *cb,
+                                 CLS_TASK_STATUS &status ) ;
+      INT32 _updateMainTaskProgress( clsTask *pSubTask,
+                                     _pmdEDUCB *cb ) ;
+
+   protected:
+      BSONObj _query ;
+   };
+   typedef _catCMDReportTaskProgress catCMDReportTaskProgress ;
 }
 
 #endif /* CAT_COMMAND_HPP__ */
+
+

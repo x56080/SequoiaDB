@@ -20,8 +20,8 @@
    Descriptive Name =
 
    When/how to use: this program may be used on binary and text-formatted
-   versions of runtime component. This file contains code logic for
-   common functions for coordinator node.
+   versions of runtime component. This file contains base class of catalog
+   command class.
 
    Dependencies: N/A
 
@@ -40,6 +40,7 @@
 #define CATCMDBASE_HPP_
 
 #include "rtnContextBuff.hpp"
+#include "clsTask.hpp"
 #include "pmdEDU.hpp"
 #include "utilMap.hpp"
 
@@ -73,15 +74,22 @@ namespace engine
                           rtnContextBuf &ctxBuf,
                           INT64 &contextID ) = 0 ;
 
-      virtual const CHAR * name() = 0 ;
+      virtual const CHAR* name() const = 0 ;
 
       // If this command can only be executed on primary node, we need check
       // primary
-      virtual BOOLEAN needCheckPrimary() = 0 ;
+      virtual BOOLEAN needCheckPrimary() const = 0 ;
 
       // If this command can't be executed when DC is readonly, we need check
       // DC status
-      virtual BOOLEAN needCheckDCStatus() = 0 ;
+      virtual BOOLEAN needCheckDCStatus() const = 0 ;
+
+      // doit() may generate clsTask to monitor progress. After the task is
+      // finished, we may need to update metadata in postDoit().
+      virtual INT32 postDoit( const clsTask *pTask, _pmdEDUCB *cb )
+      {
+         return SDB_OK ;
+      }
    } ;
    typedef _catCMDBase catCMDBase ;
 
@@ -123,14 +131,14 @@ namespace engine
 
       // If this command can only be executed on primary node, we need check
       // primary
-      virtual BOOLEAN needCheckPrimary()
+      virtual BOOLEAN needCheckPrimary() const
       {
          return TRUE ;
       }
 
       // If this command can't be executed when DC is readonly, we need check
       // DC status
-      virtual BOOLEAN needCheckDCStatus()
+      virtual BOOLEAN needCheckDCStatus() const
       {
          return TRUE ;
       }
@@ -145,14 +153,14 @@ namespace engine
 
       // If this command can only be executed on primary node, we need check
       // primary
-      virtual BOOLEAN needCheckPrimary()
+      virtual BOOLEAN needCheckPrimary() const
       {
          return FALSE ;
       }
 
       // If this command can't be executed when DC is readonly, we need check
       // DC status
-      virtual BOOLEAN needCheckDCStatus()
+      virtual BOOLEAN needCheckDCStatus() const
       {
          return FALSE ;
       }

@@ -237,16 +237,51 @@ namespace engine
                           ossPoolSet< UINT32 > & groups,
                           BOOLEAN includeSubCLGroups = FALSE ) ;
 
+   /* Collection[CAT_INDEX_INFO_COLLECTION] functions: */
+   INT32 catAddIndex( const CHAR *collectionName,
+                      const BSONObj &indexDef,
+                      pmdEDUCB *cb, INT16 w,
+                      BOOLEAN *pAddNewIdx = NULL,
+                      BSONObj *pIndexObj = NULL ) ;
+
+   INT32 catRemoveIndex( const CHAR *collection,
+                         const CHAR *indexName,
+                         pmdEDUCB *cb, INT16 w,
+                         BOOLEAN *pRemoveOldIdx = NULL ) ;
+
+   INT32 catCheckIndexExist( const CHAR *collection, const BSONObj &indexDef,
+                             pmdEDUCB *cb,
+                             BOOLEAN &isExist, BOOLEAN &isSameDef ) ;
+
+   INT32 catCheckIndexExist( const CHAR* collection, const CHAR* indexName,
+                             const BSONObj& indexDef, _pmdEDUCB* cb ) ;
+
+   INT32 catGetIndex( const CHAR *collection, const CHAR *indexName,
+                      pmdEDUCB *cb, BSONObj &obj ) ;
+
+   INT32 catGetGlobalIndexInfo( const CHAR *collection, const CHAR *indexName,
+                                pmdEDUCB *cb, BOOLEAN &isGlobalIndex,
+                                string &indexCLName,
+                                utilCLUniqueID &indexCLUID ) ;
+
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
-   INT32 catAddTask( BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catAddTask( const BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
+
    INT32 catGetTask( UINT64 taskID, BSONObj &obj, pmdEDUCB *cb ) ;
    INT32 catGetTaskCount ( const CHAR *collection, pmdEDUCB *cb, INT64 &count );
    INT32 catGetTaskCountByCS( const CHAR *csName, pmdEDUCB *cb, INT64 &count ) ;
    INT32 catGetCLTaskCountByType( const CHAR * collection, pmdEDUCB * cb,
                                   CLS_TASK_TYPE type, INT64 & count ) ;
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
-   INT32 catUpdateTaskStatus( UINT64 taskID, INT32 status, pmdEDUCB *cb,
-                              INT16 w ) ;
+   INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
+                        const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catUpdateTask( const BSONObj &matcher, const BSONObj &updator,
+                        pmdEDUCB *cb, INT16 w ) ;
+   INT32 catUpdateTaskStatus( UINT64 taskID, CLS_TASK_STATUS status,
+                              pmdEDUCB * cb, INT16 w ) ;
+   INT32 catUpdateTask2Finish( UINT64 taskID, INT32 resultCode, pmdEDUCB *cb,
+                               INT16 w ) ;
+
    UINT64 catGetCurrentMaxTaskID( pmdEDUCB *cb ) ;
    INT32 catGetAndIncTaskID( pmdEDUCB *cb, INT16 w, UINT64& taskID ) ;
    INT32 catSetTaskHWM( pmdEDUCB *cb, INT16 w, UINT64 taskHWM ) ;
@@ -296,6 +331,9 @@ namespace engine
                             utilGlobalID& globalID ) ;
 
    /* Other Tools */
+   INT32 catFormatIndexInfo( const CHAR* collection, const BSONObj& indexDef,
+                             _pmdEDUCB *cb, BSONObj &obj ) ;
+
    INT32 catPraseFunc( const BSONObj &func, BSONObj &parsed ) ;
 
    UINT32 catCalcBucketID( const CHAR *pData, UINT32 length,
@@ -456,6 +494,7 @@ namespace engine
                            _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
                            INT16 w ) ;
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /* add global index info */
    INT32 catAddGlobalIndexStep ( const string &clName, BSONObj &gIndexInfo,
                                  _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
@@ -473,6 +512,7 @@ namespace engine
                                  _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
                                  SDB_DPSCB *pDpsCB, INT16 w,
                                  BOOLEAN *isAltered = NULL ) ;
+#endif
 
    /* Check and build Collection record */
    INT32 catCheckAndBuildCataRecord ( const BSONObj &boCollection,

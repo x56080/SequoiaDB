@@ -346,95 +346,10 @@ namespace engine
                                    BOOLEAN strict ) const
    {
       //PD_TRACE_ENTRY ( SDB__IXMINXCB_ISSAMEDEF );
-      BOOLEAN rs = TRUE;
-      BOOLEAN lValue = FALSE;
-      BOOLEAN rValue = FALSE;
-      BSONElement lEle ;
-      BSONElement rEle ;
-
-      SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" ) ;
-      try
-      {
-         lEle = _infoObj.getField( IXM_KEY_FIELD ) ;
-         rEle = defObj.getField( IXM_KEY_FIELD ) ;
-         if ( 0 != lEle.woCompare( rEle, false ) )
-         {
-            rs = FALSE;
-            goto done;
-         }
-
-         lValue = unique() ;
-         rValue = defObj.getBoolField( IXM_UNIQUE_FIELD ) ;
-         if ( !strict )
-         {
-            if ( lValue )
-            {
-               /// it is useless to create any same defined index
-               /// when an unique index exists.
-               rs = TRUE ;
-               goto done ;
-            }
-            else if ( lValue != rValue )
-            {
-               rs = FALSE;
-               goto done;
-            }
-            else
-            {
-               /// do nothing.
-            }
-         }
-         else
-         {
-            if ( lValue != rValue )
-            {
-                rs = FALSE ;
-                goto done ;
-            }
-         }
-
-         lValue = enforced() ;
-         rValue = defObj.getBoolField( IXM_ENFORCED_FIELD ) ;
-         if ( lValue != rValue )
-         {
-            rs = FALSE ;
-            goto done ;
-         }
-
-         lValue = notNull() ;
-         rValue = defObj.getBoolField( IXM_NOTNULL_FIELD );
-         if ( lValue != rValue )
-         {
-            rs = FALSE ;
-            goto done ;
-         }
-
-         lValue = notArray() ;
-         if( 0 == ossStrcmp( defObj.getStringField( IXM_NAME_FIELD ),
-                             IXM_ID_KEY_NAME ) )
-         {
-            rValue = TRUE ;
-         }
-         else
-         {
-            rValue = defObj.getBoolField( IXM_NOTARRAY_FIELD ) ;
-         }
-
-         if( lValue != rValue )
-         {
-            rs = FALSE ;
-            goto done ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rs = FALSE ;
-         PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() ) ;
-      }
-
-   done:
+      SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" );
+      BOOLEAN rs = ixmIsSameDef( _infoObj, defObj, strict ) ;
       //PD_TRACE_EXIT( SDB__IXMINXCB_ISSAMEDEF );
-      return rs;
+      return rs ;
    }
 
    // Append extra fields to index definition. This is added in version 3.0.1,

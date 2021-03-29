@@ -145,11 +145,6 @@ namespace engine
       INT32 _getContext( DMS_EXTOPR_TYPE type, rtnExtContextBase *&ctx,
                          pmdEDUCB *cb ) ;
 
-      INT32 _getExtDataName( utilCLUniqueID clUniqID,
-                             const CHAR *idxName,
-                             CHAR *extName,
-                             UINT32 buffSize ) ;
-
       // For compatibility with version 3.0. The external name rule is
       // different. This is used during upgrading from version 3.0, to append
       // 'ExtDataName' to indexCB.

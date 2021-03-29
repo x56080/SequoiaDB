@@ -731,6 +731,7 @@
 #define CMD_NAME_UNLOAD_COLLECTIONSPACE      "unload collectionspace"
 #define CMD_NAME_DROP_INDEX                  "drop index"
 #define CMD_NAME_COPY_INDEX                  "copy index"
+#define CMD_NAME_REPORT_TASK_PROGRESS        "report task progess"
 #define CMD_NAME_PREFIX_GET                  "get "
 #define CMD_NAME_GET_COUNT                   CMD_NAME_PREFIX_GET "count"
 #define CMD_NAME_GET_INDEXES                 CMD_NAME_PREFIX_GET "indexes"

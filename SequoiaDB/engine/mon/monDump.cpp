@@ -1106,7 +1106,7 @@ namespace engine
                                 indexItem._scanExtLID ) ;
             }
             indexItem.getIndexType( idxType ) ;
-            builder.append( FIELD_NAME_TYPE, getIndexTypeDesp( idxType ) ) ;
+            builder.append( FIELD_NAME_TYPE, ixmGetIndexTypeDesp( idxType ) ) ;
             extDataName = indexItem.getExtDataName() ;
             if ( ossStrlen( extDataName ) > 0 )
             {

@@ -62,7 +62,7 @@ namespace engine
    enum
    {
        TITLE1 = 0,
-       TITLE2 =1, 
+       TITLE2 =1,
        TITLE3 = 3,
        TITLE4 = 5,
        TITLE5 = 7
@@ -71,11 +71,6 @@ namespace engine
    #define DMS_SU_DMP_OPT_HEX_WITH_ASCII     ((UINT32)(0x00000002))
    #define DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR ((UINT32)(0x00000004))
    #define DMS_SU_DMP_OPT_FORMATTED          ((UINT32)(0x00000008))
-
-   /*
-      Tool functions
-   */
-   string getIndexTypeDesp ( UINT16 type ) ;
 
    class _pmdEDUCB ;
 
@@ -239,25 +234,25 @@ namespace engine
                                             UINT32 options,
                                             dmsExtentID &root ) ;
 
-         static UINT32 dumpDmsLobMeta( CHAR *inBuf, 
+         static UINT32 dumpDmsLobMeta( CHAR *inBuf,
                                         UINT32 inSize,
                                         CHAR * outBuf,
-                                        UINT32 outSize, 
+                                        UINT32 outSize,
                                         CHAR * addrPrefix,
                                         UINT32 options);
 
-         static UINT32 dumpDmsLobData( CHAR *inBuf, 
-                                        UINT32 inSize, 
-                                        CHAR * outBuf, 
-                                        UINT32 outSize, 
-                                        CHAR * addrPrefix, 
+         static UINT32 dumpDmsLobData( CHAR *inBuf,
+                                        UINT32 inSize,
+                                        CHAR * outBuf,
+                                        UINT32 outSize,
+                                        CHAR * addrPrefix,
                                         UINT32 options);
 
          static UINT32 dumpDmsLobDataMapBlk( dmsLobDataMapBlk *blk,
                                         CHAR * outBuf,
-                                        UINT32 outSize, 
+                                        UINT32 outSize,
                                         CHAR * addrPrefix,
-                                        UINT32 options, 
+                                        UINT32 options,
                                         UINT32 pageSize);
       private:
          static UINT32 _dumpExtentHeaderComm( const dmsExtent *extent,

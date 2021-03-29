@@ -130,62 +130,6 @@ namespace engine
    };
    typedef _catCollectionInfo catCollectionInfo ;
 
-   struct _catCSInfo
-  {
-      const CHAR*       _pCSName ;
-      utilCSUniqueID    _csUniqueID ;
-      utilCLUniqueID    _clUniqueHWM ;
-      INT32             _pageSize ;
-      const CHAR*       _domainName ;
-      INT32             _lobPageSize ;
-      DMS_STORAGE_TYPE  _type ;
-      const CHAR*       _pDataSourceName ;
-      const CHAR*       _pDataSourceMapping ;
-      UTIL_DS_UID       _dsUID ;
-
-      _catCSInfo()
-      {
-         reset() ;
-      }
-
-      void reset()
-      {
-         _pCSName = NULL ;
-         _csUniqueID = UTIL_UNIQUEID_NULL ;
-         _clUniqueHWM = UTIL_UNIQUEID_NULL ;
-         _pageSize = DMS_PAGE_SIZE_DFT ;
-         _domainName = NULL ;
-         _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-         _type = DMS_STORAGE_NORMAL ;
-         _pDataSourceName = NULL ;
-         _pDataSourceMapping = NULL ;
-         _dsUID = UTIL_INVALID_DS_UID ;
-      }
-
-      BSONObj toBson()
-      {
-         BSONObjBuilder builder ;
-         builder.append( CAT_COLLECTION_SPACE_NAME, _pCSName ) ;
-         builder.append( CAT_CS_UNIQUEID, _csUniqueID ) ;
-         builder.append( CAT_CS_CLUNIQUEHWM, (INT64)_clUniqueHWM ) ;
-         builder.append( CAT_PAGE_SIZE_NAME, _pageSize ) ;
-         if ( _domainName )
-         {
-            builder.append( CAT_DOMAIN_NAME, _domainName ) ;
-         }
-         builder.append( CAT_LOB_PAGE_SZ_NAME, _lobPageSize ) ;
-         builder.append( CAT_TYPE_NAME, _type ) ;
-         if ( UTIL_INVALID_DS_UID != _dsUID )
-         {
-            builder.append( FIELD_NAME_DATASOURCE_ID, _dsUID ) ;
-            SDB_ASSERT( _pDataSourceMapping, "Mapping is NULL" ) ;
-            builder.append( FIELD_NAME_MAPPING, _pDataSourceMapping ) ;
-         }
-         return builder.obj() ;
-      }
-   } ;
-   typedef _catCSInfo catCSInfo ;
-
    /*
       catCatalogueManager define
    */
@@ -214,6 +158,12 @@ namespace engine
 
       INT32 processCmdCreateCS( const CHAR *pQuery,
                                 rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdCreateIndex( const CHAR *pQuery,
+                                   const CHAR *pHint,
+                                   rtnContextBuf &ctxBuf ) ;
+      INT32 processCmdDropIndex( const CHAR *pQuery,
+                                 const CHAR *pHint,
+                                 rtnContextBuf &ctxBuf ) ;
       INT32 processCmdSplit( const CHAR *pQuery,
                              INT32 opCode,
                              rtnContextBuf &ctxBuf ) ;
@@ -232,12 +182,6 @@ namespace engine
    // tool functions
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
-
-      INT32 _createCS( BSONObj & createObj, UINT32 &groupID ) ;
-
-      INT32 _checkAndGetCSInfo( const BSONObj &infoObj, catCSInfo &csInfo ) ;
-
-      INT32 _assignGroup( vector< UINT32 > *pGoups, UINT32 &groupID ) ;
 
       INT32 _checkTaskHWM() ;
 

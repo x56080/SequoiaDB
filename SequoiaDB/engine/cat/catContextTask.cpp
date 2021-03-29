@@ -600,6 +600,7 @@ namespace engine
       goto done ;
    }
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxCreateIdxTask implement
     */
@@ -960,6 +961,7 @@ namespace engine
    error:
       goto done ;
    }
+#endif
 
    /*
     * _catCtxDelCLsFromCSTask implement

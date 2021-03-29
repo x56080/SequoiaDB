@@ -108,6 +108,28 @@ namespace engine
                    "failed to parse query, rc: %d",
                    contextID(), rc ) ;
 
+      rc = _open( buffObj, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXBASE_OPEN, rc ) ;
+      return rc ;
+
+   error :
+      _changeStatusOnError() ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE__OPEN, "_catContextBase::_open" )
+   INT32 _catContextBase::_open ( rtnContextBuf &buffObj,
+                                  _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCTXBASE__OPEN ) ;
+
       _setStatus( CAT_CONTEXT_LOCKING ) ;
 
       rc = _checkContext( cb ) ;
@@ -123,7 +145,7 @@ namespace engine
             rc = _preExecute( cb ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed in catContext [%lld]: "
-                         "failed to execute catalog command], rc: %d",
+                         "failed to execute catalog command, rc: %d",
                          contextID(), rc ) ;
          }
          else
@@ -131,7 +153,7 @@ namespace engine
             rc = _execute( cb ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed in catContext [%lld]: "
-                         "failed to execute catalog command], rc: %d",
+                         "failed to execute catalog command, rc: %d",
                          contextID(), rc ) ;
          }
       }
@@ -147,7 +169,7 @@ namespace engine
               contextID() ) ;
 
    done :
-      PD_TRACE_EXITRC( SDB_CATCTXBASE_OPEN, rc ) ;
+      PD_TRACE_EXITRC( SDB_CATCTXBASE__OPEN, rc ) ;
       return rc ;
 
    error :

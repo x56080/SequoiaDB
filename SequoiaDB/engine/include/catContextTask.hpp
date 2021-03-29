@@ -252,6 +252,7 @@ namespace engine
       std::string _mainCLName ;
    } ;
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxCreateIdxTask define
     */
@@ -353,6 +354,7 @@ namespace engine
    } ;
 
    typedef class _catCtxDropIdxTask catCtxDropIdxTask ;
+#endif
 
    /*
     * _catCtxDelCLsFromCSTask define

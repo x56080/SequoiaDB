@@ -259,6 +259,7 @@ namespace engine
       goto done ;
    }
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxIndexMultiTask implement
     */
@@ -636,6 +637,7 @@ namespace engine
    error :
       goto done;
    }
+#endif
 
    /*
     * _catCtxDropCS implement
@@ -655,6 +657,58 @@ namespace engine
    _catCtxDropCS::~_catCtxDropCS ()
    {
       _onCtxDelete () ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS_OPEN, "_catCtxDropCS::open" )
+   INT32 _catCtxDropCS::open ( const CHAR *pQuery,
+                               rtnContextBuf &buffObj,
+                               _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
+                   "Wrong catalog status before opening" ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXDROPCS_OPEN ) ;
+
+      _isOpened = TRUE ;
+
+      _cmdType = MSG_CAT_DROP_SPACE_REQ ;
+
+      try
+      {
+         BSONObj dump( pQuery ) ;
+         _boQuery = dump.getOwned() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _parseQuery( cb ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed in catContext [%lld]: "
+                   "failed to parse query, rc: %d",
+                   contextID(), rc ) ;
+
+      rc = _open( buffObj, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXDROPCS_OPEN, rc ) ;
+      return rc ;
+   error :
+      _changeStatusOnError() ;
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCS_PARSEQUERY, "_catCtxDropCS::_parseQuery" )
@@ -1613,6 +1667,58 @@ namespace engine
       _onCtxDelete () ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCRTCL_OPEN, "_catCtxCreateCL::open" )
+   INT32 _catCtxCreateCL::open ( const CHAR *pQuery,
+                                 rtnContextBuf &buffObj,
+                                 _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
+                   "Wrong catalog status before opening" ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXCRTCL_OPEN ) ;
+
+      _isOpened = TRUE ;
+
+      _cmdType = MSG_CAT_CREATE_COLLECTION_REQ ;
+
+      try
+      {
+         BSONObj dump( pQuery ) ;
+         _boQuery = dump.getOwned() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _parseQuery( cb ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed in catContext [%lld]: "
+                   "failed to parse query, rc: %d",
+                   contextID(), rc ) ;
+
+      rc = _open( buffObj, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXCRTCL_OPEN, rc ) ;
+      return rc ;
+   error :
+      _changeStatusOnError() ;
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL_PARSEQUERY, "_catCtxCreateCL::_parseQuery" )
    INT32 _catCtxCreateCL::_parseQuery ( _pmdEDUCB *cb )
    {
@@ -2204,6 +2310,58 @@ namespace engine
       _onCtxDelete () ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL_OPEN, "_catCtxDropCL::open" )
+   INT32 _catCtxDropCL::open ( const CHAR *pQuery,
+                               rtnContextBuf &buffObj,
+                               _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      SDB_ASSERT ( _status == CAT_CONTEXT_NEW,
+                   "Wrong catalog status before opening" ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXDROPCL_OPEN ) ;
+
+      _isOpened = TRUE ;
+
+      _cmdType = MSG_CAT_DROP_COLLECTION_REQ ;
+
+      try
+      {
+         BSONObj dump( pQuery ) ;
+         _boQuery = dump.getOwned() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _parseQuery( cb ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_INVALIDARG ;
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed in catContext [%lld]: "
+                   "failed to parse query, rc: %d",
+                   contextID(), rc ) ;
+
+      rc = _open( buffObj, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATCTXDROPCL_OPEN, rc ) ;
+      return rc ;
+   error :
+      _changeStatusOnError() ;
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXDROPCL_PARSEQUERY, "_catCtxDropCL::_parseQuery" )
    INT32 _catCtxDropCL::_parseQuery ( _pmdEDUCB *cb )
    {
@@ -2720,7 +2878,11 @@ namespace engine
                           "CAT_ALTER_CL" )
 
    _catCtxAlterCL::_catCtxAlterCL ( INT64 contextID, UINT64 eduID )
+#if !defined( SDB_INDEX_DEVELOPMENT )
    : _catCtxIndexMultiTask( contextID, eduID )
+#else
+   : _catCtxDataMultiTaskBase( contextID, eduID )
+#endif
    {
       _executeAfterLock = TRUE ;
       _needRollback = TRUE ;
@@ -3439,7 +3601,7 @@ namespace engine
 
       if ( !containTasks )
       {
-         rc = _catCtxIndexMultiTask::_makeReply( buffObj ) ;
+         rc = _catCtxDataMultiTaskBase::_makeReply( buffObj ) ;
       }
 
       PD_TRACE_EXITRC( SDB_CATCTXALTERCL__MAKEREPLY, rc ) ;
@@ -3923,6 +4085,7 @@ namespace engine
       return rc ;
    }
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxCreateIdx implement
     */
@@ -4188,5 +4351,5 @@ namespace engine
    error:
       goto done ;
    }
-
-   }
+#endif
+}

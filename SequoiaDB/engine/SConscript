@@ -357,7 +357,8 @@ ixmFiles = [
       "ixm/ixmKey.cpp",
       "ixm/ixmIndexKey.cpp",
       "ixm/ixmExtent.cpp",
-      "ixm/ixm_common.cpp"
+      "ixm/ixm_common.cpp",
+      "ixm/ixmUtil.cpp"
       ]
 mthFiles = [
       "mth/mthMatchNode.cpp",

@@ -49,6 +49,7 @@
 #include "clsCatalogAgent.hpp"
 #include "rtnAlterJob.hpp"
 #include "utilDataSource.hpp"
+#include "catCommand.hpp"
 
 using namespace bson;
 
@@ -657,26 +658,75 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATALOGMGR_CREATECS ) ;
-      UINT32 groupID = CAT_INVALID_GROUPID ;
+      INT64 contextID = -1 ;
 
-      try
+      catCMDCreateCS cmd ;
+      rc = cmd.init( pQuery ) ;
+      if ( rc )
       {
-         BSONObj groupObj ;
-         BSONObj query( pQuery ) ;
-         rc = _createCS( query, groupID ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Create collection space failed, rc: %d",
-                      rc ) ;
+         goto error ;
       }
-      catch( std::exception &e )
+
+      rc = cmd.doit( _pEduCB, ctxBuf, contextID ) ;
+      if ( rc )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occurred exception: %s", e.what() ) ;
          goto error ;
       }
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR_CREATECS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catCatalogueManager::processCmdCreateIndex( const CHAR *pQuery,
+                                                     const CHAR *pHint,
+                                                     rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 contextID = -1 ;
+
+      catCMDCreateIndex cmd ;
+      rc = cmd.init( pQuery, NULL, NULL, pHint ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = cmd.doit( _pEduCB, ctxBuf, contextID ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catCatalogueManager::processCmdDropIndex( const CHAR *pQuery,
+                                                   const CHAR *pHint,
+                                                   rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 contextID = -1 ;
+
+      catCMDDropIndex cmd ;
+      rc = cmd.init( pQuery, NULL, NULL, pHint ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = cmd.doit( _pEduCB, ctxBuf, contextID ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
       return rc ;
    error:
       goto done ;
@@ -1091,154 +1141,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CHECKCSOBJ, "catCatalogueManager::_checkAndGetCSInfo" )
-   INT32 catCatalogueManager::_checkAndGetCSInfo( const BSONObj & infoObj,
-                                                  catCSInfo & csInfo )
-   {
-      INT32 rc = SDB_OK ;
-
-      csInfo.reset() ;
-      INT32 expected = 0 ;
-
-      PD_TRACE_ENTRY ( SDB_CATALOGMGR__CHECKCSOBJ ) ;
-      BSONObjIterator it( infoObj ) ;
-      while ( it.more() )
-      {
-         BSONElement ele = it.next() ;
-
-         // name
-         if ( 0 == ossStrcmp( ele.fieldName(), CAT_COLLECTION_SPACE_NAME ) )
-         {
-            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_COLLECTION_NAME,
-                      ele.type() ) ;
-            csInfo._pCSName = ele.valuestr() ;
-            ++expected ;
-         }
-         // page size
-         else if ( 0 == ossStrcmp( ele.fieldName(), CAT_PAGE_SIZE_NAME ) )
-         {
-            PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_PAGE_SIZE_NAME,
-                      ele.type() ) ;
-            if ( 0 != ele.numberInt() )
-            {
-               csInfo._pageSize = ele.numberInt() ;
-            }
-
-            // check size value
-            PD_CHECK ( csInfo._pageSize == DMS_PAGE_SIZE4K ||
-                       csInfo._pageSize == DMS_PAGE_SIZE8K ||
-                       csInfo._pageSize == DMS_PAGE_SIZE16K ||
-                       csInfo._pageSize == DMS_PAGE_SIZE32K ||
-                       csInfo._pageSize == DMS_PAGE_SIZE64K, SDB_INVALIDARG,
-                       error, PDERROR, "PageSize must be 4K/8K/16K/32K/64K" ) ;
-            ++expected ;
-         }
-         // domain name
-         else if ( 0 == ossStrcmp( ele.fieldName(), CAT_DOMAIN_NAME ) )
-         {
-            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_DOMAIN_NAME,
-                      ele.type() ) ;
-            csInfo._domainName = ele.valuestr() ;
-            ++expected ;
-         }
-         // lob page size
-         else if ( 0 == ossStrcmp( ele.fieldName(), CAT_LOB_PAGE_SZ_NAME ) )
-         {
-            PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_LOB_PAGE_SZ_NAME,
-                      ele.type() ) ;
-            if ( 0 != ele.numberInt() )
-            {
-               csInfo._lobPageSize = ele.numberInt() ;
-            }
-
-            PD_CHECK ( csInfo._lobPageSize == DMS_PAGE_SIZE4K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE8K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE16K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE32K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE64K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE128K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE256K ||
-                       csInfo._lobPageSize == DMS_PAGE_SIZE512K, SDB_INVALIDARG,
-                       error, PDERROR, "PageSize must be 4K/8K/16K/32K/64K/128K/256K/512K" ) ;
-            ++expected ;
-         }
-         // capped option
-         else if ( 0 == ossStrcmp( ele.fieldName(), CAT_CAPPED_NAME ) )
-         {
-            PD_CHECK( ele.isBoolean(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_CAPPED_NAME,
-                      ele.type() ) ;
-            csInfo._type = ( true == ele.boolean() ) ?
-                           DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
-            ++expected ;
-         }
-         // Data source option
-         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATASOURCE ) )
-         {
-            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", FIELD_NAME_DATASOURCE,
-                      ele.type() ) ;
-            UINT32 len = ossStrlen( ele.valuestr() ) ;
-            PD_CHECK( len > 0 && len <= DATASOURCE_MAX_NAME_SZ, SDB_INVALIDARG,
-                      error, PDERROR, "Length of data source name should be "
-                      "greater than 0 and less than %u",
-                      DATASOURCE_MAX_NAME_SZ ) ;
-            csInfo._pDataSourceName = ele.valuestr() ;
-            ++expected ;
-         }
-         // Data source mapping option
-         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MAPPING ) )
-         {
-            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", FIELD_NAME_MAPPING,
-                      ele.type() ) ;
-            PD_CHECK( ossStrlen( ele.valuestr() ) > 1, SDB_INVALIDARG, error,
-                      PDERROR, "Length of mapping should be greater than 0" ) ;
-            csInfo._pDataSourceMapping = ele.valuestr() ;
-            ++expected ;
-         }
-         else
-         {
-            PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,
-                          "Unexpected field[%s] in create collection space "
-                          "command", ele.toString().c_str() ) ;
-         }
-      }
-
-      PD_CHECK( csInfo._pCSName, SDB_INVALIDARG, error, PDERROR,
-                "Collection space name not set" ) ;
-
-      PD_CHECK( infoObj.nFields() == expected, SDB_INVALIDARG, error, PDERROR,
-                "unexpected fields exsit." ) ;
-
-      if ( csInfo._pDataSourceMapping )
-      {
-         if ( !csInfo._pDataSourceName )
-         {
-            // Mapping cannot be set without data source.
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Data source name should be specified when using "
-                             "mapping option[%d]", rc ) ;
-            goto error ;
-         }
-      }
-      else if ( csInfo._pDataSourceName )
-      {
-         // If data source mapping is not set, map to the same collection space.
-         csInfo._pDataSourceMapping = csInfo._pCSName ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_CATALOGMGR__CHECKCSOBJ, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    /**
     * Compatibility handling on data source with old version. The feture of data
     * source is originally developed in v3.2.8. In that version, the value of
@@ -1329,177 +1231,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB_CATALOGMGR__CHECKCLDATASOURCEINFO, rc ) ;
       return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__ASSIGNGROUP, "catCatalogueManager::_assignGroup" )
-   INT32 catCatalogueManager::_assignGroup( vector < UINT32 > * pGoups,
-                                            UINT32 &groupID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_CATALOGMGR__ASSIGNGROUP ) ;
-      if ( !pGoups || pGoups->size() == 0 )
-      {
-         rc = _pCatCB->getAGroupRand( groupID ) ;
-      }
-      else
-      {
-         UINT32 size = pGoups->size() ;
-         groupID = (*pGoups)[ ossRand() % size ] ;
-      }
-
-      PD_TRACE_EXITRC ( SDB_CATALOGMGR__ASSIGNGROUP, rc ) ;
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR__CREATECS, "catCatalogueManager::_createCS" )
-   INT32 catCatalogueManager::_createCS( BSONObj &createObj,
-                                         UINT32 &groupID )
-   {
-      INT32 rc               = SDB_OK ;
-      string strGroupName ;
-
-      const CHAR *csName     = NULL ;
-      const CHAR *domainName = NULL ;
-      BOOLEAN isSpaceExist   = FALSE ;
-      PD_TRACE_ENTRY ( SDB_CATALOGMGR__CREATECS ) ;
-
-      catCSInfo csInfo ;
-      BSONObj spaceObj ;
-      BSONObj domainObj ;
-      vector< UINT32 >  domainGroups ;
-
-      catCtxLockMgr lockMgr ;
-
-      // check cs obj
-      rc = _checkAndGetCSInfo( createObj, csInfo ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Check create collection space obj [%s] failed, rc: %d",
-                   createObj.toString().c_str(), rc ) ;
-      csName = csInfo._pCSName ;
-      domainName = csInfo._domainName ;
-
-      PD_TRACE1 ( SDB_CATALOGMGR_CREATECS, PD_PACK_STRING ( csName ) ) ;
-
-      // name check
-      rc = dmsCheckCSName( csName ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Check collection space name [%s] failed, rc: %d",
-                   csName, rc ) ;
-
-      // check collection space is whether existed or not
-      rc = catCheckSpaceExist( csName, isSpaceExist, spaceObj, _pEduCB ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to check existence of collection space [%s], rc: %d",
-                   csName, rc ) ;
-      PD_TRACE1 ( SDB_CATALOGMGR_CREATECS, PD_PACK_INT ( isSpaceExist ) ) ;
-      PD_CHECK( FALSE == isSpaceExist,
-                SDB_DMS_CS_EXIST, error, PDERROR,
-                "Collection space [%s] is already existed",
-                csName ) ;
-
-      if ( csInfo._pDataSourceName )
-      {
-         BOOLEAN exist = FALSE ;
-         try
-         {
-            BSONObj obj ;
-            rc = catCheckDataSourceExist( csInfo._pDataSourceName,
-                                          exist, obj, _pEduCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Check existence of data source[%s] "
-                         "failed[%d]", csInfo._pDataSourceName, rc ) ;
-            PD_CHECK( TRUE == exist, SDB_CAT_DATASOURCE_NOTEXIST, error,
-                      PDERROR, "Data source[%s] dose not exist",
-                      csInfo._pDataSourceName ) ;
-
-            // Get the data source unique id. It will be stored in the metadata
-            // of the collection space.
-            csInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Exception occurred when getting information of "
-                    "data source[%s]: %s", csInfo._pDataSourceName, e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-      // Lock collection space
-      PD_CHECK( lockMgr.tryLockCollectionSpace( csName, EXCLUSIVE ),
-                SDB_LOCK_FAILED, error, PDERROR,
-                "Failed to lock collection space [%s]",
-                csName ) ;
-
-      // check domain name
-      if ( domainName )
-      {
-         PD_TRACE1 ( SDB_CATALOGMGR_CREATECS, PD_PACK_STRING ( domainName ) ) ;
-
-         rc = catGetAndLockDomain( domainName, domainObj, _pEduCB,
-                                   &lockMgr, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get domain [%s] obj, rc: %d",
-                      domainName, rc ) ;
-
-         rc = catGetDomainGroups( domainObj, domainGroups ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Get domain [%s] groups failed, rc: %d",
-                      domainObj.toString().c_str(), rc ) ;
-
-         for ( UINT32 i = 0 ; i < domainGroups.size() ; ++i )
-         {
-            rc = catGroupID2Name( domainGroups[i], strGroupName, _pEduCB ) ;
-            PD_RC_CHECK( rc, PDERROR, "Group id [%u] to group name failed, "
-                         "rc: %d", domainGroups[i], rc ) ;
-            // Lock data group in this domain
-            PD_CHECK( lockMgr.tryLockGroup( strGroupName, SHARED ),
-                      SDB_LOCK_FAILED, error, PDERROR,
-                      "Failed to lock group [%s]",
-                      strGroupName.c_str() ) ;
-         }
-      }
-
-      // Try to assign group to test the available of Data groups
-      rc = _assignGroup( &domainGroups, groupID ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Assign group for collection space [%s] failed, rc: %d",
-                   csName, rc ) ;
-      catGroupID2Name( groupID, strGroupName, _pEduCB ) ;
-
-      // set CSUniqueHWM, get cs unique id
-      rc = catUpdateCSUniqueID( _pEduCB, _majoritySize(), csInfo._csUniqueID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Fail to get cs unique id, rc: %d.", rc ) ;
-
-      csInfo._clUniqueHWM = utilBuildCLUniqueID( csInfo._csUniqueID, 0 ) ;
-
-      // insert new Collection Space record
-      {
-         BSONObjBuilder newBuilder ;
-         newBuilder.appendElements( csInfo.toBson() ) ;
-         BSONObjBuilder sub1( newBuilder.subarrayStart( CAT_COLLECTION ) ) ;
-         sub1.done() ;
-
-         BSONObj newObj = newBuilder.obj() ;
-
-         rc = rtnInsert( CAT_COLLECTION_SPACE_COLLECTION, newObj, 1, 0,
-                         _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to insert collection space obj [%s] "
-                      "to collection [%s], rc: %d",
-                      newObj.toString().c_str(),
-                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
-      }
-
-      PD_LOG( PDDEBUG,
-              "Created collection space[name: %s, id: %u] succeed.",
-              csName, csInfo._csUniqueID ) ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB_CATALOGMGR__CREATECS, rc ) ;
-      return rc ;
-
    error:
       goto done ;
    }
@@ -1684,8 +1415,10 @@ namespace engine
          case MSG_CAT_ALTER_COLLECTION_REQ :
          case MSG_CAT_LINK_CL_REQ :
          case MSG_CAT_UNLINK_CL_REQ :
+#if !defined( SDB_INDEX_DEVELOPMENT )
          case MSG_CAT_CREATE_IDX_REQ :
          case MSG_CAT_DROP_IDX_REQ :
+#endif
          case MSG_CAT_RENAME_CS_REQ :
          case MSG_CAT_RENAME_CL_REQ :
          {
@@ -1712,6 +1445,14 @@ namespace engine
             }
             break;
          }
+#if defined( SDB_INDEX_DEVELOPMENT )
+         case MSG_CAT_CREATE_IDX_REQ :
+            rc = processCmdCreateIndex( pQuery, pHint, ctxBuff ) ;
+            break ;
+         case MSG_CAT_DROP_IDX_REQ :
+            rc = processCmdDropIndex( pQuery, pHint, ctxBuff ) ;
+            break ;
+#endif
          case MSG_CAT_CREATE_DOMAIN_REQ :
             rc = processCmdCreateDomain ( pQuery ) ;
             break ;

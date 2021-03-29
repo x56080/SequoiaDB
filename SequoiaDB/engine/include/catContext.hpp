@@ -90,6 +90,9 @@ namespace engine
                            _pmdEDUCB *cb ) ;
 
    protected:
+      INT32 _open ( rtnContextBuf &buffObj,
+                    _pmdEDUCB *cb ) ;
+
       virtual INT32 _prepareData ( _pmdEDUCB *cb ) ;
 
    protected:

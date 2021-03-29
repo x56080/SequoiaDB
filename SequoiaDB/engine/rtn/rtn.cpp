@@ -62,15 +62,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETINTELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Integer",
-                 obj.toString().c_str()) ;
-      value = ele.numberInt() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Integer",
+                    obj.toString().c_str()) ;
+         value = ele.numberInt() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETINTELE, rc );
       return rc ;
@@ -85,15 +95,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETSTRELE );
       SDB_ASSERT ( fieldName && value, "field name and value can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be String",
-                 obj.toString().c_str()) ;
-      *value = ele.valuestr() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toString().c_str()) ;
+         *value = ele.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETSTRELE, rc );
       return rc ;
@@ -108,15 +128,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETSTDSTRELE ) ;
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be String",
-                 obj.toString().c_str()) ;
-      value = ele.valuestr() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( String == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be String",
+                    obj.toString().c_str()) ;
+         value = ele.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETSTDSTRELE, rc );
       return rc ;
@@ -131,15 +161,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETOBJELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Object",
-                 obj.toString().c_str()) ;
-      value = ele.embeddedObject() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Object == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Object",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETOBJELE, rc );
       return rc ;
@@ -154,15 +194,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETARRAYELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Array",
-                 obj.toString().c_str()) ;
-      value = ele.embeddedObject() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Array == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Array",
+                    obj.toString().c_str()) ;
+         value = ele.embeddedObject() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETARRAYELE, rc );
       return rc ;
@@ -177,15 +227,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETBOOLELE );
       SDB_ASSERT ( fieldName , "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( Bool == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be Bool",
-                 obj.toString().c_str()) ;
-      value = ele.boolean() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( Bool == ele.type(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be Bool",
+                    obj.toString().c_str()) ;
+         value = ele.boolean() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETBOOLELE, rc );
       return rc ;
@@ -200,15 +260,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETLONGELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be number",
-                 obj.toString().c_str()) ;
-      value = ele.numberLong() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be number",
+                    obj.toString().c_str()) ;
+         value = ele.numberLong() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
       return rc ;
@@ -223,15 +293,25 @@ namespace engine
       SINT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETLONGELE );
       SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be number",
-                 obj.toString().c_str()) ;
-      value = ele.numberDouble() ;
+
+      try
+      {
+         BSONElement ele = obj.getField ( fieldName ) ;
+         PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
+                    "Can't locate field '%s': %s",
+                    fieldName,
+                    obj.toString().c_str() ) ;
+         PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
+                    "Unexpected field type : %s, supposed to be number",
+                    obj.toString().c_str()) ;
+         value = ele.numberDouble() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
       return rc ;

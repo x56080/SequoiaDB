@@ -645,7 +645,26 @@ namespace engine
          goto error ;
       }
       rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
-                             CAT_TASK_INFO_CLOBJIDX, cb ) ;
+                             CAT_TASK_INFO_TASKIDIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
+                             CAT_TASK_INFO_MAINTASKIDIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      // create SYSCAT.SYSINDEXES
+      rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex ( CAT_INDEX_INFO_COLLECTION,
+                             CAT_INDEX_INFO_NAMEIDX, cb ) ;
       if ( rc )
       {
          goto error ;

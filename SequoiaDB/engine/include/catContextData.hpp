@@ -110,6 +110,7 @@ namespace engine
                              BOOLEAN pushExec = TRUE ) ;
    } ;
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxIndexMultiTask define
     */
@@ -158,6 +159,7 @@ namespace engine
       std::string _indexCLName ;
       std::string _domain ;
    } ;
+#endif
 
    /*
     * _catCtxDropCS define
@@ -179,6 +181,10 @@ namespace engine
       {
          return RTN_CONTEXT_CAT_DROP_CS ;
       }
+
+      INT32 open ( const CHAR *pQuery,
+                   rtnContextBuf &buffObj,
+                   _pmdEDUCB *cb ) ;
 
    protected :
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
@@ -312,6 +318,10 @@ namespace engine
          return RTN_CONTEXT_CAT_CREATE_CL ;
       }
 
+      INT32 open ( const CHAR *pQuery,
+                   rtnContextBuf &buffObj,
+                   _pmdEDUCB *cb ) ;
+
    protected :
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
@@ -383,6 +393,10 @@ namespace engine
          return RTN_CONTEXT_CAT_DROP_CL ;
       }
 
+      INT32 open ( const CHAR *pQuery,
+                   rtnContextBuf &buffObj,
+                   _pmdEDUCB *cb ) ;
+
    protected :
       virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
 
@@ -445,7 +459,11 @@ namespace engine
    /*
     * _catCtxAlterCL define
     */
+#if !defined( SDB_INDEX_DEVELOPMENT )
    class _catCtxAlterCL : public _catCtxIndexMultiTask
+#else
+   class _catCtxAlterCL : public _catCtxDataMultiTaskBase
+#endif
    {
       DECLARE_RTN_CTX_AUTO_REGISTER()
    public :
@@ -590,6 +608,7 @@ namespace engine
 
    typedef class _catCtxUnlinkCL catCtxUnlinkCL ;
 
+#if !defined( SDB_INDEX_DEVELOPMENT )
    /*
     * _catCtxCreateIdx define
     */
@@ -658,6 +677,7 @@ namespace engine
    } ;
 
    typedef class _catCtxDropIdx catCtxDropIdx ;
+#endif
 }
 
 #endif //CATCONTEXTDATA_HPP_

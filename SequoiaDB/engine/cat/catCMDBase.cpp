@@ -20,8 +20,8 @@
    Descriptive Name =
 
    When/how to use: this program may be used on binary and text-formatted
-   versions of runtime component. This file contains code logic for
-   common functions for coordinator node.
+   versions of runtime component. This file contains base class of catalog
+   command class.
 
    Dependencies: N/A
 
