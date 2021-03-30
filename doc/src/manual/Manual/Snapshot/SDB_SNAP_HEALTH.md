@@ -60,6 +60,7 @@ SDB_SNAP_HEALTH
 | FileDesp.LoadPercent | int32  | 节点进程占用的文件句柄的百分比 |
 | FileDesp.TotalNum    | int64  | 节点进程文件句柄限制           |
 | FileDesp.FreeNum     | int64  | 节点进程剩余的文件句柄个数     |
+| FTStatus | string | 容错状态，取值如下：<br>"NOSPC"：磁盘空间不足<br>"DEADSYNC"：节点数据不同步 <br>"SLOWNODE"：节点数据同步过慢<br>"TRANSERR"：节点事务异常 |
 | StartHistory         | bson array| 节点启动历史（只取最新的十条记录）                              |
 | AbnormalHistory      | bson array| 节点异常后启动历史（只取最新的十条记录）                        |
 | DiffLSNWithPrimary   | int64     | 与主节点的 LSN 差异                                             |
@@ -82,13 +83,14 @@ SDB_SNAP_HEALTH
 
 ```lang-json
 {
-  "NodeName": "ubuntu-test-03:20000",
+  "NodeName": "u16-t04:11810",
   "IsPrimary": true,
   "ServiceStatus": true,
   "Status": "Normal",
+  "FTStatus": "",
   "BeginLSN": {
-    "Offset": 2721188688,
-    "Version": 1
+    "Offset": -1,
+    "Version": 0
   },
   "CurrentLSN": {
     "Offset": -1,
@@ -98,23 +100,23 @@ SDB_SNAP_HEALTH
     "Offset": -1,
     "Version": 0
   },
-  "CompleteLSN": 2721188688,
+  "CompleteLSN": -1,
   "LSNQueSize": 0,
   "NodeID": [
-    1000,
-    1000
+    2,
+    2
   ],
   "DataStatus": "Normal",
   "SyncControl": false,
   "Ulimit": {
-    "CoreFileSize": -1,
+    "CoreFileSize": 0,
     "VirtualMemory": -1,
-    "OpenFiles": 1024,
-    "NumProc": 23948,
+    "OpenFiles": 60000,
+    "NumProc": 15633,
     "FileSize": -1,
     "StackSize": 524288
   },
-  "ResetTimestamp": "2018-03-09-09.47.04.826497",
+  "ResetTimestamp": "2021-03-29-15.47.59.191518",
   "ErrNum": {
     "SDB_OOM": 0,
     "SDB_NOSPC": 0,
@@ -122,31 +124,28 @@ SDB_SNAP_HEALTH
   },
   "Memory": {
     "LoadPercent": 3,
-    "TotalRAM": 3157524480,
-    "RssSize": 96591872,
-    "LoadPercentVM": 0,
+    "TotalRAM": 4142768128,
+    "RssSize": 156041216,
+    "LoadPercentVM": 100,
     "VMLimit": -1,
-    "VMSize": 2380341248
+    "VMSize": 2048024576
   },
   "Disk": {
-    "Name": "/dev/mapper/vgdata-lvdata1",
-    "LoadPercent": 69,
-    "TotalSpace": 52836298752,
-    "FreeSpace": 16025624576
+    "Name": "/dev/sdb1",
+    "LoadPercent": 19,
+    "TotalSpace": 211243687936,
+    "FreeSpace": 169706725376
   },
   "FileDesp": {
-    "LoadPercent": 3,
-    "TotalNum": 1024,
-    "FreeNum": 985
+    "LoadPercent": 0,
+    "TotalNum": 60000,
+    "FreeNum": 59954
   },
   "StartHistory": [
-    "2018-01-24-15.55.58.374162",
-    "2018-01-24-15.55.00.318481"
+    "2021-03-29-15.47.59.200280"
   ],
-  "CrashHistory": [
-    "2018-01-24-15.55.58.374162"
-  ],
-  "DiffLSNWithPrimary": 0
+  "AbnormalHistory": [],
+  "DiffLSNWithPrimary": -1
 }
 ```
 
