@@ -28,20 +28,20 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 1. 连接到本地的集群管理服务进程 sdbcm
 
-   ```lang-bash
+   ```lang-javascript
    > var oma = new Oma( "localhost", 11790 )
    ```
 
 2. 创建临时协调节点
 
-   ```lang-bash
+   ```lang-javascript
    > oma.createCoord( 18800, "/opt/sequoiadb/database/coord/18800" )
    ```
 
 3. 启动临时协调节点
 
-   ```lang-bash
-   oma.startNode( 18800 )
+   ```lang-javascript
+   > oma.startNode( 18800 )
    ```
 >   **Note:**
 >
@@ -53,13 +53,13 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 1. 连接临时协调节点
 
-   ```lang-bash
+   ```lang-javascript
    > var db = new Sdb( "localhost", 18800 )
    ```
 
 2. 创建协调节点组
 
-   ```lang-bash
+   ```lang-javascript
    > db.createCoordRG()
    ```
 
@@ -76,13 +76,13 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 1. 连接 sdbserver1 的协调节点
 
-   ```lang-bash
+   ```lang-javascript
    > var db = new Sdb( 'sdbserver1', 11810 )
    ```
 
 2. 获取协调节点组
 
-   ```lang-bash
+   ```lang-javascript
    > var rg = db.getCoordRG()
    ```
 
@@ -92,13 +92,13 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 3. 在 sdbserver2 中新建协调节点
 
-   ```lang-bash
+   ```lang-javascript
    > var node = rg.createNode( "sdbserver2", 11810, "/opt/sequoiadb/database/coord/11810" )
    ```
 
 4. 启动 sdbserver2 的协调节点
 
-   ```lang-bash
+   ```lang-javascript
    > node.start()
    ```
 
@@ -106,7 +106,7 @@ SequoiaDB 巨杉数据库中有两类协调节点：
 
 在 SDB Shell 中查看协调节点的列表
 
-```lang-bash
+```lang-javascript
 > db.getCoordRG().getDetail()
 ```
 
