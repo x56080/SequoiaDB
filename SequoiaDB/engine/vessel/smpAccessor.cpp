@@ -45,12 +45,14 @@
 #include "vessel/outerResource.h"
 #include "vessel/requestContext.h"
 #include "dpsLogRecordDef.hpp"
+#include "vessel/bitMapUtils.h"
 
 namespace engine
 {
 namespace vessel
 {
-   smpAccessor::smpAccessor()
+   smpAccessor::smpAccessor():
+   _capacity(0)
    {}
 
    smpAccessor::~smpAccessor()
@@ -64,8 +66,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       UINT32 capacity = 0;
       spaceManagementPageHead *head = NULL;
-      UINT32 loop = 0;
-      UINT32 tailBits = 0;
+      UINT32 bitsCount = 0;
+      UINT64 *bits = NULL;
 
       SDB_ASSERT(0 < maxSegmentCount, "can not be zero");
       SDB_ASSERT(0 < pageCountOfSeg, "can not be zero");
@@ -85,7 +87,7 @@ namespace vessel
          goto error;
       }
 
-      rc = getSMPCapacity(getPageSize(), maxSegmentCount, pageCountOfSeg, capacity);
+      rc = getSMPCapacity8BytesAligned(getPageSize(), maxSegmentCount, pageCountOfSeg, capacity);
       if (SDB_OK != rc)
       {
          goto error;
@@ -96,6 +98,8 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+
+      bitsCount = capacity >> 6; /// bitsCount = capacity / 64
 
       rc = prepareToWrite(context);
       if (SDB_OK != rc)
@@ -124,49 +128,23 @@ namespace vessel
       }
       
       head->version = SMP_VERSION_1;
-      head->minPid = getGPID().page();
-      head->capacity = capacity;
-      head->free = capacity;
-      head->pad = 0;
+      head->flags = 0;
 
-      loop = capacity / SMP_BIT_COUNT_PER_GROUP;
-
-      for (UINT32 i = 0; i < loop; ++i)
+      rc = getWritePtrOfPageBody<UINT64>(SMP_HEAD_LEN, &bits);
+      if (SDB_OK != rc)
       {
-         rc = writeBits(i, UINT32(-1));
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         goto error;
       }
-
-      tailBits = capacity & 0x1f; /// mod 32
-      if (0 != tailBits)
-      {
-         UINT32 bits = 1;
-         for (UINT32 i = 1; i < tailBits; ++i)
-         {
-            bits = bits << 1;
-            bits |= 0x01;
-         }
-
-         rc = writeBits(loop, bits);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
+      ossMemset(bits, 0xFF, (capacity >> 3)); /// size of memset is (capacity / 8)
 
       for (UINT32 i = 0; i < pageOccupied; ++i)
       {
-         UINT32 slotNo = i / SMP_BIT_COUNT_PER_GROUP;
-         UINT32 bit = i & 0x1f; // mod 32
-         rc = setPageNotFree(slotNo, bit);
-         if (OSS_UNLIKELY(SDB_OK != rc))
+         if (!setNotFreeIfFree64(bitsCount, bits, i))
          {
+            PD_LOG(PDERROR, "failed to occupy page offset:%d", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
-         --head->free;
       }
 
       pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
@@ -181,6 +159,7 @@ namespace vessel
    }
 
    INT32 smpAccessor::allocatePages(requestContext *context,
+                                    UINT32 capacity,
                                     PAGE_TYPE type,
                                     UINT32 count,
                                     const PAGE_ID *lpids,
@@ -190,14 +169,17 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
-      spaceManagementPageHead *wHead = NULL;
+
       logRecordContext lrContext;
       IRedoLogger *logger = NULL;
       BOOLEAN rollback = FALSE;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       ISession *session = NULL;
+      UINT32 bitsCount = capacity >> 6;/// capacity / 64
 
       if (OSS_UNLIKELY(NULL == context ||
+                       0 == capacity ||
+                       ossAlign64(capacity) != capacity ||
                        INVALID_PAGE_TYPE == type ||
                        0 == count ||
                        NULL == lpids ||
@@ -210,7 +192,7 @@ namespace vessel
       logger = context->getOuterResource()->logger;
       session = context->getSession();
 
-      rc = validatePidsToBeAllocated(count, pids);
+      rc = validatePidsToBeAllocated(bitsCount, count, pids);
       if (SDB_OK != rc)
       {
          goto error;
@@ -231,20 +213,11 @@ namespace vessel
          goto error;
       }
 
-      rc = getWritableUserHeadPtr<spaceManagementPageHead>(&wHead);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get writable head ptr:%d", rc);
-         goto error;
-      }
-
-      setPagesNotFree(wHead, count, pids);
-      wHead->free -= count;
+      setPagesNotFree(bitsCount, count, pids);
       rollback = TRUE;
 
       rc = commitSMPAllocateLog(context, &lrContext,
-                                PAGE_TYPE_COLLECTION_RECORD,
-                                count, lpids, pids, wHead->free, args);
+                                type, count, lpids, pids, args);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "faield to commit log:%d", rc);
@@ -267,8 +240,7 @@ namespace vessel
       }
       if (rollback)
       {
-         setPagesFree(wHead, count, pids);
-         wHead->free += count;
+         setPagesFree(bitsCount, count, pids);
       }
       if (fullAccessing())
       {
@@ -306,85 +278,27 @@ namespace vessel
       goto done;
    }
 
-
-   INT32 smpAccessor::setPageNotFree(UINT32 bitsSlotNo, UINT32 bitNo)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(bitNo < SMP_BIT_COUNT_PER_GROUP, "impossible");
-      UINT32 bits = 0;
-      UINT32 bitFlag = 1 << bitNo;
-
-      rc = readBits(bitsSlotNo, bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      OSS_BIT_CLEAR(bits, bitFlag);
-
-      rc = writeBits(bitsSlotNo, bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-  
-   INT32 smpAccessor::setPageFree(UINT32 bitsSlotNo, UINT32 bitNo)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(bitNo < SMP_BIT_COUNT_PER_GROUP, "impossible");
-      UINT32 bits = 0;
-      UINT32 bitFlag = 1 << bitNo;
-
-      rc = readBits(bitsSlotNo, bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      OSS_BIT_SET(bits, bitFlag);
-
-      rc = writeBits(bitsSlotNo, bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 smpAccessor::validatePidsToBeAllocated(UINT32 count,
+   INT32 smpAccessor::validatePidsToBeAllocated(UINT32 bitsCount,
+                                                UINT32 count,
                                                 const PAGE_ID *pids)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 != bitsCount, "can not be zero");
       SDB_ASSERT(0 != count && NULL != pids, "can not be invalid");
       const spaceManagementPageHead *head = NULL;
+      const GLOBAL_PAGE_ID &gpid = getGPID();
+      const UINT64 *bits = NULL;
+      UINT32 capacity = bitsCount << 6;/// bitsCount * 64
 
-      rc = getReadableUserHeadPtr<spaceManagementPageHead>(&head);
+      rc = getReadPtrOfPageBody<UINT64>(SMP_HEAD_LEN, &bits);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to get readable head:%d", rc);
-         goto error;
-      }
-
-      if (head->free < count)
-      {
-         PD_LOG(PDERROR, "no free pid in smp[%s]", getGPID().toString().c_str());
-         rc = SDB_VESSEL_SMP_NO_FREE;
+         PD_LOG(PDERROR, "failed to get bitmap ptr:%d", rc);
          goto error;
       }
       
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 bits = 0;
-         UINT32 bit = 0;
-         BOOLEAN isFree = FALSE;
          PAGE_ID pid = pids[i];
          if (INVALID_PAGE_ID == pid)
          {
@@ -392,25 +306,17 @@ namespace vessel
             rc = SDB_INVALIDARG;
             goto error;
          }
-         if (pid < head->minPid || (head->minPid + head->capacity) <= pid)
+         else if (pid < gpid.page() || ((gpid.page() + capacity) < pid))
          {
-            PD_LOG(PDERROR, "pid[%d] is out of range:[%d, %d]",
-                  pid, head->minPid, head->minPid+head->capacity);
+            PD_LOG(PDERROR, "pid[%d] is out of range:[%d, %d)",
+                  pid,  gpid.page(), gpid.page() + capacity);
             rc = SDB_INVALIDARG;
             goto error;
          }
-
-         bits = (pid - head->minPid) >> 5; /// divide by 32
-         bit = (pid - head->minPid) & 0x1f; /// mod 32
-         rc = testPageFree(bits, bit, isFree);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to test page free:%d", rc);
-            goto error;
-         }
-         else if (!isFree)
+         else if (!testBitIsFree(bitsCount, bits, pid - gpid.page()))
          {
             PD_LOG(PDERROR, "pid[%d] is not free", pid);
+            rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
       }
@@ -420,89 +326,40 @@ namespace vessel
       goto done;
    }
 
-   INT32 smpAccessor::testPageFree(UINT32 bitsSlotNo, UINT32 bitNo, BOOLEAN &free)
-   {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(bitNo < SMP_BIT_COUNT_PER_GROUP, "impossible");
-      UINT32 bits = 0;
-      UINT32 testFlag = 1 << bitNo;
 
-      rc = readBits(bitsSlotNo, bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      free = OSS_BIT_TEST(bits, testFlag);
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   void smpAccessor::setPagesFree(spaceManagementPageHead *head,
+   void smpAccessor::setPagesFree(UINT32 bitsCount,
                                   UINT32 count, const PAGE_ID *pids)
    {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
       SDB_ASSERT(0 < count && NULL != pids, "can not be invalid");
+      UINT64 *bits = NULL;
+      const GLOBAL_PAGE_ID &gpid = getGPID();
+      getWritePtrOfPageBody<UINT64>(SMP_HEAD_LEN, &bits);
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 bits = 0;
-         UINT32 bit = 0;
          PAGE_ID pid = pids[i];
-         bits = (pid - head->minPid) >> 5; /// divide by 32
-         bit = (pid - head->minPid) & 0x1f; /// mod 32
-         setPageFree(bits, bit);
+         BOOLEAN r = setFreeIfNotFree64(bitsCount, bits, pid - gpid.page());
+         SDB_ASSERT(r, "must be true");
       }
       return;
    }
 
-   void smpAccessor::setPagesNotFree(spaceManagementPageHead *head,
-                                     UINT32 count, const PAGE_ID *pids)
+   void smpAccessor::setPagesNotFree(UINT32 bitsCount, UINT32 count, const PAGE_ID *pids)
    {
+      SDB_ASSERT(0 < bitsCount, "can not be zero");
       SDB_ASSERT(0 < count && NULL != pids, "can not be invalid");
+      UINT64 *bits = NULL;
+      const GLOBAL_PAGE_ID &gpid = getGPID();
+      getWritePtrOfPageBody<UINT64>(SMP_HEAD_LEN, &bits);
+      SDB_ASSERT(NULL != bits, "can not be null");
+
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 bits = 0;
-         UINT32 bit = 0;
          PAGE_ID pid = pids[i];
-         bits = (pid - head->minPid) >> 5; /// divide by 32
-         bit = (pid - head->minPid) & 0x1f; /// mod 32
-         setPageNotFree(bits, bit);
+         BOOLEAN r = setNotFreeIfFree64(bitsCount, bits, pid - gpid.page());
+         SDB_ASSERT(r, "must be true");
       }
       return;
-   }
-
-   INT32 smpAccessor::readBits(UINT32 bitsSlotNo, UINT32 &bits)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 tmp = 0;
-      UINT32 offset = SMP_HEAD_LEN + sizeof(UINT32) * bitsSlotNo;
-
-      rc = pageAccessor::readPageBody(offset, sizeof(UINT32), (CHAR*)&tmp);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      bits = tmp;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 smpAccessor::writeBits(UINT32 bitsSlotNo, UINT32 bits)
-   {
-      INT32 rc = SDB_OK;
-      UINT32 offset = SMP_HEAD_LEN + sizeof(UINT32) * bitsSlotNo;
-      rc = pageAccessor::writePageBody(offset, sizeof(UINT32), (const CHAR *)&bits);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
    }
 
    INT32 smpAccessor::prepareSMPAllocateLog(requestContext *context,
@@ -535,7 +392,6 @@ namespace vessel
       DPS_LOG_VESSEL_SMP_ALLOCATE_LPIDS = 3,
       DPS_LOG_VESSEL_SMP_ALLOCATE_PIDS = 4,
       DPS_LOG_VESSEL_SMP_ALLOCATE_EXT_ARGS = 5,
-      DPS_LOG_VESSEL_SMP_ALLOCATE_FREE = 6,
    };*/
 
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
@@ -547,7 +403,6 @@ namespace vessel
       {
          lrc->prepush(args.len());
       }
-      lrc->prepush(sizeof(UINT32));
       rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
@@ -577,7 +432,6 @@ namespace vessel
                                            UINT32 count,
                                            const PAGE_ID *lpids,
                                            const PAGE_ID *pids,
-                                           UINT32 free,
                                            const slice &args)
    {
       INT32 rc = SDB_OK;
@@ -642,14 +496,6 @@ namespace vessel
          {
             goto error;
          }
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_VESSEL_SMP_ALLOCATE_FREE,
-                                        sizeof(UINT32), &free);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
       }
 
       if (lrc->needFullDump())

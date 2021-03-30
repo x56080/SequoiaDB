@@ -1035,7 +1035,8 @@ namespace vessel
          goto error;
       }
 
-      rc = smp.allocatePages(context, type, count, lpids, pids, args, oplist);
+      rc = smp.allocatePages(context, _maxPageCountPerDataFile,
+                             type, count, lpids, pids, args, oplist);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1821,6 +1822,7 @@ namespace vessel
       UINT32 pageSize = 0;
       UINT32 maxSegPerFile = 0;
       UINT32 maxPagePerSeg = 0;
+      UINT32 capacityOfSMP = 0;
 
       rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
       if (SDB_OK != rc)
@@ -1849,6 +1851,20 @@ namespace vessel
       }
 
       _maxPageCountPerDataFile = maxPagePerSeg * maxSegPerFile;
+
+      rc = getSMPCapacity8BytesAligned(pageSize, maxSegPerFile, maxPagePerSeg, capacityOfSMP);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get smp capacity:%d", rc);
+         goto error;
+      }
+
+      if (_maxPageCountPerDataFile != capacityOfSMP)
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "_maxPageCountPerDataFile and capacityOfSMP should be same");
+         goto error;
+      }
    done:
       return rc;
    error:
@@ -1862,7 +1878,7 @@ namespace vessel
       UINT32 pageSize = 0;
       UINT32 maxSegmentCount = 0;
       UINT32 pageCount = 0;
-      UINT32 bitcount = 0;
+      UINT32 capacity = 0;
 
       rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &pageCount, &maxSegmentCount);
       if (SDB_OK != rc)
@@ -1871,13 +1887,13 @@ namespace vessel
          goto error;
       }
 
-      rc = getSMPCapacity(pageSize, maxSegmentCount, pageCount, bitcount);
+      rc = getSMPCapacity8BytesAligned(pageSize, maxSegmentCount, pageCount, capacity);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _inMemDataSMP.init(bitcount, PAGE_COUNT_IN_EXTENT);
+      rc = _inMemDataSMP.init(capacity, PAGE_COUNT_IN_EXTENT);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init inmem-bitmap:%d", rc);

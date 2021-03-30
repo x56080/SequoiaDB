@@ -49,9 +49,6 @@ namespace engine
 {
 namespace vessel
 {
-   const UINT32 BIT_COUNT_PER_UINT32 = 32;
-   const UINT32 BIT_COUNT_PER_BYTE = 8;
-
    inMemBitMap::_inMemBitPage::~_inMemBitPage()
    {
       fini();
@@ -60,60 +57,58 @@ namespace vessel
    INT32 inMemBitMap::_inMemBitPage::fini()
    {
       _pageID = -1;
-      _size = 0;
       _free = 0;
       _firstFreeBits = -1;
-      SDB_THREAD_FREE(_bitsBuf);
-      _bitsBuf = NULL;
-
+      if (NULL != _buf)
+      {
+         SDB_THREAD_FREE(_buf);
+         _buf = NULL;
+      }
       return SDB_OK;
    }
 
    INT32 inMemBitMap::_inMemBitPage::init(INT32 pageID,
-                                           UINT32 size,
-                                           BOOLEAN noFree,
-                                           UINT32 occupied)
+                                          UINT32 capacity,
+                                          BOOLEAN noFree,
+                                          UINT32 occupied)
    {
       INT32 rc = SDB_OK;
       UINT32 bufSize = 0;
-      UINT32 loopCount = 0;
-      UINT32 tailLoopCount = 0;
-      UINT32 *tailBuf = NULL;
-      if (OSS_UNLIKELY(NULL != _bitsBuf))
+      UINT32 bitsCount = 0;
+      UINT32 alignedCapacity = 0;
+      fini();
+
+      if (OSS_UNLIKELY(pageID < 0))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(pageID < 0))
+      else if (OSS_UNLIKELY(0 == capacity))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 == size))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(size < occupied))
+      else if (OSS_UNLIKELY(capacity < occupied))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      bufSize = ossAlign32(size) / BIT_COUNT_PER_BYTE;
+      alignedCapacity = ossAlign64(capacity);
+      bufSize = alignedCapacity >> 3;/// bufSize = ossAlign64(capacity) / 8;
+      bitsCount = bufSize >> 3; /// bitsCount = bufSize / 8;
 
-      _bitsBuf = (UINT32 *)SDB_THREAD_ALLOC(bufSize);
-      if (NULL == _bitsBuf)
+      _buf = (UINT64 *)SDB_THREAD_ALLOC(bufSize);
+      if (NULL == _buf)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      ossMemset((CHAR*)_bitsBuf, 0, bufSize);
+      ossMemset(_buf, 0, bufSize);
 
       _pageID = pageID;
-      _size = size;
 
       if (noFree)
       {
@@ -122,30 +117,21 @@ namespace vessel
          goto done;
       }
       
-      _free = _size;
+      _free = capacity;
       _firstFreeBits = 0;
-
-      loopCount = size / BIT_COUNT_PER_UINT32;
-      for (UINT32 i = 0; i < loopCount; ++i)
+      resetBitMap64(bitsCount, _buf, TRUE);
+      if (alignedCapacity != capacity)
       {
-         UINT32 *bits = _bitsBuf + i;
-         *bits = UINT32(-1);
-      }
-
-      tailLoopCount = size & 0x1f; // mod 32
-      if (0  < tailLoopCount)
-      {
-         tailBuf = _bitsBuf + loopCount;
-         for (UINT32 i = 0; i < tailLoopCount; ++i)
-         {
-            OSS_BIT_SET(*tailBuf, ((UINT32)1 << i));
-         }
+         UINT32 n = alignedCapacity - capacity;
+         UINT64 v = OSS_UINT64_MAX;
+         v = v >> n;
+         _buf[bitsCount - 1] = v;
       }
 
       for (UINT32 i = 0; i < occupied; ++i)
       {
          UINT32 tmp = 0;
-         rc = allocate(1, &tmp, NULL);
+         rc = allocate(bitsCount, 1, &tmp, NULL);
          if (SDB_OK != rc)
          {
             goto error;
@@ -159,15 +145,35 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::init(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf)
+   INT32 inMemBitMap::_inMemBitPage::initFromAlignedBuf(INT32 pageID, UINT32 capacity, const CHAR *buf)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL == _bitsBuf, "must be null");
-      SDB_ASSERT(0 < size, "can not be 0");
-      UINT32 bufSize = ossAlign32(size) / BIT_COUNT_PER_BYTE;
+      UINT32 bitsCount = 0;
+      fini();
 
-      _bitsBuf = (UINT32 *)SDB_THREAD_ALLOC(bufSize);
-      if (NULL == _bitsBuf)
+      if (OSS_UNLIKELY(pageID < 0))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == capacity))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(NULL == buf))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(ossAlign64(capacity) != capacity))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      _buf = (UINT64 *)SDB_THREAD_ALLOC(capacity >> 3);
+      if (NULL == _buf)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
@@ -175,21 +181,38 @@ namespace vessel
       }
 
       _pageID = pageID;
-      _size = size;
-      _free = free;
-      _firstFreeBits = firstFree;
-      ossMemcpy(_bitsBuf, buf, bufSize);
+      _firstFreeBits = -1;
+      _free = 0;
+      bitsCount = capacity >> 6;/// bitsCount = capacity / 64
+      ossMemcpy(_buf, buf, capacity >> 3);
+      for (UINT32 i = 0; i < bitsCount; ++i)
+      {
+         UINT32 freeCnt = ossGetNonZeroBitCount64(_buf[i]);
+         if (0 < freeCnt && _firstFreeBits < 0)
+         {
+            _firstFreeBits = (INT32)i;
+         }
+         _free += freeCnt;
+      }
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::allocate(UINT32 count, UINT32 *buf, UINT32 *stillFreeCount)
+   INT32 inMemBitMap::_inMemBitPage::allocate(UINT32 alignedBitsCount,
+                                              UINT32 count,
+                                              UINT32 *buf,
+                                              UINT32 *stillFreeCount)
    {
       INT32 rc = SDB_OK;
       UINT32 allocatedCount = 0;
-      if (OSS_UNLIKELY(0 == count || NULL == buf))
+      if (OSS_UNLIKELY(0 == alignedBitsCount))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -206,22 +229,31 @@ namespace vessel
 
       do
       {
-         UINT32 *bits = _bitsBuf + _firstFreeBits;
-         INT32 bit = ossGetLowestBit1From32Bits(*bits);
-         if (0 <= bit)
+         UINT32 offset = 0;
+         if (findAndClearFirstFreeBitFromBit64(alignedBitsCount,
+                                                _firstFreeBits,
+                                                _buf, offset))
          {
-            OSS_BIT_CLEAR(*bits, ((UINT32)1 << bit));
-            buf[allocatedCount++] = (_firstFreeBits * BIT_COUNT_PER_UINT32) + bit;
+            buf[allocatedCount++] = offset;
             --_free;
          }
          else
          {
-            ++_firstFreeBits;
-            SDB_ASSERT((UINT32)_firstFreeBits < _size, "impossible");
+            SDB_ASSERT(FALSE, "free count in head is not zero, but failed to find free bit from bitmap");
+            PD_LOG(PDERROR, "free count in head is not zero, but failed to find free bit from bitmap");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
          }
       } while (allocatedCount < count);
 
-      updateFirstFreeAfterAllocating();
+      if (0 < _free)
+      {
+         updateFirstFree(alignedBitsCount, (buf[count - 1] >> 6));
+      }
+      else
+      {
+         _firstFreeBits = -1;
+      }
 
       if (NULL != stillFreeCount)
       {
@@ -234,78 +266,46 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::free(UINT32 count, const UINT32 *buf)
+   void inMemBitMap::_inMemBitPage::free(UINT32 alignedBitsCount, UINT32 count, const UINT32 *buf)
    {
-      INT32 rc = SDB_OK;
-      BOOLEAN everError = FALSE;
-
-      if (OSS_UNLIKELY(0 == count || NULL == buf))
+      if (OSS_UNLIKELY(0 == alignedBitsCount))
       {
-         rc = SDB_INVALIDARG;
-         goto  error;
+         goto done;
       }
-      else if (OSS_UNLIKELY(_size < (count + _free)))
+      else if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
+      }
+      else if (OSS_UNLIKELY(NULL == _buf))
+      {
+         SDB_ASSERT(FALSE, "invalid operation");
+         goto done;
       }
 
       for (UINT32 i = 0; i < count; ++i)
       {
-         UINT32 id = buf[i];
-         UINT32 pos = 0;
-         UINT32 bit = 0;
-         UINT32 *bits = NULL;
-
-         if (OSS_UNLIKELY(_size <= id))
+         UINT32 offset = buf[i];
+         if (setFreeIfNotFree64(alignedBitsCount, _buf, buf[i]))
          {
-            PD_LOG(PDERROR, "invalid id[%d] to free, current size[%d]", id, _size);
-            everError = TRUE;
-            continue;
-         }
-
-         pos = id / BIT_COUNT_PER_UINT32;
-         bit = id % BIT_COUNT_PER_UINT32;
-         bits = _bitsBuf + pos;
-         if (OSS_BIT_TEST(*bits, ((UINT32)1 << bit)))
-         {
-            PD_LOG(PDERROR, "id[%d] is not allocated", id);
-            everError = TRUE;
-            continue;
-         }
-
-         OSS_BIT_SET(*bits, ((UINT32)1 << bit));
-         ++_free;
-
-         if (0 <= _firstFreeBits)
-         {
-            if (pos < (UINT32)_firstFreeBits)
+            ++_free;
+            if (_firstFreeBits < 0)
             {
-               _firstFreeBits = pos;
+               _firstFreeBits = (INT32)offset;
+            }
+            else if ((INT32)offset < _firstFreeBits)
+            {
+               _firstFreeBits = (INT32)offset;
             }
          }
-         else
-         {
-            _firstFreeBits = pos;
-         }
-      }
-
-      if (everError)
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
       }
    done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
-   void inMemBitMap::_inMemBitPage::updateFirstFreeAfterAllocating()
+   void inMemBitMap::_inMemBitPage::updateFirstFree(UINT32 bitsCount, UINT32 beginBits)
    {
-      SDB_ASSERT(0 <= _firstFreeBits, "impossible");
-      const UINT32 *bits = NULL;
-      UINT32 begin = _firstFreeBits;
+      SDB_ASSERT(0 < _free, "impossible");
+      UINT32 offset = 0;
    
       if (0 == _free)
       {
@@ -313,20 +313,10 @@ namespace vessel
          goto done;
       }
 
-      do
+      if (findFirstFreeBitFromBit64(bitsCount, (INT32)beginBits, _buf, offset))
       {
-         bits = (_bitsBuf + begin);
-         if (0 != *bits)
-         {
-            _firstFreeBits = begin;
-            goto done;
-         }
-         else
-         {
-            ++begin;
-            SDB_ASSERT(begin < _size, "impossible");
-         }
-      } while (TRUE);
+         _firstFreeBits = offset >> 6;
+      }
       
    done:
       return;
@@ -334,10 +324,9 @@ namespace vessel
 
 ////////////////
    inMemBitMap::inMemBitMap():
-   _flags(0),
    _bitCountInPage(0),
+   _alignedBitsCount(0),
    _freeBound(0),
-   _modified(FALSE),
    _pageCount(0)
    {
 
@@ -356,20 +345,17 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(0 != _bitCountInPage))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
       else if (OSS_UNLIKELY(bitCountInPage <= freeBound))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
+      fini();
+
       _bitCountInPage = bitCountInPage;
+      _alignedBitsCount = (ossAlign64(_bitCountInPage)) >> 6;/// _alignedBitsCount = ossAlign64(_bitCountInPage) / 64;
       _freeBound = freeBound;
-      _modified = TRUE;
    done:
       return rc;
    error:
@@ -400,11 +386,10 @@ namespace vessel
       }
       _pagesWithHighFreeCount.clear();
 
-      _flags = 0;
       _freeBound = 0;
       _bitCountInPage = 0;
+      _alignedBitsCount = 0;
       _pageCount = 0;
-      _modified = FALSE;
    done:
 
       return rc;
@@ -416,7 +401,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       _inMemBitPage *page = NULL;
-      _mutex.get();
+      ossScopedLock guard(&_mutex);
       
       if (OSS_UNLIKELY(_bitCountInPage < occupied))
       {
@@ -444,15 +429,12 @@ namespace vessel
       {
          _pagesWithHighFreeCount[page->getPageID()] = page;
       }
-      else
+      else if (0 < page->getFree())
       {
          _pagesWithLowFreeCount[page->getPageID()] = page;
       }
-
-      _modified = TRUE;
       
    done:
-      _mutex.release();
       return rc;
    error:
       SAFE_OSS_DELETE(page);
@@ -462,7 +444,7 @@ namespace vessel
    INT32 inMemBitMap::allocateBits(UINT32 count, UINT32 *buf)
    {
       INT32 rc = SDB_OK;
-      _mutex.get();
+      ossScopedLock guard(&_mutex);
       if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
          rc = SDB_INVALIDARG;
@@ -499,81 +481,77 @@ namespace vessel
          }  
       }
 
-      _modified = TRUE;
    done:
-      _mutex.release();
       return rc;
    error:
       goto done;
    }
 
-   INT32 inMemBitMap::releaseBits(UINT32 count, const UINT32 *buf)
+   void inMemBitMap::releaseBits(UINT32 count, const UINT32 *buf)
    {
-      INT32 rc = SDB_OK;
-      BOOLEAN everError = FALSE;
-      _mutex.get();
+      static const UINT32 BATCH_SIZE = 4;
+      UINT32 batch[BATCH_SIZE];
+      UINT32 released = 0;
+      ossScopedLock guard(&_mutex);
       if (OSS_UNLIKELY(0 == count || NULL == buf))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
       else if (OSS_UNLIKELY(0 == _bitCountInPage))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
-      
-      for (UINT32 i = 0; i < count; ++i)
-      {
-         UINT32 pageID = buf[i] / _bitCountInPage;
-         UINT32 offset = buf[i] % _bitCountInPage;
-         if (_pageCount <= pageID)
-         {
-            PD_LOG(PDERROR, "invalid bits id:%d", buf[i]);
-            everError = FALSE;
-            continue;
-         }
 
-         std::map<INT32, _inMemBitPage*>::iterator itr = _pagesWithHighFreeCount.find(pageID);
-         if (_pagesWithHighFreeCount.end() != itr)
+      while (released < count)
+      {
+         INT32 pageId = 0;
+         UINT32 currentBatchCount = 0;
+
+         pageId = buf[released] / _bitCountInPage;
+         batch[currentBatchCount++] = buf[released] % _bitCountInPage;
+         while (currentBatchCount < BATCH_SIZE &&
+                (released + currentBatchCount) < count)
          {
-            releaseBitFromHFC(offset, itr->second);
-         }
-         else
-         {
-            itr = _pagesWithLowFreeCount.find(pageID);
-            if (_pagesWithLowFreeCount.end() != itr)
+            INT32 nextPage = buf[released + currentBatchCount] / _bitCountInPage;
+            if (pageId == nextPage)
             {
-               releaseBitFromLFC(offset, itr->second);
+               batch[currentBatchCount] = buf[released + currentBatchCount] % _bitCountInPage;
+               ++currentBatchCount;
             }
             else
             {
-               releaseAtDestroyedPage(pageID, offset);
+               break;
             }
          }
-      }
 
-      _modified = TRUE;
+         _PAGE_MAP::iterator itr = _pagesWithHighFreeCount.find(pageId);
+         if (_pagesWithHighFreeCount.end() != itr)
+         {
+            releaseBitFromHFC(currentBatchCount, batch, itr->second);
+         }
+         else
+         {
+            itr = _pagesWithLowFreeCount.find(pageId);
+            if (_pagesWithLowFreeCount.end() != itr)
+            {
+               releaseBitFromLFC(currentBatchCount, batch, itr->second);
+            }
+            else
+            {
+               releaseAtDestroyedPage(pageId, currentBatchCount, batch);
+            }
+         }
 
-      if (everError)
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
+         released += currentBatchCount;
       }
    done:
-      _mutex.release();
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 inMemBitMap::mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head)
    {
       INT32 rc = SDB_OK;
       _inMemBitPage *page = NULL;
-      const CHAR *bits = NULL;
-      UINT32 bitsCount = 0;
-      UINT32 firstFree = 0;
       ossScopedLock lock(&_mutex);
 
       if (OSS_UNLIKELY(NULL == head))
@@ -592,28 +570,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (head->capacity != _bitCountInPage)
-      {
-         PD_LOG(PDERROR, "capacity should be same");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (0 == head->free)
-      {
-         ++_pageCount;
-         goto done;
-      }
-
-      bits = (const CHAR *)head + SMP_HEAD_LEN;
-      bitsCount = head->capacity >> 5; /// divied by 32
-
-      if (!findFirstFreeFromBitMap32(bitsCount, (const UINT32 *)bits, 0, firstFree))
-      {
-         PD_LOG(PDERROR, "non-zero free count in head but not found in bitmap");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
       page = SDB_OSS_NEW _inMemBitPage();
       if (NULL == page)
@@ -622,13 +578,20 @@ namespace vessel
          goto error;
       }
 
-      rc = page->init(bitPageID, bitsCount, head->free, (INT32)firstFree, bits);
+      rc = page->initFromAlignedBuf(bitPageID, _bitCountInPage,
+                                    ((const CHAR *)head + SMP_HEAD_LEN));
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      if (head->free < _freeBound)
+      ++_pageCount;
+
+      if (0 == page->getFree())
+      {
+         SDB_OSS_DEL page;
+      }
+      else if (page->getFree() < _freeBound)
       {
          _pagesWithLowFreeCount[bitPageID] = page;
       }
@@ -636,8 +599,6 @@ namespace vessel
       {
          _pagesWithHighFreeCount[bitPageID] = page;
       }
-
-      ++_pageCount;
    done:
       return rc;
    error:
@@ -645,424 +606,57 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitMap::dumpToFile(requestContext *context,
-                                 const CHAR *fullPath,
-                                 BOOLEAN onlyWhenModified,
-                                 BOOLEAN replace)
+   void inMemBitMap::releaseBitFromHFC(UINT32 count,
+                                        const UINT32 *buf,
+                                        _inMemBitPage *page)
    {
-      INT32 rc = SDB_OK;
-      OSSFILE file;
-      CHAR *buffer = NULL;
-      UINT32 bufferSize = 32768;
-      UINT32 dumpSize = 0;
-      UINT32 dumpSizePerLoop = 0;
-      UINT32 i = 0;
-
-      _mutex.get();
-
-      if (OSS_UNLIKELY(NULL == context || NULL == fullPath))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (onlyWhenModified && !_modified)
-      {
-         goto done;
-      }
-
-      buffer = context->allocateBuffer(bufferSize);
-      if (NULL == buffer)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-      
-      rc = ossOpen(fullPath,
-                   (replace ? OSS_REPLACE:OSS_CREATEONLY) | OSS_READWRITE | OSS_EXCLUSIVE,
-                   OSS_DEFAULTFILE,
-                   file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create file:%s, %d", fullPath, rc);
-         goto error;
-      }
-
-      rc = dumpHead(bufferSize, buffer);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      dumpSize = getDumpHeadSize();
-
-      while (i < _pageCount)
-      {
-         rc = dumpPage(i, bufferSize - dumpSize, buffer + dumpSize, dumpSizePerLoop);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         if (0 < dumpSizePerLoop)
-         {
-            dumpSize += dumpSizePerLoop;
-            dumpSizePerLoop = 0;
-            ++i;
-            continue;
-         }
-         else
-         {
-            rc = ossWriteN(&file, buffer, dumpSize);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "failed to write file:%d", rc);
-               goto error;
-            }
-            dumpSizePerLoop = 0;
-            dumpSize = 0;
-         }
-      }
-
-      if (0 < dumpSize)
-      {
-         rc = ossWriteN(&file, buffer, dumpSize);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write file:%d", rc);
-            goto error;
-         }
-      }
-
-      rc = ossFsync(&file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to fsync name file:%s, %d", fullPath, rc);
-         goto error;
-      }
-  
-      ossClose(file);
-      ossChmod(fullPath, OSS_RU);
-      _modified = FALSE;
-   done:
-      _mutex.release();
-      if (NULL != buffer)
-      {
-         context->releaseBuffer(buffer, bufferSize);
-      } 
-      return rc;
-   error:
-      if (file.isOpened())
-      {
-         ossClose(file);
-         ossDelete(fullPath);
-      }
-      goto done;
-   }
-
-   INT32 inMemBitMap::loadFromFile(requestContext *context,
-                                   const CHAR *fullPath)
-   {
-      INT32 rc = SDB_OK;
-      OSSFILE file;
-      CHAR *buffer = NULL;
-      const UINT32 *content = NULL;
-      UINT32 bufferSize = 32768;
-      SINT64 read = 0;
-      BOOLEAN rollback = TRUE;
-
-      if (OSS_UNLIKELY(NULL == context || NULL == fullPath))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(0 != _bitCountInPage))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      buffer = context->allocateBuffer(bufferSize);
-      if (NULL == buffer)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      rc = ossOpen(fullPath,
-                   OSS_READONLY | OSS_EXCLUSIVE,
-                   OSS_DEFAULTFILE,
-                   file);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to create file:%s, %d", fullPath, rc);
-         goto error;
-      }
-
-      rc = ossRead(&file, buffer, getDumpHeadSize(), &read);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      else if (read < getDumpHeadSize())
-      {
-         PD_LOG(PDERROR, "invalid size of file:%s", fullPath);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      rollback = TRUE;
-      content = (const UINT32 *)(buffer + sizeof(UINT32)); /// skip version
-      _pageCount = *content++;
-      _flags = *content++;
-      _bitCountInPage = *content++;
-      _freeBound = *content;
-      _modified = FALSE;
-
-      if (0 == _bitCountInPage)
-      {
-         PD_LOG(PDERROR, "invalid bit count:%s", fullPath);
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < _pageCount; ++i)
-      {
-         _inMemBitPage * page = NULL;
-         INT32 pageID = 0;
-         UINT32 size = 0;
-         UINT32 free = 0;
-         INT32 firstFree = 0;
-
-         rc = ossRead(&file, buffer, getDumpPageHeadSize(), &read);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to read page head, file:%s, rc:%d", fullPath, rc);
-            goto error;
-         }
-         else if (read < getDumpPageHeadSize())
-         {
-            PD_LOG(PDERROR, "invalid size of file:%s", fullPath);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-
-         content = (const UINT32 *)buffer;
-         pageID = (INT32)(*content++);
-         size = *content++;
-         free = *content++;
-         firstFree = (INT32)(*content);
-         if (pageID != (INT32)i)
-         {
-            PD_LOG(PDERROR, "invalid page id:%d, i:%d", pageID, i);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-         else if (size != _bitCountInPage)
-         {
-            PD_LOG(PDERROR, "invalid size:%d", size);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-         else if (0 == free)
-         {
-            continue;
-         }
-
-         rc = ossRead(&file, buffer, getPageDumpSize(), &read);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to read page body, file:%s, rc:%d", fullPath, rc);
-            goto error;
-         }
-         else if (read < getPageDumpSize())
-         {
-            PD_LOG(PDERROR, "invalid size of file:%s", fullPath);
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-
-         page = SDB_OSS_NEW _inMemBitPage();
-         if (NULL == page)
-         {
-            PD_LOG(PDERROR, "failed to allocate mem");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         rc = page->init(pageID, size, free, firstFree, buffer);
-         if (SDB_OK != rc)
-         {
-            SDB_OSS_DEL page;
-            goto error;
-         }
-
-         if (free < _freeBound)
-         {
-            _pagesWithLowFreeCount[pageID] = page;
-         }
-         else
-         {
-            _pagesWithHighFreeCount[pageID] = page;
-         }
-      }
-      
-      ossClose(file);
-   done:
-      return rc;
-   error:
-      if (file.isOpened())
-      {
-         ossClose(file);
-      }
-      if (rollback)
-      {
-         fini();
-      }
-      goto done;
-   }
-
-   INT32 inMemBitMap::dumpHead(UINT32 bufferSize, void *buf)const
-   {
-      INT32 rc = SDB_OK;
-      UINT32 *ptr = (UINT32*)buf;
-      if (bufferSize < getDumpHeadSize() || NULL == buf)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      *ptr++ = 0;
-      *ptr++ = _pageCount;
-      *ptr++ = _flags;
-      *ptr++ = _bitCountInPage;
-      *ptr = _freeBound;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitMap::dumpPage(UINT32 pageID,
-                               UINT32 bufferSize,
-                               void *buf,
-                               UINT32 &size)const
-   {
-      INT32 rc = SDB_OK;
-      const _inMemBitPage *page = NULL;
-      _PAGE_MAP::const_iterator itr;
-      UINT32 *ptr = (UINT32*)buf;
-      if (NULL == buf || _pageCount <= pageID)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      size = 0;
-      itr = _pagesWithLowFreeCount.find((INT32)pageID);
-      if (_pagesWithLowFreeCount.end() == itr)
-      {
-         itr = _pagesWithHighFreeCount.find((INT32)pageID);
-         if (_pagesWithLowFreeCount.end() == itr)
-         {
-            /// dump page head only
-            if (bufferSize < getDumpPageHeadSize())
-            {
-               goto done;
-            }
-            else
-            {
-               *ptr++ = pageID;
-               *ptr++ = _bitCountInPage;
-               *ptr++ = 0;
-               *ptr = -1;
-               size = getDumpPageHeadSize();
-               goto done;
-            }
-         }
-      }
-
-      page = itr->second;
-      SDB_ASSERT(NULL != page, "can not be null");
-      if (bufferSize < (getDumpPageHeadSize() + getPageDumpSize()))
-      {
-         goto done;
-      }
-
-      *ptr++ = (UINT32)(page->getPageID());
-      *ptr++ = page->getSize();
-      *ptr++ = page->getFree();
-      *ptr++ = page->getFirstFree();
-      ossMemcpy(ptr, page->getBuf(), page->getBufSize());
-      size = getDumpPageHeadSize() + getPageDumpSize();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 inMemBitMap::releaseBitFromHFC(UINT32 offset, _inMemBitPage *page)
-   {
-      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != buf, "can not be null");
       SDB_ASSERT(NULL != page, "can not be null");
 
-      rc = page->free(1, &offset);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+
+      page->free(_alignedBitsCount, count, buf);
+      return;
    }
 
-   INT32 inMemBitMap::releaseBitFromLFC(UINT32 offset, _inMemBitPage *page)
+   void inMemBitMap::releaseBitFromLFC(UINT32 count,
+                                       const UINT32 *buf,
+                                       _inMemBitPage *page)
    {
-      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != buf, "can not be null");
       SDB_ASSERT(NULL != page, "can not be null");
 
-      rc = page->free(1, &offset);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      page->free(_alignedBitsCount, count, buf);
 
-      if (_freeBound == page->getFree())
+      if (_freeBound <= page->getFree())
       {
          _pagesWithLowFreeCount.erase(page->getPageID());
          _pagesWithHighFreeCount[page->getPageID()] = page;
       }
-   done:
-      return rc;
-   error:
-      goto done;
+      return ;
    }
 
-   INT32 inMemBitMap::releaseAtDestroyedPage(INT32 pageID, UINT32 offset)
+   void inMemBitMap::releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 <= pageID, "can not be invalid");
+      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
       _inMemBitPage *page = SDB_OSS_NEW _inMemBitPage();
       if (NULL == page)
       {
-         rc = SDB_OOM;
          PD_LOG(PDERROR, "failed to allocate mem");
-         goto error;
+         goto done;
       }
 
       rc = page->init(pageID, _bitCountInPage, TRUE);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to init page[%d], rc:%d", pageID, rc);
          goto error;
       }
 
-      rc = page->free(1, &offset);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      page->free(_alignedBitsCount, count, buf);
 
       if (page->getFree() < _freeBound)
       {
@@ -1074,7 +668,7 @@ namespace vessel
       }
       
    done:
-      return rc;
+      return;
    error:
       SAFE_OSS_DELETE(page);
       goto done;
@@ -1083,6 +677,7 @@ namespace vessel
    INT32 inMemBitMap::allocateBitsFromHFC(UINT32 count, UINT32 *buf)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
       _inMemBitPage *page = NULL;
       UINT32 stillFreeCount = 0;
       std::map<INT32, _inMemBitPage*>::iterator itr = _pagesWithHighFreeCount.begin();
@@ -1101,7 +696,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->allocate(count, buf, &stillFreeCount);
+      rc = page->allocate(_alignedBitsCount, count, buf, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1132,6 +727,7 @@ namespace vessel
    INT32 inMemBitMap::allocateBitsFromLFC(UINT32 count, UINT32 *buf)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < count && NULL != buf, "can not be invalid");
       _inMemBitPage *page = NULL;
       UINT32 stillFreeCount = 0;
       std::map<INT32, _inMemBitPage*>::iterator itr = _pagesWithLowFreeCount.begin();
@@ -1150,7 +746,7 @@ namespace vessel
          goto error;
       }
 
-      rc = page->allocate(count, buf, &stillFreeCount);
+      rc = page->allocate(_alignedBitsCount, count, buf, &stillFreeCount);
       if (SDB_OK != rc)
       {
          goto error;

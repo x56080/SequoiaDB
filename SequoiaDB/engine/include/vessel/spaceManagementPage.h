@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -45,20 +42,18 @@ namespace engine
 {
 namespace vessel
 {
-   ///capacity is 32bit aligned.
-   INT32 getSMPCapacity(UINT32 pageSize,
-                        UINT32 maxSegmentCount,
-                        UINT32 pageCountOfSeg,
-                        UINT32 &capacity);
+   ///capacity is 64bit aligned.
+   INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
+                                     UINT32 maxSegmentCount,
+                                     UINT32 pageCountOfSeg,
+                                     UINT32 &capacity);
 
 #pragma pack(4)
    struct spaceManagementPageHead
    {
-      UINT32 version;
-      PAGE_ID minPid;
-      UINT32 capacity; /// max page count managed by this smp.
-      UINT32 free; /// current free page count be used. free <= capacity.
-      UINT64 pad;
+      UINT16 version;
+      UINT16 flags;
+      CHAR pad[12];
    };
 #pragma pack()
 
@@ -66,8 +61,6 @@ namespace vessel
    const UINT32 SMP_VERSION_1 = 1;
    const UINT32 SMP_HEAD_LEN = sizeof(spaceManagementPageHead);
    const PAGE_ID SMP_PAGE_ID = 0;
-
-   const UINT32 SMP_BIT_COUNT_PER_GROUP = 32;
 }//namespace vessel
 }//namespace engine
 

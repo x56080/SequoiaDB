@@ -317,6 +317,14 @@ namespace vessel
       return r;
    }
 
+   void resetBitMap64(UINT32 count, UINT64 *bits, BOOLEAN free)
+   {
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != bits, "can not be null");
+      ossMemset(bits, free ? 0xFF : 0, count << 3);
+      return;
+   }
+
    BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
                                      INT32 beginBits,
                                      const UINT64 *bits,
@@ -383,11 +391,12 @@ namespace vessel
       BOOLEAN r = FALSE;
       UINT32 slot = offset >> BM_UTIL_BITWISE_64;
       UINT64 bit = (UINT64)1 << (offset & BM_UTIL_BIT_MOD_64);
-      const UINT64 *bitsSlot = NULL;
       if (slot < count)
       {
-         bitsSlot = &(bits[slot]);
-         r = OSS_BIT_TEST(*bitsSlot, bit);
+         UINT64 v = bits[slot];
+         /// BOOLEAN is int32, do not assign it as OSS_BIT_TEST
+         UINT64 bitAnd = OSS_BIT_TEST(v, bit);
+         r = (0 != bitAnd);
       }
       return r;
    }

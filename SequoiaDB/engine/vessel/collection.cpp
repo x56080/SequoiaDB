@@ -236,6 +236,8 @@ namespace vessel
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
+      ossScopedLock guard(&_ddlSLatch, SHARED);
+
       if (OSS_UNLIKELY(NULL == context ||
                        !context->isOpen()))
       {
@@ -248,6 +250,131 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::insertNonBigRecordToPage(insertContext *context,
+                                              utilInsertResult &res)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      UINT32 recordSize = 0;
+      BOOLEAN fastFind = TRUE;
+
+      if (UTIL_COMPRESSOR_INVALID == context->getCompressionType())
+      {
+         recordSize = context->getRecord().getSlice().len();
+      }
+      else if (UTIL_COMPRESSOR_LZW == context->getCompressionType())
+      {
+         recordSize = context->getCompressedRecordSize();
+      }
+      else
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      do
+      {
+         rc = findFreePage(fastFind, recordSize,
+                           context->getStriping(),
+                           context->getCandidate());
+         if (SDB_VESSEL_FSM_NO_FREE_SPACE == rc)
+         {
+            fastFind = FALSE;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find free space from collection:%d", rc);
+            goto error;
+         }
+
+         
+      } while (TRUE);
+      
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::findFreePage(BOOLEAN fastFind,
+                                  UINT32 recordSize,
+                                  STRIPING_ID striping,
+                                  fsmCandidate &candidate)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < recordSize, "impossible");
+      candidate.reset();
+
+      if (fastFind)
+      {
+         rc = _fsm.fastFind(striping, recordSize, candidate);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      else
+      {
+         UINT32 flags = freeSpaceMap::FIND_ALL;
+         ossScopedLock guard(&_pageAllocLatch);
+         do
+         {
+            rc = _fsm.findInWholeMap(striping, recordSize,
+                                     flags, candidate);
+            if (SDB_VESSEL_FSM_NO_FREE_SPACE == rc)
+            {
+               PAGE_ID lpids[PAGE_COUNT_IN_EXTENT] = {INVALID_PAGE_ID};
+               CL_PAGE_SEQ firstSeq = INVALID_CL_PAGE_SEQ;
+               rc = allocateNewPagesForOptions(PAGE_COUNT_IN_EXTENT,
+                                               firstSeq, lpids);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
+                  goto error;
+               }
+
+               rc = _fsm.addNewPages(firstSeq, lpids, PAGE_COUNT_IN_EXTENT);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to add new pages to fsm:%d", rc);
+                  goto error;
+               }
+
+               flags = freeSpaceMap::FIND_NEW_POOL;
+               continue;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to find free space from fsm:%d", rc);
+               goto error;
+            }
+
+            break;
+         }while (TRUE);
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::allocateNewPagesForOptions(UINT32 pageCount,
+                                                CL_PAGE_SEQ &firstSeq,
+                                                PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < pageCount, "can not be zero");
+      SDB_ASSERT(NULL != lpids, "can not be null");
+
+      
    done:
       return rc;
    error:

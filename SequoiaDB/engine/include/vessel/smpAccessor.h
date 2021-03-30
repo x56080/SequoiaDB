@@ -64,7 +64,13 @@ namespace vessel
             return PAGE_TYPE_SMP;
          }
 
+         OSS_INLINE void setCapacity(UINT32 c)
+         {
+            _capacity = c;
+         }
+
          INT32 allocatePages(requestContext *context,
+                             UINT32 capacity,
                              PAGE_TYPE type,
                              UINT32 count,
                              const PAGE_ID *lpids,
@@ -76,23 +82,17 @@ namespace vessel
                        CHAR *buffer);
 
       private:
-         INT32 validatePidsToBeAllocated(UINT32 count,
+         INT32 validatePidsToBeAllocated(UINT32 bitsCount,
+                                         UINT32 count,
                                          const PAGE_ID *pids);
          INT32 testPageFree(UINT32 bitsSlotNo, UINT32 bitNo, BOOLEAN &free);
 
-         void setPagesFree(spaceManagementPageHead *head,
+         void setPagesFree(UINT32 bitsCount,
                            UINT32 count,
                            const PAGE_ID *pids);
-         void setPagesNotFree(spaceManagementPageHead *head,
+         void setPagesNotFree(UINT32 bitsCount,
                               UINT32 count,
                               const PAGE_ID *pids);
-         INT32 testPagesFree(UINT32 count, const PAGE_ID *pids, BOOLEAN &free);
-
-         INT32 setPageNotFree(UINT32 bitsSlotNo, UINT32 bitNo);
-         INT32 setPageFree(UINT32 bitsSlotNo, UINT32 bitNo);
-
-         INT32 writeBits(UINT32 bitsSlotNo, UINT32 bits);
-         INT32 readBits(UINT32 bitsSlotNo, UINT32 &bits);
 
          INT32 prepareSMPAllocateLog(requestContext *context,
                                      logRecordContext *lrc,
@@ -106,8 +106,10 @@ namespace vessel
                                     UINT32 count,
                                     const PAGE_ID *lpids,
                                     const PAGE_ID *pids,
-                                    UINT32 free,
                                     const slice &args);
+
+      private:
+         UINT32 _capacity;
    };//class smpAccessor
 }//namespace vessel
 }//namespace engine

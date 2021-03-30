@@ -69,6 +69,8 @@ namespace vessel
    BOOLEAN setNotFreeIfFree32(UINT32 count, UINT32 *bits, UINT32 offset);
 
 
+   void resetBitMap64(UINT32 count, UINT64 *bits, BOOLEAN free);
+
    BOOLEAN findFirstFreeBitFromBit64(UINT32 bitsCount,
                                      INT32 beginBits,
                                      const UINT64 *bits,

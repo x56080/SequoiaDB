@@ -62,21 +62,23 @@ namespace vessel
             public:
                _inMemBitPage():
                _pageID(-1),
-               _size(0), 
                _free(0), 
                _firstFreeBits(-1),
-               _bitsBuf(NULL)
+               _buf(NULL)
                {}
 
                ~_inMemBitPage();
 
             public:
-               INT32 init(INT32 pageID, UINT32 size, BOOLEAN noFree = FALSE, UINT32 occupied = 0);
-               INT32 init(INT32 pageID, UINT32 size, UINT32 free, INT32 firstFree, const CHAR *buf);
+               INT32 init(INT32 pageID, UINT32 capacity, BOOLEAN noFree = FALSE, UINT32 occupied = 0);
+               INT32 initFromAlignedBuf(INT32 pageID, UINT32 capacity, const CHAR *buf);
                INT32 fini();
 
-               INT32 allocate(UINT32 count, UINT32 *buf, UINT32 *stillFreeCount = NULL);
-               INT32 free(UINT32 count, const UINT32 *buf);
+               INT32 allocate(UINT32 alignedBitsCount,
+                              UINT32 count,
+                              UINT32 *buf,
+                              UINT32 *stillFreeCount = NULL);
+               void free(UINT32 alignedBitsCount, UINT32 count, const UINT32 *buf);
 
                OSS_INLINE INT32 getPageID()const
                {
@@ -86,35 +88,15 @@ namespace vessel
                {
                   return _free;
                }
-               OSS_INLINE UINT32 getSize()const
-               {
-                  return _size;
-               }
-
-               OSS_INLINE INT32 getFirstFree()const
-               {
-                  return _firstFreeBits;
-               }
-
-               OSS_INLINE const UINT32 *getBuf()const
-               {
-                  return _bitsBuf;
-               }
-
-               OSS_INLINE UINT32 getBufSize()const
-               {
-                  return ossAlign32(_size) / 8; /// 8bit per byte
-               }
 
             private:
-               void updateFirstFreeAfterAllocating();
+               void updateFirstFree(UINT32 bitsCount, UINT32 beginBits);
 
             private:
                INT32 _pageID;
-               UINT32 _size;
                UINT32 _free; /// free <= _size
                INT32 _firstFreeBits;
-               UINT32 *_bitsBuf;
+               UINT64 *_buf;
 
          };// class _inMemBitPage
 
@@ -146,16 +128,7 @@ namespace vessel
 
          INT32 allocateBits(UINT32 count, UINT32 *buf);
 
-         INT32 releaseBits(UINT32 count, const UINT32 *buf);
-
-      public:/// WARNING: user should ensure there is no changing when dumping.
-         INT32 dumpToFile(requestContext *context,
-                          const CHAR *fullPath,
-                          BOOLEAN onlyWhenModified=TRUE,
-                          BOOLEAN replace=TRUE);
-
-         INT32 loadFromFile(requestContext *context,
-                            const CHAR *fullPath);
+         void releaseBits(UINT32 count, const UINT32 *buf);
 
       public:
          INT32 mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head);
@@ -164,41 +137,19 @@ namespace vessel
          INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
          INT32 allocateBitsFromLFC(UINT32 count, UINT32 *buf);
 
-         INT32 releaseBitFromHFC(UINT32 offset, _inMemBitPage *page);
-         INT32 releaseBitFromLFC(UINT32 offset, _inMemBitPage *page);
-         INT32 releaseAtDestroyedPage(INT32 pageID, UINT32 offset);
-
-      private:
-         OSS_INLINE UINT32 getDumpHeadSize()const
-         {
-            return  sizeof(UINT32)     /// version
-                    + sizeof(UINT32) * 4; /// pagecount + flags + _bitCountInPage + free bound
-         }
-
-         OSS_INLINE UINT32 getDumpPageHeadSize()const
-         {
-            return sizeof(UINT32) * 4;/// _pageID + _size + _free + _firstFreeBits
-         }
-
-         OSS_INLINE UINT32 getPageDumpSize()const
-         {
-            
-            return ossAlign32(_bitCountInPage) / 8; /// 8bit per byte
-         }
-
-         INT32 dumpHead(UINT32 bufferSize, void *buf)const;
-
-         /// the actual dump size is not always be getMaxPageDumpSize.
-         /// if free count is zero, it only dump page head to buffer.
-         /// if 0 == size when return sdb_ok, means buffer size not enough.
-         INT32 dumpPage(UINT32 pageID, UINT32 bufferSize, void *buf, UINT32 &size)const;
+         void releaseBitFromHFC(UINT32 count,
+                                 const UINT32 *buf,
+                                 _inMemBitPage *page);
+         void releaseBitFromLFC(UINT32 count,
+                                 const UINT32 *buf,
+                                 _inMemBitPage *page);
+         void releaseAtDestroyedPage(INT32 pageID, UINT32 count, const UINT32 *buf);
 
       private:
          ossSpinXLatch _mutex;
-         UINT32 _flags;
          UINT32 _bitCountInPage;
+         UINT32 _alignedBitsCount;
          UINT32 _freeBound;
-         BOOLEAN _modified;
 
          /// we will not keep bit pages in mem when it's free count is zero.
          /// _pageCount means total count of page we ever allocated.

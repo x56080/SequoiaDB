@@ -296,3 +296,103 @@ TEST_F(fsm_test, diskmap_1)
    file.close();
    
 }
+
+TEST_F(fsm_test, diskmap_2)
+{
+   INT32 rc = SDB_OK;
+   v::fsmFile file;
+   v::storageCoreArgs args;
+   args.pageSize = DMS_PAGE_SIZE32K;
+   args.maxPageCountPerSeg = FSM_PAGE_COUNT_PER_SEG;
+   args.maxSegmentCountPerFile = FSM_MAX_SEG_COUNT;
+   v::storageFileOptions options;
+   options.args = &args;
+   options.dir = DATA_PATH;
+   options.name = "_space_0.fsm";
+   options.secretValue = 0;
+   options.spaceID = 0;
+   options.sequence = 0;
+   rc = file.create(options);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = file.initAfterCreation();
+   ASSERT_EQ(SDB_OK, rc);
+   v::diskFreeSpaceMap diskMap;
+   rc = diskMap.create(&file, 0, 0);
+   ASSERT_EQ(SDB_OK, rc);
+   UINT32 count = FSM_SEQ_RANGE_IN_PAGE * 80; /// about 10 - 11 segment
+   v::fsmSizeLvl lvl;
+   lvl.init(32768, 32768);
+
+   CL_PAGE_SEQ candidate = INVALID_CL_PAGE_SEQ;
+   fsmSizeLvl candidateLvl;
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      rc = diskMap.addNewPages(i * 8, 8);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+   
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      for (UINT32 j = 0; j < 8; ++j)
+      {
+         rc = diskMap.updatePageFreeSizeLvL(i * 8 + j, lvl);
+         ASSERT_EQ(SDB_OK, rc);
+      }
+   }
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      for (UINT32 j = 0; j < 8; ++j)
+      {
+         candidate = INVALID_CL_PAGE_SEQ;
+         candidateLvl.reset();
+         rc = diskMap.find(lvl, candidate, candidateLvl, 0.0);
+         ASSERT_EQ(SDB_OK, rc);
+         ASSERT_EQ(i * 8 + j, candidate);
+         ASSERT_EQ(FSM_SPACE_LVL3, candidateLvl.getLvl());
+         ASSERT_EQ(15, candidateLvl.getDelta());
+      }
+   }
+
+   candidate = INVALID_CL_PAGE_SEQ;
+   candidateLvl.reset();
+   rc = diskMap.find(lvl, candidate, candidateLvl, 0.0);
+   ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      for (UINT32 j = 0; j < 8; ++j)
+      {
+         rc = diskMap.updatePageFreeSizeLvL(i * 8 + j, lvl);
+         ASSERT_EQ(SDB_OK, rc);
+      }
+   }
+
+   diskMap.close();
+
+   rc = diskMap.open(&file, 0, 0);
+   ASSERT_EQ(SDB_OK, rc);
+   
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      for (UINT32 j = 0; j < 8; ++j)
+      {
+         candidate = INVALID_CL_PAGE_SEQ;
+         candidateLvl.reset();
+         rc = diskMap.find(lvl, candidate, candidateLvl, 0.0);
+         ASSERT_EQ(SDB_OK, rc);
+         ASSERT_EQ(i * 8 + j, candidate);
+         ASSERT_EQ(FSM_SPACE_LVL3, candidateLvl.getLvl());
+         ASSERT_EQ(15, candidateLvl.getDelta());
+      }
+   }
+
+   candidate = INVALID_CL_PAGE_SEQ;
+   candidateLvl.reset();
+   rc = diskMap.find(lvl, candidate, candidateLvl, 0.0);
+   ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
+   diskMap.close();
+   file.close();
+   
+}

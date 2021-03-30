@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = insertContext.h
+   Source File Name = routePage.h
 
    Descriptive Name =
 
@@ -33,44 +33,36 @@
 
 ******************************************************************************/
 
-#ifndef SDB_VESSEL_INSERT_CONTEXT_H_
-#define SDB_VESSEL_INSERT_CONTEXT_H_
+#ifndef VESSEL_ROUTE_PAGE_H_
+#define VESSEL_ROUTE_PAGE_H_
 
-#include "vessel/dmlContext.h"
-#include "vessel/insertOptions.h"
-#include "vessel/freeSpaceMapDef.h"
+#include "vessel/extentDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class insertContext : public dmlContext
+   static const UINT32 ROUTE_PAGE_NEXT_LVL_SLOT_COUNT = 4;
+
+   static const UINT16 ROUTE_PAGE_VERSION = 1;
+   static const UINT32 ROUTE_PAGE_FLAG_LVL0 = 0x01;
+   static const UINT32 ROUTE_PAGE_FLAG_LVL1 = 0x02;
+   static const UINT32 ROUTE_PAGE_FLAG_LVL2 = 0x04;
+
+#pragma pack(4)
+   struct routePageHead
    {
-      public:
-         OSS_INLINE insertContext():
-         _options(NULL)
-         {}
+      UINT16 version;
+      UINT16 count;
+      UINT32 flags;
+      UINT32 nextLvls[ROUTE_PAGE_NEXT_LVL_SLOT_COUNT];
 
-         virtual ~insertContext(){}
-      public:
-         OSS_INLINE const insertOptions *getOptions()const
-         {
-            return _options;
-         }
-         OSS_INLINE void setOptions(const insertOptions *o)
-         {
-            _options = o;
-         }
+   };//struct routePageHead
 
-         OSS_INLINE fsmCandidate &getCandidate()
-         {
-            return _candidate;
-         }
-      private:
-         const insertOptions *_options;
-         fsmCandidate _candidate;
-   };//class insertContext
+   static const UINT32 ROUTE_PAGE_HEAD_LEN = sizeof(routePageHead);
+
+#pragma pack()
 }//namespace vessel
 }//namespace engine
 
-#endif//SDB_VESSEL_INSERT_CONTEXT_H_
+#endif//VESSEL_ROUTE_PAGE_H_

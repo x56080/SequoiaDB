@@ -319,9 +319,11 @@ namespace vessel
          UINT32 _logicalID;
          storageUnit *_su;
          csMetaRecord _recordInMem;
+
          UINT32 _capacityOfCLRecordPage;
          UINT32 _idMapCapacity;
          UINT32 _maxPageCountPerDataFile;
+
          inMemBitMap _inMemDataSMP;
          collectionAllocator _collectionAllocator;
 

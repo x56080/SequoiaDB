@@ -559,7 +559,7 @@ namespace vessel
          goto error;
       }
 
-      minSegCount = ((pid + count) / maxCountPerSeg) + 1;
+      minSegCount = ((pid + count - 1) / maxCountPerSeg) + 1;
 
       if (OSS_UNLIKELY(_dataSegmentCount < minSegCount))
       {

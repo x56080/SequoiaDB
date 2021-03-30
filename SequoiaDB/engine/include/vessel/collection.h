@@ -47,6 +47,7 @@
 #include "vessel/listCollectionsDef.h"
 #include "vessel/recordData.h"
 #include "utilInsertResult.hpp"
+#include "vessel/freeSpaceMap.h"
 
 namespace engine
 {
@@ -106,6 +107,17 @@ namespace vessel
                       utilInsertResult &res);
 
       private:
+         INT32 findFreePage(BOOLEAN fastFind,
+                            UINT32 recordSize,
+                            STRIPING_ID striping,
+                            fsmCandidate &candidate);
+         INT32 insertNonBigRecordToPage(insertContext *context,
+                                        utilInsertResult &res);
+
+         INT32 allocateNewPagesForOptions(UINT32 pageCount,
+                                          CL_PAGE_SEQ &firstSeq,
+                                          PAGE_ID *lpids);
+      private:
          INT32 saveOnDiskWhenCreating(requestContext *context);
 
          INT32 ensureCLRecordPageAllocated(requestContext *context,
@@ -122,9 +134,13 @@ namespace vessel
 
          INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID pid);
       private:
-         ossSpinSLatch _recordLatch;
+         //ossSpinSLatch _recordLatch;
          collectionRecord _record;
          collectionSpace *_collectionSpace;
+
+         freeSpaceMap _fsm;
+         ossSpinSLatch _ddlSLatch;
+         ossSpinXLatch _pageAllocLatch;
    };//class collection
 }//namespace vessel
 }//namespace engine

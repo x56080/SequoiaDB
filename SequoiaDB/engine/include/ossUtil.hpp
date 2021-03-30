@@ -1330,5 +1330,16 @@ OSS_INLINE INT32 ossGetLowestBit1From64Bits(UINT64 n)
    return r;
 }
 
+OSS_INLINE UINT32 ossGetNonZeroBitCount64(UINT64 bits)
+{
+   UINT32 cnt = 0;
+   while (0 < bits)
+   {
+      ++cnt;
+      bits &= (bits - 1);
+   }
+   return cnt;
+}
+
 #endif  //OSSUTIL_HPP_
 

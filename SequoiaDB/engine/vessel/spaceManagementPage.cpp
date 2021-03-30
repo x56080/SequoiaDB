@@ -37,22 +37,23 @@
 ******************************************************************************/
 
 #include "vessel/spaceManagementPage.h"
-#include "ossTrace.hpp"
+#include "pdTrace.hpp"
 #include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 getSMPCapacity(UINT32 pageSize,
-                         UINT32 maxSegmentCount,
-                         UINT32 pageCountOfSeg,
-                         UINT32 &capacity)
+   INT32 getSMPCapacity8BytesAligned(UINT32 pageSize,
+                                     UINT32 maxSegmentCount,
+                                     UINT32 pageCountOfSeg,
+                                     UINT32 &capacity)
    {
       INT32 rc = SDB_OK;
       UINT32 capacityOfPage = 0;
       UINT32 userDefinedCapacity = maxSegmentCount * pageCountOfSeg;
       SDB_ASSERT(0 < pageCountOfSeg && 0 < maxSegmentCount, "can not be zero");
+
       if (OSS_UNLIKELY(pageSize < (PAGE_HEAD_LEN + PAGE_TAIL_LEN + SMP_HEAD_LEN)))
       {
          rc = SDB_INVALIDARG;
@@ -65,11 +66,8 @@ namespace vessel
          goto error;
       }
 
-      /// aligned by 4bytes.
-      capacityOfPage = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - SMP_HEAD_LEN) & 0xfffffffc;
-      capacityOfPage *= 8;
-      capacityOfPage /= pageCountOfSeg;
-      capacityOfPage *= pageCountOfSeg;
+      capacityOfPage = (pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - SMP_HEAD_LEN) & 0xfffffff8; /// 8bytes aligned.
+      capacityOfPage = capacityOfPage << 3; /// capacityOfPage *= 8;
 
       if (capacityOfPage < userDefinedCapacity)
       {

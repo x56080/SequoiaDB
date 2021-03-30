@@ -101,10 +101,7 @@ namespace vessel
 
       _context.setRecordData(record);
       _context.setTransID(transID);
-      if (NULL != options)
-      {
-         _context.setOptions(*options);
-      }
+      _context.setOptions(options);
       _context.setStriping(striping);
 
       rc = cl->insert(&_context, res);
