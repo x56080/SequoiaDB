@@ -182,7 +182,8 @@ namespace vessel
                                  UINT32 count,
                                  const PAGE_ID *lpids,
                                  const PAGE_ID *pids,
-                                 const slice &args);
+                                 const slice &args,
+                                 DPS_LSN_OFFSET *oplist=NULL);
       private:
          PAGE_ID getDataSMPPId(PAGE_ID pid);
          INT32 allocateDataPagesOnSMP(requestContext *context,
@@ -200,7 +201,8 @@ namespace vessel
                            UINT32 count,
                            const PAGE_ID *lpids,
                            const PAGE_ID *pids,
-                           const DPS_LSN_OFFSET *oplist);
+                           const DPS_LSN_OFFSET *oplist=NULL,
+                           BOOLEAN oplistTail=FALSE);
       private:
          BOOLEAN addToCreatingIndex(const strSlice &clName,
                                     utilCLInnerID innerID);
@@ -259,9 +261,10 @@ namespace vessel
                                                 const UINT32 *oldPageCount);
 
          INT32 initParamsInMem();
-
-         INT32 initInMemSMPBitMap();
-         INT32 initInMemSMPBitMapFromDisk(requestContext *context);
+         
+         INT32 initInMemBitMaps(requestContext *context);
+         INT32 initInMemLpidPool(requestContext *context);
+         INT32 initInMemDataSMPBitMap(requestContext *context);
 
       private:
          struct comp
@@ -323,8 +326,11 @@ namespace vessel
          UINT32 _capacityOfCLRecordPage;
          UINT32 _idMapCapacity;
          UINT32 _maxPageCountPerDataFile;
+         UINT32 _maxPageCountPerMetaFile;
 
          inMemBitMap _inMemDataSMP;
+         inMemBitMap _inMemLpidPool;
+         UINT32 _pageAllocatedInMetaSMP;
          collectionAllocator _collectionAllocator;
 
          NAME_INDEX _clNameIndex;
@@ -332,7 +338,7 @@ namespace vessel
          CREATING_NAME_INDEX _creatingNameIndex;
          CREATING_ID_INDEX _creatingIdIndex;
          
-         ossSpinXLatch _creatingDataFileLatch;
+         ossSpinXLatch _dataAndMetaSpaceLatch;
          ossSpinSLatch _indexLatch;
    };//class collectionSpace
 }

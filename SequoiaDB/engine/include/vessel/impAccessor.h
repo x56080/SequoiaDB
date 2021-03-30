@@ -57,28 +57,31 @@ namespace vessel
          virtual ~impAccessor();
       
       public:
-         INT32 initPage(requestContext *context, PAGE_ID minLpid);
+         INT32 initPage(requestContext *context);
 
          ///WARNING: will return the current actual stored value,
          /// regardless of whether the pid is valid
-         INT32 getPid(PAGE_ID lpid, PAGE_ID *pid, SNAPSHOT_ID *snapID);
+         INT32 getPidByOffset(UINT32 offset, PAGE_ID *pid, SNAPSHOT_ID *snapID);
 
-         /// iterator should begin with invalid page id.
-         /// fetched should begin with 0.
-         INT32 getNextValidPid(PAGE_ID &iterator,
-                               UINT32 &fetched,
-                               PAGE_ID &pid,
-                               SNAPSHOT_ID &snapID,
-                               BOOLEAN &hitTheEnd);
+         ///WARNING: will return the current actual stored value,
+         /// regardless of whether the pid is valid
+         /// user should guarantee that lpid is in valid range of this page.
+         /// it will get offset by mod capacity simply in func.
+         INT32 getPidByLpid(PAGE_ID lpid, PAGE_ID *pid, SNAPSHOT_ID *snapID);
 
          INT32 map(requestContext *context,
                    UINT32 count,
                    const PAGE_ID *lpids,
                    const PAGE_ID *pids,
                    SNAPSHOT_ID snap,
-                   const DPS_LSN_OFFSET *oplist);
+                   const DPS_LSN_OFFSET *oplist,
+                   BOOLEAN oplistTail);
+
+         /// WARNING: size of bits should be enough.
+         INT32 dumpAsBitMap(UINT64 *bits, UINT32 &free);
       private:
-         INT32 validateMap(UINT32 count,
+         INT32 validateMap(UINT32 capacity,
+                           UINT32 count,
                            const PAGE_ID *lpids,
                            const PAGE_ID *pids,
                            SNAPSHOT_ID snap);
@@ -87,28 +90,28 @@ namespace vessel
 
          INT32 writeSlot(UINT32 slot, const idMapSlot &value);
 
-         void mapLpids(idMapPageHead *head,
+         void mapLpids(UINT32 capacity,
                        UINT32 count,
                        const PAGE_ID *lpids,
                        const PAGE_ID *pids,
                        SNAPSHOT_ID snap);
          
-         void unmapLpids(idMapPageHead *head,
+         void unmapLpids(UINT32 capacity,
                          UINT32 count,
                          const PAGE_ID *lpids);
          
          INT32 prepareMapLog(requestContext *context,
                              logRecordContext *lrc,
+                             UINT32 count,
                              const DPS_LSN_OFFSET *oplist,
-                             UINT32 count);
+                             BOOLEAN oplistTail);
 
          INT32 commitMapLog(requestContext *context,
                             logRecordContext *lrc,
                             UINT32 count,
                             const PAGE_ID *lpids,
                             const PAGE_ID *pids,
-                            SNAPSHOT_ID snap,
-                            UINT32 free);
+                            SNAPSHOT_ID snap);
 
       private:
          virtual PAGE_TYPE getPageType()const

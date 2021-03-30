@@ -145,12 +145,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 inMemBitMap::_inMemBitPage::initFromAlignedBuf(INT32 pageID, UINT32 capacity, const CHAR *buf)
+   INT32 inMemBitMap::_inMemBitPage::initFromBuf(INT32 pageID,
+                                                 UINT32 capacity,
+                                                 UINT32 count,
+                                                 const UINT64 *buf)
    {
       INT32 rc = SDB_OK;
-      UINT32 bitsCount = 0;
+      UINT32 alignedCapacity = 0;
+      UINT32 bufSize = count << 3; /// count * 8;
       fini();
-
       if (OSS_UNLIKELY(pageID < 0))
       {
          rc = SDB_INVALIDARG;
@@ -161,18 +164,25 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(0 == count))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
       else if (OSS_UNLIKELY(NULL == buf))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(ossAlign64(capacity) != capacity))
+
+      alignedCapacity = ossAlign64(capacity);
+      if (count != (alignedCapacity >> 6))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      _buf = (UINT64 *)SDB_THREAD_ALLOC(capacity >> 3);
+      _buf = (UINT64 *)SDB_THREAD_ALLOC(bufSize);
       if (NULL == _buf)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -181,11 +191,15 @@ namespace vessel
       }
 
       _pageID = pageID;
-      _firstFreeBits = -1;
-      _free = 0;
-      bitsCount = capacity >> 6;/// bitsCount = capacity / 64
-      ossMemcpy(_buf, buf, capacity >> 3);
-      for (UINT32 i = 0; i < bitsCount; ++i)
+      ossMemcpy(_buf, buf, bufSize);
+      if (alignedCapacity != capacity)
+      {
+         UINT32 n = alignedCapacity - capacity;
+         UINT64 v = OSS_UINT64_MAX;
+         v = v >> n;
+         _buf[count - 1] = v;
+      }
+      for (UINT32 i = 0; i < count; ++i)
       {
          UINT32 freeCnt = ossGetNonZeroBitCount64(_buf[i]);
          if (0 < freeCnt && _firstFreeBits < 0)
@@ -197,6 +211,7 @@ namespace vessel
    done:
       return rc;
    error:
+      fini();
       goto done;
    }
 
@@ -397,6 +412,16 @@ namespace vessel
       goto done;
    }
 
+   void inMemBitMap::incPageCount()
+   {
+      ossScopedLock guard(&_mutex);
+      if (isInitialized())
+      {
+         ++_pageCount;
+      }
+      return;
+   }
+
    INT32 inMemBitMap::allocateNewBitPage(UINT32 occupied)
    {
       INT32 rc = SDB_OK;
@@ -548,25 +573,23 @@ namespace vessel
       return;
    }
 
-   INT32 inMemBitMap::mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head)
+   INT32 inMemBitMap::mapNewBitPage(UINT32 count, const UINT64 *bits)
    {
       INT32 rc = SDB_OK;
       _inMemBitPage *page = NULL;
       ossScopedLock lock(&_mutex);
-
-      if (OSS_UNLIKELY(NULL == head))
+      if (OSS_UNLIKELY(0 == count || NULL == bits))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!isInitialized())
+      else if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_pageCount != bitPageID)
+      else if (OSS_UNLIKELY(count != _alignedBitsCount))
       {
-         PD_LOG(PDERROR, "spmp to be mapping should order by it's page id");
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -578,14 +601,11 @@ namespace vessel
          goto error;
       }
 
-      rc = page->initFromAlignedBuf(bitPageID, _bitCountInPage,
-                                    ((const CHAR *)head + SMP_HEAD_LEN));
+      rc = page->initFromBuf(_pageCount, _bitCountInPage, count, bits);
       if (SDB_OK != rc)
       {
          goto error;
       }
-
-      ++_pageCount;
 
       if (0 == page->getFree())
       {
@@ -593,12 +613,14 @@ namespace vessel
       }
       else if (page->getFree() < _freeBound)
       {
-         _pagesWithLowFreeCount[bitPageID] = page;
+         _pagesWithLowFreeCount[_pageCount] = page;
       }
       else
       {
-         _pagesWithHighFreeCount[bitPageID] = page;
+         _pagesWithHighFreeCount[_pageCount] = page;
       }
+
+      ++_pageCount;
    done:
       return rc;
    error:

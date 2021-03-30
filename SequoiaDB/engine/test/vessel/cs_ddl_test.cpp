@@ -129,6 +129,9 @@ TEST_F(cs_ddl_test, test1)
 TEST_F(cs_ddl_test, test2)
 {
    INT32 rc = SDB_OK;
+   test_logger logger;
+   outerResource resource;
+   resource.logger = &logger; 
    vesselImpl db;
    test_session session;
    openDBOptions options;
@@ -137,6 +140,9 @@ TEST_F(cs_ddl_test, test2)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+
+   db.initOuterResource(resource);
+
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -155,7 +161,17 @@ TEST_F(cs_ddl_test, test2)
 
 
    db.close(&session, closeDBOptions());
-}*/
+
+   rc = db.open(&session, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   UINT32 count = 0;
+   rc = db.getCollectionSpaceCount(&session, count);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, MAX_SPACE_COUNT);
+   db.close(&session, closeDBOptions());
+}
+*/
 
 TEST_F(cs_ddl_test, test3)
 {

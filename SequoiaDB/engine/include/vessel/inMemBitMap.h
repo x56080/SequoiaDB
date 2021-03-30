@@ -71,7 +71,11 @@ namespace vessel
 
             public:
                INT32 init(INT32 pageID, UINT32 capacity, BOOLEAN noFree = FALSE, UINT32 occupied = 0);
-               INT32 initFromAlignedBuf(INT32 pageID, UINT32 capacity, const CHAR *buf);
+
+               INT32 initFromBuf(INT32 pageID,
+                                 UINT32 capacity,
+                                 UINT32 count,
+                                 const UINT64 *buf);
                INT32 fini();
 
                INT32 allocate(UINT32 alignedBitsCount,
@@ -110,6 +114,10 @@ namespace vessel
          {
             return _pageCount;
          }
+         OSS_INLINE UINT32 getBitCountInPage()const
+         {
+            return _bitCountInPage;
+         }
          OSS_INLINE BOOLEAN isInitialized()const
          {
             return 0 < _bitCountInPage;
@@ -130,9 +138,11 @@ namespace vessel
 
          void releaseBits(UINT32 count, const UINT32 *buf);
 
-      public:
-         INT32 mapNewBitPage(UINT32 bitPageID, const spaceManagementPageHead *head);
+         INT32 occupy(UINT32 offset);
 
+      public:
+         INT32 mapNewBitPage(UINT32 count, const UINT64 *bits);
+         void incPageCount();
       private:
          INT32 allocateBitsFromHFC(UINT32 count, UINT32 *buf);
          INT32 allocateBitsFromLFC(UINT32 count, UINT32 *buf);

@@ -57,6 +57,7 @@
 #include "vessel/listCLCursor.h"
 #include "vessel/IRedoLogger.h"
 #include "vessel/fsmFile.h"
+#include "vessel/bitMapUtils.h"
 
 namespace engine
 {
@@ -68,7 +69,9 @@ namespace vessel
    _su(NULL),
    _capacityOfCLRecordPage(0),
    _idMapCapacity(0),
-   _maxPageCountPerDataFile(0)
+   _maxPageCountPerDataFile(0),
+   _maxPageCountPerMetaFile(0),
+   _pageAllocatedInMetaSMP(0)
    {
       
    }
@@ -103,11 +106,11 @@ namespace vessel
       suOptions.sid = context->getSpaceID();
       suOptions.uniqueID = uniqueID;
       suOptions.metaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.metaArgs.maxPageCountPerSeg = 32;
-      suOptions.metaArgs.maxSegmentCountPerFile = 4096;
+      suOptions.metaArgs.maxPageCountPerSeg = 128;
+      suOptions.metaArgs.maxSegmentCountPerFile = 1024;
       suOptions.idxMetaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.idxMetaArgs.maxPageCountPerSeg = 32;
-      suOptions.idxMetaArgs.maxSegmentCountPerFile = 4096;
+      suOptions.idxMetaArgs.maxPageCountPerSeg = 128;
+      suOptions.idxMetaArgs.maxSegmentCountPerFile = 1024;
 
       suOptions.dataArgs.pageSize = options.dataPageSize;
       suOptions.dataArgs.maxPageCountPerSeg = options.dataPageCountPerSegment;
@@ -147,12 +150,6 @@ namespace vessel
       }
 
       rc = initParamsInMem();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initInMemSMPBitMap();
       if (SDB_OK != rc)
       {
          goto error;
@@ -279,10 +276,15 @@ namespace vessel
       _capacityOfCLRecordPage = 0;
       _idMapCapacity = 0;
       _maxPageCountPerDataFile = 0;
+      _maxPageCountPerMetaFile = 0;
+      _pageAllocatedInMetaSMP = 0;
+      
       _inMemDataSMP.fini();
+      _inMemLpidPool.fini();
+      _collectionAllocator.fini();
       _clNameIndex.clear();
       _clIdIndex.clear();
-      _collectionAllocator.fini();
+      
       return;
    }
 
@@ -725,7 +727,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.getPid(lpid, &ppid, NULL);
+      rc = imp.getPidByLpid(lpid, &ppid, NULL);
       if (SDB_OK != rc)
       {
          goto error;
@@ -793,7 +795,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.getPid(lpid, &ppid, &snap);
+      rc = imp.getPidByLpid(lpid, &ppid, &snap);
       if (SDB_OK != rc)
       {
          goto error;
@@ -848,7 +850,7 @@ namespace vessel
 
       if (!_inMemDataSMP.isInitialized())
       {
-         rc = initInMemSMPBitMapFromDisk(context);
+         rc = initInMemBitMaps(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init in memory bit map:%d", rc);
@@ -908,10 +910,12 @@ namespace vessel
                                              UINT32 count,
                                              const PAGE_ID *lpids,
                                              const PAGE_ID *pids,
-                                             const slice &args)
+                                             const slice &args,
+                                             DPS_LSN_OFFSET *oplist)
    {
       INT32 rc = SDB_OK;
-      DPS_LSN_OFFSET oplist = DPS_INVALID_LSN_OFFSET;
+      DPS_LSN_OFFSET oplistLsn = DPS_INVALID_LSN_OFFSET;
+      BOOLEAN oplistTail = NULL == oplist;
       PAGE_ID smpPid = INVALID_PAGE_ID;
       PAGE_ID impPid = INVALID_PAGE_ID;
 
@@ -976,24 +980,29 @@ namespace vessel
       }
 
       rc = allocateDataPagesOnSMP(context, type, count, lpids,
-                                  pids, args, &oplist);
+                                  pids, args, &oplistLsn);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = mapNewLpids(context, count, lpids, pids, &oplist);
+      rc = mapNewLpids(context, count, lpids, pids, &oplistLsn, oplistTail);
       if (SDB_OK != rc)
       {
          PD_LOG(PDWARNING, "begin to rollback allocating on smp");
-         if (SDB_OK != releaseDataPagesOnSMP(context, count, pids, &oplist))
+         if (SDB_OK != releaseDataPagesOnSMP(context, count, pids, &oplistLsn))
          {
             PD_LOG(PDERROR, "failed to rollback allocating:%d", rc);
             IRedoLogger *logger = context->getOuterResource()->logger;
-            logger->abortOplist(context->getSession(), oplist);
+            logger->abortOplist(context->getSession(), oplistLsn);
          }
 
          goto error;
+      }
+
+      if (NULL != oplist)
+      {
+         *oplist = oplistLsn;
       }
    done:
       return rc;
@@ -1065,7 +1074,8 @@ namespace vessel
                                       UINT32 count,
                                       const PAGE_ID *lpids,
                                       const PAGE_ID *pids,
-                                      const DPS_LSN_OFFSET *oplist)
+                                      const DPS_LSN_OFFSET *oplist,
+                                      BOOLEAN oplistTail)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -1092,7 +1102,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.map(context, count, lpids, pids, container.getOnlineID(), oplist);
+      rc = imp.map(context, count, lpids, pids, container.getOnlineID(), oplist, oplistTail);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1138,7 +1148,7 @@ namespace vessel
       PAGE_ID pid = INVALID_PAGE_ID;
       UINT32 maxPageCountPerSeg = 0;
       UINT32 pageCount = 0;
-      ossScopedLock lock(&_creatingDataFileLatch);
+      ossScopedLock lock(&_dataAndMetaSpaceLatch);
       UINT32 count = _inMemDataSMP.getPageCount();
       BOOLEAN rollbackFile = FALSE;
 
@@ -1220,14 +1230,13 @@ namespace vessel
    INT32 collectionSpace::initCollectionsFromDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < _idMapCapacity, "can not be zero");
+      SDB_ASSERT(0 < _capacityOfCLRecordPage, "can not be zero");
       UINT32 pageSize = 0;
       impAccessor imp;
       ossValuePtr ptr = 0;
-      PAGE_ID itr = INVALID_PAGE_ID;
-      UINT32 fetched = 0;
       PAGE_ID pid = INVALID_PAGE_ID;
-      SNAPSHOT_ID snap = INVALID_SNAPSHOT_ID;
-      BOOLEAN hitEnd = FALSE;
+      UINT32 clScanned = 0;
 
       rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
       if (SDB_OK != rc)
@@ -1248,18 +1257,22 @@ namespace vessel
          goto error;
       }
 
-      do
+      for (UINT32 i = 0; i < _idMapCapacity && clScanned < MAX_CL_MB_COUNT; ++i)
       {
-         rc = imp.getNextValidPid(itr, fetched, pid, snap, hitEnd);
+
+         rc = imp.getPidByOffset(i, &pid, NULL);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get next pid from imp:%d", rc);
             goto error;
          }
 
-         if (hitEnd)
+         clScanned += _capacityOfCLRecordPage;
+
+         /// we cannot guarantee that no holes in page.
+         if (INVALID_PAGE_ID == pid)
          {
-            break;
+            continue;
          }
 
          rc = initCollectionsFromOneDiskPage(context, pid);
@@ -1267,7 +1280,7 @@ namespace vessel
          {
             goto error;
          }
-      } while (TRUE);
+      }
    
    done:
       imp.fini(context);
@@ -1563,7 +1576,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.initPage(context, 0);
+      rc = imp.initPage(context);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1865,38 +1878,170 @@ namespace vessel
          PD_LOG(PDERROR, "_maxPageCountPerDataFile and capacityOfSMP should be same");
          goto error;
       }
+
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize, &maxPagePerSeg, &maxSegPerFile);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      _maxPageCountPerMetaFile = maxPagePerSeg * maxSegPerFile;
+      rc = getSMPCapacity8BytesAligned(pageSize, maxSegPerFile, maxPagePerSeg, capacityOfSMP);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get smp capacity:%d", rc);
+         goto error;
+      }
+      if (_maxPageCountPerMetaFile != capacityOfSMP)
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         PD_LOG(PDERROR, "_maxPageCountPerMetaFile and capacityOfSMP should be same");
+         goto error;
+      }
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 collectionSpace::initInMemSMPBitMap()
+   INT32 collectionSpace::initInMemLpidPool(requestContext *context)
    {
-      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 < _idMapCapacity, "can not be zero");
+      SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != _su, "can not be null");
+      SDB_ASSERT(0 < _maxPageCountPerMetaFile, "can not be zero");
+      INT32 rc = SDB_OK;
+      smpAccessor accessor;
+      impAccessor imp;
       UINT32 pageSize = 0;
-      UINT32 maxSegmentCount = 0;
-      UINT32 pageCount = 0;
-      UINT32 capacity = 0;
+      CHAR *buffer = NULL;
+      const UINT64 *bits = NULL;
+      PAGE_ID maxPid = _maxPageCountPerMetaFile;
+      UINT32 bitsCount = _maxPageCountPerMetaFile >> 6;
+      UINT32 idMapBitsCount = 0;
+      UINT32 firstFree = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &pageCount, &maxSegmentCount);
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
          goto error;
       }
 
-      rc = getSMPCapacity8BytesAligned(pageSize, maxSegmentCount, pageCount, capacity);
-      if (SDB_OK != rc)
+      buffer = context->allocateBuffer(pageSize);
+      if (NULL == buffer)
       {
+         PD_LOG(PDERROR, "failed to allcoate mem");
+         rc = SDB_OOM;
          goto error;
       }
 
-      rc = _inMemDataSMP.init(capacity, PAGE_COUNT_IN_EXTENT);
+      rc = accessor.init(context, SPACE_TYPE_RECORD_M, SMP_PAGE_ID, 0, _su);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init inmem-bitmap:%d", rc);
+         PD_LOG(PDERROR, "failed to init smp accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.dumpSMP(pageSize, buffer);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to dump smp[%d], rc:%d", SMP_PAGE_ID, rc);
+         goto error;
+      }
+
+      accessor.fini(context);
+
+      bits = (const UINT64 *)(buffer + SMP_HEAD_LEN);
+      if (findFirstFreeBitFromBit64(bitsCount, -1, bits, firstFree))
+      {
+         if (firstFree <= SYSTEM_MAP_PAGE_ID)
+         {
+            PD_LOG(PDERROR, "the first free offset should not be system reserved page");
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+         maxPid = firstFree;
+         _pageAllocatedInMetaSMP = firstFree;
+      }
+      else
+      {
+         _pageAllocatedInMetaSMP = _maxPageCountPerMetaFile;
+      }
+
+      rc = _inMemLpidPool.init(_idMapCapacity, PAGE_COUNT_IN_EXTENT);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init lpid bitmap:%d", rc);
+         goto error;
+      }
+
+      idMapBitsCount = ossAlign64(_idMapCapacity) >> 6;
+      for (PAGE_ID i = SYSTEM_MAP_PAGE_ID + 1; i < maxPid; ++i)
+      {
+         UINT32 freeCount = 0;
+         rc = imp.init(context, SPACE_TYPE_RECORD_M, i, 0, _su);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init crp accessor at page[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = imp.dumpAsBitMap((UINT64*)buffer, freeCount);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to dump imp[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         imp.fini(context);
+
+         if (0 == freeCount)
+         {
+            _inMemLpidPool.incPageCount();
+         }
+         else
+         { 
+            rc = _inMemLpidPool.mapNewBitPage(idMapBitsCount, (const UINT64 *)buffer);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to map new bitmap page:%d", rc);
+               goto error;
+            }
+         }
+      }
+   done:
+      if (NULL != buffer)
+      {
+         context->releaseBuffer(buffer, pageSize);
+      }
+      return rc;
+   error:
+      accessor.fini(context);
+      imp.fini(context);
+      _inMemLpidPool.fini();
+      goto done;
+   }
+
+   INT32 collectionSpace::initInMemBitMaps(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      ossScopedLock lock(&_dataAndMetaSpaceLatch);
+      if (_inMemDataSMP.isInitialized())
+      {
+         goto done;
+      }
+
+      rc = initInMemDataSMPBitMap(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init bitmap of data smp:%d", rc);
+         goto error;
+      }
+      
+      rc = initInMemLpidPool(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init bitmap of lpid pool:%d", rc);
          goto error;
       }
    done:
@@ -1905,7 +2050,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::initInMemSMPBitMapFromDisk(requestContext *context)
+
+   INT32 collectionSpace::initInMemDataSMPBitMap(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -1915,13 +2061,13 @@ namespace vessel
       UINT32 pageSize = 0;
       CHAR *buffer = NULL;
       PAGE_ID pid = INVALID_PAGE_ID;
-      ossScopedLock lock(&_creatingDataFileLatch);
-      if (_inMemDataSMP.isInitialized())
-      {
-         goto done;
-      }
+      UINT32 maxSegmentCount = 0;
+      UINT32 pageCountPerSeg = 0;
+      UINT32 capacity = 0;
+      UINT32 bitsCount = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize,
+                            &pageCountPerSeg, &maxSegmentCount);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
@@ -1936,15 +2082,23 @@ namespace vessel
          goto error;
       }
 
-      rc = initInMemSMPBitMap();
+      rc = getSMPCapacity8BytesAligned(pageSize, maxSegmentCount,
+                                       pageCountPerSeg, capacity);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to init in memory smp bitmap:%d", rc);
          goto error;
       }
 
-      smpCount = _su->getFileCount();
+      rc = _inMemDataSMP.init(capacity, PAGE_COUNT_IN_EXTENT);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init inmem-bitmap:%d", rc);
+         goto error;
+      }
+
+      smpCount = _su->getDataFileCount();
       pid = SMP_PAGE_ID;
+      bitsCount = capacity >> 6;
       for (UINT32 i = 0; i < smpCount; ++i)
       {
          smpAccessor accessor;
@@ -1964,7 +2118,7 @@ namespace vessel
 
          accessor.fini(context);
 
-         rc = _inMemDataSMP.mapNewBitPage(i, (const spaceManagementPageHead *)buffer);
+         rc = _inMemDataSMP.mapNewBitPage(bitsCount, (const UINT64 *)(buffer + SMP_HEAD_LEN));
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to map smp to inmem bitmap, pid[%d], rc:%d", pid, rc);

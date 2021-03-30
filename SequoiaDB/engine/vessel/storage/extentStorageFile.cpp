@@ -718,14 +718,18 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get file size：%s, %d", _fileName, rc);
          goto error;
       }
+      needTruncate = TRUE;
 
+#if defined ( _DEBUG )
       rc = ossExtentBySparse(&_file, len);
+#else
+      rc = ossExtendFile(&_file, len);
+#endif
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extent file: %s, %d, %d", _fileName, len, rc);
          goto error;
       }
-      needTruncate = TRUE;
 
       rc = ossMmapFile::map(originalFileSize, len, &mmapAddr);
       if (SDB_OK != rc)
@@ -747,7 +751,7 @@ namespace vessel
          INT32 trc = ossTruncateFile(&_file, originalFileSize);
          if (SDB_OK != trc)
          {
-            PD_LOG(PDERROR, "failed to rollback file to orignal size:%s, %lld, %d", _fileName, originalFileSize, rc);
+            PD_LOG(PDSEVERE, "failed to rollback file to orignal size:%s, %lld, %d", _fileName, originalFileSize, rc);
             ossPanic();
          }
       }

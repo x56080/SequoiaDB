@@ -162,7 +162,7 @@ namespace vessel
       goto done;
    }
 
-   UINT32 storageUnit::getFileCount()
+   UINT32 storageUnit::getDataFileCount()
    {
       SDB_ASSERT(isOpen(), "must be open");
       ossScopedLock(&_dataFileAccessingMutex, SHARED);

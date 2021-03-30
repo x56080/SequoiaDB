@@ -45,6 +45,7 @@
 #include "vessel/logRecordContext.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/outerResource.h"
+#include "vessel/bitMapUtils.h"
 
 namespace engine
 {
@@ -60,7 +61,7 @@ namespace vessel
 
    }
 
-   INT32 impAccessor::initPage(requestContext *context, PAGE_ID minLpid)
+   INT32 impAccessor::initPage(requestContext *context)
    {
       INT32 rc = SDB_OK;
       idMapPageHead *head = NULL;
@@ -71,12 +72,6 @@ namespace vessel
                      PAGE_ACCESSOR_FLAG_NON_READONLY |
                      PAGE_ACCESSOR_FLAG_INIT_PAGE;
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
-      
-      if (OSS_UNLIKELY(INVALID_PAGE_ID == minLpid))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       rc = getCapacityOfIMP(getPageSize(), capacity);
       if (SDB_OK != rc)
@@ -110,12 +105,8 @@ namespace vessel
          goto error;
       }
 
+      ossMemset(head, 0, ID_MAP_PAGE_HEAD_LEN);
       head->version = CURRENT_ID_MAP_PAGE_VERSION;
-      head->capacity = capacity;
-      head->free = capacity;
-      head->minLpid = minLpid;
-      head->flags = 0;
-      head->pad = 0;
 
       totalSlotSize = capacity * sizeof(idMapSlot);
       getWritePtrOfPageBody(ID_MAP_PAGE_HEAD_LEN, totalSlotSize, &ptr);
@@ -133,26 +124,27 @@ namespace vessel
       goto done;
    }
 
-   INT32 impAccessor::getPid(PAGE_ID lpid, PAGE_ID *pid, SNAPSHOT_ID *snapID)
+   INT32 impAccessor::getPidByOffset(UINT32 offset, PAGE_ID *pid, SNAPSHOT_ID *snapID)
    {
       INT32 rc = SDB_OK;
-      const idMapPageHead *head = NULL;
       idMapSlot slot;
+      UINT32 pageSize = pageAccessor::getPageSize();
+      UINT32 capacity = 0;
 
-      rc = getReadableUserHeadPtr<idMapPageHead>(&head);
+      rc = getCapacityOfIMP(pageSize, capacity);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
          goto error;
       }
 
-      if (OSS_UNLIKELY(lpid < head->minLpid ||
-                       (head->minLpid + head->capacity) <= lpid))
+      if (capacity <= offset)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = getSlot(lpid - head->minLpid, slot);
+      rc = getSlot(offset, slot);
       if (SDB_OK != rc)
       {
          goto error;
@@ -172,72 +164,59 @@ namespace vessel
       goto done;
    }
 
-   INT32 impAccessor::getNextValidPid(PAGE_ID &iterator,
-                                      UINT32 &fetched,
-                                      PAGE_ID &pid,
-                                      SNAPSHOT_ID &snapID,
-                                      BOOLEAN &hitTheEnd)
+   INT32 impAccessor::getPidByLpid(PAGE_ID lpid, PAGE_ID *pid, SNAPSHOT_ID *snapID)
    {
       INT32 rc = SDB_OK;
-      const idMapPageHead *head = NULL;
       idMapSlot slot;
-      PAGE_ID p = iterator;
+      UINT32 pageSize = pageAccessor::getPageSize();
+      UINT32 capacity = 0;
+      UINT32 offset = 0;
 
-      rc = getReadableUserHeadPtr<idMapPageHead>(&head);
+      if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCapacityOfIMP(pageSize, capacity);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get imp capacity:%d", rc);
+         goto error;
+      }
+
+      offset = lpid % capacity;
+
+      rc = getSlot(offset, slot);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      if (INVALID_PAGE_ID == p)
+      if (NULL != pid)
       {
-         p = head->minLpid;
-         fetched = 0;
+         *pid = slot.page;
       }
-      else if (p < head->minLpid)
+      if (NULL != snapID)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         *snapID = slot.snapshot;
       }
-      else
-      {
-         ++p;
-      }
-
-      while ((p < (head->minLpid + head->capacity)) &&
-             (fetched < (head->capacity - head->free)))
-      {
-         rc = getSlot(p - head->minLpid, slot);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         if (!slot.free())
-         {
-            iterator = p;
-            ++fetched;
-            pid = slot.page;
-            snapID = slot.snapshot;
-            goto done;
-         }
-         
-         ++p;
-      }
-
-      hitTheEnd = TRUE;
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 impAccessor::validateMap(UINT32 count,
+
+   INT32 impAccessor::validateMap(UINT32 capacity,
+                                  UINT32 count,
                                   const PAGE_ID *lpids,
                                   const PAGE_ID *pids,
                                   SNAPSHOT_ID snap)
    {
       INT32 rc = SDB_OK;
-      const idMapPageHead *head = NULL;
+      SDB_ASSERT(0 < capacity, "can not be invalid");
+
       if (0 == count)
       {
          rc = SDB_INVALIDARG;
@@ -254,46 +233,29 @@ namespace vessel
          goto error;
       }
 
-      rc = getReadableUserHeadPtr<idMapPageHead>(&head);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (head->free < count)
-      {
-         PD_LOG(PDERROR, "not enough free slots");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
       for (UINT32 i = 0; i < count; ++i)
       {
          idMapSlot slot;
-         PAGE_ID lpid = lpids[i];
-         if (INVALID_PAGE_ID == lpid || INVALID_PAGE_ID == pids[i])
+         UINT32 offset = 0;
+         if (INVALID_PAGE_ID == lpids[i] || INVALID_PAGE_ID == pids[i])
          {
             PD_LOG(PDERROR, "invalid page id");
             rc = SDB_INVALIDARG;
             goto error;
          }
-         else if (lpid < head->minLpid || (head->minLpid + head->capacity) < lpid)
-         {
-            PD_LOG(PDERROR, "lpid[%d] out of range[%d,%d]", lpid, head->minLpid, head->capacity);
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
+
+         offset = lpids[i] % capacity;
          
-         rc = getSlot(lpid - head->minLpid, slot);
+         rc = getSlot(offset, slot);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to get slot, lpid[%d], rc:%d", lpid, rc);
+            PD_LOG(PDERROR, "failed to get slot, lpid[%d], rc:%d", lpids[i], rc);
             goto error;
          }
 
          if (!slot.free())
          {
-            PD_LOG(PDERROR, "lpid[%d] is not free, it's pid:%d", lpid, slot.page);
+            PD_LOG(PDERROR, "lpid[%d] is not free, it's pid:%d", lpids[i], slot.page);
             rc = SDB_INVALIDARG;
             goto error;
          }
@@ -324,32 +286,36 @@ namespace vessel
       goto done;
    }
 
-   void impAccessor::mapLpids(idMapPageHead *head,
+   void impAccessor::mapLpids(UINT32 capacity,
                               UINT32 count,
                               const PAGE_ID *lpids,
                               const PAGE_ID *pids,
                               SNAPSHOT_ID snap)
    {
+      SDB_ASSERT(0 < capacity, "can not be invalid");
+      SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
       idMapSlot slot;
       for (UINT32 i = 0; i < count; ++i)
       {
+         UINT32 offset = lpids[i] % capacity;
          slot.page = pids[i];
          slot.snapshot = snap;
-         SDB_ASSERT(head->minLpid <= lpids[i], "impossible");
-         writeSlot(lpids[i] - head->minLpid, slot);
+         writeSlot(offset, slot);
       }
       return;
    }
 
-   void impAccessor::unmapLpids(idMapPageHead *head,
+   void impAccessor::unmapLpids(UINT32 capacity,
                                 UINT32 count,
                                 const PAGE_ID *lpids)
    {
+      SDB_ASSERT(0 < capacity, "can not be invalid");
+      SDB_ASSERT(NULL != lpids, "can not be null");
       idMapSlot slot;
       for (UINT32 i = 0; i < count; ++i)
       {
-         SDB_ASSERT(head->minLpid <= lpids[i], "impossible");
-         writeSlot(lpids[i] - head->minLpid, slot);
+         UINT32 offset = lpids[i] % capacity;
+         writeSlot(offset, slot);
       }
       return;
    }
@@ -375,27 +341,47 @@ namespace vessel
                           const PAGE_ID *lpids,
                           const PAGE_ID *pids,
                           SNAPSHOT_ID snap,
-                          const DPS_LSN_OFFSET *oplist)
+                          const DPS_LSN_OFFSET *oplist,
+                          BOOLEAN oplistTail)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
       SDB_ASSERT(0 != count, "can not be zero");
       SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
       SDB_ASSERT(INVALID_SNAPSHOT_ID != snap, "can not be invalid");
-      idMapPageHead *wHead = NULL;
+
       logRecordContext lrc;
       IRedoLogger *logger = NULL;
       ISession *session = NULL;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       BOOLEAN rollback = FALSE;
+      UINT32 pageSize = pageAccessor::getPageSize();
+      UINT32 capacity = 0;
 
-      if (OSS_UNLIKELY(NULL == context))
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       0 == count ||
+                       NULL == lpids ||
+                       NULL == pids ||
+                       INVALID_SNAPSHOT_ID == snap))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(oplistTail && (NULL == oplist || DPS_INVALID_LSN_OFFSET == *oplist)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = validateMap(count, lpids, pids, snap);
+      rc = getCapacityOfIMP(pageSize, capacity);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);
+         goto error;
+      }
+
+      rc = validateMap(capacity, count, lpids, pids, snap);
       if (SDB_OK != rc)
       {
          goto error;
@@ -404,7 +390,7 @@ namespace vessel
       logger = context->getOuterResource()->logger;
       session = context->getSession();
 
-      rc = prepareMapLog(context, &lrc, oplist, count);
+      rc = prepareMapLog(context, &lrc, count, oplist, oplistTail);
       if (SDB_OK != rc)
       {
          goto error;
@@ -418,17 +404,10 @@ namespace vessel
          goto error;
       }
 
-      rc = getWritableUserHeadPtr<idMapPageHead>(&wHead);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      mapLpids(wHead, count, lpids, pids, snap);
-      wHead->free -= count;
+      mapLpids(capacity, count, lpids, pids, snap);
       rollback = TRUE;
 
-      rc = commitMapLog(context, &lrc, count, lpids, pids, snap, wHead->free);
+      rc = commitMapLog(context, &lrc, count, lpids, pids, snap);
       if (SDB_OK != rc)
       {
          goto error;
@@ -447,8 +426,7 @@ namespace vessel
       }
       if (rollback)
       {
-         unmapLpids(wHead, count, lpids);
-         wHead->free += count;
+         unmapLpids(capacity, count, lpids);
       }
       if (fullAccessing())
       {
@@ -457,10 +435,56 @@ namespace vessel
       goto done;
    }
 
+   INT32 impAccessor::dumpAsBitMap(UINT64 *bits, UINT32 &free)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 capacity = 0;
+      UINT32 alignedBitsCount = 0;
+      idMapSlot slot;
+      free = 0;
+
+      if (OSS_UNLIKELY(NULL == bits))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getCapacityOfIMP(getPageSize(), capacity);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get capacity of imp:%d", rc);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      alignedBitsCount = (ossAlign64(capacity) >> 6);
+      ossMemset(bits, 0, (alignedBitsCount << 3));
+      for (UINT32 i = 0; i < capacity; ++i)
+      {
+         rc = getSlot(i, slot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get slot[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         if (slot.free())
+         {
+            ++free;
+            setFreeIfNotFree64(alignedBitsCount, bits, i);
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 impAccessor::prepareMapLog(requestContext *context,
                                     logRecordContext *lrc,
+                                    UINT32 count,
                                     const DPS_LSN_OFFSET *oplist,
-                                    UINT32 count)
+                                    BOOLEAN oplistTail)
    {
       INT32 rc = SDB_OK;
       ISession *session = context->getSession();
@@ -474,8 +498,12 @@ namespace vessel
       OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
       if (NULL != oplist && DPS_INVALID_LSN_OFFSET != *oplist)
       {
-         OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_OP_TAIL);
          head->_opListLSN = *oplist;
+      }
+      if (oplistTail)
+      {
+         SDB_ASSERT(NULL != oplist && DPS_INVALID_LSN_OFFSET != *oplist, "can not be invalid");
+         OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_OP_TAIL);
       }
 
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
@@ -483,7 +511,6 @@ namespace vessel
       lrc->prepush(sizeof(SNAPSHOT_ID));
       lrc->prepush(sizeof(PAGE_ID) * count);
       lrc->prepush(sizeof(PAGE_ID) * count);
-      lrc->prepush(sizeof(UINT32));
       rc = prepareFullDumpLogWhenNecessary(context, lrc);
       if (SDB_OK != rc)
       {
@@ -508,8 +535,7 @@ namespace vessel
                                    UINT32 count,
                                    const PAGE_ID *lpids,
                                    const PAGE_ID *pids,
-                                   SNAPSHOT_ID snap,
-                                   UINT32 free)
+                                   SNAPSHOT_ID snap)
    {
       INT32 rc = SDB_OK;
       ISession *session = context->getSession();
@@ -557,15 +583,6 @@ namespace vessel
                                         DPS_LOG_VESSEL_IMP_REMAP_PIDS,
                                         sizeof(PAGE_ID) * count,
                                         pids);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_VESSEL_IMP_REMAP_FREE,
-                                        sizeof(UINT32),
-                                        &free);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;

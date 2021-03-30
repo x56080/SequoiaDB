@@ -52,11 +52,8 @@ namespace vessel
    struct idMapPageHead
    {
       UINT32 version;
-      UINT32 capacity;
-      UINT32 free;
       UINT32 flags;
-      UINT32 minLpid;
-      UINT64 pad;
+      CHAR pad[16];
    };// struct idMapPageHead
 
    const UINT32 ID_MAP_PAGE_HEAD_LEN = sizeof(idMapPageHead);

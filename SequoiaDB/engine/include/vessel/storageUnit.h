@@ -100,7 +100,7 @@ namespace vessel
 
          INT32 getMaxPageCountInFile(UINT32 &count);
 
-         UINT32 getFileCount();
+         UINT32 getDataFileCount();
 
       public:
          INT32 create(requestContext *context,
