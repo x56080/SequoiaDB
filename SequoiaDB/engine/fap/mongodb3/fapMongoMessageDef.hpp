@@ -41,16 +41,24 @@
 namespace fap
 {
 
-#define FAP_MONGO_FIELD_NAME_CMD         ".$cmd"
-#define FAP_MONGO_FIELD_NAME_DOCUMENTS   "documents"
-#define FAP_MONGO_FIELD_NAME_DELETES     "deletes"
-#define FAP_MONGO_FIELD_NAME_UPDATES     "updates"
-#define FAP_MONGO_FIELD_NAME_INDEXES     "indexes"
-#define FAP_MONGO_FIELD_NAME_INDEX       "index"
-#define FAP_MONGO_FIELD_NAME_CURSORS     "cursors"
-#define FAP_MONGO_FIELD_NAME_BATCHSIZE   "batchSize"
-#define FAP_MONGO_FIELD_NAME_COLLECTION  "collection"
-#define FAP_MONGO_FIELD_NAME_USERSINFO   "usersInfo"
+#define FAP_MONGO_FIELD_NAME_CMD             ".$cmd"
+#define FAP_MONGO_FIELD_NAME_DOCUMENTS       "documents"
+#define FAP_MONGO_FIELD_NAME_DELETES         "deletes"
+#define FAP_MONGO_FIELD_NAME_UPDATES         "updates"
+#define FAP_MONGO_FIELD_NAME_INDEXES         "indexes"
+#define FAP_MONGO_FIELD_NAME_INDEX           "index"
+#define FAP_MONGO_FIELD_NAME_CURSORS         "cursors"
+#define FAP_MONGO_FIELD_NAME_BATCHSIZE       "batchSize"
+#define FAP_MONGO_FIELD_NAME_COLLECTION      "collection"
+#define FAP_MONGO_FIELD_NAME_USERSINFO       "usersInfo"
+#define FAP_MONGO_FIELD_NAME_QUERY           "query"
+#define FAP_MONGO_FIELD_NAME_SORT            "sort"
+#define FAP_MONGO_FIELD_NAME_NEW             "new"
+#define FAP_MONGO_FIELD_NAME_FIELDS          "fields"
+#define FAP_MONGO_FIELD_NAME_VALUE           "value"
+#define FAP_MONGO_FIELD_NAME_N               "n"
+#define FAP_MONGO_FIELD_NAME_LASTERROROBJECT "lastErrorObject"
+#define FAP_MONGO_FIELD_NAME_UPDATEEXISTING  "updatedExisting"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"
@@ -85,7 +93,8 @@ namespace fap
 #define FAP_MONGO_SASL_MSG_VALUE    "v"
 #define FAP_MONGO_SASL_MSG_ERROR    "e"
 
-#define FAP_MONGO_OPERATOR_EQ   "$eq"
-#define FAP_MONGO_OPERATOR_ET   "$et"
+#define FAP_MONGO_OPERATOR_EQ        "$eq"
+#define FAP_MONGO_OPERATOR_ET        "$et"
+#define FAP_MONGO_OPERATOR_REPLACE   "$replace"
 }
 #endif

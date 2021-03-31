@@ -483,6 +483,39 @@ error:
    goto done ;
 }
 
+static INT32 isCondHasOp( const BSONObj &cond,
+                          BOOLEAN &hasOp )
+{
+   INT32 rc = SDB_OK ;
+   hasOp = FALSE ;
+
+   try
+   {
+      BSONObjIterator itr( cond ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         if ( '$' == ele.fieldName()[0] )
+         {
+            hasOp = TRUE ;
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Check if cond has op exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 _mongoCmdFactory::_mongoCmdFactory ()
 {
    _pCmdInfoRoot = NULL ;
@@ -4684,5 +4717,309 @@ INT32 _mongoDummyCommand::buildReply( const MsgOpReply &sdbReply,
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoWhatsMyUriCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetReplStatCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetCmdLineOptsCommand)
+
+// If the command is findAndModify, findOneAndUpdate, findOneAndDelete or
+// findOneAndReplace, we will enter this class
+// The functions of these four commands are the same, the only difference is
+// that the parameters of the commands are different
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindAndModifyCommand)
+INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
+                                               mongoSessionCtx &ctx )
+{
+   SDB_ASSERT ( _isInitialized, "must be initialized first" ) ;
+
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *findAndModify = NULL ;
+   BSONObj cond, update, sort, selector, hint ;
+   BOOLEAN isUpdate = FALSE ;
+   BOOLEAN isRemove = FALSE ;
+   BOOLEAN isReturnNew = FALSE ;
+   BSONObjBuilder operatorBob, hintBob ;
+
+   sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   findAndModify = ( MsgOpQuery * )sdbMsg.data() ;
+   findAndModify->header.opCode = MSG_BS_QUERY_REQ ;
+   findAndModify->header.TID = 0 ;
+   findAndModify->header.routeID.value = 0 ;
+   findAndModify->header.requestID = _requestID ;
+   findAndModify->version = 0 ;
+   findAndModify->w = 0 ;
+   findAndModify->padding = 0 ;
+   findAndModify->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_MODIFY ;
+   findAndModify->numToSkip = 0 ;
+   // findAndModify, findOneAndUpdate, findOneAndDelete and findOneAndReplace
+   // will only modify and return a single document
+   findAndModify->numToReturn = 1 ;
+
+   findAndModify->nameLength = _clFullName.length() ;
+   sdbMsg.write( _clFullName.c_str(), findAndModify->nameLength + 1, TRUE ) ;
+
+   try
+   {
+      /*
+      eg: _obj =
+      {
+         "findandmodify": "clName",
+         "query": <object>,
+         "sort": <object>,
+         "fields": <object>,
+         "update": <object>,
+         "remove": <bool>,
+         "new": <bool>
+      }
+      */
+      rc = convertMongoOperator2Sdb( _obj, operatorBob ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert mongo operator to sdb operator, rc: %d",
+                   rc ) ;
+
+      /*
+      The format of hint we will build is as follows:
+      {
+         "$Modify":
+         {
+            "OP": "update",
+            "Update": <object>,
+            "ReturnNew": <bool>
+         }
+      }
+      or
+      {
+         "$Modify":
+         {
+            "OP": "remove",
+            "Remove": <bool>
+         }
+      }
+      */
+
+      BSONObjBuilder subHintBob( hintBob.subobjStart( FIELD_NAME_MODIFY ) ) ;
+      BSONObjIterator itr( operatorBob.done() ) ;
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+
+         if ( 0 == ossStrcmp( ele.fieldName(), FAP_MONGO_FIELD_NAME_QUERY  ) )
+         {
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of query field must be object" ) ;
+               goto error ;
+            }
+            cond = ele.embeddedObject() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                                   FAP_MONGO_FIELD_NAME_SORT  ) )
+         {
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of sort field must be object" ) ;
+               goto error ;
+            }
+            sort = ele.embeddedObject() ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_OP_VALUE_REMOVE  ) )
+         {
+            if ( Bool != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of remove field must be bool" ) ;
+               goto error ;
+            }
+            isRemove = ele.Bool() ;
+            subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_REMOVE ) ;
+            subHintBob.appendBool( FIELD_NAME_OP_REMOVE, isRemove ) ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_OP_VALUE_UPDATE  ) )
+         {
+            BOOLEAN hasOp = FALSE ;
+
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of update field must be object" ) ;
+               goto error ;
+            }
+
+            update = ele.embeddedObject() ;
+
+            rc = isCondHasOp( update, hasOp ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            if ( !hasOp )
+            {
+               // if the command is findOneAndReplace, the update field won't
+               // has operator name
+               // eg:
+               // { a: 1, b: 1 } ==> { "$replace": { a: 1, b: 1 } }
+               BSONObjBuilder newUpdateBob ;
+               newUpdateBob.append( FAP_MONGO_OPERATOR_REPLACE, update ) ;
+               subHintBob.append( FIELD_NAME_OP_UPDATE, newUpdateBob.done() ) ;
+            }
+            else
+            {
+               subHintBob.append( FIELD_NAME_OP_UPDATE, update ) ;
+            }
+
+            subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_UPDATE ) ;
+            isUpdate = TRUE ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                                   FAP_MONGO_FIELD_NAME_NEW  ) )
+         {
+            if ( Bool != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of new field must be bool" ) ;
+               goto error ;
+            }
+            isReturnNew = ele.Bool() ;
+            subHintBob.appendBool( FIELD_NAME_RETURNNEW, isReturnNew ) ;
+         }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                                   FAP_MONGO_FIELD_NAME_FIELDS  ) )
+         {
+            if ( Object != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of fields field must be object" ) ;
+               goto error ;
+            }
+            selector = ele.embeddedObject() ;
+            convertProjection( selector ) ;
+         }
+
+         /*
+         SequoiaDB don't support these parameters:
+         upsert: <bool>
+         collation: <object>
+         bypassDocumentValidation: <bool>
+         arrayFilters: [ <filter1>... ]
+         writeConcern: <object>
+         */
+      }
+
+      subHintBob.doneFast() ;
+      hint = hintBob.done() ;
+
+      if ( isUpdate && isRemove )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Cannot specify update and remove = true "
+                       "at the same time" ) ;
+         goto error ;
+      }
+
+      if ( isRemove && isReturnNew )
+      {
+         rc = SDB_INVALIDARG ;
+         ctx.setError( rc, "Cannot specify new = true and remove = true "
+                       "at the same time. 'remove' always returns the deleted "
+                       "document" ) ;
+         goto error ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Build findAndModify sdb msg exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+   sdbMsg.write( cond, TRUE ) ;
+   sdbMsg.write( selector, TRUE ) ;
+   sdbMsg.write( sort, TRUE ) ;
+   sdbMsg.write( hint, TRUE ) ;
+   sdbMsg.doneLen() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
+                                              engine::rtnContextBuf &bodyBuf,
+                                              _mongoResponseBuffer &headerBuf )
+{
+   /*
+   The format of reply msg is as follows:
+
+   {
+      lastErrorObject:
+      {
+         n: <INT32>,
+         updatedExisting: <bool>
+      },
+      value: <object>,
+      ok: <INT32>
+   }
+   */
+   INT32 rc = SDB_OK ;
+   BSONObjBuilder resultBuilder ;
+   BOOLEAN hasRecordReturned = ( 0 < bodyBuf.size() ) ;
+   BOOLEAN hasDecimal = FALSE ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObjBuilder decimalConvertBob ;
+         BSONObjBuilder lastErrorObjectBuilder( resultBuilder.subobjStart(
+                                     FAP_MONGO_FIELD_NAME_LASTERROROBJECT ) ) ;
+         lastErrorObjectBuilder.append( FAP_MONGO_FIELD_NAME_N,
+                                        hasRecordReturned ) ;
+         lastErrorObjectBuilder.appendBool( FAP_MONGO_FIELD_NAME_UPDATEEXISTING,
+                                            hasRecordReturned ) ;
+         lastErrorObjectBuilder.doneFast() ;
+
+         if ( hasRecordReturned )
+         {
+            BSONObj obj( bodyBuf.data() ) ;
+            rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to convert sdb record to mongo record, "
+                         "rc: %d", rc ) ;
+            if ( hasDecimal )
+            {
+               resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE,
+                                     decimalConvertBob.done() ) ;
+            }
+            else
+            {
+               resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE, obj ) ;
+            }
+         }
+         else
+         {
+            resultBuilder.appendNull( FAP_MONGO_FIELD_NAME_VALUE ) ;
+         }
+
+         resultBuilder.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+         bodyBuf = engine::rtnContextBuf( resultBuilder.obj() ) ;
+      }
+
+      _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Build findAndModify reply msg exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
 
 }

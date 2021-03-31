@@ -51,6 +51,7 @@ enum MONGO_CMD_TYPE
    CMD_COUNT     = 12,
    CMD_AGGREGATE = 13,
    CMD_DISTINCT  = 14,
+   CMD_FINDANDMODIFY    = 15,
 
    CMD_GETMORE          = 20,
    CMD_KILL_CURSORS     = 21,
@@ -127,5 +128,6 @@ const CHAR* const MONGO_CMD_NAME_PING =              "ping" ;
 const CHAR* const MONGO_CMD_NAME_LOGTOUT =           "logout" ;
 const CHAR* const MONGO_CMD_NAME_REPL_STAT =         "replSetGetStatus" ;
 const CHAR* const MONGO_CMD_NAME_GET_CMD_LINE =      "getCmdLineOpts" ;
+const CHAR* const MONGO_CMD_NAME_FINDANDMODIFY =     "findandmodify" ;
 }
 #endif

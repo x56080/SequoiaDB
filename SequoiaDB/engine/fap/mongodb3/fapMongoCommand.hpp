@@ -982,5 +982,24 @@ class _mongoGetCmdLineOptsCommand : public _mongoDummyCommand
 } ;
 typedef _mongoGetCmdLineOptsCommand mongoGetCmdLineOptsCommand ;
 
+class _mongoFindAndModifyCommand : public _mongoCollectionCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _mongoFindAndModifyCommand() {}
+      virtual ~_mongoFindAndModifyCommand() {}
+
+      virtual MONGO_CMD_TYPE type() const { return CMD_FINDANDMODIFY ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_FINDANDMODIFY ; }
+      virtual BOOLEAN needConvertDecimal() const { return TRUE ; }
+
+      virtual INT32 buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
+
+      virtual INT32 buildReply( const MsgOpReply &sdbReply,
+                                engine::rtnContextBuf &replyBuf,
+                                _mongoResponseBuffer &resHeader ) ;
+} ;
+typedef _mongoFindAndModifyCommand mongoFindAndModifyCommand ;
+
 }
 #endif
