@@ -57,6 +57,7 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
         -> ENGINE=sequoiadb 
         -> COMMENT='sequoiadb:{ auto_partition: false }';
     ```
+
 ## SequoiaDB引擎配置修改方式
 
 配置参数有以下三种修改方式：
