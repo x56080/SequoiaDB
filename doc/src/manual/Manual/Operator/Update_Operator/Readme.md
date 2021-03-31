@@ -15,7 +15,7 @@
 | [$pull_all][pull_all]<br>[$pull_all_by][pull_all_by] | 清除指定数组中的指定值 | db.sample.employee.update({$pull_all:{arr:[2,3],name:["Tom"]}})<br>db.sample.employee.update({$pull_all_by:{arr:[2,3],name:["Tom"]}}) |
 | [$push][push] | 将给定值插入到数组中 | db.sample.employee.update({$push:{arr:1}}) |
 | [$push_all][push_all] | 向指定数组中插入所有给定值 | db.sample.employee.update({$push_all:{arr:[1,2,8,9]}}) |
-| [$replace][replace] | 将文档全部替换 | db.sample.employee.update({$replace:{age:0,name:'default'}},{age:{$exists:0}}) |
+| [$replace][replace] | 将集合中除 _id 字段和自增字段外的文档内容全部替换 | db.sample.employee.update({$replace:{age:0,name:'default'}},{age:{$exists:0}}) |
 
 
 
