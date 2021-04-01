@@ -106,4 +106,6 @@ function test ()
    var findCondition7 = { a: { $rtrim: 1, $et: " \n\t\raString" }, b: { $rtrim: 1, $et: " \n\t\raString" }, c: { $rtrim: 1, $et: " \n\t\raString" } };
    var expRecs7 = [{ No: 1, a: " \n\t\raString\n\r\t ", b: " \n\t\raString\n\r\t ", c: " \n\t\raString\n\r\t " }];
    checkResult( dbcl, findCondition7, null, expRecs7, { No: 1 } );
+
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 }

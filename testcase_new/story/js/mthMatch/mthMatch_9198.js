@@ -2,8 +2,8 @@
  * @Description   : seqDB-9198:slice as function
  * @Author        : zhaoyu
  * @CreateTime    : 2016.11.01
- * @LastEditTime  : 2021.02.04
- * @LastEditors   : Lai Xuan
+ * @LastEditTime  : 2021.04.01
+ * @LastEditors   : Li Yuanyue
  ******************************************************************************/
 main( test );
 function test ()
@@ -33,10 +33,6 @@ function test ()
    commDropCL( db, COMMCSNAME, subCL_Name2, true, true, "clean sub collection" );
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
-
-
-
-
 
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "No": 1 }, ShardingType: "range", IsMainCL: true };
@@ -115,5 +111,7 @@ function test ()
    { No: 6, a: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
    { No: 7, a: [1, 2, 3, 7, 8, 9] }];
    checkResult( dbcl, findCondition7, null, expRecs7, { No: 1 } );
+
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 }
 

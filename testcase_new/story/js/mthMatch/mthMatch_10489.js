@@ -131,4 +131,6 @@ function test ()
    { No: 10, a: { 0: 1, 1: 2, 2: 3, 3: 4 }, b: { 0: 1, 1: 2, 2: 3, 3: 4 } }];
    checkResult( dbcl, findCondition6, null, expRecs6, { No: 1 } );
 
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
+
 }

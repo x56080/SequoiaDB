@@ -32,10 +32,6 @@ function test ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-
-
-
-
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "a": 1 }, ShardingType: "range", IsMainCL: true };
    var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
@@ -71,5 +67,7 @@ function test ()
    var findCondition1 = { a: { $type: 1, $et: 100 }, b: { $type: 1, $et: 100 }, c: { $type: 1, $et: 100 } };
    var expRecs1 = [{ No: 2, a: { $decimal: "123" }, b: { $decimal: "123" }, c: { $decimal: "123" } }];
    checkResult( dbcl, findCondition1, null, expRecs1, { No: 1 } );
+
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
 }
