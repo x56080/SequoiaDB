@@ -430,7 +430,11 @@ function readlink ( cmd, fs )
    catch( e )
    {
       if( e.message == 1 ) return fs;
-      else throw e;
+      else
+      {
+         println( "throw e: " + e );
+         throw e;
+      }
    }
    var ind = info.lastIndexOf( "/" );
    return info.slice( ind + 1 );
