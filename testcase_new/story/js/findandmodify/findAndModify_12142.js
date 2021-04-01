@@ -18,9 +18,7 @@ function test ()
    testUsedSkipNonSplit( cl );
    testUsedLimitNonSplit( cl );
    testUsedSkipAndLimitNonSplit( cl );
-   println("delete?")
    commDropCL( db, COMMCSNAME, clName );
-   println("delete")
 }
 
 /***********************************************************************
