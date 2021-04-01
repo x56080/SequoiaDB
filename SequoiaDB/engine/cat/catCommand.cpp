@@ -2087,7 +2087,7 @@ namespace engine
                                     (INT64&)_globalIdxCLUniqID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get field[%s] from collection[%s], rc: %d",
-                   FIELD_NAME_UNIQUEID, boCollection, rc ) ;
+                   FIELD_NAME_UNIQUEID, boCollection.toString().c_str(), rc ) ;
 
       // create global index collection's index
       try
