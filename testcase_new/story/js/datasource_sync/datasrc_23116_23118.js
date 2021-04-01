@@ -3,10 +3,11 @@
  *                  seqDB-23118:getDataSource接口参数验证 
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.02
+ * @LastEditTime  : 2021.04.01
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+// CI环境不支持运行数据源串行用例，暂时屏蔽
 // try
 // {
 //    main( test );

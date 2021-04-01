@@ -2,10 +2,11 @@
  * @Description   : seqDB-22853:修改数据源用户名和密码
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.02
+ * @LastEditTime  : 2021.04.01
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+// CI环境不支持运行数据源串行用例，暂时屏蔽
 // try
 // {
 //    main( test );

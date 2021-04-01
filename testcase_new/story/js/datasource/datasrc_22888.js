@@ -2,7 +2,7 @@
  * @Description   : seqDB-22888:使用数据源的集合执行rename操作
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.01
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -26,7 +26,7 @@ function test ()
    var dbcl = dbcs.getCL( clName2 );
    operationAndCheckResult( dbcl, dsMarjorVersion );
 
-   commDropCS( datasrcDB, srcCSName );
+   commDropCS( datasrcDB, csName );
    clearDataSource( csName, dataSrcName );
    datasrcDB.close();
 }

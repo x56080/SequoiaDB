@@ -2,7 +2,7 @@
  * @Description   : seqDB-22851:修改数据源地址为不同数据源 
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.01
+ * @LastEditTime  : 2021.03.17
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -23,11 +23,11 @@ function test ()
    commCreateCS( datasrcDB, srcCSName );
    commCreateCL( datasrcDB1, srcCSName, clName );
 
-   db.createDataSource( dataSrcName, otherDSUrl1, userName, password );
+   db.createDataSource( dataSrcName, otherDSUrl1, userName, passwd );
    var dataSource = db.getDataSource( dataSrcName );
    var cs = db.createCS( csName );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
-   dataSource.alter( { "User": userName, "Password": password, "Address": datasrcUrl } );
+   dataSource.alter( { "User": userName, "Password": passwd, "Address": datasrcUrl } );
    var explainObj = db.listDataSources( { "Name": dataSrcName } );
    checkExplain( explainObj, dataSrcName, datasrcUrl, userName );
 
