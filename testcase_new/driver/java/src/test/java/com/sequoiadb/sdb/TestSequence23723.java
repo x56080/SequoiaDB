@@ -1,9 +1,11 @@
 package com.sequoiadb.sdb;
 
 import com.sequoiadb.base.*;
+import com.sequoiadb.testcommon.CommLib;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -23,6 +25,10 @@ public class TestSequence23723 extends SdbTestBase {
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
+        CommLib commlib = new CommLib();
+        if ( commlib.isStandAlone( sdb ) ) {
+            throw new SkipException( "skip StandAlone" );
+        }
     }
 
     @Test
