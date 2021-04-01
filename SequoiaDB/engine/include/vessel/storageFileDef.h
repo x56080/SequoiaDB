@@ -171,7 +171,7 @@ namespace vessel
       UINT32 secretValue;
       UINT32 flags;
       UINT32 spaceID;
-      UINT32 uniqueID;
+      UINT32 uniqueID;/// necessary ?
       UINT32 spaceType;
       UINT32 sequence;
       UINT32 pageSize;
@@ -184,6 +184,12 @@ namespace vessel
    const UINT32 META_FILE_USER_HEAD_VERSION = 1;
    struct dataIDMapFileHead
    {
+      OSS_INLINE dataIDMapFileHead():
+      version(INVALID_FILE_HEAD_VERSION),
+      headChecksum(0){}
+
+      OSS_INLINE ~dataIDMapFileHead(){}
+      
       UINT32 version;
       UINT32 headChecksum;
       storageCoreArgs meta;

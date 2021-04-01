@@ -72,12 +72,13 @@ namespace vessel
                              SPACE_TYPE type,
                              PAGE_ID pid,
                              UINT32 flags,
-                             storageUnit *su)
+                             storageUnit *su,
+                             DPS_LSN_OFFSET oplist)
    {
       INT32 rc = SDB_OK;
       storageUnit *obj = su;
       UINT32 size = 0;
-      BOOLEAN rollback = FALSE;
+      fini(context);
 
       if (OSS_UNLIKELY(ACCESSOR_STATUS_INVALID != _status))
       {
@@ -104,6 +105,18 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;  
       }
+      else if (OSS_BIT_TEST(flags, PAGE_ACCESSOR_FLAG_OPLIST_TAIL) &&
+               DPS_INVALID_LSN_OFFSET == oplist)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_BIT_TEST(flags, PAGE_ACCESSOR_FLAG_OPLIST_HEAD) &&
+               DPS_INVALID_LSN_OFFSET != oplist)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
 
       if (NULL == obj)
       {
@@ -126,11 +139,15 @@ namespace vessel
          goto error;
       }
 
-      rollback = TRUE;
       _gpid.reset(context->getSpaceID(), type, pid);
       _size = size;
       _status = ACCESSOR_STATUS_SETUP;
       _su = obj;
+
+      if (DPS_INVALID_LSN_OFFSET != oplist)
+      {
+         _oplist = oplist;
+      }
 
       rc = beginToAccess(context, flags);
       if (SDB_OK != rc)
@@ -143,10 +160,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         fini(context);
-      }
+      fini(context);
       goto done;
    }
 
@@ -344,10 +358,10 @@ namespace vessel
    void pageAccessor::fini(requestContext *context)
    {
       SDB_ASSERT(!fullAccessing(), "writing prepared but no commit or abort");
-      endToAccess(context);
-
+      
       if (ACCESSOR_STATUS_INVALID != _status)
       {
+         endToAccess(context);
          if (NULL != _fullDumpBuf)
          {
             SDB_THREAD_FREE(_fullDumpBuf);
@@ -359,7 +373,8 @@ namespace vessel
          _status = ACCESSOR_STATUS_INVALID;
          _ptr = 0;
          _su = NULL;
-         _fullDumpBuf = NULL;
+         _fullDumpSize = 0;
+         _oplist = DPS_INVALID_LSN_OFFSET;
       }
 
       return;
@@ -928,8 +943,8 @@ namespace vessel
       return ACCESSOR_STATUS_FULL_ACCESSING == _status;
    }
 
-   INT32 pageAccessor::prepareFullDumpLogWhenNecessary(requestContext *context,
-                                                       logRecordContext *lrc)
+   INT32 pageAccessor::prepareLogDone(requestContext *context,
+                                      logRecordContext *lrc)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(accessing(), "must be accessing");
@@ -940,45 +955,81 @@ namespace vessel
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
       SDB_ASSERT(NULL == _fullDumpBuf, "must be null");
 
+      ISession *session = context->getSession();
+      IRedoLogger *logger = context->getOuterResource()->logger;
       DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       const checkpointController *checkpointer = NULL;
       const openDBOptions &options = context->getEnv()->options;
-      if (!options.fullDumpPageLog)
+      dpsLogRecordHeader &head = lrc->getHead();
+
+      OSS_BIT_SET(head._flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
+
+      if (isOplistHead())
       {
-         goto done;
+         OSS_BIT_SET(head._flags, DPS_VESSEL_LOG_FLAG_OP_HEAD);
       }
-      rc = _lcTuple.getMinLSN(lsn);
+      else if (isInOplist())
+      {
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != getOplist(), "impossible");
+         head._opListLSN = getOplist();
+      }
+
+      /// not else if
+      if (isOplistTail())
+      {
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != head._opListLSN, "impossible");
+         OSS_BIT_SET(head._flags, DPS_VESSEL_LOG_FLAG_OP_TAIL);
+      }
+
+      if (options.fullDumpPageLog)
+      {
+         rc = _lcTuple.getMinLSN(lsn);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         if (DPS_INVALID_LSN_OFFSET == lsn)
+         {
+            dpsLogRecordHeader &head = lrc->getHead();
+            setFlags(head, DPS_VESSEL_LOG_FLAG_LAST_LSN_IS_INVALID);
+         }
+         else
+         {
+            checkpointer = &(context->getEnv()->checkpointer);
+            if (lsn <= checkpointer->getLastCheckpointLSN())
+            {
+               _fullDumpBuf = (CHAR*)SDB_THREAD_ALLOC(_size);
+               if (NULL == _fullDumpBuf)
+               {
+                  rc = SDB_OOM;
+                  goto error;
+               }
+               rc = _lcTuple.read(0, _size, _fullDumpBuf);
+               if (SDB_OK != rc)
+               {
+                  goto error;
+               }
+
+               _fullDumpSize = _size;
+               lrc->setNeedFullDump();
+               lrc->prepush(_size);
+            }
+         }
+      }
+
+      lrc->prepushDone();
+      rc = logger->prepare(session, lrc);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      if (DPS_INVALID_LSN_OFFSET == lsn)
+      if (pageAccessor::isOplistHead())
       {
-         dpsLogRecordHeader &head = lrc->getHead();
-         setFlags(head, DPS_VESSEL_LOG_FLAG_LAST_LSN_IS_INVALID);
+         SDB_ASSERT(DPS_INVALID_LSN_OFFSET != lrc->getHead()._opListLSN, "impossible");
+         _oplist = lrc->getHead()._opListLSN;
       }
-      else
-      {
-         checkpointer = &(context->getEnv()->checkpointer);
-         if (lsn <= checkpointer->getLastCheckpointLSN())
-         {
-            _fullDumpBuf = (CHAR*)SDB_THREAD_ALLOC(_size);
-            if (NULL == _fullDumpBuf)
-            {
-               rc = SDB_OOM;
-               goto error;
-            }
-            rc = _lcTuple.read(0, _size, _fullDumpBuf);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-            lrc->setNeedFullDump();
-            lrc->prepush(_size);
-         }
-      }
-      
    done:
       return rc;
    error:

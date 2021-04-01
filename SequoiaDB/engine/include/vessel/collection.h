@@ -107,16 +107,35 @@ namespace vessel
                       utilInsertResult &res);
 
       private:
-         INT32 findFreePage(BOOLEAN fastFind,
-                            UINT32 recordSize,
-                            STRIPING_ID striping,
-                            fsmCandidate &candidate);
-         INT32 insertNonBigRecordToPage(insertContext *context,
-                                        utilInsertResult &res);
+         INT32 findFreePageForRecord(requestContext *context,
+                                     UINT32 recordSize,
+                                     STRIPING_ID striping,
+                                     fsmCandidate &candidate);
+         INT32 insertNonBigRecord(insertContext *context,
+                                  utilInsertResult &res);
 
-         INT32 allocateNewPagesForOptions(UINT32 pageCount,
+
+         /// user should hold _pageAllocLatch first
+         INT32 allocateNewRecordDataPages(requestContext *context,
+                                          UINT32 count,
                                           CL_PAGE_SEQ &firstSeq,
                                           PAGE_ID *lpids);
+      private:
+
+         INT32 extendRoutePageMap(requestContext *context);
+
+         INT32 createRootLvl2RoutePage(requestContext *context,
+                                       UINT32 capacity);
+
+         INT32 createRootLvl1RoutePage(requestContext *context,
+                                       UINT32 rootSlot);
+
+         INT32 createRootLvl0RoutePage(requestContext *context);
+         
+         INT32 createNewRoutePage(requestContext *context,
+                                  PAGE_ID &lpidOfRP,
+                                  DPS_LSN_OFFSET *lsn);
+
       private:
          INT32 saveOnDiskWhenCreating(requestContext *context);
 
@@ -133,10 +152,19 @@ namespace vessel
                                        PAGE_ID &pid);
 
          INT32 saveCLRecordWhenCreating(requestContext *contex, PAGE_ID pid);
+
+      private:
+         OSS_INLINE UINT32 getMaxLvl0Cnt(UINT32 capacity)
+         {
+            return 1 + (capacity << 1) + capacity * capacity;
+         }
       private:
          //ossSpinSLatch _recordLatch;
          collectionRecord _record;
          collectionSpace *_collectionSpace;
+
+         UINT32 _maxPageCntInRoutePages;
+         UINT32 _pageCntInRoutePages;
 
          freeSpaceMap _fsm;
          ossSpinSLatch _ddlSLatch;

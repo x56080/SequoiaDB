@@ -178,22 +178,6 @@ class physicalExtentID
 typedef physicalExtentID PHY_EXTENT_ID;
 typedef physicalExtentID GLOBAL_PAGE_ID;
 
-class fullPageID
-{
-   public:
-      OSS_INLINE fullPageID():
-      lpid(INVALID_PAGE_ID)
-      {}
-      OSS_INLINE ~fullPageID()
-      {}
-
-   public:
-      physicalExtentID gpid;
-      PAGE_ID lpid;
-};//class fullPageID
-
-typedef fullPageID GLOBAL_FULL_PAGE_ID;
-
 } /// end of namespace vessel
 } /// end of namespace engine
 

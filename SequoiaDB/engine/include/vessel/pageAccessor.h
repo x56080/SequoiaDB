@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -52,6 +49,8 @@ namespace vessel
    const UINT32 PAGE_ACCESSOR_FLAG_DIRECT = 0x01;  /// mmap accessing
    const UINT32 PAGE_ACCESSOR_FLAG_NON_READONLY = 0x02;
    const UINT32 PAGE_ACCESSOR_FLAG_INIT_PAGE = 0x04;
+   const UINT32 PAGE_ACCESSOR_FLAG_OPLIST_HEAD = 0x08;
+   const UINT32 PAGE_ACCESSOR_FLAG_OPLIST_TAIL = 0x10;
 
    class storageUnit;
    class logRecordContext;
@@ -65,11 +64,17 @@ namespace vessel
          _status(0),
          _ptr(0),
          _su(NULL),
-         _fullDumpBuf(NULL)
+         _fullDumpBuf(NULL),
+         _fullDumpSize(0),
+         _oplist(DPS_INVALID_LSN_OFFSET)
          {
 
          }
          virtual ~pageAccessor();
+
+      public:
+         pageAccessor(const pageAccessor &) = delete;
+         pageAccessor &operator=(const pageAccessor &) = delete;
 
       public:
          OSS_INLINE const GLOBAL_PAGE_ID &getGPID()const
@@ -96,13 +101,18 @@ namespace vessel
          {
             return _flags;
          }
+         OSS_INLINE DPS_LSN_OFFSET getOplist() const
+         {
+            return _oplist;
+         }
 
       public:
          INT32 init(requestContext *context,
                      SPACE_TYPE type,
                      PAGE_ID pid,
                      UINT32 flags = 0,
-                     storageUnit *su = NULL);
+                     storageUnit *su = NULL,
+                     DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
          INT32 initWithDirectMode(requestContext *context,
                                  SPACE_TYPE type,
@@ -229,8 +239,8 @@ namespace vessel
          }
 
       protected:
-         INT32 prepareFullDumpLogWhenNecessary(requestContext *context,
-                                               logRecordContext *lrc);
+         INT32 prepareLogDone(requestContext *context,
+                              logRecordContext *lrc);
 
       protected:
          OSS_INLINE const CHAR *getFullDumpBuffer()const
@@ -238,6 +248,22 @@ namespace vessel
             return _fullDumpBuf;
          }
 
+         OSS_INLINE UINT32 getFullDumpSize()const
+         {
+            return _fullDumpSize;
+         }
+         OSS_INLINE BOOLEAN isInOplist()const
+         {
+            return DPS_INVALID_LSN_OFFSET != _oplist;
+         }
+         OSS_INLINE BOOLEAN isOplistHead()const
+         {
+            return OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_OPLIST_HEAD);
+         }
+         OSS_INLINE BOOLEAN isOplistTail()const
+         {
+            return OSS_BIT_TEST(_flags, PAGE_ACCESSOR_FLAG_OPLIST_TAIL);
+         }
          BOOLEAN fullAccessing()const;
       private:
          INT32 validateMMapPageHeadAndTail();
@@ -265,12 +291,16 @@ namespace vessel
       private:
          GLOBAL_PAGE_ID _gpid;
          UINT32 _size;
+         /// if some one update flags to uint64, should
+         /// update isOplistHead. BOOLEAN is 4bytes.
          UINT32 _flags;
          UINT32 _status;
          ossValuePtr _ptr;
          liteCacheTuple _lcTuple;
          storageUnit *_su;
-         CHAR *_fullDumpBuf;
+         CHAR *_fullDumpBuf;  /// buffer size always be page size
+         UINT32 _fullDumpSize;/// data size dumped.
+         DPS_LSN_OFFSET _oplist;
    };//class pageAccessor
 }//namespace vessel
 }//namespace engine

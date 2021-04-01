@@ -92,7 +92,7 @@ namespace vessel
       static const UINT64 maxFileSize = 0x04ull * 1024 * 1024 * 1024;
       SDB_ASSERT(DMS_INVALID_LOGICCSID == _logicalID, "must be invalid");
       SDB_ASSERT(NULL == _su, "must be null");
-      BOOLEAN suCreated = FALSE;
+      BOOLEAN rollback = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->getSpaceIDLocked() ||
@@ -127,19 +127,19 @@ namespace vessel
          rc = SDB_OOM;
          goto error;
       }
+      rollback = TRUE;
 
       rc = _su->create(context, suOptions);
       if (SDB_OK != rc)
       {
          goto error;
       }
-      suCreated = TRUE;
-
+      
       _recordInMem.version = CMR_VERSION_1;
-      _recordInMem.setOnline();
+      _recordInMem.status = CMR_STATUS_CREATING;
       _recordInMem.flags = options.flags;
-      _recordInMem.uniqueID = uniqueID;
       _recordInMem.maxCLLogicalID = DMS_INVALID_LOGICCSID;
+      _recordInMem.uniqueID = uniqueID;
       ossMemcpy(_recordInMem.name, name.str(), name.strLen());
       _logicalID = logicalID;
 
@@ -154,12 +154,19 @@ namespace vessel
       {
          goto error;
       }
+
+      rc = updateStatusToOnlineWhenCreating(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to set cs status to online:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
-      if (suCreated)
+      if (rollback)
       {
-         _su->destroy(context);
+         destroy(context);
       }
       goto done;
    }
@@ -272,7 +279,6 @@ namespace vessel
       _logicalID = DMS_INVALID_LOGICCSID;
       SAFE_OSS_DELETE(_su);
       _recordInMem.reset();
-      _collectionAllocator.fini();
       _capacityOfCLRecordPage = 0;
       _idMapCapacity = 0;
       _maxPageCountPerDataFile = 0;
@@ -281,10 +287,12 @@ namespace vessel
       
       _inMemDataSMP.fini();
       _inMemLpidPool.fini();
-      _collectionAllocator.fini();
       _clNameIndex.clear();
       _clIdIndex.clear();
-      
+      _creatingNameIndex.clear();
+      _creatingIdIndex.clear();
+      _collectionAllocator.fini();
+
       return;
    }
 
@@ -688,9 +696,9 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::getPhyPidInDFileToRead(requestContext *context,
-                                                 PAGE_ID lpid,
-                                                 PAGE_ID &ppid)
+   INT32 collectionSpace::getDataPhyPidInIdMapToRead(requestContext *context,
+                                                     PAGE_ID lpid,
+                                                     PAGE_ID &ppid)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
@@ -746,10 +754,42 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::getPhyPidInDFile(requestContext *context,
-                                           PAGE_ID lpid,
-                                           PAGE_ID &ppid,
-                                           PAGE_ID *toBeCow)
+   INT32 collectionSpace::getDataPhyPidInIdMapToWrite(requestContext *context,
+                                                      PAGE_ID lpid,
+                                                      PAGE_ID &pid)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN needCow = FALSE;
+      PAGE_ID newPid = INVALID_PAGE_ID;
+
+      rc = getDataPhyPidInIdMapToWrite(context, lpid, pid, needCow);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+      else if (!needCow)
+      {
+         goto done;
+      }
+
+      rc = copyOnWritePageInDFile(context, lpid, pid, newPid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to copy lpid[%d] to new physical page:%d", lpid, rc);
+         goto error;
+      }
+
+      pid = newPid;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionSpace::getDataPhyPidInIdMapToWrite(requestContext *context,
+                                                      PAGE_ID lpid,
+                                                      PAGE_ID &ppid,
+                                                      BOOLEAN &mustBeCow)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
@@ -757,11 +797,7 @@ namespace vessel
       SNAPSHOT_ID snap = INVALID_SNAPSHOT_ID;
       snapshotContainer *snapshot = NULL;
       impAccessor imp;
-
-      if (NULL != toBeCow)
-      {
-         *toBeCow = INVALID_PAGE_ID;
-      }
+      mustBeCow = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        INVALID_PAGE_ID == lpid))
@@ -810,11 +846,7 @@ namespace vessel
       SDB_ASSERT(INVALID_SNAPSHOT_ID != snap, "can not be invalid");
       if (snapshot->contains(snap, getSpaceID()))
       {
-         if (NULL != toBeCow)
-         {
-            *toBeCow = ppid;
-         }
-         rc = SDB_VESSEL_PAGE_IN_SNAPSHOT;
+         mustBeCow = TRUE;
          goto error;
       }
 
@@ -848,7 +880,7 @@ namespace vessel
          goto error;
       }
 
-      if (!_inMemDataSMP.isInitialized())
+      if (!isInMemBitMapsReady())
       {
          rc = initInMemBitMaps(context);
          if (SDB_OK != rc)
@@ -874,7 +906,7 @@ namespace vessel
             }
             goto done;
          }
-         else if (SDB_VESSEL_SMP_NO_FREE != rc)
+         else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE != rc)
          {
             PD_LOG(PDERROR, "failed to allocate page from bitmap:%d", rc);
             goto error;
@@ -898,11 +930,132 @@ namespace vessel
       goto done;
    }
 
-   void collectionSpace::releaseDataPagesPreallocated(requestContext *context,
+   void collectionSpace::releasePhyPagesPreallocated(requestContext *context,
                                                       UINT32 count,
                                                       const PAGE_ID *pids)
    {
       _inMemDataSMP.releaseBits(count, pids);
+   }
+
+   void collectionSpace::releaseDataPagesPreallocated(requestContext *context,
+                                                      UINT32 count,
+                                                      const PAGE_ID *lpids,
+                                                      const PAGE_ID *pids)
+   {
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
+      _inMemLpidPool.releaseBits(count, lpids);
+      _inMemDataSMP.releaseBits(count, pids);
+      return;
+   }
+
+   INT32 collectionSpace::preallocateDataPages(requestContext *context,
+                                               UINT32 count,
+                                               PAGE_ID *lpids,
+                                               PAGE_ID *pids)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN rollback = FALSE;
+      if (OSS_UNLIKELY(NULL == context ||
+                       0 == count ||
+                       NULL == lpids ||
+                       NULL == pids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = preallocateLpids(context, count, lpids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to preallocate lpid:%d", rc);
+         goto error;
+      }
+
+      rollback = TRUE;
+
+      rc = preallocatePhyPagesInDFile(context, count, pids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to preallocate page:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      if (rollback)
+      {
+         releaseLpidsPreallocated(context, count, lpids);
+      }
+      goto done;
+   }
+
+   INT32 collectionSpace::preallocateLpids(requestContext *context,
+                                           UINT32 count,
+                                           PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(0 != _idMapCapacity, "can not be invalid");
+      UINT32 offsets[PAGE_COUNT_IN_EXTENT] = {0};
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       0 == count ||
+                       PAGE_COUNT_IN_EXTENT < count ||
+                       NULL == lpids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (OSS_UNLIKELY(!isInMemBitMapsReady()))
+      {
+         rc = initInMemBitMaps(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init in memory bit map:%d", rc);
+            goto error;
+         }
+      }
+
+      do
+      {
+         UINT32 pageCount = _pageAllocatedInMetaSMP;
+         rc = _inMemLpidPool.allocateBits(count, offsets);
+         if (SDB_OK == rc)
+         {
+            goto done;
+         }
+         else if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE != rc)
+         {
+            PD_LOG(PDERROR, "failed to allocate lpid from bitmap:%d", rc);
+            goto error;
+         }
+         else
+         {
+            rc = ensureNewIMPAndExtendPool(context, pageCount);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to ensure new imp:%d", rc);
+               goto error;
+            }
+            continue;
+         }
+      } while (TRUE);
+      
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void collectionSpace::releaseLpidsPreallocated(requestContext *context,
+                                                  UINT32 count,
+                                                  PAGE_ID *lpids)
+   {
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(0 < count, "can not be zero");
+      SDB_ASSERT(NULL != lpids, "can not be null");
+      _inMemLpidPool.releaseBits(count, lpids);
    }
 
    INT32 collectionSpace::allocateDataPages(requestContext *context,
@@ -955,7 +1108,7 @@ namespace vessel
       }
 
       impPid = getDataIMPPid(lpids[0]);
-      if (INVALID_PAGE_ID == smpPid)
+      if (INVALID_PAGE_ID == impPid)
       {
          PD_LOG(PDERROR, "failed to pid of imp, lpid[%d]", lpids[0]);
          rc = SDB_VESSEL_INTERNAL_ERR;
@@ -965,7 +1118,7 @@ namespace vessel
       for (UINT32 i = 1; i < count; ++i)
       {
          PAGE_ID tmpImp = getDataIMPPid(lpids[i]);
-         if (INVALID_PAGE_ID == smpPid)
+         if (INVALID_PAGE_ID == tmpImp)
          {
             PD_LOG(PDERROR, "failed to pid of imp, lpid[%d]", lpids[0]);
             rc = SDB_VESSEL_INTERNAL_ERR;
@@ -986,13 +1139,13 @@ namespace vessel
          goto error;
       }
 
-      rc = mapNewLpids(context, count, lpids, pids, &oplistLsn, oplistTail);
+      rc = mapNewLpids(context, count, lpids, pids, oplistLsn, oplistTail);
       if (SDB_OK != rc)
       {
          PD_LOG(PDWARNING, "begin to rollback allocating on smp");
          if (SDB_OK != releaseDataPagesOnSMP(context, count, pids, &oplistLsn))
          {
-            PD_LOG(PDERROR, "failed to rollback allocating:%d", rc);
+            PD_LOG(PDSEVERE, "failed to rollback allocating:%d", rc);
             IRedoLogger *logger = context->getOuterResource()->logger;
             logger->abortOplist(context->getSession(), oplistLsn);
          }
@@ -1004,6 +1157,19 @@ namespace vessel
       {
          *oplist = oplistLsn;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collectionSpace::releaseDataPages(requestContext *context,
+                                UINT32 count,
+                                const PAGE_ID *lpids,
+                                DPS_LSN_OFFSET oplist)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(FALSE, "todo");
    done:
       return rc;
    error:
@@ -1027,6 +1193,10 @@ namespace vessel
       
       PAGE_ID smpPid = INVALID_PAGE_ID;
       UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
+      if (NULL != oplist)
+      {
+         flags |= PAGE_ACCESSOR_FLAG_OPLIST_HEAD;
+      }
       smpAccessor smp;
       
       smpPid = getDataSMPPId(pids[0]);
@@ -1045,10 +1215,15 @@ namespace vessel
       }
 
       rc = smp.allocatePages(context, _maxPageCountPerDataFile,
-                             type, count, lpids, pids, args, oplist);
+                             type, count, lpids, pids, args);
       if (SDB_OK != rc)
       {
          goto error;
+      }
+
+      if (NULL != oplist)
+      {
+         *oplist = smp.getOplist();
       }
    done:
       smp.fini(context);
@@ -1074,7 +1249,7 @@ namespace vessel
                                       UINT32 count,
                                       const PAGE_ID *lpids,
                                       const PAGE_ID *pids,
-                                      const DPS_LSN_OFFSET *oplist,
+                                      DPS_LSN_OFFSET oplist,
                                       BOOLEAN oplistTail)
    {
       INT32 rc = SDB_OK;
@@ -1082,10 +1257,22 @@ namespace vessel
       SDB_ASSERT(NULL != _su, "can not be null");
       SDB_ASSERT(0 != count, "can not be zero");
       SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
+      SDB_ASSERT(DPS_INVALID_LSN_OFFSET != oplist, "can not be invalid");
 
+      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       PAGE_ID impPid = INVALID_PAGE_ID;
       snapshotContainer &container = context->getEnv()->snapContainer;
       impAccessor imp;
+      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
+
+      if (DPS_INVALID_LSN_OFFSET != oplist)
+      {
+         lsn = oplist;
+         if (oplistTail)
+         {
+            flags |= PAGE_ACCESSOR_FLAG_OPLIST_TAIL;
+         }
+      }
 
       impPid = getDataIMPPid(lpids[0]);
       if (OSS_UNLIKELY(INVALID_PAGE_ID == impPid))
@@ -1096,13 +1283,13 @@ namespace vessel
       }
 
       rc = imp.init(context, SPACE_TYPE_RECORD_M, impPid,
-                     PAGE_ACCESSOR_FLAG_NON_READONLY, _su);
+                     flags, _su, lsn);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = imp.map(context, count, lpids, pids, container.getOnlineID(), oplist, oplistTail);
+      rc = imp.map(context, count, lpids, pids, container.getOnlineID());
       if (SDB_OK != rc)
       {
          goto error;
@@ -1194,6 +1381,73 @@ namespace vessel
       {
          _su->removeLastDataFile(context);
       }
+      goto done;
+   }
+
+   INT32 collectionSpace::ensureNewIMPAndExtendPool(requestContext *context,
+                                                    UINT32 oldPageAllocated)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _su, "can not be null");
+      SDB_ASSERT(0 <_maxPageCountPerMetaFile, "can not be zero");
+      SDB_ASSERT(0 <_pageAllocatedInMetaSMP, "can not be zero");
+      UINT32 pageCountInSeg = 0;
+      PAGE_ID impPid = INVALID_PAGE_ID;
+      ossScopedLock lock(&_dataAndMetaSpaceLatch);
+
+      if (oldPageAllocated < _pageAllocatedInMetaSMP)
+      {
+         goto done;
+      }
+
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, NULL, &pageCountInSeg);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      SDB_ASSERT(128 == pageCountInSeg, "must be 128");
+      /// all pages in current file were allocated.
+      if (0 == (_pageAllocatedInMetaSMP & (pageCountInSeg - 1)))
+      {
+         UINT32 segCount = (_pageAllocatedInMetaSMP >> 7) + 1;/// _pageAllocatedInMetaSMP / 128
+         /// segment count must be specified that we do not need to
+         /// rollback file size if get any error then.
+         rc = _su->extendMetaFile(context, &segCount);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extentd meta file:%d", rc);
+            goto error;
+         }
+      }
+
+      impPid = _pageAllocatedInMetaSMP;
+      rc = initIMP(context, impPid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init new imp[%d], rc:%d", impPid, rc);
+         goto error;
+      }
+
+      rc = _su->fsync(SPACE_TYPE_RECORD_M, impPid, TRUE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to fsync pid[%d], rc:%d", impPid, rc);
+         goto error;
+      }
+
+      rc = _inMemLpidPool.allocateNewBitPage();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to extend in-mem bitmap:%d", rc);
+         goto error;
+      }
+
+      ++_pageAllocatedInMetaSMP;
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -1299,11 +1553,15 @@ namespace vessel
       ossValuePtr ptr = 0;
       crpAccessor crp;
       UINT32 capacity = 0;
-      UINT64 bitmap = 0;
       collectionRecord record;
       
-
       rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = getCapacityOfCLRecordPage(pageSize, capacity);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1323,25 +1581,18 @@ namespace vessel
          goto error;
       }
 
-      rc = crp.getHeadContent(capacity, bitmap);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
       for (UINT32 i = 0; i < capacity; ++i)
       {
          collectionAllocator::collectionHolder *holder = NULL;
          strSlice nameSlice;
-         UINT32 slot = (UINT64)1 << i;
-         if (OSS_BIT_TEST(bitmap, slot))
-         {
-            /// bit 1 means free
-            continue;
-         }
 
          rc = crp.getClRecordBySlot(i, record);
-         if (SDB_OK != rc)
+         if (SDB_DMS_NOTEXIST == rc)
+         {
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
          {
             goto error;
          }
@@ -1408,6 +1659,39 @@ namespace vessel
       goto done;
    }
 
+   INT32 collectionSpace::updateStatusToOnlineWhenCreating(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _su, "can not be null");
+      SDB_ASSERT(!_recordInMem.isOnline(), "can not be online");
+      dataIDMapFileHead h;
+      csgpAccessor accessor;
+
+      _su->dumpIDMapFileHead(h);
+      rc = accessor.init(context, SPACE_TYPE_RECORD_M,
+                         CS_GLOBAL_META_PAGE_ID,
+                         PAGE_ACCESSOR_FLAG_NON_READONLY,
+                         getSU());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "fialed to init accessor:%d", rc);
+         goto error;
+      }
+
+      rc = accessor.setOnlineWhenCreating(context, h);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      _recordInMem.status = CMR_STATUS_ONLINE;
+   done:
+      accessor.fini(context);
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionSpace::initNecessaryPagesWhenCreating(requestContext *context)
    {
       INT32 rc = SDB_OK;
@@ -1423,7 +1707,7 @@ namespace vessel
          goto error;
       }
 
-      rc = initSystemIMP(context);
+      rc = initIMP(context, SYSTEM_MAP_PAGE_ID);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1546,9 +1830,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::initSystemIMP(requestContext *context)
+   INT32 collectionSpace::initIMP(requestContext *context,
+                                  PAGE_ID pid)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       UINT32 pageSize = 0;
       impAccessor imp;
       ossValuePtr ptr = 0;
@@ -1569,7 +1856,7 @@ namespace vessel
 
       rc = imp.initWithDirectMode(context,
                      SPACE_TYPE_RECORD_M,
-                     SYSTEM_MAP_PAGE_ID,
+                     pid,
                      pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
@@ -1976,6 +2263,8 @@ namespace vessel
       }
 
       idMapBitsCount = ossAlign64(_idMapCapacity) >> 6;
+      /// skip system id map page.
+      _inMemLpidPool.incPageCount();
       for (PAGE_ID i = SYSTEM_MAP_PAGE_ID + 1; i < maxPid; ++i)
       {
          UINT32 freeCount = 0;
@@ -2022,11 +2311,16 @@ namespace vessel
       goto done;
    }
 
+   BOOLEAN collectionSpace::isInMemBitMapsReady()const
+   {
+      return _inMemDataSMP.isInitialized();
+   }
+
    INT32 collectionSpace::initInMemBitMaps(requestContext *context)
    {
       INT32 rc = SDB_OK;
       ossScopedLock lock(&_dataAndMetaSpaceLatch);
-      if (_inMemDataSMP.isInitialized())
+      if (isInMemBitMapsReady())
       {
          goto done;
       }

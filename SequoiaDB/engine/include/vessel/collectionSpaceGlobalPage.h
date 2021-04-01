@@ -47,11 +47,19 @@ namespace vessel
 {
    const UINT32 INALID_CMR_VERSION = 0;
    const UINT32 CMR_VERSION_1 = 1;
-   const UINT32 CMR_STATUS_ONLINE = 0x01;
-   const UINT32 CMR_FLAG_IS_SYS = 0x01;
 
-   const UINT32 CS_META_RECORD_ON_DISK_LEN = 1024;
-   const PAGE_ID CS_GLOBAL_META_PAGE_ID = 1;
+   const static UINT32 CMR_STATUS_CREATING = 0;
+   const static UINT32 CMR_STATUS_ONLINE = 1;
+   const static UINT32 CMR_STATUS_SNAPSHOT = 2;
+
+   const static UINT32 CMR_FLAG_IS_SYS = 0x01;
+
+   const static PAGE_ID CS_GLOBAL_META_PAGE_ID = 1;
+
+   const static UINT64 CSGP_UPDATE_MASK_STATUS = 0x01;
+   const static UINT64 CSGP_UPDATE_MASK_FLAGS = 0x02;
+   const static UINT64 CSGP_UPDATE_MASK_MAX_CLLID = 0x04;
+   const static UINT64 CSGP_UPDATE_MASK_NAME = 0x08;
 
 #pragma pack(4)
    struct csMetaRecord
@@ -84,11 +92,6 @@ namespace vessel
          ossMemset(name, 0, sizeof(name));
       }
 
-      OSS_INLINE void setOnline()
-      {
-         status = CMR_STATUS_ONLINE;
-      }
-
       OSS_INLINE BOOLEAN isOnline()const
       {
          return CMR_STATUS_ONLINE == status;
@@ -105,16 +108,6 @@ namespace vessel
       }
    };//struct csMetaRecord
    const UINT32 CS_META_RECORD_LEN = sizeof(csMetaRecord);
-
-   struct csMetaRecordOnDisk
-   {
-      csMetaRecordOnDisk()
-      {
-         ossMemset(pad, 0, sizeof(pad));
-      }
-      csMetaRecord record;
-      CHAR pad[CS_META_RECORD_ON_DISK_LEN-CS_META_RECORD_LEN];
-   }; //struct csMetaRecordOnDisk
 
 #pragma pack()
 

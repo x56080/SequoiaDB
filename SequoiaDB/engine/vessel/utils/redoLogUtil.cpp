@@ -50,6 +50,7 @@ namespace engine
 {
 namespace vessel
 {
+   /*
    INT32 initCreateCSLogRecord(const CHAR *name,
                                const SPACE_ID *sid,
                                const utilCSUniqueID *uniqueID,
@@ -98,6 +99,41 @@ namespace vessel
 
       head->_length = lr.alignedLen();
 
+   done:
+      return rc;
+   error:
+      goto done;
+   }*/
+
+   INT32 pushFullNameElement(IRedoLogger *logger,
+                             ISession *session,
+                             logRecordContext *lrc,
+                             const strSlice &csName,
+                             const strSlice &clName)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 len = csName.strLen() + clName.strLen() + 2;
+      CHAR fullName[DMS_COLLECTION_NAME_SZ + DMS_COLLECTION_SPACE_NAME_SZ + 2] = {0};
+      if (OSS_UNLIKELY(NULL == lrc || NULL == logger || NULL == session))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(sizeof(fullName) < len))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      ossMemcpy(fullName, csName.str(), csName.strLen());
+      fullName[csName.strLen()] = '.';
+      ossMemcpy(fullName + csName.strLen() + 1, clName.str(), clName.strLen());
+      rc = logger->pushLogRecordElement(session, lrc, DPS_LOG_PUBLIC_FULLNAME,
+                                        len, fullName);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       return rc;
    error:

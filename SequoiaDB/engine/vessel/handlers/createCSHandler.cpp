@@ -73,10 +73,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
-      SPACE_ID sid = INVALID_SPACE_ID;
-      IRedoLogger *logger = getContext()->getOuterResource()->logger;
       CS_CONTAINER &cc = getContext()->getEnv()->csContainer;
-      dpsLogRecord lr;
       strSlice nameSlice;
 
       if (OSS_UNLIKELY(NULL == name))
@@ -95,20 +92,6 @@ namespace vessel
       rc = cc.createCS(getContext(), nameSlice, uniqueID, options);
       if (SDB_OK != rc)
       {
-         goto error;
-      }
-
-      rc = initCreateCSLogRecord(name, &sid, &uniqueID, &options, lr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to build log:%d", rc);
-         goto error;
-      }
-
-      rc = logger->log(getContext()->getSession(), &lr, NULL);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to write log:%d", rc);
          goto error;
       }
    done:

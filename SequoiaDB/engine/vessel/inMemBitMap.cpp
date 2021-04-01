@@ -235,7 +235,7 @@ namespace vessel
 
       if (_free < count)
       {
-         rc = SDB_VESSEL_SMP_NO_FREE;
+         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 
@@ -492,7 +492,7 @@ namespace vessel
       else
       {
          rc = allocateBitsFromLFC(count, buf);
-         if (SDB_VESSEL_SMP_NO_FREE == rc)
+         if (SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE == rc)
          {
             rc = allocateBitsFromHFC(count, buf);
             if (SDB_OK != rc)
@@ -547,6 +547,12 @@ namespace vessel
             {
                break;
             }
+         }
+
+         if ((INT32)_pageCount <= pageId)
+         {
+            SDB_ASSERT(FALSE, "invalid offset to be released");
+            continue;
          }
 
          _PAGE_MAP::iterator itr = _pagesWithHighFreeCount.find(pageId);
@@ -714,7 +720,7 @@ namespace vessel
 
       if (NULL == page)
       {
-         rc = SDB_VESSEL_SMP_NO_FREE;
+         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 
@@ -764,7 +770,7 @@ namespace vessel
 
       if (NULL == page)
       {
-         rc = SDB_VESSEL_SMP_NO_FREE;
+         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 

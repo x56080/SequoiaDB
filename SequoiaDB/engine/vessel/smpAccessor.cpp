@@ -51,8 +51,7 @@ namespace engine
 {
 namespace vessel
 {
-   smpAccessor::smpAccessor():
-   _capacity(0)
+   smpAccessor::smpAccessor()
    {}
 
    smpAccessor::~smpAccessor()
@@ -164,8 +163,7 @@ namespace vessel
                                     UINT32 count,
                                     const PAGE_ID *lpids,
                                     const PAGE_ID *pids,
-                                    const slice &args,
-                                    DPS_LSN_OFFSET *oplist)
+                                    const slice &args)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
@@ -198,7 +196,7 @@ namespace vessel
          goto error;
       }
 
-      rc = prepareSMPAllocateLog(context, &lrContext, NULL != oplist,
+      rc = prepareSMPAllocateLog(context, &lrContext,
                                  count, args);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -227,10 +225,7 @@ namespace vessel
       pageAccessor::commit(context, lsn);
       rollback = FALSE;
       lrContext.close();
-      if (NULL != oplist)
-      {
-         *oplist = lsn;
-      }
+
    done:
       return rc;
    error:
@@ -253,7 +248,6 @@ namespace vessel
                               CHAR *buffer)
    {
       INT32 rc = SDB_OK;
-      const CHAR *ptr = NULL;
       if (OSS_UNLIKELY(NULL == buffer))
       {
          rc = SDB_INVALIDARG;
@@ -285,7 +279,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 != bitsCount, "can not be zero");
       SDB_ASSERT(0 != count && NULL != pids, "can not be invalid");
-      const spaceManagementPageHead *head = NULL;
       const GLOBAL_PAGE_ID &gpid = getGPID();
       const UINT64 *bits = NULL;
       UINT32 capacity = bitsCount << 6;/// bitsCount * 64
@@ -364,25 +357,18 @@ namespace vessel
 
    INT32 smpAccessor::prepareSMPAllocateLog(requestContext *context,
                                             logRecordContext *lrc,
-                                            BOOLEAN oplist,
                                             UINT32 count,
                                             const slice &args)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      ISession *session = context->getSession();
+
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
       head->_type = LOG_TYPE_VESSEL_SMP_ALLOCATE;
-      OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
-      if (oplist)
-      {
-         OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_OP_HEAD);
-      }
 
       /*enum DPS_LOG_VESSEL_SMP_ALLOCATE
    {
@@ -403,22 +389,10 @@ namespace vessel
       {
          lrc->prepush(args.len());
       }
-      rc = prepareFullDumpLogWhenNecessary(context, lrc);
+      rc = prepareLogDone(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
-      }
-      lrc->prepushDone();
-
-      rc = logger->prepare(session, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (oplist)
-      {
-         head->_opListLSN = head->_lsn;
       }
    done:
       return rc;

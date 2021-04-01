@@ -42,26 +42,23 @@ namespace engine
 {
 namespace vessel
 {
-   static const UINT32 ROUTE_PAGE_NEXT_LVL_SLOT_COUNT = 4;
-
    static const UINT16 ROUTE_PAGE_VERSION = 1;
-   static const UINT32 ROUTE_PAGE_FLAG_LVL0 = 0x01;
-   static const UINT32 ROUTE_PAGE_FLAG_LVL1 = 0x02;
-   static const UINT32 ROUTE_PAGE_FLAG_LVL2 = 0x04;
 
 #pragma pack(4)
    struct routePageHead
    {
       UINT16 version;
+      /// WARNING: count can never shrink.
       UINT16 count;
-      UINT32 flags;
-      UINT32 nextLvls[ROUTE_PAGE_NEXT_LVL_SLOT_COUNT];
-
+      UINT32 logicalId;
+      UINT64 pad;
    };//struct routePageHead
 
    static const UINT32 ROUTE_PAGE_HEAD_LEN = sizeof(routePageHead);
 
 #pragma pack()
+
+   UINT32 getCapacityOfRoutePage(UINT32 pageSize);
 }//namespace vessel
 }//namespace engine
 

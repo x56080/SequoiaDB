@@ -340,9 +340,7 @@ namespace vessel
                           UINT32 count,
                           const PAGE_ID *lpids,
                           const PAGE_ID *pids,
-                          SNAPSHOT_ID snap,
-                          const DPS_LSN_OFFSET *oplist,
-                          BOOLEAN oplistTail)
+                          SNAPSHOT_ID snap)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!OSS_BIT_TEST(getFlags(), PAGE_ACCESSOR_FLAG_DIRECT), "can not be mmap");
@@ -368,11 +366,6 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(oplistTail && (NULL == oplist || DPS_INVALID_LSN_OFFSET == *oplist)))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
       rc = getCapacityOfIMP(pageSize, capacity);
       if (SDB_OK != rc)
@@ -390,7 +383,7 @@ namespace vessel
       logger = context->getOuterResource()->logger;
       session = context->getSession();
 
-      rc = prepareMapLog(context, &lrc, count, oplist, oplistTail);
+      rc = prepareMapLog(context, &lrc, count);
       if (SDB_OK != rc)
       {
          goto error;
@@ -482,48 +475,26 @@ namespace vessel
 
    INT32 impAccessor::prepareMapLog(requestContext *context,
                                     logRecordContext *lrc,
-                                    UINT32 count,
-                                    const DPS_LSN_OFFSET *oplist,
-                                    BOOLEAN oplistTail)
+                                    UINT32 count)
    {
       INT32 rc = SDB_OK;
-      ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
-      IRedoLogger *logger = context->getOuterResource()->logger;
       dpsLogRecordHeader *head = NULL;
 
       head = &(lrc->getHead());
       head->_type = LOG_TYPE_VESSEL_REMAP_LPID;
-      OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
-      if (NULL != oplist && DPS_INVALID_LSN_OFFSET != *oplist)
-      {
-         head->_opListLSN = *oplist;
-      }
-      if (oplistTail)
-      {
-         SDB_ASSERT(NULL != oplist && DPS_INVALID_LSN_OFFSET != *oplist, "can not be invalid");
-         OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_OP_TAIL);
-      }
 
       lrc->prepush(sizeof(GLOBAL_PAGE_ID));
       lrc->prepush(sizeof(UINT32));
       lrc->prepush(sizeof(SNAPSHOT_ID));
       lrc->prepush(sizeof(PAGE_ID) * count);
       lrc->prepush(sizeof(PAGE_ID) * count);
-      rc = prepareFullDumpLogWhenNecessary(context, lrc);
+      rc = prepareLogDone(context, lrc);
       if (SDB_OK != rc)
       {
          goto error;
       }
-      lrc->prepushDone();
-
-      rc = logger->prepare(session, lrc);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
    done:
       return rc;
    error:

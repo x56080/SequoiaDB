@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -54,12 +51,19 @@ namespace vessel
    class IRedoLogger;
    class ISession;
 
+/*
    INT32 initCreateCSLogRecord(const CHAR *name,
                                const SPACE_ID *sid,
                                const utilCSUniqueID *uniqueID,
                                const createCSOptions *options,
-                               dpsLogRecord &lr);
-   
+                               dpsLogRecord &lr);*/
+
+   INT32 pushFullNameElement(IRedoLogger *logger,
+                             ISession *session,
+                             logRecordContext *lrc,
+                             const strSlice &csName,
+                             const strSlice &clName);
+
 }//namespace vessel
 }//namespace engine
 

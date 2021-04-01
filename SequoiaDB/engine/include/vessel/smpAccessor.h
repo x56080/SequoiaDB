@@ -64,19 +64,13 @@ namespace vessel
             return PAGE_TYPE_SMP;
          }
 
-         OSS_INLINE void setCapacity(UINT32 c)
-         {
-            _capacity = c;
-         }
-
          INT32 allocatePages(requestContext *context,
                              UINT32 capacity,
                              PAGE_TYPE type,
                              UINT32 count,
                              const PAGE_ID *lpids,
                              const PAGE_ID *pids,
-                             const slice &args,
-                             DPS_LSN_OFFSET *oplist);
+                             const slice &args);
 
          INT32 dumpSMP(UINT32 bufferSize,
                        CHAR *buffer);
@@ -96,7 +90,6 @@ namespace vessel
 
          INT32 prepareSMPAllocateLog(requestContext *context,
                                      logRecordContext *lrc,
-                                     BOOLEAN oplist,
                                      UINT32 count,
                                      const slice &args);
 
@@ -107,9 +100,6 @@ namespace vessel
                                     const PAGE_ID *lpids,
                                     const PAGE_ID *pids,
                                     const slice &args);
-
-      private:
-         UINT32 _capacity;
    };//class smpAccessor
 }//namespace vessel
 }//namespace engine

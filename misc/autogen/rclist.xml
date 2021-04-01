@@ -3091,10 +3091,10 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_SMP_NO_FREE</name>
+         <name>SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE</name>
          <description>
-            <en>no free page in space management page</en>
-            <cn>空间管理页中没有空闲页存在</cn>
+            <en>not enough free resource</en>
+            <cn>空闲资源不足</cn>
          </description>
       </code>
 
@@ -3143,22 +3143,6 @@
          <description>
             <en>evicting from lru list hit the max steps</en>
             <cn>从LRU列表中淘汰页达到最大搜索步长</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_STRIPING_NOT_FOUND</name>
-         <description>
-            <en>target striping not found</en>
-            <cn>目标分区不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VESSEL_SG_NOT_FOUND</name>
-         <description>
-            <en>target striping group not found</en>
-            <cn>目标分区组不存在</cn>
          </description>
       </code>
 

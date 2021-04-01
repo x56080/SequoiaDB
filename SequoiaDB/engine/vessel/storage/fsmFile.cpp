@@ -126,7 +126,6 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
       ossValuePtr ptr = 0;
-      UINT32 offset = 0;
       UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
       UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp
       UINT32 nextFreePid = INVALID_PAGE_ID;
@@ -236,7 +235,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
-      const storageFileHead &head = getCommonHeadInMem();
       UINT32 totalCount = FSM_PAGE_SIZE >> 3;// dividec by 8
       PAGE_ID minFreePid = FSM_ENTRY_PAGE_COUNT + 1;/// 1 smp + all entry pages.
 
@@ -245,7 +243,7 @@ namespace vessel
       UINT32 offset = 0;
       if (_firstFree < 0)
       {
-         rc = SDB_VESSEL_SMP_NO_FREE;
+         rc = SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE;
          goto error;
       }
 

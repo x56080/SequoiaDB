@@ -42,6 +42,7 @@
 #include "vessel/pageAccessor.h"
 #include "vessel/collectionRecordPage.h"
 #include "vessel/strSlice.h"
+#include "vessel/redoLogUtil.h"
 
 namespace engine
 {
@@ -56,13 +57,18 @@ namespace vessel
          INT32 initPage(requestContext *context, PAGE_ID lpid);
 
          INT32 createCL(requestContext *context,
-                        const CHAR *csName,
                         const collectionRecord &record);
 
-         /// slot: [0, capacity)
-         INT32 getClRecordBySlot(UINT32 slot, collectionRecord &record);
+         /// record on disk must be valid.
+         INT32 update(requestContext *context,
+                      DPS_LOG_TYPE ddlType,
+                      UINT64 mask,
+                      const collectionRecord &record,
+                      const slice &adjuncts);
 
-         INT32 getHeadContent(UINT32 &capacity, UINT64 &bitmap);
+         /// slot: [0, capacity)
+         /// return SDB_DMS_NOTEXIST if slot is invalid.
+         INT32 getClRecordBySlot(UINT32 slot, collectionRecord &record);
 
          virtual PAGE_TYPE getPageType()const
          {
@@ -71,20 +77,22 @@ namespace vessel
 
       private:
          INT32 writeToSlot(UINT32 slot, const collectionRecord &record);
+         INT32 getRecordPtr(UINT32 slot, const collectionRecord **record);
+         INT32 getWritableRecordPtr(UINT32 slot, collectionRecord **record);
 
-         INT32 readFromSlot(UINT32 slot, collectionRecord &record);
+         INT32 prepareUpdateLog(requestContext *context,
+                                logRecordContext *lrc,
+                                DPS_LOG_TYPE ddlType,
+                                BOOLEAN hasOld,
+                                const slice &adjuncts);
 
-         INT32 prepareCreateCLLog(requestContext *context,
-                                  logRecordContext *lrc,
-                                  const strSlice &csName,
-                                  const GLOBAL_FULL_PAGE_ID &id,
-                                  const collectionRecord &record);
-
-         INT32 commitCreateCLLog(requestContext *context,
-                                 logRecordContext *lrc,
-                                 const strSlice &csName,
-                                 const GLOBAL_FULL_PAGE_ID &id,
-                                 const collectionRecord &record);
+         INT32 commitUpdateLog(requestContext *context,
+                               logRecordContext *lrc,
+                               DPS_LOG_TYPE ddlType,
+                               UINT64 mask,
+                               const collectionRecord *oldRecord,
+                               const collectionRecord &newRecord,
+                               const slice &adjuncts);
 
    };//class crpAccessor
 }//namespace vessel

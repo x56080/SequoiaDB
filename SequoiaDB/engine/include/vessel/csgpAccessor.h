@@ -41,6 +41,7 @@
 
 #include "vessel/pageAccessor.h"
 #include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
@@ -57,6 +58,9 @@ namespace vessel
       public:
          INT32 initPage(requestContext *context, const csMetaRecord &record);
 
+         INT32 setOnlineWhenCreating(requestContext *context,
+                                     const dataIDMapFileHead &head);
+
          INT32 readMetaRecord(csMetaRecord &record);
 
          INT32 allocateCLLogicalID(requestContext *context, UINT32 &logicalID);
@@ -68,11 +72,19 @@ namespace vessel
          }
 
       private:
-         INT32 prepareUpdateMetaLog(requestContext *context, logRecordContext *lrc);
-         INT32 commitUpdateMetaLog(requestContext *context,
-                                   logRecordContext *lrc,
-                                   UINT32 type,
-                                   const csMetaRecord &record);
+         INT32 prepareUpdateLog(requestContext *context,
+                                logRecordContext *lrc,
+                                DPS_LOG_TYPE ddlType,
+                                BOOLEAN hasOld,
+                                const slice &adjuncts);
+
+         INT32 commitUpdateLog(requestContext *context,
+                               logRecordContext *lrc,
+                               DPS_LOG_TYPE ddlType,
+                               UINT64 mask,
+                               const csMetaRecord *old,
+                               const csMetaRecord &record,
+                               const slice &adjuncts);
    };//class csgpAccessor
 }//class vessel
 }//class engine

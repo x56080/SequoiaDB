@@ -169,6 +169,20 @@ namespace vessel
       return _data.size();
    }
 
+   void storageUnit::dumpIDMapFileHead(dataIDMapFileHead &head)
+   {
+      if (NULL != _meta)
+      {
+         const dataIDMapFileHead &h = _meta->getHeadCache();
+         head.version = h.version;
+         head.data = h.data;
+         head.meta = h.meta;
+         head.index = h.index;
+         head.indexMeta = h.indexMeta;
+      }
+      return;
+   }
+
    INT32 storageUnit::getCoreArgs(SPACE_TYPE type,
                                   UINT32 *pageSize,
                                   UINT32 *maxPageCountPerSeg,
@@ -452,6 +466,10 @@ namespace vessel
 
    INT32 storageUnit::close(requestContext *context)
    {
+      if (NULL != _fsm && _fsm->isOpen())
+      {
+         _fsm->ossMmapFile::flushAll(TRUE);
+      }
       return close();
    }
 
@@ -542,9 +560,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::extendMetaFile(requestContext *context)
+   INT32 storageUnit::extendMetaFile(requestContext *context,
+                                     const UINT32 *segmentCount)
    {
       INT32 rc = SDB_OK;
+      UINT32 segCount = 0;
       ossScopedLock lock(&_extendingMetaLatch);
       if (!isOpen())
       {
@@ -552,11 +572,23 @@ namespace vessel
          goto error;
       }
 
-      rc = _meta->allocateNewSegment();
-      if (SDB_OK != rc)
+      segCount = NULL == segmentCount ?
+                 _meta->getSegmentCount() + 1 : *segmentCount;
+      if (_meta->getCommonHeadInMem().maxSegmentCountPerFile < segCount)
       {
+         rc = SDB_VESSEL_FS_UPPER_LIMIT;
          goto error;
       }
+
+      while (_meta->getSegmentCount() < segCount)
+      {
+         rc = _meta->allocateNewSegment();
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      
    done:
       return rc;
    error:

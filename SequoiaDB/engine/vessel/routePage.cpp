@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionSpaceGlobalPage.cpp
+   Source File Name = routePage.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,29 +33,32 @@
 
 ******************************************************************************/
 
-#include "vessel/collectionSpaceGlobalPage.h"
+#include "vessel/routePage.h"
+#include "pdTrace.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN metaRecordIsValid(const csMetaRecord &record)
+   UINT32 getCapacityOfRoutePage(UINT32 pageSize)
    {
-      BOOLEAN r = FALSE;
-      if (CMR_VERSION_1 != record.version)
-      {
-         goto done;
-      }
-      else if (0 == record.name[0] ||
-               0 != record.name[DMS_COLLECTION_SPACE_NAME_SZ])
+      SDB_ASSERT(DMS_PAGE_SIZE32K == pageSize ||
+                 DMS_PAGE_SIZE64K == pageSize, "invalid page size");
+      UINT32 capacity = 0;
+      UINT32 freeSize = 0;
+
+      if (OSS_UNLIKELY(DMS_PAGE_SIZE32K != pageSize &&
+                       DMS_PAGE_SIZE64K != pageSize))
       {
          goto done;
       }
 
-      r = TRUE;
+      freeSize = pageSize - PAGE_HEAD_LEN - PAGE_TAIL_LEN - ROUTE_PAGE_HEAD_LEN;
+      freeSize = freeSize & 0xffffffe0;///32 bytes aligned
+      capacity = freeSize >> 2; /// capacity = freeSize / 4 
    done:
-      return r;
+      return capacity;
    }
 }//namespace vessel
 }//namespace engine
-

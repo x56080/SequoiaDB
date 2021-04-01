@@ -290,13 +290,13 @@ namespace vessel
       return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE + ossAlign4(recordSize);
    }
 
+   /// in fact, we may not allocate new slot when insert record.
+   /// but ignore it here.
    OSS_INLINE UINT32 getMinSizeOfRecordInRdp()
    {
       return RDP_RECORD_HEAD_LEN + RDP_RSLOT_SIZE;
    }
    
-   /// in fact, we may not allocate new slot when insert record.
-   /// but ignore it here.
    OSS_INLINE BOOLEAN isBigRecordInRdp(UINT32 pageSize, UINT32 recordSize)
    {
       SDB_ASSERT(32768 == pageSize || 65536 == pageSize, "impossible");

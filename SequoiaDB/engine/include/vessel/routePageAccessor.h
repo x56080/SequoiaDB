@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = collectionSpaceGlobalPage.cpp
+   Source File Name = routePageAccessor.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,29 +33,32 @@
 
 ******************************************************************************/
 
-#include "vessel/collectionSpaceGlobalPage.h"
+#ifndef VESSEL_ROUTE_PAGE_ACCESSOR_H_
+#define VESSEL_ROUTE_PAGE_ACCESSOR_H_
+
+#include "vessel/pageAccessor.h"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN metaRecordIsValid(const csMetaRecord &record)
+   class routePageAccessor : public pageAccessor
    {
-      BOOLEAN r = FALSE;
-      if (CMR_VERSION_1 != record.version)
-      {
-         goto done;
-      }
-      else if (0 == record.name[0] ||
-               0 != record.name[DMS_COLLECTION_SPACE_NAME_SZ])
-      {
-         goto done;
-      }
+      public:
+         routePageAccessor(){}
+         virtual ~routePageAccessor(){}
 
-      r = TRUE;
-   done:
-      return r;
-   }
+      public:
+         INT32 initPage(requestContext *context,
+                        PAGE_ID lpid,
+                        UINT32 logicalId);
+
+      public:
+         virtual PAGE_TYPE getPageType()const
+         {
+            return PAGE_TYPE_ROUTE;
+         }
+   };//class routePageAccessor
 }//namespace vessel
 }//namespace engine
-
+#endif//VESSEL_ROUTE_PAGE_ACCESSOR_H_

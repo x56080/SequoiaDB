@@ -58,12 +58,13 @@ namespace vessel
    const UINT32 PAGE_COUNT_IN_EXTENT = 8;
 
    typedef UINT16 PAGE_TYPE;
-   const PAGE_TYPE INVALID_PAGE_TYPE = 65535;
-   const PAGE_TYPE PAGE_TYPE_SMP = 0;
-   const PAGE_TYPE PAGE_TYPE_ID_MAP = 1;
-   const PAGE_TYPE PAGE_TYPE_RECORD = 2;
-   const PAGE_TYPE PAGE_TYPE_CS_META = 3;
-   const PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
+   const static PAGE_TYPE INVALID_PAGE_TYPE = 65535;
+   const static PAGE_TYPE PAGE_TYPE_SMP = 0;
+   const static PAGE_TYPE PAGE_TYPE_ID_MAP = 1;
+   const static PAGE_TYPE PAGE_TYPE_RECORD = 2;
+   const static PAGE_TYPE PAGE_TYPE_CS_META = 3;
+   const static PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
+   const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
 
    OSS_INLINE void getPageEyeCatcher(SPACE_TYPE type, CHAR &e0, CHAR &e1)
    {

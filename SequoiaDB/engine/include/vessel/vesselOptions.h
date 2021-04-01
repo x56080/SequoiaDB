@@ -136,7 +136,8 @@ namespace vessel
       public:
       OSS_INLINE openDBOptions():
       createIfNotExists(FALSE),
-      fullDumpPageLog(FALSE)
+      fullDumpPageLog(FALSE),
+      extendFileWithSparse(FALSE)
       {}
 
       public:
@@ -144,10 +145,9 @@ namespace vessel
          std::string snapshotPath;
          std::string lsmPath;
 
-         /// for creating
          BOOLEAN createIfNotExists;
-         
          BOOLEAN fullDumpPageLog;
+         BOOLEAN extendFileWithSparse;
 
          liteCacheOptions cacheOptions;
    }; /// end of class openDBOptions
@@ -226,7 +226,7 @@ namespace vessel
 
       public:
       UINT16 type;
-      UINT16 maxStripingGroupCount;
+      UINT8 maxStripingGroupCount;
       UTIL_COMPRESSOR_TYPE compressionType;
 
    };/// end of class createCLOptions

@@ -155,13 +155,12 @@ namespace vessel
 
       public:
          INT32 getLpidOfClRecord(CL_MB_ID mbID, PAGE_ID &lpid)const;
-         INT32 getPhyPidInDFileToRead(requestContext *context,
-                                      PAGE_ID lpid,
-                                      PAGE_ID &pid);
-         INT32 getPhyPidInDFile(requestContext *context,
-                                PAGE_ID lpid,
-                                PAGE_ID &pid,
-                                PAGE_ID *toBeCow = NULL);
+         INT32 getDataPhyPidInIdMapToRead(requestContext *context,
+                                          PAGE_ID lpid,
+                                          PAGE_ID &pid);
+         INT32 getDataPhyPidInIdMapToWrite(requestContext *context,
+                                           PAGE_ID lpid,
+                                           PAGE_ID &pid);
 
          /// cs will read phy pid automatically if toBeCow set as invalid value 
          INT32 copyOnWritePageInDFile(requestContext *context,
@@ -170,13 +169,34 @@ namespace vessel
                                       PAGE_ID &pid);         
 
 
+         /// preallocate physical pids in mem
          INT32 preallocatePhyPagesInDFile(requestContext *context,
                                           UINT32 count,
                                           PAGE_ID *pids);
-         void releaseDataPagesPreallocated(requestContext *context,
+         void releasePhyPagesPreallocated(requestContext *context,
                                            UINT32 count,
                                            const PAGE_ID *pids);
 
+         /// preallocate logical and physical pids in mem
+         INT32 preallocateDataPages(requestContext *context,
+                                    UINT32 count,
+                                    PAGE_ID *lpids,
+                                    PAGE_ID *pids);
+
+         void releaseDataPagesPreallocated(requestContext *context,
+                                           UINT32 count,
+                                           const PAGE_ID *lpids,
+                                           const PAGE_ID *pids);
+
+         /// preallocate logical pids in mem
+         INT32 preallocateLpids(requestContext *context,
+                                UINT32 count,
+                                PAGE_ID *lpids);
+         void releaseLpidsPreallocated(requestContext *context,
+                                       UINT32 count,
+                                       PAGE_ID *lpids);
+
+         /// allocate physical pids and map them to logical pids in disk.
          INT32 allocateDataPages(requestContext *context,
                                  PAGE_TYPE type,
                                  UINT32 count,
@@ -184,6 +204,19 @@ namespace vessel
                                  const PAGE_ID *pids,
                                  const slice &args,
                                  DPS_LSN_OFFSET *oplist=NULL);
+
+         /// releaseDataPages will also release lpids in memory.
+         /// Physical pids' releasing depends on snapshot version.
+         /// If physical pid can be recycled, it will be released
+         /// in memory also.
+         /// In another word, you do not need to care about "releaseXXPrealloated"
+         /// any more if releaseDataPages returns ok.
+         /// But if it returns error and you are rollbacking oplist, remember to
+         /// abort oplist by logger's abortOplist.
+         INT32 releaseDataPages(requestContext *context,
+                                UINT32 count,
+                                const PAGE_ID *lpids,
+                                DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
       private:
          PAGE_ID getDataSMPPId(PAGE_ID pid);
          INT32 allocateDataPagesOnSMP(requestContext *context,
@@ -201,8 +234,15 @@ namespace vessel
                            UINT32 count,
                            const PAGE_ID *lpids,
                            const PAGE_ID *pids,
-                           const DPS_LSN_OFFSET *oplist=NULL,
+                           DPS_LSN_OFFSET oplist,
                            BOOLEAN oplistTail=FALSE);
+
+         /// under lpid exclusive latch.
+         /// you must remap lpid to a new physical page before writing if mustBeCow is TRUE.
+         INT32 getDataPhyPidInIdMapToWrite(requestContext *context,
+                                           PAGE_ID lpid,
+                                           PAGE_ID &pid,
+                                           BOOLEAN &mustBeCow);
       private:
          BOOLEAN addToCreatingIndex(const strSlice &clName,
                                     utilCLInnerID innerID);
@@ -237,10 +277,12 @@ namespace vessel
       private:
          void fini();
          INT32 initNecessaryPagesWhenCreating(requestContext *context);
+         INT32 updateStatusToOnlineWhenCreating(requestContext *context);
          INT32 firstExtendMetaFile(requestContext *context);
          INT32 initGMP(requestContext *context,
                        const csMetaRecord &record);
-         INT32 initSystemIMP(requestContext *context);
+         INT32 initIMP(requestContext *context,
+                       PAGE_ID pid);
 
          INT32 initDataSMP(requestContext *context,
                            PAGE_ID pid);
@@ -256,12 +298,15 @@ namespace vessel
                                    UINT32 &lid);
          PAGE_ID getDataIMPPid(PAGE_ID lpid)const;
 
-         /// only create
          INT32 createNewDataFileAndExtendBitMap(requestContext *context,
                                                 const UINT32 *oldPageCount);
 
+         INT32 ensureNewIMPAndExtendPool(requestContext *context,
+                                         UINT32 oldPageAllocated);
+
          INT32 initParamsInMem();
          
+         BOOLEAN isInMemBitMapsReady()const;
          INT32 initInMemBitMaps(requestContext *context);
          INT32 initInMemLpidPool(requestContext *context);
          INT32 initInMemDataSMPBitMap(requestContext *context);

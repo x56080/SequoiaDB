@@ -803,7 +803,7 @@ namespace vessel
 
       if (_headInMem.maxSegmentCountPerFile < count)
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_FS_UPPER_LIMIT;
          goto error;
       }
 

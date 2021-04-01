@@ -102,6 +102,8 @@ namespace vessel
 
          UINT32 getDataFileCount();
 
+         void dumpIDMapFileHead(dataIDMapFileHead &head);
+
       public:
          INT32 create(requestContext *context,
                       const createSUOptions &options);
@@ -114,7 +116,8 @@ namespace vessel
          INT32 close(requestContext *context);
 
       public:
-         INT32 extendMetaFile(requestContext *context);
+         INT32 extendMetaFile(requestContext *context,
+                              const UINT32 *segmentCount=NULL);
 
          INT32 createDataFile(requestContext *context,
                               UINT32 *sequenceOfNewFile);

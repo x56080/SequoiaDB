@@ -73,9 +73,7 @@ namespace vessel
                    UINT32 count,
                    const PAGE_ID *lpids,
                    const PAGE_ID *pids,
-                   SNAPSHOT_ID snap,
-                   const DPS_LSN_OFFSET *oplist,
-                   BOOLEAN oplistTail);
+                   SNAPSHOT_ID snap);
 
          /// WARNING: size of bits should be enough.
          INT32 dumpAsBitMap(UINT64 *bits, UINT32 &free);
@@ -102,9 +100,7 @@ namespace vessel
          
          INT32 prepareMapLog(requestContext *context,
                              logRecordContext *lrc,
-                             UINT32 count,
-                             const DPS_LSN_OFFSET *oplist,
-                             BOOLEAN oplistTail);
+                             UINT32 count);
 
          INT32 commitMapLog(requestContext *context,
                             logRecordContext *lrc,
