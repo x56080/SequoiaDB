@@ -81,9 +81,10 @@ protected:
    INT32 _recvFromSocket( CHAR *&pMsg, BOOLEAN &recvSomething ) ;
    INT32 _buildResponse( _mongoCommand *pCommand,
                          CHAR *&pRes ) ;
-   INT32 _reply( _mongoCommand *pCommand ) ;
+   INT32 _reply( _mongoCommand *pCommand, mongoSessionCtx &sessCtx ) ;
    INT32 _reply( _mongoCommand *pCommand, const CHAR* pMsg,
-                 INT32 errCode, const BSONObj &errObj ) ;
+                 INT32 errCode, const BSONObj &errObj,
+                 mongoSessionCtx &sessCtx ) ;
 
 private:
    void  _resetBuffers() ;

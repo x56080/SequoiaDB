@@ -190,11 +190,12 @@ INT32 _mongoSession::run()
          // convert mongo message to command
          _resetBuffers() ;
          sessCtx.resetError() ;
+         sessCtx.sessionName = sessionName() ;
 
          rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx, _inBuffer ) ;
          if ( rc )
          {
-            rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj ) ;
+            rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj, sessCtx ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Session[%s] failed to reply, rc: %d",
                          sessionName(), rc ) ;
@@ -224,7 +225,7 @@ INT32 _mongoSession::run()
                   }
                }
 
-               rc = _reply( pCommand ) ;
+               rc = _reply( pCommand, sessCtx ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Session[%s] failed to reply, rc: %d",
                             sessionName(), rc ) ;
@@ -241,7 +242,7 @@ INT32 _mongoSession::run()
                   rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
                   PD_LOG( PDERROR, "Not authorized to execute %s command, "
                           "rc: %d", pCommand->name(), rc ) ;
-                  rc = _reply( pCommand, pMsg, rc, BSONObj() ) ;
+                  rc = _reply( pCommand, pMsg, rc, BSONObj(), sessCtx ) ;
                   PD_RC_CHECK( rc, PDERROR,
                                "Session[%s] failed to reply, rc: %d",
                                sessionName(), rc ) ;
@@ -906,7 +907,8 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_reply( _mongoCommand *pCommand )
+INT32 _mongoSession::_reply( _mongoCommand *pCommand,
+                             mongoSessionCtx &sessCtx )
 {
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
@@ -916,10 +918,19 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand )
                 "Session[%s] failed to build response, rc: %d",
                 sessionName(), rc ) ;
 
+   PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
+           "command: %s, clFullName: %s ] down",
+           ossGetCurrentThreadID(),
+           sessCtx.sessionName.c_str(),
+           (pCommand)->name() ? (pCommand)->name() : "",
+           (pCommand)->clFullName() ? (pCommand)->clFullName() : "" ) ;
+
    // send response
    if ( headerBuf.usedSize > 0 )
    {
       INT32 rcTmp = SDB_OK ;
+      const mongoResponse *res = (mongoResponse*)headerBuf.data ;
+
       rcTmp = sendData( (CHAR *)&headerBuf, headerBuf.usedSize ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to send response header, rc: %d",
@@ -932,6 +943,18 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand )
                       "Session[%s] failed to send response body, rc: %d",
                       sessionName(), rcTmp ) ;
       }
+
+      PD_LOG( PDDEBUG, "Send mongodb reply msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s, msgHead: { msgLen: %d,"
+              " requestId: %d, responseTo: %d, opCode: %d, reservedFlags: %d,"
+              " cursorId: %llu, startingFrom: %d, nReturned: %d } ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              (pCommand)->name() ? (pCommand)->name() : "",
+              (pCommand)->clFullName() ? (pCommand)->clFullName() : "",
+              res->header.msgLen, res->header.requestId, res->header.responseTo,
+              res->header.opCode, res->reservedFlags, res->cursorId,
+              res->startingFrom, res->nReturned ) ;
    }
 
 done:
@@ -941,7 +964,8 @@ error:
 }
 
 INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
-                             INT32 errCode, const BSONObj &errObj )
+                             INT32 errCode, const BSONObj &errObj,
+                             mongoSessionCtx &sessCtx )
 {
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
@@ -972,6 +996,13 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to build response, rc: %d",
                    sessionName(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              (pCommand)->name() ? (pCommand)->name() : "",
+              (pCommand)->clFullName() ? (pCommand)->clFullName() : "" ) ;
    }
    else
    {
@@ -1003,12 +1034,22 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
          res.nReturned = _contextBuff.recordNum() ;
          headerBuf.setData( (const CHAR*)&res, sizeof( res ) ) ;
       }
+
+      PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
+              pCommand ? ( (pCommand)->clFullName() ?
+              (pCommand)->clFullName() : "" ) : "" ) ;
    }
 
    // send response
    if ( headerBuf.usedSize > 0 )
    {
       INT32 rcTmp = SDB_OK ;
+      const mongoResponse *res = (mongoResponse*)headerBuf.data ;
+
       rcTmp = sendData( (CHAR *)&headerBuf, headerBuf.usedSize ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to send response header, rc: %d",
@@ -1021,6 +1062,19 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
                       "Session[%s] failed to send response body, rc: %d",
                       sessionName(), rcTmp ) ;
       }
+
+      PD_LOG( PDDEBUG, "Send mongodb reply msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s, msgHead: { msgLen: %d,"
+              " requestId: %d, responseTo: %d, opCode: %d, reservedFlags: %d,"
+              " cursorId: %llu, startingFrom: %d, nReturned: %d } ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
+              pCommand ? ( (pCommand)->clFullName() ?
+              (pCommand)->clFullName() : "" ) : "",
+              res->header.msgLen, res->header.requestId, res->header.responseTo,
+              res->header.opCode, res->reservedFlags, res->cursorId,
+              res->startingFrom, res->nReturned ) ;
    }
 
 done:

@@ -762,6 +762,13 @@ static INT32 _mongoGetAndInitCommand( const CHAR *commandName,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build sdb message for command[%s], rc: %d",
                    (*ppCommand)->name(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Init and build sdb msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              commandName ? commandName : "",
+              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "" ) ;
    }
    catch ( std::exception &e )
    {

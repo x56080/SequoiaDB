@@ -78,6 +78,7 @@ struct mongoSessionCtx
    BSONObj lastErrorObj ;
    string userName ;
    mongoAuthInfo authInfo ;
+   string sessionName ;
 
    mongoSessionCtx() : clientInfo(), hasParsedClientInfo( FALSE ) {}
 
