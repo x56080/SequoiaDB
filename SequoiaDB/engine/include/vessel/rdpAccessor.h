@@ -57,8 +57,8 @@ namespace vessel
    class rdpAccessor : public pageAccessor
    {
       public:
-         rdpAccessor();
-         virtual ~rdpAccessor();
+         rdpAccessor(){}
+         virtual ~rdpAccessor(){}
       public:
          INT32 initRdp(requestContext *context,
                        PAGE_ID lpid,
@@ -66,6 +66,11 @@ namespace vessel
                        UINT32 sequence);
 
          INT32 insert(insertContext *context);
+
+         virtual PAGE_TYPE getPageType()const
+         {
+            return PAGE_TYPE_RECORD;
+         }
       private:
          INT32 validatePage(UINT32 logicalID);
 

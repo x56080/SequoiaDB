@@ -36,6 +36,10 @@
 #include "vessel/routePageAccessor.h"
 #include "ossLikely.hpp"
 #include "vessel/routePage.h"
+#include "vessel/logRecordContext.h"
+#include "vessel/IRedoLogger.h"
+#include "dpsLogRecordDef.hpp"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -113,5 +117,316 @@ namespace vessel
       }
       goto done;
    }
+
+   INT32 routePageAccessor::appendSlots(requestContext *context,
+                                        UINT32 logicalId,
+                                        UINT32 slot,
+                                        UINT32 count,
+                                        const PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      const routePageHead *rHead = NULL;
+      routePageHead *wHead = NULL;
+      routePageHead old;
+      UINT32 capacity = 0;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      const pageHead *head = NULL;
+      BOOLEAN rollback = FALSE;
+      logRecordContext lrc;
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       DMS_INVALID_LOGICCLID == logicalId ||
+                       0 == count ||
+                       NULL == lpids))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (UINT32 i = 0; i < count; ++i)
+      {
+         if (INVALID_PAGE_ID == lpids[i])
+         {
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+      }
+
+      capacity = getCapacityOfRoutePage(pageAccessor::getPageSize());
+      if (OSS_UNLIKELY(0 == capacity))
+      {
+         PD_LOG(PDERROR, "failed to get capacity of route page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (capacity <= slot || capacity <= (slot + count))
+      {
+         PD_LOG(PDERROR, "slot is out of valid range:%d", slot);
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getReadPtrOfHead(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page of head:%d", rc);
+         goto error;
+      }
+
+      rc = getReadableUserHeadPtr<routePageHead>(&rHead);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get route page head:%d", rc);
+         goto error;
+      }
+
+      if (logicalId != rHead->logicalId)
+      {
+         PD_LOG(PDERROR, "logicalId[%d] is not as same as id on disk[%d]",
+                logicalId, rHead->logicalId);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (slot != (UINT32)(rHead->count))
+      {
+         PD_LOG(PDERROR, "count in head is %d, can not append from :%d",
+                rHead->count, slot);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      rc = prpareAppendLog(context, &lrc, count);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare log:%d", rc);
+         goto error;
+      }
+
+      rc = prepareToWrite(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to prepare to write:%d", rc);
+         goto error;
+      }
+
+      rollback = TRUE;
+      lpid = head->pageID;
+      old = *rHead;
+
+      rc = writeSlots(slot, count, lpids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write slots, being[%d], rc:%d", slot, rc);
+         goto error;
+      }
+      rollback = TRUE;
+      wHead->count += count;
+
+      rc = commitAppendLog(context, &lrc, lpid, old, *wHead, count, lpids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to commit log[%lld], rc:%d", lrc.getLsn(), rc);
+         goto error;
+      }
+
+      pageAccessor::commit(context, lrc.getLsn());
+      lrc.close();
+   done:
+      return rc;
+   error:
+      if (lrc.prepared())
+      {
+         IRedoLogger *logger = context->getOuterResource()->logger;
+         logger->abort(context->getSession(), &lrc);
+      }
+      if (rollback)
+      {
+         wHead->count -= count;
+         for (UINT32 i = 0; i < count; ++i)
+         {
+            writeSlots(slot + i, 1, lpids + i);
+         }
+         abortToWrite();
+      }
+      if (fullAccessing())
+      {
+         abortToWrite();
+      }
+      goto done;
+   }
+
+   INT32 routePageAccessor::readSlot(requestContext *context,
+                                     UINT32 slot,
+                                     PAGE_ID &lpid)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 capacity = getCapacityOfRoutePage(pageAccessor::getPageSize());
+      if (OSS_UNLIKELY(0 == capacity))
+      {
+         PD_LOG(PDERROR, "failed to get capacity of route page");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      if (capacity <= slot)
+      {
+         PD_LOG(PDERROR, "slot is out of valid range:%d", slot);
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = readSlot(slot, lpid);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 routePageAccessor::readSlot(UINT32 slot, PAGE_ID &lpid)
+   {
+      INT32 rc = SDB_OK;
+      PAGE_ID tmp = INVALID_PAGE_ID;
+      UINT32 offset = ROUTE_PAGE_HEAD_LEN + (slot << 2);
+      rc = readPageBody(offset, sizeof(PAGE_ID), (CHAR*)(&tmp));
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read page body[%d:%d], rc:%d",
+                offset, sizeof(PAGE_ID), rc);
+         goto error;
+      }
+      lpid = tmp;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 routePageAccessor::writeSlots(UINT32 slot,
+                                       UINT32 count,
+                                       const PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != lpids, "can not be invalid");
+      UINT32 offset = ROUTE_PAGE_HEAD_LEN + (slot << 2);
+      rc = writePageBody(offset, (count << 2), (const CHAR*)lpids);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read page body[%d:%d], rc:%d",
+                offset, sizeof(PAGE_ID), rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 routePageAccessor::prpareAppendLog(requestContext *context,
+                                            logRecordContext *lrc,
+                                            UINT32 count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+
+      dpsLogRecordHeader &head = lrc->getHead();
+      head._type = LOG_TYPE_VESSEL_UPDATE_ROUTE_PAGE;
+
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(sizeof(PAGE_ID));
+      lrc->prepush(ROUTE_PAGE_HEAD_LEN);
+      lrc->prepush(ROUTE_PAGE_HEAD_LEN);
+      lrc->prepush(count << 2);
+      rc = prepareLogDone(context, lrc);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 routePageAccessor::commitAppendLog(requestContext *context,
+                                            logRecordContext *lrc,
+                                            PAGE_ID lpid,
+                                            const routePageHead &oldHead,
+                                            const routePageHead &newHead,
+                                            UINT32 count,
+                                            const PAGE_ID *lpids)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      ISession *session = context->getSession();
+      SDB_ASSERT(NULL != lrc, "can not be null");
+      SDB_ASSERT(lrc->prepared(), "must be prepared");
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      GLOBAL_PAGE_ID gpid = getGPID();
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_PUBLIC_VESSEL_GPID,
+                                        sizeof(GLOBAL_PAGE_ID),
+                                        &gpid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_LPID,
+                                        sizeof(PAGE_ID),
+                                        &lpid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_OLD_HEAD,
+                                        ROUTE_PAGE_HEAD_LEN,
+                                        &oldHead);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_NEW_HEAD,
+                                        ROUTE_PAGE_HEAD_LEN,
+                                        &newHead);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_UPDATE_ROUTE_PAGE_NEW_VALUES,
+                                        count << 2,
+                                        lpids);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->commit(session, lrc);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
 }//namespace vessel
 }//namespace engine

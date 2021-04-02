@@ -98,6 +98,11 @@ namespace vessel
                      UINT32 count,
                      BOOLEAN sync=TRUE);
 
+         INT32 fsync(SPACE_TYPE,
+                     UINT32 count,
+                     const PAGE_ID *pids,
+                     BOOLEAN sync=TRUE);
+
          INT32 getMaxPageCountInFile(UINT32 &count);
 
          UINT32 getDataFileCount();

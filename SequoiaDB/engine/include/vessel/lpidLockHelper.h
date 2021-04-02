@@ -122,6 +122,19 @@ namespace vessel
             goto done;
          }
 
+         OSS_INLINE BOOLEAN isLocked(OSS_LATCH_MODE *mode=NULL)const
+         {
+            if (NULL != _context)
+            {
+               if (NULL != mode)
+               {
+                  *mode = _mode;
+               }
+               return TRUE;
+            }
+            return FALSE;
+         }
+
       private:
          requestContext *_context;
          SPACE_TYPE _type;

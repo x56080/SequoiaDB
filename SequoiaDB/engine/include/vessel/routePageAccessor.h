@@ -37,11 +37,14 @@
 #define VESSEL_ROUTE_PAGE_ACCESSOR_H_
 
 #include "vessel/pageAccessor.h"
+#include "vessel/routePage.h"
 
 namespace engine
 {
 namespace vessel
 {
+   class logRecordContext;
+
    class routePageAccessor : public pageAccessor
    {
       public:
@@ -53,11 +56,38 @@ namespace vessel
                         PAGE_ID lpid,
                         UINT32 logicalId);
 
+         INT32 appendSlots(requestContext *context,
+                           UINT32 logicalId,
+                           UINT32 slot,
+                           UINT32 count,
+                           const PAGE_ID *lpids);
+
+         ///WARNING: SDB_OK does means slot's value is valid.
+         /// users should always validate lpid by themselves.
+         INT32 readSlot(requestContext *context,
+                        UINT32 slot,
+                        PAGE_ID &lpid);
+
       public:
          virtual PAGE_TYPE getPageType()const
          {
             return PAGE_TYPE_ROUTE;
          }
+
+      private:
+         INT32 readSlot(UINT32 slot, PAGE_ID &lpid);
+         INT32 writeSlots(UINT32 slot, UINT32 count, const PAGE_ID *lpids);
+         INT32 prpareAppendLog(requestContext *context,
+                               logRecordContext *lrc,
+                               UINT32 count);
+         INT32 commitAppendLog(requestContext *context,
+                               logRecordContext *lrc,
+                               PAGE_ID lpid,
+                               const routePageHead &oldHead,
+                               const routePageHead &newHead,
+                               UINT32 count,
+                               const PAGE_ID *lpids);
+
    };//class routePageAccessor
 }//namespace vessel
 }//namespace engine

@@ -120,17 +120,31 @@ namespace vessel
                                           UINT32 count,
                                           CL_PAGE_SEQ &firstSeq,
                                           PAGE_ID *lpids);
+
+         INT32 initNewRecordDataPages(requestContext *context,
+                                      UINT32 count,
+                                      const PAGE_ID *lpids,
+                                      const PAGE_ID *pids);
       private:
+         INT32 extendRoutePageMap(requestContext *context,
+                                  PAGE_ID *newLvl0=NULL);
 
-         INT32 extendRoutePageMap(requestContext *context);
+         INT32 createRootRoutePage(requestContext *context,
+                                   UINT32 rootSlot);
 
-         INT32 createRootLvl2RoutePage(requestContext *context,
-                                       UINT32 capacity);
+         INT32 createNonRootRoutePage(requestContext *context,
+                                      PAGE_ID lpid,
+                                      UINT32 slot,
+                                      PAGE_ID &lpidOfRP);
 
-         INT32 createRootLvl1RoutePage(requestContext *context,
-                                       UINT32 rootSlot);
+         INT32 ensureNonRootLvl1RoutePage(requestContext *context,
+                                          UINT32 slot,
+                                          PAGE_ID &lpid);
 
-         INT32 createRootLvl0RoutePage(requestContext *context);
+         INT32 getLvl0RoutePage(requestContext *context,
+                                UINT32 capacity,
+                                UINT32 lvl0No,
+                                PAGE_ID &lpid);
          
          INT32 createNewRoutePage(requestContext *context,
                                   PAGE_ID &lpidOfRP,

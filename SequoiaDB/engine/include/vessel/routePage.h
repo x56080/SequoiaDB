@@ -47,8 +47,17 @@ namespace vessel
 #pragma pack(4)
    struct routePageHead
    {
+      OSS_INLINE routePageHead &operator=(const routePageHead &o)
+      {
+         version = o.version;
+         count = o.count;
+         logicalId = o.logicalId;
+         pad = o.pad;
+         return *this;
+      }
+
       UINT16 version;
-      /// WARNING: count can never shrink.
+      /// WARNING: count can never shrink. It means slot ever allocated.
       UINT16 count;
       UINT32 logicalId;
       UINT64 pad;

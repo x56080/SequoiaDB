@@ -523,6 +523,7 @@ namespace vessel
                                       const slice &adjuncts)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
       ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
