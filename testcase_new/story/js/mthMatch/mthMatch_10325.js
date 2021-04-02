@@ -34,10 +34,6 @@ function test ()
    commDropCL( db, COMMCSNAME, subCL_Name3, true, true, "clean main collection" );
    commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 
-
-
-
-
    //create maincl for range split
    var mainCLOption = { ShardingKey: { "No": 1 }, ShardingType: "range", IsMainCL: true };
    var dbcl = commCreateCL( db, COMMCSNAME, mainCL_Name, mainCLOption, true, true );
@@ -171,6 +167,7 @@ function test ()
    { No: 3, b: 6, c: [5, 6, [7, 8]] },
    { No: 3, b: [7, 8], c: [5, 6, [7, 8]] }];
    checkResult( dbcl, findCondition17, null, expRecs17, { _id: 1 } );
+   commDropCL( db, COMMCSNAME, mainCL_Name, true, true, "clean main collection" );
 }
 
 

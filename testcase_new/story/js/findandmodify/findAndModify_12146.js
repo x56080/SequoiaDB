@@ -9,7 +9,7 @@ function test ()
 {
    var clName = COMMCLNAME + "_12146";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCLNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
    testRuleEmpty( cl );
    testReturnNewNonBoolean( cl );
    testNormal( cl );

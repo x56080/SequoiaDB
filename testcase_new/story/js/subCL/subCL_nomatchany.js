@@ -123,6 +123,7 @@ function test_range_attach_hash_upsert_basic ()// NOT Error, test mainCL'Shardin
    var size = rc.count();
    assert.equal( 1, size );
 
+   commDropCL( db, COMMCSNAME, MainCL_Name, true, true );
    //	
    //	
 }

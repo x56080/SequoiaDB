@@ -10,7 +10,7 @@ function test ()
 {
    var clName = COMMCLNAME + "_12142";
    commDropCL( db, COMMCSNAME, clName );
-   var cl = commCreateCL( db, COMMCLNAME, clName );
+   var cl = commCreateCL( db, COMMCSNAME, clName );
    testNormal( cl );
    testSortNotExistIndex( cl );
    testSortExistIndex( cl );
