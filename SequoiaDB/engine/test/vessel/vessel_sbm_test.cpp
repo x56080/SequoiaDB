@@ -50,7 +50,7 @@ TEST(sbmtest, test1)
    rc = bitmap.init(bitCount, freeBound);
    ASSERT_EQ(SDB_OK, rc);
    rc = bitmap.allocateBits(1, &offset);
-   ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
+   ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
 
    rc = bitmap.allocateNewBitPage();
@@ -63,7 +63,7 @@ TEST(sbmtest, test1)
       ASSERT_EQ(i, offset);
    }
    rc = bitmap.allocateBits(1, &offset);
-   ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
+   ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
    rc = bitmap.fini();
    ASSERT_EQ(SDB_OK, rc);
@@ -95,7 +95,7 @@ TEST(sbmtest, test2)
    }
 
    rc = bitmap.allocateBits(freeBound, buf);
-   ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
+   ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
 
    for (UINT32 i = 0; i < (freeBound % 8); ++i)
    {
@@ -131,7 +131,7 @@ TEST(sbmtest, test3)
          ASSERT_EQ(loop * bitCount + i, offset);
       }
       rc = bitmap.allocateBits(1, &offset);
-      ASSERT_EQ(SDB_VESSEL_SMP_NO_FREE, rc);
+      ASSERT_EQ(SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE, rc);
    }
 
    bitmap.fini();
