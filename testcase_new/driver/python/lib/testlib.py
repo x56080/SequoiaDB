@@ -41,6 +41,8 @@ class SdbTestBase(unittest.TestCase):
          msg = "\nexpected: " + str(expected) + "\nactual: " + str(actual)
 
       unittest.TestCase.assertEqual(self, len(expected), len(actual), msg=msg)
+
+      # 使用result进行校验，可以避免[{a:1},{a:1},{a:2}]，[{a:1},{a:2},{a:2}]被误判为相等的问题
       result = list(expected)
       for x in actual:
          unittest.TestCase.assertIn(self, x, result, msg)
