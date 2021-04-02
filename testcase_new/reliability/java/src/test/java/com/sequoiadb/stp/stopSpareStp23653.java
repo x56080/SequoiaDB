@@ -27,20 +27,19 @@ import com.sequoiadb.task.TaskMgr;
 
 public class stopSpareStp23653  extends SdbTestBase{
 
-	private boolean clearFlag = false;
-	private Sequoiadb sdb;
-	private String clName = "testcaseCL23653";
-	private CollectionSpace commCS;
-	private String node = null;
-	private String[] nodeInfo = null;
-	private int totalRecord = 100000;
-	
+    private boolean clearFlag = true;
+    private Sequoiadb sdb;
+    private String clName = "testcaseCL23653";
+    private CollectionSpace commCS;
+    private String node = null;
+    private String[] nodeInfo = null;
+    private int totalRecord = 100000;
+    
     @BeforeClass()
     public void setUp() throws ReliabilityException {
         try {
-        	
-        	StpUtils util = new StpUtils();
-    		node= util.getStpInfo(SdbTestBase.stpHostName, SdbTestBase.stpServiceName, "getStpSpareNode");
+            StpUtils util = new StpUtils();
+            node= util.getStpInfo(SdbTestBase.stpHostName, SdbTestBase.stpServiceName, "getStpSpareNode");
             nodeInfo = node.split(",");
             if(nodeInfo.length < 2)
             {
@@ -62,14 +61,14 @@ public class stopSpareStp23653  extends SdbTestBase{
     /*
      * 1.停止2个stp备节点一段时间 
      * 2.启动其中一个备节点，使主节点切到该备节点 
-     * 3.过程中做事务转账操作，执行stpq --time检查LLT的正确性和事务操作 	
+     * 3.过程中做事务转账操作，执行stpq --time检查LLT的正确性和事务操作     
      * */
     
     @Test
     public void test23653() throws InterruptedException {
-    	try {
-    		StpUtils util = new StpUtils();
-    		// 建立并行任务
+        try {
+            StpUtils util = new StpUtils();
+            // 建立并行任务
             TaskMgr mgr = new TaskMgr(  );
             mgr.addTask( new InsertData() );
             mgr.addTask(new stopSpareNode());
@@ -80,31 +79,33 @@ public class stopSpareStp23653  extends SdbTestBase{
             //启动备节点
             for(int i=0; i<2; i++)
             {
-            	String[] tmpNode = nodeInfo[i].split(":");
-            	util.startStpNode(tmpNode[0]);
+                String[] tmpNode = nodeInfo[i].split(":");
+                util.startStpNode(tmpNode[0]);
             }
             
             //查看异常操作后是否切主
             String afterNode = util.getStpInfo(SdbTestBase.stpHostName, SdbTestBase.stpServiceName, "getStpPrimaryNode");
-    	    //校验结果
-            String primaryTime1 = util.getStpInfo(afterNode.split(":")[0], afterNode.split(":")[1], "getStpTimeUsAndTimeError");
+            String primaryHost=afterNode.split(":")[0];
+            String primaryPort=afterNode.split(":")[1];
+            //校验结果
+            String primaryTime1 = util.getStpInfo(primaryHost, primaryPort, "getStpTimeUsAndTimeError");
             String spareStp = util.getStpInfo(SdbTestBase.stpHostName, SdbTestBase.stpServiceName, "getStpSpareNode");
             String spareTime1 = util.getStpInfo(spareStp.split(":")[0], spareStp.split(":")[1], "getStpTimeUsAndTimeError");
-            String primaryTime2 = util.getStpInfo(afterNode.split(":")[0], afterNode.split(":")[1], "getStpTimeUsAndTimeError");
+            String primaryTime2 = util.getStpInfo(primaryHost, primaryPort, "getStpTimeUsAndTimeError");
             
             util.checkTime(primaryTime1, spareTime1, primaryTime2);
             DBCollection cl = commCS.getCollection(clName);
             Assert.assertEquals(cl.getCount(), totalRecord);
             
-    	} catch ( ReliabilityException e ) {
+        } catch ( ReliabilityException e ) {
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {
-        	sdb.closeAllCursors();
+            sdb.closeAllCursors();
         }
     }
 
-	@AfterClass
+    @AfterClass
     public void tearDown() {
         try {
             if ( clearFlag ) {
@@ -115,51 +116,23 @@ public class stopSpareStp23653  extends SdbTestBase{
             Assert.fail( e.getMessage());
         } finally {
             if ( sdb != null ) {
-            	sdb.close();
+                sdb.close();
             }
 
-        }
-    }
-    
-    class InsertData extends OperateTask {
-        @Override
-        public void exec() throws Exception {
-            Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-            DBCollection cl = commCS.getCollection(clName);
-            cl.truncate();
-            int i = 0;
-            try {
-            	sdb.beginTransaction();
-                for ( i = 1; i <= totalRecord; i++ ) {
-                    BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + i + "}" );
-					cl .insert( obj );
-                }
-                sdb.commit();
-            } catch ( BaseException e ) {
-                System.out.println(
-                        "Attach Thread Exception:" + e.getErrorCode() );
-            }
-
-            finally {
-                System.out.println( "insert record num :" + i );
-                if ( sdb != null ) {
-                    sdb.close();
-                }
-            }
         }
     }
     
     class stopSpareNode extends OperateTask {
         @Override
         public void exec() throws Exception {
-        	int i = 0;
+            int i = 0;
             try {
-            	sdb.beginTransaction();
-            	StpUtils util = new StpUtils();
+                sdb.beginTransaction();
+                StpUtils util = new StpUtils();
                 for(i=0; i<2; i++)
                 {
-                	String[] tmpNode = nodeInfo[i].split(":");
-                	util.stopStpNode(tmpNode[0]);
+                    String[] tmpNode = nodeInfo[i].split(":");
+                    util.stopStpNode(tmpNode[0]);
                 }
                 sdb.commit();
             } catch ( BaseException e ) {
@@ -171,6 +144,27 @@ public class stopSpareStp23653  extends SdbTestBase{
                 if ( sdb != null ) {
                     sdb.close();
                 }
+            }
+        }
+    }
+    
+    class InsertData extends OperateTask {
+        @Override
+        public void exec() throws Exception {
+            try(Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" )){
+                DBCollection cl = commCS.getCollection(clName);
+                cl.truncate();
+                int i = 0;
+                sdb.beginTransaction();
+                for ( i = 1; i <= totalRecord; i++ ) {
+                    BSONObject obj = ( BSONObject ) JSON.parse( "{sk:" + i + "}" );
+                    cl .insert( obj );
+                }
+                sdb.commit();
+            } catch ( BaseException e ) {
+                
+            }
+            finally {
             }
         }
     }
