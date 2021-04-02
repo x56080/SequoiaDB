@@ -2862,11 +2862,26 @@ void _mongoAggregateCommand::_convertAggrGroup( const BSONObj& groupObj,
    }
    else
    {
+      // When Pyrhon driver execute count_documents command, it will enter
+      // this branch.
+
+      // In MongoDB, if the value of _id field is null or any other constant
+      // value, it means no grouping.
+      // In SequoiaDB, the value[0] of _id field must be '$',
+      // otherwise an error -6 will be reported. If _id field isn't specified,
+      // it means no grouping.
+
+      // eg: groupValue = { "$group": { xxx, "_id": 1 } }.
+      // So we should convert groupValue to { "$group": { xxx } }
       BSONObjBuilder bobGroup ;
       BSONObjIterator itr( groupValue ) ;
       while ( itr.more() )
       {
          BSONElement e = itr.next() ;
+         if ( 0 == ossStrcmp( "_id", e.fieldName() ) )
+         {
+            continue ;
+         }
          _convertAggrSumIfExist( e, bobGroup ) ;
       }
       newStageList.push_back( BSON( "$group" << bobGroup.obj() ) ) ;
