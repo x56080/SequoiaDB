@@ -4,7 +4,7 @@
 
 | 选项 | 默认值 | 描述 |
 | ---- | ------ | ---- |
-| AUTO_INCREMENT | 1 | 自增字段的起始值，SequoiaDB 的自增字段不是严格递增，而是趋势递增，可参考 SequoiaDB [自增字段][sequence]章节 |
+| AUTO_INCREMENT | 1 | 自增字段的起始值，SequoiaDB 的自增字段不是严格递增，而是趋势递增；如果配置严格递增的自增字段，需将参数 AcquireSize 设置为 1，具体说明可参考 SequoiaDB [自增字段][sequence]章节 |
 | CHARACTER SET | utf8mb4 | 字符数据的字符集 |
 | COLLATE | utf8mb4_bin | 字符数据的比较规则，不支持忽略大小写的字符比较规则，字符比较对大小写敏感 |
 | COMMENT | "" | 表备注信息，用于指定更多 SequoiaDB 引擎的选项，可参考[自定义表配置][config] |
@@ -20,10 +20,10 @@
     mysql> CREATE TABLE t2 (id INT) COMMENT='sequoiadb:{ table_options: { CompressionType: "snappy" } }';
     ```
 
-- 指定表自增字段起始值为 1000
+- 指定表自增字段起始值为 1000，并严格递增
 
     ```lang-sql
-    mysql> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) AUTO_INCREMENT=1000;
+    mysql> CREATE TABLE tb (id INT AUTO_INCREMENT PRIMARY KEY) COMMENT='Strict auto_increment field for example, sequoiadb:{ table_options: { "AutoIncrement": { "Field": "id", "StartValue": 1000, "AcquireSize": 1 } } }';
     ```
 
 ## 自定义表配置
