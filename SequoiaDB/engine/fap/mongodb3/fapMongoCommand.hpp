@@ -990,7 +990,7 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
       virtual ~_mongoFindAndModifyCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_FINDANDMODIFY ; }
-      virtual const CHAR* name() const    { return MONGO_CMD_NAME_FINDANDMODIFY ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_FIND_AND_MODIFY ; }
       virtual BOOLEAN needConvertDecimal() const { return TRUE ; }
 
       virtual INT32 buildSdbMsg( msgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
@@ -1000,6 +1000,15 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
                                 _mongoResponseBuffer &resHeader ) ;
 } ;
 typedef _mongoFindAndModifyCommand mongoFindAndModifyCommand ;
+
+class _mongoFindandmodifyCommand : public mongoFindAndModifyCommand
+{
+   MONGO_DECLARE_CMD_AUTO_REGISTER()
+   public:
+      virtual MONGO_CMD_TYPE type() const { return CMD_FINDANDMODIFY ; }
+      virtual const CHAR* name() const    { return MONGO_CMD_NAME_FINDANDMODIFY ; }
+} ;
+typedef _mongoFindandmodifyCommand mongoFindandmodifyCommand ;
 
 }
 #endif

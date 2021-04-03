@@ -129,5 +129,6 @@ const CHAR* const MONGO_CMD_NAME_LOGTOUT =           "logout" ;
 const CHAR* const MONGO_CMD_NAME_REPL_STAT =         "replSetGetStatus" ;
 const CHAR* const MONGO_CMD_NAME_GET_CMD_LINE =      "getCmdLineOpts" ;
 const CHAR* const MONGO_CMD_NAME_FINDANDMODIFY =     "findandmodify" ;
+const CHAR* const MONGO_CMD_NAME_FIND_AND_MODIFY =   "findAndModify" ;
 }
 #endif
