@@ -335,11 +335,10 @@ namespace engine
          rc = _remoteMessenger->init() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to initialize remote messenger, "
                       "rc: %d", rc ) ;
+         rc = _remoteMessenger->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
+                                   "rc: %d", rc) ;
       }
-
-      rc = _remoteMessenger->active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
-                   "rc: %d", rc) ;
 
    done:
       return rc ;

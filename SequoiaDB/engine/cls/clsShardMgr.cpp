@@ -3198,6 +3198,13 @@ namespace engine
       MsgAuthReply *reply = NULL ;
       INT32 replySize = 0 ;
 
+      if ( SDB_ROLE_DATA != pmdGetDBRole() )
+      {
+         PD_LOG( PDWARNING, "Received authentication message on shard "
+                            "unexpectedly" ) ;
+         goto done ;
+      }
+
       // If the adapter handler is valid, there is some valid connection between
       // this node and the adapter. In this case, no new connections with a
       // different handle is allowed.
