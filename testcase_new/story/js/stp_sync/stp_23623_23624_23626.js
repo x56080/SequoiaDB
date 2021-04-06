@@ -62,6 +62,7 @@ function testCreateStp23623()
    try
    {
       oma.createStp(configs);
+      throw new Error( "expected throw error -145, but success!" );
    }
    catch( e )
    {
@@ -71,22 +72,10 @@ function testCreateStp23623()
       }
    }
    
-   //4.创建7个server节点 oma不支持远程创建stp节点，只需验证指定serverlist有7个server节点时当前stp节点是否能创建成功
-   try
-   {
-      oma.removeStp();
-   }
-   catch( e )
-   {
-      if( e != -146 )
-      {
-         throw new Error( " clear env : oma.removeStp() " + e );
-      }
-   }
+   oma.removeStp();
    //SEQUOIADBMAINSTREAM-6892
-   //configs = {serverlist:"host1:9622,host2:9622,host3:9622,host4:9622,host5:9622,host6:9622,host7:9622"};
-   //oma.createStp(configs);
-   //5.创建8个server节点，该测试点报错，验证报错信息 SEQUOIADBMAINSTREAM-6892
+   //4.创建7个server节点 oma不支持远程创建stp节点，只需验证指定serverlist有7个server节点时当前stp节点是否能创建成功
+   //5.创建8个server节点，该测试点报错，验证报错信息
    if(stpConf != null)
    {
       oma.createStp(stpConf);

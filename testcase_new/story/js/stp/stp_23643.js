@@ -34,25 +34,11 @@ function checkeConfInfo(stpConf, roleType)
    var isSuccess = true
    if (stpConf["role"] != roleType)
    {
-      isSuccess = false;
+       throw new Error("fail to check role, expected: "+roleType+",actual: "+stpConf["role"]);
    }
-   var serverGroup = getStpServerNodes();
-   serverGroup.sort();
+   var expectedResult = getStpServerNodes();
+   expectedResult.sort();
    var serverList = stpConf["serverlist"].split(",");
    serverList.sort();
-   if(serverGroup.length != serverList.length)
-   {
-      isSuccess = false;
-   }
-   for(var i=0; i<serverGroup.length; i++)
-   {
-      if(serverGroup[i] != serverList[i])
-      {
-         isSuccess = false;
-      }
-   }
-   if ( !isSuccess )
-   {
-      throw new Error( "Error: stp.getConf in " + roleType + " return conf is not expected: " + stpConf );
-   }
+   commCompareObject(expectedResult, serverList);
 }
