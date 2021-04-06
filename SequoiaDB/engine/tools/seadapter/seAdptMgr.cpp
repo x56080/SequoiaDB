@@ -883,8 +883,9 @@ namespace seadapter
 
          if ( 1 != objVec.size() )
          {
-            PD_LOG( PDERROR, "Register reply is not as expected" ) ;
             rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Register reply is not as expected. Make sure the "
+                             "data node configuration is correct[%d]", rc ) ;
             goto error ;
          }
 
