@@ -88,6 +88,7 @@ public class KillPrimaryServer23650  extends SdbTestBase{
              DBCollection cl = commCS.getCollection(clName);
              Assert.assertEquals(cl.getCount(), totalRecord);
         } catch ( ReliabilityException e ) {
+            clearFlag = false;
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {

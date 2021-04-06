@@ -98,6 +98,7 @@ public class stopSpareStp23653  extends SdbTestBase{
             Assert.assertEquals(cl.getCount(), totalRecord);
             
         } catch ( ReliabilityException e ) {
+            clearFlag = false;
             e.printStackTrace();
             Assert.fail( e.getMessage() );
         } finally {
