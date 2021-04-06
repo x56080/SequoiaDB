@@ -46,6 +46,7 @@
 #include "vessel/outerResource.h"
 #include "dpsLogRecordDef.hpp"
 #include "vessel/insertContext.h"
+#include "vessel/redoLogUtil.h"
 
 namespace engine
 {
@@ -123,11 +124,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::insert(insertContext *context)
+   INT32 rdpAccessor::insertNormalRecord(insertContext *context)
    {
       INT32 rc = SDB_OK;
-      RECORD_SLOT_ID slotID = INVALID_RECORD_SLOT_ID;
-      BOOLEAN needReorg = FALSE;
+      recordData rd;
 
       if (OSS_UNLIKELY(NULL == context))
       {
@@ -151,13 +151,18 @@ namespace vessel
          goto error;
       }
 
-      if (context->getCompressionType() == UTIL_COMPRESSOR_INVALID)
+      rd = context->getRecord();
+      if (isBigRecordInRdp(getPageSize(), rd.getSlice().len()))
       {
-         rc = insertWithOutCompression(context);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
+         PD_LOG(PDERROR, "it is a big record, len:%d", rd.getSlice().len());
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = insertWithNormalRecordHead(context, rd);
+      if (SDB_OK != rc)
+      {
+         goto error;
       }
 
    done:
@@ -215,15 +220,15 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::insertWithOutCompression(insertContext *context)
+   INT32 rdpAccessor::insertWithNormalRecordHead(insertContext *context,
+                                                 const recordData &rd)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(rd.isValid(), "must be valid");
       SDB_ASSERT(DMS_INVALID_LOGICCLID != context->getLogicalID(), "can not be invalid");
       SDB_ASSERT(context->clInfoIsValid(), "can not be empty");
-      SDB_ASSERT(UTIL_COMPRESSOR_INVALID == context->getCompressionType(), "must be invalid");
 
-      const recordData &record = context->getRecord();
       recordDataPageHead backupHead;
       const recordDataPageHead *head = NULL;
       recordDataPageHead *wHead = NULL;
@@ -238,7 +243,6 @@ namespace vessel
       PAGE_ID lpid = INVALID_PAGE_ID;
       recordID rid;
       logRecordContext lrc;
-      DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET;
       BOOLEAN rollback = FALSE;
       
       rc = getPidFromDisk(lpid);
@@ -255,7 +259,7 @@ namespace vessel
          goto error;
       }
 
-      alignedSize = getAlignedSizeOfNormalRecordAndHead(record.getSlice().len());
+      alignedSize = getAlignedSizeOfNormalRecordAndHead(rd.getSlice().len());
       sizeNeeded = alignedSize;
       if (0 == head->freeSlotCount)
       {
@@ -281,7 +285,7 @@ namespace vessel
          }
       }
 
-      rc = prepareInsertWOCLog(context, &lrc, alignedSize);
+      rc = prepareInsertLog(context, &lrc, alignedSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to prepare log:%d", rc);
@@ -309,7 +313,8 @@ namespace vessel
       updateMinMaxStriping(wHead, context->getStriping());
       if (INVALID_RECORD_SLOT_ID == slotID)
       {
-         slotID = wHead->totalSlotCount++;
+         slotID = wHead->totalSlotCount;
+         ++wHead->totalSlotCount;
       }
       else
       {
@@ -317,6 +322,17 @@ namespace vessel
       }
       wHead->freeSpaceAfterLastSlot -= sizeNeeded;
       wHead->totalFreeSpace -= sizeNeeded;
+      if (context->getTransID().isValid())
+      {
+         if (DPS_INVALID_TRANSID_SN == wHead->transSN)
+         {
+            wHead->transSN = context->getTransID().getSN();
+         }
+         else if (wHead->transSN < context->getTransID().getSN())
+         {
+             wHead->transSN = context->getTransID().getSN();
+         }
+      }
 
       /// 2. copy record head and record
       offset = getNonFreeBeginOffet(wHead);
@@ -336,13 +352,13 @@ namespace vessel
       }
 
       recordHeadPtr->size = alignedSize;
-      recordHeadPtr->setTypeAndFormat(RDP_R_HEAD_TYPE_NORMAL, record.getType());
+      recordHeadPtr->setTypeAndFormat(RDP_R_HEAD_TYPE_NORMAL, rd.getType());
       recordHeadPtr->flags = 0;
       recordHeadPtr->compressionType = context->getCompressionType();
       recordHeadPtr->transNode = context->getTransID().getNodeID();
       recordHeadPtr->transSN = context->getTransID().getSN();
       recordHeadPtr->pad = 0;
-      ossMemcpy(recordPtr, record.getSlice().data(), record.getSlice().len());
+      ossMemcpy(recordPtr, rd.getSlice().data(), rd.getSlice().len());
 
       /// 3. write slot
       slot.setOffset(offset);
@@ -357,7 +373,9 @@ namespace vessel
       /// 4. commit log
       rid.setPageID(lpid);
       rid.setSlotID(slotID);
-      rc = commitInsertWOCLog(context, &lrc, rid, wHead, slot, recordHeadPtr);
+      rc = commitInsertLog(context, &lrc,
+                           rid, &backupHead,
+                           wHead, slot, recordHeadPtr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to commit log:%d", rc);
@@ -423,9 +441,11 @@ namespace vessel
    UINT32 rdpAccessor::getNonFreeBeginOffet(const recordDataPageHead *head)
    {
       SDB_ASSERT(NULL != head, "can not be null");
-      UINT32 offset = RDP_RECORD_HEAD_LEN +
-                      (head->totalSlotCount * RDP_RSLOT_SIZE) +
-                      head->freeSpaceAfterLastSlot;
+      SDB_ASSERT(4 == RDP_RSLOT_SIZE, "must be 4");
+      UINT32 offset = head->totalSlotCount;
+      offset = offset << 2; /// offset = offset * RDP_RSLOT_SIZE
+      offset += RDP_RECORD_HEAD_LEN;
+      offset += head->freeSpaceAfterLastSlot;
       return offset;
    }
 
@@ -550,38 +570,43 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::prepareInsertWOCLog(insertContext *context,
-                                          logRecordContext *lrc,
-                                          UINT32 rhAndbodySize)
+
+   INT32 rdpAccessor::prepareInsertLog(insertContext *context,
+                                       logRecordContext *lrc,
+                                       UINT32 rhAndbodySize)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(UTIL_COMPRESSOR_INVALID == context->getCompressionType(), "must be invalid");
 
+      SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(!lrc->prepared(), "can not be prepared");
+      SDB_ASSERT(0 < rhAndbodySize, "can not be zero");
 
-      dpsLogRecordHeader *head = NULL;
       UINT32 fullNameLen = context->getCSName().strLen() +
                            context->getCLName().strLen() + 2; // one for '.', one for '\0'
 
-      head = &(lrc->getHead());
-      head->_type = LOG_TYPE_DATA_INSERT;
-      OSS_BIT_SET(head->_flags, DPS_VESSEL_LOG_FLAG_FROM_VESSEL);
+      dpsLogRecordHeader &head = lrc->getHead();
+      head._type = LOG_TYPE_DATA_INSERT;
+
+      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
+      lrc->prepush(sizeof(recordID));
+      lrc->prepush(RECORD_PAGE_HEAD_LEN);
+      lrc->prepush(RECORD_PAGE_HEAD_LEN);
+      lrc->prepush(RDP_RSLOT_SIZE);
+      lrc->prepush(rhAndbodySize);
+      if (UTIL_COMPRESSOR_INVALID != context->getCompressionType())
+      {
+         lrc->prepush(context->getRecord().getSlice().len());
+      }
+      lrc->prepush(sizeof(utilCLUniqueID));
       lrc->prepush(fullNameLen);
       if (context->getTransID().isValid())
       {
          lrc->prepush(sizeof(DPS_TRANSID_SN));
          lrc->prepush(sizeof(DPS_TRANSID_NODEID));
       }
-      lrc->prepush(sizeof(GLOBAL_PAGE_ID));
-      lrc->prepush(sizeof(recordID));
-      lrc->prepush(sizeof(utilCLUniqueID));
-      lrc->prepush(RECORD_PAGE_HEAD_LEN);
-      lrc->prepush(RDP_RSLOT_SIZE);
-      lrc->prepush(rhAndbodySize);
 
-      rc = prepareLogDone(context, lrc);
+      rc = pageAccessor::prepareLogDone(static_cast<requestContext*>(context), lrc);
       if (SDB_OK != rc)
       {
          goto error;
@@ -593,54 +618,110 @@ namespace vessel
       goto done;
    }
 
-   INT32 rdpAccessor::commitInsertWOCLog(insertContext *context,
-                                         logRecordContext *lrc,
-                                         const recordID &rid,
-                                         const recordDataPageHead *head,
-                                         const recordSlot &slot,
-                                         const recordHead *rh)
+   INT32 rdpAccessor::commitInsertLog(insertContext *context,
+                                       logRecordContext *lrc,
+                                       const recordID &rid,
+                                       const recordDataPageHead *oldHead,
+                                       const recordDataPageHead *newHead,
+                                       const recordSlot &slot,
+                                       const recordHead *rh)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      SDB_ASSERT(UTIL_COMPRESSOR_INVALID == context->getCompressionType(), "must be invalid");
       ISession *session = context->getSession();
       SDB_ASSERT(NULL != lrc, "can not be null");
       SDB_ASSERT(lrc->prepared(), "must be prepared");
       SDB_ASSERT(rid.valid(), "can not be invalid");
-      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(NULL != oldHead, "can not be null");
+      SDB_ASSERT(NULL != newHead, "can not be null");
       SDB_ASSERT(!slot.isFree(), "can not be free");
       SDB_ASSERT(NULL != rh, "can not be null");
       utilCLUniqueID uniqueID = context->getUniqueID();
-      IRedoLogger *logger = NULL;
-      CHAR *nameBuffer = NULL;
-      UINT32 bufferSize = context->getCSName().strLen() +
-                          context->getCLName().strLen() + 2;
-      nameBuffer = context->allocateBuffer(bufferSize);
-      if (NULL == nameBuffer)
-      {
-         PD_LOG(PDERROR, "failed to allcoate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      ossMemcpy(nameBuffer, context->getCSName().str(),
-                context->getCSName().strLen());
-      nameBuffer[context->getCSName().strLen()] = '.';
-      ossMemcpy((CHAR *)(nameBuffer + context->getCSName().strLen() + 1),
-                context->getCLName().str(),
-                context->getCLName().strLen());
-      nameBuffer[bufferSize] = '\0';
-
-      logger = context->getOuterResource()->logger;
+      IRedoLogger *logger = context->getOuterResource()->logger;
+      GLOBAL_PAGE_ID gpid = getGPID();
 
       rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_PUBLIC_FULLNAME,
-                                        bufferSize,
-                                        nameBuffer);
+                                        DPS_LOG_PUBLIC_VESSEL_GPID,
+                                        sizeof(GLOBAL_PAGE_ID),
+                                        &gpid);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
       }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_RID,
+                                        sizeof(recordID),
+                                        &rid);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_PAGE_HEAD,
+                                        RECORD_PAGE_HEAD_LEN,
+                                        newHead);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_OLD_PAGE_HEAD,
+                                        RECORD_PAGE_HEAD_LEN,
+                                        oldHead);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_SLOT,
+                                        RDP_RSLOT_SIZE,
+                                        &slot);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_RECORD_AND_HEAD,
+                                        rh->getSize(),
+                                        rh);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      if (UTIL_COMPRESSOR_INVALID != context->getCompressionType())
+      {
+         rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_UNCOMPRESSED_RECORD,
+                                        context->getRecord().getSlice().len(),
+                                        context->getRecord().getSlice().data());
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+      }
+
+      rc = logger->pushLogRecordElement(session, lrc,
+                                        DPS_LOG_VESSEL_RDP_INSERT_UNIQUEID,
+                                        sizeof(utilCLUniqueID),
+                                        &uniqueID);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = pushFullNameElement(logger, session, lrc,
+                               context->getCSName(), context->getCLName());
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
 
       if (context->getTransID().isValid())
       {
@@ -665,60 +746,6 @@ namespace vessel
          }
       }
 
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_PUBLIC_VESSEL_GPID,
-                                        sizeof(GLOBAL_PAGE_ID),
-                                        &getGPID());
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_INSERT_VESSEL_SLOT,
-                                        sizeof(recordID),
-                                        &rid);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_INSERT_VESSEL_UNIQUEID,
-                                        sizeof(utilCLUniqueID),
-                                        &uniqueID);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_INSERT_VESSEL_PAGE_HEAD,
-                                        RECORD_PAGE_HEAD_LEN,
-                                        head);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_INSERT_VESSEL_SLOT,
-                                        RDP_RSLOT_SIZE,
-                                        &slot);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = logger->pushLogRecordElement(session, lrc,
-                                        DPS_LOG_INSERT_VESSEL_RECORD_AND_HEAD,
-                                        rh->getSize(),
-                                        rh);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
       if (lrc->needFullDump())
       {
          const CHAR *dumpBuf = getFullDumpBuffer();
@@ -738,10 +765,6 @@ namespace vessel
          goto error;
       }
    done:
-      if (NULL != nameBuffer)
-      {
-         context->releaseBuffer(nameBuffer, bufferSize);
-      }
       return rc;
    error:
       goto done;

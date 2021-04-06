@@ -65,7 +65,7 @@ namespace vessel
                        UINT32 logicalID,
                        UINT32 sequence);
 
-         INT32 insert(insertContext *context);
+         INT32 insertNormalRecord(insertContext *context);
 
          virtual PAGE_TYPE getPageType()const
          {
@@ -75,7 +75,8 @@ namespace vessel
          INT32 validatePage(UINT32 logicalID);
 
       private:
-         INT32 insertWithOutCompression(insertContext *context);
+         INT32 insertWithNormalRecordHead(insertContext *context,
+                                          const recordData &rd);
    
          BOOLEAN hasSpaceToInsert(const recordDataPageHead *head,
                                   UINT32 sizeNeeded,
@@ -93,16 +94,17 @@ namespace vessel
                                    STRIPING_ID striping);
 
       private:
-         /// with out compression
-         INT32 prepareInsertWOCLog(insertContext *context,
-                                   logRecordContext *lrc,
-                                   UINT32 rhAndbodySize);
-         INT32 commitInsertWOCLog(insertContext *context,
-                                  logRecordContext *lrc,
-                                  const recordID &rid,
-                                  const recordDataPageHead *head,
-                                  const recordSlot &slot,
-                                  const recordHead *rh);
+         INT32 prepareInsertLog(insertContext *context,
+                                logRecordContext *lrc,
+                                UINT32 rhAndbodySize);
+
+         INT32 commitInsertLog(insertContext *context,
+                               logRecordContext *lrc,
+                               const recordID &rid,
+                               const recordDataPageHead *oldHead,
+                               const recordDataPageHead *newHead,
+                               const recordSlot &slot,
+                               const recordHead *rh);
    };//class rdpAccessor
 }//namespace vessel
 }//namespace engine

@@ -107,7 +107,7 @@ namespace vessel
       UINT16 maxStriping;
       UINT64 transSN;
       UINT32 pad0;
-      UINT32 pad1;
+      UINT32 pad1; 
    };//struct recordDataPageHead
    const static UINT32 RECORD_PAGE_HEAD_LEN = sizeof(recordDataPageHead);
 
