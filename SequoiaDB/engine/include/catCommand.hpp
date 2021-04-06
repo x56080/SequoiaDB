@@ -258,6 +258,9 @@ namespace engine
       const CHAR*       _domainName ;
       INT32             _lobPageSize ;
       DMS_STORAGE_TYPE  _type ;
+      const CHAR*       _pDataSourceName ;
+      const CHAR*       _pDataSourceMapping ;
+      UTIL_DS_UID       _dsUID ;
 
       _catCSInfo()
       {
@@ -273,6 +276,9 @@ namespace engine
          _domainName = NULL ;
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
          _type = DMS_STORAGE_NORMAL ;
+         _pDataSourceName = NULL ;
+         _pDataSourceMapping = NULL ;
+         _dsUID = UTIL_INVALID_DS_UID ;
       }
 
       BSONObj toBson()
@@ -288,6 +294,12 @@ namespace engine
          }
          builder.append( CAT_LOB_PAGE_SZ_NAME, _lobPageSize ) ;
          builder.append( CAT_TYPE_NAME, _type ) ;
+         if ( UTIL_INVALID_DS_UID != _dsUID )
+         {
+            builder.append( FIELD_NAME_DATASOURCE_ID, _dsUID ) ;
+            SDB_ASSERT( _pDataSourceMapping, "Mapping is NULL" ) ;
+            builder.append( FIELD_NAME_MAPPING, _pDataSourceMapping ) ;
+         }
          return builder.obj() ;
       }
    } ;

@@ -1131,6 +1131,31 @@ namespace engine
                            DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
             ++expected ;
          }
+         // Data source option
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_DATASOURCE ) )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] type[%d] error", FIELD_NAME_DATASOURCE,
+                      ele.type() ) ;
+            UINT32 len = ossStrlen( ele.valuestr() ) ;
+            PD_CHECK( len > 0 && len <= DATASOURCE_MAX_NAME_SZ, SDB_INVALIDARG,
+                      error, PDERROR, "Length of data source name should be "
+                      "greater than 0 and less than %u",
+                      DATASOURCE_MAX_NAME_SZ ) ;
+            _csInfo._pDataSourceName = ele.valuestr() ;
+            ++expected ;
+         }
+         // Data source mapping option
+         else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MAPPING ) )
+         {
+            PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
+                      "Field[%s] type[%d] error", FIELD_NAME_MAPPING,
+                      ele.type() ) ;
+            PD_CHECK( ossStrlen( ele.valuestr() ) > 1, SDB_INVALIDARG, error,
+                      PDERROR, "Length of mapping should be greater than 0" ) ;
+            _csInfo._pDataSourceMapping = ele.valuestr() ;
+            ++expected ;
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,
@@ -1144,6 +1169,23 @@ namespace engine
 
       PD_CHECK( boQuery.nFields() == expected, SDB_INVALIDARG, error, PDERROR,
                 "unexpected fields exsit." ) ;
+
+      if ( _csInfo._pDataSourceMapping )
+      {
+         if ( !_csInfo._pDataSourceName )
+         {
+            // Mapping cannot be set without data source.
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Data source name should be specified when using "
+                             "mapping option[%d]", rc ) ;
+            goto error ;
+         }
+      }
+      else if ( _csInfo._pDataSourceName )
+      {
+         // If data source mapping is not set, map to the same collection space.
+         _csInfo._pDataSourceMapping = _csInfo._pCSName ;
+      }
 
       }
       catch( std::exception &e )
@@ -1196,6 +1238,34 @@ namespace engine
                 SDB_DMS_CS_EXIST, error, PDERROR,
                 "Collection space [%s] is already existed",
                 csName ) ;
+
+      // check data source is whether existed or not
+      if ( _csInfo._pDataSourceName )
+      {
+         BOOLEAN exist = FALSE ;
+         try
+         {
+            BSONObj obj ;
+            rc = catCheckDataSourceExist( _csInfo._pDataSourceName,
+                                          exist, obj, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check existence of data source[%s] "
+                         "failed[%d]", _csInfo._pDataSourceName, rc ) ;
+            PD_CHECK( TRUE == exist, SDB_CAT_DATASOURCE_NOTEXIST, error,
+                      PDERROR, "Data source[%s] dose not exist",
+                      _csInfo._pDataSourceName ) ;
+
+            // Get the data source unique id. It will be stored in the metadata
+            // of the collection space.
+            _csInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Exception occurred when getting information of "
+                    "data source[%s]: %s", _csInfo._pDataSourceName, e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
 
       // Lock collection space
       PD_CHECK( lockMgr.tryLockCollectionSpace( csName, EXCLUSIVE ),
