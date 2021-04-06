@@ -57,7 +57,7 @@ public class ShareLob20334 extends SdbTestBase {
         }
     }
 
-    @Test(dataProvider = "clNameProvider", enabled = false)
+    @Test(dataProvider = "clNameProvider")
     public void testLob( String clName, byte[] writeLobBuff ) {
         int writeSize = writeLobBuff.length;
         if ( CommLib.isStandAlone( sdb ) && clName.equals( mainCLName ) ) {
