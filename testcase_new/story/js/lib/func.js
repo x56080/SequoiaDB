@@ -76,6 +76,10 @@ if( typeof ( ESSVCNAME ) == "undefined" ) { ESSVCNAME = '9200'; }
 //ES全文索引前缀，与工程名相关
 if( typeof ( FULLTEXTPREFIX ) == "undefined" ) { FULLTEXTPREFIX = ''; }
 if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
+//数据源端主机名，CI默认传入localhost
+if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
+//数据源端端口号，CI默认传入11810
+if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
 //STP服务端主机名，CI默认传入localhost
 if( typeof ( STPHOSTNAME ) == "undefined" ) { STPHOSTNAME = 'localhost'; }
 //STP服务端端口号，CI默认传入9622
