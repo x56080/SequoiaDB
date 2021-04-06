@@ -59,6 +59,9 @@ SequoiaDB 的增量备份功能，是对数据库集群中指定数据分区的�
 ----
 SequoiaDB 的备份文件恢复原理是利用 [sdbrestore][sdbrestore] 工具将之前的全量备份文件和增量备份文件按照既定格式，重新解压后，恢复成正常的数据文件。
 
+全局一致时间点恢复原理
+----
+SequoiaDB 的全局一致时间点恢复是利用 [restoreToTime][restoreToTime] 工具基于当前同步日志或者备份中的同步日志，找到一个跟指定时间最接近的全局一致时间点，回滚全局一致时间点时不可见的操作，最终将分布式数据库系统恢复到一个过去的全局一致的状态。
 
 
 [^_^]:
@@ -71,4 +74,4 @@ SequoiaDB 的备份文件恢复原理是利用 [sdbrestore][sdbrestore] 工具�
 [^_^]:
     本文使用到的所有链接及引用。
 [sdbrestore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/regular_bar.md#数据恢复
-
+[restoreToTime]:manual/Distributed_Engine/Maintainance/Backup_Recovery/PointInTimeRestore.md#时间点恢复

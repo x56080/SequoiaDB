@@ -1,4 +1,4 @@
-{
+﻿{
    "contents": [
       {
          "id": 1558957223,
@@ -1596,6 +1596,12 @@
                            "file": "data_restore",
                            "cn": "数据恢复",
                            "en": "Data Restore"
+                        },
+                        {
+                           "id": 1617112698,
+                           "file": "PointInTimeRestore",
+                           "cn": "时间点恢复",
+                           "en": "Point In Time Restore"
                         }
                      ]
                   },
@@ -2574,6 +2580,30 @@
                            "file": "reloadConf",
                            "cn": "reloadConf()",
                            "en": "reloadConf()"
+                        },
+                        {
+                           "id": 1617154481,
+                           "file": "restoreAbort",
+                           "cn": "restoreAbort()",
+                           "en": "restoreAbort()"
+                        },
+                        {
+                           "id": 1617154529,
+                           "file": "restoreCheck",
+                           "cn": "restoreCheck()",
+                           "en": "restoreCheck()"
+                        },
+                        {
+                           "id": 1617154625,
+                           "file": "restorePrepare",
+                           "cn": "restorePrepare()",
+                           "en": "restorePrepare()"
+                        },
+                        {
+                           "id": 1617154651,
+                           "file": "restoreToTime",
+                           "cn": "restoreToTime()",
+                           "en": "restoreToTime()"
                         },
                         {
                            "id": 1521424296,

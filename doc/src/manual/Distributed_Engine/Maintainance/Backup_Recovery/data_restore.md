@@ -161,7 +161,23 @@ auditpath=/opt/sequoiadb/database/data/11820/diaglog/
 2. 使用 11820 节点的备份数据构建该节点的离线库，需要指定 -a offlinebuild 及相关配置参数，离线库所在路径为  `/opt/backup/11820`
 
     ```lang-bash
-    $ sdbrestore -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1 -a offlinebuild --dbpath /opt/backup/11820 --confpath /opt/sequoiadb/conf/local/11820/ --svcname 11820 
+    $ sdbrestore -b -1 -p /opt/sequoiadb/database/data/11820/bakfile -n backupAll_group1 -a offlinebuild --dbpath /opt/backup/11820 --confpath /opt/sequoiadb/conf/local/11820/ --svcname 11820 
+    ```
+
+    输出如下结果表示数据恢复成功：
+
+    ```lang-text
+    Check sequoiadb(11820) is not running...OK
+    Begin to init dps logs...
+    Begin to restore...
+    Find the begin increase id: 2
+    Begin to restore data file: /opt/sequoiadb/database/data/11820/bakfile/backupAll_group1.3 ...
+    Begin to restore dps logs...
+    Begin to load all collection spaces...
+    Saved global transaction recoverable window ( min: 0, max: 1621646359859052 )
+    *****************************************************
+    Restore succeed!
+    *****************************************************
     ```
 
     > **Note:**
