@@ -33,6 +33,7 @@ function testConnect23640()
    try
    {
       var stp3 = new Stp("ccc",9622);
+      throw new Error( "expected throw error -15, but success!" );
    }
    catch( e )
    {
@@ -53,21 +54,13 @@ function testTime23641(primaryNode, spareNodeHost, spareNodePort, clientHost, cl
    var primaryTime1 = primaryStp.getTime();
    var spareTime = spareStp.getTime();
    var primaryTime2 = primaryStp.getTime();
-   var rc = checkTime(primaryTime1, spareTime, primaryTime2);
-   if ( !rc )
-   {
-      throw new Error( "Error: stp.getTime in server return time is not expected!" );
-   }
+   checkTime(primaryTime1, spareTime, primaryTime2);
    //3.分别在server/client备节点上指定stp.getTime()，获取节点的逻辑时间及TimeError 
    //通过查主再查备再查主，验证逻辑时间正确性 
    var clientStp = new Stp(clientHost, clientPort);
    var clientTime = clientStp.getTime();
    var primaryTime3 = primaryStp.getTime();
-   rc = checkTime(primaryTime2, clientTime, primaryTime3);
-   if ( !rc )
-   {
-      throw new Error( "Error: stp.getTime in client return time is not expected!" );
-   }
+   checkTime(primaryTime2, clientTime, primaryTime3);
    
 }
 
@@ -104,7 +97,7 @@ function testTimeUs23642(primaryNode, spareNodeHost, spareNodePort, clientHost, 
 
    if ( time2 < time1 || time2 > time3 )
    {
-      throw new Error( "Error: stp.getTimeUS in client return time is not expected!" );
+      throw new Error("Dose not meet 'time1 <=  time2 <= time3', time1: "+time1+",time2: "+time2+", time3: "+time3);
    }
 }
 
@@ -123,7 +116,6 @@ function checkTime(time1, time2, time3)
    
    if(time2 >= time1 && time2 <= time3)
    {
-      return true;
+      throw new Error("Dose not meet 'time1 <=  time2 <= time3', time1: "+time1+",time2: "+time2+", time3: "+time3);
    }
-   return false;
 }

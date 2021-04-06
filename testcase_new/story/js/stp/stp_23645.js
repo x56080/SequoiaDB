@@ -11,28 +11,23 @@ function test ()
 {
    var serverGroup = getStpServerNodes();
    var primaryNode = getStpPrimaryNode();
-   var isSuccess = true
    if (serverGroup.length <= 0)
    {
-      isSuccess = false;
-   }
-   var primaryInfo = primaryNode["HostName"]+":"+primaryNode["Service"];
-   
-   var i=0;
-   for(i=0; i<serverGroup.length; i++)
-   {
-      if(serverGroup[i] == primaryInfo)
+      throw new Error( "Error: stp.getServers return serverGroup is :" + serverGroup.length );
+   } else {
+      var primaryInfo = primaryNode["HostName"]+":"+primaryNode["Service"];
+      
+      var i=0;
+      for(i=0; i<serverGroup.length; i++)
       {
-         break;
+         if(serverGroup[i] == primaryInfo)
+         {
+            break;
+         }
       }
-   }
-   if(i == serverGroup.length)
-   {
-      isSuccess = false;
-   }
-   
-   if (!isSuccess)
-   {
-      throw new Error( "Error: stp.getServers return servers is not expected!" );
+      if(i == serverGroup.length)
+      {
+         throw new Error( "Error: stp.getServers return serverGroup :" + serverGroup +" does not contain primary node : " + primaryInfo);
+      }
    }
 }
