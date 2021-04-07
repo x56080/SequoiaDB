@@ -353,7 +353,7 @@ ha_inst_group_clear 工具用于清除实例组或者实例的配置信息。
 9. 新增实例 myinst_03 并加入实例组
  
    ```lang-bash
-   $ bin/sdb_sql_ctl addinst myinst_03 -D database/3308 -p 3308 -g mysql -k test
+   $ bin/sdb_mysql_ctl addinst myinst_03 -D database/3308 -p 3308 -g mysql -k test
    ```
  
 10. 使用 mysql 命令连接到实例 myinst_03
