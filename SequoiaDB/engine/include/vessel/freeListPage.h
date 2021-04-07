@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lcChunkPage.h
+   Source File Name = freeListPage.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,8 +33,8 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LC_CHUNK_PAGE_H_
-#define VESSEL_LC_CHUNK_PAGE_H_
+#ifndef VESSEL_FREE_LIST_PAGE_H_
+#define VESSEL_FREE_LIST_PAGE_H_
 
 #include "oss.hpp"
 #include "ossTypes.h"
@@ -46,31 +43,31 @@ namespace engine
 {
 namespace vessel
 {
-   class lcChunkPage : public SDBObject
+   class freeListPage : public SDBObject
    {
       public:
-         OSS_INLINE lcChunkPage()
+         OSS_INLINE freeListPage()
          :_chunk(UINT32(-1)),
           _buf(0)
          {}
 
-         OSS_INLINE lcChunkPage(const lcChunkPage &r)
+         OSS_INLINE freeListPage(const freeListPage &r)
          :_chunk(r._chunk), _buf(r._buf)
          {}
 
-         OSS_INLINE lcChunkPage(UINT32 chunk, ossValuePtr buf)
+         OSS_INLINE freeListPage(UINT32 chunk, ossValuePtr buf)
          :_chunk(chunk), _buf(buf){}
          
-         OSS_INLINE ~lcChunkPage(){}
+         OSS_INLINE ~freeListPage(){}
 
-         OSS_INLINE lcChunkPage &operator=(const lcChunkPage &r)
+         OSS_INLINE freeListPage &operator=(const freeListPage &r)
          {
             _chunk = r._chunk;
             _buf = r._buf;
             return *this;
          }
 
-         OSS_INLINE BOOLEAN operator<(const lcChunkPage &r)
+         OSS_INLINE BOOLEAN operator<(const freeListPage &r)
          {
             if (_chunk < r._chunk)
             {
@@ -94,7 +91,7 @@ namespace vessel
 
          OSS_INLINE BOOLEAN valid()const
          {
-            return UINT32(-1) != _chunk && 0 != _buf;
+            return 0 != _buf;
          }
 
          OSS_INLINE void set(UINT32 chunk, ossValuePtr buf)
@@ -116,10 +113,10 @@ namespace vessel
       private:
          UINT32 _chunk;
          ossValuePtr _buf;
-   }; /// end of class lcChunkPage
+   }; /// end of class freeListPage
 
    
 } /// end of namespace vessel
 } /// end of namespace engine
 
-#endif
+#endif//VESSEL_FREE_LIST_PAGE_H_

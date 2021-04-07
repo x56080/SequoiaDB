@@ -42,15 +42,12 @@
 #include "ossTypes.h"
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include <boost/interprocess/sync/spin/mutex.hpp>
 
 namespace engine
 {
 namespace vessel
 {
    typedef boost::shared_mutex SHARED_MUTEX;
-   typedef boost::mutex UNIQUE_MUTEX;
-   typedef boost::interprocess::ipcdetail::spin_mutex SPIN_MUTEX;
 
    enum LOCK_MODE
    {

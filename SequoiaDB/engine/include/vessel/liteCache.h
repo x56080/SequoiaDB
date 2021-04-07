@@ -65,9 +65,9 @@ class liteCache : public SDBObject
       liteCache();
       ~liteCache();
 
-   private:
-      liteCache(const liteCache &){}
-      liteCache &operator=(const liteCache &){return *this;}
+      liteCache(const liteCache &) = delete;
+      liteCache &operator=(const liteCache &) = delete;
+      
    public: /// for normal requests
       INT32 init(const liteCacheOptions &o, collectionSpaceContainer *container);
 
@@ -89,8 +89,8 @@ class liteCache : public SDBObject
                    liteCacheTuple &tuple);
 
    public:/// only for callback
-      INT32 allocateChunkPagesAndInsertIntoLRU(requestContext *context,
-                                               lcExtentTagHolder &holder);
+      INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
+                                            lcExtentTagHolder &holder);
 
       INT32 tryToUpdateLRU(lcExtentTagHolder &holder);
 
@@ -117,20 +117,19 @@ class liteCache : public SDBObject
                                  UINT64 minLSN,
                                  diskIOJob *job);
 
-      /// you need to stop all write operations and io jobs before using this api.
-      INT32 createWholeDirtyListIOJob(requestContext *context,
-                                      diskIOJob *job);
-
       INT32 executeIOTask(requestContext *context,
                           diskIOTask *task);
    private:
-      INT32 ensureChunkPages(requestContext *context, UINT32 size, lcChunkPage *pages);
+      INT32 ensureMemPage(requestContext *context, freeListPage &page);
+
+      INT32 initNewTagInBucket(requestContext *context,
+                               UINT32 pageSize,
+                               ossValuePtr diskPage,
+                               lcExtentTagHolder &holder);
 
       INT32 initTupleBeforeReturn(lcExtentTagHolder &holder,
                                   const liteCacheAllocateOptions &options,
                                   liteCacheTuple &tuple);
-
-      INT32 initChunkPagesOfTag(lcExtentTag *tag, lcChunkPage *pages);
 
       INT32 fsyncDiskPages(requestContext *context,
                            const GLOBAL_PAGE_ID &gpid,

@@ -69,7 +69,7 @@ namespace vessel
 
          /// for user threads
          /// tag under w lock
-         INT32 insert(lcExtentTagHolder &holder);
+         INT32 insert(lcExtentTagHolder &holder, const freeListPage &page);
 
          /// for user threads
          /// tag under lock
@@ -80,14 +80,13 @@ namespace vessel
          /// page scan num will be max(pageCount, lruOptions.lruPageScanNum) when scanUntilHitMax is false
          INT32 evict(requestContext *context,
                      BOOLEAN scanUntilHitMax,
-                     UINT32 chunkPageCount,
-                     lcChunkPage *pageBuf);
+                     freeListPage &pageBuf);
 
          /// for background threads
          INT32 setPendingWriteOrEvict(requestContext *context,
                                       UINT32 scanDepth,
                                       diskIOJob *job,
-                                      UINT32 *involvedChunkPageCount);
+                                      UINT32 *involvedMemPageCount);
 
          /// for background threads
          /// reset evict begin prt after flush done
@@ -112,8 +111,7 @@ namespace vessel
          void removeFromList(lcExtentTag *tag);
 
          BOOLEAN tryToEvictTagFromList(lcExtentTag *tag,
-                                       UINT32 bufCount, /// chunk pages will be return to free list if bufCount is zero.
-                                       lcChunkPage *pages);
+                                       freeListPage &page);
 
       
       private:

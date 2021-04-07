@@ -46,6 +46,7 @@
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
 #include "vessel/requestContext.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -125,7 +126,7 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lcLRUList::insert(lcExtentTagHolder &holder)
+   INT32 lcLRUList::insert(lcExtentTagHolder &holder, const freeListPage &page)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
@@ -146,7 +147,29 @@ namespace vessel
          goto error;
       }
 
+      if (OSS_UNLIKELY(holder.tag()->inLruList()))
+      {
+         PD_LOG(PDERROR, "can not insert tag which already in lru");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (OSS_UNLIKELY(holder.tag()->hasMemPage()))
+      {
+         PD_LOG(PDERROR, "can not insert tag with mem page to lru");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      if (OSS_UNLIKELY(!page.valid()))
+      {
+         PD_LOG(PDERROR, "can not insert with invalid page");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       holder.tag()->setFlags(ET_FLAG_IN_LRU_LIST);
+      holder.tag()->setMemPage(page);
       _latch.get();
       locked = TRUE;
 
@@ -194,23 +217,23 @@ namespace vessel
          goto error;
       }
 
+      tag = holder.tag();
+
+      if (OSS_UNLIKELY(!tag->inLruList()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
       if (!_options.lruIncTouchCntWhenReadOnly &&
           LOCK_MODE_SHARED == holder.getLockMode())
       {
          goto done;
       }
-      
-      tag = holder.tag();
-      _latch.get();
-      locked = TRUE;
 
       tag->incLRUCnt();
       
    done:
-      if (locked)
-      {
-         _latch.release();
-      }
       return rc;
    error:
       goto done;
@@ -219,8 +242,7 @@ namespace vessel
 
    INT32 lcLRUList::evict(requestContext *context,
                           BOOLEAN scanUntilHitMax,
-                          UINT32 chunkPageCount,
-                          lcChunkPage *pageBuf)
+                          freeListPage &page)
    {
       INT32 rc = SDB_OK;
       UINT32 scanNum = 0;
@@ -228,39 +250,26 @@ namespace vessel
       BOOLEAN locked = FALSE;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
-      UINT32 evictedChunkPageCount = 0;
-      SDB_ASSERT(0 < chunkPageCount && chunkPageCount <= 2, "unnecessary check. but why do you need more than 2 pages");
 
-      if (OSS_UNLIKELY(0 == chunkPageCount))
-      {
-         goto done;
-      }
-      else if (OSS_UNLIKELY(NULL == pageBuf))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
+      page.reset();
       _latch.get();
       locked = TRUE;
 
       if (!scanUntilHitMax)
       {
-         scanNum = std::max(chunkPageCount, _options.lruScanDepth);
+         scanNum = _options.lruScanDepth;
       }
       else
       {
          scanNum = _size * _options.lruMaxScanPercent;
-         scanNum = std::max(chunkPageCount, scanNum);
       }
 
       itr = NULL == _evictBegin ? _tail : _evictBegin;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
          lcExtentTag *tag = itr;
-         UINT32 pageNumOfTag = tag->getPageNum();
+         itr = itr->getLRUPre();
          lcExtentTagHolder holder;
-         UINT32 stillNeed = chunkPageCount - evictedChunkPageCount;
 
          if (splited())
          {
@@ -280,18 +289,14 @@ namespace vessel
             continue;
          }
 
-         if (!tryToEvictTagFromList(tag, stillNeed, pageBuf + evictedChunkPageCount))
+         if (!tryToEvictTagFromList(tag, page))
          {
             ++totalSkipped;
             continue;
          }
 
          /// do not access tag again. it may be released.
-         evictedChunkPageCount += pageNumOfTag;
-         if (chunkPageCount <= evictedChunkPageCount)
-         {
-            break;
-         }
+         break;
       }
 
       if (NULL != itr && splited() && itr->isLRUCold())
@@ -306,7 +311,7 @@ namespace vessel
       _latch.release();
       locked = FALSE;
 
-      if (evictedChunkPageCount < chunkPageCount)
+      if (!page.valid())
       {
          rc = SDB_VESSEL_LC_LRU_SCAN_HIT_MAX;
          goto error;
@@ -319,17 +324,13 @@ namespace vessel
       }
       return rc;
    error:
-      if (0 < evictedChunkPageCount)
-      {
-         _fl->releasePages(evictedChunkPageCount, pageBuf);
-      }
       goto done;
    }
 
    INT32 lcLRUList::setPendingWriteOrEvict(requestContext *context,
                                            UINT32 scanDepth,
                                            diskIOJob *job,
-                                           UINT32 *involvedChunkPageCount)
+                                           UINT32 *involvedMemPageCount)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
@@ -340,6 +341,7 @@ namespace vessel
       UINT32 totalPending = 0;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
+      ossPoolVector<freeListPage> pages;
 
       _latch.get();
       locked = TRUE;
@@ -349,9 +351,9 @@ namespace vessel
       {
          lcExtentTag *tag = itr;
          itr = itr->getLRUPre();
-         UINT32 pageNumOfTag = tag->getPageNum();
          BOOLEAN dirtyAndNoPending = FALSE;
          BOOLEAN mayBeEvicted = FALSE;
+         freeListPage page;
 
          if (splited())
          {
@@ -372,10 +374,11 @@ namespace vessel
          }
          else if (mayBeEvicted)
          {
-            if (tryToEvictTagFromList(tag, 0, NULL))
+            if (tryToEvictTagFromList(tag, page))
             {
                /// tag's memory may be released, do not access it again.
-               totalEvicted += pageNumOfTag;
+               pages.push_back(page);
+               ++totalEvicted;
             }
             else
             {
@@ -389,7 +392,7 @@ namespace vessel
             {
                goto error;
             }
-            totalPending += pageNumOfTag;
+            ++totalPending;
          }
          else
          {
@@ -408,9 +411,15 @@ namespace vessel
 
       _latch.release();
       locked = FALSE;
-      if (NULL != involvedChunkPageCount)
+
+      if (!pages.empty())
       {
-         *involvedChunkPageCount = totalEvicted + totalPending;
+         _fl->releasePages(pages.size(), pages.data());
+      }
+
+      if (NULL != involvedMemPageCount)
+      {
+         *involvedMemPageCount = totalEvicted + totalPending;
       }
    done:
       if (locked)
@@ -419,7 +428,7 @@ namespace vessel
       }
       return rc;
    error:
-      job->abort();
+      job->abortUndispatchedTasks();
       goto done;
    }
 
@@ -561,7 +570,7 @@ namespace vessel
          _tail = pre;
       }
 
-      tag->setNoChunkPages();
+      tag->releaseMemPage();
       tag->lruRemoved();
       tag->clearFlags(ET_FLAG_IN_LRU_LIST);
       return;
@@ -588,15 +597,11 @@ namespace vessel
 
 
    BOOLEAN lcLRUList::tryToEvictTagFromList(lcExtentTag *tag,
-                                            UINT32 bufCount,
-                                            lcChunkPage *pages)
+                                            freeListPage &page)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != tag, "can not be null");
-      lcChunkPage *page = NULL;
       lcExtentTagHolder holder;
-      UINT32 evitedPageCount = 0;
-      UINT32 totalCount = 0;
       BOOLEAN removeFromBucket = FALSE;
       
       holder.reset(tag);
@@ -605,7 +610,7 @@ namespace vessel
          goto done;
       }
 
-      if (OSS_UNLIKELY(tag->noChunkPages()))
+      if (OSS_UNLIKELY(!tag->hasMemPage()))
       {
          SDB_ASSERT(FALSE, "impossible");
          PD_LOG(PDERROR, "tag with no chunk pages in lru");
@@ -616,8 +621,6 @@ namespace vessel
       {
          goto done;
       }
-
-      totalCount = tag->getPageNum();
 
       if (!tag->inDirtyList())
       {
@@ -639,16 +642,7 @@ namespace vessel
       ///it does not matter, we will not delete tag unless removeFromBucket is true.
       ///others users may reinsert tag into lru by themselves. 
       
-      page = tag->pages();
-      for (evitedPageCount = 0; evitedPageCount < bufCount && evitedPageCount < totalCount; ++evitedPageCount)
-      {
-         pages[evitedPageCount] = *(page + evitedPageCount);
-      }
-
-      if (evitedPageCount < totalCount)
-      {
-         _fl->releasePages(totalCount - evitedPageCount, page + evitedPageCount);
-      }
+      page = tag->getMemPage();
 
       if (splited())
       {
@@ -676,7 +670,7 @@ namespace vessel
    {
       SDB_ASSERT(splited(), "must be splited");
       BOOLEAN cold = tag->isLRUCold(); 
-      if (_size < _options.lruMinSplitSize)
+      if (_options.lruMinSplitSize < _size)
       {
          if (_middle == tag)
          {

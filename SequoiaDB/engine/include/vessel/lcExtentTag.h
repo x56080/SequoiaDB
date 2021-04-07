@@ -43,7 +43,9 @@
 #include "vessel/latch.h"
 #include "ossUtil.h"
 #include "dpsDef.hpp"
-#include "vessel/lcChunkPage.h"
+#include "vessel/freeListPage.h"
+#include "ossSpinLatch.hpp"
+#include "utilPooledObject.hpp"
 
 namespace engine
 {
@@ -63,27 +65,19 @@ namespace vessel
    const UINT16 ET_LRU_FLAG_NONE = 0;
    const UINT16 ET_LRU_FLAG_COLD = 1;
 
-   const UINT32 PT_STATIC_PB_CNT = 2;
-
    const UINT32 TAG_FLAG_NONE = 0;
-   const UINT32 TAG_FLAG_DISK_PAGE_NOT_READY = 0x01;
-   const UINT32 TAG_FLAG_DIRTY = 0x02;
-   const UINT32 TAG_FLAG_IN_DIRTY_LIST = 0x04;
-   const UINT32 TAG_FLAG_IN_LRU_LIST = 0x08;
+   const UINT32 TAG_FLAG_DIRTY = 0x01;
+   const UINT32 TAG_FLAG_IN_DIRTY_LIST = 0x02;
+   const UINT32 TAG_FLAG_IN_LRU_LIST = 0x04;
 
-   class lcExtentTag : public SDBObject
+   class lcExtentTag : public _utilPooledObject
    {
       public:
          lcExtentTag();
          ~lcExtentTag();
 
-      private:
-         lcExtentTag(const lcExtentTag &){}
-         lcExtentTag &operator=(const lcExtentTag &)
-         {
-            return *this;
-         }
-         
+         lcExtentTag(const lcExtentTag &) = delete;
+         lcExtentTag &operator=(const lcExtentTag &) = delete;
       public:
          void reset();
 
@@ -94,7 +88,7 @@ namespace vessel
 
          /// do not get spin latch unless you are very clear
          /// how it works 
-         OSS_INLINE SPIN_MUTEX &getSpinMutex()
+         OSS_INLINE ossSpinLatch &getSpinMutex()
          {
             return _spinLatch;
          }
@@ -144,34 +138,40 @@ namespace vessel
             return flags;
          }
 
+         OSS_INLINE void setDiskPagePtr(ossValuePtr ptr)
+         {
+            _diskPagePtr = ptr;
+            return;
+         }
+
+         OSS_INLINE BOOLEAN hasDiskPage()const
+         {
+            return 0 != _diskPagePtr;
+         }
+
          OSS_INLINE ossValuePtr getDiskPagePtr()const
          {
             return _diskPagePtr;
          }
 
-         OSS_INLINE lcChunkPage *pages()
+         OSS_INLINE BOOLEAN hasMemPage()const
          {
-            return _pages;
+            return _memPage.valid();
          }
-
-         OSS_INLINE const lcChunkPage *pages() const
+         
+         OSS_INLINE const freeListPage &getMemPage()const
          {
-            return _pages;
+            return _memPage;
          }
 
-         OSS_INLINE UINT32 getPageNum()const
-         {            
-            return _pageNum;
+         OSS_INLINE freeListPage &getMemPage()
+         {
+            return _memPage;
          }
 
-         OSS_INLINE UINT32 getCachePageSize()const
+         OSS_INLINE UINT32 getPageSize()const
          {
             return _pageSize;
-         }
-
-         OSS_INLINE UINT32 getDiskPageSize()const
-         {
-            return _pageNum * _pageSize;
          }
 
          OSS_INLINE BOOLEAN inDirtyList()const
@@ -184,14 +184,9 @@ namespace vessel
             return OSS_BIT_TEST(_flags, TAG_FLAG_DIRTY);
          }
 
-         OSS_INLINE BOOLEAN diskPageNotReady()const
+         OSS_INLINE BOOLEAN inLruList()const
          {
-            return OSS_BIT_TEST(_flags, TAG_FLAG_DISK_PAGE_NOT_READY);
-         }
-
-         OSS_INLINE BOOLEAN noChunkPages()const
-         {
-            return NULL == _pages;
+            return OSS_BIT_TEST(_flags, TAG_FLAG_IN_LRU_LIST);
          }
 
          OSS_INLINE void setMinAndMaxLSN(UINT64 lsn)
@@ -223,7 +218,7 @@ namespace vessel
          {
             _lruPre = pre;
             _lruNext = next;
-            _lruCnt = touchCnt;
+            _lruCnt.init(touchCnt);
             _lruFlags = flags;
             OSS_BIT_SET(_flags, TAG_FLAG_IN_LRU_LIST);
          }
@@ -232,7 +227,7 @@ namespace vessel
          {
             _lruPre = NULL;
             _lruNext = NULL;
-            _lruCnt = 0;
+            _lruCnt.init(0);
             _lruFlags = ET_LRU_FLAG_NONE;
             OSS_BIT_CLEAR(_flags, TAG_FLAG_IN_LRU_LIST);
          }
@@ -254,20 +249,17 @@ namespace vessel
 
          OSS_INLINE void incLRUCnt()
          {
-            if (_lruCnt < UINT32(-1))
-            {
-               ++_lruCnt;
-            }
+            _lruCnt.inc();
          }
 
          OSS_INLINE void clearLRUCnt()
          {
-            _lruCnt = 0;
+            _lruCnt.init(0);
          }
 
-         OSS_INLINE UINT16 getLRUCnt()const
+         OSS_INLINE UINT32 getLRUCnt()
          {
-            return _lruCnt;
+            return _lruCnt.fetch();
          }
 
          OSS_INLINE void setLRUPre(lcExtentTag *pre)
@@ -457,29 +449,28 @@ namespace vessel
       public:
          /// call this func before insert into bucket.
          /// no lock
-         OSS_INLINE void firstInit(const PHY_EXTENT_ID &id,
-                                   UINT32 pageNum,
-                                   UINT32 pageSize,
-                                   ossValuePtr diskPagePtr)
+         OSS_INLINE void firstInit(const GLOBAL_PAGE_ID &id,
+                                   UINT32 pageSize)
          {
             _id = id;
-            _pageNum = pageNum;
             _pageSize = pageSize;
-            _diskPagePtr = diskPagePtr;
             return;
          }
 
          /// w lock
-         INT32 setChunkPages(const lcChunkPage *pages);
+         OSS_INLINE void setMemPage(const freeListPage &page)
+         {
+            _memPage = page;
+         }
 
          /// w lock
-         void setNoChunkPages();
+         OSS_INLINE void releaseMemPage()
+         {
+            _memPage.reset();
+         }
 
          /// w lock
          INT32 copyDataToDisk();
-
-         /// w lock
-         INT32 validateDiskPageAndCacheLSN();
 
       private:
          OSS_INLINE BOOLEAN readyToBeRecycled() const
@@ -539,28 +530,26 @@ namespace vessel
          };
 
       private:
-         SPIN_MUTEX _spinLatch;
+         ossSpinLatch _spinLatch;
          SHARED_MUTEX _rwMutex;
 
          /// readonly after firstInitTag
-         PHY_EXTENT_ID _id;
-         UINT32 _pageNum;
+         GLOBAL_PAGE_ID _id;
          UINT32 _pageSize;
-         ossValuePtr _diskPagePtr;
 
          /// protected by spin latch.
+         ossValuePtr _diskPagePtr;
          TagState _ts;
 
          /// protected by rw latch.
          UINT32 _flags;
          UINT64 _minLSN;
          UINT64 _maxLSN;
-         lcChunkPage _sPages[PT_STATIC_PB_CNT];
-         lcChunkPage *_pages;
+         freeListPage _memPage;
          
          /// lru list, protected by lru lock
          UINT32 _lruFlags;
-         UINT32 _lruCnt; /// should use cas?
+         ossAtomic32 _lruCnt;
          lcExtentTag *_lruPre;
          lcExtentTag *_lruNext;
          /// dirty list, protected by dirty list lock

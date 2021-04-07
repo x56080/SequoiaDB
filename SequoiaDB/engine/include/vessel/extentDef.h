@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,6 +38,7 @@
 
 #include "vessel/vesselDef.h"
 #include "dpsDef.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -151,13 +149,7 @@ namespace vessel
    const UINT32 PAGE_HEAD_LEN = sizeof(pageHead);
    const UINT32 PAGE_TAIL_LEN = sizeof(UINT64);
 
-   OSS_INLINE BOOLEAN validatePage(const pageHead *head, UINT64 tail)
-   {
-      return head->lsn == tail &&
-             INVALID_PAGE_TYPE != head->type &&
-             PAGE_VERSION_1 == head->version &&
-             head->inUsed();
-   }
+   BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize);
 
 }/// end of namespace vessel
 } /// end of namespace engine

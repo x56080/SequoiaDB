@@ -46,7 +46,6 @@
 #include "ossLikely.hpp"
 #include "ossUtil.hpp"
 #include "vessel/diskIOJob.h"
-#include "vessel/lcChunkPageArray.h"
 #include "vessel/lcLRUList.h"
 #include "vessel/lcDirtyList.h"
 #include "vessel/lcFreeList.h"
@@ -224,7 +223,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       lcExtentTagHolder holder;
       UINT32 pageSize = 0;
+      ossValuePtr ptr = 0;
       storageUnit *su = NULL;
+      BOOLEAN newTagInBucket = FALSE;
 
       if (OSS_UNLIKELY(gpid.invalid()))
       {
@@ -266,12 +267,40 @@ namespace vessel
          goto error;
       }
 
+      rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get page ptr of [%s], rc:%d",
+                gpid.toString().c_str(), rc);
+         goto error;
+      }
+
       rc = _buckets->ensureTagAndIncUsage(gpid, pageSize,
-                                          _fl->getChunkPageSize(),
-                                          su, holder);
+                                          holder, newTagInBucket);
       if (SDB_OK != rc)
       {
          goto error;
+      }
+
+      if (newTagInBucket)
+      {
+         SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
+         rc = initNewTagInBucket(context, pageSize, ptr, holder);
+         if (SDB_OK != rc)
+         {
+            holder.unlockUnique();
+            holder.tag()->decUsageCnt();
+            if (holder.tag()->tryToSetRecycled())
+            {
+               _buckets->releaseRemovedTag(holder.tag());
+            }
+            /// if failed to remove tag, just leave it in the bucket and wait to be recycled.
+            PD_LOG(PDSEVERE, "disk page crashed, gpid:%s", gpid.toString().c_str());
+            holder.reset(NULL);
+            goto error;
+         }
+
+         holder.unlockUnique();
       }
 
       rc = initTupleBeforeReturn(holder, options, tuple);
@@ -320,12 +349,13 @@ namespace vessel
       }
 
       tag = tuple._holder.tag();
-      SDB_ASSERT(!tag->noChunkPages(), "chunk pages must be allocated");
-      if (OSS_UNLIKELY(tag->noChunkPages()))
+      SDB_ASSERT(tag->hasMemPage(), "mem page must be allocated");
+      if (OSS_UNLIKELY(!tag->hasMemPage()))
       {
-         PD_LOG(PDERROR, "tuple has no chunk pages");
+         PD_LOG(PDERROR, "tuple has no mem page");
          goto done;
       }
+
       if (tag->inDirtyList())
       {
          /// max lsn is impossible to be invalid when in dirty list.
@@ -391,16 +421,16 @@ namespace vessel
       return 0;
    }
 
-   INT32 liteCache::allocateChunkPagesAndInsertIntoLRU(requestContext *context,
-                                                       lcExtentTagHolder &holder)
+   INT32 liteCache::allocateMemPageAndInsertIntoLRU(requestContext *context,
+                                                    lcExtentTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(holder.valid(), "invalid holder");
       SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "holding wrong type lock");
-      SDB_ASSERT(holder.tag()->noChunkPages(), "already has chunk pages");
+      SDB_ASSERT(!holder.tag()->hasMemPage(), "already has mem page");
       lcExtentTag *tag = NULL;
-      lcChunkPageArray array;
-      UINT32 releaseNum = 0;
+      freeListPage page;
+      ossValuePtr diskPtr = 0;
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -414,51 +444,40 @@ namespace vessel
          goto error;
       }
 
-      if (OSS_UNLIKELY(!holder.tag()->noChunkPages()))
+      if (OSS_UNLIKELY(holder.tag()->hasMemPage()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
       tag = holder.tag();
-      rc = array.resize(tag->getPageNum());
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to resize page array: %d", rc);
-         goto error;
-      }
+
+      diskPtr = tag->getDiskPagePtr();
+      SDB_ASSERT(0 != diskPtr, "can not be invalid");
 
       /// 1. allocate chunk pages
-      rc = ensureChunkPages(context, array.size(), array.pages());
+      rc = ensureMemPage(context, page);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      releaseNum = array.size();
-
-      /// 2. copy data and init tag's pages
-      rc = initChunkPagesOfTag(tag, array.pages());
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
+      /// 2. copy data and init tag's mem page
+      ossMemcpy((void *)(page.buf()), (const void *)diskPtr, tag->getPageSize());
 
       /// 3. insert into lru
-      rc = _lru->insert(holder);
+      rc = _lru->insert(holder, page);
       if (SDB_OK != rc)
       {
          goto error;
       }
-
-      releaseNum = 0;
+      page.reset();
    done:
       return rc;
    error:
-      if (0 < releaseNum)
+      if (page.valid())
       {
-         tag->setNoChunkPages();
-         _fl->releasePages(array.size(), array.pages());
+         _fl->releasePage(page);
       }
       goto done;
    }
@@ -483,13 +502,7 @@ namespace vessel
    {
       return _dl->setPendingWrite(context, scanDepth, minLSN, job);
    }
-
-   INT32 liteCache::createWholeDirtyListIOJob(requestContext *context,
-                                              diskIOJob *job)
-   {
-      return _dl->setWholeListPendingWrite(context, job);
-   }
-
+   
    INT32 liteCache::executeIOTask(requestContext *context,
                                   diskIOTask *task)
    {
@@ -546,7 +559,7 @@ namespace vessel
             goto error;
          }
 
-         if (!tag->noChunkPages() && tag->isDirty())
+         if (tag->hasMemPage() && tag->isDirty())
          {
             rc = logger->pushMaxFileLSN(context->getSession(), tag->getMaxLSN());
             if (OSS_UNLIKELY(SDB_OK != rc))
@@ -589,7 +602,7 @@ namespace vessel
    done:
       if (NULL != task)
       {
-         task->teardown();
+         task->done();
       }
       return rc;
    error:
@@ -629,7 +642,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::ensureChunkPages(requestContext *context, UINT32 size, lcChunkPage *pages)
+   INT32 liteCache::ensureMemPage(requestContext *context, freeListPage &page)
    {
       INT32 rc = SDB_OK;
       UINT32 scanLoop = 0;
@@ -638,23 +651,25 @@ namespace vessel
       {
          if (1 < scanLoop)
          {
+            PD_LOG(PDWARNING, "eviction times over one:%d", scanLoop);
             ossSleepmillis(10);
          }
 
-         rc = _fl->allocatePages(size, pages);
+         rc = _fl->allocate(page);
          if (SDB_OK == rc)
          {
             goto done;
          }
          else if (SDB_VESSEL_LC_NOT_ENOUGH_PAGES_IN_FL == rc)
          {
-            rc = _lru->evict(context, 0 < scanLoop, size, pages);
+            rc = _lru->evict(context, 0 < scanLoop, page);
             if (SDB_OK == rc)
             {
                goto done;
             }
             else if (SDB_VESSEL_LC_LRU_SCAN_HIT_MAX == rc)
             {
+               rc = SDB_OK;
                ++scanLoop;
                continue;
             }
@@ -682,17 +697,13 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(holder.valid(), "must be valid");
       LOCK_MODE mode = options.readonly ? LOCK_MODE_SHARED : LOCK_MODE_UPGRADE;
-      if (options.holdExclusiveLock)
-      {
-         mode = LOCK_MODE_UNIQUE;
-      }
       holder.lockWithMode(mode);
-      if (holder.tag()->diskPageNotReady())
+
+      if (!holder.tag()->hasDiskPage())
       {
          rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
-
       tuple._holder = holder;
       tuple._pool = this;
       tuple._writingPrepared = FALSE;
@@ -703,28 +714,29 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::initChunkPagesOfTag(lcExtentTag *tag, lcChunkPage *pages)
+   INT32 liteCache::initNewTagInBucket(requestContext *context,
+                                       UINT32 pageSize,
+                                       ossValuePtr diskPage,
+                                       lcExtentTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != tag && NULL != pages, "can not be null");
-      UINT32 pageSize = tag->getCachePageSize();
-      ossValuePtr src = tag->getDiskPagePtr();
-      lcChunkPage *p = pages;
-      UINT32 count = tag->getPageNum();
+      SDB_ASSERT(0 < pageSize, "can not be invalid");
+      SDB_ASSERT(0 != diskPage, "can not be invalid");
+      SDB_ASSERT(holder.valid(), "can not be invalid");
+      SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique lock");
+      lcExtentTag *tag = NULL;
+      const pageHead *head = NULL;
       
-
-      for (UINT32 i = 0; i < count; ++i)
+      if (!validatePageHeadAndTail(diskPage, pageSize))
       {
-         ossMemcpy((void *)(p->buf()), (const void *)src, pageSize);
-         ++p;
-         src += pageSize;
-      }
-
-      rc = tag->setChunkPages(pages);
-      if (SDB_OK != rc)
-      {
+         rc = SDB_VESSEL_PAGE_CRASHED;
          goto error;
       }
+
+      head = (const pageHead *)diskPage;
+      tag = holder.tag();
+      tag->setDiskPagePtr(diskPage);
+      tag->setMinAndMaxLSN(head->lsn);
    done:
       return rc;
    error:

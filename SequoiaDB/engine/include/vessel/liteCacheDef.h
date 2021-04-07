@@ -39,18 +39,12 @@
 #ifndef VESSEL_LITE_CACHE_DEF_H_
 #define VESSEL_LITE_CACHE_DEF_H_
 
-#include "utilArray.hpp"
-#include "vessel/lcChunkPage.h"
+#include "ossTypes.hpp"
+
 namespace engine
 {
 namespace vessel
 {
-   class lcExtentTag;
-
-   typedef _utilArray<lcChunkPage, 8> LC_LRU_EVICT_ARRAY;
-   typedef _utilArray<lcExtentTag *, 8> LC_LRU_EVICT_TO_BEREMOVED;
-
-
    enum SyncLevel
    {
       STOP_WHEN_HIT_PENDING,
@@ -68,13 +62,11 @@ namespace vessel
    {
       OSS_INLINE liteCacheAllocateOptions()
       :readonly(TRUE),
-      holdExclusiveLock(FALSE),
-      mode(NORMAL),
-      lockTimeout(-1)
+       mode(NORMAL),
+       lockTimeout(-1)
       {}
 
       BOOLEAN readonly;
-      BOOLEAN holdExclusiveLock; /// always get page exclusive lock if set as true.
       enum LC_ALLOCATE_MODE mode;
       INT32 lockTimeout;
    };

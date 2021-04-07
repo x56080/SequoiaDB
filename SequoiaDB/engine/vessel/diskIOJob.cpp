@@ -59,17 +59,14 @@ namespace vessel
    _status(NONE),
    _jobID(0),
    _jobType(DIRTY_LIST),
-   _bufCount(0),
-   _pageCount(0),
    _dispatchedCount(0),
-   _maxIOSizePerTask(DEFAULT_MAX_IO_SIZE_PER_TASK),
-   _tags(NULL)
+   _maxIOSizePerTask(DEFAULT_MAX_IO_SIZE_PER_TASK)
    {
    }
 
    diskIOJob::~diskIOJob()
    {
-      SAFE_OSS_FREE(_tags);
+      
    }
 
    void diskIOJob::reset()
@@ -79,39 +76,25 @@ namespace vessel
          _status = NONE;
          _jobID = 0;
          _jobType = DIRTY_LIST;
-         _bufCount = 0;
-         _pageCount = 0;
          _dispatchedCount = 0;
          _maxIOSizePerTask = DEFAULT_MAX_IO_SIZE_PER_TASK;
-         SAFE_OSS_FREE(_tags);
+         _tags.clear();
       }
       return;
    }
 
 
-   INT32 diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 bufCount)
+   void diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 bufSize)
    {
       INT32 rc = SDB_OK;
-      UINT32 initBufCount = 0 < bufCount ? bufCount : DEFUALT_BUF_COUNT;
-      if (OSS_UNLIKELY(NONE != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      UINT32 initBufSize = 0 < bufSize ? bufSize : DEFUALT_BUF_COUNT;
+      SDB_ASSERT(NONE == _status, "must be none");
 
-      rc = extentBufTo(initBufCount);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
+      _tags.reserve(initBufSize);
       _jobID = jobID;
       _status = PENDING;
       _jobType = type;
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 diskIOJob::addPendingWriteTag(lcExtentTag *tag)
@@ -136,117 +119,62 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_bufCount == _pageCount)
-      {
-         rc = extentBufTo(2 * _bufCount);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
 
-      _tags[_pageCount++] = tag;
+      _tags.push_back(tag);
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 diskIOJob::abort()
+   void diskIOJob::abortUndispatchedTasks()
    {
-      INT32 rc = SDB_OK;
-      if (PENDING == _status &&
-          (DIRTY_LIST == _jobType || LRU_LIST == _jobType))
+      if (PENDING == _status)
       {
-         for (UINT32 i = 0; i < _pageCount; ++i)
+         for (UINT32 i = 0; i < _tags.size(); ++i)
          {
             releaseTag(i);
          }
          reset();
       }
-      else if (DISPATCHING == _status &&
-               (DIRTY_LIST == _jobType || LRU_LIST == _jobType))
+      if (DISPATCHING == _status)
       {
-         for (UINT32 i = _dispatchedCount; i < _pageCount; ++i)
+         if (_dispatchedCount < _tags.size())
          {
-            releaseTag(i);
-         }
-         _pageCount = _dispatchedCount;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 diskIOJob::allTaskDone(BOOLEAN &r)const
-   {
-      INT32 rc = SDB_OK;
-      r = FALSE;
-      if (OSS_UNLIKELY(DISPATCHING != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (_dispatchedCount < _pageCount)
-      {
-         goto done;
-      }
-
-      for (UINT32 i = 0; i < _pageCount; ++i)
-      {
-         if (NULL != _tags[i])
-         {
-            goto done;
+            for (UINT32 i = _dispatchedCount; i < _tags.size(); ++i)
+            {
+               releaseTag(i);
+            }
+            _tags.resize(_dispatchedCount);
          }
       }
-
-      r = TRUE;
-      
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
-   INT32 diskIOJob::prepareForDispatching(UINT32 maxIOSizePerTask)
+   void diskIOJob::prepareForDispatching(UINT32 maxIOSizePerTask)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(PENDING != _status))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(PENDING == _status, "must be pendding");
 
       if (0 < maxIOSizePerTask)
       {
          _maxIOSizePerTask = maxIOSizePerTask;
       }
 
-      if ((1 < _pageCount) &&
+      if ((1 < _tags.size()) &&
           (LRU_LIST == _jobType || DIRTY_LIST == _jobType))
       {
-         std::sort(_tags, _tags + _pageCount, compareTag);
+         std::sort(_tags.begin(), _tags.end(), compareTag);
       }
 
       _status = DISPATCHING;
       _dispatchedCount = 0;
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    void diskIOJob::releaseTag(UINT32 pos)
    {
-      if (pos < _pageCount)
+      if (pos < _tags.size())
       {
          lcExtentTag *tag = _tags[pos];
          if (NULL != tag)
@@ -258,8 +186,10 @@ namespace vessel
       return;
    }
 
-   void diskIOJob::releaseDispatchedTask(const diskIOTask *task)
+
+   void diskIOJob::releaseTagsWhenTaskDone(const diskIOTask *task)
    {
+      SDB_ASSERT(NULL != task && task->getJob() == this, "impossible");
       if (OSS_LIKELY(NULL != task && task->getJob() == this))
       {
          UINT32 taskID = task->getTaskID();
@@ -273,6 +203,7 @@ namespace vessel
 
       return;
    }
+   
 
    INT32 diskIOJob::getNextTask(diskIOTask &task)
    {
@@ -289,7 +220,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (_pageCount == _dispatchedCount)
+      else if (_tags.size() == _dispatchedCount)
       {
          rc = SDB_VESSEL_END_OF_CURSOR;
          goto error;
@@ -301,9 +232,9 @@ namespace vessel
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
       count = 1;
       pre = gpid;
-      ioSize = tag->getDiskPageSize();
+      ioSize = tag->getPageSize();
 
-      while (_dispatchedCount < _pageCount &&
+      while (_dispatchedCount < _tags.size()  &&
              ioSize < _maxIOSizePerTask)
       {
          tag = _tags[_dispatchedCount];
@@ -314,7 +245,7 @@ namespace vessel
             ++count;
             pre = tag->id();
             ++_dispatchedCount;
-            ioSize += tag->getDiskPageSize();
+            ioSize += tag->getPageSize();
          }
          else
          {
@@ -322,42 +253,11 @@ namespace vessel
          }
       }
 
-      task.setup(this, taskID, count);
+      task = diskIOTask(taskID, count, this);
    done:
       return rc;
    error:
       goto done;
    }
-
-   INT32 diskIOJob::extentBufTo(UINT32 count)
-   {
-      INT32 rc = SDB_OK;
-      if (_bufCount < count)
-      {
-         UINT32 totalSize = sizeof(lcExtentTag *) * (count + 1);
-         lcExtentTag **tmp = (lcExtentTag **)SDB_OSS_MALLOC(totalSize);
-         if (NULL == tmp)
-         {
-            PD_LOG(PDERROR, "failed to allocate mem");
-            rc = SDB_OOM;
-            goto error;
-         }
-
-         if (0 < _bufCount)
-         {
-            ossMemcpy(tmp, _tags, sizeof(lcExtentTag*)*_bufCount);
-            SDB_OSS_FREE(_tags);
-            _tags = NULL;
-         }
-
-         _tags = tmp;
-         _bufCount = count;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
 }//namespace vessel
 }//namespace engine

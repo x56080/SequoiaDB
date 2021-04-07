@@ -600,12 +600,13 @@ namespace vessel
       }
       else
       {
-         
-         rc = _lcTuple.write(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, (const CHAR *)&v);
+         CHAR *tailPtr = NULL;
+         rc = _lcTuple.getWritePtr(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &tailPtr);
          if (SDB_OK != rc)
          {
             goto error;
          }
+         *((UINT64 *)tailPtr) = v;
       }
       
    done:
@@ -630,13 +631,13 @@ namespace vessel
       }
       else
       {
-         UINT64 tmp = 0;
-         rc = _lcTuple.read(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, (CHAR*)&tmp);
+         const CHAR *ptr = NULL;
+         rc = _lcTuple.getReadPtr(_size - PAGE_TAIL_LEN, PAGE_TAIL_LEN, &ptr);
           if (SDB_OK != rc)
          {
             goto error;
          }
-         value = tmp;
+         value = *((const UINT64 *)ptr);
       }
       
    done:

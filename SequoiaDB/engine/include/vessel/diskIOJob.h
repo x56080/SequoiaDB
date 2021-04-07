@@ -40,6 +40,7 @@
 #define VESSEL_DISK_IO_JOB_H_
 
 #include "vessel/diskIOTask.h"
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -72,44 +73,38 @@ namespace vessel
          diskIOJob();
          ~diskIOJob();
 
-      private:
-         diskIOJob(const diskIOJob &o){}
-         diskIOJob &operator=(const diskIOJob &)
-         {
-            return *this;
-         }
+         diskIOJob(const diskIOJob &o) = delete;
+         diskIOJob &operator=(const diskIOJob &) = delete;
 
       public:
          void reset();
-         INT32 prepare(UINT64 jobID, TYPE type, UINT32 bufCount=0);
+         void prepare(UINT64 jobID, TYPE type, UINT32 bufSize=0);
          INT32 addPendingWriteTag(lcExtentTag *tag);
 
-         INT32 prepareForDispatching(UINT32 maxIOSizePerTask=0);
+         void prepareForDispatching(UINT32 maxIOSizePerTask=0);
 
          /// must be prepared for dispatching.
          /// return SDB_VESSEL_END_OF_CURSOR when no more task.
          INT32 getNextTask(diskIOTask &task);
 
          /// can not abort dispathed task.
-         INT32 abort();
-
-         INT32 allTaskDone(BOOLEAN &r)const;
+         void abortUndispatchedTasks();
 
       public:
          /// callback by diskIOTask 
-         void releaseDispatchedTask(const diskIOTask *task);
+         void releaseTagsWhenTaskDone(const diskIOTask *task);
 
       public:
-         OSS_INLINE UINT32 getPageCount()const
+         OSS_INLINE UINT32 getTagCount()const
          {
-            return _pageCount;
+            return _tags.size();
          }
 
          OSS_INLINE lcExtentTag *getTag(UINT32 taskID)
          {
-            if (OSS_LIKELY(taskID < _pageCount))
+            if (OSS_LIKELY(taskID < _tags.size()))
             {
-               return _tags[taskID];
+               return _tags.at(taskID);
             }
             else
             {
@@ -123,21 +118,19 @@ namespace vessel
          }
 
       private:
-         INT32 extentBufTo(UINT32 count);
+         void releaseTag(UINT32 i);
 
-         void releaseTag(UINT32 pos);
+      private:
+         typedef ossPoolVector<lcExtentTag *> _TAG_VEC;
 
       private:
          _STATUS _status;
          UINT64 _jobID;
          TYPE _jobType;
          UINT32 _flags;
-         UINT32 _bufCount;
-         UINT32 _pageCount;
          UINT32 _dispatchedCount;
          UINT32 _maxIOSizePerTask;
-         lcExtentTag **_tags;
-         
+         _TAG_VEC _tags; 
    };//class diskIOJob
 
 }  /// end of namespace vessel 

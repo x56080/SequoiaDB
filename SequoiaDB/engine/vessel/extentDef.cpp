@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lcChunkPageArray.cpp
+   Source File Name = extentDef.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,62 +33,31 @@
 
 ******************************************************************************/
 
-#include "vessel/lcChunkPageArray.h"
-#include "ossMem.hpp"
-#include "ossLikely.hpp"
-#include "pdTrace.hpp"
+#include "vessel/extentDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   lcChunkPageArray::~lcChunkPageArray()
+   BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize)
    {
-      if (NULL != _pages && _pages != _static)
-      {
-         SDB_OSS_DEL []_pages;
-      }
-   }
-
-   INT32 lcChunkPageArray::resize(UINT32 size)
-   {
-      INT32 rc = SDB_OK;
-      lcChunkPage *tmp = NULL;
-      if (size <= _size)
+      BOOLEAN r = FALSE;
+      const pageHead *head = NULL;
+      UINT64 tail = DPS_INVALID_LSN_OFFSET;
+      if (OSS_UNLIKELY(0 == ptr || (pageSize < (PAGE_HEAD_LEN + sizeof(UINT64)))))
       {
          goto done;
       }
 
-      tmp = SDB_OSS_NEW lcChunkPage[size];
-      if (NULL == tmp)
-      {
-         PD_LOG(PDERROR, "failed to allcoate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < _size; ++i)
-      {
-         tmp[i] = _pages[i];
-      }
-
-      if (_pages != _static)
-      {
-         SDB_OSS_DEL []_pages;
-      }
-
-      _pages = tmp;
-      _size = size;
-      tmp = NULL;
-      
+      head = (const pageHead *)ptr;
+      tail = *((const UINT64 *)(ptr + pageSize - sizeof(UINT64)));
+      r = head->lsn == tail &&
+          INVALID_PAGE_TYPE != head->type &&
+          PAGE_VERSION_1 == head->version &&
+          head->inUsed() &&
+          head->size == pageSize;
    done:
-      if (NULL != tmp)
-      {
-         SDB_OSS_DEL []tmp;
-      }
-      return rc;
-   error:
-      goto done;
+      return r;
    }
-} /// end of namespace vessel
-} /// end of namespace engine
+}//namespace vessel
+}//namespace engine

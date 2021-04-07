@@ -55,7 +55,14 @@ namespace vessel
          OSS_INLINE diskIOTask():
          _taskID(0),
          _pageCount(0),
-         _job(NULL)
+         _job(NULL){}
+
+         OSS_INLINE diskIOTask(UINT32 taskID,
+                               UINT32 pageCount,
+                               diskIOJob *job):
+         _taskID(taskID),
+         _pageCount(pageCount),
+         _job(job)
          {}
 
          OSS_INLINE diskIOTask(const diskIOTask &o):
@@ -75,11 +82,8 @@ namespace vessel
          }
 
       public:
-         INT32 setup(diskIOJob *job,
-                     UINT32 taskID,
-                     UINT32 pageCount);
-
-         void teardown();
+         ///WARNING: will release tags in job.
+         void done();
 
          lcExtentTag *getTag(UINT32 pos);
 

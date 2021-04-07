@@ -101,15 +101,18 @@ namespace vessel
          INT32 getMinLSN(DPS_LSN_OFFSET &lsn);
 
       private:
-         INT32 validateRW(UINT32 offset, UINT32 len, const CHAR *buf, BOOLEAN readonly)const;
+         INT32 validateRead(UINT32 offset, UINT32 len)const;
+         INT32 validateWrite(UINT32 offset, UINT32 len)const;
 
-         INT32 validateRWPtr(UINT32 offset, UINT32 len, BOOLEAN readonly)const;
+         void writePage(void *pageBuf,
+                        UINT32 offset,
+                        UINT32 len,
+                        const void *data);
 
-         void writePages(UINT32 pageSize, lcChunkPage *pages,
-                         UINT32 offset, UINT32 len, const CHAR *data);
-
-         void readPages(UINT32 pageSize, const lcChunkPage *pages,
-                        UINT32 offset, UINT32 len, CHAR *buf)const;
+         void readPage(const void *pageBuf,
+                       UINT32 offset,
+                       UINT32 len,
+                       void *buf)const;
 
       private:
          lcExtentTagHolder _holder;

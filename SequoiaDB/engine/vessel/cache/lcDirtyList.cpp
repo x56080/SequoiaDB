@@ -176,8 +176,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       lcExtentTag *itr = NULL;
-      BOOLEAN abortJob = FALSE;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
+      SDB_ASSERT(0 == job->getTagCount(), "must be empty");
 
       ossScopedLock(&_latch, EXCLUSIVE);
 
@@ -202,61 +202,14 @@ namespace vessel
          {
             goto error;
          }
-
-         abortJob = TRUE;
       }
 
    done:
       return rc;
    error:
-      if (abortJob)
-      {
-         job->abort();
-      }
+      job->abortUndispatchedTasks();
       goto done;
    }
-
-   INT32 lcDirtyList::setWholeListPendingWrite(requestContext *context,
-                                               diskIOJob *job)
-   {
-      INT32 rc = SDB_OK;
-      lcExtentTag *itr = NULL;
-      BOOLEAN abortJob = FALSE;
-      SDB_ASSERT(NULL != context && NULL != job, "can not be null");
-
-      ossScopedLock(&_latch, EXCLUSIVE);
-
-      itr = _tail;
-      for (UINT32 i = 0; i < _size &&  NULL != itr; ++i)
-      {
-         lcExtentTag *tag = itr;
-         itr = itr->getDirtyListPre();
-
-         if (!tag->setPendingWrite())
-         {
-            SDB_ASSERT(FALSE, "no more job should exist");
-            continue;
-         }
-
-         rc = job->addPendingWriteTag(tag);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-
-         abortJob = TRUE;
-      }
-
-   done:
-      return rc;
-   error:
-      if (abortJob)
-      {
-         job->abort();
-      }
-      goto done;
-   }
-
 
    INT32 lcDirtyList::cacheMinDirtyLSN()
    {

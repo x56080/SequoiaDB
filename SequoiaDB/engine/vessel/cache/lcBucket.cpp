@@ -46,10 +46,6 @@ namespace engine
 {
 namespace vessel
 {
-   typedef std::multimap<PHY_EXTENT_ID, lcExtentTag*> TAG_MAP;
-   typedef std::multimap<PHY_EXTENT_ID, lcExtentTag*>::iterator TAG_MAP_ITR;
-   typedef std::pair<PHY_EXTENT_ID, lcExtentTag*> TAG_PAIR;
-
    lcBucket::lcBucket()
    {
 
@@ -57,7 +53,7 @@ namespace vessel
 
    lcBucket::~lcBucket()
    {
-      TAG_MAP::iterator itr = _tags.begin();
+      _TAG_MAP_ITERATOR itr = _tags.begin();
       for (; itr != _tags.end(); ++itr)
       {
          if (NULL != itr->second)
@@ -68,48 +64,31 @@ namespace vessel
       _tags.clear();
    }
 
-   INT32 lcBucket::ensureTagAndIncUsage(const PHY_EXTENT_ID &gpid,
-                                        UINT32 diskPageSize,
-                                        UINT32 cachePageSize,
+   INT32 lcBucket::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &gpid,
                                         _ossSpinSLatch *latch,
-                                        storageUnit *su,
+                                        UINT32 pageSize,
                                         UINT32 minRecycleCount,
-                                        lcExtentTagHolder &holder)
+                                        lcExtentTagHolder &holder,
+                                        BOOLEAN &newTagInBucket)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
       ossValuePtr ptr = 0;
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
-      SDB_ASSERT(NULL != su, "can not be null");
-      SDB_ASSERT(su->isOpen(), "can not be closed");
-      SDB_ASSERT(gpid.space() == su->getSpaceID(), "must be same");
-      SDB_ASSERT(0 != diskPageSize && 0 != cachePageSize, "can not be zero");
-      SDB_ASSERT(0 == diskPageSize % cachePageSize, "impossible");
+      SDB_ASSERT(0 < pageSize, "can not be invalid");
       BOOLEAN tagLocked = FALSE;
 
+      newTagInBucket = FALSE;
       holder.reset(NULL);
+      ossScopedLock guard(latch);
 
-      if (OSS_LIKELY(NULL != latch))
-      {
-         latch->get();
-         locked = TRUE;
-      }
-
-      /// search again
       getTagAndIncUsage(gpid, NULL, holder);
       if (holder.valid())
       {
          goto done;
       }
 
-      rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = insertTag(gpid, diskPageSize / cachePageSize,
-                     cachePageSize, ptr,
+      rc = insertTag(gpid, pageSize,
                      minRecycleCount, holder);
       if (SDB_OK != rc)
       {
@@ -122,32 +101,8 @@ namespace vessel
       holder.tag()->incUsageCnt();
       tagLocked = holder.tryLockUnique();
       SDB_ASSERT(tagLocked, "must be locked");
-
-      if (locked)
-      {
-         latch->release();
-         locked = FALSE;
-      }
-      /// some one else may accessing tag from here.
-
-      rc = holder.tag()->validateDiskPageAndCacheLSN();
-      if (SDB_OK != rc)
-      {
-         holder.unlockUnique(); 
-         holder.tag()->decUsageCnt();
-         if (holder.tag()->tryToSetRecycled())
-         {
-            releaseRemovedTag(latch, holder.tag());
-         }
-         /// if failed to remove tag, just leave it in the bucket and wait to be recycled.
-         PD_LOG(PDSEVERE, "disk page crashed, gpid:%s", gpid.toString().c_str());
-         goto error;
-      }
-
-      holder.unlockUnique();
-      
+      newTagInBucket = TRUE;      
    done:
-      if (locked) {latch->release();}
       return rc;
    error:
       holder.reset(NULL);
@@ -160,9 +115,9 @@ namespace vessel
       INT32 rc = SDB_OK;
       ossScopedLock(latch, EXCLUSIVE);
 
-      const PHY_EXTENT_ID &id = tag->id();
-      TAG_MAP_ITR lower = _tags.lower_bound(id);
-      TAG_MAP_ITR upper = _tags.upper_bound(id);
+      const GLOBAL_PAGE_ID &id = tag->id();
+      _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
+      _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
       for (; lower != upper; ++lower)
       {
          if (tag != lower->second)
@@ -186,7 +141,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBucket::getTagAndIncUsage(const PHY_EXTENT_ID &id,
+   INT32 lcBucket::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     _ossSpinSLatch *latch,
                                     lcExtentTagHolder &holder)
    {  
@@ -195,8 +150,8 @@ namespace vessel
          latch->get_shared();
       }
 
-      TAG_MAP_ITR lower = _tags.lower_bound(id);
-      TAG_MAP_ITR upper = _tags.upper_bound(id);
+      _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
+      _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
       for (; lower != upper; ++lower)
       {
          lcExtentTag *tag = lower->second;
@@ -214,15 +169,15 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lcBucket::insertTag(const PHY_EXTENT_ID &id,
-                              UINT32 pageNum,
-                              UINT32 pageSize,
-                              ossValuePtr diskPage,
-                              UINT32 minRecycleCount,
-                              lcExtentTagHolder &holder)
+   INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,
+                             UINT32 pageSize,
+                             UINT32 minRecycleCount,
+                             lcExtentTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       lcExtentTag *tag = NULL;
+      SDB_ASSERT(!id.invalid(), "can not be ivnalid");
+      SDB_ASSERT(0 < pageSize, "can not be invalid");
 
       tag = recycleTag(minRecycleCount);
       if (NULL == tag)
@@ -236,9 +191,9 @@ namespace vessel
       }
 
       tag->setStateNormal();
-      tag->firstInit(id, pageNum, pageSize, diskPage);
+      tag->firstInit(id, pageSize);
       holder.reset(tag);
-      _tags.insert(TAG_PAIR(id, tag));
+      _tags.insert(std::make_pair(id, tag));
       tag = NULL;
    done:
       return rc;
@@ -255,7 +210,7 @@ namespace vessel
          return NULL;
       }
 
-      TAG_MAP_ITR itr = _tags.begin();
+      _TAG_MAP_ITERATOR itr = _tags.begin();
       for (; itr != _tags.end(); ++itr)
       {
          tag = itr->second;

@@ -41,7 +41,7 @@
 #include "vessel/liteCacheDef.h"
 #include "vessel/latch.h"
 #include "vessel/lcCacheChunk.h"
-#include "vessel/lcChunkPage.h"
+#include "vessel/freeListPage.h"
 #include "vessel/vesselOptions.h"
 
 #include <list>
@@ -59,11 +59,11 @@ namespace vessel
          ~lcFreeList();
 
       private:
-         lcFreeList(const lcFreeList &){}
-         lcFreeList &operator=(const lcFreeList &){return *this;}
+         lcFreeList(const lcFreeList &) = delete;
+         lcFreeList &operator=(const lcFreeList &) = delete;
 
       public:
-         OSS_INLINE UINT32 getChunkPageSize()const
+         OSS_INLINE UINT32 getPageSize()const
          {
             return _options.pageSize;
          }
@@ -76,28 +76,25 @@ namespace vessel
          INT32 init(const liteCacheOptions::freeListOptions &options);
          INT32 fini();
 
-         UINT32 getFreePageCount();
 
-         INT32 allocatePages(UINT32 size, lcChunkPage *pages);
+         INT32 allocate(freeListPage &page);
 
-         void releasePage(const lcChunkPage &page);
+         void releasePage(const freeListPage &page);
 
-         void releasePages(UINT32 size, lcChunkPage *pages);
+         void releasePages(UINT32 size, const freeListPage *pages);
 
       private:
          INT32 pushNewChunkIntoFreeList();
 
          INT32 initChunkArray(UINT32 size);
 
-         INT32 allocatePage(lcChunkPage &page);
-
       private:
+         ossSpinXLatch _latch;
          UINT64 _totalAllocated;
-         SPIN_MUTEX _mutex;
          liteCacheOptions::freeListOptions _options;
          lcCacheChunk *_chunks;
          UINT32 _size;
-         std::list<lcChunkPage> _free;
+         std::list<freeListPage> _free;
    };
 }/// end of namespace vessel
 } /// end of namespace engine

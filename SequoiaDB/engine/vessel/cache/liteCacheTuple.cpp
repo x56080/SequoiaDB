@@ -78,9 +78,9 @@ namespace vessel
       }
 
       tag = _holder.tag();
-      if (tag->noChunkPages())
+      if (!tag->inLruList())
       {
-         rc = _pool->allocateChunkPagesAndInsertIntoLRU(context, _holder);
+         rc = _pool->allocateMemPageAndInsertIntoLRU(context, _holder);
          if (SDB_OK != rc)
          {
             goto error;
@@ -88,6 +88,7 @@ namespace vessel
       }
       else
       {
+         SDB_ASSERT(tag->hasMemPage(), "must have mem page when in lru");
          rc = _pool->tryToUpdateLRU(_holder);
          if (SDB_OK != rc)
          {
@@ -116,22 +117,21 @@ namespace vessel
          goto error;
       }
 
-      rc = validateRWPtr(offset, len, TRUE);
+      rc = validateRead(offset, len);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       tag = _holder.tag();
-      if (tag->noChunkPages())
+      if (!tag->hasMemPage())
       {
          *ptr = (const CHAR *)(tag->getDiskPagePtr() + offset);
       }
       else
       {
-         UINT32 pageOffset = offset % tag->getCachePageSize();
-         const lcChunkPage *page = tag->pages() + (offset / tag->getCachePageSize());
-         *ptr = (const CHAR *)(page->buf() + pageOffset);
+         const freeListPage &page = tag->getMemPage();
+         *ptr = (const CHAR *)(page.buf() + offset);
       }
   
    done:
@@ -148,20 +148,27 @@ namespace vessel
       SDB_ASSERT(LOCK_MODE_NONE < _holder.getLockMode(), "can not read a unlocked tuple");
       const lcExtentTag *tag = NULL;
 
-      rc = validateRW(offset, len, buf, TRUE);
+      if (OSS_UNLIKELY(NULL == buf))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validateRead(offset, len);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
       tag = _holder.tag();
-      if (tag->noChunkPages())
+      if (!tag->hasMemPage())
       {
          ossMemcpy(buf, (const void *)(tag->getDiskPagePtr() + offset), len);
       }
       else
       {
-         readPages(tag->getCachePageSize(), tag->pages(), offset, len, buf);
+         const void *pageBuf = (const void *)(tag->getMemPage().buf());
+         readPage(pageBuf, offset, len, buf);
       }
 
    done:
@@ -177,8 +184,6 @@ namespace vessel
       SDB_ASSERT(_writingPrepared, "must be prepared");
       SDB_ASSERT(LOCK_MODE_UNIQUE == _holder.getLockMode(), "wrong type locking");
       lcExtentTag *tag = _holder.tag();
-      lcChunkPage *page = NULL;
-      UINT32 pageOffset = 0;
 
       if (OSS_UNLIKELY(NULL == ptr))
       {
@@ -186,29 +191,19 @@ namespace vessel
          goto error;
       }
 
-      rc = validateRWPtr(offset, len, FALSE);
+      rc = validateWrite(offset, len);
       if (SDB_OK != rc)
       {
          goto done;
       }
 
-      
       if (OSS_UNLIKELY(!_writingPrepared))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
       tag = _holder.tag();
-      if (OSS_UNLIKELY(tag->noChunkPages()))
-      {
-         PD_LOG(PDERROR, "writing prepared but no chunk pages");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
-
-      pageOffset = offset % tag->getCachePageSize();
-      page = tag->pages() + (offset / tag->getCachePageSize());
-      *ptr = (CHAR *)(page->buf() + pageOffset);
+      *ptr = (CHAR *)(tag->getMemPage().buf()+ offset);
    
    done:
       return rc;
@@ -227,7 +222,13 @@ namespace vessel
       SDB_ASSERT(_writingPrepared, "must be prepared");
       SDB_ASSERT(LOCK_MODE_UNIQUE == _holder.getLockMode(), "wrong type locking");
 
-      rc = validateRW(offset, len, data, FALSE);
+      if (OSS_UNLIKELY(NULL == data))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = validateWrite(offset, len);
       if (SDB_OK != rc)
       {
          goto error;
@@ -238,16 +239,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      tag = _holder.tag();
-      if (OSS_UNLIKELY(tag->noChunkPages()))
-      {
-         PD_LOG(PDERROR, "writing prepared but no chunk pages");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
 
-      writePages(tag->getCachePageSize(), tag->pages(),
-                 offset, len, data);
+      tag = _holder.tag();
+      writePage((void *)(tag->getMemPage().buf()), offset, len, data);
 
    done:
       return rc;
@@ -255,28 +249,33 @@ namespace vessel
       goto done;
    }
 
-   void liteCacheTuple::writePages(UINT32 pageSize, lcChunkPage *pages,
-                                   UINT32 offset, UINT32 len, const CHAR *data)
+   void liteCacheTuple::writePage(void *pageBuf,
+                                  UINT32 offset,
+                                  UINT32 len,
+                                  const void *data)
    {
-      UINT32 copySize = 0;
-      do
-      {
-         UINT32 pageNO = (offset + copySize) / pageSize;
-         lcChunkPage *page = pages + pageNO;
-         UINT32 pageOffset = (offset + copySize) % pageSize;
-         UINT32 cpLen = (pageSize - pageOffset) < len ? (pageSize - pageOffset) : len;
-         ossMemcpy((void *)(page->buf() + pageOffset), data + copySize, cpLen);
-         copySize += cpLen;
-
-      } while(copySize < len);
+      SDB_ASSERT(NULL != pageBuf, "can not be null");
+      SDB_ASSERT(NULL != data, "can not be null");
+      CHAR *ptr = (CHAR *)pageBuf;
+      ossMemcpy(ptr + offset, data, len);
       return;
    }
 
-   INT32 liteCacheTuple::validateRW(UINT32 offset, UINT32 len, const CHAR *buf, BOOLEAN readonly)const
+   void liteCacheTuple::readPage(const void *pageBuf,
+                                 UINT32 offset,
+                                 UINT32 len,
+                                 void *buf)const
+   {
+      SDB_ASSERT(NULL != pageBuf, "can not be null");
+      SDB_ASSERT(NULL != buf, "can not be null");
+      const CHAR *ptr = (const CHAR *)pageBuf;
+      ossMemcpy(buf, ptr + offset, len);
+      return;
+   }
+
+   INT32 liteCacheTuple::validateRead(UINT32 offset, UINT32 len)const
    {
       INT32 rc = SDB_OK;
-      LOCK_MODE lm = readonly ? LOCK_MODE_SHARED : LOCK_MODE_UPGRADE;
-
       if (OSS_UNLIKELY(!valid()))
       {
          rc = SDB_INVALIDARG;
@@ -287,22 +286,17 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL == buf))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(_holder.getLockMode() < lm))
+      else if (OSS_UNLIKELY(_holder.getLockMode() < LOCK_MODE_SHARED))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (OSS_UNLIKELY(_holder.tag()->getDiskPageSize() < (offset+len)))
+      else if (OSS_UNLIKELY(_holder.tag()->getPageSize() < (offset+len)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_holder.tag()->getDiskPageSize() <= offset))
+      else if (OSS_UNLIKELY(_holder.tag()->getPageSize() <= offset))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -312,41 +306,43 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-      else
-      {
-         /// do nothing.
-      }
-      
-
    done:
       return rc;
    error:
       goto done;
    }
 
-   INT32 liteCacheTuple::validateRWPtr(UINT32 offset, UINT32 len, BOOLEAN readonly)const
+   INT32 liteCacheTuple::validateWrite(UINT32 offset, UINT32 len)const
    {
       INT32 rc = SDB_OK;
-      LOCK_MODE lm = readonly ? LOCK_MODE_SHARED : LOCK_MODE_UPGRADE;
-
       if (OSS_UNLIKELY(!valid()))
       {
-         rc = SDB_VESSEL_INTERNAL_ERR;
+         rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_holder.getLockMode() < lm))
+      else if (OSS_UNLIKELY(0 == len))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(_holder.getLockMode() != LOCK_MODE_UNIQUE))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
-      else if (OSS_UNLIKELY(_holder.tag()->getDiskPageSize() < offset+len))
+      else if (OSS_UNLIKELY(_holder.tag()->getPageSize() < (offset+len)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(_holder.tag()->getDiskPageSize() <= offset))
+      else if (OSS_UNLIKELY(_holder.tag()->getPageSize() <= offset))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!_holder.tag()->hasMemPage()))
+      {
+         rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
       else if (OSS_UNLIKELY(0 == _holder.tag()->getDiskPagePtr()))
@@ -354,37 +350,10 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-      else
-      {
-         UINT32 pageOffset = offset % _holder.tag()->getCachePageSize();
-         if (OSS_UNLIKELY(_holder.tag()->getCachePageSize() < pageOffset + len))
-         {
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-      }
-      
    done:
       return rc;
    error:
       goto done;
-   }
-
-   void liteCacheTuple::readPages(UINT32 pageSize, const lcChunkPage *pages,
-                                  UINT32 offset, UINT32 len, CHAR *buf)const
-   {
-      UINT32 copySize = 0;
-      do
-      {
-         UINT32 pageNO = (offset + copySize) / pageSize;
-         const lcChunkPage *page = pages + pageNO;
-         UINT32 pageOffset = (offset + copySize) % pageSize;
-         UINT32 cpLen = (pageSize - pageOffset) < len ? (pageSize - pageOffset) : len;
-         ossMemcpy(buf + copySize, (const void *)(page->buf() + pageOffset), cpLen);
-         copySize += cpLen;
-
-      } while(copySize < len);
-      return;
    }
 
    INT32 liteCacheTuple::getMinLSN(DPS_LSN_OFFSET &lsn)

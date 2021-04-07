@@ -62,10 +62,9 @@ namespace vessel
          INT32 fini();
 
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                    UINT32 diskPageSize,
-                                    UINT32 cachePageSize,
-                                    storageUnit *su,
-                                    lcExtentTagHolder &holder);
+                                    UINT32 pageSize,
+                                    lcExtentTagHolder &holder,
+                                    BOOLEAN &newTagInBucket);
 
          INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                  lcExtentTagHolder &holder);

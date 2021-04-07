@@ -42,8 +42,7 @@
 #include "vessel/phyExtentID.h"
 #include "vessel/lcExtentTagHolder.h"
 #include "ossLatch.hpp"
-
-#include <map>
+#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -58,15 +57,14 @@ namespace vessel
          ~lcBucket();
 
       public:
-         INT32 ensureTagAndIncUsage(const PHY_EXTENT_ID &id,
-                                    UINT32 diskPageSize,
-                                    UINT32 cachePageSize,
+         INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     _ossSpinSLatch *latch,
-                                    storageUnit *su,
+                                    UINT32 pageSize,
                                     UINT32 minRecycleCount,
-                                    lcExtentTagHolder &holder);
+                                    lcExtentTagHolder &holder,
+                                    BOOLEAN &newTagInBucket);
 
-         INT32 getTagAndIncUsage(const PHY_EXTENT_ID &id,
+         INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                  _ossSpinSLatch *latch,
                                  lcExtentTagHolder &holder);
 
@@ -77,17 +75,20 @@ namespace vessel
                                   UINT32 num,
                                   lcExtentTag *tags);
       private:                           
-         INT32 insertTag(const PHY_EXTENT_ID &id,
-                         UINT32 pageNum,
+         INT32 insertTag(const GLOBAL_PAGE_ID &id,
                          UINT32 pageSize,
-                         ossValuePtr diskPage,
                          UINT32 minRecycleCount,
                          lcExtentTagHolder &holder);
 
          lcExtentTag *recycleTag(UINT32 minRecycleCount);
+
+      private:
+         typedef ossPoolMultiMap<GLOBAL_PAGE_ID, lcExtentTag*> _TAG_MAP;
+         typedef _TAG_MAP::iterator _TAG_MAP_ITERATOR;
+         typedef _TAG_MAP::const_iterator _TAG_MAP_CONST_ITERATOR;
                                                 
       private:
-         std::multimap<GLOBAL_PAGE_ID, lcExtentTag*> _tags;
+         _TAG_MAP _tags;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

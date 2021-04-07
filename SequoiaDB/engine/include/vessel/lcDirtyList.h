@@ -75,11 +75,6 @@ namespace vessel
                                UINT64 minLSN,
                                diskIOJob *job);
 
-         INT32 setWholeListPendingWrite(requestContext *context,
-                                        diskIOJob *job);
-
-         INT32 setWholeListPendingWrite(diskIOJob *job);
-
          UINT32 size();
 
          UINT64 getMinDirtyLSN();

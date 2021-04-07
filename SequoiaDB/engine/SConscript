@@ -878,7 +878,6 @@ vesselFiles = [
       "vessel/cache/lcFreeList.cpp",
       "vessel/cache/lcLRUList.cpp",
       "vessel/cache/liteCacheTuple.cpp",
-      "vessel/cache/lcChunkPageArray.cpp",
       "vessel/cache/lcCacheChunk.cpp",
       "vessel/storage/extentStorageFile.cpp",
       "vessel/storage/dataExtentIDMapFile.cpp",
@@ -928,7 +927,8 @@ vesselFiles = [
       "vessel/fsmSizeLvl.cpp",
       "vessel/fsmCandidateBucket.cpp",
       "vessel/fsmCandidateBuckets.cpp",
-      "vessel/routePage.cpp"
+      "vessel/routePage.cpp",
+      "vessel/extentDef.cpp"
 ]
 
 #vessel unit test

@@ -543,53 +543,59 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
+      UINT32 scanDepth = 128;
       diskIOJob job;
-      diskIOTask task;
-
-      rc = job.prepare(0, diskIOJob::DIRTY_LIST);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = _env.cache.createWholeDirtyListIOJob(context, &job);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = job.prepareForDispatching();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
 
       do
       {
-         rc = job.getNextTask(task);
-         if (SDB_VESSEL_END_OF_CURSOR == rc)
+         diskIOTask task;
+         job.prepare(0, diskIOJob::DIRTY_LIST, scanDepth);
+
+         rc = _env.cache.createDirtyListIOJob(context, scanDepth,
+                                              DPS_INVALID_LSN_OFFSET, &job);
+         if (SDB_OK != rc)
          {
-            rc = SDB_OK;
-            break;
-         }
-         else if (SDB_OK != rc)
-         {
+            PD_LOG(PDERROR, "failed to create io job of dirty list:%d", rc);
             goto error;
          }
-         else
+
+         if (0 == job.getTagCount())
          {
-            rc = _env.cache.executeIOTask(context, &task);
-            if (SDB_OK != rc)
+            break;
+         }
+
+         job.prepareForDispatching();
+
+         do
+         {
+            rc = job.getNextTask(task);
+            if (SDB_VESSEL_END_OF_CURSOR == rc)
             {
+               rc = SDB_OK;
+               break;
+            }
+            else if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to get io task:%d", rc);
                goto error;
             }
-         }
-      } while (TRUE);
-      
+            else
+            {
+               rc = _env.cache.executeIOTask(context, &task);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "failed to execute io task:%d", rc);
+                  goto error;
+               }
+            }
+         } while (TRUE);
+
+         job.reset();
+      }while(TRUE);
    done:
       return rc;
    error:
-      job.abort();
+      job.abortUndispatchedTasks();
       goto done;
    }
 

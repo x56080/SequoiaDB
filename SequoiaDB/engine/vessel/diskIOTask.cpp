@@ -45,25 +45,6 @@ namespace engine
 {
 namespace vessel
 {
-   INT32 diskIOTask::setup(diskIOJob *job,
-                           UINT32 taskID,
-                           UINT32 pageCount)
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(NULL == job || 0 == pageCount))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _job = job;
-      _taskID = taskID;
-      _pageCount = pageCount;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
 
    lcExtentTag *diskIOTask::getTag(UINT32 pos)
    {
@@ -105,14 +86,14 @@ namespace vessel
       return gpid;
    }
 
-   void diskIOTask::teardown()
+   void diskIOTask::done()
    {
       if (!valid())
       {
          goto done;
       }
 
-      _job->releaseDispatchedTask(this);
+      _job->releaseTagsWhenTaskDone(this);
       _taskID = 0;
       _pageCount = 0;
       _job = NULL;
