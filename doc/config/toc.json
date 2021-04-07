@@ -1,4 +1,4 @@
-﻿{
+{
    "contents": [
       {
          "id": 1558957223,
@@ -1599,7 +1599,7 @@
                         },
                         {
                            "id": 1617112698,
-                           "file": "PointInTimeRestore",
+                           "file": "point_in_time_restore",
                            "cn": "时间点恢复",
                            "en": "Point In Time Restore"
                         }
