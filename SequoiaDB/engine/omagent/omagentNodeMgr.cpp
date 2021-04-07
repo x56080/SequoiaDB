@@ -1329,8 +1329,13 @@ namespace engine
                    "rc: %d", configPath, rc ) ;
 
       rc = startStpNode( serviceName.c_str(), NODE_START_CLIENT, TRUE ) ;
+      if ( SDBCM_SVC_STARTED == rc )
+      {
+         PD_LOG( PDINFO, "STP node has already started" ) ;
+         rc = SDB_OK ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to start STP node [%s], rc: %d",
-                   serviceName.c_str() ) ;
+                   serviceName.c_str(), rc ) ;
 
    done:
       return rc ;
