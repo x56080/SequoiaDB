@@ -81,7 +81,7 @@ function testTimeUs23642(primaryNode, spareNodeHost, spareNodePort, clientHost, 
 
    if ( time2 < time1 || time2 > time3 )
    {
-      throw new Error( "Error: stp.getTimeUS in server return time is not expected!" );
+      throw new Error("Dose not meet 'time1 <=  time2 <= time3', time1: "+time1+",time2: "+time2+", time3: "+time3);
    }
    //3.分别在server/client备节点上指定stp.getTimeUS()，获取节点的逻辑时间及TimeError 
    //通过查主再查备再查主，验证逻辑时间正确性 
