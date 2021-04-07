@@ -76,10 +76,12 @@ namespace vessel
 
    }
 
-   INT32 collection::initWhenOpen(const collectionRecord &record,
+   INT32 collection::initWhenOpen(requestContext *context,
+                                  const collectionRecord &record,
                                   collectionSpace *cs)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL == _collectionSpace, "do not reinit");
       if (OSS_UNLIKELY(NULL == cs))
       {
          rc = SDB_INVALIDARG;
@@ -98,9 +100,17 @@ namespace vessel
       
       _record = record;
       _collectionSpace = cs;
+
+      rc = initPageSequenceWhenOpen(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init page sequence:%d", rc);
+         goto error;
+      }
    done:
       return rc;
    error:
+      fini();
       goto done;
    }
 
@@ -137,8 +147,8 @@ namespace vessel
       _record.innerID = innerID;
       _record.type = options.type;
       _record.logicalCLID = logicalID;
-      ossStrncpy(_record.name, clName.str(), clName.strLen());
-      _record.maxSGCount = options.maxStripingGroupCount;
+      ossMemcpy(_record.name, clName.str(), clName.strLen());
+      _record.maxSGCount = options.multiStripingBucket ? 32 : 1;
       _record.compressionType = options.compressionType;
       _collectionSpace = cs;
 
@@ -241,44 +251,50 @@ namespace vessel
    }
 
    INT32 collection::insert(insertContext *context,
+                            const recordData &record,
+                            const DPS_TRANS_ID &transID,
+                            STRIPING_ID striping,
+                            const insertOptions *options,
                             utilInsertResult &res)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      storageUnit *su = NULL;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(record.isValid(), "can not be invalid");
+      UINT32 recordSize = 0;
       UINT32 pageSize = 0;
-      UINT32 originalRecordSize = 0;
+
       ossScopedLock guard(&_ddlSLatch, SHARED);
 
-      if (OSS_UNLIKELY(NULL == context ||
-                       !context->isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (OSS_UNLIKELY(!context->clInfoIsValid() ||
-                            !context->getRecord().isValid()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      su = _collectionSpace->getSU();
-      rc = su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
       }
 
-      originalRecordSize = context->getRecord().getSlice().len();
-      if (!isBigRecordInRdp(pageSize, originalRecordSize))
+      context->initNewRequest(_collectionSpace, this, record, transID, striping);
+      if (NULL != options)
       {
-         rc = insertNonBigRecord(context, res);
+         context->setOptions(*options);
+      }
+
+      if (UTIL_COMPRESSOR_INVALID != _record.compressionType)
+      {
+         SDB_ASSERT(FALSE, "todo");
+      }
+
+      recordSize = context->getRecord().getSlice().len();
+      if (!isBigRecordInRdp(pageSize, recordSize))
+      {
+         rc = insertNonBigRecord(context);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to insert record:%d", rc);
             goto error;
          }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "todo");
       }
    done:
       return rc;
@@ -286,27 +302,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 collection::insertNonBigRecord(insertContext *context,
-                                        utilInsertResult &res)
+   INT32 collection::insertNonBigRecord(insertContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
-      UINT32 recordSize = 0;
-
-      if (UTIL_COMPRESSOR_INVALID == context->getCompressionType())
-      {
-         recordSize = context->getRecord().getSlice().len();
-      }
-      else if (UTIL_COMPRESSOR_LZW == context->getCompressionType())
-      {
-         SDB_ASSERT(FALSE, "todo");
-         recordSize = context->getCompressedRecordSize();
-      }
-      else
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      UINT32 recordSize = context->getRecord().getSlice().len();
 
       do
       {
@@ -318,11 +318,84 @@ namespace vessel
             PD_LOG(PDERROR, "failed to find free space for record:%d", rc);
             goto error;
          }
+
+         rc = insertNonBigRecordToCandidate(context);
+         if (SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS == rc)
+         {
+            rc = SDB_OK;
+            continue;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to insert record to page:%d", rc);
+            goto error;
+         }
+
+         break;
       }while(TRUE);
       
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collection::insertNonBigRecordToCandidate(insertContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      fsmCandidate &candidate = context->getCandidate();
+      SDB_ASSERT(candidate.isValid(), "must be valid");
+      rdpAccessor accessor;
+      lpidLockHelper lh;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
+
+      if (INVALID_PAGE_ID == candidate.lpid)
+      {
+         rc = getLpidBySequence(context, candidate.seq, candidate.lpid);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
+      rc = lh.lock(context, SPACE_TYPE_RECORD_D, candidate.lpid, EXCLUSIVE);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", candidate.lpid, rc);
+         goto error;
+      }
+
+      rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, candidate.lpid, pid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", candidate.lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid,
+                         flags, _collectionSpace->getSU());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init accessor of pid[%d], rc:%d", pid, rc);
+         goto error;
+      }
+
+      rc = accessor.insertNormalRecord(context);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to insert record to pid[%d], rc:%d", pid, rc);
+         goto error;
+      }
+
+      accessor.fini(context);
+      lh.unlock();
+   done:
+      return rc;
+   error:
+      accessor.fini(context);
+      lh.unlock();
       goto done;
    }
 
@@ -534,6 +607,23 @@ namespace vessel
       goto done;
    }
 
+   INT32 collection::initPageSequenceWhenOpen(requestContext *context)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_CL_MB_ID != _record.mbID, "can not be invalid");
+
+      if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL0])
+      {
+         _maxPageCntInRoutePages = 0;
+         _pageCntInRoutePages = 0;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collection::initNewRecordDataPages(requestContext *context,
                                             UINT32 count,
                                             const PAGE_ID *lpids,
@@ -593,6 +683,138 @@ namespace vessel
       return rc;
    error:
       accessor.fini(context);
+      goto done;
+   }
+
+   INT32 collection::getLpidBySequence(requestContext *context,
+                                       CL_PAGE_SEQ sequence,
+                                       PAGE_ID &lpid)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(INVALID_CL_PAGE_SEQ != sequence, "can not be invalid");
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      UINT32 pageSize = 0;
+      UINT32 capacity = 0;
+      UINT32 lvl0Id = 0;
+      PAGE_ID lvl0Lpid = INVALID_PAGE_ID;
+      PAGE_ID lvl0Pid = INVALID_PAGE_ID;
+      routePageAccessor accessor;
+      lpidLockHelper lh;
+
+      lpid = INVALID_PAGE_ID;
+
+      if (_pageCntInRoutePages <= sequence)
+      {
+         PD_LOG(PDERROR, "invalid page sequence[%d], current max page count[%d]",
+                sequence, _pageCntInRoutePages);
+         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
+         goto error;
+      }
+
+      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      capacity = getCapacityOfRoutePage(pageSize);
+      lvl0Id = sequence / capacity;
+
+      rc = getLvl0RoutePage(context, capacity, lvl0Id, lvl0Lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lvl0 page[%d], rc:%d", lvl0Lpid, rc);
+         goto error;
+      }
+
+      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl0Lpid, SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl0Lpid, rc);
+         goto error;
+      }
+
+      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lvl0Lpid, lvl0Pid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get pid of lpid[%d], rc:%d", lvl0Lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, SPACE_TYPE_RECORD_D,
+                         lvl0Pid, 0, _collectionSpace->getSU());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to init route accessor of pid[%d], rc:%d", lvl0Pid, rc);
+         goto error;
+      }
+
+      rc = accessor.readSlot(context, sequence % capacity, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read slot of sequence[%d], rc:%d", sequence, rc);
+         goto error;
+      }
+
+      accessor.fini(context);
+      lh.unlock();
+
+      if (INVALID_PAGE_ID == lpid)
+      {
+         PD_LOG(PDERROR, "sequence[%d] does not exist", sequence);
+         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      accessor.fini(context);
+      lh.unlock();
+      
+      goto done;
+   }
+
+   INT32 collection::getMaxLvl0RoutePage(requestContext *context,
+                                         UINT32 capacity,
+                                         PAGE_ID &lpid,
+                                         UINT32 &lvl0Id)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      SDB_ASSERT(INVALID_CL_MB_ID != _record.mbID, "can not be invalid");
+      SDB_ASSERT(0 != capacity, "can not be zero");
+      UINT32 pageSize = 0;
+      PAGE_ID lvl1Lpid = INVALID_PAGE_ID;
+      UINT32 deltaLvl0 = 0;
+      routePageAccessor accessor;
+      
+      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+
+      if (INVALID_PAGE_ID == _record.routePages[COLLECTION_ROOT_LVL0])
+      {
+         rc = SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS;
+         goto error;
+      }
+      else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_FIRST_ROOT_LVL1])
+      {
+         lpid = _record.routePages[COLLECTION_ROOT_LVL0];
+         lvl0Id = 0;
+      }
+      else if (INVALID_PAGE_ID == _record.routePages[COLLECTION_SECOND_ROOT_LVL1])
+      {
+         deltaLvl0 = 1;
+      }
+   done:
+      return rc;
+   error:
       goto done;
    }
 

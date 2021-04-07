@@ -130,7 +130,7 @@ namespace vessel
 
    INT32 lcBuckets::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                          UINT32 pageSize,
-                                         lcExtentTagHolder &holder,
+                                         lcPageTagHolder &holder,
                                          BOOLEAN &newTagInBucket)
    {
       ossSpinSLatch *latch = NULL;
@@ -142,7 +142,7 @@ namespace vessel
    }
 
    INT32 lcBuckets::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                      lcExtentTagHolder &holder)
+                                      lcPageTagHolder &holder)
    {
       ossSpinSLatch *latch = NULL;
       lcBucket *bucket = NULL;
@@ -150,7 +150,7 @@ namespace vessel
       return bucket->getTagAndIncUsage(id, latch, holder);
    }
 
-   INT32 lcBuckets::releaseRemovedTag(lcExtentTag *tag)
+   INT32 lcBuckets::releaseRemovedTag(liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
       ossSpinSLatch *latch = NULL;
@@ -173,7 +173,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBuckets::releaseRemovedTags(UINT32 num, lcExtentTag *tags[])
+   INT32 lcBuckets::releaseRemovedTags(UINT32 num, liteCachePageTag *tags[])
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(0 == num))

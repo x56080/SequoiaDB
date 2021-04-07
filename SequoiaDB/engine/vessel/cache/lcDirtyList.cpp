@@ -95,10 +95,10 @@ namespace vessel
       return lsn;
    }
 
-   INT32 lcDirtyList::insert(lcExtentTagHolder &holder)
+   INT32 lcDirtyList::insert(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
       SDB_ASSERT(holder.valid(), "holder should be valid");
       SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "tag should be under unique lock");
       UINT64 lsn = DPS_INVALID_LSN_OFFSET;
@@ -111,7 +111,7 @@ namespace vessel
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
       }
-      else if (OSS_UNLIKELY(holder.tag()->inDirtyList()))
+      else if (OSS_UNLIKELY(holder.tag()->isInDirtyList()))
       {
          rc = SDB_VESSEL_INTERNAL_ERR;
          goto error;
@@ -126,7 +126,7 @@ namespace vessel
          goto error;
       }
 
-      tag->setFlags(ET_FLAG_DIRTY | ET_FLAG_IN_DIRTY_LIST);
+      tag->setFastFlags(LC_TAG_FAST_FLAG_DIRTY | LC_TAG_FAST_FLAG_IN_DIRTY_LIST);
       _latch.get();
       insertIntoSortedList(tag);
       _latch.release();
@@ -136,16 +136,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcDirtyList::remove(lcExtentTagHolder &holder)
+   INT32 lcDirtyList::remove(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
    
-      if (OSS_UNLIKELY(!holder.valid() || LOCK_MODE_UNIQUE != holder.getLockMode()))
+      if (OSS_UNLIKELY(!holder.valid()))
       {
          PD_LOG(PDERROR, "can not remove an invalid tag from dirty list");
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(LOCK_MODE_UNIQUE != holder.getLockMode()))
+      {
+         PD_LOG(PDERROR, "holding wrong type latch");
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
 
@@ -157,7 +163,7 @@ namespace vessel
       remove(tag);
       _latch.release();
       locked = FALSE;
-      tag->clearFlags(ET_FLAG_IN_DIRTY_LIST);
+      tag->clearFastFlags(LC_TAG_FAST_FLAG_IN_DIRTY_LIST);
       
    done:
       if (locked)
@@ -175,7 +181,7 @@ namespace vessel
                                       diskIOJob *job)
    {
       INT32 rc = SDB_OK;
-      lcExtentTag *itr = NULL;
+      liteCachePageTag *itr = NULL;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
       SDB_ASSERT(0 == job->getTagCount(), "must be empty");
 
@@ -184,7 +190,7 @@ namespace vessel
       itr = _tail;
       for (UINT32 i = 0;i < scanDepth &&  NULL != itr; ++i)
       {
-         lcExtentTag *tag = itr;
+         liteCachePageTag *tag = itr;
          itr = itr->getDirtyListPre();
 
          if (minLSN < tag->getMinLSN())
@@ -238,7 +244,7 @@ namespace vessel
       _cachedMinDirtyLSN = DPS_INVALID_LSN_OFFSET;
    }
 
-   void lcDirtyList::insertIntoSortedList(lcExtentTag *tag)
+   void lcDirtyList::insertIntoSortedList(liteCachePageTag *tag)
    {
       SDB_ASSERT(NULL != tag, "should be null");
       UINT64 lsn = tag->getMinLSN();
@@ -246,8 +252,8 @@ namespace vessel
                  "should not insert tag with invalid lsn");
       if (NULL != _head)
       {
-         lcExtentTag *current = _head;
-         lcExtentTag *pre = NULL;
+         liteCachePageTag *current = _head;
+         liteCachePageTag *pre = NULL;
          do
          {
             if (lsn >= current->getMinLSN())
@@ -292,10 +298,10 @@ namespace vessel
       return;
    }
 
-   void lcDirtyList::remove(lcExtentTag *tag)
+   void lcDirtyList::remove(liteCachePageTag *tag)
    {
-      lcExtentTag *pre = tag->getDirtyListPre();
-      lcExtentTag *next = tag->getDirtyListNext();
+      liteCachePageTag *pre = tag->getDirtyListPre();
+      liteCachePageTag *next = tag->getDirtyListNext();
       
       if (NULL != pre && NULL != next)
       {

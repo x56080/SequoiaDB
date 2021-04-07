@@ -46,7 +46,7 @@ namespace engine
 {
 namespace vessel
 {
-   class lcExtentTag;
+   class liteCachePageTag;
    class diskIOJob : public SDBObject
    {
       public:
@@ -63,11 +63,6 @@ namespace vessel
             PENDING = 1,
             DISPATCHING = 2,
          };//enum _STATUS
-         
-         enum _FLAG
-         {
-            _FLAG_FSYNC = 0x01,
-         };// enum _FLAG
 
       public:
          diskIOJob();
@@ -79,7 +74,7 @@ namespace vessel
       public:
          void reset();
          void prepare(UINT64 jobID, TYPE type, UINT32 bufSize=0);
-         INT32 addPendingWriteTag(lcExtentTag *tag);
+         INT32 addPendingWriteTag(liteCachePageTag *tag);
 
          void prepareForDispatching(UINT32 maxIOSizePerTask=0);
 
@@ -100,7 +95,7 @@ namespace vessel
             return _tags.size();
          }
 
-         OSS_INLINE lcExtentTag *getTag(UINT32 taskID)
+         OSS_INLINE liteCachePageTag *getTag(UINT32 taskID)
          {
             if (OSS_LIKELY(taskID < _tags.size()))
             {
@@ -114,20 +109,19 @@ namespace vessel
 
          OSS_INLINE BOOLEAN needFSync()const
          {
-            return OSS_BIT_TEST(_flags, _FLAG_FSYNC);
+            return DIRTY_LIST == _jobType;
          }
 
       private:
          void releaseTag(UINT32 i);
 
       private:
-         typedef ossPoolVector<lcExtentTag *> _TAG_VEC;
+         typedef ossPoolVector<liteCachePageTag *> _TAG_VEC;
 
       private:
          _STATUS _status;
          UINT64 _jobID;
          TYPE _jobType;
-         UINT32 _flags;
          UINT32 _dispatchedCount;
          UINT32 _maxIOSizePerTask;
          _TAG_VEC _tags; 

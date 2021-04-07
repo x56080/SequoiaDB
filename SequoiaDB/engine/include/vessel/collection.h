@@ -94,7 +94,8 @@ namespace vessel
                       const createCLOptions &options);
 
          /// init when startup
-         INT32 initWhenOpen(const collectionRecord &record,
+         INT32 initWhenOpen(requestContext *context,
+                            const collectionRecord &record,
                             collectionSpace *cs);
 
          void fini();
@@ -104,17 +105,23 @@ namespace vessel
                     listCollectionsRecord &record);
 
          INT32 insert(insertContext *context,
+                      const recordData &record,
+                      const DPS_TRANS_ID &transID,
+                      STRIPING_ID striping,
+                      const insertOptions *options,
                       utilInsertResult &res);
+
+      private:
+         INT32 insertNonBigRecord(insertContext *context);
+
+         INT32 insertNonBigRecordToCandidate(insertContext *context);
 
       private:
          INT32 findFreePageForRecord(requestContext *context,
                                      UINT32 recordSize,
                                      STRIPING_ID striping,
                                      fsmCandidate &candidate);
-         INT32 insertNonBigRecord(insertContext *context,
-                                  utilInsertResult &res);
-
-
+         
          /// user should hold _pageAllocLatch first
          INT32 allocateNewRecordDataPages(requestContext *context,
                                           UINT32 count,
@@ -125,7 +132,19 @@ namespace vessel
                                       UINT32 count,
                                       const PAGE_ID *lpids,
                                       const PAGE_ID *pids);
+
+         INT32 initPageSequenceWhenOpen(requestContext *context);
       private:
+         INT32 getLpidBySequence(requestContext *context,
+                                 CL_PAGE_SEQ sequence,
+                                 PAGE_ID &lpid);
+
+         ///WARNING: used only when open.
+         INT32 getMaxLvl0RoutePage(requestContext *context,
+                                   UINT32 capacity,
+                                   PAGE_ID &lpid,
+                                   UINT32 &lvl0Id);
+
          INT32 extendRoutePageMap(requestContext *context,
                                   PAGE_ID *newLvl0=NULL);
 

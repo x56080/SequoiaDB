@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = lcExtentTagHolder.h
+   Source File Name = lcPageTagHolder.h
 
    Descriptive Name =
 
@@ -36,33 +36,33 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_LC_EXTENT_TAG_HOLDER_H_
-#define VESSEL_LC_EXTENT_TAG_HOLDER_H_
+#ifndef VESSEL_LC_PAGE_TAG_HOLDER_H_
+#define VESSEL_LC_PAGE_TAG_HOLDER_H_
 
-#include "vessel/lcExtentTag.h"
+#include "vessel/liteCachePageTag.h"
 #include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class lcExtentTagHolder
+   class lcPageTagHolder
    {
       public:
-         OSS_INLINE lcExtentTagHolder():_tag(NULL), _lockMode(LOCK_MODE_NONE){}
-         OSS_INLINE ~lcExtentTagHolder()
+         OSS_INLINE lcPageTagHolder():_tag(NULL), _lockMode(LOCK_MODE_NONE){}
+         OSS_INLINE ~lcPageTagHolder()
          {
             /// WARNING: holder's destructor will not release lock automaticly, which
-            /// to force users to manage lock resources carefully
+            /// to force users to manage lock resources carefully.
             _tag = NULL;
             _lockMode = LOCK_MODE_NONE;
          }
 
-         OSS_INLINE lcExtentTagHolder(const lcExtentTagHolder &r)
+         OSS_INLINE lcPageTagHolder(const lcPageTagHolder &r)
          :_tag(r._tag), _lockMode(r._lockMode)
          {}
          
-         OSS_INLINE lcExtentTagHolder &operator=(const lcExtentTagHolder &r)
+         OSS_INLINE lcPageTagHolder &operator=(const lcPageTagHolder &r)
          {
             _tag = r._tag;
             _lockMode = r._lockMode;
@@ -75,7 +75,7 @@ namespace vessel
             return NULL != _tag;
          }
 
-         OSS_INLINE void reset(lcExtentTag *tag)
+         OSS_INLINE void reset(liteCachePageTag *tag)
          {
             _tag = tag;
             _lockMode = LOCK_MODE_NONE;
@@ -185,20 +185,20 @@ namespace vessel
             return _lockMode;
          }
 
-         OSS_INLINE lcExtentTag *tag()
+         OSS_INLINE liteCachePageTag *tag()
          {
             return _tag;
          }
 
-         OSS_INLINE const lcExtentTag *tag() const
+         OSS_INLINE const liteCachePageTag *tag() const
          {
             return _tag;
          }
       private:
-         lcExtentTag *_tag;
+         liteCachePageTag *_tag;
          enum LOCK_MODE _lockMode;
-   }; /// end of class lcExtentTagHolder
+   }; /// end of class lcPageTagHolder
 } /// end of namespace vessel
 } /// end of namespace engine
 
-#endif /// end of VESSEL_EXTENT_TAG_HOLDER_H_
+#endif /// end of VESSEL_LC_PAGE_TAG_HOLDER_H_

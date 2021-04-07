@@ -40,7 +40,7 @@
 #define VESSEL_LC_LRU_LIST_H_
 
 #include "ossTypes.h"
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "vessel/liteCacheDef.h"
 #include "vessel/vesselOptions.h"
 #include "ossLatch.hpp"
@@ -49,7 +49,6 @@ namespace engine
 {
 namespace vessel
 {
-   class lcExtentTag;
    class lcBuckets;
    class lcFreeList;
    class diskIOJob;
@@ -69,11 +68,11 @@ namespace vessel
 
          /// for user threads
          /// tag under w lock
-         INT32 insert(lcExtentTagHolder &holder, const freeListPage &page);
+         INT32 insert(lcPageTagHolder &holder, const freeListPage &page);
 
          /// for user threads
          /// tag under lock
-         INT32 tryToUpdate(lcExtentTagHolder &holder);
+         INT32 tryToUpdate(lcPageTagHolder &holder);
 
          /// for user threads
          /// should always check free list first.
@@ -103,14 +102,14 @@ namespace vessel
 
          void tryToTuneRightMiddle();
          void tryToTuneLeftMiddle();
-         void removeTagAndTuneMiddle(lcExtentTag *tag);
+         void removeTagAndTuneMiddle(liteCachePageTag *tag);
 
-         void moveToHead(lcExtentTag *tag);
-         void insertToMiddle(lcExtentTag *tag);
-         void insertToHead(lcExtentTag *tag, UINT16 cnt);
-         void removeFromList(lcExtentTag *tag);
+         void moveToHead(liteCachePageTag *tag);
+         void insertToMiddle(liteCachePageTag *tag);
+         void insertToHead(liteCachePageTag *tag);
+         void removeFromList(liteCachePageTag *tag);
 
-         BOOLEAN tryToEvictTagFromList(lcExtentTag *tag,
+         BOOLEAN tryToEvictTagFromList(liteCachePageTag *tag,
                                        freeListPage &page);
 
       
@@ -125,10 +124,10 @@ namespace vessel
          /// real time
          UINT32 _size;
          UINT32 _coldSize;
-         lcExtentTag *_head;
-         lcExtentTag *_middle;
-         lcExtentTag *_tail;
-         lcExtentTag *_evictBegin;
+         liteCachePageTag *_head;
+         liteCachePageTag *_middle;
+         liteCachePageTag *_tail;
+         liteCachePageTag *_evictBegin;
    }; /// end of class lcLRUList
 } /// end of namespace vessel
 } /// end of namespace engine

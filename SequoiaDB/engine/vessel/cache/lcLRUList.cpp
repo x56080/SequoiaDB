@@ -37,9 +37,8 @@
 ******************************************************************************/
 
 #include "vessel/lcLRUList.h"
-#include "vessel/lcExtentTag.h"
 #include "ossUtil.hpp"
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "vessel/lcBuckets.h"
 #include "vessel/lcFreeList.h"
 #include "vessel/diskIOJob.h"
@@ -126,10 +125,11 @@ namespace vessel
       return SDB_OK;
    }
 
-   INT32 lcLRUList::insert(lcExtentTagHolder &holder, const freeListPage &page)
+   INT32 lcLRUList::insert(lcPageTagHolder &holder, const freeListPage &page)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
+      liteCachePageTag *tag = NULL;
       SDB_ASSERT(holder.valid(), "should be valid");
       SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "should holding lock");
 
@@ -147,7 +147,7 @@ namespace vessel
          goto error;
       }
 
-      if (OSS_UNLIKELY(holder.tag()->inLruList()))
+      if (OSS_UNLIKELY(holder.tag()->isInLruList()))
       {
          PD_LOG(PDERROR, "can not insert tag which already in lru");
          rc = SDB_INVALIDARG;
@@ -168,19 +168,22 @@ namespace vessel
          goto error;
       }
 
-      holder.tag()->setFlags(ET_FLAG_IN_LRU_LIST);
-      holder.tag()->setMemPage(page);
+      tag = holder.tag();
+      tag->setFastFlags(LC_TAG_FAST_FLAG_IN_LRU_LIST);
+      tag->setMemPage(page);
       _latch.get();
       locked = TRUE;
 
       if (splited())
       {
-         insertToMiddle(holder.tag());
+         insertToMiddle(tag);
+         tag->incLruTouchCnt();
          tryToTuneRightMiddle();
       }
       else
       {
-         insertToHead(holder.tag(), 1);
+         insertToHead(tag);
+         tag->incLruTouchCnt();
          if (_size == _options.lruMinSplitSize)
          {
             splitLRU();
@@ -197,11 +200,11 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcLRUList::tryToUpdate(lcExtentTagHolder &holder)
+   INT32 lcLRUList::tryToUpdate(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
 
       if (OSS_UNLIKELY(!holder.valid()))
       {
@@ -218,12 +221,7 @@ namespace vessel
       }
 
       tag = holder.tag();
-
-      if (OSS_UNLIKELY(!tag->inLruList()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
+      SDB_ASSERT(tag->isInLruList(), "must be in lru");
 
       if (!_options.lruIncTouchCntWhenReadOnly &&
           LOCK_MODE_SHARED == holder.getLockMode())
@@ -231,7 +229,14 @@ namespace vessel
          goto done;
       }
 
-      tag->incLRUCnt();
+      if (LOCK_MODE_UNIQUE == holder.getLockMode())
+      {
+         tag->incLruTouchCnt();
+      }
+      else
+      {
+         tag->incLruTouchCntWithCAS();
+      }      
       
    done:
       return rc;
@@ -246,7 +251,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 scanNum = 0;
-      lcExtentTag *itr = NULL;
+      liteCachePageTag *itr = NULL;
       BOOLEAN locked = FALSE;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
@@ -267,14 +272,14 @@ namespace vessel
       itr = NULL == _evictBegin ? _tail : _evictBegin;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
-         lcExtentTag *tag = itr;
-         itr = itr->getLRUPre();
-         lcExtentTagHolder holder;
+         liteCachePageTag *tag = itr;
+         itr = itr->getLruPre();
+         lcPageTagHolder holder;
 
          if (splited())
          {
             /// do not update totalScaned here.
-            if (_options.lruHotTouchCnt <= tag->getLRUCnt())
+            if (_options.lruHotTouchCnt <= tag->getLruTouchCnt())
             {
                ++totalSkipped;
                ++totalMoved;
@@ -299,7 +304,7 @@ namespace vessel
          break;
       }
 
-      if (NULL != itr && splited() && itr->isLRUCold())
+      if (NULL != itr && splited() && itr->isLruCold())
       {
          _evictBegin = itr;
       }
@@ -335,7 +340,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
       UINT32 scanNum = std::min(scanDepth, _options.lruScanDepth);
-      lcExtentTag *itr = NULL;
+      liteCachePageTag *itr = NULL;
       BOOLEAN locked = FALSE;
       UINT32 totalEvicted = 0;
       UINT32 totalPending = 0;
@@ -349,15 +354,15 @@ namespace vessel
       itr = _tail;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
-         lcExtentTag *tag = itr;
-         itr = itr->getLRUPre();
+         liteCachePageTag *tag = itr;
+         itr = itr->getLruPre();
          BOOLEAN dirtyAndNoPending = FALSE;
          BOOLEAN mayBeEvicted = FALSE;
          freeListPage page;
 
          if (splited())
          {
-            if (_options.lruHotTouchCnt <= tag->getLRUCnt())
+            if (_options.lruHotTouchCnt <= tag->getLruTouchCnt())
             {
                moveToHead(tag);
                ++totalSkipped;
@@ -400,7 +405,7 @@ namespace vessel
          }
       }
 
-      if (NULL != itr && splited() && itr->isLRUCold())
+      if (NULL != itr && splited() && itr->isLruCold())
       {
          _evictBegin = itr;
       }
@@ -439,16 +444,15 @@ namespace vessel
       _latch.release();
    }
 
-   void lcLRUList::insertToMiddle(lcExtentTag *tag)
+   void lcLRUList::insertToMiddle(liteCachePageTag *tag)
    {
       SDB_ASSERT(NULL != _middle, "not splited");
       ++_size;
       ++_coldSize;
-      lcExtentTag *next = _middle->getLRUNext();
-      next->setLRUPre(tag);
-      _middle->setLRUNext(tag);
-      tag->lruInserted(_middle, next, 1, ET_LRU_FLAG_COLD);
-
+      liteCachePageTag *next = _middle->getLruNext();
+      next->setLruPre(tag);
+      _middle->setLruNext(tag);
+      tag->insertIntoLru(_middle, next, TRUE);
       return;
    }
 
@@ -457,19 +461,19 @@ namespace vessel
       SDB_ASSERT(NULL == _middle, "already splited");
       SDB_ASSERT(_size == _options.lruMinSplitSize, "lru size must be split size");
       UINT32 steps = _size * _options.lruColdPercent;
-      lcExtentTag *tag = _tail;
+      liteCachePageTag *tag = _tail;
       for (UINT32 i = 0; i < steps && NULL != tag; ++i)
       {
-         tag->setLRUCold();
-         tag = tag->getLRUPre();
+         tag->setLruCold();
+         tag = tag->getLruPre();
       }
       _coldSize = steps;
       _middle = tag;
 
       for (;NULL != tag;)
       {
-         tag->setLRUUncold();
-         tag = tag->getLRUPre();
+         tag->setLruUncold();
+         tag = tag->getLruPre();
       }
       return;
    }
@@ -493,8 +497,8 @@ namespace vessel
       tuneSize = _coldSize - maxColdSize;
       for (UINT32 i = 0; i < tuneSize; ++i)
       {
-         _middle = _middle->getLRUNext();
-         _middle->setLRUUncold();
+         _middle = _middle->getLruNext();
+         _middle->setLruUncold();
       }
       _coldSize -= tuneSize;
    done:
@@ -514,28 +518,28 @@ namespace vessel
       tuneSize = minColdSize - _coldSize;
       for (UINT32 i = 0; i < tuneSize; ++i)
       {
-         _middle->setLRUCold();
-         _middle = _middle->getLRUPre();
+         _middle->setLruCold();
+         _middle = _middle->getLruPre();
       }
       _coldSize += tuneSize;
    done:
       return;
    }
 
-   void lcLRUList::moveToHead(lcExtentTag *tag)
+   void lcLRUList::moveToHead(liteCachePageTag *tag)
    {
       SDB_ASSERT(splited(), "impossible");
 
-      BOOLEAN cold = tag->isLRUCold();
+      BOOLEAN cold = tag->isLruCold();
 
       if (_middle == tag)
       {
          /// middle is not cold, do not --coldsize
-         _middle = _middle->getLRUPre();
+         _middle = _middle->getLruPre();
       }
 
       removeFromList(tag);
-      insertToHead(tag, 0);
+      insertToHead(tag);
 
       if (cold)
       {
@@ -546,15 +550,15 @@ namespace vessel
       return;
    }
 
-   void lcLRUList::removeFromList(lcExtentTag *tag)
+   void lcLRUList::removeFromList(liteCachePageTag *tag)
    {
-      lcExtentTag *pre = tag->getLRUPre();
-      lcExtentTag *next = tag->getLRUNext();
+      liteCachePageTag *pre = tag->getLruPre();
+      liteCachePageTag *next = tag->getLruNext();
       --_size;
       
       if (NULL != pre)
       {
-         pre->setLRUNext(next);
+         pre->setLruNext(next);
       }
       else
       {
@@ -563,45 +567,44 @@ namespace vessel
 
       if (NULL != next)
       {
-         next->setLRUPre(pre);
+         next->setLruPre(pre);
       }
       else
       {
          _tail = pre;
       }
 
-      tag->releaseMemPage();
-      tag->lruRemoved();
-      tag->clearFlags(ET_FLAG_IN_LRU_LIST);
+      tag->removeFromLru();
       return;
    }
 
-   void lcLRUList::insertToHead(lcExtentTag *tag, UINT16 cnt)
+   void lcLRUList::insertToHead(liteCachePageTag *tag)
    {
+      SDB_ASSERT(NULL != tag, "can not be null");
       ++_size;
       if (OSS_LIKELY(NULL != _head))
       {
-         lcExtentTag *oldHead = _head;
+         liteCachePageTag *oldHead = _head;
          _head = tag;
-         oldHead->setLRUPre(tag);
-         tag->lruInserted(NULL, oldHead, cnt, ET_LRU_FLAG_NONE);
+         oldHead->setLruPre(tag);
+         tag->insertIntoLru(NULL, oldHead, FALSE);
       }
       else
       {
          _head = tag;
          _tail = tag;
-         tag->lruInserted(NULL, NULL, cnt, ET_LRU_FLAG_NONE);
+         tag->insertIntoLru(NULL, NULL, FALSE);
       }
       return;
    }
 
 
-   BOOLEAN lcLRUList::tryToEvictTagFromList(lcExtentTag *tag,
+   BOOLEAN lcLRUList::tryToEvictTagFromList(liteCachePageTag *tag,
                                             freeListPage &page)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != tag, "can not be null");
-      lcExtentTagHolder holder;
+      lcPageTagHolder holder;
       BOOLEAN removeFromBucket = FALSE;
       
       holder.reset(tag);
@@ -610,21 +613,14 @@ namespace vessel
          goto done;
       }
 
-      if (OSS_UNLIKELY(!tag->hasMemPage()))
-      {
-         SDB_ASSERT(FALSE, "impossible");
-         PD_LOG(PDERROR, "tag with no chunk pages in lru");
-         goto done;
-      }
-
       if (tag->isDirty())
       {
          goto done;
       }
 
-      if (!tag->inDirtyList())
+      if (!tag->isInDirtyList())
       {
-         if (!tag->setEvictedFromLRUAndRemoved())
+         if (!tag->setEvictedFromLRUAndRemoving())
          {
             goto done;
          }
@@ -641,9 +637,6 @@ namespace vessel
       ///but it is possible that other users have increased the reference count and waiting for lock.
       ///it does not matter, we will not delete tag unless removeFromBucket is true.
       ///others users may reinsert tag into lru by themselves. 
-      
-      page = tag->getMemPage();
-
       if (splited())
       {
          removeTagAndTuneMiddle(tag);
@@ -653,6 +646,10 @@ namespace vessel
          removeFromList(tag);
       }
 
+      page = tag->getMemPage();
+      SDB_ASSERT(page.valid(), "must be valid");
+      tag->releaseMemPage();
+      tag->clearFastFlags(LC_TAG_FAST_FLAG_IN_LRU_LIST);
       holder.unlockUnique();
 
       if (removeFromBucket)
@@ -666,15 +663,15 @@ namespace vessel
       return r;
    }
 
-   void lcLRUList::removeTagAndTuneMiddle(lcExtentTag *tag)
+   void lcLRUList::removeTagAndTuneMiddle(liteCachePageTag *tag)
    {
       SDB_ASSERT(splited(), "must be splited");
-      BOOLEAN cold = tag->isLRUCold(); 
+      BOOLEAN cold = tag->isLruCold(); 
       if (_options.lruMinSplitSize < _size)
       {
          if (_middle == tag)
          {
-            _middle = _middle->getLRUPre();
+            _middle = _middle->getLruPre();
          }
          removeFromList(tag);
 

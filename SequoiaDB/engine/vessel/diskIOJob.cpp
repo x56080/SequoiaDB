@@ -38,7 +38,7 @@
 
 #include "vessel/diskIOJob.h"
 #include "pdTrace.hpp"
-#include "vessel/lcExtentTag.h"
+#include "vessel/liteCachePageTag.h"
 #include "ossLikely.hpp"
 #include <algorithm>
 
@@ -49,7 +49,7 @@ namespace vessel
    static const UINT32 DEFAULT_MAX_IO_SIZE_PER_TASK = 4 * 1024 * 1024;
    static const UINT32 DEFUALT_BUF_COUNT = 128;
 
-   BOOLEAN compareTag(const lcExtentTag *l, const lcExtentTag *r)
+   BOOLEAN compareTag(const liteCachePageTag*l, const liteCachePageTag*r)
    {
       return l->id() < r->id();
    }
@@ -86,7 +86,6 @@ namespace vessel
 
    void diskIOJob::prepare(UINT64 jobID, TYPE type, UINT32 bufSize)
    {
-      INT32 rc = SDB_OK;
       UINT32 initBufSize = 0 < bufSize ? bufSize : DEFUALT_BUF_COUNT;
       SDB_ASSERT(NONE == _status, "must be none");
 
@@ -97,11 +96,11 @@ namespace vessel
       return;
    }
 
-   INT32 diskIOJob::addPendingWriteTag(lcExtentTag *tag)
+   INT32 diskIOJob::addPendingWriteTag(liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != tag, "can not be null");
-      SDB_ASSERT(tag->pendingWrite(), "must be pending");
+      SDB_ASSERT(tag->isPendingWrite(), "must be pending");
 
       if (OSS_UNLIKELY(NULL == tag))
       {
@@ -176,7 +175,7 @@ namespace vessel
    {
       if (pos < _tags.size())
       {
-         lcExtentTag *tag = _tags[pos];
+         liteCachePageTag*tag = _tags[pos];
          if (NULL != tag)
          {
             tag->setUnPendingWrite();
@@ -212,7 +211,7 @@ namespace vessel
       GLOBAL_PAGE_ID pre;
       UINT32 count = 0;
       UINT32 ioSize = 0;
-      const lcExtentTag *tag = NULL;
+      const liteCachePageTag*tag = NULL;
       UINT32 taskID = 0;
 
       if (OSS_UNLIKELY(DISPATCHING != _status))

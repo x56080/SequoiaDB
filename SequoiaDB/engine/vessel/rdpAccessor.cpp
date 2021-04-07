@@ -594,9 +594,9 @@ namespace vessel
       lrc->prepush(RECORD_PAGE_HEAD_LEN);
       lrc->prepush(RDP_RSLOT_SIZE);
       lrc->prepush(rhAndbodySize);
-      if (UTIL_COMPRESSOR_INVALID != context->getCompressionType())
+      if (context->recordIsCompressed())
       {
-         lrc->prepush(context->getRecord().getSlice().len());
+         lrc->prepush(context->getOriginalRecord().getSlice().len());
       }
       lrc->prepush(sizeof(utilCLUniqueID));
       lrc->prepush(fullNameLen);
@@ -604,6 +604,10 @@ namespace vessel
       {
          lrc->prepush(sizeof(DPS_TRANSID_SN));
          lrc->prepush(sizeof(DPS_TRANSID_NODEID));
+      }
+      if (0 < context->getUniqueIndexCount())
+      {
+         lrc->prepush(sizeof(UINT16) * context->getUniqueIndexCount());
       }
 
       rc = pageAccessor::prepareLogDone(static_cast<requestContext*>(context), lrc);
@@ -636,7 +640,7 @@ namespace vessel
       SDB_ASSERT(NULL != newHead, "can not be null");
       SDB_ASSERT(!slot.isFree(), "can not be free");
       SDB_ASSERT(NULL != rh, "can not be null");
-      utilCLUniqueID uniqueID = context->getUniqueID();
+      utilCLUniqueID uniqueID = context->getCLUniqueID();
       IRedoLogger *logger = context->getOuterResource()->logger;
       GLOBAL_PAGE_ID gpid = getGPID();
 
@@ -694,12 +698,12 @@ namespace vessel
          goto error;
       }
 
-      if (UTIL_COMPRESSOR_INVALID != context->getCompressionType())
+      if (context->recordIsCompressed())
       {
          rc = logger->pushLogRecordElement(session, lrc,
                                         DPS_LOG_VESSEL_RDP_INSERT_UNCOMPRESSED_RECORD,
-                                        context->getRecord().getSlice().len(),
-                                        context->getRecord().getSlice().data());
+                                        context->getOriginalRecord().getSlice().len(),
+                                        context->getOriginalRecord().getSlice().data());
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;
@@ -740,6 +744,18 @@ namespace vessel
                                           DPS_LOG_PUBLIC_TRANSID_NODEID,
                                           sizeof(DPS_TRANSID_NODEID),
                                           &nodeID);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+      }
+
+      if (0 != context->getUniqueIndexCount())
+      {
+         rc = logger->pushLogRecordElement(session, lrc,
+                                          DPS_LOG_PUBLIC_NEW_UNQIDX_HASH,
+                                          context->getUniqueIndexCount() * sizeof(UINT16),
+                                          context->getUniqueIdexData());
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;

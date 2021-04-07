@@ -39,7 +39,7 @@
 #ifndef VESSEL_LITE_CACHE_TUPLE_H_
 #define VESSEL_LITE_CACHE_TUPLE_H_
 
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "dpsDef.hpp"
 
 namespace engine
@@ -115,7 +115,7 @@ namespace vessel
                        void *buf)const;
 
       private:
-         lcExtentTagHolder _holder;
+         lcPageTagHolder _holder;
          liteCache *_pool;
          BOOLEAN _writingPrepared;
    };

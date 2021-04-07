@@ -40,7 +40,7 @@
 #define VESSEL_LC_BUCKET_H_
 
 #include "vessel/phyExtentID.h"
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "ossLatch.hpp"
 #include "ossMemPool.hpp"
 
@@ -61,29 +61,29 @@ namespace vessel
                                     _ossSpinSLatch *latch,
                                     UINT32 pageSize,
                                     UINT32 minRecycleCount,
-                                    lcExtentTagHolder &holder,
+                                    lcPageTagHolder &holder,
                                     BOOLEAN &newTagInBucket);
 
          INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                  _ossSpinSLatch *latch,
-                                 lcExtentTagHolder &holder);
+                                 lcPageTagHolder &holder);
 
          INT32 releaseRemovedTag(_ossSpinSLatch *latch,
-                                 lcExtentTag *tag);
+                                 liteCachePageTag *tag);
 
          INT32 releaseRemovedTags(SHARED_MUTEX *latch,
                                   UINT32 num,
-                                  lcExtentTag *tags);
+                                  liteCachePageTag *tags);
       private:                           
          INT32 insertTag(const GLOBAL_PAGE_ID &id,
                          UINT32 pageSize,
                          UINT32 minRecycleCount,
-                         lcExtentTagHolder &holder);
+                         lcPageTagHolder &holder);
 
-         lcExtentTag *recycleTag(UINT32 minRecycleCount);
+         liteCachePageTag *recycleTag(UINT32 minRecycleCount);
 
       private:
-         typedef ossPoolMultiMap<GLOBAL_PAGE_ID, lcExtentTag*> _TAG_MAP;
+         typedef ossPoolMultiMap<GLOBAL_PAGE_ID, liteCachePageTag*> _TAG_MAP;
          typedef _TAG_MAP::iterator _TAG_MAP_ITERATOR;
          typedef _TAG_MAP::const_iterator _TAG_MAP_CONST_ITERATOR;
                                                 

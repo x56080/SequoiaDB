@@ -870,7 +870,7 @@ utilBSONTestFiles = [
 	  
 #vessel
 vesselFiles = [
-      "vessel/cache/lcExtentTag.cpp",
+      "vessel/cache/liteCachePageTag.cpp",
       "vessel/cache/liteCache.cpp",
       "vessel/cache/lcBucket.cpp",
       "vessel/cache/lcBuckets.cpp",

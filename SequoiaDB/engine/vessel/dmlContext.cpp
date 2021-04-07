@@ -59,77 +59,59 @@ namespace vessel
       return;
    }
 
-   INT32 dmlContext::initCL(collectionSpace *cs,
-                            collection *cl)
+   void dmlContext::reset()
    {
-      INT32 rc = SDB_OK;
-      SDB_ASSERT(getSpaceIDLocked(), "space id should be locked");
-      SDB_ASSERT(mbLocked(), "mb id should be locked");
-      SDB_ASSERT(isOpen(), "should be open first");
-      SDB_ASSERT(_csName.empty(), "do not reinit");
-      UINT32 csNameLen = 0;
-      UINT32 clNameLen = 0;
-
-      if (OSS_UNLIKELY(NULL == cs || NULL == cl))
+      _csName.reset();
+      _clName.reset();
+      _clLogicalID = DMS_INVALID_LOGICCLID;
+      _clUniqueID = utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID,
+                                    UTIL_INVALID_CL_INNER_ID);
+      _transID.reset();
+      _striping = INVALID_STRIPING_ID;
+      _originalRecord.reset();
+      _compressedRecord.reset();
+      _compressionType = UTIL_COMPRESSOR_INVALID;
+      if (NULL != _compressionBuffer)
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         SDB_THREAD_FREE(_compressionBuffer);
+         _compressionBuffer = NULL;
       }
-      else if (DMS_INVALID_LOGICCLID == cl->getLogicalID())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      csNameLen = ossStrlen(cs->getCSName());
-      clNameLen = ossStrlen(cl->getName());
-      if (0 == csNameLen || 0 == clNameLen)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _csName.reset(cs->getCSName(), csNameLen);
-      _clName.reset(cl->getName(), clNameLen);
-      _clLogicalID = cl->getLogicalID();
-      _uniqueID = utilBuildCLUniqueID(cs->getUniqueID(), cl->getInnerID());
-      _compressionType = cl->getCompressionType();
+      _compressionBufferSize = 0;
       
-   done:
-      return rc;
-   error:
-      goto done;
+      _lsn = DPS_INVALID_LSN_OFFSET;
+      _rid = recordID();
+      _uniqueIndexHash.clear();
+      return;
    }
 
-    void dmlContext::reset()
-    {
-       _csName.reset();
-       _clName.reset();
-       _clLogicalID = DMS_INVALID_LOGICCLID;
-       _uniqueID = utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID,
-                                       UTIL_INVALID_CL_INNER_ID);
-       _compressionType = UTIL_COMPRESSOR_INVALID;
-       _record.reset();
-       _compressedRecordSize = 0;
-       if (NULL != _compressionBuffer)
-       {
-          SDB_THREAD_FREE(_compressionBuffer);
-          _compressionBuffer = NULL;
-       }
-       _compressionBufferSize = 0;
-       
-       _lsn = DPS_INVALID_LSN_OFFSET;
-       _rid = recordID();
-       _uniqueIndexHash.clear();
-       return;
-    }
+   void dmlContext::initNewRequest(collectionSpace *cs,
+                                    collection *cl,
+                                    const recordData &record,
+                                    const DPS_TRANS_ID &transID,
+                                    STRIPING_ID striping)
+   {
+      SDB_ASSERT(NULL != cs && NULL != cl, "can not be null");
+      SDB_ASSERT(record.isValid(), "can not be invalid");
+      reset();
+      _csName.reset(cs->getCSName());
+      _clName.reset(cl->getName());
+      _clLogicalID = cl->getLogicalID();
+      _clUniqueID = utilBuildCLUniqueID(cs->getUniqueID(), cl->getInnerID());
+      if (transID.isValid())
+      {
+         _transID = transID;
+      }
+      _striping = striping;
+      _originalRecord = record;
+      return;
+   }
+
 
     INT32 dmlContext::allocateCompressionBuffer(UINT32 size)
     {
        INT32 rc = SDB_OK;
        if (size <= _compressionBufferSize)
        {
-          _compressedRecordSize = 0;
           goto done;
        }
        else if (NULL != _compressionBuffer)
@@ -137,7 +119,6 @@ namespace vessel
           SDB_THREAD_FREE(_compressionBuffer);
           _compressionBuffer = NULL;
           _compressionBufferSize = 0;
-          _compressedRecordSize = 0;
        }
 
        _compressionBuffer = (CHAR *)SDB_THREAD_ALLOC(size);

@@ -68,7 +68,7 @@ namespace vessel
                                         _ossSpinSLatch *latch,
                                         UINT32 pageSize,
                                         UINT32 minRecycleCount,
-                                        lcExtentTagHolder &holder,
+                                        lcPageTagHolder &holder,
                                         BOOLEAN &newTagInBucket)
    {
       INT32 rc = SDB_OK;
@@ -110,7 +110,7 @@ namespace vessel
    }
 
    INT32 lcBucket::releaseRemovedTag(_ossSpinSLatch *latch,
-                                     lcExtentTag *tag)
+                                     liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
       ossScopedLock(latch, EXCLUSIVE);
@@ -124,7 +124,7 @@ namespace vessel
          {
             continue;
          }
-         if (!tag->toBeRemoved())
+         if (!tag->isRemoving())
          {
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
@@ -143,7 +143,7 @@ namespace vessel
 
    INT32 lcBucket::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     _ossSpinSLatch *latch,
-                                    lcExtentTagHolder &holder)
+                                    lcPageTagHolder &holder)
    {  
       if (NULL != latch)
       {
@@ -154,7 +154,7 @@ namespace vessel
       _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
       for (; lower != upper; ++lower)
       {
-         lcExtentTag *tag = lower->second;
+         liteCachePageTag *tag = lower->second;
          if (tag->incUsageCnt())
          {
             holder.reset(tag);
@@ -172,17 +172,17 @@ namespace vessel
    INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,
                              UINT32 pageSize,
                              UINT32 minRecycleCount,
-                             lcExtentTagHolder &holder)
+                             lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
       SDB_ASSERT(!id.invalid(), "can not be ivnalid");
       SDB_ASSERT(0 < pageSize, "can not be invalid");
 
       tag = recycleTag(minRecycleCount);
       if (NULL == tag)
       {
-         tag = SDB_OSS_NEW lcExtentTag();
+         tag = SDB_OSS_NEW liteCachePageTag();
          if (OSS_UNLIKELY(NULL == tag))
          {
             rc = SDB_OOM;
@@ -190,10 +190,10 @@ namespace vessel
          }
       }
 
-      tag->setStateNormal();
+      tag->setStatusAsNormal();
       tag->firstInit(id, pageSize);
-      holder.reset(tag);
       _tags.insert(std::make_pair(id, tag));
+      holder.reset(tag);
       tag = NULL;
    done:
       return rc;
@@ -202,9 +202,9 @@ namespace vessel
       goto done;
    }
 
-   lcExtentTag *lcBucket::recycleTag(UINT32 minRecycleCount)
+   liteCachePageTag *lcBucket::recycleTag(UINT32 minRecycleCount)
    {
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
       if (_tags.size() < minRecycleCount)
       {
          return NULL;
@@ -214,9 +214,10 @@ namespace vessel
       for (; itr != _tags.end(); ++itr)
       {
          tag = itr->second;
-         /// we are sure that this tag can not be removed now. coz we are holding bucket unique latch.
+         /// we are sure that this tag can not be removed now. 
+         /// coz we are holding bucket unique latch.
          /// if do not check first, may prevent lru eviction.
-         if (!tag->recyclePreCheck())
+         if (!tag->removingPrecheck())
          {
             continue;
          }
@@ -233,7 +234,7 @@ namespace vessel
          }
 
          /// some one pinned the tag. what a coincidence!
-         if (!tag->tryToSetRecycled())
+         if (!tag->tryToSetRemoving())
          {
             tag->rwMutex().unlock();
             continue;

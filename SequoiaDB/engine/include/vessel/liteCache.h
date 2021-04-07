@@ -40,7 +40,7 @@
 #define VESSEL_LITE_CACHE_H_
 
 #include "vessel/liteCacheDef.h"
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/liteCacheTuple.h"
 
@@ -90,9 +90,9 @@ class liteCache : public SDBObject
 
    public:/// only for callback
       INT32 allocateMemPageAndInsertIntoLRU(requestContext *context,
-                                            lcExtentTagHolder &holder);
+                                            lcPageTagHolder &holder);
 
-      INT32 tryToUpdateLRU(lcExtentTagHolder &holder);
+      INT32 tryToUpdateLRU(lcPageTagHolder &holder);
 
       UINT64 getAllocatedCountFromFreeList()const;
 
@@ -125,9 +125,9 @@ class liteCache : public SDBObject
       INT32 initNewTagInBucket(requestContext *context,
                                UINT32 pageSize,
                                ossValuePtr diskPage,
-                               lcExtentTagHolder &holder);
+                               lcPageTagHolder &holder);
 
-      INT32 initTupleBeforeReturn(lcExtentTagHolder &holder,
+      INT32 initTupleBeforeReturn(lcPageTagHolder &holder,
                                   const liteCacheAllocateOptions &options,
                                   liteCacheTuple &tuple);
 

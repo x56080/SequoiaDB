@@ -48,6 +48,11 @@ namespace vessel
    {
       public:
          IRedoLogger *logger;
+
+      OSS_INLINE BOOLEAN isValid()const
+      {
+         return NULL != logger;
+      }
    };//class outerResource
 }//namespace vessel
 }//namespace engine

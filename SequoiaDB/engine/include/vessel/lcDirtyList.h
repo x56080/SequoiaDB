@@ -41,7 +41,7 @@
 
 #include "ossTypes.h"
 #include "vessel/latch.h"
-#include "vessel/lcExtentTagHolder.h"
+#include "vessel/lcPageTagHolder.h"
 #include "ossLatch.hpp"
 
 
@@ -49,7 +49,6 @@ namespace engine
 {
 namespace vessel
 {
-   class lcExtentTag;
    class diskIOJob;
    class requestContext;
 
@@ -65,10 +64,10 @@ namespace vessel
          INT32 fini();
 
          /// under w lock
-         INT32 insert(lcExtentTagHolder &holder);
+         INT32 insert(lcPageTagHolder &holder);
 
          /// under w lock
-         INT32 remove(lcExtentTagHolder &holder);
+         INT32 remove(lcPageTagHolder &holder);
 
          INT32 setPendingWrite(requestContext *context,
                                UINT32 scanDepth,
@@ -86,15 +85,15 @@ namespace vessel
          void removeCachedMinDirtyLSN();
 
       private:
-         void insertIntoSortedList(lcExtentTag *tag);
+         void insertIntoSortedList(liteCachePageTag *tag);
 
-         void remove(lcExtentTag *tag);
+         void remove(liteCachePageTag *tag);
 
       private:
          ossSpinSLatch _latch;
          UINT32 _size;
-         lcExtentTag *_head;
-         lcExtentTag *_tail;
+         liteCachePageTag *_head;
+         liteCachePageTag *_tail;
          UINT64 _cachedMinDirtyLSN;
    };
 

@@ -1619,7 +1619,7 @@ namespace vessel
             goto error;
          }
 
-         rc = holder->getCollection()->initWhenOpen(record, this);
+         rc = holder->getCollection()->initWhenOpen(context, record, this);
          if (SDB_OK != rc)
          {
             goto error;

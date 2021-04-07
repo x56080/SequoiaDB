@@ -59,11 +59,9 @@ namespace vessel
       public:
          OSS_INLINE dmlContext():
          _clLogicalID(DMS_INVALID_LOGICCLID),
-         _uniqueID(utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID,
-                                       UTIL_INVALID_CL_INNER_ID)),
-         _compressionType(UTIL_COMPRESSOR_INVALID),
+         _clUniqueID(utilBuildCLUniqueID(UTIL_INVALID_CS_UNIQUE_ID, UTIL_INVALID_CL_INNER_ID)),
          _striping(INVALID_STRIPING_ID),
-         _compressedRecordSize(0),
+         _compressionType(UTIL_COMPRESSOR_INVALID),
          _compressionBuffer(NULL),
          _compressionBufferSize(0),
          _lsn(DPS_INVALID_LSN_OFFSET)
@@ -75,8 +73,11 @@ namespace vessel
       public:
          virtual void close();
 
-         INT32 initCL(collectionSpace *cs,
-                      collection *cl);
+         void initNewRequest(collectionSpace *cs,
+                             collection *cl,
+                             const recordData &record,
+                             const DPS_TRANS_ID &transID,
+                             STRIPING_ID striping);
 
          OSS_INLINE const strSlice &getCSName()const
          {
@@ -90,19 +91,15 @@ namespace vessel
          {
             return _clLogicalID;
          }
-         OSS_INLINE const utilCLUniqueID &getUniqueID()const
+         OSS_INLINE const utilCLUniqueID &getCLUniqueID()const
          {
-            return _uniqueID;
+            return _clUniqueID;
          }
          OSS_INLINE BOOLEAN clInfoIsValid()const
          {
             return !_csName.empty() &&
                    !_clName.empty() &&
                    DMS_INVALID_LOGICCLID != _clLogicalID;
-         }
-         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
-         {
-            return _compressionType;
          }
          OSS_INLINE void setTransID(const DPS_TRANS_ID &transID)
          {
@@ -112,13 +109,13 @@ namespace vessel
          {
             return _transID;
          }
-         OSS_INLINE void setRecordData(const recordData &r)
+         OSS_INLINE void setOriginalRecord(const recordData &r)
          {
-            _record = r;
+            _originalRecord = r;
          }
-         OSS_INLINE const recordData &getRecord()const
+         OSS_INLINE const recordData &getOriginalRecord()const
          {
-            return _record;
+            return _originalRecord;
          }
          OSS_INLINE void setStriping(STRIPING_ID s)
          {
@@ -129,13 +126,27 @@ namespace vessel
             return _striping;
          }
 
-         OSS_INLINE void setCompressedRecordSize(UINT32 size)
+         OSS_INLINE const recordData &getRecord()const
          {
-            _compressedRecordSize = size;
+            return recordIsCompressed() ? _compressedRecord : _originalRecord;
          }
-         OSS_INLINE UINT32 getCompressedRecordSize()const
+
+         OSS_INLINE BOOLEAN recordIsCompressed()const
          {
-            return _compressedRecordSize;
+            return UTIL_COMPRESSOR_INVALID != _compressionType && _compressedRecord.isValid();
+         }
+         OSS_INLINE void setCompressedRecord(UINT32 size, UTIL_COMPRESSOR_TYPE type)
+         {
+            _compressionType = type;
+            _compressedRecord.reset(_originalRecord.getType(), slice(size, _compressionBuffer));
+         }
+         OSS_INLINE const recordData &getCompressedRecord()const
+         {
+            return _compressedRecord;
+         }
+         OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressionType()const
+         {
+            return _compressionType;
          }
 
          INT32 allocateCompressionBuffer(UINT32 size);
@@ -146,10 +157,6 @@ namespace vessel
          }
 
          OSS_INLINE CHAR *getCompressionBuffer()
-         {
-            return _compressionBuffer;
-         }
-         OSS_INLINE const CHAR *getCompressionBuffer()const
          {
             return _compressionBuffer;
          }
@@ -200,12 +207,13 @@ namespace vessel
          strSlice _csName;
          strSlice _clName;
          UINT32 _clLogicalID;
-         utilCLUniqueID _uniqueID;
-         UTIL_COMPRESSOR_TYPE _compressionType;
+         utilCLUniqueID _clUniqueID;
+
          DPS_TRANS_ID _transID;
          STRIPING_ID _striping;
-         recordData _record;
-         UINT32 _compressedRecordSize;
+         recordData _originalRecord;
+         recordData _compressedRecord;
+         UTIL_COMPRESSOR_TYPE _compressionType;
          CHAR *_compressionBuffer;
          UINT32 _compressionBufferSize;
          DPS_LSN_OFFSET _lsn;

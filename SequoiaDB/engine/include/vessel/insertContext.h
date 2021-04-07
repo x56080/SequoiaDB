@@ -47,17 +47,16 @@ namespace vessel
    class insertContext : public dmlContext
    {
       public:
-         OSS_INLINE insertContext():
-         _options(NULL)
+         OSS_INLINE insertContext()
          {}
 
          virtual ~insertContext(){}
       public:
-         OSS_INLINE const insertOptions *getOptions()const
+         OSS_INLINE const insertOptions &getOptions()const
          {
             return _options;
          }
-         OSS_INLINE void setOptions(const insertOptions *o)
+         OSS_INLINE void setOptions(const insertOptions &o)
          {
             _options = o;
          }
@@ -67,7 +66,7 @@ namespace vessel
             return _candidate;
          }
       private:
-         const insertOptions *_options;
+         insertOptions _options;
          fsmCandidate _candidate;
    };//class insertContext
 }//namespace vessel

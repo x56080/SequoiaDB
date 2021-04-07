@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = diskIOTask.cpp
+   Source File Name = liteCachePageTag.cpp
 
    Descriptive Name =
 
@@ -36,69 +36,40 @@
 
 ******************************************************************************/
 
-#include "vessel/diskIOTask.h"
-#include "ossLikely.hpp"
 #include "vessel/liteCachePageTag.h"
-#include "vessel/diskIOJob.h"
+#include "dpsDef.hpp"
+#include "pd.hpp"
+#include "ossMem.hpp"
+#include "ossLikely.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-
-   liteCachePageTag *diskIOTask::getTag(UINT32 pos)
+   void liteCachePageTag::reset()
    {
-      liteCachePageTag *tag = NULL;
-      if (OSS_UNLIKELY(!valid()))
-      {
-         goto done;
-      }
-      else if (OSS_UNLIKELY(_pageCount <= pos))
-      {
-         goto done;
-      }
-      else
-      {
-         tag = _job->getTag(_taskID + pos);
-      }
+      _id.reset();
+      _pageSize = 0;
 
-   done:
-      return tag;
-   }
+      _ts.status = LC_TAG_STATUS_INVALID;
+      _ts.usageCnt = 0;
+      _ts.flags = 0;
 
-   GLOBAL_PAGE_ID diskIOTask::getFirstPID()const
-   {
-      GLOBAL_PAGE_ID gpid;
-      liteCachePageTag *tag = NULL;
-      if (OSS_UNLIKELY(!valid()))
-      {
-         goto done;
-      }
+      _diskPagePtr = 0;
+      _flags = 0;
+      _minLSN = DPS_INVALID_LSN_OFFSET;
+      _maxLSN = DPS_INVALID_LSN_OFFSET;
+      _memPage.reset();
+      
+      _lruTouchCnt = 0;
+      _lruFlags = 0;
+      _lruPre = NULL;
+      _lruNext = NULL;
 
-      tag = _job->getTag(_taskID);
-      if (OSS_UNLIKELY(NULL == tag))
-      {
-         goto done;
-      }
-
-      gpid = tag->id();
-   done:
-      return gpid;
-   }
-
-   void diskIOTask::done()
-   {
-      if (!valid())
-      {
-         goto done;
-      }
-
-      _job->releaseTagsWhenTaskDone(this);
-      _taskID = 0;
-      _pageCount = 0;
-      _job = NULL;
-   done:
+      _dirtyPre = NULL;
+      _dirtyNext = NULL;
       return;
    }
-}//namespace vessel
-}//namespace engine
+
+} /// end of namespace vessel
+} /// end of namespace engine

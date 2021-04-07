@@ -3202,5 +3202,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS</name>
+         <description>
+            <en>the page sequence of collection does not exist</en>
+            <cn>集合中目标数据页序列不存在</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

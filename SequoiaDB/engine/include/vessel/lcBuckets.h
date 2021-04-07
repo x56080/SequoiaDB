@@ -63,15 +63,15 @@ namespace vessel
 
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
                                     UINT32 pageSize,
-                                    lcExtentTagHolder &holder,
+                                    lcPageTagHolder &holder,
                                     BOOLEAN &newTagInBucket);
 
          INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                 lcExtentTagHolder &holder);
+                                 lcPageTagHolder &holder);
 
-         INT32 releaseRemovedTag(lcExtentTag *tag);
+         INT32 releaseRemovedTag(liteCachePageTag *tag);
 
-         INT32 releaseRemovedTags(UINT32 num, lcExtentTag *tags[]);
+         INT32 releaseRemovedTags(UINT32 num, liteCachePageTag *tags[]);
 
       private:
          void getBucketAndLatch(const PHY_EXTENT_ID &id,

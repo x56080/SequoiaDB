@@ -92,19 +92,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _context.initCL(cs, cl);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         PD_LOG(PDERROR, "failed to init cl info:%d", rc);
-         goto error;
-      }
-
-      _context.setRecordData(record);
-      _context.setTransID(transID);
-      _context.setOptions(options);
-      _context.setStriping(striping);
-
-      rc = cl->insert(&_context, res);
+      rc = cl->insert(&_context, record, transID, striping, options, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;

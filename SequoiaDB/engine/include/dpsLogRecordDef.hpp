@@ -294,6 +294,7 @@ namespace engine
       ///DPS_LOG_PUBLIC_FULLNAME
       ///DPS_LOG_PUBLIC_TRANSID
       ///DPS_LOG_PUBLIC_TRANSID_NODEID
+      ///DPS_LOG_PUBLIC_NEW_UNQIDX_HASH
    } ;
 }
 

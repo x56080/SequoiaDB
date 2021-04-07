@@ -52,7 +52,7 @@ namespace vessel
    INT32 liteCacheTuple::prepareToWrite(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
       SDB_ASSERT(valid(), "must be valid");
       SDB_ASSERT(!_writingPrepared, "multiple prepared");
 
@@ -68,7 +68,7 @@ namespace vessel
       }
       else if (OSS_UNLIKELY(_holder.getLockMode() < LOCK_MODE_UPGRADE))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
       }
 
@@ -78,7 +78,7 @@ namespace vessel
       }
 
       tag = _holder.tag();
-      if (!tag->inLruList())
+      if (!tag->isInLruList())
       {
          rc = _pool->allocateMemPageAndInsertIntoLRU(context, _holder);
          if (SDB_OK != rc)
@@ -109,7 +109,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(valid(), "can not read invalid tuple");
       SDB_ASSERT(LOCK_MODE_NONE < _holder.getLockMode(), "can not read a unlocked tuple");
-      const lcExtentTag *tag = NULL;
+      const liteCachePageTag *tag = NULL;
 
       if (OSS_UNLIKELY(NULL == ptr))
       {
@@ -146,7 +146,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(valid(), "can not read invalid tuple");
       SDB_ASSERT(LOCK_MODE_NONE < _holder.getLockMode(), "can not read a unlocked tuple");
-      const lcExtentTag *tag = NULL;
+      const liteCachePageTag *tag = NULL;
 
       if (OSS_UNLIKELY(NULL == buf))
       {
@@ -183,7 +183,7 @@ namespace vessel
       SDB_ASSERT(valid(), "can not write invalid tuple");
       SDB_ASSERT(_writingPrepared, "must be prepared");
       SDB_ASSERT(LOCK_MODE_UNIQUE == _holder.getLockMode(), "wrong type locking");
-      lcExtentTag *tag = _holder.tag();
+      liteCachePageTag *tag = _holder.tag();
 
       if (OSS_UNLIKELY(NULL == ptr))
       {
@@ -217,7 +217,7 @@ namespace vessel
                                const CHAR *data)
    {
       INT32 rc = SDB_OK;
-      lcExtentTag *tag = NULL;
+      liteCachePageTag *tag = NULL;
       SDB_ASSERT(valid(), "can not write invalid tuple");
       SDB_ASSERT(_writingPrepared, "must be prepared");
       SDB_ASSERT(LOCK_MODE_UNIQUE == _holder.getLockMode(), "wrong type locking");

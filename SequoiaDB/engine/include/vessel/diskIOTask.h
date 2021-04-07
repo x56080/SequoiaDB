@@ -47,7 +47,7 @@ namespace engine
 namespace vessel
 {
    class diskIOJob;
-   class lcExtentTag;
+   class liteCachePageTag;
 
    class diskIOTask : public SDBObject
    {
@@ -85,7 +85,7 @@ namespace vessel
          ///WARNING: will release tags in job.
          void done();
 
-         lcExtentTag *getTag(UINT32 pos);
+         liteCachePageTag *getTag(UINT32 pos);
 
          GLOBAL_PAGE_ID getFirstPID()const;
 

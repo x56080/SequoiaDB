@@ -82,7 +82,12 @@ namespace vessel
       BOOLEAN rollback = FALSE;
       requestContext context;
 
-      if (isOpen())
+      if (!_outerResource.isValid())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (isOpen())
       {
          rc = SDB_INVALIDARG;
          goto error;
