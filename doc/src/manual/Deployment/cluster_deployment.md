@@ -106,7 +106,7 @@
    3. 创建编目节点
 
      ```lang-bash
-     > var cataRG = db.getRG("SYSCatalogGroup")
+     > var cataRG = db.getCataRG()
      > var node1 = cataRG.createNode("sdbserver2", 11800,"/opt/sequoiadb/database/cata/11800")
      > var node2 = cataRG.createNode("sdbserver3", 11800,"/opt/sequoiadb/database/cata/11800")
      ```
