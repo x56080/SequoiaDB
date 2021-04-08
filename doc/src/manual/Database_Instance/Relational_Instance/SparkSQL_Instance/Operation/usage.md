@@ -7,7 +7,7 @@
     市场部：时间：
 
 
-本文档将介绍存储类型与SparkSQL 实例类型映射、SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性及 Spark-SequoiaDB 的使用
+本文档将介绍存储类型与 SparkSQL 实例类型映射、SequoiaDB 存储引擎向 SparkSQL 实例类型转换的兼容性及 Spark-SequoiaDB 的使用
 
 存储类型与 SparkSQL 实例类型映射
 ----
@@ -85,14 +85,14 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |password|string|""|用户名对应的密码|否|
 |samplingratio|double|1|schema 采样率，取值范围为(0, 1.0]|否|
 |samplingnum|int64|1000|schema 采样数量（每个分区），取值大于 0|否|
-|samplingwithid|boolean|FALSE|schema采样时是否带 _id 字段，取值为 true 或 false  |否|
+|samplingwithid|boolean|FALSE|schema 采样时是否带 _id 字段，取值为 true 或 false  |否|
 |samplingsingle|boolean|TRUE|schema 采样时使用一个分区，取值为 true 或 false |否|
 |bulksize|int32|500|向 SequoiaDB 集合插入数据时批插的数据量，取值大于 0 |否|
 |partitionmode|string|auto|分区模式，取值可以是"single"、"sharding"、"datablock"、"auto"；设为"auto"时根据情况自动选择"sharding"或"datablock" |否|
 |partitionblocknum|int32|4|每个分区的数据块数，在按 datablock 分区时有效，取值大于 0 |否|
 |partitionmaxnum|int32|1000|最大分区数量，在按 datablock 分区时有效，取值大于等于 0，等于 0 时表示不限制分区最大数量<br>由于 partitionMaxNum 的限制，每个分区的数据块数可能与 partitionBlockNum 不同 |否|
 |preferredinstance|string|"A"|指定分区优先选择的节点实例，取值可参考 [preferredinstance][parameter]|否|
-|preferredinstancemode|string|"random"|在preferredinstance有多个实例符合时的选择模式，取值可参考 [preferredinstancemode][parameter]|否|
+|preferredinstancemode|string|"random"|在 preferredinstance 有多个实例符合时的选择模式，取值可参考 [preferredinstancemode][parameter]|否|
 |preferredinstancestrict|boolean|TRUE|在 preferredinstance 指定的实例 ID 都不符合时是否报错 |否|
 |ignoreduplicatekey|boolean|FALSE|向表中插入数据时忽略主键重复的错误 |否|
 |ignorenullfield|boolean|FALSE|向表中插入数据时忽略值为 null 的字段 |否|
