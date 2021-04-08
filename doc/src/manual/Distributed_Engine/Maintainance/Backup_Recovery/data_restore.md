@@ -22,7 +22,7 @@ sdbrestore 工具的功能参数可用于配置需要恢复的数据范围、恢
 | --action      | -a   | 恢复行为，默认为"restore"，取值如下：<br>"restore"：恢复<br>"list"：查看备份信息<br>"getconfig"：获取备份文件中，所备份的配置信息<br>"offlinebuild"：构建离线数据库   |
 | --diaglevel   | -v   | 恢复工具自身的日志级别，默认为 3，表示 WARNING，具体取值可参考[配置项参数][configuration] |
 | --isSelf      |      | 是否将数据恢复至备份源节点，默认为 true，恢复至备份源节点 |
-| --ignoreconsistency      |      | 强制忽略全局一致性检查并在重启后跳过全局一致性恢复 |
+| --ignoreconsistency      |      | 强制忽略全局一致性检查并在重启后跳过[全局一致性时间点恢复][pit] |
 
 >**Note:**
 >
@@ -194,3 +194,4 @@ auditpath=/opt/sequoiadb/database/data/11820/diaglog/
 [^_^]:
     本文使用的所有引用及链接
 [configuration]:manual/Manual/Database_Configuration/configuration_parameters.md
+[pit]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
