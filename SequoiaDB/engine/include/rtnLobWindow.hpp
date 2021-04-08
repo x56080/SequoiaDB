@@ -52,8 +52,6 @@ namespace engine
 
       BOOLEAN continuous( INT64 offset ) const ;
 
-      UINT32 getLobSequence() const ;
-
       INT32 prepare4Write( INT64 offset, UINT32 len, const CHAR *data ) ;
 
       BOOLEAN getNextWriteSequences( RTN_LOB_TUPLES &tuples ) ;
