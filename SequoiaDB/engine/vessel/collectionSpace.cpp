@@ -210,6 +210,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN rollback = FALSE;
+      BOOLEAN sparse = FALSE;
       SDB_ASSERT(isClosed(), "must be closed");
       SDB_ASSERT(DMS_INVALID_LOGICCSID == _logicalID, "must be invalid");
       if (OSS_UNLIKELY(NULL == context ||
@@ -226,6 +227,7 @@ namespace vessel
          goto error;
       }
 
+      sparse = context->getEnv()->options.extendFileWithSparse;
       rollback = TRUE;
       _su = SDB_OSS_NEW storageUnit();
       if (NULL == _su)
@@ -253,6 +255,16 @@ namespace vessel
       {
          goto error;
       }
+
+      if (NULL != _su->getFsmFile())
+      {
+         rc = _su->getFsmFile()->initAfterOpen(sparse);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      
       _status = META_DATA_LOADED;
 
       rc = initCollectionsFromDisk(context);
@@ -1695,6 +1707,7 @@ namespace vessel
    INT32 collectionSpace::initNecessaryPagesWhenCreating(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      BOOLEAN sparse = context->getEnv()->options.extendFileWithSparse;
       rc = firstExtendMetaFile(context);
       if (SDB_OK != rc)
       {

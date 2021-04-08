@@ -80,6 +80,7 @@ namespace vessel
          OSS_INLINE void firstInit(const GLOBAL_PAGE_ID &id,
                                    UINT32 pageSize)
          {
+            _ts.status = LC_TAG_STATUS_NORMAL;
             _id = id;
             _pageSize = pageSize;
             return;

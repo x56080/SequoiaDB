@@ -75,7 +75,7 @@ namespace vessel
          INT32 open(fsmFile *file,
                     CL_MB_ID mbID,
                     UINT32 logicalID,
-                    UINT32 totalSize,
+                    UINT32 pageSize,
                     UINT32 minFreeSize,
                     BOOLEAN bucketMode = FALSE,
                     STRIPING_ID min=INVALID_STRIPING_ID,

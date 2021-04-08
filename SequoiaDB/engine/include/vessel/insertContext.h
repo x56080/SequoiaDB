@@ -60,14 +60,22 @@ namespace vessel
          {
             _options = o;
          }
-
          OSS_INLINE fsmCandidate &getCandidate()
          {
             return _candidate;
          }
+         OSS_INLINE void setLastFreeSize(UINT32 size)
+         {
+            _lastFreeSize = size;
+         }
+         OSS_INLINE UINT32 getLastFreeSize()const
+         {
+            return _lastFreeSize;
+         }
       private:
          insertOptions _options;
          fsmCandidate _candidate;
+         UINT32 _lastFreeSize = 0;
    };//class insertContext
 }//namespace vessel
 }//namespace engine

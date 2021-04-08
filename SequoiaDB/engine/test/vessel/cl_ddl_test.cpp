@@ -206,6 +206,7 @@ TEST_F(cl_ddl_test, test3)
    resource.logger = &logger; 
    test_session session;
    openDBOptions options;
+   options.extendFileWithSparse = TRUE;
    createCSOptions csOptions;
    createCLOptions clOptions;
    options.path.dataPath = DATA_PATH;

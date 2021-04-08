@@ -205,6 +205,11 @@ namespace vessel
             _type = SPACE_TYPE_NAME;
             _sequence = 0;
          }
+         else if (0 == columns.at(1).compare(SU_FILE_NAME_FSM_SUFFIX))
+         {
+            _type = SPACE_TYPE_FSM;
+            _sequence = 0;
+         }
          else
          {
             rc = SDB_INVALIDARG;

@@ -288,6 +288,54 @@ namespace vessel
       goto done;
    }
 
+   INT32 routePageAccessor::readLastSlot(requestContext *context,
+                                         PAGE_ID &lpid,
+                                         UINT32 &slot)
+   {
+      INT32 rc = SDB_OK;
+      const routePageHead *head = NULL;
+
+      if (OSS_UNLIKELY(NULL == context))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = getReadableUserHeadPtr<routePageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get route page head:%d", rc);
+         goto error;
+      }
+
+      if (head->count == 0)
+      {
+         lpid = INVALID_PAGE_ID;
+         goto done;
+      }
+
+      rc = readSlot(head->count - 1, lpid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read slot[%d], rc:%d", head->count - 1, rc);
+         goto error;
+      }
+
+      if (INVALID_PAGE_ID == lpid)
+      {
+         PD_LOG(PDERROR, "count[%d] in head does match slot in page:%s",
+                head->count, getGPID().toString().c_str());
+         rc = SDB_VESSEL_PAGE_CRASHED;
+         goto error;
+      }
+
+      slot = head->count - 1;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 routePageAccessor::readSlot(UINT32 slot, PAGE_ID &lpid)
    {
       INT32 rc = SDB_OK;

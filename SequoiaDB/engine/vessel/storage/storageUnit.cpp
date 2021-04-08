@@ -565,6 +565,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 segCount = 0;
+      BOOLEAN sparse = context->getEnv()->options.extendFileWithSparse;
       ossScopedLock lock(&_extendingMetaLatch);
       if (!isOpen())
       {
@@ -582,7 +583,7 @@ namespace vessel
 
       while (_meta->getSegmentCount() < segCount)
       {
-         rc = _meta->allocateNewSegment();
+         rc = _meta->allocateNewSegment(sparse);
          if (SDB_OK != rc)
          {
             goto error;
@@ -700,6 +701,7 @@ namespace vessel
       SDB_ASSERT(isOpen(), "can not be closed");
       dataExtentFile *file = NULL;
       UINT32 count = 0;
+      BOOLEAN sparse = context->getEnv()->options.extendFileWithSparse;
       ossScopedLock lock(&_extendingDataLatch);
 
       rc = getDataFile(sequence, &file);
@@ -711,7 +713,7 @@ namespace vessel
       count = file->getSegmentCount();
       while (count < minSegCount)
       {
-         rc = file->allocateNewSegment();
+         rc = file->allocateNewSegment(sparse);
          if (SDB_OK != rc)
          {
             goto error;
@@ -789,6 +791,7 @@ namespace vessel
       const dataIDMapFileHead &metaHead = _meta->getHeadCache();
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
       UINT32 sequence = 0;
+      BOOLEAN sparse = context->getEnv()->options.extendFileWithSparse;
 
       ossScopedLock lock(&_extendingDataLatch);
 
@@ -839,7 +842,7 @@ namespace vessel
          goto error;
       }
 
-      rc = file->allocateNewSegment();
+      rc = file->allocateNewSegment(sparse);
       if (SDB_OK != rc)
       {
          goto error;
@@ -905,6 +908,11 @@ namespace vessel
          }
       }
       _idx.clear();
+
+      if (NULL != _fsm)
+      {
+         _fsm->close();
+      }
 
       ossMemset(_dirName, 0, sizeof(_dirName));
       _status = CLOSED;
@@ -1583,6 +1591,7 @@ namespace vessel
          }
 
          _meta = (dataExtentIDMapFile *)ef;
+         ef = NULL;
          break;
       }
       case SPACE_TYPE_RECORD_D:
@@ -1609,11 +1618,32 @@ namespace vessel
             goto error;
          }
          _data[fn.getSequence()] = (dataExtentFile *)ef;
+         ef = NULL;
          break;
       }
       case SPACE_TYPE_NAME:
       {
          break;
+      }
+      case SPACE_TYPE_FSM:
+      {
+         ef = SDB_OSS_NEW fsmFile();
+         if (NULL == ef)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         rc = ef->open(fullPath, fn);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         _fsm = (fsmFile *)ef;
+         ef = NULL;
+         break;   
       }
       default:
       {

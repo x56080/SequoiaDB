@@ -52,8 +52,8 @@ namespace vessel
          virtual ~fsmFile();
 
       public:
-         INT32 initAfterCreation();
-         INT32 initAfterOpen();
+         INT32 initAfterCreation(BOOLEAN sparse=FALSE);
+         INT32 initAfterOpen(BOOLEAN sparse=FALSE);
          INT32 allocateNewPage(PAGE_ID &pid);
          INT32 releasePages(UINT32 count, const PAGE_ID *pids);
 
@@ -81,7 +81,7 @@ namespace vessel
       private:
          ossSpinXLatch _latch;
          INT32 _firstFree;
-
+         BOOLEAN _sparse;
    };//class fsmFIle
 }//namespace vessel
 }//namespace engine

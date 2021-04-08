@@ -68,6 +68,12 @@ namespace vessel
                         UINT32 slot,
                         PAGE_ID &lpid);
 
+         /// WARNING: SDB_OK deos means slot is valid.
+         /// users should alwasy validate lpid by themselves.
+         INT32 readLastSlot(requestContext *context,
+                            PAGE_ID &lpid,
+                            UINT32 &slot);
+
       public:
          virtual PAGE_TYPE getPageType()const
          {

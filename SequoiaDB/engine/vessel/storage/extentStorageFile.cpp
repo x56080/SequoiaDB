@@ -383,7 +383,7 @@ namespace vessel
          goto error;
       }
 
-      rc = extendFileAndMMap(STORAGE_FILE_HEAD_SIZE, &headPtr);
+      rc = extendFileAndMMap(FALSE, STORAGE_FILE_HEAD_SIZE, &headPtr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extent file:%d", rc);
@@ -412,7 +412,7 @@ namespace vessel
          goto error;
       }
 
-      rc = extendFileAndMMap(STORAGE_FILE_HEAD_SIZE, &headPtr);
+      rc = extendFileAndMMap(FALSE, STORAGE_FILE_HEAD_SIZE, &headPtr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extent file:%d", rc);
@@ -699,7 +699,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::extendFileAndMMap(UINT32 len, ossValuePtr *ptr)
+   INT32 extentStorageFile::extendFileAndMMap(BOOLEAN sparse, UINT32 len, ossValuePtr *ptr)
    {
       INT32 rc = SDB_OK;
       UINT64 originalFileSize = 0;
@@ -720,15 +720,23 @@ namespace vessel
       }
       needTruncate = TRUE;
 
-#if defined ( _DEBUG )
-      rc = ossExtentBySparse(&_file, len);
-#else
-      rc = ossExtendFile(&_file, len);
-#endif
-      if (SDB_OK != rc)
+      if (sparse)
       {
-         PD_LOG(PDERROR, "failed to extent file: %s, %d, %d", _fileName, len, rc);
-         goto error;
+         rc = ossExtentBySparse(&_file, len);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extent file with sparse: %s, %d, %d", _fileName, len, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = ossExtendFile(&_file, len);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extent file: %s, %d, %d", _fileName, len, rc);
+            goto error;
+         }
       }
 
       rc = ossMmapFile::map(originalFileSize, len, &mmapAddr);
@@ -758,7 +766,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::allocateNewSegment()
+   INT32 extentStorageFile::allocateNewSegment(BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       UINT32 extendLen = 0;
@@ -778,7 +786,7 @@ namespace vessel
       }
 
       extendLen = _headInMem.pageSize * _headInMem.maxPageCountPerSeg;
-      rc = extendFileAndMMap(extendLen, &ptr);
+      rc = extendFileAndMMap(sparse, extendLen, &ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to extend file:%d", rc);
@@ -792,7 +800,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::ensureSegmentCount(UINT32 count)
+   INT32 extentStorageFile::ensureSegmentCount(UINT32 count, BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
@@ -809,7 +817,7 @@ namespace vessel
 
       while (_dataSegmentCount < count)
       {
-         rc = allocateNewSegment();
+         rc = allocateNewSegment(sparse);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate new segment, current count:%", _dataSegmentCount);

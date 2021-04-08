@@ -66,7 +66,8 @@ namespace vessel
 
          INT32 open(fsmFile *file,
                     CL_MB_ID mbID,
-                    UINT32 logicalID);
+                    UINT32 logicalID,
+                    BOOLEAN autoRecreateEntry=TRUE);
 
          void close();
 
@@ -106,7 +107,7 @@ namespace vessel
       private:
          INT32 initBitMapPage(PAGE_ID pid);
          INT32 initPageMapPage(PAGE_ID pid, PAGE_ID pre);
-         INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry, BOOLEAN fsync);
+         INT32 updateEntrySlot(CL_MB_ID mbID, const fsmCLEntry &entry, BOOLEAN sync);
          INT32 readEntrySlot(CL_MB_ID mbID, UINT32 logicalID, fsmCLEntry &entry);
          INT32 cachePMapPids();
          PAGE_ID getEntryPid(CL_MB_ID mbID);

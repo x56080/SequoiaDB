@@ -47,7 +47,8 @@ namespace vessel
 {
 
    fsmFile::fsmFile():
-   _firstFree(-1)
+   _firstFree(-1),
+   _sparse(FALSE)
    {
 
    }
@@ -57,7 +58,7 @@ namespace vessel
       
    }
 
-   INT32 fsmFile::initAfterCreation()
+   INT32 fsmFile::initAfterCreation(BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
@@ -118,10 +119,12 @@ namespace vessel
    done:
       return rc;
    error:
+      _firstFree = -1;
+      _sparse = FALSE;
       goto done;
    }
 
-   INT32 fsmFile::initAfterOpen()
+   INT32 fsmFile::initAfterOpen(BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "can not be closed");
@@ -172,6 +175,8 @@ namespace vessel
    done:
       return rc;
    error:
+      _firstFree = -1;
+      _sparse = FALSE;
       goto done;
    }
 
@@ -391,7 +396,7 @@ namespace vessel
 
       const storageFileHead &head = getCommonHeadInMem();
       UINT32 segCount = pid / head.maxPageCountPerSeg + 1;
-      rc = ensureSegmentCount(segCount);
+      rc = ensureSegmentCount(segCount, _sparse);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to sure data segment count[%d], rc:%d", segCount, rc);

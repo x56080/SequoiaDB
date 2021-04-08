@@ -213,8 +213,11 @@ namespace vessel
       public:
       OSS_INLINE createCLOptions():
       type(COLLECTION_TYPE_NORMAL),
+      freeSizeReserved(4096),
       multiStripingBucket(FALSE),
-      compressionType(UTIL_COMPRESSOR_INVALID)
+      compressionType(UTIL_COMPRESSOR_INVALID),
+      minStriping(INVALID_STRIPING_ID),
+      maxStriping(INVALID_STRIPING_ID)
       {}
 
       OSS_INLINE ~createCLOptions(){}
@@ -226,10 +229,11 @@ namespace vessel
 
       public:
       UINT16 type;
+      UINT16 freeSizeReserved;
       BOOLEAN multiStripingBucket;
       UTIL_COMPRESSOR_TYPE compressionType;
-      UINT16 minPageFreeSize;
-
+      STRIPING_ID minStriping;
+      STRIPING_ID maxStriping; 
    };/// end of class createCLOptions
 
    class alterCLOptions

@@ -235,6 +235,16 @@ namespace vessel
             wPtr->nextIndexID = record.nextIndexID;
             wPtr->indexSlots = record.indexSlots;
          }
+         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_FS_RESERVED))
+         {
+            wPtr->freeSizeReserved = record.freeSizeReserved;
+         }
+         if (OSS_BIT_TEST(mask, COLLECTION_UPDATE_MASK_STRIPING))
+         {
+            wPtr->maxSGCount = record.maxSGCount;
+            wPtr->minStriping = record.minStriping;
+            wPtr->maxStriping = record.maxStriping;
+         }
       }
 
       rc = commitUpdateLog(context, &lrc, ddlType,
@@ -335,6 +345,9 @@ namespace vessel
       r.maxSGCount = record.maxSGCount;
       r.compressionType = record.compressionType;
       r.flags = record.flags;
+      r.freeSizeReserved = record.freeSizeReserved;
+      r.minStriping = record.minStriping;
+      r.maxStriping = record.maxStriping;
       ossMemcpy(r.name, clName.str(), clName.strLen());
       rc = writeToSlot(slot, r);
       if (SDB_OK != rc)

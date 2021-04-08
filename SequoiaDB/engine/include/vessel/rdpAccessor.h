@@ -67,6 +67,9 @@ namespace vessel
 
          INT32 insertNormalRecord(insertContext *context);
 
+         INT32 getRdpPageHead(requestContext *context,
+                              recordDataPageHead &head);
+
          virtual PAGE_TYPE getPageType()const
          {
             return PAGE_TYPE_RECORD;

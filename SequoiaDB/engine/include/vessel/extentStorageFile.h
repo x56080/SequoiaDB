@@ -64,9 +64,9 @@ namespace vessel
          INT32 close();
          BOOLEAN isOpen() const;
 
-         INT32 allocateNewSegment();
+         INT32 allocateNewSegment(BOOLEAN sparse=FALSE);
 
-         INT32 ensureSegmentCount(UINT32 count);
+         INT32 ensureSegmentCount(UINT32 count, BOOLEAN sparse=FALSE);
 
          INT32 getSegmentPtr(SEGMENT_ID seg, ossValuePtr &ptr);
 
@@ -129,7 +129,7 @@ namespace vessel
          INT32 initFileHead(const storageFileOptions &options,
                             CHAR *headBuf,
                             BOOLEAN hasUserDefinedHead);
-         INT32 extendFileAndMMap(UINT32 len, ossValuePtr *ptr);
+         INT32 extendFileAndMMap(BOOLEAN sparse, UINT32 len, ossValuePtr *ptr);
          //INT32 initNewSegment(SEGMENT_ID sid, ossValuePtr ptr);
          INT32 validateHead(const void *head, const storageFileName &fn);
 

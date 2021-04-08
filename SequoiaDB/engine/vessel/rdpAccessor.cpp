@@ -124,6 +124,24 @@ namespace vessel
       goto done;
    }
 
+   INT32 rdpAccessor::getRdpPageHead(requestContext *context,
+                                     recordDataPageHead &head)
+   {
+      INT32 rc = SDB_OK;
+      const recordDataPageHead *headPtr = NULL;
+      rc = getReadableUserHeadPtr<recordDataPageHead>(&headPtr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      head = *headPtr;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 rdpAccessor::insertNormalRecord(insertContext *context)
    {
       INT32 rc = SDB_OK;
@@ -164,6 +182,8 @@ namespace vessel
       {
          goto error;
       }
+
+
 
    done:
       return rc;
@@ -258,6 +278,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to get rdp head:%d", rc);
          goto error;
       }
+
+      context->setLastFreeSize(head->freeSpaceAfterLastSlot);
 
       alignedSize = getAlignedSizeOfNormalRecordAndHead(rd.getSlice().len());
       sizeNeeded = alignedSize;
@@ -387,6 +409,7 @@ namespace vessel
       context->setLsn(lrc.getLsn());
       rollback = FALSE;
       lrc.close();
+      context->setLastFreeSize(head->freeSpaceAfterLastSlot);
    done:
       return rc;
    error:

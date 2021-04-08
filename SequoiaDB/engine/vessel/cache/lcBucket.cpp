@@ -190,7 +190,6 @@ namespace vessel
          }
       }
 
-      tag->setStatusAsNormal();
       tag->firstInit(id, pageSize);
       _tags.insert(std::make_pair(id, tag));
       holder.reset(tag);

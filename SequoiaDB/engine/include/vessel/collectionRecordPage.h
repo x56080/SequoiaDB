@@ -59,12 +59,21 @@ namespace vessel
    const static UINT32 COLLECTION_MAX_ROUTE_ROOT = COLLECTION_ROOT_LVL2;
    const static UINT32 COLLECTION_MIN_ROUTE_ROOT = COLLECTION_ROOT_LVL0;
 
+   const static UINT32 COLLECTION_ROUTE_PAGE_LVL0 = 0;
+   const static UINT32 COLLECTION_ROUTE_PAGE_LVL1 = 1;
+   const static UINT32 COLLECTION_ROUTE_PAGE_LVL2 = 2;
+
+   const static UINT32 COLLECTION_MAX_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL2;
+   const static UINT32 COLLECTION_MIN_ROUTE_LVL = COLLECTION_ROUTE_PAGE_LVL0;
+
    const static UINT64 COLLECTION_UPDATE_MASK_COMPRESSTYPE = 0x01;
    const static UINT64 COLLECTION_UPDATE_MASK_FLAGS = 0x02;
    const static UINT64 COLLECTION_UPDATE_MASK_NAME = 0x04;
    const static UINT64 COLLECTION_UPDATE_MASK_ROUTE_PAGES = 0x08;
    const static UINT64 COLLECTION_UPDATE_MASK_COMPRESSION_DIC = 0x010;
    const static UINT64 COLLECTION_UPDATE_MASK_INDEX = 0x20;
+   const static UINT64 COLLECTION_UPDATE_MASK_FS_RESERVED = 0x40;
+   const static UINT64 COLLECTION_UPDATE_MASK_STRIPING = 0x80;
    
 #pragma pack(4)
    struct collectionRecord
@@ -78,6 +87,9 @@ namespace vessel
       maxSGCount(0),
       compressionType(UTIL_COMPRESSOR_INVALID),
       flags(0),
+      freeSizeReserved(0),
+      minStriping(INVALID_STRIPING_ID),
+      maxStriping(INVALID_STRIPING_ID),
       compressionDic(INVALID_PAGE_ID),
       nonUniqueIndexCount(0),
       uniqueIndexCount(0),
@@ -98,6 +110,9 @@ namespace vessel
          mbID = o.mbID;
          maxSGCount = o.maxSGCount;
          flags = o.flags;
+         freeSizeReserved = o.freeSizeReserved;
+         minStriping = o.minStriping;
+         maxStriping = o.maxStriping;
          compressionType = o.compressionType;
          compressionDic = o.compressionDic;
          nonUniqueIndexCount = o.nonUniqueIndexCount;
@@ -119,6 +134,9 @@ namespace vessel
          mbID = INVALID_CL_MB_ID;
          maxSGCount = 0;
          flags = 0;
+         freeSizeReserved = 0;
+         minStriping = INVALID_STRIPING_ID;
+         maxStriping = INVALID_STRIPING_ID;
          compressionType = UTIL_COMPRESSOR_INVALID;
          compressionDic = INVALID_PAGE_ID;
          nonUniqueIndexCount = 0;
@@ -138,6 +156,9 @@ namespace vessel
       UINT8 maxSGCount;
       UINT8 compressionType;
       UINT32 flags;
+      UINT32 freeSizeReserved;
+      UINT16 minStriping;
+      UINT16 maxStriping;
 
       CHAR name[DMS_COLLECTION_NAME_SZ + 1];
 

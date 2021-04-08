@@ -93,7 +93,7 @@ namespace vessel
       _entry.root = pid;
       _entry.logicalID = logicalID;
 
-      rc = updateEntrySlot(mbID, _entry, TRUE);
+      rc = updateEntrySlot(mbID, _entry, FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to update entry slot:%d", rc);
@@ -112,7 +112,8 @@ namespace vessel
 
    INT32 diskFreeSpaceMap::open(fsmFile *file,
                                 CL_MB_ID mbID,
-                                UINT32 logicalID)
+                                UINT32 logicalID,
+                                BOOLEAN autoRecreateEntry)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "already open");
@@ -133,6 +134,11 @@ namespace vessel
       if (SDB_VESSEL_FSM_ENTRY_BROKEN == rc)
       {
          PD_LOG(PDERROR, "[%d:%d] entry slot is broken, will recreate it", mbID, logicalID);
+         if (!autoRecreateEntry)
+         {
+            goto error;
+         }
+
          close();
          rc = create(file, mbID, logicalID);
          if (SDB_OK != rc)
@@ -1131,7 +1137,7 @@ namespace vessel
 
    INT32 diskFreeSpaceMap::updateEntrySlot(CL_MB_ID mbID,
                                        const fsmCLEntry &entry,
-                                       BOOLEAN fsync)
+                                       BOOLEAN sync)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
@@ -1153,15 +1159,7 @@ namespace vessel
       SDB_ASSERT(NULL != slot, "can not be null");
       *slot = entry;
 
-      if (fsync)
-      {
-         rc = _fsmFile->fsync(pid, 1, TRUE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fsync page[%d], rc:%d", pid, rc);
-            goto error;
-         }
-      }      
+      _fsmFile->fsync(pid, 1, sync);
    done:
       return rc;
    error:
@@ -1171,9 +1169,11 @@ namespace vessel
    PAGE_ID diskFreeSpaceMap::getEntryPid(CL_MB_ID mbID)
    {
       SDB_ASSERT(INVALID_CL_MB_ID != mbID, "can not be invalid");
-      SDB_ASSERT(ossIsPowerOf2(FSM_ENTRY_SLOT_COUNT), "impossible");
+      SDB_ASSERT(4096 == FSM_ENTRY_SLOT_COUNT, "must be 4096");
+      UINT32 v = mbID;
+      v = v >> 12;
       /// 1 for smp
-      return (mbID & (FSM_ENTRY_SLOT_COUNT - 1)) + 1;
+      return v + 1;
    }
 
    fsmCLEntry *diskFreeSpaceMap::getEntryFromPagePtr(ossValuePtr ptr,

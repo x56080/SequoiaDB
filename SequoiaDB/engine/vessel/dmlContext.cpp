@@ -103,6 +103,7 @@ namespace vessel
       }
       _striping = striping;
       _originalRecord = record;
+      _compressionType = cl->getCompressionType();
       return;
    }
 

@@ -139,11 +139,19 @@ namespace vessel
                                  CL_PAGE_SEQ sequence,
                                  PAGE_ID &lpid);
 
-         ///WARNING: used only when open.
-         INT32 getMaxLvl0RoutePage(requestContext *context,
-                                   UINT32 capacity,
-                                   PAGE_ID &lpid,
-                                   UINT32 &lvl0Id);
+         INT32 getPageCntOfRoutePage(requestContext *context,
+                                     UINT32 capacity,
+                                     PAGE_ID lpid,
+                                     UINT32 lvl,
+                                     UINT32 &maxPageCnt,
+                                     UINT32 &pageCnt);
+
+         /// user should always validate element when return SDB_OK.
+         /// invalid element means non element exists in page.
+         INT32 getLastElementInRoutePage(requestContext *context,
+                                         PAGE_ID lpid,
+                                         PAGE_ID &element,
+                                         UINT32 &slot);
 
          INT32 extendRoutePageMap(requestContext *context,
                                   PAGE_ID *newLvl0=NULL);
