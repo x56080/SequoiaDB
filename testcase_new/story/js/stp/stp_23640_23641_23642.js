@@ -114,7 +114,7 @@ function checkTime(time1, time2, time3)
    var time2 = time2Info["TimeStamp"]["Second"]*1000000000 + time2Info["TimeStamp"]["NanoSecond"];
    var time3 = time3Info["TimeStamp"]["Second"]*1000000000 + time3Info["TimeStamp"]["NanoSecond"] + maxTimeError2;
    
-   if(time2 >= time1 && time2 <= time3)
+   if(time2 < time1 || time2 > time3)
    {
       throw new Error("Dose not meet 'time1 <=  time2 <= time3', time1: "+time1+",time2: "+time2+", time3: "+time3);
    }

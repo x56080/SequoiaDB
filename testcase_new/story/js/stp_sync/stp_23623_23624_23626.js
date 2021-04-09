@@ -51,7 +51,8 @@ function testCreateStp23623()
    
    //2.传入所有参数的非默认值/非法配置项/非法配置值，检查stp节点信息正确性；
    oma.removeStp();
-   var configs = {serverlist:"u1604-csq:9623",port:9633,role:"server",syncinterval:50,maxtimeerror:60000,diaglevel:2};
+   var hostName = System.getHostName();
+   var configs = {serverlist:hostName+":9623",port:9633,role:"server",syncinterval:50,maxtimeerror:60000,diaglevel:2};
    oma.createStp(configs);
    oma.startStp();
    localStp = new Stp(STPHOSTNAME,9633);
