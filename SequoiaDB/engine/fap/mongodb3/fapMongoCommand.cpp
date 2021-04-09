@@ -131,14 +131,15 @@ error :
    goto done ;
 }
 
-static void appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf )
+static void appendEmptyObj2Buf( engine::rtnContextBuf &bodyBuf,
+                                msgBuffer &msgBuf )
 {
    BSONObj empty ;
    BSONObj org( bodyBuf.data() ) ;
-   msgBuffer tmpBuffer ;
-   tmpBuffer.write( org.objdata(), org.objsize() ) ;
-   tmpBuffer.write( empty.objdata(), empty.objsize() ) ;
-   bodyBuf = engine::rtnContextBuf( tmpBuffer.data(), tmpBuffer.size(), 2 ) ;
+   msgBuf.zero() ;
+   msgBuf.write( org.objdata(), org.objsize() ) ;
+   msgBuf.write( empty.objdata(), empty.objsize() ) ;
+   bodyBuf = engine::rtnContextBuf( msgBuf.data(), msgBuf.size(), 2 ) ;
 }
 
 static void escapeDot( string& collectionFullName )
@@ -1022,7 +1023,7 @@ INT32 _mongoGlobalCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf ) ;
+      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -1106,7 +1107,7 @@ INT32 _mongoDatabaseCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf ) ;
+      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -1306,7 +1307,7 @@ INT32 _mongoCollectionCommand::_buildReplyCommon( const MsgOpReply &sdbReply,
 
    if ( _initMsgType == MONGO_COMMAND_MSG )
    {
-      appendEmptyObj2Buf( bodyBuf ) ;
+      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
@@ -1900,15 +1901,15 @@ INT32 _mongoQueryCommand::buildReply( const MsgOpReply &sdbReply,
    if ( sdbReply.numReturned > 1 )
    {
       INT32 offset = 0 ;
-      msgBuffer tmpBuffer ;
+      _msgBuf.zero() ;
       while ( offset < bodyBuf.size() )
       {
          bson::BSONObj obj( bodyBuf.data() + offset ) ;
-         tmpBuffer.write( obj.objdata(), obj.objsize() ) ;
+         _msgBuf.write( obj.objdata(), obj.objsize() ) ;
          offset += ossRoundUpToMultipleX( obj.objsize(), 4 ) ;
       }
-      bodyBuf = engine::rtnContextBuf( tmpBuffer.data(),
-                                       tmpBuffer.size(),
+      bodyBuf = engine::rtnContextBuf( _msgBuf.data(),
+                                       _msgBuf.size(),
                                        sdbReply.numReturned ) ;
    }
 
@@ -2328,8 +2329,8 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
 {
    if ( SDB_OK == sdbReply.flags )
    {
-      msgBuffer tmpBuffer ;
       INT32 offset = 0 ;
+      _msgBuf.zero() ;
       while ( offset < bodyBuf.size() )
       {
          BSONObj obj( bodyBuf.data() + offset ) ;
@@ -2344,10 +2345,10 @@ INT32 _mongoGetmoreCommand::_buildGetmoreReply( const MsgOpReply &sdbReply,
             convertCollectionObj( obj ) ;
          }
 
-         tmpBuffer.write( obj.objdata(), obj.objsize() ) ;
+         _msgBuf.write( obj.objdata(), obj.objsize() ) ;
       }
-      bodyBuf = engine::rtnContextBuf( tmpBuffer.data(),
-                                       tmpBuffer.size(),
+      bodyBuf = engine::rtnContextBuf( _msgBuf.data(),
+                                       _msgBuf.size(),
                                        bodyBuf.recordNum() ) ;
    }
    else if ( SDB_DMS_EOC == sdbReply.flags )
@@ -2415,7 +2416,7 @@ INT32 _mongoGetmoreCommand::_buildCommandReply( const MsgOpReply &sdbReply,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build next batch, rc: %d", rc ) ;
    }
-   appendEmptyObj2Buf( bodyBuf ) ;
+   appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
    res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;
    res.header.responseTo = _requestID ;
@@ -2702,7 +2703,7 @@ INT32 _mongoKillCursorCommand::buildReply( const MsgOpReply &sdbReply,
          bodyBuf = engine::rtnContextBuf(
                    BSON( FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
       }
-      appendEmptyObj2Buf( bodyBuf ) ;
+      appendEmptyObj2Buf( bodyBuf, _msgBuf ) ;
 
       mongoCommandResponse res ;
       res.header.msgLen = sizeof( mongoCommandResponse ) + bodyBuf.size() ;

@@ -176,6 +176,7 @@ class _mongoGlobalCommand : public _mongoCommand
       INT32          _requestID ;
       BOOLEAN        _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
+      msgBuffer      _msgBuf ;
 } ;
 typedef _mongoGlobalCommand mongoGlobalCommand ;
 
@@ -213,6 +214,7 @@ class _mongoDatabaseCommand : public _mongoCommand
       INT32          _requestID ;
       BOOLEAN        _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
+      msgBuffer      _msgBuf ;
 } ;
 typedef _mongoDatabaseCommand mongoDatabaseCommand ;
 
@@ -255,6 +257,7 @@ class _mongoCollectionCommand : public _mongoCommand
       INT32          _requestID ;
       BOOLEAN        _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
+      msgBuffer      _msgBuf ;
 } ;
 typedef _mongoCollectionCommand mongoCollectionCommand ;
 
@@ -359,6 +362,7 @@ class _mongoQueryCommand : public _mongoCommand
       MONGO_CLIENT_TYPE _client ;
       INT32 _requestID ;
       BOOLEAN _isInitialized ;
+      msgBuffer _msgBuf ;
 } ;
 typedef _mongoQueryCommand mongoQueryCommand ;
 
@@ -440,6 +444,7 @@ class _mongoGetmoreCommand : public _mongoCommand
       GETMORE_TYPE _type ;
       BOOLEAN _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
+      msgBuffer      _msgBuf ;
 } ;
 typedef _mongoGetmoreCommand mongoGetmoreCommand ;
 
@@ -476,6 +481,7 @@ class _mongoKillCursorCommand : public _mongoCommand
       INT32 _requestID ;
       BOOLEAN _isInitialized ;
       MONGO_MSG_TYPE _initMsgType ;
+      msgBuffer      _msgBuf ;
 } ;
 typedef _mongoKillCursorCommand mongoKillCursorCommand ;
 

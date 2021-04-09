@@ -969,6 +969,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
 {
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
+   msgBuffer tmpBuffer ;
 
    SDB_ASSERT( errCode != SDB_OK, "Invalid error code" ) ;
 
@@ -1015,7 +1016,6 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       {
          BSONObj empty ;
          BSONObj org( _contextBuff.data() ) ;
-         msgBuffer tmpBuffer ;
          tmpBuffer.write( org.objdata(), org.objsize() ) ;
          tmpBuffer.write( empty.objdata(), empty.objsize() ) ;
          _contextBuff = rtnContextBuf( tmpBuffer.data(), tmpBuffer.size(), 2 ) ;
