@@ -2,10 +2,10 @@
  * @Description   : seqDB-22880:源集群上创建cl关联数据源上分区集合
  * @Author        : liuli
  * @CreateTime    : 2021.02.04
- * @LastEditTime  : 2021.03.01
+ * @LastEditTime  : 2021.04.09
  * @LastEditors   : liuli
  ******************************************************************************/
-// 分区表、切分表、主子表，执行数据操作
+// 分区表、切分表、主子表，执行lob操作
 testConf.skipStandAlone = true;
 main( test );
 function test ()

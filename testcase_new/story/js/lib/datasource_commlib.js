@@ -1,5 +1,13 @@
 ﻿import( "../lib/main.js" );
 import( "../lib/lobSubCL_commlib.js" );
+/******************************************************************************
+ 用例IP配置说明：datasrcIp 是用 runtest.sh 传入
+ 如需运行全部用例需要进行如下配置并放开用例中main()的注释：datasrcIp 和 datasrcIp1 是同一集群的不同IP
+ other_datasrcIp1 和 other_datasrcIp2 是不同集群的不同IP
+ 一共需要3个数据源集群，datasrcIp 和 datasrcIp1 属于第一个集群
+ other_datasrcIp1 属于第二个集群，other_datasrcIp2 属于第三个集群
+ datasrcPort 统一使用相同的用 runtest.sh 传入的端口号，如果对应的端口号不相同请自行修改
+ ******************************************************************************/
 
 var srcCSName = "comm_srcCS";
 var srcCLName = "comm_srcCL";
