@@ -1340,7 +1340,9 @@ INT32 _mongoCollectionCommand::_buildFirstBatch( const MsgOpReply &sdbReply,
    BSONObjBuilder resultBuilder ;
    BSONObjBuilder cursorBuilder ;
 
-   if ( SDB_OK != sdbReply.flags && SDB_DMS_EOC != sdbReply.flags )
+   if ( SDB_OK != sdbReply.flags && SDB_DMS_EOC != sdbReply.flags &&
+        SDB_DMS_CS_NOTEXIST != sdbReply.flags &&
+        SDB_DMS_NOTEXIST != sdbReply.flags)
    {
       return SDB_OK ;
    }
@@ -2077,8 +2079,16 @@ INT32 _mongoFindCommand::buildReply( const MsgOpReply &sdbReply,
    INT32 rc = SDB_OK ;
 
    if ( SDB_OK      == sdbReply.flags ||
-        SDB_DMS_EOC == sdbReply.flags )
+        SDB_DMS_EOC == sdbReply.flags ||
+        SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+        SDB_DMS_NOTEXIST == sdbReply.flags )
    {
+      if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
+      {
+         bodyBuf = engine::rtnContextBuf() ;
+      }
+
       rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build first batch, rc: %d", rc ) ;
