@@ -18,8 +18,10 @@
     <parameter name="RSRVNODEDIR"   value="/opt/sequoiadb/database/" />
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"       value="/tmp/javatest" />
-    <!--用例远程机器root用户密码-->
-    <parameter name="ROOTPASSWD"    value="jenkins" />
+    <!--用例远程机器用户名-->
+    <parameter name="USERNAME"     value="sdbadmin" />
+    <!--用例远程机器用户密码-->
+    <parameter name="PASSWORD"     value="sdbadmin" />
     <!--sdbTestBaseConf用来修改配置的工具位置-->
     <parameter name="CONFTOOL"      value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     
