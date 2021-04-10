@@ -238,8 +238,10 @@ TEST_F(cl_ddl_test, test3)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(creatingCount, count);
    
+   
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
+
 
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
@@ -249,5 +251,6 @@ TEST_F(cl_ddl_test, test3)
    
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
+   
 
 }

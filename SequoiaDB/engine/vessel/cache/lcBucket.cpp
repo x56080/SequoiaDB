@@ -72,15 +72,13 @@ namespace vessel
                                         BOOLEAN &newTagInBucket)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
-      ossValuePtr ptr = 0;
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
       SDB_ASSERT(0 < pageSize, "can not be invalid");
       BOOLEAN tagLocked = FALSE;
 
       newTagInBucket = FALSE;
       holder.reset(NULL);
-      ossScopedLock guard(latch);
+      ossScopedLock guard(latch, EXCLUSIVE);
 
       getTagAndIncUsage(gpid, NULL, holder);
       if (holder.valid())
@@ -98,7 +96,7 @@ namespace vessel
       SDB_ASSERT(holder.valid(), "must be valid");
 
       /// impossble to be failed
-      holder.tag()->incUsageCnt();
+      holder.tag()->incUsageCnt(FALSE);
       tagLocked = holder.tryLockUnique();
       SDB_ASSERT(tagLocked, "must be locked");
       newTagInBucket = TRUE;      
@@ -113,7 +111,7 @@ namespace vessel
                                      liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock(latch, EXCLUSIVE);
+      ossScopedLock guard(latch, EXCLUSIVE);
 
       const GLOBAL_PAGE_ID &id = tag->id();
       _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
@@ -124,8 +122,9 @@ namespace vessel
          {
             continue;
          }
-         if (!tag->isRemoving())
+         if (!tag->isRemoved())
          {
+            SDB_ASSERT(FALSE, "tag status is not removed");
             rc = SDB_VESSEL_INTERNAL_ERR;
             goto error;
          }
@@ -213,10 +212,8 @@ namespace vessel
       for (; itr != _tags.end(); ++itr)
       {
          tag = itr->second;
-         /// we are sure that this tag can not be removed now. 
-         /// coz we are holding bucket unique latch.
-         /// if do not check first, may prevent lru eviction.
-         if (!tag->removingPrecheck())
+         /// no latch holding, just for fast skip.
+         if (!tag->testIfCanBeRecycled(FALSE))
          {
             continue;
          }
@@ -227,19 +224,20 @@ namespace vessel
             continue;
          }
 
-         if (tag->isDirty())
-         {
-            continue;
-         }
-
-         /// some one pinned the tag. what a coincidence!
-         if (!tag->tryToSetRemoving())
+         if (!tag->noFlagsSet())
          {
             tag->rwMutex().unlock();
             continue;
          }
 
-         /// now no one will access this tag.
+         /// some one pinned tag.
+         if (!tag->tryToSetRemoved())
+         {
+            tag->rwMutex().unlock();
+            continue;
+         }
+
+         /// no one can access this tag after removed.
          tag->rwMutex().unlock();
          _tags.erase(itr);
          tag->reset();

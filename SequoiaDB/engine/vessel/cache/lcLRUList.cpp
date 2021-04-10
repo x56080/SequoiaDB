@@ -169,7 +169,6 @@ namespace vessel
       }
 
       tag = holder.tag();
-      tag->setFastFlags(LC_TAG_FAST_FLAG_IN_LRU_LIST);
       tag->setMemPage(page);
       _latch.get();
       locked = TRUE;
@@ -203,7 +202,6 @@ namespace vessel
    INT32 lcLRUList::tryToUpdate(lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN locked = FALSE;
       liteCachePageTag *tag = NULL;
 
       if (OSS_UNLIKELY(!holder.valid()))
@@ -255,6 +253,7 @@ namespace vessel
       BOOLEAN locked = FALSE;
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
+      liteCachePageTag *tagToBeRemoved = NULL;
 
       page.reset();
       _latch.get();
@@ -272,6 +271,7 @@ namespace vessel
       itr = NULL == _evictBegin ? _tail : _evictBegin;
       for (UINT32 i = 0; i < scanNum && NULL != itr; ++i)
       {
+         BOOLEAN removeFromBucket = FALSE;
          liteCachePageTag *tag = itr;
          itr = itr->getLruPre();
          lcPageTagHolder holder;
@@ -288,19 +288,19 @@ namespace vessel
             }
          }
 
-         if (!tag->lruEvictionPrecheck(NULL))
+         if (!tag->testIfCanBeEvictedFromLru(FALSE))
          {
             ++totalSkipped;
             continue;
          }
 
-         if (!tryToEvictTagFromList(tag, page))
+         if (!tryToEvictTagFromList(tag, page, removeFromBucket))
          {
             ++totalSkipped;
             continue;
          }
 
-         /// do not access tag again. it may be released.
+         tagToBeRemoved = tag;
          break;
       }
 
@@ -322,6 +322,11 @@ namespace vessel
          goto error;
       }
 
+      if (NULL != tagToBeRemoved)
+      {
+         _buckets->releaseRemovedTag(tagToBeRemoved);
+      }
+
    done:
       if (locked)
       {
@@ -339,6 +344,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context && NULL != job, "can not be null");
+      SDB_ASSERT(NULL != job, "can not be null");
       UINT32 scanNum = std::min(scanDepth, _options.lruScanDepth);
       liteCachePageTag *itr = NULL;
       BOOLEAN locked = FALSE;
@@ -347,6 +353,7 @@ namespace vessel
       UINT32 totalMoved = 0;
       UINT32 totalSkipped = 0;
       ossPoolVector<freeListPage> pages;
+      ossPoolList<liteCachePageTag *> toBeRemoved;
 
       _latch.get();
       locked = TRUE;
@@ -356,9 +363,6 @@ namespace vessel
       {
          liteCachePageTag *tag = itr;
          itr = itr->getLruPre();
-         BOOLEAN dirtyAndNoPending = FALSE;
-         BOOLEAN mayBeEvicted = FALSE;
-         freeListPage page;
 
          if (splited())
          {
@@ -371,38 +375,36 @@ namespace vessel
             }
          }
 
-         mayBeEvicted = tag->lruEvictionPrecheck(&dirtyAndNoPending);
-         if (!mayBeEvicted && !dirtyAndNoPending)
+         if (tag->testIfCanBeEvictedFromLru(FALSE))
          {
-            ++totalSkipped;
-            continue;
-         }
-         else if (mayBeEvicted)
-         {
-            if (tryToEvictTagFromList(tag, page))
+            BOOLEAN removeFromBucket = FALSE;
+            freeListPage page;
+            if (tryToEvictTagFromList(tag, page, removeFromBucket))
             {
-               /// tag's memory may be released, do not access it again.
                pages.push_back(page);
+               if (removeFromBucket)
+               {
+                  toBeRemoved.push_back(tag);
+               }
                ++totalEvicted;
-            }
-            else
-            {
-               ++totalSkipped;
+               continue;
             }
          }
-         else if (tag->setPendingWriteIfDirty())
+
+         /// isDirty() not protected by rw latch.
+         if (tag->isDirty() && tag->setPendingWriteIfDirty())
          {
             rc = job->addPendingWriteTag(tag);
             if (OSS_UNLIKELY(SDB_OK != rc))
             {
+               tag->setUnPendingWrite();
                goto error;
             }
             ++totalPending;
+            continue;
          }
-         else
-         {
-            /// do nothing.
-         }
+
+         ++totalSkipped;
       }
 
       if (NULL != itr && splited() && itr->isLruCold())
@@ -417,11 +419,6 @@ namespace vessel
       _latch.release();
       locked = FALSE;
 
-      if (!pages.empty())
-      {
-         _fl->releasePages(pages.size(), pages.data());
-      }
-
       if (NULL != involvedMemPageCount)
       {
          *involvedMemPageCount = totalEvicted + totalPending;
@@ -430,6 +427,15 @@ namespace vessel
       if (locked)
       {
          _latch.release();
+      }
+      if (!pages.empty())
+      {
+         _fl->releasePages(pages.size(), pages.data());
+      }
+      for (ossPoolList<liteCachePageTag *>::iterator itr = toBeRemoved.begin();
+           itr != toBeRemoved.end(); ++itr)
+      {
+         _buckets->releaseRemovedTag(*itr);
       }
       return rc;
    error:
@@ -600,12 +606,13 @@ namespace vessel
 
 
    BOOLEAN lcLRUList::tryToEvictTagFromList(liteCachePageTag *tag,
-                                            freeListPage &page)
+                                            freeListPage &page,
+                                            BOOLEAN &removeFromBucket)
    {
       BOOLEAN r = FALSE;
       SDB_ASSERT(NULL != tag, "can not be null");
       lcPageTagHolder holder;
-      BOOLEAN removeFromBucket = FALSE;
+      removeFromBucket = FALSE;
       
       holder.reset(tag);
       if (!holder.tryLockUnique())
@@ -618,15 +625,24 @@ namespace vessel
          goto done;
       }
 
-      if (!tag->isInDirtyList())
+      /// isPendingWrite() is not protected by spin latch.
+      if (!tag->isInDirtyList() && !tag->isPendingWrite(FALSE))
       {
-         if (!tag->setEvictedFromLRUAndRemoving())
+         if (tag->tryToSetRemoved())
          {
+            removeFromBucket = TRUE;
+         }
+         else
+         {
+            /// when tag is not dirty, possible reasons of failure of removing:
+            /// 1. tag is pending write. (can be evicted, but can not be removed)
+            /// 2. tag's usage cnt increased.(can not be evicted)
+            /// here we do not try to evict it again.
             goto done;
          }
-         removeFromBucket = TRUE;
       }
-      else if (!tag->lruEvictionPrecheck(NULL))
+      /// be sure tag's mem buffer is not pinned under protection of spin latch.
+      else if (!tag->testIfCanBeEvictedFromLru(TRUE))
       {
          goto done;
       }
@@ -649,17 +665,9 @@ namespace vessel
       page = tag->getMemPage();
       SDB_ASSERT(page.valid(), "must be valid");
       tag->releaseMemPage();
-      tag->clearFastFlags(LC_TAG_FAST_FLAG_IN_LRU_LIST);
-      holder.unlockUnique();
-
-      if (removeFromBucket)
-      {
-         _buckets->releaseRemovedTag(tag);
-         /// do not access tag again
-      }
       r = TRUE;
    done:
-      holder.unlockUnique();
+      holder.unlock();
       return r;
    }
 

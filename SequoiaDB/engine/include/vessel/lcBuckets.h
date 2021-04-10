@@ -71,8 +71,6 @@ namespace vessel
 
          INT32 releaseRemovedTag(liteCachePageTag *tag);
 
-         INT32 releaseRemovedTags(UINT32 num, liteCachePageTag *tags[]);
-
       private:
          void getBucketAndLatch(const PHY_EXTENT_ID &id,
                                 _ossSpinSLatch *&latch,

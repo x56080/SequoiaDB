@@ -126,7 +126,7 @@ namespace vessel
          goto error;
       }
 
-      tag->setFastFlags(LC_TAG_FAST_FLAG_DIRTY | LC_TAG_FAST_FLAG_IN_DIRTY_LIST);
+      tag->setFastFlags(LC_TAG_FAST_FLAG_DIRTY);
       _latch.get();
       insertIntoSortedList(tag);
       _latch.release();
@@ -161,9 +161,6 @@ namespace vessel
       _latch.get();
       locked = TRUE;
       remove(tag);
-      _latch.release();
-      locked = FALSE;
-      tag->clearFastFlags(LC_TAG_FAST_FLAG_IN_DIRTY_LIST);
       
    done:
       if (locked)

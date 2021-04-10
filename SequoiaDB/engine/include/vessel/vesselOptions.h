@@ -101,8 +101,8 @@ namespace vessel
       {
          public:
             OSS_INLINE bucketOptions():
-            bucketCount(2048),
-            bucketLatchCount(128),
+            bucketCount(16384),
+            bucketLatchCount(256),
             minRecycleCount(20){}
 
             UINT32 bucketCount;

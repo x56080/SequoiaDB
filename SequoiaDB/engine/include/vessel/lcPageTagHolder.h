@@ -83,7 +83,7 @@ namespace vessel
 
          OSS_INLINE void unlock()
          {
-            if (OSS_LIKELY(NULL != _tag))
+            if (NULL != _tag)
             {
                if (LOCK_MODE_SHARED == _lockMode)
                {
@@ -119,22 +119,10 @@ namespace vessel
             return FALSE;
          }
 
-         OSS_INLINE void unlockUnique()
-         {
-            _tag->rwMutex().unlock();
-            _lockMode = LOCK_MODE_NONE;
-         }
-
          OSS_INLINE void lockShared()
          {
             _tag->rwMutex().lock_shared();
             _lockMode = LOCK_MODE_SHARED;
-         }
-
-         OSS_INLINE void unlockShared()
-         {
-            _tag->rwMutex().unlock_shared();
-            _lockMode = LOCK_MODE_NONE;
          }
 
          OSS_INLINE void lockUpgrade()

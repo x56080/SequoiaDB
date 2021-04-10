@@ -57,8 +57,6 @@ namespace vessel
 
    const UINT16 LC_TAG_FAST_FLAG_IO_PENDING_WRITE = 0x01;
    const UINT16 LC_TAG_FAST_FLAG_DIRTY = 0x02;
-   const UINT16 LC_TAG_FAST_FLAG_IN_DIRTY_LIST = 0x04;
-   const UINT16 LC_TAG_FAST_FLAG_IN_LRU_LIST = 0x08;
 
    const UINT32 LC_TAG_LRU_FLAG_COLD = 0x01;
 
@@ -195,6 +193,15 @@ namespace vessel
          }
 
       public:
+         OSS_INLINE BOOLEAN testFlags(UINT32 flags)const
+         {
+            return OSS_BIT_TEST(_flags, flags);
+         }
+         OSS_INLINE BOOLEAN noFlagsSet()const
+         {
+            return 0 == _flags;
+         }
+
          OSS_INLINE BOOLEAN isInLruList()const
          {
             return OSS_BIT_TEST(_flags, LC_TAG_FLAG_IN_LRU_LIST);
@@ -322,80 +329,42 @@ namespace vessel
 
       public:
          /** get tag in bucket begin **/
-         OSS_INLINE BOOLEAN incUsageCnt();
+         /// WARNING: lock can be set as false only when first created.
+         OSS_INLINE BOOLEAN incUsageCnt(BOOLEAN lock=TRUE);
          OSS_INLINE void decUsageCnt();
          /** get tag in bucket end **/
 
          /** remove tag from bucket begin **/
-         OSS_INLINE BOOLEAN removingPrecheck()
+         /// spin latch is not necessary when performing precheck.
+         /// it just affects performance and accuracy.
+         /// WANRING: we can not recycle the tag already set as removed.
+         /// noFlagsSet() will not be protected by spin latch.
+         OSS_INLINE BOOLEAN testIfCanBeRecycled(BOOLEAN lock=TRUE)
          {
             BOOLEAN r = FALSE;
-            _spinLatch.lock();
-            r = readyToBeRemoved();
-            _spinLatch.unlock();
+            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinGuard guard(latch);
+            r = noFlagsSet() && isNormalAndUnpinned();
             return r;
          }
 
-         /// under w lock
-         OSS_INLINE BOOLEAN tryToSetRemoving()
-         {
-            BOOLEAN r = FALSE;
-            _spinLatch.lock();
-            if (readyToBeRemoved())
-            {
-               _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
-               r = TRUE;
-            }
-            _spinLatch.unlock();
-            return r;
-         }
+         /// under rw latch.
+         OSS_INLINE BOOLEAN tryToSetRemoved();
 
-         OSS_INLINE BOOLEAN isRemoving()
+         OSS_INLINE BOOLEAN isRemoved()
          {
-            _spinLatch.lock();
-            BOOLEAN r = (LC_TAG_STATUS_TO_BE_REMOVED == _ts.status);
-            _spinLatch.unlock();
-            return r;
+            ossSpinGuard guard(&_spinLatch);
+            return (LC_TAG_STATUS_TO_BE_REMOVED == _ts.status);
          }
          /** remove tag in bucket end **/
 
          /** evict tag in lru begin **/
-         /// unkder no lock
-         /// return true if can be evicted(or deprived).
-         OSS_INLINE BOOLEAN lruEvictionPrecheck(BOOLEAN *dirtyAndNoPending)
+         /// return true if can be evicted.
+         OSS_INLINE BOOLEAN testIfCanBeEvictedFromLru(BOOLEAN lock=TRUE)
          {
-            BOOLEAN r = FALSE;
-            _spinLatch.lock();
-            r = readyToBeEvictedFromLRU();
-            if (r)
-            {
-               goto done;
-            }
-
-            if (NULL != dirtyAndNoPending)
-            {
-               *dirtyAndNoPending = isDirtyAndNoPending();
-            }
-            
-         done:
-            _spinLatch.unlock();
-            return r;
-         }
-
-         /// under w lock
-         OSS_INLINE BOOLEAN setEvictedFromLRUAndRemoving()
-         {
-            BOOLEAN r = FALSE;
-            ossSpinGuard guard(&_spinLatch);
-            SDB_ASSERT(!OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IN_DIRTY_LIST),
-                       "can not in dirty list");
-            if (readyToBeEvictedFromLRU())
-            {
-               _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
-               _ts.flags = 0;
-               r = TRUE;
-            }
-            return r;
+            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinGuard guard(latch);
+            return !isMemBufferPinned();
          }
 
          OSS_INLINE BOOLEAN setPendingWriteIfDirty()
@@ -411,9 +380,10 @@ namespace vessel
          }
          /** evict tag in lru end **/
 
-         OSS_INLINE BOOLEAN isPendingWrite()
+         OSS_INLINE BOOLEAN isPendingWrite(BOOLEAN lock=TRUE)
          {
-            ossSpinGuard guard(&_spinLatch);
+            ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+            ossSpinGuard guard(latch);
             return OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
          }
 
@@ -439,11 +409,21 @@ namespace vessel
          }
 
       private:
-         OSS_INLINE BOOLEAN readyToBeRemoved() const
+         OSS_INLINE BOOLEAN isPinned()const
+         {
+            return 0 < _ts.usageCnt || 0 != _ts.flags;
+         }
+
+         OSS_INLINE BOOLEAN isMemBufferPinned()const
+         {
+            return 0 < _ts.usageCnt ||
+                   OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_DIRTY);
+         }
+
+         OSS_INLINE BOOLEAN isNormalAndUnpinned() const
          {
             return LC_TAG_STATUS_NORMAL == _ts.status &&
-                   0 == _ts.usageCnt &&
-                   0 == _ts.flags;
+                   !isPinned();
          }
 
          OSS_INLINE BOOLEAN isDirtyAndNoPending()const
@@ -457,16 +437,6 @@ namespace vessel
          {
             SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
             return !OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE);
-         }
-
-         OSS_INLINE BOOLEAN readyToBeEvictedFromLRU()const
-         {
-            SDB_ASSERT(LC_TAG_STATUS_NORMAL == _ts.status, "must be normal");
-            SDB_ASSERT(OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IN_LRU_LIST),
-                       "must be in lru");
-            return 0 == _ts.usageCnt &&
-                   !OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_IO_PENDING_WRITE) &&
-                   !OSS_BIT_TEST(_ts.flags, LC_TAG_FAST_FLAG_DIRTY);
          }
          
       private:
@@ -509,10 +479,11 @@ namespace vessel
 
    }; /// end of class liteCachePageTag
 
-   OSS_INLINE BOOLEAN liteCachePageTag::incUsageCnt()
+   OSS_INLINE BOOLEAN liteCachePageTag::incUsageCnt(BOOLEAN lock)
    {
       BOOLEAN r = FALSE;
-      ossSpinGuard guard(&_spinLatch);
+      ossSpinLatch *latch = lock ? &_spinLatch : NULL;
+      ossSpinGuard guard(latch);
       SDB_ASSERT(LC_TAG_STATUS_INVALID != _ts.status,
                  "should not inc invalid tag's usage cnt");
       if (LC_TAG_STATUS_NORMAL == _ts.status)
@@ -531,6 +502,20 @@ namespace vessel
       SDB_ASSERT(0 != _ts.usageCnt, "can not be zero");
       --_ts.usageCnt;
       return;
+   }
+
+   /// under rw lock
+   /// WARNING: validate flags under rw lock first.
+   OSS_INLINE BOOLEAN liteCachePageTag::tryToSetRemoved()
+   {
+      BOOLEAN r = FALSE;
+      ossSpinGuard guard(&_spinLatch);
+      if (isNormalAndUnpinned())
+      {
+         _ts.status = LC_TAG_STATUS_TO_BE_REMOVED;
+         r = TRUE;
+      }
+      return r;
    }
 } /// end of namespace vessel
 } /// end of namespace engine

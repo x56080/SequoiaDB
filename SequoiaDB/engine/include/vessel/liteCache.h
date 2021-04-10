@@ -122,10 +122,10 @@ class liteCache : public SDBObject
    private:
       INT32 ensureMemPage(requestContext *context, freeListPage &page);
 
-      INT32 initNewTagInBucket(requestContext *context,
-                               UINT32 pageSize,
-                               ossValuePtr diskPage,
-                               lcPageTagHolder &holder);
+      INT32 loadDataFromDisk(requestContext *context,
+                             UINT32 pageSize,
+                             ossValuePtr diskPage,
+                             lcPageTagHolder &holder);
 
       INT32 initTupleBeforeReturn(lcPageTagHolder &holder,
                                   const liteCacheAllocateOptions &options,

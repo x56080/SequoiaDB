@@ -64,19 +64,20 @@ namespace vessel
                           UINT32 minRecycleCount)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
+      SDB_ASSERT(NULL == _buckets, "do not reinit");
+
       if (OSS_UNLIKELY(0 == bucketCount || 0 == latchCount))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(NULL != _buckets))
+      else if (OSS_UNLIKELY(!ossIsPowerOf2(bucketCount) ||
+                            !ossIsPowerOf2(latchCount)))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rollback = TRUE;
       _buckets = SDB_OSS_NEW lcBucket[bucketCount];
       if (NULL == _buckets)
       {
@@ -99,10 +100,7 @@ namespace vessel
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         fini();
-      }
+      fini();
       goto done;
    }
 
@@ -171,36 +169,17 @@ namespace vessel
       return rc;
    error:
       goto done;
-   }
-
-   INT32 lcBuckets::releaseRemovedTags(UINT32 num, liteCachePageTag *tags[])
-   {
-      INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(0 == num))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      /// TODO: batch remove tags in same bucket
-      for (UINT32 i = 0; i < num; ++i)
-      {
-         releaseRemovedTag(tags[i]);
-      }
-   done:
-      return rc;
-   error:
-      goto done;
-   }   
+   } 
 
    void lcBuckets::getBucketAndLatch(const PHY_EXTENT_ID &id,
                                     _ossSpinSLatch *&mutex,
                                     lcBucket *&bucket)
    {
+      SDB_ASSERT(ossIsPowerOf2(_bucketCount) && ossIsPowerOf2(_latchCount), "must be power of 2");
       UINT32 hash = id.hash();
-      UINT32 bucketNO = hash % _bucketCount;
+      UINT32 bucketNO = hash & (_bucketCount - 1);
       lcBucket &b = _buckets[bucketNO];
-      UINT32 latchNO = hash % _latchCount;
+      UINT32 latchNO = hash & (_latchCount - 1);
       _ossSpinSLatch &m = _latches[latchNO];
       mutex = &m;
       bucket = &b;

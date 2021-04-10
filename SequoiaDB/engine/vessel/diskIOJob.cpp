@@ -100,7 +100,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != tag, "can not be null");
-      SDB_ASSERT(tag->isPendingWrite(), "must be pending");
+      SDB_ASSERT(tag->isPendingWrite(FALSE), "must be pending");
 
       if (OSS_UNLIKELY(NULL == tag))
       {

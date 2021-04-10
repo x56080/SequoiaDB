@@ -285,12 +285,13 @@ namespace vessel
       if (newTagInBucket)
       {
          SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
-         rc = initNewTagInBucket(context, pageSize, ptr, holder);
+         rc = loadDataFromDisk(context, pageSize, ptr, holder);
          if (SDB_OK != rc)
          {
-            holder.unlockUnique();
             holder.tag()->decUsageCnt();
-            if (holder.tag()->tryToSetRemoving())
+            BOOLEAN removed = holder.tag()->tryToSetRemoved();
+            holder.unlock();
+            if (removed)
             {
                _buckets->releaseRemovedTag(holder.tag());
             }
@@ -300,7 +301,7 @@ namespace vessel
             goto error;
          }
 
-         holder.unlockUnique();
+         holder.unlock();
       }
 
       rc = initTupleBeforeReturn(holder, options, tuple);
@@ -545,7 +546,7 @@ namespace vessel
          holder.reset(tag);
          holder.lockUpgrade();
 
-         SDB_ASSERT(tag->isPendingWrite(), "must be pending write");
+         SDB_ASSERT(tag->isPendingWrite(FALSE), "must be pending write");
          SDB_ASSERT(tag->isInDirtyList(), "must be in dirty list");
 
          /// page in dirty list job may not be dirty
@@ -708,10 +709,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 liteCache::initNewTagInBucket(requestContext *context,
-                                       UINT32 pageSize,
-                                       ossValuePtr diskPage,
-                                       lcPageTagHolder &holder)
+   INT32 liteCache::loadDataFromDisk(requestContext *context,
+                                     UINT32 pageSize,
+                                     ossValuePtr diskPage,
+                                     lcPageTagHolder &holder)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 < pageSize, "can not be invalid");

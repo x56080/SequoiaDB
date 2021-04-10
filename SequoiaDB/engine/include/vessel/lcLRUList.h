@@ -110,7 +110,8 @@ namespace vessel
          void removeFromList(liteCachePageTag *tag);
 
          BOOLEAN tryToEvictTagFromList(liteCachePageTag *tag,
-                                       freeListPage &page);
+                                       freeListPage &page,
+                                       BOOLEAN &removeFromBucket);
 
       
       private:
