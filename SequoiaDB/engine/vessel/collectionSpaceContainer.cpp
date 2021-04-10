@@ -596,7 +596,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       BOOLEAN locked = FALSE;
-      if (OSS_UNLIKELY(NULL != context ||
+      if (OSS_UNLIKELY(NULL == context ||
                        INVALID_SPACE_ID == sid ||
                        NULL == obj))
       {

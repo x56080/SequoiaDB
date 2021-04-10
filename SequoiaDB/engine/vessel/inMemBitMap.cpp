@@ -514,7 +514,7 @@ namespace vessel
 
    void inMemBitMap::releaseBits(UINT32 count, const UINT32 *buf)
    {
-      static const UINT32 BATCH_SIZE = 4;
+      static const UINT32 BATCH_SIZE = PAGE_COUNT_IN_EXTENT;
       UINT32 batch[BATCH_SIZE];
       UINT32 released = 0;
       ossScopedLock guard(&_mutex);

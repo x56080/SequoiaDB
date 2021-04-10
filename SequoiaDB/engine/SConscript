@@ -894,6 +894,7 @@ vesselFiles = [
       "vessel/handlers/insertHandler.cpp",
       "vessel/handlers/openCLHandler.cpp",
       "vessel/api/cursorHandler.cpp",
+      "vessel/api/collectionHandler.cpp",
       "vessel/collectionSpaceContainer.cpp",
       "vessel/inMemBitMap.cpp",
       "vessel/controlFile.cpp",
@@ -939,7 +940,8 @@ vesselTestFiles = [
       "test/vessel/cursor_test.cpp",
       "test/vessel/cs_ddl_test.cpp",
       "test/vessel/cl_ddl_test.cpp",
-      "test/vessel/fsm_test.cpp"
+      "test/vessel/fsm_test.cpp",
+      "test/vessel/insert_test.cpp"
 ]
 
 #BSON

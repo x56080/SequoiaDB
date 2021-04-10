@@ -501,6 +501,11 @@ namespace vessel
          handler.fini();
          break;
       }
+      case CURSOR_TYPE_SCAN_COLLECTION:
+      {
+         
+         break;
+      }
       default:
          rc = SDB_INVALIDARG;
          goto error;
@@ -536,6 +541,12 @@ namespace vessel
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to init handler:%d", rc);
+         goto error;
+      }
+
+      rc = handler.doit(handle, record, transID, striping, options, res);
+      if (SDB_OK != rc)
+      {
          goto error;
       }
    done:

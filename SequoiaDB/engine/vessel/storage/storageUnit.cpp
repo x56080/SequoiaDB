@@ -532,7 +532,7 @@ namespace vessel
          goto error;
       }
 
-      if (path->indexPath != path->dataPath)
+      if (!path->indexPath.empty() && path->indexPath != path->dataPath)
       {
          rc = openOtherFilesUnderPath(path->indexPath.c_str(), dirName);
          if (SDB_OK != rc)
@@ -945,7 +945,7 @@ namespace vessel
          goto error;
       }
 
-      if (path.indexPath != path.dataPath)
+      if (!path.indexPath.empty() && path.indexPath != path.dataPath)
       {
          UINT32 subFileCount = 0;
          rc = utilBuildFullPath(path.indexPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
@@ -971,7 +971,7 @@ namespace vessel
          }
       }
 
-      if (path.lobMetaPath != path.dataPath)
+      if (!path.lobMetaPath.empty() && path.lobMetaPath != path.dataPath)
       {
          UINT32 subFileCount = 0;
          rc = utilBuildFullPath(path.lobMetaPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
@@ -997,7 +997,7 @@ namespace vessel
          }
       }
 
-      if (path.lobPath != path.dataPath)
+      if (!path.lobPath.empty() && path.lobPath != path.dataPath)
       {
          UINT32 subFileCount = 0;
          rc = utilBuildFullPath(path.lobPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
@@ -1098,7 +1098,7 @@ namespace vessel
          goto error;
       }
       
-      if (path.dataPath != path.indexPath)
+      if (!path.indexPath.empty() && path.dataPath != path.indexPath)
       {
          rc = utilBuildFullPath(path.indexPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
          if (SDB_OK != rc)
@@ -1199,7 +1199,7 @@ namespace vessel
 
       rollbackDataDir = TRUE;
 
-      if (path.indexPath != path.dataPath)
+      if (!path.indexPath.empty() && path.indexPath != path.dataPath)
       {
          rc = utilBuildFullPath(path.indexPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath);
          if (SDB_OK != rc)
@@ -1279,7 +1279,7 @@ namespace vessel
          }
       }
 
-      if (path.dataPath != path.indexPath)
+      if (!path.indexPath.empty() && path.dataPath != path.indexPath)
       {
          rc = utilBuildFullPath(path.indexPath.c_str(), dirName, OSS_MAX_PATHSIZE, fullPath);
          if (SDB_OK != rc)

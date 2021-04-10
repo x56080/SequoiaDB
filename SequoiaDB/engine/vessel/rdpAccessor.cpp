@@ -359,6 +359,7 @@ namespace vessel
       /// 2. copy record head and record
       offset = getNonFreeBeginOffet(wHead);
       rc = getWritePtrOfPageBody<recordHead>(offset, &recordHeadPtr);
+      if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get writable record head:%d", rc);
          goto error;

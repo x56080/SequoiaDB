@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -282,11 +279,6 @@ namespace vessel
 
    }; /// end of class updateOptions
 
-   class scanCLOptions
-   {
-
-   }; /// end of class scanCLOptions
-
    class scanIndexOptions
    {}; // class scanIndexOptions
 
@@ -303,7 +295,6 @@ namespace vessel
          UINT32 maxBufSize;
          UINT32 initBufSize;
    };
-
 } /// end of namespace vessel
 } /// end of namespace engine
 #endif

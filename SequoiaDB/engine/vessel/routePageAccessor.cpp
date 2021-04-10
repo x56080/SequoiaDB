@@ -215,6 +215,13 @@ namespace vessel
       lpid = head->pageID;
       old = *rHead;
 
+      rc = getWritableUserHeadPtr<routePageHead>(&wHead);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to writable head:%d", rc);
+         goto error;
+      }
+
       rc = writeSlots(slot, count, lpids);
       if (SDB_OK != rc)
       {

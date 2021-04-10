@@ -41,6 +41,8 @@
 #include "utilInsertResult.hpp"
 #include "vessel/recordData.h"
 #include "dpsTransID.hpp"
+#include "vessel/scanCLOptions.h"
+#include "vessel/cursorHandler.h"
 
 namespace engine
 {
@@ -48,6 +50,8 @@ namespace vessel
 {
    class vesselImpl;
    class ISession;
+   class insertOptions;
+   class IQueryFilter;
 
    class collectionHandler : public SDBObject
    {
@@ -95,6 +99,12 @@ namespace vessel
                       STRIPING_ID striping,
                       const insertOptions *options,
                       utilInsertResult &res);
+
+         INT32 openScanCursor(ISession *session,
+                              IQueryFilter *filter,
+                              const scanCLOptions *scanOptions,
+                              const cursorOptions *cursorOptions,
+                              cursorHandler &cursor);
           
       private:
          collectionHandle _handle;

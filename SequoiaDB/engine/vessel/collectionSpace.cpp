@@ -106,11 +106,11 @@ namespace vessel
       suOptions.sid = context->getSpaceID();
       suOptions.uniqueID = uniqueID;
       suOptions.metaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.metaArgs.maxPageCountPerSeg = 128;
-      suOptions.metaArgs.maxSegmentCountPerFile = 1024;
+      suOptions.metaArgs.maxPageCountPerSeg = 64;
+      suOptions.metaArgs.maxSegmentCountPerFile = 2048;
       suOptions.idxMetaArgs.pageSize = DMS_PAGE_SIZE32K;
-      suOptions.idxMetaArgs.maxPageCountPerSeg = 128;
-      suOptions.idxMetaArgs.maxSegmentCountPerFile = 1024;
+      suOptions.idxMetaArgs.maxPageCountPerSeg = 64;
+      suOptions.idxMetaArgs.maxSegmentCountPerFile = 2048;
 
       suOptions.dataArgs.pageSize = options.dataPageSize;
       suOptions.dataArgs.maxPageCountPerSeg = options.dataPageCountPerSegment;
@@ -1008,7 +1008,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(0 != _idMapCapacity, "can not be invalid");
-      UINT32 offsets[PAGE_COUNT_IN_EXTENT] = {0};
 
       if (OSS_UNLIKELY(NULL == context ||
                        0 == count ||
@@ -1032,7 +1031,7 @@ namespace vessel
       do
       {
          UINT32 pageCount = _pageAllocatedInMetaSMP;
-         rc = _inMemLpidPool.allocateBits(count, offsets);
+         rc = _inMemLpidPool.allocateBits(count, lpids);
          if (SDB_OK == rc)
          {
             goto done;
@@ -1419,11 +1418,11 @@ namespace vessel
          goto error;
       }
 
-      SDB_ASSERT(128 == pageCountInSeg, "must be 128");
+      SDB_ASSERT(64 == pageCountInSeg, "must be 64");
       /// all pages in current file were allocated.
       if (0 == (_pageAllocatedInMetaSMP & (pageCountInSeg - 1)))
       {
-         UINT32 segCount = (_pageAllocatedInMetaSMP >> 7) + 1;/// _pageAllocatedInMetaSMP / 128
+         UINT32 segCount = (_pageAllocatedInMetaSMP >> 6) + 1;/// _pageAllocatedInMetaSMP / 64
          /// segment count must be specified that we do not need to
          /// rollback file size if get any error then.
          rc = _su->extendMetaFile(context, &segCount);
@@ -1860,7 +1859,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, SYSTEM_MAP_PAGE_ID, ptr);
+      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cs global meta page:%d", rc);
