@@ -85,7 +85,7 @@ namespace engine
       BSONObj objData ;
       stpOptions option ;
 
-      rc = option.initFromFile( rootPath ) ;
+      rc = option.initFromRootPath( rootPath ) ;
       if ( SDB_OK != rc )
       {
          // not OK, do nothing

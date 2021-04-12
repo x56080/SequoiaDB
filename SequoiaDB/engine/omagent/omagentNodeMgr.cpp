@@ -44,6 +44,7 @@
 #include "pd.hpp"
 #include "ossPath.hpp"
 #include "omagentNodePathGuard.hpp"
+#include "stpOptions.hpp"
 
 using namespace bson ;
 
@@ -1218,6 +1219,19 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to write config file %s, rc: %d",
                    configFileName, rc ) ;
       createCfgFile = TRUE ;
+
+      {
+         stpOptions options ;
+
+         rc = options.initFromFile( configFileName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize from config "
+                      "file [%s], rc: %d", configFileName, rc ) ;
+         PD_CHECK( 0 != ossStrcmp( options.getServiceName(),
+                              sdbGetOMAgentOptions()->getCMServiceName() ),
+                   SDB_CM_CONFIG_CONFLICTS, error, PDERROR,
+                   "Failed to initialize STP, STP service name [%s] is "
+                   "the same with omagent", options.getServiceName() ) ;
+      }
 
       /// check config mutex on others
       nodeGuard.initStp( serviceName.c_str(), configFileName ) ;

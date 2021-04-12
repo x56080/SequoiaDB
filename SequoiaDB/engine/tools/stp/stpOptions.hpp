@@ -63,7 +63,10 @@ namespace engine
                         BOOLEAN &daemonMode ) ;
 
       // initialize from file
-      INT32 initFromFile( const CHAR *rootPath ) ;
+      INT32 initFromFile( const CHAR *confFile ) ;
+
+      // initialize from root file
+      INT32 initFromRootPath( const CHAR *rootPath ) ;
 
       // save options to config file
       INT32 save() ;

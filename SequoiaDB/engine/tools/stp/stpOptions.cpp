@@ -357,7 +357,36 @@ namespace engine
       goto done ;
    }
 
-   INT32 _stpOptions::initFromFile( const CHAR *rootPath )
+   INT32 _stpOptions::initFromFile( const CHAR *confFile )
+   {
+      INT32 rc = SDB_OK ;
+
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vmFile ;
+
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         FILE_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      PD_CHECK( NULL != confFile, SDB_INVALIDARG, error, PDERROR,
+                "Config file is empty" ) ;
+
+      rc = utilReadConfigureFile( confFile, desc, vmFile ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to read config file [%s], rc: %d",
+                   _cfgFileName ) ;
+
+      rc = pmdCfgRecord::init( &vmFile, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 _stpOptions::initFromRootPath( const CHAR *rootPath )
    {
       INT32 rc = SDB_OK ;
 
@@ -383,13 +412,9 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build config path for root "
                    "path %s, rc: %d", rootPath, rc ) ;
 
-      rc = utilReadConfigureFile( _cfgFileName, desc, vmFile ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to read config file [%s], rc: %d",
-                   _cfgFileName ) ;
-
-      rc = pmdCfgRecord::init( &vmFile, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize configurations, rc: %d",
-                   rc ) ;
+      rc = initFromFile( _cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to initialize from file [%s], "
+                   "rc: %d", rc ) ;
 
    done:
       return rc ;
