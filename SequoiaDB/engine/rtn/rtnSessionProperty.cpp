@@ -37,6 +37,7 @@
 #include "rtnSessionProperty.hpp"
 #include "dpsTransExecutor.hpp"
 #include "pdTrace.hpp"
+#include "pmdEDU.hpp"
 #include "rtnTrace.hpp"
 #include "msg.hpp"
 #include "msgDef.hpp"
@@ -294,10 +295,10 @@ namespace engine
          _specInstance = ( INT8 )PMD_PREFER_INSTANCE_TYPE_UNKNOWN ;
       }
 
-      PD_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance,
-                SDB_INVALIDARG, error, PDWARNING,
-                "Failed to parse preferred instance: "
-                "[%s] is unknown type", instanceStr ) ;
+      PD_LOG_MSG_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN != _specInstance,
+                        SDB_INVALIDARG, error, PDERROR,
+                        "Failed to parse preferred instance: "
+                        "[%s] is unknown type", instanceStr ) ;
 
    done :
       PD_TRACE_EXITRC( SDB__RTNINST__PARSESTRPREFINST, rc ) ;
@@ -324,10 +325,14 @@ namespace engine
          {
             _parseIntegerPreferredInstance( curOption ) ;
          }
-         else if ( String == curOption.type() &&
-                   PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance )
+         else if ( String == curOption.type() )
          {
-            _parseStringPreferredInstance( curOption ) ;
+            PD_LOG_MSG_CHECK( PMD_PREFER_INSTANCE_TYPE_UNKNOWN == _specInstance,
+                              SDB_INVALIDARG, error, PDERROR,
+                              "More than one preferred instance type exists") ;
+            rc = _parseStringPreferredInstance( curOption ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse string option of "
+                         "preferred instance, rc: %d", rc ) ;
          }
          else
          {
