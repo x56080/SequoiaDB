@@ -664,6 +664,9 @@ namespace engine
             BSONElement ele = iter.next() ;
             if ( 0 == ossStrcmp(ele.fieldName(), CAT_COLLECTION_SPACE_NAME) )
             {
+               PD_LOG_MSG_CHECK( _targetName.empty(), SDB_INVALIDARG, error,
+                                 PDERROR, "More than one collection space "
+                                 "name in options" ) ;
                PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
                          "Field type is not String, type: %d, obj: %s, rc: %d",
                          ele.type(), _boQuery.toString().c_str(), rc ) ;
