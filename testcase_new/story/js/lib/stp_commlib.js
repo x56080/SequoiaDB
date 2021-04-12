@@ -8,10 +8,10 @@
 import( "../lib/main.js" );
 import( "../lib/basic_operation/commlib.js" );
 
-var stp = new Stp(STPHOSTNAME,STPSVCNAME);
 //获取stp主节点
 function getStpPrimaryNode()
 {
+   var stp = new Stp(STPHOSTNAME,STPSVCNAME);
    var serverGroup = stp.getServers();
    
    var serverInfo = JSON.parse( serverGroup.toString() );
@@ -22,6 +22,7 @@ function getStpPrimaryNode()
 //获取stp备节点
 function getStpSpareNode()
 {
+   var stp = new Stp(STPHOSTNAME,STPSVCNAME);
    var serverGroup = stp.getServers();
    
    var primaryNode = getStpPrimaryNode();
@@ -40,6 +41,7 @@ function getStpSpareNode()
 //获取stp client节点
 function getStpClientNode()
 {
+   var stp = new Stp(STPHOSTNAME,STPSVCNAME);
    var syncClients = stp.getSyncClients();
    var stpClientInfo = JSON.parse( syncClients.toString() );
    
@@ -55,6 +57,7 @@ function getStpClientNode()
 
 function getStpServerNodes()
 {
+   var stp = new Stp(STPHOSTNAME,STPSVCNAME);
    var serverGroup = stp.getServers();
    
    var serverInfo = JSON.parse( serverGroup.toString() );
