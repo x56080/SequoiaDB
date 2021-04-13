@@ -40,14 +40,12 @@
 #define VESSEL_LC_BUCKETS_H_
 
 #include "vessel/lcBucket.h"
+#include "ossLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   class storageUnit;
-   
-
    class lcBuckets : public SDBObject
    {
       public:
@@ -66,21 +64,21 @@ namespace vessel
                                     lcPageTagHolder &holder,
                                     BOOLEAN &newTagInBucket);
 
-         INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                 lcPageTagHolder &holder);
+         BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
+                                   lcPageTagHolder &holder);
 
          INT32 releaseRemovedTag(liteCachePageTag *tag);
 
       private:
-         void getBucketAndLatch(const PHY_EXTENT_ID &id,
-                                _ossSpinSLatch *&latch,
+         void getBucketAndLatch(const GLOBAL_PAGE_ID &id,
+                                _ossSpinXLatch *&latch,
                                 lcBucket *&bucket);
       private:
          UINT32 _minRecycleCount;
          UINT32 _bucketCount;
          lcBucket* _buckets;
          UINT32 _latchCount;
-         _ossSpinSLatch *_latches;
+         _ossSpinXLatch *_latches;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

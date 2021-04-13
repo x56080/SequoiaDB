@@ -72,6 +72,11 @@ class liteCache : public SDBObject
 
       INT32 fini();
 
+      OSS_INLINE BOOLEAN isOpen()const
+      {
+         return _isOpen;
+      }
+
       /// inc usage cnt and lock
       INT32 allocate(requestContext *request,
                      const GLOBAL_PAGE_ID &id,
@@ -139,6 +144,7 @@ class liteCache : public SDBObject
       void correctOptions(liteCacheOptions &options);
 
    private:
+      BOOLEAN _isOpen;
       liteCacheOptions _options;
       lcBuckets *_buckets;
       lcLRUList *_lru;

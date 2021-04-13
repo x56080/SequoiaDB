@@ -41,7 +41,6 @@
 
 #include "vessel/phyExtentID.h"
 #include "vessel/lcPageTagHolder.h"
-#include "ossLatch.hpp"
 #include "ossMemPool.hpp"
 
 namespace engine
@@ -58,22 +57,15 @@ namespace vessel
 
       public:
          INT32 ensureTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                    _ossSpinSLatch *latch,
                                     UINT32 pageSize,
                                     UINT32 minRecycleCount,
                                     lcPageTagHolder &holder,
                                     BOOLEAN &newTagInBucket);
 
-         INT32 getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                 _ossSpinSLatch *latch,
-                                 lcPageTagHolder &holder);
+         BOOLEAN getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
+                                   lcPageTagHolder &holder);
 
-         INT32 releaseRemovedTag(_ossSpinSLatch *latch,
-                                 liteCachePageTag *tag);
-
-         INT32 releaseRemovedTags(SHARED_MUTEX *latch,
-                                  UINT32 num,
-                                  liteCachePageTag *tags);
+         INT32 releaseRemovedTag(liteCachePageTag *tag);
       private:                           
          INT32 insertTag(const GLOBAL_PAGE_ID &id,
                          UINT32 pageSize,

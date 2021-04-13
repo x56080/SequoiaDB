@@ -516,7 +516,7 @@ namespace vessel
       else
       {
          slotID = head->firstFreeSlot;
-         
+         wHead->firstFreeSlot = nextFreeSlot;
       }
       wHead->freeSpaceAfterLastSlot -= sizeNeeded;
       wHead->totalFreeSpace -= sizeNeeded;

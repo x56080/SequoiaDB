@@ -39,8 +39,6 @@
 #include "vessel/lcBucket.h"
 #include "ossErr.h"
 #include "ossMem.hpp"
-#include "vessel/storageUnit.h"
-#include "ossLatch.hpp"
 
 namespace engine
 {
@@ -65,7 +63,6 @@ namespace vessel
    }
 
    INT32 lcBucket::ensureTagAndIncUsage(const GLOBAL_PAGE_ID &gpid,
-                                        _ossSpinSLatch *latch,
                                         UINT32 pageSize,
                                         UINT32 minRecycleCount,
                                         lcPageTagHolder &holder,
@@ -78,10 +75,8 @@ namespace vessel
 
       newTagInBucket = FALSE;
       holder.reset(NULL);
-      ossScopedLock guard(latch, EXCLUSIVE);
 
-      getTagAndIncUsage(gpid, NULL, holder);
-      if (holder.valid())
+      if (getTagAndIncUsage(gpid, holder))
       {
          goto done;
       }
@@ -107,12 +102,24 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBucket::releaseRemovedTag(_ossSpinSLatch *latch,
-                                     liteCachePageTag *tag)
+   INT32 lcBucket::releaseRemovedTag(liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
-      ossScopedLock guard(latch, EXCLUSIVE);
+      SDB_ASSERT(NULL != tag, "can not be null");
 
+      if (NULL == tag)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!tag->isRemoved())
+      {
+         SDB_ASSERT(FALSE, "can not release the tag not removed");
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      {
       const GLOBAL_PAGE_ID &id = tag->id();
       _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
       _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
@@ -122,16 +129,14 @@ namespace vessel
          {
             continue;
          }
-         if (!tag->isRemoved())
-         {
-            SDB_ASSERT(FALSE, "tag status is not removed");
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
 
          _tags.erase(lower);
          SDB_OSS_DEL tag;
-         break;
+         goto done;
+      }
+
+      rc = SDB_VESSEL_LC_NOT_IN_POOL;
+      goto error;
       }
       
    done:
@@ -140,15 +145,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 lcBucket::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                    _ossSpinSLatch *latch,
-                                    lcPageTagHolder &holder)
+   BOOLEAN lcBucket::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
+                                       lcPageTagHolder &holder)
    {  
-      if (NULL != latch)
-      {
-         latch->get_shared();
-      }
-
+      BOOLEAN r = FALSE;
       _TAG_MAP_ITERATOR lower = _tags.lower_bound(id);
       _TAG_MAP_ITERATOR upper = _tags.upper_bound(id);
       for (; lower != upper; ++lower)
@@ -157,15 +157,11 @@ namespace vessel
          if (tag->incUsageCnt())
          {
             holder.reset(tag);
+            r = TRUE;
             break;
          }
       }
-
-      if (NULL != latch)
-      {
-         latch->release_shared();
-      }
-      return SDB_OK;
+      return r;
    }
 
    INT32 lcBucket::insertTag(const GLOBAL_PAGE_ID &id,

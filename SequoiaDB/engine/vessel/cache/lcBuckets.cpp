@@ -86,7 +86,7 @@ namespace vessel
          goto error;
       }
 
-      _latches = SDB_OSS_NEW _ossSpinSLatch[latchCount];
+      _latches = SDB_OSS_NEW _ossSpinXLatch[latchCount];
       if (NULL == _latches)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
@@ -131,27 +131,28 @@ namespace vessel
                                          lcPageTagHolder &holder,
                                          BOOLEAN &newTagInBucket)
    {
-      ossSpinSLatch *latch = NULL;
+      ossSpinXLatch *latch = NULL;
       lcBucket *bucket = NULL;
       getBucketAndLatch(id, latch, bucket);
-      return bucket->ensureTagAndIncUsage(id, latch,
-                                          pageSize, _minRecycleCount,
+      ossScopedLock guard(latch);
+      return bucket->ensureTagAndIncUsage(id, pageSize, _minRecycleCount,
                                           holder, newTagInBucket);
    }
 
-   INT32 lcBuckets::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
-                                      lcPageTagHolder &holder)
+   BOOLEAN lcBuckets::getTagAndIncUsage(const GLOBAL_PAGE_ID &id,
+                                        lcPageTagHolder &holder)
    {
-      ossSpinSLatch *latch = NULL;
+      ossSpinXLatch *latch = NULL;
       lcBucket *bucket = NULL;
       getBucketAndLatch(id, latch, bucket);
-      return bucket->getTagAndIncUsage(id, latch, holder);
+      ossScopedLock guard(latch);
+      return bucket->getTagAndIncUsage(id, holder);
    }
 
    INT32 lcBuckets::releaseRemovedTag(liteCachePageTag *tag)
    {
       INT32 rc = SDB_OK;
-      ossSpinSLatch *latch = NULL;
+      ossSpinXLatch *latch = NULL;
       lcBucket *bucket = NULL;
       if (NULL == tag || tag->id().invalid())
       {
@@ -159,11 +160,13 @@ namespace vessel
          goto error;
       }
 
+      {
       getBucketAndLatch(tag->id(), latch, bucket);
-      rc = bucket->releaseRemovedTag(latch, tag);
+      rc = bucket->releaseRemovedTag(tag);
       if (SDB_OK != rc)
       {
          goto error;
+      }
       }
    done:
       return rc;
@@ -171,16 +174,16 @@ namespace vessel
       goto done;
    } 
 
-   void lcBuckets::getBucketAndLatch(const PHY_EXTENT_ID &id,
-                                    _ossSpinSLatch *&mutex,
+   void lcBuckets::getBucketAndLatch(const GLOBAL_PAGE_ID &id,
+                                    _ossSpinXLatch *&mutex,
                                     lcBucket *&bucket)
    {
-      SDB_ASSERT(ossIsPowerOf2(_bucketCount) && ossIsPowerOf2(_latchCount), "must be power of 2");
+      SDB_ASSERT(NULL != _buckets && NULL != _latches, "can not be null");
       UINT32 hash = id.hash();
       UINT32 bucketNO = hash & (_bucketCount - 1);
       lcBucket &b = _buckets[bucketNO];
       UINT32 latchNO = hash & (_latchCount - 1);
-      _ossSpinSLatch &m = _latches[latchNO];
+      _ossSpinXLatch &m = _latches[latchNO];
       mutex = &m;
       bucket = &b;
       return;

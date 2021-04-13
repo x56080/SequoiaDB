@@ -100,9 +100,8 @@ namespace vessel
       public:
          OSS_INLINE void setStatusAsNormal()
          {
-            _spinLatch.lock();
+            ossSpinGuard guard(&_spinLatch);
             _ts.status = LC_TAG_STATUS_NORMAL;
-            _spinLatch.unlock();
             return;
          }
          OSS_INLINE BOOLEAN testFastFlags(UINT16 flags)

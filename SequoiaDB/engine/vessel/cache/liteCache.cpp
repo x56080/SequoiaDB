@@ -62,7 +62,8 @@ namespace engine
 namespace vessel
 {
    liteCache::liteCache()
-   : _buckets(NULL),
+   :_isOpen(FALSE),
+   _buckets(NULL),
    _lru(NULL),
    _dl(NULL),
    _fl(NULL)
@@ -87,9 +88,10 @@ namespace vessel
          goto error;
       }
 
+      fini();
+
       _options = o;
       correctOptions(_options);
-      fini();
       
       _buckets = SDB_OSS_NEW lcBuckets();
       if (NULL == _buckets)
@@ -152,6 +154,8 @@ namespace vessel
          PD_LOG(PDERROR, "failed to setup lru list:%d", rc);
          goto error;
       }
+
+      _isOpen = TRUE;
    done:
       return rc;
    error:
@@ -162,6 +166,10 @@ namespace vessel
    INT32 liteCache::fini()
    {
       INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         goto done;
+      }
       if (NULL != _dl)
       {
          rc = _dl->fini();
@@ -202,6 +210,8 @@ namespace vessel
       SAFE_OSS_DELETE(_lru);
       SAFE_OSS_DELETE(_buckets);
       SAFE_OSS_DELETE(_fl);
+      _isOpen = FALSE;
+      _options = liteCacheOptions();
 
    done:
       return SDB_OK;
@@ -261,7 +271,6 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       lcPageTagHolder holder;
-      UINT32 pageSize = 0;
       ossValuePtr ptr = 0;
       storageUnit *su = NULL;
       BOOLEAN newTagInBucket = FALSE;
@@ -273,50 +282,31 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-
-      rc = _buckets->getTagAndIncUsage(gpid, holder);
-      if (SDB_OK != rc)
+      else if (OSS_UNLIKELY(!isOpen()))
       {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
-      if (holder.valid())
-      {
-         rc = initTupleBeforeReturn(holder, options, tuple);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-         goto done;
-      }
-      
       if (ONLY_IF_IN_POOL == options.mode)
       {
-         rc = SDB_VESSEL_LC_NOT_IN_POOL;
-         goto error;
+         if (_buckets->getTagAndIncUsage(gpid, holder))
+         {
+            rc = initTupleBeforeReturn(holder, options, tuple);
+            if (SDB_OK != rc)
+            {
+               goto error;
+            }
+            goto done;
+         }
+         else
+         {
+            rc = SDB_VESSEL_LC_NOT_IN_POOL;
+            goto error;
+         }
       }
 
-      rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &su);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = su->getCoreArgs(gpid.type(), &pageSize);
-      if (OSS_UNLIKELY(SDB_OK != rc))
-      {
-         goto error;
-      }
-
-      rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "failed to get page ptr of [%s], rc:%d",
-                gpid.toString().c_str(), rc);
-         goto error;
-      }
-
-      rc = _buckets->ensureTagAndIncUsage(gpid, pageSize,
+      rc = _buckets->ensureTagAndIncUsage(gpid, _fl->getPageSize(),
                                           holder, newTagInBucket);
       if (SDB_OK != rc)
       {
@@ -326,7 +316,21 @@ namespace vessel
       if (newTagInBucket)
       {
          SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
-         rc = loadDataFromDisk(context, pageSize, ptr, holder);
+         rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &su);
+         if (OSS_UNLIKELY(SDB_OK != rc))
+         {
+            goto error;
+         }
+
+         rc = su->getPagePtr(gpid.type(), gpid.page(), ptr);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get page ptr of [%s], rc:%d",
+                  gpid.toString().c_str(), rc);
+            goto error;
+         }
+
+         rc = loadDataFromDisk(context, holder.tag()->getPageSize(), ptr, holder);
          if (SDB_OK != rc)
          {
             holder.tag()->decUsageCnt();
@@ -387,6 +391,10 @@ namespace vessel
       else if (OSS_UNLIKELY(DPS_INVALID_LSN_OFFSET == lsn))
       {
          PD_LOG(PDERROR, "commit invalid lsn");
+         goto done;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
          goto done;
       }
 
