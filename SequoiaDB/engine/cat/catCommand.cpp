@@ -1681,9 +1681,17 @@ namespace engine
       BOOLEAN hasConflictTask = FALSE ;
 
       // query tasks
-      matcher = BSON( FIELD_NAME_NAME << _pCollection <<
-                      CAT_STATUS_NAME << BSON( "$ne" <<
-                                               CLS_TASK_STATUS_FINISH ) ) ;
+      if ( _pCataSet->isMainCL() )
+      {
+         matcher = BSON( FIELD_NAME_STATUS <<
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+      }
+      else
+      {
+         matcher = BSON( FIELD_NAME_NAME << _pCollection <<
+                         FIELD_NAME_STATUS <<
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+      }
 
       rc = rtnQuery( CAT_TASK_INFO_COLLECTION,
                      dummyObj, matcher, dummyObj, dummyObj,
