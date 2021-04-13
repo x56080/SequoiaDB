@@ -2676,21 +2676,28 @@ namespace engine
       }
 
       // set first resultCode
-      if ( CLS_TASK_CREATE_IDX == _taskType &&
-           cntRedefineIdx == cntTotalGroup )
+      if ( cntTotalGroup != 0 )
       {
-         // if all groups return -247 error, DO NOT ignore error
-         firstResultCode = SDB_IXM_REDEF ;
-      }
-      else if ( CLS_TASK_DROP_IDX == _taskType &&
-                cntNotExistIdx == cntTotalGroup )
-      {
-         // if all groups return -47 error, DO NOT ignore error
-         firstResultCode = SDB_IXM_NOTEXIST ;
+         if ( CLS_TASK_CREATE_IDX == _taskType &&
+              cntRedefineIdx == cntTotalGroup )
+         {
+            // if all groups return -247 error, DO NOT ignore error
+            firstResultCode = SDB_IXM_REDEF ;
+         }
+         else if ( CLS_TASK_DROP_IDX == _taskType &&
+                   cntNotExistIdx == cntTotalGroup )
+         {
+            // if all groups return -47 error, DO NOT ignore error
+            firstResultCode = SDB_IXM_NOTEXIST ;
+         }
       }
 
       // switch status
-      if ( CLS_TASK_STATUS_READY == _status )
+      if ( 0 == cntTotalGroup )
+      {
+         setFinish() ;
+      }
+      else if ( CLS_TASK_STATUS_READY == _status )
       {
          setRun() ;
       }
@@ -2771,17 +2778,24 @@ namespace engine
       }
 
       // set first resultCode
-      if ( cntRedefineIdx == cntTotal )
+      if ( cntTotal != 0 )
       {
-         firstResultCode = SDB_IXM_REDEF ;
-      }
-      else if ( cntNotExistIdx == cntTotal )
-      {
-         firstResultCode = SDB_IXM_NOTEXIST ;
+         if ( cntRedefineIdx == cntTotal )
+         {
+            firstResultCode = SDB_IXM_REDEF ;
+         }
+         else if ( cntNotExistIdx == cntTotal )
+         {
+            firstResultCode = SDB_IXM_NOTEXIST ;
+         }
       }
 
       // switch status
-      if ( CLS_TASK_STATUS_READY == _status )
+      if ( 0 == cntTotal )
+      {
+         setFinish() ;
+      }
+      else if ( CLS_TASK_STATUS_READY == _status )
       {
          setRun() ;
       }
