@@ -556,6 +556,9 @@ namespace engine
          //       to synchronize hardware time, it means that logical time is
          //       unavailable for STP agent
          _syncHWTime.adjust( -1 * syncOffset ) ;
+
+         PD_LOG( PDEVENT, "Push synchronize time to [%llu]",
+                 _syncHWTime.toMicroSecond() ) ;
       }
 
       PD_TRACE_EXIT( SDB__STPMETADATA_ADJUSTLOGICALTIME ) ;

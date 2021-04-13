@@ -271,7 +271,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to send reply for command [%s], "
-                 "rc: %d", command->getName(), rc ) ;
+                 "rc: %d", commandName, rc ) ;
       }
 
    done:
@@ -280,6 +280,12 @@ namespace engine
          // release command
          stpReleaseCommand( command ) ;
       }
+
+      if ( NULL != commandName )
+      {
+         PD_LOG( PDEVENT, "Done command [%s], rc: %d", commandName, rc ) ;
+      }
+
       PD_TRACE_EXITRC( SDB__STPSESSION__HANDLEQUERYREQ, rc ) ;
       return rc ;
 
