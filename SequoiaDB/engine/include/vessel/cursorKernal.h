@@ -39,6 +39,7 @@
 #include "vessel/vesselOptions.h"
 #include "vessel/slice.h"
 #include "utilPooledObject.hpp"
+#include <initializer_list>
 
 namespace engine
 {
@@ -78,9 +79,14 @@ namespace vessel
          ///return SDB_VESSEL_END_OF_CURSOR when hit the end.
          INT32 getNext(ISession *session, slice &content);
          
+         /// push complete data
          INT32 push(const slice &content);
          INT32 push(UINT32 len, const CHAR *data);
-         INT32 pushEnd();
+         /// push one record with multi memory fragments
+         INT32 pushFragments(std::initializer_list<std::pair<UINT32, const CHAR *>> il);
+
+         /// mark cursor as SDB_VESSEL_END_OF_CURSOR
+         void pushEnd();
 
          ///WARNING: At any time, you must check the rc code of "push" when "hasNoSpaceToPush" return FALSE.
          BOOLEAN hasNoSpaceToPush(UINT32 size)const;

@@ -235,6 +235,51 @@ namespace vessel
       return push(content.len(), content.data());
    }
 
+   INT32 cursorKernal::pushFragments(std::initializer_list<std::pair<UINT32, const CHAR *>> il)
+   {
+      INT32 rc = SDB_OK;
+      UINT32 len = 0;
+      if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      for (auto i = il.begin(); i != il.end(); ++i)
+      {
+         if (0 == i->first || NULL == i->second)
+         {
+            SDB_ASSERT(FALSE, "invalid fragment");
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+         len += i->first;
+      }
+
+      rc = allocateSpaceForPushing(len);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      *((UINT32 *)(_buf + _usedBufSize)) = len;
+      _usedBufSize += sizeof(UINT32);
+      for (auto i = il.begin(); i != il.end(); ++i)
+      {
+         ossMemcpy(_buf + _usedBufSize, i->second, i->first);
+         _usedBufSize += i->first;
+      }
+      ++_totalSliceInBuf;
+      if (NULL == _nextSlice)
+      {
+         _nextSlice = _buf;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 cursorKernal::allocateSpaceForPushing(UINT32 dataLen)
    {
       INT32 rc = SDB_OK;
@@ -280,23 +325,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 cursorKernal::pushEnd()
+   void cursorKernal::pushEnd()
    {
-      INT32 rc = SDB_OK;
       if (OSS_LIKELY(isOpen()))
       {
          OSS_BIT_SET(_flags, CURSOR_FLAG_NO_MORE_PUSHING);
       }
-      else
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    BOOLEAN cursorKernal::hasNoSpaceToPush(UINT32 size)const

@@ -57,6 +57,9 @@ namespace vessel
    class collectionSpace;
    class requestContext;
    class insertContext;
+   class scanCLCursor;
+   class scanCLContext;
+   class IQueryFilter;
    
    class collection: public SDBObject
    {
@@ -110,6 +113,22 @@ namespace vessel
                       STRIPING_ID striping,
                       const insertOptions *options,
                       utilInsertResult &res);
+
+         INT32 getMoreWhenScan(scanCLContext *context,
+                               scanCLCursor *cursor);
+
+         INT32 getRecordCount(requestContext *context,
+                              IQueryFilter *filter,
+                              UINT64 &count);
+
+      private:
+         INT32 getMoreFromSeqInCursor(scanCLContext *context,
+                                      scanCLCursor *cursor);
+
+         INT32 getRecordCountOfPage(requestContext *context,
+                                    PAGE_ID lpid,
+                                    IQueryFilter *filter,
+                                    UINT32 &count);
 
       private:
          INT32 insertNonBigRecord(insertContext *context);

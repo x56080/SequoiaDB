@@ -47,58 +47,60 @@ namespace engine
 {
 namespace vessel
 {
-   void listCollectionsHandler::fini()
-   {
-      if (_context.isOpen())
-      {
-         _context.close();
-      }
-   }
-
    INT32 listCollectionsHandler::doit(listCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
       collectionSpace *obj = NULL;
       SDB_ASSERT(NULL != cursor, "can not be null");
-      CS_CONTAINER &cc = getEnv()->csContainer;
       SPACE_ID sid = INVALID_SPACE_ID;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
-      BOOLEAN locked = FALSE;
+      requestContext context;
 
       if (OSS_UNLIKELY(NULL == cursor || !cursor->isOpen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(getSession(), getEnv(), getOuterResource());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
 
       sid = cursor->getSpaceID();
       logicalID = cursor->getCSLogicalID();
 
-      rc = getContext()->lockSpaceID(sid, SHARED);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      locked = TRUE;
-
-      rc = cc.getCSByLockedSpaceID(getContext(), logicalID, &obj);
+      rc = context.lockSpaceID(sid, SHARED);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = obj->listCollections(getContext(), cursor);
+      rc = getEnv()->csContainer.getCSByLockedSpaceID(&context, logicalID, &obj);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = obj->listCollections(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;
       }
       
    done:
-      if (locked)
+      if (NULL != obj)
       {
-         getContext()->unlockSpaceID();
+         context.unlockSpaceID();
       }
+      context.close();
       return rc;
    error:
       goto done;

@@ -50,10 +50,7 @@ namespace vessel
    {
       public:
          openCLHandler(){}
-         virtual ~openCLHandler()
-         {
-            fini();
-         }
+         virtual ~openCLHandler(){}
 
       public:
          INT32 doit(vesselImpl *db,
@@ -61,16 +58,6 @@ namespace vessel
                     const strSlice &clName,
                     const openCLOptions &options,
                     collectionHandler &clHandler);
-
-         virtual void fini();
-      protected:
-         virtual requestContext *getContext()
-         {
-            return &_context;
-         } 
-
-      private:
-         requestContext _context;
    };//class openCLHandler
 }//namespace vessel
 }//namespace engine

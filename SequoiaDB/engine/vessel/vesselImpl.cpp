@@ -48,6 +48,7 @@
 #include "vessel/listCLCursor.h"
 #include "vessel/diskIOJob.h"
 #include "vessel/cursorKernal.h"
+#include "vessel/scanCLCursor.h"
 
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -107,16 +108,16 @@ namespace vessel
          goto error;
       }
 
+      rc = _env.cache.init(DMS_PAGE_SIZE32K, options.cacheOptions);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
       rc = _env.csContainer.open(&context);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to open space container:%d", rc);
-         goto error;
-      }
-
-      rc = _env.cache.init(options.cacheOptions, &(_env.csContainer));
-      if (SDB_OK != rc)
-      {
          goto error;
       }
 
@@ -247,7 +248,6 @@ namespace vessel
       }
 
    done:
-      handler.fini();
       return rc;
    error:
       goto done;
@@ -307,7 +307,6 @@ namespace vessel
       }
 
    done:
-      handler.fini();
       return rc;
    error:
       goto done;
@@ -479,8 +478,6 @@ namespace vessel
             goto error;
          }
 
-         handler.fini();
-
          break;
       }
       case CURSOR_TYPE_LIST_COLLECTION:
@@ -497,13 +494,22 @@ namespace vessel
          {
             goto error;
          }
-
-         handler.fini();
          break;
       }
       case CURSOR_TYPE_SCAN_COLLECTION:
       {
-         
+         scanCLHandler handler;
+         rc = handler.init(&_env, session, &_outerResource);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         rc = handler.doit(static_cast<scanCLCursor*>(cursor));
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
          break;
       }
       default:
@@ -545,6 +551,42 @@ namespace vessel
       }
 
       rc = handler.doit(handle, record, transID, striping, options, res);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 vesselImpl::getRecordCount(ISession *session,
+                                    const collectionHandle &handle,
+                                    IQueryFilter *filter,
+                                    UINT64 &count)
+   {
+      INT32 rc = SDB_OK;
+      countCLHandler handler;
+
+      if (OSS_UNLIKELY(NULL == session))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = handler.init(&_env, session, &_outerResource);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = handler.doit(handle, filter, count);
       if (SDB_OK != rc)
       {
          goto error;

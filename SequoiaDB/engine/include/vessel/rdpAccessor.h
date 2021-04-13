@@ -53,6 +53,8 @@ namespace vessel
 {
    class logRecordContext;
    class insertContext;
+   class scanCLCursor;
+   class scanCLContext;
 
    class rdpAccessor : public pageAccessor
    {
@@ -62,13 +64,18 @@ namespace vessel
       public:
          INT32 initRdp(requestContext *context,
                        PAGE_ID lpid,
-                       UINT32 logicalID,
-                       UINT32 sequence);
+                       UINT32 logicalID);
 
          INT32 insertNormalRecord(insertContext *context);
 
          INT32 getRdpPageHead(requestContext *context,
                               recordDataPageHead &head);
+
+         INT32 getMoreWhenScan(scanCLContext *context,
+                               scanCLCursor *cursor);
+
+         INT32 getRecordCount(requestContext *context,
+                              UINT32 &count);
 
          virtual PAGE_TYPE getPageType()const
          {
@@ -76,6 +83,21 @@ namespace vessel
          }
       private:
          INT32 validatePage(UINT32 logicalID);
+         OSS_INLINE UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize)
+         {
+            return RDP_RECORD_HEAD_LEN + ossAlign4(recordSize);
+         }
+
+      private:
+         INT32 readRecordInSlot(scanCLContext *context,
+                                RECORD_SLOT_ID slotID,
+                                const recordSlot &slot,
+                                scanCLCursor *cursor);
+
+         INT32 readNormalRecord(scanCLContext *context,
+                                RECORD_SLOT_ID slotID,
+                                const recordHead *head,
+                                scanCLCursor *cursor);
 
       private:
          INT32 insertWithNormalRecordHead(insertContext *context,
@@ -86,12 +108,14 @@ namespace vessel
                                   BOOLEAN &needReorg);
       private:
          INT32 getSlot(RECORD_SLOT_ID slotID, recordSlot &slot);
-         INT32 writeSlot(RECORD_SLOT_ID slotID,
-                         const recordSlot &slot);
-         UINT32 getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize);
-         INT32 findFreeSlot(const recordDataPageHead *head,
-                            RECORD_SLOT_ID &slotID);
+         INT32 writeSlot(RECORD_SLOT_ID slotID, const recordSlot &slot);
+
          UINT32 getNonFreeBeginOffet(const recordDataPageHead *head);
+
+         ///WARNING: May return invalid slot id. Which means
+         /// not any more free slot exists.
+         INT32 findNextFreeSlot(const recordDataPageHead *head,
+                                RECORD_SLOT_ID &slotID);
 
          void updateMinMaxStriping(recordDataPageHead *head,
                                    STRIPING_ID striping);

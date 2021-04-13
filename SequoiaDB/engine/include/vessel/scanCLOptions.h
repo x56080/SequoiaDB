@@ -48,8 +48,6 @@ namespace vessel
       public:
          TRANS_ISOLATION_LEVEL transLvl = TRANS_ISOLATION_RU;
          DPS_TRANS_ID transID;
-         INT64 offset = -1;
-         INT64 limit = -1;
    };//class scanCLOptions
 }//namespace vessel
 }//namespace engine

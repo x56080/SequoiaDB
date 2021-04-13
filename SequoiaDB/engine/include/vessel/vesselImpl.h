@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -101,22 +98,22 @@ namespace vessel
 
       public:
          virtual INT32 pushMoreToCursor(ISession * session,
-                                cursorKernal *cursor);
+                                        cursorKernal *cursor);
 
-         virtual INT32 insert(ISession *session,
+         INT32 insert(ISession *session,
+                      const collectionHandle &handle,
+                      const recordData &record,
+                      const DPS_TRANS_ID &transID,
+                      STRIPING_ID striping,
+                      const insertOptions *options,
+                      utilInsertResult &res);
+
+         INT32 getRecordCount(ISession *session,
                               const collectionHandle &handle,
-                              const recordData &record,
-                              const DPS_TRANS_ID &transID,
-                              STRIPING_ID striping,
-                              const insertOptions *options,
-                              utilInsertResult &res);
+                              IQueryFilter *filter,
+                              UINT64 &count);
       private:
-
-         INT32 initObjectContainer(ISession *session);
-
          INT32 flushWholeDirtyList(requestContext *context);
-
-
       private:
          BOOLEAN _open;
          instanceEnv _env;

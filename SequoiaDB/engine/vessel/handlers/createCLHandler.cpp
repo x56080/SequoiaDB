@@ -51,15 +51,7 @@ namespace vessel
 
    createCLHandler::~createCLHandler()
    {
-      fini();
-   }
-
-   void createCLHandler::fini()
-   {
-      if (_context.isOpen())
-      {
-         _context.close();
-      }
+      
    }
 
    INT32 createCLHandler::doit(const strSlice &csName,
@@ -69,9 +61,8 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
-      CS_CONTAINER &cc = getEnv()->csContainer;
       collectionSpace *csObj = NULL;
-      BOOLEAN locked = FALSE;
+      requestContext context;
 
       rc = validateOptions(csName, clName, options);
       if (SDB_OK != rc)
@@ -79,23 +70,35 @@ namespace vessel
          goto error;
       }
 
-      rc = cc.getCSByName(getContext(), csName, SHARED, &csObj);
+      if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(getSession(), getEnv(), getOuterResource());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.getCSByName(&context, csName, SHARED, &csObj);
       if (SDB_OK != rc)
       {
          goto error;
       }
-      locked = TRUE;
 
-      rc = csObj->createCL(getContext(), clName, innerID, options);
+      rc = csObj->createCL(&context, clName, innerID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
-      if (locked)
+      if (NULL != csObj)
       {
-         getContext()->unlockSpaceID();
+         context.unlockSpaceID();
       }
+      context.close();
       return rc;
    error:
       goto done;

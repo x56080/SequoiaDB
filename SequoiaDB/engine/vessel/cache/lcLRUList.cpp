@@ -83,27 +83,6 @@ namespace vessel
          goto error;
       }
 
-      if (o.lruColdPercent < 0.1 || o.lruColdPercent > 0.9)
-      {
-         o.lruColdPercent = 0.4;
-      }
-      else if (o.lruMinSplitSize < 512)
-      {
-         o.lruMinSplitSize = 512;
-      }
-      else if (o.lruScanDepth < 128)
-      {
-         o.lruScanDepth = 128;
-      }
-      else if (o.lruMaxScanPercent < 0.4)
-      {
-         o.lruMaxScanPercent = 0.4;
-      }
-      else if (o._lruColdMistakeTolerance > 512 * 0.1)
-      {
-         o._lruColdMistakeTolerance = 10;
-      }
-
       _options = o;
       _buckets = buckets;
       _fl = fl;

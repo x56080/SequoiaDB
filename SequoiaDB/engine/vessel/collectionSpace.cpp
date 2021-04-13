@@ -317,6 +317,26 @@ namespace vessel
       return INVALID_SPACE_ID;
    }
 
+   INT32 collectionSpace::getDataPageSize(UINT32 &pageSize)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(NULL == _su))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    INT32 collectionSpace::createCL(requestContext *context,
                                    const strSlice &clName, 
                                    utilCLInnerID clInnerId,

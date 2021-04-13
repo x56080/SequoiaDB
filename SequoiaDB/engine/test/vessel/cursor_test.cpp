@@ -109,7 +109,7 @@ class test_vessel : public vesselImpl
 };
 
 
-TEST(cursortest, tes1)
+TEST(cursortest, test1)
 {
    cursorOptions options;
    CHAR buf[1020] = {0};
@@ -123,7 +123,7 @@ TEST(cursortest, tes1)
    rc = cursor.open(&db, NULL, NULL);
    ASSERT_EQ(SDB_OK, rc);
 
-   for (UINT32 i = 0; i < 32; ++i)
+   for (UINT32 i = 0; i < 64; ++i)
    {
       rc = cursor.push(src);
       ASSERT_EQ(SDB_OK, rc);
@@ -132,7 +132,7 @@ TEST(cursortest, tes1)
    rc = cursor.push(src);
    ASSERT_EQ(SDB_VESSEL_CURSOR_NO_SPACE, rc);
 
-   for (UINT32 i = 0; i < 32; ++i)
+   for (UINT32 i = 0; i < 64; ++i)
    {
       rc = cursor.getNext(&session, content);
       ASSERT_EQ(SDB_OK, rc);
@@ -145,7 +145,7 @@ TEST(cursortest, tes1)
    ASSERT_EQ(SDB_OK, rc);
 }
 
-TEST(cursortest, tes2)
+TEST(cursortest, test2)
 {
    cursorOptions options;
    options.initBufSize = 1024;

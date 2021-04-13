@@ -40,19 +40,12 @@
 #include "vessel/recordData.h"
 #include "vessel/spaceIDLockHelper.h"
 #include "vessel/insertOptions.h"
+#include "vessel/insertContext.h"
 
 namespace engine
 {
 namespace vessel
 {
-   void insertHandler::fini()
-   {
-      if (_context.isOpen())
-      {
-         _context.close();
-      }
-   }
-
    INT32 insertHandler::doit(const collectionHandle &handle,
                               const recordData &record,
                               const DPS_TRANS_ID &transID,
@@ -63,20 +56,27 @@ namespace vessel
       INT32 rc = SDB_OK;
       collectionSpace *cs = NULL;
       collection *cl = NULL;
+      insertContext context;
 
       if (OSS_UNLIKELY(!isInitialized()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!handle.valid() ||
+      else if (OSS_UNLIKELY(!handle.isValid() ||
                             !record.isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSBySpaceID(getContext(),
+      rc = context.open(getSession(), getEnv(), getOuterResource());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.getCSBySpaceID(&context,
                                                 handle.getSpaceID(),
                                                 handle.getCSLId(),
                                                 SHARED, &cs);
@@ -85,14 +85,14 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getCollectionByMBID(getContext(), handle.getMbId(),
+      rc = cs->getCollectionByMBID(&context, handle.getMbId(),
                                    handle.getCLLId(), SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cl->insert(&_context, record, transID, striping, options, res);
+      rc = cl->insert(&context, record, transID, striping, options, res);
       if (SDB_IXM_DUP_KEY == rc)
       {
          goto error;
@@ -105,12 +105,13 @@ namespace vessel
    done:
       if (NULL != cl)
       {
-         getContext()->unlockMB();
+         context.unlockMB();
       }
       if (NULL != cs)
       {
-         getContext()->unlockSpaceID();
+         context.unlockSpaceID();
       }
+      context.close();
       return rc;
    error:
       goto done;

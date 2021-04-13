@@ -65,7 +65,7 @@ namespace vessel
       public:
          OSS_INLINE UINT32 getPageSize()const
          {
-            return _options.pageSize;
+            return _pageSize;
          }
          OSS_INLINE UINT64 getTotalAllocated()const
          {
@@ -73,7 +73,7 @@ namespace vessel
          }
 
       public:
-         INT32 init(const liteCacheOptions::freeListOptions &options);
+         INT32 init(UINT32 pageSize, const liteCacheOptions::freeListOptions &options);
          INT32 fini();
 
 
@@ -89,6 +89,7 @@ namespace vessel
          INT32 initChunkArray(UINT32 size);
 
       private:
+         UINT32 _pageSize;
          ossSpinXLatch _latch;
          UINT64 _totalAllocated;
          liteCacheOptions::freeListOptions _options;

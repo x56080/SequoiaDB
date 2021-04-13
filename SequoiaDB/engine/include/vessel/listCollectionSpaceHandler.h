@@ -50,23 +50,10 @@ namespace vessel
    {
       public:
          listCollectionSpaceHandler(){}
-         virtual ~listCollectionSpaceHandler()
-         {
-            fini();
-         }
+         virtual ~listCollectionSpaceHandler(){}
 
       public:
          INT32 doit(listCSCursor *cursor);
-
-         virtual void fini();
-
-      protected:
-         virtual requestContext *getContext()
-         {
-            return &_context;
-         }
-      private:
-         requestContext _context;
    };//class listCollectionSpaceHandler
 }//namespace vessel
 }//namespace engine

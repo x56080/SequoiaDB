@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,6 +38,7 @@
 #include "vessel/ISession.h"
 #include "vessel/requestContext.h"
 #include "vessel/instanceEnv.h"
+#include "vessel/outerResource.h"
 
 namespace engine
 {
@@ -53,30 +51,29 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(NULL == env ||
                        NULL == session ||
-                       NULL == resource))
+                       NULL == resource ||
+                       !resource->isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(isInitialized()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else
-      {
-         requestContext *context = getContext();
-         SDB_ASSERT(NULL != context, "can not be null");
-         rc = context->open(session, env, resource);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
+      
+      _env = env;
+      _session = session;
+      _outerResource = resource;
    done:
       return rc;
    error:
       goto done;
+   }
+
+   BOOLEAN requestHandler::isInitialized()const
+   {         
+      return NULL != _env &&
+             NULL != _session &&
+             NULL != _outerResource &&
+             _outerResource->isValid();
+         
    }
 }//namespace vessel
 }//namespace engine

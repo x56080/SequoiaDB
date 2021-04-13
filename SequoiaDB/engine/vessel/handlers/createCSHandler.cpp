@@ -56,15 +56,7 @@ namespace vessel
 
    createCSHandler::~createCSHandler()
    {
-      fini();
-   }
 
-   void createCSHandler::fini()
-   {
-      if (_context.isOpen())
-      {
-         _context.close();
-      }
    }
 
    INT32 createCSHandler::doit(const CHAR *name,
@@ -73,12 +65,24 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
-      CS_CONTAINER &cc = getContext()->getEnv()->csContainer;
+
+      requestContext context;
       strSlice nameSlice;
 
       if (OSS_UNLIKELY(NULL == name))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(getSession(), getEnv(), getOuterResource());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
          goto error;
       }
 
@@ -89,12 +93,13 @@ namespace vessel
          goto error;
       }
 
-      rc = cc.createCS(getContext(), nameSlice, uniqueID, options);
+      rc = getEnv()->csContainer.createCS(&context, nameSlice, uniqueID, options);
       if (SDB_OK != rc)
       {
          goto error;
       }
    done:
+      context.close();
       return rc;
    error:
       goto done;
@@ -103,15 +108,9 @@ namespace vessel
    INT32 createCSHandler::validateOptions(const strSlice &name, const createCSOptions &options)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(name.empty()))
+      if (name.empty() || DMS_COLLECTION_SPACE_NAME_SZ < name.strLen())
       {
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-      rc = dmsCheckCSName(name.str(), options.isSystemCS());
-      if (SDB_OK != rc)
-      {
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid cs name: %s", name.str());
          goto error;
       }
 
@@ -119,14 +118,15 @@ namespace vessel
           DMS_PAGE_SIZE64K != options.dataPageSize)
       {
          rc = SDB_INVALIDARG;
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid page size of data file:%d", options.dataPageSize);
+         PD_LOG(PDERROR,"invalid page size of data file:%d", options.dataPageSize);
          goto error;
       }
 
-      if (0 == options.dataPageCountPerSegment)
+      if (0 == options.dataPageCountPerSegment ||
+          !ossIsPowerOf2(options.dataPageCountPerSegment))
       {
          rc = SDB_INVALIDARG;
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid dataPageCountPerSegment of data file:%d", options.dataPageCountPerSegment);
+         PD_LOG(PDERROR, "invalid dataPageCountPerSegment of data file:%d", options.dataPageCountPerSegment);
          goto error;
       }
 
@@ -136,14 +136,29 @@ namespace vessel
           DMS_PAGE_SIZE8K != options.idxPageSize)
       {
          rc = SDB_INVALIDARG;
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid index pagesize:%d", options.idxPageSize);
+         PD_LOG(PDERROR, "invalid index pagesize:%d", options.idxPageSize);
          goto error;
       }
 
-      if (0 == options.idxPageCountPerSegment)
+      if (0 == options.idxPageCountPerSegment ||
+          !ossIsPowerOf2(options.idxPageCountPerSegment))
       {
          rc = SDB_INVALIDARG;
-         LOG_ERR_AND_REPORT(getContext(), rc, "invalid idxPageCountPerSegment of data file:%d", options.idxPageCountPerSegment);
+         PD_LOG(PDERROR, "invalid idxPageCountPerSegment of data file:%d", options.idxPageCountPerSegment);
+         goto error;
+      }
+
+      if (0 == options.maxDataFileCount)
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid maxDataFileCount:%d", options.maxDataFileCount);
+         goto error;
+      }
+
+      if (0 == options.maxIdxFileCount)
+      {
+         rc = SDB_INVALIDARG;
+         PD_LOG(PDERROR, "invalid maxDataFileCount:%d", options.maxIdxFileCount);
          goto error;
       }
    done:

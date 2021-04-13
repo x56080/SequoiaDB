@@ -58,6 +58,8 @@
 #include "vessel/routePage.h"
 #include "vessel/routePageAccessor.h"
 #include "vessel/rdpAccessor.h"
+#include "vessel/scanCLCursor.h"
+#include "vessel/scanCLContext.h"
 
 namespace engine
 {
@@ -342,6 +344,207 @@ namespace vessel
    done:
       return rc;
    error:
+      goto done;
+   }
+
+   INT32 collection::getRecordCount(requestContext *context,
+                                    IQueryFilter *filter,
+                                    UINT64 &count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      count = 0;
+      ISession *session = context->getSession();
+      const static UINT32 _QUIT_CHECK = 16 - 1;
+
+      for (UINT32 i = 0; i < _pageCntInRoutePages; ++i)
+      {
+         PAGE_ID lpid = INVALID_PAGE_ID;
+         UINT32 cnt = 0;
+         if (0 == (i & _QUIT_CHECK))
+         {
+            if (session->quit())
+            {
+               rc = SDB_APP_INTERRUPT;
+               goto error;
+            }
+         }
+
+         rc = getLpidBySequence(context, i, lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = getRecordCountOfPage(context, lpid, filter, cnt);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         count += cnt;
+      }
+   done:
+      return rc;
+   error:
+      count = 0;
+      goto done;
+   }
+
+   INT32 collection::getMoreWhenScan(scanCLContext *context,
+                                     scanCLCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context, "can not be null");
+      SDB_ASSERT(NULL != cursor, "can not be null");
+      SDB_ASSERT(cursor->isOpen(), "must be open");
+      SDB_ASSERT(cursor->getHandle().getCLLId() == _record.logicalCLID, "must be same");
+
+      do
+      {
+         if (_pageCntInRoutePages <= cursor->getPageSeq())
+         {
+            cursor->pushEnd();
+            goto done;
+         }
+
+         rc = getMoreFromSeqInCursor(context, cursor);
+         if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+         {
+            rc = SDB_OK;
+            goto done;
+         }
+         else if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get more from seq saved:%d", rc);
+            goto error;
+         }
+
+         cursor->incPageSeqAndResetRid();
+
+      } while(TRUE);
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 collection::getRecordCountOfPage(requestContext *context,
+                                          PAGE_ID lpid,
+                                          IQueryFilter *filter,
+                                          UINT32 &count)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+
+      PAGE_ID pid = INVALID_PAGE_ID;
+      lpidLockHelper lh;
+      rdpAccessor accessor;
+
+      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get lock of lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lpid, pid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _collectionSpace->getSU());
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      if (NULL == filter)
+      {
+         rc = accessor.getRecordCount(context, count);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get record count of page[%d], rc:%d", lpid, rc);
+            goto error;
+         }
+      }
+      else
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+      accessor.fini(context);
+      lh.unlock();
+   done:
+      return rc;
+   error:
+      accessor.fini(context);
+      lh.unlock();
+      count = 0;
+      goto done;
+   }
+
+   INT32 collection::getMoreFromSeqInCursor(scanCLContext *context,
+                                            scanCLCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != _collectionSpace, "can not be null");
+      rdpAccessor accessor;
+      PAGE_ID lpid = INVALID_PAGE_ID;
+      PAGE_ID pid = INVALID_PAGE_ID;
+      lpidLockHelper lh;
+      lpid = cursor->getLpid();
+
+      if (INVALID_PAGE_ID == lpid)
+      {
+         rc = getLpidBySequence(context, cursor->getPageSeq(), lpid);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lpid of seq[%d], rc:%d",
+                   cursor->getPageSeq(), rc);
+            goto error;
+         }
+
+         cursor->setLpid(lpid);
+      }
+
+      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, SHARED);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = _collectionSpace->getDataPhyPidInIdMapToRead(context, lpid, pid);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get phy pid of lpid[%d], rc:%d", lpid, rc);
+         goto error;
+      }
+
+      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid,
+                         0, _collectionSpace->getSU());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         PD_LOG(PDERROR, "failed to init accessor of pid[%d], rc:%d", pid, rc);
+         goto error;
+      }
+
+      rc = accessor.getMoreWhenScan(context, cursor);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      accessor.fini(context);
+   done:
+      return rc;
+   error:
+      accessor.fini(context);
       goto done;
    }
 
@@ -855,7 +1058,6 @@ namespace vessel
       UINT32 pageSize = 0;
       ossValuePtr ptr = 0;
       storageUnit *su = NULL;
-      CL_PAGE_SEQ first = _pageCntInRoutePages;
       rdpAccessor accessor;
 
       su = _collectionSpace->getSU();
@@ -889,7 +1091,7 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.initRdp(context, lpids[i], _record.logicalCLID, first++);
+         rc = accessor.initRdp(context, lpids[i], _record.logicalCLID);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init record data page[%d], rc:%d", pids[i], rc);

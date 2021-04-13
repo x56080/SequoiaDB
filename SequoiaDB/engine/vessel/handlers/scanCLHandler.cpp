@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = openCLHandler.cpp
+   Source File Name = scanCLHandler.cpp
 
    Descriptive Name =
 
@@ -33,30 +33,32 @@
 
 ******************************************************************************/
 
-#include "vessel/openCLHandler.h"
-#include "vessel/instanceEnv.h"
-#include "vessel/collection.h"
+#include "vessel/scanCLHandler.h"
+#include "vessel/scanCLCursor.h"
 #include "vessel/collectionSpace.h"
-#include "vessel/collectionHandler.h"
-#include "vessel/spaceIDLockHelper.h"
+#include "vessel/collection.h"
+#include "vessel/instanceEnv.h"
+#include "vessel/scanCLContext.h"
+#include "vessel/scanCLCursor.h"
 
 namespace engine
 {
 namespace vessel
 {
-   INT32 openCLHandler::doit(vesselImpl *db,
-                             const strSlice &csName,
-                             const strSlice &clName,
-                             const openCLOptions &options,
-                             collectionHandler &clHandler)
+   INT32 scanCLHandler::doit(scanCLCursor *cursor)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isInitialized(), "must be inited");
       collectionSpace *cs = NULL;
       collection *cl = NULL;
-      requestContext context;
+      scanCLContext context;
 
-      if (OSS_UNLIKELY(NULL== db))
+      if (OSS_UNLIKELY(NULL == cursor ||
+                       !cursor->isOpen()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!cursor->getHandle().isValid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -67,29 +69,36 @@ namespace vessel
          goto error;
       }
 
-      rc = context.open(getSession(), getEnv(), getOuterResource());
+      rc = context.open(getSession(),
+                        getEnv(),
+                        getOuterResource());
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
+         PD_LOG(PDERROR, "failed to open context:%d", rc);
          goto error;
       }
 
-      rc = getEnv()->csContainer.getCSByName(&context, csName, SHARED, &cs);
+      rc = getEnv()->csContainer.getCSBySpaceID(&context, cursor->getHandle().getSpaceID(),
+                                                cursor->getHandle().getCSLId(),
+                                                SHARED, &cs);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = cs->getCollectionByName(&context, clName, SHARED, &cl);
+      rc = cs->getCollectionByMBID(&context, cursor->getHandle().getMbId(),
+                                   cursor->getHandle().getCLLId(),
+                                   SHARED, &cl);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      clHandler = collectionHandler(collectionHandle(cs->getLogicalID(),
-                                                     cl->getLogicalID(),
-                                                     cs->getSpaceID(),
-                                                     cl->getMBID()),
-                                    db);
+      rc = cl->getMoreWhenScan(&context, cursor);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
    done:
       if (NULL != cl)
       {

@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -48,6 +45,7 @@ namespace vessel
 {
    class instanceEnv;
    class ISession;
+   class _outerResource;
 
    class requestHandler : public SDBObject
    {
@@ -55,33 +53,36 @@ namespace vessel
          OSS_INLINE requestHandler()
          {}
          virtual ~requestHandler()
-         {}
+         {
+         }
+
+         requestHandler(const requestHandler &o) = delete;
+         requestHandler &operator=(const requestHandler &o) = delete;
 
       public:
          INT32 init(instanceEnv *env,
-                     ISession *session,
-                     outerResource *outer);
+                    ISession *session,
+                    outerResource *outer);
 
-         virtual void fini() = 0;
+         BOOLEAN isInitialized()const;
 
-         OSS_INLINE BOOLEAN isInitialized()
-         {
-            requestContext *context = getContext();
-            return NULL != context && context->isOpen();
-         }
       protected:
          OSS_INLINE instanceEnv *getEnv()
          {
-            return isInitialized() ? getContext()->getEnv() : NULL;
+            return _env;
          }
-
          OSS_INLINE ISession *getSession()
          {
-            return isInitialized() ? getContext()->getSession() : NULL;
+            return _session;
          }
-
-         /// should always return non-null pointer.
-         virtual requestContext *getContext() = 0;
+         OSS_INLINE outerResource *getOuterResource()
+         {
+            return _outerResource;
+         }
+      private:
+         ISession *_session = NULL;
+         instanceEnv *_env = NULL;
+         outerResource *_outerResource = NULL;
          
    };//class requestHandler
 }//namespace vessel

@@ -78,8 +78,7 @@ namespace vessel
          public:
             OSS_INLINE freeListOptions():
             maxChunkCount(128),
-            pageCountInChunk(1024),
-            pageSize(DMS_PAGE_SIZE32K)
+            pageCountInChunk(1024)
             {
 
             }
@@ -91,7 +90,6 @@ namespace vessel
 
             UINT32 maxChunkCount;
             UINT32 pageCountInChunk;
-            UINT32 pageSize;
       };//class freeListOptions
 
       class bucketOptions : public SDBObject
@@ -100,7 +98,7 @@ namespace vessel
             OSS_INLINE bucketOptions():
             bucketCount(16384),
             bucketLatchCount(256),
-            minRecycleCount(20){}
+            minRecycleCount(16){}
 
             UINT32 bucketCount;
             UINT32 bucketLatchCount;
@@ -173,15 +171,6 @@ namespace vessel
          maxIdxFileCount(UINT32(-1))
          {
            
-         }
-
-         OSS_INLINE BOOLEAN isSystemCS()const
-         {
-            return OSS_BIT_TEST(flags, 0x01);
-         }
-         OSS_INLINE void setSystemCS()
-         {
-            OSS_BIT_SET(flags, 0x01);
          }
 
          UINT32 flags;
@@ -285,15 +274,15 @@ namespace vessel
    class cursorOptions : public SDBObject
    {
       public:
-         cursorOptions():
-         maxBufSize(16777216),/// 16MB
-         initBufSize(32768)///32KB
-         {}
+         OSS_INLINE cursorOptions(){}
+         OSS_INLINE ~cursorOptions(){}
 
          ///cursor will try to extend buf only when the buf can not hold at
          /// least one slice.
-         UINT32 maxBufSize;
-         UINT32 initBufSize;
+         UINT32 maxBufSize = 16777216; /// 16MB
+         UINT32 initBufSize = 65536;   /// 64KB
+         UINT64 limit = OSS_UINT64_MAX;
+         UINT64 offset = 0;
    };
 } /// end of namespace vessel
 } /// end of namespace engine

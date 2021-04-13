@@ -131,6 +131,9 @@ namespace vessel
                         const strSlice &clName, 
                         utilCLInnerID clInnerId,
                         const createCLOptions &options);
+
+      public:
+         INT32 getDataPageSize(UINT32 &pageSize);
       public:
          SPACE_ID getSpaceID()const;
 

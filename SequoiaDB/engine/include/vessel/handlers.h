@@ -45,5 +45,7 @@
 #include "vessel/createCLHandler.h"
 #include "vessel/insertHandler.h"
 #include "vessel/openCLHandler.h"
+#include "vessel/scanCLHandler.h"
+#include "vessel/countCLHandler.h"
 
 #endif//VESSEL_HANDLERS_H_

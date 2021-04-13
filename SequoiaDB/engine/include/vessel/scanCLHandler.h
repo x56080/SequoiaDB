@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createCLHandler.h
+   Source File Name = scanCLHandler.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,44 +33,26 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CREATE_CL_HANDLER_H_
-#define VESSEL_CREATE_CL_HANDLER_H_
+#ifndef VESSEL_SCAN_CL_HANDLER_H_
+#define VESSEL_SCAN_CL_HANDLER_H_
 
 #include "vessel/requestHandler.h"
-#include "vessel/requestContext.h"
-#include "vessel/vesselOptions.h"
-#include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createCLHandler : public requestHandler
+   class scanCLCursor;
+   
+   class scanCLHandler : public requestHandler
    {
       public:
-         createCLHandler();
-         virtual ~createCLHandler();
+         scanCLHandler(){}
+         virtual ~scanCLHandler(){}
 
-      public:
-         INT32 doit(const strSlice &csName,
-                    const strSlice &clName,
-                    utilCLInnerID innerID,
-                    const createCLOptions &options);
-
-         INT32 doit(utilCLUniqueID clUniqueID,
-                    const strSlice &clName,
-                    const createCLOptions &options);
-
-      private:
-         INT32 validateOptions(const strSlice &csName,
-                               const strSlice &clName,
-                               const createCLOptions &options);
-         INT32 validateOptions(utilCLUniqueID clUniqueID,
-                              const strSlice &clName,
-                              const createCLOptions &options);
-
-   };//class createCLHandler
+         INT32 doit(scanCLCursor *cursor);
+   };//class scanCLHandler
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_CREATE_CL_HANDLER_H_
+#endif//VESSEL_SCAN_CL_HANDLER_H_

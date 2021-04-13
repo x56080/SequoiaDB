@@ -83,7 +83,7 @@ namespace vessel
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return _handle.valid() && NULL != _db;
+            return _handle.isValid() && NULL != _db;
          }
          OSS_INLINE void close()
          {
@@ -100,6 +100,12 @@ namespace vessel
                       const insertOptions *options,
                       utilInsertResult &res);
 
+         INT32 getRecordCount(ISession *session,
+                              IQueryFilter *filter,
+                              UINT64 &count);
+
+         /// The release of cursor is not related to handler.
+         /// You can call their "close" functions in any order.
          INT32 openScanCursor(ISession *session,
                               IQueryFilter *filter,
                               const scanCLOptions *scanOptions,

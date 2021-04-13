@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = createCLHandler.h
+   Source File Name = scanCLContext.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,44 +33,42 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_CREATE_CL_HANDLER_H_
-#define VESSEL_CREATE_CL_HANDLER_H_
+#ifndef VESSEL_SCAN_CL_CONTEXT_H_
+#define VESSEL_SCAN_CL_CONTEXT_H_
 
-#include "vessel/requestHandler.h"
 #include "vessel/requestContext.h"
-#include "vessel/vesselOptions.h"
-#include "vessel/strSlice.h"
+#include "vessel/recordID.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createCLHandler : public requestHandler
+   class scanCLContext : public requestContext
    {
       public:
-         createCLHandler();
-         virtual ~createCLHandler();
-
+         scanCLContext(){}
+         virtual ~scanCLContext(){}
       public:
-         INT32 doit(const strSlice &csName,
-                    const strSlice &clName,
-                    utilCLInnerID innerID,
-                    const createCLOptions &options);
 
-         INT32 doit(utilCLUniqueID clUniqueID,
-                    const strSlice &clName,
-                    const createCLOptions &options);
-
+         OSS_INLINE void setOverflowed(const recordID &from,
+                                       const recordID &to)
+         {
+            _overflowed = from;
+            _overflowedTo = to;
+         }
+         OSS_INLINE const recordID &getOverflowed()const
+         {
+            return _overflowed;
+         }
+         OSS_INLINE const recordID &getOverflowedTo()const
+         {
+            return _overflowedTo;
+         }
       private:
-         INT32 validateOptions(const strSlice &csName,
-                               const strSlice &clName,
-                               const createCLOptions &options);
-         INT32 validateOptions(utilCLUniqueID clUniqueID,
-                              const strSlice &clName,
-                              const createCLOptions &options);
-
-   };//class createCLHandler
+         recordID _overflowed;
+         recordID _overflowedTo;
+   };//class scanCLContext
 }//namespace vessel
 }//namespace engine
 
-#endif//VESSEL_CREATE_CL_HANDLER_H_
+#endif//VESSEL_SCAN_CL_CONTEXT_H_

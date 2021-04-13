@@ -49,6 +49,7 @@ using namespace engine::vessel;
 using namespace engine;
 
 static const CHAR *DATA_PATH = "/tmp/vessel_test";
+static const CHAR *DIAG_LOG_PATH = "/tmp/vessel_test/diag.log";
 
 class test_session : public ::engine::vessel::ISession
 {

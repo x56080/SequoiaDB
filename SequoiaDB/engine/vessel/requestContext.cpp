@@ -81,7 +81,7 @@ namespace vessel
 
    void requestContext::_close()
    {
-      if (OSS_UNLIKELY(!isOpen()))
+      if (!isOpen())
       {
          goto done;
       }

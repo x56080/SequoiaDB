@@ -47,6 +47,7 @@
 #include "dpsLogRecordDef.hpp"
 #include "vessel/insertContext.h"
 #include "vessel/redoLogUtil.h"
+#include "vessel/scanCLCursor.h"
 
 namespace engine
 {
@@ -54,8 +55,7 @@ namespace vessel
 {
    INT32 rdpAccessor::initRdp(requestContext *context,
                               PAGE_ID lpid,
-                              UINT32 logicalID,
-                              UINT32 sequence)
+                              UINT32 logicalID)
    {
       INT32 rc = SDB_OK;
 
@@ -98,20 +98,11 @@ namespace vessel
          goto error;
       }
 
+      *head = recordDataPageHead();
       head->version = RDP_VERSION;
-      head->totalSlotCount = 0;
-      head->freeSlotCount = 0;
-      head->compressionDicSlot = INVALID_RECORD_SLOT_ID;
       head->clLogcalID = logicalID;
-      head->sequenceID = sequence;
       head->totalFreeSpace = getPageBodySize() - RECORD_PAGE_HEAD_LEN;
       head->freeSpaceAfterLastSlot = head->totalFreeSpace;
-      head->flags = 0;
-      head->minStriping = INVALID_STRIPING_ID;
-      head->maxStriping = INVALID_STRIPING_ID;
-      head->transSN = 0;
-      head->pad0 = 0;
-      head->pad1 = 0;
 
       pageAccessor::commit(context, DPS_INVALID_LSN_OFFSET);
    done:
@@ -182,9 +173,191 @@ namespace vessel
       {
          goto error;
       }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
+   INT32 rdpAccessor::getRecordCount(requestContext *context,
+                                     UINT32 &count)
+   {
+      INT32 rc = SDB_OK;
+      const recordDataPageHead *headPtr = NULL;
+      rc = getReadableUserHeadPtr<recordDataPageHead>(&headPtr);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
 
+      count = headPtr->recordCount;
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
+   INT32 rdpAccessor::getMoreWhenScan(scanCLContext *context,
+                                      scanCLCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != context && NULL != cursor, "can not be null");
+      RECORD_SLOT_ID slot = INVALID_RECORD_SLOT_ID;
+      const recordDataPageHead *head = NULL;
+
+      rc = validatePage(cursor->getHandle().getCLLId());
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to validate page:%d", rc);
+         goto error;
+      }
+
+      rc = getReadableUserHeadPtr<recordDataPageHead>(&head);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get user page head:%d", rc);
+         goto error;
+      }
+
+      slot = INVALID_RECORD_SLOT_ID == cursor->getSlotID() ?
+             0 : cursor->getSlotID() + 1;
+      if (head->totalSlotCount <= slot)
+      {
+         goto done;
+      }
+
+      for (UINT16 i = slot; i < head->totalSlotCount; ++i)
+      {
+         recordSlot rs;
+         rc = getSlot(i, rs);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get slot[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         if (rs.isFree() || rs.skipScanning())
+         {
+            cursor->setSlot(i);
+            continue;
+         }
+
+         rc = readRecordInSlot(context, i, rs, cursor);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+
+         cursor->setSlot(i);
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::readRecordInSlot(scanCLContext *context,
+                                       RECORD_SLOT_ID slotID,
+                                       const recordSlot &slot,
+                                       scanCLCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!slot.isFree() && !slot.skipScanning(), "can not be invalid");
+      UINT8 rhType = slot.getType();
+      ///TODO: rid op latch
+
+      if (RDP_R_HEAD_TYPE_NORMAL == rhType)
+      {
+         const recordHead *head = NULL;
+         rc = getReadPtrOfPageBody<recordHead>(slot.getOffset(), &head);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get record head:%d", rc);
+            goto error;
+         }
+
+         rc = readNormalRecord(context, slotID, head, cursor);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+      else
+      {
+         PD_LOG(PDERROR, "invalid record head type:%d", rhType);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 rdpAccessor::readNormalRecord(scanCLContext *context,
+                                       RECORD_SLOT_ID slotID,
+                                       const recordHead *head,
+                                       scanCLCursor *cursor)
+   {
+      INT32 rc = SDB_OK;
+      slice recordSlice;
+      const CHAR *body = NULL;
+      recordHead pushHead;
+
+      SDB_ASSERT(NULL != head, "can not be null");
+      if (OSS_UNLIKELY(RDP_R_HEAD_TYPE_NORMAL != head->getType()))
+      {
+         PD_LOG(PDERROR, "invalid record head type when read normal record");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(head->isDependent()))
+      {
+         PD_LOG(PDERROR, "record is dependent, should not be accessed");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(head->isTombstone()))
+      {
+         PD_LOG(PDERROR, "record is tombstone, should not be accessed");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(head->size < RDP_RECORD_HEAD_LEN))
+      {
+         PD_LOG(PDERROR, "invalid record size%d", head->size);
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+      else if (head->isOverflow())
+      {
+         SDB_ASSERT(FALSE, "TODO");
+         rc = SDB_VESSEL_RECORD_OVERFLOWED;
+         goto error;
+      }
+
+      if (UTIL_COMPRESSOR_INVALID != head->compressionType)
+      {
+         SDB_ASSERT(FALSE, "TODO");
+      }
+
+      pushHead = *head;
+      pushHead.flags = 0;
+      body = (const CHAR *)head + RDP_RECORD_HEAD_LEN;
+
+      rc = cursor->pushFragments({std::make_pair(RDP_RECORD_HEAD_LEN, (const CHAR *)(&pushHead)),
+                                  std::make_pair(head->size - RDP_RECORD_HEAD_LEN, body)});
+      if (SDB_VESSEL_CURSOR_NO_SPACE == rc)
+      {
+         goto error;
+      }
+      else if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to push more record to cursor:%d", rc);
+         goto error;
+      }
+      
    done:
       return rc;
    error:
@@ -254,6 +427,7 @@ namespace vessel
       recordDataPageHead *wHead = NULL;
       BOOLEAN needReorg = FALSE;
       RECORD_SLOT_ID slotID = INVALID_RECORD_SLOT_ID;
+      RECORD_SLOT_ID nextFreeSlot = INVALID_RECORD_SLOT_ID;
       recordHead *recordHeadPtr = NULL;
       CHAR *recordPtr = NULL;
       recordSlot slot;
@@ -283,10 +457,21 @@ namespace vessel
 
       alignedSize = getAlignedSizeOfNormalRecordAndHead(rd.getSlice().len());
       sizeNeeded = alignedSize;
-      if (0 == head->freeSlotCount)
+      if (INVALID_RECORD_SLOT_ID == head->firstFreeSlot)
       {
          sizeNeeded += RDP_RSLOT_SIZE;
       }
+      else
+      {
+         rc = findNextFreeSlot(head, nextFreeSlot);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to find the next free slot:%d", rc);
+            goto error;
+         }
+      }
+
+
       if (!hasSpaceToInsert(head, sizeNeeded, needReorg))
       {
          rc = SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE;
@@ -295,16 +480,6 @@ namespace vessel
       else if (needReorg)
       {
          SDB_ASSERT(FALSE, "todo");
-      }
-
-      if (0 < head->freeSlotCount)
-      {
-         rc = findFreeSlot(head, slotID);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to find slot id:%d", rc);
-            goto error;
-         }
       }
 
       rc = prepareInsertLog(context, &lrc, alignedSize);
@@ -333,17 +508,19 @@ namespace vessel
       rollback = TRUE;
       /// 1. update page head.
       updateMinMaxStriping(wHead, context->getStriping());
-      if (INVALID_RECORD_SLOT_ID == slotID)
+      if (INVALID_RECORD_SLOT_ID == head->firstFreeSlot)
       {
          slotID = wHead->totalSlotCount;
          ++wHead->totalSlotCount;
       }
       else
       {
-         --wHead->freeSlotCount;
+         slotID = head->firstFreeSlot;
+         
       }
       wHead->freeSpaceAfterLastSlot -= sizeNeeded;
       wHead->totalFreeSpace -= sizeNeeded;
+      ++wHead->recordCount;
       if (context->getTransID().isValid())
       {
          if (DPS_INVALID_TRANSID_SN == wHead->transSN)
@@ -457,11 +634,6 @@ namespace vessel
       return r;
    }
 
-   UINT32 rdpAccessor::getAlignedSizeOfNormalRecordAndHead(UINT32 recordSize)
-   {
-      return RDP_RECORD_HEAD_LEN + ossAlign4(recordSize);
-   }
-
    UINT32 rdpAccessor::getNonFreeBeginOffet(const recordDataPageHead *head)
    {
       SDB_ASSERT(NULL != head, "can not be null");
@@ -503,29 +675,22 @@ namespace vessel
       return;
    }
 
-   INT32 rdpAccessor::findFreeSlot(const recordDataPageHead *head,
-                                     RECORD_SLOT_ID &slotID)
+   INT32 rdpAccessor::findNextFreeSlot(const recordDataPageHead *head,
+                                       RECORD_SLOT_ID &slotID)
    {
-      SDB_ASSERT(NULL != head, "can not be null");
       INT32 rc = SDB_OK;
-      recordSlot slot;
-      UINT32 count = head->totalSlotCount;
+      SDB_ASSERT(NULL != head, "can not be null");
+      SDB_ASSERT(INVALID_RECORD_SLOT_ID != head->firstFreeSlot, "can not be invalid");
       slotID = INVALID_RECORD_SLOT_ID;
 
-      if (0 == head->freeSlotCount)
+      if (INVALID_RECORD_SLOT_ID == head->firstFreeSlot)
       {
          goto done;
       }
 
-      if (OSS_UNLIKELY(INVALID_RECORD_SLOT_ID <= count))
+      for (UINT16 i = head->firstFreeSlot + 1; i < head->totalSlotCount; ++i)
       {
-         PD_LOG(PDERROR, "invalid total slot count:%d", count);
-         rc = SDB_VESSEL_PAGE_CRASHED;
-         goto error;
-      }
-
-      for (UINT16 i = 0; i < count; ++i)
-      {
+         recordSlot slot;
          rc = getSlot(i, slot);
          if (SDB_OK != rc)
          {
@@ -539,14 +704,7 @@ namespace vessel
             break;
          }
       }
-
-      if (INVALID_RECORD_SLOT_ID == slotID)
-      {
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         PD_LOG(PDERROR, "free count is not zero but not found");
-         goto error;
-      }
-
+      
    done:
       return rc;
    error:

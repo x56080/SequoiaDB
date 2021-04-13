@@ -38,6 +38,8 @@
 
 #include "test_def.h"
 #include "vessel/freeSpaceMap.h"
+#include "vessel/recordDataPage.h"
+#include "vessel/fsmSizeLvl.h"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -89,13 +91,15 @@ TEST_F(fsm_test, test1)
    rc = file.initAfterCreation();
    ASSERT_EQ(SDB_OK, rc);
    v::fsmCandidate candidate;
+   const UINT32 recordSize = 1233;
+   fsmSizeLvl lvl;
 
    rc = fsm.create(&file, 0, 0, DMS_PAGE_SIZE32K, 0, TRUE, 0, 4095);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = fsm.fastFind(0, 1233, candidate);
+   rc = fsm.fastFind(0, recordSize, candidate);
    ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
-   rc = fsm.findInWholeMap(0, 1233, 0, candidate);
+   rc = fsm.findInWholeMap(0, recordSize, 0, candidate);
    ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
 
    PAGE_ID lpids[8];
@@ -107,11 +111,12 @@ TEST_F(fsm_test, test1)
    rc = fsm.addNewPages(0, lpids, 8);
    ASSERT_EQ(SDB_OK, rc);
 
-   rc = fsm.findInWholeMap(0, 1233, 0, candidate);
+   rc = fsm.findInWholeMap(0, recordSize, 0, candidate);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(candidate.seq, 0);
    ASSERT_EQ(candidate.lpid, 0);
-   ASSERT_EQ(candidate.free, 31420);
+   ASSERT_EQ(candidate.free, getMaxFreeSizeOfRdp(args.pageSize) - getMaxSizeOfRecordInRdp(recordSize));
+   lvl.init(args.pageSize, getMaxFreeSizeOfRdp(args.pageSize) - getMaxSizeOfRecordInRdp(recordSize));
 
    fsm.close();
    file.close();
@@ -125,13 +130,13 @@ TEST_F(fsm_test, test1)
    ASSERT_EQ(SDB_OK, rc);
 
    candidate.reset();
-   rc = fsm.fastFind(0, 1223, candidate);
+   rc = fsm.fastFind(0, recordSize, candidate);
    ASSERT_EQ(SDB_VESSEL_FSM_NO_FREE_SPACE, rc);
-   rc = fsm.findInWholeMap(0, 1233, 0, candidate);
+   rc = fsm.findInWholeMap(0, recordSize, 0, candidate);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_EQ(candidate.seq, 0);
    ASSERT_EQ(candidate.lpid, INVALID_PAGE_ID);
-   ASSERT_EQ(candidate.free, 29976);
+   ASSERT_EQ(candidate.free, lvl.getMinFreeSize(args.pageSize) - getMaxSizeOfRecordInRdp(recordSize));
 
    fsm.close();
    file.close();

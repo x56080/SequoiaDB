@@ -93,7 +93,7 @@ namespace vessel
          {
             return _mbid;
          }
-         OSS_INLINE BOOLEAN valid()const
+         OSS_INLINE BOOLEAN isValid()const
          {
             return DMS_INVALID_LOGICCSID != _csLogicalID &&
                    DMS_INVALID_LOGICCLID != _clLogicalID &&

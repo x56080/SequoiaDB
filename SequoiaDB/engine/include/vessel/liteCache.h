@@ -57,7 +57,6 @@ class diskIOJob;
 class diskIOTask;
 class requestContext;
 class ISession;
-class collectionSpaceContainer;
 
 class liteCache : public SDBObject
 {
@@ -69,7 +68,7 @@ class liteCache : public SDBObject
       liteCache &operator=(const liteCache &) = delete;
       
    public: /// for normal requests
-      INT32 init(const liteCacheOptions &o, collectionSpaceContainer *container);
+      INT32 init(UINT32 pageSize, const liteCacheOptions &o);
 
       INT32 fini();
 
@@ -137,9 +136,10 @@ class liteCache : public SDBObject
 
       void releaseTag();
 
+      void correctOptions(liteCacheOptions &options);
+
    private:
       liteCacheOptions _options;
-      collectionSpaceContainer *_container;
       lcBuckets *_buckets;
       lcLRUList *_lru;
       lcDirtyList *_dl;

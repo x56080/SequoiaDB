@@ -57,21 +57,56 @@ namespace vessel
             return CURSOR_TYPE_SCAN_COLLECTION;
          }
 
-         void resetToScan(const collectionHandle &handle,
-                          const scanCLOptions *options)
+         OSS_INLINE void resetToScan(const collectionHandle &handle,
+                                     const scanCLOptions *options)
          {
             _handle = handle;
             _options = NULL == options ? scanCLOptions() : *options;
-            _seq = INVALID_CL_PAGE_SEQ;
+            _seq = 0;
             _lpid = INVALID_PAGE_ID;
             _slot = INVALID_RECORD_SLOT_ID;
             return;
+         }
+         OSS_INLINE const collectionHandle &getHandle()const
+         {
+            return _handle;
+         }
+         OSS_INLINE const scanCLOptions &getOptions()const
+         {
+            return _options;
+         }
+         OSS_INLINE CL_PAGE_SEQ getPageSeq()const
+         {
+            return _seq;
+         }
+         OSS_INLINE PAGE_ID getLpid()const
+         {
+            return _lpid;
+         }
+         OSS_INLINE RECORD_SLOT_ID getSlotID()const
+         {
+            return _slot;
+         }
+         OSS_INLINE void incPageSeqAndResetRid()
+         {
+            ++_seq;
+            _lpid = INVALID_PAGE_ID;
+            _slot = INVALID_RECORD_SLOT_ID;
+         }
+
+         OSS_INLINE void setLpid(PAGE_ID lpid)
+         {
+            _lpid = lpid;
+         }
+         OSS_INLINE void setSlot(RECORD_SLOT_ID slot)
+         {
+            _slot = slot;
          }
 
       private:
          scanCLOptions _options;
          collectionHandle _handle;
-         CL_PAGE_SEQ _seq = INVALID_CL_PAGE_SEQ;
+         CL_PAGE_SEQ _seq = 0;
          PAGE_ID _lpid = INVALID_PAGE_ID;
          RECORD_SLOT_ID _slot = INVALID_RECORD_SLOT_ID;
    };//class scanCLCursor

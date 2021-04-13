@@ -893,6 +893,8 @@ vesselFiles = [
       "vessel/handlers/listCollectionsHandler.cpp",
       "vessel/handlers/insertHandler.cpp",
       "vessel/handlers/openCLHandler.cpp",
+      "vessel/handlers/scanCLHandler.cpp",
+      "vessel/handlers/countCLHandler.cpp",
       "vessel/api/cursorHandler.cpp",
       "vessel/api/collectionHandler.cpp",
       "vessel/collectionSpaceContainer.cpp",

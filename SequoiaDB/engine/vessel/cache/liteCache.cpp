@@ -55,14 +55,14 @@
 #include "vessel/IRedoLogger.h"
 #include "vessel/diskIOTask.h"
 #include "vessel/storageUnit.h"
+#include "vessel/instanceEnv.h"
 
 namespace engine
 {
 namespace vessel
 {
    liteCache::liteCache()
-   :_container(NULL),
-   _buckets(NULL),
+   : _buckets(NULL),
    _lru(NULL),
    _dl(NULL),
    _fl(NULL)
@@ -75,23 +75,22 @@ namespace vessel
       fini();
    }
 
-   INT32 liteCache::init(const liteCacheOptions &o, collectionSpaceContainer *container)
+   INT32 liteCache::init(UINT32 pageSize, const liteCacheOptions &o)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
+      SDB_ASSERT(NULL == _buckets, "do not reinit");
 
-      if (NULL == container)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (NULL != _container)
+      if (DMS_PAGE_SIZE32K != pageSize &&
+          DMS_PAGE_SIZE64K != pageSize)
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rollback = TRUE;
+      _options = o;
+      correctOptions(_options);
+      fini();
+      
       _buckets = SDB_OSS_NEW lcBuckets();
       if (NULL == _buckets)
       {
@@ -124,16 +123,16 @@ namespace vessel
          goto error;
       }
 
-      rc = _fl->init(o.freelist);
+      rc = _fl->init(pageSize, o.freelist);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup free list:%d", rc);
          goto error;
       }
          
-      rc = _buckets->init(o.bucket.bucketCount,
-                           o.bucket.bucketLatchCount,
-                           o.bucket.minRecycleCount);
+      rc = _buckets->init(_options.bucket.bucketCount,
+                           _options.bucket.bucketLatchCount,
+                           _options.bucket.minRecycleCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup buckets:%d", rc);
@@ -147,22 +146,16 @@ namespace vessel
          goto error;
       }
 
-      rc = _lru->init(_buckets, _fl, o.lru);
+      rc = _lru->init(_buckets, _fl, _options.lru);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to setup lru list:%d", rc);
          goto error;
       }
-
-      _options = o;
-      _container = container;
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         fini();
-      }
+      fini();
       goto done;
    }
 
@@ -209,10 +202,56 @@ namespace vessel
       SAFE_OSS_DELETE(_lru);
       SAFE_OSS_DELETE(_buckets);
       SAFE_OSS_DELETE(_fl);
-      _container = NULL;
 
    done:
       return SDB_OK;
+   }
+
+   void liteCache::correctOptions(liteCacheOptions &options)
+   {
+      if (!ossIsPowerOf2(options.bucket.bucketCount) ||
+          options.bucket.bucketCount < 4096)
+      {
+         options.bucket.bucketCount = 16384;
+      }
+
+      if (!ossIsPowerOf2(options.bucket.bucketLatchCount) ||
+          options.bucket.bucketLatchCount < 64)
+      {
+         options.bucket.bucketLatchCount = 256;
+      }
+
+      if (0 == options.freelist.maxChunkCount)
+      {
+         options.freelist.maxChunkCount = 128;
+      }
+
+      if (options.freelist.pageCountInChunk < 512 ||
+          !ossIsPowerOf2(options.freelist.pageCountInChunk))
+      {
+         options.freelist.pageCountInChunk = 512;
+      }
+
+      if (options.lru.lruColdPercent < 0.1 || 0.9 < options.lru.lruColdPercent)
+      {
+         options.lru.lruColdPercent = 0.4;
+      }
+      if (options.lru.lruMinSplitSize < 512)
+      {
+         options.lru.lruMinSplitSize = 512;
+      }
+      if (options.lru.lruScanDepth < 128)
+      {
+         options.lru.lruScanDepth = 128;
+      }
+      if (options.lru.lruMaxScanPercent < 0.4)
+      {
+         options.lru.lruMaxScanPercent = 0.4;
+      }
+      if (options.lru._lruColdMistakeTolerance > 10)
+      {
+         options.lru._lruColdMistakeTolerance = 10;
+      }
    }
 
    INT32 liteCache::allocate(requestContext *context,
@@ -227,7 +266,9 @@ namespace vessel
       storageUnit *su = NULL;
       BOOLEAN newTagInBucket = FALSE;
 
-      if (OSS_UNLIKELY(gpid.invalid()))
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isOpen() ||
+                       gpid.invalid()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -255,7 +296,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _container->getSUByLockedSpaceID(context, &su);
+      rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &su);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -616,9 +657,17 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(!gpid.invalid(), "can not be invalid");
       SDB_ASSERT(0 < count, "can not be zero");
-
       storageUnit *su = NULL;
-      rc = _container->getUnlockedSU(gpid.space(), &su);
+
+      if (OSS_UNLIKELY(NULL == context ||
+                       !context->isOpen() ||
+                       gpid.invalid()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context->getEnv()->csContainer.getUnlockedSU(gpid.space(), &su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", gpid.space(), rc);

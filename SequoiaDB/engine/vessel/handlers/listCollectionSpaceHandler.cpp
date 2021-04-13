@@ -48,19 +48,12 @@ namespace engine
 {
 namespace vessel
 {
-   void listCollectionSpaceHandler::fini()
-   {
-      if (_context.isOpen())
-      {
-         _context.close();
-      }
-   }
-
    INT32 listCollectionSpaceHandler::doit(listCSCursor *cursor)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(isInitialized(), "can not be null");
       SDB_ASSERT(NULL != cursor, "can not be null");
+      requestContext context;
 
       if (OSS_UNLIKELY(NULL == cursor ||
                        !cursor->isOpen()))
@@ -68,13 +61,26 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      rc = getEnv()->csContainer.listCollectionSpaces(getContext(), cursor);
+      else if (OSS_UNLIKELY(!isInitialized()))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      rc = context.open(getSession(), getEnv(), getOuterResource());
+      if (OSS_UNLIKELY(SDB_OK != rc))
+      {
+         goto error;
+      }
+
+      rc = getEnv()->csContainer.listCollectionSpaces(&context, cursor);
       if (SDB_OK != rc)
       {
          goto error;
       }
       
    done:
+      context.close();
       return rc;
    error:
       goto done;

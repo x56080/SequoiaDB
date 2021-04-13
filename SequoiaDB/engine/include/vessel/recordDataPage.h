@@ -55,19 +55,17 @@ namespace vessel
    {
       OSS_INLINE recordDataPageHead():
       version(INVALID_RDP_VERSION),
-      compressionDicSlot(INVALID_RECORD_SLOT_ID),
+      flags(0),
       clLogcalID(DMS_INVALID_LOGICCLID),
-      sequenceID(0),
       totalSlotCount(0),
-      freeSlotCount(0),
+      firstFreeSlot(INVALID_RECORD_SLOT_ID),
+      dicSlot(INVALID_RECORD_SLOT_ID),
       totalFreeSpace(0),
       freeSpaceAfterLastSlot(0),
-      flags(0),
       minStriping(INVALID_STRIPING_ID),
       maxStriping(INVALID_STRIPING_ID),
-      transSN(0),
-      pad0(0),
-      pad1(0)
+      transSN(DPS_INVALID_TRANSID_SN),
+      pad(0)
       {}
 
       OSS_INLINE ~recordDataPageHead(){}
@@ -75,36 +73,34 @@ namespace vessel
       OSS_INLINE recordDataPageHead &operator=(const recordDataPageHead &o)
       {
          version = o.version;
-         compressionDicSlot = o.compressionDicSlot;
+         flags = o.flags;
          clLogcalID = o.clLogcalID;
-         sequenceID = o.sequenceID;
          totalSlotCount = o.totalSlotCount;
-         freeSlotCount = o.freeSlotCount;
+         firstFreeSlot = o.firstFreeSlot;
+         dicSlot = o.dicSlot;
          totalFreeSpace = o.totalFreeSpace;
          freeSpaceAfterLastSlot = o.freeSpaceAfterLastSlot;
          flags = o.flags;
          minStriping = o.minStriping;
          maxStriping = o.maxStriping;
          transSN = o.transSN;
-         pad0 = o.pad0;
-         pad1 = o.pad1;
+         pad = o.pad;
          return *this;
       }
 
       UINT16 version;
-      UINT16 compressionDicSlot;
+      UINT16 flags;
       UINT32 clLogcalID;
-      UINT32 sequenceID;
       UINT16 totalSlotCount;
-      UINT16 freeSlotCount;
+      UINT16 firstFreeSlot;
+      UINT16 recordCount;
+      UINT16 dicSlot;
       UINT32 totalFreeSpace;
       UINT32 freeSpaceAfterLastSlot;
-      UINT32 flags;
       UINT16 minStriping;
       UINT16 maxStriping;
       UINT64 transSN;
-      UINT32 pad0;
-      UINT32 pad1; 
+      UINT64 pad;
    };//struct recordDataPageHead
    const static UINT32 RECORD_PAGE_HEAD_LEN = sizeof(recordDataPageHead);
 
@@ -144,8 +140,13 @@ namespace vessel
 
       OSS_INLINE void setType(UINT8 type)
       {
-         _flags &= (0xF & type);
+         _flags &= 0xF0;/// clear lower 4 bits.
+         _flags |= (0xF & type);
          return;
+      }
+      OSS_INLINE UINT8 getType()const
+      {
+         return (_flags & 0xF);
       }
 
       OSS_INLINE void setOffset(UINT16 offset)
@@ -159,11 +160,11 @@ namespace vessel
       }
       OSS_INLINE BOOLEAN isFree()const
       {
-         return 0 == _flags && 0 == _pad && 0 == _offset;
+         return RDP_R_HEAD_TYPE_INVALID == getType();
       }
       OSS_INLINE BOOLEAN skipScanning()const
       {
-         return isFree() || (_flags & RDP_RSLOT_FLAG_SKIP_SCANNING);
+         return (_flags & RDP_RSLOT_FLAG_SKIP_SCANNING);
       }
 
       OSS_INLINE void setSkipScanning()
@@ -200,6 +201,27 @@ namespace vessel
       OSS_INLINE ~recordHead()
       {}
 
+      OSS_INLINE recordHead(const recordHead &o):
+      size(o.size),
+      type(o.type),
+      flags(o.flags),
+      compressionType(o.compressionType),
+      pad(o.pad),
+      transNode(o.transNode),
+      transSN(o.transSN){}
+
+      OSS_INLINE recordHead &operator=(const recordHead &o)
+      {
+         size = o.size;
+         type = o.type;
+         flags = o.flags;
+         compressionType = o.compressionType;
+         pad = o.pad;
+         transNode = o.transNode;
+         transSN = o.transSN;
+         return *this;
+      }
+
       OSS_INLINE UINT16 getSize()const
       {
          return size;
@@ -218,8 +240,9 @@ namespace vessel
       }
       OSS_INLINE void setTypeAndFormat(UINT8 ht, UINT8 format)
       {
-         type &= (ht & 0xF);
-         type &= (format << 4);
+         type = 0;
+         type |= (ht & 0xF);
+         type |= (format << 4);
       }
       OSS_INLINE UINT8 getType()const
       {

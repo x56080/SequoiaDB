@@ -117,5 +117,31 @@ namespace vessel
       SAFE_OSS_DELETE(kernal);
       goto done;
    }
+
+   INT32 collectionHandler::getRecordCount(ISession *session,
+                                           IQueryFilter *filter,
+                                           UINT64 &count)
+   {
+      INT32 rc = SDB_OK;
+      if (OSS_UNLIKELY(NULL == session))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_INVALIDARG;
+      }
+
+      rc = _db->getRecordCount(session, _handle, filter, count);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 }//namespace vessel
 }//namespace engine

@@ -42,7 +42,7 @@
 #include "vessel/vesselDef.h"
 #include "vessel/recordData.h"
 #include "utilInsertResult.hpp"
-#include "vessel/insertContext.h"
+
 
 namespace engine
 {
@@ -53,10 +53,7 @@ namespace vessel
    {
       public:
          insertHandler(){}
-         virtual ~insertHandler()
-         {
-            fini();
-         }
+         virtual ~insertHandler(){}
 
       public:
          INT32 doit(const collectionHandle &handle,
@@ -65,17 +62,6 @@ namespace vessel
                     STRIPING_ID striping,
                     const insertOptions *options,
                     utilInsertResult &res);
-
-         virtual void fini();
-
-      protected:
-         virtual requestContext *getContext()
-         {
-            return &_context;
-         }
-
-      private:
-         insertContext _context;
 
    };//class insertHandler
 }//namespace vessel

@@ -45,6 +45,7 @@ namespace engine
 namespace vessel
 {
    lcFreeList::lcFreeList():
+   _pageSize(0),
    _totalAllocated(0),
     _chunks(NULL),
     _size(0)
@@ -57,13 +58,13 @@ namespace vessel
       fini();
    }
 
-   INT32 lcFreeList::init(const liteCacheOptions::freeListOptions &options)
+   INT32 lcFreeList::init(UINT32 pageSize, const liteCacheOptions::freeListOptions &options)
    {
       INT32 rc = SDB_OK;
       if (0 == options.maxChunkCount ||
           0 == options.pageCountInChunk ||
-          0 != options.pageCountInChunk % 4 ||
-          DMS_PAGE_SIZE32K != options.pageSize)
+          !ossIsPowerOf2(options.pageCountInChunk) ||
+          ((DMS_PAGE_SIZE32K != pageSize) && (DMS_PAGE_SIZE64K != pageSize)))
       {
          PD_LOG(PDERROR, "invalid options: %s", options.toString().c_str());
          rc = SDB_INVALIDARG;
@@ -76,6 +77,7 @@ namespace vessel
          goto error;
       }
 
+      _pageSize = pageSize;
       _options = options;
    done:
       return rc;
@@ -94,6 +96,7 @@ namespace vessel
       }
 
       _size = 0;
+      _pageSize = 0;
       _options = liteCacheOptions::freeListOptions();
       return SDB_OK;
    }
@@ -161,7 +164,7 @@ namespace vessel
 
       
       chunk = &(_chunks[_size]);
-      rc = chunk->setup(_size, _options.pageCountInChunk, _options.pageSize);
+      rc = chunk->setup(_size, _options.pageCountInChunk, _pageSize);
       if (SDB_OK != rc)
       {
          goto error;
