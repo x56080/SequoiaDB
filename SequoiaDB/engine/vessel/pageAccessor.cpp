@@ -120,7 +120,7 @@ namespace vessel
 
       if (NULL == obj)
       {
-         rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &obj);
+         rc = context->getEnv()->csContainer.getSUBySpaceID(context->getSpaceID(), &obj);
          if (SDB_OK != rc)
          {
             goto error;

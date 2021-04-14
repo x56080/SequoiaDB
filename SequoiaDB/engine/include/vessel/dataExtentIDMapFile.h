@@ -57,6 +57,7 @@ namespace vessel
             return _headCache;
          }
 
+         INT32 cacheHead();
       private:
          virtual SPACE_TYPE getSpaceType()const
          {
@@ -73,7 +74,6 @@ namespace vessel
          }
          virtual INT32 initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf);
          virtual INT32 validateUserDefinedHead(const void *head);
-         virtual INT32 afterHeadOpen();
 
       private:
          dataIDMapFileHead _headCache;

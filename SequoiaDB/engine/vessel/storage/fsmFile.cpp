@@ -45,19 +45,6 @@ namespace engine
 {
 namespace vessel
 {
-
-   fsmFile::fsmFile():
-   _firstFree(-1),
-   _sparse(FALSE)
-   {
-
-   }
-
-   fsmFile::~fsmFile()
-   {
-      
-   }
-
    INT32 fsmFile::initAfterCreation(BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
@@ -116,40 +103,50 @@ namespace vessel
 
       fsync(FSM_SMP_PID, 1 + FSM_ENTRY_PAGE_COUNT, TRUE);
       _firstFree = 0;
+      _readyToWork = TRUE;
    done:
       return rc;
    error:
       _firstFree = -1;
-      _sparse = FALSE;
+      _readyToWork = FALSE;
       goto done;
    }
 
-   INT32 fsmFile::initAfterOpen(BOOLEAN sparse)
+   INT32 fsmFile::initToWork(BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(isOpen(), "can not be closed");
       ossValuePtr ptr = 0;
       UINT32 totalBitsCount = FSM_PAGE_SIZE >> 3; /// divided by 8
       UINT32 minFreePid = FSM_ENTRY_PAGE_COUNT + 1; /// 1 for smp
       UINT32 nextFreePid = INVALID_PAGE_ID;
       UINT32 currentSegCount = 0;
+      BOOLEAN locked = FALSE;
+
+      if (!extentStorageFile::isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      _latch.get();
+      locked = TRUE;
+
+      if (_readyToWork)
+      {
+         goto done;
+      }
 
       currentSegCount = getSegmentCount();
 
       if (0 == currentSegCount)
       {
-         PD_LOG(PDERROR, "fsm file has no segment, reinit fsm");
-         /// reinit file
-         rc = initAfterCreation();
+         rc = initAfterCreation(sparse);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to reinit fsm file:%d", rc);
+            PD_LOG(PDERROR, "failed to init fsm file:%d", rc);
             goto error;
          }
-         else
-         {
-            goto done;
-         }
+         goto done;
       }
 
       rc = getPagePtr(FSM_SMP_PID, ptr);
@@ -172,15 +169,21 @@ namespace vessel
             _firstFree = nextFreePid >> 6; /// divided by 64
          }
       }
+
+      _readyToWork = TRUE;
    done:
+      if (locked)
+      {
+         _latch.release();
+      }
       return rc;
    error:
       _firstFree = -1;
-      _sparse = FALSE;
+      _readyToWork = FALSE;
       goto done;
    }
 
-   INT32 fsmFile::allocateNewPage(PAGE_ID &pid)
+   INT32 fsmFile::allocateNewPage(PAGE_ID &pid, BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       ossScopedLock lock(&_latch);
@@ -198,7 +201,7 @@ namespace vessel
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
-      rc = ensureSpace(pid);
+      rc = ensureSpace(pid, sparse);
       if (SDB_OK != rc)
       {
          goto error;
@@ -388,7 +391,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 fsmFile::ensureSpace(PAGE_ID pid)
+   INT32 fsmFile::ensureSpace(PAGE_ID pid, BOOLEAN sparse)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
@@ -396,7 +399,7 @@ namespace vessel
 
       const storageFileHead &head = getCommonHeadInMem();
       UINT32 segCount = pid / head.maxPageCountPerSeg + 1;
-      rc = ensureSegmentCount(segCount, _sparse);
+      rc = ensureSegmentCount(segCount, sparse);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to sure data segment count[%d], rc:%d", segCount, rc);

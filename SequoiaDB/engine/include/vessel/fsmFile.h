@@ -48,14 +48,18 @@ namespace vessel
    class fsmFile : public extentStorageFile
    {
       public:
-         fsmFile();
-         virtual ~fsmFile();
+         fsmFile(){}
+         virtual ~fsmFile(){}
 
       public:
-         INT32 initAfterCreation(BOOLEAN sparse=FALSE);
-         INT32 initAfterOpen(BOOLEAN sparse=FALSE);
-         INT32 allocateNewPage(PAGE_ID &pid);
+         INT32 initToWork(BOOLEAN sparse);
+         INT32 allocateNewPage(PAGE_ID &pid, BOOLEAN sparse);
          INT32 releasePages(UINT32 count, const PAGE_ID *pids);
+
+         OSS_INLINE BOOLEAN isReadyToWork()const
+         {
+            return _readyToWork;
+         }
 
       private:
          virtual SPACE_TYPE getSpaceType()const
@@ -67,8 +71,6 @@ namespace vessel
             return "SDBVFSMF";
          }
 
-         virtual INT32 afterHeadOpen(){return SDB_OK;}
-
       private:
          INT32 findFreePageFromSmp(PAGE_ID &pid);
 
@@ -76,12 +78,14 @@ namespace vessel
 
          INT32 releasePagesFromSmp(UINT32 count, const PAGE_ID *pids);
 
-         INT32 ensureSpace(PAGE_ID pid);
+         INT32 ensureSpace(PAGE_ID pid, BOOLEAN sparse);
+
+         INT32 initAfterCreation(BOOLEAN sparse);
 
       private:
          ossSpinXLatch _latch;
-         INT32 _firstFree;
-         BOOLEAN _sparse;
+         BOOLEAN _readyToWork = FALSE;
+         INT32 _firstFree = -1;
    };//class fsmFIle
 }//namespace vessel
 }//namespace engine

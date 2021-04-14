@@ -316,7 +316,7 @@ namespace vessel
       if (newTagInBucket)
       {
          SDB_ASSERT(LOCK_MODE_UNIQUE == holder.getLockMode(), "must be unique");
-         rc = context->getEnv()->csContainer.getSUByLockedSpaceID(context, &su);
+         rc = context->getEnv()->csContainer.getSUBySpaceID(gpid.space(), &su);
          if (OSS_UNLIKELY(SDB_OK != rc))
          {
             goto error;
@@ -675,7 +675,7 @@ namespace vessel
          goto error;
       }
 
-      rc = context->getEnv()->csContainer.getUnlockedSU(gpid.space(), &su);
+      rc = context->getEnv()->csContainer.getSUBySpaceID(gpid.space(), &su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get su[%d], rc:%d", gpid.space(), rc);

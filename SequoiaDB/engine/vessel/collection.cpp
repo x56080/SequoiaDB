@@ -85,6 +85,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL == _collectionSpace, "do not reinit");
       UINT32 pageSize = 0;
+      fsmFile *file = NULL;
 
       if (OSS_UNLIKELY(NULL == cs))
       {
@@ -102,11 +103,18 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = cs->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
-      } 
+      }
+
+      rc = cs->ensureFsmFile(context, &file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to ensure fsm file:%d", rc);
+         goto error;
+      }
       
       _record = record;
       _collectionSpace = cs;
@@ -118,7 +126,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _fsm.open(cs->getSU()->getFsmFile(), record.mbID,
+      rc = _fsm.open(file, record.mbID,
                      record.logicalCLID, pageSize,
                      record.freeSizeReserved, 1 < record.maxSGCount,
                      record.minStriping, record.maxStriping);
@@ -165,7 +173,7 @@ namespace vessel
          goto error;
       }
 
-      rc = cs->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = cs->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -173,7 +181,13 @@ namespace vessel
 
       fini();
 
-      fsm = cs->getSU()->getFsmFile();
+      rc = cs->ensureFsmFile(context, &fsm);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to create fsm file:%d", rc);
+         goto error;
+      }
+
       _record.version = COLLECTION_RECORD_VERSION;
       _record.mbID = context->getMBID();
       _record.innerID = innerID;
@@ -798,14 +812,15 @@ namespace vessel
       }
 
       rollbackPre = TRUE;
-      rc = initNewRecordDataPages(context, count, lpids, pids);
+      rc = initNewRecordDataPages(context, count, _pageCntInRoutePages, lpids, pids);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init pages:%d", rc);
          goto error;
       }
 
-      rc = _collectionSpace->allocateDataPages(context, SPACE_TYPE_RECORD_D,
+      args.reset(sizeof(_pageCntInRoutePages), (const CHAR *)(&_pageCntInRoutePages));
+      rc = _collectionSpace->allocateDataPages(context, PAGE_TYPE_RECORD,
                                                count, lpids, pids, args, &lsn);
       if (SDB_OK != rc)
       {
@@ -1048,6 +1063,7 @@ namespace vessel
 
    INT32 collection::initNewRecordDataPages(requestContext *context,
                                             UINT32 count,
+                                            CL_PAGE_SEQ firstSeq,
                                             const PAGE_ID *lpids,
                                             const PAGE_ID *pids)
    {
@@ -1055,13 +1071,14 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(0 < count, "can not be zero");
       SDB_ASSERT(NULL != lpids && NULL != pids, "can not be null");
+      SDB_ASSERT(INVALID_CL_PAGE_SEQ != firstSeq, "can not be invalid");
       UINT32 pageSize = 0;
       ossValuePtr ptr = 0;
       storageUnit *su = NULL;
       rdpAccessor accessor;
 
       su = _collectionSpace->getSU();
-      rc = su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getDataPageSize(pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1091,7 +1108,7 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.initRdp(context, lpids[i], _record.logicalCLID);
+         rc = accessor.initRdp(context, lpids[i], _record.logicalCLID, firstSeq + i);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init record data page[%d], rc:%d", pids[i], rc);

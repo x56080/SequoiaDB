@@ -58,6 +58,7 @@
 #include "vessel/IRedoLogger.h"
 #include "vessel/fsmFile.h"
 #include "vessel/bitMapUtils.h"
+#include "vessel/fsmFile.h"
 
 namespace engine
 {
@@ -65,7 +66,6 @@ namespace vessel
 {
    collectionSpace::collectionSpace():
    _status(CLOSED),
-   _logicalID(DMS_INVALID_LOGICCSID),
    _su(NULL),
    _capacityOfCLRecordPage(0),
    _idMapCapacity(0),
@@ -90,12 +90,12 @@ namespace vessel
       INT32 rc = SDB_OK;
       createSUOptions suOptions;
       static const UINT64 maxFileSize = 0x04ull * 1024 * 1024 * 1024;
-      SDB_ASSERT(DMS_INVALID_LOGICCSID == _logicalID, "must be invalid");
-      SDB_ASSERT(NULL == _su, "must be null");
+      SDB_ASSERT(isClosed(), "do not recreate");
       BOOLEAN rollback = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        !context->getSpaceIDLocked() ||
+                       name.empty() ||
                        DMS_INVALID_LOGICCSID == logicalID))
       {
          rc = SDB_INVALIDARG;
@@ -104,7 +104,7 @@ namespace vessel
 
       suOptions.csName = name;
       suOptions.sid = context->getSpaceID();
-      suOptions.uniqueID = uniqueID;
+      suOptions.logicalID = logicalID;
       suOptions.metaArgs.pageSize = DMS_PAGE_SIZE32K;
       suOptions.metaArgs.maxPageCountPerSeg = 64;
       suOptions.metaArgs.maxSegmentCountPerFile = 2048;
@@ -123,25 +123,26 @@ namespace vessel
       _su = SDB_OSS_NEW storageUnit();
       if (NULL == _su)
       {
-         PD_LOG(PDERROR, "failed to allcoate mem");
+         PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
-      rollback = TRUE;
 
       rc = _su->create(context, suOptions);
       if (SDB_OK != rc)
       {
          goto error;
       }
+      _status = SU_LOADED;
+      rollback = TRUE;
       
       _recordInMem.version = CMR_VERSION_1;
       _recordInMem.status = CMR_STATUS_CREATING;
       _recordInMem.flags = options.flags;
       _recordInMem.maxCLLogicalID = DMS_INVALID_LOGICCSID;
       _recordInMem.uniqueID = uniqueID;
+      _recordInMem.csLogicalID = logicalID;
       ossMemcpy(_recordInMem.name, name.str(), name.strLen());
-      _logicalID = logicalID;
 
       rc = initNecessaryPagesWhenCreating(context);
       if (SDB_OK != rc)
@@ -149,7 +150,7 @@ namespace vessel
          goto error;
       }
 
-      rc = initParamsInMem();
+      rc = cacheKeyParametersAboutStorage();
       if (SDB_OK != rc)
       {
          goto error;
@@ -161,6 +162,10 @@ namespace vessel
          PD_LOG(PDERROR, "failed to set cs status to online:%d", rc);
          goto error;
       }
+
+      /// The name file is only for easier viewing. Even if failed
+      /// to write file, it does not affect the result.
+      _su->ensureSUNameFile(context, strSlice(_recordInMem.name));
    done:
       return rc;
    error:
@@ -174,12 +179,18 @@ namespace vessel
    INT32 collectionSpace::destroy(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      if (!suIsLoaded())
+      {
+         goto done;
+      }
+
       if (NULL != _su)
       {
          rc = _su->destroy(context);
          if (SDB_OK != rc)
          {
-            goto error;
+            PD_LOG(PDERROR, "failed to destroy collection spacep[%s], rc:%d", _recordInMem.name, rc);
+            /// do not goto error.
          }
       }
 
@@ -190,31 +201,60 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::close(requestContext *context)
+   void collectionSpace::close(requestContext *context)
+   {
+      if (!isClosed())
+      {
+         if (NULL != _su)
+         {
+            _su->close(context);
+         }
+         fini();
+      }
+      return;
+   }
+
+   INT32 collectionSpace::openAfterSULoaded(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      if (NULL != _su)
+      SDB_ASSERT(SU_LOADED == _status, "must be su_loaded");
+      if (OSS_UNLIKELY(NULL == context))
       {
-         _su->close(context);
+         rc = SDB_INVALIDARG;
+         goto error;
       }
-      fini();
+      else if (OSS_UNLIKELY(SU_LOADED != _status))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      rc = cacheGlobalMetaData(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      rc = initCollectionsFromDisk(context);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      _status = OPEN;
    done:
       return rc;
    error:
+      _recordInMem.reset();
       goto done;
    }
 
-   INT32 collectionSpace::open(requestContext *context,
-                               UINT32 logicalID,
-                               const strSlice &dirName)
+   INT32 collectionSpace::openSU(requestContext *context,
+                                 const strSlice &dirName)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
-      BOOLEAN sparse = FALSE;
       SDB_ASSERT(isClosed(), "must be closed");
-      SDB_ASSERT(DMS_INVALID_LOGICCSID == _logicalID, "must be invalid");
       if (OSS_UNLIKELY(NULL == context ||
-                       DMS_INVALID_LOGICCSID == logicalID ||
                        dirName.empty() ||
                        MAX_SU_DIR_LEN < dirName.strLen()))
       {
@@ -227,8 +267,6 @@ namespace vessel
          goto error;
       }
 
-      sparse = context->getEnv()->options.extendFileWithSparse;
-      rollback = TRUE;
       _su = SDB_OSS_NEW storageUnit();
       if (NULL == _su)
       {
@@ -242,53 +280,23 @@ namespace vessel
       {
          goto error;
       }
+
+      rc = cacheKeyParametersAboutStorage();
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
       _status = SU_LOADED;
-
-      rc = initMetaData(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = initParamsInMem();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      if (NULL != _su->getFsmFile())
-      {
-         rc = _su->getFsmFile()->initAfterOpen(sparse);
-         if (SDB_OK != rc)
-         {
-            goto error;
-         }
-      }
-      
-      _status = META_DATA_LOADED;
-
-      rc = initCollectionsFromDisk(context);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      _status = CL_LOADED;
-
-      _logicalID = logicalID;
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         close(context);
-      }
+      close(context);
       goto done;
    }
 
    void collectionSpace::fini()
    {
       _status = CLOSED;
-      _logicalID = DMS_INVALID_LOGICCSID;
       SAFE_OSS_DELETE(_su);
       _recordInMem.reset();
       _capacityOfCLRecordPage = 0;
@@ -546,6 +554,53 @@ namespace vessel
       return rc;
    error:
       
+      goto done;
+   }
+
+   INT32 collectionSpace::ensureFsmFile(requestContext *context,
+                                        fsmFile **file)
+   {
+      INT32 rc = SDB_OK;
+      BOOLEAN sparse = FALSE;
+      if (OSS_UNLIKELY(NULL == file))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(isClosed()))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+
+      if (NULL == _su->getFsmFilePtr())
+      {
+         ossScopedLock guard(&_dataAndMetaSpaceLatch);
+         if (NULL == _su->getFsmFilePtr())
+         {
+            rc = _su->createFsmFile(context);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to create fsm file:%d", rc);
+               goto error;
+            }
+         }
+      }
+
+      if (!_su->getFsmFilePtr()->isReadyToWork())
+      {
+         sparse = context->getEnv()->options.extendFileWithSparse;
+         rc = _su->getFsmFilePtr()->initToWork(sparse);
+         if (SDB_OK != rc)
+         {
+            goto error;
+         }
+      }
+
+      *file = _su->getFsmFilePtr();
+   done:
+      return rc;
+   error:
       goto done;
    }
 
@@ -1482,7 +1537,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpace::initMetaData(requestContext *context)
+   INT32 collectionSpace::cacheGlobalMetaData(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");
@@ -1509,6 +1564,7 @@ namespace vessel
       accessor.fini(context);
       return rc;
    error:
+      _recordInMem.reset();
       goto done;
    }
 
@@ -1571,6 +1627,9 @@ namespace vessel
       imp.fini(context);
       return rc;
    error:
+      _clNameIndex.clear();
+      _clIdIndex.clear();
+      _collectionAllocator.fini();
       goto done;
    }
 
@@ -1726,7 +1785,6 @@ namespace vessel
    INT32 collectionSpace::initNecessaryPagesWhenCreating(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN sparse = context->getEnv()->options.extendFileWithSparse;
       rc = firstExtendMetaFile(context);
       if (SDB_OK != rc)
       {
@@ -1746,12 +1804,6 @@ namespace vessel
       }
 
       rc = _su->fsync(SPACE_TYPE_RECORD_M, SMP_PAGE_ID, 3, TRUE);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = _su->getFsmFile()->initAfterCreation();
       if (SDB_OK != rc)
       {
          goto error;
@@ -2147,7 +2199,7 @@ namespace vessel
       return FALSE;
    }
 
-   INT32 collectionSpace::initParamsInMem()
+   INT32 collectionSpace::cacheKeyParametersAboutStorage()
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != _su, "can not be null");

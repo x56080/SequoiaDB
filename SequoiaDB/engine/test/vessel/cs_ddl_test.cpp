@@ -125,7 +125,7 @@ TEST_F(cs_ddl_test, test1)
    db.close(&session, closeDBOptions());
 }
 
-/*
+
 TEST_F(cs_ddl_test, test2)
 {
    INT32 rc = SDB_OK;
@@ -140,6 +140,8 @@ TEST_F(cs_ddl_test, test2)
    options.path.indexPath = DATA_PATH;
    options.path.lobMetaPath = DATA_PATH;
    options.path.lobPath = DATA_PATH;
+   UINT32 createdCount = 0;
+   UINT32 count = 0;
 
    db.initOuterResource(resource);
 
@@ -151,27 +153,41 @@ TEST_F(cs_ddl_test, test2)
       CHAR buf[6] = {0};
       ossSnprintf(buf, 6, "%d", i);
       rc = db.createCollectionSpace(&session, buf, i, csOptions);
-      ASSERT_EQ(SDB_OK, rc);
+      if (SDB_OK == rc)
+      {
+         ++createdCount;
+         continue;
+      }
+      else if (SDB_NOSPC == rc)
+      {
+         rc = SDB_OK;
+         break;
+      }
+      else
+      {
+         ASSERT_EQ(SDB_OK, rc);
+      }
    }
 
-   CHAR buf[6] = {0};
-   ossSnprintf(buf, 6, "%d", MAX_SPACE_COUNT);
-   rc = db.createCollectionSpace(&session, buf, MAX_SPACE_COUNT, csOptions);
-   ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
-
+   if (MAX_SPACE_COUNT == createdCount)
+   {
+      CHAR buf[6] = {0};
+      ossSnprintf(buf, 6, "%d", MAX_SPACE_COUNT);
+      rc = db.createCollectionSpace(&session, buf, MAX_SPACE_COUNT, csOptions);
+      ASSERT_EQ(SDB_DMS_SU_OUTRANGE, rc);
+   }
 
    db.close(&session, closeDBOptions());
 
    rc = db.open(&session, options);
    ASSERT_EQ(SDB_OK, rc);
 
-   UINT32 count = 0;
    rc = db.getCollectionSpaceCount(&session, count);
    ASSERT_EQ(SDB_OK, rc);
-   ASSERT_EQ(count, MAX_SPACE_COUNT);
+   ASSERT_EQ(count, createdCount);
    db.close(&session, closeDBOptions());
 }
-*/
+
 
 TEST_F(cs_ddl_test, test3)
 {

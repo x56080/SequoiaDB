@@ -51,7 +51,7 @@ namespace vessel
    const SPACE_ID INVALID_SPACE_ID = 65535;
    const SPACE_ID MAX_SPACE_ID = 16384;
    const SPACE_ID MAX_SPACE_COUNT = MAX_SPACE_ID + 1;
-   const SPACE_ID MAX_SPACE_SLOT_COUNT = 512;
+   const SPACE_ID MAX_SPACE_SLOT_COUNT = 256;
 
    typedef UINT8 SPACE_TYPE;
    const SPACE_TYPE INVALID_SPACE_TYPE = 255;
@@ -89,6 +89,12 @@ namespace vessel
       CURSOR_TYPE_LIST_COLLECTION = 2,
       CURSOR_TYPE_SCAN_COLLECTION = 3,
    };
+
+   static const UINT32 VESSEL_MIN_CS_LID = 0x80000000;
+   OSS_INLINE BOOLEAN isVesselCSLogicalID(UINT32 lid)
+   {
+      return OSS_BIT_TEST(lid, VESSEL_MIN_CS_LID);
+   }
 
 } /// end of namespace vessel
 } /// end of namespace engine

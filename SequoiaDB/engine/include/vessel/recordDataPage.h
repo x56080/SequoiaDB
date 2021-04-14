@@ -57,6 +57,7 @@ namespace vessel
       version(INVALID_RDP_VERSION),
       flags(0),
       clLogcalID(DMS_INVALID_LOGICCLID),
+      pageSeq(INVALID_CL_PAGE_SEQ),
       totalSlotCount(0),
       firstFreeSlot(INVALID_RECORD_SLOT_ID),
       dicSlot(INVALID_RECORD_SLOT_ID),
@@ -75,6 +76,7 @@ namespace vessel
          version = o.version;
          flags = o.flags;
          clLogcalID = o.clLogcalID;
+         pageSeq = o.pageSeq;
          totalSlotCount = o.totalSlotCount;
          firstFreeSlot = o.firstFreeSlot;
          dicSlot = o.dicSlot;
@@ -91,6 +93,7 @@ namespace vessel
       UINT16 version;
       UINT16 flags;
       UINT32 clLogcalID;
+      UINT32 pageSeq;
       UINT16 totalSlotCount;
       UINT16 firstFreeSlot;
       UINT16 recordCount;

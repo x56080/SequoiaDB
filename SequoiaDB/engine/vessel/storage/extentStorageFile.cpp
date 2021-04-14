@@ -60,13 +60,7 @@ namespace vessel
    INT32 extentStorageFile::open(const CHAR *fullPath, const storageFileName &fn)
    {
       INT32 rc = SDB_OK;
- 
-      if (isOpen())
-      {
-         PD_LOG(PDERROR, "su has already been open");
-         rc = SDB_VESSEL_INTERNAL_ERR;
-         goto error;
-      }
+      SDB_ASSERT(!isOpen(), "can not be open");
 
       if (NULL == fullPath || !fn.valid())
       {
@@ -84,12 +78,6 @@ namespace vessel
       }
 
       rc = openFileHead(fn);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = afterHeadOpen();
       if (SDB_OK != rc)
       {
          goto error;
@@ -314,17 +302,11 @@ namespace vessel
                                    const void *userDefinedOptions)
    {
       INT32 rc = SDB_OK;
+      SDB_ASSERT(!isOpen(), "do not recreate file");
 
-      if (isOpen())
+      if (!validateOptions(options))
       {
-         PD_LOG(PDERROR, "file has already been open");
          rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = validateOptions(options);
-      if (SDB_OK != rc)
-      {
          goto error;
       }
 
@@ -333,21 +315,11 @@ namespace vessel
       {
          PD_LOG(PDERROR, "failed to create file:%d", rc);
          goto error;
-      }
-
-      rc = afterHeadOpen();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-      
+      }      
    done:
       return rc;
    error:
-      if (isOpen())
-      {
-         ossMmapFile::unlink();
-      }
+      destroy();
       goto done;
    }
 
@@ -358,6 +330,12 @@ namespace vessel
       CHAR headBuf[STORAGE_FILE_HEAD_SIZE] = {0};
       CHAR fullPath[OSS_MAX_PATHSIZE+1] = {0};
       ossValuePtr headPtr = 0;
+      UINT64 fileSize = 0;
+      UINT32 createFlags = OSS_CREATEONLY|OSS_READWRITE|OSS_EXCLUSIVE;
+      if (options.replaceWhenCreate)
+      {
+         createFlags |= OSS_REPLACE;
+      }
 
       rc = utilBuildFullPath(options.dir, options.name, OSS_MAX_PATHSIZE,
                              fullPath) ;
@@ -369,12 +347,29 @@ namespace vessel
          goto error ;
       }
 
-      rc = ossMmapFile::open(fullPath, OSS_CREATEONLY|OSS_READWRITE|OSS_EXCLUSIVE,
-                             OSS_RU|OSS_WU|OSS_RG ) ;
+      rc = ossMmapFile::open(fullPath, createFlags,
+                             OSS_RU|OSS_WU|OSS_RG );
       if (SDB_OK != rc)
       {
          PD_LOG ( PDERROR, "Failed to create new file %s, rc=%d", fullPath, rc) ;
          goto error ;
+      }
+
+      rc = ossMmapFile::size(fileSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get file size:%d", rc);
+         goto error;
+      }
+
+      if (0 != fileSize)
+      {
+         rc = ossTruncateFile(&_file, 0);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to truncate file to size 0");
+            goto error;
+         }
       }
 
       rc = initFileHead(options, headBuf, hasUserDefinedHead());
@@ -592,17 +587,22 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::validateOptions(const storageFileOptions &options)
+   BOOLEAN extentStorageFile::validateOptions(const storageFileOptions &options)
    {
-      INT32 rc = SDB_OK;
+      BOOLEAN r = FALSE;
 
       UINT32 nameLen = 0;
 
       if (OSS_UNLIKELY(NULL == options.dir ||
                        NULL == options.name))
       {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
+      }
+
+      nameLen = ossStrlen(options.dir);
+      if (0 == nameLen)
+      {
+         goto done;
       }
 
       nameLen = ossStrlen(options.name);
@@ -611,51 +611,30 @@ namespace vessel
           SU_FILE_NAME_LEN < nameLen)
       {
          PD_LOG(PDERROR, "invalid length of file name:%s");
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
 
       if (options.spaceID == INVALID_SPACE_ID)
       {
          PD_LOG(PDERROR, "invalid space id");
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
 
-      if (NULL != options.args)
+      if (DMS_INVALID_LOGICCSID == options.logicalID)
       {
-         if (options.args->pageSize != DMS_PAGE_SIZE16K &&
-          options.args->pageSize != DMS_PAGE_SIZE32K &&
-          options.args->pageSize != DMS_PAGE_SIZE64K)
-         {
-            PD_LOG(PDERROR, "invalid page size:%d", options.args->pageSize);
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         if (0 == options.args->maxPageCountPerSeg)
-         {
-            PD_LOG(PDERROR, "invalid maxPageCountPerSeg: %d", options.args->maxPageCountPerSeg);
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         if (0 != options.args->maxPageCountPerSeg % sizeof(UINT32))
-         {
-            PD_LOG(PDERROR, "invalid maxPageCountPerSeg:%d", options.args->maxPageCountPerSeg);
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-         if (0 == options.args->maxSegmentCountPerFile)
-         {
-            PD_LOG(PDERROR, "invalid maxSegmentCount: %d", options.args->maxSegmentCountPerFile);
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
+         PD_LOG(PDERROR, "invalid logical id");
+         goto done;
       }
+
+      if (NULL == options.args || !options.args->isValid())
+      {
+         goto done;
+      }
+
+      r = TRUE;
          
    done:
-      return rc;
-   error:
-      goto done;
+      return r;
    }
 
    INT32 extentStorageFile::initFileHead(const storageFileOptions &options,
@@ -676,6 +655,7 @@ namespace vessel
       head->spaceID = options.spaceID;
       head->spaceType = getSpaceType();
       head->sequence = options.sequence;
+      head->logicalID = options.logicalID;
       if (NULL == options.args)
       {
          rc = SDB_INVALIDARG;
@@ -839,6 +819,8 @@ namespace vessel
       CHAR tmpHeadBuf[STORAGE_FILE_HEAD_SIZE] = {0};
       ossMemcpy(tmpHeadBuf, head, STORAGE_FILE_HEAD_SIZE);
       ((storageFileHead *)tmpHeadBuf)->headChecksum = 0;
+      storageCoreArgs args;
+
       rc = createChecksum(tmpHeadBuf, STORAGE_FILE_HEAD_SIZE, checksum);
       if (SDB_OK != rc)
       {
@@ -902,20 +884,20 @@ namespace vessel
          goto error;
       }
 
-      if (suHead->pageSize != DMS_PAGE_SIZE4K &&
-          suHead->pageSize != DMS_PAGE_SIZE8K &&
-          suHead->pageSize != DMS_PAGE_SIZE16K &&
-          suHead->pageSize != DMS_PAGE_SIZE32K &&
-          suHead->pageSize != DMS_PAGE_SIZE64K)
+      if (STORAGE_FILE_HEAD_SIZE != suHead->userDefinedHeadLen &&
+          0 != suHead->userDefinedHeadLen)
       {
-         PD_LOG(PDERROR, "invalid page size:%d", suHead->pageSize);
+         PD_LOG(PDERROR, "invalid size of user defined head:%d", suHead->userDefinedHeadLen);
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
 
-      if (0 == suHead->maxSegmentCountPerFile)
+      args.pageSize = suHead->pageSize;
+      args.maxPageCountPerSeg = suHead->maxPageCountPerSeg;
+      args.maxSegmentCountPerFile = suHead->maxSegmentCountPerFile;
+      if (!args.isValid())
       {
-         PD_LOG(PDERROR, "invalid maxSegmentCount");
+         PD_LOG(PDERROR, "invalid core args");
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }

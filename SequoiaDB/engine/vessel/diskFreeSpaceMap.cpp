@@ -473,7 +473,7 @@ namespace vessel
 
       while (_pmapPids.size() < count)
       {
-         rc = _fsmFile->allocateNewPage(pid);
+         rc = _fsmFile->allocateNewPage(pid, FALSE);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to allocate new page:%d", rc);
@@ -519,7 +519,7 @@ namespace vessel
       SDB_ASSERT(NULL != file && file->isOpen(), "can not be closed");
       PAGE_ID bitmapPid = INVALID_PAGE_ID;
 
-      rc = file->allocateNewPage(bitmapPid);
+      rc = file->allocateNewPage(bitmapPid, FALSE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to allocate new page form file:%d", rc);
@@ -1098,6 +1098,14 @@ namespace vessel
          rc = SDB_VESSEL_FSM_ENTRY_BROKEN;
          goto error;
       }
+      else if (0 == slot->root)
+      {
+         /// page 0 is smp.
+         PD_LOG(PDERROR, "entry slot of [%d,%d] is broken", mbID, logicalID);
+         rc = SDB_VESSEL_FSM_ENTRY_BROKEN;
+         goto error;
+      }
+
       entry = *slot;
    done:
       return rc;

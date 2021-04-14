@@ -58,29 +58,17 @@ namespace vessel
       public:
          storageUnit();
          ~storageUnit();
+         storageUnit(const storageUnit &o) = delete;
+         storageUnit &operator=(const storageUnit &o) = delete;
 
-      private:
-         storageUnit(const storageUnit &o);
-         storageUnit &operator=(const storageUnit &o);
-
-      public:
-         enum SU_STATUS
-         {
-            CLOSED = 0,
-            OPEN,
-         };
       public:
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return OPEN == _status;
+            return _isOpen;
          }
          OSS_INLINE const CHAR *getDirName()const
          {
             return _dirName;
-         }
-         OSS_INLINE SU_STATUS getStatus()const
-         {
-            return _status;
          }
 
       public:
@@ -109,16 +97,23 @@ namespace vessel
 
          void dumpIDMapFileHead(dataIDMapFileHead &head);
 
+         OSS_INLINE fsmFile *getFsmFilePtr()
+         {
+            return _fsm;
+         }
+
       public:
          INT32 create(requestContext *context,
                       const createSUOptions &options);
 
+         ///Whatever error code returns, su object will
+         ///be reset.
          INT32 destroy(requestContext *context);
 
          INT32 open(requestContext *context,
                     const strSlice &dirName);
                     
-         INT32 close(requestContext *context);
+         void close(requestContext *context);
 
       public:
          INT32 extendMetaFile(requestContext *context,
@@ -134,13 +129,13 @@ namespace vessel
          /// WARNING: you should use this interface when init smp failed.
          INT32 removeLastDataFile(requestContext *context);
 
-         OSS_INLINE fsmFile *getFsmFile()
-         {
-            return _fsm;
-         }
+         INT32 ensureSUNameFile(requestContext *context,
+                                const strSlice &csName);
+
+         INT32 createFsmFile(requestContext *context);
 
       private:
-         INT32 close();
+         void close();
          BOOLEAN validateSUOptions(const createSUOptions &options);
 
          INT32 testAllDirsBeforeCreating(const storagePathOptions &path,
@@ -170,14 +165,9 @@ namespace vessel
                                        const strSlice &dirName);
          INT32 openFile(const CHAR *fullPath,
                         const storageFileName &fn);
-         INT32 createSUNameFile(const CHAR *dir,
-                                SPACE_ID sid,
-                                const strSlice &csName);
-         INT32 removeSUNameFile(const CHAR *dir,
+         
+         INT32 removeSUNameFile(const CHAR *dataPath,
                                 SPACE_ID sid);
-
-         INT32 createFsmFile(const CHAR *dir,
-                             SPACE_ID sid);
 
          INT32 getDataFile(UINT32 fileSequence, dataExtentFile **file);
 
@@ -194,7 +184,7 @@ namespace vessel
          typedef ossPoolVector<dataExtentFile*> _DATA_VEC;
 
       private:
-         SU_STATUS _status;
+         BOOLEAN _isOpen;
          CHAR _dirName[MAX_SU_DIR_LEN + 1];
          
          ossSpinXLatch _extendingMetaLatch;

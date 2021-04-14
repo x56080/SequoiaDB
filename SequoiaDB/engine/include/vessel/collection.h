@@ -149,6 +149,7 @@ namespace vessel
 
          INT32 initNewRecordDataPages(requestContext *context,
                                       UINT32 count,
+                                      CL_PAGE_SEQ firstSeq,
                                       const PAGE_ID *lpids,
                                       const PAGE_ID *pids);
 

@@ -52,7 +52,7 @@ namespace engine
 namespace vessel
 {
    storageUnit::storageUnit():
-   _status(CLOSED),
+   _isOpen(FALSE),
    _meta(NULL),
    _idxMeta(NULL),
    _fsm(NULL)
@@ -308,7 +308,7 @@ namespace vessel
                              const createSUOptions &options)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN open = FALSE;
+      SDB_ASSERT(!isOpen(), "must be closed");
       BOOLEAN rollbackDir = FALSE;
       const storagePathOptions *path = NULL;
       strSlice dirSlice;
@@ -325,20 +325,12 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(isOpen()))
-      {
-         PD_LOG(PDERROR, "must be closed");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (!validateSUOptions(options))
+      else if (!validateSUOptions(options))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      open = TRUE;
       ossSnprintf(_dirName, MAX_SU_DIR_LEN + 1, "%s%d",
                    SU_FILE_NAME_PREFIX, options.sid);
       dirSlice.reset(_dirName);
@@ -363,7 +355,7 @@ namespace vessel
          goto error;
       }
 
-      _status = OPEN;
+      _isOpen = TRUE;
    done:
       return rc;
    error:
@@ -372,29 +364,20 @@ namespace vessel
          PD_LOG(PDWARNING, "rollback all files created:%s", _dirName);
          destroy(context);
       }
-      else if (open)
-      {
-         close();
-      }
+      close();
       goto done;
    }
 
    INT32 storageUnit::destroy(requestContext *context)
    {
       INT32 rc = SDB_OK;
+      INT32 everRc = SDB_OK;
       const storagePathOptions *path = NULL;
-      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
       SDB_ASSERT(NULL != context, "can not be null");
 
-      if (OSS_UNLIKELY(NULL == context))
+      if (!isOpen())
       {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      else if (!isOpen())
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
+         goto done;
       }
 
       for (UINT32 i = 0; i < _idx.size(); ++i)
@@ -402,7 +385,13 @@ namespace vessel
          extentStorageFile *file = _idx[i];
          if (NULL != file)
          {
-            file->unlink();
+            rc = file->unlink();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to unlink idx file in dir[%s], rc:%d", _dirName, rc);
+               everRc = rc;
+               rc = SDB_OK;
+            }
             SDB_OSS_DEL file;
          }
       }
@@ -410,7 +399,13 @@ namespace vessel
 
       if (NULL != _idxMeta)
       {
-         _idxMeta->unlink();
+         rc = _idxMeta->unlink();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to unlink idx meta file in dir[%s], rc:%d", _dirName, rc);
+            everRc = rc;
+            rc = SDB_OK;
+         }
          SDB_OSS_DEL _idxMeta;
          _idxMeta = NULL;
       }
@@ -420,7 +415,13 @@ namespace vessel
          dataExtentFile *file = _data[i];
          if (NULL != file)
          {
-            file->unlink();
+            rc = file->unlink();
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to unlink data file in dir[%s], rc:%d", _dirName, rc);
+               everRc = rc;
+               rc = SDB_OK;
+            }
             SDB_OSS_DEL file;
          }
       }
@@ -428,43 +429,55 @@ namespace vessel
 
       if (NULL != _fsm)
       {
-         _fsm->unlink();
+         rc = _fsm->unlink();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to unlink fsm file in dir[%s], rc:%d", _dirName, rc);
+            everRc = rc;
+            rc = SDB_OK;
+         }
          SDB_OSS_DEL _fsm;
          _fsm = NULL;
       }
 
       path = &(context->getEnv()->options.path);
-      rc = utilBuildFullPath(path->dataPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath);
+      rc = removeSUNameFile(path->dataPath.c_str(), getSpaceID());
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build full path, space:%s, %d", _dirName, rc);
-         goto error;
+         PD_LOG(PDERROR, "failed to unlink su name file:%d", rc);
+         everRc = rc;
+         rc = SDB_OK;
       }
-
-      removeSUNameFile(fullPath, getSpaceID());
 
       if (NULL != _meta)
       {
-         _meta->unlink();
+         rc = _meta->unlink();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to unlink meta file in dir[%s], rc:%d", _dirName, rc);
+            everRc = rc;
+            rc = SDB_OK;
+         }
          SDB_OSS_DEL _meta;
          _meta = NULL;
       }
    
-      rc = removeAllDirs(*path, _dirName, TRUE);
+      rc = removeAllDirs(*path, _dirName, FALSE);
       if (SDB_OK != rc)
       {
-         goto error;
+         PD_LOG(PDERROR, "failed to unlink dirs [%s], rc:%d", _dirName, rc);
+         everRc = rc;
+         rc = SDB_OK;
       }
 
       ossMemset(_dirName, 0, sizeof(_dirName));
-      _status = CLOSED;
+      _isOpen = FALSE;
+      rc = everRc;
    done:
       return rc;
-   error:
-      goto done;
    }
 
-   INT32 storageUnit::close(requestContext *context)
+   void storageUnit::close(requestContext *context)
    {
       if (NULL != _fsm && _fsm->isOpen())
       {
@@ -480,7 +493,6 @@ namespace vessel
       const storagePathOptions *path = NULL;
       SPACE_ID sid = INVALID_SPACE_ID;
       BOOLEAN crashedImpossible = FALSE;
-      BOOLEAN rollback = FALSE;
 
       if (OSS_UNLIKELY(NULL == context ||
                        dirName.empty() ||
@@ -490,13 +502,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
 
-      rollback = TRUE;
       path = &(context->getEnv()->options.path);
 
       if (OSS_UNLIKELY(!parseStorageUnitDir(dirName, &sid)))
@@ -548,15 +554,12 @@ namespace vessel
       }
 
       ossMemcpy(_dirName, dirName.str(), dirName.strLen());
-      _status = OPEN;
+      _isOpen = TRUE;
 
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         close();
-      }
+      close();
       goto done;
    }
 
@@ -826,6 +829,7 @@ namespace vessel
       options.spaceID = commonHead.spaceID;
       options.args = &(metaHead.data);
       options.sequence = sequence;
+      options.logicalID = commonHead.logicalID;
 
       file = SDB_OSS_NEW dataExtentFile();
       if (NULL == file)
@@ -872,9 +876,13 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::close()
+   void storageUnit::close()
    {
-      INT32 rc = SDB_OK;
+      if (!isOpen())
+      {
+         goto done;
+      }
+
       if (NULL != _meta)
       {
          _meta->close();
@@ -915,11 +923,9 @@ namespace vessel
       }
 
       ossMemset(_dirName, 0, sizeof(_dirName));
-      _status = CLOSED;
+      _isOpen = FALSE;
    done:
-      return rc;
-   error:
-      goto done;
+      return;
    }
 
    INT32 storageUnit::testAllDirsBeforeOpenning(const storagePathOptions &path,
@@ -1069,7 +1075,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
 
-      if (dirName.empty())
+      if (path.dataPath.empty() || dirName.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -1177,16 +1183,16 @@ namespace vessel
       BOOLEAN rollbackDataDir = FALSE;
       BOOLEAN rollbackIndexDir = FALSE;
 
-      if (dirName.empty())
+      if (dirName.empty() || path.dataPath.empty())
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      rc = utilBuildFullPath(path.dataPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath);
+      rc = utilBuildFullPath(path.dataPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "failed to build full path, space:%s, %d", _dirName, rc);
+         PD_LOG(PDERROR, "failed to build full path, space:%s, %d", dirName.str(), rc);
          goto error;
       }
 
@@ -1201,10 +1207,10 @@ namespace vessel
 
       if (!path.indexPath.empty() && path.indexPath != path.dataPath)
       {
-         rc = utilBuildFullPath(path.indexPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath);
+         rc = utilBuildFullPath(path.indexPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath);
          if (SDB_OK != rc)
          {
-            PD_LOG(PDERROR, "failed to build full path, space:%s, %d", _dirName, rc);
+            PD_LOG(PDERROR, "failed to build full path, space:%s, %d", dirName.str(), rc);
             goto error;
          }
 
@@ -1222,7 +1228,7 @@ namespace vessel
    error:
       if (rollbackIndexDir)
       {
-         if (SDB_OK == utilBuildFullPath(path.indexPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath))
+         if (SDB_OK == utilBuildFullPath(path.indexPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath))
          {
             removeDir(fullPath, TRUE);
          }
@@ -1230,7 +1236,7 @@ namespace vessel
 
       if (rollbackDataDir)
       {
-         if(SDB_OK == utilBuildFullPath(path.dataPath.c_str(), _dirName, OSS_MAX_PATHSIZE, fullPath))
+         if(SDB_OK == utilBuildFullPath(path.dataPath.c_str(), dirName.str(), OSS_MAX_PATHSIZE, fullPath))
          {
             removeDir(fullPath, TRUE);
          }
@@ -1387,26 +1393,9 @@ namespace vessel
          PD_LOG(PDERROR, "failed to create the meta file:%d", rc);
          goto error;
       }
-
-      rc = createSUNameFile(fullPath, options.sid, options.csName);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = createFsmFile(fullPath, options.sid);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
    done:
       return rc;
    error:
-      if (NULL != _meta)
-      {
-         _meta->destroy();
-      }
-      removeSUNameFile(fullPath, options.sid);
       goto done;
    }
 
@@ -1421,33 +1410,48 @@ namespace vessel
       storageFileOptions fileOptions;
       UINT32 secretValue = ossRand();
       SPACE_ID sid = options.sid;
+      dataExtentIDMapFile *file = NULL;
 
       fn.build(SPACE_TYPE_RECORD_M, sid, 0);
       fileOptions.dir = dir;
       fileOptions.name = fn.getName();
       fileOptions.secretValue = secretValue;
       fileOptions.spaceID = sid;
+      fileOptions.logicalID = options.logicalID;
       fileOptions.args = &(options.metaArgs);
       fileOptions.sequence = 0;
 
-      _meta = SDB_OSS_NEW dataExtentIDMapFile();
-      if (NULL == _meta)
+      file = SDB_OSS_NEW dataExtentIDMapFile();
+      if (NULL == file)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = _meta->create(fileOptions, &options);
+      rc = file->create(fileOptions, &options);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to crate meta file:%d", rc);
          goto error;
       }
+
+      rc = file->cacheHead();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cache head in mem:%d", rc);
+         goto error;
+      }
+
+      _meta = file;
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(_meta);
+      if (NULL != file)
+      {
+         file->destroy();
+         SDB_OSS_DEL file;
+      }
       goto done;
    }
 
@@ -1478,6 +1482,13 @@ namespace vessel
       rc = openFile(fullPath, fn);
       if (SDB_OK != rc)
       {
+         goto error;
+      }
+
+      rc = _meta->cacheHead();
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to cache head in mem:%d", rc);
          goto error;
       }
    done:
@@ -1659,22 +1670,40 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createSUNameFile(const CHAR *dir,
-                                       SPACE_ID sid,
+   INT32 storageUnit::ensureSUNameFile(requestContext *context,
                                        const strSlice &csName)
    {
       INT32 rc = SDB_OK;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      SDB_ASSERT(NULL != dir &&
-                 INVALID_SPACE_ID != sid, "can not be null");
       SDB_ASSERT(!csName.empty() && csName.strLen() <= DMS_COLLECTION_SPACE_NAME_SZ, "can not be invalid");
-                 ;
+      CHAR filePath[MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2] = {0};
       storageFileName fn;
       OSSFILE file;
       CHAR buf[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
+      const CHAR *path = NULL;
 
-      fn.build(SPACE_TYPE_NAME, sid, 0);
-      rc = utilBuildFullPath(dir, fn.getName(), OSS_MAX_PATHSIZE, fullPath);
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if(NULL == context || csName.empty() ||
+              DMS_COLLECTION_SPACE_NAME_SZ < csName.strLen())
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      fn.build(SPACE_TYPE_NAME, getSpaceID(), 0);
+      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2, filePath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build file path:%d", rc);
+         goto error;
+      }
+
+      path = context->getEnv()->options.path.dataPath.c_str();
+      rc = utilBuildFullPath(path, filePath, OSS_MAX_PATHSIZE, fullPath);
       if (SDB_OK != rc)
       {
          rc = SDB_INVALIDARG;
@@ -1712,10 +1741,6 @@ namespace vessel
       ossChmod(fullPath, OSS_RU);
 
    done:
-      if (file.isOpened())
-      {
-         ossClose(file);
-      }
       return rc;
    error:
       if (file.isOpened())
@@ -1726,18 +1751,25 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::removeSUNameFile(const CHAR *dir,
+   INT32 storageUnit::removeSUNameFile(const CHAR *dataPath,
                                        SPACE_ID sid)
    {
       INT32 rc = SDB_OK;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      SDB_ASSERT(NULL != dir &&
+      CHAR filePath[MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2] = {0};
+      SDB_ASSERT(NULL != dataPath &&
                  INVALID_SPACE_ID != sid, "can not be null");
       storageFileName fn;
       OSSFILE file;
 
       fn.build(SPACE_TYPE_NAME, sid, 0);
-      rc = utilBuildFullPath(dir, fn.getName(), OSS_MAX_PATHSIZE, fullPath);
+      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2, filePath);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to build file path:%d", rc);
+         goto error;
+      }
+      rc = utilBuildFullPath(dataPath, filePath, OSS_MAX_PATHSIZE, fullPath);
       if (SDB_OK != rc)
       {
          rc = SDB_INVALIDARG;
@@ -1747,6 +1779,7 @@ namespace vessel
       rc = ossDelete(fullPath);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to delete file:%s", fullPath);
          goto error;
       }
    done:
@@ -1755,52 +1788,75 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::createFsmFile(const CHAR *dir,
-                                    SPACE_ID sid)
+   INT32 storageUnit::createFsmFile(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(NULL != _meta, "can not be null");
-      SDB_ASSERT(NULL == _fsm, "must be null");
-      SDB_ASSERT(NULL != dir &&
-                 INVALID_SPACE_ID != sid, "can not be null");
+      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(NULL == _fsm, "do not recreate");
       storageFileName fn;
       storageFileOptions options;
-      const storageFileHead &commonHead = _meta->getCommonHeadInMem();
+      CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
+      const CHAR *dataPath = NULL;
       storageCoreArgs args(FSM_PAGE_SIZE,
                            FSM_PAGE_COUNT_PER_SEG,
                            FSM_MAX_SEG_COUNT);
+      fsmFile *file = NULL;
 
-      fn.build(SPACE_TYPE_FSM, sid, 0);
-      options.dir = dir;
+      if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (NULL == context)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+      fn.build(SPACE_TYPE_FSM, getSpaceID(), 0);
+
+      dataPath = context->getEnv()->options.path.dataPath.c_str();
+      rc = utilBuildFullPath(dataPath, _dirName, OSS_MAX_PATHSIZE, fullPath);
+      if (SDB_OK != rc)
+      {
+         goto error;
+      }
+
+      options.dir = fullPath;
       options.name = fn.getName();
-      options.secretValue = commonHead.secretValue;
-      options.spaceID = sid;
+      options.secretValue = _meta->getCommonHeadInMem().secretValue;
+      options.spaceID = getSpaceID();
       options.sequence = 0;
       options.args = &args;
+      options.logicalID = _meta->getCommonHeadInMem().logicalID;
+      options.replaceWhenCreate = TRUE;
 
-      _fsm = SDB_OSS_NEW fsmFile();
-      if (NULL == _fsm)
+      file = SDB_OSS_NEW fsmFile();
+      if (NULL == file)
       {
          PD_LOG(PDERROR, "failed to allocate mem");
          rc = SDB_OOM;
          goto error;
       }
 
-      rc = _fsm->create(options, NULL);
+      rc = file->create(options, NULL);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create free space map file:%d", rc);
          goto error;
       }
+
+      _fsm = file;
+      file = NULL;
+
    done:
       return rc;
    error:
-      if (NULL != _fsm)
+      if (NULL != file)
       {
-         _fsm->destroy();
-         SDB_OSS_DEL _fsm;
-         _fsm = NULL;
+         file->destroy();
       }
+      SAFE_OSS_DELETE(file);
       goto done;
    }
 
@@ -1842,6 +1898,11 @@ namespace vessel
       for (UINT32 i = 0; i < _data.size(); ++i)
       {
          dataExtentFile *df = _data.at(i);
+         if (NULL == df)
+         {
+            continue;
+         }
+
          const storageFileHead *dataHead = &(df->getCommonHeadInMem());
          if (commonHead->spaceID != dataHead->spaceID)
          {
@@ -1852,6 +1913,12 @@ namespace vessel
          else if (commonHead->secretValue != dataHead->secretValue)
          {
             PD_LOG(PDERROR, "secret value is not same:%d, %d", commonHead->secretValue, dataHead->secretValue);
+            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            goto error;
+         }
+         else if (commonHead->logicalID != dataHead->logicalID)
+         {
+            PD_LOG(PDERROR, "logical id value is not same:%d, %d", commonHead->logicalID, dataHead->logicalID);
             rc = SDB_VESSEL_INVALID_VESSEL_FILE;
             goto error;
          }
@@ -1887,39 +1954,27 @@ namespace vessel
       {
          goto done;
       }
+      else if (DMS_INVALID_LOGICCSID == options.logicalID)
+      {
+         goto done;
+      }
       else if (options.csName.empty())
       {
          goto done;
       }
-      else if (0 != options.metaArgs.pageSize % DMS_PAGE_SIZE4K)
+      else if (!options.dataArgs.isValid())
       {
          goto done;
       }
-      else if (0 == options.metaArgs.getMaxFileBodySize())
+      else if (!options.metaArgs.isValid())
       {
          goto done;
       }
-      else if (0 != options.dataArgs.pageSize % DMS_PAGE_SIZE4K)
+      else if (!options.idxArgs.isValid())
       {
          goto done;
       }
-      else if (0 == options.dataArgs.getMaxFileBodySize())
-      {
-         goto done;
-      }
-      else if (0 != options.idxArgs.pageSize % DMS_PAGE_SIZE4K)
-      {
-         goto done;
-      }
-      else if (0 == options.idxArgs.getMaxFileBodySize())
-      {
-         goto done;
-      }
-      else if (0 != options.idxMetaArgs.pageSize % DMS_PAGE_SIZE4K)
-      {
-         goto done;
-      }
-      else if (0 == options.idxMetaArgs.getMaxFileBodySize())
+      else if (!options.idxMetaArgs.isValid())
       {
          goto done;
       }

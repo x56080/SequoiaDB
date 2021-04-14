@@ -60,11 +60,6 @@ namespace vessel
          {
             return "SDBVDATA";
          }
-
-         virtual INT32 initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf);
-         virtual INT32 validateUserDefinedHead(const void *head);
-         virtual INT32 afterHeadOpen(){return 0;}
-
    };//class dataExtentFile
 }//namespace vessel
 }//namespace engine

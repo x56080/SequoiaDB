@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -53,7 +50,7 @@ namespace vessel
    const UINT32 STORAGE_FILE_CURRENT_VERSION = 1;
 
    const UINT32 MAX_SU_DIR_LEN = 15;
-   const UINT32 SU_FILE_NAME_LEN = 31;
+   const UINT32 SU_FILE_NAME_LEN = 63;
 
    #define SU_FILE_NAME_PREFIX "_space_"
    const UINT32 SU_NAME_PREFIX_LEN = 7;
@@ -81,6 +78,8 @@ namespace vessel
       {
          
       }
+
+      BOOLEAN isValid()const;
 
       OSS_INLINE BOOLEAN operator==(const storageCoreArgs &o)const
       {
@@ -117,21 +116,29 @@ namespace vessel
 
    struct storageFileOptions
    {
-      storageFileOptions():
-      dir(NULL),
-      name(NULL),
-      secretValue(0),
-      spaceID(INVALID_SPACE_ID),
-      sequence(0),
-      args(NULL)
-      {}
+      OSS_INLINE storageFileOptions(){}
+      OSS_INLINE ~storageFileOptions(){}
 
-      const CHAR * dir;
-      const CHAR *name;
-      UINT32 secretValue;
-      UINT16 spaceID;
-      UINT32 sequence;
-      const storageCoreArgs *args;
+      storageFileOptions &operator=(const storageFileOptions &o)
+      {
+         dir = o.dir;
+         name = o.name;
+         secretValue = o.secretValue;
+         spaceID = o.spaceID;
+         logicalID = o.logicalID;
+         args = o.args;
+         replaceWhenCreate = o.replaceWhenCreate;
+         return *this;
+      }
+
+      const CHAR * dir = NULL;
+      const CHAR *name = NULL;
+      UINT32 secretValue = 0;
+      UINT16 spaceID = INVALID_SPACE_ID;
+      UINT32 sequence = 0;
+      UINT32 logicalID = DMS_INVALID_LOGICCSID;
+      const storageCoreArgs *args = NULL;
+      BOOLEAN replaceWhenCreate = FALSE;
    }; // struct storageFileOptions
 
    /// common head
@@ -144,14 +151,14 @@ namespace vessel
       secretValue(0),
       flags(0),
       spaceID(INVALID_SPACE_ID),
-      uniqueID(UTIL_INVALID_CS_UNIQUE_ID),
+      logicalID(DMS_INVALID_LOGICCSID),
       spaceType(INVALID_SPACE_TYPE),
       sequence(0),
       pageSize(0),
       maxPageCountPerSeg(0),
       maxSegmentCountPerFile(0),
       userDefinedHeadLen(0),
-      lastSegmentSize(0)
+      pageCountInLastSeg(0)
       {
          ossMemset(magicChars, 0, sizeof(magicChars));
          ossMemset(name, 0, sizeof(name));
@@ -171,14 +178,14 @@ namespace vessel
       UINT32 secretValue;
       UINT32 flags;
       UINT32 spaceID;
-      UINT32 uniqueID;/// necessary ?
+      UINT32 logicalID;
       UINT32 spaceType;
       UINT32 sequence;
       UINT32 pageSize;
       UINT32 maxPageCountPerSeg;
       UINT32 maxSegmentCountPerFile;
       UINT32 userDefinedHeadLen;
-      UINT32 lastSegmentSize;
+      UINT32 pageCountInLastSeg;/// readonly file
    }; // struct storageFileHead
 
    const UINT32 META_FILE_USER_HEAD_VERSION = 1;
@@ -189,6 +196,17 @@ namespace vessel
       headChecksum(0){}
 
       OSS_INLINE ~dataIDMapFileHead(){}
+
+      OSS_INLINE dataIDMapFileHead &operator=(const dataIDMapFileHead &o)
+      {
+         version = o.version;
+         headChecksum = o.headChecksum;
+         meta = o.meta;
+         data = o.data;
+         indexMeta = o.indexMeta;
+         index = o.index;
+         return *this;
+      }
       
       UINT32 version;
       UINT32 headChecksum;

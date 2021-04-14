@@ -55,7 +55,8 @@ namespace vessel
 {
    INT32 rdpAccessor::initRdp(requestContext *context,
                               PAGE_ID lpid,
-                              UINT32 logicalID)
+                              UINT32 logicalID,
+                              CL_PAGE_SEQ pageSeq)
    {
       INT32 rc = SDB_OK;
 
@@ -66,7 +67,8 @@ namespace vessel
       SDB_ASSERT(OSS_BIT_TEST(getFlags(), flags), "impossible");
 
       if (OSS_UNLIKELY(INVALID_PAGE_ID == lpid ||
-                       DMS_INVALID_LOGICCLID == logicalID))
+                       DMS_INVALID_LOGICCLID == logicalID ||
+                       INVALID_CL_PAGE_SEQ == pageSeq))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -101,6 +103,7 @@ namespace vessel
       *head = recordDataPageHead();
       head->version = RDP_VERSION;
       head->clLogcalID = logicalID;
+      head->pageSeq = pageSeq;
       head->totalFreeSpace = getPageBodySize() - RECORD_PAGE_HEAD_LEN;
       head->freeSpaceAfterLastSlot = head->totalFreeSpace;
 

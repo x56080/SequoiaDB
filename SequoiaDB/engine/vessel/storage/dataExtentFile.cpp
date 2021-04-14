@@ -48,15 +48,6 @@ namespace vessel
    dataExtentFile::~dataExtentFile()
    {}
 
-   INT32 dataExtentFile::initUserDefinedHead(const void *userDefinedOptions, CHAR *headBuf)
-   {
-      return SDB_VESSEL_INTERNAL_ERR;
-   }
-
-   INT32 dataExtentFile::validateUserDefinedHead(const void *head)
-   {
-      return SDB_VESSEL_INTERNAL_ERR;
-   }
 
 }
 }

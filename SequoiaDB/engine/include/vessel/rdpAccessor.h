@@ -64,7 +64,8 @@ namespace vessel
       public:
          INT32 initRdp(requestContext *context,
                        PAGE_ID lpid,
-                       UINT32 logicalID);
+                       UINT32 logicalID,
+                       CL_PAGE_SEQ pageSeq);
 
          INT32 insertNormalRecord(insertContext *context);
 

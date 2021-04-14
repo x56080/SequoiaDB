@@ -54,6 +54,9 @@ namespace vessel
       public:
          extentStorageFile();
          virtual ~extentStorageFile();
+
+         extentStorageFile(const extentStorageFile &o) = delete;
+         extentStorageFile &operator=(const extentStorageFile &o) = delete;
       public:
          INT32 create(const storageFileOptions &options,
                       const void *userDefinedOptions = NULL);
@@ -115,7 +118,6 @@ namespace vessel
          {
             return SDB_VESSEL_INTERNAL_ERR;
          }
-         virtual INT32 afterHeadOpen() = 0;
 
       private:
          INT32 createFileAndInitHead(const storageFileOptions &options,
@@ -125,7 +127,7 @@ namespace vessel
 
          INT32 openFileSegments();
 
-         INT32 validateOptions(const storageFileOptions &options);
+         BOOLEAN validateOptions(const storageFileOptions &options);
          INT32 initFileHead(const storageFileOptions &options,
                             CHAR *headBuf,
                             BOOLEAN hasUserDefinedHead);

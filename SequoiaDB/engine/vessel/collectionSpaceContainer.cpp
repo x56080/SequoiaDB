@@ -54,14 +54,10 @@ namespace engine
 {
 namespace vessel
 {
-   collectionSpaceContainer::collectionSpaceContainer():
-   _isOpen(FALSE),
-   _nextLogicalID(0),
-   _slotAllocated(0),
-   _slots(NULL),
-   _creatingCount(0)
+   collectionSpaceContainer::collectionSpaceContainer()
    {
-      resetBitMap32(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
+      resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
+      setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
    }
 
    collectionSpaceContainer::~collectionSpaceContainer()
@@ -72,20 +68,12 @@ namespace vessel
    INT32 collectionSpaceContainer::open(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      BOOLEAN rollback = FALSE;
-      SDB_ASSERT(!isOpen(), "can not be open");
+      SDB_ASSERT(NULL == _slots, "do not reinit");
       if (OSS_UNLIKELY(NULL == context))
       {
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(isOpen()))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rollback = TRUE;
 
       _slots = SDB_OSS_NEW _spaceSlot[MAX_SPACE_COUNT];
       if (NULL == _slots)
@@ -95,35 +83,30 @@ namespace vessel
          goto error;
       }
 
-      rc = loadCollectionSpacesOnDisk(context);
+      rc = loadStorageUnitsOnDisk(context);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = updateIndexWhenOpen(context);
+      rc = initObjects(context);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      _isOpen = TRUE;
    done:
       return rc;
    error:
-      if (rollback)
-      {
-         close(context);
-      }
+      close(context);
       goto done;
    }
 
    INT32 collectionSpaceContainer::close(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      UINT32 count = _slotAllocated;
 
-      for (UINT32 i = 0; i < MAX_SPACE_COUNT && 0 < count; ++i)
+      for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
       {
          if (_slots[i].isFree())
          {
@@ -131,7 +114,6 @@ namespace vessel
          }
 
          _slots[i].getCS()->close(context);
-         --count;
       }
 
       fini();
@@ -143,19 +125,20 @@ namespace vessel
 
    void collectionSpaceContainer::fini()
    {
-      _isOpen = FALSE;
-      _nextLogicalID = 0;
-      _slotAllocated = 0;
+      _nextLogicalID = VESSEL_MIN_CS_LID;
+      _firstFreeBits = -1;
       
       if (NULL != _slots)
       {
          SDB_OSS_DEL []_slots;
          _slots = NULL;
-         resetBitMap32(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
+         resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
+         setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
       }
       _nameIndex.clear();
       _uidIndex.clear();
       _creatingCount = 0;
+      _objectsInited = FALSE;
       return;
    }
 
@@ -179,9 +162,9 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(!_objectsInited))
       {
-         rc = SDB_INVALIDARG;
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -251,8 +234,6 @@ namespace vessel
       ossScopedLock(&_latch, SHARED);
       SDB_ASSERT(_creatingCount <= _nameIndex.size(), "can not be invalid");
       cnt = _nameIndex.size() - _creatingCount;
-
-   done:
       return cnt;
    }
 
@@ -299,6 +280,11 @@ namespace vessel
                        !cursor->isOpen()))
       {
          rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (OSS_UNLIKELY(!_objectsInited))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -453,7 +439,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(!isOpen()))
+      else if (OSS_UNLIKELY(NULL == _slots))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -626,32 +612,8 @@ namespace vessel
       goto done;
    }
 
-   INT32 collectionSpaceContainer::getSUByLockedSpaceID(requestContext *context,
-                                                        storageUnit **su)
-   {
-      INT32 rc = SDB_OK;
-      collectionSpace *cs = NULL;
-      if (OSS_UNLIKELY(NULL == su))
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      rc = getCSByLockedSpaceID(context, DMS_INVALID_LOGICCSID, &cs);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      *su = cs->getSU();
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 collectionSpaceContainer::getUnlockedSU(SPACE_ID sid,
-                                                 storageUnit **su)
+   INT32 collectionSpaceContainer::getSUBySpaceID(SPACE_ID sid,
+                                                  storageUnit **su)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(INVALID_SPACE_ID == sid || NULL == su))
@@ -659,10 +621,20 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if (OSS_UNLIKELY(NULL == _slots))
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
 
       if (_slots[sid].isFree())
       {
          rc = SDB_DMS_CS_NOTEXIST;
+         goto error;
+      }
+      else if (!_slots[sid].getCS()->suIsLoaded())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
          goto error;
       }
 
@@ -755,18 +727,61 @@ namespace vessel
       return r;
    }
 
-   INT32 collectionSpaceContainer::updateIndexWhenOpen(requestContext *context)
+   INT32 collectionSpaceContainer::initObjects(requestContext *context)
    {
       INT32 rc = SDB_OK;
-      UINT32 count = _slotAllocated;
-      for (UINT32 i = 0; i < MAX_SPACE_COUNT && 0 < count; ++i)
+      SDB_ASSERT(NULL != _slots, "can not be null");
+      SDB_ASSERT(VESSEL_MIN_CS_LID == _nextLogicalID, "must be same");
+
+      for (UINT32 i = 0; i < MAX_SPACE_COUNT; ++i)
       {
+         spaceIDLockHelper lhelper(context);
          if (_slots[i].isFree())
          {
+            if (_firstFreeBits < 0)
+            {
+               _firstFreeBits = (i >> 6);
+            }
             continue;
          }
 
+         if (!setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, i))
+         {
+            PD_LOG(PDERROR, "failed to register space in bit slots:%d", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
          collectionSpace *cs = _slots[i].getCS();
+         if (!cs->suIsLoaded())
+         {
+            PD_LOG(PDERROR, "storage unit[%d] has not been loaded", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
+         /// unnecessary locking. just page accessor required.
+         rc = lhelper.lock(i, SHARED);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to get lock of space id[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         rc = cs->openAfterSULoaded(context);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init collection space[%d], rc:%d", i, rc);
+            goto error;
+         }
+
+         if (OSS_UNLIKELY(DMS_INVALID_LOGICCSID == cs->getLogicalID()))
+         {
+            PD_LOG(PDERROR, "invalid cs logical id found at space:%d", i);
+            rc = SDB_VESSEL_INTERNAL_ERR;
+            goto error;
+         }
+
          rc = addToIndex(strSlice(cs->getCSName()),
                                   cs->getUniqueID(),
                                   cs->getSpaceID(),
@@ -776,15 +791,30 @@ namespace vessel
             PD_LOG(PDERROR, "failed to add index when open:%d", rc);
             goto error;
          }
-         --count;
+
+         if (_nextLogicalID <= cs->getLogicalID())
+         {
+            _nextLogicalID = cs->getLogicalID() + 1;
+         }
+
+         lhelper.unlock();
       }
+
+      _objectsInited = TRUE;
    done:
       return rc;
    error:
+      _firstFreeBits = -1;
+      _nameIndex.clear();
+      _uidIndex.clear();
+      _nextLogicalID = VESSEL_MIN_CS_LID;
+      _objectsInited = FALSE;
+      resetBitMap64(MAX_SPACE_SLOT_COUNT, _slotBits, TRUE);
+      setNotFreeIfFree64(MAX_SPACE_SLOT_COUNT, _slotBits, MAX_SPACE_COUNT);
       goto done;
    }
 
-   INT32 collectionSpaceContainer::loadCollectionSpacesOnDisk(requestContext *context)
+   INT32 collectionSpaceContainer::loadStorageUnitsOnDisk(requestContext *context)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != context, "can not be null");
@@ -844,7 +874,7 @@ namespace vessel
             goto error;
          }
 
-         rc = _slots[sid].getCS()->open(context, _nextLogicalID, nameSlice);
+         rc = _slots[sid].getCS()->openSU(context, nameSlice);
          if (SDB_VESSEL_CRASHED_WHEN_CREATING == rc)
          {
             rc = SDB_OK;
@@ -858,16 +888,7 @@ namespace vessel
             goto error;
          }
 
-         if (!setNotFreeIfFree32(MAX_SPACE_SLOT_COUNT, _slotBits, sid))
-         {
-            PD_LOG(PDERROR, "failed to update slot bits:%d", sid);
-            rc = SDB_VESSEL_INTERNAL_ERR;
-            goto error;
-         }
-
          lhelper.unlock();
-         ++_slotAllocated;
-         ++_nextLogicalID;
       }
    done:
       return rc;
@@ -927,8 +948,8 @@ namespace vessel
       SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalID, "can not be invalid");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(0 < _creatingCount, "can not be zero");
-      ossScopedLock(&_latch, EXCLUSIVE);
-      upsertToIndex(csName, uniqueID, logicalID, sid);
+      ossScopedLock guard(&_latch, EXCLUSIVE);
+      upsertToIndex(csName, uniqueID, sid, logicalID);
       --_creatingCount;
       return;
    }
@@ -942,7 +963,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_SPACE_ID != sid, "can not be invalid");
       SDB_ASSERT(DMS_INVALID_LOGICCSID != logicalID, "can not be invalid");
-      ossScopedLock(&_latch, EXCLUSIVE);
+      ossScopedLock guard(&_latch, EXCLUSIVE);
 
       removeFromIndex(csName, uniqueID);
       if (OSS_LIKELY(INVALID_SPACE_ID != sid))
@@ -1029,26 +1050,34 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       UINT32 offset = 0;
-      SDB_ASSERT(isOpen(), "must be open");
+      UINT32 nextFree = 0;
+      SDB_ASSERT(NULL != _slots, "must be init");
 
-      if (MAX_SPACE_COUNT == _slotAllocated)
+      if (_firstFreeBits < 0)
       {
          rc = SDB_DMS_SU_OUTRANGE;
          goto error;
       }
 
-      if (OSS_LIKELY(allocateFromBitMap32(MAX_SPACE_SLOT_COUNT, _slotBits, offset) &&
-                     offset <= (UINT32)MAX_SPACE_ID))
+      if (!findAndClearFirstFreeBitFromBit64(MAX_SPACE_SLOT_COUNT, _firstFreeBits, _slotBits, offset))
       {
-         ++_slotAllocated;
-         sid = (SPACE_ID)offset;
+         PD_LOG(PDERROR, "free slot should be found");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
+      SDB_ASSERT(offset < MAX_SPACE_COUNT, "impossible");
+
+      if (findFirstFreeBitFromBit64(MAX_SPACE_SLOT_COUNT, (offset >> 6), _slotBits, nextFree))
+      {
+         _firstFreeBits = (nextFree >> 6);
       }
       else
       {
-         rc = SDB_DMS_SU_OUTRANGE;
-         goto error;
+         _firstFreeBits = -1;
       }
-      
+
+      sid = (SPACE_ID)offset;
    done:
       return rc;
    error:
@@ -1057,12 +1086,21 @@ namespace vessel
 
    void collectionSpaceContainer::releaseSpaceID(SPACE_ID sid)
    {
-      SDB_ASSERT(isOpen(), "must be open");
+      SDB_ASSERT(NULL != _slots, "can not be null");
+      INT32 freeBits = sid;
+      freeBits = (freeBits >> 6);
       if (OSS_LIKELY(INVALID_SPACE_ID != sid))
       {
-         if (setFreeIfNotFree32(MAX_SPACE_SLOT_COUNT, _slotBits, sid))
+         if (setFreeIfNotFree64(MAX_SPACE_SLOT_COUNT, _slotBits, sid))
          {
-            --_slotAllocated;
+            if (_firstFreeBits < 0)
+            {
+               _firstFreeBits = freeBits;
+            }
+            else if (freeBits < _firstFreeBits)
+            {
+               _firstFreeBits = freeBits;
+            }
          }
       }
       return;

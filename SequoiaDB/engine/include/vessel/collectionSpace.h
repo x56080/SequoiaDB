@@ -57,28 +57,38 @@ namespace vessel
    class requestContext;
    class storageUnit;
    class listCLCursor;
+   class fsmFile;
 
    class collectionSpace : public SDBObject
    {
       public:
          collectionSpace();
          ~collectionSpace();
-      
-      public:
+         collectionSpace(const collectionSpace &o) = delete;
+         collectionSpace &operator=(const collectionSpace &o) = delete;
+
+      private:
          enum CS_IN_MEM_STATUS
          {
             CLOSED = 0,
             SU_LOADED = 1,
-            META_DATA_LOADED = 2,
-            CL_LOADED = 3,
-            OPEN = 4,
+            OPEN = 2,
          };//enum CS_IN_MEM_STATUS
-
+   
       public:
          OSS_INLINE BOOLEAN isClosed()const
          {
             return CLOSED == _status;
          }
+         OSS_INLINE BOOLEAN suIsLoaded()const
+         {
+            return _status >= SU_LOADED;
+         }
+         OSS_INLINE BOOLEAN isOpen()const
+         {
+            return OPEN == _status;
+         }
+
          OSS_INLINE const CHAR *getCSName()const
          {
             return _recordInMem.name;
@@ -110,7 +120,7 @@ namespace vessel
          }
          OSS_INLINE UINT32 getLogicalID()const
          {
-            return _logicalID;
+            return _recordInMem.csLogicalID;
          }
       public:
          INT32 create(requestContext *context,
@@ -119,13 +129,16 @@ namespace vessel
                       UINT32 logicalID,
                       const createCSOptions &options);
 
-         INT32 open(requestContext *context,
-                    UINT32 logicalID,
-                    const strSlice &name);
+         /// opening collection space should always
+         /// be in two steps: openSU and openAfterSULoaded
+         INT32 openSU(requestContext *context,
+                      const strSlice &dirName);
+
+         INT32 openAfterSULoaded(requestContext *context);
 
          INT32 destroy(requestContext *context);
 
-         INT32 close(requestContext *context);
+         void close(requestContext *context);
 
          INT32 createCL(requestContext *context,
                         const strSlice &clName, 
@@ -155,6 +168,9 @@ namespace vessel
                                    UINT32 logicalID,
                                    OSS_LATCH_MODE mode,
                                    collection **obj);
+
+         INT32 ensureFsmFile(requestContext *context,
+                             fsmFile **file);
 
       public:
          INT32 getLpidOfClRecord(CL_MB_ID mbID, PAGE_ID &lpid)const;
@@ -290,7 +306,8 @@ namespace vessel
          INT32 initDataSMP(requestContext *context,
                            PAGE_ID pid);
 
-         INT32 initMetaData(requestContext *context);
+         ///can be used only when start.
+         INT32 cacheGlobalMetaData(requestContext *context);
 
          INT32 initCollectionsFromDisk(requestContext *context);
 
@@ -307,7 +324,7 @@ namespace vessel
          INT32 ensureNewIMPAndExtendPool(requestContext *context,
                                          UINT32 oldPageAllocated);
 
-         INT32 initParamsInMem();
+         INT32 cacheKeyParametersAboutStorage();
          
          BOOLEAN isInMemBitMapsReady()const;
          INT32 initInMemBitMaps(requestContext *context);
@@ -367,7 +384,6 @@ namespace vessel
          
       private:
          CS_IN_MEM_STATUS _status;
-         UINT32 _logicalID;
          storageUnit *_su;
          csMetaRecord _recordInMem;
 

@@ -86,9 +86,10 @@ TEST_F(fsm_test, test1)
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
+   options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterCreation();
+   rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::fsmCandidate candidate;
    const UINT32 recordSize = 1233;
@@ -157,9 +158,10 @@ TEST_F(fsm_test, diskmap_0)
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
+   options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterCreation();
+   rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -227,9 +229,10 @@ TEST_F(fsm_test, diskmap_1)
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
+   options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterCreation();
+   rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -317,9 +320,10 @@ TEST_F(fsm_test, diskmap_2)
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
+   options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterCreation();
+   rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    v::diskFreeSpaceMap diskMap;
    rc = diskMap.create(&file, 0, 0);
@@ -417,9 +421,10 @@ TEST_F(fsm_test, diskmap_3)
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
+   options.logicalID = 0;
    rc = file.create(options);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterCreation();
+   rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    UINT32 count = 65535;
    storageFileName fn;
@@ -440,8 +445,6 @@ TEST_F(fsm_test, diskmap_3)
 
    rc = file.open(fullPath.c_str(), fn);
    ASSERT_EQ(SDB_OK, rc);
-   rc = file.initAfterOpen();
-   ASSERT_EQ(SDB_OK, rc);
    for (UINT32 i = 0; i < count; ++i)
    {
       v::diskFreeSpaceMap diskMap;
@@ -449,5 +452,39 @@ TEST_F(fsm_test, diskmap_3)
       ASSERT_EQ(SDB_OK, rc);
       diskMap.close();
    }
+   file.close();
+}
+
+/// auto recreate
+TEST_F(fsm_test, diskmap_4)
+{
+   INT32 rc = SDB_OK;
+   v::fsmFile file;
+   v::storageCoreArgs args;
+   args.pageSize = DMS_PAGE_SIZE32K;
+   args.maxPageCountPerSeg = FSM_PAGE_COUNT_PER_SEG;
+   args.maxSegmentCountPerFile = FSM_MAX_SEG_COUNT;
+   v::storageFileOptions options;
+   options.args = &args;
+   options.dir = DATA_PATH;
+   options.name = "_space_0.fsm";
+   options.secretValue = 0;
+   options.spaceID = 0;
+   options.sequence = 0;
+   options.logicalID = 0;
+   rc = file.create(options);
+   ASSERT_EQ(SDB_OK, rc);
+   rc = file.initToWork(FALSE);
+   ASSERT_EQ(SDB_OK, rc);
+   UINT32 count = 65535;
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      v::diskFreeSpaceMap diskMap;
+      rc = diskMap.open(&file, i, i, TRUE);
+      ASSERT_EQ(SDB_OK, rc);
+      diskMap.close();
+   }
+
    file.close();
 }

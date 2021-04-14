@@ -59,12 +59,8 @@ namespace vessel
       public:
          collectionSpaceContainer();
          ~collectionSpaceContainer();
-      
-      public:
-         OSS_INLINE BOOLEAN isOpen()const
-         {
-            return _isOpen;
-         }
+         collectionSpaceContainer(const collectionSpaceContainer &) = delete;
+         collectionSpaceContainer &operator=(const collectionSpaceContainer &) = delete;
 
       public:
          INT32 open(requestContext *context);
@@ -112,12 +108,9 @@ namespace vessel
                               OSS_LATCH_MODE mode,
                               collectionSpace **obj);
 
-         INT32 getSUByLockedSpaceID(requestContext *context,
-                                    storageUnit **su);
-
          /// WRANING: you need to make sure that su has been created and will not be deleted.
-         INT32 getUnlockedSU(SPACE_ID sid,
-                             storageUnit **su);
+         INT32 getSUBySpaceID(SPACE_ID sid,
+                              storageUnit **su);
 
       private:
          INT32 precreateCS(requestContext *context,
@@ -137,8 +130,8 @@ namespace vessel
                                   utilCSUniqueID uniqueID,
                                   UINT32 logicalID,
                                   SPACE_ID sid);
-         INT32 loadCollectionSpacesOnDisk(requestContext *context);
-         INT32 updateIndexWhenOpen(requestContext *context);
+         INT32 loadStorageUnitsOnDisk(requestContext *context);
+         INT32 initObjects(requestContext *context);
          void fini();
          INT32 allocateSpaceID(SPACE_ID &sid);
          void releaseSpaceID(SPACE_ID sid);
@@ -190,7 +183,7 @@ namespace vessel
                   return _cs;
                }
             private:
-               collectionSpace *_cs;
+               collectionSpace *_cs = NULL;
          };//class _spaceSlot
 
          struct _LID_SID_PAIR
@@ -226,14 +219,14 @@ namespace vessel
 
       private:
          ossSpinSLatch _latch;
-         BOOLEAN _isOpen;
-         UINT32 _nextLogicalID;
-         UINT32 _slotAllocated;
-         UINT32 _slotBits[MAX_SPACE_SLOT_COUNT];
-         _spaceSlot *_slots;
+         UINT32 _nextLogicalID = VESSEL_MIN_CS_LID;
+         INT32 _firstFreeBits = -1;
+         UINT64 _slotBits[MAX_SPACE_SLOT_COUNT];
+         _spaceSlot *_slots = NULL;
          NAME_INDEX _nameIndex;
          UID_INDEX _uidIndex;
-         UINT32 _creatingCount;
+         UINT32 _creatingCount = 0;
+         BOOLEAN _objectsInited = FALSE;
    };//class collectionSpaceContainer
 
    typedef class collectionSpaceContainer CS_CONTAINER;

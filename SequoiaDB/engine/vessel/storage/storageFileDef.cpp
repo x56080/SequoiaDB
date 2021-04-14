@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = storageUnitDef.h
+   Source File Name = storageFileDef.cpp
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,33 +33,39 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_STORAGE_UNIT_DEF_H_
-#define VESSEL_STORAGE_UNIT_DEF_H_
-
-#include "vessel/vesselDef.h"
-#include "vessel/strSlice.h"
+#include "vessel/storageFileDef.h"
 
 namespace engine
 {
 namespace vessel
 {
-   struct createSUOptions
+   BOOLEAN storageCoreArgs::isValid()const
    {
-      createSUOptions():
-      sid(INVALID_SPACE_ID),
-      logicalID(DMS_INVALID_LOGICCSID)
-      {}
+      BOOLEAN r = FALSE;
+      if (DMS_PAGE_SIZE8K != pageSize &&
+          DMS_PAGE_SIZE16K != pageSize &&
+          DMS_PAGE_SIZE32K != pageSize &&
+          DMS_PAGE_SIZE64K != pageSize &&
+          DMS_PAGE_SIZE256K != pageSize)
+      {
+         goto done;
+      }
 
-      SPACE_ID sid;
-      UINT32 logicalID;
-      strSlice csName;
-      
-      storageCoreArgs dataArgs;
-      storageCoreArgs metaArgs;
-      storageCoreArgs idxArgs;
-      storageCoreArgs idxMetaArgs;
-   };//struct createStorageUnitOptions
+      if (0 == maxPageCountPerSeg ||
+          !ossIsPowerOf2(maxPageCountPerSeg))
+      {
+         goto done;
+      }
+
+      if (0 == maxSegmentCountPerFile ||
+          !ossIsPowerOf2(maxSegmentCountPerFile))
+      {
+         goto done;
+      }
+
+      r = TRUE;
+   done:
+      return r;
+   }
 }//namespace vessel
 }//namespace engine
-
-#endif//VESSEL_STORAGE_UNIT_DEF_H_

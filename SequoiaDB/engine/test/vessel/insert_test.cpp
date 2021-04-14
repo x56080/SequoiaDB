@@ -152,3 +152,111 @@ TEST_F(insert_test, test1)
    rc = db.close(&session, closeDBOptions());
    ASSERT_EQ(SDB_OK, rc);
 }
+
+TEST_F(insert_test, test2)
+{
+   INT32 rc = SDB_OK;
+   test_logger logger;
+   vesselImpl db;
+   outerResource resource;
+   resource.logger = &logger; 
+   test_session session;
+   openDBOptions options;
+   options.path.dataPath = DATA_PATH;
+   collectionHandler handler;
+   recordData record;
+   DPS_TRANS_ID transID;
+   utilInsertResult res;
+   CHAR pad[1024] = {0};
+   bson::BSONObjBuilder builder;
+   builder.append("a", 1);
+   builder.append("b", 2);
+   builder.append("c", pad, 1024);
+   bson::BSONObj obj = builder.obj();
+   record.reset(RECORD_DATA_TYPE_BSON, slice(obj.objsize(), obj.objdata()));
+   UINT32 count = 100;
+   UINT64 recordCount = 0;
+   slice recordSlice;
+
+   cursorHandler cursor;
+
+   db.initOuterResource(resource);
+   rc = db.open(&session, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollectionSpace(&session, "foo", 1, createCSOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.createCollection(&session, "foo", "bar1", 1, createCLOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < 100; ++i)
+   {
+      rc = handler.insert(&session, record, transID, INVALID_STRIPING_ID, NULL, res);
+      ASSERT_EQ(SDB_OK, rc);
+   }
+
+   rc = handler.getRecordCount(&session, NULL, recordCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, recordCount);
+   
+   rc = handler.openScanCursor(&session, NULL, NULL, NULL, cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      const CHAR *raw = NULL;
+      recordSlice.reset();
+      rc = cursor.getNext(&session, recordSlice);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_LE(16, recordSlice.len());
+      raw = recordSlice.data() + 16;
+      bson::BSONObj obj(raw);
+      ASSERT_EQ(1, obj.getIntField("a"));
+      ASSERT_EQ(2, obj.getIntField("b"));
+   }
+   rc = cursor.getNext(&session, recordSlice);
+   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+
+   cursor.close();
+   handler.close();
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.open(&session, options);
+   ASSERT_EQ(SDB_OK, rc);
+
+   rc = db.openCollection(&session, "foo", "bar1", openCLOptions(), handler);
+   ASSERT_EQ(SDB_OK, rc);
+
+    rc = handler.getRecordCount(&session, NULL, recordCount);
+   ASSERT_EQ(SDB_OK, rc);
+   ASSERT_EQ(count, recordCount);
+
+   rc = handler.openScanCursor(&session, NULL, NULL, NULL, cursor);
+   ASSERT_EQ(SDB_OK, rc);
+
+   handler.close();
+
+   for (UINT32 i = 0; i < count; ++i)
+   {
+      const CHAR *raw = NULL;
+      recordSlice.reset();
+      rc = cursor.getNext(&session, recordSlice);
+      ASSERT_EQ(SDB_OK, rc);
+      ASSERT_LE(16, recordSlice.len());
+      raw = recordSlice.data() + 16;
+      bson::BSONObj obj(raw);
+      ASSERT_EQ(1, obj.getIntField("a"));
+      ASSERT_EQ(2, obj.getIntField("b"));
+   }
+   rc = cursor.getNext(&session, recordSlice);
+   ASSERT_EQ(SDB_VESSEL_END_OF_CURSOR, rc);
+
+   cursor.close();
+   rc = db.close(&session, closeDBOptions());
+   ASSERT_EQ(SDB_OK, rc);
+}

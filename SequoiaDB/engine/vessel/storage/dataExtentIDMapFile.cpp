@@ -60,7 +60,7 @@ namespace vessel
       
    }
 
-   INT32 dataExtentIDMapFile::afterHeadOpen()
+   INT32 dataExtentIDMapFile::cacheHead()
    {
       INT32 rc = SDB_OK;
       ossValuePtr ptr = 0;
