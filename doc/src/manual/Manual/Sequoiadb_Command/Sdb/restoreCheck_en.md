@@ -23,7 +23,7 @@ options ( *object, optional* )
 
 Set the time point to check, the available options are as follows.
 
-- Time ( number/string/Timestamp ): Specify the target time point to be checked, in seconds.
+- Time ( *number/string/Timestamp* ): Specify the target time point to be checked, in seconds.
 
 
     When the value of this parameter is 0, the latest consistent time point will be checked. When the value is a string, the value filled in should conform to the ISO 8601 format.
@@ -63,10 +63,10 @@ When the function executes successfully, it will return an object of type SdbCur
 | Name | Type | Descriptions |
 | ------ | ---- | ---- |
 | Time   | string | Consistent point in time available for recovery. |
-| MinRecoverableTime | string | The start time of the first transaction recorded in the currently used backup log.  |
-| MaxTransCommitTime | string | The last transaction commit time recorded in the currently used backup log.  |
-| LogLimitTime | string | The time of the last log recorded in the currently used backup log (this field is only displayed when the backup log space is insufficient) |
-| FailedGroups | string | The name of the replication group that cannot be restored (this field is only displayed when the backup log space is insufficient) |
+| MinRecoverableTime | string | The start time of the first transaction recorded in the currently used synchronization log.  |
+| MaxTransCommitTime | string | The last transaction commit time recorded in the currently used synchronization log.  |
+| LogLimitTime | string | The time of the last log recorded in the currently used synchronization log (this field is only displayed when the synchronization log space is insufficient) |
+| FailedGroups | string | The name of the replication group that cannot be restored (this field is only displayed when the synchronization log space is insufficient) |
 
 When the function fails, an exception will be thrown and error message will be printed.
 
@@ -77,7 +77,7 @@ The common exceptions of `restoreCheck()` function are as follows:
 | Error Code | Error Type | Description | Solution |
 |---|---|---|---|
 | -6   | SDB_INVALIDARG | The specified time point exceeds the time range recorded in the current log. | The specified consistency time point value range is [MinRecoverableTime,MaxTransCommitTime]. |
-| -359 | SDB_RESTORE_NOT_IN_PROGRESS | Cluster is not in Restore mode. | Run `db.restorePrepare()` to enter Restore mode. |
+| -359 | SDB_RESTORE_NOT_IN_PROGRESS | Cluster is not in Restore mode. | Run db.restorePrepare() to enter Restore mode. |
 | -360 | SDB_RESTORE_NO_CONSISTENT_PIT | No valid consistency point or the specified time cannot be reached by restore. | Restore a backup that covers the given time. |
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
@@ -91,7 +91,7 @@ v5.0.2 and above
 - View the latest recoverable consistency point in time.
 
     ```lang-javascript
-    > db.restoreCheck({Time: 0)
+    > db.restoreCheck({Time: 0})
     ```
    
     The output is as follows:
@@ -107,7 +107,7 @@ v5.0.2 and above
 - Check whether the specified point in time is a recoverable consistency point in time.
 
     ```lang-javascript
-    > db.restoreCheck({Time: "2020-01-01T03:00:00+00:00")
+    > db.restoreCheck({Time: "2020-01-01T03:00:00+00:00"})
     ```
 
     The output is as follows:
@@ -120,7 +120,7 @@ v5.0.2 and above
     }
     ```
 
-    If the backup log of a replication group in the cluster does not have enough space to write, even if the specified point in time is a recoverable consistent point in time, no recovery will be performed. The output is as follows:
+    If the synchronization log of a replication group in the cluster does not have enough space to write, even if the specified point in time is a recoverable consistent point in time, no recovery will be performed. The output is as follows:
 
     ```lang-json
     {
@@ -135,7 +135,7 @@ v5.0.2 and above
 - If the specified point in time is before the valid time window, earlier backup is needed to reach the target time.
 
     ```lang-javascript
-    > db.restoreCheck({Time: "2021-03-19-12.49.40.012277")
+    > db.restoreCheck({Time: "2021-03-19-12.49.40.012277"})
     ```
 
     The output is as follows:
@@ -168,7 +168,7 @@ v5.0.2 and above
 - If the specified point in time is after the valid time window, later backup is needed to reach the target time.
 
     ```lang-javascript
-    > db.restoreCheck({Time:"2021-03-19-12.50.46.630301"})
+    > db.restoreCheck({Time: "2021-03-19-12.50.46.630301"})
     ```
 
     The output is as follows:
@@ -199,7 +199,7 @@ v5.0.2 and above
 - When nodes use different backups for recovery, the log gap between nodes is too large, the log space of the node is not enough, or there are unrecoverable operations (such as DDL operations) on the node, it may cause the cluster to fail to find a valid time window.
 
     ```lang-javascript
-    > db.restoreCheck({Time:0})
+    > db.restoreCheck({Time: 0})
     ```
 
     The output is as follows:

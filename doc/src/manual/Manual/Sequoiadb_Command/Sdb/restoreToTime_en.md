@@ -1,4 +1,4 @@
-[^_^]:
+﻿[^_^]:
    restoreToTime()
 
 ## NAME
@@ -23,11 +23,11 @@ options ( *object, required* )
 
 Set the time point to be restored, the available options are as follows.
 
-- Time ( number/string/Timestamp ): Specify the target time point of restoration, in seconds.
+- Time ( *number/string/Timestamp* ): Specify the target time point of restoration, in seconds.
 
     When the value of this parameter is 0, it will be restored to the latest consistent point in time; when the value is a string, the value filled in should conform to the ISO 8601 format.
 
-    Format: `Time:0` or `Time:1609430400` or `Time:"2021-01-01T00:00:00+08:00"` or `Time:Timestamp("2021-01-01T00:00:00+08:00")`
+    Format: `Time: 0` or `Time: 1609430400` or `Time: "2021-01-01T00:00:00+08:00"` or `Time: Timestamp("2021-01-01T00:00:00+08:00")`
 
     
 > **Note:**
@@ -67,7 +67,7 @@ The common exceptions of `restoreToTime()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 |---|---|---|---|
-| -359 | SDB_RESTORE_NOT_IN_PROGRESS | Cluster is not in Restore mode | Run `db.restorePrepare()` to enter Restore mode |
+| -359 | SDB_RESTORE_NOT_IN_PROGRESS | Cluster is not in Restore mode | Run db.restorePrepare() to enter Restore mode |
 | -360 | SDB_RESTORE_NO_CONSISTENT_PIT | No valid consistency point or the specified time cannot be reached by restore | Restore a backup that covers the given time |
 
 When the exception happens，use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].

@@ -23,7 +23,7 @@ options（ *object，必填* ）
 
 设置需要恢复的时间点，可使用的选项如下：
 
-- Time（ number/string/Timestamp ）：指定恢复的目标时间点，单位为秒
+- Time（ *number/string/Timestamp* ）：指定恢复的目标时间点，单位为秒
 
     该参数取值为 0 时，将恢复至最新的一致性时间点；取值为字符串时，填入值应符合 ISO 8601 格式。
 
@@ -81,25 +81,25 @@ v5.0.2 及以上版本
 - 恢复至最新的一致性时间点
 
     ```lang-javascript
-    > db.restoreToTime({Time:0})
+    > db.restoreToTime({Time: 0})
     ```
 
 - 使用时间戳恢复至指定时间点
 
     ```lang-javascript
-    > db.restoreToTime({Time:1577836800})
+    > db.restoreToTime({Time: 1577836800})
     ```
 
 - 使用 ISO 8601 字符串恢复至指定时间点
 
     ```lang-javascript
-    > db.restoreToTime({Time:"2020-01-01T00:00:00+00:00"})
+    > db.restoreToTime({Time: "2020-01-01T00:00:00+00:00"})
     ```
 
 - 使用 Timestamp 恢复至指定时间点
 
     ```lang-javascript
-    > db.restoreToTime({Time:Timestamp("2020-01-01T00:00:00+00:00")})
+    > db.restoreToTime({Time: Timestamp("2020-01-01T00:00:00+00:00")})
     ```
 
 
