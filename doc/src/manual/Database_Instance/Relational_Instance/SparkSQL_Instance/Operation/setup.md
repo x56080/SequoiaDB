@@ -8,8 +8,7 @@
 
 本文档将介绍 Spark 和 Spark-SequoiaDB 连接器的安装
 
-Spark安装
-----
+## Spark安装
 
 1. 下载 Spark [产品包][download_spark]
 
@@ -25,12 +24,11 @@ Spark安装
    >
    > Spark-SequoiaDB连接组件的环境要求：
    > - JDK 1.7+
-   > - Scala 2.11
+   > - Scala 2.11+
    > - Spark 2.0.0+
 
 
-Spark-SequoiaDB连接器安装
-----
+## Spark-SequoiaDB连接器安装
 
 安装 Spark-SequoiaDB 连接器只需要将 Spark-SequoiaDB 连接组件和 SequoiaDB Java 驱动的 jar 包复制到 Spark 安装路径下的 `jars` 目录下即可。
 
