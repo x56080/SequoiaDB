@@ -1,17 +1,20 @@
+## 名称
 
-##语法##
+find - 查找文件
 
-***File.find( \<options\>, \[filter\] )***
+## 语法
 
-##类别##
+**File.find(\<options\>,\[filter\])**
+
+## 类别
 
 File
 
-##描述##
+## 描述
 
 查找文件
 
-##参数##
+## 参数
 
 | 参数名    | 参数类型 | 默认值           | 描述                       | 是否必填 |
 | --------- | -------- | ---------------- | -------------------------- | -------- |
@@ -28,18 +31,22 @@ options 参数详细说明如下：
 
 filter 参数支持对结果中的某些字段进行 and 、 or 、not 和精确匹配计算，对结果集进行筛选。
 
-##返回值##
+## 返回值
 
 返回查找内容。
 
-##错误##
+## 错误
 
 如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
 关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
 
 常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
 
-##示例##
+## 版本
+
+v3.2 及以上版本
+
+## 示例
 
 * 查找文件；
 
