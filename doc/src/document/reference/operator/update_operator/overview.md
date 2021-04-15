@@ -7,6 +7,8 @@
 | [$inc](reference/operator/update_operator/inc.md) | 增加指定字段的值 | db.foo.bar.update({ $inc: { age: 5, ID: 1 } }, { age: { $gt: 15 } }) |
 | [$set](reference/operator/update_operator/set.md) | 将指定字段更新为指定的值 | db.foo.bar.update({ $set: { str: "abd" } }) |
 | [$unset](reference/operator/update_operator/unset.md) | 删除指定的字段 | db.foo.bar.update({ $unset: { name: "", age: "" } }) |
+| [$bit](reference/operator/update_operator/bit.md) | 将指定字段的值与指定的值进行位运算 | db.sample.employee.update({ $bit: { a: { xor: 5 } } }) |
+| [$rename](reference/operator/update_operator/rename.md) | 将指定字段重命名 | db.sample.employee.update({ $rename: { 'a': 'c', 'b': 'd' } }) |
 | [$addtoset](reference/operator/update_operator/addtoset.md) | 向数组中添加元素和值 | db.foo.bar.update({ $addtoset: { arr: [1,3,5] } }, { arr: { $exists: 1 } }) |
 | [$pop](reference/operator/update_operator/pop.md) | 删除指定数组中的最后N个元素 | db.foo.bar.update({ $pop: { arr: 2 } }) |
 | [$pull](reference/operator/update_operator/pull.md)<br>[$pull_by](reference/operator/update_operator/pull_by.md) | 清除指定数组中的指定值 | db.foo.bar.update({ $pull: {arr: 2, name: "Tom" } })<br>db.foo.bar.update({ $pull_by: {arr: 2, name: "Tom" } }) |
