@@ -107,9 +107,14 @@ class physicalExtentID
       OSS_INLINE UINT32 hash()const
       {
          //return XXH3_64bits(this, sizeof(physicalExtentID));
-         UINT32 hash = _space;
-         hash = hash << 16;
-         hash += _space + _type + _page;
+         UINT32 hash = (UINT32)_space << 20;
+         if (0 == _type)
+         {
+            hash += (_page << 6);
+         }
+         hash += _space;
+         hash += _type;
+         hash += _page;
          return hash;
       }
 

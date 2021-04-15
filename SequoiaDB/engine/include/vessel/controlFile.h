@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,12 +38,19 @@
 
 #include "ossFile.hpp"
 #include "ossLikely.hpp"
+#include "ossUtil.h"
+#include "ossMemPool.hpp"
+#include "strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const UINT32 VESSEL_CONTROL_FILE_SIZE = 512;
+   static const UINT32 INVALID_CONTROL_FILE_VERSION = 0;
+   static const UINT32 CONTROL_FILE_VERSION = 1;
+   static const UINT32 CONTROL_FILE_SIZE = 512;
+
+   static const UINT64 INVALID_COMMIT_VERSION = OSS_UINT64_MAX;
    enum VESSEL_CF_STATUS
    {
       VESSEL_CF_STATUS_NORMAL = 0,
@@ -60,122 +64,134 @@ namespace vessel
          controlFile();
          virtual ~controlFile();
 
+         controlFile(const controlFile &) = delete;
+         controlFile &operator=(const controlFile &) = delete;
+
       public:
+#pragma pack(4)
          struct head
          {
-            OSS_INLINE head()
-            :version(0),
-             userType(65535),
-             contentLen(0),
-             pad(0),
-             sequence(0),
-             updateTime(0){}
+            OSS_INLINE head(){}
+            OSS_INLINE ~head(){}
 
-            UINT16 version;
-            UINT16 userType;
-            UINT16 contentLen;
-            UINT16 pad;
-            UINT64 sequence;
-            UINT64 updateTime; /// milli seconds
+            UINT32 headVerion = INVALID_CONTROL_FILE_VERSION;
+            UINT32 flags = 0;
+            UINT64 commitVersion = INVALID_COMMIT_VERSION;
+            UINT64 updateMillis = 0; /// milli seconds
+            UINT64 checksum = 0;/// reserved only. 
+            UINT32 contentLen = 0; 
+            UINT32 pad0 = 0;
+            UINT64 pad1 = 0;
 
-            BOOLEAN valid()const
+            OSS_INLINE head &operator=(const head &h)
             {
-               return 0 < contentLen && 65535 != userType;
+               headVerion = h.headVerion;
+               flags = h.flags;
+               commitVersion = h.commitVersion;
+               updateMillis = h.updateMillis;
+               checksum = h.checksum;
+               contentLen = h.contentLen;
+               pad0 = h.pad0;
+               pad1 = h.pad1;
+               return *this;
+            }
+            OSS_INLINE BOOLEAN isValid()const
+            {
+               return CONTROL_FILE_VERSION == headVerion;
+            }
+            OSS_INLINE BOOLEAN isUnused()const
+            {
+               return INVALID_COMMIT_VERSION == commitVersion;
             }
          }; // struct head
+#pragma pack()
 
       public:
          INT32 open(const CHAR *path);
-         INT32 close();
+         void close();
 
          OSS_INLINE BOOLEAN isOpen()const
          {
-            return NULL != _sequences;
+            return _isOpen;
          }
-
-         OSS_INLINE UINT32 getMaxVersionCount()const
+         OSS_INLINE UINT32 getAliveVersionCount()const
          {
-            return _count;
+            return _workshop.size();
          }
 
-         /// create a new control file and fsync
+         /// create a new version.
          INT32 commit(UINT32 size, const void *buf);
 
-         INT32 readLatestVersion(head *head, void *buf)const;
+         INT32 readLatestVersion(head &h, UINT32 bufSize, void *buf)const;
 
-         INT32 readOldestVersion(head *head, void *buf)const;
+         /// if 0 == preCountOfLatest, return latest version.
+         INT32 readPreVersion(UINT32 preCountOfLatest,
+                              head &h,
+                              UINT32 bufSize,
+                              void *buf)const;
 
-         /// for unit tests
-         INT32 read(UINT64 sequence, head *head, void *buf)const;
+         INT32 readOldestVersion(head &h, UINT32 bufSize, void *buf)const;
       public:
-         /// return file name prefix. final file name: prefix.control.<num>
-         virtual const CHAR *getName()const = 0;
-         /// return sequence window
-         virtual UINT32 getSeqWindow()const
-         {
-            return 8;
-         }
+         /// return file name prefix. final file name format: prefix.control.<num>
+         virtual const CHAR *getFileNamePrefix()const = 0;
 
-         /// do some validations when open
-         ///virtual INT32 onOpen(UINT32 versionCnt) = 0;
-
-         virtual UINT16 getUserType()const = 0;
-
-         virtual std::string toString(const CHAR *body)const = 0;
-
-      protected:
-         INT32 write(UINT32 size, const void *buf);
+         /// return max alive version count. valid range is(0, 64];
+         /// which defines the max count if files.
+         virtual UINT32 getMaxAliveVersionCount()const = 0;
 
       private:
-         INT32 initMem(UINT32 count);
-         BOOLEAN getNextPosition(UINT32 &p)const;
-         
-         OSS_INLINE head *getHead(UINT32 pos)
+         struct _fileObj : public SDBObject
          {
-            if (OSS_UNLIKELY(_count <= pos))
+            _fileObj()
             {
-               return NULL;
+               ossMemset(buf, 0, CONTROL_FILE_SIZE);
             }
-            return (head *)(_buf + pos * VESSEL_CONTROL_FILE_SIZE);
-         }
-         OSS_INLINE const head *getHead(UINT32 pos) const
-         {
-            if (OSS_UNLIKELY(_count <= pos))
+            ~_fileObj()
             {
-               return NULL;
+               if (file.isOpened())
+               {
+                  ossClose(file);
+               }
             }
-            return (head *)(_buf + pos * VESSEL_CONTROL_FILE_SIZE);
-         }
-         OSS_INLINE CHAR *getBuf(UINT32 pos)
-         {
-            if (OSS_UNLIKELY(_count < pos))
+
+            _fileObj(const _fileObj &) = delete;
+            _fileObj &operator=(const _fileObj &) = delete;
+
+            OSS_INLINE const head *getHead()const
             {
-               return NULL;
+               return (const head *)buf;
             }
-            return (_buf + pos * VESSEL_CONTROL_FILE_SIZE); 
-         }
-         OSS_INLINE const CHAR *getBuf(UINT32 pos)const
-         {
-            if (OSS_UNLIKELY(_count < pos))
+            OSS_INLINE head *getHead()
             {
-               return NULL;
+               return (head *)buf;
             }
-            return (_buf + pos * VESSEL_CONTROL_FILE_SIZE); 
-         }
-         OSS_INLINE ossFile *getFile(UINT32 pos)
-         {
-            if (OSS_UNLIKELY(_count < pos))
-            {
-               return NULL;
-            }
-            return &(_files[pos]);
-         }
+
+            UINT32 seq = 0;
+            CHAR buf[CONTROL_FILE_SIZE];
+            _OSS_FILE file;
+         };//struct _fileCache
+
+         typedef ossPoolList<_fileObj *> _FILE_OBJ_LIST;
+
       private:
-         UINT32 _count;
-         INT32 _maxSeqSlot;
-         UINT64 *_sequences;
-         CHAR *_buf;
-         ossFile *_files;
+         INT32 openFilesUnderPath(const strSlice &path);
+         INT32 initFileObj(const std::string &fullPath, _fileObj *obj);
+         void pushToUnusedListWhenOpen(_fileObj *obj);
+         void pushToWorkshopWhenOpen(_fileObj *obj);
+
+         INT32 commitFromUnusedList(UINT32 size, const void *buf);
+         INT32 commitFromWorkshop(UINT32 size, const void *buf);
+         INT32 writeFile(_fileObj *obj);
+         INT32 read(const _fileObj *obj,
+                    UINT32 size,
+                    head &h,
+                    void *buf)const;
+
+      private:
+         BOOLEAN _isOpen = FALSE;
+         UINT64 _commitVersion = 0;/// next commit version.
+         _FILE_OBJ_LIST _workshop;
+         _FILE_OBJ_LIST _unused;
    }; // class controlFile
 }// namespace vessel
 }// namespace engine

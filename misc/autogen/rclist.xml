@@ -3043,10 +3043,18 @@
       </code>
 
       <code>
-         <name>SDB_VESSEL_CF_INVALID_SEQUENCE</name>
+         <name>SDB_VESSEL_CF_FAILED_TO_INIT</name>
          <description>
-            <en>invalid sequence of control file</en>
-            <cn>非法的控制文件序号</cn>
+            <en>failed to init control files</en>
+            <cn>初始化控制文件失败</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_VESSEL_CF_VERSION_NOT_AVAILABLE</name>
+         <description>
+            <en>target version of control file is not available</en>
+            <cn>控制文件中的目标版本不可用</cn>
          </description>
       </code>
 

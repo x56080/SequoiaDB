@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -37,29 +34,14 @@
 ******************************************************************************/
 
 #include "vessel/controlFile.h"
-#include "ossLikely.hpp"
-#include "ossUtil.hpp"
 #include "pdTrace.hpp"
-#include "vessel/vesselFileName.h"
-#include "ossUtil.hpp"
+#include "vessel/storageFileName.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const UINT64 VESSEL_CF_SEQ_INVALID = OSS_UINT64_MAX;
-   const UINT64 VESSEL_CF_SEQ_UNUSED = 0;
-
-   const UINT32 VALID_USER_CONTENT_SIZE = VESSEL_CONTROL_FILE_SIZE - sizeof(controlFile::head);
-   const UINT16 CURRENT_CF_VERSION = 0;
-   const UINT32 MAX_CF_SEQUENCE_WINDOW = 10;
-
    controlFile::controlFile()
-   :_count(0),
-    _maxSeqSlot(-1),
-    _sequences(NULL),
-    _buf(NULL),
-    _files(NULL)
    {
       
    }
@@ -69,107 +51,42 @@ namespace vessel
       close();
    }
 
-
    INT32 controlFile::open(const CHAR *path)
    {
       INT32 rc = SDB_OK;
-      UINT32 count = getSeqWindow();
-      UINT32 abnormal = 0;
-      UINT32 unused = 0;
-      UINT64 max = 0;
-
-      if (NULL == path ||
-          0 == count ||
-          MAX_CF_SEQUENCE_WINDOW < count)
+      const CHAR *prefix = getFileNamePrefix();
+      SDB_ASSERT(NULL != prefix, "can not be null");
+      SDB_ASSERT(0 < ossStrlen(prefix), "can not be empty");
+      SDB_ASSERT(0 < getMaxAliveVersionCount() &&
+                 getMaxAliveVersionCount() <= 64, "can not be invalid");
+      SDB_ASSERT(!isOpen(), "do not reinit");
+      strSlice pathSlice(path);
+      if (pathSlice.empty())
       {
-         PD_LOG(PDERROR, "invalid args of control file creating");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-       _count = count;
-      rc = initMem(count);
+      rc = openFilesUnderPath(pathSlice);
       if (SDB_OK != rc)
       {
+         PD_LOG(PDERROR, "failed to init control files:%s, rc:%d", path, rc);
          goto error;
       }
 
-      for (UINT32 i = 0; i < count; ++i)
+      if (_workshop.empty() && _unused.empty())
       {
-         const head *head = NULL;
-         INT64 readSize = 0;
-         ossFile &f = _files[i];
-         CHAR fileNO[2];
-         ossItoa(i, fileNO, 2);
-         std::string fullPath;
-         fullPath.append(path)
-                 .append(OSS_FILE_SEP)
-                 .append(getName())
-                 .append(".")
-                 .append(VESSEL_CONTROL_FILE_SUFFIX)
-                 .append(".")
-                 .append(fileNO);
-         rc = f.open(fullPath.c_str(),
-                     OSS_CREATE | OSS_READWRITE | OSS_EXCLUSIVE,
-                     OSS_DEFAULTFILE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to open control file:%s, %d", fullPath.c_str(), rc);
-            rc = SDB_OK;
-            _sequences[i] = VESSEL_CF_SEQ_INVALID;
-            ++abnormal;
-            continue;
-         }
-
-         rc = f.readN(_buf + i * VESSEL_CONTROL_FILE_SIZE, VESSEL_CONTROL_FILE_SIZE, readSize);
-         if (SDB_EOF == rc)
-         {
-            PD_LOG(PDERROR, "empty control file:%s", fullPath.c_str());
-            _sequences[i] = VESSEL_CF_SEQ_UNUSED;
-            ++unused;
-            rc = SDB_OK;
-            continue;
-         }
-         else if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to read control file:%s, %d", fullPath.c_str(), rc);
-            rc = SDB_OK;
-            _sequences[i] = VESSEL_CF_SEQ_INVALID;
-            ++abnormal;
-            continue;
-         }
-         else if (VESSEL_CONTROL_FILE_SIZE != readSize)
-         {
-            PD_LOG(PDERROR, "wrong content len in file:%s, len:%lld", fullPath.c_str(), readSize);
-            rc = SDB_OK;
-            _sequences[i] = VESSEL_CF_SEQ_INVALID;
-            ++abnormal;
-            continue;
-         }
-
-         head = getHead(i);
-         if (!head->valid())
-         {
-            PD_LOG(PDERROR, "wrong content in file:%s", fullPath.c_str());
-            rc = SDB_OK;
-            _sequences[i] = VESSEL_CF_SEQ_INVALID;
-            ++abnormal;
-         }
-         _sequences[i] = head->sequence;
-         if (max < head->sequence)
-         {
-            max = head->sequence;
-            _maxSeqSlot = i;
-         }
-      }
-
-      if (count == abnormal)
-      {
-         PD_LOG(PDERROR, "all control files are broken!");
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+         PD_LOG(PDERROR, "no available files exist");
+         rc = SDB_VESSEL_CF_FAILED_TO_INIT;
          goto error;
       }
+      else if (!_workshop.empty())
+      {
+         _fileObj *obj = _workshop.back();
+         _commitVersion = obj->getHead()->commitVersion + 1;
+      }
 
+      _isOpen = TRUE;
    done:
       return rc;
    error:
@@ -177,228 +94,25 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::close()
+   void controlFile::close()
    {
-      INT32 rc = SDB_OK;
-      if (NULL != _files)
+      for (_FILE_OBJ_LIST::iterator itr = _unused.begin();
+           itr != _unused.end(); ++itr)
       {
-         for (UINT32 i = 0; i < _count; ++i)
-         {
-            ossFile &f = _files[i];
-            if (f.isOpened())
-            {
-               f.close();
-            }
-         }
-
-         SDB_OSS_DEL []_files;
-         _files = NULL;
+         SDB_OSS_DEL *itr;
       }
+      _unused.clear();
 
-      if (NULL != _buf)
+      for (_FILE_OBJ_LIST::iterator itr = _workshop.begin();
+           itr != _workshop.end(); ++itr)
       {
-         SDB_OSS_FREE(_buf);
-         _buf = NULL;
+         SDB_OSS_DEL *itr;
       }
+      _workshop.clear();
 
-      if (NULL != _sequences)
-      {
-         SDB_OSS_FREE(_sequences);
-         _sequences = NULL;
-      }
-
-      _count = 0;
-      _maxSeqSlot = -1;
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 controlFile::initMem(UINT32 count)
-   {
-      INT32 rc = SDB_OK;
-      if (NULL != _files)
-      {
-         PD_LOG(PDERROR, "control file has already been open");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      _files = SDB_OSS_NEW ossFile[count];
-      if (NULL == _files)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-
-      _buf = (CHAR *)SDB_OSS_MALLOC(count * VESSEL_CONTROL_FILE_SIZE);
-      if (NULL == _buf)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-      ossMemset(_buf, 0, VESSEL_CONTROL_FILE_SIZE * count);
-
-      _sequences = (UINT64 *)SDB_OSS_MALLOC(sizeof(UINT64) * count);
-      if (NULL == _sequences)
-      {
-         PD_LOG(PDERROR, "failed to allocate mem");
-         rc = SDB_OOM;
-         goto error;
-      }
-      ossMemset(_buf, 0, sizeof(UINT64) * count);
-   done:
-      return rc;
-   error:
-      close();
-      goto done;
-   }
-
-   INT32 controlFile::readLatestVersion(head *head, void *buf)const
-   {
-      INT32 rc = SDB_OK;
-      const CHAR *data = NULL;
-      const controlFile::head *cHead = NULL;
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         PD_LOG(PDERROR, "control file has not been open");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-      if (_maxSeqSlot < 0)
-      {
-         PD_LOG(PDERROR, "no commition yet");
-         rc = SDB_VESSEL_CF_INVALID_SEQUENCE;
-         goto error;
-      }
-
-      data = getBuf((UINT32)_maxSeqSlot);
-      cHead = (const controlFile::head *)data;
-      if (NULL != head)
-      {
-         *head = *cHead;
-      }
-      if (NULL != buf)
-      {
-         ossMemcpy(buf, data + sizeof(controlFile::head), cHead->contentLen);
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 controlFile::readOldestVersion(head *head, void *buf)const
-   {
-      INT32 rc = SDB_OK;
-      UINT32 pos = 0;
-      const CHAR *data = NULL;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         PD_LOG(PDERROR, "control file has not been open");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (_maxSeqSlot < 0)
-      {
-         PD_LOG(PDERROR, "no commition yet");
-         rc = SDB_VESSEL_CF_INVALID_SEQUENCE;
-         goto error;
-      }
-
-      pos = (UINT32)_maxSeqSlot + 1;
-      for (UINT32 i = 0; i < _count; ++i, ++pos)
-      {
-         UINT32 slot = pos % _count;
-         UINT64 s = _sequences[slot];
-         if (OSS_UNLIKELY(VESSEL_CF_SEQ_INVALID == s))
-         {
-            continue;
-         }
-         if (OSS_UNLIKELY(VESSEL_CF_SEQ_UNUSED == s))
-         {
-            continue;
-         }
-
-         data = getBuf(slot);
-         const controlFile::head *cHead = (controlFile::head *)data;
-         if (NULL != head)
-         {
-            *head = *cHead;
-         }
-         if (NULL != buf)
-         {
-            ossMemcpy(buf, data + sizeof(controlFile::head), cHead->contentLen);
-         }
-         break;
-
-      }
-
-      if (NULL == data)
-      {
-         PD_LOG(PDERROR, "all control files are broken!");
-         rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-         goto error;
-      }
-      
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 controlFile::read(UINT64 sequence, head *head, void *buf)const
-   {
-      INT32 rc = SDB_OK;
-      const controlFile::head *cHead = NULL;
-
-      if (OSS_UNLIKELY(!isOpen()))
-      {
-         PD_LOG(PDERROR, "control file has not been open");
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (OSS_UNLIKELY(VESSEL_CF_SEQ_UNUSED == sequence ||
-                       VESSEL_CF_SEQ_INVALID == sequence))
-      {
-         PD_LOG(PDERROR, "invalid sequence:%lld", sequence);
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      for (UINT32 i = 0; i < _count; ++i)
-      {
-         if (sequence == _sequences[i])
-         {
-            const CHAR *data = getBuf(i);
-            cHead = (controlFile::head *)data;
-            if (NULL != head)
-            {
-               *head = *cHead;
-            }
-            if (NULL != buf)
-            {
-               ossMemcpy(buf, data + sizeof(controlFile::head), cHead->contentLen);
-            }
-         }
-      }
-
-      if (NULL == cHead)
-      {
-         rc = SDB_VESSEL_CF_INVALID_SEQUENCE;
-         goto error;
-      }
-   done:
-      return rc;
-   error:
-      goto done;
+      _commitVersion = 0;
+      _isOpen = FALSE;
+      return;
    }
 
    INT32 controlFile::commit(UINT32 size, const void *buf)
@@ -406,12 +120,204 @@ namespace vessel
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!isOpen()))
       {
-         PD_LOG(PDERROR, "control file has not been open");
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (0 == size || NULL == buf)
+      {
          rc = SDB_INVALIDARG;
          goto error;
       }
+      else if ((CONTROL_FILE_SIZE - sizeof(controlFile::head) < size))
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!_unused.empty())
+      {
+         rc = commitFromUnusedList(size, buf);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to commit data from unused list:%d", rc);
+            goto error;
+         }
+      }
+      else
+      {
+         rc = commitFromWorkshop(size, buf);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to commit data from workshop:%d", rc);
+            goto error;
+         }
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
 
-      rc = write(size, buf);
+   INT32 controlFile::commitFromUnusedList(UINT32 size, const void *buf)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != buf, "can not be null");
+      SDB_ASSERT(!_unused.empty(), "can not be empty");
+      SDB_ASSERT(size + sizeof(controlFile::head) <= CONTROL_FILE_SIZE,
+                 "can not be invalid");
+      _fileObj *obj = _unused.front();
+      _unused.pop_front();
+
+      obj->getHead()->commitVersion = _commitVersion;
+      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
+      obj->getHead()->contentLen = size;
+      ossMemcpy(obj->buf + sizeof(controlFile::head),
+                buf, size);
+      rc = writeFile(obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write control file[%d], rc:%d", obj->seq, rc);
+         goto error;
+      }
+
+      _workshop.push_back(obj);
+      ++_commitVersion;
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(obj);
+      goto done;
+   }
+
+   INT32 controlFile::commitFromWorkshop(UINT32 size, const void *buf)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != buf, "can not be null");
+      SDB_ASSERT(!_workshop.empty(), "can not be empty");
+      SDB_ASSERT(size + sizeof(controlFile::head) <= CONTROL_FILE_SIZE,
+                 "can not be invalid");
+      CHAR backup[CONTROL_FILE_SIZE] = {0};
+      _fileObj *obj = _workshop.front();
+      ossMemcpy(backup, obj->buf, CONTROL_FILE_SIZE);
+      obj->getHead()->commitVersion = _commitVersion;
+      obj->getHead()->updateMillis = ossGetCurrentMilliseconds();
+      obj->getHead()->contentLen = size;
+      ossMemset(obj->buf + sizeof(controlFile::head),
+                0, CONTROL_FILE_SIZE - sizeof(controlFile::head));
+      ossMemcpy(obj->buf + sizeof(controlFile::head), buf, size);
+      rc = writeFile(obj);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write control file[%d], rc:%d", obj->seq, rc);
+         goto error;
+      }
+
+      if (1 < _workshop.size())
+      {
+         _workshop.pop_front();
+         _workshop.push_back(obj);
+      }
+      ++_commitVersion;
+   done:
+      return rc;
+   error:
+      ossMemcpy(obj->buf, backup, CONTROL_FILE_SIZE);
+      goto done;
+   }
+
+   INT32 controlFile::readLatestVersion(head &h, UINT32 bufSize, void *buf)const
+   {
+      INT32 rc = SDB_OK;
+      if (NULL == buf)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_workshop.empty())
+      {
+         rc = SDB_VESSEL_CF_VERSION_NOT_AVAILABLE;
+         goto error;
+      }
+
+      rc = read(_workshop.back(), bufSize, h, buf);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read data:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 controlFile::readOldestVersion(head &h,
+                                        UINT32 bufSize,
+                                        void *buf)const
+   {
+      INT32 rc = SDB_OK;
+      if (NULL == buf)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_workshop.empty())
+      {
+         rc = SDB_VESSEL_CF_VERSION_NOT_AVAILABLE;
+         goto error;
+      }
+
+      rc = read(_workshop.front(), bufSize, h, buf);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to read data:%d", rc);
+         goto error;
+      }
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   INT32 controlFile::readPreVersion(UINT32 preCountOfLatest,
+                                     head &h,
+                                     UINT32 bufSize,
+                                     void *buf)const
+   {
+      INT32 rc = SDB_OK;
+      _FILE_OBJ_LIST::const_reverse_iterator itr;
+      if (NULL == buf)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+      else if (!isOpen())
+      {
+         rc = SDB_VESSEL_RESOURCES_NOT_INIT;
+         goto error;
+      }
+      else if (_workshop.size() < (preCountOfLatest + 1))
+      {
+         rc = SDB_VESSEL_CF_VERSION_NOT_AVAILABLE;
+         goto error;
+      }
+
+      itr = _workshop.rbegin();
+      for (UINT32 i = 0; i < preCountOfLatest; ++i)
+      {
+         ++itr;
+      }
+
+      rc = read(*itr, bufSize, h, buf);
       if (SDB_OK != rc)
       {
          goto error;
@@ -422,114 +328,233 @@ namespace vessel
       goto done;
    }
 
-   INT32 controlFile::write(UINT32 size, const void *buf)
+   INT32 controlFile::read(const _fileObj *obj,
+                           UINT32 size,
+                           head &h,
+                           void *buf)const
    {
       INT32 rc = SDB_OK;
-      ossFile *file = NULL;
-      CHAR pad[VESSEL_CONTROL_FILE_SIZE] = {0};
-      UINT32 pos = 0;
-      head *h = (head *)pad;
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(obj->getHead()->isValid(), "can not be invalid");
+      SDB_ASSERT(!obj->getHead()->isUnused(), "can not be unused");
+      SDB_ASSERT(NULL != buf, "can not be null");
 
-      if (OSS_UNLIKELY(0 == size ||
-          VALID_USER_CONTENT_SIZE < size ||
-          NULL == buf))
+      if (size < obj->getHead()->contentLen)
       {
-         PD_LOG(PDERROR, "invalid size or buf");
          rc = SDB_INVALIDARG;
          goto error;
       }
 
-      ossMemcpy(pad + sizeof(controlFile::head), buf, size);
-      h->version = CURRENT_CF_VERSION;
-      h->userType = getUserType();
-      h->updateTime = ossGetCurrentMilliseconds();
-      h->contentLen = size;
-      if (OSS_UNLIKELY(_maxSeqSlot < 0))
-      {
-         h->sequence = 1;
-      }
-      else
-      {
-         h->sequence = _sequences[_maxSeqSlot] + 1;
-      }
+      h = *(obj->getHead());
+      ossMemcpy(buf, obj->buf + sizeof(controlFile::head), obj->getHead()->contentLen);
 
-      do
-      {
-         BOOLEAN r = getNextPosition(pos);
-         if (!r)
-         {
-            PD_LOG(PDERROR, "all control files are broken!");
-            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
-            goto error;
-         }
-         file = getFile(pos);
-         SDB_ASSERT(NULL != file, "can not be null");
-         rc = file->seekAndWriteN(0, pad, VESSEL_CONTROL_FILE_SIZE);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to write control file:%d, seq:%lld, path:%s",
-                  rc, h->sequence, file->getPath().c_str());
-            _sequences[pos] = VESSEL_CF_SEQ_INVALID;
-            /// failed to write file, try to write a new one.
-            continue;
-         }
-
-         rc = file->sync();
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "failed to fsync control file:%d, seq:%lld, path:%s",
-                  rc, h->sequence, file->getPath().c_str());
-            _sequences[pos] = VESSEL_CF_SEQ_INVALID;
-            continue;
-         }
-
-         _sequences[pos] = h->sequence;
-         ossMemcpy(getBuf(pos), pad, sizeof(controlFile::head) + size);
-         _maxSeqSlot = pos;
-         break;
-      } while (TRUE);
    done:
       return rc;
    error:
       goto done;
    }
 
-   BOOLEAN controlFile::getNextPosition(UINT32 &p)const
+   INT32 controlFile::openFilesUnderPath(const strSlice &path)
    {
-      UINT64 min = OSS_UINT64_MAX;
-      INT32 pos = -1;
-      INT32 res = -1;
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!path.empty(), "can not be empty");
+      const CHAR *prefix = getFileNamePrefix();
+      strSlice prefixSlice(prefix);
+      UINT32 count = getMaxAliveVersionCount();
+      _fileObj *obj = NULL;
 
-      if (OSS_LIKELY(0 <= _maxSeqSlot))
+      for (UINT32 i = 0; i < count; ++i)
       {
-         pos = _maxSeqSlot + 1;
+         std::stringstream ss;
+         ss << path.str()
+            << OSS_FILE_SEP
+            << prefix
+            << ".control."
+            << i;
+         std::string fullPath = ss.str();
+         obj = SDB_OSS_NEW _fileObj();
+         if (NULL == obj)
+         {
+            PD_LOG(PDERROR, "failed to allocate mem");
+            rc = SDB_OOM;
+            goto error;
+         }
+
+         obj->seq = i;
+         rc = initFileObj(fullPath, obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to init file obj[%d], rc:%d", i, rc);
+            rc = SDB_OK;
+            SDB_OSS_DEL obj;
+            obj = NULL;
+            continue;
+         }
+
+         SDB_ASSERT(obj->getHead()->isValid(), "must be valid");
+         if (obj->getHead()->isUnused())
+         {
+            pushToUnusedListWhenOpen(obj);
+         }
+         else
+         {
+            pushToWorkshopWhenOpen(obj);
+         }
+      }
+
+   done:
+      return rc;
+   error:
+      SAFE_OSS_DELETE(obj);
+      goto done;
+   }
+
+   INT32 controlFile::initFileObj(const std::string &fullPath, _fileObj *obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(!fullPath.empty(), "can not be empty");
+      SDB_ASSERT(NULL != obj && !obj->file.isOpened(), "impossible");
+      INT64 fileSize = 0;
+      rc = ossOpen(fullPath.c_str(),
+                   OSS_CREATE | OSS_READWRITE | OSS_EXCLUSIVE,
+                   OSS_DEFAULTFILE,
+                   obj->file);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to open control file[%s], rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      rc = ossGetFileSize(&(obj->file), &fileSize);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to get file size[%s], rc:%d", fullPath.c_str(), rc);
+         goto error;
+      }
+
+      if ((INT64)CONTROL_FILE_SIZE < fileSize)
+      {
+         PD_LOG(PDERROR, "invalid file size:%lld of control file[%d]", fileSize, fullPath.c_str());
+         goto error;
+      }
+      else if (fileSize < (INT64)CONTROL_FILE_SIZE)
+      {
+         controlFile::head h;
+         h.headVerion = CONTROL_FILE_VERSION;
+         rc = ossExtendFile(&(obj->file), (INT64)CONTROL_FILE_SIZE - fileSize);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to extend file[%s] to valid size, rc:%d", fullPath.c_str(), rc);
+            goto error;
+         }
+
+         *((controlFile::head *)(obj->buf)) = h;
+         rc = writeFile(obj);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
+            goto error;
+         }
       }
       else
       {
-         pos = 0;
+         SINT64 read = 0;
+         rc = ossReadN(&(obj->file), (INT64)CONTROL_FILE_SIZE, obj->buf, read);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "failed to read file[%s], rc:%d", fullPath.c_str(), rc);
+            goto error;
+         }
+         else if ((INT64)CONTROL_FILE_SIZE != read)
+         {
+            PD_LOG(PDERROR, "failed to read valid size of file[%s], rc:%d", fullPath.c_str(), rc);
+            rc = SDB_VESSEL_INVALID_VESSEL_FILE;
+            goto error;
+         }
+         else if (!obj->getHead()->isValid())
+         {
+            PD_LOG(PDERROR, "invalid file head version of file:%s", fullPath.c_str());
+            ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
+            controlFile::head h;
+            h.headVerion = CONTROL_FILE_VERSION;
+            *((controlFile::head *)(obj->buf)) = h;
+            rc = writeFile(obj);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "failed to write file[%s], rc:%d", fullPath.c_str(), rc);
+               goto error;
+            }
+         }
       }
-      
-      for (UINT32 i = 0; i < _count; ++i, ++pos)
+   done:
+      return rc;
+   error:
+      if (obj->file.isOpened())
       {
-         UINT32 slot = pos % _count;
-         UINT64 s = _sequences[slot];
-         if (OSS_UNLIKELY(VESSEL_CF_SEQ_INVALID == s))
+         ossClose(obj->file);
+         ossMemset(obj->buf, 0, CONTROL_FILE_SIZE);
+      }
+      goto done;
+   }
+
+   INT32 controlFile::writeFile(_fileObj *obj)
+   {
+      INT32 rc = SDB_OK;
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(obj->file.isOpened(), "can not be closed");
+      SINT64 written = 0;
+      rc = ossSeekAndWriteN(&(obj->file), (SINT64)0,
+                            obj->buf, (SINT64)CONTROL_FILE_SIZE,
+                            written);
+      if (SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "failed to write file[%d], rc:%d", obj->seq, rc);
+         goto error;
+      }
+
+      ossFsync(&(obj->file));
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
+   void controlFile::pushToUnusedListWhenOpen(_fileObj *obj)
+   {
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(obj->file.isOpened(), "must be open");
+      if (!_unused.empty())
+      {
+         _fileObj *last = _unused.back();
+         SDB_ASSERT(last->seq < obj->seq, "must be sorted");
+      }
+      _unused.push_back(obj);
+   done:
+      return;
+   }
+
+   void controlFile::pushToWorkshopWhenOpen(_fileObj *obj)
+   {
+      SDB_ASSERT(NULL != obj, "can not be null");
+      SDB_ASSERT(obj->file.isOpened(), "must be open");
+      SDB_ASSERT(INVALID_COMMIT_VERSION != obj->getHead()->commitVersion, "can not be invalid");
+      _FILE_OBJ_LIST::iterator itr = _workshop.begin();
+      for (; itr != _workshop.end(); ++itr)
+      {
+         if ((*itr)->getHead()->commitVersion < obj->getHead()->commitVersion)
          {
             continue;
          }
          else
          {
-            res = slot;
-            break;
-         }  
+            _workshop.insert(itr, obj);
+            goto done;
+         }
       }
 
-      if (-1 == res)
-      {
-         return FALSE;
-      }
-      p = res;
-      return TRUE;
+      _workshop.push_back(obj);
+   done:
+      return;
    }
-} // namespace vessel
-} // namespace engine
+}//namespace vessel
+}//namespace engine
