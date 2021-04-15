@@ -372,7 +372,7 @@ COMMENT [=] "[string,] sequoiadb:{ [table_options:{...}, partition_options:{...}
 该参数可以配置节点选取是否为严格模式。当为严格模式时，节点只能从 sequoiadb_preferred_instance 指定的规则中选取。
 
 + 类型：boolean
-+ 默认值：ON
++ 默认值：OFF
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
