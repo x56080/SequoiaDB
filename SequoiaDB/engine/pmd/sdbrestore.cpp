@@ -475,16 +475,17 @@ namespace engine
 
       // check sequoaidb is not running
       rc = pmdGetStartup().init( pmdGetOptionCB()->getDbPath() ) ;
-      if ( rc )
-      {
-         std::cout << "Check sequoiadb("
-                   << pmdGetOptionCB()->getServiceAddr()
-                   << ") is not running...FAILED" << std::endl ;
-         goto error ;
-      }
       std::cout << "Check sequoiadb("
                 << pmdGetOptionCB()->getServiceAddr()
-                << ") is not running...OK" << std::endl ;
+                << ") is not running at target dbpath("
+                << pmdGetOptionCB()->getDbPath()
+                << ")..." ;
+      if ( rc )
+      {
+         std::cout << "FAILED" << std::endl ;
+         goto error ;
+      }
+      std::cout << "OK" << std::endl ;
 
       /// when node is crashed, need restore full
       if ( pOption->_beginIncID < 0 && !pmdGetStartup().isOK() )
