@@ -567,26 +567,32 @@ namespace engine
          }
 
 #ifdef _DEBUG
-         // verify the index
-         UINT32  packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
-         UTIL_OBJIDX index = UTIL_INVALID_OBJ_INDEX ;
-         UINT32 segs       = _segList.size() ;
-         _objX  * pSegList = NULL ;
-
-         for ( UTIL_OBJIDX i = 0; i < segs ; i++ )
          {
-            pSegList = _segList[ i ]._pBuff ;
-            if (    pSegList
-                 && ( pT >= &( pSegList[ 0 ]._obj ) )
-                 && ( pT <= &( pSegList[ _delta - 1 ]._obj ) ) )
-            {
-               index = i * _delta +
-                     ((CHAR*)pT - (CHAR*)&(pSegList[0]._obj)) / sizeof( _objX );
-               index = ( ( index & _SEGMENT_OBJ_INDEX_MASK ) | packedPoolID ) ;
+            // WARNING: getIndexByAddr should not hold _latch
+            // acquire lock for _segList access
+            ossScopedLock lock( &_latch ) ;
 
-               SDB_ASSERT( ( index == idx ),
-                           "Verification failed, invalid address." ) ;
-               break ;
+            // verify the index
+            UINT32  packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
+            UTIL_OBJIDX index = UTIL_INVALID_OBJ_INDEX ;
+            UINT32 segs       = _segList.size() ;
+            _objX  * pSegList = NULL ;
+
+            for ( UTIL_OBJIDX i = 0; i < segs ; i++ )
+            {
+               pSegList = _segList[ i ]._pBuff ;
+               if (    pSegList
+                    && ( pT >= &( pSegList[ 0 ]._obj ) )
+                    && ( pT <= &( pSegList[ _delta - 1 ]._obj ) ) )
+               {
+                  index = i * _delta +
+                        ((CHAR*)pT - (CHAR*)&(pSegList[0]._obj)) / sizeof( _objX );
+                  index = ( ( index & _SEGMENT_OBJ_INDEX_MASK ) | packedPoolID ) ;
+
+                  SDB_ASSERT( ( index == idx ),
+                              "Verification failed, invalid address." ) ;
+                  break ;
+               }
             }
          }
 #endif
