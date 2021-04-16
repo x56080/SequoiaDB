@@ -4,7 +4,7 @@ createCS - 创建集合空间
 
 ## 语法
 
-**db.createCS( \<name\>, [options] )**
+**db.createCS(\<name\>, [options])**
 
 ## 类别
 
@@ -16,31 +16,46 @@ Sdb
 
 ## 参数
 
-| 参数名 | 参数类型 | 描述 | 是否必填 |
-| ------ | ------ | ------ | ------ |
-| name | string | 集合空间名，同一个数据库对象中，集合空间名必须唯一。 | 是 |
-| options | Json | Json对象，集合空间可选属性。 | 否 |
+- name（ *string，必填* ）
 
-**options 格式**
+    - 集合空间名，命名限制可参考[限制][limitation]
+    - 同一个数据库对象中，集合空间名必须唯一
 
-| 属性名 | 描述 | 格式 |
-| ------ | ------ | ------ |
-| PageSize | 数据页/索引页大小。单位为字节，默认值65536。 | PageSize: \<int32\> |
-| Domain | 所属域。默认值系统域 SYSDOMAIN，SYSDOMAIN 包含所有的复制组。 | Domain: \<string\> |
-| LobPageSize | Lob数据页大小。单位为字节，默认值262144。 | LobPageSize: \<int32\> |
-| DataSource  | 所使用的数据源名称   | DataSource: \<string\>  |
-| Mapping     | 所映射的集合空间名称 | Mapping: \<string\> |
+- options（ *object，选填* ）
 
-> **Note:**
->
-> * 集合空间名限制可以参考[限制][limitation]
-> * 同一个数据库对象集合空间名必须唯一。
-> * 在创建集合空间时用户可以指定数据页大小，指定后不可更改。如果不指定默认为65536B。
-> * PageSize 只能选填0，4096，8192，16384，32768，65536之一，0即为默认值65536。
-> * 所属域必须已经存在，且不能为系统域SYSDOMAIN。
-> * 为兼容较早版本接口，db.createCS( \<name\>, [PageSize] ) 同样可以工作。
-> * LobPageSize只能选填0，4096，8192，16384，32768，65536，131072，262144，524288之一，0即为默认值262144。
-> * DataSource 和 Mapping 参数的具体使用场景可参考[数据源][datasource]。
+    通过 options 参数可以设置集合空间的属性：
+
+    - PageSize（ *number* ）：指定数据页/索引页大小，默认值为 65536，单位为字节
+
+        该参数取值只能为 0、4096、8192、16384、32768 或 65536，取值为 0 表示选取默认值。
+
+        格式：`PageSize: 4096`
+
+    - Domain（ *string* ）：指定所属域，默认所属域为系统域“SYSDOMAIN”，系统域中包含所有的复制组
+
+        通过该参数指定的域必须已存在，且不能指定为系统域。
+       
+        格式：`Domain: "mydomain"`
+
+    - LobPageSize（ *number* ）：指定 Lob 数据页的大小，默认值为 262144，单位为字节
+
+        该参数取值只能为 0、4096、8192、16384、32768、65536、131072、262144 或 524288，取值为 0 表示选取默认值。
+
+        格式：`LobPageSize: 65536`
+
+    - DataSource（ *string* ）：指定所使用的数据源名称
+
+        格式：`DataSource: "datasource"`
+
+    - Mapping（ *string* ）：指定所映射的集合空间名称
+
+        格式：`Mapping: "sample"`
+
+    > **Note:**
+    >
+    > - 参数 PageSize 和 LobPageSize 在集合空间写入数据后将不能修改，用户应谨慎取值。
+    > - DataSource 和 Mapping 参数的具体使用场景可参考[数据源][datasource]。
+    > * 为兼容较早版本接口，`db.createCS(<name>, [PageSize])` 依旧可用。
 
 ## 返回值
 
@@ -50,7 +65,7 @@ Sdb
 
 ## 错误
 
-当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取错误码。更多错误处理可以参考[常见错误处理指南][error_guide]。
+当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
 
 ## 版本
 
@@ -58,18 +73,19 @@ v2.0 及以上版本
 
 ## 示例
 
-* 创建名为 sample 的集合空间，不指定数据页大小，即数据页大小为默认值65536B
+* 创建名为“sample”的集合空间
 
     ```lang-javascript
-    > db.createCS( "sample" )
+    > db.createCS("sample")
     ```
 
 
-* 创建名为 sample 的集合空间，指定数据页大小为4096B，所属域为“mydomain”
+* 创建名为“sample”的集合空间，并指定数据页大小为 4096B，所属域为“mydomain”
 
     ```lang-javascript
-    > db.createCS( "sample", { PageSize: 4096, Domain: "mydomain" } )
+    > db.createCS("sample", {PageSize: 4096, Domain: "mydomain"})
     ```
+
 
 
 [^_^]:
@@ -79,3 +95,4 @@ v2.0 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
+[error_code]:manual/Manual/Sequoiadb_error_code.md
