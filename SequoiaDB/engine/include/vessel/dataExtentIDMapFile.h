@@ -59,9 +59,9 @@ namespace vessel
 
          INT32 cacheHead();
       private:
-         virtual SPACE_TYPE getSpaceType()const
+         virtual FILE_TYPE getFileType()const
          {
-            return SPACE_TYPE_RECORD_M;
+            return FILE_TYPE_DM;
          }
          virtual const CHAR *getMagicChars()const
          {

@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,11 +36,11 @@
 #ifndef VESSEL_REQUEST_CONTEXT_H_
 #define VESSEL_REQUEST_CONTEXT_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "ossLatch.hpp"
 #include "ossLikely.hpp"
 #include "vessel/ISession.h"
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "vessel/lpidContext.h"
 
 #define LOG_ERR_AND_REPORT(context, rc, fmt, ...) \
@@ -169,10 +166,10 @@ namespace vessel
 
       public:
          /// no timeout. no recursive locking.
-         INT32 lockLpid(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
-         INT32 unlockLpid(SPACE_TYPE type, PAGE_ID lpid);
-         BOOLEAN testLpidLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
-         BOOLEAN testLpidLocked(SPACE_TYPE type, PAGE_ID lpid);
+         INT32 lockLpid(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
+         INT32 unlockLpid(FILE_TYPE type, PAGE_ID lpid);
+         BOOLEAN testLpidLockMode(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
+         BOOLEAN testLpidLocked(FILE_TYPE type, PAGE_ID lpid);
 
       private:
          void _close();

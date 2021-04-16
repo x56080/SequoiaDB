@@ -39,7 +39,7 @@
 #ifndef VESSEL_SPACE_ID_LOCKER_H_
 #define VESSEL_SPACE_ID_LOCKER_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "ossLatch.hpp"
 
 namespace engine

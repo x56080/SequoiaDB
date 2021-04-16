@@ -45,7 +45,7 @@
 
 namespace engine
 {
-   INT32 utilCRC32(const CHAR *buf, UINT32 len, UINT32 &result)
+   INT32 utilCRC32(const void *buf, UINT32 len, UINT32 &result)
    {
       INT32 rc = SDB_OK;
       boost::crc_32_type v;

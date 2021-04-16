@@ -175,7 +175,7 @@ namespace vessel
       {
          goto done;
       }
-      else if (FSM_LVL_DELTA_COUNT > (_delta + 1))
+      else if (FSM_LVL_DELTA_COUNT > (_delta + (UINT32)1))
       {
          ++_delta;
       }

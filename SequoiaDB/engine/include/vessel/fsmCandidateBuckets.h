@@ -36,10 +36,10 @@
 #ifndef SDB_VESSEL_FSM_CANDIDATE_BUCKETS_H_
 #define SDB_VESSEL_FSM_CANDIDATE_BUCKETS_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "pdTrace.hpp"
 #include "ossLikely.hpp"
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "ossSpinLatch.hpp"
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/fsmCandidateBucket.h"

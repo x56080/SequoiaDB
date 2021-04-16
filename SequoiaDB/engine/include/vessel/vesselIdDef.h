@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = vesselDef.h
+   Source File Name = vesselIdDef.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,12 +33,10 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_VESSEL_DEF_H_
-#define VESSEL_VESSEL_DEF_H_
+#ifndef VESSEL_VESSEL_ID_DEF_H_
+#define VESSEL_VESSEL_ID_DEF_H_
 
-#include "dms.hpp"
-#include "utilUniqueID.hpp"
-#include "vessel/slice.h"
+#include "ossUtil.hpp"
 
 namespace engine
 {
@@ -52,19 +47,6 @@ namespace vessel
    const SPACE_ID MAX_SPACE_ID = 16384;
    const SPACE_ID MAX_SPACE_COUNT = MAX_SPACE_ID + 1;
    const SPACE_ID MAX_SPACE_SLOT_COUNT = 256;
-
-   typedef UINT8 SPACE_TYPE;
-   const SPACE_TYPE INVALID_SPACE_TYPE = 255;
-   const SPACE_TYPE SPACE_TYPE_RECORD_M = 0;
-   const SPACE_TYPE SPACE_TYPE_RECORD_D = 1;
-   const SPACE_TYPE SPACE_TYPE_IDX_M = 2;
-   const SPACE_TYPE SPACE_TYPE_IDX_D = 3;
-   const SPACE_TYPE SPACE_TYPE_LOB_M = 4;
-   const SPACE_TYPE SPACE_TYPE_LOB_DM = 5;
-   const SPACE_TYPE SPACE_TYPE_LOB_DD = 7;
-   const SPACE_TYPE SPACE_TYPE_NAME = 8;
-   const SPACE_TYPE SPACE_TYPE_FSM = 9;
-   const SPACE_TYPE SPACE_TYPE_MAX = SPACE_TYPE_FSM;
 
    typedef UINT32 SEGMENT_ID;
    const SEGMENT_ID INVALID_SEG_ID = UINT32(-1);
@@ -82,14 +64,6 @@ namespace vessel
    typedef UINT32 CL_PAGE_SEQ;
    const CL_PAGE_SEQ INVALID_CL_PAGE_SEQ = 0xFFFFFFFF;
 
-   enum CURSOR_TYPE
-   {
-      CURSOR_TYPE_INVALID = 0,
-      CURSOR_TYPE_LIST_COLLECTION_SPACE = 1,
-      CURSOR_TYPE_LIST_COLLECTION = 2,
-      CURSOR_TYPE_SCAN_COLLECTION = 3,
-   };
-
    static const UINT32 VESSEL_MIN_CS_LID = 0x80000000;
    OSS_INLINE BOOLEAN isVesselCSLogicalID(UINT32 lid)
    {
@@ -98,4 +72,4 @@ namespace vessel
 
 } /// end of namespace vessel
 } /// end of namespace engine
-#endif
+#endif//VESSEL_VESSEL_ID_DEF_H_

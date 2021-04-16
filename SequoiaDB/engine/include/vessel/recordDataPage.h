@@ -38,9 +38,9 @@
 
 #include "ossTypes.hpp"
 #include "utilCompression.hpp"
-#include "vessel/vesselDef.h"
-#include "vessel/vesselDef.h"
 #include "vessel/recordID.h"
+#include "vessel/vesselIdDef.h"
+#include "dms.hpp"
 
 namespace engine
 {

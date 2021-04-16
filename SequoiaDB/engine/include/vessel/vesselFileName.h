@@ -39,15 +39,61 @@
 #ifndef VESSEL_VESSEL_FILE_NAME_H_
 #define VESSEL_VESSEL_FILE_NAME_H_
 
-#include "oss.hpp"
-#include "core.hpp"
+#include "vessel/vesselFileDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   const CHAR *VESSEL_CONTROL_FILE_PREFIX = "vessel";
-   const CHAR *VESSEL_CONTROL_FILE_SUFFIX = "control";
+   class vesselFileName : public SDBObject
+   {
+      public:
+         vesselFileName();
+         vesselFileName(const vesselFileName &);
+         ~vesselFileName();
+         vesselFileName &operator=(const vesselFileName &);
+
+      public:
+         OSS_INLINE BOOLEAN isValid()const
+         {
+            return INVALID_SPACE_ID != _space;
+         }
+
+         OSS_INLINE FILE_TYPE getType()const
+         {
+            return _type;
+         }
+
+         OSS_INLINE const CHAR *getName()const
+         {
+            return _name;
+         }
+
+         OSS_INLINE SPACE_ID getSpaceID()const
+         {
+            return _space;
+         }
+
+         OSS_INLINE UINT64 getSequence()const
+         {
+            return _sequence;
+         }
+
+         void reset();
+         /// if sid set as valid value, "extract" will also validate
+         /// space id in file name.
+         BOOLEAN extract(const strSlice &fileName, const SPACE_ID *sid);
+         BOOLEAN build(SPACE_ID sid, FILE_TYPE type, UINT64 sequence);
+         static BOOLEAN parseDirName(const strSlice &dirName, SPACE_ID *sid);
+         static BOOLEAN buildDirName(SPACE_ID sid, UINT32 bufLen, CHAR *buf);
+      private:
+         CHAR _name[MAX_FILE_NAME_LEN + 1];
+         SPACE_ID _space;
+         FILE_TYPE _type;
+         UINT64 _sequence;
+   };//class vesselFileName
 } // namespace vessel
 } // namespace engine
 

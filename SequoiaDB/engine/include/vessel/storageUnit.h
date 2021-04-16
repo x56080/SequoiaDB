@@ -37,7 +37,8 @@
 #define VESSEL_STORAGE_UNIT_H_
 
 #include "dms.hpp"
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/vesselFileDef.h"
 #include "vessel/extentStorageFile.h"
 #include "vessel/storageUnitDef.h"
 #include "vessel/strSlice.h"
@@ -74,19 +75,19 @@ namespace vessel
       public:
          SPACE_ID getSpaceID()const;
          UINT32 getMetaSegmentCount()const;
-         INT32 getPagePtr(SPACE_TYPE type,
+         INT32 getPagePtr(FILE_TYPE type,
                           PAGE_ID id,
                           ossValuePtr &ptr);
-         INT32 getCoreArgs(SPACE_TYPE type,
+         INT32 getCoreArgs(FILE_TYPE type,
                            UINT32 *pageSize = NULL,
                            UINT32 *maxPageCountPerSeg = NULL,
                            UINT32 *maxSegCountPerFile = NULL);
-         INT32 fsync(SPACE_TYPE type,
+         INT32 fsync(FILE_TYPE type,
                      PAGE_ID pid,
                      UINT32 count,
                      BOOLEAN sync=TRUE);
 
-         INT32 fsync(SPACE_TYPE,
+         INT32 fsync(FILE_TYPE,
                      UINT32 count,
                      const PAGE_ID *pids,
                      BOOLEAN sync=TRUE);
@@ -164,7 +165,7 @@ namespace vessel
          INT32 openOtherFilesUnderPath(const CHAR *path,
                                        const strSlice &dirName);
          INT32 openFile(const CHAR *fullPath,
-                        const storageFileName &fn);
+                        const vesselFileName &fn);
          
          INT32 removeSUNameFile(const CHAR *dataPath,
                                 SPACE_ID sid);
@@ -185,7 +186,7 @@ namespace vessel
 
       private:
          BOOLEAN _isOpen;
-         CHAR _dirName[MAX_SU_DIR_LEN + 1];
+         CHAR _dirName[MAX_SPACE_DIR_LEN + 1];
          
          ossSpinXLatch _extendingMetaLatch;
          dataExtentIDMapFile *_meta;

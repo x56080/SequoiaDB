@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -256,7 +253,7 @@ namespace vessel
       SDB_ASSERT(isClosed(), "must be closed");
       if (OSS_UNLIKELY(NULL == context ||
                        dirName.empty() ||
-                       MAX_SU_DIR_LEN < dirName.strLen()))
+                       MAX_SPACE_DIR_LEN < dirName.strLen()))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -334,7 +331,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -618,7 +615,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &pageCountPerSeg, NULL);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize, &pageCountPerSeg, NULL);
       if (SDB_OK != rc)
       {
          goto error;
@@ -632,7 +629,7 @@ namespace vessel
       record.flags = getFlags();
       record.dataPageSize = pageSize;
       record.dataPageCountPerSeg = pageCountPerSeg;
-      rc = getSU()->getCoreArgs(SPACE_TYPE_IDX_D, &pageSize, &pageCountPerSeg, NULL);
+      rc = getSU()->getCoreArgs(FILE_TYPE_IDX_D, &pageSize, &pageCountPerSeg, NULL);
       if (SDB_OK != rc)
       {
          goto error;
@@ -798,7 +795,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!context->testLpidLocked(SPACE_TYPE_RECORD_D, lpid))
+      else if (!context->testLpidLocked(FILE_TYPE_DD, lpid))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -813,7 +810,7 @@ namespace vessel
       }
       
       rc = imp.init(context,
-                    SPACE_TYPE_RECORD_M,
+                    FILE_TYPE_DM,
                     pid,
                     PAGE_ACCESSOR_FLAG_NONE,
                     _su);
@@ -892,7 +889,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (!context->testLpidLockMode(SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE))
+      else if (!context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE))
       {
          rc = SDB_VESSEL_FORBIDDEN_OP_WLT;
          goto error;
@@ -909,7 +906,7 @@ namespace vessel
       }
       
       rc = imp.init(context,
-                     SPACE_TYPE_RECORD_M,
+                     FILE_TYPE_DM,
                      pid,
                      PAGE_ACCESSOR_FLAG_NONE,
                      _su);
@@ -1293,7 +1290,7 @@ namespace vessel
          goto error;
       }
       
-      rc = smp.init(context, SPACE_TYPE_RECORD_D,
+      rc = smp.init(context, FILE_TYPE_DD,
                      smpPid, flags, _su);
       if (SDB_OK != rc)
       {
@@ -1368,7 +1365,7 @@ namespace vessel
          goto error;
       }
 
-      rc = imp.init(context, SPACE_TYPE_RECORD_M, impPid,
+      rc = imp.init(context, FILE_TYPE_DM, impPid,
                      flags, _su, lsn);
       if (SDB_OK != rc)
       {
@@ -1430,7 +1427,7 @@ namespace vessel
          goto done;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &maxPageCountPerSeg, &pageCount);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &maxPageCountPerSeg, &pageCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
@@ -1487,7 +1484,7 @@ namespace vessel
          goto done;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, NULL, &pageCountInSeg);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, NULL, &pageCountInSeg);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1516,7 +1513,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->fsync(SPACE_TYPE_RECORD_M, impPid, TRUE);
+      rc = _su->fsync(FILE_TYPE_DM, impPid, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync pid[%d], rc:%d", impPid, rc);
@@ -1545,7 +1542,7 @@ namespace vessel
       UINT32 flags = PAGE_ACCESSOR_FLAG_DIRECT;
 
       rc = accessor.init(context,
-                         SPACE_TYPE_RECORD_M,
+                         FILE_TYPE_DM,
                          CS_GLOBAL_META_PAGE_ID,
                          flags, _su);
       if (SDB_OK != rc)
@@ -1579,19 +1576,19 @@ namespace vessel
       PAGE_ID pid = INVALID_PAGE_ID;
       UINT32 clScanned = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, SYSTEM_MAP_PAGE_ID, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DM, SYSTEM_MAP_PAGE_ID, ptr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = imp.initWithDirectMode(context, SPACE_TYPE_RECORD_M, SYSTEM_MAP_PAGE_ID,
+      rc = imp.initWithDirectMode(context, FILE_TYPE_DM, SYSTEM_MAP_PAGE_ID,
                                   pageSize, ptr);
       if (SDB_OK != rc)
       {
@@ -1645,7 +1642,7 @@ namespace vessel
       UINT32 capacity = 0;
       collectionRecord record;
       
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1657,14 +1654,14 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_D, pid, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DD, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get crp page:%d", rc);
          goto error;
       }
 
-      rc = crp.initWithDirectMode(context, SPACE_TYPE_RECORD_D, pid,
+      rc = crp.initWithDirectMode(context, FILE_TYPE_DD, pid,
                                   pageSize, ptr);
       if (SDB_OK != rc)
       {
@@ -1729,7 +1726,7 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       csgpAccessor accessor;
-      rc = accessor.init(context, SPACE_TYPE_RECORD_M,
+      rc = accessor.init(context, FILE_TYPE_DM,
                           CS_GLOBAL_META_PAGE_ID,
                           PAGE_ACCESSOR_FLAG_NON_READONLY);
       if (SDB_OK != rc)
@@ -1758,7 +1755,7 @@ namespace vessel
       csgpAccessor accessor;
 
       _su->dumpIDMapFileHead(h);
-      rc = accessor.init(context, SPACE_TYPE_RECORD_M,
+      rc = accessor.init(context, FILE_TYPE_DM,
                          CS_GLOBAL_META_PAGE_ID,
                          PAGE_ACCESSOR_FLAG_NON_READONLY,
                          getSU());
@@ -1803,7 +1800,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->fsync(SPACE_TYPE_RECORD_M, SMP_PAGE_ID, 3, TRUE);
+      rc = _su->fsync(FILE_TYPE_DM, SMP_PAGE_ID, 3, TRUE);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1826,7 +1823,7 @@ namespace vessel
       UINT32 maxPageCount = 0;
       UINT32 pageSize = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M,
+      rc = _su->getCoreArgs(FILE_TYPE_DM,
                             &pageSize,
                             &maxPageCount,
                             &maxSegmentCount);
@@ -1842,7 +1839,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, SMP_PAGE_ID, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DM, SMP_PAGE_ID, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page ptr:%d", rc);
@@ -1850,7 +1847,7 @@ namespace vessel
       }
 
       rc = smp.initWithDirectMode(context,
-                                  SPACE_TYPE_RECORD_M,
+                                  FILE_TYPE_DM,
                                   SMP_PAGE_ID, pageSize, ptr,
                                   FALSE, FALSE);
       if (SDB_OK != rc)
@@ -1879,14 +1876,14 @@ namespace vessel
       ossValuePtr ptr = 0;
       UINT32 pageSize = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize, NULL, NULL);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize, NULL, NULL);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, CS_GLOBAL_META_PAGE_ID, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DM, CS_GLOBAL_META_PAGE_ID, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cs global meta page:%d", rc);
@@ -1894,7 +1891,7 @@ namespace vessel
       }
 
       rc = csgp.initWithDirectMode(context,
-                                    SPACE_TYPE_RECORD_M,
+                                    FILE_TYPE_DM,
                                     CS_GLOBAL_META_PAGE_ID,
                                     pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
@@ -1924,14 +1921,14 @@ namespace vessel
       impAccessor imp;
       ossValuePtr ptr = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize, NULL, NULL);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize, NULL, NULL);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_M, pid, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DM, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get cs global meta page:%d", rc);
@@ -1939,7 +1936,7 @@ namespace vessel
       }
 
       rc = imp.initWithDirectMode(context,
-                     SPACE_TYPE_RECORD_M,
+                     FILE_TYPE_DM,
                      pid,
                      pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
@@ -1971,21 +1968,21 @@ namespace vessel
       ossValuePtr ptr = 0;
       smpAccessor smp;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &maxPageCount, &maxSegmentCount);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize, &maxPageCount, &maxSegmentCount);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
          goto error;
       }
 
-      rc = _su->getPagePtr(SPACE_TYPE_RECORD_D, pid, ptr);
+      rc = _su->getPagePtr(FILE_TYPE_DD, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page ptr, pid[%d], rc:%d", pid, rc);
          goto error;
       }
 
-      rc = smp.initWithDirectMode(context, SPACE_TYPE_RECORD_D,
+      rc = smp.initWithDirectMode(context, FILE_TYPE_DD,
                                   pid, pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
@@ -1998,7 +1995,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->fsync(SPACE_TYPE_RECORD_D, pid, 1, TRUE);
+      rc = _su->fsync(FILE_TYPE_DD, pid, 1, TRUE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to fsync page:%d, rc:%d", pid, rc);
@@ -2208,7 +2205,7 @@ namespace vessel
       UINT32 maxPagePerSeg = 0;
       UINT32 capacityOfSMP = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize);
       if (SDB_OK != rc)
       {
          goto error;
@@ -2221,7 +2218,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize, &maxPagePerSeg, &maxSegPerFile);
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize, &maxPagePerSeg, &maxSegPerFile);
       if (SDB_OK != rc)
       {
          goto error;
@@ -2250,7 +2247,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize, &maxPagePerSeg, &maxSegPerFile);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize, &maxPagePerSeg, &maxSegPerFile);
       if (SDB_OK != rc)
       {
          goto error;
@@ -2291,7 +2288,7 @@ namespace vessel
       UINT32 idMapBitsCount = 0;
       UINT32 firstFree = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_M, &pageSize);
+      rc = _su->getCoreArgs(FILE_TYPE_DM, &pageSize);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get core args:%d", rc);
@@ -2306,7 +2303,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_M, SMP_PAGE_ID, 0, _su);
+      rc = accessor.init(context, FILE_TYPE_DM, SMP_PAGE_ID, 0, _su);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init smp accessor:%d", rc);
@@ -2352,7 +2349,7 @@ namespace vessel
       for (PAGE_ID i = SYSTEM_MAP_PAGE_ID + 1; i < maxPid; ++i)
       {
          UINT32 freeCount = 0;
-         rc = imp.init(context, SPACE_TYPE_RECORD_M, i, 0, _su);
+         rc = imp.init(context, FILE_TYPE_DM, i, 0, _su);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init crp accessor at page[%d], rc:%d", i, rc);
@@ -2444,7 +2441,7 @@ namespace vessel
       UINT32 capacity = 0;
       UINT32 bitsCount = 0;
 
-      rc = _su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize,
+      rc = _su->getCoreArgs(FILE_TYPE_DD, &pageSize,
                             &pageCountPerSeg, &maxSegmentCount);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -2480,7 +2477,7 @@ namespace vessel
       for (UINT32 i = 0; i < smpCount; ++i)
       {
          smpAccessor accessor;
-         rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _su);
+         rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _su);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to init smp accessor:%d", rc);

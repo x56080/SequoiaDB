@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -259,7 +256,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 requestContext::lockLpid(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)
+   INT32 requestContext::lockLpid(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
 
@@ -280,7 +277,7 @@ namespace vessel
       goto done;
    }
    
-   INT32 requestContext::unlockLpid(SPACE_TYPE type, PAGE_ID lpid)
+   INT32 requestContext::unlockLpid(FILE_TYPE type, PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       if (OSS_UNLIKELY(!getSpaceIDLocked()))
@@ -300,12 +297,12 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN requestContext::testLpidLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const
+   BOOLEAN requestContext::testLpidLockMode(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const
    {
       return _lpidContext.testLockMode(type, lpid, mode);
    }
 
-   BOOLEAN requestContext::testLpidLocked(SPACE_TYPE type, PAGE_ID lpid)
+   BOOLEAN requestContext::testLpidLocked(FILE_TYPE type, PAGE_ID lpid)
    {
       return _lpidContext.testLocked(type, lpid);
    }

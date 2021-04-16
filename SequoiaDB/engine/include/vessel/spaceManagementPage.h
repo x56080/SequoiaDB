@@ -36,7 +36,7 @@
 #ifndef VESSEL_SPACE_MANAGEMENT_PAGE_H_
 #define VESSEL_SPACE_MANAGEMENT_PAGE_H_
 
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 
 namespace engine
 {

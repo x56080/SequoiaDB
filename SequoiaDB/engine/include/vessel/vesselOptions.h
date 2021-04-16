@@ -36,7 +36,6 @@
 #ifndef VESSEL_VESSEL_OPTIONS_H_
 #define VESSEL_VESSEL_OPTIONS_H_
 
-#include "vessel/vesselDef.h"
 #include "vessel/storageFileDef.h"
 #include "vessel/collectionDef.h"
 #include "utilCompression.hpp"

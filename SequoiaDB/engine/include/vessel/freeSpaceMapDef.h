@@ -36,7 +36,7 @@
 #ifndef SDB_VESSEL_FREE_SPACE_MAP_DEF_H_
 #define SDB_VESSEL_FREE_SPACE_MAP_DEF_H_
 
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "pdTrace.hpp"
 #include "vessel/recordDataPage.h"
 #include "ossMemPool.hpp"

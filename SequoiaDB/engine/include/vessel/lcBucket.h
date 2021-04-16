@@ -39,7 +39,7 @@
 #ifndef VESSEL_LC_BUCKET_H_
 #define VESSEL_LC_BUCKET_H_
 
-#include "vessel/phyExtentID.h"
+#include "vessel/globalPageID.h"
 #include "vessel/lcPageTagHolder.h"
 #include "ossMemPool.hpp"
 

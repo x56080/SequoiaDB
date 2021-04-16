@@ -255,7 +255,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE);
+      rc = lh.lock(context, FILE_TYPE_DD, lpid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -324,7 +324,7 @@ namespace vessel
 
       ossScopedLock guard(&_ddlSLatch, SHARED);
 
-      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -457,7 +457,7 @@ namespace vessel
       lpidLockHelper lh;
       rdpAccessor accessor;
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lock of lpid[%d], rc:%d", lpid, rc);
@@ -471,7 +471,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
          goto error;
@@ -526,7 +526,7 @@ namespace vessel
          cursor->setLpid(lpid);
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -540,7 +540,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid,
+      rc = accessor.init(context, FILE_TYPE_DD, pid,
                          0, _collectionSpace->getSU());
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
@@ -643,7 +643,7 @@ namespace vessel
       PAGE_ID pid = INVALID_PAGE_ID;
       UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, candidate.lpid, EXCLUSIVE);
+      rc = lh.lock(context, FILE_TYPE_DD, candidate.lpid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", candidate.lpid, rc);
@@ -657,7 +657,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid,
+      rc = accessor.init(context, FILE_TYPE_DD, pid,
                          flags, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
@@ -773,7 +773,7 @@ namespace vessel
       lpidLockHelper lh;
       routePageAccessor accessor;
 
-      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -831,7 +831,7 @@ namespace vessel
       rollbackPre = FALSE;
       rollbackPages = TRUE;
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl0Lpid, EXCLUSIVE);
+      rc = lh.lock(context, FILE_TYPE_DD, lvl0Lpid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl0Lpid, rc);
@@ -845,7 +845,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, lvl0Pid, flags,
+      rc = accessor.init(context, FILE_TYPE_DD, lvl0Pid, flags,
                          _collectionSpace->getSU(), lsn);
       if (SDB_OK != rc)
       {
@@ -903,7 +903,7 @@ namespace vessel
       UINT32 max = 0;
       UINT32 count = 0;
 
-      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1093,14 +1093,14 @@ namespace vessel
             goto error;
          }
 
-         rc = su->getPagePtr(SPACE_TYPE_RECORD_D, pids[i], ptr);
+         rc = su->getPagePtr(FILE_TYPE_DD, pids[i], ptr);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get page ptr of[%d], rc:%d", pids[i], rc);
             goto error;
          }
 
-         rc = accessor.initWithDirectMode(context, SPACE_TYPE_RECORD_D,
+         rc = accessor.initWithDirectMode(context, FILE_TYPE_DD,
                                           pids[i], pageSize, ptr, FALSE, FALSE);
          if (SDB_OK != rc)
          {
@@ -1150,7 +1150,7 @@ namespace vessel
          goto error;
       }
 
-      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1166,7 +1166,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl0Lpid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lvl0Lpid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl0Lpid, rc);
@@ -1180,7 +1180,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D,
+      rc = accessor.init(context, FILE_TYPE_DD,
                          lvl0Pid, 0, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
@@ -1229,7 +1229,7 @@ namespace vessel
 
       lpidLockHelper lh;
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lpid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -1243,7 +1243,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1306,7 +1306,7 @@ namespace vessel
             goto error;
          }
 
-         rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl2Pid, SHARED);
+         rc = lh.lock(context, FILE_TYPE_DD, lvl2Pid, SHARED);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl2Pid, rc);
@@ -1320,7 +1320,7 @@ namespace vessel
             goto error;
          }
 
-         rc = accessor.init(context, SPACE_TYPE_RECORD_D,
+         rc = accessor.init(context, FILE_TYPE_DD,
                             pid, 0, _collectionSpace->getSU());
          if (SDB_OK != rc)
          {
@@ -1351,7 +1351,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl1Pid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lvl1Pid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get lpid[%d] lock:%d", lvl1Pid, rc);
@@ -1365,7 +1365,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D,
+      rc = accessor.init(context, FILE_TYPE_DD,
                            pid, 0, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
@@ -1411,7 +1411,7 @@ namespace vessel
       UINT32 maxLvl0Cnt = 0;
       PAGE_ID newLvl0Lpid = INVALID_PAGE_ID;
 
-      rc = _collectionSpace->getSU()->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = _collectionSpace->getSU()->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          PD_LOG(PDERROR, "failed to get page size:%d", rc);
@@ -1581,7 +1581,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, crpLpid, EXCLUSIVE);
+      rc = lh.lock(context, FILE_TYPE_DD, crpLpid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", crpLpid, rc);
@@ -1596,7 +1596,7 @@ namespace vessel
       }
 
       record.routePages[rootSlot] = lpidOfRP;
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid,
+      rc = accessor.init(context, FILE_TYPE_DD, pid,
                          flags, su, lsn);
       if (SDB_OK != rc)
       {
@@ -1656,7 +1656,7 @@ namespace vessel
          goto error;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE);
+      rc = lh.lock(context, FILE_TYPE_DD, lpid, EXCLUSIVE);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lpid, rc);
@@ -1670,7 +1670,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D,
+      rc = accessor.init(context, FILE_TYPE_DD,
                          pid, flags,
                          _collectionSpace->getSU(),
                          oplist);
@@ -1726,7 +1726,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
       }
 
-      rc = lh.lock(context, SPACE_TYPE_RECORD_D, lvl2Lpid, SHARED);
+      rc = lh.lock(context, FILE_TYPE_DD, lvl2Lpid, SHARED);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to lock lpid[%d], rc:%d", lvl2Lpid, rc);
@@ -1740,7 +1740,7 @@ namespace vessel
          goto error;
       }
 
-      rc = accessor.init(context, SPACE_TYPE_RECORD_D, pid, 0, _collectionSpace->getSU());
+      rc = accessor.init(context, FILE_TYPE_DD, pid, 0, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to init accessor:%d", rc);
@@ -1795,7 +1795,7 @@ namespace vessel
       routePageAccessor accessor;
 
       su = _collectionSpace->getSU();
-      rc = su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = su->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (OSS_UNLIKELY(SDB_OK != rc))
       {
          goto error;
@@ -1808,14 +1808,14 @@ namespace vessel
          goto error;
       }
 
-      rc = su->getPagePtr(SPACE_TYPE_RECORD_D, pid, ptr);
+      rc = su->getPagePtr(FILE_TYPE_DD, pid, ptr);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to get page[%d] ptr, rc:%d", pid, rc);
          goto error;
       }
 
-      rc = accessor.initWithDirectMode(context, SPACE_TYPE_RECORD_D,
+      rc = accessor.initWithDirectMode(context, FILE_TYPE_DD,
                                        pid, pageSize, ptr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
@@ -1862,7 +1862,7 @@ namespace vessel
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
-      SDB_ASSERT(context->testLpidLockMode(SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE), "must holding lock");
+      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE), "must holding lock");
 
       rc = _collectionSpace->getDataPhyPidInIdMapToWrite(context, lpid, pid);
       if (SDB_OK == rc)
@@ -1897,7 +1897,7 @@ namespace vessel
       SDB_ASSERT(NULL != context, "can not be null");
       SDB_ASSERT(INVALID_PAGE_ID != lpid, "can not be invalid");
       SDB_ASSERT(NULL != _collectionSpace, "can not be null");
-      SDB_ASSERT(context->testLpidLockMode(SPACE_TYPE_RECORD_D, lpid, EXCLUSIVE), "must holding lock");
+      SDB_ASSERT(context->testLpidLockMode(FILE_TYPE_DD, lpid, EXCLUSIVE), "must holding lock");
 
       rc = preallocateCLRecordPage(context, lpid, pid);
       if (SDB_OK != rc)
@@ -1938,7 +1938,7 @@ namespace vessel
       
       pid = INVALID_PAGE_ID;
    
-      rc = su->getCoreArgs(SPACE_TYPE_RECORD_D, &pageSize);
+      rc = su->getCoreArgs(FILE_TYPE_DD, &pageSize);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1952,13 +1952,13 @@ namespace vessel
 
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
 
-      rc = su->getPagePtr(SPACE_TYPE_RECORD_D, pid, pagePtr);
+      rc = su->getPagePtr(FILE_TYPE_DD, pid, pagePtr);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      rc = crp.initWithDirectMode(context, SPACE_TYPE_RECORD_D,
+      rc = crp.initWithDirectMode(context, FILE_TYPE_DD,
                                   pid, pageSize, pagePtr, FALSE, FALSE);
       if (SDB_OK != rc)
       {
@@ -1973,7 +1973,7 @@ namespace vessel
 
       crp.fini(context);
 
-      rc = su->fsync(SPACE_TYPE_RECORD_D, pid, 1, TRUE);
+      rc = su->fsync(FILE_TYPE_DD, pid, 1, TRUE);
       if (SDB_OK != rc)
       {
          goto error;
@@ -1999,7 +1999,7 @@ namespace vessel
       crpAccessor accessor;
       UINT32 flags = PAGE_ACCESSOR_FLAG_NON_READONLY;
       rc = accessor.init(context,
-                          SPACE_TYPE_RECORD_D,
+                          FILE_TYPE_DD,
                           pid, flags, _collectionSpace->getSU());
       if (SDB_OK != rc)
       {

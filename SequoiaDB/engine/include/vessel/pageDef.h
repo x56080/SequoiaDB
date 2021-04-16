@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = extentDef.h
+   Source File Name = pageDef.h
 
    Descriptive Name =
 
@@ -33,12 +33,12 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_EXTENT_DEF_H_
-#define VESSEL_EXTENT_DEF_H_
+#ifndef VESSEL_PAGE_DEF_H_
+#define VESSEL_PAGE_DEF_H_
 
-#include "vessel/vesselDef.h"
 #include "dpsDef.hpp"
 #include "ossLikely.hpp"
+#include "pd.hpp"
 
 namespace engine
 {
@@ -46,9 +46,6 @@ namespace vessel
 {
    typedef UINT32 PAGE_ID;
    const PAGE_ID INVALID_PAGE_ID = UINT32(-1);
-
-   typedef UINT32 EXTENT_ID;
-   const EXTENT_ID INVALID_EXTENT_ID = UINT32(-1);
 
    const UINT16 INVALID_PAGE_VERSION = 0;
    const UINT16 PAGE_VERSION_1 = 1;
@@ -64,21 +61,33 @@ namespace vessel
    const static PAGE_TYPE PAGE_TYPE_COLLECTION_RECORD = 4;
    const static PAGE_TYPE PAGE_TYPE_ROUTE = 5;
 
-   OSS_INLINE void getPageEyeCatcher(SPACE_TYPE type, CHAR &e0, CHAR &e1)
+   OSS_INLINE void getEyeCatcher(PAGE_TYPE type, CHAR &e0, CHAR &e1)
    {
       switch (type)
       {
-      case SPACE_TYPE_RECORD_M:
-         e0 = 'M';
+      case PAGE_TYPE_SMP:
+         e0 = 'S';
          e1 = 'P';
          break;
-      case SPACE_TYPE_RECORD_D:
-         e0 = 'D';
+      case PAGE_TYPE_ID_MAP:
+         e0 = 'I';
          e1 = 'P';
          break;
-      case SPACE_TYPE_FSM:
-         e0 = 'F';
-         e1 = 'M';
+      case PAGE_TYPE_RECORD:
+         e0 = 'R';
+         e1 = 'P';
+         break;
+      case PAGE_TYPE_CS_META:
+         e0 = 'C';
+         e1 = 'S';
+         break;
+      case PAGE_TYPE_COLLECTION_RECORD:
+         e0 = 'C';
+         e1 = 'L';
+         break;
+      case PAGE_TYPE_ROUTE:
+         e0 = 'R';
+         e1 = 'O';
          break;
       default:
          e0 = 0;
@@ -154,4 +163,4 @@ namespace vessel
 }/// end of namespace vessel
 } /// end of namespace engine
 
-#endif // VESSEL_EXTENT_DEF_H_
+#endif // VESSEL_PAGE_DEF_H_

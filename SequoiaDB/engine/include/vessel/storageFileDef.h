@@ -36,31 +36,22 @@
 #ifndef VESSEL_STORAGE_FILE_DEF_H_
 #define VESSEL_STORAGE_FILE_DEF_H_
 
-#include "ossTypes.h"
+#include "vessel/vesselFileDef.h"
+#include "vessel/vesselIdDef.h"
 #include "ossUtil.hpp"
 #include "dms.hpp"
-#include "vessel/vesselDef.h"
 
 namespace engine
 {
 namespace vessel
 {
    const UINT32 STORAGE_FILE_HEAD_SIZE = 65536;
-   const UINT32 INVALID_STORAGE_FILE_VERSION = 0;
-   const UINT32 STORAGE_FILE_CURRENT_VERSION = 1;
 
-   const UINT32 MAX_SU_DIR_LEN = 15;
-   const UINT32 SU_FILE_NAME_LEN = 63;
-
-   #define SU_FILE_NAME_PREFIX "_space_"
-   const UINT32 SU_NAME_PREFIX_LEN = 7;
-   #define SU_FILE_NAME_META_SUFFIX "meta"
-   #define SU_FILE_NAME_IDX_SUFFIX "idx"
-   #define SU_FILE_NAME_LOB_SUFFIX "lob"
-   #define SU_FILE_NAME_CSNAME_SUFFIX "name"
-   #define SU_FILE_NAME_FSM_SUFFIX "fsm"
+   const UINT32 STORAGE_FILE_HEAD_VERSION = 1;
 
    const UINT32 INVALID_FILE_HEAD_VERSION = 0;
+
+#pragma pack(4)
 
    struct storageCoreArgs
    {
@@ -135,7 +126,7 @@ namespace vessel
       const CHAR *name = NULL;
       UINT32 secretValue = 0;
       UINT16 spaceID = INVALID_SPACE_ID;
-      UINT32 sequence = 0;
+      UINT64 sequence = 0;
       UINT32 logicalID = DMS_INVALID_LOGICCSID;
       const storageCoreArgs *args = NULL;
       BOOLEAN replaceWhenCreate = FALSE;
@@ -152,7 +143,7 @@ namespace vessel
       flags(0),
       spaceID(INVALID_SPACE_ID),
       logicalID(DMS_INVALID_LOGICCSID),
-      spaceType(INVALID_SPACE_TYPE),
+      fileType(INVALID_FILE_TYPE),
       sequence(0),
       pageSize(0),
       maxPageCountPerSeg(0),
@@ -173,20 +164,21 @@ namespace vessel
       CHAR magicChars[8];
       UINT32 version;
       UINT32 headChecksum;
-      CHAR name[SU_FILE_NAME_LEN+1];
+      CHAR name[MAX_FILE_NAME_LEN+1];
       UINT64 createTime;
       UINT32 secretValue;
       UINT32 flags;
       UINT32 spaceID;
       UINT32 logicalID;
-      UINT32 spaceType;
-      UINT32 sequence;
+      UINT32 fileType;
+      UINT64 sequence;
       UINT32 pageSize;
       UINT32 maxPageCountPerSeg;
       UINT32 maxSegmentCountPerFile;
       UINT32 userDefinedHeadLen;
       UINT32 pageCountInLastSeg;/// readonly file
    }; // struct storageFileHead
+   static const UINT32 STORAGE_FILE_HEAD_REAL_SIZE = sizeof(storageFileHead);
 
    const UINT32 META_FILE_USER_HEAD_VERSION = 1;
    struct dataIDMapFileHead
@@ -217,6 +209,7 @@ namespace vessel
       
    };// struct dataIDMapFileHead
 
+#pragma pack()
 } /// end of namespace vessel
 } /// end of namespace engine
 

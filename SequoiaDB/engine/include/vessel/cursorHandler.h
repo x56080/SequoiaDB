@@ -36,17 +36,14 @@
 #ifndef VESSEL_CURSOR_HANDLER_H_
 #define VESSEL_CURSOR_HANDLER_H_
 
-#include "vessel/vesselDef.h"
-#include "vessel/vesselOptions.h"
 #include "ossLikely.hpp"
+#include "vessel/slice.h"
+#include "vessel/cursorKernal.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class vessel;
-   class IQueryFilter;
-   class cursorKernal;
    class ISession;
 
    class cursorHandler : public SDBObject

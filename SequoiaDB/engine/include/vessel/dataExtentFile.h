@@ -52,9 +52,9 @@ namespace vessel
          virtual ~dataExtentFile();
 
       private:
-         virtual SPACE_TYPE getSpaceType()const
+         virtual FILE_TYPE getFileType()const
          {
-            return SPACE_TYPE_RECORD_D;
+            return FILE_TYPE_DD;
          }
          virtual const CHAR *getMagicChars()const
          {

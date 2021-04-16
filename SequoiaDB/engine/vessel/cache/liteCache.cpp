@@ -39,7 +39,6 @@
 #include "vessel/liteCache.h"
 #include "ossErr.h"
 #include "vessel/lcPageTagHolder.h"
-#include "vessel/vesselDef.h"
 #include "vessel/collectionSpaceContainer.h"
 #include "vessel/liteCacheDef.h"
 #include "pdTrace.hpp"

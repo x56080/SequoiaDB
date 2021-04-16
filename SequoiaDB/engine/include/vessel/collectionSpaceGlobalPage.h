@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,7 +36,9 @@
 #ifndef VESSEL_COLLECTION_SPACE_GLOBAL_PAGE_H_
 #define VESSEL_COLLECTION_SPACE_GLOBAL_PAGE_H_
 
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
+#include "dms.hpp"
+#include "utilUniqueID.hpp"
 
 namespace engine
 {

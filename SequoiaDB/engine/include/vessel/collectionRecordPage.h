@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,10 +36,10 @@
 #ifndef VESSEL_COLLECTION_RECORD_PAGE_H_
 #define VESSEL_COLLECTION_RECORD_PAGE_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "vessel/collectionDef.h"
 #include "dms.hpp"
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "utilCompression.hpp"
 
 namespace engine
@@ -188,16 +185,20 @@ namespace vessel
    };//class collectionRecordOnDisk
    const UINT32 COLLECTION_DISK_RECORD_LEN = sizeof(collectionRecordOnDisk);
 
+   const UINT16 COLLECTION_RECORD_PAGE_INVALID_VERSION = 0;
+   const UINT16 COLLECTION_RECORD_PAGE_VERSION_1 = 1;
    struct collectionRecordPageHead
    {
-      UINT16 version;
-      UINT16 flags;
+      collectionRecordPageHead()
+      {
+         ossMemset(pad, 0, sizeof(pad));
+      }
+      UINT16 version = COLLECTION_RECORD_PAGE_INVALID_VERSION;
+      UINT16 flags = 0;
       CHAR pad[12];
    };//struct collectionPageHead
    const UINT32 COLLECTION_RECORD_PAGE_HEAD_LEN = sizeof(collectionRecordPageHead);
 
-   const UINT16 COLLECTION_RECORD_PAGE_INVALID_VERSION = 0;
-   const UINT16 COLLECTION_RECORD_PAGE_VERSION_1 = 1;
    INT32 getCapacityOfCLRecordPage(UINT32 pageSize, UINT32 &capacity);
 #pragma pack()
 

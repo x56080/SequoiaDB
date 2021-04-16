@@ -41,6 +41,7 @@
 
 #include "ossLatch.hpp"
 #include "vessel/requestContext.h"
+#include "vessel/vesselFileDef.h"
 
 namespace engine
 {
@@ -51,7 +52,7 @@ namespace vessel
       public:
          OSS_INLINE lpidLockHelper():
          _context(NULL),
-         _type(INVALID_SPACE_TYPE),
+         _type(INVALID_FILE_TYPE),
          _lpid(INVALID_PAGE_ID),
          _mode(SHARED)
          {}
@@ -63,7 +64,7 @@ namespace vessel
 
       public:
          OSS_INLINE INT32 lock(requestContext *context,
-                               SPACE_TYPE type,
+                               FILE_TYPE type,
                                PAGE_ID lpid,
                                OSS_LATCH_MODE mode)
          {
@@ -113,7 +114,7 @@ namespace vessel
             if (NULL != _context)
             {
                _context = NULL;
-               _type = INVALID_SPACE_TYPE;
+               _type = INVALID_FILE_TYPE;
                _lpid = INVALID_PAGE_ID;
                _mode = SHARED;
             }
@@ -137,7 +138,7 @@ namespace vessel
 
       private:
          requestContext *_context;
-         SPACE_TYPE _type;
+         FILE_TYPE _type;
          PAGE_ID _lpid;
          OSS_LATCH_MODE _mode;
    };//class lpidLockHelper

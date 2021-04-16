@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -52,11 +49,11 @@ namespace vessel
       }
    }
 
-   INT32 lpidContext::lock(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)
+   INT32 lpidContext::lock(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)
    {
       INT32 rc = SDB_OK;
-      if (OSS_UNLIKELY(SPACE_TYPE_RECORD_D != type &&
-                       SPACE_TYPE_IDX_D != type))
+      if (OSS_UNLIKELY(FILE_TYPE_DD != type &&
+                       FILE_TYPE_IDX_D != type))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -87,7 +84,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 lpidContext::unlock(SPACE_TYPE type, PAGE_ID lpid)
+   INT32 lpidContext::unlock(FILE_TYPE type, PAGE_ID lpid)
    {
       INT32 rc = SDB_OK;
       UINT32 moveCount = 0;
@@ -124,7 +121,7 @@ namespace vessel
       goto done;
    }
 
-   BOOLEAN lpidContext::testLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const
+   BOOLEAN lpidContext::testLockMode(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const
    {
       BOOLEAN r = FALSE;
       for (INT32 i = ((INT32)_size - 1); i >= 0; --i)
@@ -149,7 +146,7 @@ namespace vessel
       return r;
    }
 
-   BOOLEAN lpidContext::testLocked(SPACE_TYPE type, PAGE_ID lpid)const
+   BOOLEAN lpidContext::testLocked(FILE_TYPE type, PAGE_ID lpid)const
    {
       BOOLEAN r = FALSE;
       for (INT32 i = ((INT32)_size - 1); i >= 0; --i)

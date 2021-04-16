@@ -37,16 +37,13 @@
 #define VESSEL_REDO_LOG_UTIL_H_
 
 #include "dpsLogRecord.hpp"
-#include "vessel/vesselDef.h"
-#include "phyExtentID.h"
+#include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
 
 namespace engine
 {
 namespace vessel
 {
-   class createCSOptions;
-   class collectionRecord;
    class logRecordContext;
    class IRedoLogger;
    class ISession;

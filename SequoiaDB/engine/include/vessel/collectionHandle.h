@@ -36,7 +36,8 @@
 #ifndef VESSEL_COLLECTION_HANDLE_H_
 #define VESSEL_COLLECTION_HANDLE_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
+#include "dms.hpp"
 
 namespace engine
 {

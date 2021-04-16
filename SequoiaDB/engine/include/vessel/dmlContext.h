@@ -44,8 +44,9 @@
 #include "vessel/recordID.h"
 #include "ossMemPool.hpp"
 #include "ossLikely.hpp"
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "vessel/requestContext.h"
+#include "dms.hpp"
 
 namespace engine
 {

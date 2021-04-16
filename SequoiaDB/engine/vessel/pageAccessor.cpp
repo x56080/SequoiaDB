@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -69,7 +66,7 @@ namespace vessel
    }
 
    INT32 pageAccessor::init(requestContext *context,
-                             SPACE_TYPE type,
+                             FILE_TYPE type,
                              PAGE_ID pid,
                              UINT32 flags,
                              storageUnit *su,
@@ -90,7 +87,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type))
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -165,7 +162,7 @@ namespace vessel
    }
 
    INT32 pageAccessor::initWithDirectMode(requestContext *context,
-                                          SPACE_TYPE type,
+                                          FILE_TYPE type,
                                           PAGE_ID pid,
                                           UINT32 pageSize,
                                           ossValuePtr ptr,
@@ -186,7 +183,7 @@ namespace vessel
          rc = SDB_INVALIDARG;
          goto error;
       }
-      else if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type))
+      else if (OSS_UNLIKELY(INVALID_FILE_TYPE == type))
       {
          rc = SDB_INVALIDARG;
          goto error;
@@ -552,7 +549,7 @@ namespace vessel
          goto error;
       }
 
-      getPageEyeCatcher(_gpid.type(), e0, e1);
+      getEyeCatcher(getPageType(), e0, e1);
 
       rc = getWritePtrOfHead(&head);
       if (SDB_OK != rc)

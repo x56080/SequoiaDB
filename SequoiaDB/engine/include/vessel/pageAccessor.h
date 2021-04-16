@@ -36,8 +36,8 @@
 #ifndef VESSEL_PAGE_ACCESSOR_H_
 #define VESSEL_PAGE_ACCESSOR_H_
 
-#include "vessel/phyExtentID.h"
-#include "vessel/extentDef.h"
+#include "vessel/globalPageID.h"
+#include "vessel/pageDef.h"
 #include "vessel/liteCacheTuple.h"
 #include "vessel/requestContext.h"
 
@@ -108,14 +108,14 @@ namespace vessel
 
       public:
          INT32 init(requestContext *context,
-                     SPACE_TYPE type,
+                     FILE_TYPE type,
                      PAGE_ID pid,
                      UINT32 flags = 0,
                      storageUnit *su = NULL,
                      DPS_LSN_OFFSET oplist=DPS_INVALID_LSN_OFFSET);
 
          INT32 initWithDirectMode(requestContext *context,
-                                 SPACE_TYPE type,
+                                 FILE_TYPE type,
                                  PAGE_ID pid,
                                  UINT32 pageSize,
                                  ossValuePtr ptr,

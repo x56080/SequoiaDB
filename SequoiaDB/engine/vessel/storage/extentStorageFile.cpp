@@ -40,9 +40,9 @@
 #include "pdTrace.hpp"
 #include "dms.hpp"
 #include "vessel/storageFileDef.h"
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "ossLikely.hpp"
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "utilStr.hpp"
 #include "utilCRC.hpp"
 
@@ -57,12 +57,12 @@ namespace vessel
    extentStorageFile::~extentStorageFile()
    {}
 
-   INT32 extentStorageFile::open(const CHAR *fullPath, const storageFileName &fn)
+   INT32 extentStorageFile::open(const CHAR *fullPath, const vesselFileName &fn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(!isOpen(), "can not be open");
 
-      if (NULL == fullPath || !fn.valid())
+      if (NULL == fullPath || !fn.isValid())
       {
          PD_LOG(PDERROR, "invalid path or name");
          rc = SDB_INVALIDARG;
@@ -99,10 +99,10 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::openFileHead(const storageFileName &fn)
+   INT32 extentStorageFile::openFileHead(const vesselFileName &fn)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(fn.valid(), "can not be invalid");
+      SDB_ASSERT(fn.isValid(), "can not be invalid");
       UINT64 fileSize = 0;
       void *headBuf = NULL;
       const storageFileHead *head = NULL;
@@ -608,7 +608,7 @@ namespace vessel
       nameLen = ossStrlen(options.name);
 
       if (0 == nameLen ||
-          SU_FILE_NAME_LEN < nameLen)
+          MAX_SPACE_DIR_LEN < nameLen)
       {
          PD_LOG(PDERROR, "invalid length of file name:%s");
          goto done;
@@ -647,13 +647,13 @@ namespace vessel
       ossMemset(headBuf, 0, STORAGE_FILE_HEAD_SIZE);
       storageFileHead *head = (storageFileHead *)headBuf;
       ossMemcpy(head->magicChars, getMagicChars(), sizeof(head->magicChars));
-      head->version = STORAGE_FILE_CURRENT_VERSION;
+      head->version = STORAGE_FILE_HEAD_VERSION;
       ossStrcpy(head->name, options.name);
       head->headChecksum = 0;
       head->createTime = ossGetCurrentMilliseconds();
       head->secretValue = options.secretValue;
       head->spaceID = options.spaceID;
-      head->spaceType = getSpaceType();
+      head->fileType = getFileType();
       head->sequence = options.sequence;
       head->logicalID = options.logicalID;
       if (NULL == options.args)
@@ -666,7 +666,7 @@ namespace vessel
       head->maxPageCountPerSeg = options.args->maxPageCountPerSeg;
       head->userDefinedHeadLen = hasUserDefinedHead ? STORAGE_FILE_HEAD_SIZE : 0;
 
-      rc = createChecksum(headBuf, STORAGE_FILE_HEAD_SIZE, checksum);
+      rc = createChecksum(*head, checksum);
       if (SDB_OK != rc)
       {
          goto error;
@@ -810,7 +810,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::validateHead(const void *head, const storageFileName &fn)
+   INT32 extentStorageFile::validateHead(const void *head, const vesselFileName &fn)
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != head, "can not be null");
@@ -821,7 +821,7 @@ namespace vessel
       ((storageFileHead *)tmpHeadBuf)->headChecksum = 0;
       storageCoreArgs args;
 
-      rc = createChecksum(tmpHeadBuf, STORAGE_FILE_HEAD_SIZE, checksum);
+      rc = createChecksum(*suHead, checksum);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checksum of head:%d", rc);
@@ -842,7 +842,7 @@ namespace vessel
          goto error;
       }
 
-      if (STORAGE_FILE_CURRENT_VERSION != suHead->version)
+      if (STORAGE_FILE_HEAD_VERSION != suHead->version)
       {
          PD_LOG(PDERROR, "invalid su version:%d", suHead->version);
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
@@ -863,16 +863,16 @@ namespace vessel
          goto error;
       }
 
-      if (suHead->spaceType != fn.getType())
+      if (suHead->fileType != fn.getType())
       {
-         PD_LOG(PDERROR, "invalid space type:%d, %d", suHead->spaceType, fn.getType());
+         PD_LOG(PDERROR, "invalid space type:%d, %d", suHead->fileType, fn.getType());
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
 
-      if (getSpaceType() != suHead->spaceType)
+      if (getFileType() != suHead->fileType)
       {
-         PD_LOG(PDERROR, "invalid space type:%d, %d", suHead->spaceType, getSpaceType());
+         PD_LOG(PDERROR, "invalid file type:%d, %d", suHead->fileType, getFileType());
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
          goto error;
       }
@@ -907,10 +907,12 @@ namespace vessel
       goto done;
    }
 
-   INT32 extentStorageFile::createChecksum(const CHAR *headBuf, UINT32 len, UINT32 &checksum)
+   INT32 extentStorageFile::createChecksum(const storageFileHead &head, UINT32 &checksum)
    {
       INT32 rc = SDB_OK;
-      rc = utilCRC32(headBuf, len, checksum);
+      storageFileHead h = head;
+      h.headChecksum = 0;
+      rc = utilCRC32(&h, sizeof(h), checksum);
       if (SDB_OK != rc)
       {
          goto error;
@@ -920,6 +922,11 @@ namespace vessel
       return rc;
    error:
       goto done;
+   }
+
+   INT32 extentStorageFile::createChecksum(const void *buf, UINT32 len, UINT32 &checksum)
+   {
+      return utilCRC32(buf, len, checksum);
    }
 
 } // namespace vessel

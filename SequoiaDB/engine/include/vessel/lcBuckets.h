@@ -73,6 +73,18 @@ namespace vessel
          void getBucketAndLatch(const GLOBAL_PAGE_ID &id,
                                 _ossSpinXLatch *&latch,
                                 lcBucket *&bucket);
+         OSS_FORCE_INLINE UINT32 hashGpid(const GLOBAL_PAGE_ID &id)const
+         {
+            UINT32 hash = (UINT32)(id.space()) << 20;
+            if (FILE_TYPE_DM == id.space())
+            {
+               hash += (id.page() << 6);
+            }
+            hash += id.space();
+            hash += id.type();
+            hash += id.page();
+            return hash;
+         }
       private:
          UINT32 _minRecycleCount;
          UINT32 _bucketCount;

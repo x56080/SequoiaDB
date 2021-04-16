@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -82,7 +79,7 @@ TEST_F(fsm_test, test1)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
@@ -122,8 +119,8 @@ TEST_F(fsm_test, test1)
    fsm.close();
    file.close();
 
-   v::storageFileName fn;
-   fn.build(SPACE_TYPE_FSM, 0, 0);
+   v::vesselFileName fn;
+   fn.build(FILE_TYPE_FSM, 0, 0);
    rc = file.open(std::string(DATA_PATH).append("/_space_0.fsm").c_str(), fn);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -154,7 +151,7 @@ TEST_F(fsm_test, diskmap_0)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
@@ -225,7 +222,7 @@ TEST_F(fsm_test, diskmap_1)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
@@ -316,7 +313,7 @@ TEST_F(fsm_test, diskmap_2)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
@@ -417,7 +414,7 @@ TEST_F(fsm_test, diskmap_3)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;
@@ -427,8 +424,8 @@ TEST_F(fsm_test, diskmap_3)
    rc = file.initToWork(FALSE);
    ASSERT_EQ(SDB_OK, rc);
    UINT32 count = 65535;
-   storageFileName fn;
-   fn.build(SPACE_TYPE_FSM, 0, 0);
+   v::vesselFileName fn;
+   fn.build(FILE_TYPE_FSM, 0, 0);
    std::string fullPath;
    fullPath.append(DATA_PATH);
    fullPath.append(OSS_FILE_SEP);
@@ -467,7 +464,7 @@ TEST_F(fsm_test, diskmap_4)
    v::storageFileOptions options;
    options.args = &args;
    options.dir = DATA_PATH;
-   options.name = "_space_0.fsm";
+   options.name = "_vessel.0.fsm.0";
    options.secretValue = 0;
    options.spaceID = 0;
    options.sequence = 0;

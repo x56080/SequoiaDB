@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -38,7 +35,6 @@
 
 #include "vessel/cursorKernal.h"
 #include "vessel/ISession.h"
-#include "vessel/vesselDef.h"
 #include "vessel/vesselImpl.h"
 
 #include "gtest/gtest.h"

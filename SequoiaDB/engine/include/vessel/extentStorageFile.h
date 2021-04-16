@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,9 +38,9 @@
 
 #include "ossMmap.hpp"
 #include "vessel/storageFileDef.h"
-#include "vessel/extentDef.h"
-#include "vessel/vesselDef.h"
-#include "vessel/storageFileName.h"
+#include "vessel/pageDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/vesselFileName.h"
 
 namespace engine
 {
@@ -61,7 +58,7 @@ namespace vessel
          INT32 create(const storageFileOptions &options,
                       const void *userDefinedOptions = NULL);
 
-         INT32 open(const CHAR *fullPath, const storageFileName &fn);
+         INT32 open(const CHAR *fullPath, const vesselFileName &fn);
 
          INT32 destroy();
          INT32 close();
@@ -102,9 +99,11 @@ namespace vessel
 
          INT32 getUserDefinedHeadPtr(ossValuePtr &ptr);
 
-         INT32 createChecksum(const CHAR *head, UINT32 len, UINT32 &checksum);
+         INT32 createChecksum(const storageFileHead &head, UINT32 &checksum);
+      
+         INT32 createChecksum(const void *buf, UINT32 len, UINT32 &checksum);
       private:
-         virtual SPACE_TYPE getSpaceType()const = 0;
+         virtual FILE_TYPE getFileType()const = 0;
          virtual const CHAR *getMagicChars()const = 0;
          virtual BOOLEAN hasUserDefinedHead()const
          {
@@ -123,7 +122,7 @@ namespace vessel
          INT32 createFileAndInitHead(const storageFileOptions &options,
                                      const void *userDefinedOptions);
 
-         INT32 openFileHead(const storageFileName &fn);
+         INT32 openFileHead(const vesselFileName &fn);
 
          INT32 openFileSegments();
 
@@ -133,7 +132,7 @@ namespace vessel
                             BOOLEAN hasUserDefinedHead);
          INT32 extendFileAndMMap(BOOLEAN sparse, UINT32 len, ossValuePtr *ptr);
          //INT32 initNewSegment(SEGMENT_ID sid, ossValuePtr ptr);
-         INT32 validateHead(const void *head, const storageFileName &fn);
+         INT32 validateHead(const void *head, const vesselFileName &fn);
 
       private:
          OSS_INLINE UINT32 getMMapSegmentID(SEGMENT_ID sid)const

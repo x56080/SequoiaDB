@@ -40,7 +40,6 @@
 #include "vessel/dataExtentIDMapFile.h"
 #include "vessel/dataExtentFile.h"
 #include "utilStr.hpp"
-#include "vessel/storageFileUtil.h"
 #include "vessel/freeSpaceMapDef.h"
 #include "vessel/fsmFile.h"
 
@@ -84,15 +83,15 @@ namespace vessel
       return 0;
    }
 
-   INT32 storageUnit::getPagePtr(SPACE_TYPE type,
+   INT32 storageUnit::getPagePtr(FILE_TYPE type,
                                  PAGE_ID pid,
                                  ossValuePtr &ptr)
    {
       INT32 rc = SDB_OK;
-      SDB_ASSERT(INVALID_SPACE_TYPE != type, "can not be invalid");
+      SDB_ASSERT(INVALID_FILE_TYPE != type, "can not be invalid");
       SDB_ASSERT(INVALID_PAGE_ID != pid, "can not be invalid");
       SDB_ASSERT(isOpen(), "can not be closed");
-      if (OSS_UNLIKELY(INVALID_SPACE_TYPE == type ||
+      if (OSS_UNLIKELY(INVALID_FILE_TYPE == type ||
                        INVALID_PAGE_ID == pid ||
                        !isOpen()))
       {
@@ -101,7 +100,7 @@ namespace vessel
          goto error;
       }
 
-      if (SPACE_TYPE_RECORD_M == type)
+      if (FILE_TYPE_DM == type)
       {
          rc = _meta->getPagePtr(pid, ptr);
          if (SDB_OK != rc)
@@ -109,7 +108,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (SPACE_TYPE_RECORD_D == type)
+      else if (FILE_TYPE_DD == type)
       {
          const storageCoreArgs &args = _meta->getHeadCache().data;
          UINT32 fileSequence = pid / (args.maxPageCountPerSeg * args.maxSegmentCountPerFile);
@@ -183,7 +182,7 @@ namespace vessel
       return;
    }
 
-   INT32 storageUnit::getCoreArgs(SPACE_TYPE type,
+   INT32 storageUnit::getCoreArgs(FILE_TYPE type,
                                   UINT32 *pageSize,
                                   UINT32 *maxPageCountPerSeg,
                                   UINT32 *maxSegCountPerFile)
@@ -198,7 +197,7 @@ namespace vessel
       SDB_ASSERT(NULL != _meta, "can not be null");
       head = &(_meta->getHeadCache());
 
-      if (SPACE_TYPE_RECORD_M == type)
+      if (FILE_TYPE_DM == type)
       {
          if (NULL != pageSize)
          {
@@ -214,7 +213,7 @@ namespace vessel
          }
          
       }
-      else if (SPACE_TYPE_RECORD_D == type)
+      else if (FILE_TYPE_DD == type)
       {
          if (NULL != pageSize)
          {
@@ -229,7 +228,7 @@ namespace vessel
             *maxSegCountPerFile = head->data.maxSegmentCountPerFile;
          }
       }
-      else if (SPACE_TYPE_IDX_D == type)
+      else if (FILE_TYPE_IDX_D == type)
       {
          if (NULL != pageSize)
          {
@@ -257,7 +256,7 @@ namespace vessel
       goto done;
    }
 
-   INT32 storageUnit::fsync(SPACE_TYPE type,
+   INT32 storageUnit::fsync(FILE_TYPE type,
                             PAGE_ID pid,
                             UINT32 count,
                             BOOLEAN sync)
@@ -275,7 +274,7 @@ namespace vessel
          goto error;
       }
 
-      if (SPACE_TYPE_RECORD_M == type)
+      if (FILE_TYPE_DM == type)
       {
          rc = _meta->fsync(pid, count, sync);
          if (SDB_OK != rc)
@@ -283,7 +282,7 @@ namespace vessel
             goto error;
          }
       }
-      else if (SPACE_TYPE_RECORD_D == type)
+      else if (FILE_TYPE_DD == type)
       {
          rc = fsyncDataPages(pid, count);
          if (SDB_OK != rc)
@@ -331,8 +330,13 @@ namespace vessel
          goto error;
       }
 
-      ossSnprintf(_dirName, MAX_SU_DIR_LEN + 1, "%s%d",
-                   SU_FILE_NAME_PREFIX, options.sid);
+      if (!vesselFileName::buildDirName(options.sid, sizeof(_dirName), _dirName))
+      {
+         PD_LOG(PDERROR, "failed to build dir name");
+         rc = SDB_VESSEL_INTERNAL_ERR;
+         goto error;
+      }
+
       dirSlice.reset(_dirName);
       path = &(context->getEnv()->options.path);
 
@@ -496,7 +500,7 @@ namespace vessel
 
       if (OSS_UNLIKELY(NULL == context ||
                        dirName.empty() ||
-                       MAX_SU_DIR_LEN < dirName.strLen()))
+                       MAX_SPACE_DIR_LEN < dirName.strLen()))
       {
          PD_LOG(PDERROR, "prt is null");
          rc = SDB_INVALIDARG;
@@ -505,7 +509,7 @@ namespace vessel
 
       path = &(context->getEnv()->options.path);
 
-      if (OSS_UNLIKELY(!parseStorageUnitDir(dirName, &sid)))
+      if (OSS_UNLIKELY(!vesselFileName::parseDirName(dirName, &sid)))
       {
          PD_LOG(PDERROR, "invalid su file arg:%s", dirName.str());
          rc = SDB_VESSEL_INVALID_VESSEL_FILE;
@@ -787,7 +791,7 @@ namespace vessel
       SDB_ASSERT(0 != ossStrlen(_dirName), "can not be null");
       SDB_ASSERT(NULL != _meta, "can not be null");
       SDB_ASSERT(isOpen(), "can not be closed");
-      storageFileName fn;
+      vesselFileName fn;
       storageFileOptions options;
       dataExtentFile *file = NULL;
       const storageFileHead &commonHead = _meta->getCommonHeadInMem();
@@ -821,7 +825,7 @@ namespace vessel
          goto error;
       }
 
-      fn.build(SPACE_TYPE_RECORD_D, commonHead.spaceID, sequence);
+      fn.build(commonHead.spaceID, FILE_TYPE_DD, sequence);
 
       options.dir = fullPath;
       options.name = fn.getName();
@@ -1406,13 +1410,13 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != dir, "can not be null");
       SDB_ASSERT(NULL == _meta, "must be null");
-      storageFileName fn;
+      vesselFileName fn;
       storageFileOptions fileOptions;
       UINT32 secretValue = ossRand();
       SPACE_ID sid = options.sid;
       dataExtentIDMapFile *file = NULL;
 
-      fn.build(SPACE_TYPE_RECORD_M, sid, 0);
+      fn.build(sid, FILE_TYPE_DM, 0);
       fileOptions.dir = dir;
       fileOptions.name = fn.getName();
       fileOptions.secretValue = secretValue;
@@ -1461,11 +1465,11 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       SDB_ASSERT(NULL != storagePath && !dirName.empty(), "can not be null");
-      CHAR subPath[SU_FILE_NAME_LEN+MAX_SU_DIR_LEN+2] = {0};
+      CHAR subPath[MAX_FILE_NAME_LEN+MAX_SPACE_DIR_LEN+2] = {0};
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      storageFileName fn;
-      fn.build(SPACE_TYPE_RECORD_M, sid, 0);
-      rc = utilBuildFullPath(dirName.str(), fn.getName(), SU_FILE_NAME_LEN+MAX_SU_DIR_LEN+1, subPath);
+      vesselFileName fn;
+      fn.build(sid, FILE_TYPE_DM, 0);
+      rc = utilBuildFullPath(dirName.str(), fn.getName(), MAX_FILE_NAME_LEN+MAX_SPACE_DIR_LEN+2, subPath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build dir full path:%s, %s, %d", dirName.str(), fn.getName(), rc);
@@ -1527,7 +1531,7 @@ namespace vessel
          std::string fullPath = dir_iter->path().string();
          PD_LOG(PDDEBUG, "found file:[%s]", fileName.c_str());
          
-         storageFileName fn;
+         vesselFileName fn;
 
          if (!fs::is_regular_file(dir_iter->status()))
          {
@@ -1535,14 +1539,13 @@ namespace vessel
             continue;
          }
 
-         INT32 r = fn.extract(fileName.c_str(), dirName.str());
-         if (SDB_OK != r)
+         if (!fn.extract(strSlice(fileName.c_str(), fileName.size()), NULL))
          {
             PD_LOG(PDWARNING, "invalid file name:%s", fileName.c_str());
             continue;
          }
 
-         if (fn.getType() == SPACE_TYPE_RECORD_M)
+         if (fn.getType() == FILE_TYPE_DM)
          {
             continue;
          }
@@ -1569,16 +1572,16 @@ namespace vessel
    }
 
    INT32 storageUnit::openFile(const CHAR *fullPath,
-                               const storageFileName &fn)
+                               const vesselFileName &fn)
    {
       INT32 rc = SDB_OK;
       extentStorageFile *ef = NULL;
       SDB_ASSERT(NULL != fullPath, "can not be null");
-      SDB_ASSERT(fn.valid(), "can not be invalid");
+      SDB_ASSERT(fn.isValid(), "can not be invalid");
 
       switch (fn.getType())
       {
-      case SPACE_TYPE_RECORD_M:
+      case FILE_TYPE_DM:
       {
          if (NULL != _meta)
          {
@@ -1605,7 +1608,7 @@ namespace vessel
          ef = NULL;
          break;
       }
-      case SPACE_TYPE_RECORD_D:
+      case FILE_TYPE_DD:
       {
          _data.resize(fn.getSequence() + 1, NULL);
          if (NULL != _data.at(fn.getSequence()))
@@ -1632,11 +1635,11 @@ namespace vessel
          ef = NULL;
          break;
       }
-      case SPACE_TYPE_NAME:
+      case FILE_TYPE_CS_NAME:
       {
          break;
       }
-      case SPACE_TYPE_FSM:
+      case FILE_TYPE_FSM:
       {
          ef = SDB_OSS_NEW fsmFile();
          if (NULL == ef)
@@ -1676,8 +1679,8 @@ namespace vessel
       INT32 rc = SDB_OK;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
       SDB_ASSERT(!csName.empty() && csName.strLen() <= DMS_COLLECTION_SPACE_NAME_SZ, "can not be invalid");
-      CHAR filePath[MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2] = {0};
-      storageFileName fn;
+      CHAR filePath[MAX_SPACE_DIR_LEN + MAX_FILE_NAME_LEN + 2] = {0};
+      vesselFileName fn;
       OSSFILE file;
       CHAR buf[DMS_COLLECTION_SPACE_NAME_SZ + 1] = {0};
       const CHAR *path = NULL;
@@ -1694,8 +1697,8 @@ namespace vessel
          goto error;
       }
 
-      fn.build(SPACE_TYPE_NAME, getSpaceID(), 0);
-      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2, filePath);
+      fn.build(getSpaceID(), FILE_TYPE_CS_NAME, 0);
+      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SPACE_DIR_LEN + MAX_FILE_NAME_LEN + 2, filePath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build file path:%d", rc);
@@ -1756,14 +1759,14 @@ namespace vessel
    {
       INT32 rc = SDB_OK;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
-      CHAR filePath[MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2] = {0};
+      CHAR filePath[MAX_SPACE_DIR_LEN + MAX_FILE_NAME_LEN + 2] = {0};
       SDB_ASSERT(NULL != dataPath &&
                  INVALID_SPACE_ID != sid, "can not be null");
-      storageFileName fn;
+      vesselFileName fn;
       OSSFILE file;
 
-      fn.build(SPACE_TYPE_NAME, sid, 0);
-      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SU_DIR_LEN + SU_FILE_NAME_LEN + 2, filePath);
+      fn.build(sid, FILE_TYPE_CS_NAME, 0);
+      rc = utilBuildFullPath(_dirName, fn.getName(), MAX_SPACE_DIR_LEN + MAX_FILE_NAME_LEN + 2, filePath);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to build file path:%d", rc);
@@ -1793,7 +1796,7 @@ namespace vessel
       INT32 rc = SDB_OK;
       SDB_ASSERT(isOpen(), "must be open");
       SDB_ASSERT(NULL == _fsm, "do not recreate");
-      storageFileName fn;
+      vesselFileName fn;
       storageFileOptions options;
       CHAR fullPath[OSS_MAX_PATHSIZE + 1] = {0};
       const CHAR *dataPath = NULL;
@@ -1813,7 +1816,7 @@ namespace vessel
          goto error;
       }
 
-      fn.build(SPACE_TYPE_FSM, getSpaceID(), 0);
+      fn.build(getSpaceID(), FILE_TYPE_FSM, 0);
 
       dataPath = context->getEnv()->options.path.dataPath.c_str();
       rc = utilBuildFullPath(dataPath, _dirName, OSS_MAX_PATHSIZE, fullPath);
@@ -1950,7 +1953,8 @@ namespace vessel
    BOOLEAN storageUnit::validateSUOptions(const createSUOptions &options)
    {
       BOOLEAN r = FALSE;
-      if (INVALID_SPACE_ID == options.sid)
+      if (INVALID_SPACE_ID == options.sid ||
+          MAX_SPACE_ID < options.sid)
       {
          goto done;
       }

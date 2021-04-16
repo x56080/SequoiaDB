@@ -49,6 +49,14 @@ namespace vessel
    class IQueryFilter;
    class ISession;
 
+   enum CURSOR_TYPE
+   {
+      CURSOR_TYPE_INVALID = 0,
+      CURSOR_TYPE_LIST_COLLECTION_SPACE = 1,
+      CURSOR_TYPE_LIST_COLLECTION = 2,
+      CURSOR_TYPE_SCAN_COLLECTION = 3,
+   };
+
    class cursorKernal : public _utilPooledObject
    {
       public:

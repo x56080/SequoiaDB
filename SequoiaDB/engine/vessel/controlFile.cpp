@@ -35,7 +35,6 @@
 
 #include "vessel/controlFile.h"
 #include "pdTrace.hpp"
-#include "vessel/storageFileName.h"
 
 namespace engine
 {

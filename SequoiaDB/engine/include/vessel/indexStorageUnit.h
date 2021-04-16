@@ -16,12 +16,9 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = storageFileUtil.h
+   Source File Name = indexStorageUnit.h
 
    Descriptive Name =
-
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
 
    Dependencies: N/A
 
@@ -36,21 +33,39 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_STORAGE_FILE_UTIL_H_
-#define VESSEL_STORAGE_FILE_UTIL_H_
+#ifndef VESSEL_INDEX_STORAGE_UNIT_H_
+#define VESSEL_INDEX_STORAGE_UNIT_H_
 
-#include "vessel/storageFileDef.h"
-#include "vessel/vesselDef.h"
-#include "vessel/strSlice.h"
+#include "ossMemPool.hpp"
+#include "ossLatch.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-  // INT32 buildStorageUnitDir(SPACE_ID space, UINT32 maxBufSize, CHAR *buf);
+   class indexMetaFile;
+   class indexDataFile;
+   class cowSUDeltaLog;
 
-   BOOLEAN parseStorageUnitDir(const strSlice &name, SPACE_ID *space);
-}
-}
+   class indexStorageUnit : public SDBObject
+   {
+      public:
+         indexStorageUnit();
+         ~indexStorageUnit();
 
-#endif//VESSEL_STORAGE_FILE_UTIL_H_
+         indexStorageUnit(const indexStorageUnit &) = delete;
+         indexStorageUnit &operator=(const indexStorageUnit &) = delete;
+
+      private:
+         typedef ossPoolVector<indexDataFile *> _INDEX_DATA_VEC;
+
+      private:
+         indexMetaFile *_idexMeta;
+         _INDEX_DATA_VEC _idx;
+         cowSUDeltaLog *_delta;
+
+   };//class indexStorageUnit
+}//namespace vessel
+}//namespace engine
+
+#endif//VESSEL_INDEX_STORAGE_UNIT_H_

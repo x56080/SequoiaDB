@@ -36,7 +36,7 @@
 #ifndef VESSEL_DISK_FREE_SPACE_MAP_H_
 #define VESSEL_DISK_FREE_SPACE_MAP_H_
 
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "vessel/fsmFile.h"
 #include "ossLatch.hpp"
 #include "vessel/freeSpaceMapDef.h"

@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = phyExtentID.hpp
+   Source File Name = globalPageID.hpp
 
    Descriptive Name =
 
@@ -36,11 +36,12 @@
 
 ******************************************************************************/
 
-#ifndef VESSEL_PHY_EXTENT_ID_H_
-#define VESSEL_PHY_EXTENT_ID_H_
+#ifndef VESSEL_GLOBAL_PAGE_ID_H_
+#define VESSEL_GLOBAL_PAGE_ID_H_
 
-#include "vessel/vesselDef.h"
-#include "vessel/extentDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/pageDef.h"
+#include "vessel/vesselFileDef.h"
 #include <sstream>
 //#define XXH_INLINE_ALL
 //#include "xxhash/xxhash.h"
@@ -49,31 +50,31 @@ namespace engine
 {
 namespace vessel
 {
-class physicalExtentID
+class globalPageID
 {
    public:
-      OSS_INLINE physicalExtentID()
+      OSS_INLINE globalPageID()
       :_space(INVALID_SPACE_ID),
-       _type(INVALID_SPACE_TYPE),
+       _type(INVALID_FILE_TYPE),
        _pad(0),
        _page(INVALID_PAGE_ID)
       {
          /// do nothing
       }
 
-      OSS_INLINE physicalExtentID(SPACE_ID sid, SPACE_TYPE type, PAGE_ID pid)
+      OSS_INLINE globalPageID(SPACE_ID sid, FILE_TYPE type, PAGE_ID pid)
       :_space(sid), _type(type), _pad(0), _page(pid)
       {
       
       }
 
-      OSS_INLINE physicalExtentID(const physicalExtentID &r)
+      OSS_INLINE globalPageID(const globalPageID &r)
       :_space(r._space), _type(r._type), _pad(0), _page(r._page)
       {
       
       }
 
-      OSS_INLINE physicalExtentID &operator=(const physicalExtentID &r)
+      OSS_INLINE globalPageID &operator=(const globalPageID &r)
       {
          _space = r._space;
          _type = r._type;
@@ -84,11 +85,11 @@ class physicalExtentID
       OSS_INLINE BOOLEAN invalid()const
       {
          return INVALID_SPACE_ID == _space ||
-                INVALID_SPACE_TYPE == _type ||
+                INVALID_FILE_TYPE == _type ||
                 INVALID_PAGE_ID == _page;
       }
 
-      OSS_INLINE void reset(SPACE_ID sid, SPACE_TYPE type, PAGE_ID pid)
+      OSS_INLINE void reset(SPACE_ID sid, FILE_TYPE type, PAGE_ID pid)
       {
          _space = sid;
          _type = type;
@@ -98,15 +99,13 @@ class physicalExtentID
 
       OSS_INLINE void reset()
       {
-         _space = INVALID_SPACE_ID;
-         _type = INVALID_SPACE_TYPE;
-         _page = INVALID_PAGE_ID;
+         reset(INVALID_SPACE_ID, INVALID_FILE_TYPE, INVALID_PAGE_ID);
          return;
       }
 
       OSS_INLINE UINT32 hash()const
       {
-         //return XXH3_64bits(this, sizeof(physicalExtentID));
+         //return XXH3_64bits(this, sizeof(globalPageID));
          UINT32 hash = (UINT32)_space << 20;
          if (0 == _type)
          {
@@ -118,12 +117,12 @@ class physicalExtentID
          return hash;
       }
 
-      OSS_INLINE BOOLEAN operator==(const physicalExtentID &r)const
+      OSS_INLINE BOOLEAN operator==(const globalPageID &r)const
       {
          return _space == r._space && _type == r._type && _page == r._page;
       }
 
-      OSS_INLINE BOOLEAN operator<(const physicalExtentID &r) const
+      OSS_INLINE BOOLEAN operator<(const globalPageID &r) const
       {
          if (_space < r._space)
          {
@@ -152,7 +151,7 @@ class physicalExtentID
          return _space;
       }
 
-      OSS_INLINE SPACE_TYPE type() const
+      OSS_INLINE FILE_TYPE type() const
       {
          return _type;
       }
@@ -174,16 +173,15 @@ class physicalExtentID
 
    public:
       SPACE_ID _space;
-      SPACE_TYPE _type;
+      FILE_TYPE _type;
       UINT8 _pad;
       PAGE_ID _page;
-}; /// end of physicalExtentID
+}; /// end of globalPageID
 
 
-typedef physicalExtentID PHY_EXTENT_ID;
-typedef physicalExtentID GLOBAL_PAGE_ID;
+typedef globalPageID GLOBAL_PAGE_ID;
 
 } /// end of namespace vessel
 } /// end of namespace engine
 
-#endif
+#endif//VESSEL_GLOBAL_PAGE_ID_H_

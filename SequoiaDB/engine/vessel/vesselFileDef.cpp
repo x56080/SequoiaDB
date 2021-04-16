@@ -16,7 +16,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = extentDef.cpp
+   Source File Name = vesselFileDef.cpp
 
    Descriptive Name =
 
@@ -33,29 +33,46 @@
 
 ******************************************************************************/
 
-#include "vessel/extentDef.h"
+#include "vessel/vesselFileDef.h"
+#include "ossUtil.hpp"
 
 namespace engine
 {
 namespace vessel
 {
-   BOOLEAN validatePageHeadAndTail(ossValuePtr ptr, UINT32 pageSize)
+   const CHAR * const FILE_TYPE_SUFFIX_ARRAY[] =
+   {
+      FILE_TYPE_SUFFIX_DATAM,
+      FILE_TYPE_SUFFIX_DATAD,
+      FILE_TYPE_SUFFIX_IDXM,
+      FILE_TYPE_SUFFIX_IDXD,
+      FILE_TYPE_SUFFIX_LOBM,
+      FILE_TYPE_SUFFIX_LOBDM,
+      FILE_TYPE_SUFFIX_LOBDD,
+      FILE_TYPE_SUFFIX_FSM,
+      FILE_TYPE_SUFFIX_CSNAME,
+      FILE_TYPE_SUFFIX_CONTROL,
+      FILE_TYPE_SUFFIX_DELTA
+   };
+
+   BOOLEAN parseFileSuffix(const CHAR *suffix, FILE_TYPE &type)
    {
       BOOLEAN r = FALSE;
-      const pageHead *head = NULL;
-      UINT64 tail = DPS_INVALID_LSN_OFFSET;
-      if (OSS_UNLIKELY(0 == ptr || (pageSize < (PAGE_HEAD_LEN + sizeof(UINT64)))))
+      if (NULL == suffix)
       {
          goto done;
       }
 
-      head = (const pageHead *)ptr;
-      tail = *((const UINT64 *)(ptr + pageSize - sizeof(UINT64)));
-      r = head->lsn == tail &&
-          INVALID_PAGE_TYPE != head->type &&
-          PAGE_VERSION_1 == head->version &&
-          head->inUsed() &&
-          head->size == pageSize;
+      for (UINT32 i = 0; i < FILE_TYPE_SUFFIX_ARR_SIZE; ++i)
+      {
+         const CHAR *s = FILE_TYPE_SUFFIX_ARRAY[i];
+         if (0 == ossStrcmp(suffix, s))
+         {
+            r = TRUE;
+            type = i;
+            goto done;
+         }
+      }
    done:
       return r;
    }

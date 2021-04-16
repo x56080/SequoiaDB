@@ -39,7 +39,8 @@
 #ifndef VESSEL_STORAGE_UNIT_DEF_H_
 #define VESSEL_STORAGE_UNIT_DEF_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
+#include "vessel/storageFileDef.h"
 #include "vessel/strSlice.h"
 
 namespace engine

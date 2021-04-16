@@ -36,7 +36,6 @@
 #ifndef VESSEL_VESSEL_H_
 #define VESSLE_VESSEL_H_
 
-#include "vessel/vesselDef.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/strSlice.h"
 #include "utilUniqueID.hpp"

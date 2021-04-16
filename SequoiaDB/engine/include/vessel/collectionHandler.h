@@ -36,7 +36,7 @@
 #ifndef VESSEL_COLLECTION_HANDLER_H_
 #define VESSEL_COLLECTION_HANDLER_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "vessel/collectionHandle.h"
 #include "utilInsertResult.hpp"
 #include "vessel/recordData.h"

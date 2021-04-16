@@ -36,13 +36,11 @@
 #ifndef VESSEL_COLLECTION_SPACE_CONTAINER_H_
 #define VESSEL_COLLECTION_SPACE_CONTAINER_H_
 
-#include "vessel/vesselDef.h"
+#include "vessel/vesselIdDef.h"
 #include "vessel/strSlice.h"
 #include "utilUniqueID.hpp"
 #include "vessel/vesselOptions.h"
 #include "ossMemPool.hpp"
-
-#include <map>
 
 namespace engine
 {

@@ -39,7 +39,7 @@
 #ifndef VESSEL_LITE_CACHE_PAGE_TAG_H_
 #define VESSEL_LITE_CACHE_PAGE_TAG_H_
 
-#include "vessel/phyExtentID.h"
+#include "vessel/globalPageID.h"
 #include "vessel/latch.h"
 #include "ossUtil.h"
 #include "dpsDef.hpp"

@@ -62,9 +62,9 @@ namespace vessel
          }
 
       private:
-         virtual SPACE_TYPE getSpaceType()const
+         virtual FILE_TYPE getFileType()const
          {
-            return SPACE_TYPE_FSM;
+            return FILE_TYPE_FSM;
          }
          virtual const CHAR *getMagicChars()const
          {

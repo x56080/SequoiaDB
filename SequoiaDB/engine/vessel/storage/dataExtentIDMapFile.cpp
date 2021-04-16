@@ -38,7 +38,7 @@
 
 #include "vessel/dataExtentIDMapFile.h"
 #include "ossLikely.hpp"
-#include "vessel/extentDef.h"
+#include "vessel/pageDef.h"
 #include "vessel/vesselOptions.h"
 #include "vessel/storageUnitDef.h"
 #include "vessel/spaceManagementPage.h"
@@ -105,7 +105,7 @@ namespace vessel
       head->meta = options->metaArgs;
       head->indexMeta = options->idxMetaArgs;
       
-      rc = createChecksum(headBuf, getCommonHeadInMem().userDefinedHeadLen, checksum);
+      rc = createChecksum(headBuf, sizeof(dataIDMapFileHead), checksum);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create checksum:%d", rc);
@@ -123,12 +123,11 @@ namespace vessel
    INT32 dataExtentIDMapFile::validateUserDefinedHead(const void *head)
    {
       INT32 rc = SDB_OK;
-      
-      UINT32 len = getCommonHeadInMem().userDefinedHeadLen;
-      dataIDMapFileHead *localHead = NULL;
+   
+      dataIDMapFileHead tmpHead;
       const dataIDMapFileHead *inputHead = NULL;
       UINT32 checksum = 0;
-      CHAR buf[STORAGE_FILE_HEAD_SIZE] = {0};
+
       if (OSS_UNLIKELY(NULL == head))
       {
          PD_LOG(PDERROR, "invalid head ptr");
@@ -137,10 +136,9 @@ namespace vessel
       }
 
       inputHead = (const dataIDMapFileHead *)head;
-      localHead = (dataIDMapFileHead *)buf;
-      ossMemcpy(buf, head, len);
-      localHead->headChecksum = 0;
-      rc = createChecksum(buf, len, checksum);
+      tmpHead = *inputHead;
+      tmpHead.headChecksum = 0;
+      rc = createChecksum(&tmpHead, sizeof(dataIDMapFileHead), checksum);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to create head checksum:%d", rc);

@@ -20,9 +20,6 @@
 
    Descriptive Name =
 
-   When/how to use: this program may be used on binary and text-formatted
-   versions of PMD component. This file contains functions for agent processing.
-
    Dependencies: N/A
 
    Restrictions: N/A
@@ -39,7 +36,8 @@
 #ifndef VESSEL_LPID_CONTEXT_H_
 #define VESSEL_LPID_CONTEXT_H_
 
-#include "vessel/extentDef.h"
+#include "vessel/vesselFileDef.h"
+#include "vessel/pageDef.h"
 #include "ossLatch.hpp"
 
 namespace engine
@@ -63,11 +61,11 @@ namespace vessel
          struct _lpidLockSlot : public SDBObject
          {
             _lpidLockSlot():
-            type(INVALID_SPACE_TYPE),
+            type(INVALID_FILE_TYPE),
             lpid(INVALID_PAGE_ID),
             mode(SHARED){}
 
-            SPACE_TYPE type;
+            FILE_TYPE type;
             PAGE_ID lpid;
             OSS_LATCH_MODE mode;
          };//struct _lpidLockSlot
@@ -75,10 +73,10 @@ namespace vessel
       public:
          /// exlusive lock with no timeout
          /// no recursive locking.
-         INT32 lock(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
-         INT32 unlock(SPACE_TYPE type, PAGE_ID lpid);
-         BOOLEAN testLockMode(SPACE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
-         BOOLEAN testLocked(SPACE_TYPE type, PAGE_ID lpid)const;
+         INT32 lock(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode);
+         INT32 unlock(FILE_TYPE type, PAGE_ID lpid);
+         BOOLEAN testLockMode(FILE_TYPE type, PAGE_ID lpid, OSS_LATCH_MODE mode)const;
+         BOOLEAN testLocked(FILE_TYPE type, PAGE_ID lpid)const;
       private:
          INT32 extendBuf(UINT32 capacity);
 

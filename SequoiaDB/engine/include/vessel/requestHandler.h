@@ -36,8 +36,9 @@
 #ifndef VESSEL_REQUEST_HANDLER_H_
 #define VESSEL_REQUEST_HANDLER_H_
 
-#include "vessel/vesselDef.h"
-#include "vessel/requestContext.h"
+#include "core.hpp"
+#include "oss.hpp"
+
 
 namespace engine
 {
@@ -45,7 +46,7 @@ namespace vessel
 {
    class instanceEnv;
    class ISession;
-   class _outerResource;
+   class outerResource;
 
    class requestHandler : public SDBObject
    {

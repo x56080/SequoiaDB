@@ -883,9 +883,8 @@ vesselFiles = [
       "vessel/storage/dataExtentIDMapFile.cpp",
       "vessel/storage/storageUnit.cpp",
       "vessel/storage/dataExtentFile.cpp",
-      "vessel/storage/storageFileName.cpp",
-      "vessel/storage/storageFileUtil.cpp",
       "vessel/storage/fsmFile.cpp",
+      "vessel/storage/pageDef.cpp",
       "vessel/storage/storageFileDef.cpp",
       "vessel/handlers/createCSHandler.cpp",
       "vessel/handlers/createCLHandler.cpp",
@@ -932,7 +931,8 @@ vesselFiles = [
       "vessel/fsmCandidateBucket.cpp",
       "vessel/fsmCandidateBuckets.cpp",
       "vessel/routePage.cpp",
-      "vessel/extentDef.cpp"
+      "vessel/vesselFileDef.cpp",
+      "vessel/vesselFileName.cpp"
 ]
 
 #vessel unit test

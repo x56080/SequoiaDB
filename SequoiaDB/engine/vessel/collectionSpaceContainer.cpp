@@ -43,9 +43,9 @@
 #include "vessel/collectionSpace.h"
 #include "vessel/listCSCursor.h"
 #include "vessel/instanceEnv.h"
-#include "vessel/storageFileUtil.h"
 #include "vessel/IQueryFilter.h"
 #include "vessel/spaceIDLockHelper.h"
+#include "vessel/vesselFileName.h"
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -842,7 +842,7 @@ namespace vessel
             continue;
          }
 
-         if (!parseStorageUnitDir(nameSlice, &sid))
+         if (!vesselFileName::parseDirName(nameSlice, &sid))
          {
             continue;
          }
