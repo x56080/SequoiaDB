@@ -231,12 +231,12 @@ namespace engine
 
       INT32 prefInst = option.numberInt() ;
 
-      PD_CHECK( prefInst > PMD_PREFER_INSTANCE_TYPE_MIN &&
-                prefInst < PMD_PREFER_INSTANCE_TYPE_MAX,
-                SDB_INVALIDARG, error, PDWARNING, "Failed to parse "
-                "preferred instance: [%d] out of range ( %d ~ %d )",
-                prefInst, PMD_PREFER_INSTANCE_TYPE_MIN,
-                PMD_PREFER_INSTANCE_TYPE_MAX ) ;
+      PD_LOG_MSG_CHECK( prefInst > PMD_PREFER_INSTANCE_TYPE_MIN &&
+                        prefInst < PMD_PREFER_INSTANCE_TYPE_MAX,
+                        SDB_INVALIDARG, error, PDERROR, "Failed to parse "
+                        "preferred instance: [%d] out of range ( %d ~ %d )",
+                        prefInst, PMD_PREFER_INSTANCE_TYPE_MIN,
+                        PMD_PREFER_INSTANCE_TYPE_MAX ) ;
 
       _instanceList.push_back( (UINT8)prefInst ) ;
 
@@ -322,7 +322,9 @@ namespace engine
          BSONElement curOption = iter.next() ;
          if ( NumberInt == curOption.type() )
          {
-            _parseIntegerPreferredInstance( curOption ) ;
+            rc = _parseIntegerPreferredInstance( curOption ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse integer option of "
+                         "preferred instance, rc: %d", rc ) ;
          }
          else if ( String == curOption.type() )
          {
