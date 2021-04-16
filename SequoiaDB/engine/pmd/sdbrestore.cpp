@@ -215,6 +215,7 @@ namespace engine
             _incID = -1 ;
             _beginIncID = -1 ;
             _skipConf = FALSE ;
+            _getConfOnly = FALSE ;
             _isSelf = TRUE ;
             _diagLevel = (UINT16)PDWARNING ;
 
@@ -286,6 +287,10 @@ namespace engine
                // offlinebuild does not persist the configuration file
                _skipConf = TRUE ;
             }
+            if ( 0 == ossStrcmp( _action, RS_BK_GET_CONFIG ) )
+            {
+               _getConfOnly = TRUE ;
+            }
 
             if ( !_isSelf )
             {
@@ -314,6 +319,7 @@ namespace engine
          INT32             _beginIncID ;
 
          BOOLEAN           _skipConf ;
+         BOOLEAN           _getConfOnly ;
          BOOLEAN           _isSelf ;
          CHAR              _dbPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR              _svcName[ OSS_MAX_SERVICENAME + 1 ] ;
@@ -368,6 +374,14 @@ namespace engine
                   confPath ) ;
       }
 
+      // Don't print to stdout if action=getconfig
+      if ( FALSE == optMgr._getConfOnly )
+      {
+         std::cout << "Using configuration from "
+                   << (useConfFromFile ? "existing file" : "backup image")
+                   << " (path: " << confFile << ")" << std::endl;
+      }
+
       pmdOptionsCB optsFromFile;
       if ( useConfFromFile &&
            optsFromFile.initFromFile( confFile, FALSE ) )
@@ -382,10 +396,67 @@ namespace engine
       // Load the conf
       if ( useConfFromFile )
       {
-         rc = optsFromFile.toBSON( objData ) ;
+         // Loading conf from an existing file. This requires special handling
+         // because the confpath in the file may or may not exist or be
+         // incorrect. It is necessary to overwrite any confpath value in the
+         // file by disassembling the obj. This is similar to how backup
+         // ensures the confpath is set in the backed up config.
+         BSONObj tmpData ;
+         if ( (rc = optsFromFile.toBSON( tmpData,
+                                         PMD_CFG_MASK_SKIP_UNFIELD ) ) )
+         {
+            PD_LOG ( PDERROR, "Config to bson failed, rc: %d", rc ) ;
+            return rc ;
+         }
+         try
+         {
+            // Recreate the conf, skipping the confpath, then insert the new
+            // confpath at the end
+            BSONObjBuilder builder ;
+            BSONObjIterator it( tmpData ) ;
+            while( it.more() )
+            {
+               BSONElement e = it.next() ;
+               if ( 0 == ossStrcmp( e.fieldName(), PMD_OPTION_CONFPATH ) )
+               {
+                  continue ;
+               }
+               builder.append( e ) ;
+            }
+            builder.append( PMD_OPTION_CONFPATH, confPath ) ;
+            objData = builder.obj() ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            return ( rc = SDB_SYS ) ;
+         }
+         // skipconf/offlinebuild and getconfig do not write to the conf file
+         if ( FALSE == optMgr._skipConf && FALSE == optMgr._getConfOnly )
+         {
+            // Backup the existing file because it is about to be updated
+            string backupFile = confFile;
+            backupFile.append(".bak");
+            std::cout << "Begin to backup existing configuration file to "
+                      << backupFile << std::endl;
+            if (SDB_OK == ossAccess(backupFile.c_str()))
+            {
+               std::cerr << "WARNING: existing configuration file backup ("
+                         << backupFile << ") was replaced." << std::endl;
+            }
+            INT32 tmpRc = SDB_OK;
+            if ((tmpRc = ossFileCopy(confFile, backupFile.c_str())))
+            {
+               std::cerr
+                   << "WARNING: failed to backup existing configuration file"
+                   << " (" << backupFile << "): " << tmpRc << std::endl;
+            }
+         }
       }
       else
       {
+         // Using the conf path from the backup. Backup already ensured the
+         // confpath was set.
          objData = backupConf ;
       }
 
@@ -673,11 +744,12 @@ namespace engine
       }
 
       // only for getconfig
-      if ( 0 == ossStrcmp( optMgr._action, RS_BK_GET_CONFIG ) )
+      if ( TRUE == optMgr._getConfOnly )
       {
          // the final config is now in the krcb
          string output;
-         rc = krcb->getOptionCB()->toString( output );
+         // The unfield flag causes the dump to skip unset/default values
+         rc = krcb->getOptionCB()->toString( output, PMD_CFG_MASK_SKIP_UNFIELD );
          std::cout << output << std::endl ;
          return rc ;
       }
