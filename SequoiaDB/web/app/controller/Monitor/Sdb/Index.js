@@ -70,16 +70,18 @@
          var sql = 'SELECT t1.Name,t1.Details.TotalRecords,t1.Details.TotalLobs FROM (SELECT Name, Details FROM $SNAPSHOT_CL WHERE NodeSelect = "master" SPLIT By Details) As t1' ;
          SdbRest.Exec( sql, {
             'success': function( clList ){
-               $scope.moduleInfo['cl'] = clList.length ;
                $scope.moduleInfo['lobs'] = 0 ;
                $scope.moduleInfo['records'] = 0 ;
+               var clNameList = {} ;
                $.each( clList, function( index, clInfo ){
+                  clNameList[clInfo['Name']] = true ;
                   if( clInfo['Name'] != null && clInfo['TotalRecords'] != null )
                   {
                      $scope.moduleInfo['lobs'] += clInfo['TotalLobs'] ;
                      $scope.moduleInfo['records'] += clInfo['TotalRecords'] ;
                   }
                } ) ;
+               $scope.moduleInfo['cl'] = getObjectSize( clNameList ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
