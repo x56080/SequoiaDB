@@ -52,7 +52,7 @@ public class AutoCreateCSCL21998 extends MongodbTestBase {
         db = client.getDatabase( dbName );
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         int threadNum = 10;
