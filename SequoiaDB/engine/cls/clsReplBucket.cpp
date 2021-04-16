@@ -1696,7 +1696,7 @@ namespace engine
 
    void _clsBucket::resetUnqIdxLSN()
    {
-      if ( _lastUnqIdxSize > 0 )
+      if ( _lastUnqIdxSize > 0 && DPS_INVALID_LSN_OFFSET != _lastExpectLSN )
       {
          for ( UINT32 i = 0 ; i < _lastUnqIdxSize ; ++ i )
          {
@@ -1705,8 +1705,8 @@ namespace engine
             _lastOldUnqIdxLSN[ i ] = DPS_INVALID_LSN_OFFSET ;
             _lastOldUnqIdxBkt[ i ] = -1 ;
          }
+         _lastExpectLSN = DPS_INVALID_LSN_OFFSET ;
       }
-      _lastExpectLSN = DPS_INVALID_LSN_OFFSET ;
    }
 
    DPS_LSN_OFFSET _clsBucket::checkUnqIdxWaitLSN(
