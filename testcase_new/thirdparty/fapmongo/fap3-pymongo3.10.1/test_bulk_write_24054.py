@@ -2,16 +2,16 @@
 Description   : seqDB-24054:bulk_write执行单个操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.13
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
-import unittest
-import utils
 import bson
 import pymongo
 from pymongo import MongoClient
 from pymongo import InsertOne, UpdateOne, UpdateMany, ReplaceOne, DeleteOne, DeleteMany
+import utils
+import unittest
 
 class TestBulkWrite24054( utils.TestBase ):
    def setUp( self ):

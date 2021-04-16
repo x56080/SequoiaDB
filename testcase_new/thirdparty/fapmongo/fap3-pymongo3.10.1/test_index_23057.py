@@ -2,7 +2,7 @@
 Description   : seqDB-24057:创建/列取索引
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.13
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5

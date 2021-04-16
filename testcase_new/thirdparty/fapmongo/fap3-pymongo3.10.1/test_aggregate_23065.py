@@ -2,8 +2,7 @@
 Description   : seqDB-24065:聚集操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
-LastEditors   : XiaoNi Huang
+LastEditTime  : 2021.04.13
 '''
 #!/usr/bin/python3.5
 import bson

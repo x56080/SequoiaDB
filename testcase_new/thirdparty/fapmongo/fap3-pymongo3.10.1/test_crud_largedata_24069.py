@@ -2,7 +2,7 @@
 Description   : seqDB-24069:增删改查大量数据
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.14
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -50,10 +50,6 @@ class TestCrudLargeData24069( utils.TestBase ):
          { "$inc": { "b": 1 } } )
       self.assertEqual( self.result.matched_count, self.expDocsNum )  
       
-      self.cursor = self.cl.find().limit( self.expDocsNum ).sort( '_id' )
-      self.checkCursor( self.cursor, self.expDocs )
-      
-      ''' 
       self.cursor = self.cl.find().skip( self.expDocsNum ).sort( '_id' )
       self.checkCursor( self.cursor, self.insert_docs[self.expDocsNum:] )
 
@@ -62,7 +58,6 @@ class TestCrudLargeData24069( utils.TestBase ):
       self.result = self.cl.delete_many( { 'a': {'$lt': self.expDocsNum } } )
       self.assertEqual( self.result.deleted_count, self.expDocsNum )
       self.assertEqual( self.cl.count_documents( {} ), self.docsNum - self.expDocsNum )  
-      ''' 
    
    def tearDown( self ):
       self.cl.drop() 

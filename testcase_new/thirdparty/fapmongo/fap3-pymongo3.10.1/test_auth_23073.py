@@ -2,9 +2,10 @@
 Description   : seqDB-24073:创建/使用/获取/删除用户
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.13
 LastEditors   : XiaoNi Huang
 '''
+#!/usr/bin/python3.5
 import bson
 import pymongo
 from pymongo import MongoClient
@@ -26,6 +27,7 @@ class TestAuth24073( utils.TestBase ):
       self.result = self.db.command( { "usersInfo": 1 } )
       self.assertEqual( self.result, {'users': [], 'ok': 1.0} )
          
+   ''' jira-6980
    def test_user_auth( self ):
       self.result = self.db.command("createUser","admin", pwd="admin",roles=["read"])
       self.assertEqual( self.result, {'ok': 1} )      
@@ -34,7 +36,6 @@ class TestAuth24073( utils.TestBase ):
       self.assertEqual( self.result, {'users': [], 'ok': 1.0} )
    
 
-      ''' jira-6980
       # createUser
       result = db.command("createUser","admin",pwd="admin",roles=["read"])
       print( result )
@@ -56,4 +57,4 @@ class TestAuth24073( utils.TestBase ):
       result = db.command("dropUser","admin")
       print( result )
       assert result == {'users': [], 'ok': 1.0}
-      '''
+   '''

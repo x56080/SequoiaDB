@@ -2,7 +2,7 @@
 Description   : seqDB-24058:创建/删除/自动创建database/collection
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.13
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5

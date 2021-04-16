@@ -3,17 +3,16 @@
 Description   : pymongo公共方法
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.01
+LastEditTime  : 2021.04.13
 LastEditors   : XiaoNi Huang
 '''
-
 #!/usr/bin/python3.5
-import unittest
 import pymongo
 from pymongo import MongoClient
 import config
 from copy import copy
 from datetime import datetime
+import unittest
 
 class TestBase( unittest.TestCase ):  
    def __init__( self, methodName = 'runPymongoTest' ):
