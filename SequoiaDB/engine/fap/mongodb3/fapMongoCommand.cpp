@@ -1643,19 +1643,14 @@ INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
    // upsert operation requires _id to return
    if ( _isUpsert )
    {
-      BOOLEAN hasId = FALSE ;
-
-      // has _id or not
-      BSONObjIterator i( updator ) ;
-      while ( i.more() )
+      // get the _id from the query condition or the update condition
+      rc = _getId( query, updator, ctx, _idObj ) ;
+      if ( rc )
       {
-         BSONElement ele = i.next() ;
-         if ( ele.isABSONObj() && ele.Obj().hasField( "_id" ) )
-         {
-            _idObj = BSON( "_id" << ele.Obj().getField( "_id" ) ) ;
-            hasId = TRUE ;
-            break ;
-         }
+         PD_LOG( PDERROR, "Failed to get _id from the query condition[%s] "
+                 "or the update condition[%s], rc: %d",
+                 query.toString().c_str(), updator.toString().c_str(), rc ) ;
+         goto error ;
       }
 
       // filter $setOnInsert
@@ -1671,7 +1666,7 @@ INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
       }
 
       // add _id to $SetOnInsert if _id doesn't exist
-      if ( !hasId )
+      if ( _idObj.isEmpty() )
       {
          OID oid = OID::gen() ;
          _idObj = BSON( "_id" << oid ) ;
@@ -1750,6 +1745,165 @@ INT32 _mongoUpdateCommand::buildReply( const MsgOpReply &sdbReply,
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
    return SDB_OK ;
+}
+
+INT32 _mongoUpdateCommand::_getId( const BSONObj &queryObj,
+                                   const BSONObj &updatorObj,
+                                   mongoSessionCtx &ctx,
+                                   BSONObj &idObj )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      // find _id field from the update condition
+      BSONObjIterator i( updatorObj ) ;
+      while ( i.more() )
+      {
+         BSONElement ele = i.next() ;
+
+         if ( Object == ele.type() )
+         {
+            BSONElement e = ele.Obj().getField( "_id" ) ;
+
+            if ( EOO != e.type() )
+            {
+               idObj = BSON( "_id" << e ) ;
+               break ;
+            }
+         }
+      }
+
+      if ( idObj.isEmpty() )
+      {
+         // There is no _id field in the update condition, so we need to find
+         // _id field from the query condition
+         rc = _getIdFromQuery( queryObj, ctx, idObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get _id from the query condition, "
+                    "rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         // There is an _id field in the update condition
+         // However, because the query condition and update condition can't
+         // specify the _id field at the same time, we need to find whether
+         // there is an _id field in the query condition
+         BSONObj tmpIdObj = idObj ;
+         idObj = BSONObj() ;
+
+         rc = _getIdFromQuery( queryObj, ctx, idObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get _id from the query condition, "
+                    "rc: %d", rc ) ;
+            goto error ;
+         }
+
+         if ( !idObj.isEmpty() && !( idObj == tmpIdObj ) )
+         {
+            rc = SDB_INVALIDARG ;
+            ctx.setError( rc, "The query condition and update condition can't "
+                          "specify the different _id field at the same time" ) ;
+            goto error ;
+         }
+         else
+         {
+            idObj = tmpIdObj ;
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting _id: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _mongoUpdateCommand::_getIdFromQuery( const BSONObj &queryObj,
+                                            mongoSessionCtx &ctx,
+                                            BSONObj &idObj )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      BSONObjIterator iQuery( queryObj ) ;
+      while ( iQuery.more() )
+      {
+         BSONElement ele = iQuery.next() ;
+         if ( 0 == ossStrcmp( "_id", ele.fieldName() ) )
+         {
+            if ( Array == ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of _id field can't be Array" ) ;
+               goto error ;
+            }
+
+            if ( Object != ele.type() )
+            {
+               if ( !idObj.isEmpty() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  ctx.setError( rc, "Can't infer query fields to set. The _id "
+                                "field is matched twice" ) ;
+                  goto error ;
+               }
+
+               idObj = BSON( "_id" << ele ) ;
+            }
+         }
+         // Among the relational operators, only $and can uniquely determine
+         // the _id value. So we only need to consider the $and operator.
+         // For other operators, we will automatically generate the _id value.
+         else if ( 0 == ossStrcmp( "$and", ele.fieldName() ) )
+         {
+            if ( Array != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of $and field must be Array" ) ;
+               goto error ;
+            }
+
+            BSONObjIterator i( ele.embeddedObject() ) ;
+            while ( i.more() )
+            {
+               BSONElement e = i.next() ;
+
+               rc = _getIdFromQuery( e.embeddedObject(), ctx, idObj ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to get _id from the query condition"
+                          ", rc: %d", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "An exception occurred when getting _id from query "
+              "condition: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
 }
 
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoQueryCommand)
