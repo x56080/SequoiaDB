@@ -42,7 +42,7 @@ SequoiaDB 中有两类协调节点：
 3. 启动临时协调节点
 
    ```lang-javascript
-   oma.startNode( 18800 )
+   > oma.startNode( 18800 )
    ```
 >   **Note:**
 >
