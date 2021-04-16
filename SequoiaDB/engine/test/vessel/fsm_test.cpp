@@ -121,7 +121,7 @@ TEST_F(fsm_test, test1)
 
    v::vesselFileName fn;
    fn.build(FILE_TYPE_FSM, 0, 0);
-   rc = file.open(std::string(DATA_PATH).append("/_space_0.fsm").c_str(), fn);
+   rc = file.open(std::string(DATA_PATH).append("/_vessel.0.fsm.0").c_str(), fn);
    ASSERT_EQ(SDB_OK, rc);
 
    rc = fsm.open(&file, 0, 0, DMS_PAGE_SIZE32K, 0, TRUE, 0, 4095);
