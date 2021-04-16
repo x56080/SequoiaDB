@@ -212,7 +212,7 @@ namespace engine
 
          BOOLEAN       _isInitialized ;
    } ;
-   typedef struct _dmsIdxTaskStatus dmsIdxTaskStatus ;
+   typedef _dmsIdxTaskStatus dmsIdxTaskStatus ;
 
    #define DMS_IDX_ALL                 (~0)
    #define DMS_IDX_NORMAL              0x00000001
@@ -268,7 +268,7 @@ namespace engine
          UINT64        _dummyTaskHWM ; // high water mark of dummy task id
          ossSpinSLatch _hwmLatch ;
    } ;
-   typedef class _dmsIdxTaskStatusMgr dmsIdxTaskStatusMgr ;
+   typedef _dmsIdxTaskStatusMgr dmsIdxTaskStatusMgr ;
 }
 
 #endif /* DMS_INDEX_STATUS_HPP_ */

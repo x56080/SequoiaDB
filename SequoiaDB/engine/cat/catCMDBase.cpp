@@ -78,7 +78,7 @@ namespace engine
             }
             catch( std::exception &e )
             {
-               rc = SDB_OOM ;
+               rc = ossException2RC( &e ) ;
             }
          }
       }
