@@ -30,7 +30,7 @@ create <[temporary] table| temporary view> <tableName> [(schema)] using com.sequ
 |collectionspace|集合空间名称|string|-|是|
 |collection|集合名称（不包含集合空间名称）|string|-|是|
 |username|用户名|string|""|否|
-|passwordtype|密码类型，取值可以为"cleartext","file"。"cleartext"表示参数password为明文密码；"file"表示参数 password 为密码文件路径|string|"cleartext"|否|
+|passwordtype|密码类型，取值可以为"cleartext","file"。"cleartext"表示参数 password 为明文密码；"file"表示参数 password 为密码文件路径|string|"cleartext"|否|
 |password|用户名对应的密码|string|""|否|
 |samplingratio|schema 采样率，取值(0, 1.0]|double|1.0|否|
 |samplingnum|schema 采样数量（每个分区），取值大于 0。|long|1000|否|
@@ -141,7 +141,7 @@ Y 表示兼容，N 表示不兼容
 > 2. null 转换为任意类型仍为 null；  
 > 3. 不兼容类型转换时变为目标类型的零值；  
 > 4. date 和 timestamp 与数值类型转换时取其毫秒值；  
-> 5. string 如果是数值的字符串类型，则可转为对应的数值时。否则，转换为null；  
+> 5. string 如果是数值的字符串类型，则可转为对应的数值时。否则，转换为 null；  
 > 6. boolean 值转为数值类型时，true 为 1，false 为 0；  
 > 7. 数值类型之间转换可能会溢出或损失精度。
 
