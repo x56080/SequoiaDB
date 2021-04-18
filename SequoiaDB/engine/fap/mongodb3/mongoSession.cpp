@@ -195,7 +195,8 @@ INT32 _mongoSession::run()
          rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx, _inBuffer ) ;
          if ( rc )
          {
-            rc = _reply( pCommand, pMsg, rc, sessCtx.errorObj, sessCtx ) ;
+            rc = _reply( pCommand, pMsg, rc, sessCtx.sessionName,
+                         sessCtx.errorObj ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Session[%s] failed to reply, rc: %d",
                          sessionName(), rc ) ;
@@ -242,7 +243,8 @@ INT32 _mongoSession::run()
                   rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
                   PD_LOG( PDERROR, "Not authorized to execute %s command, "
                           "rc: %d", pCommand->name(), rc ) ;
-                  rc = _reply( pCommand, pMsg, rc, BSONObj(), sessCtx ) ;
+                  rc = _reply( pCommand, pMsg, rc, sessCtx.sessionName,
+                               sessCtx.errorObj ) ;
                   PD_RC_CHECK( rc, PDERROR,
                                "Session[%s] failed to reply, rc: %d",
                                sessionName(), rc ) ;
@@ -637,6 +639,84 @@ INT32 _mongoSession::_autoCreateCS( const CHAR *csName, BSONObj &errorObj )
    return rc ;
 }
 
+INT32 _mongoSession::_autoInsert( const CHAR *clFullName,
+                                  const BSONObj &matcher,
+                                  const BSONObj &updatorObj,
+                                  BSONObj &target,
+                                  BSONObj &errorObj )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpInsert *insert = NULL ;
+
+   try
+   {
+      rc = fapMongoGenerateNewRecord( matcher, updatorObj, target ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to generate new record, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      _tmpBuffer.zero() ;
+      _tmpBuffer.reserve( sizeof( MsgOpInsert ) ) ;
+      rc = _tmpBuffer.advance( sizeof( MsgOpInsert ) - 4 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to advance, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      insert = ( MsgOpInsert *)_tmpBuffer.data() ;
+      insert->header.opCode = MSG_BS_INSERT_REQ ;
+      insert->header.TID = 0 ;
+      insert->header.routeID.value = 0 ;
+      insert->header.requestID = 0 ;
+      insert->version = 0 ;
+      insert->w = 0 ;
+      insert->padding = 0 ;
+      insert->flags = FLG_INSERT_RETURNNUM ;
+
+      insert->nameLength = ossStrlen( clFullName ) ;
+      rc = _tmpBuffer.write( clFullName, insert->nameLength + 1, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to write cl full name, rc: %d", rc ) ;
+         goto error ;
+      }
+      rc = _tmpBuffer.write( target, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to write the record we will insert, "
+                 "rc: %d", rc ) ;
+         goto error ;
+      }
+      _tmpBuffer.doneLen() ;
+
+      rc = _processMsg( (CHAR*)insert, errorObj ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR,
+                 "Session[%s]: failed to insert automatically"
+                 ", rc: %d", sessionName(), rc ) ;
+         goto error ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Auto insert exception: %s, rc: %d", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   _replyHeader.flags = rc ;
+   errorObj = fapMongoGetErrorBson( rc ) ;
+   _contextBuff = engine::rtnContextBuf( errorObj ) ;
+   goto done ;
+}
+
 INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName, BSONObj &errorObj )
 {
    INT32 rc            = SDB_OK ;
@@ -709,48 +789,137 @@ INT32 _mongoSession::_autoCreateCL( const CHAR *clFullName, BSONObj &errorObj )
    return rc ;
 }
 
+BOOLEAN _mongoSession::_shouldAutoCrtCS( const _mongoCommand *pCommand )
+{
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
+
+   MONGO_CMD_TYPE cmdType = pCommand->type() ;
+   BOOLEAN isUpsert = ( CMD_UPDATE == cmdType &&
+                        ((_mongoUpdateCommand*)pCommand)->isUpsert() ) ;
+   BOOLEAN isFindAndUpsert = ( CMD_FINDANDMODIFY == cmdType &&
+                        ((_mongoFindandmodifyCommand*)pCommand)->isUpsert() ) ;
+
+   if ( CMD_COLLECTION_CREATE == cmdType ||
+        CMD_INSERT == cmdType ||
+        CMD_INDEX_CREATE == cmdType ||
+        isUpsert ||
+        isFindAndUpsert )
+   {
+      return TRUE ;
+   }
+   else
+   {
+      return FALSE ;
+   }
+}
+
+BOOLEAN _mongoSession::_shouldAutoCrtCL( const _mongoCommand *pCommand )
+{
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
+
+   MONGO_CMD_TYPE cmdType = pCommand->type() ;
+   BOOLEAN isUpsert = ( CMD_UPDATE == cmdType &&
+                        ((_mongoUpdateCommand*)pCommand)->isUpsert() ) ;
+   BOOLEAN isFindAndUpsert = ( CMD_FINDANDMODIFY == cmdType &&
+                        ((_mongoFindandmodifyCommand*)pCommand)->isUpsert() ) ;
+
+   if ( CMD_INSERT == cmdType ||
+        CMD_INDEX_CREATE == cmdType ||
+        isUpsert ||
+        isFindAndUpsert )
+   {
+      return TRUE ;
+   }
+   else
+   {
+      return FALSE ;
+   }
+}
+
 INT32 _mongoSession::_processMsg( const CHAR *pMsg,
                                   const _mongoCommand *pCommand,
                                   BSONObj &errorObj )
 {
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
+
    INT32 rc = SDB_OK ;
    INT32 orgOpCode = ((MsgHeader*)pMsg)->opCode ;
    BOOLEAN hasBuildGetMore = FALSE ;
    MONGO_CMD_TYPE cmdType = pCommand->type() ;
+   BOOLEAN isNewCS = FALSE ;
 
    while ( TRUE )
    {
-      rc = _processMsg( pMsg, errorObj ) ;
+      _processMsg( pMsg, errorObj ) ;
 
       // auto create cs/cl
       if ( SDB_DMS_CS_NOTEXIST == _replyHeader.flags )
       {
-         if ( CMD_COLLECTION_CREATE == cmdType ||
-              CMD_INSERT == cmdType ||
-              CMD_INDEX_CREATE == cmdType ||
-              ( CMD_UPDATE == cmdType &&
-              ((_mongoUpdateCommand*)pCommand)->isUpsert()) )
+         if ( _shouldAutoCrtCS( pCommand ) )
          {
-            if ( SDB_OK == _autoCreateCS( pCommand->csName(), errorObj ) )
+            rc = _autoCreateCS( pCommand->csName(), errorObj ) ;
+            if ( rc )
             {
-               ((MsgHeader*)pMsg)->opCode = orgOpCode ;
+               PD_LOG( PDERROR, "Failed to auto create cs, rc: %d", rc ) ;
+               goto error ;
+            }
+
+            ((MsgHeader*)pMsg)->opCode = orgOpCode ;
+            isNewCS = TRUE ;
+
+            if ( CMD_COLLECTION_CREATE == cmdType )
+            {
                continue ;
             }
          }
       }
-      else if ( SDB_DMS_NOTEXIST == _replyHeader.flags )
+
+      if ( isNewCS || SDB_DMS_NOTEXIST == _replyHeader.flags )
       {
-         if ( CMD_INSERT == cmdType ||
-              CMD_INDEX_CREATE == cmdType ||
-              ( CMD_UPDATE == cmdType &&
-              ((_mongoUpdateCommand*)pCommand)->isUpsert()) )
+         if ( _shouldAutoCrtCL( pCommand ) )
          {
-            if ( SDB_OK == _autoCreateCL( pCommand->clFullName(), errorObj ) )
+            rc = _autoCreateCL( pCommand->clFullName(), errorObj ) ;
+            if ( rc )
             {
-               ((MsgHeader*)pMsg)->opCode = orgOpCode ;
-               continue ;
+               PD_LOG( PDERROR, "Failed to auto create cl, rc: %d", rc ) ;
+               goto error ;
             }
+
+            ((MsgHeader*)pMsg)->opCode = orgOpCode ;
+            isNewCS = FALSE ;
+            continue ;
          }
+      }
+      // findAndUpsert is executed in two steps
+
+      // first: findAndModify( matcher, update )
+      // if the first step returns empty data, it means that the record we are
+      // looking for doesn't exist. Then we need to perform the second step.
+      // if the first step doesn't return empty data, we don't need to
+      // perform the second step.
+
+      // second: insert( new record )
+      // we should generate a new record we will insert based on
+      // matcher condition and update condition firstly. Then we insert this
+      // new record.
+      if ( ( CMD_FINDANDMODIFY == cmdType &&
+           ((_mongoFindandmodifyCommand*)pCommand)->isUpsert()) &&
+           ( _contextBuff.size() == 0 ) &&
+           SDB_OK == _replyHeader.flags )
+      {
+         _mongoFindandmodifyCommand* pCmd = (_mongoFindandmodifyCommand*)pCommand ;
+
+         rc = _autoInsert( pCmd->clFullName(), pCmd->getCond(),
+                           pCmd->getUpdater(), pCmd->getUpsertReturnRecord(),
+                           errorObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to auto insert, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         _contextBuff = engine::rtnContextBuf( pCmd->getUpsertReturnRecord() ) ;
+         break ;
       }
       else if ( SDB_OK == _replyHeader.flags )
       {
@@ -773,7 +942,13 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       break ;
    }
 
+done:
    return rc ;
+error:
+   _replyHeader.flags = rc ;
+   errorObj = fapMongoGetErrorBson( rc ) ;
+   _contextBuff = engine::rtnContextBuf( errorObj ) ;
+   goto done ;
 }
 
 INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
@@ -782,7 +957,6 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
    BOOLEAN needReply    = FALSE ;
    BOOLEAN needRollback = FALSE ;
    bson::BSONObjBuilder retBuilder ;
-   bson::BSONObj errorObjTmp ;
 
    rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
    if ( SDB_OK != rc )
@@ -806,22 +980,13 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg, BSONObj &errorObj )
                    rcTmp ) ;
    }
 
-   errorObjTmp = engine::utilGetErrorBson( rc,
-                         _pEDUCB->getInfo( engine::EDU_INFO_ERROR ) ) ;
-
    _replyHeader.numReturned = _contextBuff.recordNum() ;
    _replyHeader.startFrom   = (INT32)_contextBuff.getStartFrom() ;
    _replyHeader.flags       = rc ;
 
    if ( rc )
    {
-      bson::BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_CODE,
-                  errorObjTmp.getIntField( OP_ERRNOFIELD ) ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_ERRMSG,
-                  errorObjTmp.getStringField( OP_ERRDESP_FIELD ) ) ;
-      errorObj = bob.obj() ;
+      errorObj = fapMongoGetErrorBson( rc ) ;
       _contextBuff = engine::rtnContextBuf( errorObj ) ;
       _replyHeader.numReturned = 1 ;
    }
@@ -964,8 +1129,8 @@ error:
 }
 
 INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
-                             INT32 errCode, const BSONObj &errObj,
-                             mongoSessionCtx &sessCtx )
+                             INT32 errCode, const string &sessionName,
+                             BSONObj &errObj )
 {
    INT32 rc = SDB_OK ;
    _mongoResponseBuffer headerBuf ;
@@ -975,11 +1140,8 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
 
    if ( errObj.isEmpty() )
    {
-      bson::BSONObjBuilder bob ;
-      bob.append( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_CODE,  errCode ) ;
-      bob.append( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp( errCode ) ) ;
-      _contextBuff = engine::rtnContextBuf( bob.obj() ) ;
+      errObj = fapMongoGetErrorBson( errCode ) ;
+      _contextBuff = engine::rtnContextBuf( errObj ) ;
       _replyHeader.numReturned = 1 ;
       _replyHeader.flags = errCode ;
    }
@@ -996,12 +1158,12 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
                                 _contextBuff, headerBuf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to build response, rc: %d",
-                   sessionName(), rc ) ;
+                   sessionName.c_str(), rc ) ;
 
       PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
               "command: %s, clFullName: %s ] down",
               ossGetCurrentThreadID(),
-              sessCtx.sessionName.c_str(),
+              sessionName.c_str(),
               (pCommand)->name() ? (pCommand)->name() : "",
               (pCommand)->clFullName() ? (pCommand)->clFullName() : "" ) ;
    }
@@ -1011,7 +1173,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       rc = mongoMsg.init( pMsg ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to init message, rc: %d",
-                   sessionName(), rc ) ;
+                   sessionName.c_str(), rc ) ;
       if ( MONGO_OP_COMMAND == mongoMsg.opCode() )
       {
          BSONObj empty ;
@@ -1038,7 +1200,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       PD_LOG( PDDEBUG, "Build mongodb reply msg[ tid: %d, session: %s, "
               "command: %s, clFullName: %s ] down",
               ossGetCurrentThreadID(),
-              sessCtx.sessionName.c_str(),
+              sessionName.c_str(),
               pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
               pCommand ? ( (pCommand)->clFullName() ?
               (pCommand)->clFullName() : "" ) : "" ) ;
@@ -1053,14 +1215,14 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
       rcTmp = sendData( (CHAR *)&headerBuf, headerBuf.usedSize ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Session[%s] failed to send response header, rc: %d",
-                   sessionName(), rcTmp ) ;
+                   sessionName.c_str(), rcTmp ) ;
 
       if ( _contextBuff.data() )
       {
          rcTmp = sendData( _contextBuff.data(), _contextBuff.size() ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Session[%s] failed to send response body, rc: %d",
-                      sessionName(), rcTmp ) ;
+                      sessionName.c_str(), rcTmp ) ;
       }
 
       PD_LOG( PDDEBUG, "Send mongodb reply msg[ tid: %d, session: %s, "
@@ -1068,7 +1230,7 @@ INT32 _mongoSession::_reply( _mongoCommand *pCommand, const CHAR* pMsg,
               " requestId: %d, responseTo: %d, opCode: %d, reservedFlags: %d,"
               " cursorId: %llu, startingFrom: %d, nReturned: %d } ] down",
               ossGetCurrentThreadID(),
-              sessCtx.sessionName.c_str(),
+              sessionName.c_str(),
               pCommand ? ( (pCommand)->name() ? (pCommand)->name() : "" ) : "",
               pCommand ? ( (pCommand)->clFullName() ?
               (pCommand)->clFullName() : "" ) : "",

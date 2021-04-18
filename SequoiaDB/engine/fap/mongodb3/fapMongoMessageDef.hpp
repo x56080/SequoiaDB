@@ -59,6 +59,7 @@ namespace fap
 #define FAP_MONGO_FIELD_NAME_N               "n"
 #define FAP_MONGO_FIELD_NAME_LASTERROROBJECT "lastErrorObject"
 #define FAP_MONGO_FIELD_NAME_UPDATEEXISTING  "updatedExisting"
+#define FAP_MONGO_FIELD_NAME_UPSERT          "upsert"
 
 #define FAP_MONGO_FIELD_VALUE_NODEJS     "nodejs"
 #define FAP_MONGO_FIELD_VALUE_MONGOSHELL "MongoDB Internal Client"

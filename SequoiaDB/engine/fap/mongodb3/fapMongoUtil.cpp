@@ -28,16 +28,23 @@
    Restrictions: N/A
 
    Change Activity:
-   defect Date        Who Description
-   ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+   defect Date        Who         Description
+   ====== =========== =========== ========================================
+          11/04/2021  fangjiabin  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#include "msgBuffer.hpp"
+#include "fapMongoUtil.hpp"
+#include "mthMatchTree.hpp"
+#include "mthModifier.hpp"
 
-INT32 _msgBuffer::alloc( const UINT32 size )
+using namespace bson ;
+
+namespace fap
+{
+
+INT32 msgBuffer::alloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
 
@@ -137,7 +144,7 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::write( const bson::BSONObj &obj, BOOLEAN align, INT32 bytes )
+INT32 _msgBuffer::write( const BSONObj &obj, BOOLEAN align, INT32 bytes )
 {
    INT32 rc   = SDB_OK ;
    INT32 size = 0 ;        // new size to realloc
@@ -190,18 +197,63 @@ error:
    goto done ;
 }
 
-// int main( int argc, char** argv)
-// {
-//    std::string str = "abcdef" ;
-//    msgBuffer buffer ;
-//    for ( int i = 0; i < 10; ++i)
-//    {
-//       str += "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ;
-//       buffer.write( str.c_str(), str.length() ) ;
-//    }
-// 
-//    std::cout << buffer.data() << std::endl ;
-// 
-//    return 0 ;
-// }
+// generate a new record based on matcher condition and update condition
+INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
+                                 const BSONObj &updatorObj,
+                                 BSONObj &target )
+{
+   INT32 rc = SDB_OK ;
+   engine::mthMatchTree matcherTree ;
+   engine::mthModifier modifier ;
+
+   try
+   {
+      bson::BSONElement setOnInsert ;
+      BSONObj source ;
+
+      rc = matcherTree.loadPattern ( matcher ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to load matcher[%s], rc: %d",
+                    matcher.toString().c_str(), rc ) ;
+
+      source = matcherTree.getEqualityQueryObject( NULL ) ;
+
+      rc = modifier.loadPattern( updatorObj, NULL, TRUE, NULL, FALSE ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to load updator[%s], rc: %d",
+                   updatorObj.toString().c_str(), rc ) ;
+
+      rc = modifier.modify( source, target ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to generate new record, rc: %d",
+                   rc ) ;
+
+      // check if have oid
+      if ( !target.hasElement( "_id" ) )
+      {
+         BSONObjBuilder builder ;
+         builder.appendOID( "_id", NULL, TRUE ) ;
+         builder.appendElements( target ) ;
+         target = builder.obj() ;
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Generate new record exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+static _fapMongoErrorObjAssit errorObjAssit ;
+
+BSONObj fapMongoGetErrorBson( INT32 errorCode )
+{
+   return errorObjAssit.getErrorObj( errorCode ) ;
+}
+
+}
 

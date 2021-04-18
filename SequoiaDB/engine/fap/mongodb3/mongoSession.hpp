@@ -42,7 +42,7 @@
 #include "rtnContextBuff.hpp"
 #include "pmdSession.hpp"
 #include "fapMongoMessage.hpp"
-#include "msgBuffer.hpp"
+#include "fapMongoUtil.hpp"
 #include "fapMongoCommand.hpp"
 #include "pmdRemoteSession.hpp"
 
@@ -83,18 +83,23 @@ protected:
                          CHAR *&pRes ) ;
    INT32 _reply( _mongoCommand *pCommand, mongoSessionCtx &sessCtx ) ;
    INT32 _reply( _mongoCommand *pCommand, const CHAR* pMsg,
-                 INT32 errCode, const BSONObj &errObj,
-                 mongoSessionCtx &sessCtx ) ;
+                 INT32 errCode, const string &sessionName, BSONObj &errObj ) ;
 
 private:
    void  _resetBuffers() ;
    INT32 _autoCreateCS( const CHAR *csName, BSONObj &errorObj ) ;
    INT32 _autoCreateCL( const CHAR *clFullName, BSONObj &errorObj ) ;
+   INT32 _autoInsert( const CHAR *clFullName, const BSONObj &matcher,
+                      const BSONObj &updatorObj, BSONObj &target,
+                      BSONObj &errorObj ) ;
    BOOLEAN _isOwnedCursor( const _mongoCommand *pCommand,
                            UINT64 &ownedEDUID,
                            BOOLEAN &needAuth ) ;
    INT32 _manageCursor( const _mongoCommand *pCommand,
                         const MsgOpReply &sdbReply ) ;
+
+   BOOLEAN _shouldAutoCrtCS( const _mongoCommand *pCommand ) ;
+   BOOLEAN _shouldAutoCrtCL( const _mongoCommand *pCommand ) ;
 
 private:
    MsgOpReply              _replyHeader ;

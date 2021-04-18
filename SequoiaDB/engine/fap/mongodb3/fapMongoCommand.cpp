@@ -1552,17 +1552,29 @@ INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
                                        engine::rtnContextBuf &bodyBuf,
                                        _mongoResponseBuffer &headerBuf )
 {
-   if ( SDB_OK == sdbReply.flags )
+   if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+        SDB_DMS_NOTEXIST == sdbReply.flags )
    {
       // reply: { n: 1, ok: 1 }
       BSONObj resObj( bodyBuf.data() ) ;
       BSONObjBuilder bob ;
 
       bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
-      if ( resObj.hasField( "DeletedNum" ) )
+
+      if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
       {
-         bob.append( "n", resObj.getIntField( "DeletedNum" ) ) ;
+         bob.append( "n", 0 ) ;
       }
+      else
+      {
+         BSONElement e = resObj.getField( "DeletedNum" ) ;
+         if ( e.isNumber() )
+         {
+            bob.append( "n", e.numberLong() ) ;
+         }
+      }
+
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
    }
 
@@ -4902,6 +4914,7 @@ MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoGetCmdLineOptsCommand)
 // findOneAndReplace, we will enter this class
 // The functions of these four commands are the same, the only difference is
 // that the parameters of the commands are different
+MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindandmodifyCommand)
 MONGO_IMPLEMENT_CMD_AUTO_REGISTER(_mongoFindAndModifyCommand)
 INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                                                mongoSessionCtx &ctx )
@@ -4910,10 +4923,9 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
 
    INT32 rc = SDB_OK ;
    MsgOpQuery *findAndModify = NULL ;
-   BSONObj cond, update, sort, selector, hint ;
+   BSONObj sort, selector, hint ;
    BOOLEAN isUpdate = FALSE ;
    BOOLEAN isRemove = FALSE ;
-   BOOLEAN isReturnNew = FALSE ;
    BSONObjBuilder operatorBob, hintBob ;
 
    sdbMsg.reserve( sizeof( MsgOpQuery ) ) ;
@@ -4954,6 +4966,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to convert mongo operator to sdb operator, rc: %d",
                    rc ) ;
+      _obj = operatorBob.obj() ;
 
       /*
       The format of hint we will build is as follows:
@@ -4976,7 +4989,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
       */
 
       BSONObjBuilder subHintBob( hintBob.subobjStart( FIELD_NAME_MODIFY ) ) ;
-      BSONObjIterator itr( operatorBob.done() ) ;
+      BSONObjIterator itr( _obj ) ;
       while ( itr.more() )
       {
          BSONElement ele = itr.next() ;
@@ -4989,7 +5002,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                ctx.setError( rc, "The type of query field must be object" ) ;
                goto error ;
             }
-            cond = ele.embeddedObject() ;
+            _cond = ele.embeddedObject() ;
          }
          else if ( 0 == ossStrcmp( ele.fieldName(),
                                    FAP_MONGO_FIELD_NAME_SORT  ) )
@@ -5025,9 +5038,9 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                goto error ;
             }
 
-            update = ele.embeddedObject() ;
+            _updater = ele.embeddedObject() ;
 
-            rc = isCondHasOp( update, hasOp ) ;
+            rc = isCondHasOp( _updater, hasOp ) ;
             if ( rc )
             {
                goto error ;
@@ -5039,12 +5052,12 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                // eg:
                // { a: 1, b: 1 } ==> { "$replace": { a: 1, b: 1 } }
                BSONObjBuilder newUpdateBob ;
-               newUpdateBob.append( FAP_MONGO_OPERATOR_REPLACE, update ) ;
+               newUpdateBob.append( FAP_MONGO_OPERATOR_REPLACE, _updater ) ;
                subHintBob.append( FIELD_NAME_OP_UPDATE, newUpdateBob.done() ) ;
             }
             else
             {
-               subHintBob.append( FIELD_NAME_OP_UPDATE, update ) ;
+               subHintBob.append( FIELD_NAME_OP_UPDATE, _updater ) ;
             }
 
             subHintBob.append( FIELD_NAME_OP, FIELD_OP_VALUE_UPDATE ) ;
@@ -5059,8 +5072,8 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                ctx.setError( rc, "The type of new field must be bool" ) ;
                goto error ;
             }
-            isReturnNew = ele.Bool() ;
-            subHintBob.appendBool( FIELD_NAME_RETURNNEW, isReturnNew ) ;
+            _isReturnNew = ele.Bool() ;
+            subHintBob.appendBool( FIELD_NAME_RETURNNEW, _isReturnNew ) ;
          }
          else if ( 0 == ossStrcmp( ele.fieldName(),
                                    FAP_MONGO_FIELD_NAME_FIELDS  ) )
@@ -5074,10 +5087,20 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
             selector = ele.embeddedObject() ;
             convertProjection( selector ) ;
          }
+         else if ( 0 == ossStrcmp( ele.fieldName(),
+                                   FAP_MONGO_FIELD_NAME_UPSERT  ) )
+         {
+            if ( Bool != ele.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               ctx.setError( rc, "The type of upsert field must be bool" ) ;
+               goto error ;
+            }
+            _isUpsert = ele.Bool() ;
+         }
 
          /*
          SequoiaDB don't support these parameters:
-         upsert: <bool>
          collation: <object>
          bypassDocumentValidation: <bool>
          arrayFilters: [ <filter1>... ]
@@ -5096,7 +5119,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
          goto error ;
       }
 
-      if ( isRemove && isReturnNew )
+      if ( isRemove && _isReturnNew )
       {
          rc = SDB_INVALIDARG ;
          ctx.setError( rc, "Cannot specify new = true and remove = true "
@@ -5113,7 +5136,7 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
       goto error ;
    }
 
-   sdbMsg.write( cond, TRUE ) ;
+   sdbMsg.write( _cond, TRUE ) ;
    sdbMsg.write( selector, TRUE ) ;
    sdbMsg.write( sort, TRUE ) ;
    sdbMsg.write( hint, TRUE ) ;
@@ -5149,8 +5172,16 @@ INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
 
    try
    {
-      if ( SDB_OK == sdbReply.flags )
+      if ( SDB_OK == sdbReply.flags || SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
       {
+         if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+              SDB_DMS_NOTEXIST == sdbReply.flags )
+         {
+            bodyBuf = engine::rtnContextBuf() ;
+            hasRecordReturned = FALSE ;
+         }
+
          BSONObjBuilder decimalConvertBob ;
          BSONObjBuilder lastErrorObjectBuilder( resultBuilder.subobjStart(
                                      FAP_MONGO_FIELD_NAME_LASTERROROBJECT ) ) ;
@@ -5162,19 +5193,26 @@ INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
 
          if ( hasRecordReturned )
          {
-            BSONObj obj( bodyBuf.data() ) ;
-            rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to convert sdb record to mongo record, "
-                         "rc: %d", rc ) ;
-            if ( hasDecimal )
+            if ( _isUpsert && !_isReturnNew )
             {
-               resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE,
-                                     decimalConvertBob.done() ) ;
+               resultBuilder.appendNull( FAP_MONGO_FIELD_NAME_VALUE ) ;
             }
             else
             {
-               resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE, obj ) ;
+               BSONObj obj( bodyBuf.data() ) ;
+               rc = sdbDecimal2MongoDecimal( obj, decimalConvertBob, hasDecimal ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to convert sdb record to mongo record, "
+                            "rc: %d", rc ) ;
+               if ( hasDecimal )
+               {
+                  resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE,
+                                        decimalConvertBob.done() ) ;
+               }
+               else
+               {
+                  resultBuilder.append( FAP_MONGO_FIELD_NAME_VALUE, obj ) ;
+               }
             }
          }
          else

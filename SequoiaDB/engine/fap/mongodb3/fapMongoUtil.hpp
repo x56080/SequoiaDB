@@ -28,9 +28,9 @@
    Restrictions: N/A
 
    Change Activity:
-   defect Date        Who Description
-   ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+   defect Date        Who         Description
+   ====== =========== =========== ========================================
+          11/04/2021  fangjiabin  Initial Draft
 
    Last Changed =
 
@@ -42,9 +42,13 @@
 #include "ossUtil.hpp"
 #include "ossMem.hpp"
 #include "../../bson/bson.hpp"
+#include "utilCommon.hpp"
+#include "fapMongoMessageDef.hpp"
 
 #define MEMERY_BLOCK_SIZE 4096
 
+namespace fap
+{
 class _msgBuffer : public SDBObject
 {
 public:
@@ -73,7 +77,7 @@ public:
    INT32 write( const CHAR *in, const UINT32 inLen,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
-   INT32 write( const bson::BSONObj &obj,
+   INT32 write( const BSONObj &obj,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
    INT32 read( CHAR* in, const UINT32 len ) ;
@@ -125,7 +129,40 @@ private:
    UINT32 _size ;
    UINT32 _capacity ;
 } ;
-
 typedef _msgBuffer msgBuffer ;
 
+class _fapMongoErrorObjAssit : public SDBObject
+{
+public:
+   _fapMongoErrorObjAssit()
+   {
+      for ( SINT32 i = -SDB_MAX_ERROR; i <= SDB_MAX_WARNING ; i ++ )
+      {
+         BSONObjBuilder berror ;
+         berror.append ( FAP_MONGO_FIELD_NAME_OK, 0 ) ;
+         berror.append ( FAP_MONGO_FIELD_NAME_CODE, i ) ;
+         berror.append ( FAP_MONGO_FIELD_NAME_ERRMSG, getErrDesp ( i ) ) ;
+         _errorObjsArray[ i + SDB_MAX_ERROR ] = berror.obj() ;
+      }
+   }
+
+   ~_fapMongoErrorObjAssit(){}
+
+   BSONObj getErrorObj( INT32 errorCode )
+   {
+      return _errorObjsArray[ SDB_MAX_ERROR + errorCode ] ;
+   }
+
+private:
+   BSONObj _errorObjsArray[ SDB_MAX_ERROR + SDB_MAX_WARNING + 1 ] ;
+};
+typedef _fapMongoErrorObjAssit fapMongoErrorObjAssit ;
+
+INT32 fapMongoGenerateNewRecord( const BSONObj &matcher,
+                                 const BSONObj &updatorObj,
+                                 BSONObj &target ) ;
+
+BSONObj fapMongoGetErrorBson( INT32 errorCode ) ;
+
+}
 #endif

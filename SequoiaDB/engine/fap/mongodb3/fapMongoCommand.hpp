@@ -41,7 +41,7 @@
 #include "ossUtil.hpp"
 #include "fapMongoCommandDef.hpp"
 #include "fapMongoMessage.hpp"
-#include "msgBuffer.hpp"
+#include "fapMongoUtil.hpp"
 #include "rtnContextBuff.hpp"
 #include "msg.hpp"
 
@@ -998,7 +998,7 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoFindAndModifyCommand() {}
+      _mongoFindAndModifyCommand() : _isUpsert( FALSE ), _isReturnNew( FALSE ) {}
       virtual ~_mongoFindAndModifyCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_FINDANDMODIFY ; }
@@ -1010,6 +1010,18 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
       virtual INT32 buildReply( const MsgOpReply &sdbReply,
                                 engine::rtnContextBuf &replyBuf,
                                 _mongoResponseBuffer &resHeader ) ;
+
+      const BSONObj& getCond() { return _cond ; }
+      const BSONObj& getUpdater() { return _updater ; }
+      BSONObj& getUpsertReturnRecord(){ return _upsertReturnRecord ; }
+      BOOLEAN isUpsert() { return _isUpsert ; }
+
+   private:
+      BSONObj _cond ;
+      BSONObj _updater ;
+      BOOLEAN _isUpsert ;
+      BOOLEAN _isReturnNew ;
+      BSONObj _upsertReturnRecord ;
 } ;
 typedef _mongoFindAndModifyCommand mongoFindAndModifyCommand ;
 
