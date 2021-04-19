@@ -212,7 +212,7 @@ TEST_F( sessionAttrTest14166, mix )
       arrBuilder.append( 8 ) ;
       arrBuilder.append( 9 ) ;
       arrBuilder.append( 10 ) ;
-      if( instances[0] != 0  )
+      if( instances[i][0] != 0  )
       {
          arrBuilder.append( instances[i] ) ;
       }
