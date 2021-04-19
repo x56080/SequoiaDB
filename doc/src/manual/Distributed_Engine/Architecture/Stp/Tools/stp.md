@@ -1,6 +1,6 @@
-`stp` 是 STP 提供逻辑时间的可执行程序
+stp 是 STP 提供逻辑时间的可执行程序。
 
-##参数说明##
+## 参数说明
 
 | 参数名 | 缩写 | 类型 | 说明 |
 | ------ | ---- | ---- | ---- |
@@ -24,7 +24,7 @@
 >      * client 节点只能向 server 节点进行同步
 > * `maxtimeerror` 指定的可以容忍的最大时间误差，是指当前 STP 节点与 server 主节点之间的时间误差，详细可参考[逻辑时间][logicaltime]
 
-##配置参数##
+## 配置参数
 
 `stp` 的参数可以通过在 `安装目录/conf/stp/stp.conf` 中进行配置
 
@@ -37,54 +37,54 @@
 | maxtimeerror | 正整数 | - STP 节点可以容忍的最大时间误差，单位为微秒</br>- 默认：50000</br>- 最小值为 1000，最大值为 10000000 |
 | diaglevel | 正整数 | - STP 节点打印诊断日志的级别<br/>- STP 诊断日志从 0 - 5 分别代表：SEVERE, ERROR, EVENT, WARNING, INFO, DEBUG<br/>- 默认：3，表示 WARNING |
 
-##后台模式##
+## 后台模式
 
 通过 `daemon` 可以使用后台模式运行 STP 节点，其功能与 [stpstart][start] 相同
 
-```
-bin/stp --daemon
+```lang-bash
+$ bin/stp --daemon
 ```
 
-##配置示例##
+## 配置示例
 
 STP 的配置可以分为多 server 模式和单 server 模式
 
 - 多个 "server" 的配置，可以提高 server 的可用性
 - 单个 "server" 的配置，使用于1-3个节点较小的集群
 
-__多 server 模式__
+**多 server 模式**
 
-选择 3 个 server 节点，server-1:9622、server-2:9622、server-3:9622，其余节地作为 client 节点
+选择 3 个 server 节点，sdbserver1:9622、sdbserver2:9622 和 sdbserver3:9622，其余节地作为 client 节点
 
 server 节点的配置如下
 
-```
-serverlist=server-1:9622,server-2:9622,server-3:9622
+```lang-ini
+serverlist=sdbserver1:9622,sdbserver2:9622,sdbserver3:9622
 role=server
 ```
 
 client 节点的配置如下
 
-```
-serverlist=server-1:9622,server-2:9622,server-3:9622
+```lang-ini
+serverlist=sdbserver1:9622,sdbserver2:9622,sdbserver3:9622
 role=client
 ```
 
-__单 server 模式__
+**单 server 模式**
 
-选择 1 个 server 节点，server-1:9622，其余节点作为 client 节点
+选择 1 个 server 节点，sdbserver1:9622，其余节点作为 client 节点
 
 server 节点的配置如下
 
-```
-serverlist=server-1:9622
+```lang-ini
+serverlist=sdbserver1:9622
 role=server
 ```
 
 client 节点的配置如下
 
-```
-serverlist=server-1:9622
+```lang-ini
+serverlist=sdbserver1:9622
 role=client
 ```
 

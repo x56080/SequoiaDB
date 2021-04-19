@@ -39,9 +39,10 @@ For more details, refer to Troubleshooting.
 .PP
 v5.0 and above
 .SH EXAMPLES
-.PP
+.IP \[bu] 2
 Get the synchronization information between the STP node and the current
 synchronization source.
+.RS 2
 .IP
 .nf
 \f[C]
@@ -87,3 +88,20 @@ synchronization source.
 }
 \f[]
 .fi
+.RE
+.IP \[bu] 2
+The STP server master node is used as the synchronization source and does not
+need to be synchronized with any node, all without synchronization status
+infromation.
+.RS 2
+.IP
+.nf
+\f[C]
+>\ stp.getSyncStatus()
+{
+\ \ "Role":\ "server",
+\ \ "IsPrimary":\ true
+}
+\f[]
+.fi
+.RE

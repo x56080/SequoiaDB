@@ -22,11 +22,13 @@ options（ *object，选填* ）
 
 - Seconds（number）：指定选举超时时间，选举将在指定时间内完成，单位为秒，默认值为 30
 
+    该参数取值需大于等于 10s，否则执行相关语句将报错。
+
     格式：`Seconds:60`
 
 - HostName（string）：指定期望当选主节点的主机名
 
-    格式：`HostName:"sdbserver:11820"`
+    格式：`HostName:"sdbserver"`
 
 
 ## 返回值
@@ -40,7 +42,7 @@ options（ *object，选填* ）
 `reelect()` 函数常见异常如下：
 
 | 错误码 | 错误类型    | 可能发生的原因         | 解决办法 |
-| ------ | --------    | --------------         | -------- |
+| ------ | --------    | --------------         | --------  |
 | -13    | SDB_TIMEOUT | 选举未在指定时间内完成 | -        |
 
 当异常抛出时，可以通过 [getLastErrMsg()][getLastErrMsg] 获取错误信息或通过 [getLastError()][getLastError] 获取[错误码][error_code]。更多错误处理可以参考[常见错误处理指南][faq]。
@@ -51,11 +53,11 @@ v5.0 及以上版本
 
 ## 示例
 
-在复制组 group1 中进行重新选举，并指定选举超时时间为 60s
+在当前 STP 节点所在的 server 组中重新选举，并指定选举超时时间为 60s
 
 ```lang-javascript
 > var stp = new Stp()
-> stp.reelect({Seconds:60})
+> stp.reelect({Seconds: 60})
 ```
 
 [^_^]:

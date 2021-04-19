@@ -18,7 +18,7 @@ SequoiaDB STP 节点启动后，会将自身的状态信息写入管道文件，
 - 显示 STP 节点
 
     ```lang-bash
-    $ stplist
+    $ bin/stplist
     stp(9622) (19981)
     Total: 1
     ```
@@ -26,7 +26,7 @@ SequoiaDB STP 节点启动后，会将自身的状态信息写入管道文件，
 - 显示 STP 节点详细信息
 
     ```lang-bash
-    $ stplist -l
+    $ bin/stplist -l
     Name       SvcName       PID       PRY  StartTime
     stp        9622          19981     Y    2021-03-11-14.23.09
     Total: 1
@@ -35,9 +35,9 @@ SequoiaDB STP 节点启动后，会将自身的状态信息写入管道文件，
 - 显示 STP 节点配置文件信息
 
     ```lang-bash
-    $ stplist --detail
+    $ bin/stplist --detail
     stp(9622) (19981)
-       serverlist        : server-1:9622
+       serverlist        : sdbserver1:9622
        role              : server
     Total: 1
     ```
@@ -45,10 +45,10 @@ SequoiaDB STP 节点启动后，会将自身的状态信息写入管道文件，
 - 显示 STP 节点所有配置信息
 
     ```lang-bash
-    $ stplist --expand
+    $ bin/stplist --expand
     stp(9622) (19981)
        port              : 9622
-       serverlist        : server-1:9622
+       serverlist        : sdbserver1:9622
        role              : server
        weight            : 0
        syncinterval      : 60
@@ -60,9 +60,9 @@ SequoiaDB STP 节点启动后，会将自身的状态信息写入管道文件，
 - 显示停止运行的 STP 节点及配置
 
     ```lang-bash
-    stplist --mode local --detail
+    $ bin/stplist --mode local --detail
     stp(9622) (-)
-       serverlist        : server-1:9622
+       serverlist        : sdbserver1:9622
        role              : server
     Total: 1
     ```

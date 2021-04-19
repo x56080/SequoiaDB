@@ -22,11 +22,13 @@ Other optional parameters can be set through the option parameter:
 
 - Seconds (number): Specify the election timeout period, the election will be completed within the specified time, the unit is seconds, the default value is 30.
 
-    Format: `Seconds:60`
+    The value of this parameter must be greater than or equal to 10. Otherwise an error will be reported when the relevant statement is executed.
+
+    Format: `Seconds: 60`
 
 - HostName (string): Specify the host name of the desired master node.
 
-    Format: `HostName:"sdbserver:11820"`
+    Format: `HostName: "sdbserver"`
 
 ## RETURN VALUE
 
@@ -50,11 +52,11 @@ v5.0 and above
 
 ## EXAMPLES
 
-Reelect in the group1 and specify the election timeout period as 60s. 
+Reelect in the server group where the current STP node is located, and specify the election timeout period as 60s. 
 
 ```lang-javascript
 > var stp = new Stp()
-> stp.reelect({Seconds:60})
+> stp.reelect({Seconds: 60})
 ```
 
 [^_^]:

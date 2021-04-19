@@ -3652,6 +3652,12 @@
                            "file": "reelect",
                            "cn": "reelect()",
                            "en": "reelect()"
+                        },
+                        {
+                           "id": 1618473735,
+                           "file": "stop",
+                           "cn": "stop()",
+                           "en": "stop()"
                         }
                      ]
                   },

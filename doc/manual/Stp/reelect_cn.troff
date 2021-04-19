@@ -26,13 +26,15 @@ Seconds（number）：指定选举超时时间，选举将在指定时间内完�
 30
 .RS 2
 .PP
+该参数取值需大于等于 10s，否则执行相关语句将报错。
+.PP
 格式：\f[C]Seconds:60\f[]
 .RE
 .IP \[bu] 2
 HostName（string）：指定期望当选主节点的主机名
 .RS 2
 .PP
-格式：\f[C]HostName:"sdbserver:11820"\f[]
+格式：\f[C]HostName:"sdbserver"\f[]
 .RE
 .SH 返回值
 .PP
@@ -85,11 +87,11 @@ T}
 v5.0 及以上版本
 .SH 示例
 .PP
-在复制组 group1 中进行重新选举，并指定选举超时时间为 60s
+在当前 STP 节点所在的 server 组中重新选举，并指定选举超时时间为 60s
 .IP
 .nf
 \f[C]
 >\ var\ stp\ =\ new\ Stp()
->\ stp.reelect({Seconds:60})
+>\ stp.reelect({Seconds:\ 60})
 \f[]
 .fi
