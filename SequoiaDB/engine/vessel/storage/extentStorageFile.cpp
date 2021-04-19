@@ -591,6 +591,7 @@ namespace vessel
    {
       BOOLEAN r = FALSE;
 
+      UINT32 dirLen = 0;
       UINT32 nameLen = 0;
 
       if (OSS_UNLIKELY(NULL == options.dir ||
@@ -599,16 +600,17 @@ namespace vessel
          goto done;
       }
 
-      nameLen = ossStrlen(options.dir);
-      if (0 == nameLen)
+      dirLen = ossStrlen(options.dir);
+      if (0 == dirLen)
       {
+         PD_LOG(PDERROR, "invalid dir len:%s", options.dir);
          goto done;
       }
 
       nameLen = ossStrlen(options.name);
 
       if (0 == nameLen ||
-          MAX_SPACE_DIR_LEN < nameLen)
+          MAX_FILE_NAME_LEN < nameLen)
       {
          PD_LOG(PDERROR, "invalid length of file name:%s");
          goto done;

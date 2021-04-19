@@ -208,7 +208,7 @@ namespace vessel
          goto done;
       }
 
-      digit = ossAtoi(dirName.str() + FILE_NAME_PREFIX_LEN);
+      digit = ossAtoi(dirName.str() + FILE_NAME_PREFIX_LEN + 1);
       if (MAX_SPACE_ID < digit)
       {
          goto done;

@@ -120,7 +120,7 @@ TEST_F(fsm_test, test1)
    file.close();
 
    v::vesselFileName fn;
-   fn.build(FILE_TYPE_FSM, 0, 0);
+   fn.build(0, FILE_TYPE_FSM, 0);
    rc = file.open(std::string(DATA_PATH).append("/_vessel.0.fsm.0").c_str(), fn);
    ASSERT_EQ(SDB_OK, rc);
 
@@ -425,7 +425,7 @@ TEST_F(fsm_test, diskmap_3)
    ASSERT_EQ(SDB_OK, rc);
    UINT32 count = 65535;
    v::vesselFileName fn;
-   fn.build(FILE_TYPE_FSM, 0, 0);
+   fn.build(0, FILE_TYPE_FSM, 0);
    std::string fullPath;
    fullPath.append(DATA_PATH);
    fullPath.append(OSS_FILE_SEP);
