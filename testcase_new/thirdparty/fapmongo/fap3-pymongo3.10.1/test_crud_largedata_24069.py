@@ -2,9 +2,10 @@
 Description   : seqDB-24069:增删改查大量数据
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.14
+LastEditTime  : 2021.04.19
 LastEditors   : XiaoNi Huang
 '''
+''' jira-7023
 #!/usr/bin/python3.5
 import bson
 import pymongo
@@ -61,3 +62,4 @@ class TestCrudLargeData24069( utils.TestBase ):
    
    def tearDown( self ):
       self.cl.drop() 
+   '''
