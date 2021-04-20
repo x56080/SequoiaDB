@@ -1,7 +1,10 @@
-/* *****************************************************************************
-@description: seqDB-14100:多组查询，设置会话访问属性，z指定preferedinstance为【M/S/A】
-@author: 2018-1-29 wuyan  Init
-***************************************************************************** */
+/******************************************************************************
+ * @Description   : seqDB-14100:多组查询，设置会话访问属性，z指定preferedinstance为【M/S/A】
+ * @Author        : wuyan
+ * @CreateTime    : 2018.01.29
+ * @LastEditTime  : 2021.04.20
+ * @LastEditors   : liuli
+ ******************************************************************************/
 testConf.skipStandAlone = true;
 
 main( test );
@@ -26,7 +29,7 @@ function test ()
    insertData( cl );
    cl.split( groupName1, groupName2, 50 );
 
-   var options = { PreferedInstance: ["M", "S", "A"] };
+   var options = { PreferedInstance: ["M"] };
    var expAccessNodes = [group1[primaryPos1].HostName + ":" + group1[primaryPos1].svcname,
    group2[primaryPos2].HostName + ":" + group2[primaryPos2].svcname];
    checkAccessNodes( cl, expAccessNodes, options );
