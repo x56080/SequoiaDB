@@ -29,10 +29,11 @@ import com.mongodb.utils.MongodbTestBase;
 public class Distinct21932 extends MongodbTestBase {
     private int num = 40;
     private List< Entity > list;
-    private String clName = springDBNameWithVersion + "_cl21932";
+    private String clName;
 
     @BeforeClass
     public void setUp() {
+        clName = springDBNameWithVersion + "_cl21932";
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             for ( int j = 0; j < 2; j++ ) {

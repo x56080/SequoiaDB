@@ -39,12 +39,15 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  */
 public class AutoCreateCSCL21998 extends MongodbTestBase {
     private boolean runSuccess = false;
-    private String dbName = javaDBNameWithVersion + "_db21998";
-    private String clName = javaDBNameWithVersion + "_cl21998";
+    private String dbName;
+    private String clName;
     private MongoDatabase db;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        dbName = javaDBNameWithVersion + "_db21998";
+        clName = javaDBNameWithVersion + "_cl21998";
+
         if ( client.listDatabaseNames().into( new ArrayList<>() )
                 .contains( dbName ) ) {
             client.getDatabase( dbName ).drop();
@@ -52,7 +55,7 @@ public class AutoCreateCSCL21998 extends MongodbTestBase {
         db = client.getDatabase( dbName );
     }
 
-    @Test(enabled = false)
+    @Test
     public void test() throws Exception {
         ThreadExecutor threadExec = new ThreadExecutor();
         int threadNum = 10;

@@ -36,8 +36,8 @@ import com.mongodb.utils.TestTools;
 public class GridFS22022 extends MongodbTestBase {
     private DB db;
     private String fileNameBase = "fs22022-";
-    private String bucketName1 = javaDBNameWithVersion + "_bucket22022A";
-    private String bucketName2 = javaDBNameWithVersion + "_bucket22022B";
+    private String bucketName1;
+    private String bucketName2;
     private int fileNum = 20;
     private File localPath;
     private List< byte[] > bytesList = new ArrayList<>();
@@ -50,6 +50,9 @@ public class GridFS22022 extends MongodbTestBase {
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         db = MongodbTestBase.getDB( client );
+        bucketName1 = javaDBNameWithVersion + "_bucket22022A";
+        bucketName2 = javaDBNameWithVersion + "_bucket22022B";
+
         Random random = new Random();
         for ( int i = 0; i < Math.min( 5, fileNum ); i++ ) {
             byte[] bytes = new byte[ 1024 * 200 + i ];

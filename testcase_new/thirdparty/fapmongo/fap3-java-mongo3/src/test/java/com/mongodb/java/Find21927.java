@@ -43,7 +43,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Find21927 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = javaDBNameWithVersion + "_cl21927";
+    private String clName;
     private MongoCollection< Document > cl;
     // 3的倍数，不能小于10
     private int num = 18;
@@ -52,6 +52,7 @@ public class Find21927 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDataBase( client );
+        clName = javaDBNameWithVersion + "_cl21927";
         list = new ArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new Document( "a", i ).append( "b", "" + i )

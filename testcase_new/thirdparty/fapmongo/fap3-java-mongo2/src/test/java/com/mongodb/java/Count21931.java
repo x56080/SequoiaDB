@@ -26,7 +26,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Count21931 extends MongodbTestBase {
     private DB db;
-    private String clName = javaDBNameWithVersion + "_cl21931";
+    private String clName;
     private DBCollection cl;
     // 不能小于10
     private int num = 10;
@@ -35,6 +35,7 @@ public class Count21931 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21931";
         list = new ArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new BasicDBObject( "a", i ).append( "b", "" + i )

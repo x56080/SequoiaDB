@@ -30,11 +30,12 @@ import com.mongodb.utils.MongodbTestBase;
  * @version:1.0
  */
 public class CrudIndex21925 extends MongodbTestBase {
-    private String clName = springDBNameWithVersion + "_cl21925";
+    private String clName;
     private IndexOperations indexOperations;
 
     @BeforeClass
     public void setUp() {
+        clName = springDBNameWithVersion + "_cl21925";
         indexOperations = mongoTemplate.indexOps( clName );
     }
 

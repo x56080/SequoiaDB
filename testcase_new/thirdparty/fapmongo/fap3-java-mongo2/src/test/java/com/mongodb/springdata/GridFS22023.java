@@ -30,13 +30,15 @@ public class GridFS22023 extends MongodbTestBase {
     private GridFsTemplate gridFsTemplate1;
     private GridFsTemplate gridFsTemplate2;
     private String fileNameBase = "fs22023";
-    private String bucketName1 = springDBNameWithVersion + "_bucket22023A";
-    private String bucketName2 = springDBNameWithVersion + "_bucket22023B";
+    private String bucketName1;
+    private String bucketName2;
     private byte[] bytes = new byte[ 1024 ];
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         new Random().nextBytes( bytes );
+        bucketName1 = springDBNameWithVersion + "_bucket22023A";
+        bucketName2 = springDBNameWithVersion + "_bucket22023B";
         // 自定义桶1
         gridFsTemplate1 = new GridFsTemplate( mongoDbFactory, converter,
                 bucketName1 );

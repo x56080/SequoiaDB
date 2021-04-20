@@ -35,7 +35,7 @@ public class GridFS22081 extends MongodbTestBase {
     private DB db;
     private File localPath;
     private String filNameBase = "fs22081";
-    private String bucketName = "bucket22081";
+    private String bucketName;
     private int fileNum = 10;
     private byte[] bytes = new byte[ 1024 ];
     private List< String > fileIdList = new ArrayList<>();
@@ -47,6 +47,8 @@ public class GridFS22081 extends MongodbTestBase {
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         db = MongodbTestBase.getDB( client );
+        bucketName = javaDBNameWithVersion + "_bucket22081";
+
         Set< String > clNames = db.getCollectionNames();
         for ( String clName : clNames ) {
             if ( clName.startsWith( bucketName ) ) {

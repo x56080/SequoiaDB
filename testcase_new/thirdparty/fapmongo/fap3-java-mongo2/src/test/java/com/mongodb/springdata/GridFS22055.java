@@ -29,14 +29,16 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class GridFS22055 extends MongodbTestBase {
     private GridFsTemplate gridFsTemplate;
-    private String bucketName = springDBNameWithVersion + "_bucket22055";
-    private String[] expClNames = { bucketName + "." + "chunks",
-            bucketName + "." + "files" };
+    private String bucketName;
+    private String[] expClNames = new String[ 2 ];
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        bucketName = springDBNameWithVersion + "_bucket22055";
         gridFsTemplate = new GridFsTemplate( mongoDbFactory, converter,
                 bucketName );
+        expClNames[ 0 ] = bucketName + "." + "chunks";
+        expClNames[ 1 ] = bucketName + "." + "files";
     }
 
     @Test

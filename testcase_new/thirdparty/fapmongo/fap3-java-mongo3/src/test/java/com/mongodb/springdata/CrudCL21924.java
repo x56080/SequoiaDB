@@ -35,11 +35,12 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class CrudCL21924 extends MongodbTestBase {
-    private String[] clNames = { springDBNameWithVersion + "_cl21924A",
-            springDBNameWithVersion + "_cl21924B" };
+    private String[] clNames = new String[ 2 ];
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        clNames[ 0 ] = springDBNameWithVersion + "_cl21924A";
+        clNames[ 1 ] = springDBNameWithVersion + "_cl21924B";
     }
 
     @Test

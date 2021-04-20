@@ -30,11 +30,12 @@ import com.mongodb.utils.MongodbTestBase;
 
 public class CrudIndex21925 extends MongodbTestBase {
     private DB db;
-    private String clName = javaDBNameWithVersion + "_cl21925";
+    private String clName;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21925";
     }
 
     @Test

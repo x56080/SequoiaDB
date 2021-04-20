@@ -29,13 +29,14 @@ import com.mongodb.utils.MongodbTestBase;
  * @version:1.0
  */
 public class Find21927 extends MongodbTestBase {
-    private String clName = springDBNameWithVersion + "_cl21927";
+    private String clName;
     // 不能小于10
     private int num = 10;
     private List< Entity > list;
 
     @BeforeClass
     public void setUp() {
+        clName = springDBNameWithVersion + "_cl21927";
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add(

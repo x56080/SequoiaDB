@@ -30,12 +30,15 @@ import com.mongodb.utils.MongodbTestBase;
 public class GridFS22023 extends MongodbTestBase {
     private DB db;
     private String fileNameBase = "fs22023";
-    private String bucketName1 = javaDBNameWithVersion + "_bucket22023A";
-    private String bucketName2 = javaDBNameWithVersion + "_bucket22023B";
+    private String bucketName1;
+    private String bucketName2;
     private byte[] bytes = new byte[ 1024 ];
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        bucketName1 = javaDBNameWithVersion + "_bucket22023A";
+        bucketName2 = javaDBNameWithVersion + "_bucket22023B";
+
         db = MongodbTestBase.getDB( client );
         new Random().nextBytes( bytes );
     }

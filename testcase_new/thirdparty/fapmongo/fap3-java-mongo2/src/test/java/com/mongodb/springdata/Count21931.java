@@ -25,12 +25,14 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class Count21931 extends MongodbTestBase {
-    private String clName = springDBNameWithVersion + "_cl21931";
+    private String clName;
     // 不能小于10
     private int num = 10;
 
     @BeforeClass
     public void setUp() {
+        clName = springDBNameWithVersion + "_cl21931";
+
         List< DBObject > list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new BasicDBObject( "a", i ).append( "b", "" + i )

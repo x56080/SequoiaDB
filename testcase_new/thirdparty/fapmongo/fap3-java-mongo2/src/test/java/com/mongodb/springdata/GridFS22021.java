@@ -43,7 +43,7 @@ public class GridFS22021 extends MongodbTestBase {
     private byte[] bytes;
     private String filNameBase = "fs22021";
     private File localPath;
-    private String bucketName = springDBNameWithVersion + "_bucket22021";
+    private String bucketName;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
@@ -51,6 +51,9 @@ public class GridFS22021 extends MongodbTestBase {
                 + File.separator + TestTools.getClassName() );
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
+
+        bucketName = springDBNameWithVersion + "_bucket22021";
+
         // 默认桶
         gridFsTemplate1 = new GridFsTemplate( mongoDbFactory, converter );
         // 自定义桶

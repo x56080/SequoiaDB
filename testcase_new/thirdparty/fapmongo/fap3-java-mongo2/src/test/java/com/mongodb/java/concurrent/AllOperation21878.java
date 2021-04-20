@@ -32,7 +32,7 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  */
 
 public class AllOperation21878 extends MongodbTestBase {
-    private String clName = "cl21878";
+    private String clName;
     private int threadNumPerOpera = 5;
     private AtomicLong totalDelNum = new AtomicLong( 0 );
     private AtomicLong totalUpateNum = new AtomicLong( 0 );
@@ -40,6 +40,8 @@ public class AllOperation21878 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         DB db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21878";
+
         MongodbTestBase.dropCL( db, clName );
         DBCollection cl = db.getCollection( clName );
         cl.createIndex( new BasicDBObject( "a", 1 ), "a", false );

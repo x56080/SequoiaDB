@@ -38,13 +38,14 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class Aggregate21930 extends MongodbTestBase {
-    private String clName = springDBNameWithVersion + "_cl21930";
+    private String clName;
     // 不能小于6
     private int num = 6;
     private List< Entity > list;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
+        clName = springDBNameWithVersion + "_cl21930";
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add(

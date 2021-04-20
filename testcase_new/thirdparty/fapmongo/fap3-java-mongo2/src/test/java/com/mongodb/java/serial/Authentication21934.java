@@ -39,16 +39,21 @@ public class Authentication21934 extends MongodbTestBase {
     private DB db = null;
     private DB db1 = null;
     private DB db2 = null;
-    private String username1 = javaDBNameWithVersion + "_21934_1";
-    private String username2 = javaDBNameWithVersion + "_21934_2";
-    private String dbName = javaDBNameWithVersion + "_21934";
-    private String clName = javaDBNameWithVersion + "_cl_21934";
+    private String username1;
+    private String username2;
+    private String dbName;
+    private String clName;
     private int recordsNum = 30;
     private List< DBObject > records;
     private boolean runSuccess = false;
 
     @BeforeClass
     public void setup() throws Exception {
+        username1 = javaDBNameWithVersion + "_user21934_1";
+        username2 = javaDBNameWithVersion + "_user21934_2";
+        dbName = javaDBNameWithVersion + "_db21934";
+        clName = javaDBNameWithVersion + "_cl21934";
+
         // 创建Client
         opt = MongoClientOptions.builder().build();
         try {

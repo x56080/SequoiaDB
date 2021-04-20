@@ -56,12 +56,14 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class AllDataType22419 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName1 = javaDBNameWithVersion + "_cl22419A";
-    private String clName2 = javaDBNameWithVersion + "_cl22419B";
+    private String clName1;
+    private String clName2;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDataBase( client );
+        clName1 = javaDBNameWithVersion + "_cl22419A";
+        clName2 = javaDBNameWithVersion + "_cl22419B";
     }
 
     @Test

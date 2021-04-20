@@ -38,7 +38,7 @@ public class GridFS22021 extends MongodbTestBase {
     private DB db;
     private File localPath;
     private String filNameBase = "fs22021";
-    private String bucketName = javaDBNameWithVersion + "_bucket22021";
+    private String bucketName;
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
@@ -47,6 +47,7 @@ public class GridFS22021 extends MongodbTestBase {
         TestTools.LocalFile.removeFile( localPath );
         TestTools.LocalFile.createDir( localPath.toString() );
         db = MongodbTestBase.getDB( client );
+        bucketName = javaDBNameWithVersion + "_bucket22021";
     }
 
     @Test

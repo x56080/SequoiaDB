@@ -27,11 +27,12 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class AllOperation21996 extends MongodbTestBase {
-    private String clNameBase = springDBNameWithVersion + "_cl21996_";
+    private String clNameBase;
     private AtomicInteger clNum = new AtomicInteger( 5 );
 
     @BeforeClass
     public void setUp() {
+        clNameBase = springDBNameWithVersion + "_cl21996_";
     }
 
     @DataProvider(name = "data-provider", parallel = true)
@@ -45,7 +46,7 @@ public class AllOperation21996 extends MongodbTestBase {
     }
 
     @SuppressWarnings("rawtypes")
-    @Test(dataProvider = "data-provider", enabled = false) // jira-6529
+    @Test(dataProvider = "data-provider")
     public void test( String clName, int recordNum ) {
         List< Entity > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {

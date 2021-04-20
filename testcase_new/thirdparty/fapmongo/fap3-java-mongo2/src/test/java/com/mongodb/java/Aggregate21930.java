@@ -31,7 +31,7 @@ import com.mongodb.utils.MongodbTestBase;
 
 public class Aggregate21930 extends MongodbTestBase {
     private DB db;
-    private String clName = javaDBNameWithVersion + "_cl21930";
+    private String clName;
     private DBCollection cl;
     // 不能小于6
     private int num = 6;
@@ -40,6 +40,8 @@ public class Aggregate21930 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21930";
+
         list = new ArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new BasicDBObject( "a", i ).append( "b", "" + i % 3 )

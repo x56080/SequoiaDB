@@ -28,7 +28,7 @@ import com.mongodb.utils.MongodbTestBase;
 
 public class Distinct21932 extends MongodbTestBase {
     private DB db;
-    private String clName = javaDBNameWithVersion + "_cl21932";
+    private String clName;
     private DBCollection cl;
     // 不能小于10
     private int num = 10;
@@ -37,6 +37,8 @@ public class Distinct21932 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDB( client );
+        clName = javaDBNameWithVersion + "_cl21932";
+
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new BasicDBObject( "a", i % 3 ).append( "b", "" + i % 3 )

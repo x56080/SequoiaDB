@@ -33,7 +33,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Count21931 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = javaDBNameWithVersion + "_cl21931";
+    private String clName;
     private MongoCollection< Document > cl;
     // 不能小于10
     private int num = 10;
@@ -42,6 +42,7 @@ public class Count21931 extends MongodbTestBase {
     @BeforeClass
     public void setUp() throws UnknownHostException {
         db = MongodbTestBase.getDataBase( client );
+        clName = javaDBNameWithVersion + "_cl21931";
         list = new CopyOnWriteArrayList<>();
         for ( int i = 0; i < num; i++ ) {
             list.add( new Document( "a", i ).append( "b", "" + i )
