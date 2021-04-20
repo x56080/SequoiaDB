@@ -1,13 +1,10 @@
-/******************************************************************************
- * @Description   : seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A/s/m/a/-S/-M/-A/-s/-m/-a]
- * @Author        : zhaoxiaoni
- * @CreateTime    : 2020.04.09
- * @LastEditTime  : 2021.04.20
- * @LastEditors   : liuli
- ******************************************************************************/
+/* *****************************************************************************
+@description:  seqDB-14094:设置会话访问属性，指定preferedinstance值instanceid不存在对应节点和[S/M/A/s/m/a/-S/-M/-A/-s/-m/-a]
+@author: 2020-4-9 zhaoxiaoni  Init
+***************************************************************************** */
 testConf.skipStandAlone = true;
 
-main( test );
+// main( test );
 
 function test ()
 {
@@ -71,6 +68,19 @@ function test ()
    checkAccessNodes( cl, expAccessNodes, options );
 
    options = { PreferedInstance: [11, 224, 38, "-a"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 30, "A", "M", "S"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 30, "-A", "-M", "-S"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   expAccessNodes = [group[primaryPos].HostName + ":" + group[primaryPos].svcname];
+   options = { PreferedInstance: [11, 224, 38, "M", "S", "A"] };
+   checkAccessNodes( cl, expAccessNodes, options );
+
+   options = { PreferedInstance: [11, 224, 38, "-M", "-S", "-A"] };
    checkAccessNodes( cl, expAccessNodes, options );
 
    commDropCL( db, COMMCSNAME, clName, false, false );
