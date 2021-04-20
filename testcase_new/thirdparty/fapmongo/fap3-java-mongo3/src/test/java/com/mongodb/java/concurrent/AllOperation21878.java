@@ -41,7 +41,7 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  * @version 1.00
  */
 public class AllOperation21878 extends MongodbTestBase {
-    private String clName = "cl21878";
+    private String clName = javaDBNameWithVersion + "_cl21878";
     private int threadNumPerOpera = 5;
     private AtomicLong totalDelNum = new AtomicLong( 0 );
     private AtomicLong totalUpateNum = new AtomicLong( 0 );

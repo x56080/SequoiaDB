@@ -29,10 +29,10 @@ import com.mongodb.ServerAddress;
 public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     public static String javaMongoVersion;
     public static String springMongoVersion;
-
-    private static String javaMongoDBName;
-    private static String springMongoDBName;
-    public static String dbName;
+    private static String javaDBName;
+    private static String springDBName;
+    public static String javaDBNameWithVersion;
+    public static String springDBNameWithVersion;
 
     public static MongoClient client;
     public static Mongo springMongoClient;
@@ -42,8 +42,12 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     public MongoConverter converter;
     @Autowired
     public MongoTemplate mongoTemplate;
+
     @Autowired
+    // info1: 用例里面用的默认桶是mongodb自带的默认桶，非xml定义的桶
+    // info2: 此处为spring-mongodb-2.xml注入，bucket在xml文件定义，目前暂时没有用例用到，先保留后面看情况再做优化
     public GridFsTemplate gridFsTemplate;
+
     @Autowired
     public Config config;
     private Config springConfig;
@@ -63,10 +67,11 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
         javaMongoVersion = springConfig.getJavaMongoVersion();
         springMongoVersion = springConfig.getSpringMongoVersion();
 
-        javaMongoDBName = springConfig.getJavaDBName();
-        springMongoDBName = springConfig.getSpringDBName();
+        javaDBName = springConfig.getJavaDBName();
+        springDBName = springConfig.getSpringDBName();
 
-        dbName = javaMongoDBName + "_" + javaMongoVersion;
+        javaDBNameWithVersion = javaDBName + "_" + javaMongoVersion;
+        springDBNameWithVersion = springDBName + "_" + springMongoVersion;
 
         client = getClient( springConfig.getUrls(),
                 springMongoClient.getMongoOptions() );
@@ -135,15 +140,7 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      * @return
      */
     public static DB getDB( MongoClient client ) {
-        return client.getDB( dbName );
-    }
-
-    /**
-     * @Description: 获取默认mongodb数据库
-     * @return
-     */
-    public static DB getDataBase( MongoClient client ) {
-        return client.getDB( dbName );
+        return client.getDB( javaDBNameWithVersion );
     }
 
     /**
@@ -220,16 +217,7 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      */
     public void cleanEnv() throws UnknownHostException {
         try {
-            DB db = client.getDB( javaMongoDBName + "_" + javaMongoVersion );
-            db.dropDatabase();
-        } catch ( Exception e ) {
-            e.printStackTrace();
-            logger.error( e.getMessage() );
-        }
-
-        try {
-            DB db = springMongoClient
-                    .getDB( springMongoDBName + "_" + springMongoVersion );
+            DB db = client.getDB( javaDBNameWithVersion );
             db.dropDatabase();
         } catch ( Exception e ) {
             e.printStackTrace();

@@ -28,7 +28,8 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Insert21926 extends MongodbTestBase {
     private MongoDatabase db;
-    private String[] clNames = { "cl21926v3A", "cl21926v3B" };
+    private String[] clNames = { javaDBNameWithVersion + "_cl21926A",
+            javaDBNameWithVersion + "_cl21926B" };
 
     @BeforeClass
     public void setUp() throws UnknownHostException {

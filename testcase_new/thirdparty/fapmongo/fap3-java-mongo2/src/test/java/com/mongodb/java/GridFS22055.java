@@ -30,7 +30,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class GridFS22055 extends MongodbTestBase {
     private DB db;
-    private String bucketName = "bucket22055";
+    private String bucketName = javaDBNameWithVersion + "_bucket22055";
     private String[] expClNames = { bucketName + "." + "chunks",
             bucketName + "." + "files" };
 

@@ -1,5 +1,12 @@
 package com.mongodb.springdata;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.limit;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.skip;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,13 +32,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.utils.Entity;
 import com.mongodb.utils.MongodbTestBase;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.limit;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.skip;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
-
 /**
  * @Description seqDB-21930:aggregate操作
  * @author fanyu
@@ -39,7 +39,7 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort
  * @version 1.00
  */
 public class Aggregate21930 extends MongodbTestBase {
-    private String clName = "spring_cl21930";
+    private String clName = springDBNameWithVersion + "_cl21930";
     // 不能小于6
     private int num = 50;
     private List< Entity > list;

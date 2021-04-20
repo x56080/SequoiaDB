@@ -40,10 +40,10 @@ public class Authentication21934 extends MongodbTestBase {
     private MongoTemplate temp;
     private MongoTemplate temp1 = null;
     private MongoTemplate temp2 = null;
-    private String username1 = "mongo_springdata_21934_1";
-    private String username2 = "mongo_springdata_21934_2";
-    private String dbName = "mongo_springdata_21934";
-    private String clName = "cl21934";
+    private String username1 = springDBNameWithVersion + "_21934_1";
+    private String username2 = springDBNameWithVersion + "_21934_2";
+    private String dbName = springDBNameWithVersion + "_21934";
+    private String clName = springDBNameWithVersion + "_cl21934";
     private int recordsNum = 6;
     private List< Entity > records;
     private boolean runSuccess = false;

@@ -38,8 +38,8 @@ public class GridFS22022 extends MongodbTestBase {
     private GridFsTemplate gridFsTemplate1;
     private GridFsTemplate gridFsTemplate2;
     private String fileNameBase = "fs22022-";
-    private String bucketName1 = "bucket22022A";
-    private String bucketName2 = "bucket22022B";
+    private String bucketName1 = springDBNameWithVersion + "_bucket22022A";
+    private String bucketName2 = springDBNameWithVersion + "_bucket22022B";
     private int fileNum = 20;
     private File localPath;
     private List< byte[] > bytesList = new ArrayList<>();

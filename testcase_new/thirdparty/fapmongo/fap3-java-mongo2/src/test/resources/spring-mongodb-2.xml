@@ -41,7 +41,7 @@
           class="org.springframework.data.mongodb.gridfs.GridFsTemplate">
         <constructor-arg ref="mongoDbFactory" />
         <constructor-arg ref="converter" />
-        <constructor-arg type="String" value="bucket"/>
+        <constructor-arg type="String" value="mongodb_gridfs_bucket"/>
     </bean>
 
     <bean id="config" class="com.mongodb.utils.Config" lazy-init="true">

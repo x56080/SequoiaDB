@@ -28,7 +28,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Update21928 extends MongodbTestBase {
     private DB db;
-    private String clName = "cl21928";
+    private String clName = javaDBNameWithVersion + "_cl21928";
     private DBCollection cl;
     // 不能小于30
     private int num = 30;

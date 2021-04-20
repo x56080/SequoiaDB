@@ -1,5 +1,7 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.eq;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,8 +28,6 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.ValidationOptions;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.eq;
-
 /**
  * @Description seqDB-21924:增删改查集合
  * @author fanyu
@@ -36,7 +36,8 @@ import static com.mongodb.client.model.Filters.eq;
  */
 public class CrudCL21924 extends MongodbTestBase {
     private MongoDatabase db;
-    private String[] clNames = { "cl21924v3A", "cl21924v3B" };
+    private String[] clNames = { javaDBNameWithVersion + "_cl21924A",
+            javaDBNameWithVersion + "_cl21924B" };
 
     @BeforeClass
     public void setUp() throws UnknownHostException {
@@ -84,8 +85,8 @@ public class CrudCL21924 extends MongodbTestBase {
 
     @Test
     public void test2() {
-        String dbName = "db21924";
-        String clName = "cl21924test2";
+        String dbName = javaDBNameWithVersion + "_db21924";
+        String clName = javaDBNameWithVersion + "_cl21924_test2";
         MongoDatabase db = client.getDatabase( dbName );
         MongoCollection< Document > cl = db.getCollection( clName );
         db.drop();

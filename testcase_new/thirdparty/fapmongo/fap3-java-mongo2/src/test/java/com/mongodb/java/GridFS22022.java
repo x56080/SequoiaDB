@@ -36,8 +36,8 @@ import com.mongodb.utils.TestTools;
 public class GridFS22022 extends MongodbTestBase {
     private DB db;
     private String fileNameBase = "fs22022-";
-    private String bucketName1 = "bucket22022A";
-    private String bucketName2 = "bucket22022B";
+    private String bucketName1 = javaDBNameWithVersion + "_bucket22022A";
+    private String bucketName2 = javaDBNameWithVersion + "_bucket22022B";
     private int fileNum = 20;
     private File localPath;
     private List< byte[] > bytesList = new ArrayList<>();

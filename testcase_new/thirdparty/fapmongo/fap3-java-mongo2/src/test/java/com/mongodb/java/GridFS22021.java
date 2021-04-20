@@ -38,7 +38,7 @@ public class GridFS22021 extends MongodbTestBase {
     private DB db;
     private File localPath;
     private String filNameBase = "fs22021";
-    private String bucketName = "bucket22021";
+    private String bucketName = javaDBNameWithVersion + "_bucket22021";
 
     @BeforeClass
     public void setUp() throws UnknownHostException {

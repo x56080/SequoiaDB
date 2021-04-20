@@ -23,7 +23,8 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class Insert21926 extends MongodbTestBase {
-    private String[] clNames = { "spring_cl21926A", "spring_cl21926B" };
+    private String[] clNames = { springDBNameWithVersion + "_cl21926A",
+            springDBNameWithVersion + "_cl21926B" };
 
     @BeforeClass
     public void setUp() {

@@ -1,5 +1,10 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Updates.inc;
+import static com.mongodb.client.model.Updates.set;
+
 import java.math.BigDecimal;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -43,11 +48,6 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Updates.inc;
-import static com.mongodb.client.model.Updates.set;
-
 /**
  * @Description seqDB-22419:数据类型测试
  * @author fanyu
@@ -56,8 +56,8 @@ import static com.mongodb.client.model.Updates.set;
  */
 public class AllDataType22419 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName1 = "cl22419A";
-    private String clName2 = "cl22419B";
+    private String clName1 = javaDBNameWithVersion + "_cl22419A";
+    private String clName2 = javaDBNameWithVersion + "_cl22419B";
 
     @BeforeClass
     public void setUp() throws UnknownHostException {

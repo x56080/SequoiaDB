@@ -31,7 +31,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Find21927 extends MongodbTestBase {
     private DB db;
-    private String clName = "cl21927";
+    private String clName = javaDBNameWithVersion + "_cl21927";
     private DBCollection cl;
     // 不能小于20
     private int num = 20;

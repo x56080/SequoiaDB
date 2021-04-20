@@ -23,7 +23,7 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class Delete21929 extends MongodbTestBase {
-    private String clName = "spring_cl21929";
+    private String clName = springDBNameWithVersion + "_cl21929";
     // 不能小于10
     private int num = 10;
     private List< Entity > list;

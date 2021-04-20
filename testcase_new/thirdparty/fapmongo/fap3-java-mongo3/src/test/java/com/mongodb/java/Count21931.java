@@ -1,5 +1,8 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -22,9 +25,6 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-
 /**
  * @Description seqDB-21931:count操作
  * @author fanyu
@@ -33,7 +33,7 @@ import static com.mongodb.client.model.Filters.lt;
  */
 public class Count21931 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = "cl21931v3";
+    private String clName = javaDBNameWithVersion + "_cl21931";
     private MongoCollection< Document > cl;
     // 不能小于10
     private int num = 10;

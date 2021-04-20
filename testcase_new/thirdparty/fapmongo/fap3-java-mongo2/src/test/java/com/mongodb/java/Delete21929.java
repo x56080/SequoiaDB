@@ -27,7 +27,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Delete21929 extends MongodbTestBase {
     private DB db;
-    private String clName = "cl21929";
+    private String clName = javaDBNameWithVersion + "_cl21929";
     private DBCollection cl;
     // 不能小于10
     private int num = 10;

@@ -1,5 +1,15 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Projections.exclude;
+import static com.mongodb.client.model.Projections.excludeId;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,16 +32,6 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.gt;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.lt;
-import static com.mongodb.client.model.Projections.exclude;
-import static com.mongodb.client.model.Projections.excludeId;
-import static com.mongodb.client.model.Projections.fields;
-import static com.mongodb.client.model.Projections.include;
-
 /**
  * @Description: seqDB-21927:find操作 mongodb driver v3.2至v3.4
  *               find操作无hint相关接口，v3.5有hint​(@Nullable Bson
@@ -43,7 +43,7 @@ import static com.mongodb.client.model.Projections.include;
  */
 public class Find21927 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = "cl21927v3";
+    private String clName = javaDBNameWithVersion + "_cl21927";
     private MongoCollection< Document > cl;
     // 3的倍数，不能小于10
     private int num = 18;

@@ -39,10 +39,10 @@ public class Authentication21934 extends MongodbTestBase {
     private DB db = null;
     private DB db1 = null;
     private DB db2 = null;
-    private String username1 = "mongo_java_21934_1";
-    private String username2 = "mongo_java_21934_2";
-    private String dbName = "mongo_java_21934";
-    private String clName = "cl_21934";
+    private String username1 = javaDBNameWithVersion + "_21934_1";
+    private String username2 = javaDBNameWithVersion + "_21934_2";
+    private String dbName = javaDBNameWithVersion + "_21934";
+    private String clName = javaDBNameWithVersion + "_cl_21934";
     private int recordsNum = 30;
     private List< DBObject > records;
     private boolean runSuccess = false;

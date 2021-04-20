@@ -41,7 +41,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class Aggregate21930 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = "cl21930v3";
+    private String clName = javaDBNameWithVersion + "_cl21930";
     private MongoCollection< Document > cl;
     // 不能小于6
     private int num = 50;

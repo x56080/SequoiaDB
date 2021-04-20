@@ -1,5 +1,15 @@
 package com.mongodb.java;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Updates.inc;
+import static com.mongodb.client.model.Updates.set;
+import static com.mongodb.client.model.Updates.setOnInsert;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,16 +36,6 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.utils.MongodbTestBase;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.exists;
-import static com.mongodb.client.model.Filters.gt;
-import static com.mongodb.client.model.Filters.gte;
-import static com.mongodb.client.model.Filters.in;
-import static com.mongodb.client.model.Filters.lt;
-import static com.mongodb.client.model.Updates.inc;
-import static com.mongodb.client.model.Updates.set;
-import static com.mongodb.client.model.Updates.setOnInsert;
-
 /**
  * @Description seqDB-21928:update操作
  * @author fanyu
@@ -44,7 +44,7 @@ import static com.mongodb.client.model.Updates.setOnInsert;
  */
 public class Update21928 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clName = "cl21928v3";
+    private String clName = javaDBNameWithVersion + "_cl21928";
     private MongoCollection< Document > cl;
     // 不能小于30
     private int num = 30;

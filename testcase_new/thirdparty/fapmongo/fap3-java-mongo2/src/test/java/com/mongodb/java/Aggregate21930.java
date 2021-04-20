@@ -30,9 +30,8 @@ import com.mongodb.utils.MongodbTestBase;
  */
 
 public class Aggregate21930 extends MongodbTestBase {
-
     private DB db;
-    private String clName = "cl21930";
+    private String clName = javaDBNameWithVersion + "_cl21930";
     private DBCollection cl;
     // 不能小于6
     private int num = 6;

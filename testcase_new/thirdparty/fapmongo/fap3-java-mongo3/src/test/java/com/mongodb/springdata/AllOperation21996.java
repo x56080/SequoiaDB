@@ -30,7 +30,7 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class AllOperation21996 extends MongodbTestBase {
-    private String clNameBase = "spring_cl21996B";
+    private String clNameBase = springDBNameWithVersion + "_cl21996_";
     private AtomicInteger clNum = new AtomicInteger( 5 );
 
     @BeforeClass

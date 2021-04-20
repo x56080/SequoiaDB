@@ -29,7 +29,7 @@ import com.mongodb.utils.MongodbTestBase;
  * @version:1.0
  */
 public class Find21927 extends MongodbTestBase {
-    private String clName = "spring_cl21927";
+    private String clName = springDBNameWithVersion + "_cl21927";
     // 不能小于10
     private int num = 10;
     private List< Entity > list;

@@ -27,7 +27,7 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class AllOperation21996 extends MongodbTestBase {
-    private String clNameBase = "spring_cl21996B";
+    private String clNameBase = springDBNameWithVersion + "_cl21996_";
     private AtomicInteger clNum = new AtomicInteger( 5 );
 
     @BeforeClass
@@ -45,7 +45,7 @@ public class AllOperation21996 extends MongodbTestBase {
     }
 
     @SuppressWarnings("rawtypes")
-    @Test(dataProvider = "data-provider")
+    @Test(dataProvider = "data-provider", enabled = false) // jira-6529
     public void test( String clName, int recordNum ) {
         List< Entity > list = new ArrayList<>();
         for ( int i = 0; i < recordNum; i++ ) {

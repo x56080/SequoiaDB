@@ -28,10 +28,10 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
 
     public static String javaMongoVersion;
     public static String springMongoVersion;
-
-    private static String javaMongoDBName;
-    private static String springMongoDBName;
-    public static String dbName;
+    private static String javaDBName;
+    private static String springDBName;
+    public static String javaDBNameWithVersion;
+    public static String springDBNameWithVersion;
 
     public static MongoClient client;
     public static MongoClient springMongoClient;
@@ -56,10 +56,11 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
         javaMongoVersion = springConfig.getJavaMongoVersion();
         springMongoVersion = springConfig.getSpringMongoVersion();
 
-        javaMongoDBName = springConfig.getJavaDBName();
-        springMongoDBName = springConfig.getSpringDBName();
+        javaDBName = springConfig.getJavaDBName();
+        springDBName = springConfig.getSpringDBName();
 
-        dbName = javaMongoDBName + "_" + javaMongoVersion;
+        javaDBNameWithVersion = javaDBName + "_" + javaMongoVersion;
+        springDBNameWithVersion = springDBName + "_" + springMongoVersion;
 
         client = getClient( springConfig.getUrls(),
                 springMongoClient.getMongoClientOptions() );
@@ -116,22 +117,12 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
     }
 
     /**
-     * @Description: 获取默认的mongodb数据库
-     * @return
-     * @throws UnknownHostException
-     */
-    @SuppressWarnings("deprecation")
-    public static DB getDB( MongoClient client ) {
-        return client.getDB( dbName );
-    }
-
-    /**
      * @Description: 获取默认mongodb数据库
      * @return
      * @throws UnknownHostException
      */
     public static MongoDatabase getDataBase( MongoClient client ) {
-        return client.getDatabase( dbName );
+        return client.getDatabase( javaDBNameWithVersion );
     }
 
     /**
@@ -223,17 +214,8 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      */
     public void cleanEnv() throws UnknownHostException {
         try {
-            MongoDatabase db = client
-                    .getDatabase( javaMongoDBName + "_" + javaMongoVersion );
-            db.drop();
-        } catch ( Exception e ) {
-            e.printStackTrace();
-            logger.error( e.getMessage() );
-        }
-
-        try {
-            MongoDatabase db = springMongoClient.getDatabase(
-                    springMongoDBName + "_" + springMongoVersion );
+            MongoDatabase db = springMongoClient
+                    .getDatabase( springDBNameWithVersion );
             db.drop();
         } catch ( Exception e ) {
             e.printStackTrace();

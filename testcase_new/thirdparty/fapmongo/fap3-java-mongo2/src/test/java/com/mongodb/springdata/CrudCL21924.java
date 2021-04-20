@@ -34,7 +34,8 @@ import com.mongodb.utils.MongodbTestBase;
  * @version 1.00
  */
 public class CrudCL21924 extends MongodbTestBase {
-    private String[] clNames = { "spring_cl21924A", "spring_cl21924B" };
+    private String[] clNames = { springDBNameWithVersion + "_cl21924A",
+            springDBNameWithVersion + "_cl21924B" };
 
     @BeforeClass
     public void setUp() {
@@ -89,8 +90,8 @@ public class CrudCL21924 extends MongodbTestBase {
 
     @Test
     public void test2() throws UnknownHostException {
-        String dbName = "spring-db21924";
-        String clName = "spring-cl21924test2";
+        String dbName = springDBNameWithVersion + "_db21924";
+        String clName = springDBNameWithVersion + "_cl21924_test2";
         MongoTemplate mongoTemplate = new MongoTemplate( client, dbName );
         // cs和cl都不存在，执行insert、upsert、createIndex、createCL 操作,创建cs和cl
         autoCreate( mongoTemplate, clName );

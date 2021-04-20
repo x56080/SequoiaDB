@@ -28,7 +28,7 @@ import com.mongodb.utils.MongodbTestBase;
 
 public class Distinct21932 extends MongodbTestBase {
     private DB db;
-    private String clName = "cl21932";
+    private String clName = javaDBNameWithVersion + "_cl21932";
     private DBCollection cl;
     // 不能小于10
     private int num = 10;

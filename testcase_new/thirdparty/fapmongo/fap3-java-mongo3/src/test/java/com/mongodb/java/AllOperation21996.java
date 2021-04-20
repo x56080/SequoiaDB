@@ -21,9 +21,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -41,7 +38,7 @@ import com.mongodb.utils.MongodbTestBase;
  */
 public class AllOperation21996 extends MongodbTestBase {
     private MongoDatabase db;
-    private String clNameBase = "cl21996";
+    private String clNameBase = javaDBNameWithVersion + "_cl21996_";
     private AtomicInteger clNum = new AtomicInteger( 5 );
 
     @BeforeClass
@@ -63,88 +60,73 @@ public class AllOperation21996 extends MongodbTestBase {
                         10000 } };
     }
 
-    @SuppressWarnings("deprecation")
     @Test(dataProvider = "data-provider")
-    public void test( String clName, int recordNum ) {
-        MongoClient client1 = null;
-        try {
-            MongoClientOptions opt = MongoClientOptions.builder().build();
-            client1 = new MongoClient(
-                    new ServerAddress( config.getHost(), config.getPort() ),
-                    opt );
-            MongoDatabase db1 = client1.getDatabase( dbName );
-
-            List< Document > list = new ArrayList<>();
-            for ( int i = 0; i < recordNum; i++ ) {
-                list.add( new Document( "a", i ).append( "b", i )
-                        .append( "c", i ).append( "d", i )
-                        .append( "e", "aaaaaaaaaaaaaaaaaaaaaaaaaaa" ) );
-            }
-            MongoCollection< Document > cl = db1.getCollection( clName );
-            cl.insertMany( list );
-
-            // find
-            MongoCursor< Document > cursor1 = cl.find()
-                    .sort( Sorts.ascending( "a" ) ).iterator();
-            checkFindResult( cursor1, list );
-            cursor1.close();
-
-            // find limit 999
-            MongoCursor< Document > cursor2 = cl.find().limit( 999 )
-                    .sort( Sorts.ascending( "a" ) ).iterator();
-            checkFindResult( cursor2,
-                    list.subList( 0, Math.min( 999, recordNum ) ) );
-            cursor2.close();
-
-            // find limit 1000
-            MongoCursor< Document > cursor3 = cl.find().limit( 1000 )
-                    .sort( Sorts.ascending( "a" ) ).iterator();
-            checkFindResult( cursor3,
-                    list.subList( 0, Math.min( 1000, recordNum ) ) );
-            cursor3.close();
-
-            // find limit 1001
-            MongoCursor< Document > cursor4 = cl.find().limit( 1001 )
-                    .sort( Sorts.ascending( "a" ) ).iterator();
-            checkFindResult( cursor4,
-                    list.subList( 0, Math.min( 1001, recordNum ) ) );
-            cursor4.close();
-
-            // count
-            Assert.assertEquals( cl.count(), recordNum );
-            Assert.assertEquals(
-                    cl.count( and( gte( "a", recordNum / 2 ),
-                            lte( "a", recordNum ) ) ),
-                    recordNum - recordNum / 2 );
-
-            // distinct
-            List< Object > list1 = cl.distinct( "a", Integer.class )
-                    .into( new ArrayList<>() );
-            Assert.assertEquals( list1.size(), recordNum );
-
-            // update
-            UpdateResult result = cl.updateMany( new Document(),
-                    Updates.set( "b", recordNum ) );
-            Assert.assertEquals( result.getMatchedCount(), recordNum );
-            Assert.assertEquals( result.getModifiedCount(), recordNum );
-            Assert.assertNull( result.getUpsertedId() );
-            Assert.assertEquals( cl.count( eq( "b", recordNum ) ), recordNum );
-
-            // aggregate
-            Collection< Document > result1 = cl
-                    .aggregate(
-                            Arrays.asList(
-                                    Aggregates.match( and( lt( "a", recordNum ),
-                                            gte( "a", 0 ) ) ),
-                                    Aggregates.sort( Sorts.ascending( "a" ) ) ),
-                            Document.class )
-                    .into( new ArrayList< Document >() );
-            Assert.assertEquals( result1.size(), recordNum );
-        } finally {
-            if ( client1 != null )
-                client1.close();
-
+    public void test1( String clName, int recordNum ) {
+        List< Document > list = new ArrayList<>();
+        for ( int i = 0; i < recordNum; i++ ) {
+            list.add( new Document( "a", i ).append( "b", i ).append( "c", i )
+                    .append( "d", i )
+                    .append( "e", "aaaaaaaaaaaaaaaaaaaaaaaaaaa" ) );
         }
+        MongoCollection< Document > cl = db.getCollection( clName );
+        cl.insertMany( list );
+
+        // find
+        MongoCursor< Document > cursor1 = cl.find()
+                .sort( Sorts.ascending( "a" ) ).iterator();
+        checkFindResult( cursor1, list );
+        cursor1.close();
+
+        // find limit 999
+        MongoCursor< Document > cursor2 = cl.find().limit( 999 )
+                .sort( Sorts.ascending( "a" ) ).iterator();
+        checkFindResult( cursor2,
+                list.subList( 0, Math.min( 999, recordNum ) ) );
+        cursor2.close();
+
+        // find limit 1000
+        MongoCursor< Document > cursor3 = cl.find().limit( 1000 )
+                .sort( Sorts.ascending( "a" ) ).iterator();
+        checkFindResult( cursor3,
+                list.subList( 0, Math.min( 1000, recordNum ) ) );
+        cursor3.close();
+
+        // find limit 1001
+        MongoCursor< Document > cursor4 = cl.find().limit( 1001 )
+                .sort( Sorts.ascending( "a" ) ).iterator();
+        checkFindResult( cursor4,
+                list.subList( 0, Math.min( 1001, recordNum ) ) );
+        cursor4.close();
+
+        // count
+        Assert.assertEquals( cl.count(), recordNum );
+        Assert.assertEquals( cl.count(
+                and( gte( "a", recordNum / 2 ), lte( "a", recordNum ) ) ),
+                recordNum - recordNum / 2 );
+
+        // distinct
+        List< Object > list1 = cl.distinct( "a", Integer.class )
+                .into( new ArrayList<>() );
+        Assert.assertEquals( list1.size(), recordNum );
+
+        // update
+        UpdateResult result = cl.updateMany( new Document(),
+                Updates.set( "b", recordNum ) );
+        Assert.assertEquals( result.getMatchedCount(), recordNum );
+        Assert.assertEquals( result.getModifiedCount(), recordNum );
+        Assert.assertNull( result.getUpsertedId() );
+        Assert.assertEquals( cl.count( eq( "b", recordNum ) ), recordNum );
+
+        // aggregate
+        Collection< Document > result1 = cl
+                .aggregate(
+                        Arrays.asList(
+                                Aggregates.match( and( lt( "a", recordNum ),
+                                        gte( "a", 0 ) ) ),
+                                Aggregates.sort( Sorts.ascending( "a" ) ) ),
+                        Document.class )
+                .into( new ArrayList< Document >() );
+        Assert.assertEquals( result1.size(), recordNum );
     }
 
     private void checkFindResult( MongoCursor< Document > cursor,
