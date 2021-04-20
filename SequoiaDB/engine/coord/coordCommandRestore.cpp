@@ -1296,6 +1296,8 @@ INT32 coordCMDRestoreAbort::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    PD_TRACER_BEGIN(COORD_RESTOREABORT_EXE, &rc);
    _pMsg = pMsg;
    _cb = cb;
+   _buf = buf;
+
    if ((rc = _setRestoreInProgress(FALSE)))
    {
       PD_LOG(PDERROR, "Error setting restore state [rc=%d]", rc);
@@ -1324,6 +1326,8 @@ INT32 coordCMDRestorePrepare::execute(MsgHeader *pMsg, pmdEDUCB *cb,
    PD_TRACER_BEGIN(COORD_RESTOREPREPARE_EXE, &rc);
    _pMsg = pMsg;
    _cb = cb;
+   _buf = buf;
+
    if ((rc = _setRestoreInProgress(TRUE)))
    {
       // Error, unset RestoreInProgress
