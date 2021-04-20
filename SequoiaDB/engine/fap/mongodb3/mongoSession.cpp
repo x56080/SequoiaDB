@@ -192,7 +192,19 @@ INT32 _mongoSession::run()
          sessCtx.resetError() ;
          sessCtx.sessionName = sessionName() ;
 
-         rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx, _inBuffer ) ;
+         rc = mongoGetAndInitCommand( pMsg, &pCommand, sessCtx ) ;
+         if ( rc )
+         {
+            rc = _reply( pCommand, pMsg, rc, sessCtx.sessionName,
+                         sessCtx.errorObj ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Session[%s] failed to reply, rc: %d",
+                         sessionName(), rc ) ;
+            continue ;
+         }
+
+next:
+         rc = mongoBuildSdbMsg( &pCommand, sessCtx, _inBuffer ) ;
          if ( rc )
          {
             rc = _reply( pCommand, pMsg, rc, sessCtx.sessionName,
@@ -224,6 +236,25 @@ INT32 _mongoSession::run()
                   {
                      _isAuthed = TRUE ;
                   }
+               }
+
+               if ( SDB_OK != _replyHeader.flags || SDB_OK != rc )
+               {
+                  rc = _reply( pCommand, sessCtx ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Session[%s] failed to reply, rc: %d",
+                               sessionName(), rc ) ;
+                  continue ;
+               }
+
+               rc = mongoParseSdbReplyMsg( pCommand, _replyHeader, _contextBuff ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Session[%s] failed to parse sdb reply msg, rc: %d",
+                            sessionName(), rc ) ;
+
+               if ( !pCommand->hasProcessAllMsg() )
+               {
+                  goto next ;
                }
 
                rc = _reply( pCommand, sessCtx ) ;

@@ -753,19 +753,51 @@ _mongoCmdAssit::_mongoCmdAssit ( MONGO_CMD_NEW_FUNC pFunc )
    }
 }
 
+INT32 mongoBuildSdbMsg( _mongoCommand **ppCommand,
+                        mongoSessionCtx &sessCtx,
+                        msgBuffer &sdbMsg )
+{
+   SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
+
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      // build message
+      rc = (*ppCommand)->buildSdbMsg( sdbMsg, sessCtx ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build sdb message for command[%s], rc: %d",
+                   (*ppCommand)->name(), rc ) ;
+
+      PD_LOG( PDDEBUG, "Init and build sdb msg[ tid: %d, session: %s, "
+              "command: %s, clFullName: %s ] down",
+              ossGetCurrentThreadID(),
+              sessCtx.sessionName.c_str(),
+              (*ppCommand)->name() ? (*ppCommand)->name() : "",
+              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "" ) ;
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Build command[%s] sdb msg exception: %s, rc: %d",
+              *ppCommand ? (*ppCommand)->name() : "", e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 static INT32 _mongoGetAndInitCommand( const CHAR *commandName,
                                       _mongoMessage *pMsg,
                                       _mongoCommand **ppCommand,
-                                      mongoSessionCtx &sessCtx,
-                                      msgBuffer &sdbMsg )
+                                      mongoSessionCtx &sessCtx )
 {
-   INT32 rc = SDB_OK ;
+   SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
 
-   if ( NULL == ppCommand )
-   {
-      rc = SDB_SYS ;
-      goto error ;
-   }
+   INT32 rc = SDB_OK ;
 
    try
    {
@@ -790,19 +822,6 @@ static INT32 _mongoGetAndInitCommand( const CHAR *commandName,
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to init command[%s], rc: %d",
                    (*ppCommand)->name(), rc ) ;
-
-      // build message
-      rc = (*ppCommand)->buildSdbMsg( sdbMsg, sessCtx ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to build sdb message for command[%s], rc: %d",
-                   (*ppCommand)->name(), rc ) ;
-
-      PD_LOG( PDDEBUG, "Init and build sdb msg[ tid: %d, session: %s, "
-              "command: %s, clFullName: %s ] down",
-              ossGetCurrentThreadID(),
-              sessCtx.sessionName.c_str(),
-              commandName ? commandName : "",
-              (*ppCommand)->clFullName() ? (*ppCommand)->clFullName() : "" ) ;
    }
    catch ( std::exception &e )
    {
@@ -820,17 +839,12 @@ error:
 
 INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                               _mongoCommand **ppCommand,
-                              mongoSessionCtx &sessCtx,
-                              msgBuffer &sdbMsg )
+                              mongoSessionCtx &sessCtx )
 {
+   SDB_ASSERT( ppCommand != NULL , "ppCommand can't be NULL!" ) ;
+
    INT32 rc = SDB_OK ;
    _mongoMessage mongoMsg ;
-
-   if ( NULL == ppCommand )
-   {
-      rc = SDB_SYS ;
-      goto error ;
-   }
 
    rc = mongoMsg.init( pMsg ) ;
    PD_RC_CHECK( rc, PDERROR,
@@ -862,8 +876,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
          commandName = MONGO_CMD_NAME_QUERY ;
       }
 
-      rc = _mongoGetAndInitCommand( commandName, &req,
-                                    ppCommand, sessCtx, sdbMsg ) ;
+      rc = _mongoGetAndInitCommand( commandName, &req, ppCommand, sessCtx ) ;
       if ( rc )
       {
          goto error ;
@@ -878,7 +891,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                    rc ) ;
 
       rc = _mongoGetAndInitCommand( MONGO_CMD_NAME_GETMORE, &req,
-                                    ppCommand, sessCtx, sdbMsg ) ;
+                                    ppCommand, sessCtx ) ;
       if ( rc )
       {
          goto error ;
@@ -893,7 +906,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                    rc ) ;
 
       rc = _mongoGetAndInitCommand( MONGO_CMD_NAME_KILL_CURSORS, &req,
-                                    ppCommand, sessCtx, sdbMsg ) ;
+                                    ppCommand, sessCtx ) ;
       if ( rc )
       {
          goto error ;
@@ -908,7 +921,7 @@ INT32 mongoGetAndInitCommand( const CHAR *pMsg,
                    rc ) ;
 
       rc = _mongoGetAndInitCommand( req.commandName(), &req,
-                                    ppCommand, sessCtx, sdbMsg ) ;
+                                    ppCommand, sessCtx ) ;
       if ( rc )
       {
          goto error ;
@@ -927,18 +940,43 @@ error:
    goto done ;
 }
 
+INT32 mongoParseSdbReplyMsg( _mongoCommand *pCommand,
+                             const MsgOpReply &sdbReply,
+                             engine::rtnContextBuf &replyBuf )
+{
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
+
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      rc = pCommand->parseSdbReplyMsg( sdbReply, replyBuf ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse sdb reply msg, rc: %d",
+                   rc ) ;
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Parse sdb reply msg exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 mongoPostRunCommand( _mongoCommand *pCommand,
                            const MsgOpReply &sdbReply,
                            engine::rtnContextBuf &replyBuf,
                            _mongoResponseBuffer &headerBuf )
 {
-   INT32 rc = SDB_OK ;
+   SDB_ASSERT( pCommand != NULL , "pCommand can't be NULL!" ) ;
 
-   if ( NULL == pCommand )
-   {
-      rc = SDB_SYS ;
-      goto error ;
-   }
+   INT32 rc = SDB_OK ;
 
    try
    {
@@ -1519,13 +1557,27 @@ INT32 _mongoDeleteCommand::buildSdbMsg( msgBuffer &sdbMsg,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_DELETES, rc ) ;
 
-   PD_CHECK( 1 == objList.nFields() && Object == objList.firstElement().type(),
-             SDB_INVALIDARG, error, PDERROR,
-             "Invalid object[%s] in mongo %s request",
-             _obj.toString().c_str(), name() ) ;
+   if ( !_hasBuildMsgVec )
+   {
+      BSONObjIterator itr( objList ) ;
+      while( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+         if ( Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid deletes field. The type of element in "
+                    "deletes must be Object, rc: %d", rc ) ;
+            goto error ;
+         }
+         _msgVec.push_back( ele ) ;
+      }
+      _hasBuildMsgVec = TRUE ;
+   }
 
-   deleteObj = objList.firstElement().Obj() ;
+   deleteObj = _msgVec[_msgIndex++].embeddedObject() ;
    qObj = deleteObj.getObjectField( "q" ) ;
+   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
 
    if ( 1 == deleteObj.getIntField( "limit" ) )
    {
@@ -1548,6 +1600,51 @@ error:
    goto done ;
 }
 
+INT32 _mongoDeleteCommand::parseSdbReplyMsg( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObj resObj( bodyBuf.data() ) ;
+
+         BSONObjIterator itr( resObj ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+
+            if ( 0 == ossStrcmp( "DeletedNum", ele.fieldName() ) )
+            {
+               if ( !ele.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "the type of DeletedNum field must be "
+                          "number, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               _deletedNum += ele.numberLong() ;
+            }
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Parse delete sdb reply msg exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
                                        engine::rtnContextBuf &bodyBuf,
                                        _mongoResponseBuffer &headerBuf )
@@ -1556,9 +1653,7 @@ INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
         SDB_DMS_NOTEXIST == sdbReply.flags )
    {
       // reply: { n: 1, ok: 1 }
-      BSONObj resObj( bodyBuf.data() ) ;
       BSONObjBuilder bob ;
-
       bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
       if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
@@ -1568,11 +1663,7 @@ INT32 _mongoDeleteCommand::buildReply( const MsgOpReply &sdbReply,
       }
       else
       {
-         BSONElement e = resObj.getField( "DeletedNum" ) ;
-         if ( e.isNumber() )
-         {
-            bob.append( "n", e.numberLong() ) ;
-         }
+         bob.append( "n", (INT32)_deletedNum ) ;
       }
 
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
@@ -1612,22 +1703,36 @@ INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
    sdbMsg.write( _clFullName.c_str(), update->nameLength + 1, TRUE ) ;
 
    // { update: "bar",
-   //   updates: [ { q: {xxx}, u: {xxx}, upsert: false, multi: true } ] }
+   //   updates: [ { q: {xxx}, u: {xxx}, upsert: false, multi: true } ... ] }
    rc = getArrayElement( _obj, FAP_MONGO_FIELD_NAME_UPDATES, objList ) ;
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_UPDATES, rc ) ;
 
-   PD_CHECK( 1 == objList.nFields() && Object == objList.firstElement().type(),
-             SDB_INVALIDARG, error, PDERROR,
-             "Invalid object[%s] in mongo %s request",
-             _obj.toString().c_str(), name() ) ;
+   if ( !_hasBuildMsgVec )
+   {
+      BSONObjIterator itr( objList ) ;
+      while( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+         if ( Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid updates field. The type of element in "
+                    "updates must be Object, rc: %d", rc ) ;
+            goto error ;
+         }
+         _msgVec.push_back( ele ) ;
+      }
+      _hasBuildMsgVec = TRUE ;
+   }
 
-   updateObj   = objList.firstElement().Obj() ;
+   updateObj   = _msgVec[_msgIndex++].embeddedObject() ;
    query       = updateObj.getObjectField( "q" ) ;
    updator     = updateObj.getObjectField( "u" ) ;
    updateMulti = updateObj.getBoolField( "multi" ) ;
    _isUpsert   = updateObj.getBoolField( "upsert" ) ;
+   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
 
    // set flag
    if ( FALSE == updateMulti )
@@ -1655,6 +1760,7 @@ INT32 _mongoUpdateCommand::buildSdbMsg( msgBuffer &sdbMsg,
    // upsert operation requires _id to return
    if ( _isUpsert )
    {
+      _idObj = BSONObj() ;
       // get the _id from the query condition or the update condition
       rc = _getId( query, updator, ctx, _idObj ) ;
       if ( rc )
@@ -1711,6 +1817,80 @@ error:
    goto done ;
 }
 
+INT32 _mongoUpdateCommand::parseSdbReplyMsg( const MsgOpReply &sdbReply,
+                                             engine::rtnContextBuf &bodyBuf )
+{
+   INT32 rc = SDB_OK ;
+
+   try
+   {
+      if ( SDB_OK == sdbReply.flags )
+      {
+         BSONObj resObj( bodyBuf.data() ) ;
+
+         BSONObjIterator itr( resObj ) ;
+         while( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+
+            if ( 0 == ossStrcmp( ele.fieldName(), "InsertedNum" ) )
+            {
+               if ( !ele.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "the type of InsertedNum field must be "
+                          "number, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               if ( ele.numberLong() >= 1 )
+               {
+                  _idObjMap[_msgIndex-1] = _idObj ;
+               }
+
+               _insertedNum += ele.Long() ;
+            }
+            else  if ( 0 == ossStrcmp( ele.fieldName(), "UpdatedNum" ) )
+            {
+               if ( !ele.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "the type of UpdatedNum field must be "
+                          "number, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               _updatedNum += ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), "ModifiedNum" ) )
+            {
+               if ( !ele.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "the type of ModifiedNum field must be "
+                          "number, rc: %d", rc ) ;
+                  goto error ;
+               }
+
+               _modifiedNum += ele.numberLong() ;
+            }
+         }
+      }
+   }
+   catch( std::exception &e )
+   {
+      rc = ossException2RC( &e ) ;
+      PD_LOG( PDERROR, "Parse update sdb reply msg exception: %s, rc: %d",
+              e.what(), rc ) ;
+      goto error ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 _mongoUpdateCommand::buildReply( const MsgOpReply &sdbReply,
                                        engine::rtnContextBuf &bodyBuf,
                                        _mongoResponseBuffer &headerBuf )
@@ -1720,35 +1900,36 @@ INT32 _mongoUpdateCommand::buildReply( const MsgOpReply &sdbReply,
       // update reply: { ok: 1, n: 1, nModified: 1 }
       // upsert reply: { ok: 1, n: 1, nModified: 0,
       //                 upserted: [ { index: 0, _id: xxx } ] }
-      BSONObj resObj( bodyBuf.data() ) ;
       BSONObjBuilder bob ;
-
       bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
 
       //n
-      if ( resObj.hasField( "InsertedNum" ) &&
-           resObj.getIntField( "InsertedNum" ) > 0 )
+      if ( _insertedNum > 0 )
       {
-         bob.append( "n", resObj.getIntField( "InsertedNum" ) ) ;
+         bob.append( "n", (INT32)(_insertedNum + _updatedNum) ) ;
       }
-      else if ( resObj.hasField( "UpdatedNum" ) )
+      else
       {
-         bob.append( "n", resObj.getIntField( "UpdatedNum" ) ) ;
+         bob.append( "n", (INT32)_updatedNum ) ;
       }
 
       //nModified
-      if ( resObj.hasField( "ModifiedNum" ) )
-      {
-         bob.append( "nModified", resObj.getIntField( "ModifiedNum" ) ) ;
-      }
+      bob.append( "nModified", (INT32)_modifiedNum ) ;
 
       //upserted
-      if ( resObj.hasField( "InsertedNum" ) &&
-           resObj.getIntField( "InsertedNum" ) > 0 )
+      if ( _insertedNum > 0 )
       {
          BSONArrayBuilder sub( bob.subarrayStart( "upserted" ) ) ;
-         sub.append( BSON( "index" << 0 <<
-                           "_id" << _idObj.getField( "_id" ) ) ) ;
+
+         ossPoolMap<INT32, BSONObj>::iterator iter ;
+         iter = _idObjMap.begin() ;
+         while( iter != _idObjMap.end() )
+         {
+            sub.append( BSON( "index" << iter->first <<
+                              "_id" << iter->second.getField( "_id" ) ) ) ;
+            iter++ ;
+         }
+
          sub.done() ;
       }
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
@@ -3563,11 +3744,27 @@ INT32 _mongoCreateIdxCommand::buildSdbMsg( msgBuffer &sdbMsg,
    PD_RC_CHECK( rc, PDERROR,
                 "Failed to get field[%s], rc: %d",
                 FAP_MONGO_FIELD_NAME_INDEXES, rc ) ;
-   PD_CHECK( 1 == objList.nFields() && Object == objList.firstElement().type(),
-             SDB_INVALIDARG, error, PDERROR,
-             "Invalid object[%s] in mongo %s request",
-             _obj.toString().c_str(), name() ) ;
-   obj = objList.firstElement().Obj() ;
+
+   if ( !_hasBuildMsgVec )
+   {
+      BSONObjIterator itr( objList ) ;
+      while( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+         if ( Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid indexes field. The type of element in "
+                    "indexes must be Object, rc: %d", rc ) ;
+            goto error ;
+         }
+         _msgVec.push_back( ele ) ;
+      }
+      _hasBuildMsgVec = TRUE ;
+   }
+
+   obj = _msgVec[_msgIndex++].embeddedObject() ;
+   _hasProcessAllMsg = ( _msgIndex >= _msgVec.size() ) ;
 
    {
    // mongo unique index => sequoiadb unique enforce index
