@@ -223,5 +223,13 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
             e.printStackTrace();
             logger.error( e.getMessage() );
         }
+
+        try {
+            DB db = springMongoClient.getDB( springDBNameWithVersion );
+            db.dropDatabase();
+        } catch ( Exception e ) {
+            e.printStackTrace();
+            logger.error( e.getMessage() );
+        }
     }
 }

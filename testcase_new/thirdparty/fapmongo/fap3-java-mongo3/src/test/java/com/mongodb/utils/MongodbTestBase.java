@@ -214,6 +214,14 @@ public class MongodbTestBase extends AbstractTestNGSpringContextTests {
      */
     public void cleanEnv() throws UnknownHostException {
         try {
+            MongoDatabase db = client.getDatabase( javaDBNameWithVersion );
+            db.drop();
+        } catch ( Exception e ) {
+            e.printStackTrace();
+            logger.error( e.getMessage() );
+        }
+
+        try {
             MongoDatabase db = springMongoClient
                     .getDatabase( springDBNameWithVersion );
             db.drop();
