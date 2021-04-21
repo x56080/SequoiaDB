@@ -5,7 +5,7 @@ CreateTime    : 2021.03.31
 LastEditTime  : 2021.04.21
 LastEditors   : XiaoNi Huang
 '''
-''' jira-6958
+
 #!/usr/bin/python3.5
 import bson
 import pymongo
@@ -286,4 +286,3 @@ class TestBulkWrite24055( utils.TestBase ):
       self.assertEqual( self.result.modified_count , modifiedCount )
       self.assertEqual( self.result.deleted_count , deletedCount )
       self.assertEqual( self.result.upserted_ids , upsertedIds )
-'''
