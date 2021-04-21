@@ -2,7 +2,7 @@
 Description   : seqDB-24058:创建/删除/自动创建database/collection
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.13
+LastEditTime  : 2021.04.21
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -114,3 +114,31 @@ class TestDBCL23058( utils.TestBase ):
       self.assertNotIn( self.dbName2, self.result )
       self.assertIn( self.dbName1, self.result )
 
+   def test_notexist_dataOper (self ):
+      # not exist db
+      self.client.drop_database( self.dbName1 )
+      # find
+      for doc in self.db1_cl1.find():
+         self.assertEqual( doc, null )
+      # count_documents
+      try:
+         self.db1_cl1.count_documents( {} )
+      except pymongo.errors.OperationFailure as e:
+         pass
+      except:
+         raise
+
+      # not exist cl
+      self.db1_cl1.insert_one( {'a':1} )
+      self.db1_cl1.drop()
+      # find
+      for doc in self.db1_cl1.find():
+         self.assertEqual( doc, null )
+      # count_documents
+      try:
+         self.db1_cl1.count_documents( {} )
+      except pymongo.errors.OperationFailure as e:
+         pass
+      except:
+         raise
+         
