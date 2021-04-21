@@ -388,6 +388,14 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 | lower_case_table_names | int32  | No  | Global          | 0       | 表名大小写策略，取 0 时，大小写敏感；取 1 时，所有表名均以小写存储；取 2 时，表名以原样存储，但以小写进行比较 |
 | join_cache_level       | int32  | Yes | Global,Session  | 8       | 连接缓存级别，取值为 [0,8]；如果级别设置为 0，表示不使用任何级别的连接算法；如果级别设置为 4，表示使用 4 或 4 以下级别（即可以使用 [0,4] 级别）的连接算法，其它取值同理<br>各级别对应的连接算法如下：<br>1：表示 Flat BNL <br>2：表示 Incremental BNL <br>3：表示 Flat BNLH <br>4：表示 Incremental BNLH <br>5：表示 Flat BKA <br>6：表示 Incremental BKA <br>7：表示 Flat BKAH <br>8：表示 Incremental BKAH<br> 上述算法可参考 [MariaDB 连接算法][Block_based_join_algorithms] |
 | optimizer_switch       | flagset| Yes | Global,Session | mrr=on,mrr_cost_based=off,<br>join_cache_incremental=on,<br>join_cache_hashed=on,<br>join_cache_bka=on,<br>optimize_join_buffer_size=on| 优化器开关，取值意义可参考[MariaDB 优化器开关][optimizer_switch]   |
+| transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别 |
+
+**transaction_isolation**
+
+该参数可以配置 MySQL 实例的事务隔离级别，具体参数含义和取值可参考 [MySQL 事务隔离级别配置][trans_isolation]。
+MySQL 实例会话会自动读取该配置值，设置连接到 SequoiaDB 的会话属性，来保证两者事务隔离级别的一致。
+3.2.x/3.4.x 系列 SequoiaDB 版本不支持 RR 隔离级别，因此，如果 MySQL 实例配置为 REPEATABLE-READ 隔离级别，
+连接到 SequoiaDB 的会话会自动降级到 READ-COMMITTED 事务隔离级别；
 
 > **Note:** 
 >
@@ -407,3 +415,4 @@ COMMENT [=] "[string,] sequoiadb:{ table_options:{...}[, auto_partition:<true|fa
 [sql_mode]:https://mariadb.com/kb/en/library/sql-mode/
 [optimizer_switch]:https://mariadb.com/kb/en/library/optimizer_switch/
 [Block_based_join_algorithms]:https://mariadb.com/kb/en/library/block-based-join-algorithms/
+[trans_isolation]:https://mariadb.com/kb/en/server-system-variables/#tx_isolation
