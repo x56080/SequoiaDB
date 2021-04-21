@@ -46,12 +46,22 @@ class TestDBCL23058( utils.TestBase ):
       self.cl_drop()
       
       self.client_drop_database()
+
+      self.dbcl_notexist_dataOper()
    
    def tearDown( self ):
       self.client.drop_database( self.dbName1 )
       self.client.drop_database( self.dbName2 )
     
    def auto_create_dbcl( self ):
+      # delete
+      try:
+         self.db1_cl1.delete_one( {} )
+      except pymongo.errors.OperationFailure as e:
+         pass
+      except:
+         raise
+
       # insert操作，自动创建 db / cl
       self.db1_cl1.insert_one( {'a':1} )
       self.assertEqual( self.db1_cl1.count_documents( {} ), 1 )
@@ -114,7 +124,7 @@ class TestDBCL23058( utils.TestBase ):
       self.assertNotIn( self.dbName2, self.result )
       self.assertIn( self.dbName1, self.result )
 
-   def test_notexist_dataOper (self ):
+   def dbcl_notexist_dataOper (self ):
       # not exist db
       self.client.drop_database( self.dbName1 )
       # find
