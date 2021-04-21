@@ -2,7 +2,7 @@
 Description   : seqDB-24074:find_one_and_update/replace/delete操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.13
+LastEditTime  : 2021.04.21
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -16,7 +16,7 @@ class TestFindOneAndXXX23074( utils.TestBase ):
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME
-      self.clName = 'pymongo_23074'
+      self.clName = 'pymongo_24074'
       # 创建client，获取cl对象
       self.db = self.client[ self.dbName ]
       self.cl = self.db[ self.clName ]

@@ -2,7 +2,7 @@
 Description   : seqDB-24067:去重
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.13
+LastEditTime  : 2021.04.21
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -16,7 +16,7 @@ class TestDistinct23067( utils.TestBase ):
    def setUp( self ):  
       # 初始化
       self.dbName = self.COMMDBNAME
-      self.clName = 'pymongo_23067'
+      self.clName = 'pymongo_24067'
       # 创建client，获取cl对象
       self.db = self.client[ self.dbName ]
       self.cl = self.db[ self.clName ]

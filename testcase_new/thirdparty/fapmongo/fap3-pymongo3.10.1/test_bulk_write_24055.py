@@ -2,7 +2,7 @@
 Description   : seqDB-24055:bulk_write批量执行多个操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.19
+LastEditTime  : 2021.04.21
 LastEditors   : XiaoNi Huang
 '''
 ''' jira-6958
@@ -18,7 +18,7 @@ class TestBulkWrite24055( utils.TestBase ):
    def setUp( self ):
       # 初始化
       self.dbName = self.COMMDBNAME
-      self.clName = 'pymongo_23055'
+      self.clName = 'pymongo_24055'
       # 创建client，获取cl对象
       self.db = self.client[ self.dbName ]
       self.cl = self.db[ self.clName ]
