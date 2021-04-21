@@ -108,8 +108,8 @@ class TestUpdater23064( utils.TestBase ):
          { "$set": { "a": 2 }, "$inc": { "b": 2 }, "$setOnInsert": { "c": 2 } }, True )
       self.assertEqual( self.result.matched_count, 0 )    
       
-      self.cursor = self.cl.find( {}, { "_id": 0, "a": 1, "b": 1, "c": 1 } ).sort( 'a' )
-      self.expDocs = [{'b': 1, 'a': 1}, {'c': 2, 'b': 2, 'a': 2}]
+      self.cursor = self.cl.find().sort( 'a' )
+      self.expDocs = [{'_id': 1, 'a': 1, 'b': 1}, {'_id': 2, 'a': 2, 'b': 2, 'c': 2}]
       self.checkCursor( self.cursor, self.expDocs )
 
       # doc exist, upsert:true
