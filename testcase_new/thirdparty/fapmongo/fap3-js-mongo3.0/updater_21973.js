@@ -71,8 +71,8 @@ function main ()
    var rc = cl.update( { "_id": 2 }, { "$set": { "a": 2 }, "$inc": { "b": 2 }, "$setOnInsert": { "c": 2 } }, { "upsert": true } );
    assert.eq( rc.nUpserted, 1 );
    // check results
-   var rc = cl.find( {}, { "_id": 0, "a": 1, "b": 1, "c": 1 } );
-   checkResults( rc, "[{\"a\":1,\"b\":1},{\"a\":2,\"b\":2,\"c\":2}]" );
+   var rc = cl.find();
+   checkResults( rc, ["[{\"_id\":1,\"a\":1,\"b\":1},{\"_id\":2,\"a\":2,\"b\":2,\"c\":2}]"] );
 
    // doc exist, upsert:true
    var rc = cl.update( { "a": 1 }, { "$set": { "a": 3 }, "$inc": { "b": 3 }, "$setOnInsert": { "notExist": 3 } }, { "upsert": true } );
