@@ -5053,7 +5053,8 @@ INT32 _mongoFindAndModifyCommand::buildSdbMsg( msgBuffer &sdbMsg,
                // { a: 1, b: 1 } ==> { "$replace": { a: 1, b: 1 } }
                BSONObjBuilder newUpdateBob ;
                newUpdateBob.append( FAP_MONGO_OPERATOR_REPLACE, _updater ) ;
-               subHintBob.append( FIELD_NAME_OP_UPDATE, newUpdateBob.done() ) ;
+               _updater = newUpdateBob.obj() ;
+               subHintBob.append( FIELD_NAME_OP_UPDATE, _updater ) ;
             }
             else
             {
