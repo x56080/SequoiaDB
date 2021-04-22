@@ -23,12 +23,49 @@ function main ()
 
 
    // $set
-   cl.insert( [{ "_id": 1, "a": 1, "b": 1 },
-   { "_id": 2, "a": 2, "b": 1 },
-   { "_id": 3, "a": 3, "b": 1 }] );
+   cl.insert( [
+      { "_id": 1, "a": 1, "b": 1 },
+      { "_id": 2, "a": 2, "b": 1 },
+      { "_id": 3, "a": 3, "b": 1 }] );
+   // multi: true
    var rc = cl.update( { "a": { "$in": [1, 2] } }, { "$set": { "b": "test", "c": 1 } }, { "multi": true } );
    assert.eq( rc, { "nMatched": 2, "nUpserted": 0, "nModified": 2 } );
    checkResults( cl.find(), "[{\"_id\":1,\"a\":1,\"b\":\"test\",\"c\":1},{\"_id\":2,\"a\":2,\"b\":\"test\",\"c\":1},{\"_id\":3,\"a\":3,\"b\":1}]" );
+
+   // upsert: true, matcher contain multi _id
+   var rc = cl.update( { "$or": [{ "_id": 1 }, { "_id": 4 }] }, { "$set": { "b": 2 } }, { "upsert": true } );
+   assert.eq( rc, { "nMatched": 1, "nUpserted": 0, "nModified": 1 } );
+   checkResults( cl.find( { "$or": [{ "_id": 1 }, { "_id": 4 }] } ), ["[{\"_id\":1,\"a\":1,\"b\":2,\"c\":1}]"] );
+
+   var rc = cl.update( { "$or": [{ "_id": 4 }, { "_id": 5 }] }, { "$set": { "b": 6 } }, { "upsert": true } );
+   assert.eq( JSON.stringify( rc ).indexOf( '"nMatched": 0, "nUpserted": 1, "nModified": 0, "_id": ObjectId' ), -1 )
+   checkResults( cl.find( {}, { "_id": 0 } ), "[{\"a\":1,\"b\":2,\"c\":1},{\"a\":2,\"b\":\"test\",\"c\":1},{\"a\":3,\"b\":1},{\"b\":6}]" );
+   cl.remove( { "b": 6 } )
+
+   // upsert: true, both matcher and selector contain _id, and _id is the same
+   var rc = cl.update( { "_id": 7 }, { "$set": { "_id": 7, "a": 7 } }, { "upsert": true } );
+   assert.eq( rc, { "nMatched": 0, "nUpserted": 1, "nModified": 0, "_id": 7 } );
+   checkResults( cl.find( { "a": 7 } ), "[{\"_id\":7,\"a\":7}]" );
+
+   // upsert: true, both matcher and selector contain _id, and _id is the different
+   var rc = cl.update( { "_id": 8 }, { "$set": { "_id": 9, "a": 9 } }, { "upsert": true } );
+   assert.eq( JSON.stringify( rc ).indexOf( '"code" : -6' ), -1 );
+
+   // upsert: true, matcher contain _id:[]
+   var rc = cl.update( { "_id": [] }, { "$set": { "_id": 10, "a": 10 } }, { "upsert": true } );
+   assert.eq( JSON.stringify( rc ).indexOf( '"code" : -6' ), -1 );
+
+   // upsert: true, matcher contain _id and normal field
+   var rc = cl.update( { "$or": [{ "_id": 11 }, { "a": 12 }] }, { "$set": { "b": 11 } }, { "upsert": true } );
+   assert.eq( JSON.stringify( rc ).indexOf( '"nMatched": 0, "nUpserted": 1, "nModified": 0, "_id": ObjectId' ), -1 );
+   checkResults( cl.find( {}, { "_id": 0 } ), "[{\"a\":1,\"b\":2,\"c\":1},{\"a\":2,\"b\":\"test\",\"c\":1},{\"a\":3,\"b\":1},{\"a\":7},{\"b\":11}]" );
+   cl.remove( { "b": 11 } )
+
+   // upsert: true, matcher is object
+   var rc = cl.update( { "_id": MaxKey() }, { "$set": { "b": 13 } }, { "upsert": true } );
+   assert.eq( JSON.stringify( rc ).indexOf( '"nMatched": 0, "nUpserted": 1, "nModified": 0, "_id": ObjectId' ), -1 );
+   checkResults( cl.find( {} ), "[{\"_id\":1,\"a\":1,\"b\":2,\"c\":1},{\"_id\":2,\"a\":2,\"b\":\"test\",\"c\":1},{\"_id\":3,\"a\":3,\"b\":1},{\"_id\":7,\"a\":7},{\"_id\":{\"$maxKey\":1},\"b\":13}]" );
+
    cl.remove( {} );
 
 
