@@ -5193,7 +5193,7 @@ INT32 _mongoFindAndModifyCommand::buildReply( const MsgOpReply &sdbReply,
 
          if ( hasRecordReturned )
          {
-            if ( _isUpsert && !_isReturnNew )
+            if ( _hasInsertRecord && !_isReturnNew )
             {
                resultBuilder.appendNull( FAP_MONGO_FIELD_NAME_VALUE ) ;
             }

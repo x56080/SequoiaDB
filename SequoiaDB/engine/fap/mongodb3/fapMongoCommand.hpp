@@ -998,7 +998,8 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
 {
    MONGO_DECLARE_CMD_AUTO_REGISTER()
    public:
-      _mongoFindAndModifyCommand() : _isUpsert( FALSE ), _isReturnNew( FALSE ) {}
+      _mongoFindAndModifyCommand() : _isUpsert( FALSE ), _isReturnNew( FALSE ),
+                                     _hasInsertRecord( FALSE ) {}
       virtual ~_mongoFindAndModifyCommand() {}
 
       virtual MONGO_CMD_TYPE type() const { return CMD_FINDANDMODIFY ; }
@@ -1015,6 +1016,10 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
       const BSONObj& getUpdater() { return _updater ; }
       BSONObj& getUpsertReturnRecord(){ return _upsertReturnRecord ; }
       BOOLEAN isUpsert() { return _isUpsert ; }
+      void    setHasInsertRecord( BOOLEAN hasInsertRecord )
+      {
+         _hasInsertRecord = hasInsertRecord ;
+      }
 
    private:
       BSONObj _cond ;
@@ -1022,6 +1027,7 @@ class _mongoFindAndModifyCommand : public _mongoCollectionCommand
       BOOLEAN _isUpsert ;
       BOOLEAN _isReturnNew ;
       BSONObj _upsertReturnRecord ;
+      BOOLEAN _hasInsertRecord ;
 } ;
 typedef _mongoFindAndModifyCommand mongoFindAndModifyCommand ;
 

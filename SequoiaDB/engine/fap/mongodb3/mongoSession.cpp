@@ -919,6 +919,7 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
          }
 
          _contextBuff = engine::rtnContextBuf( pCmd->getUpsertReturnRecord() ) ;
+         pCmd->setHasInsertRecord( TRUE ) ;
          break ;
       }
       else if ( SDB_OK == _replyHeader.flags )
