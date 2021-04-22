@@ -1934,6 +1934,15 @@ INT32 _mongoUpdateCommand::buildReply( const MsgOpReply &sdbReply,
       }
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
    }
+   else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+             SDB_DMS_NOTEXIST == sdbReply.flags )
+   {
+      BSONObjBuilder bob ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bob.append( "n", 0 ) ;
+      bob.append( "nModified", 0 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
@@ -3156,6 +3165,14 @@ INT32 _mongoCountCommand::buildReply( const MsgOpReply &sdbReply,
       bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
    }
+   else if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+             SDB_DMS_NOTEXIST == sdbReply.flags )
+   {
+      BSONObjBuilder bob ;
+      bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
+      bob.append( "n", 0 ) ;
+      bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
+   }
 
    _buildReplyCommon( sdbReply, bodyBuf, headerBuf ) ;
 
@@ -3402,8 +3419,16 @@ INT32 _mongoAggregateCommand::buildReply( const MsgOpReply &sdbReply,
    if ( _obj.hasField( "cursor" ) )
    {
       if ( SDB_OK      == sdbReply.flags ||
-           SDB_DMS_EOC == sdbReply.flags )
+           SDB_DMS_EOC == sdbReply.flags ||
+           SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+           SDB_DMS_NOTEXIST == sdbReply.flags )
       {
+         if ( SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+              SDB_DMS_NOTEXIST == sdbReply.flags )
+         {
+            bodyBuf = engine::rtnContextBuf() ;
+         }
+
          rc = _buildFirstBatch( sdbReply, bodyBuf ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to build first batch, rc: %d", rc ) ;
@@ -3430,7 +3455,9 @@ INT32 _mongoAggregateCommand::buildReply( const MsgOpReply &sdbReply,
 
          bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
       }
-      else if ( SDB_DMS_EOC == sdbReply.flags )
+      else if ( SDB_DMS_EOC == sdbReply.flags ||
+                SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+                SDB_DMS_NOTEXIST == sdbReply.flags )
       {
          bodyBuf = engine::rtnContextBuf( BSON( "result" << BSONArray() <<
                                                 FAP_MONGO_FIELD_NAME_OK <<
@@ -3525,7 +3552,9 @@ INT32 _mongoDistinctCommand::buildReply( const MsgOpReply &sdbReply,
       bob.append( FAP_MONGO_FIELD_NAME_OK, 1 ) ;
       bodyBuf = engine::rtnContextBuf( bob.obj() ) ;
    }
-   else if ( SDB_DMS_EOC == sdbReply.flags )
+   else if ( SDB_DMS_EOC == sdbReply.flags ||
+             SDB_DMS_CS_NOTEXIST == sdbReply.flags ||
+             SDB_DMS_NOTEXIST == sdbReply.flags )
    {
       bodyBuf = engine::rtnContextBuf( BSON( "values" << BSONArray() <<
                                              FAP_MONGO_FIELD_NAME_OK << 1 ) ) ;
