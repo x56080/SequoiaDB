@@ -12,7 +12,7 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to drop the specified data source. User need to ensure that no database objects are using the data source when dropping a data source.
+This function is used to drop the specified data source. Users need to ensure that no database object are using the datasource when dropping it. That is, the datasource is not associated with any collection space or collection. 
 
 ##PARAMETERS##
 

@@ -15,8 +15,10 @@ Sdb
 .SH DESCRIPTION
 .PP
 This function is used to drop the specified data source.
-User need to ensure that no database objects are using the data source when
-dropping a data source.
+Users need to ensure that no database object are using the datasource when
+dropping it.
+That is, the datasource is not associated with any collection space or
+collection.
 .SH PARAMETERS
 .PP
 Name ( \f[I]string，required\f[] )
