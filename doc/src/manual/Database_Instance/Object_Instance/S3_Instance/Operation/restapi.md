@@ -1,12 +1,15 @@
 
 本文档将介绍 SequoiaS3 支持的 Rest 接口。
 
-GET Service
-----
+## 桶API
+
+下述将介绍桶相关的接口。
+
+### GET Service
 
 查询用户创建的所有存储桶
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET / HTTP/1.1
@@ -15,7 +18,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息体中显示。
 
@@ -30,7 +33,7 @@ Authorization: authorization string
 | Name | 存储桶名称，属于 ListAllMyBucketsResult.Buckets.Bucket |
 | CreationDate | 存储桶创建时间，属于 ListAllMyBucketsResult.Buckets.Bucket |
 
-###示例###
+**示例**
 
 响应结果如下：
 
@@ -53,8 +56,7 @@ Authorization: authorization string
 </ListAllMyBucketsResult>
 ```
 
-PUT Bucket
-----
+### PUT Bucket
 
 创建存储桶
 
@@ -62,7 +64,7 @@ PUT Bucket
 >
 > 存储桶名需在整个系统内唯一，长度在 3~63 之间。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 PUT /bucketname HTTP/1.1
@@ -70,13 +72,12 @@ Host: ip:port
 Content-Length: length
 Date: date
 Authorization: authorization string
-
 <CreateBucketConfiguration>
   <LocationConstraint>Region</LocationConstraint>
 </CreateBucketConfiguration>
 ```
 
-### 请求元素 ###
+**请求元素**
 
 用户需要在请求消息体中使用 XML 形式指定存储桶创建的区域，如果不指定则存储桶创建在默认的区域上。
 
@@ -85,7 +86,7 @@ Authorization: authorization string
 | CreateBucketConfiguration | 包含 LocationConstraint |
 | LocationConstraint | 指定创建存储桶的区域，类型为 string |
 
-### 示例 ###
+**示例**
 
 响应结果如下：
 
@@ -97,12 +98,11 @@ Date: Fri, 16 Aug 2019 11:11:53 GMT
 ```
 
 
-DELETE Bucket
-----
+### DELETE Bucket
 
 删除存储桶
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 DELETE /bucketname HTTP/1.1
@@ -111,7 +111,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 示例 ###
+**示例**
 
 响应结果如下：
 
@@ -121,12 +121,11 @@ Date: Fri, 16 Aug 2019 10:11:53 GMT
 ```
 
 
-HEAD Bucket
-----
+### HEAD Bucket
 
 检查一个存储桶是否存在
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 HEAD /bucketname HTTP/1.1
@@ -135,7 +134,7 @@ Authorization: authorization string
 Host: ip:port
 ```
 
-### 示例 ###
+**示例**
 
 响应结果如下：
 
@@ -145,12 +144,11 @@ Date: Fri, 16 Aug 2019 10:10:53 GMT
 ```
 
 
-PUT Bucket versioning
-----
+### PUT Bucket versioning
 
 修改存储桶的版本控制状态
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 PUT /bucketname?versioning HTTP/1.1
@@ -164,13 +162,13 @@ Authorization: authorization string
 </VersioningConfiguration>
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | versioning | 表示该请求为修改存储桶的版本控制状态 |
 
-### 请求元素 ###
+**请求元素**
 
 在请求消息体中使用 XML 形式指定存储桶的版本控制状态。
 
@@ -179,7 +177,7 @@ Authorization: authorization string
 | VersioningConfiguration | 包含 Status |
 | Status | 版本控制状态，有效值为 Suspended\|Enabled，属于 VersioningConfiguration |
 
-### 示例 ###
+**示例**
 
 响应结果如下：
 
@@ -189,12 +187,11 @@ Date: Wed, 01 Mar  2006 12:00:00 GMT
 ```
 
 
-GET Bucket versioning
-----
+### GET Bucket versioning
 
 查询桶的版本控制状态
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname?versioning HTTP/1.1
@@ -204,7 +201,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息头中显示。
 
@@ -213,36 +210,35 @@ Authorization: authorization string
 | VersioningConfiguration | 包含 Status |
 | Status | 版本控制状态，有效值为 Suspended|Enabled，属于 VersioningConfiguration |
 
-### 示例 ###
+**示例**
 
 - 打开版本控制开关，查询结果如下：
 
-   ```lang-xml
-   <VersioningConfiguration>
-     <Status>Enabled</Status>
-   </VersioningConfiguration>
-   ```
+    ```lang-xml
+    <VersioningConfiguration>
+      <Status>Enabled</Status>
+    </VersioningConfiguration>
+    ```
 
 - 禁用版本控制，查询结果如下：
 
-   ```lang-xml
-   <VersioningConfiguration>
-     <Status>Suspended</Status>
-   </VersioningConfiguration>
-   ```
+    ```lang-xml
+    <VersioningConfiguration>
+      <Status>Suspended</Status>
+    </VersioningConfiguration>
+    ```
 
 - 从未开启或禁用过版本控制，查询结果如下：
 
-   ```lang-xml
-   <VersioningConfiguration/>
-   ```
+    ```lang-xml
+    <VersioningConfiguration/>
+    ```
 
-GET Bucket location
-----
+### GET Bucket location
 
 查询桶所在的区域
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname?location HTTP/1.1
@@ -251,7 +247,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 格式在响应消息体中显示。
 
@@ -259,27 +255,26 @@ Authorization: authorization string
 | ---- | ---- |
 | LocationConstraint | 桶所在的区域 |
 
-### 示例 ###
+**示例**
 
 - 已经配置了区域的存储桶，查询结果如下：
 
-   ```lang-xml
-   <LocationConstraint>region</LocationConstraint>
-   ```
+    ```lang-xml
+    <LocationConstraint>region</LocationConstraint>
+    ```
 
 - 未配置区域的存储桶，查询结果如下：
 
-   ```lang-xml
-   <LocationConstraint/>
-   ```
+    ```lang-xml
+    <LocationConstraint/>
+    ```
 
 
-GET Bucket (List Objects) Version 1
-----
+### GET Bucket (List Objects) Version 1
 
 查询存储桶内对象列表
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname HTTP/1.1
@@ -288,7 +283,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -298,7 +293,7 @@ Authorization: authorization string
 |max-keys | 设置响应中返回的最大键数，类型为 string，默认值为 1000，如果要查询返回数量少于 1000，可以填写其他值，填写超过 1000 的值，仍然按照  1000 条返回 | 
 | encoding-type | 响应结果编码类型，只支持 url，由于对象名称可以包含任意字符，但是 XML 对某些特别的字符无法解析，所以需要对响应中的对象名称进行编码 |
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息体中显示。
 
@@ -325,142 +320,141 @@ Authorization: authorization string
 | DisplayName | 桶所有者的名字，属于 ListBucketResult.Contents.Owner |
 
 
-### 示例 ###
+**示例**
 
 - 不携带查询条件，查询存储桶内所有记录
 
-   ```lang-rest
-   GET /bucketname HTTP/1.1
-   Host: ip:port
-   Date: date
-   Authorization: authorization string
-   ```
+    ```lang-rest
+    GET /bucketname HTTP/1.1
+    Host: ip:port
+    Date: date
+    Authorization: authorization string
+    ```
    
-   查询结果如下：
+    查询结果如下：
    
-   ```lang-xml
-   <ListBucketResult>
-       <Name>bucketname</Name>
-       <Prefix/>
-       <Marker/>
-       <MaxKeys>1000</MaxKeys>
-       <IsTruncated>false</IsTruncated>
-       <Contents>
-           <Key>my-image.jpg</Key>
-           <LastModified>2019-08-12T17:50:30.000Z</LastModified>
-           <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
-           <Size>434234</Size>
-           <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </Contents>
-       <Contents>
-          <Key>my-third-image.jpg</Key>
-            <LastModified>2019-08-12T17:51:30.000Z</LastModified>
-            <ETag>"1b2cf535f27731c974343645a3985328"</ETag>
-            <Size>64994</Size>
+    ```lang-xml
+    <ListBucketResult>
+        <Name>bucketname</Name>
+        <Prefix/>
+        <Marker/>
+        <MaxKeys>1000</MaxKeys>
+        <IsTruncated>false</IsTruncated>
+        <Contents>
+            <Key>my-image.jpg</Key>
+            <LastModified>2019-08-12T17:50:30.000Z</LastModified>
+            <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
+            <Size>434234</Size>
             <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </Contents>
-   </ListBucketResult>
-   ```
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </Contents>
+        <Contents>
+           <Key>my-third-image.jpg</Key>
+             <LastModified>2019-08-12T17:51:30.000Z</LastModified>
+             <ETag>"1b2cf535f27731c974343645a3985328"</ETag>
+             <Size>64994</Size>
+             <Owner>
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </Contents>
+    </ListBucketResult>
+    ```
 
 - 本次请求指定 prefix 为 N，起始位置为 Ned，并只返回 100 条记录
 
-   ```lang-rest
-   GET /mybucket?prefix=N&marker=Ned&max-keys=100 HTTP/1.1
-   Host: iP:port
-   Date: date
-   Authorization: authorization string
-   ```
-   
-   查询结果如下：
-   
-   ```lang-xml
-   <ListBucketResult>
-     <Name>mybucket</Name>
-     <Prefix>N</Prefix>
-     <Marker>Ned</Marker>
-     <MaxKeys>100</MaxKeys>
-     <IsTruncated>false</IsTruncated>
-     <Contents>
-       <Key>Nelson</Key>
-       <LastModified>2019-08-12T12:00:00.000Z</LastModified>
-       <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
-       <Size>5</Size>
-       <Owner>
-         <ID>125664</ID>
-         <DisplayName>username</DisplayName>
+    ```lang-rest
+    GET /mybucket?prefix=N&marker=Ned&max-keys=100 HTTP/1.1
+    Host: iP:port
+    Date: date
+    Authorization: authorization string
+    ```
+    
+    查询结果如下：
+    
+    ```lang-xml
+    <ListBucketResult>
+      <Name>mybucket</Name>
+      <Prefix>N</Prefix>
+      <Marker>Ned</Marker>
+      <MaxKeys>100</MaxKeys>
+      <IsTruncated>false</IsTruncated>
+      <Contents>
+        <Key>Nelson</Key>
+        <LastModified>2019-08-12T12:00:00.000Z</LastModified>
+        <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
+        <Size>5</Size>
+        <Owner>
+          <ID>125664</ID>
+          <DisplayName>username</DisplayName>
+         </Owner>
+      </Contents>
+      <Contents>
+        <Key>Neo</Key>
+        <LastModified>2019-08-12T12:01:00.000Z</LastModified>
+        <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
+        <Size>4</Size>
+         <Owner>
+          <ID>125664</ID>
+          <DisplayName>username</DisplayName>
         </Owner>
      </Contents>
-     <Contents>
-       <Key>Neo</Key>
-       <LastModified>2019-08-12T12:01:00.000Z</LastModified>
-       <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
-       <Size>4</Size>
-        <Owner>
-         <ID>125664</ID>
-         <DisplayName>username</DisplayName>
-       </Owner>
-    </Contents>
-   </ListBucketResult>
-   ```
+    </ListBucketResult>
+    ```
 
 - 桶内已经有如下对象：
 
    ```lang-text
    sample.jpg
-   photos/2006/January/sample.jpg
-   photos/2006/February/sample2.jpg
-   photos/2006/February/sample3.jpg
-   photos/2006/February/sample4.jpg
-   ```
-   
-   本次请求携带分隔符/
-   
-   ```lang-test
-   GET /mybucket-2?delimiter=/ HTTP/1.1
-   Host: ip:port
-   Date: date
-   Authorization: authorization string
-   ```
-   
-   查询结果如下：
-   
-   ```lang-xml
-   <ListBucketResult>
-     <Name>mybucket-2</Name>
-     <Prefix/>
-     <Marker/>
-     <MaxKeys>1000</MaxKeys>
-     <Delimiter>/</Delimiter>
-     <IsTruncated>false</IsTruncated>
-     <Contents>
-       <Key>sample.jpg</Key>
-       <LastModified>2019-08-12T12:01:00.000Z</LastModified>
-       <ETag>"bf1d737a4d46a19f3bced6905cc8b902"</ETag>
-       <Size>142863</Size>
-       <Owner>
-         <ID>canonical-user-id</ID>
-         <DisplayName>display-name</DisplayName>
-       </Owner>
-     </Contents>
-     <CommonPrefixes>
-       <Prefix>photos/</Prefix>
-     </CommonPrefixes>
-   </ListBucketResult>
-   ```
+    photos/2006/January/sample.jpg
+    photos/2006/February/sample2.jpg
+    photos/2006/February/sample3.jpg
+    photos/2006/February/sample4.jpg
+    ```
+    
+    本次请求携带分隔符/
+    
+    ```lang-test
+    GET /mybucket-2?delimiter=/ HTTP/1.1
+    Host: ip:port
+    Date: date
+    Authorization: authorization string
+    ```
+    
+    查询结果如下：
+    
+    ```lang-xml
+    <ListBucketResult>
+      <Name>mybucket-2</Name>
+      <Prefix/>
+      <Marker/>
+      <MaxKeys>1000</MaxKeys>
+      <Delimiter>/</Delimiter>
+      <IsTruncated>false</IsTruncated>
+      <Contents>
+        <Key>sample.jpg</Key>
+        <LastModified>2019-08-12T12:01:00.000Z</LastModified>
+        <ETag>"bf1d737a4d46a19f3bced6905cc8b902"</ETag>
+        <Size>142863</Size>
+        <Owner>
+          <ID>canonical-user-id</ID>
+          <DisplayName>display-name</DisplayName>
+        </Owner>
+      </Contents>
+      <CommonPrefixes>
+        <Prefix>photos/</Prefix>
+      </CommonPrefixes>
+    </ListBucketResult>
+    ```
 
-
-GET Bucket (List Objects) Version 2
----
+### GET Bucket (List Objects) Version 2
 
 查询桶内对象列表
 
-### 请求语法 ###
+**请求语法**
+
 ```
 GET /bucketname?list-type=2 HTTP/1.1
 Host: ip:port
@@ -468,7 +462,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -481,7 +475,7 @@ Authorization: authorization string
 | continuation-token | 当响应结果被截断，还有部分未返回时，响应结果中会包含 NextContinuationToken，要列出下一组对象，可以使用 NextContinuationToken 下一个请求中的元素作为 continuation-token |
 | fetch-owner | 默认情况下，结果中不会返回 Owner 信息，如果要在响应中包含 Owner 信息，将该参数置为 true |
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息体中显示。
 
@@ -509,139 +503,137 @@ Authorization: authorization string
 | ID | 存储桶所有者的 ID，属于 ListBucketResult.Contents.Owner |
 | DisplayName | 桶所有者的名字，属于 ListBucketResult.Contents.Owner |
 
-### 示例 ###
+**示例**
 
 - 不携带查询条件，查询存储桶内所有记录
 
-   ```lang-rest
-   GET /bucketname?list-type=2 HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:51:00 GMT
-   Authorization: authorization string
-   ```
-   
-   查询结果如下：
-   
-   ```lang-xml
-   <ListBucketResult>
-       <Name>bucketname</Name>
-       <Prefix/>
-       <Marker/>
-       <KeyCount>205</KeyCount>
-       <MaxKeys>1000</MaxKeys>
-       <IsTruncated>false</IsTruncated>
-       <Contents>
-           <Key>my-image.jpg</Key>
-           <LastModified>2019-08-12T17:50:30.000Z</LastModified>
-           <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
-           <Size>434234</Size>
-           <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </Contents>
-       <Contents>
-          ...
-       </Contents>
-       ...
-   </ListBucketResult>
-   ```
+    ```lang-rest
+    GET /bucketname?list-type=2 HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:51:00 GMT
+    Authorization: authorization string
+    ```
+    
+    查询结果如下：
+    
+    ```lang-xml
+    <ListBucketResult>
+        <Name>bucketname</Name>
+        <Prefix/>
+        <Marker/>
+        <KeyCount>205</KeyCount>
+        <MaxKeys>1000</MaxKeys>
+        <IsTruncated>false</IsTruncated>
+        <Contents>
+            <Key>my-image.jpg</Key>
+            <LastModified>2019-08-12T17:50:30.000Z</LastModified>
+            <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
+            <Size>434234</Size>
+            <Owner>
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </Contents>
+        <Contents>
+           ...
+        </Contents>
+        ...
+    </ListBucketResult>
+    ```
 
 - 指定 prefix 为 N，起始位置为 Ned，并只返回 100 条记录
 
-   ```lang-rest
-   GET /mybucket?list-type=2&prefix=N&start-after=Ned&max-keys=100 HTTP/1.1
-   Host: iP:port
-   Date: Sat, 17 Aug 2019 17:45:00 GMT
-   Authorization: authorization string
-   ```
-   
-   查询结果如下，实际查询到两条符合条件的记录：
-   
-   ```lang-xml
-   <ListBucketResult>
-     <Name>mybucket</Name>
-     <Prefix>N</Prefix>
-     <Marker>Ned</Marker>
-     <KeyCount>2</KeyCount>
-     <MaxKeys>100</MaxKeys>
-     <IsTruncated>false</IsTruncated>
-     <Contents>
-       <Key>Nelson</Key>
-       <LastModified>2019-08-12T12:00:00.000Z</LastModified>
-       <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
-       <Size>5</Size>
-       <Owner>
-         <ID>125664</ID>
-         <DisplayName>username</DisplayName>
+    ```lang-rest
+    GET /mybucket?list-type=2&prefix=N&start-after=Ned&max-keys=100 HTTP/1.1
+    Host: iP:port
+    Date: Sat, 17 Aug 2019 17:45:00 GMT
+    Authorization: authorization string
+    ```
+    
+    查询结果如下，实际查询到两条符合条件的记录：
+    
+    ```lang-xml
+    <ListBucketResult>
+      <Name>mybucket</Name>
+      <Prefix>N</Prefix>
+      <Marker>Ned</Marker>
+      <KeyCount>2</KeyCount>
+      <MaxKeys>100</MaxKeys>
+      <IsTruncated>false</IsTruncated>
+      <Contents>
+        <Key>Nelson</Key>
+        <LastModified>2019-08-12T12:00:00.000Z</LastModified>
+        <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
+        <Size>5</Size>
+        <Owner>
+          <ID>125664</ID>
+          <DisplayName>username</DisplayName>
+         </Owner>
+      </Contents>
+      <Contents>
+        <Key>Neo</Key>
+        <LastModified>2019-08-12T12:01:00.000Z</LastModified>
+        <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
+        <Size>4</Size>
+         <Owner>
+          <ID>125664</ID>
+          <DisplayName>username</DisplayName>
         </Owner>
      </Contents>
-     <Contents>
-       <Key>Neo</Key>
-       <LastModified>2019-08-12T12:01:00.000Z</LastModified>
-       <ETag>"828ef3fdfa96f00ad9f27c383fc9ac7f"</ETag>
-       <Size>4</Size>
-        <Owner>
-         <ID>125664</ID>
-         <DisplayName>username</DisplayName>
-       </Owner>
-    </Contents>
-   </ListBucketResult>
-   ```
+    </ListBucketResult>
+    ```
 
 - 桶内已经有如下对象
 
    ```lang-text
    sample.jpg
    photos/2006/January/sample.jpg
-   photos/2006/February/sample2.jpg
-   photos/2006/February/sample3.jpg
-   photos/2006/February/sample4.jpg
-   ```
-   
-   本次请求携带分隔符/
-   
-   ```lang-rest
-   GET /mybucket-2?list-type=2&delimiter=/ HTTP/1.1
-   Host: ip:port
-   Date: date
-   Authorization: authorization string
-   ```
-   
-   查询结果如下：
-   
-   ```lang-xml
-   <ListBucketResult>
-     <Name>mybucket-2</Name>
-     <Prefix/>
-     <Marker/>
-     <KeyCount>2</KeyCount>
-     <MaxKeys>1000</MaxKeys>
-     <Delimiter>/</Delimiter>
-     <IsTruncated>false</IsTruncated>
-     <Contents>
-       <Key>sample.jpg</Key>
-       <LastModified>2019-08-12T12:01:00.000Z</LastModified>
-       <ETag>"bf1d737a4d46a19f3bced6905cc8b902"</ETag>
-       <Size>142863</Size>
-       <Owner>
-         <ID>canonical-user-id</ID>
-         <DisplayName>display-name</DisplayName>
-       </Owner>
-     </Contents>
-     <CommonPrefixes>
-       <Prefix>photos/</Prefix>
-     </CommonPrefixes>
-   </ListBucketResult>
-   ```
+    photos/2006/February/sample2.jpg
+    photos/2006/February/sample3.jpg
+    photos/2006/February/sample4.jpg
+    ```
+    
+    本次请求携带分隔符/
+    
+    ```lang-rest
+    GET /mybucket-2?list-type=2&delimiter=/ HTTP/1.1
+    Host: ip:port
+    Date: date
+    Authorization: authorization string
+    ```
+    
+    查询结果如下：
+    
+    ```lang-xml
+    <ListBucketResult>
+      <Name>mybucket-2</Name>
+      <Prefix/>
+      <Marker/>
+      <KeyCount>2</KeyCount>
+      <MaxKeys>1000</MaxKeys>
+      <Delimiter>/</Delimiter>
+      <IsTruncated>false</IsTruncated>
+      <Contents>
+        <Key>sample.jpg</Key>
+        <LastModified>2019-08-12T12:01:00.000Z</LastModified>
+        <ETag>"bf1d737a4d46a19f3bced6905cc8b902"</ETag>
+        <Size>142863</Size>
+        <Owner>
+          <ID>canonical-user-id</ID>
+          <DisplayName>display-name</DisplayName>
+        </Owner>
+      </Contents>
+      <CommonPrefixes>
+        <Prefix>photos/</Prefix>
+      </CommonPrefixes>
+    </ListBucketResult>
+    ```
 
-
-GET Bucket Object versions
-----
+### GET Bucket Object versions
 
 查询桶内对象的所有版本
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname?versions HTTP/1.1
@@ -650,7 +642,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -661,8 +653,7 @@ Authorization: authorization string
 | max-keys | 设置响应中返回的最大键数，类型为 string，默认值 1000，如果要查询返回数量少于 1000，可以填写其他值，填写超过 1000 的值，仍然按照 1000 条返回  |
 | encoding-type | 响应结果编码类型，只支持 url，由于对象名称可以包含任意字符，但是 XML 对某些特别的字符无法解析，所以需要对响应中的对象名称进行编码 |
 
-
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息体中显示。
 
@@ -693,111 +684,110 @@ Authorization: authorization string
 | ID | 存储桶所有者的 ID，属于 ListVersionsResult.Version.Owner\|ListVersionsResult.DeleteMarker.Owner |
 | DisplayName | 桶所有者的名字，属于 ListVersionsResult.Version.Owner\|ListVersionsResult.DeleteMarker.Owner |
 
-### 示例 ###
+**示例**
 
 - 查询存储桶内所有版本
 
-   ```lang-rest
-   GET /bucketname?versions HTTP/1.1
-   Host: ip:port
-   Date: date
-   Authorization: authorization string
-   ```
-   
-   查询结果如下：
-   
-   ```lang-xml
-   <ListVersionsResult>
-       <Name>bucket</Name>
-       <Prefix>my</Prefix>
-       <KeyMarker/>
-       <VersionIdMarker/>
-       <MaxKeys>1000</MaxKeys>
-       <IsTruncated>false</IsTruncated>
-       <Version>
-           <Key>my-image.jpg</Key>
-           <VersionId>234</VersionId>
-           <IsLatest>true</IsLatest>
-           <LastModified>2019-08-16T17:50:32.000Z</LastModified>
-           <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
-           <Size>434234</Size>
-           <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </Version>
-       <DeleteMarker>
-           <Key>my-second-image.jpg</Key>
-           <VersionId>55566666</VersionId>
-           <IsLatest>true</IsLatest>
-           <LastModified>2019-08-16T17:50:31.000Z</LastModified>
-           <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </DeleteMarker>
-       <Version>
-           <Key>my-second-image.jpg</Key>
-           <VersionId>45667</VersionId>
-           <IsLatest>false</IsLatest>
-           <LastModified>2019-08-16T17:50:30.000Z</LastModified>
-           <ETag>"9b2cf535f27731c974343645a3985328"</ETag>
-           <Size>166434</Size>
-           <Owner>
-               <ID>125664</ID>
-               <DisplayName>username</DisplayName>
-           </Owner>
-       </Version>
-   </ListVersionsResult>
-   ```
+    ```lang-rest
+    GET /bucketname?versions HTTP/1.1
+    Host: ip:port
+    Date: date
+    Authorization: authorization string
+    ```
+    
+    查询结果如下：
+    
+    ```lang-xml
+    <ListVersionsResult>
+        <Name>bucket</Name>
+        <Prefix>my</Prefix>
+        <KeyMarker/>
+        <VersionIdMarker/>
+        <MaxKeys>1000</MaxKeys>
+        <IsTruncated>false</IsTruncated>
+        <Version>
+            <Key>my-image.jpg</Key>
+            <VersionId>234</VersionId>
+            <IsLatest>true</IsLatest>
+            <LastModified>2019-08-16T17:50:32.000Z</LastModified>
+            <ETag>"fba9dede5f27731c9771645a39863328"</ETag>
+            <Size>434234</Size>
+            <Owner>
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </Version>
+        <DeleteMarker>
+            <Key>my-second-image.jpg</Key>
+            <VersionId>55566666</VersionId>
+            <IsLatest>true</IsLatest>
+            <LastModified>2019-08-16T17:50:31.000Z</LastModified>
+            <Owner>
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </DeleteMarker>
+        <Version>
+            <Key>my-second-image.jpg</Key>
+            <VersionId>45667</VersionId>
+            <IsLatest>false</IsLatest>
+            <LastModified>2019-08-16T17:50:30.000Z</LastModified>
+            <ETag>"9b2cf535f27731c974343645a3985328"</ETag>
+            <Size>166434</Size>
+            <Owner>
+                <ID>125664</ID>
+                <DisplayName>username</DisplayName>
+            </Owner>
+        </Version>
+    </ListVersionsResult>
+    ```
 
 - 携带分隔符/进行查询
 
-   ```lang-rest
-   GET /mybucket-2?versions&delimiter=/ HTTP/1.1
-   Host: ip:port
-   Date: date
-   Authorization: authorization string
-   ```
-   
-   响应结果如下：
-   
-   ```lang-xml
-   <ListVersionsResult>
-     <Name>mvbucketwithversionon1</Name>
-     <Prefix/>
-     <KeyMarker/>
-     <VersionIdMarker/>
-     <MaxKeys>1000</MaxKeys>
-     <Delimiter>/</Delimiter>
-     <IsTruncated>false</IsTruncated>
-     <Version>
-       <Key>Sample.jpg</Key>
-       <VersionId>toxMzQlBsGyGCz1YuMWMp90cdXLzqOCH</VersionId>
-       <IsLatest>true</IsLatest>
-       <LastModified>2019-02-02T18:46:20.000Z</LastModified>
-       <ETag>"3305f2cfc46c0f04559748bb039d69ae"</ETag>
-       <Size>3191</Size>
-       <Owner>
-           <ID>125664</ID>
-           <DisplayName>username</DisplayName>
-       </Owner>
-     </Version>
-     <CommonPrefixes>
-       <Prefix>photos/</Prefix>
-     </CommonPrefixes>
-     <CommonPrefixes>
-       <Prefix>videos/</Prefix>
-     </CommonPrefixes>
-   </ListVersionsResult>
-   ```
+    ```lang-rest
+    GET /mybucket-2?versions&delimiter=/ HTTP/1.1
+    Host: ip:port
+    Date: date
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-xml
+    <ListVersionsResult>
+      <Name>mvbucketwithversionon1</Name>
+      <Prefix/>
+      <KeyMarker/>
+      <VersionIdMarker/>
+      <MaxKeys>1000</MaxKeys>
+      <Delimiter>/</Delimiter>
+      <IsTruncated>false</IsTruncated>
+      <Version>
+        <Key>Sample.jpg</Key>
+        <VersionId>toxMzQlBsGyGCz1YuMWMp90cdXLzqOCH</VersionId>
+        <IsLatest>true</IsLatest>
+        <LastModified>2019-02-02T18:46:20.000Z</LastModified>
+        <ETag>"3305f2cfc46c0f04559748bb039d69ae"</ETag>
+        <Size>3191</Size>
+        <Owner>
+            <ID>125664</ID>
+            <DisplayName>username</DisplayName>
+        </Owner>
+      </Version>
+      <CommonPrefixes>
+        <Prefix>photos/</Prefix>
+      </CommonPrefixes>
+      <CommonPrefixes>
+        <Prefix>videos/</Prefix>
+      </CommonPrefixes>
+    </ListVersionsResult>
+    ```
 
-List Multipart Uploads
-----
+### List Multipart Uploads
 
 查询桶内所有已初始化未完成的分段上传请求
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname?uploads HTTP/1.1
@@ -806,7 +796,7 @@ Date: Date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数 | 说明 |
 | ---- | ---- |
@@ -817,7 +807,7 @@ Authorization: authorization string
 | max-uploads | 设置响应中返回的最大键数，类型为 string，默认值 1000，如果要查询返回数量少于 1000，可以填写其他值，填写超过 1000 的值，仍然按照 1000 条返回 |
 | encoding-type | 对响应内容进行的编码方法，只支持 url，由于对象名称可以包含任意字符，但是 XML 对某些特别的字符无法解析，所以需要对响应中的对象名称进行编码 |
 
-### 结果解析 ###
+**结果解析**
 
 查询结果在响应消息体中以 XML 形式体现。
 
@@ -844,7 +834,7 @@ Authorization: authorization string
 | ID | 存储桶所有者的 ID，属于 ListMultipartUploadsResult.Upload.Owner | ListMultipartUploadsResult.Upload.Initiated |
 | DisplayName | 桶所有者的名字，属于 ListMultipartUploadsResult.Upload.Owner |ListMultipartUploadsResult.Upload.Initiated |
 
-### 示例 ###
+**示例**
 
 查询 uploads，携带分隔符/
 
@@ -890,9 +880,11 @@ Authorization: authorization string
 </ListMultipartUploadsResult>
 ```
 
+## 对象API
 
-PUT Object
-----
+下述将介绍对象相关的接口。
+
+### PUT Object
 
 上传一个对象到桶中，如果已有则覆盖
 
@@ -900,7 +892,7 @@ PUT Object
 >
 > 当开启了版本控制，同一个名称的对象可以在系统中保留多个版本。系统会为每次上传的对象生成一个 version ID，并保留每个版本。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 PUT /bucketname/ObjectName HTTP/1.1
@@ -909,7 +901,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求头部 ###
+**请求头部**
 
 | 头域 | 说明 |
 | ---- | ---- |
@@ -922,16 +914,16 @@ Authorization: authorization string
 | Expires | 缓存的超时时间 |
 | x-amz-meta- | 自定义元数据 |
 
-### 结果解析 ###
+**结果解析**
 
 响应信息通过 header 返回。
 
 | 头域 | 说明 |
 | ---- | ---- |
 | ETag | 对象内容的 MD5 值转换为 16 进制之后生成的字符串 |
-| x-amz-version-id | 版本号，当版本控制状态为 Enabled 时，该字段返回此次上传对象的版本号；当版本控制状态为 Suspended 时，该字段返回“null”；当未开启或禁用版本控制，该字段不返回 | 
+| x-amz-version-id | 版本号，当版本控制状态为 Enabled 时，该字段返回此次上传对象的版本号；当版本控制状态为 Suspended 时，该字段返回 null；当未开启或禁用版本控制，该字段不返回 | 
 
-###示例###
+**示例**
 
 上传一个对象
 
@@ -957,8 +949,7 @@ ETag: "1b2cf535f27731c974343645a3985328"
 Content-Length: 0
 ```
 
-PUT Object - Copy
-----
+### PUT Object - Copy
 
 从系统中已有的对象拷贝到目标对象
 
@@ -966,7 +957,7 @@ PUT Object - Copy
 >
 > 该操作不需要从本地上传对象内容。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 PUT /destinationbucket/destinationObject HTTP/1.1
@@ -980,12 +971,12 @@ x-amz-copy-source-if-modified-since: time_stamp
 <request metadata>
 Authorization: authorization string
 ```
-### 请求头部 ###
+**请求头部**
 
 | 头域 | 说明 |
 | ---- | ---- |
 | x-amz-copy-source | 必须携带的头部，复制对象的源对象地址，包含源存储桶和源对象，例如：`/source_bucket/sourceObject` ，默认复制源对象的最新版本；如果要指定版本复制，则需要增加版本号，例如：`/source_bucket/sourceObject?versionId=3344` |
-|  x-amz-metadata-directive | 指定是否从源对象复制元数据到目标对象，取值为"COPY"和"REPLACE"，默认值为 COPY <br> 当指定为"COPY"时，从源对象复制元数据到目标对象；当指定为"REPLACE"时，源对象的元数据都不会复制到目标对象，目标对象使用复制对象请求中携带的元数据 |
+|  x-amz-metadata-directive | 指定是否从源对象复制元数据到目标对象，取值包括"COPY"和"REPLACE"，默认值为"COPY" <br> 当指定为"COPY"时，从源对象复制元数据到目标对象；当指定为"REPLACE"时，源对象的元数据都不会复制到目标对象，目标对象使用复制对象请求中携带的元数据 |
 | x-amz-copy-if-modified-since | 时间，只有当源对象的创建时间在此时间后才进行复制 |
 | x-amz-copy-if-unmodified-since | 时间，只有当源对象的创建时间在此之前才进行复制 |
 | x-amz-copy-if-match | ETag，只有当源对象的 ETag 与此 ETag 匹配才进行复制 |
@@ -997,7 +988,7 @@ Authorization: authorization string
 | Expires | 缓存的超时时间 |
 | x-amz-meta- | 自定义元数据 |
 
-### 结果解析 ###
+**结果解析**
 
 版本号在响应 header 中体现。
 
@@ -1009,7 +1000,7 @@ Authorization: authorization string
 | ETag | 新对象内容计算 MD5 值后转换为 16 进制得到的字符串，与源对象一致 |
 | LastModified | 新对象的创建时间 |
 
-### 示例 ###
+**示例**
 
 复制指定的版本
 
@@ -1035,12 +1026,11 @@ Date: Sat, 17 Aug 2019 17:50:00 GMT
 </CopyObjectResult>
 ```
 
-GET Object
-----
+### GET Object
 
 获取对象内容
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname/ObjectName HTTP/1.1
@@ -1049,7 +1039,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -1061,7 +1051,7 @@ Authorization: authorization string
 | response-content-disposition | 指定响应消息中的 Content-Disposition 头部值 |
 | response-content-encoding | 指定响应消息中的 Content-Encoding 头部值 |
 
-### 请求头部 ###
+**请求头部**
 
 | 头域 | 说明 |
 | ---- | ---- |
@@ -1071,7 +1061,7 @@ Authorization: authorization string
 | If-Match | 指定 ETag，只有对象的 ETag 和 ETag 匹配，才返回对象，否则返回 412 |
 | If-None-Match | 指定 ETag，只有对象的 ETag 和 ETag 不匹配，才返回对象，否则返回 304 |
 
-### 结果解析 ###
+**结果解析**
 
 响应信息通过 header 返回。
 
@@ -1081,58 +1071,57 @@ Authorization: authorization string
 | x-amz-meta- | 对象的自定义元数据，与上传对象时的设置一致 |
 | x-amz-delete-marker | 当获取的对象是一个删除标记，响应中会携带该头部且值为 true；当获取的对象不是删除标记，则不会携带该头部 |
 
-### 示例 ###
+**示例**
 
 - 获取一个对象
 
-   ```lang-rest
-   GET /bucketname/ObjectName HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Authorization: authorization string
-   ```
-
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 200 OK
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
-   ETag: "fba9dede5f27731c9771645a39863328"
-   Content-Length: 434234
-
-   [434234 bytes of object data]
-   ```
+    ```lang-rest
+    GET /bucketname/ObjectName HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
+    ETag: "fba9dede5f27731c9771645a39863328"
+    Content-Length: 434234
+    
+    [434234 bytes of object data]
+    ```
 
 - 指定版本号获取一个对象
 
-   ```lang-rest
-   GET /bucketname/myObject?versionId=4433 HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Authorization: authorization string
-   ```
+    ```lang-rest
+    GET /bucketname/myObject?versionId=4433 HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
+    x-amz-version-id: 4433
+    ETag: "fba9dede5f27731c9771645a39863328"
+    Content-Length: 434234
+    Content-Type: text/plain
+    
+    [434234 bytes of object data]
+    ```
 
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 200 OK
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
-   x-amz-version-id: 4433
-   ETag: "fba9dede5f27731c9771645a39863328"
-   Content-Length: 434234
-   Content-Type: text/plain
-
-   [434234 bytes of object data]
-   ```
-
-HEAD Object
-----
+### HEAD Object
 
 获取对象的元数据信息，不获取对象内容 
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 HEAD /bucketname/ObjectName HTTP/1.1
@@ -1140,13 +1129,13 @@ Host: ip:port
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | versionId | 获取指定版本的对象时通过此参数指定版本号 |
 
-### 请求头部 ###
+**请求头部**
 
 | 头域 | 说明 |
 | ---- | ---- |
@@ -1156,7 +1145,7 @@ Authorization: authorization string
 | If-Match | 指定 ETag，只有对象的 ETag 和 ETag 匹配才返回对象，否则返回 412 |
 | If-None-Match | 指定 ETag，只有对象的 ETag 和 ETag 不匹配，才返回对象，否则返回 304 |
 
-### 结果解析 ###
+**结果解析**
 
 响应信息通过 header 返回。
 
@@ -1165,52 +1154,51 @@ Authorization: authorization string
 | x-amz-version-id | 获取的对象的版本号 | 
 | x-amz-meta- | 对象的自定义元数据，与上传对象时的设置一致 |
 
-### 示例 ###
+**示例**
 
 - 获取对象的元数据
 
-   ```lang-rest
-   HEAD /bucketname/my-image.jpg HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Authorization: authorization string
-   ```
-
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 200 OK
-   x-amz-version-id: 3344
-   Date: Sat, 17 Aug 2019 17:50:00 GMT
-   Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
-   ETag: "fba9dede5f27731c9771645a39863328"
-   Content-Length: 434234
-   Content-Type: text/plain
-   ```
+    ```lang-rest
+    HEAD /bucketname/my-image.jpg HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    x-amz-version-id: 3344
+    Date: Sat, 17 Aug 2019 17:50:00 GMT
+    Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
+    ETag: "fba9dede5f27731c9771645a39863328"
+    Content-Length: 434234
+    Content-Type: text/plain
+    ```
 
 - 获取指定版本对象的元数据
 
-   ```lang-rest
-   HEAD /bucketname/my-image.jpg?versionId=3344 HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:55:00 GMT
-   Authorization: authorization string
-   ```
+    ```lang-rest
+    HEAD /bucketname/my-image.jpg?versionId=3344 HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:55:00 GMT
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    x-amz-version-id: 3344
+    Date: Sat, 17 Aug 2019 17:55:00 GMT
+    Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
+    ETag: "fba9dede5f27731c9771645a39863328"
+    Content-Length: 434234
+    Content-Type: text/plain
+    ```
 
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 200 OK
-   x-amz-version-id: 3344
-   Date: Sat, 17 Aug 2019 17:55:00 GMT
-   Last-Modified: Sat, 17 Aug 2019 17:40:00 GMT
-   ETag: "fba9dede5f27731c9771645a39863328"
-   Content-Length: 434234
-   Content-Type: text/plain
-   ```
-
-DELETE Object
-----
+### DELETE Object
 
 删除对象
 
@@ -1218,7 +1206,7 @@ DELETE Object
 >
 > 当用户打开了版本控制，删除对象时会生成一个删除标记，原来的对象还保存在系统中。如果用户需要永久删除对应版本，可以指定版本号进行删除。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 DELETE /bucketname/ObjectName HTTP/1.1
@@ -1227,13 +1215,13 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | versionId | 指定版本号，用于删除指定版本的对象 |
 
-### 结果解析 ###
+**结果解析**
 
 响应信息通过 header 返回。
 
@@ -1242,50 +1230,49 @@ Authorization: authorization string
 | x-amz-delete-marker | 1. 当删除操作生成一个删除标记时，会返回该头部且值为 true <br> 2. 当通过指定版本号删除对象时，如果删除的是一个删除标记，则会返回该头部且值为 true |
 | x-amz-version-id | 1. 当删除操作生成一个删除标记时，该头部记录删除标记的版本号 <br> 2. 当通过指定版本号删除对象时，该头部记录被删除的版本号 |
 
-### 示例 ###
+**示例**
 
 - 删除一个未开启版本控制的桶内的对象
 
-   ```lang-rest
-   DELETE /bucketname/my-second-image.jpg HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:55:00 GMT
-   Authorization: authorization string
-   Content-Type: text/plain
-   ```
-
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 204 NoContent
-   Date: Sat, 17 Aug 2019 17:55:00 GMT
-   Content-Length: 0
-   ```
+    ```lang-rest
+    DELETE /bucketname/my-second-image.jpg HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:55:00 GMT
+    Authorization: authorization string
+    Content-Type: text/plain
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 204 NoContent
+    Date: Sat, 17 Aug 2019 17:55:00 GMT
+    Content-Length: 0
+    ```
 
 - 删除指定版本对象
 
-   ```lang-rest
-   DELETE /bucketname/my-third-image.jpg?versionId=4455 HTTP/1.1
-   Host: ip:port
-   Date: Sat, 17 Aug 2019 17:58:00 GMT
-   Authorization: authorization string
-   ```
+    ```lang-rest
+    DELETE /bucketname/my-third-image.jpg?versionId=4455 HTTP/1.1
+    Host: ip:port
+    Date: Sat, 17 Aug 2019 17:58:00 GMT
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 204 NoContent
+    x-amz-version-id: 4455
+    Date: Sat, 17 Aug 2019 17:58:00 GMT
+    Content-Length: 0
+    ```
 
-   响应结果如下：
-
-   ```lang-rest
-   HTTP/1.1 204 NoContent
-   x-amz-version-id: 4455
-   Date: Sat, 17 Aug 2019 17:58:00 GMT
-   Content-Length: 0
-   ```
-
-Initiate Multipart Upload
-----
+### Initiate Multipart Upload
 
 初始化分段上传，获得 upload ID
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /bucketname/ObjectName?uploads HTTP/1.1
@@ -1294,7 +1281,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 请求头部 ###
+**请求头部**
 
 初始化时携带的元数据，在合并分段上传生成一个完整对象时作为对象的元数据。
 
@@ -1307,7 +1294,7 @@ Authorization: authorization string
 | Expires | 缓存的超时时间 |
 | x-amz-meta- | 自定义元数据 |
 
-### 结果解析 ###
+**结果解析**
 
 响应消息体中返回 XML 形式的结果，包含 upload ID。
 
@@ -1318,7 +1305,7 @@ Authorization: authorization string
 | Key | 初始化分段上传的对象名称 |
 | UploadId | 初始化分段上传的 ID，用来唯一标识一个分段上传请求 | 
 
-### 示例 ###
+**示例**
 
 初始化分段上传后，响应结果如下：
 
@@ -1334,12 +1321,11 @@ Content-Length: 151
 </InitiateMultipartUploadResult>
 ```
 
-Upload Part
-----
+### Upload Part
 
 上传分段
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 PUT /bucketname/ObjectName?partNumber=PartNumber&uploadId=UploadId HTTP/1.1
@@ -1349,14 +1335,14 @@ Content-Length: Size
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | partNumber | 分段编号，有效范围为 1~10000 |
 | uploadId | upload ID，可以在 Initiate Multipart Upload 获得 |
 
-### 示例 ###
+**示例**
 
 上传一个分段
 
@@ -1368,7 +1354,7 @@ Content-Length: 10485760
 Content-MD5: pUNXr/BjKK5G2UKvaRRrOA==
 Authorization: authorization string
 
-***part data omitted***
+[10485760 bytes of object data]
 ```
 
 响应结果如下：
@@ -1380,12 +1366,11 @@ ETag: "b54357faf0632cce46e942fa68356b38"
 Content-Length: 0
 ```
 
-List Parts
-----
+### List Parts
 
 查询分段列表
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 GET /bucketname/ObjectName?uploadId=UploadId HTTP/1.1
@@ -1394,7 +1379,7 @@ Date: Date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -1403,7 +1388,7 @@ Authorization: authorization string
 | part-number?-marker | 查询的起始位置 |
 | encoding-type | 响应结果编码类型，只支持 url；由于对象名称可以包含任意字符，但是 XML 对某些特别的字符无法解析，所以需要对响应中的对象名称进行编码 | 
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式返回。
 
@@ -1428,7 +1413,7 @@ Authorization: authorization string
 | ETag | 分段的 ETag |
 | Size | 分段的大小 |
 
-### 示例 ###
+**示例**
 
 查询 upload ID 为 56778 的分段列表，指定 max-parts 为 2，part-number-marker 为 1
 
@@ -1477,12 +1462,11 @@ Content-Length: 838
 </ListPartsResult>
 ```
 
-Complete Multipart Upload
-----
+### Complete Multipart Upload
 
 完成分段上传，合并分段
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /bucketname/ObjectName?uploadId=UploadId HTTP/1.1
@@ -1500,7 +1484,7 @@ Authorization: authorization string
 </CompleteMultipartUpload>
 ```
 
-### 请求元素 ###
+**请求元素**
 
 | 元素 | 说明 |
 | ---- | ---- |
@@ -1509,7 +1493,7 @@ Authorization: authorization string
 | PartNumber | 分段编码 |
 | ETag | 分段的 ETag |
 
-### 结果解析 ###
+**结果解析**
 
 响应消息体中包含 XML 形式的合并结果，包含合并后对象的 ETag。
 
@@ -1521,7 +1505,7 @@ Authorization: authorization string
 | Key | 对象名称 |
 | ETag | 合并后对象的 ETag，不一定是合并后完整对象的 MD5 值 |
 
-### 示例 ###
+**示例**
 
 完成分段上传，合并分段
 
@@ -1562,12 +1546,11 @@ Date: Sat, 17 Aug 2019 18:10:30 GMT
 </CompleteMultipartUploadResult>
 ```
 
-Abort Multipart Upload
-----
+### Abort Multipart Upload
 
 取消分段上传
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 DELETE /bucketname/ObjectName?uploadId=UploadId HTTP/1.1
@@ -1576,13 +1559,13 @@ Date: Date
 Authorization: authorization string
 ```
 
-### 请求参数 ###
+**请求参数**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | uploadId | 待取消的 upload ID |
 
-### 示例 ###
+**示例**
 
 取消分段上传响应结果如下：
 
@@ -1592,9 +1575,11 @@ Date: Sat, 17 Aug 2019 18:15:30 GMT
 Content-Length: 0
 ```
 
+## 区域API
 
-Create Region
-----
+下述将介绍区域相关的接口。
+
+### Create Region
 
 增加一个区域或更新区域配置
 
@@ -1602,7 +1587,7 @@ Create Region
 >
 > 用户创建区域时可对区域内数据存储位置进行配置，即指定集合空间的生成方式，生成方式分为指定模式和自动创建模式。不能够同时指定两种模式，更新区域配置是也不能修改模式，更新区域配置只能够修改自动创建模式下的集合空间生成规则。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /region/?Action=CreateRegion&RegionName={regionname} HTTP/1.1
@@ -1619,32 +1604,32 @@ Authorization: authorization string
 </RegionConfiguration>
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 CreateRegion，表示该操作为创建一个区域 |
 | RegionName | 指定区域名称 |
 
-### 请求元素 ###
+**请求元素**
 
 用户可以在请求消息体中使用 XML 形式指定区域的配置。
 
 | 元素 | 说明 |
 | ---- | ---- |
 | RegionConfiguration | 包含区域配置内容 |
-| DataCSShardingType | 对象数据集合空间的生成规则，按照设定的时间生成指定的集合空间，类型为 string，默认值为 year，有效值为 year|quarter|month |
-| DataCLShardingType | 对象数据集合的生成规则，按照设定的时间生成指定的集合，类型为 string，默认值为 quarter，有效值为 year/quarter/month |
+| DataCSShardingType | 对象数据集合空间的生成规则，按照设定的时间生成指定的集合空间，类型为 string，默认值为"year"，有效值包括"year"、"quarter"和"month" |
+| DataCLShardingType | 对象数据集合的生成规则，按照设定的时间生成指定的集合，类型为 string，默认值为"quarter"，有效值包括"year"、"quarter"和"month" |
 | DataCSRange | 对象数据集合的生成规则，在设定时间段内能够生成的集合空间数量，类型为 int32 |
 | DataDomain | 对象数据集合空间所属域，类型为 string，域必须已在 SequoiaDB 中定义，如果不填写域名称，则对象数据集合空间建立在系统域上 |
-| DataLobPageSize | 对象数据集合空间的 LobPageSize，默认值为 262144，有效值为 0、4096、8192、16384、32768、65536、131072、262144、524288 之一，0 表示选择默认值|
-| DataReplSize | 对象集合的ReplSize，写操作同步的副本数，默认值为 -1，有效值为 -1、0、1~7 |
+| DataLobPageSize | 对象数据集合空间的 LobPageSize，默认值为 262144，有效值包括 0、4096、8192、16384、32768、65536、131072、262144、524288 之一，0 表示选择默认值|
+| DataReplSize | 对象集合的ReplSize，写操作同步的副本数，默认值为 -1，有效值包括 -1、0、1~7 |
 | MetaDomain | 元数据集合空间所属域，类型为 string，域必须已在 SequoiaDB 中定义，若不填写则元数据集合空间建在系统域上 |
 | DataLocation | 指定模式为对象数据的集合空间.集合名称，类型为 string，如 CS.CL |
 | MetaLocation | 指定模式为元数据的集合空间.集合名称，类型为 string，如 CS.CL |
 | MetaHisLocation | 指定模式为历史元数据的集合空间.集合名称，类型 string，如 CS.CL |
 
-### 示例 ###
+**示例**
 
 创建区域的请求，指定对象数据集合空间和元数据集合空间的域，指定对象数据集合空间和对象数据集合的生成规则
 
@@ -1671,12 +1656,11 @@ Date: date
 Content-Length: 0
 ```
 
-GetRegion
-----
+### GetRegion
 
 获取一个区域的配置
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /region/?Action=GetRegion&RegionName={regionname} HTTP/1.1 
@@ -1685,14 +1669,14 @@ Date: date
 Authorization: authorization string 
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 GetRegion，表示该操作为删除一个区域 |
 | RegionName | 指定区域名称 |
 
-### 示例 ###
+**示例**
 
 查询一个区域的配置信息
 
@@ -1726,12 +1710,11 @@ Authorization: authorization string
 
 ```
 
-DeleteRegion
-----
+### DeleteRegion
 
 删除一个区域
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /region/?Action=DeleteRegion&RegionName={regionname} HTTP/1.1
@@ -1740,14 +1723,14 @@ Date: date
 Authorization: authorization string
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 DeleteRegion，表示该操作为删除一个区域 |
 | RegionName | 指定区域名称 |
 
-### 示例 ###
+**示例**
 
 删除一个区域的请求
 
@@ -1765,12 +1748,11 @@ HTTP/1.1 204 No Content
 Date: date 
 ```
 
-ListRegions
-----
+### ListRegions
 
 查询区域列表，可以查询当前系统中所有区域名称
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /region/?Action=ListRegions HTTP/1.1 
@@ -1779,13 +1761,13 @@ Date: date
 Authorization: authorization string 
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 ListRegions，表示该操作为查询区域列表 |
 
-### 结果解析 ###
+**结果解析**
 
 查询结果以 XML 形式在响应消息头中显示。
 
@@ -1794,7 +1776,7 @@ Authorization: authorization string
 | ListAllRegionsResult | 包含一个到多个 Region | 
 | Region | 区域名称 |
 
-### 示例 ###
+**示例**
 
 查询区域列表的响应结果如下：
 
@@ -1806,13 +1788,11 @@ Authorization: authorization string
 </ListAllRegionsResult>
 ```
 
-
-HeadRegion
-----
+### HeadRegion
 
 查询区域是否存在
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /region/?Action=HeadRegion&RegionName={regionname} HTTP/1.1
@@ -1821,7 +1801,7 @@ Date: date
 Authorization: authorization string 
 ```
 
-### 示例 ###
+**示例**
 
 响应结果如下：
 
@@ -1830,8 +1810,11 @@ HTTP/1.1 200 OK
 Date: date
 ```
 
-Create User
-----
+## 用户API
+
+下述将介绍用户相关的接口。
+
+### Create User
 
 创建用户
 
@@ -1839,7 +1822,7 @@ Create User
 >
 > 该操作需管理员用户权限，系统默认生成一个管理员用户，可用该用户创建其他用户。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /users/?Action=CreateUser&UserName=username&role=admin HTTP/1.1 
@@ -1848,7 +1831,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -1856,7 +1839,7 @@ Authorization: authorization string
 | UserName | 指定用户名称 | 
 | Role | 指定用户的角色，可选管理员 admin 用户或普通 normal 用户，管理员用户可以管理用户也可以使用 S3 业务，普通用户可以使用 S3 业务但不能管理用户 |
 
-### 结果解析 ###
+**结果解析**
 
 创建用户成功后，会收到 AccessKeys，AccessKeys 用于访问 SequoiaS3 系统的用户验证。
 
@@ -1866,7 +1849,7 @@ Authorization: authorization string
 | AccessKeyID | 用户的 Access Key ID，代表用户身份 | 
 | SecretAccessKey | 新用户的 Secret Access Key 类似密码，用于计算签名，和 Access Key ID 一起在请求消息中携带，用来验证用户身份 |
 
-### 示例 ###
+**示例**
 
 创建用户后，响应结果如下：
 
@@ -1880,8 +1863,7 @@ Date: Wed, 01 Mar  2006 12:00:00 GMT
 </AccessKeys>
 ```
 
-Create AccessKey
-----
+### Create AccessKey
 
 更新用户的访问密钥
 
@@ -1889,7 +1871,7 @@ Create AccessKey
 >
 > 该操作需要管理员用户权限。生成新的密钥之后，旧密钥失效。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /users/?Action=CreateAccessKey&UserName=username HTTP/1.1 
@@ -1898,14 +1880,14 @@ Date: date
 Authorization: authorization string
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 CreateAccessKey，表示该操作为更新 AccessKeys |
 | UserName | 指定用户名称 |
 
-### 示例 ###
+**示例**
 
 更新密钥后，响应结果如下：
 
@@ -1919,8 +1901,7 @@ Date: Wed, 01 Mar  2006 12:00:00 GMT
 </AccessKeys>
 ```
 
-Delete User
-----
+### Delete User
 
 删除一个用户
 
@@ -1930,7 +1911,7 @@ Delete User
 > - 当该用户还有桶未清理时，不允许删除用户。
 > - 当请求携带了 Force 标识时，可以强制删除未清理桶的用户，并将该用户拥有的桶以及桶内对象全部清理。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /users/?Action=DeleteUser&UserName=username HTTP/1.1 
@@ -1939,7 +1920,7 @@ Date: date
 Authorization: authorization string
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
@@ -1947,42 +1928,41 @@ Authorization: authorization string
 | UserName | 指定用户名称 |
 | Force | 强制删除标记，当请求携带 Force 参数且值为 true 时删除用户，并清理该用户拥有的桶及桶内对象 |
 
-### 示例 ###
+**示例**
 
 - 删除用户
 
-   ```lang-rest
-   POST /users/?Action=DeleteUser&UserName=user1 HTTP/1.1 
-   Host: ip:port
-   Date: date 
-   Authorization: authorization string
-   ```
-   
-   响应结果如下：
-   
-   ```lang-rest
-   HTTP/1.1 200 OK
-   Date: date
-   ```
+    ```lang-rest
+    POST /users/?Action=DeleteUser&UserName=user1 HTTP/1.1 
+    Host: ip:port
+    Date: date 
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    Date: date
+    ```
 
 - 强制删除用户
 
-   ```lang-rest
-   POST/users/?Action=DeleteUser&UserName=username&Force=true HTTP/1.1 
-   Host: ip:port
-   Date: date 
-   Authorization: authorization string
-   ```
-   
-   响应结果如下：
-   
-   ```lang-rest
-   HTTP/1.1 200 OK
-   Date: date
-   ```
+    ```lang-rest
+    POST/users/?Action=DeleteUser&UserName=username&Force=true HTTP/1.1 
+    Host: ip:port
+    Date: date 
+    Authorization: authorization string
+    ```
+    
+    响应结果如下：
+    
+    ```lang-rest
+    HTTP/1.1 200 OK
+    Date: date
+    ```
 
-Get AccessKey
-----
+### Get AccessKey
 
 获取用户的访问密钥
 
@@ -1990,7 +1970,7 @@ Get AccessKey
 >
 > 该操作需要管理员用户权限。
 
-### 请求语法 ###
+**请求语法**
 
 ```lang-rest
 POST /users/?Action=GetAccessKey&UserName=username HTTP/1.1 
@@ -1999,14 +1979,14 @@ Date: date
 Authorization: authorization string
 ```
 
-### 参数说明 ###
+**参数说明**
 
 | 参数名 | 说明 |
 | ----   | ---- |
 | Action | 固定为 GetAccessKey，表示该操作为获取用户的访问密钥 |
 | UserName | 指定用户名称 |
 
-### 示例 ###
+**示例**
 
 获取 user1 的访问密钥请求
 
