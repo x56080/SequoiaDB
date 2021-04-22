@@ -39,7 +39,7 @@ SystemTest.prototype.addDelUser = function( createDir )
       userObj["name"] = "createUser";          // 用户名
       userObj["passwd"] = "createUser";        // 用户密码
       userObj["group"] = "tmpGroup";           // 用户组
-      userObj["Group"] = "testGroup";          // 附加用户组
+      userObj["additionGroup"] = "testGroup";  // 附加用户组
       userObj["dir"] = "/home/createUser";     // 用户主目录
       userObj["createDir"] = createDir;        // 是否自动创建用户主目录
 
@@ -51,7 +51,7 @@ SystemTest.prototype.addDelUser = function( createDir )
 
       // 检查用户组和附加用户组
       checkGroup( this.cmd, userObj.group, userObj.name );
-      checkGroup( this.cmd, userObj.Group, userObj.name );
+      checkGroup( this.cmd, userObj.additionGroup, userObj.name );
 
       // 检查用户主目录
       checkDir( this.cmd, userObj.dir, createDir );
