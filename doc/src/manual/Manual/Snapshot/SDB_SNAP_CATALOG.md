@@ -30,10 +30,10 @@ SDB_SNAP_CATALOG
 | ReplSize            | int32  | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
 | ShardingKey         | object | 数据分区类型，取值如下：<br>  "range"：数据按分区键值的范围进行分区存储<br>  "hash"：数据按分区键的哈希值进行分区存储 |
 | Version             | int32  | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
-| Attribute           | int32  | 集合属性                     |
-| AttributeDesc       | string | 集合属性描述                 |
-| CompressionType     | int32  | 压缩算法类型                 |
-| CompressionTypeDesc | string | 压缩算法类型描述             |
+| Attribute           | int32  | 集合的属性掩码，取值可参考 [SYSCOLLECTION 集合][syscollection]                  |
+| AttributeDesc       | string | 集合的属性描述，取值可参考 [SYSCOLLECTION 集合][syscollection]                 |
+| CompressionType     | int32  | 压缩算法类型掩码，取值可参考 [SYSCOLLECTION 集合][syscollection]                 |
+| CompressionTypeDesc | string | 压缩算法类型描述，取值可参考 [SYSCOLLECTION 集合][syscollection]            |
 | Partition           | int32  | hash 分区的个数 ( 仅水平分区集合显示 )|
 | InternalV           | int32  | hash 算法版本号 ( 仅水平分区集合显示，内部使用 )      |
 | AutoSplit           | boolean | 集合是否开启自动切分功能 ( 仅水平分区集合显示 )      |
@@ -57,7 +57,7 @@ SDB_SNAP_CATALOG
 - 查看普通集合的编目信息快照
 
     ```lang-javascript
-    > db.snapshot( SDB_SNAP_CATALOG )
+    > db.snapshot(SDB_SNAP_CATALOG)
     ```
     
     输出结果如下：
@@ -86,7 +86,7 @@ SDB_SNAP_CATALOG
 - 查看水平分区集合的编目信息快照
 
     ```lang-javascript
-    > db.snapshot( SDB_SNAP_CATALOG )
+    > db.snapshot(SDB_SNAP_CATALOG)
     ```
     
     输出结果如下：
@@ -143,7 +143,7 @@ SDB_SNAP_CATALOG
 - 查看垂直分区集合的编目信息快照
 
     ```lang-javascript
-    > db.snapshot( SDB_SNAP_CATALOG )
+    > db.snapshot(SDB_SNAP_CATALOG)
     ```
     
     输出结果如下：
@@ -185,7 +185,7 @@ SDB_SNAP_CATALOG
 - 查看使用数据源的集合对应的编目信息快照
 
     ```lang-javascript
-    > db.snapshot( SDB_SNAP_CATALOG )
+    > db.snapshot(SDB_SNAP_CATALOG)
     ```
 
     输出结果如下：
@@ -216,3 +216,4 @@ SDB_SNAP_CATALOG
 [^_^]:
     本文使用的所有引用及链接
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
+[syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md
