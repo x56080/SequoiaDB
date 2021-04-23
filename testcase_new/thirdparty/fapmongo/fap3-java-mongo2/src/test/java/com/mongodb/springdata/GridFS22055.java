@@ -16,6 +16,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
@@ -56,10 +57,10 @@ public class GridFS22055 extends MongodbTestBase {
         Assert.assertTrue( clNames.containsAll( Arrays.asList( expClNames ) ),
                 "clNames = " + clNames.toString() );
 
-        // 列取索引
+        // 列取索引，默认有2个索引
         DBCollection cl1 = mongoTemplate.getCollection( expClNames[ 0 ] );
         List< DBObject > indexInfo1 = cl1.getIndexInfo();
-        Assert.assertEquals( indexInfo1.size(), 1, indexInfo1.toString() );
+        Assert.assertEquals( indexInfo1.size(), 2, indexInfo1.toString() );
         Assert.assertEquals( indexInfo1.get( 0 ).get( "key" ),
                 JSON.parse( "{ \"_id\" : 1}" ) );
         Assert.assertEquals( indexInfo1.get( 0 ).get( "ns" ),
@@ -67,17 +68,28 @@ public class GridFS22055 extends MongodbTestBase {
 
         DBCollection cl2 = mongoTemplate.getCollection( expClNames[ 1 ] );
         List< DBObject > indexInfo2 = cl2.getIndexInfo();
-        Assert.assertEquals( indexInfo2.size(), 1, indexInfo1.toString() );
+        Assert.assertEquals( indexInfo2.size(), 2, indexInfo1.toString() );
         Assert.assertEquals( indexInfo2.get( 0 ).get( "key" ),
                 JSON.parse( "{ \"_id\" : 1}" ) );
         Assert.assertEquals( indexInfo2.get( 0 ).get( "ns" ),
                 mongoTemplate.getDb().getName() + "." + expClNames[ 1 ] );
 
-        // 删除索引 sequoiadb只有一个id索引，mongodb会有两个索引
-        // cl1.dropIndex( "files_id_1_n_1" );
-        // cl2.dropIndex( "filename_1_uploadDate_1" );
-        Assert.assertEquals( cl1.getIndexInfo().size(), 1 );
-        Assert.assertEquals( cl2.getIndexInfo().size(), 1 );
+        // 创建索引
+        // 先分别删除一个索引
+        cl1.dropIndex( "files_id_1_n_1" );
+        cl2.dropIndex( "filename_1_uploadDate_1" );
+        indexInfo1 = cl1.getIndexInfo();
+        indexInfo2 = cl2.getIndexInfo();
+        Assert.assertEquals( indexInfo1.size(), 1, indexInfo1.toString() );
+        Assert.assertEquals( indexInfo2.size(), 1, indexInfo2.toString() );
+        // 再次创建索引
+        cl1.createIndex( new BasicDBObject( "files_id", 1 ).append( "n", 1 ) );
+        cl2.createIndex(
+                new BasicDBObject( "filename", 1 ).append( "uploadDate", 1 ) );
+        indexInfo1 = cl1.getIndexInfo();
+        indexInfo2 = cl2.getIndexInfo();
+        Assert.assertEquals( indexInfo1.size(), 2, indexInfo1.toString() );
+        Assert.assertEquals( indexInfo2.size(), 2, indexInfo2.toString() );
 
         // count集合
         Assert.assertEquals(
