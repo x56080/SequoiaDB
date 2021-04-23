@@ -11,13 +11,17 @@
 
 数据库快照可以列出数据库的状态和监控信息。
 
-标识
-----
+> Note:
+>
+> 协调节点通过聚合所有节点的数据（非协调节点字段信息）得到协调节点字段信息。用户可以通过 `coord.snapshot(SDB_SNAP_DATABASE,{RawData:true})` 获取聚合前的数据。
+
+
+## 标识
+
 
 SDB_SNAP_DATABASE
 
-非协调节点字段信息
-----
+## 非协调节点字段信息
 
 | 字段名                | 类型      | 描述                                                            |
 | --------------------- | --------- | --------------------------------------------------------------- |
@@ -28,7 +32,7 @@ SDB_SNAP_DATABASE
 | IsPrimary             | boolean   | 是否为主节点，standalone 模式下该字段为 false                   |
 | ServiceStatus         | boolean   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   | 
-| FTStatus              | 字符串 | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
+| FTStatus              | string | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
 | BeginLSN.Offset       | int64 | 起始 LSN 的偏移                                                            |
 | BeginLSN.Version      | int32   | 起始 LSN 的版本号                                                               |
 | CurrentLSN.Offset     | int64 | 当前 LSN 的偏移                                                                 |
@@ -36,7 +40,7 @@ SDB_SNAP_DATABASE
 | CommittedLSN.Offset   | int64 | 已提交 LSN 的偏移                                                               |
 | CommittedLSN.Version  | int32   | 已提交 LSN 的版本号                                                             |
 | CompleteLSN           | int64     | 已完成 LSN 的偏移                                               |
-| LSNQueSize            | int32     | 等待同步的LSN队列长度                                           |
+| LSNQueSize            | int32     | 等待同步的 LSN 队列长度                                           |
 | TransInfo.TotalCount  | int32  | 正在执行的事务数量                                                              |
 | TransInfo.BeginLSN    | int64 | 正在执行的事务的起始 LSN 的偏移                                                 |
 | NodeID                | bson array| 节点的 ID 信息                                                  |
@@ -46,7 +50,7 @@ SDB_SNAP_DATABASE
 | Version.Release       | int32   | 数据库内部版本号                                                                |
 | Version.GitVersion    | string | 数据库发行版本号                                                                |
 | Version.Build         | string | 数据库编译时间                                                                  |
-| Edition               | string    | 企业版为"Enterprise"，社区版没有该字段                           |
+| Edition               | string    | “Enterprise”表示企业版（社区版中无该字段）                           |
 | CurrentActiveSessions | int32     | 当前活动会话                                                    |
 | CurrentIdleSessions   | int32     | 当前非活动会话，一般来说非活动会话意味着 EDU 存在线程池中等待分配 |
 | CurrentSystemSessions | int32     | 当前系统会话，为当前活动用户 EDU 数量                           |
@@ -94,11 +98,10 @@ SDB_SNAP_DATABASE
 | Wait                  | int32     | 当前处于等待队列的任务数量（包含未分发的任务）                  |
 | SchdlrMgrEvtNum       | int32     | 当前未分发的任务数量                                            |
 | SchdlrTimes           | int64     | 统计时间范围内总的任务执行次数                                  |
-| MemPoolSize           | 长整型 | Pool Memory 的大小，单位为字节                                                |
+| MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                                |
 
 
-协调节点字段信息
-----
+## 协调节点字段信息
 
 | 字段名            | 类型      | 描述                                          |
 | ----------------- | --------- | --------------------------------------------- |
@@ -138,8 +141,7 @@ SDB_SNAP_DATABASE
 >
 > 当存在异常节点时才显示 ErrNodes 字段。
 
-示例
-----
+## 示例
 
 - 通过非协调节点查看快照
 
