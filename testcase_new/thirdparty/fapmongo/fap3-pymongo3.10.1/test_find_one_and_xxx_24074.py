@@ -2,7 +2,7 @@
 Description   : seqDB-24074:find_one_and_update/replace/delete操作
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.21
+LastEditTime  : 2021.04.23
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -69,7 +69,7 @@ class TestFindOneAndXXX23074( utils.TestBase ):
 
       # 匹配存在的记录，upsert = True
       self.result = self.cl.find_one_and_update( {'a': 1}, {'$set': {'b':1}}, upsert = True )
-      self.assertEqual( self.result, None )
+      self.assertEqual( self.result, {'a': 1, '_id': 1} )
       # check docs
       self.cursor = self.cl.find().sort( '_id' )
       self.checkCursor( self.cursor, [{'_id': 1, 'a': 1, 'b': 1}] )
