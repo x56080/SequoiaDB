@@ -2,7 +2,7 @@
  * @Description   : seqDB-21880:自动创建CS/CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2020.02.24
- * @LastEditTime  : 2021.04.22
+ * @LastEditTime  : 2021.04.23
  * @LastEditors   : XiaoNi Huang
  ******************************************************************************/
 main();
@@ -44,19 +44,19 @@ function dbNotExist_dataOper ( db, cl, clName )
    assert.eq( cl.getIndexes().length, 2 );
 
    // find ---jira-7042
-   cl.drop();
+   cl.dropDatabase();
    // assert.eq( cl.find().hasNext(), false )
 
    // count
-   cl.drop();
+   cl.dropDatabase();
    assert.eq( cl.count(), 0 )
 
    // aggregate
-   cl.drop();
+   cl.dropDatabase();
    assert.eq( cl.aggregate( { "$project": { "a": 1 } } ).hasNext(), false )
 
    // distinct
-   cl.drop();
+   cl.dropDatabase();
    assert.eq( cl.distinct( "b" ), [] );
 }
 
