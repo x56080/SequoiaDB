@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -1404,26 +1405,10 @@ public class DBCollection {
         return false;
     }
 
-    /**
-     * Create a index with name and key.
-     *
-     * @param indexName    The index name.
-     * @param indexKeys    The index keys in JSON format, like: { "a":1, "b":-1 }.
-     * @param options Optional configuration, type is BSONObject. Please reference
-     *                {@see <a href=http://doc.sequoiadb.com/cn/sequoiadb-cat_id-1432190830-edition_id-302>here</a>}
-     *                for more detail, like: { "Unique" : false , "Enforced" : false , "NotNull" : false , "SortBufferSize" : 64 }
-     * @throws BaseException
-     */
-    public void createIndex(String indexName, BSONObject indexKeys, BSONObject options) throws BaseException {
-        int sortBufferSize = 0;
+    private long _createIndex(String indexName, BSONObject indexKeys, BSONObject indexAttr, BSONObject option, boolean isAsync) throws BaseException {
         BSONObject matcher = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();
-        BSONObject indexDef = new BasicBSONObject();
-        BSONObject indexOptions = new BasicBSONObject();
-        if (options != null) {
-            indexOptions.putAll(options);
-        }
-
+        BSONObject indexObj = new BasicBSONObject();
 
         // we are going to build the below message:
         // matcher: { Collection: "foo.bar",
@@ -1434,39 +1419,92 @@ public class DBCollection {
         // For Compatibility with older engine( version <3.4 ), keep sort buffer
         // size in hint. After several versions, we can delete it.
 
-        // prepare sortBufferSize
-        if (indexOptions.containsField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE)) {
-            Object value = indexOptions.get(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+        indexObj.put(SdbConstants.IXM_KEY, indexKeys);
+        indexObj.put(SdbConstants.IXM_NAME, indexName);
+        if (indexAttr != null){
+            indexObj.putAll(indexAttr);
+        }
+
+        matcher.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
+        matcher.put(SdbConstants.FIELD_INDEX, indexObj);
+        if (option != null){
+            matcher.putAll(option);
+        }
+        if (isAsync){
+            matcher.put(SdbConstants.FIELD_NAME_ASYNC, true);
+        }else {
+            matcher.put(SdbConstants.FIELD_NAME_ASYNC, false);
+        }
+
+        // In order to be compatible with the old version engine
+        // hint needs to contain sortBufferSize
+        if (option != null && option.containsField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE)) {
+            Object value = option.get(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+            int sortBufferSize;
             if (value instanceof Integer) {
                 sortBufferSize = (int)value;
             } else {
                 throw new BaseException(SDBError.SDB_INVALIDARG, "sortBufferSize should be int value");
             }
-            indexOptions.removeField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
-        } else {
-            sortBufferSize = SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
+            hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
         }
-        // prepare indexDef
-        indexDef.put(SdbConstants.IXM_NAME, indexName);
-        indexDef.put(SdbConstants.IXM_KEY, indexKeys);
-        indexDef.putAll(indexOptions);
-        // build matcher
-        matcher.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-        matcher.put(SdbConstants.FIELD_INDEX, indexDef);
-        matcher.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
-        // build hint
-        hint.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
-        // build and send message
+
         AdminRequest request = new AdminRequest(AdminCommand.CREATE_INDEX, matcher, hint);
         SdbReply response = sequoiadb.requestAndResponse(request);
         // check return info
         if (response.getFlag() != 0) {
-            String msg = "indexName = " + indexName + ", indexKeys = " + indexKeys.toString() +
-                    ", options = " + options.toString() +
-                    ", matcher = " + matcher.toString() + ", hint = " + hint.toString();
+            String msg = "matcher = " + matcher.toString() + ", hint = " + hint.toString();
             sequoiadb.throwIfError(response, msg);
         }
+        long taskId = 0;
+        if (isAsync){
+            Object obj = sequoiadb.getObjectFromResp(response, SdbConstants.FIELD_NAME_TASKID);
+            if (obj == null){
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            taskId = (Long) obj;
+        }
         sequoiadb.upsertCache(collectionFullName);
+        return taskId;
+    }
+
+    /**
+     * Create a index with name and key.
+     *
+     * @param indexName The index name.
+     * @param indexKeys The index keys in JSON format, like: { "a":1, "b":-1 }.
+     * @param indexAttr The attributes are as below:
+     *                  <ul>
+     *                  <li>Unique : Whether the index elements are unique or not
+     *                  <li>Enforced : Whether the index is enforced unique, this element is meaningful when Unique
+     *                  is true
+     *                  <li>NotNull : Any field of index key should exist and cannot be null when NotNull is true
+     *                  </ul>
+     * @throws BaseException
+     */
+    public void createIndex(String indexName, BSONObject indexKeys, BSONObject indexAttr) throws BaseException {
+        int sortBufferSize ;
+        BSONObject attribute = new BasicBSONObject();
+        if (indexAttr != null){
+            attribute.putAll(indexAttr);
+        }
+        // Compatible with the old version(3.4.3 before)
+        // indexAttr had SortBufferSize field
+        if ( attribute.containsField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE)) {
+            Object value = attribute.get(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+            if (value instanceof Integer) {
+                sortBufferSize = (int)value;
+            } else {
+                throw new BaseException(SDBError.SDB_INVALIDARG, "sortBufferSize should be int value");
+            }
+            attribute.removeField(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE);
+        } else {
+            sortBufferSize = SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE;
+        }
+        BSONObject option = new BasicBSONObject();
+        option.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
+
+        createIndex(indexName, indexKeys, attribute, option);
     }
 
     /**
@@ -1483,11 +1521,12 @@ public class DBCollection {
      */
     public void createIndex(String indexName, BSONObject indexKeys, boolean isUnique, boolean enforced,
                             int sortBufferSize) throws BaseException {
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.IXM_UNIQUE, isUnique);
-        options.put(SdbConstants.IXM_ENFORCED, enforced);
-        options.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
-        createIndex(indexName, indexKeys, options);
+        BSONObject option = new BasicBSONObject();
+        BSONObject indexAttr = new BasicBSONObject();
+        indexAttr.put(SdbConstants.IXM_UNIQUE, isUnique);
+        indexAttr.put(SdbConstants.IXM_ENFORCED, enforced);
+        option.put(SdbConstants.IXM_FIELD_NAME_SORT_BUFFER_SIZE, sortBufferSize);
+        createIndex(indexName, indexKeys, indexAttr, option);
     }
 
     /**
@@ -1546,23 +1585,186 @@ public class DBCollection {
     }
 
     /**
-     * Remove the named index of current collection.
+     * Create the index in current collection
      *
      * @param indexName The index indexName.
+     * @param indexKeys The index keys in JSON format, like: { "a":1, "b":-1}.
+     * @param indexAttr The attributes are as below:
+     *                  <ul>
+     *                  <li>Unique : Whether the index elements are unique or not
+     *                  <li>Enforced : Whether the index is enforced unique, this element is meaningful when Unique
+     *                  is true
+     *                  <li>NotNull : Any field of index key should exist and cannot be null when NotNull is true
+     *                  </ul>
+     * @param option The options are as below:
+     *                  <ul>
+     *                  <li>SortBufferSize : The size(MB) of sort buffer used when creating index, zero means don't
+     *                  use sort buffer.
+     *                  </ul>
      * @throws BaseException If error happens.
      */
-    public void dropIndex(String indexName) throws BaseException {
+    public void createIndex(String indexName, BSONObject indexKeys, BSONObject indexAttr, BSONObject option) throws BaseException {
+        _createIndex(indexName, indexKeys, indexAttr, option, false);
+    }
+
+    /**
+     * Create the index in current collection
+     *
+     * @param indexName The index indexName.
+     * @param indexKeys The index keys in JSON format, like: { "a":1, "b":-1}.
+     * @param indexAttr The attributes are as below:
+     *                  <ul>
+     *                  <li>Unique : Whether the index elements are unique or not
+     *                  <li>Enforced : Whether the index is enforced unique, this element is meaningful when Unique
+     *                  is true
+     *                  <li>NotNull : Any field of index key should exist and cannot be null when NotNull is true
+     *                  </ul>
+     * @param option The options are as below:
+     *                  <ul>
+     *                  <li>SortBufferSize : The size(MB) of sort buffer used when creating index, zero means don't
+     *                  use sort buffer.
+     *                  </ul>
+     * @return The id of current task
+     * @throws BaseException If error happens.
+     */
+    public long createIndexAsync(String indexName, BSONObject indexKeys, BSONObject indexAttr,
+                                 BSONObject option) throws BaseException {
+        return _createIndex(indexName, indexKeys, indexAttr, option, true);
+    }
+
+    private long _dropIndex(String indexName, boolean isAsync) throws BaseException {
+        if (indexName == null || indexName.isEmpty()) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, "index name can not be null or empty");
+        }
         BSONObject index = new BasicBSONObject();
         index.put("", indexName);
 
         BSONObject dropObj = new BasicBSONObject();
         dropObj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
         dropObj.put(SdbConstants.FIELD_INDEX, index);
+        if (isAsync){
+            dropObj.put(SdbConstants.FIELD_NAME_ASYNC, true);
+        }else {
+            dropObj.put(SdbConstants.FIELD_NAME_ASYNC, false);
+        }
 
         AdminRequest request = new AdminRequest(AdminCommand.DROP_INDEX, dropObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, indexName);
+
+        long taskId = 0;
+        if (isAsync){
+            Object obj = sequoiadb.getObjectFromResp(response, SdbConstants.FIELD_NAME_TASKID);
+            if (obj == null){
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            taskId = (Long) obj;
+        }
         sequoiadb.upsertCache(collectionFullName);
+        return taskId;
+    }
+
+    /**
+     * Remove the named index of current collection.
+     *
+     * @param indexName The index indexName.
+     * @throws BaseException If error happens.
+     */
+    public void dropIndex(String indexName) throws BaseException {
+        _dropIndex(indexName, false);
+    }
+
+    /**
+     * Remove the named index of current collection.
+     *
+     * @param indexName The index indexName.
+     * @return The id of current task.
+     * @throws BaseException If error happens.
+     */
+    public long dropIndexAsync(String indexName) throws BaseException {
+        return _dropIndex(indexName, true);
+    }
+
+    /**
+     * Snapshot all of or one of the indexes in current collection
+     *
+     * @param matcher    The matching rule, match all the documents if not provided
+     * @param selector   The selective rule, return the whole document if not provided
+     * @param orderBy    The ordered rule, result set is unordered if not provided
+     * @param hint       The hint rule, the options provided for specific snapshot type format:{
+     *                   '$Options': { <options> } }
+     * @param skipRows   Skip the first numToSkip documents, never skip if this parameter is 0
+     * @param returnRows Return the specified amount of documents, default is -1 for returning all results
+     * @return DBCursor of current query
+     * @throws BaseException If error happens.
+     */
+    public DBCursor snapshotIndexes(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint,
+                                    long skipRows, long returnRows) throws BaseException {
+        BSONObject hintObj = new BasicBSONObject();
+        hintObj.put(SdbConstants.FIELD_COLLECTION, this.collectionFullName);
+        if (hint != null){
+            hintObj.putAll(hint);
+        }
+        return sequoiadb.getSnapshot(Sequoiadb.SDB_SNAP_INDEXES, matcher, selector, orderBy,
+                                     hintObj, skipRows, returnRows);
+    }
+
+    private long _copyIndex(String subClName, String indexName, boolean isAsync) throws BaseException {
+        BSONObject copyObj = new BasicBSONObject();
+        copyObj.put(SdbConstants.FIELD_NAME_NAME,collectionFullName);
+        if (isAsync){
+            copyObj.put(SdbConstants.FIELD_NAME_ASYNC, true);
+        }else {
+            copyObj.put(SdbConstants.FIELD_NAME_ASYNC, false);
+        }
+        if (subClName != null && !subClName.isEmpty()){
+            copyObj.put(SdbConstants.FIELD_NAME_SUBCLNAME, subClName);
+        }
+        if (indexName != null && !indexName.isEmpty()){
+            copyObj.put(SdbConstants.FIELD_NAME_INDEXNAME, indexName);
+        }
+
+        AdminRequest request = new AdminRequest(AdminCommand.COPY_INDEX, copyObj);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        sequoiadb.throwIfError(response);
+
+        long taskId = 0;
+        if (isAsync){
+            Object obj = sequoiadb.getObjectFromResp(response, SdbConstants.FIELD_NAME_TASKID);
+            if (obj == null){
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            taskId = (Long)obj;
+        }
+        sequoiadb.upsertCache(collectionFullName);
+        return taskId;
+    }
+
+    /**
+     * copy indexes from main-collection to sub-collection
+     *
+     * @param subClName The sub-collection name, if it is null or an empty string, it means all sub-collections of
+     *                   the main-collection
+     * @param indexName The index indexName, if it is null or an empty string, it means all indexes of the
+     *                   main-collection
+     * @throws BaseException If error happens.
+     */
+    public void copyIndex(String subClName, String indexName) throws BaseException {
+        _copyIndex( subClName, indexName, false);
+    }
+
+    /**
+     * copy indexes from main-collection to sub-collection
+     *
+     * @param subClName The sub-collection name, if it is null or an empty string, it means all sub-collections of
+     *                   the main-collection
+     * @param indexName The index indexName, if it is null or an empty string, it means all indexes of the
+     *                   main-collection
+     * @return The id of current task.
+     * @throws BaseException If error happens.
+     */
+    public long copyIndexAsync(String subClName, String indexName) throws BaseException {
+        return _copyIndex( subClName, indexName, true);
     }
 
     /**

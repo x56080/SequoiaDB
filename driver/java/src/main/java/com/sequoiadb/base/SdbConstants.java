@@ -107,6 +107,7 @@ final class SdbConstants {
     final static String FIELD_NAME_START_VALUE = "StartValue";
     final static String FIELD_NAME_EXPECT_VALUE = "ExpectValue";
     final static String FIELD_NAME_CURRENT_VALUE = "CurrentValue";
+    final static String FIELD_NAME_INDEXNAME = "IndexName";
 
     final static String FIELD_NAME_ADDRESS = "Address";
     final static String FIELD_NAME_USER = "User";

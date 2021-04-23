@@ -39,6 +39,8 @@ final class AdminCommand {
     final static String GET_INDEXES = PREFIX + "get indexes";
     final static String CREATE_INDEX = PREFIX + "create index";
     final static String DROP_INDEX = PREFIX + "drop index";
+    final static String COPY_INDEX = PREFIX + "copy index";
+    final static String SNAPSHOT_INDEXES = PREFIX + "snapshot indexes";
 
     final static String GET_COUNT = PREFIX + "get count";
     final static String GET_QUERYMETA = PREFIX + "get querymeta";
@@ -102,6 +104,8 @@ final class AdminCommand {
     final static String SNAP_LATCHWAITS  = PREFIX + "snapshot latchwaits";
     final static String SNAP_LOCKWAITS  = PREFIX + "snapshot lockwaits";
     final static String SNAP_INDEXSTATS = PREFIX + "snapshot index statistics";
+    final static String SNAP_TASKS = PREFIX + "snapshot tasks";
+    final static String SNAP_INDEXES = PREFIX + "snapshot indexes";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
 

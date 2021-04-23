@@ -8,19 +8,23 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.ConstantsInsert;
+import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestIndex {
     private static Sequoiadb sdb;
     private static CollectionSpace cs;
     private static DBCollection cl;
-    private String idxName = "haha";
+    private static DBCollection mainCL;
+    private static DBCollection subCL1;
+    private static DBCollection subCL2;
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
@@ -47,6 +51,14 @@ public class TestIndex {
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
         List<BSONObject> list = ConstantsInsert.createRecordList(100);
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
+
+        BSONObject option = new BasicBSONObject();
+        option.put("IsMainCL",true);
+        option.put("ShardingKey", new BasicBSONObject(Constants.SHARDING_KEY,1));
+        option.put("ShardingType","range");
+        mainCL = cs.createCollection(Constants.TEST_CL_MAIN_NAME, option);
+        subCL1 = cs.createCollection(Constants.TEST_CL_SUB_NAME_1);
+        subCL2 = cs.createCollection(Constants.TEST_CL_SUB_NAME_2);
     }
 
     @After
@@ -57,12 +69,39 @@ public class TestIndex {
 
     @Test
     public void testCreateIndex() {
+        String indexName = "testCreateIndex";
         BasicBSONObject key = new BasicBSONObject("a", 1);
-        cl.createIndex(idxName, key, false, false);
 
-        DBCursor cursor = cl.getIndex(idxName);
-        assertTrue(cursor.hasNext());
-        cl.dropIndex(idxName);
+        // case 1: createIndex(String indexName, BSONObject indexKeys, boolean isUnique, boolean enforced)
+        cl.createIndex(indexName, key, false, false);
+        Assert.assertNotNull(cl.getIndexInfo(indexName));
+        cl.dropIndex(indexName);
+
+        // case 2: createIndex(String indexName, BSONObject indexKeys, BSONObject indexAttr, BSONObject option)
+        cl.createIndex(indexName, key, null, null);
+        Assert.assertNotNull(cl.getIndexInfo(indexName));
+        cl.dropIndex(indexName);
+
+        BSONObject indexAttr = new BasicBSONObject();
+        indexAttr.put("Unique",false);
+        indexAttr.put("Enforced",false);
+        indexAttr.put("NotNull",false);
+        BSONObject option = new BasicBSONObject();
+        option.put("SortBufferSize", 100);
+        cl.createIndex(indexName, key, indexAttr, option);
+        Assert.assertNotNull(cl.getIndexInfo(indexName));
+        cl.dropIndex(indexName);
+
+        try {
+            indexAttr.put("SortBufferSize", 100);
+            cl.createIndex(indexName, key, indexAttr, null);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 3: createIndexAsync(String indexName, BSONObject indexKeys, BSONObject indexAttr, BSONObject option
+        long taskId = cl.createIndexAsync(indexName, key, null, null);
+        checkTask(taskId, "TaskTypeDesc", "Create index");
     }
 
     @Test
@@ -140,5 +179,161 @@ public class TestIndex {
         Assert.assertNotNull(indexObj);
         System.out.println("Case4 index is: " + indexObj.toString());
         cl.dropIndex(name4);
+    }
+
+    @Test
+    public void testSnapshotIndexes(){
+        String indexName = "testSnapshotIndex";
+        cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
+
+        BSONObject condition = new BasicBSONObject();
+        condition.put("IndexDef", new BasicBSONObject("name", indexName));
+        DBCursor cursor = cl.snapshotIndexes(null, null, null, null, 0, -1);
+        assertTrue(cursor.hasNext());
+        System.out.println(cursor.getNext());
+    }
+
+    @Test
+    public void testCopyIndex(){
+        String indexName1 = "testCopyIndexA";
+        String indexName2 = "testCopyIndexB";
+        String errorCLName = "errorCL";
+        String errorIndexName = "errorIndex";
+
+        // create index in main-cl
+        mainCL.createIndex(indexName1, new BasicBSONObject(indexName1, 1), null);
+        mainCL.createIndex(indexName2, new BasicBSONObject(indexName2, 1), null);
+
+        // attach sub-cl
+        BSONObject obj = new BasicBSONObject();
+        obj.put("LowBound", new BasicBSONObject(Constants.SHARDING_KEY,0));
+        obj.put("UpBound", new BasicBSONObject(Constants.SHARDING_KEY,1000));
+        mainCL.attachCollection(subCL1.getFullName(), obj);
+        obj.put("LowBound", new BasicBSONObject(Constants.SHARDING_KEY,1000));
+        obj.put("UpBound", new BasicBSONObject(Constants.SHARDING_KEY,2000));
+        mainCL.attachCollection(subCL2.getFullName(), obj);
+
+        // case 1: copyIndex(null, "")
+        mainCL.copyIndex(null, "");
+        subCL1.dropIndex(indexName1);
+        subCL1.dropIndex(indexName2);
+        subCL2.dropIndex(indexName1);
+        subCL2.dropIndex(indexName2);
+
+        // case 2: copyIndex("", null)
+        mainCL.copyIndex("", null);
+        subCL1.dropIndex(indexName1);
+        subCL1.dropIndex(indexName2);
+        subCL2.dropIndex(indexName1);
+        subCL2.dropIndex(indexName2);
+
+        // case 3: copyIndex(sub_cl, "")
+        mainCL.copyIndex(subCL1.getFullName(), null);
+        subCL1.dropIndex(indexName1);
+        subCL1.dropIndex(indexName2);
+        try {
+            subCL2.dropIndex(indexName1);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 4: copyIndex(null, indexName)
+        mainCL.copyIndex( null, indexName1);
+        subCL1.dropIndex(indexName1);
+        subCL2.dropIndex(indexName1);
+        try {
+            subCL1.dropIndex(indexName2);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 5: copIndex(sub-cl, indexName)
+        mainCL.copyIndex( subCL1.getFullName(), indexName1);
+        subCL1.dropIndex(indexName1);
+
+        // case 6: copyIndex(errorCL, indexName)
+        try {
+            mainCL.copyIndex( errorCLName, indexName1);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_DMS_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 7: copyIndex(sub_cl, errorIndex)
+        try {
+            mainCL.copyIndex( subCL1.getFullName(), errorIndexName);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 8: copyIndexAsync
+        long taskId;
+        taskId = mainCL.copyIndexAsync( subCL1.getFullName(), indexName1);
+        checkTask(taskId, "TaskTypeDesc", "Copy index");
+
+        // case 9: copyIndexAsync(sub_cl, errorIndex)
+        try {
+            mainCL.copyIndexAsync( subCL1.getFullName(), errorIndexName);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        mainCL.detachCollection(subCL1.getFullName());
+        mainCL.detachCollection(subCL2.getFullName());
+        mainCL.dropIndex(indexName1);
+        mainCL.dropIndex(indexName2);
+    }
+
+    @Test
+    public void testDropIndex(){
+        String indexName = "testDropIndex";
+        String errorIndex = "testDropIndexError";
+
+        // case 1: dropIndex(null)
+        try {
+            cl.dropIndex(null);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 2: dropIndex("")
+        try {
+            cl.dropIndex("");
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 3: dropIndex(indexName)
+        cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
+        cl.dropIndex(indexName);
+
+        // case 4: dropIndex(errorIndex)
+        try {
+            cl.dropIndex(errorIndex);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+
+        // case 5: dropIndexAsync()
+        long taskId;
+        cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
+        taskId = cl.dropIndexAsync(indexName);
+        checkTask(taskId, "TaskTypeDesc", "Drop index");
+
+        // case 6: dropIndexAsync(errorIndex)
+        try {
+            cl.dropIndexAsync(errorIndex);
+        }catch (BaseException e){
+            assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(), e.getErrorCode());
+        }
+    }
+
+    private void checkTask(long taskId, String fieldName, String expectedValue){
+        DBCursor cursor = sdb.listTasks(new BasicBSONObject("TaskID", taskId), null, null, null);
+        if (!cursor.hasNext()){
+            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+        }
+        BSONObject obj = cursor.getNext();
+        System.out.println(obj);
+        assertEquals(expectedValue, obj.get(fieldName));
     }
 }

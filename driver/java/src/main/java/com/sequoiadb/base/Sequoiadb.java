@@ -130,6 +130,8 @@ public class Sequoiadb implements Closeable {
     //public final static int SDB_LIST_RESERVED3 = 20 ;
     //public final static int SDB_LIST_RESERVED4 = 21 ;
     public final static int SDB_LIST_DATASOURCES = 22;
+    //public final static int SDB_LIST_RESERVED6 = 23 ;
+    //public final static int SDB_LIST_RESERVED7 = 24 ;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -155,6 +157,9 @@ public class Sequoiadb implements Closeable {
     public final static int SDB_SNAP_LATCHWAITS = 19;
     public final static int SDB_SNAP_LOCKWAITS = 20;
     public final static int SDB_SNAP_INDEXSTATS = 21;
+    public final static int SDB_SNAP_TASKS = 22;
+    //public final static int SDB_SNAP_RESERVED4 = 23;
+    public final static int SDB_SNAP_INDEXES = 24;
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -1319,6 +1324,8 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1370,6 +1377,8 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                 <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                 <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                 <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                 <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1408,6 +1417,8 @@ public class Sequoiadb implements Closeable {
      *                   <dt>Sequoiadb.SDB_SNAP_LATCHWAITS : Get the snapshot of latch waits
      *                   <dt>Sequoiadb.SDB_SNAP_LOCKWAITS : Get the snapshot of lock waits
      *                   <dt>Sequoiadb.SDB_SNAP_INDEXSTATS : Get the snapshot of index statistics
+     *                   <dt>Sequoiadb.SDB_SNAP_TASKS : Get the snapshot of tasks
+     *                   <dt>Sequoiadb.SDB_SNAP_INDEXES : Get the snapshot of indexes
      *                   </dl>
      * @param matcher    the matching rule, match all the documents if null
      * @param selector   the selective rule, return the whole document if null
@@ -1486,6 +1497,10 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_LOCKWAITS;
             case SDB_SNAP_INDEXSTATS:
                 return AdminCommand.SNAP_INDEXSTATS;
+            case SDB_SNAP_TASKS:
+                return AdminCommand.SNAP_TASKS;
+            case SDB_SNAP_INDEXES:
+                return AdminCommand.SNAP_INDEXES;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG,
                         String.format("Invalid snapshot type: %d", snapType));
@@ -2918,6 +2933,24 @@ public class Sequoiadb implements Closeable {
             cleanRequestBuff();
             connection.close();
         }
+    }
+
+    protected Object getObjectFromResp(SdbReply response, String targetField){
+        BSONObject result;
+        DBCursor cursor = new DBCursor(response, this);
+        try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            result = cursor.getNext();
+        } finally {
+            cursor.close();
+        }
+        boolean flag = result.containsField(targetField);
+        if (!flag) {
+            throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+        }
+        return result.get(targetField);
     }
 
     /**
