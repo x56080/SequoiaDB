@@ -2,7 +2,7 @@
 Description   : seqDB-24073:创建/使用/获取/删除用户
 Author        : XiaoNi Huang
 CreateTime    : 2021.03.31
-LastEditTime  : 2021.04.13
+LastEditTime  : 2021.04.23
 LastEditors   : XiaoNi Huang
 '''
 #!/usr/bin/python3.5
@@ -17,7 +17,7 @@ class TestAuth24073( utils.TestBase ):
       # 初始化
       self.userName = 'pymongo_24073'
       self.dbName = self.COMMDBNAME
-      self.clName = 'pymongo_23066'
+      self.clName = 'pymongo_24073'
       # 创建client，获取cl对象
       self.db = self.client[ self.dbName ]
       self.cl = self.db[ self.clName ]
